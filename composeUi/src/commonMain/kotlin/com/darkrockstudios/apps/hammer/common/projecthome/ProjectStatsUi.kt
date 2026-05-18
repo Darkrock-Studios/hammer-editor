@@ -88,6 +88,7 @@ fun ProjectStatsUi(
 			state = state,
 			isWide = isWide,
 			onShowLongestScene = component::showLongestScene,
+			onShowLastEditedScene = component::showLastEditedScene,
 		)
 
 		if (state.dailyWordTotals.isNotEmpty() || state.encyclopediaEntriesByType.isNotEmpty() || state.topAppearances.isNotEmpty()) {
@@ -185,6 +186,60 @@ private fun DashboardHeader(
 			text = stringResource(Res.string.project_home_stat_created, state.created),
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
+	}
+}
+
+@Composable
+private fun SceneCallout(
+	label: String,
+	sceneName: String,
+	sceneId: Int?,
+	footnote: String?,
+	onClick: (() -> Unit)?,
+) {
+	val valueStyle = MaterialTheme.typography.titleLarge
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.hdInteractiveRow(onClick = onClick),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(10.dp),
+	) {
+		Column(
+			modifier = Modifier.weight(1f),
+			verticalArrangement = Arrangement.spacedBy(4.dp),
+		) {
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.SpaceBetween,
+			) {
+				HdMonoLabel(
+					text = label,
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
+				if (sceneId != null) {
+					HdEntityId(prefix = "SCN", id = sceneId, padTo = 2)
+				}
+			}
+			Text(
+				text = sceneName,
+				style = valueStyle,
+				color = MaterialTheme.colorScheme.onSurface,
+				maxLines = 2,
+				overflow = TextOverflow.Ellipsis,
+			)
+			if (footnote != null) {
+				Text(
+					text = footnote,
+					style = MaterialTheme.typography.bodySmall,
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
+			}
+		}
+		if (onClick != null) {
+			OpenArrow(style = valueStyle)
+		}
 	}
 }
 
@@ -345,6 +400,7 @@ private fun StructureSection(
 	state: ProjectHome.State,
 	isWide: Boolean,
 	onShowLongestScene: () -> Unit,
+	onShowLastEditedScene: () -> Unit,
 ) {
 	val sceneCount = state.numberOfScenes
 	val chapterCount = state.wordsByChapter.size
@@ -374,32 +430,28 @@ private fun StructureSection(
 				else null,
 			)
 		}
-		val longestScene: @Composable (Modifier) -> Unit = { mod ->
-			val longestName = state.longestSceneName
-			val canOpen = state.longestSceneId != null
-			val rowModifier = mod.hdInteractiveRow(onClick = if (canOpen) onShowLongestScene else null)
-			Row(
-				modifier = rowModifier,
-				verticalAlignment = Alignment.CenterVertically,
-				horizontalArrangement = Arrangement.spacedBy(10.dp),
-			) {
-				HdStatBlock(
-					label = stringResource(Res.string.project_home_stat_longest_scene),
-					value = longestName ?: stringResource(Res.string.project_home_stat_longest_scene_empty),
-					valueStyle = MaterialTheme.typography.headlineMedium,
-					valueMaxLines = 2,
-					subtitle = if (state.longestSceneWords > 0)
-						stringResource(
-							Res.string.project_home_stat_longest_scene_words,
-							state.longestSceneWords.formatDecimalSeparator()
-						)
-					else null,
-					modifier = Modifier.weight(1f, fill = false),
-				)
-				if (canOpen) {
-					OpenArrow(style = MaterialTheme.typography.headlineMedium)
-				}
-			}
+		val longestScene: @Composable () -> Unit = {
+			SceneCallout(
+				label = stringResource(Res.string.project_home_stat_longest_scene),
+				sceneName = state.longestSceneName ?: stringResource(Res.string.project_home_stat_longest_scene_empty),
+				sceneId = state.longestSceneId,
+				footnote = if (state.longestSceneWords > 0)
+					stringResource(
+						Res.string.project_home_stat_longest_scene_words,
+						state.longestSceneWords.formatDecimalSeparator()
+					)
+				else null,
+				onClick = if (state.longestSceneId != null) onShowLongestScene else null,
+			)
+		}
+		val lastEditedScene: @Composable (String) -> Unit = { name ->
+			SceneCallout(
+				label = stringResource(Res.string.project_home_stat_last_edited_scene),
+				sceneName = name,
+				sceneId = state.lastEditedSceneId,
+				footnote = null,
+				onClick = onShowLastEditedScene,
+			)
 		}
 		val notes: @Composable () -> Unit = {
 			HdStatBlock(
@@ -444,7 +496,14 @@ private fun StructureSection(
 				cells = listOf<@Composable () -> Unit>(scenes, avgPerScene, notes, events),
 			)
 		}
-		longestScene(Modifier.fillMaxWidth())
+		val sceneCallouts: List<@Composable () -> Unit> = buildList {
+			state.lastEditedSceneName?.let { name -> add { lastEditedScene(name) } }
+			add(longestScene)
+		}
+		HdHairlineGrid(
+			columns = if (isWide && sceneCallouts.size > 1) 2 else 1,
+			cells = sceneCallouts,
+		)
 
 		if (state.wordsByChapter.isNotEmpty()) {
 			val chapterStats = remember(state.wordsByChapter) {

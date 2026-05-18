@@ -22,6 +22,9 @@ data class ProjectStatistics(
 	val longestSceneId: Int? = null,
 	val longestSceneName: String? = null,
 	val longestSceneWords: Int = 0,
+	val lastEditedSceneId: Int? = null,
+	val lastEditedSceneName: String? = null,
+	val lastEditedAt: Instant? = null,
 	val shortestSceneWords: Int = 0,
 	val medianSceneWords: Int = 0,
 	val sceneWordsStdDev: Int = 0,
@@ -45,6 +48,6 @@ data class ProjectStatistics(
 	val schemaVersion: Int = 0,
 ) {
 	companion object {
-		const val CURRENT_SCHEMA_VERSION = 4
+		const val CURRENT_SCHEMA_VERSION = 5
 	}
 }

@@ -31,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.*
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 class SceneEditorRepositoryArchiveTest : BaseTest() {
@@ -120,6 +121,7 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
+			clock = Clock.System,
 		)
 	}
 

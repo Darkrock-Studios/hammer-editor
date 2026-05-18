@@ -41,6 +41,8 @@ class EntityHashSensitivityTest {
 			archived = false,
 			confirmedReferences = emptySet(),
 			dismissedReferences = emptySet(),
+			created = Instant.fromEpochMilliseconds(1_000_000),
+			lastEdited = Instant.fromEpochMilliseconds(2_000_000),
 		)
 		val mutations = mapOf(
 			"id" to base.copy(id = 999),
@@ -55,6 +57,8 @@ class EntityHashSensitivityTest {
 			"confirmedReferences" to base.copy(confirmedReferences = setOf(7)),
 			"dismissedReferences" to base.copy(dismissedReferences = setOf(7)),
 			"tags" to base.copy(tags = setOf("important")),
+			"created" to base.copy(created = Instant.fromEpochMilliseconds(9_000_000)),
+			"lastEdited" to base.copy(lastEdited = Instant.fromEpochMilliseconds(9_000_000)),
 		)
 		assertEveryFieldAffectsHash(base, mutations, ApiProjectEntity.SceneEntity::class)
 	}

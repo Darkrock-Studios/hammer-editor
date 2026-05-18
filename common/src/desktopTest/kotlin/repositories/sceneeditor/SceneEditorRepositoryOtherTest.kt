@@ -44,6 +44,7 @@ import org.junit.jupiter.api.Test
 import utils.BaseTest
 import utils.getPrivateProperty
 import kotlin.test.*
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 class SceneEditorRepositoryOtherTest : BaseTest() {
@@ -110,7 +111,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		coEvery { idRepository.claimNextId() } answers { claimId() }
 		coEvery { idRepository.findNextId() } answers { }
 
-		metadataRepository = mockk()
+		metadataRepository = mockk(relaxUnitFun = true)
 		every { metadataRepository.loadMetadata(any()) } returns
 			ProjectMetadata(
 				info = Info(
@@ -165,6 +166,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
+			clock = Clock.System,
 		)
 	}
 

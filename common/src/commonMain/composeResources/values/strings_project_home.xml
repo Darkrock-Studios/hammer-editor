@@ -20,6 +20,7 @@
 	<string name="project_home_stat_longest_scene">Longest Scene</string>
 	<string name="project_home_stat_longest_scene_words">%1$s words</string>
 	<string name="project_home_stat_longest_scene_empty">No scenes yet</string>
+	<string name="project_home_stat_last_edited_scene">Last Edited</string>
 	<string name="project_home_stat_scene_lengths">Scene Lengths</string>
 	<string name="project_home_stat_scene_median">Median</string>
 	<string name="project_home_stat_scene_shortest">Shortest</string>

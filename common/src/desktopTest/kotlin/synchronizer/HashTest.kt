@@ -10,7 +10,8 @@ class HashTest {
 		val hash = EntityHasher.hashNote(
 			id = 1,
 			created = Instant.fromEpochSeconds(123),
-			content = "this is some tet text"
+			content = "this is some tet text",
+			tags = emptySet(),
 		)
 
 		println("hash: $hash")

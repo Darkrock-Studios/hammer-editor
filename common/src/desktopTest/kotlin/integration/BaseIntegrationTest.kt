@@ -22,6 +22,7 @@ import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import utils.BaseTest
+import kotlin.time.Clock
 
 /**
  * Base class for integration tests that use FakeFileSystem and real implementations.
@@ -129,6 +130,7 @@ abstract class BaseIntegrationTest : BaseTest() {
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
+			clock = Clock.System,
 		)
 	}
 

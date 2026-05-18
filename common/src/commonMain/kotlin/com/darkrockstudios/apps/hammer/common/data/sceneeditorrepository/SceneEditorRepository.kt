@@ -41,6 +41,7 @@ import org.jetbrains.compose.resources.getString
 import org.koin.core.component.KoinComponent
 import org.koin.core.scope.Scope
 import org.koin.core.scope.ScopeCallback
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
 class SceneEditorRepository(
@@ -53,6 +54,7 @@ class SceneEditorRepository(
 	private val statisticsRepository: StatisticsRepository,
 	private val referenceIndexRepository: ReferenceIndexRepository,
 	private val writingSessionTracker: WritingSessionTracker,
+	private val clock: Clock,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
@@ -142,6 +144,8 @@ class SceneEditorRepository(
 				confirmedReferences = metadata?.confirmedReferences ?: emptySet(),
 				dismissedReferences = metadata?.dismissedReferences ?: emptySet(),
 				tags = metadata?.tags ?: emptySet(),
+				created = metadata?.created,
+				lastEdited = metadata?.lastEdited,
 			)
 			syncDataRepository.markEntityAsDirty(scene.id, hash)
 		}
@@ -621,7 +625,12 @@ class SceneEditorRepository(
 				content = content,
 				outline = metadata?.outline ?: "",
 				notes = metadata?.notes ?: "",
+				archived = scene.archived,
+				confirmedReferences = metadata?.confirmedReferences ?: emptySet(),
+				dismissedReferences = metadata?.dismissedReferences ?: emptySet(),
 				tags = metadata?.tags ?: emptySet(),
+				created = metadata?.created,
+				lastEdited = metadata?.lastEdited,
 			)
 			syncDataRepository.markEntityAsDirty(scene.id, hash)
 		}
@@ -907,6 +916,14 @@ class SceneEditorRepository(
 				SceneItem.Type.Root -> throw IllegalArgumentException("Cannot create Root")
 			}
 
+			if (type == SceneItem.Type.Scene) {
+				val now = clock.now()
+				sceneMetadataDatasource.storeMetadata(
+					SceneMetadata(created = now, lastEdited = now),
+					sceneId,
+				)
+			}
+
 			// Correct order digit paddings when injecting a new scene/group
 			if (forceOrder != null) {
 				updateSceneOrderMagnitudeOnly(parent?.id ?: SceneItem.ROOT_ID)
@@ -1066,6 +1083,9 @@ class SceneEditorRepository(
 				newContent = buffer.content.coerceMarkdown(),
 				source = buffer.source,
 			)
+			if (buffer.source == UpdateSource.Editor) {
+				recordSceneActivity(sceneItem.id)
+			}
 		}
 
 		return success
@@ -1077,7 +1097,26 @@ class SceneEditorRepository(
 			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
 			return false
 		}
-		return sceneDatasource.storeTempSceneBuffer(buffer)
+		val success = sceneDatasource.storeTempSceneBuffer(buffer)
+		if (success && buffer.source == UpdateSource.Editor) {
+			recordSceneActivity(sceneItem.id)
+		}
+		return success
+	}
+
+	private suspend fun recordSceneActivity(sceneId: Int) {
+		val now = clock.now()
+		val existing = sceneMetadataDatasource.loadMetadata(sceneId)
+		// Backfill `created` for scenes authored before SceneMetadata had the field.
+		val createdFallback = existing?.created ?: getMetadata().info.created
+		val updated = (existing ?: SceneMetadata()).copy(
+			created = createdFallback,
+			lastEdited = now,
+		)
+		sceneMetadataDatasource.storeMetadata(updated, sceneId)
+		// Refresh open editors so their snapshot has the new timestamps.
+		_metadataUpdateFlow.tryEmit(sceneId to updated)
+		statisticsRepository.markDirty()
 	}
 
 	private fun clearTempScene(sceneItem: SceneItem) = sceneDatasource.clearTempScene(sceneItem)

@@ -210,6 +210,12 @@ class ProjectHomeComponent(
 		onShowScene(sceneItem)
 	}
 
+	override fun showLastEditedScene() {
+		val id = _state.value.lastEditedSceneId ?: return
+		val sceneItem = sceneEditorRepository.getSceneItemFromId(id) ?: return
+		onShowScene(sceneItem)
+	}
+
 	override fun showEntry(entry: EntryAppearance) {
 		val def = encyclopediaRepository.findEntryDef(entry.entryId) ?: return
 		onShowEntry(def)
@@ -245,6 +251,14 @@ class ProjectHomeComponent(
 		listenForSyncEvents()
 	}
 
+	override fun onResume() {
+		super.onResume()
+		// Stats are marked dirty on every scene save; trigger a recalc so
+		// the dashboard reflects edits made since this home was last shown
+		// (e.g. user popped back from the editor with new lastEdited data).
+		scope.launch { statisticsService.loadStatistics() }
+	}
+
 	private fun subscribeToStats() {
 		scope.launch {
 			statisticsService.statsFlow.collect { stats ->
@@ -262,6 +276,8 @@ class ProjectHomeComponent(
 							longestSceneId = stats.longestSceneId,
 							longestSceneName = stats.longestSceneName,
 							longestSceneWords = stats.longestSceneWords,
+							lastEditedSceneId = stats.lastEditedSceneId,
+							lastEditedSceneName = stats.lastEditedSceneName,
 							shortestSceneWords = stats.shortestSceneWords,
 							medianSceneWords = stats.medianSceneWords,
 							sceneWordsStdDev = stats.sceneWordsStdDev,

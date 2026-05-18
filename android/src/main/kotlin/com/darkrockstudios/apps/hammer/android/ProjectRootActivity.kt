@@ -38,6 +38,7 @@ import com.arkivanov.essenty.statekeeper.getSerializable
 import com.arkivanov.essenty.statekeeper.putSerializable
 import com.darkrockstudios.apps.hammer.android.shortcuts.ProjectShortcutsManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
+import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
@@ -101,6 +102,7 @@ class ProjectRootActivity : AppCompatActivity() {
 				shortcutsManager.refresh()
 			}
 
+			val deepLink = resolveDeepLink(intent)
 			val component = retainedComponent { componentContext ->
 				ProjectRootComponent(
 					componentContext = componentContext,
@@ -108,6 +110,7 @@ class ProjectRootActivity : AppCompatActivity() {
 					addMenu = { /* Not needed on Android */ },
 					removeMenu = { /* Not needed on Android */ },
 					onCloseProject = { projectRoot?.requestClose() },
+					initialDeepLink = deepLink,
 				)
 			}
 			projectRoot = component
@@ -145,6 +148,11 @@ class ProjectRootActivity : AppCompatActivity() {
 		val match = projectsRepository.getProjects().firstOrNull { it.name == name }
 		if (match == null) Napier.w("Project shortcut for missing project: $name")
 		return match
+	}
+
+	private fun resolveDeepLink(intent: Intent): ProjectDeepLink? {
+		val sceneId = intent.getIntExtra(EXTRA_DEEP_LINK_SCENE_ID, -1)
+		return if (sceneId > 0) ProjectDeepLink.Scene(sceneId) else null
 	}
 
 	private suspend fun bumpLastAccessed(projectDef: ProjectDef) = withContext(Dispatchers.IO) {
@@ -262,12 +270,18 @@ class ProjectRootActivity : AppCompatActivity() {
 	companion object {
 		const val EXTRA_PROJECT = "project"
 		const val EXTRA_PROJECT_NAME = "project_name"
+		const val EXTRA_DEEP_LINK_SCENE_ID = "deep_link_scene_id"
 		const val ACTION_OPEN_PROJECT = "com.darkrockstudios.apps.hammer.android.OPEN_PROJECT"
 
-		fun createIntent(context: Context, projectDef: ProjectDef): Intent {
+		fun createIntent(
+			context: Context,
+			projectDef: ProjectDef,
+			deepLinkSceneId: Int? = null,
+		): Intent {
 			val intent = Intent(context, ProjectRootActivity::class.java)
 			val extras = Bundle().apply {
 				putSerializable(EXTRA_PROJECT, projectDef, ProjectDef.serializer())
+				if (deepLinkSceneId != null) putInt(EXTRA_DEEP_LINK_SCENE_ID, deepLinkSceneId)
 			}
 			intent.putExtras(extras)
 			return intent

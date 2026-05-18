@@ -41,6 +41,7 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 	fun showGlobalSearch()
 	fun showGlobalSearchForTag(tag: String)
 	fun showLongestScene()
+	fun showLastEditedScene()
 	fun showEntry(entry: EntryAppearance)
 	fun supportsBackup(): Boolean
 	fun createBackup(callback: (ProjectBackupDef?) -> Unit)
@@ -65,6 +66,8 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val longestSceneId: Int? = null,
 		val longestSceneName: String? = null,
 		val longestSceneWords: Int = 0,
+		val lastEditedSceneId: Int? = null,
+		val lastEditedSceneName: String? = null,
 		val shortestSceneWords: Int = 0,
 		val medianSceneWords: Int = 0,
 		val sceneWordsStdDev: Int = 0,
