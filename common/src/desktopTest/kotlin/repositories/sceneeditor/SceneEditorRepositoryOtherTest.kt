@@ -436,6 +436,29 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		assertNull(scenePostDelete, "Scene still existed in tree")
 	}
 
+	// Regression: a SceneMetadataPanelComponent bound to a scene that gets removed
+	// from the tree (e.g. by sync or another component) used to crash with
+	// NodeNotFound when its onSceneTreeUpdate refresh hit getSceneFilePath.
+	@Test
+	fun `getSceneFilePathOrNull returns null for missing scene id`() = runTest {
+		configure(PROJECT_2_NAME)
+
+		repo.initializeSceneEditor()
+
+		val sceneId = 6
+		val scenePreDelete = repo.getSceneItemFromId(sceneId)
+		assertNotNull(scenePreDelete)
+		assertNotNull(repo.getSceneFilePathOrNull(sceneId), "Should resolve while scene exists")
+
+		val deleted = repo.deleteScene(scenePreDelete)
+		assertTrue(deleted)
+
+		assertNull(
+			repo.getSceneFilePathOrNull(sceneId),
+			"Should return null once scene is gone from the tree",
+		)
+	}
+
 	@Test
 	fun `Delete Scene, In Group`() = runTest {
 		configure(PROJECT_2_NAME)

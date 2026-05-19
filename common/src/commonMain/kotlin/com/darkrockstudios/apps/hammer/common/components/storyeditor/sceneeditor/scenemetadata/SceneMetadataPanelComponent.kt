@@ -173,7 +173,9 @@ class SceneMetadataPanelComponent(
 	}
 
 	private suspend fun loadSceneData() {
-		val path = sceneEditor.getSceneFilePath(originalSceneItem.id)
+		// Scene may have been removed from the tree (sync, delete from another component)
+		// between subscribing to updates and this refresh; bail rather than crashing.
+		val path = sceneEditor.getSceneFilePathOrNull(originalSceneItem.id) ?: return
 		val filename = sceneEditor.getSceneFilename(path)
 		_state.getAndUpdate {
 			it.copy(

@@ -557,6 +557,24 @@ class SceneEditorRepository(
 		return fullPath.toHPath()
 	}
 
+	fun getSceneFilePathOrNull(sceneId: Int): HPath? {
+		val branch = sceneTree.getBranchOrNull(excludeLeaf = false) { it.id == sceneId }
+			?: return null
+
+		val scenePathSegment = getSceneDirectory().toOkioPath()
+		val pathSegments = branch
+			.map { node -> node.value }
+			.filter { sceneItem -> !sceneItem.isRootScene }
+			.map { sceneItem -> getSceneFileName(sceneItem) }
+
+		var fullPath: Path = scenePathSegment
+		pathSegments.forEach { segment ->
+			fullPath = fullPath.div(segment)
+		}
+
+		return fullPath.toHPath()
+	}
+
 	suspend fun renameScene(sceneItem: SceneItem, newName: String): Boolean {
 		if (validateSceneName(newName).isFailure) return false
 
