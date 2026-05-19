@@ -160,7 +160,11 @@ class SceneEditorRepository(
 		}
 
 		groups.forEach { node ->
-			updateSceneOrder(node.value.id)
+			try {
+				updateSceneOrder(node.value.id)
+			} catch (e: IOException) {
+				Napier.e("Failed to clean up scene order for group ${node.value.id}", e)
+			}
 		}
 	}
 
@@ -624,7 +628,7 @@ class SceneEditorRepository(
 
 					sceneDatasource.moveScene(sourcePath = existingPath, targetPath = newPath)
 				} catch (e: IOException) {
-					throw IOException("existingPath: $existingPath\nnewPath: $newPath\n${e}\n${e.message}")
+					throw IOException("existingPath: $existingPath, newPath: $newPath", e)
 				}
 			}
 		}
@@ -803,7 +807,7 @@ class SceneEditorRepository(
 					}
 					sceneDatasource.moveScene(sourcePath = existingPath, targetPath = newPath)
 				} catch (e: IOException) {
-					throw IOException("existingPath: $existingPath\nnewPath: $newPath\n${e}\n${e.message}")
+					throw IOException("existingPath: $existingPath, newPath: $newPath", e)
 				}
 			}
 		}

@@ -30,12 +30,10 @@ import com.darkrockstudios.apps.hammer.create_project_error_blank
 import com.darkrockstudios.apps.hammer.create_project_error_null_filename
 import createProject
 import getProject1Def
-import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkObject
+import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
+import okio.IOException
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.AfterEach
@@ -230,6 +228,32 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 				}
 			}
 		}
+	}
+
+	// Regression: a single failing rename during cleanupSceneOrder used to throw all
+	// the way out of Activity.onCreate, crashing the app at launch. The cleanup pass
+	// is best-effort — the project should still open if rename fails.
+	@Test
+	fun `Initialize survives IO failure during scene order cleanup`() = runTest {
+		configure(OUT_OF_ORDER_PROJECT_NAME)
+
+		val spy = spyk(sceneDatasource)
+		every { spy.moveScene(any(), any()) } throws IOException("simulated rename failure")
+		sceneDatasource = spy
+		repo = SceneEditorRepository(
+			projectDef = projectDef,
+			syncDataRepository = syncDataRepository,
+			idRepository = idRepository,
+			projectMetadataDatasource = metadataRepository,
+			sceneMetadataDatasource = metadataDatasource,
+			sceneDatasource = spy,
+			statisticsRepository = statisticsRepository,
+			referenceIndexRepository = mockk(relaxed = true),
+			writingSessionTracker = mockk(relaxed = true),
+			clock = Clock.System,
+		)
+
+		repo.initializeSceneEditor()
 	}
 
 	// Regression for #492: two scene files sharing one id crashed cleanupSceneOrder
