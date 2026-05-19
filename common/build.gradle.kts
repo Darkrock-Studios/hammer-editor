@@ -1,4 +1,3 @@
-import com.android.build.api.dsl.androidLibrary
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -84,8 +83,8 @@ kotlin {
 				implementation(libs.tomlkt)
 				api(libs.bundles.essenty)
 				implementation(libs.cache4k)
-				implementation(compose.runtime)
-				implementation(compose.components.resources)
+				implementation(libs.jetbrains.compose.runtime)
+				implementation(libs.jetbrains.compose.components.resources)
 				implementation(libs.kotlinx.atomicfu)
 				implementation(libs.fluidsonic.locale)
 				implementation(libs.aboutlibraries.core)

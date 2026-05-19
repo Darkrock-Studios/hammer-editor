@@ -10,7 +10,7 @@ kompressCore = "1.4.3"
 kotlin = "2.3.21"
 
 # Android
-android_gradle_plugin = "8.13.2"
+android_gradle_plugin = "9.0.1"
 android_sdk_compile = "36"
 android_sdk_target = "36"
 android_sdk_min = "28"
@@ -109,6 +109,18 @@ glance-material3 = { module = "androidx.glance:glance-material3", version.ref = 
 cryptography-core = { module = "dev.whyoleg.cryptography:cryptography-core", version.ref = "cryptography" }
 cryptography-provider-jdk = { module = "dev.whyoleg.cryptography:cryptography-provider-jdk", version.ref = "cryptography" }
 
+jetbrains_compose_runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "jetbrains_compose" }
+jetbrains_compose_foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "jetbrains_compose" }
+jetbrains_compose_material = { module = "org.jetbrains.compose.material:material", version.ref = "jetbrains_compose" }
+jetbrains_compose_material3 = { module = "org.jetbrains.compose.material3:material3", version = "1.9.0" }
+jetbrains_compose_material_icons_extended = { module = "org.jetbrains.compose.material:material-icons-extended", version = "1.7.3" }
+jetbrains_compose_animation = { module = "org.jetbrains.compose.animation:animation", version.ref = "jetbrains_compose" }
+jetbrains_compose_animation_graphics = { module = "org.jetbrains.compose.animation:animation-graphics", version.ref = "jetbrains_compose" }
+jetbrains_compose_ui_tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "jetbrains_compose" }
+jetbrains_compose_ui_tooling_preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "jetbrains_compose" }
+jetbrains_compose_ui_test_junit4 = { module = "org.jetbrains.compose.ui:ui-test-junit4", version.ref = "jetbrains_compose" }
+jetbrains_compose_components_resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "jetbrains_compose" }
+jetbrains_compose_components_ui_tooling_preview = { module = "org.jetbrains.compose.components:components-ui-tooling-preview", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_util = { module = "org.jetbrains.compose.ui:ui-util", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_text = { module = "org.jetbrains.compose.ui:ui-text", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_backhandler = { module = "org.jetbrains.compose.ui:ui-backhandler", version.ref = "jetbrains_compose" }

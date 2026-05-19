@@ -43,7 +43,7 @@ kotlin {
 				implementation(project(":base"))
 				implementation(project(":common"))
 				implementation(project(":composeUi"))
-				implementation(compose.components.uiToolingPreview)
+				implementation(libs.jetbrains.compose.components.ui.tooling.preview)
 				implementation(compose.desktop.currentOs)
 				implementation(libs.kotlinx.cli)
 				implementation(libs.nucleus.darkmode.detector)

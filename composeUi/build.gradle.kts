@@ -47,19 +47,18 @@ kotlin {
 		}
 
 		val commonMain by getting {
-			@OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
 			dependencies {
 				api(project(":common"))
-				api(compose.runtime)
-				api(compose.components.resources)
-				api(compose.uiTooling)
-				api(compose.preview)
-				api(compose.foundation)
-				api(compose.material)
-				api(compose.material3)
-				api(compose.animation)
-				api(compose.animationGraphics)
-				api(compose.materialIconsExtended)
+				api(libs.jetbrains.compose.runtime)
+				api(libs.jetbrains.compose.components.resources)
+				api(libs.jetbrains.compose.ui.tooling)
+				api(libs.jetbrains.compose.ui.tooling.preview)
+				api(libs.jetbrains.compose.foundation)
+				api(libs.jetbrains.compose.material)
+				api(libs.jetbrains.compose.material3)
+				api(libs.jetbrains.compose.animation)
+				api(libs.jetbrains.compose.animation.graphics)
+				api(libs.jetbrains.compose.material.icons.extended)
 				api(libs.multiplatform.window.size)
 				api(libs.jetbrains.compose.ui.util)
 				api(libs.jetbrains.compose.ui.text)
@@ -84,12 +83,11 @@ kotlin {
 			}
 		}
 		val commonTest by getting {
-			@OptIn(org.jetbrains.compose.ExperimentalComposeLibrary::class)
 			dependencies {
 				implementation(kotlin("test"))
 				implementation(libs.okio.fakefilesystem)
 				implementation(libs.kotlin.reflect)
-				implementation(compose.desktop.uiTestJUnit4)
+				implementation(libs.jetbrains.compose.ui.test.junit4)
 			}
 		}
 		val androidMain by getting {
