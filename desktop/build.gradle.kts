@@ -77,7 +77,6 @@ compose.desktop {
 			targetFormats(
 				TargetFormat.Dmg,
 				TargetFormat.Pkg,
-				TargetFormat.AppImage,
 				TargetFormat.Msi,
 				TargetFormat.Exe,
 				TargetFormat.Deb,
