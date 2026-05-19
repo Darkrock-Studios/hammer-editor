@@ -62,6 +62,11 @@ fastlane/README.md
 /CLAUDE.md
 /.output.txt
 
+# Mac App Store signing assets (do NOT commit)
+/desktop/embedded.provisionprofile
+/desktop/runtime.provisionprofile
+/desktop/secrets/
+
 # Snap/Flatpak/AppImage build artifacts
 /flatpak-build/
 /flatpak-repo/
