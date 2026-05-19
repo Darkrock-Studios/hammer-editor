@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneItem
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneListUi
+import kotlinx.collections.immutable.persistentSetOf
 
 
 @Preview
@@ -47,7 +48,7 @@ private fun fakeSceneSummary(): SceneSummary {
 
 	return SceneSummary(
 		tree.toImmutableTree(),
-		emptySet()
+		persistentSetOf()
 	)
 }
 

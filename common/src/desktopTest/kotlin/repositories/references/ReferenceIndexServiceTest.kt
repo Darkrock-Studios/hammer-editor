@@ -18,6 +18,8 @@ import getProject1Def
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.runTest
@@ -92,11 +94,11 @@ class ReferenceIndexServiceTest : BaseTest() {
 				value = item,
 				index = idx + 1,
 				parent = 0,
-				children = emptyList(),
+				children = persistentListOf(),
 				depth = 1,
 				totalChildren = 0,
 			)
-		}
+		}.toImmutableList()
 		val root = TreeValue(
 			value = rootItem(),
 			index = 0,

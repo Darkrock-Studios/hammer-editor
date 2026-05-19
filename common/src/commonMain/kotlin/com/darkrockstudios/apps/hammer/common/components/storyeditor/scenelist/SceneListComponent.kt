@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import io.github.aakira.napier.Napier
+import kotlinx.collections.immutable.toImmutableList
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -134,11 +135,10 @@ class SceneListComponent(
 	override fun onSceneBufferUpdate(sceneBuffer: SceneBuffer) {
 		val oldSummary = _state.value.sceneSummary ?: return
 		_state.getAndUpdate { oldState ->
-			val updated = oldSummary.hasDirtyBuffer.toMutableSet()
-			if (sceneBuffer.dirty) {
-				updated.add(sceneBuffer.content.scene.id)
+			val updated = if (sceneBuffer.dirty) {
+				oldSummary.hasDirtyBuffer.add(sceneBuffer.content.scene.id)
 			} else {
-				updated.remove(sceneBuffer.content.scene.id)
+				oldSummary.hasDirtyBuffer.remove(sceneBuffer.content.scene.id)
 			}
 
 			oldState.copy(
@@ -173,7 +173,7 @@ class SceneListComponent(
 	}
 
 	override fun showArchivedScenes() {
-		val archived = projectEditor.getArchivedScenes()
+		val archived = projectEditor.getArchivedScenes().toImmutableList()
 		_state.getAndUpdate {
 			it.copy(
 				showArchivedDialog = true,

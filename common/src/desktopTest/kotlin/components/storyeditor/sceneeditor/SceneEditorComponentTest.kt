@@ -15,6 +15,8 @@ import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
 import io.mockk.*
+import kotlinx.collections.immutable.persistentListOf
+import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -125,10 +127,10 @@ class SceneEditorComponentTest : ComponentTest() {
 
 	// A minimal tree (root -> the scene) so onSceneTreeUpdate's findBy can locate id 7.
 	private fun treeOf(scene: SceneItem): ImmutableTree<SceneItem> {
-		val node = TreeValue(value = scene, index = 1, parent = 0, children = emptyList(), depth = 1, totalChildren = 0)
+		val node = TreeValue(value = scene, index = 1, parent = 0, children = persistentListOf(), depth = 1, totalChildren = 0)
 		val root = TreeValue(
 			value = SceneItem(projectDef, SceneItem.Type.Root, id = 0, name = "root", order = 0),
-			index = 0, parent = -1, children = listOf(node), depth = 0, totalChildren = 1,
+			index = 0, parent = -1, children = persistentListOf(node), depth = 0, totalChildren = 1,
 		)
 		return ImmutableTree(root = root, totalChildren = 1)
 	}
@@ -461,7 +463,7 @@ class SceneEditorComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		val renamed = sceneItem.copy(name = "Renamed Externally")
-		sceneTreeCallback.captured.invoke(SceneSummary(treeOf(renamed), emptySet()))
+		sceneTreeCallback.captured.invoke(SceneSummary(treeOf(renamed), persistentSetOf()))
 
 		assertEquals("Renamed Externally", comp.state.value.sceneItem.name)
 	}

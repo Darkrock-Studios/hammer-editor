@@ -1,15 +1,19 @@
 package com.darkrockstudios.apps.hammer.common.data.tree
 
+import androidx.compose.runtime.Immutable
+import kotlinx.collections.immutable.ImmutableList
+
 /**
  * A simplified immutable representation of a tree node
  */
+@Immutable
 data class TreeValue<T>(
 	val value: T,
 	/** Global tree index */
 	val index: Int,
 	/** Parent's global tree index */
 	val parent: Int,
-	val children: List<TreeValue<T>>,
+	val children: ImmutableList<TreeValue<T>>,
 	val depth: Int,
 	val totalChildren: Int
 ) : Iterable<TreeValue<T>> {
@@ -85,19 +89,13 @@ data class TreeValue<T>(
 	}
 }
 
+@Immutable
 data class ImmutableTree<T>(
 	val root: TreeValue<T>,
 	val totalChildren: Int
 ) : Iterable<TreeValue<T>> {
-	private val nodeIndex: HashMap<Int, TreeValue<T>>
-
-	init {
-		val newIndex = HashMap<Int, TreeValue<T>>()
-		for (treeValue in root) {
-			newIndex[treeValue.index] = treeValue
-		}
-		nodeIndex = newIndex
-	}
+	private val nodeIndex: Map<Int, TreeValue<T>> =
+		buildMap { for (treeValue in root) put(treeValue.index, treeValue) }
 
 	val totalNodes: Int
 		// +1 for the root it's self
@@ -206,17 +204,11 @@ data class ImmutableTree<T>(
 		root.print(0)
 	}
 
-	private var cachedHash: Int? = null
-	override fun hashCode(): Int {
-		val hash = cachedHash
-		return if (hash == null) {
-			val newHash = root.hashCode() + totalChildren
-			cachedHash = newHash
-			newHash
-		} else {
-			hash
-		}
+	private val cachedHash: Int by lazy(LazyThreadSafetyMode.PUBLICATION) {
+		root.hashCode() + totalChildren
 	}
+
+	override fun hashCode(): Int = cachedHash
 
 	override fun equals(other: Any?): Boolean {
 		return when {
