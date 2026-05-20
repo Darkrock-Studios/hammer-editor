@@ -13,6 +13,11 @@ import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
 
+/**
+ * Wired up but not bound on macOS (see desktopModule): Nucleus' dock menu only
+ * shows while the app is running, and thats not useful for what this does.
+ * Unlike the Windows jump list and Linux quicklist which work app-closed too.
+ */
 class MacOsDockShortcuts(
 	private val projectsRepository: ProjectsRepository,
 	private val ioDispatcher: CoroutineContext,
@@ -34,15 +39,17 @@ class MacOsDockShortcuts(
 		withContext(ioDispatcher) {
 			runCatching {
 				val recent = projectsRepository.getRecentProjects(MAX_RECENT_PROJECTS, excludeCurrent)
-
 				idToProject.clear()
 				val items = recent.mapIndexed { idx, def ->
 					val id = idx + 1
 					idToProject[id] = def
 					DockMenuItem(id = id, title = def.name)
 				}
-
-				MacOsDockMenu.setDockMenu(items)
+				// Defer to the EDT so AWT has installed the NSApplicationDelegate
+				// that Nucleus method-swizzles in nativeSetDockMenu.
+				javax.swing.SwingUtilities.invokeLater {
+					MacOsDockMenu.setDockMenu(items)
+				}
 			}.onFailure { Napier.w("Failed to refresh macOS dock menu", it) }
 		}
 	}

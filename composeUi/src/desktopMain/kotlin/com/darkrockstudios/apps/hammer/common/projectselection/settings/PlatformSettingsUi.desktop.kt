@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.common.IS_APP_STORE
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.DesktopPlatformSettings
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
@@ -50,9 +51,13 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 				color = MaterialTheme.colorScheme.onSurface,
 			)
 		}
-		HdHairlineButton(
-			label = Res.string.settings_projects_directory_button.get(),
-			onClick = { directoryPickerLauncher.launch() },
-		)
+		// Mac App Store builds are sandboxed; the projects directory is fixed
+		// to the container's ~/Documents and the user cannot relocate it.
+		if (!IS_APP_STORE) {
+			HdHairlineButton(
+				label = Res.string.settings_projects_directory_button.get(),
+				onClick = { directoryPickerLauncher.launch() },
+			)
+		}
 	}
 }
