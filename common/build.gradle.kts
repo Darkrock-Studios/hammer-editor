@@ -36,20 +36,8 @@ kotlin {
 		}
 	}
 
-	listOf(
-		iosArm64(),
-		iosSimulatorArm64()
-	).forEach { iosTarget ->
-		iosTarget.binaries.framework {
-			baseName = "Hammer"
-			//isStatic = true
-			//transitiveExport = true
-			export(libs.decompose)
-			export(libs.essenty.lifecycle)
-			export(libs.coroutines.core)
-			export(libs.napier)
-		}
-	}
+	iosArm64()
+	iosSimulatorArm64()
 
 	applyDefaultHierarchyTemplate()
 

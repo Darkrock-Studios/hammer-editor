@@ -34,6 +34,22 @@ kotlin {
 		}
 	}
 
+	listOf(
+		iosArm64(),
+		iosSimulatorArm64()
+	).forEach { iosTarget ->
+		iosTarget.binaries.framework {
+			baseName = "Hammer"
+			// libbacktrace gives Kotlin/Native crashes file/line numbers in stack traces.
+			binaryOption("sourceInfoType", "libbacktrace")
+			export(project(":common"))
+			export(libs.decompose)
+			export(libs.essenty.lifecycle)
+			export(libs.coroutines.core)
+			export(libs.napier)
+		}
+	}
+
 	applyDefaultHierarchyTemplate()
 
 	sourceSets {
@@ -51,7 +67,6 @@ kotlin {
 				api(project(":common"))
 				api(libs.jetbrains.compose.runtime)
 				api(libs.jetbrains.compose.components.resources)
-				api(libs.jetbrains.compose.ui.tooling)
 				api(libs.jetbrains.compose.ui.tooling.preview)
 				api(libs.jetbrains.compose.foundation)
 				api(libs.jetbrains.compose.material)
@@ -65,6 +80,7 @@ kotlin {
 				api(libs.jetbrains.compose.ui.backhandler)
 				api(libs.decompose.compose)
 				api(libs.decompose.compose.experimental)
+				api(libs.koin.compose)
 				api(libs.filekit.dialogs.compose)
 				api(libs.coil.compose)
 				api(libs.coil.svg)
@@ -92,7 +108,7 @@ kotlin {
 		}
 		val androidMain by getting {
 			dependencies {
-				api(libs.koin.compose)
+				api(libs.jetbrains.compose.ui.tooling)
 				implementation(libs.androidx.window)
 				implementation(libs.activity.compose)
 				implementation(libs.moko.permissions.compose)
@@ -100,9 +116,11 @@ kotlin {
 		}
 		val desktopMain by getting {
 			dependencies {
+				api(libs.jetbrains.compose.ui.tooling)
 				implementation(compose.desktop.currentOs)
 			}
 		}
+		val iosMain by getting
 
 		val desktopTest by getting {
 			dependencies {

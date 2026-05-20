@@ -12,7 +12,7 @@ import UIKit
 import Hammer
 
 class AppDelegate: NSObject, UIApplicationDelegate {
-    let root: IosRoot = IosRootComponent(
+    lazy var root: IosRoot = IosRootComponent(
         componentContext: DefaultComponentContext(lifecycle: ApplicationLifecycle())
     )
 }

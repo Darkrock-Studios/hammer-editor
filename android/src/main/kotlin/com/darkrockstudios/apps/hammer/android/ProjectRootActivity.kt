@@ -12,20 +12,12 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.*
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.*
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.lifecycleScope
 import coil3.ImageLoader
@@ -37,17 +29,10 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.essenty.statekeeper.getSerializable
 import com.arkivanov.essenty.statekeeper.putSerializable
 import com.darkrockstudios.apps.hammer.android.shortcuts.ProjectShortcutsManager
-import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
-import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
-import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
-import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -57,12 +42,8 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.injectMainDispatcher
-import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
-import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
-import com.darkrockstudios.apps.hammer.common.projectroot.toHdBottomBarDestination
-import com.darkrockstudios.apps.hammer.common.projectroot.toHdNavRailDestination
+import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootScaffold
 import com.darkrockstudios.apps.hammer.common.util.AndroidSettingsKeys
-import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
 import com.russhwolf.settings.Settings
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.*
@@ -209,15 +190,12 @@ class ProjectRootActivity : AppCompatActivity() {
 		return super.dispatchKeyEvent(event)
 	}
 
-	@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 	@Composable
 	private fun Content(
 		component: ProjectRoot,
 	) {
 		val shouldConfirmClose by component.closeRequestHandlers.subscribeAsState()
 		val backEnabled by component.backEnabled.subscribeAsState()
-		val themeState by component.projectTheme.subscribeAsState()
-		val rootSnackbar = rememberRootSnackbarHostState()
 
 		val imageLoader: ImageLoader = getKoin().get()
 		setSingletonImageLoaderFactory { imageLoader }
@@ -228,43 +206,7 @@ class ProjectRootActivity : AppCompatActivity() {
 			component.requestClose()
 		}
 
-		ProjectThemeOverride(themeState.theme) {
-			val windowSizeClass = calculateWindowSizeClass()
-			when (windowSizeClass.widthSizeClass) {
-				WindowWidthSizeClass.Compact -> {
-					CompactNavigation(component, rootSnackbar)
-				}
-
-				WindowWidthSizeClass.Medium,
-				WindowWidthSizeClass.Expanded -> {
-					RailNavigation(component, rootSnackbar)
-				}
-			}
-
-			if (shouldConfirmClose.isNotEmpty()) {
-				when (shouldConfirmClose.first()) {
-					CloseConfirm.Scenes -> {
-						ConfirmUnsavedScenesDialog(component, lifecycleScope)
-					}
-
-					CloseConfirm.Notes -> {
-						ConfirmCloseUnsavedNotesDialog(component)
-					}
-
-					CloseConfirm.Encyclopedia -> {
-						ConfirmCloseUnsavedEncyclopediaDialog(component)
-					}
-
-					CloseConfirm.Sync -> {
-						component.showProjectSync()
-					}
-
-					CloseConfirm.Complete -> {
-						finish()
-					}
-				}
-			}
-		}
+		ProjectRootScaffold(component, onCloseRequest = ::finish)
 	}
 
 	companion object {
@@ -311,80 +253,3 @@ class ProjectRootViewModel : ViewModel() {
 	}
 }
 
-@Composable
-private fun CompactNavigation(
-	component: ProjectRoot,
-	rootSnackbar: RootSnackbarHostState,
-) {
-	val router by component.routerState.subscribeAsState()
-	Scaffold(
-		modifier = Modifier.defaultScaffold(),
-		contentWindowInsets = WindowInsets(0, 0, 0, 0),
-		snackbarHost = { SnackbarHost(rootSnackbar.snackbarHostState) },
-		content = { scaffoldPadding ->
-			ProjectRootUi(
-				component,
-				rootSnackbar,
-				modifier = Modifier.rootElement(scaffoldPadding),
-				navWidth = 0.dp
-			)
-		},
-		bottomBar = {
-			val destinations = ProjectRoot.DestinationTypes.entries.map { it.toHdBottomBarDestination() }
-			HdBottomBar(
-				destinations = destinations,
-				selectedId = router.active.instance.getLocationType(),
-				onSelect = { component.showDestination(it) },
-			)
-		},
-		floatingActionButton = {
-			ProjectRootFab(component, Modifier.fab())
-		}
-	)
-}
-
-@Composable
-private fun RailNavigation(
-	component: ProjectRoot,
-	rootSnackbar: RootSnackbarHostState,
-) {
-	val router by component.routerState.subscribeAsState()
-	val navRailState by component.navRailState.subscribeAsState()
-	Scaffold(
-		modifier = Modifier.defaultScaffold(),
-		contentWindowInsets = WindowInsets(0, 0, 0, 0),
-		snackbarHost = { SnackbarHost(rootSnackbar.snackbarHostState) },
-		content = { scaffoldPadding ->
-			Row(
-				modifier = Modifier.rootElement(scaffoldPadding)
-			) {
-				val density = LocalDensity.current
-				var navRailWidth by remember { mutableStateOf<Dp>(0.dp) }
-
-				val destinations =
-					ProjectRoot.DestinationTypes.entries.map { it.toHdNavRailDestination() }
-				HdNavRail(
-					destinations = destinations,
-					selectedId = router.active.instance.getLocationType(),
-					onSelect = { component.showDestination(it) },
-					expanded = navRailState.expanded,
-					onToggleExpanded = { component.toggleNavRailExpanded() },
-					modifier = Modifier.onSizeChanged {
-						navRailWidth = density.run { it.width.toDp() }
-					},
-					footer = {
-						HdMonoLabel(
-							text = getAppVersionString(),
-							color = MaterialTheme.colorScheme.onSurfaceVariant,
-						)
-					},
-				)
-
-				ProjectRootUi(component, rootSnackbar, navRailWidth, Modifier.padding(scaffoldPadding))
-			}
-		},
-		floatingActionButton = {
-			ProjectRootFab(component, Modifier.fab())
-		}
-	)
-}

@@ -1,49 +1,44 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_MAIN
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import org.koin.compose.koinInject
 import org.koin.core.parameter.ParametersDefinition
 import org.koin.core.qualifier.Qualifier
 import org.koin.core.qualifier.named
-import org.koin.java.KoinJavaComponent
-import org.koin.java.KoinJavaComponent.get
+import org.koin.mp.KoinPlatform
 import kotlin.coroutines.CoroutineContext
 
-fun getDefaultDispatcher(): CoroutineContext {
-	return KoinJavaComponent.get(clazz = CoroutineContext::class.java, qualifier = named(DISPATCHER_DEFAULT))
-}
+fun getDefaultDispatcher(): CoroutineContext =
+	KoinPlatform.getKoin().get(qualifier = named(DISPATCHER_DEFAULT))
 
-fun getIoDispatcher(): CoroutineContext {
-	return KoinJavaComponent.get(clazz = CoroutineContext::class.java, qualifier = named(DISPATCHER_IO))
-}
+fun getIoDispatcher(): CoroutineContext =
+	KoinPlatform.getKoin().get(qualifier = named(DISPATCHER_IO))
 
-fun getMainDispatcher(): CoroutineContext {
-	return KoinJavaComponent.get(clazz = CoroutineContext::class.java, qualifier = named(DISPATCHER_MAIN))
-}
+fun getMainDispatcher(): CoroutineContext =
+	KoinPlatform.getKoin().get(qualifier = named(DISPATCHER_MAIN))
 
 @Composable
-inline fun rememberDefaultDispatcher(): CoroutineContext = remember { getDefaultDispatcher() }
+fun rememberDefaultDispatcher(): CoroutineContext = koinInject(qualifier = named(DISPATCHER_DEFAULT))
 
 @Composable
-inline fun rememberIoDispatcher(): CoroutineContext = remember { getIoDispatcher() }
+fun rememberIoDispatcher(): CoroutineContext = koinInject(qualifier = named(DISPATCHER_IO))
 
 @Composable
-inline fun rememberMainDispatcher(): CoroutineContext = remember { getMainDispatcher() }
+fun rememberMainDispatcher(): CoroutineContext = koinInject(qualifier = named(DISPATCHER_MAIN))
 
 @Composable
-inline fun rememberStrRes() = remember<StrRes> { get(clazz = StrRes::class.java) }
+fun rememberStrRes(): StrRes = koinInject()
 
 @Composable
-inline fun <reified T> rememberKoinInject(
-	clazz: Class<*> = T::class.java,
+inline fun <reified T : Any> rememberKoinInject(
 	qualifier: Qualifier? = null,
 	noinline parameters: ParametersDefinition? = null
-): T {
-	return remember<T> {
-		return@remember get<T>(clazz, qualifier, parameters)
-	}
+): T = if (parameters == null) {
+	koinInject(qualifier = qualifier)
+} else {
+	koinInject(qualifier = qualifier, parameters = parameters)
 }

@@ -1,19 +1,19 @@
-package com.darkrockstudios.apps.hammer.android
+package com.darkrockstudios.apps.hammer.common.projectroot
 
 import androidx.compose.runtime.Composable
-import androidx.lifecycle.LifecycleCoroutineScope
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.UnsavedScenesConfirmDialog
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 @Composable
 fun ConfirmUnsavedScenesDialog(
 	component: ProjectRoot,
-	lifecycleScope: LifecycleCoroutineScope
+	scope: CoroutineScope,
 ) {
 	UnsavedScenesConfirmDialog(
 		title = Res.string.unsaved_scenes_dialog_title.get(),
@@ -22,7 +22,7 @@ fun ConfirmUnsavedScenesDialog(
 		discardButtonText = Res.string.unsaved_entity_dialog_negative_button.get(),
 		cancelButtonText = Res.string.unsaved_entity_dialog_neutral_button.get(),
 		onSave = {
-			lifecycleScope.launch {
+			scope.launch {
 				component.storeDirtyBuffers()
 				component.closeRequestDealtWith(CloseConfirm.Scenes)
 			}
