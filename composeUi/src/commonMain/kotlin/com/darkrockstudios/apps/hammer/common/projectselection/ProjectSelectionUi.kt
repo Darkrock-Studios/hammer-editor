@@ -103,6 +103,8 @@ fun ProjectSelectionUi(
 				rootSnackbar.snackbarHostState,
 				modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter)
 			)
+
+			UpdateAvailableDialog(component)
 		}
 	}
 }

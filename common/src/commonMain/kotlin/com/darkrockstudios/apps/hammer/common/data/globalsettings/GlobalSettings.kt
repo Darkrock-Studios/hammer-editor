@@ -47,6 +47,7 @@ data class GlobalSettings(
 	val installId: String? = null,
 	val deviceLabel: String? = null,
 	val initialProjectScreen: InitialProjectScreen = InitialProjectScreen.Home,
+	val lastDismissedUpdateVersion: String? = null,
 ) {
 	companion object {
 

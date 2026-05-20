@@ -82,10 +82,16 @@ val component = object : ProjectSelection {
 	override val navRailState: Value<ProjectSelection.NavRailState> =
 		MutableValue(ProjectSelection.NavRailState(expanded = false))
 
+	override val updateNotification: Value<ProjectSelection.UpdateNotificationState> =
+		MutableValue(ProjectSelection.UpdateNotificationState())
+
 	override fun isAtRoot() = false
 	override fun onBack() {}
 	override fun showLocation(location: ProjectSelection.Locations) {}
 	override fun toggleNavRailExpanded() {}
+	override fun openReleaseUrl() {}
+	override fun dismissUpdateNotification(remember: Boolean) {}
+	override fun showCurrentReleaseDetails() {}
 	override val backHandler = dummyBackHandler
 }
 
