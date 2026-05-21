@@ -93,8 +93,7 @@ class PasswordResetRepository(
 			return TokenValidationResult.AlreadyUsed
 		}
 
-		val expiresInstant = sqliteDateTimeStringToInstant(resetToken.expires)
-		if (clock.now() > expiresInstant) {
+		if (clock.now() > resetToken.expires) {
 			return TokenValidationResult.Expired
 		}
 

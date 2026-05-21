@@ -17,6 +17,7 @@ import io.ktor.server.routing.*
 import io.ktor.utils.io.*
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.time.toJavaInstant
 import kotlin.math.ceil
 
 internal fun Route.whiteListRoutes(
@@ -230,12 +231,12 @@ private suspend fun getWhitelistModelWithError(
 	return model
 }
 
-private fun formatDateFromTimestamp(epochSeconds: Long): String? {
+private fun formatDateFromTimestamp(instant: kotlin.time.Instant): String? {
 	return try {
 		val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
-		val zoned = java.time.Instant.ofEpochSecond(epochSeconds).atZone(ZoneId.systemDefault())
+		val zoned = instant.toJavaInstant().atZone(ZoneId.systemDefault())
 		formatter.format(zoned)
-	} catch (e: Exception) {
+	} catch (_: Exception) {
 		null
 	}
 }

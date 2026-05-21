@@ -4,13 +4,13 @@ import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
-import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
 import io.ktor.http.*
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.time.toJavaInstant
 
 fun Route.authorPage(
 	accountsRepository: AccountsRepository,
@@ -46,11 +46,9 @@ fun Route.authorPage(
 			val dateFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
 			val formattedStories = stories.map { story ->
 				val formattedDate = try {
-					val instant = sqliteDateTimeStringToInstant(story.publishedAt)
-					val zoned = java.time.Instant.ofEpochSecond(instant.epochSeconds).atZone(ZoneId.systemDefault())
-					dateFormatter.format(zoned)
-				} catch (e: Exception) {
-					story.publishedAt
+					dateFormatter.format(story.publishedAt.toJavaInstant().atZone(ZoneId.systemDefault()))
+				} catch (_: Exception) {
+					story.publishedAt.toString()
 				}
 
 				mapOf(

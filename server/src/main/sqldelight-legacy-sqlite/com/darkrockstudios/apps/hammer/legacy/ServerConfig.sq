@@ -1,0 +1,12 @@
+CREATE TABLE server_config (
+    key TEXT NOT NULL PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+);
+
+getConfig:
+SELECT value FROM server_config WHERE key = ?;
+
+upsertConfig:
+INSERT OR REPLACE INTO server_config (key, value, updated_at)
+VALUES (?, ?, strftime('%s', 'now'));

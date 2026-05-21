@@ -1,6 +1,11 @@
+import kotlinx.datetime.Instant;
+
+-- date_added was Unix-seconds INTEGER in SQLite; promoted to TIMESTAMPTZ here.
+-- email is declared TEXT for SqlDelight's parser; PostgresSchemaPostInit
+-- promotes it to CITEXT for case-insensitive lookups.
 CREATE TABLE white_list(
     email TEXT NOT NULL PRIMARY KEY,
-    date_added INTEGER NOT NULL DEFAULT 0,
+    date_added TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
     reason TEXT DEFAULT ''
 );
 
@@ -11,8 +16,9 @@ SELECT EXISTS
  WHERE email = ?);
 
 addToWhiteList:
-INSERT OR IGNORE
-INTO white_list(email, date_added, reason) VALUES (?, ?, ?);
+INSERT INTO white_list(email, date_added, reason)
+VALUES (?, ?, ?)
+ON CONFLICT (email) DO NOTHING;
 
 removeFromWhiteList:
 DELETE FROM white_list

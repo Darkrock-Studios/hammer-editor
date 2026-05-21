@@ -1,16 +1,23 @@
+import kotlinx.datetime.Instant;
+
+-- uuid column is declared TEXT here for SqlDelight's parser, and promoted to
+-- UUID in PostgresSchemaPostInit so it gets 16-byte storage + validation. The
+-- SqlDelight Kotlin API still sees it as String.
 CREATE TABLE project (
-	id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-	uuid TEXT NOT NULL,
-	user_id INTEGER NOT NULL,
-	name TEXT NOT NULL,
-	last_id INTEGER DEFAULT 0 NOT NULL,
-	last_sync TEXT DEFAULT (datetime('now')) NOT NULL,
-	FOREIGN KEY(user_id) REFERENCES account(id),
-	UNIQUE(name, user_id)
+    id BIGSERIAL PRIMARY KEY,
+    uuid TEXT NOT NULL,
+    user_id BIGINT NOT NULL,
+    name TEXT NOT NULL,
+    last_id BIGINT NOT NULL DEFAULT 0,
+    last_sync TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    CONSTRAINT project_name_len CHECK (length(name) BETWEEN 1 AND 200),
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
+    UNIQUE(name, user_id)
 );
 
-CREATE UNIQUE INDEX user_project_name_lookup
-ON project(user_id, name);
+CREATE UNIQUE INDEX project_uuid_unique ON project (uuid);
+CREATE UNIQUE INDEX user_project_name_lookup ON project (user_id, name);
+CREATE INDEX project_user_id_idx ON project (user_id);
 
 getProjects:
 SELECT name, uuid

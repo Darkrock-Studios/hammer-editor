@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.database
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
+import kotlin.time.Instant
 
 class ProjectDataDao(
 	database: Database,
@@ -23,7 +24,7 @@ class ProjectDataDao(
 		projectId: Long,
 		content: String,
 		hash: String,
-		updatedAt: Long,
+		updatedAt: Instant,
 	) = withContext(ioDispatcher) {
 		queries.upsert(
 			userId = userId,
@@ -35,4 +36,4 @@ class ProjectDataDao(
 	}
 }
 
-data class ProjectDataRow(val content: String, val hash: String, val updatedAt: Long)
+data class ProjectDataRow(val content: String, val hash: String, val updatedAt: Instant)

@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.ServerConfig
+import com.darkrockstudios.apps.hammer.StorageMode
 import com.darkrockstudios.apps.hammer.account.*
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
@@ -63,7 +64,16 @@ fun mainModule(
 	single { createTokenBase64() } bind Base64::class
 	single { SecureRandom.getInstanceStrong() } bind SecureRandom::class
 	single { FileSystem.SYSTEM } bind FileSystem::class
-	single { SqliteDatabase(fileSystem = get()) } bind Database::class
+	single<Database> {
+		val cfg = get<ServerConfig>()
+		when (cfg.storage.type) {
+			StorageMode.EMBEDDED -> EmbeddedPostgresDatabase(cfg.storage.embedded, get())
+			StorageMode.REMOTE -> RemotePostgresDatabase(
+				cfg.storage.remote
+					?: error("storage.type=remote requires storage.remote config block")
+			)
+		}
+	}
 	singleOf(::AccountDao)
 	singleOf(::AuthTokenDao)
 	singleOf(::WhiteListDao)

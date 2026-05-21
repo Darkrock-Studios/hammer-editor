@@ -1,0 +1,28 @@
+CREATE TABLE deleted_entity (
+	user_id INTEGER NOT NULL,
+	project_id INTEGER NOT NULL,
+	entity_id INTEGER NOT NULL,
+	deleted_at TEXT DEFAULT (datetime('now')) NOT NULL,
+	FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+	UNIQUE(user_id, project_id, entity_id)
+);
+
+CREATE INDEX deleted_entity_lookup_all
+ON deleted_entity(user_id, project_id);
+
+CREATE UNIQUE INDEX deleted_entity_lookup
+ON deleted_entity(user_id, project_id, entity_id);
+
+getDeletedEntities:
+SELECT * FROM deleted_entity
+WHERE user_id = :userId AND project_id = :projectId;
+
+checkIsDeleted:
+SELECT EXISTS(
+	SELECT 1 FROM deleted_entity
+	WHERE user_id = :userId AND project_id = :projectId AND entity_id = :entityId
+);
+
+markEntityDeleted:
+INSERT INTO deleted_entity(user_id, project_id, entity_id)
+VALUES (:userId, :projectId, :id);

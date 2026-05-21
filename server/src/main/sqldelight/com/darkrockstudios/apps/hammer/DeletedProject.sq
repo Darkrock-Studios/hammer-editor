@@ -1,8 +1,13 @@
+import kotlinx.datetime.Instant;
+
 CREATE TABLE deleted_project (
-		user_id INTEGER NOT NULL,
-    	uuid TEXT NOT NULL,
-    	FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+    user_id BIGINT NOT NULL,
+    uuid TEXT NOT NULL,
+    deleted_at TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
 );
+
+CREATE INDEX deleted_project_user_id_idx ON deleted_project (user_id);
 
 getDeletedProjects:
 SELECT *

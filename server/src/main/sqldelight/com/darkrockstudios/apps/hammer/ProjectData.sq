@@ -1,13 +1,19 @@
+import kotlinx.datetime.Instant;
+
+-- updated_at was a Unix-seconds INTEGER in SQLite; promoted to TIMESTAMPTZ here.
+-- The migrator converts INTEGER seconds → Instant during the data copy.
 CREATE TABLE project_data (
-	user_id INTEGER NOT NULL,
-	project_id INTEGER NOT NULL,
-	content TEXT NOT NULL,
-	hash TEXT NOT NULL,
-	updated_at INTEGER NOT NULL,
-	PRIMARY KEY(user_id, project_id),
-	FOREIGN KEY(user_id) REFERENCES account(id),
-	FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE
+    user_id BIGINT NOT NULL,
+    project_id BIGINT NOT NULL,
+    content TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    updated_at TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    PRIMARY KEY(user_id, project_id),
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE
 );
+
+CREATE INDEX project_data_project_id_idx ON project_data (project_id);
 
 getForProject:
 SELECT content, hash, updated_at
@@ -15,5 +21,9 @@ FROM project_data
 WHERE user_id = :userId AND project_id = :projectId;
 
 upsert:
-INSERT OR REPLACE INTO project_data(user_id, project_id, content, hash, updated_at)
-VALUES (:userId, :projectId, :content, :hash, :updatedAt);
+INSERT INTO project_data(user_id, project_id, content, hash, updated_at)
+VALUES (:userId, :projectId, :content, :hash, :updatedAt)
+ON CONFLICT (user_id, project_id) DO UPDATE SET
+    content = EXCLUDED.content,
+    hash = EXCLUDED.hash,
+    updated_at = EXCLUDED.updated_at;

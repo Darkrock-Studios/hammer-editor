@@ -5,7 +5,6 @@ import com.darkrockstudios.apps.hammer.Project
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
-import com.darkrockstudios.apps.hammer.utilities.toSqliteDateTimeString
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import kotlin.time.Instant
@@ -36,7 +35,7 @@ class ProjectDao(
 			queries.getProjectsCount(userId).executeAsOne()
 		}
 
-	suspend fun getMostRecentSyncForUser(userId: Long): String? =
+	suspend fun getMostRecentSyncForUser(userId: Long): Instant? =
 		withContext(ioDispatcher) {
 			queries.getMostRecentSyncForUser(userId).executeAsOneOrNull()?.last_sync
 		}
@@ -80,7 +79,7 @@ class ProjectDao(
 	) = withContext(ioDispatcher) {
 		queries.updateSyncData(
 			lastId = lastId,
-			lastSync = lastSync.toSqliteDateTimeString(),
+			lastSync = lastSync,
 			userId = userId,
 			name = projectName,
 		)

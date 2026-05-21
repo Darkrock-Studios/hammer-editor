@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.base.http.readToml
-import com.darkrockstudios.apps.hammer.datamigrator.DataMigrator
 import com.darkrockstudios.apps.hammer.frontend.configureFrontEnd
 import com.darkrockstudios.apps.hammer.patreon.configurePatreonPolling
 import com.darkrockstudios.apps.hammer.plugins.*
@@ -41,6 +40,12 @@ fun main(args: Array<String>) {
 		description = "Log Level"
 	)
 
+	val migrateDryRunArg by parser.option(
+		ArgType.Boolean,
+		fullName = "migrate-dry-run",
+		description = "Run the SQLite-to-Postgres migration in verify-only mode (rolls back, never renames server.db)"
+	)
+
 	parser.parse(args)
 
 	val logLevel = parseLogLevel(logLevelArg)
@@ -49,9 +54,37 @@ fun main(args: Array<String>) {
 		loadConfig(it)
 	} ?: ServerConfig()
 
-	runDataMigrator()
+	config.storage.validate()
+
+	// Dry-run path exits before the server starts.
+	if (migrateDryRunArg == true) {
+		val exit = com.darkrockstudios.apps.hammer.database.migration.SqliteToPostgresMigrator
+			.runDryRun(config.storage, FileSystem.SYSTEM)
+		kotlin.system.exitProcess(exit)
+	}
+
+	// Auto-run the one-time SQLite → Postgres migration if a legacy server.db is
+	// found alongside the Postgres config. NoOp on fresh installs.
+	runOneTimeSqliteToPostgresMigration(config)
 
 	startServer(config, devModeArg ?: false, logLevel)
+}
+
+private fun runOneTimeSqliteToPostgresMigration(config: ServerConfig) {
+	val migrator = com.darkrockstudios.apps.hammer.database.migration.SqliteToPostgresMigrator(
+		config.storage,
+		FileSystem.SYSTEM,
+	)
+	when (val result = migrator.run()) {
+		is com.darkrockstudios.apps.hammer.database.migration.SqliteToPostgresMigrator.Result.NoOp -> { /* normal boot */ }
+		is com.darkrockstudios.apps.hammer.database.migration.SqliteToPostgresMigrator.Result.Success -> {
+			println("Migrated SQLite -> Postgres. Backup: ${result.backupPath}. Rows: ${result.rowCounts}")
+		}
+		is com.darkrockstudios.apps.hammer.database.migration.SqliteToPostgresMigrator.Result.Aborted -> {
+			System.err.println("SQLite → Postgres migration aborted: ${result.reason}")
+			kotlin.system.exitProcess(1)
+		}
+	}
 }
 
 private fun parseLogLevel(logLevelArg: String?): Level? {
@@ -59,13 +92,6 @@ private fun parseLogLevel(logLevelArg: String?): Level? {
 		logLevelArg?.let { Level.valueOf(it.uppercase()) }
 	} catch (_: Exception) {
 		null
-	}
-}
-
-private fun runDataMigrator() {
-	val dataMigrator = DataMigrator()
-	runBlocking {
-		dataMigrator.runMigrations()
 	}
 }
 

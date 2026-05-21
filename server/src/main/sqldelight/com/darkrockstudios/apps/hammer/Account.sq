@@ -1,16 +1,28 @@
+import kotlinx.datetime.Instant;
+
+-- email and pen_name columns are declared TEXT here for SqlDelight's parser,
+-- and promoted to CITEXT in PostgresSchemaPostInit so comparisons and the
+-- UNIQUE indexes below become case-insensitive automatically.
 CREATE TABLE account(
-    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    pen_name TEXT UNIQUE DEFAULT(NULL),
+    id BIGSERIAL PRIMARY KEY,
+    email TEXT NOT NULL,
+    pen_name TEXT,
     password_hash TEXT NOT NULL,
     cipher_secret TEXT NOT NULL,
-    created TEXT DEFAULT (datetime('now')) NOT NULL,
-    is_admin INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL,
-    last_sync TEXT DEFAULT (datetime('now')) NOT NULL,
-    bio TEXT DEFAULT(NULL),
-    email_verified INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL,
-    community_member INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL
+    created TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    is_admin BOOLEAN NOT NULL DEFAULT FALSE,
+    last_sync TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    bio TEXT,
+    email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+    community_member BOOLEAN NOT NULL DEFAULT FALSE,
+    CONSTRAINT account_email_shape CHECK (email LIKE '%@%.%'),
+    CONSTRAINT account_bio_len CHECK (bio IS NULL OR length(bio) <= 10000),
+    CONSTRAINT account_pen_name_len CHECK (pen_name IS NULL OR length(pen_name) BETWEEN 1 AND 64)
 );
+
+CREATE UNIQUE INDEX account_email_unique ON account (email);
+CREATE UNIQUE INDEX account_pen_name_unique ON account (pen_name) WHERE pen_name IS NOT NULL;
+CREATE INDEX account_community_idx ON account (id) WHERE community_member = TRUE;
 
 getAllAccount:
 SELECT *
@@ -31,11 +43,6 @@ UPDATE account
 SET last_sync = :newSyncTime
 WHERE id = :userId;
 
-getByRowId:
-SELECT *
-FROM account
-WHERE rowid = ?;
-
 findAccount:
 SELECT *
 FROM account
@@ -45,10 +52,12 @@ count:
 SELECT COUNT(*) FROM account;
 
 createAccount:
-INSERT INTO account(email, password_hash, cipher_secret, is_admin) VALUES (?, ?, ?, ?);
+INSERT INTO account(email, password_hash, cipher_secret, is_admin)
+VALUES (?, ?, ?, ?);
 
 testInsertAccount:
-INSERT INTO account(email, password_hash, cipher_secret, is_admin, created, last_sync) VALUES (?, ?, ?, ?, ?, ?);
+INSERT INTO account(email, password_hash, cipher_secret, is_admin, created, last_sync)
+VALUES (?, ?, ?, ?, ?, ?);
 
 setAdmin:
 UPDATE account SET is_admin = ? WHERE id = ?;
@@ -59,15 +68,12 @@ UPDATE account SET pen_name = ? WHERE id = ?;
 findAccountByPenName:
 SELECT *
 FROM account
-WHERE LOWER(pen_name) = LOWER(?);
+WHERE pen_name = ?;
 
 isPenNameTaken:
 SELECT COUNT(*) > 0
 FROM account
-WHERE LOWER(pen_name) = LOWER(?) AND (:excludeUserId IS NULL OR id != :excludeUserId);
-
-lastInsertedRowId:
-SELECT last_insert_rowid();
+WHERE pen_name = ? AND (:excludeUserId IS NULL OR id != :excludeUserId);
 
 migration_setCipherSecret:
 UPDATE account SET cipher_secret = :cipherSecret WHERE id = :id;
@@ -92,8 +98,8 @@ SELECT a.id, a.email, a.pen_name, a.created, a.last_sync,
        COALESCE((SELECT MAX(p.last_sync) FROM project p WHERE p.user_id = a.id), a.last_sync) AS most_recent_sync,
        COALESCE((SELECT COUNT(*) FROM project p WHERE p.user_id = a.id), 0) AS project_count
 FROM account a
-ORDER BY CASE WHEN :ascending = 1 THEN most_recent_sync END ASC,
-         CASE WHEN :ascending = 0 THEN most_recent_sync END DESC
+ORDER BY CASE WHEN :ascending = 1 THEN COALESCE((SELECT MAX(p.last_sync) FROM project p WHERE p.user_id = a.id), a.last_sync) END ASC,
+         CASE WHEN :ascending = 0 THEN COALESCE((SELECT MAX(p.last_sync) FROM project p WHERE p.user_id = a.id), a.last_sync) END DESC
 LIMIT :limit OFFSET :offset;
 
 getAccountsPaginatedSortByProjectCount:
@@ -101,8 +107,8 @@ SELECT a.id, a.email, a.pen_name, a.created, a.last_sync,
        COALESCE((SELECT MAX(p.last_sync) FROM project p WHERE p.user_id = a.id), a.last_sync) AS most_recent_sync,
        COALESCE((SELECT COUNT(*) FROM project p WHERE p.user_id = a.id), 0) AS project_count
 FROM account a
-ORDER BY CASE WHEN :ascending = 1 THEN project_count END ASC,
-         CASE WHEN :ascending = 0 THEN project_count END DESC,
+ORDER BY CASE WHEN :ascending = 1 THEN COALESCE((SELECT COUNT(*) FROM project p WHERE p.user_id = a.id), 0) END ASC,
+         CASE WHEN :ascending = 0 THEN COALESCE((SELECT COUNT(*) FROM project p WHERE p.user_id = a.id), 0) END DESC,
          a.created DESC
 LIMIT :limit OFFSET :offset;
 
@@ -124,11 +130,11 @@ SELECT community_member FROM account WHERE id = ?;
 getCommunityAuthors:
 SELECT id, pen_name, bio, created
 FROM account
-WHERE community_member = 1 AND pen_name IS NOT NULL
-ORDER BY pen_name COLLATE NOCASE ASC
+WHERE community_member = TRUE AND pen_name IS NOT NULL
+ORDER BY pen_name ASC
 LIMIT :limit OFFSET :offset;
 
 countCommunityAuthors:
 SELECT COUNT(*)
 FROM account
-WHERE community_member = 1 AND pen_name IS NOT NULL;
+WHERE community_member = TRUE AND pen_name IS NOT NULL;
