@@ -43,10 +43,15 @@ UPDATE account
 SET last_sync = :newSyncTime
 WHERE id = :userId;
 
+-- The bound parameter must be cast to CITEXT explicitly. With LHS=CITEXT and
+-- a bound varchar/text, Postgres picks the case-sensitive `text = text`
+-- operator (via the implicit citext→text cast) and the CITEXT-ness of the
+-- column is lost. CAST(? AS CITEXT) routes through the citext-equality
+-- operator and gives us the case-insensitive comparison we promoted for.
 findAccount:
 SELECT *
 FROM account
-WHERE email = ?;
+WHERE email = CAST(? AS CITEXT);
 
 count:
 SELECT COUNT(*) FROM account;
@@ -68,12 +73,12 @@ UPDATE account SET pen_name = ? WHERE id = ?;
 findAccountByPenName:
 SELECT *
 FROM account
-WHERE pen_name = ?;
+WHERE pen_name = CAST(? AS CITEXT);
 
 isPenNameTaken:
 SELECT COUNT(*) > 0
 FROM account
-WHERE pen_name = ? AND (:excludeUserId IS NULL OR id != :excludeUserId);
+WHERE pen_name = CAST(? AS CITEXT) AND (:excludeUserId IS NULL OR id != :excludeUserId);
 
 migration_setCipherSecret:
 UPDATE account SET cipher_secret = :cipherSecret WHERE id = :id;

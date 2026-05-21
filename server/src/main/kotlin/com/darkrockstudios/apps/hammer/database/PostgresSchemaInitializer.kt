@@ -76,6 +76,11 @@ object PostgresSchemaInitializer {
 		driver.execute(null, "ALTER TABLE account ALTER COLUMN email TYPE CITEXT", 0)
 		driver.execute(null, "ALTER TABLE account ALTER COLUMN pen_name TYPE CITEXT", 0)
 		driver.execute(null, "ALTER TABLE white_list ALTER COLUMN email TYPE CITEXT", 0)
+		// Project name lookups (find-by-URL-slug, the community feed) were
+		// case-insensitive in the SQLite era via LOWER(name)=LOWER(?); making
+		// the column CITEXT preserves that and makes the (name, user_id)
+		// uniqueness constraint case-insensitive too.
+		driver.execute(null, "ALTER TABLE project ALTER COLUMN name TYPE CITEXT", 0)
 
 		// UUID — 16-byte storage + format validation. SqlDelight binds the column
 		// as a String at the API boundary, but Postgres accepts text input for

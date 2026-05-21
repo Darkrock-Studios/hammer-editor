@@ -9,20 +9,23 @@ CREATE TABLE white_list(
     reason TEXT DEFAULT ''
 );
 
+-- Bound parameters for the CITEXT `email` column are cast explicitly so the
+-- comparison goes through the citext-equality operator (case-insensitive)
+-- rather than being narrowed to text-equality. See Account.sq:findAccount.
 isWhiteListed:
 SELECT EXISTS
 (SELECT 1
  FROM white_list
- WHERE email = ?);
+ WHERE email = CAST(? AS CITEXT));
 
 addToWhiteList:
 INSERT INTO white_list(email, date_added, reason)
-VALUES (?, ?, ?)
+VALUES (CAST(? AS CITEXT), ?, ?)
 ON CONFLICT (email) DO NOTHING;
 
 removeFromWhiteList:
 DELETE FROM white_list
-WHERE email = ?;
+WHERE email = CAST(? AS CITEXT);
 
 getAll:
 SELECT * FROM white_list
@@ -67,4 +70,4 @@ WHERE w.reason = ?;
 updateReason:
 UPDATE white_list
 SET reason = ?
-WHERE email = ?;
+WHERE email = CAST(? AS CITEXT);

@@ -67,15 +67,17 @@ UPDATE project
 SET name = :name
 WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);
 
+-- name is CITEXT post-init; bound text params need an explicit cast for the
+-- comparison to use the citext-equality operator (case-insensitive).
 updateSyncData:
 UPDATE project
 SET last_id = :lastId, last_sync = :lastSync
-WHERE user_id = :userId AND name = :name;
+WHERE user_id = :userId AND name = CAST(:name AS CITEXT);
 
 findProjectByName:
 SELECT *
 FROM project
-WHERE user_id = :userId AND name = :name;
+WHERE user_id = :userId AND name = CAST(:name AS CITEXT);
 
 getProject:
 SELECT *
