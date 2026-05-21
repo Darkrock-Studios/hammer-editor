@@ -69,10 +69,10 @@ fun CreateNoteUi(
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 			) {
 				HdSectionHeader(
-					marker = "III · NEW",
+					marker = Res.string.notes_create_marker.get(),
 					title = Res.string.notes_create_header.get(),
 					trailing = {
-						HdMonoLabel(text = "DRAFT")
+						HdMonoLabel(text = Res.string.notes_create_draft_label.get())
 					},
 				)
 				HdMonoLabel(
