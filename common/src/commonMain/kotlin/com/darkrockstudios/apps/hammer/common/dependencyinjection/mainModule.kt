@@ -12,7 +12,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.exampleProjectModule
 import com.darkrockstudios.apps.hammer.common.data.globalsearchrepository.GlobalSearchRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
@@ -104,7 +103,7 @@ val mainModule = module {
 	singleOf(::ServerAdminApi)
 
 	singleOf(::ServerSettingsFilesystemDatasource) bind ServerSettingsDatasource::class
-	singleOf(::GlobalSettingsFilesystemDatasource) bind GlobalSettingsDatasource::class
+	singleOf(::GlobalSettingsFilesystemDatasource)
 	singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
 
 	singleOf(::GithubVersionCheckDataSource) bind VersionCheckDataSource::class

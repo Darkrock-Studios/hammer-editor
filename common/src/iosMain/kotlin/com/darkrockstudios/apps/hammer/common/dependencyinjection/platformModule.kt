@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer.common.dependencyinjection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.IosSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusModeService
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.IosRebasingGlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupManagerService
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
 import com.darkrockstudios.apps.hammer.common.util.*
@@ -21,4 +23,5 @@ actual val platformModule = module {
 	singleOf(::PlatformSpellCheckerFactory)
 	factory { FocusModeService() } bind FocusModeService::class
 	singleOf(::BackupManagerService)
+	singleOf(::IosRebasingGlobalSettingsDatasource) bind GlobalSettingsDatasource::class
 }
