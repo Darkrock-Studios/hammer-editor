@@ -6,6 +6,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -14,6 +15,10 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdUnsavedBadge
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.isFailure
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
 import kotlinx.coroutines.launch
 
 @Composable
@@ -83,38 +88,63 @@ actual fun EditorTopBar(
 		}
 	}
 
-	SimpleDialog(
-		onCloseRequest = component::endSceneNameEdit,
-		visible = state.isEditingName,
-		title = Res.string.scene_editor_rename_dialog_title.get()
-	) {
-		var editSceneNameValue by remember { mutableStateOf(state.sceneItem.name) }
-		val dialogScope = rememberCoroutineScope()
+	RenameSceneDialog(state, component)
+}
 
-		TextField(
+@Composable
+private fun RenameSceneDialog(
+	state: SceneEditor.State,
+	component: SceneEditor,
+) {
+	val strRes = rememberStrRes()
+	val dialogScope = rememberCoroutineScope()
+	var editSceneNameValue by rememberSaveable(state.isEditingName, state.sceneItem.id) {
+		mutableStateOf(state.sceneItem.name)
+	}
+
+	val validationResult = remember(editSceneNameValue) {
+		ProjectsRepository.validateFileName(editSceneNameValue.trim().ifEmpty { null })
+	}
+	val isValid = validationResult.isSuccess
+
+	val errorMessage by produceState<String?>(null, validationResult) {
+		value = if (isFailure(validationResult)) {
+			when (val exception = validationResult.exception) {
+				is ValidationFailedException -> strRes.get(exception.errorMessage)
+				else -> validationResult.displayMessage?.text(strRes)
+			}
+		} else null
+	}
+
+	val meta = when (state.sceneItem.type) {
+		SceneItem.Type.Scene -> "SCENE"
+		SceneItem.Type.Group -> "GROUP"
+		SceneItem.Type.Root -> "ROOT"
+	}
+
+	fun submit() {
+		if (isValid) dialogScope.launch { component.changeSceneName(editSceneNameValue) }
+	}
+
+	FormDialog(
+		visible = state.isEditingName,
+		marker = "§ RENAME",
+		meta = meta,
+		title = Res.string.scene_editor_rename_dialog_title.get(),
+		confirmLabel = Res.string.scene_editor_rename_button.get(),
+		cancelLabel = Res.string.scene_editor_cancel_button.get(),
+		onConfirm = ::submit,
+		onCancel = component::endSceneNameEdit,
+		onDismiss = component::endSceneNameEdit,
+		confirmEnabled = isValid,
+	) {
+		FormField(
 			value = editSceneNameValue,
 			onValueChange = { editSceneNameValue = it },
-			modifier = Modifier.padding(Ui.Padding.XL),
-			label = { Text(Res.string.scene_editor_name_hint.get()) }
+			label = Res.string.scene_editor_name_hint.get(),
+			autoFocus = true,
+			error = if (editSceneNameValue.isNotEmpty() && !isValid) errorMessage else null,
+			onImeAction = ::submit,
 		)
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			horizontalArrangement = Arrangement.SpaceBetween
-		) {
-			IconButton(onClick = { dialogScope.launch { component.changeSceneName(editSceneNameValue) } }) {
-				Icon(
-					Icons.Filled.Check,
-					Res.string.scene_editor_rename_button.get(),
-					tint = MaterialTheme.colorScheme.onSurface
-				)
-			}
-			IconButton(onClick = component::endSceneNameEdit) {
-				Icon(
-					Icons.Filled.Cancel,
-					Res.string.scene_editor_cancel_button.get(),
-					tint = MaterialTheme.colorScheme.error
-				)
-			}
-		}
 	}
 }
