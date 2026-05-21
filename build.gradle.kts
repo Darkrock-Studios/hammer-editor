@@ -1,10 +1,4 @@
-import com.darkrockstudios.build.configureRelease
-import com.darkrockstudios.build.registerLinuxDistributionTasks
-import com.darkrockstudios.build.registerPublishTasks
-import com.darkrockstudios.build.updateFlatpakFiles
-import com.darkrockstudios.build.updateSnapcraftYaml
-import com.darkrockstudios.build.writeChangelogMarkdown
-import com.darkrockstudios.build.writeSemvar
+import com.darkrockstudios.build.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 group = "com.darkrockstudios.apps.hammer"
@@ -75,7 +69,6 @@ plugins {
 	alias(libs.plugins.aboutlibraries.plugin.android) apply false
 	alias(libs.plugins.jetbrains.kover)
 	alias(libs.plugins.kotlinx.atomicfu)
-	alias(libs.plugins.flatpak.gradle.generator) apply false
 }
 
 dependencies {
@@ -127,15 +120,8 @@ val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 	}
 }
 
-// Ensure flatpak generator runs after pre-flight checks
-findProject(":desktop")?.tasks?.configureEach {
-	if (name == "flatpakGradleGenerator") {
-		mustRunAfter(releasePreFlightChecks)
-	}
-}
-
 tasks.register("prepareForRelease") {
-	dependsOn(releasePreFlightChecks, ":desktop:flatpakGradleGenerator")
+	dependsOn(releasePreFlightChecks)
 	doLast {
 		val releaseInfo =
 			configureRelease(libs.versions.app.get()) ?: error("Failed to configure new release")
@@ -202,9 +188,6 @@ tasks.register("prepareForRelease") {
 		git("add", snapcraftFile.absolutePath)
 		git("add", flatpakManifestFile.absolutePath)
 		git("add", flatpakMetainfoFile.absolutePath)
-		val flatpakSourcesPath = "flatpak/flatpak-sources.json".replace("/", File.separator)
-		val flatpakSourcesFile = project.rootDir.resolve(flatpakSourcesPath)
-		git("add", flatpakSourcesFile.absolutePath)
 		git("commit", "-m", "Prepared for release: v${releaseInfo.semVar}")
 
 		// Switch to release and reset to origin/release HEAD

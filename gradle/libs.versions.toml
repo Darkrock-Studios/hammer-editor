@@ -88,7 +88,6 @@ kotlinx-io-okio = "0.9.0"
 
 compose-texteditor = "2.0.3"
 platform-spellcheckerkt = "1.1.0"
-flatpak-gradle-generator = "1.7.0"
 nucleus = "1.15.5"
 colorpicker-compose = "1.1.4"
 material-kolor = "4.1.1"
@@ -307,7 +306,6 @@ sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildconfig" }
 aboutlibraries_plugin = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutlibraries" }
 aboutlibraries_plugin_android = { id = "com.mikepenz.aboutlibraries.plugin.android", version.ref = "aboutlibraries" }
-flatpak_gradle_generator = { id = "io.github.jwharm.flatpak-gradle-generator", version.ref = "flatpak-gradle-generator" }
 
 [bundles]
 koin_server = ["koin_core", "koin_core_coroutines", "koin_sl4j", "koin_ktor"]
