@@ -144,8 +144,6 @@ internal fun ViewEntryUi(
 			Column(
 				modifier = modifier
 					.padding(
-						top = Ui.Padding.XL,
-						bottom = Ui.Padding.L,
 						start = Ui.Padding.M,
 						end = Ui.Padding.M,
 					)
@@ -346,7 +344,8 @@ private fun CrumbRow(
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XXL, vertical = Ui.Padding.L),
+			.height(Ui.TOP_BAR_HEIGHT)
+			.padding(horizontal = Ui.Padding.XL),
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {

@@ -224,8 +224,9 @@ private fun HairlineModalHeader(
 		Row(
 			modifier = Modifier
 				.fillMaxWidth()
-				.padding(start = 28.dp, end = 28.dp, top = 18.dp, bottom = 14.dp),
-			verticalAlignment = Alignment.Bottom,
+				.height(Ui.TOP_BAR_HEIGHT)
+				.padding(horizontal = Ui.Padding.XL),
+			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.spacedBy(12.dp),
 		) {
 			HdMonoLabel(text = "§ $marker")

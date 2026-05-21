@@ -73,7 +73,9 @@ fun ViewNoteUi(
 		with(sharedTransitionScope) {
 			Column(
 				modifier = Modifier
-					.padding(Ui.Padding.XL)
+					.padding(
+						horizontal = Ui.Padding.XL,
+					)
 					.widthIn(max = ModalMaxWidth)
 					.heightIn(max = ModalMaxHeight)
 					.fillMaxWidth()
@@ -177,10 +179,12 @@ private fun CrumbRow(
 	onClose: () -> Unit,
 	menuSlot: @Composable () -> Unit,
 ) {
+	// Screen masthead — see DESIGN_README "Screen masthead" pattern.
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+			.height(Ui.TOP_BAR_HEIGHT)
+			.padding(horizontal = Ui.Padding.XL),
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {

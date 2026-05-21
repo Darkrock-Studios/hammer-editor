@@ -57,33 +57,30 @@ fun CreateNoteUi(
 		Column(modifier = Modifier.fillMaxWidth()) {
 
 			// Masthead — § III · NEW marker, screen title, draft state.
-			Column(
+			HdSectionHeader(
+				marker = "III · NEW",
+				title = Res.string.notes_create_header.get(),
+				trailing = {
+					HdMonoLabel(text = "DRAFT")
+				},
 				modifier = Modifier
 					.fillMaxWidth()
+					.height(Ui.TOP_BAR_HEIGHT)
+					.padding(horizontal = Ui.Padding.XL),
+			)
+			HdMonoLabel(
+				text = Res.string.notes_create_body_hint.get(),
+				color = if (newNoteError) {
+					MaterialTheme.colorScheme.error
+				} else {
+					MaterialTheme.colorScheme.onSurfaceVariant
+				},
+				modifier = Modifier
 					.padding(
-						start = Ui.Padding.XL,
-						end = Ui.Padding.XL,
-						top = Ui.Padding.XL,
-						bottom = Ui.Padding.L,
+						horizontal = Ui.Padding.XL,
+						vertical = Ui.Padding.M,
 					),
-				verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-			) {
-				HdSectionHeader(
-					marker = "III · NEW",
-					title = Res.string.notes_create_header.get(),
-					trailing = {
-						HdMonoLabel(text = "DRAFT")
-					},
-				)
-				HdMonoLabel(
-					text = Res.string.notes_create_body_hint.get(),
-					color = if (newNoteError) {
-						MaterialTheme.colorScheme.error
-					} else {
-						MaterialTheme.colorScheme.onSurfaceVariant
-					},
-				)
-			}
+			)
 
 			HorizontalDivider(
 				thickness = Dp.Hairline,

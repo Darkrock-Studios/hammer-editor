@@ -171,7 +171,8 @@ private fun Breadcrumb(
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = horizontal, vertical = 14.dp),
+			.height(Ui.TOP_BAR_HEIGHT)
+			.padding(horizontal = horizontal),
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(12.dp),
 	) {
