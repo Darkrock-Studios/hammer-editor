@@ -132,3 +132,7 @@ WHERE account.community_member = 1
   AND account.pen_name IS NOT NULL
   AND project_access.access_password IS NULL
   AND (project_access.expires_at IS NULL OR datetime(project_access.expires_at) > datetime('now'));
+
+-- Used only by SqliteToPostgresMigrator.
+getAllForMigration:
+SELECT * FROM project_access ORDER BY id;

@@ -26,3 +26,7 @@ SELECT EXISTS(
 markEntityDeleted:
 INSERT INTO deleted_entity(user_id, project_id, entity_id)
 VALUES (:userId, :projectId, :id);
+
+-- Used only by SqliteToPostgresMigrator.
+getAllForMigration:
+SELECT * FROM deleted_entity ORDER BY user_id, project_id, entity_id;

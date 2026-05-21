@@ -17,3 +17,7 @@ WHERE user_id = :userId AND project_id = :projectId;
 upsert:
 INSERT OR REPLACE INTO project_data(user_id, project_id, content, hash, updated_at)
 VALUES (:userId, :projectId, :content, :hash, :updatedAt);
+
+-- Used only by SqliteToPostgresMigrator.
+getAllForMigration:
+SELECT * FROM project_data ORDER BY user_id, project_id;

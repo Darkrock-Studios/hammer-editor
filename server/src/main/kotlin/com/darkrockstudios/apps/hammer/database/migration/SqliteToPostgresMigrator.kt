@@ -186,9 +186,10 @@ class SqliteToPostgresMigrator(
 	}
 
 	private fun copyAuthToken(legacy: LegacySqliteDatabase, conn: Connection): Int {
-		// Legacy PK is `token`; new PK is `(user_id, install_id)`. Walk the legacy
-		// rows via the only query we have that lists per-user: query every account
-		// and union their tokens.
+		// Legacy PK is `token`; new PK is `(user_id, install_id)`. Same columns,
+		// just a key restructure. Pull every row, dedupe by the new key (last
+		// write wins for a given (user, install) — there should not be duplicates
+		// in practice but the legacy schema allowed multiple tokens per install).
 		val rows = mutableListOf<com.darkrockstudios.apps.hammer.legacy.Auth_token>()
 		for (account in legacy.accountQueries.getAllAccount().executeAsList()) {
 			rows += legacy.authTokenQueries.getTokensByUserId(account.id).executeAsList()
@@ -197,6 +198,11 @@ class SqliteToPostgresMigrator(
 		val sql = """
 			INSERT INTO auth_token (user_id, install_id, token, refresh, created, expires)
 			VALUES (?, ?, ?, ?, ?, ?)
+			ON CONFLICT (user_id, install_id) DO UPDATE SET
+				token = EXCLUDED.token,
+				refresh = EXCLUDED.refresh,
+				created = EXCLUDED.created,
+				expires = EXCLUDED.expires
 		""".trimIndent()
 		conn.prepareStatement(sql).use { ps ->
 			for (r in rows) {
@@ -214,14 +220,7 @@ class SqliteToPostgresMigrator(
 	}
 
 	private fun copyPasswordResetToken(legacy: LegacySqliteDatabase, conn: Connection): Int {
-		// No "getAll" query; iterate per user.
-		val rows = mutableListOf<com.darkrockstudios.apps.hammer.legacy.Password_reset_token>()
-		for (account in legacy.accountQueries.getAllAccount().executeAsList()) {
-			// The legacy DAO exposes lookup by token only; for the migrator we go
-			// to raw JDBC on the legacy connection if needed. Currently we leave
-			// this as a future enhancement — production rarely has many of these.
-			val _unused = account
-		}
+		val rows = legacy.passwordResetTokenQueries.getAllForMigration().executeAsList()
 		if (rows.isEmpty()) return 0
 		val sql = """
 			INSERT INTO password_reset_token (id, user_id, token, created, expires, used)
@@ -243,14 +242,7 @@ class SqliteToPostgresMigrator(
 	}
 
 	private fun copyProject(legacy: LegacySqliteDatabase, conn: Connection): Int {
-		// No legacy "getAll" query for project; iterate per account.
-		val rows = mutableListOf<com.darkrockstudios.apps.hammer.legacy.Project>()
-		for (account in legacy.accountQueries.getAllAccount().executeAsList()) {
-			// The legacy `getProjects(userId)` returns a slim row; we need full rows
-			// from raw SQL for migration. Fall back to raw JDBC against the legacy
-			// driver for completeness. Stubbed as future enhancement.
-			val _unused = account
-		}
+		val rows = legacy.projectQueries.getAllForMigration().executeAsList()
 		if (rows.isEmpty()) return 0
 		val sql = """
 			INSERT INTO project (id, uuid, user_id, name, last_id, last_sync)
@@ -271,11 +263,76 @@ class SqliteToPostgresMigrator(
 		return rows.size
 	}
 
-	private fun copyProjectData(legacy: LegacySqliteDatabase, conn: Connection): Int = 0
+	private fun copyProjectData(legacy: LegacySqliteDatabase, conn: Connection): Int {
+		// Legacy `updated_at` is INTEGER Unix epoch seconds; the new schema uses
+		// TIMESTAMPTZ.
+		val rows = legacy.projectDataQueries.getAllForMigration().executeAsList()
+		if (rows.isEmpty()) return 0
+		val sql = """
+			INSERT INTO project_data (user_id, project_id, content, hash, updated_at)
+			VALUES (?, ?, ?, ?, ?)
+		""".trimIndent()
+		conn.prepareStatement(sql).use { ps ->
+			for (r in rows) {
+				ps.setLong(1, r.user_id)
+				ps.setLong(2, r.project_id)
+				ps.setString(3, r.content)
+				ps.setString(4, r.hash)
+				ps.setTimestamp(5, Timestamp.from(java.time.Instant.ofEpochSecond(r.updated_at)))
+				ps.addBatch()
+			}
+			ps.executeBatch()
+		}
+		return rows.size
+	}
 
-	private fun copyProjectAccess(legacy: LegacySqliteDatabase, conn: Connection): Int = 0
+	private fun copyProjectAccess(legacy: LegacySqliteDatabase, conn: Connection): Int {
+		val rows = legacy.projectAccessQueries.getAllForMigration().executeAsList()
+		if (rows.isEmpty()) return 0
+		val sql = """
+			INSERT INTO project_access (id, project_id, access_password, expires_at, published_at)
+			VALUES (?, ?, ?, ?, ?)
+		""".trimIndent()
+		conn.prepareStatement(sql).use { ps ->
+			for (r in rows) {
+				ps.setLong(1, r.id)
+				ps.setLong(2, r.project_id)
+				ps.setString(3, r.access_password)
+				ps.setTimestamp(4, r.expires_at?.let { parseLegacyTimestampToSql(it) })
+				ps.setTimestamp(5, parseLegacyTimestampToSql(r.published_at))
+				ps.addBatch()
+			}
+			ps.executeBatch()
+		}
+		return rows.size
+	}
 
-	private fun copyStoryEntity(legacy: LegacySqliteDatabase, conn: Connection): Int = 0
+	private fun copyStoryEntity(legacy: LegacySqliteDatabase, conn: Connection): Int {
+		// Highest-volume table in a typical install. Stream in batches of 500 to
+		// keep peak memory bounded.
+		val rows = legacy.storyEntityQueries.getAllForMigration().executeAsList()
+		if (rows.isEmpty()) return 0
+		val sql = """
+			INSERT INTO story_entity (user_id, project_id, id, type, content, hash, cipher)
+			VALUES (?, ?, ?, ?, ?, ?, ?)
+		""".trimIndent()
+		var batched = 0
+		conn.prepareStatement(sql).use { ps ->
+			for (r in rows) {
+				ps.setLong(1, r.user_id)
+				ps.setLong(2, r.project_id)
+				ps.setLong(3, r.id)
+				ps.setString(4, r.type)
+				ps.setString(5, r.content)
+				ps.setString(6, r.hash)
+				ps.setString(7, r.cipher)
+				ps.addBatch()
+				if (++batched % BATCH_SIZE == 0) ps.executeBatch()
+			}
+			if (batched % BATCH_SIZE != 0) ps.executeBatch()
+		}
+		return rows.size
+	}
 
 	private fun copyDeletedProject(legacy: LegacySqliteDatabase, conn: Connection): Int {
 		val rows = mutableListOf<com.darkrockstudios.apps.hammer.legacy.Deleted_project>()
@@ -295,9 +352,42 @@ class SqliteToPostgresMigrator(
 		return rows.size
 	}
 
-	private fun copyDeletedEntity(legacy: LegacySqliteDatabase, conn: Connection): Int = 0
+	private fun copyDeletedEntity(legacy: LegacySqliteDatabase, conn: Connection): Int {
+		val rows = legacy.deletedEntityQueries.getAllForMigration().executeAsList()
+		if (rows.isEmpty()) return 0
+		val sql = """
+			INSERT INTO deleted_entity (user_id, project_id, entity_id, deleted_at)
+			VALUES (?, ?, ?, ?)
+		""".trimIndent()
+		conn.prepareStatement(sql).use { ps ->
+			for (r in rows) {
+				ps.setLong(1, r.user_id)
+				ps.setLong(2, r.project_id)
+				ps.setLong(3, r.entity_id)
+				ps.setTimestamp(4, parseLegacyTimestampToSql(r.deleted_at))
+				ps.addBatch()
+			}
+			ps.executeBatch()
+		}
+		return rows.size
+	}
 
-	private fun copyServerConfig(legacy: LegacySqliteDatabase, conn: Connection): Int = 0
+	private fun copyServerConfig(legacy: LegacySqliteDatabase, conn: Connection): Int {
+		// Legacy `updated_at` is INTEGER Unix epoch seconds; new schema is TIMESTAMPTZ.
+		val rows = legacy.serverConfigQueries.getAllForMigration().executeAsList()
+		if (rows.isEmpty()) return 0
+		val sql = "INSERT INTO server_config (key, value, updated_at) VALUES (?, ?, ?)"
+		conn.prepareStatement(sql).use { ps ->
+			for (r in rows) {
+				ps.setString(1, r.key)
+				ps.setString(2, r.value_)
+				ps.setTimestamp(3, Timestamp.from(java.time.Instant.ofEpochSecond(r.updated_at)))
+				ps.addBatch()
+			}
+			ps.executeBatch()
+		}
+		return rows.size
+	}
 
 	private fun copyWhiteList(legacy: LegacySqliteDatabase, conn: Connection): Int {
 		val rows = legacy.whiteListQueries.getAll().executeAsList()
@@ -315,17 +405,43 @@ class SqliteToPostgresMigrator(
 		return rows.size
 	}
 
-	private fun copyWritingActivity(legacy: LegacySqliteDatabase, conn: Connection): Int = 0
+	private fun copyWritingActivity(legacy: LegacySqliteDatabase, conn: Connection): Int {
+		val rows = legacy.writingActivityQueries.getAllForMigration().executeAsList()
+		if (rows.isEmpty()) return 0
+		val sql = """
+			INSERT INTO writing_activity (user_id, project_id, device_id, content)
+			VALUES (?, ?, ?, ?)
+		""".trimIndent()
+		conn.prepareStatement(sql).use { ps ->
+			for (r in rows) {
+				ps.setLong(1, r.user_id)
+				ps.setLong(2, r.project_id)
+				ps.setString(3, r.device_id)
+				ps.setString(4, r.content)
+				ps.addBatch()
+			}
+			ps.executeBatch()
+		}
+		return rows.size
+	}
 
 	private fun resetSequences(conn: Connection) {
-		val sql = listOf(
-			"SELECT setval(pg_get_serial_sequence('account', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM account), 1))",
-			"SELECT setval(pg_get_serial_sequence('project', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM project), 1))",
-			"SELECT setval(pg_get_serial_sequence('project_access', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM project_access), 1))",
-			"SELECT setval(pg_get_serial_sequence('password_reset_token', 'id'), GREATEST((SELECT COALESCE(MAX(id), 0) FROM password_reset_token), 1))",
-		)
+		// Three-arg setval(seq, value, is_called): when the table is empty, set
+		// is_called=false so the next nextval returns 1 (not 2). When the table
+		// has data, set is_called=true so the next nextval returns max(id)+1.
+		val tables = listOf("account", "project", "project_access", "password_reset_token")
 		conn.createStatement().use { st ->
-			for (s in sql) st.execute(s)
+			for (t in tables) {
+				st.execute(
+					"""
+					SELECT setval(
+						pg_get_serial_sequence('$t', 'id'),
+						COALESCE((SELECT MAX(id) FROM $t), 1),
+						(SELECT MAX(id) IS NOT NULL FROM $t)
+					)
+					""".trimIndent()
+				)
+			}
 		}
 	}
 
@@ -357,6 +473,9 @@ class SqliteToPostgresMigrator(
 		}
 
 	companion object {
+		/** JDBC batch size for the highest-volume table (`story_entity`). */
+		private const val BATCH_SIZE = 500
+
 		/** CLI dry-run entry point. Returns 0 on parity pass, 1 on failure. */
 		fun runDryRun(storage: StorageConfig, fileSystem: FileSystem): Int {
 			val result = SqliteToPostgresMigrator(storage, fileSystem, dryRun = true).run()

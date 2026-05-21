@@ -70,3 +70,7 @@ WHERE user_id = :userId AND project_id = :projectId AND id = :id;
 deleteEntity:
 DELETE FROM story_entity
 WHERE user_id = :userId AND project_id = :projectId AND id = :id;
+
+-- Used only by SqliteToPostgresMigrator.
+getAllForMigration:
+SELECT * FROM story_entity ORDER BY user_id, project_id, id;

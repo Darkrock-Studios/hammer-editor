@@ -10,3 +10,7 @@ SELECT value FROM server_config WHERE key = ?;
 upsertConfig:
 INSERT OR REPLACE INTO server_config (key, value, updated_at)
 VALUES (?, ?, strftime('%s', 'now'));
+
+-- Used only by SqliteToPostgresMigrator.
+getAllForMigration:
+SELECT * FROM server_config ORDER BY key;

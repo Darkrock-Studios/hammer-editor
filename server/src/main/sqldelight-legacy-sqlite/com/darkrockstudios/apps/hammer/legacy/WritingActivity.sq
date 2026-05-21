@@ -16,3 +16,8 @@ WHERE user_id = :userId AND project_id = :projectId;
 upsertDeviceLog:
 INSERT OR REPLACE INTO writing_activity(user_id, project_id, device_id, content)
 VALUES (:userId, :projectId, :deviceId, :content);
+
+-- Used only by SqliteToPostgresMigrator. (getAllForProject above projects to
+-- only device_id+content; the migrator needs the full row.)
+getAllForMigration:
+SELECT * FROM writing_activity ORDER BY user_id, project_id, device_id;

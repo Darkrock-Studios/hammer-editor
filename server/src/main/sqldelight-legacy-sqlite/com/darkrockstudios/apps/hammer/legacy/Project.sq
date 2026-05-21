@@ -79,3 +79,7 @@ WHERE user_id = :userId AND uuid = :uuid;
 deleteProject:
 DELETE FROM project
 WHERE user_id = :userId AND uuid = :uuid;
+
+-- Used only by SqliteToPostgresMigrator.
+getAllForMigration:
+SELECT * FROM project ORDER BY id;
