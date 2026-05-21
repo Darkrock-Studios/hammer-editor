@@ -67,6 +67,9 @@ fastlane/README.md
 /desktop/runtime.provisionprofile
 /desktop/secrets/
 
+# Xcode per-user state (UI layout, breakpoints, scheme prefs)
+**/xcuserdata/
+
 # Snap/Flatpak/AppImage build artifacts
 /flatpak-build/
 /flatpak-repo/
