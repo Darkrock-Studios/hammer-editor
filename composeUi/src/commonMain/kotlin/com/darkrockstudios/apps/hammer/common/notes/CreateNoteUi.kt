@@ -58,10 +58,10 @@ fun CreateNoteUi(
 
 			// Masthead — § III · NEW marker, screen title, draft state.
 			HdSectionHeader(
-				marker = "III · NEW",
+				marker = Res.string.notes_create_marker.get(),
 				title = Res.string.notes_create_header.get(),
 				trailing = {
-					HdMonoLabel(text = "DRAFT")
+					HdMonoLabel(text = Res.string.notes_create_draft_label.get())
 				},
 				modifier = Modifier
 					.fillMaxWidth()
