@@ -70,6 +70,10 @@ fastlane/README.md
 # Xcode per-user state (UI layout, breakpoints, scheme prefs)
 **/xcuserdata/
 
+# iOS App Store signing assets (do NOT commit)
+/ios/AppStore.mobileprovision
+/ios/ExportOptions.plist
+
 # Snap/Flatpak/AppImage build artifacts
 /flatpak-build/
 /flatpak-repo/
