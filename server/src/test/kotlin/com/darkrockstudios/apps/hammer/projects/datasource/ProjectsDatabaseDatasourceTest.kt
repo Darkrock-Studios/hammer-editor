@@ -122,9 +122,8 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 		val datasource = createDatasource()
 		datasource.saveSyncData(userId, syncData)
 
-		val lastSyncStr =
+		val lastSync =
 			testDatabase.serverDatabase.accountQueries.getLastSync(userId).executeAsOneOrNull()
-		val lastSync = lastSyncStr?.let { sqliteDateTimeStringToInstant(lastSyncStr) }
 		assertEquals(syncData.lastSync, lastSync)
 		val deletedProjects =
 			testDatabase.serverDatabase.deletedProjectQueries.getDeletedProjects(userId)
@@ -145,8 +144,8 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 			password_hash = "hash",
 			cipher_secret = cipherSecretGenerator.generateToken(),
 			is_admin = true,
-			created = instant.toSqliteDateTimeString(),
-			last_sync = instantLastUpdate.toSqliteDateTimeString()
+			created = instant,
+			last_sync = instantLastUpdate
 		)
 		testDatabase.serverDatabase.deletedProjectQueries.addDeletedProject(
 			userId = userId,

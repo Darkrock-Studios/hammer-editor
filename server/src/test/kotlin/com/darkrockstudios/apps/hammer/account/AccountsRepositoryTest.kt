@@ -51,8 +51,8 @@ class AccountsRepositoryTest : BaseTest() {
 		install_id = installId,
 		token = "$bearerToken-hashed",  // Tokens are now stored hashed
 		refresh = "$refreshToken-hashed",  // Tokens are now stored hashed
-		created = (Clock.System.now() - 365.days).toISO8601(),
-		expires = (Clock.System.now() + 30.days).toISO8601()
+		created = (Clock.System.now() - 365.days),
+		expires = (Clock.System.now() + 30.days)
 	)
 
 	@BeforeEach
@@ -83,9 +83,9 @@ class AccountsRepositoryTest : BaseTest() {
 			email = email,
 			password_hash = hashedPassword,
 			cipher_secret = cipherSecret,
-			created = (Clock.System.now() - 128.days).toSqliteDateTimeString(),
+			created = (Clock.System.now() - 128.days),
 			is_admin = true,
-			last_sync = Clock.System.now().toSqliteDateTimeString(),
+			last_sync = Clock.System.now(),
 			pen_name = null,
 			bio = null,
 			email_verified = true,

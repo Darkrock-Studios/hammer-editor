@@ -149,7 +149,7 @@ class ServerWritingActivityRepositoryTest : BaseTest() {
 			uuid = projectDef.uuid.id,
 			name = projectDef.name,
 			userId = userId,
-			lastSync = "2026-04-28 09:00:00",
+			lastSync = Instant.parse("2026-04-28T09:00:00Z"),
 			lastId = 0,
 		)
 	}

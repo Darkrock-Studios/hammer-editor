@@ -27,6 +27,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 class ServerProjectDataRepositoryTest : BaseTest() {
 
@@ -161,7 +162,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 			uuid = projectDef.uuid.id,
 			name = projectDef.name,
 			userId = userId,
-			lastSync = "2026-04-28 09:00:00",
+			lastSync = Instant.parse("2026-04-28T09:00:00Z"),
 			lastId = 0,
 		)
 	}
