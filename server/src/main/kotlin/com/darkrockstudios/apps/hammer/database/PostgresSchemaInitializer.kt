@@ -77,11 +77,14 @@ object PostgresSchemaInitializer {
 		driver.execute(null, "ALTER TABLE account ALTER COLUMN pen_name TYPE CITEXT", 0)
 		driver.execute(null, "ALTER TABLE white_list ALTER COLUMN email TYPE CITEXT", 0)
 
-		// UUID promotion deferred to a follow-up release. Existing test fixtures
-		// and unit tests use placeholder strings ("Test UUID", "project-id-1")
-		// in the uuid column, which fail Postgres' UUID input validation. Once
-		// those are scrubbed we can re-enable:
-		//   ALTER TABLE project ALTER COLUMN uuid TYPE UUID USING uuid::uuid
-		//   ALTER TABLE deleted_project ALTER COLUMN uuid TYPE UUID USING uuid::uuid
+		// UUID — 16-byte storage + format validation. SqlDelight binds the column
+		// as a String at the API boundary, but Postgres accepts text input for
+		// UUID columns via implicit cast.
+		driver.execute(null, "ALTER TABLE project ALTER COLUMN uuid TYPE UUID USING uuid::uuid", 0)
+		driver.execute(
+			null,
+			"ALTER TABLE deleted_project ALTER COLUMN uuid TYPE UUID USING uuid::uuid",
+			0,
+		)
 	}
 }

@@ -42,7 +42,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 	private lateinit var base64: Base64
 
 	private val userId = 1L
-	private val projectDef = ProjectDefinition("Test Project", ProjectId("Test UUID"))
+	private val projectDef = ProjectDefinition("Test Project", ProjectId("11111111-1111-1111-1111-111111111111"))
 
 	@BeforeEach
 	override fun setup() {

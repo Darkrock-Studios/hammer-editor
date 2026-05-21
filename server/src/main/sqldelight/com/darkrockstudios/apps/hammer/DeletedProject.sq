@@ -1,5 +1,9 @@
 import kotlinx.datetime.Instant;
 
+-- uuid is declared TEXT for SqlDelight's parser; promoted to UUID at runtime
+-- by PostgresSchemaInitializer (matches project.uuid). Callers cast bound
+-- String parameters with CAST(:uuid AS UUID) because Postgres won't auto-cast
+-- text against a UUID column in comparisons or against the UNIQUE index.
 CREATE TABLE deleted_project (
     user_id BIGINT NOT NULL,
     uuid TEXT NOT NULL,
@@ -16,11 +20,11 @@ WHERE user_id = :userId;
 
 addDeletedProject:
 INSERT INTO deleted_project(user_id, uuid)
-VALUES(:userId, :uuid);
+VALUES(:userId, CAST(:uuid AS UUID));
 
 removeDeletedProject:
 DELETE FROM deleted_project
-WHERE user_id = :userId AND uuid = :uuid;
+WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);
 
 hasDeletedProject:
-SELECT EXISTS(SELECT 1 FROM deleted_project WHERE user_id = :userId AND uuid = :uuid);
+SELECT EXISTS(SELECT 1 FROM deleted_project WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID));
