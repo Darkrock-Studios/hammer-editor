@@ -66,7 +66,7 @@ class MigrationFullTableParityTest {
 
 		// Schema-level: confirm the email column actually is CITEXT (silent if
 		// missed — comparisons just stay case-sensitive).
-		val driver = db.driver as app.cash.sqldelight.driver.jdbc.JdbcDriver
+		val driver = db.driver
 		val conn = driver.getConnection()
 		try {
 			conn.prepareStatement(

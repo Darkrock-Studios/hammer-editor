@@ -32,6 +32,20 @@ object MigrationFixtureBuilder {
 	}
 
 	/**
+	 * Create an empty v5 legacy SQLite database at [dbPath] and run [seed]
+	 * against it. Used by failure-mode tests that want to plant specific bad
+	 * data without going through the [tiny] preset.
+	 */
+	fun withSchema(dbPath: String, seed: (LegacySqliteDatabase) -> Unit) {
+		val (driver, db) = open(dbPath)
+		try {
+			seed(db)
+		} finally {
+			driver.close()
+		}
+	}
+
+	/**
 	 * Tiny fixture covering every table with at least one row. Used by the
 	 * primary parity test. The data exercises:
 	 *  - Two accounts (admin + community member, with + without pen_name + bio).

@@ -3,9 +3,6 @@ package com.darkrockstudios.apps.hammer.database.migration
 import com.darkrockstudios.apps.hammer.database.ServerDatabase
 import com.darkrockstudios.apps.hammer.database.legacy.LegacySqliteDatabase
 import java.sql.Connection
-import java.time.LocalDateTime
-import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 import java.util.UUID
 import kotlin.time.Instant
 
@@ -48,10 +45,6 @@ sealed class TableParityResult {
  * message without iterating the entire history of a large database.
  */
 object MigrationParityChecker {
-
-	/** SQLite stores `datetime('now')` text as "YYYY-MM-DD HH:MM:SS" (UTC). */
-	private val sqliteDateTimeFormatter =
-		DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneOffset.UTC)
 
 	/**
 	 * Quick row-count parity check against a JDBC [Connection] — used by the
@@ -177,19 +170,8 @@ object MigrationParityChecker {
 		}
 	}
 
-	/**
-	 * Parse a SQLite text timestamp. Accepts both the canonical
-	 * `"YYYY-MM-DD HH:MM:SS"` form and ISO-8601 with or without trailing `Z`.
-	 */
-	private fun parseLegacyTimestamp(text: String): Instant? {
-		val cleaned = text.trim()
-		return runCatching {
-			Instant.parse(cleaned.replace(' ', 'T').let { if (it.endsWith("Z")) it else "${it}Z" })
-		}.getOrNull() ?: runCatching {
-			val ldt = LocalDateTime.parse(cleaned, sqliteDateTimeFormatter)
-			Instant.fromEpochSeconds(ldt.toEpochSecond(ZoneOffset.UTC))
-		}.getOrNull()
-	}
+	private fun parseLegacyTimestamp(text: String): Instant? =
+		runCatching { com.darkrockstudios.apps.hammer.utilities.parseLegacyTimestamp(text) }.getOrNull()
 
 	/**
 	 * If the value looks like a UUID string, return its canonical lowercase

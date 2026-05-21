@@ -31,3 +31,7 @@ INSERT OR REPLACE INTO auth_token(
 
 deleteByUserId:
 DELETE FROM auth_token WHERE user_id = ?;
+
+-- Used only by SqliteToPostgresMigrator.
+getAllForMigration:
+SELECT * FROM auth_token ORDER BY user_id, install_id;

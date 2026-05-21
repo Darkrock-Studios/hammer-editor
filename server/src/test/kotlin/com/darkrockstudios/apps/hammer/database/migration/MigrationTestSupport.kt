@@ -19,10 +19,10 @@ internal object MigrationTestSupport {
 
 	fun nextPort(): Int = portAllocator.getAndIncrement()
 
-	fun storageFor(port: Int = nextPort(), dataDirName: String = "pgdata-${port}"): StorageConfig =
+	fun storageFor(port: Int = nextPort()): StorageConfig =
 		StorageConfig(
 			type = StorageMode.EMBEDDED,
-			embedded = EmbeddedPostgresConfig(port = port, dataDirName = dataDirName),
+			embedded = EmbeddedPostgresConfig(port = port, dataDirName = "pgdata-$port"),
 		)
 
 	/**

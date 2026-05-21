@@ -93,29 +93,19 @@ class MigrationFailureModesTest {
 	}
 
 	/** Schema-only fixture with one project referencing a not-actually-a-UUID. */
-	private fun seedWithBadUuid(dbPath: String) {
-		val driver = app.cash.sqldelight.driver.jdbc.sqlite.JdbcSqliteDriver(
-			url = "jdbc:sqlite:$dbPath",
-			properties = java.util.Properties().apply { put("foreign_keys", "false") },
+	private fun seedWithBadUuid(dbPath: String) = MigrationFixtureBuilder.withSchema(dbPath) { db ->
+		db.accountQueries.createAccount(
+			email = "a@example.com",
+			password_hash = "h",
+			cipher_secret = "s",
+			is_admin = false,
 		)
-		try {
-			com.darkrockstudios.apps.hammer.database.legacy.LegacySqliteDatabase.Schema.create(driver)
-			val db = com.darkrockstudios.apps.hammer.database.legacy.LegacySqliteDatabase(driver)
-			db.accountQueries.createAccount(
-				email = "a@example.com",
-				password_hash = "h",
-				cipher_secret = "s",
-				is_admin = false,
-			)
-			db.projectQueries.insertProject(
-				userId = 1,
-				name = "Bad UUID Project",
-				uuid = "not-a-uuid",
-				lastSync = "2024-01-01 00:00:00",
-				lastId = 0,
-			)
-		} finally {
-			driver.close()
-		}
+		db.projectQueries.insertProject(
+			userId = 1,
+			name = "Bad UUID Project",
+			uuid = "not-a-uuid",
+			lastSync = "2024-01-01 00:00:00",
+			lastId = 0,
+		)
 	}
 }
