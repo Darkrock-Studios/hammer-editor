@@ -25,6 +25,45 @@ The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 6. **IMPORTANT!** You must now download one of the clients and create an account on the server. The first account
    created will be the admin account.
 
+## Storage
+
+The server persists its data in PostgreSQL. Two modes:
+
+- **Embedded (default).** An in-process PostgreSQL server is started automatically. Data lives under `~/hammer_data/pgdata/`. No external services required — drop the JAR on a box and run it.
+- **Remote.** Point at an externally-managed PostgreSQL server. Use this when you outgrow embedded or want managed backups.
+
+Embedded is the default; no config is needed for it. To override the embedded port, or to switch to remote, add a `[storage]` block to `serverConfig.toml`:
+
+```toml
+# Embedded (defaults shown). Omit this whole block to accept the defaults.
+[storage]
+type = "embedded"
+[storage.embedded]
+port = 54329        # pinned for predictability
+dataDirName = "pgdata"
+```
+
+```toml
+# Remote.
+[storage]
+type = "remote"
+[storage.remote]
+host = "db.example.com"
+port = 5432
+database = "hammer"
+user = "hammer"
+password = "..."
+schema = "public"
+poolSize = 10
+useSsl = true
+```
+
+### Upgrading from a pre-PostgreSQL version
+
+Older releases used SQLite (`~/hammer_data/server.db`). The first run after upgrading auto-detects the file and migrates its contents into PostgreSQL inside a single transaction, then renames the source to `server.db.migrated-<timestamp>.bak`. If migration fails for any reason, the SQLite file is left untouched and the server exits with an error — fix the cause and start again.
+
+To rehearse the migration against a copy of production before flipping the live config, run with `--migrate-dry-run`: it does everything except commit and rename.
+
 ## Platform-Specific Instructions
 
 ### Linux
