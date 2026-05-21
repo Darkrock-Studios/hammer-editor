@@ -77,6 +77,79 @@ platform :mac do
   end
 end
 
+platform :ios do
+  desc "Build a signed .ipa and upload to TestFlight; build number auto-increments from the latest in TestFlight."
+  lane :ios_testflight do
+    api_key = appstore_api_key
+
+    # Same pattern as :mac — CI sets BUILD_NUMBER (github.run_number); locally
+    # we query TestFlight and increment so manual builds don't collide.
+    build_number = ENV["BUILD_NUMBER"]
+    if build_number.nil? || build_number.empty?
+      latest = latest_testflight_build_number(
+        api_key: api_key,
+        app_identifier: "com.darkrockstudios.apps.hammer.ios",
+        platform: "ios",
+        initial_build_number: 0,
+      )
+      build_number = (latest.to_i + 1).to_s
+    end
+    UI.message("iOS App Store build number: #{build_number}")
+
+    # Bump CFBundleVersion in Info.plist before archiving. CI runners are
+    # ephemeral so dirty state doesn't matter; locally, commit or revert
+    # the resulting Info.plist change after the lane runs.
+    set_info_plist_value(
+      path: File.expand_path("../ios/ios/Info.plist", __dir__),
+      key: "CFBundleVersion",
+      value: build_number,
+    )
+
+    build_app(
+      project: File.expand_path("../ios/ios.xcodeproj", __dir__),
+      scheme: "ios",
+      configuration: "Release",
+      output_directory: File.expand_path("../ios/build", __dir__),
+      output_name: "Hammer.ipa",
+      export_method: "app-store",
+      export_options: {
+        method: "app-store",
+        teamID: "8P3G3HT4J5",
+        signingStyle: "manual",
+        provisioningProfiles: {
+          "com.darkrockstudios.apps.hammer.ios" => "Hammer AppStore iOS",
+        },
+      },
+      clean: true,
+      silent: true,
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: "com.darkrockstudios.apps.hammer.ios",
+      app_platform: "ios",
+      ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
+      skip_waiting_for_build_processing: true,
+    )
+  end
+
+  desc "Submit the latest processed TestFlight build for App Store review. Metadata + screenshots stay in App Store Connect for now."
+  lane :ios_release do
+    api_key = appstore_api_key
+    deliver(
+      api_key: api_key,
+      app_identifier: "com.darkrockstudios.apps.hammer.ios",
+      platform: "ios",
+      skip_binary_upload: true,
+      skip_metadata: true,
+      skip_screenshots: true,
+      submit_for_review: true,
+      automatic_release: true,
+      force: true,
+    )
+  end
+end
+
 platform :android do
   desc "Runs all the tests"
   lane :test do
