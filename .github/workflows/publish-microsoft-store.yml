@@ -1,0 +1,154 @@
+name: Publish — Microsoft Store
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Skip the final Store commit (validate auth + upload only)"
+        type: boolean
+        default: false
+  workflow_call:
+    inputs:
+      dry_run:
+        type: boolean
+        default: false
+
+jobs:
+  publish-microsoft-store:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Build MSIX package
+        run: ./gradlew :desktop:packageMsix
+
+      - name: Upload Gradle problems report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gradle-problems-report
+          path: build/reports/problems/problems-report.html
+          if-no-files-found: ignore
+
+      - name: Submit to Microsoft Store
+        shell: pwsh
+        env:
+          MS_TENANT_ID: ${{ secrets.MS_TENANT_ID }}
+          MS_CLIENT_ID: ${{ secrets.MS_CLIENT_ID }}
+          MS_CLIENT_SECRET: ${{ secrets.MS_CLIENT_SECRET }}
+          MS_APP_ID: ${{ secrets.MS_APP_ID }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $dryRun = "${{ inputs.dry_run }}" -eq "true"
+          if ($dryRun) {
+            Write-Host "DRY RUN: will upload everything but skip the final /commit and delete the draft."
+          }
+
+          # Get access token
+          $tokenBody = @{
+            grant_type    = "client_credentials"
+            client_id     = $env:MS_CLIENT_ID
+            client_secret = $env:MS_CLIENT_SECRET
+            scope         = "https://manage.devcenter.microsoft.com/.default"
+          }
+          $tokenResponse = Invoke-RestMethod -Uri "https://login.microsoftonline.com/$env:MS_TENANT_ID/oauth2/v2.0/token" -Method POST -Body $tokenBody
+          $accessToken = $tokenResponse.access_token
+
+          $authHeaders = @{
+            Authorization  = "Bearer $accessToken"
+            "Content-Type" = "application/json"
+          }
+          $appUrl = "https://manage.devcenter.microsoft.com/v1.0/my/applications/$env:MS_APP_ID"
+
+          # Only one in-flight submission allowed; clear any stale one.
+          $appInfo = Invoke-RestMethod -Uri $appUrl -Method GET -Headers $authHeaders
+          if ($appInfo.pendingApplicationSubmission) {
+            $pendingId = $appInfo.pendingApplicationSubmission.id
+            Write-Host "Deleting stale pending submission $pendingId"
+            Invoke-RestMethod -Uri "$appUrl/submissions/$pendingId" -Method DELETE -Headers $authHeaders | Out-Null
+          }
+
+          # Create new submission (clones the last published one)
+          Write-Host "Creating new submission..."
+          $submission = Invoke-RestMethod -Uri "$appUrl/submissions" -Method POST -Headers $authHeaders
+          $submissionId    = $submission.id
+          $fileUploadUrl   = $submission.fileUploadUrl
+          Write-Host "Submission ID: $submissionId"
+
+          # Find MSIX file
+          $msixFile = Get-ChildItem -Path "desktop\build\installers\Hammer-*.msix" | Select-Object -First 1
+          if (-not $msixFile) {
+            throw "No MSIX file found in desktop\build\installers\"
+          }
+          $msixName = $msixFile.Name
+          Write-Host "MSIX: $($msixFile.FullName)"
+
+          # Without PendingDelete + a new PendingUpload entry the commit
+          # succeeds against the cloned package list and the Store keeps the old version.
+          $existing = @($submission.applicationPackages)
+          foreach ($pkg in $existing) {
+            $pkg.fileStatus = "PendingDelete"
+          }
+          $newPackage = [PSCustomObject]@{
+            fileName   = $msixName
+            fileStatus = "PendingUpload"
+          }
+          $submission.applicationPackages = @($existing + $newPackage)
+
+          # PUT the modified submission back
+          Write-Host "Updating submission with new package metadata..."
+          $submissionJson = $submission | ConvertTo-Json -Depth 50
+          Invoke-RestMethod -Uri "$appUrl/submissions/$submissionId" -Method PUT -Headers $authHeaders -Body $submissionJson | Out-Null
+
+          # fileUploadUrl expects a ZIP whose entries match the applicationPackages fileNames, not a raw MSIX.
+          $zipPath = Join-Path $msixFile.DirectoryName "submission.zip"
+          if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
+          Compress-Archive -Path $msixFile.FullName -DestinationPath $zipPath
+
+          Write-Host "Uploading $zipPath to blob storage..."
+          $zipBytes = [System.IO.File]::ReadAllBytes($zipPath)
+          $blobHeaders = @{ "x-ms-blob-type" = "BlockBlob" }
+          Invoke-RestMethod -Uri $fileUploadUrl -Method PUT -Headers $blobHeaders -Body $zipBytes -ContentType "application/octet-stream" | Out-Null
+          Write-Host "Upload complete."
+
+          if ($dryRun) {
+            Write-Host "Dry run — deleting draft submission $submissionId so it doesn't block future runs..."
+            Invoke-RestMethod -Uri "$appUrl/submissions/$submissionId" -Method DELETE -Headers $authHeaders | Out-Null
+            Write-Host "Dry run — draft submission $submissionId deleted, not committed."
+            return
+          }
+
+          # Commit submission
+          Write-Host "Committing submission..."
+          Invoke-RestMethod -Uri "$appUrl/submissions/$submissionId/commit" -Method POST -Headers $authHeaders | Out-Null
+
+          # CommitFailed only surfaces via /status, not the commit response.
+          Write-Host "Polling submission status..."
+          $deadline = (Get-Date).AddMinutes(15)
+          while ($true) {
+            Start-Sleep -Seconds 20
+            $status = Invoke-RestMethod -Uri "$appUrl/submissions/$submissionId/status" -Method GET -Headers $authHeaders
+            Write-Host "  status=$($status.status)"
+            if ($status.status -eq "CommitStarted" -or $status.status -eq "PreProcessing") {
+              if ((Get-Date) -gt $deadline) {
+                Write-Host "Still processing after 15 minutes — leaving it to the Store. Check Partner Center."
+                break
+              }
+              continue
+            }
+            if ($status.status -eq "PendingCommit" -or $status.status -eq "CommitFailed") {
+              $details = $status.statusDetails | ConvertTo-Json -Depth 10
+              throw "Submission commit failed (status=$($status.status)). Details: $details"
+            }
+            # Any other status (Release, Published, Certification) = commit succeeded; rest is the Store's problem.
+            break
+          }
+
+          Write-Host "Submission committed successfully."
