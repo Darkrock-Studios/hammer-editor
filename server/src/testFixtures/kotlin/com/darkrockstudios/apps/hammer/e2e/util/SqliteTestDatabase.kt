@@ -10,14 +10,10 @@ import io.zonky.test.db.postgres.embedded.EmbeddedPostgres
 
 /**
  * Test database backed by a single, process-wide Zonky embedded Postgres
- * shared across every test in the JVM. Each instance drops and recreates
- * `public` to start from a clean v1 schema. A new instance per test gives
- * isolation without paying for a fresh postgres process each time.
+ * shared across every test in the JVM. The schema is created once for the
+ * whole JVM; each instance just truncates the user tables to start clean.
  */
-class SqliteTestDatabase(
-	private val createSchema: Boolean = true,
-	@Suppress("UNUSED_PARAMETER") enforceForeignKeys: Boolean = true,
-) : Database {
+class SqliteTestDatabase : Database {
 	private lateinit var _driver: SqlDriver
 	private lateinit var _serverDatabase: ServerDatabase
 	private var initialized = false
@@ -31,15 +27,9 @@ class SqliteTestDatabase(
 		// would destroy that data.
 		if (initialized) return
 
-		val sharedDriver = SharedTestPostgres.driver
-		// Wipe tables, sequences, types, and extensions back to v1 baseline.
-		sharedDriver.execute(null, "DROP SCHEMA public CASCADE", 0)
-		sharedDriver.execute(null, "CREATE SCHEMA public", 0)
-
-		_driver = sharedDriver
-		if (createSchema) {
-			PostgresSchemaInitializer.initialize(_driver)
-		}
+		_driver = SharedTestPostgres.driver
+		SharedTestPostgres.ensureSchema()
+		SharedTestPostgres.truncateUserTables()
 		_serverDatabase = buildServerDatabase(_driver)
 		initialized = true
 	}
@@ -48,7 +38,7 @@ class SqliteTestDatabase(
 	suspend fun executeAsync(sql: String): Long = execute(sql).await()
 
 	override fun close() {
-		// Intentionally no-op. The shared embedded postgres outlives any single
+		// No-op. The shared embedded postgres outlives any single
 		// SqliteTestDatabase; it is shut down by SharedTestPostgres's JVM hook.
 	}
 }
@@ -86,5 +76,43 @@ private object SharedTestPostgres {
 			override fun removeListener(vararg queryKeys: String, listener: app.cash.sqldelight.Query.Listener) {}
 			override fun notifyListeners(vararg queryKeys: String) {}
 		}
+	}
+
+	private var schemaReady = false
+	private val userTablesCsv: String by lazy {
+		discoverUserTables().joinToString(", ").also {
+			check(it.isNotEmpty()) { "No user tables discovered — was ensureSchema() called first?" }
+		}
+	}
+
+	@Synchronized
+	fun ensureSchema() {
+		if (schemaReady) return
+		PostgresSchemaInitializer.initialize(driver)
+		schemaReady = true
+	}
+
+	/** Wipes every user table in one TRUNCATE; resets sequences too. */
+	fun truncateUserTables() {
+		driver.execute(null, "TRUNCATE TABLE $userTablesCsv RESTART IDENTITY CASCADE", 0)
+	}
+
+	/** Discover user tables once, after schema is initialized. */
+	private fun discoverUserTables(): List<String> {
+		val tables = mutableListOf<String>()
+		driver.executeQuery(
+			identifier = null,
+			sql = """
+				SELECT tablename FROM pg_tables
+				WHERE schemaname = 'public' AND tablename <> '_schema_version'
+			""".trimIndent(),
+			mapper = { cursor ->
+				while (cursor.next().value) cursor.getString(0)?.let(tables::add)
+				QueryResult.Unit
+			},
+			parameters = 0,
+			binders = null,
+		)
+		return tables
 	}
 }
