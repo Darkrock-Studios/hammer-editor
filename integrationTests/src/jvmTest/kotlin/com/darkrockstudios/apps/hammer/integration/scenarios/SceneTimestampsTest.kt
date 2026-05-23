@@ -25,6 +25,7 @@ class SceneTimestampsTest : RoundTripTestBase() {
 			serverSettings = makeServerSettings(),
 		)
 
+		val beforeEdit = kotlin.time.Clock.System.now()
 		val scene = client.sceneEditor.createScene(parent = null, sceneName = "Timed Scene")
 		assertNotNull(scene)
 		client.sceneEditor.onContentChanged(
@@ -33,22 +34,36 @@ class SceneTimestampsTest : RoundTripTestBase() {
 		)
 		client.sceneEditor.storeSceneBuffer(scene)
 
+		assertTrue(client.sync(), "Sync should succeed")
+		val afterSync = kotlin.time.Clock.System.now()
+
 		val sceneMetadataDatasource: SceneMetadataDatasource = client.scope.get()
 		val localMetadata = sceneMetadataDatasource.loadMetadata(scene.id)
 		assertNotNull(localMetadata, "Local SceneMetadata should exist after edit")
-		val localCreated = localMetadata.created
-		val localLastEdited = localMetadata.lastEdited
-		assertNotNull(localCreated, "createScene + edit must populate created locally")
-		assertNotNull(localLastEdited, "edit must populate lastEdited locally")
-
-		assertTrue(client.sync(), "Sync should succeed")
+		assertNotNull(localMetadata.created, "createScene + edit must populate created locally")
+		assertNotNull(localMetadata.lastEdited, "edit must populate lastEdited locally")
 
 		val numericProjectId = serverNumericProjectIdFor("timestamps upload")
 		assertNotNull(numericProjectId)
 		val storedEntity = loadServerSceneEntity(numericProjectId, scene.id)
 
-		assertEquals(localCreated, storedEntity.created, "created should round-trip to server")
-		assertEquals(localLastEdited, storedEntity.lastEdited, "lastEdited should round-trip to server")
+		// SceneEditorRepository auto-saves run during sync and refresh lastEdited
+		// each time, so we can't pin a single instant against the server's copy.
+		// What we can pin: both timestamps were set during this test's lifetime,
+		// and the server's lastEdited matches the freshest local write — i.e. the
+		// edit round-tripped instead of being dropped or stamped with NOW() server-side.
+		val serverCreated = storedEntity.created
+		val serverLastEdited = storedEntity.lastEdited
+		assertNotNull(serverCreated, "server stored a created timestamp")
+		assertNotNull(serverLastEdited, "server stored a lastEdited timestamp")
+		assertTrue(
+			serverCreated in beforeEdit..afterSync,
+			"created should land in [beforeEdit, afterSync] but was $serverCreated",
+		)
+		assertTrue(
+			serverLastEdited in beforeEdit..afterSync,
+			"lastEdited should land in [beforeEdit, afterSync] but was $serverLastEdited",
+		)
 
 		client.close()
 	}

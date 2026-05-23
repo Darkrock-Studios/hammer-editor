@@ -1,13 +1,17 @@
+import kotlinx.datetime.Instant;
+
 CREATE TABLE project_access (
-    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-    project_id INTEGER NOT NULL,
-    access_password TEXT DEFAULT NULL,
-    expires_at TEXT DEFAULT NULL,
-    published_at TEXT DEFAULT (datetime('now')) NOT NULL,
+    id BIGSERIAL PRIMARY KEY,
+    project_id BIGINT NOT NULL,
+    access_password TEXT,
+    expires_at TIMESTAMPTZ AS Instant,
+    published_at TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    CONSTRAINT project_access_expires_after_published CHECK (expires_at IS NULL OR expires_at > published_at),
     FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_project_access_project_id ON project_access(project_id);
+CREATE INDEX idx_project_access_project_id ON project_access (project_id);
+CREATE INDEX idx_project_access_active_expires ON project_access (expires_at) WHERE expires_at IS NOT NULL;
 
 getAccessForProject:
 SELECT *
@@ -34,8 +38,10 @@ insertAccess:
 INSERT INTO project_access(project_id, access_password, expires_at)
 VALUES (?, ?, ?);
 
+-- The SQLite `INSERT OR REPLACE` here had no UNIQUE other than PK (id auto-incr)
+-- so it was effectively a plain INSERT in practice; preserve that semantics.
 updateAccess:
-INSERT OR REPLACE INTO project_access(project_id, access_password, expires_at)
+INSERT INTO project_access(project_id, access_password, expires_at)
 VALUES (?, ?, ?);
 
 deleteAccess:
@@ -56,6 +62,11 @@ WHERE project_id IN (
     SELECT id FROM project WHERE user_id = :userId
 );
 
+-- account.pen_name and project.name are promoted to CITEXT at runtime, so
+-- equality is case-insensitive — but bound text/varchar parameters route
+-- through `text = text` unless explicitly cast. CAST(:x AS CITEXT) forces
+-- the citext-equality operator. See Account.sq:findAccount for the same
+-- pattern applied to email.
 findPublicProjectByPenNameAndProjectName:
 SELECT
     project.uuid AS project_uuid,
@@ -66,8 +77,8 @@ SELECT
 FROM project
 INNER JOIN account ON project.user_id = account.id
 INNER JOIN project_access ON project.id = project_access.project_id
-WHERE LOWER(account.pen_name) = LOWER(:penName)
-  AND LOWER(project.name) = LOWER(:projectName)
+WHERE account.pen_name = CAST(:penName AS CITEXT)
+  AND project.name = CAST(:projectName AS CITEXT)
   AND project_access.access_password IS NULL;
 
 findProjectByPenNameProjectNameAndPassword:
@@ -80,8 +91,8 @@ SELECT
 FROM project
 INNER JOIN account ON project.user_id = account.id
 INNER JOIN project_access ON project.id = project_access.project_id
-WHERE LOWER(account.pen_name) = LOWER(:penName)
-  AND LOWER(project.name) = LOWER(:projectName)
+WHERE account.pen_name = CAST(:penName AS CITEXT)
+  AND project.name = CAST(:projectName AS CITEXT)
   AND project_access.access_password = :password;
 
 hasAnyAccessForProject:
@@ -90,8 +101,8 @@ SELECT EXISTS(
     FROM project
     INNER JOIN account ON project.user_id = account.id
     INNER JOIN project_access ON project.id = project_access.project_id
-    WHERE LOWER(account.pen_name) = LOWER(:penName)
-      AND LOWER(project.name) = LOWER(:projectName)
+    WHERE account.pen_name = CAST(:penName AS CITEXT)
+      AND project.name = CAST(:projectName AS CITEXT)
 ) AS has_access;
 
 getPublishedStoriesByPenName:
@@ -102,9 +113,9 @@ SELECT
 FROM project
 INNER JOIN account ON project.user_id = account.id
 INNER JOIN project_access ON project.id = project_access.project_id
-WHERE LOWER(account.pen_name) = LOWER(:penName)
+WHERE account.pen_name = CAST(:penName AS CITEXT)
   AND project_access.access_password IS NULL
-  AND (project_access.expires_at IS NULL OR datetime(project_access.expires_at) > datetime('now'))
+  AND (project_access.expires_at IS NULL OR project_access.expires_at > NOW())
 ORDER BY project.name ASC;
 
 getCommunityFeedStories:
@@ -116,10 +127,10 @@ SELECT
 FROM project
 INNER JOIN account ON project.user_id = account.id
 INNER JOIN project_access ON project.id = project_access.project_id
-WHERE account.community_member = 1
+WHERE account.community_member = TRUE
   AND account.pen_name IS NOT NULL
   AND project_access.access_password IS NULL
-  AND (project_access.expires_at IS NULL OR datetime(project_access.expires_at) > datetime('now'))
+  AND (project_access.expires_at IS NULL OR project_access.expires_at > NOW())
 ORDER BY project_access.published_at DESC
 LIMIT :limit OFFSET :offset;
 
@@ -128,7 +139,7 @@ SELECT COUNT(*)
 FROM project
 INNER JOIN account ON project.user_id = account.id
 INNER JOIN project_access ON project.id = project_access.project_id
-WHERE account.community_member = 1
+WHERE account.community_member = TRUE
   AND account.pen_name IS NOT NULL
   AND project_access.access_password IS NULL
-  AND (project_access.expires_at IS NULL OR datetime(project_access.expires_at) > datetime('now'));
+  AND (project_access.expires_at IS NULL OR project_access.expires_at > NOW());

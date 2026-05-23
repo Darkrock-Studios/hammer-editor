@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.database
 import com.darkrockstudios.apps.hammer.GetPaginatedWithAccountStatus
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
+import kotlin.time.Instant
 import org.koin.core.component.KoinComponent
 
 open class WhiteListDao(
@@ -17,7 +18,7 @@ open class WhiteListDao(
 		return@withContext query.executeAsOne()
 	}
 
-	open suspend fun addToWhiteList(email: String, dateAdded: Long, reason: String): Unit = withContext(ioDispatcher) {
+	open suspend fun addToWhiteList(email: String, dateAdded: Instant, reason: String): Unit = withContext(ioDispatcher) {
 		queries.addToWhiteList(email, dateAdded, reason)
 	}
 

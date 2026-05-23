@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.database
 
 import com.darkrockstudios.apps.hammer.base.http.Token
-import com.darkrockstudios.apps.hammer.utilities.toISO8601
 import kotlin.time.Instant
 
 class AuthTokenDao(database: Database) {
@@ -18,13 +17,12 @@ class AuthTokenDao(database: Database) {
 		token: Token,
 		expires: Instant
 	) {
-		val expiresString = expires.toISO8601()
 		queries.setToken(
 			userId = userId,
 			installId = installId,
 			token = token.auth,
 			refresh = token.refresh,
-			expires = expiresString
+			expires = expires
 		)
 	}
 

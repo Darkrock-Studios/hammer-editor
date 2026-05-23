@@ -1,32 +1,25 @@
 package com.darkrockstudios.apps.hammer.datamigrator
 
 import com.darkrockstudios.apps.hammer.database.Database
-import com.darkrockstudios.apps.hammer.database.SqliteDatabase
 import com.darkrockstudios.apps.hammer.datamigrator.migrations.DataMigration
-import com.darkrockstudios.apps.hammer.datamigrator.migrations.DatabaseSchemaMigration
-import okio.FileSystem
 
+/**
+ * Runs ordered, idempotent data migrations against an already-initialized
+ * [Database]. The legacy SQLite-flavored hooks (`PRAGMA user_version`,
+ * `PRAGMA foreign_keys`) are gone — schema versioning lives in
+ * `PostgresSchemaInitializer` now, and the one-shot SQLite-to-Postgres data
+ * migration has its own dedicated entry point in [com.darkrockstudios.apps.hammer.database.migration.SqliteToPostgresMigrator].
+ */
 class DataMigrator(
-	fileSystem: FileSystem = FileSystem.SYSTEM,
-	private val database: Database = SqliteDatabase(fileSystem, enforceForeignKeys = false)
+	private val database: Database,
 ) {
 	private val migrations = mutableListOf<DataMigration>()
-
-	init {
-		database.initialize()
-		addMigration(DatabaseSchemaMigration(database.driver))
-	}
 
 	private fun addMigration(migration: DataMigration) {
 		migrations.add(migration)
 	}
 
 	suspend fun runMigrations() {
-		migrations.forEach {
-			it.migrate()
-		}
-		// Enable FK after migrations complete
-		database.driver.execute(null, "PRAGMA foreign_keys = ON", 0)
-		database.close()
+		migrations.forEach { it.migrate() }
 	}
 }

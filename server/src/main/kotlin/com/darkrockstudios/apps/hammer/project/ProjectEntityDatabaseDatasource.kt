@@ -56,6 +56,15 @@ class ProjectEntityDatabaseDatasource(
 	}
 
 	override suspend fun deleteProject(userId: Long, projectId: ProjectId): SResult<Unit> {
+		// Look up the numeric project id before deleting the project row so we
+		// can scrub the dependent story_entity rows explicitly. We avoid relying
+		// on `ON DELETE CASCADE` here so the behavior is the same in tests
+		// (which disable FK enforcement) as it is in production.
+		val internalId = projectDao.getProjectIdOrNull(userId, projectId)
+		if (internalId != null) {
+			storyEntityDao.deleteAllForProject(userId, internalId)
+		}
+
 		projectDao.deleteProject(
 			userId = userId,
 			projectId = projectId,

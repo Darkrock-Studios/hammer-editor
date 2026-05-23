@@ -1,0 +1,37 @@
+CREATE TABLE auth_token(
+    user_id INTEGER NOT NULL,
+    install_id TEXT UNIQUE NOT NULL,
+    token TEXT PRIMARY KEY NOT NULL,
+    refresh TEXT NOT NULL,
+    created TEXT DEFAULT (datetime('now')) NOT NULL,
+    expires TEXT NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE
+);
+
+getTokensByUserId:
+SELECT *
+FROM auth_token
+WHERE user_id = ?;
+
+getTokenByToken:
+SELECT *
+FROM auth_token
+WHERE token = ?;
+
+getTokenByInstallId:
+SELECT *
+FROM auth_token
+WHERE user_id = ?
+AND install_id = ?;
+
+setToken:
+INSERT OR REPLACE INTO auth_token(
+    user_id, install_id, token, refresh, expires
+) VALUES (:userId, :installId, :token, :refresh, :expires);
+
+deleteByUserId:
+DELETE FROM auth_token WHERE user_id = ?;
+
+-- Used only by SqliteToPostgresMigrator.
+getAllForMigration:
+SELECT * FROM auth_token ORDER BY user_id, install_id;

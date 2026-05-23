@@ -75,6 +75,11 @@ argon2_jvm = "2.12"
 owasp_html_sanitizer = "20260313.1"
 
 sqldelight = "2.3.2"
+postgresql_jdbc = "42.7.4"
+hikaricp = "6.2.1"
+embedded_postgres = "2.2.2"
+embedded_postgres_binaries = "16.4.0"
+testcontainers = "1.20.4"
 buildconfig = "6.0.9"
 fluidsonic_locale = "0.13.0"
 resources = "1.1.0"
@@ -252,7 +257,23 @@ argon2_jvm = { group = "de.mkammerer", name = "argon2-jvm", version.ref = "argon
 owasp-html-sanitizer = { group = "com.googlecode.owasp-java-html-sanitizer", name = "owasp-java-html-sanitizer", version.ref = "owasp_html_sanitizer" }
 
 sqldelight_driver = { group = "app.cash.sqldelight", name = "sqlite-driver", version.ref = "sqldelight" }
+sqldelight_jdbc_driver = { group = "app.cash.sqldelight", name = "jdbc-driver", version.ref = "sqldelight" }
 sqldelight_adapters = { group = "app.cash.sqldelight", name = "primitive-adapters", version.ref = "sqldelight" }
+sqldelight_postgresql_dialect = { group = "app.cash.sqldelight", name = "postgresql-dialect", version.ref = "sqldelight" }
+
+postgresql_jdbc = { group = "org.postgresql", name = "postgresql", version.ref = "postgresql_jdbc" }
+hikaricp = { group = "com.zaxxer", name = "HikariCP", version.ref = "hikaricp" }
+embedded_postgres = { group = "io.zonky.test", name = "embedded-postgres", version.ref = "embedded_postgres" }
+embedded_postgres_binaries_bom = { group = "io.zonky.test.postgres", name = "embedded-postgres-binaries-bom", version.ref = "embedded_postgres_binaries" }
+embedded_postgres_binaries_darwin_amd64 = { group = "io.zonky.test.postgres", name = "embedded-postgres-binaries-darwin-amd64" }
+embedded_postgres_binaries_darwin_arm64v8 = { group = "io.zonky.test.postgres", name = "embedded-postgres-binaries-darwin-arm64v8" }
+embedded_postgres_binaries_linux_amd64 = { group = "io.zonky.test.postgres", name = "embedded-postgres-binaries-linux-amd64" }
+embedded_postgres_binaries_linux_arm64v8 = { group = "io.zonky.test.postgres", name = "embedded-postgres-binaries-linux-arm64v8" }
+embedded_postgres_binaries_windows_amd64 = { group = "io.zonky.test.postgres", name = "embedded-postgres-binaries-windows-amd64" }
+
+testcontainers_bom = { group = "org.testcontainers", name = "testcontainers-bom", version.ref = "testcontainers" }
+testcontainers_postgresql = { group = "org.testcontainers", name = "postgresql" }
+testcontainers_junit_jupiter = { group = "org.testcontainers", name = "junit-jupiter" }
 
 fluidsonic_locale = { group = "io.fluidsonic.locale", name = "fluid-locale", version.ref = "fluidsonic_locale" }
 resources = { group = "io.herrera.kevin", name = "resource", version.ref = "resources" }
@@ -309,6 +330,13 @@ aboutlibraries_plugin_android = { id = "com.mikepenz.aboutlibraries.plugin.andro
 
 [bundles]
 koin_server = ["koin_core", "koin_core_coroutines", "koin_sl4j", "koin_ktor"]
+embedded_postgres_binaries = [
+	"embedded_postgres_binaries_darwin_amd64",
+	"embedded_postgres_binaries_darwin_arm64v8",
+	"embedded_postgres_binaries_linux_amd64",
+	"embedded_postgres_binaries_linux_arm64v8",
+	"embedded_postgres_binaries_windows_amd64",
+]
 ktor_client = [
 	"ktor_client_core",
 	"ktor_client_auth",

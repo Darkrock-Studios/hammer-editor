@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.frontend.admin.*
 import com.darkrockstudios.apps.hammer.frontend.utils.adminOnly
-import com.darkrockstudios.apps.hammer.frontend.utils.formatSqliteDateTime
+import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
@@ -217,13 +217,13 @@ private suspend fun getUsersModel(
 	return model
 }
 
-private fun formatDate(sqliteDateTime: String): String {
-	return formatSqliteDateTime(sqliteDateTime, "MMM dd, yyyy")
+private fun formatDate(instant: kotlin.time.Instant): String {
+	return formatInstant(instant, "MMM dd, yyyy")
 }
 
-private fun formatLastSync(sqliteDateTime: String?): String? {
-	if (sqliteDateTime == null) return null
-	return formatSyncDate(sqliteDateTime).ifEmpty { null }
+private fun formatLastSync(instant: kotlin.time.Instant?): String? {
+	if (instant == null) return null
+	return formatSyncDate(instant).ifEmpty { null }
 }
 
 private fun Route.serverSettingsRoutes(configRepository: ConfigRepository) {

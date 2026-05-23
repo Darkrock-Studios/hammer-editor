@@ -6,7 +6,6 @@ import com.darkrockstudios.apps.hammer.datamigrator.getSerializerForType
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
-import com.darkrockstudios.apps.hammer.utilities.toISO8601
 import kotlinx.coroutines.runBlocking
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
@@ -83,7 +82,7 @@ object E2eTestData {
 			userId = userId,
 			token = hashedAuthToken,
 			refresh = hashedRefreshToken,
-			expires = expires.toISO8601(),
+			expires = expires,
 			installId = installId,
 		)
 

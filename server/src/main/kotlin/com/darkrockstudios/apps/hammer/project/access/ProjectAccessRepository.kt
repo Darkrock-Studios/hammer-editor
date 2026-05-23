@@ -6,10 +6,11 @@ import com.darkrockstudios.apps.hammer.database.CommunityFeedStory
 import com.darkrockstudios.apps.hammer.database.ProjectAccessDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.PublishedStoryInfo
-import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.time.Clock
+import kotlin.time.Instant
+import kotlin.time.toJavaInstant
 
 sealed class PublicProjectResult {
 	data class Success(
@@ -27,7 +28,7 @@ sealed class PublicProjectResult {
 data class AccessEntryInfo(
 	val id: Long,
 	val password: String?,
-	val expiresAt: String?,
+	val expiresAt: Instant?,
 	val expiresAtFormatted: String?,
 	val isExpired: Boolean
 )
@@ -46,7 +47,7 @@ class ProjectAccessRepository(
 		userId: Long,
 		projectUuid: ProjectId,
 		password: String? = null,
-		expiresAt: String? = null
+		expiresAt: Instant? = null,
 	) {
 		val projectId = projectDao.getProjectId(userId, projectUuid)
 		projectAccessDao.updateAccess(projectId, password, expiresAt)
@@ -95,7 +96,7 @@ class ProjectAccessRepository(
 		userId: Long,
 		projectUuid: ProjectId,
 		password: String,
-		expiresAt: String?
+		expiresAt: Instant?,
 	) {
 		val projectId = projectDao.getProjectId(userId, projectUuid)
 		projectAccessDao.insertAccess(projectId, password, expiresAt)
@@ -105,28 +106,17 @@ class ProjectAccessRepository(
 		val projectId = projectDao.getProjectId(userId, projectUuid)
 		val entries = projectAccessDao.getPrivateAccessForProject(projectId)
 		val now = clock.now()
+		val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy").withZone(ZoneId.systemDefault())
 
 		return entries.map { entry ->
-			val isExpired = entry.expires_at?.let {
-				val expiresAtInstant = sqliteDateTimeStringToInstant(it)
-				now > expiresAtInstant
-			} ?: false
-
-			val formattedDate = entry.expires_at?.let {
-				try {
-					val instant = sqliteDateTimeStringToInstant(it)
-					val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy")
-					val zoned = java.time.Instant.ofEpochSecond(instant.epochSeconds).atZone(ZoneId.systemDefault())
-					formatter.format(zoned)
-				} catch (e: Exception) {
-					it
-				}
-			}
+			val expiresAt = entry.expires_at
+			val isExpired = expiresAt != null && now > expiresAt
+			val formattedDate = expiresAt?.let { formatter.format(it.toJavaInstant()) }
 
 			AccessEntryInfo(
 				id = entry.id,
 				password = entry.access_password,
-				expiresAt = entry.expires_at,
+				expiresAt = expiresAt,
 				expiresAtFormatted = formattedDate,
 				isExpired = isExpired
 			)
@@ -142,11 +132,8 @@ class ProjectAccessRepository(
 			?: return PublicProjectResult.NotFound
 
 		// Check expiration if set
-		if (info.expiresAt != null) {
-			val expiresAtInstant = sqliteDateTimeStringToInstant(info.expiresAt)
-			if (clock.now() > expiresAtInstant) {
-				return PublicProjectResult.NotFound
-			}
+		if (info.expiresAt != null && clock.now() > info.expiresAt) {
+			return PublicProjectResult.NotFound
 		}
 
 		return PublicProjectResult.Success(
@@ -165,20 +152,8 @@ class ProjectAccessRepository(
 		// First check for public access (no password required)
 		val publicInfo = projectAccessDao.findPublicProjectByPenNameAndProjectName(penName, projectName)
 		if (publicInfo != null) {
-			// Check expiration if set
-			if (publicInfo.expiresAt != null) {
-				val expiresAtInstant = sqliteDateTimeStringToInstant(publicInfo.expiresAt)
-				if (clock.now() > expiresAtInstant) {
-					// Public access expired, continue to check password access
-				} else {
-					return PublicProjectResult.Success(
-						userId = publicInfo.userId,
-						projectUuid = ProjectId(publicInfo.projectUuid),
-						projectName = publicInfo.projectName,
-						penName = publicInfo.penName
-					)
-				}
-			} else {
+			val expired = publicInfo.expiresAt != null && clock.now() > publicInfo.expiresAt
+			if (!expired) {
 				return PublicProjectResult.Success(
 					userId = publicInfo.userId,
 					projectUuid = ProjectId(publicInfo.projectUuid),
@@ -186,6 +161,7 @@ class ProjectAccessRepository(
 					penName = publicInfo.penName
 				)
 			}
+			// Public access expired, continue to check password access
 		}
 
 		// Check if any access exists at all
@@ -204,11 +180,8 @@ class ProjectAccessRepository(
 			?: return PublicProjectResult.PasswordRequired
 
 		// Check expiration if set
-		if (passwordInfo.expiresAt != null) {
-			val expiresAtInstant = sqliteDateTimeStringToInstant(passwordInfo.expiresAt)
-			if (clock.now() > expiresAtInstant) {
-				return PublicProjectResult.PasswordRequired
-			}
+		if (passwordInfo.expiresAt != null && clock.now() > passwordInfo.expiresAt) {
+			return PublicProjectResult.PasswordRequired
 		}
 
 		return PublicProjectResult.Success(

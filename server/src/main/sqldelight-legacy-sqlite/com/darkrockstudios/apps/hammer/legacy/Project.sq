@@ -1,0 +1,85 @@
+CREATE TABLE project (
+	id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+	uuid TEXT NOT NULL,
+	user_id INTEGER NOT NULL,
+	name TEXT NOT NULL,
+	last_id INTEGER DEFAULT 0 NOT NULL,
+	last_sync TEXT DEFAULT (datetime('now')) NOT NULL,
+	FOREIGN KEY(user_id) REFERENCES account(id),
+	UNIQUE(name, user_id)
+);
+
+CREATE UNIQUE INDEX user_project_name_lookup
+ON project(user_id, name);
+
+getProjects:
+SELECT name, uuid
+FROM project
+WHERE user_id = :userId;
+
+getProjectsWithSyncDate:
+SELECT name, uuid, last_sync
+FROM project
+WHERE user_id = :userId
+ORDER BY last_sync DESC;
+
+getProjectsWithSyncDatePaged:
+SELECT name, uuid, last_sync
+FROM project
+WHERE user_id = :userId
+ORDER BY last_sync DESC
+LIMIT :limit OFFSET :offset;
+
+getProjectsCount:
+SELECT count(*)
+FROM project
+WHERE user_id = :userId;
+
+getMostRecentSyncForUser:
+SELECT MAX(last_sync) AS last_sync
+FROM project
+WHERE user_id = :userId;
+
+insertProject:
+INSERT INTO project(user_id, name, uuid, last_sync, last_id)
+VALUES(:userId, :name, :uuid, :lastSync, :lastId);
+
+createProject:
+INSERT INTO project(user_id, name, uuid)
+VALUES(:userId, :name, :uuid);
+
+hasProjectById:
+SELECT EXISTS(SELECT 1 FROM project WHERE user_id = :userId AND uuid = :projectId);
+
+updateProjectName:
+UPDATE project
+SET name = :name
+WHERE user_id = :userId AND uuid = :uuid;
+
+updateSyncData:
+UPDATE project
+SET last_id = :lastId, last_sync = :lastSync
+WHERE user_id = :userId AND name = :name;
+
+findProjectByName:
+SELECT *
+FROM project
+WHERE user_id = :userId AND name = :name;
+
+getProject:
+SELECT *
+FROM project
+WHERE user_id = :userId AND uuid = :uuid;
+
+getProjectId:
+SELECT id
+FROM project
+WHERE user_id = :userId AND uuid = :uuid;
+
+deleteProject:
+DELETE FROM project
+WHERE user_id = :userId AND uuid = :uuid;
+
+-- Used only by SqliteToPostgresMigrator.
+getAllForMigration:
+SELECT * FROM project ORDER BY id;
