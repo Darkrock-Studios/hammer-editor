@@ -152,10 +152,10 @@ compose.desktop {
 			}
 		}
 		jvmArgs("-Dcompose.application.configure.swing.globals=false")
-		// Load libjnidispatch.jnilib from Contents/app/resources/, never extract.
-		jvmArgs("-Djna.nounpack=true", "-Djna.nosys=true")
 		if (isAppStoreRelease) {
 			jvmArgs("-Dhammer.app.store=true")
+			// Load libjnidispatch.jnilib from Contents/app/resources/, never extract.
+			jvmArgs("-Djna.nounpack=true", "-Djna.nosys=true")
 			// Lets Nucleus' System.loadLibrary find our pre-bundled signed dylibs
 			// instead of falling back to extraction (Gatekeeper blocks that).
 			jvmArgs("-Djava.library.path=\$APPDIR/resources")
