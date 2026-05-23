@@ -23,16 +23,14 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSettings
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.parseHexColor
 import com.darkrockstudios.apps.hammer.common.compose.theme.toArgbHex
-import com.github.skydoves.colorpicker.compose.*
+import com.github.skydoves.colorpicker.compose.BrightnessSlider
+import com.github.skydoves.colorpicker.compose.ColorEnvelope
+import com.github.skydoves.colorpicker.compose.HsvColorPicker
+import com.github.skydoves.colorpicker.compose.rememberColorPickerController
 
 private const val DEFAULT_PRIMARY = "#FF455A64"
 private const val DEFAULT_SECONDARY = "#FFFFB300"
@@ -292,17 +290,10 @@ private fun ColorPickerDialog(
 				controller = controller,
 				initialColor = initial,
 				onColorChanged = { envelope: ColorEnvelope ->
-					currentHex = "#${envelope.hexCode.uppercase()}"
+					currentHex = "#FF${envelope.hexCode.takeLast(6).uppercase()}"
 				},
 			)
 			BrightnessSlider(
-				modifier = Modifier
-					.fillMaxWidth()
-					.height(28.dp)
-					.padding(vertical = 4.dp),
-				controller = controller,
-			)
-			AlphaSlider(
 				modifier = Modifier
 					.fillMaxWidth()
 					.height(28.dp)
