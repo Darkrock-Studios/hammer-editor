@@ -1,0 +1,89 @@
+name: Publish — iOS App Store
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  publish-ios-app-store:
+    runs-on: macos-latest
+    env:
+      BUILD_NUMBER: ${{ github.run_number }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - uses: ruby/setup-ruby@6aaa311d81eba98ae12eaffbcb63296ace0efcde # v1.307.0
+        with:
+          ruby-version: '3.4.8'
+          bundler-cache: true
+
+      - name: Install bundle
+        run: |
+          bundle config path vendor/bundle
+          bundle install --jobs 4 --retry 3
+
+      - name: Set up signing keychain
+        env:
+          CERT_P12_BASE64: ${{ secrets.IOS_DISTRIBUTION_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.IOS_DISTRIBUTION_CERT_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/ios-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
+          echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> $GITHUB_ENV
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          echo -n "$CERT_P12_BASE64" | base64 --decode -o "$RUNNER_TEMP/ios-cert.p12"
+          security import "$RUNNER_TEMP/ios-cert.p12" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"' | xargs)
+
+      - name: Install provisioning profile
+        env:
+          PROFILE_B64: ${{ secrets.IOS_APPSTORE_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          PROFILE_TMP="$RUNNER_TEMP/Hammer.mobileprovision"
+          echo -n "$PROFILE_B64" | base64 --decode -o "$PROFILE_TMP"
+          UUID=$(security cms -D -i "$PROFILE_TMP" | plutil -extract UUID raw -)
+
+          # Xcode 16 reads profiles from Developer/Xcode/UserData/...; older Xcode
+          # and Fastlane gym look at MobileDevice/... — install to both for safety.
+          NEW_DIR="$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          LEGACY_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$NEW_DIR" "$LEGACY_DIR"
+          cp "$PROFILE_TMP" "$NEW_DIR/$UUID.mobileprovision"
+          cp "$PROFILE_TMP" "$LEGACY_DIR/$UUID.mobileprovision"
+
+      - name: Place App Store Connect API key
+        env:
+          API_KEY_P8: ${{ secrets.MAC_APP_STORE_CONNECT_API_KEY_P8 }}
+        run: |
+          mkdir -p desktop/secrets
+          printf '%s' "$API_KEY_P8" > desktop/secrets/AuthKey_F8BSZ7LC8Q.p8
+
+      - name: Upload to TestFlight 📱
+        run: bundle exec fastlane ios ios_testflight
+
+      - name: Upload Fastlane logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: fastlane-ios-logs
+          path: |
+            ~/Library/Logs/gym/
+            fastlane/report.xml
+          if-no-files-found: ignore
+
+      - name: Clean up signing material
+        if: always()
+        run: |
+          if [ -n "${KEYCHAIN_PATH:-}" ] && [ -f "$KEYCHAIN_PATH" ]; then
+            security delete-keychain "$KEYCHAIN_PATH" || true
+          fi
+          rm -rf "$HOME/Library/MobileDevice/Provisioning Profiles"
+          rm -rf "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles"
+          rm -rf desktop/secrets ios/build

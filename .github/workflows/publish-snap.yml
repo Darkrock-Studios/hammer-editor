@@ -1,0 +1,31 @@
+name: Publish — Snap Store
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to download hammer.snap from (e.g. v1.2.3)"
+        type: string
+        required: true
+  workflow_call:
+    inputs:
+      release_tag:
+        type: string
+        required: true
+
+jobs:
+  publish-snap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Snap from Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release download ${{ inputs.release_tag }} -p 'hammer.snap' -R ${{ github.repository }}
+
+      - name: Upload to Snap Store
+        uses: snapcore/action-publish@214b86e5ca036ead1668c79afb81e550e6c54d40 # v1.2.0
+        env:
+          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_TOKEN }}
+        with:
+          snap: hammer.snap
+          release: stable

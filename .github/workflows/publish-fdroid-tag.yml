@@ -1,0 +1,41 @@
+name: Publish — F-Droid Tag
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to derive the F-Droid tag from (e.g. v1.2.3)"
+        type: string
+        required: true
+  workflow_call:
+    inputs:
+      release_tag:
+        type: string
+        required: true
+
+jobs:
+  publish-fdroid-tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create F-Droid tag
+        run: |
+          VERSION=${{ inputs.release_tag }}
+          VERSION=${VERSION#v}
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+          VERSION_CODE=$(( (PATCH + 1) * 10000 + MINOR * 1000000 + MAJOR * 100000000 ))
+          FDROID_TAG="fdroid-${VERSION_CODE}"
+
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git fetch origin release
+          git checkout release
+          git tag -a "$FDROID_TAG" -m "FDroid release tag for $VERSION"
+          git push origin tag "$FDROID_TAG"
