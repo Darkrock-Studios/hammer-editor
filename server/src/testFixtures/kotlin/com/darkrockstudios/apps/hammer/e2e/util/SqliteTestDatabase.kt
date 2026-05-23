@@ -10,14 +10,9 @@ import io.zonky.test.db.postgres.embedded.EmbeddedPostgres
 
 /**
  * Test database backed by a single, process-wide Zonky embedded Postgres
- * shared across every test in the JVM. The class name is preserved (it used
- * to wrap in-memory SQLite) so dependent tests don't have to be retouched.
- *
- * Each call to [initialize] resets the schema to a fresh v1 state by dropping
- * the `public` schema and re-running [PostgresSchemaInitializer]. That gives
- * per-test isolation without the cost of forking a new postgres process per
- * test method (which on Windows quickly exhausts handles and crashes the test
- * JVM with `EOFException` at the Gradle worker boundary).
+ * shared across every test in the JVM. Each instance drops and recreates
+ * `public` to start from a clean v1 schema. A new instance per test gives
+ * isolation without paying for a fresh postgres process each time.
  */
 class SqliteTestDatabase(
 	private val createSchema: Boolean = true,
@@ -31,17 +26,13 @@ class SqliteTestDatabase(
 	override val serverDatabase: ServerDatabase get() = _serverDatabase
 
 	override fun initialize() {
-		// Idempotent within a single instance. Tests get a fresh schema by
-		// constructing a new SqliteTestDatabase, not by re-initializing the
-		// same one — the production `Database` is initialized again by
-		// `configureDependencyInjection`, and that second call must NOT wipe
-		// the fixture data the test just loaded.
+		// Idempotent: configureDependencyInjection re-initializes the Database
+		// bean after the test has already loaded fixture data; a second wipe
+		// would destroy that data.
 		if (initialized) return
 
 		val sharedDriver = SharedTestPostgres.driver
-		// Reset schema state for this fresh instance. Dropping and recreating
-		// `public` wipes every table, extension, sequence, type — leaving a
-		// clean slate before `PostgresSchemaInitializer` rebuilds.
+		// Wipe tables, sequences, types, and extensions back to v1 baseline.
 		sharedDriver.execute(null, "DROP SCHEMA public CASCADE", 0)
 		sharedDriver.execute(null, "CREATE SCHEMA public", 0)
 
@@ -84,11 +75,9 @@ private object SharedTestPostgres {
 		object : app.cash.sqldelight.driver.jdbc.JdbcDriver() {
 			override fun getConnection(): java.sql.Connection {
 				val conn = ds.connection
-				// Tests historically ran against SQLite with `foreign_keys=false`,
-				// so many fixtures insert rows out of FK order (e.g. a
-				// `deleted_project` for an account that hasn't been created).
-				// Disable FK enforcement on every connection so test setup
-				// behaves like it did on SQLite.
+				// Fixtures often insert rows out of FK order (e.g. a deleted_project
+				// for an account that doesn't exist); disable FK enforcement so
+				// those setups stand.
 				conn.createStatement().use { it.execute("SET session_replication_role = replica") }
 				return conn
 			}

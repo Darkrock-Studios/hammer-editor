@@ -27,6 +27,7 @@ class EmbeddedPostgresDatabase(
 	private lateinit var hikari: HikariDataSource
 	private lateinit var _driver: JdbcDriver
 	private lateinit var _serverDatabase: ServerDatabase
+	private var shutdownHook: Thread? = null
 
 	private val dataDir = (getRootDataDirectory(fileSystem) / config.dataDirName).toFile()
 
@@ -37,6 +38,7 @@ class EmbeddedPostgresDatabase(
 		get() = _serverDatabase
 
 	override fun initialize() {
+		check(shutdownHook == null) { "EmbeddedPostgresDatabase.initialize() called twice" }
 		if (!dataDir.exists()) dataDir.mkdirs()
 
 		embedded = EmbeddedPostgres.builder()
@@ -55,10 +57,18 @@ class EmbeddedPostgresDatabase(
 		_serverDatabase = buildServerDatabase(_driver)
 
 		// Best-effort clean shutdown on JVM exit (SIGINT / app stop).
-		Runtime.getRuntime().addShutdownHook(Thread(::shutdown, "embedded-postgres-shutdown"))
+		shutdownHook = Thread(::shutdown, "embedded-postgres-shutdown").also {
+			Runtime.getRuntime().addShutdownHook(it)
+		}
 	}
 
 	override fun close() {
+		shutdownHook?.let {
+			// removeShutdownHook fails if the JVM is already shutting down — fine,
+			// the hook will run momentarily anyway.
+			runCatching { Runtime.getRuntime().removeShutdownHook(it) }
+			shutdownHook = null
+		}
 		shutdown()
 	}
 

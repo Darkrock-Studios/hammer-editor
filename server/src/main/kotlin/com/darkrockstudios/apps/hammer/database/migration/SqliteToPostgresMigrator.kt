@@ -67,11 +67,7 @@ class SqliteToPostgresMigrator(
 				connection.createStatement().execute("SET session_replication_role = DEFAULT")
 				resetSequences(connection)
 
-				// Parity check shares the same connection so it sees in-transaction
-				// state — a fresh Hikari connection wouldn't under READ COMMITTED.
-				val parity = MigrationParityChecker.checkAccountCount(
-					legacyReader.database, connection
-				)
+				val parity = MigrationParityChecker.checkAllCounts(rowCounts, connection)
 				if (parity != null) {
 					connection.rollback()
 					return Result.Aborted("Parity check failed: $parity")
@@ -131,10 +127,8 @@ class SqliteToPostgresMigrator(
 
 	/**
 	 * Bulk-insert [rows] into Postgres via [sql], binding each row through
-	 * [bind]. Flushes the JDBC batch every [BATCH_SIZE] rows so peak per-table
-	 * memory in the driver buffer stays bounded — the legacy `.executeAsList()`
-	 * still materializes the source rows in memory, but that's bounded by what
-	 * fits in the single migration transaction anyway.
+	 * [bind]. Flushes the JDBC batch every [BATCH_SIZE] rows to bound the
+	 * driver's buffered statements.
 	 */
 	private fun <T> copyTable(
 		conn: Connection,
@@ -180,8 +174,8 @@ class SqliteToPostgresMigrator(
 
 	private fun copyAuthToken(legacy: LegacySqliteDatabase, conn: Connection): Int = copyTable(
 		conn,
-		// Legacy PK is `token`; new PK is `(user_id, install_id)`. ON CONFLICT
-		// handles the rare legacy row that had multiple tokens per install.
+		// Postgres PK is (user_id, install_id); ON CONFLICT collapses legacy rows
+		// that held more than one token for the same install.
 		"""
 		INSERT INTO auth_token (user_id, install_id, token, refresh, created, expires)
 		VALUES (?, ?, ?, ?, ?, ?)
@@ -226,7 +220,7 @@ class SqliteToPostgresMigrator(
 		legacy.projectQueries.getAllForMigration().executeAsList(),
 	) { r ->
 		setLong(1, r.id)
-		setString(2, canonicalizeUuid(r.uuid))
+		setString(2, canonicalizeUuid("project", "id=${r.id}", r.uuid))
 		setLong(3, r.user_id)
 		setString(4, r.name)
 		setLong(5, r.last_id)
@@ -235,7 +229,7 @@ class SqliteToPostgresMigrator(
 
 	private fun copyProjectData(legacy: LegacySqliteDatabase, conn: Connection): Int = copyTable(
 		conn,
-		// Legacy `updated_at` was Unix-seconds INTEGER; promoted to TIMESTAMPTZ.
+		// updated_at: Unix-seconds INTEGER in SQLite → TIMESTAMPTZ in Postgres.
 		"INSERT INTO project_data (user_id, project_id, content, hash, updated_at) VALUES (?, ?, ?, ?, ?)",
 		legacy.projectDataQueries.getAllForMigration().executeAsList(),
 	) { r ->
@@ -284,7 +278,7 @@ class SqliteToPostgresMigrator(
 		legacy.deletedProjectQueries.getAllForMigration().executeAsList(),
 	) { r ->
 		setLong(1, r.user_id)
-		setString(2, canonicalizeUuid(r.uuid))
+		setString(2, canonicalizeUuid("deleted_project", "user_id=${r.user_id} uuid=${r.uuid}", r.uuid))
 	}
 
 	private fun copyDeletedEntity(legacy: LegacySqliteDatabase, conn: Connection): Int = copyTable(
@@ -303,7 +297,7 @@ class SqliteToPostgresMigrator(
 
 	private fun copyServerConfig(legacy: LegacySqliteDatabase, conn: Connection): Int = copyTable(
 		conn,
-		// Legacy `updated_at` was Unix-seconds INTEGER; promoted to TIMESTAMPTZ.
+		// updated_at: Unix-seconds INTEGER in SQLite → TIMESTAMPTZ in Postgres.
 		"INSERT INTO server_config (key, value, updated_at) VALUES (?, ?, ?)",
 		legacy.serverConfigQueries.getAllForMigration().executeAsList(),
 	) { r ->
@@ -314,7 +308,7 @@ class SqliteToPostgresMigrator(
 
 	private fun copyWhiteList(legacy: LegacySqliteDatabase, conn: Connection): Int = copyTable(
 		conn,
-		// Legacy `date_added` was Unix-seconds INTEGER; promoted to TIMESTAMPTZ.
+		// date_added: Unix-seconds INTEGER in SQLite → TIMESTAMPTZ in Postgres.
 		"INSERT INTO white_list (email, date_added, reason) VALUES (?, ?, ?)",
 		legacy.whiteListQueries.getAll().executeAsList(),
 	) { r ->
@@ -338,8 +332,8 @@ class SqliteToPostgresMigrator(
 	}
 
 	private fun resetSequences(conn: Connection) {
-		// 3-arg setval(seq, value, is_called): empty table → next nextval = 1.
-		// Non-empty → next nextval = max(id)+1, so auto-id inserts don't collide.
+		// setval(seq, value, is_called=false) makes the next nextval return value;
+		// for empty tables that's 1, for non-empty MAX(id)+1.
 		val tables = listOf("account", "project", "project_access", "password_reset_token")
 		conn.createStatement().use { st ->
 			for (t in tables) {
@@ -368,9 +362,9 @@ class SqliteToPostgresMigrator(
 		return Timestamp.from(java.time.Instant.ofEpochSecond(instant.epochSeconds, instant.nanosecondsOfSecond.toLong()))
 	}
 
-	private fun canonicalizeUuid(text: String): String =
+	private fun canonicalizeUuid(table: String, pk: String, text: String): String =
 		runCatching { UUID.fromString(text).toString() }.getOrElse {
-			error("Malformed UUID in legacy data: $text")
+			error("Malformed UUID in legacy data at $table[$pk]: '$text'")
 		}
 
 	companion object {

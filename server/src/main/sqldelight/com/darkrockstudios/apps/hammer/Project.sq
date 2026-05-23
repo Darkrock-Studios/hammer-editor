@@ -1,7 +1,7 @@
 import kotlinx.datetime.Instant;
 
--- uuid column is declared TEXT here for SqlDelight's parser, and promoted to
--- UUID in PostgresSchemaPostInit so it gets 16-byte storage + validation. The
+-- uuid is declared TEXT for SqlDelight's parser; PostgresSchemaInitializer
+-- ALTERs it to UUID at runtime for 16-byte storage and validation. The
 -- SqlDelight Kotlin API still sees it as String.
 CREATE TABLE project (
     id BIGSERIAL PRIMARY KEY,
@@ -47,10 +47,8 @@ SELECT MAX(last_sync) AS last_sync
 FROM project
 WHERE user_id = :userId;
 
--- The uuid column is promoted to UUID at runtime by PostgresSchemaInitializer.
--- Postgres won't auto-cast bound text parameters against UUID columns in
--- comparisons or against the UNIQUE index, so callers route through
--- CAST(:uuid AS UUID) everywhere they bind a String.
+-- uuid is UUID at runtime; Postgres won't auto-cast bound text params against
+-- it, so every binding goes through CAST(:uuid AS UUID).
 insertProject:
 INSERT INTO project(user_id, name, uuid, last_sync, last_id)
 VALUES(:userId, :name, CAST(:uuid AS UUID), :lastSync, :lastId);
@@ -67,8 +65,8 @@ UPDATE project
 SET name = :name
 WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);
 
--- name is CITEXT post-init; bound text params need an explicit cast for the
--- comparison to use the citext-equality operator (case-insensitive).
+-- name is CITEXT at runtime; CAST(:name AS CITEXT) so comparison resolves to
+-- the citext-equality operator (case-insensitive).
 updateSyncData:
 UPDATE project
 SET last_id = :lastId, last_sync = :lastSync
