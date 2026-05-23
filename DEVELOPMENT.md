@@ -205,3 +205,13 @@ Auto-generated on every build by the `aboutlibraries.plugin.android` plugin into
 
 **iOS Target:**
 ???
+
+## Asset Generation
+
+All graphical assets (app icons, store-listing graphics, MSIX tiles, favicons,
+the Play Store feature graphic, the Snap featured banner, etc.) are generated
+from a single manifest at `scripts/assets.yaml`. Run `scripts/generate-assets.sh`
+to (re)build everything.
+
+See [ASSET-GENERATION.md](docs/ASSET-GENERATION.md) for the manifest schema,
+dependencies, asset types, and how to add or modify outputs.
