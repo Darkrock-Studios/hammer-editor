@@ -169,6 +169,66 @@ def trimmed_icon(ctx: Context, source: str, color: str | None) -> Image.Image:
 	return img.copy()
 
 
+def _compose_vertical_stack(canvas: Image.Image, ctx: Context,
+                            layout: dict[str, Any], w: int, h: int,
+                            avail_w: int, avail_h: int, padding: int,
+                            icon_img: Image.Image,
+                            text_spec: dict[str, Any] | None) -> Image.Image:
+	"""Stack icon over text (or icon alone), each line horizontally centered.
+
+	`valign` controls vertical placement of the stack: 'center' (default) or
+	'top'. If icon+gap+text overflows `avail_h`, scales the stack uniformly.
+	"""
+	if icon_img.width > avail_w:
+		scale = avail_w / icon_img.width
+		icon_img = icon_img.resize(
+			(avail_w, max(1, int(icon_img.height * scale))),
+			Image.LANCZOS,
+		)
+
+	valign = layout.get("valign", "center")
+
+	if text_spec is None:
+		top = padding if valign == "top" else (h - icon_img.height) // 2
+		canvas.alpha_composite(icon_img, ((w - icon_img.width) // 2, top))
+		return canvas
+
+	font_path = ctx.fonts[text_spec["font"]]
+	text_target_h = max(4, int(avail_h * text_spec["size-pct"] / 100.0))
+	gap = int(avail_h * layout.get("gap-pct", 0) / 100.0)
+
+	def measure(f: ImageFont.FreeTypeFont) -> tuple[int, int, int, int]:
+		bbox = f.getbbox(text_spec["content"])
+		return bbox[2] - bbox[0], bbox[3] - bbox[1], -bbox[0], -bbox[1]
+
+	font = fit_font_to_height(font_path, text_spec["content"], text_target_h)
+	text_w, text_h, text_ox, text_oy = measure(font)
+
+	# Preserve icon:gap:text proportions if the stack overflows `avail_h`.
+	total_h = icon_img.height + gap + text_h
+	if total_h > avail_h:
+		scale = avail_h / total_h
+		icon_img = icon_img.resize(
+			(max(1, int(icon_img.width * scale)),
+			 max(1, int(icon_img.height * scale))),
+			Image.LANCZOS,
+		)
+		gap = int(gap * scale)
+		font = fit_font_to_height(font_path, text_spec["content"],
+		                          max(4, int(text_target_h * scale)))
+		text_w, text_h, text_ox, text_oy = measure(font)
+		total_h = icon_img.height + gap + text_h
+
+	top = padding if valign == "top" else (h - total_h) // 2
+	canvas.alpha_composite(icon_img, ((w - icon_img.width) // 2, top))
+	ImageDraw.Draw(canvas).text(
+		((w - text_w) // 2 + text_ox, top + icon_img.height + gap + text_oy),
+		text_spec["content"], font=font,
+		fill=resolve_color(ctx, text_spec["color"]),
+	)
+	return canvas
+
+
 def render_layout(ctx: Context, layout_name: str, w: int, h: int) -> Image.Image:
 	"""Render a named composition (icon + optional wordmark) at w×h."""
 	layout = ctx.layouts[layout_name]
@@ -187,7 +247,18 @@ def render_layout(ctx: Context, layout_name: str, w: int, h: int) -> Image.Image
 	                      Image.LANCZOS)
 
 	text_spec = layout.get("text")
+	if layout.get("orientation") == "vertical":
+		return _compose_vertical_stack(canvas, ctx, layout, w, h, avail_w,
+		                               avail_h, padding, icon_img, text_spec)
 	if not text_spec:
+		# No fit-to-width pass downstream, so cap horizontally here if the
+		# icon's aspect ratio would push it past the available width.
+		if icon_img.width > avail_w:
+			scale = avail_w / icon_img.width
+			icon_img = icon_img.resize(
+				(avail_w, max(1, int(icon_img.height * scale))),
+				Image.LANCZOS,
+			)
 		canvas.alpha_composite(
 			icon_img, ((w - icon_img.width) // 2, (h - icon_img.height) // 2)
 		)
