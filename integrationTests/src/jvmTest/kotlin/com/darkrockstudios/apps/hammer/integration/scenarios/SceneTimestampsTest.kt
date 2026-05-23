@@ -47,11 +47,14 @@ class SceneTimestampsTest : RoundTripTestBase() {
 		assertNotNull(numericProjectId)
 		val storedEntity = loadServerSceneEntity(numericProjectId, scene.id)
 
-		// SceneEditorRepository auto-saves run during sync and refresh lastEdited
-		// each time, so we can't pin a single instant against the server's copy.
-		// What we can pin: both timestamps were set during this test's lifetime,
-		// and the server's lastEdited matches the freshest local write — i.e. the
-		// edit round-tripped instead of being dropped or stamped with NOW() server-side.
+		// SceneEditorRepository's storeAllBuffers runs inside prepareForSync and
+		// bumps lastEdited via recordSceneActivity right before upload, and the
+		// debounced contentFlow can fire again post-sync. That means there's no
+		// race-free local snapshot we can pin against the server's value, and
+		// "client bumped to NOW just before upload" is observationally identical
+		// to "server stamped NOW on receipt" — we can't distinguish them here.
+		// What we can prove: timestamps are non-null and land inside the test's
+		// window, ruling out drops, epoch-0 resets, and clearly-wrong stamps.
 		val serverCreated = storedEntity.created
 		val serverLastEdited = storedEntity.lastEdited
 		assertNotNull(serverCreated, "server stored a created timestamp")
