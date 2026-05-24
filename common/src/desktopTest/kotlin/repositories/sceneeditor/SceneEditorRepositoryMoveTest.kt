@@ -149,6 +149,7 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
+			strRes = mockk(relaxed = true),
 		)
 
 		runBlocking {
@@ -352,6 +353,7 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
+			strRes = mockk(relaxed = true),
 		)
 		repo.initializeSceneEditor()
 

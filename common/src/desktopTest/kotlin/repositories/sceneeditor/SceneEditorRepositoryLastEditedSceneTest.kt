@@ -83,6 +83,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
 			clock = clock,
+			strRes = mockk(relaxed = true),
 		)
 	}
 

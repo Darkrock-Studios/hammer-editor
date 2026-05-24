@@ -131,6 +131,7 @@ abstract class BaseIntegrationTest : BaseTest() {
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
+			strRes = mockk(relaxed = true),
 		)
 	}
 

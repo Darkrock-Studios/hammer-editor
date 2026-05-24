@@ -111,6 +111,9 @@ class SceneEditorRepositoryMetadataTest : BaseTest() {
 			referenceIndexRepository = referenceIndexRepository,
 			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
+			strRes = mockk {
+				coEvery { get(any<StringResource>()) } returns "New Draft"
+			},
 		)
 	}
 
