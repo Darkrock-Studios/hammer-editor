@@ -4,6 +4,7 @@ app = "3.0.3"
 data_version = "1.0"
 
 # Kotlin
+flatlaf = "3.7.1"
 jvm = "21"
 kache = "2.1.1"
 kompressCore = "1.4.3"
@@ -110,6 +111,7 @@ cache4k = { module = "io.github.reactivecircus.cache4k:cache4k", version.ref = "
 core = { module = "androidx.test:core", version.ref = "core" }
 core-ktx = { module = "androidx.test:core-ktx", version.ref = "core" }
 cryptohash = { module = "com.appmattus.crypto:cryptohash", version.ref = "cryptohash" }
+flatlaf = { module = "com.formdev:flatlaf", version.ref = "flatlaf" }
 glance = { module = "androidx.glance:glance", version.ref = "glance" }
 glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glance" }
 glance-material3 = { module = "androidx.glance:glance-material3", version.ref = "glance" }

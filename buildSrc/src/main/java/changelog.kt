@@ -1,6 +1,14 @@
 package com.darkrockstudios.build
 
 // Use legacy java.text date formatting to avoid Kotlin/Gradle embedded version or Android API constraints
+import com.formdev.flatlaf.FlatDarculaLaf
+import java.awt.BorderLayout
+import java.awt.Color
+import java.awt.Component
+import java.awt.Dimension
+import java.awt.FlowLayout
+import java.awt.Font
+import java.awt.GridLayout
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.io.File
@@ -56,145 +64,229 @@ class OnChangeListener(
 
 fun configureRelease(currentSemVarStr: String): ReleaseInfo? {
 	var result: ReleaseInfo? = null
-
 	val curSemVar = parseSemVar(currentSemVarStr)
-
 	val windowClosedSignal = CountDownLatch(1)
 	var newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.MINOR)
-	val selectedPlatforms: MutableSet<Platform> = Platform.ALL.toMutableSet()
+	var targeted = false
+	val selectedPlatforms: MutableSet<Platform> = mutableSetOf()
 
 	System.setProperty("java.awt.headless", "false")
+	FlatDarculaLaf.setup()
+
 	SwingUtilities.invokeAndWait {
-		val frame = JFrame("Prepare Release")
+		val frame = JFrame()
 		frame.defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
-		frame.setSize(600, 700)
+		frame.setSize(620, 780)
 
-		val panel = JPanel()
-		val boxLayout = BoxLayout(panel, BoxLayout.Y_AXIS)
-		panel.layout = boxLayout
-
-		panel.add(
-			JLabel("Current Version: $curSemVar").apply {
-				setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10))
-			}
-		)
-
-		panel.add(JLabel("What type of release is this?:"))
-
-		val optionMajor = JRadioButton("Major")
-		val optionMinor = JRadioButton("Minor")
-		val optionPatch = JRadioButton("Patch")
-		val group = ButtonGroup()
-		group.add(optionMajor)
-		group.add(optionMinor)
-		group.add(optionPatch)
-
-		optionMinor.isSelected = true
-
-		val releaseOptions = JPanel()
-		val radiobuttonLayout = BoxLayout(releaseOptions, BoxLayout.X_AXIS)
-		releaseOptions.layout = radiobuttonLayout
-
-		releaseOptions.add(optionMajor)
-		releaseOptions.add(optionMinor)
-		releaseOptions.add(optionPatch)
-
-		panel.add(releaseOptions)
-
-		panel.add(JLabel("New Version:"))
-
-		val newVersionLabel = JLabel(newSemVar.toString()).apply {
-			setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10))
+		fun refreshTitle() {
+			frame.title = "Prepare Release — $curSemVar → $newSemVar"
 		}
-		panel.add(newVersionLabel)
+		refreshTitle()
 
-		// Platform checkboxes — all on by default = today's "ship to every store" behavior.
-		// Uncheck any to produce a single-store (or subset) release; the Tag preview updates live.
-		panel.add(JLabel("Publish to:"))
-		val platformsPanel = JPanel().apply {
+		// --- Section helper: titled border + inner padding, left-aligned for BoxLayout.Y_AXIS parents ---
+		fun section(title: String): JPanel = JPanel().apply {
 			layout = BoxLayout(this, BoxLayout.Y_AXIS)
-			setBorder(BorderFactory.createEmptyBorder(5, 10, 5, 10))
+			val tb = BorderFactory.createTitledBorder(title)
+			tb.titleFont = tb.titleFont?.deriveFont(Font.BOLD)
+			border = BorderFactory.createCompoundBorder(
+				tb,
+				BorderFactory.createEmptyBorder(8, 12, 8, 12),
+			)
+			alignmentX = Component.LEFT_ALIGNMENT
 		}
+
+		// --- Tag preview label + commit button declared early so refreshTagPreview can close over them ---
+		val warningColor: Color = UIManager.getColor("Label.disabledForeground") ?: Color.GRAY
+		val normalColor: Color = UIManager.getColor("Label.foreground") ?: Color.LIGHT_GRAY
+		val tagFontBig = Font(Font.MONOSPACED, Font.BOLD, 18)
+		val tagFontWarn = Font(Font.MONOSPACED, Font.ITALIC, 14)
+
 		val tagLabel = JLabel().apply {
-			setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10))
+			font = tagFontBig
+			border = BorderFactory.createEmptyBorder(8, 4, 8, 4)
+			alignmentX = Component.LEFT_ALIGNMENT
 		}
-		val commitButton = JButton("Commit Changes")
+		val commitButton = JButton("Commit Changes").apply {
+			font = font.deriveFont(Font.BOLD, 14f)
+		}
 
 		fun refreshTagPreview() {
-			val anySelected = selectedPlatforms.isNotEmpty()
-			commitButton.isEnabled = anySelected
-			tagLabel.text = if (anySelected) {
-				"Tag: v$newSemVar${tagSuffix(selectedPlatforms)}"
-			} else {
-				"Tag: (select at least one platform)"
+			when {
+				!targeted -> {
+					tagLabel.text = "v$newSemVar"
+					tagLabel.font = tagFontBig
+					tagLabel.foreground = normalColor
+					commitButton.isEnabled = true
+				}
+				selectedPlatforms.isEmpty() -> {
+					tagLabel.text = "(select at least one platform)"
+					tagLabel.font = tagFontWarn
+					tagLabel.foreground = warningColor
+					commitButton.isEnabled = false
+				}
+				else -> {
+					tagLabel.text = "v$newSemVar${tagSuffix(selectedPlatforms)}"
+					tagLabel.font = tagFontBig
+					tagLabel.foreground = normalColor
+					commitButton.isEnabled = true
+				}
 			}
 		}
 
-		// Two rows of three so longer labels (Mac App Store, iOS App Store) breathe.
-		val platformList = Platform.values().toList()
-		platformList.chunked(3).forEach { row ->
-			val rowPanel = JPanel().apply { layout = BoxLayout(this, BoxLayout.X_AXIS) }
-			row.forEach { platform ->
-				val cb = JCheckBox(platform.displayName, true)
-				cb.addActionListener {
-					if (cb.isSelected) selectedPlatforms.add(platform)
+		// --- Label-value row helper for the Version section ---
+		fun labelPair(label: String, value: JComponent): JPanel = JPanel().apply {
+			layout = FlowLayout(FlowLayout.LEFT, 12, 0)
+			alignmentX = Component.LEFT_ALIGNMENT
+			add(JLabel(label).apply { preferredSize = Dimension(70, preferredSize.height) })
+			add(value)
+		}
+
+		// ============= Section: Version =============
+		val versionSection = section("Version")
+
+		versionSection.add(labelPair(
+			"Current",
+			JLabel(curSemVar.toString()).apply { font = Font(Font.MONOSPACED, Font.PLAIN, 14) },
+		))
+
+		val optionMajor = JRadioButton("Major")
+		val optionMinor = JRadioButton("Minor").apply { isSelected = true }
+		val optionPatch = JRadioButton("Patch")
+		ButtonGroup().apply { add(optionMajor); add(optionMinor); add(optionPatch) }
+		val typeRow = JPanel(FlowLayout(FlowLayout.LEFT, 12, 0)).apply {
+			add(optionMajor); add(optionMinor); add(optionPatch)
+		}
+		versionSection.add(labelPair("Type", typeRow))
+
+		val newVersionLabel = JLabel(newSemVar.toString()).apply {
+			font = Font(Font.MONOSPACED, Font.BOLD, 14)
+		}
+		versionSection.add(labelPair("New", newVersionLabel))
+
+		// ============= Section: Publish scope =============
+		val scopeSection = section("Publish scope")
+
+		val scopeAll = JRadioButton("All").apply { isSelected = true }
+		val scopeTargeted = JRadioButton("Targeted")
+		ButtonGroup().apply { add(scopeAll); add(scopeTargeted) }
+		val scopeRow = JPanel(FlowLayout(FlowLayout.LEFT, 12, 0)).apply {
+			alignmentX = Component.LEFT_ALIGNMENT
+			add(scopeAll); add(scopeTargeted)
+		}
+		scopeSection.add(scopeRow)
+		scopeSection.add(Box.createRigidArea(Dimension(0, 6)))
+
+		// Platform checkboxes — built once, enabled/disabled by mode. 2 rows × 3 cols
+		// keeps longer labels (Mac App Store, iOS App Store) from crowding.
+		val checkboxesByPlatform: Map<Platform, JCheckBox> = Platform.values().associateWith { platform ->
+			JCheckBox(platform.displayName).apply {
+				isEnabled = false  // All mode is the default → checkboxes start disabled
+				addActionListener {
+					if (isSelected) selectedPlatforms.add(platform)
 					else selectedPlatforms.remove(platform)
 					refreshTagPreview()
 				}
-				rowPanel.add(cb)
 			}
-			platformsPanel.add(rowPanel)
 		}
-		panel.add(platformsPanel)
-		panel.add(tagLabel)
+		val checkboxGrid = JPanel(GridLayout(2, 3, 12, 4)).apply {
+			alignmentX = Component.LEFT_ALIGNMENT
+			Platform.values().forEach { add(checkboxesByPlatform[it]) }
+		}
+		scopeSection.add(checkboxGrid)
 
-		optionMajor.addActionListener { _ ->
-			newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.MAJOR)
-			newVersionLabel.text = newSemVar.toString()
+		fun setMode(toTargeted: Boolean) {
+			targeted = toTargeted
+			selectedPlatforms.clear()
+			checkboxesByPlatform.values.forEach { cb ->
+				cb.isSelected = false
+				cb.isEnabled = toTargeted
+			}
 			refreshTagPreview()
 		}
-		optionMinor.addActionListener { _ ->
-			newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.MINOR)
-			newVersionLabel.text = newSemVar.toString()
-			refreshTagPreview()
-		}
-		optionPatch.addActionListener { _ ->
-			newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.PATCH)
-			newVersionLabel.text = newSemVar.toString()
-			refreshTagPreview()
-		}
+		scopeAll.addActionListener { setMode(false) }
+		scopeTargeted.addActionListener { setMode(true) }
 
-		refreshTagPreview()
+		// ============= Section: Will push tag =============
+		val tagSection = section("Will push tag").apply { add(tagLabel) }
 
-		val characterCount = JLabel("Characters: 0")
-
-		panel.add(JLabel("Change Log:"))
+		// ============= Section: Changelog =============
+		val changelogSection = section("Changelog")
 		val changeLog = JTextArea().apply {
-			setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10))
 			lineWrap = true
 			wrapStyleWord = true
+			rows = 12
 		}
-
-		changeLog.document.addDocumentListener(OnChangeListener { _ ->
+		val changeLogScroll = JScrollPane(changeLog).apply {
+			alignmentX = Component.LEFT_ALIGNMENT
+		}
+		changelogSection.add(changeLogScroll)
+		val characterCount = JLabel("Characters: 0").apply {
+			font = font.deriveFont(font.size - 1f)
+			foreground = warningColor
+		}
+		val counterRow = JPanel(FlowLayout(FlowLayout.RIGHT, 0, 4)).apply {
+			alignmentX = Component.LEFT_ALIGNMENT
+			add(characterCount)
+		}
+		changelogSection.add(counterRow)
+		changeLog.document.addDocumentListener(OnChangeListener {
 			characterCount.text = "Characters: ${changeLog.document.length}"
 		})
 
-		panel.add(changeLog)
-		panel.add(characterCount)
-		panel.add(commitButton)
+		// ============= Release-type change listeners (after newVersionLabel exists) =============
+		optionMajor.addActionListener {
+			newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.MAJOR)
+			newVersionLabel.text = newSemVar.toString()
+			refreshTitle(); refreshTagPreview()
+		}
+		optionMinor.addActionListener {
+			newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.MINOR)
+			newVersionLabel.text = newSemVar.toString()
+			refreshTitle(); refreshTagPreview()
+		}
+		optionPatch.addActionListener {
+			newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.PATCH)
+			newVersionLabel.text = newSemVar.toString()
+			refreshTitle(); refreshTagPreview()
+		}
 
+		// ============= Commit handler =============
 		commitButton.addActionListener {
+			val platforms = if (targeted) selectedPlatforms.toSet() else Platform.ALL
 			result = ReleaseInfo(
 				semVar = newSemVar,
 				changeLog = changeLog.text,
-				platforms = selectedPlatforms.toSet(),
+				platforms = platforms,
 			)
-
-			// Handle button click.
 			frame.dispose()
 		}
 
-		frame.add(panel)
+		val buttonBar = JPanel(FlowLayout(FlowLayout.RIGHT, 0, 8)).apply {
+			alignmentX = Component.LEFT_ALIGNMENT
+			add(commitButton)
+		}
+
+		// --- Root container: BorderLayout — fixed sections in NORTH, changelog
+		// in CENTER (absorbs leftover height), button bar in SOUTH.
+		val topStack = JPanel().apply {
+			layout = BoxLayout(this, BoxLayout.Y_AXIS)
+			add(versionSection)
+			add(Box.createRigidArea(Dimension(0, 8)))
+			add(scopeSection)
+			add(Box.createRigidArea(Dimension(0, 8)))
+			add(tagSection)
+			add(Box.createRigidArea(Dimension(0, 8)))
+		}
+		val root = JPanel(BorderLayout()).apply {
+			border = BorderFactory.createEmptyBorder(16, 20, 16, 20)
+			add(topStack, BorderLayout.NORTH)
+			add(changelogSection, BorderLayout.CENTER)
+			add(buttonBar, BorderLayout.SOUTH)
+		}
+
+		refreshTagPreview()  // initial state
+
+		frame.add(root)
 		frame.addWindowListener(object : WindowAdapter() {
 			override fun windowClosed(e: WindowEvent) {
 				windowClosedSignal.countDown()
