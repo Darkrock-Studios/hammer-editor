@@ -1,10 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.components.projecthome
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
-import io.documentnode.epub4kmp.domain.Author
-import io.documentnode.epub4kmp.domain.Book
-import io.documentnode.epub4kmp.domain.MediaTypes
-import io.documentnode.epub4kmp.domain.Resource
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
+import io.documentnode.epub4kmp.domain.*
 import io.documentnode.epub4kmp.epub.EpubWriter
 import kotlinx.html.*
 import kotlinx.html.stream.appendHTML
@@ -20,47 +18,127 @@ fun writeStoryAsEpub(
 	chapters: List<StoryChapter>,
 	language: String,
 ) {
+	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
+
 	val book = Book().apply {
 		metadata.addTitle(projectName)
-		projectData.authorName
-			?.takeIf { it.isNotBlank() }
-			?.let { metadata.addAuthor(parseAuthor(it)) }
+		authorName?.let { metadata.addAuthor(parseAuthor(it)) }
 		metadata.language = language
+
+		addStylesheet(buildStylesheet(projectData.theme))
+
+		// Title page first, then the chapters.
+		addSection(
+			projectName,
+			buildXhtmlResource(
+				id = "title",
+				href = "title.xhtml",
+				title = projectName,
+				bodyBuilder = { titlePageBody(projectName, authorName) },
+			),
+		)
 
 		val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
 		effective.forEachIndexed { index, chapter ->
 			val resourceId = "ch${index + 1}"
-			addSection(chapter.name, buildXhtmlResource(resourceId, chapter.name, chapter.markdown))
+			addSection(
+				chapter.name,
+				buildXhtmlResource(
+					id = resourceId,
+					href = "$resourceId.xhtml",
+					title = chapter.name,
+					bodyBuilder = { chapterBody(chapter.name, chapter.markdown) },
+				),
+			)
 		}
 	}
 
 	EpubWriter().write(book, sink)
 }
 
-private fun buildXhtmlResource(id: String, title: String, markdown: String): Resource {
-	val xhtml = markdownToXhtml(title, markdown)
-	return Resource(
-		id = id,
-		data = xhtml.encodeToByteArray(),
-		href = "$id.xhtml",
-	).apply { mediaType = MediaTypes.XHTML }
+/**
+ * Built from [Stylesheets.defaultReader] (serif type, first-line indents, h1 page break per chapter)
+ * plus theme overlays — primary on h1 and links, secondary on h2, and a primary-colored title-page rule —
+ * so the exported book inherits the project's chosen accent colors.
+ */
+private fun buildStylesheet(theme: ProjectTheme?): Stylesheet = stylesheet {
+	raw(Stylesheets.defaultReader().css)
+
+	// Title page presentation — applies even without a theme.
+	raw(
+		"""
+		body.title-page { text-align: center; margin: 0; }
+		.title-page-inner { margin-top: 30%; padding: 0 2em; }
+		h1.book-title { font-size: 2.5em; margin: 0 0 0.4em 0; page-break-before: auto; }
+		hr.title-rule { border: none; border-top: 2px solid currentColor; width: 40%; margin: 1em auto; }
+		p.book-author { font-size: 1.2em; font-style: italic; margin: 0.5em 0; }
+		""".trimIndent(),
+	)
+
+	val primary = theme?.primary?.let(::argbHexToCssHex)
+	val secondary = theme?.secondary?.let(::argbHexToCssHex)
+
+	if (primary != null) {
+		heading(1) { color(primary) }
+		link { color(primary) }
+		selector("hr.title-rule") { property("border-top", "2px solid $primary") }
+	}
+	if (secondary != null) {
+		heading(2) { color(secondary) }
+	}
 }
 
-private fun markdownToXhtml(chapterTitle: String, markdown: String): String {
+/**
+ * Project themes store colors as 8-digit ARGB hex (`#FFRRGGBB`); CSS wants 6-digit RGB.
+ * Strip the alpha byte and uppercase. Returns null for anything we don't recognise so callers
+ * can simply skip the override.
+ */
+internal fun argbHexToCssHex(argb: String): String? {
+	val hex = argb.trim().removePrefix("#")
+	return when (hex.length) {
+		6 -> if (hex.all { it.isHexDigit() }) "#${hex.uppercase()}" else null
+		8 -> if (hex.all { it.isHexDigit() }) "#${hex.substring(2).uppercase()}" else null
+		else -> null
+	}
+}
+
+private fun Char.isHexDigit(): Boolean = this in '0'..'9' || this in 'a'..'f' || this in 'A'..'F'
+
+private fun buildXhtmlResource(
+	id: String,
+	href: String,
+	title: String,
+	bodyBuilder: BODY.() -> Unit,
+): Resource {
+	val xhtml = buildString {
+		append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
+		appendHTML(xhtmlCompatible = true).html(namespace = "http://www.w3.org/1999/xhtml") {
+			head { title { +title } }
+			body { bodyBuilder() }
+		}
+	}
+	return Resource(id = id, data = xhtml.encodeToByteArray(), href = href)
+		.apply { mediaType = MediaTypes.XHTML }
+}
+
+private fun BODY.titlePageBody(projectName: String, authorName: String?) {
+	classes = setOf("title-page")
+	div(classes = "title-page-inner") {
+		h1(classes = "book-title") { +projectName }
+		hr(classes = "title-rule")
+		if (!authorName.isNullOrBlank()) {
+			p(classes = "book-author") { +authorName }
+		}
+	}
+}
+
+private fun BODY.chapterBody(chapterTitle: String, markdown: String) {
+	h1 { +chapterTitle }
 	val flavour = CommonMarkFlavourDescriptor()
 	val parsed = MarkdownParser(flavour).buildMarkdownTreeFromString(markdown)
 	val htmlBody = HtmlGenerator(markdown, parsed, flavour).generateHtml()
 	val xhtmlBody = htmlBody.selfCloseHtmlVoidTags()
-	return buildString {
-		append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n")
-		appendHTML(xhtmlCompatible = true).html(namespace = "http://www.w3.org/1999/xhtml") {
-			head { title { +chapterTitle } }
-			body {
-				h1 { +chapterTitle }
-				unsafe { +xhtmlBody }
-			}
-		}
-	}
+	unsafe { +xhtmlBody }
 }
 
 private val voidTagPattern = Regex(
