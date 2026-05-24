@@ -1,8 +1,7 @@
 # Roadmap
 
 _**Note:** This is a one-man side project, so development velocity is slow and uneven. This roadmap is aspirational,
-nothing
-on here is a guaranteed, and I can't be sure when any of it will actually happen._
+nothing on here is a guaranteed, and I can't be sure when any of it will actually happen._
 
 ## ~~Near-term~~ ✅
 
@@ -17,16 +16,16 @@ on here is a guaranteed, and I can't be sure when any of it will actually happen
     - ~~General work for larger screen sizes~~
     - ~~Confirm save on more entity types beyond just scenes~~
 
-## Road to 1.0
+## ~~Road to 1.0~~ ✅
 
-- **Rich Text Editor 2.0:** This is one of the biggest weaknesses currently. The current text editor is buggy, has poor
+- ~~**Rich Text Editor 2.0:** This is one of the biggest weaknesses currently. The current text editor is buggy, has
+  poor
   performance with lots of text, and only supports rich text through ugly hacks. We're waiting
-  on `BasicTextfield2`
-  coming later this year to build a more robust editor on.
-	- Spell check
+  on `BasicTextfield2` coming later this year to build a more robust editor on.~~
+	- ~~Spell check~~
 	- Possibly grammar check
-- **Encyclopedia Improvements:** usability improvements
-	- Allow more characters to be used in the name
+- ~~**Encyclopedia Improvements:** usability improvements~~
+	- ~~Allow more characters to be used in the name~~
 	- ~~Allow tag removal, addition after creation~~
 	- ~~Tag search in encyclopedia browser~~
 - ~~More unit testing across the board~~
@@ -36,14 +35,14 @@ on here is a guaranteed, and I can't be sure when any of it will actually happen
   outlines in order.~~
 - ~~**Scene Notes:** add extra notes to a scene, remind your self what story beats to hit, or what
   tone to strike.~~
-- **Archive Scenes:** Alternative to deleting them, so they can be restored in the future.
+- ~~**Archive Scenes:** Alternative to deleting them, so they can be restored in the future.~~
 
 ## Post 1.0
 
-- Release for **iOS**
+- ~~Release for **iOS**~~
 - ~~**Hemingway Mode:** Provide a distraction free writing experience. Very little UI, no spell check, ect.~~
 - **Scene/Encyclopedia Integration:**
-    - When you type the name of an entry in your encyclopedia, it will be hyper linked in-line to the entry.
+	- ~~When you type the name of an entry in your encyclopedia, it will be hyper linked in-line to the entry.~~
     - See a summary of which characters or locations appear in the scene
 - **Story Insights**: Which scene two characters first appeared in together, possibly other stuff pulling from
   encyclopedia and scenes
@@ -54,4 +53,4 @@ on here is a guaranteed, and I can't be sure when any of it will actually happen
 - **Editor Requests:** Create a request for someone to edit a scene. A link will be generated, and
   they can read and suggest
   edits to the scene from a webpage. Then in-app, you can receive the edits and choose what to take.
-- **Publish on Web:** Publish a story as a simple webview you can link people to.
+- ~~**Publish on Web:** Publish a story as a simple webview you can link people to.~~
