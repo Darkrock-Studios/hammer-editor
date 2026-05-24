@@ -29,7 +29,7 @@ class AboutAppComponent(
 	init {
 		scope.launch {
 			versionCheckRepository.updates.collect { result ->
-				val tag = result.latestRelease?.tagName
+				val tag = result.latestRelease?.bareVersion
 				withContext(dispatcherMain) {
 					_state.update {
 						it.copy(

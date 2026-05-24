@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSe
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubReleaseInfo
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.ShouldNotifyOfUpdateUseCase
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -91,6 +92,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 			single { projectsSynchronizer }
 			single { versionCheckRepository }
 			single { urlLauncher } bind UrlLauncher::class
+			factory { ShouldNotifyOfUpdateUseCase() }
 		}
 		setupKoin(testModule)
 		lifecycle.resume()

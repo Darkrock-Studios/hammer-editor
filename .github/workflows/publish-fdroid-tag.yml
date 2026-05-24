@@ -27,13 +27,17 @@ jobs:
         env:
           RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          # Validate the input is a clean semver-ish tag before letting it near git.
-          if [[ ! "$RELEASE_TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Invalid release_tag: '$RELEASE_TAG' (expected vMAJOR.MINOR.PATCH)" >&2
+          # Partial / single-store releases carry a +platform suffix
+          # (e.g. v1.2.3+fdroid+google-play). Strip the leading `v` and
+          # the suffix before validating so we end up with bare semver.
+          VERSION=${RELEASE_TAG#v}
+          VERSION=${VERSION%%+*}
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release_tag: '$RELEASE_TAG' (expected vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH+platform...)" >&2
             exit 1
           fi
 
-          VERSION=${RELEASE_TAG#v}
           MAJOR=$(echo "$VERSION" | cut -d. -f1)
           MINOR=$(echo "$VERSION" | cut -d. -f2)
           PATCH=$(echo "$VERSION" | cut -d. -f3)

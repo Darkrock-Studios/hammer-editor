@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubReleaseInfo
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.ShouldNotifyOfUpdateUseCase
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
 import kotlinx.coroutines.launch
@@ -31,6 +32,7 @@ class ProjectSelectionComponent(
 	private val urlLauncher: UrlLauncher by inject()
 	private val settingsRepository: GlobalSettingsRepository by inject()
 	private val versionCheckRepository: VersionCheckRepository by inject()
+	private val shouldNotifyOfUpdate: ShouldNotifyOfUpdateUseCase by inject()
 
 	private val navigation = StackNavigation<ProjectSelection.Config>()
 	override val stack = childStack(
@@ -66,9 +68,9 @@ class ProjectSelectionComponent(
 
 		scope.launch {
 			val result = versionCheckRepository.checkForUpdate()
-			val release = result.latestRelease
 			val dismissed = settingsRepository.globalSettings.lastDismissedUpdateVersion
-			if (result.isNewVersionAvailable && release != null && release.tagName != dismissed) {
+			if (shouldNotifyOfUpdate(result, dismissed)) {
+				val release = result.latestRelease ?: return@launch
 				withContext(dispatcherMain) {
 					_updateNotification.update {
 						release.toNotificationState(
@@ -97,7 +99,7 @@ class ProjectSelectionComponent(
 		manuallyTriggered: Boolean,
 	) = ProjectSelection.UpdateNotificationState(
 		visible = true,
-		latestVersionTag = tagName,
+		latestVersionTag = bareVersion,
 		releaseName = name,
 		releaseBody = body,
 		releaseUrl = htmlUrl,

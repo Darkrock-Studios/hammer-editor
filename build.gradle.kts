@@ -196,7 +196,7 @@ tasks.register("prepareForRelease") {
 		git("merge", "-X", "theirs", "develop")
 
 		// Create the release tag
-		git("tag", "-a", "v${releaseInfo.semVar}", "-m", releaseInfo.changeLog)
+		git("tag", "-a", releaseInfo.tag, "-m", releaseInfo.changeLog)
 
 		// Push and begin the release process
 		git("push", "origin", "develop", "release")
@@ -229,6 +229,19 @@ tasks.register("backoutLastRelease") {
 			return exitCode == 0
 		}
 
+		// Lists every local tag for this version — both the bare `vX.Y.Z` (full
+		// release) and any `vX.Y.Z+platform+...` (partial release) variants.
+		// Filtered through `isPlatformReleaseTag` so unrelated tags that share
+		// the prefix (`vX.Y.Z+rc1`, `vX.Y.Z+sbom`) aren't included.
+		fun findReleaseTags(): List<String> {
+			val proc = ProcessBuilder("git", "tag", "-l", tagName, "$tagName+*")
+				.directory(project.rootDir)
+				.start()
+			val tags = proc.inputStream.bufferedReader().readLines().filter { it.isNotBlank() }
+			proc.waitFor()
+			return tags.filter { isPlatformReleaseTag(it, tagName) }
+		}
+
 		// Make sure we're on develop
 		gitSafe("checkout", "develop")
 
@@ -247,17 +260,15 @@ tasks.register("backoutLastRelease") {
 			gitSafe("checkout", "--", ".")
 		}
 
-		// Delete tag locally if it exists
-		val tagExists = ProcessBuilder("git", "rev-parse", tagName)
-			.directory(project.rootDir)
-			.start()
-			.waitFor() == 0
-
-		if (tagExists) {
-			println("Deleting local tag $tagName...")
-			gitSafe("tag", "-d", tagName)
+		// Delete every tag for this version (exact + any +platform suffixes)
+		val matchingTags = findReleaseTags()
+		if (matchingTags.isEmpty()) {
+			println("No local tags matching $tagName or $tagName+* found, skipping.")
 		} else {
-			println("Tag $tagName does not exist locally, skipping.")
+			matchingTags.forEach { tag ->
+				println("Deleting local tag $tag...")
+				gitSafe("tag", "-d", tag)
+			}
 		}
 
 		// Reset release branch to origin/release
@@ -305,13 +316,37 @@ tasks.register("revertLastRelease") {
 		}
 
 		fun gitOutput(vararg args: String): String {
-			val process = ProcessBuilder(listOf("git") + args.toList())
+			val cmd = listOf("git") + args.toList()
+			val process = ProcessBuilder(cmd)
 				.directory(project.rootDir)
 				.redirectErrorStream(true)
 				.start()
 			val output = process.inputStream.bufferedReader().readText().trim()
-			process.waitFor()
+			val exitCode = process.waitFor()
+			// Throw on non-zero — otherwise a failing `ls-remote` (network
+			// blip, auth expiry) silently returns its error text on stdout and
+			// findReleaseTags() treats it as "no remote tags", skipping remote
+			// deletion and leaving the suffix tag on origin.
+			if (exitCode != 0) error("Git command failed: ${cmd.joinToString(" ")}\n${output}")
 			return output
+		}
+
+		// Lists every tag for this version on local OR remote — bare `vX.Y.Z`
+		// plus any `vX.Y.Z+platform+...` partial-release variants. Filtered
+		// through `isPlatformReleaseTag` so unrelated tags that share the
+		// prefix (`vX.Y.Z+rc1`, `vX.Y.Z+sbom`) aren't included.
+		fun findReleaseTags(): List<String> {
+			val local = gitOutput("tag", "-l", tagName, "$tagName+*").lines()
+			val remote = gitOutput("ls-remote", "--tags", "origin", tagName, "$tagName+*")
+				.lines()
+				.mapNotNull { line ->
+					// Format: "<sha>\trefs/tags/<name>" (and optionally "...^{}" for peeled tag refs)
+					line.substringAfter("refs/tags/", "").removeSuffix("^{}").ifBlank { null }
+				}
+			return (local + remote)
+				.filter { it.isNotBlank() }
+				.distinct()
+				.filter { isPlatformReleaseTag(it, tagName) }
 		}
 
 		git("fetch", "origin")
@@ -341,10 +376,19 @@ tasks.register("revertLastRelease") {
 		git("reset", "--hard", "HEAD~1")
 		git("push", "--force", "origin", "develop")
 
-		// Delete tag from remote then local
-		println("Deleting tag $tagName...")
-		gitSafe("push", "origin", "--delete", tagName)
-		gitSafe("tag", "-d", tagName)
+		// Delete every tag for this version (exact + any +platform suffixes) from
+		// remote then local. Remote delete is tried first so a partial failure
+		// (network blip) doesn't leave us with a local tag that re-pushes later.
+		val matchingTags = findReleaseTags()
+		if (matchingTags.isEmpty()) {
+			println("No tags matching $tagName or $tagName+* found.")
+		} else {
+			matchingTags.forEach { tag ->
+				println("Deleting tag $tag from remote and local...")
+				gitSafe("push", "origin", "--delete", tag)
+				gitSafe("tag", "-d", tag)
+			}
+		}
 
 		println("Done. $tagName has been fully reverted on local and remote.")
 	}

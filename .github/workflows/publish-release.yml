@@ -3,8 +3,15 @@ on:
   release:
     types: [ published ]
 
+# Tag-suffix gating: every per-store job runs when the release tag has no `+`
+# suffix (full release) OR when the tag contains that store's platform token
+# (single-store / subset release). `!cancelled() && !contains(needs.*.result,
+# 'failure')` lets the job run when an upstream need was *skipped* (because it
+# wasn't in the platform list) while still bailing out if an upstream actually
+# failed. See buildSrc Platform enum for the token catalog.
 jobs:
   publish-google-play:
+    if: ${{ !contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+google-play') }}
     uses: ./.github/workflows/publish-google-play.yml
     secrets: inherit
     with:
@@ -12,6 +19,9 @@ jobs:
 
   publish-fdroid-tag:
     needs: publish-google-play
+    if: |
+      ${{ !cancelled() && !contains(needs.*.result, 'failure') &&
+          (!contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+fdroid')) }}
     permissions:
       contents: write
     uses: ./.github/workflows/publish-fdroid-tag.yml
@@ -21,6 +31,9 @@ jobs:
 
   publish-snap:
     needs: publish-google-play
+    if: |
+      ${{ !cancelled() && !contains(needs.*.result, 'failure') &&
+          (!contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+snap')) }}
     uses: ./.github/workflows/publish-snap.yml
     secrets: inherit
     with:
@@ -28,24 +41,73 @@ jobs:
 
   publish-microsoft-store:
     needs: publish-google-play
+    if: |
+      ${{ !cancelled() && !contains(needs.*.result, 'failure') &&
+          (!contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+ms-store')) }}
     uses: ./.github/workflows/publish-microsoft-store.yml
     secrets: inherit
 
   publish-mac-app-store:
+    if: ${{ !contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+mac-app-store') }}
     uses: ./.github/workflows/publish-mac-app-store.yml
     secrets: inherit
 
   publish-ios-app-store:
+    if: ${{ !contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+ios-app-store') }}
     uses: ./.github/workflows/publish-ios-app-store.yml
     secrets: inherit
 
   notify:
     needs: [ publish-fdroid-tag, publish-google-play, publish-snap, publish-microsoft-store, publish-mac-app-store, publish-ios-app-store ]
+    # Fire when all upstream jobs either succeeded or were intentionally skipped
+    # by the platform filter — but not when something actually failed.
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     steps:
+      - name: Compute scope header
+        id: scope
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          # Tokens → human display names for the Discord audience.
+          to_display() {
+            case "$1" in
+              google-play)   echo "Google Play" ;;
+              fdroid)        echo "F-Droid" ;;
+              snap)          echo "Snap" ;;
+              ms-store)      echo "MS Store" ;;
+              mac-app-store) echo "Mac App Store" ;;
+              ios-app-store) echo "iOS App Store" ;;
+              *)             echo "$1" ;;
+            esac
+          }
+
+          # Emitted as a multi-line $GITHUB_OUTPUT (heredoc) so the trailing
+          # newline survives YAML parsing and reaches Discord as a real line
+          # break. Single-line `echo "header=...\\n"` would arrive as a
+          # literal backslash-n because the substitution happens after YAML
+          # has already finished interpreting escape sequences.
+          if [[ "$TAG" == *+* ]]; then
+            PRETTY=""
+            for token in $(echo "${TAG#*+}" | tr '+' ' '); do
+              display=$(to_display "$token")
+              if [ -z "$PRETTY" ]; then PRETTY="$display"; else PRETTY="$PRETTY, $display"; fi
+            done
+            {
+              echo "header<<HEADER_EOF"
+              echo "🔧 Patch release — ${PRETTY} only"
+              echo "HEADER_EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "header<<HEADER_EOF"
+              echo "HEADER_EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Discord notification
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         uses: Ilshidur/action-discord@d2594079a10f1d6739ee50a2471f0ca57418b554 # 0.4.0
         with:
-          args: "**New release:** {{ EVENT_PAYLOAD.release.name }}\n**Download Here:** {{ EVENT_PAYLOAD.release.html_url }}\n\n**Changelog:**\n{{ EVENT_PAYLOAD.release.body }}"
+          args: "${{ steps.scope.outputs.header }}**New release:** {{ EVENT_PAYLOAD.release.name }}\n**Download Here:** {{ EVENT_PAYLOAD.release.html_url }}\n\n**Changelog:**\n{{ EVENT_PAYLOAD.release.body }}"

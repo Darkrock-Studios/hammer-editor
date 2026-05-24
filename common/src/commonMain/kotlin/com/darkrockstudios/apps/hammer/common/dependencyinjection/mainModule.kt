@@ -47,6 +47,7 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubVersionCheckDataSource
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.ShouldNotifyOfUpdateUseCase
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDataSource
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
@@ -108,6 +109,7 @@ val mainModule = module {
 
 	singleOf(::GithubVersionCheckDataSource) bind VersionCheckDataSource::class
 	singleOf(::VersionCheckRepository)
+	factoryOf(::ShouldNotifyOfUpdateUseCase)
 
 	factory { AccountUseCase(get(), get(), get(), get()) }
 	factoryOf(::AccountReauthUseCase)
