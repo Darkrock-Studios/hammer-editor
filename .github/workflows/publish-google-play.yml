@@ -1,7 +1,22 @@
 name: Publish — Google Play
 on:
   workflow_dispatch:
+    inputs:
+      track:
+        description: "Play Store track to publish to"
+        type: choice
+        required: true
+        default: internal
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
   workflow_call:
+    inputs:
+      track:
+        type: string
+        required: true
 
 jobs:
   publish-google-play:
@@ -56,10 +71,21 @@ jobs:
         env:
           PLAY_CONFIG_JSON: ${{ secrets.PLAY_CONFIG_JSON }}
 
-      - name: Distribute app to Production track 🚀
-        run: bundle exec fastlane release
+      - name: Distribute app to ${{ inputs.track }} track 🚀
         env:
+          TRACK: ${{ inputs.track }}
           RELEASE_STORE_FILE: /home/runner/work/hammer-editor/hammer-editor/release.keystore
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+        run: |
+          # Map track → fastlane lane. `release` is the lane that ships to production.
+          case "$TRACK" in
+            internal)   LANE=internal ;;
+            alpha)      LANE=alpha ;;
+            beta)       LANE=beta ;;
+            production) LANE=release ;;
+            *) echo "Unknown track: $TRACK" >&2; exit 1 ;;
+          esac
+          echo "Running fastlane $LANE for track=$TRACK"
+          bundle exec fastlane "$LANE"

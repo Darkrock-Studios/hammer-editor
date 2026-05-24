@@ -7,9 +7,13 @@ jobs:
   publish-google-play:
     uses: ./.github/workflows/publish-google-play.yml
     secrets: inherit
+    with:
+      track: production
 
   publish-fdroid-tag:
     needs: publish-google-play
+    permissions:
+      contents: write
     uses: ./.github/workflows/publish-fdroid-tag.yml
     secrets: inherit
     with:

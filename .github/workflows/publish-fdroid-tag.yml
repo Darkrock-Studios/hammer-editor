@@ -24,9 +24,16 @@ jobs:
           fetch-depth: 0
 
       - name: Create F-Droid tag
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          VERSION=${{ inputs.release_tag }}
-          VERSION=${VERSION#v}
+          # Validate the input is a clean semver-ish tag before letting it near git.
+          if [[ ! "$RELEASE_TAG" =~ ^v?[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release_tag: '$RELEASE_TAG' (expected vMAJOR.MINOR.PATCH)" >&2
+            exit 1
+          fi
+
+          VERSION=${RELEASE_TAG#v}
           MAJOR=$(echo "$VERSION" | cut -d. -f1)
           MINOR=$(echo "$VERSION" | cut -d. -f2)
           PATCH=$(echo "$VERSION" | cut -d. -f3)

@@ -19,8 +19,9 @@ jobs:
       - name: Download Snap from Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
-          gh release download ${{ inputs.release_tag }} -p 'hammer.snap' -R ${{ github.repository }}
+          gh release download "$RELEASE_TAG" -p 'hammer.snap' -R "$GITHUB_REPOSITORY"
 
       - name: Upload to Snap Store
         uses: snapcore/action-publish@214b86e5ca036ead1668c79afb81e550e6c54d40 # v1.2.0
