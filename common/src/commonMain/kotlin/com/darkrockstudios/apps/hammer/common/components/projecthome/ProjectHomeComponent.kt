@@ -55,6 +55,7 @@ class ProjectHomeComponent(
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val projectBackupRepository: ProjectBackupRepository by inject()
 	private val sceneEditorRepository: SceneEditorRepository by projectInject()
+	private val exportStoryUseCase: ExportStoryUseCase by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 	private val statisticsService: StatisticsService by projectInject()
@@ -189,7 +190,7 @@ class ProjectHomeComponent(
 			name = "",
 			isAbsolute = true
 		)
-		val filePath = sceneEditorRepository.exportStory(hpath, options)
+		val filePath = exportStoryUseCase.execute(hpath, options)
 
 		withContext(mainDispatcher) {
 			endProjectExport()
@@ -369,7 +370,7 @@ class ProjectHomeComponent(
 
 	override fun isAtRoot() = true
 	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
-	override fun getExportStoryFileName() = sceneEditorRepository.getExportStoryFileName()
+	override fun getExportStoryFileName(format: ExportFormat) = exportFileName(projectDef.name, format)
 
 	override fun showProjectStats() = contentRouter.showProjectStats()
 	override fun showProjectSettings() = contentRouter.showProjectSettings()

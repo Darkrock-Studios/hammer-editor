@@ -876,10 +876,6 @@ class SceneEditorRepository(
 		}
 	}
 
-	fun exportStory(path: HPath, options: ExportOptions): HPath {
-		return sceneDatasource.exportStory(path, getSceneTree().root.children, options)
-	}
-
 	suspend fun createScene(
 		parent: SceneItem?,
 		sceneName: String,
@@ -1158,7 +1154,6 @@ class SceneEditorRepository(
 		return numScenes
 	}
 
-	fun getExportStoryFileName() = sceneDatasource.getExportStoryFileName()
 	fun getSceneFilename(path: HPath) = sceneDatasource.getSceneFilename(path)
 
 	/**

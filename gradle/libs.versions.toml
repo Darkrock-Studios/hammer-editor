@@ -33,6 +33,8 @@ junit = "6.0.3"
 kotlinx_cli = "0.3.6"
 kotlinx_atomicfu = "0.32.1"
 markdown = "0.7.3"
+epub4kmp = "0.1.0"
+kotlinx_html = "0.12.0"
 material = "1.14.0"
 orchestrator = "1.6.1"
 cryptography = "0.6.0"
@@ -168,6 +170,8 @@ kotlinx_atomicfu = { group = "org.jetbrains.kotlinx", name = "atomicfu", version
 kotlinx_atomicfu_plugin = { group = "org.jetbrains.kotlinx", name = "atomicfu-gradle-plugin", version.ref = "kotlinx_atomicfu" }
 
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
+epub4kmp_core = { module = "com.darkrockstudios:epub4kmp-core", version.ref = "epub4kmp" }
+kotlinx_html = { module = "org.jetbrains.kotlinx:kotlinx-html", version.ref = "kotlinx_html" }
 multiplatform_window_size = { group = "dev.chrisbanes.material3", name = "material3-window-size-class-multiplatform", version.ref = "multiplatform_window_size" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
 filekit_dialogs_compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }

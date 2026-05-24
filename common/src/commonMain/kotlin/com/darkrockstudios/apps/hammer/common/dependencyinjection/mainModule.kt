@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
+import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
@@ -144,6 +145,7 @@ val mainModule = module {
 		scopedOf(::SceneDatasource)
 		scopedOf(::SceneEditorRepository)
 		scopedOf(::ImportStoryUseCase)
+		scopedOf(::ExportStoryUseCase)
 		scopedOf(::SceneDraftsDatasource)
 		scopedOf(::SceneDraftRepository)
 		scopedOf(::SceneMetadataDatasource)

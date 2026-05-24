@@ -1,10 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
-import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource.Companion.validateSceneFilename
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
-import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -111,52 +113,6 @@ class SceneDatasource(
 			}
 	}
 
-	fun exportStory(
-		path: HPath,
-		allNodes: List<TreeValue<SceneItem>>,
-		options: ExportOptions,
-	): HPath {
-		val exportPath = path.toOkioPath() / getExportStoryFileName()
-		val allPaths = getAllScenePaths()
-
-		fileSystem.write(exportPath) {
-			writeUtf8("# ${projectDef.name}\n\n")
-
-			allNodes.forEachIndexed { index, chapterNode ->
-				val scene = chapterNode.value
-
-				if (options.treatTopLevelAsChapters) {
-					val chapterNumber = index + 1
-					writeUtf8("\n## $chapterNumber. ${scene.name}\n\n")
-				} else if (index > 0) {
-					writeUtf8("\n\n")
-				}
-
-				val scenePath = resolveScenePathFromFilesystem(chapterNode.value.id, allPaths)
-					?: error("Could not find Scene for ID ${chapterNode.value.id}")
-
-				if (scene.type == SceneItem.Type.Scene) {
-					val markdown = loadSceneMarkdownRaw(chapterNode.value, scenePath)
-					writeUtf8(markdown)
-					writeUtf8("\n")
-				} else {
-					chapterNode.filter { it.value.type == SceneItem.Type.Scene }
-						.forEach { sceneNode ->
-							val childScenePath =
-								resolveScenePathFromFilesystem(sceneNode.value.id, allPaths)
-									?: error("Could not find Scene for ID ${sceneNode.value.id}")
-
-							val markdown = loadSceneMarkdownRaw(sceneNode.value, childScenePath)
-							writeUtf8(markdown)
-							writeUtf8("\n")
-						}
-				}
-			}
-		}
-
-		return exportPath.toHPath()
-	}
-
 	fun loadSceneTree(rootScene: SceneItem): TreeNode<SceneItem> {
 		val sceneDirPath = getSceneDirectory().toOkioPath()
 		val rootNode = TreeNode(rootScene)
@@ -258,8 +214,6 @@ class SceneDatasource(
 	}
 
 	fun getSceneFilename(path: HPath) = path.toOkioPath().name
-
-	fun getExportStoryFileName() = "${projectDef.name}.md"
 
 	fun getLastOrderNumber(parentPath: HPath): Int {
 		val numScenes = fileSystem.list(parentPath.toOkioPath())

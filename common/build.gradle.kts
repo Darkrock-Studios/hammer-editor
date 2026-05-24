@@ -79,6 +79,9 @@ kotlin {
 				implementation(libs.multiplatform.settings)
 				implementation(libs.platform.spellcheckerkt)
 				implementation(libs.kompress.core)
+				implementation(libs.markdown)
+				implementation(libs.epub4kmp.core)
+				implementation(libs.kotlinx.html)
 			}
 		}
 		val commonTest by getting {
