@@ -73,13 +73,14 @@
 	<string name="project_home_action_backup_toast_success">\'Backup\' Criado: %1$s</string>
 	<string name="project_home_action_backup_toast_failure">Falha ao criar \'Backup\'</string>
 	<string name="project_home_action_export_toast_success">História Exportada</string>
+	<string name="project_home_action_export_toast_failure">Export failed</string>
 	<string name="project_home_export_dialog_title">Export Story</string>
 	<string name="project_home_export_section">EXPORT</string>
 	<string name="project_home_export_close">× CLOSE</string>
 	<string name="project_home_export_chapters_label">Treat top-level scenes as chapters</string>
 	<string name="project_home_export_format_label">Format</string>
 	<string name="project_home_export_format_markdown">Markdown (.md)</string>
-	<string name="project_home_export_format_epub">EPub (coming soon)</string>
+	<string name="project_home_export_format_epub">EPub (.epub)</string>
 	<string name="project_home_export_cancel">Cancel</string>
 	<string name="project_home_export_execute">Export</string>
 	<string name="project_home_action_import">Import Story</string>
