@@ -1,33 +1,52 @@
 package com.darkrockstudios.apps.hammer.common.fileio
 
-import okio.FileSystem
-import okio.Path.Companion.toPath
+import io.github.aakira.napier.Napier
+import kotlinx.cinterop.*
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import platform.Foundation.*
+import platform.posix.memcpy
 
 actual val externalFileIoModule = module {
 	singleOf(::IosExternalFileIo) bind ExternalFileIo::class
 }
 
-private class IosExternalFileIo(private val fileSystem: FileSystem) : ExternalFileIo {
+private class IosExternalFileIo : ExternalFileIo {
 	override fun readExternalFile(path: String): ByteArray {
-		// TODO This is just the desktop implementation, probably won't work
-		return fileSystem.read(path.toPath()) {
-			readByteArray()
-		}
+		val data = NSData.dataWithContentsOfFile(path)
+			?: error("Failed to read external file: $path")
+		return data.toByteArray()
 	}
 
-	override fun writeExternalFile(path: String, content: ByteArray): Boolean {
-		// TODO This is just the desktop implementation, probably won't work
-		return try {
-			fileSystem.write(path.toPath(), false) {
-				write(content)
-			}
-			true
-		} catch (e: Exception) {
-			e.printStackTrace()
-			false
+	@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
+	override fun writeExternalFile(path: String, content: ByteArray): Boolean = memScoped {
+		val data = content.toNSData()
+		val url = NSURL.fileURLWithPath(path)
+		val errorVar = alloc<ObjCObjectVar<NSError?>>()
+		val ok = data.writeToURL(url, options = NSDataWritingAtomic, error = errorVar.ptr)
+		if (!ok) {
+			Napier.e("Failed to write external file $path: ${errorVar.value?.localizedDescription}")
 		}
+		ok
+	}
+}
+
+@OptIn(ExperimentalForeignApi::class)
+private fun NSData.toByteArray(): ByteArray {
+	val size = length.toInt()
+	val out = ByteArray(size)
+	if (size == 0) return out
+	out.usePinned { pinned ->
+		memcpy(pinned.addressOf(0), bytes, length.convert())
+	}
+	return out
+}
+
+@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
+private fun ByteArray.toNSData(): NSData {
+	if (isEmpty()) return NSData()
+	return usePinned { pinned ->
+		NSData.create(bytes = pinned.addressOf(0), length = size.convert())
 	}
 }
