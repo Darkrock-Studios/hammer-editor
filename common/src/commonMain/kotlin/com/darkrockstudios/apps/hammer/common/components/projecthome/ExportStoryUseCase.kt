@@ -19,11 +19,14 @@ data class StoryChapter(val name: String, val markdown: String)
 
 fun exportFileName(projectName: String, format: ExportFormat): String {
 	val safeName = projectName.sanitizedFileName().ifBlank { "story" }
-	return when (format) {
-		ExportFormat.Markdown -> "$safeName.md"
-		ExportFormat.Epub -> "$safeName.epub"
-	}
+	return "$safeName.${format.fileExtension}"
 }
+
+val ExportFormat.fileExtension: String
+	get() = when (this) {
+		ExportFormat.Markdown -> "md"
+		ExportFormat.Epub -> "epub"
+	}
 
 /** Strips characters that have meaning in file paths or the SAF picker; covers project names that came from sync. */
 private val unsafeFileNameChars = Regex("""[/\\:*?"<>|\x00-\x1F]""")
@@ -39,12 +42,18 @@ class ExportStoryUseCase(
 
 	private val ioDispatcher by injectIoDispatcher()
 
-	suspend fun execute(exportDir: HPath, options: ExportOptions): HPath = withContext(ioDispatcher) {
+	suspend fun execute(exportDir: HPath, options: ExportOptions): HPath {
+		val projectName = sceneEditorRepository.projectDef.name
+		val targetFile = (exportDir.toOkioPath() / exportFileName(projectName, options.format)).toHPath()
+		return executeToFile(targetFile, options)
+	}
+
+	suspend fun executeToFile(exportFile: HPath, options: ExportOptions): HPath = withContext(ioDispatcher) {
 		val projectName = sceneEditorRepository.projectDef.name
 		val perNodeChapters = sceneEditorRepository.getSceneTree().root.children.map { node ->
 			StoryChapter(name = node.value.name, markdown = collectMarkdown(node))
 		}
-		val exportPath = exportDir.toOkioPath() / exportFileName(projectName, options.format)
+		val exportPath = exportFile.toOkioPath()
 
 		try {
 			fileSystem.write(exportPath) {

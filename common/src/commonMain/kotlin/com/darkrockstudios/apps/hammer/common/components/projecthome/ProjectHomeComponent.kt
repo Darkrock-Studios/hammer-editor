@@ -199,6 +199,21 @@ class ProjectHomeComponent(
 		return filePath
 	}
 
+	override suspend fun exportProjectToFile(filePath: String, options: ExportOptions): HPath {
+		val hpath = HPath(
+			path = filePath,
+			name = "",
+			isAbsolute = true,
+		)
+		val result = exportStoryUseCase.executeToFile(hpath, options)
+
+		withContext(mainDispatcher) {
+			endProjectExport()
+		}
+
+		return result
+	}
+
 	override fun startProjectSync() = showProjectSync()
 
 	override fun showGlobalSearch() = onShowGlobalSearch()

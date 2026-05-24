@@ -11,6 +11,10 @@ import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.parser.MarkdownParser
 
+private const val TOC_TITLE = "Contents"
+
+private data class TocEntry(val title: String, val href: String)
+
 fun writeStoryAsEpub(
 	sink: BufferedSink,
 	projectName: String,
@@ -27,7 +31,12 @@ fun writeStoryAsEpub(
 
 		addStylesheet(buildStylesheet(projectData.theme))
 
-		// Title page first, then the chapters.
+		val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
+		val tocEntries = effective.mapIndexed { index, chapter ->
+			TocEntry(title = chapter.name, href = "ch${index + 1}.xhtml")
+		}
+
+		// Title page, contents page, then the chapters.
 		addSection(
 			projectName,
 			buildXhtmlResource(
@@ -38,14 +47,23 @@ fun writeStoryAsEpub(
 			),
 		)
 
-		val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
+		addSection(
+			TOC_TITLE,
+			buildXhtmlResource(
+				id = "toc",
+				href = "toc.xhtml",
+				title = TOC_TITLE,
+				bodyBuilder = { tocPageBody(tocEntries) },
+			),
+		)
+
 		effective.forEachIndexed { index, chapter ->
-			val resourceId = "ch${index + 1}"
+			val entry = tocEntries[index]
 			addSection(
 				chapter.name,
 				buildXhtmlResource(
-					id = resourceId,
-					href = "$resourceId.xhtml",
+					id = "ch${index + 1}",
+					href = entry.href,
 					title = chapter.name,
 					bodyBuilder = { chapterBody(chapter.name, chapter.markdown) },
 				),
@@ -72,6 +90,11 @@ private fun buildStylesheet(theme: ProjectTheme?): Stylesheet = stylesheet {
 		h1.book-title { font-size: 2.5em; margin: 0 0 0.4em 0; page-break-before: auto; }
 		hr.title-rule { border: none; border-top: 2px solid currentColor; width: 40%; margin: 1em auto; }
 		p.book-author { font-size: 1.2em; font-style: italic; margin: 0.5em 0; }
+		body.toc-page h1.toc-title { text-align: center; margin-bottom: 1.5em; }
+		h1.chapter-title { page-break-before: auto; }
+		nav.toc ol.toc-list { list-style: none; padding: 0; margin: 0; }
+		nav.toc li.toc-item { margin: 0.6em 0; text-indent: 0; }
+		nav.toc li.toc-item a { text-decoration: none; }
 		""".trimIndent(),
 	)
 
@@ -121,6 +144,20 @@ private fun buildXhtmlResource(
 		.apply { mediaType = MediaTypes.XHTML }
 }
 
+private fun BODY.tocPageBody(entries: List<TocEntry>) {
+	classes = setOf("toc-page")
+	h1(classes = "toc-title") { +TOC_TITLE }
+	nav(classes = "toc") {
+		ol(classes = "toc-list") {
+			entries.forEach { entry ->
+				li(classes = "toc-item") {
+					a(href = entry.href) { +entry.title }
+				}
+			}
+		}
+	}
+}
+
 private fun BODY.titlePageBody(projectName: String, authorName: String?) {
 	classes = setOf("title-page")
 	div(classes = "title-page-inner") {
@@ -133,7 +170,7 @@ private fun BODY.titlePageBody(projectName: String, authorName: String?) {
 }
 
 private fun BODY.chapterBody(chapterTitle: String, markdown: String) {
-	h1 { +chapterTitle }
+	h1(classes = "chapter-title") { +chapterTitle }
 	val flavour = CommonMarkFlavourDescriptor()
 	val parsed = MarkdownParser(flavour).buildMarkdownTreeFromString(markdown)
 	val htmlBody = HtmlGenerator(markdown, parsed, flavour).generateHtml()

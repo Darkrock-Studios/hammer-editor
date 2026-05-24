@@ -26,6 +26,7 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 	val contentRouterState: Value<ChildStack<ProjectHomeContentRouter.Config, ContentDestination>>
 
 	suspend fun exportProject(path: String, options: ExportOptions): HPath
+	suspend fun exportProjectToFile(filePath: String, options: ExportOptions): HPath
 	fun beginProjectExport()
 	fun cancelExportDialog()
 	fun confirmExportDialog(options: ExportOptions)
