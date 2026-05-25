@@ -59,7 +59,9 @@
 	<string name="timeline_sort_chronological">Chronological</string>
 	<string name="timeline_sort_reverse">Reverse</string>
 	<string name="timeline_sort_title_az">Title A–Z</string>
+	<string name="timeline_sort_title_za">Title Z–A</string>
 	<string name="timeline_sort_glyph_seq_asc">↑ SEQ</string>
 	<string name="timeline_sort_glyph_seq_desc">↓ SEQ</string>
 	<string name="timeline_sort_glyph_title_az">↓ A–Z</string>
+	<string name="timeline_sort_glyph_title_za">↑ Z–A</string>
 </resources>
