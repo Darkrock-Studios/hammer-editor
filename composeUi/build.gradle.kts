@@ -103,7 +103,6 @@ kotlin {
 				implementation(kotlin("test"))
 				implementation(libs.okio.fakefilesystem)
 				implementation(libs.kotlin.reflect)
-				implementation(libs.jetbrains.compose.ui.test.junit4)
 			}
 		}
 		val androidMain by getting {
@@ -127,6 +126,7 @@ kotlin {
 				implementation(libs.junit.jupiter)
 				runtimeOnly(libs.junit.vintage.engine)
 				implementation(libs.mockk)
+				implementation(libs.jetbrains.compose.ui.test.junit4)
 			}
 		}
 	}
