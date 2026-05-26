@@ -98,9 +98,9 @@ kzip = "1.1.1"
 bouncycastle = "1.84"
 kotlinx-io-okio = "0.9.0"
 
-compose-texteditor = "2.0.2"
-platform-spellcheckerkt = "1.1.0"
-nucleus = "1.15.5"
+compose-texteditor = "2.0.4"
+platform-spellcheckerkt = "1.2.2"
+nucleus = "1.15.6"
 colorpicker-compose = "1.1.4"
 material-kolor = "4.1.1"
 
