@@ -58,6 +58,7 @@ import kotlinx.coroutines.withContext
 
 private val InsetFigureWidth: Dp = 240.dp
 private val InsetFigureHeight: Dp = 320.dp
+private val StampRowCompactThreshold = 480.dp
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -143,8 +144,6 @@ internal fun ViewEntryUi(
 			Column(
 				modifier = modifier
 					.padding(
-						top = Ui.Padding.XL,
-						bottom = Ui.Padding.L,
 						start = Ui.Padding.M,
 						end = Ui.Padding.M,
 					)
@@ -345,7 +344,8 @@ private fun CrumbRow(
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XXL, vertical = Ui.Padding.L),
+			.height(Ui.TOP_BAR_HEIGHT)
+			.padding(horizontal = Ui.Padding.XL),
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
@@ -383,38 +383,44 @@ private fun StampRow(
 	onSave: () -> Unit,
 	onCancel: () -> Unit,
 ) {
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XXL, vertical = Ui.Padding.L),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		FolioStamp(entryDef = entryDef)
-		if (editing) {
-			Spacer(modifier = Modifier.weight(1f))
-			HdHairlineButton(
-				label = Res.string.encyclopedia_entry_edit_save_button.get(),
-				onClick = onSave,
-				emphasised = true,
-			)
-			HdHairlineButton(
-				label = Res.string.encyclopedia_entry_edit_cancel_button.get(),
-				onClick = onCancel,
-			)
-		} else {
-			HdMonoLabel(
-				text = Res.string.encyclopedia_entry_folio_format.get(
-					folioInitials(entryDef),
-					folioId(entryDef),
-				),
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-			Spacer(modifier = Modifier.weight(1f))
-			HdHairlineButton(
-				label = Res.string.encyclopedia_entry_edit_button.get(),
-				onClick = onEdit,
-			)
+	BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+		val isCompact = maxWidth < StampRowCompactThreshold
+
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(horizontal = Ui.Padding.XXL, vertical = Ui.Padding.L),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+		) {
+			FolioStamp(entryDef = entryDef)
+			if (editing) {
+				Spacer(modifier = Modifier.weight(1f))
+				HdHairlineButton(
+					label = Res.string.encyclopedia_entry_edit_save_button.get(),
+					onClick = onSave,
+					emphasised = true,
+				)
+				HdHairlineButton(
+					label = Res.string.encyclopedia_entry_edit_cancel_button.get(),
+					onClick = onCancel,
+				)
+			} else {
+				if (!isCompact) {
+					HdMonoLabel(
+						text = Res.string.encyclopedia_entry_folio_format.get(
+							folioInitials(entryDef),
+							folioId(entryDef),
+						),
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
+				}
+				Spacer(modifier = Modifier.weight(1f))
+				HdHairlineButton(
+					label = Res.string.encyclopedia_entry_edit_button.get(),
+					onClick = onEdit,
+				)
+			}
 		}
 	}
 }

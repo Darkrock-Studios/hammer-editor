@@ -8,14 +8,15 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 class FormatSyncDateTest {
 
 	@Test
-	fun `formats valid SQLite datetime string`() {
-		val sqliteDateTime = "2024-03-15 14:30:00"
+	fun `formats valid datetime instant`() {
+		val instant = Instant.parse("2024-03-15T14:30:00Z")
 
-		val result = formatSyncDate(sqliteDateTime)
+		val result = formatSyncDate(instant)
 
 		// Verify the result matches the expected format pattern
 		// The exact time depends on system timezone, but format should be "MMM dd, yyyy 'at' HH:mm"
@@ -25,9 +26,9 @@ class FormatSyncDateTest {
 	@Test
 	fun `formats datetime and converts from UTC to local timezone`() {
 		// Use a known UTC time and verify it converts correctly
-		val sqliteDateTime = "2024-06-15 12:00:00" // noon UTC
+		val instant = Instant.parse("2024-06-15T12:00:00Z") // noon UTC
 
-		val result = formatSyncDate(sqliteDateTime)
+		val result = formatSyncDate(instant)
 
 		// Parse the UTC time and convert to system timezone to get expected result
 		val utcDateTime = ZonedDateTime.of(2024, 6, 15, 12, 0, 0, 0, ZoneId.of("UTC"))
@@ -40,9 +41,9 @@ class FormatSyncDateTest {
 
 	@Test
 	fun `formats January date correctly`() {
-		val sqliteDateTime = "2024-01-05 08:30:00"
+		val instant = Instant.parse("2024-01-05T08:30:00Z")
 
-		val result = formatSyncDate(sqliteDateTime)
+		val result = formatSyncDate(instant)
 
 		assertTrue(result.contains("Jan"))
 		assertTrue(result.contains("2024"))
@@ -50,55 +51,19 @@ class FormatSyncDateTest {
 
 	@Test
 	fun `formats December date correctly`() {
-		val sqliteDateTime = "2024-12-25 18:45:00"
+		val instant = Instant.parse("2024-12-25T18:45:00Z")
 
-		val result = formatSyncDate(sqliteDateTime)
+		val result = formatSyncDate(instant)
 
 		assertTrue(result.contains("Dec"))
 		assertTrue(result.contains("2024"))
 	}
 
 	@Test
-	fun `returns original string for invalid datetime format`() {
-		val invalidDateTime = "not-a-date"
-
-		val result = formatSyncDate(invalidDateTime)
-
-		assertEquals("not-a-date", result)
-	}
-
-	@Test
-	fun `returns original string for empty string`() {
-		val emptyDateTime = ""
-
-		val result = formatSyncDate(emptyDateTime)
-
-		assertEquals("", result)
-	}
-
-	@Test
-	fun `returns original string for partial datetime`() {
-		val partialDateTime = "2024-03-15"
-
-		val result = formatSyncDate(partialDateTime)
-
-		assertEquals("2024-03-15", result)
-	}
-
-	@Test
-	fun `returns original string for datetime with wrong separator`() {
-		val wrongFormat = "2024/03/15 14:30:00"
-
-		val result = formatSyncDate(wrongFormat)
-
-		assertEquals("2024/03/15 14:30:00", result)
-	}
-
-	@Test
 	fun `handles midnight correctly`() {
-		val midnight = "2024-07-20 00:00:00"
+		val instant = Instant.parse("2024-07-20T00:00:00Z")
 
-		val result = formatSyncDate(midnight)
+		val result = formatSyncDate(instant)
 
 		assertTrue(result.matches(Regex("""\w{3} \d{2}, \d{4} at \d{2}:\d{2}""")))
 		assertTrue(result.contains("2024"))
@@ -106,43 +71,30 @@ class FormatSyncDateTest {
 
 	@Test
 	fun `handles end of day correctly`() {
-		val endOfDay = "2024-07-20 23:59:59"
+		val instant = Instant.parse("2024-07-20T23:59:59Z")
 
-		val result = formatSyncDate(endOfDay)
+		val result = formatSyncDate(instant)
 
 		assertTrue(result.matches(Regex("""\w{3} \d{2}, \d{4} at \d{2}:\d{2}""")))
 	}
 
 	@Test
 	fun `handles leap year date`() {
-		val leapYearDate = "2024-02-29 12:00:00"
+		val instant = Instant.parse("2024-02-29T12:00:00Z")
 
-		val result = formatSyncDate(leapYearDate)
+		val result = formatSyncDate(instant)
 
 		assertTrue(result.contains("Feb"))
 		assertTrue(result.contains("2024"))
 	}
 
 	@Test
-	fun `handles non-leap year February 29 by adjusting date`() {
-		// Java's DateTimeFormatter with default resolver style may adjust invalid dates
-		// 2023 is not a leap year, so Feb 29 gets parsed (may throw or adjust)
-		val invalidLeapYear = "2023-02-29 12:00:00"
+	fun `formats ISO 8601 instant`() {
+		val instant = Instant.parse("2024-03-15T14:30:00Z")
 
-		val result = formatSyncDate(invalidLeapYear)
+		val result = formatSyncDate(instant)
 
-		// The parser may either return the original string (if exception) or parse it
-		// Either behavior is acceptable - we just verify it doesn't crash
-		assertTrue(result.isNotEmpty())
-	}
-
-	@Test
-	fun `formatSyncDate does not handle ISO 8601 format`() {
-		val isoFormat = "2024-03-15T14:30:00Z"
-
-		val result = formatSyncDate(isoFormat)
-
-		assertEquals(isoFormat, result)
+		assertTrue(result.matches(Regex("""\w{3} \d{2}, \d{4} at \d{2}:\d{2}""")))
 	}
 
 	@Test

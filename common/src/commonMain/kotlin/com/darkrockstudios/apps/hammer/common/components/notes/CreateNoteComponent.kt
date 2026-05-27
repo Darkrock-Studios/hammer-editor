@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.InvalidNote
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import kotlinx.coroutines.withContext
 
 class CreateNoteComponent(
 	componentContext: ComponentContext,
@@ -50,16 +51,17 @@ class CreateNoteComponent(
 		updateShouldClose()
 	}
 
-	override suspend fun createNote(noteText: String, tags: Set<String>): NoteError {
-		val result = notesRepository.createNote(noteText, tags)
-		return if (isSuccess(result)) {
-			dismissCreate()
-			notesRepository.loadNotes()
-			NoteError.NONE
-		} else {
-			(result.exception as InvalidNote).error
+	override suspend fun createNote(noteText: String, tags: Set<String>): NoteError =
+		withContext(dispatcherDefault) {
+			val result = notesRepository.createNote(noteText, tags)
+			if (isSuccess(result)) {
+				dismissCreate()
+				notesRepository.loadNotes()
+				NoteError.NONE
+			} else {
+				(result.exception as InvalidNote).error
+			}
 		}
-	}
 
 	override fun confirmDiscard() {
 		_state.getAndUpdate {

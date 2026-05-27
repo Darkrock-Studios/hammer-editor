@@ -32,3 +32,19 @@ fun sqliteDateTimeStringToInstant(dateTimeString: String): Instant {
 fun Instant.toSqliteDateTimeString(): String {
 	return sqliteDatetimeFormatter.format(toJavaInstant())
 }
+
+/**
+ * Parse a legacy SQLite-stored timestamp into a kotlinx [Instant]. Accepts
+ * both the canonical `"YYYY-MM-DD HH:MM:SS"` form (the SQLite default for
+ * `datetime('now')`) and ISO-8601 strings with or without a trailing `Z`.
+ * Throws on unparseable input. Used by the one-shot SQLite→Postgres migrator
+ * and the parity checker.
+ */
+fun parseLegacyTimestamp(text: String): Instant {
+	val cleaned = text.trim()
+	val iso = runCatching {
+		Instant.parse(cleaned.replace(' ', 'T').let { if (it.endsWith("Z")) it else "${it}Z" })
+	}.getOrNull()
+	if (iso != null) return iso
+	return sqliteDateTimeStringToInstant(cleaned)
+}

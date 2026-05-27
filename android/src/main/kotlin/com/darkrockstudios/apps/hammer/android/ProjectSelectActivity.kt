@@ -7,18 +7,12 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.material.ExperimentalMaterialApi
-import androidx.compose.material3.*
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.ColorScheme
+import androidx.compose.material3.dynamicDarkColorScheme
+import androidx.compose.material3.dynamicLightColorScheme
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.lifecycleScope
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -26,20 +20,13 @@ import com.arkivanov.decompose.retainedComponent
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.android.widgets.AddNoteActivity
-import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
-import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
-import com.darkrockstudios.apps.hammer.common.projectselection.toHdBottomBarDestination
-import com.darkrockstudios.apps.hammer.common.projectselection.toHdNavRailDestination
-import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
+import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectScaffold
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -90,7 +77,7 @@ class ProjectSelectActivity : AppCompatActivity() {
 				useDarkTheme = isDark,
 				getOverrideColorScheme = ::getDynamicColorScheme
 			) {
-				ProjectSelectContent(component)
+				ProjectSelectScaffold(component)
 			}
 		}
 	}
@@ -125,84 +112,4 @@ class ProjectSelectActivity : AppCompatActivity() {
 	private fun onProjectSelected(projectDef: ProjectDef) {
 		startActivity(ProjectRootActivity.createIntent(this, projectDef))
 	}
-}
-
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
-@Composable
-fun ProjectSelectContent(component: ProjectSelection) {
-	val windowSizeClass = calculateWindowSizeClass()
-
-	when (windowSizeClass.widthSizeClass) {
-		WindowWidthSizeClass.Compact -> {
-			CompactNavigation(component)
-		}
-
-		WindowWidthSizeClass.Medium,
-		WindowWidthSizeClass.Expanded -> {
-			RailNavigation(component)
-		}
-	}
-}
-
-@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
-@Composable
-private fun CompactNavigation(
-	component: ProjectSelection,
-) {
-	val stackState by component.stack.subscribeAsState()
-	Scaffold(
-		modifier = Modifier.defaultScaffold(),
-		contentWindowInsets = WindowInsets(0, 0, 0, 0),
-		content = { scaffoldPadding ->
-			ProjectSelectionUi(
-				component,
-				modifier = Modifier.rootElement(scaffoldPadding),
-			)
-		},
-		bottomBar = {
-			val destinations = ProjectSelection.Locations.entries.map { it.toHdBottomBarDestination() }
-			HdBottomBar(
-				destinations = destinations,
-				selectedId = stackState.active.configuration.location,
-				onSelect = { component.showLocation(it) },
-			)
-		},
-	)
-}
-
-@OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
-@Composable
-private fun RailNavigation(
-	component: ProjectSelection
-) {
-	val stackState by component.stack.subscribeAsState()
-	val navRailState by component.navRailState.subscribeAsState()
-	Scaffold(
-		modifier = Modifier.defaultScaffold(),
-		contentWindowInsets = WindowInsets(0, 0, 0, 0),
-		content = { scaffoldPadding ->
-			Row(
-				modifier = Modifier.rootElement(scaffoldPadding),
-			) {
-				val destinations =
-					ProjectSelection.Locations.entries.map { it.toHdNavRailDestination() }
-				HdNavRail(
-					destinations = destinations,
-					selectedId = stackState.active.configuration.location,
-					onSelect = { component.showLocation(it) },
-					expanded = navRailState.expanded,
-					onToggleExpanded = { component.toggleNavRailExpanded() },
-					footer = {
-						val versionText = remember { getAppVersionString() }
-						HdMonoLabel(
-							text = versionText,
-							color = MaterialTheme.colorScheme.onSurfaceVariant,
-						)
-					},
-				)
-
-				ProjectSelectionUi(component)
-			}
-		},
-	)
 }

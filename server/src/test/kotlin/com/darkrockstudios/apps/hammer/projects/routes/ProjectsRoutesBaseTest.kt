@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.account.*
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
+import com.darkrockstudios.apps.hammer.plugins.configureLocalization
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
@@ -110,6 +111,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 
 			configureSerialization()
 			configureSecurity()
+			configureLocalization()
 			configureRouting()
 
 			if (moreSetup != null) moreSetup()

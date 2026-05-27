@@ -34,11 +34,21 @@ kotlin {
 
 sqldelight {
 	databases {
+		// Production database — single source of truth going forward (PostgreSQL).
 		create("ServerDatabase") {
 			packageName.set("com.darkrockstudios.apps.hammer.database")
-			//dialect("app.cash.sqldelight:sqlite-3-35-dialect:$sqldelight_version")
-			version = 5
+			dialect(libs.sqldelight.postgresql.dialect.get().toString())
+			srcDirs("src/main/sqldelight")
+			version = 1
 			schemaOutputDirectory.set(project.file("build/generated/sqldelight"))
+		}
+		// Read-only legacy database — used ONLY by the one-time SQLite-to-Postgres migrator.
+		// Marked for removal in a future release once production has migrated.
+		create("LegacySqliteDatabase") {
+			packageName.set("com.darkrockstudios.apps.hammer.database.legacy")
+			srcDirs("src/main/sqldelight-legacy-sqlite")
+			version = 5
+			schemaOutputDirectory.set(project.file("build/generated/sqldelight-legacy"))
 		}
 	}
 }
@@ -80,7 +90,17 @@ dependencies {
 
 	implementation(libs.okio)
 
+	// SqlDelight: legacy SQLite driver (read-only, used by the one-time migrator)
+	// and the JDBC driver (used by the production PostgreSQL backends).
 	implementation(libs.sqldelight.driver)
+	implementation(libs.sqldelight.jdbc.driver)
+
+	// PostgreSQL backends — embedded (Zonky) for local/personal installs, remote for production.
+	implementation(libs.postgresql.jdbc)
+	implementation(libs.hikaricp)
+	implementation(libs.embedded.postgres)
+	implementation(platform(libs.embedded.postgres.binaries.bom))
+	implementation(libs.bundles.embedded.postgres.binaries)
 
 	implementation(libs.ktor.server.websockets)
 	implementation(libs.ktor.server.mustache)
@@ -120,6 +140,12 @@ dependencies {
 	testRuntimeOnly(libs.junit.jupiter.engine)
 	testRuntimeOnly(libs.junit.platform.launcher)
 
+	// Testcontainers — used only for the RemotePostgresDatabase smoke test.
+	// Other tests use the in-process embedded Postgres (fast, no Docker dep).
+	testImplementation(platform(libs.testcontainers.bom))
+	testImplementation(libs.testcontainers.postgresql)
+	testImplementation(libs.testcontainers.junit.jupiter)
+
 	// testFixtures exposes the reusable E2E harness (EndToEndTest, E2eTestData,
 	// SqliteTestDatabase) to both :server's own tests and the :integrationTests module.
 	testFixturesApi(project(":base"))
@@ -130,12 +156,16 @@ dependencies {
 	testFixturesApi(libs.okio)
 	testFixturesApi(libs.okio.fakefilesystem)
 	testFixturesApi(libs.sqldelight.driver)
+	testFixturesApi(libs.sqldelight.jdbc.driver)
 	testFixturesApi(libs.bundles.junit.jupiter)
 	testFixturesApi(libs.coroutines.core)
 	testFixturesApi(libs.serialization.json)
 	testFixturesApi(libs.kotlinx.datetime)
 	testFixturesApi(project.dependencies.platform(libs.koin.bom))
 	testFixturesApi(libs.koin.core)
+	testFixturesApi(libs.embedded.postgres)
+	testFixturesApi(platform(libs.embedded.postgres.binaries.bom))
+	testFixturesApi(libs.bundles.embedded.postgres.binaries)
 }
 
 @OptIn(ExperimentalKotlinGradlePluginApi::class)

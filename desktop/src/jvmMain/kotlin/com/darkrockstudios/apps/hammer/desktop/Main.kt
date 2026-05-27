@@ -59,10 +59,25 @@ private fun setupLogging(appScope: CoroutineScope) {
 	Napier.base(DebugAntilog(handler = listOf(consoleHandler, FileLogger(scope = appScope))))
 }
 
+/**
+ * For sandboxed Mac App Store builds, JNA's default behavior of extracting
+ * libjnidispatch.jnilib to a temp dir at runtime is blocked. We pre-bundle
+ * the arm64 jnilib in desktop/resources/macos/, which the Compose Desktop
+ * plugin installs into Contents/app/resources/ and signs as part of the
+ * .app bundle. Pointing JNA at that location before any JNA class loads
+ * makes it use the pre-signed copy instead of trying to extract.
+ */
+private fun configureJnaForPackagedRuntime() {
+	val resourcesDir = System.getProperty("compose.application.resources.dir") ?: return
+	System.setProperty("jna.boot.library.path", resourcesDir)
+	System.setProperty("jna.library.path", resourcesDir)
+}
+
 @ExperimentalDecomposeApi
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 fun main(args: Array<String>) {
+	configureJnaForPackagedRuntime()
 	val launchArgs = handleArguments(args)
 
 	val appScope = CoroutineScope(Dispatchers.Default)

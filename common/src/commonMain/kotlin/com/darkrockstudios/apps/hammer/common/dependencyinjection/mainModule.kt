@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
+import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
@@ -12,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.exampleProjectModule
 import com.darkrockstudios.apps.hammer.common.data.globalsearchrepository.GlobalSearchRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
@@ -32,9 +32,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStat
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
-import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
-import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
-import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.data.references.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
@@ -50,17 +47,19 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubVersionCheckDataSource
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.ShouldNotifyOfUpdateUseCase
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDataSource
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule
 import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
 import com.darkrockstudios.apps.hammer.common.platformDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
 import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
-import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
-import com.darkrockstudios.apps.hammer.common.server.ServerAdminApi
-import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
-import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
-import com.darkrockstudios.apps.hammer.common.server.ProjectDataApi
-import com.darkrockstudios.apps.hammer.common.server.WritingActivityApi
+import com.darkrockstudios.apps.hammer.common.server.*
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.russhwolf.settings.Settings
 import io.ktor.client.*
@@ -106,8 +105,12 @@ val mainModule = module {
 	singleOf(::ServerAdminApi)
 
 	singleOf(::ServerSettingsFilesystemDatasource) bind ServerSettingsDatasource::class
-	singleOf(::GlobalSettingsFilesystemDatasource) bind GlobalSettingsDatasource::class
+	singleOf(::GlobalSettingsFilesystemDatasource)
 	singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
+
+	singleOf(::GithubVersionCheckDataSource) bind VersionCheckDataSource::class
+	singleOf(::VersionCheckRepository)
+	factoryOf(::ShouldNotifyOfUpdateUseCase)
 
 	factory { AccountUseCase(get(), get(), get(), get()) }
 	factoryOf(::AccountReauthUseCase)
@@ -142,6 +145,7 @@ val mainModule = module {
 		scopedOf(::SceneDatasource)
 		scopedOf(::SceneEditorRepository)
 		scopedOf(::ImportStoryUseCase)
+		scopedOf(::ExportStoryUseCase)
 		scopedOf(::SceneDraftsDatasource)
 		scopedOf(::SceneDraftRepository)
 		scopedOf(::SceneMetadataDatasource)

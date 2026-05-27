@@ -3,23 +3,18 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.essenty.backhandler.BackHandlerOwner
-import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutApp
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
-import com.darkrockstudios.apps.hammer.project_select_nav_about_app
-import com.darkrockstudios.apps.hammer.project_select_nav_about_app_short
-import com.darkrockstudios.apps.hammer.project_select_nav_account_settings
-import com.darkrockstudios.apps.hammer.project_select_nav_account_settings_short
-import com.darkrockstudios.apps.hammer.project_select_nav_projects_list
-import com.darkrockstudios.apps.hammer.project_select_nav_projects_list_short
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.StringResource
 
 interface ProjectSelection : HammerComponent, BackHandlerOwner {
 	val stack: Value<ChildStack<Config, Destination>>
 	val navRailState: Value<NavRailState>
+	val updateNotification: Value<UpdateNotificationState>
 
 	fun isAtRoot(): Boolean
 	fun onBack()
@@ -27,7 +22,21 @@ interface ProjectSelection : HammerComponent, BackHandlerOwner {
 	fun showLocation(location: Locations)
 	fun toggleNavRailExpanded()
 
+	fun openReleaseUrl()
+	fun dismissUpdateNotification(remember: Boolean)
+	fun showCurrentReleaseDetails()
+
 	data class NavRailState(val expanded: Boolean)
+
+	data class UpdateNotificationState(
+		val visible: Boolean = false,
+		val latestVersionTag: String? = null,
+		val releaseName: String? = null,
+		val releaseBody: String? = null,
+		val releaseUrl: String? = null,
+		val isNewVersionAvailable: Boolean = false,
+		val manuallyTriggered: Boolean = false,
+	)
 
 	enum class Locations(val text: StringResource, val shortText: StringResource) {
 		Projects(

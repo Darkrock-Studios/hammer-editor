@@ -29,8 +29,8 @@ class ServerWritingActivityRepositoryTest : BaseTest() {
 	private lateinit var repository: ServerWritingActivityRepository
 
 	private val userId = 1L
-	private val projectDef = ProjectDefinition("Test Project", ProjectId("Test UUID"))
-	private val unknownProjectDef = ProjectDefinition("Other Project", ProjectId("Unknown UUID"))
+	private val projectDef = ProjectDefinition("Test Project", ProjectId("11111111-1111-1111-1111-111111111111"))
+	private val unknownProjectDef = ProjectDefinition("Other Project", ProjectId("22222222-2222-2222-2222-222222222222"))
 
 	@BeforeEach
 	override fun setup() {
@@ -149,7 +149,7 @@ class ServerWritingActivityRepositoryTest : BaseTest() {
 			uuid = projectDef.uuid.id,
 			name = projectDef.name,
 			userId = userId,
-			lastSync = "2026-04-28 09:00:00",
+			lastSync = Instant.parse("2026-04-28T09:00:00Z"),
 			lastId = 0,
 		)
 	}

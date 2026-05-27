@@ -1,12 +1,18 @@
+import kotlinx.datetime.Instant;
+
+-- updated_at was a Unix-seconds INTEGER in SQLite; promoted to TIMESTAMPTZ here.
 CREATE TABLE server_config (
     key TEXT NOT NULL PRIMARY KEY,
     value TEXT NOT NULL,
-    updated_at INTEGER NOT NULL DEFAULT (strftime('%s', 'now'))
+    updated_at TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW()
 );
 
 getConfig:
 SELECT value FROM server_config WHERE key = ?;
 
 upsertConfig:
-INSERT OR REPLACE INTO server_config (key, value, updated_at)
-VALUES (?, ?, strftime('%s', 'now'));
+INSERT INTO server_config (key, value, updated_at)
+VALUES (?, ?, NOW())
+ON CONFLICT (key) DO UPDATE SET
+    value = EXCLUDED.value,
+    updated_at = EXCLUDED.updated_at;

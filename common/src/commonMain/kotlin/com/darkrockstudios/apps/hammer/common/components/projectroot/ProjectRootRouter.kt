@@ -48,9 +48,14 @@ internal class ProjectRootRouter(
 	val state: Value<ChildStack<Config, ProjectRoot.Destination<*>>> =
 		componentContext.childStack(
 			source = navigation,
-			initialConfiguration = when (initialScreen) {
-				InitialProjectScreen.Home -> Config.HomeConfig(projectDef)
-				InitialProjectScreen.Editor -> Config.EditorConfig(projectDef = projectDef)
+			initialStack = {
+				when (initialScreen) {
+					InitialProjectScreen.Home -> listOf(Config.HomeConfig(projectDef))
+					InitialProjectScreen.Editor -> listOf(
+						Config.HomeConfig(projectDef),
+						Config.EditorConfig(projectDef = projectDef),
+					)
+				}
 			},
 			key = "ProjectRootRouter",
 			childFactory = ::createChild,

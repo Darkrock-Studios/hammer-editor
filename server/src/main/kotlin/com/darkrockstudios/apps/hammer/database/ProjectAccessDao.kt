@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.GetPrivateAccessForProject
 import com.darkrockstudios.apps.hammer.Project_access
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
+import kotlin.time.Instant
 import org.koin.core.component.KoinComponent
 
 data class PublicProjectInfo(
@@ -11,20 +12,20 @@ data class PublicProjectInfo(
 	val userId: Long,
 	val projectName: String,
 	val penName: String,
-	val expiresAt: String?
+	val expiresAt: Instant?,
 )
 
 data class PublishedStoryInfo(
 	val projectUuid: String,
 	val projectName: String,
-	val publishedAt: String
+	val publishedAt: Instant,
 )
 
 data class CommunityFeedStory(
 	val projectUuid: String,
 	val projectName: String,
 	val penName: String,
-	val publishedAt: String
+	val publishedAt: Instant,
 )
 
 class ProjectAccessDao(
@@ -52,7 +53,7 @@ class ProjectAccessDao(
 	suspend fun insertAccess(
 		projectId: Long,
 		password: String?,
-		expiresAt: String?
+		expiresAt: Instant?,
 	) {
 		withContext(ioDispatcher) {
 			queries.insertAccess(projectId, password, expiresAt)
@@ -62,7 +63,7 @@ class ProjectAccessDao(
 	suspend fun updateAccess(
 		projectId: Long,
 		password: String?,
-		expiresAt: String?
+		expiresAt: Instant?,
 	) {
 		withContext(ioDispatcher) {
 			queries.updateAccess(projectId, password, expiresAt)

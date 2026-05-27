@@ -40,6 +40,7 @@ import verifyCoords
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 
 class SceneEditorRepositoryMoveTest : BaseTest() {
 
@@ -147,6 +148,8 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
+			clock = Clock.System,
+			strRes = mockk(relaxed = true),
 		)
 
 		runBlocking {
@@ -349,6 +352,8 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
+			clock = Clock.System,
+			strRes = mockk(relaxed = true),
 		)
 		repo.initializeSceneEditor()
 

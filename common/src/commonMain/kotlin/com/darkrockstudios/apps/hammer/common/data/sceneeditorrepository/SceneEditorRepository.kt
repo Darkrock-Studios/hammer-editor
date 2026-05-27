@@ -24,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDisp
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescentBy
 import com.darkrockstudios.apps.hammer.common.util.numDigits
 import com.darkrockstudios.apps.hammer.default_draft_name
@@ -37,10 +38,10 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import okio.IOException
 import okio.Path
-import org.jetbrains.compose.resources.getString
 import org.koin.core.component.KoinComponent
 import org.koin.core.scope.Scope
 import org.koin.core.scope.ScopeCallback
+import kotlin.time.Clock
 import kotlin.time.Duration.Companion.milliseconds
 
 class SceneEditorRepository(
@@ -53,6 +54,8 @@ class SceneEditorRepository(
 	private val statisticsRepository: StatisticsRepository,
 	private val referenceIndexRepository: ReferenceIndexRepository,
 	private val writingSessionTracker: WritingSessionTracker,
+	private val clock: Clock,
+	private val strRes: StrRes,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
@@ -142,6 +145,8 @@ class SceneEditorRepository(
 				confirmedReferences = metadata?.confirmedReferences ?: emptySet(),
 				dismissedReferences = metadata?.dismissedReferences ?: emptySet(),
 				tags = metadata?.tags ?: emptySet(),
+				created = metadata?.created,
+				lastEdited = metadata?.lastEdited,
 			)
 			syncDataRepository.markEntityAsDirty(scene.id, hash)
 		}
@@ -156,7 +161,11 @@ class SceneEditorRepository(
 		}
 
 		groups.forEach { node ->
-			updateSceneOrder(node.value.id)
+			try {
+				updateSceneOrder(node.value.id)
+			} catch (e: IOException) {
+				Napier.e("Failed to clean up scene order for group ${node.value.id}", e)
+			}
 		}
 	}
 
@@ -378,10 +387,12 @@ class SceneEditorRepository(
 		}
 
 		val order = sceneDef.order.toString().padStart(orderDigits, '0')
-		val bareName = "$order-${sceneDef.name}-${sceneDef.id}"
+		val delim = ProjectsRepository.FILENAME_DELIMITER
+		val encodedName = ProjectsRepository.encodeForFilename(sceneDef.name)
+		val bareName = "$order$delim$encodedName$delim${sceneDef.id}"
 
 		val filename = if (sceneDef.type == SceneItem.Type.Scene) {
-			"$bareName.md"
+			"$bareName${SceneDatasource.SCENE_FILENAME_EXTENSION}"
 		} else {
 			bareName
 		}
@@ -483,7 +494,7 @@ class SceneEditorRepository(
 	}
 
 	suspend fun loadSceneMetadata(sceneId: Int): SceneMetadata {
-		val defaultName: String = getString(Res.string.default_draft_name)
+		val defaultName: String = strRes.get(Res.string.default_draft_name)
 		val metadata = sceneMetadataDatasource.loadMetadata(sceneId) ?: SceneMetadata(currentDraftName = defaultName)
 		return if (metadata.currentDraftName.isBlank()) {
 			metadata.copy(currentDraftName = defaultName)
@@ -551,6 +562,24 @@ class SceneEditorRepository(
 		return fullPath.toHPath()
 	}
 
+	fun getSceneFilePathOrNull(sceneId: Int): HPath? {
+		val branch = sceneTree.getBranchOrNull(excludeLeaf = false) { it.id == sceneId }
+			?: return null
+
+		val scenePathSegment = getSceneDirectory().toOkioPath()
+		val pathSegments = branch
+			.map { node -> node.value }
+			.filter { sceneItem -> !sceneItem.isRootScene }
+			.map { sceneItem -> getSceneFileName(sceneItem) }
+
+		var fullPath: Path = scenePathSegment
+		pathSegments.forEach { segment ->
+			fullPath = fullPath.div(segment)
+		}
+
+		return fullPath.toHPath()
+	}
+
 	suspend fun renameScene(sceneItem: SceneItem, newName: String): Boolean {
 		if (validateSceneName(newName).isFailure) return false
 
@@ -600,7 +629,7 @@ class SceneEditorRepository(
 
 					sceneDatasource.moveScene(sourcePath = existingPath, targetPath = newPath)
 				} catch (e: IOException) {
-					throw IOException("existingPath: $existingPath\nnewPath: $newPath\n${e}\n${e.message}")
+					throw IOException("existingPath: $existingPath, newPath: $newPath", e)
 				}
 			}
 		}
@@ -619,7 +648,12 @@ class SceneEditorRepository(
 				content = content,
 				outline = metadata?.outline ?: "",
 				notes = metadata?.notes ?: "",
+				archived = scene.archived,
+				confirmedReferences = metadata?.confirmedReferences ?: emptySet(),
+				dismissedReferences = metadata?.dismissedReferences ?: emptySet(),
 				tags = metadata?.tags ?: emptySet(),
+				created = metadata?.created,
+				lastEdited = metadata?.lastEdited,
 			)
 			syncDataRepository.markEntityAsDirty(scene.id, hash)
 		}
@@ -774,7 +808,7 @@ class SceneEditorRepository(
 					}
 					sceneDatasource.moveScene(sourcePath = existingPath, targetPath = newPath)
 				} catch (e: IOException) {
-					throw IOException("existingPath: $existingPath\nnewPath: $newPath\n${e}\n${e.message}")
+					throw IOException("existingPath: $existingPath, newPath: $newPath", e)
 				}
 			}
 		}
@@ -842,10 +876,6 @@ class SceneEditorRepository(
 		}
 	}
 
-	fun exportStory(path: HPath, options: ExportOptions): HPath {
-		return sceneDatasource.exportStory(path, getSceneTree().root.children, options)
-	}
-
 	suspend fun createScene(
 		parent: SceneItem?,
 		sceneName: String,
@@ -903,6 +933,14 @@ class SceneEditorRepository(
 				SceneItem.Type.Scene -> sceneDatasource.createNewGroup(scenePath)
 				SceneItem.Type.Group -> sceneDatasource.createNewScene(scenePath)
 				SceneItem.Type.Root -> throw IllegalArgumentException("Cannot create Root")
+			}
+
+			if (type == SceneItem.Type.Scene) {
+				val now = clock.now()
+				sceneMetadataDatasource.storeMetadata(
+					SceneMetadata(created = now, lastEdited = now),
+					sceneId,
+				)
 			}
 
 			// Correct order digit paddings when injecting a new scene/group
@@ -1064,6 +1102,9 @@ class SceneEditorRepository(
 				newContent = buffer.content.coerceMarkdown(),
 				source = buffer.source,
 			)
+			if (buffer.source == UpdateSource.Editor) {
+				recordSceneActivity(sceneItem.id)
+			}
 		}
 
 		return success
@@ -1075,7 +1116,26 @@ class SceneEditorRepository(
 			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
 			return false
 		}
-		return sceneDatasource.storeTempSceneBuffer(buffer)
+		val success = sceneDatasource.storeTempSceneBuffer(buffer)
+		if (success && buffer.source == UpdateSource.Editor) {
+			recordSceneActivity(sceneItem.id)
+		}
+		return success
+	}
+
+	private suspend fun recordSceneActivity(sceneId: Int) {
+		val now = clock.now()
+		val existing = sceneMetadataDatasource.loadMetadata(sceneId)
+		// Backfill `created` for scenes authored before SceneMetadata had the field.
+		val createdFallback = existing?.created ?: getMetadata().info.created
+		val updated = (existing ?: SceneMetadata()).copy(
+			created = createdFallback,
+			lastEdited = now,
+		)
+		sceneMetadataDatasource.storeMetadata(updated, sceneId)
+		// Refresh open editors so their snapshot has the new timestamps.
+		_metadataUpdateFlow.tryEmit(sceneId to updated)
+		statisticsRepository.markDirty()
 	}
 
 	private fun clearTempScene(sceneItem: SceneItem) = sceneDatasource.clearTempScene(sceneItem)
@@ -1094,7 +1154,6 @@ class SceneEditorRepository(
 		return numScenes
 	}
 
-	fun getExportStoryFileName() = sceneDatasource.getExportStoryFileName()
 	fun getSceneFilename(path: HPath) = sceneDatasource.getSceneFilename(path)
 
 	/**
@@ -1152,7 +1211,8 @@ class SceneEditorRepository(
 		}
 
 		// Calculate new order (append at end of root)
-		val newOrder = getLastOrderNumber(null) + 1
+		val lastOrder = getLastOrderNumber(null)
+		val newOrder = lastOrder + 1
 
 		sceneDatasource.unarchiveScene(scene, newOrder)
 
@@ -1164,6 +1224,11 @@ class SceneEditorRepository(
 		// Add to tree at root level
 		val newNode = TreeNode(unarchivedScene)
 		sceneTree.root().addChild(newNode)
+
+		// SceneDatasource.unarchiveScene writes the file with an unpadded order. Update if needed.
+		if (lastOrder.numDigits() < newOrder.numDigits()) {
+			updateSceneOrder(SceneItem.ROOT_ID)
+		}
 
 		markForSynchronization(unarchivedScene)
 

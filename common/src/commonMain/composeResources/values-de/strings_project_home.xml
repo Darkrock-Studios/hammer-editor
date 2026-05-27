@@ -73,7 +73,7 @@
 	<string name="project_home_action_backup_toast_success">Backup erstellt: %1$s</string>
 	<string name="project_home_action_backup_toast_failure">Backup fehlgeschlagen</string>
 	<string name="project_home_action_export_toast_success">Geschichte exportiert</string>
-	<string name="project_home_action_export_toast_failure">Export failed</string>
+	<string name="project_home_action_export_toast_failure">Export fehlgeschlagen</string>
 	<string name="project_home_export_dialog_title">Export Story</string>
 	<string name="project_home_export_section">EXPORT</string>
 	<string name="project_home_export_close">× CLOSE</string>

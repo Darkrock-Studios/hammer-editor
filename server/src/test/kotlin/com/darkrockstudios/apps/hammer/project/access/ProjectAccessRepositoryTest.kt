@@ -18,6 +18,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 class ProjectAccessRepositoryTest {
 
@@ -50,7 +51,7 @@ class ProjectAccessRepositoryTest {
 			project_id = projectId,
 			access_password = "password",
 			expires_at = null,
-			published_at = "2025-12-25 23:51:32"
+			published_at = Instant.parse("2025-12-25T23:51:32Z")
 		)
 
 		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
@@ -68,10 +69,10 @@ class ProjectAccessRepositoryTest {
 		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
 		coEvery { projectAccessDao.updateAccess(any(), any(), any()) } returns Unit
 
-		repository.setAccess(userId, projectUuid, "password", "2023-12-31T23:59:59Z")
+		repository.setAccess(userId, projectUuid, "password", Instant.parse("2023-12-31T23:59:59Z"))
 
 		coVerify { projectDao.getProjectId(userId, projectUuid) }
-		coVerify { projectAccessDao.updateAccess(projectId, "password", "2023-12-31T23:59:59Z") }
+		coVerify { projectAccessDao.updateAccess(projectId, "password", Instant.parse("2023-12-31T23:59:59Z")) }
 	}
 
 	@Test
@@ -103,7 +104,7 @@ class ProjectAccessRepositoryTest {
 			project_id = projectId,
 			access_password = null,
 			expires_at = null,
-			published_at = "2025-12-25 23:51:32",
+			published_at = Instant.parse("2025-12-25T23:51:32Z"),
 		)
 
 		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
@@ -132,7 +133,7 @@ class ProjectAccessRepositoryTest {
 				project_id = projectId,
 				access_password = "pass",
 				expires_at = null,
-				published_at = "2025-12-25 23:51:32"
+				published_at = Instant.parse("2025-12-25T23:51:32Z")
 			)
 		)
 
@@ -171,7 +172,7 @@ class ProjectAccessRepositoryTest {
 			project_id = projectId,
 			access_password = null,
 			expires_at = null,
-			published_at = "2025-12-25 23:51:32"
+			published_at = Instant.parse("2025-12-25T23:51:32Z")
 		)
 
 		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
@@ -194,7 +195,7 @@ class ProjectAccessRepositoryTest {
 	@Test
 	fun `createPrivateAccess - creates password-protected access`() = runTest {
 		val password = "secret123"
-		val expiresAt = "2025-12-31T23:59:59"
+		val expiresAt = Instant.parse("2025-12-31T23:59:59Z")
 
 		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
 
@@ -220,16 +221,16 @@ class ProjectAccessRepositoryTest {
 			GetPrivateAccessForProject(
 				id = 1,
 				access_password = "pass1",
-				expires_at = "2099-06-15 12:00:00",
+				expires_at = Instant.parse("2099-06-15T12:00:00Z"),
 				project_id = 1,
-				published_at = "2025-12-25 23:51:32"
+				published_at = Instant.parse("2025-12-25T23:51:32Z")
 			),
 			GetPrivateAccessForProject(
 				id = 2,
 				access_password = "pass2",
 				expires_at = null,
 				project_id = 2,
-				published_at = "2025-12-25 23:51:32"
+				published_at = Instant.parse("2025-12-25T23:51:32Z")
 			)
 		)
 
@@ -253,9 +254,9 @@ class ProjectAccessRepositoryTest {
 			GetPrivateAccessForProject(
 				id = 1,
 				access_password = "expired-pass",
-				expires_at = "2020-01-01 00:00:00",
+				expires_at = Instant.parse("2020-01-01T00:00:00Z"),
 				project_id = 1,
-				published_at = "2025-12-25 23:51:32"
+				published_at = Instant.parse("2025-12-25T23:51:32Z")
 			)
 		)
 
@@ -312,7 +313,7 @@ class ProjectAccessRepositoryTest {
 			userId = userId,
 			projectName = projectName,
 			penName = penName,
-			expiresAt = "2020-01-01 00:00:00"
+			expiresAt = Instant.parse("2020-01-01T00:00:00Z")
 		)
 
 		coEvery { projectAccessDao.findPublicProjectByPenNameAndProjectName(penName, projectName) } returns publicInfo
@@ -413,7 +414,7 @@ class ProjectAccessRepositoryTest {
 			userId = userId,
 			projectName = projectName,
 			penName = penName,
-			expiresAt = "2020-01-01 00:00:00"
+			expiresAt = Instant.parse("2020-01-01T00:00:00Z")
 		)
 
 		coEvery { projectAccessDao.findPublicProjectByPenNameAndProjectName(penName, projectName) } returns null
@@ -439,7 +440,7 @@ class ProjectAccessRepositoryTest {
 			userId = userId,
 			projectName = projectName,
 			penName = penName,
-			expiresAt = "2020-01-01 00:00:00"
+			expiresAt = Instant.parse("2020-01-01T00:00:00Z")
 		)
 		val validPrivateInfo = PublicProjectInfo(
 			projectUuid = projectUuid.id,

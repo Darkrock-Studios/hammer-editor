@@ -26,6 +26,10 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EntryRefChipLabel
+import com.darkrockstudios.apps.hammer.common.util.format
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Instant
 
 val SCENE_METADATA_MIN_WIDTH = 300.dp
 val SCENE_METADATA_MAX_WIDTH = 600.dp
@@ -128,6 +132,10 @@ fun SceneMetadataPanelUi(
 					)
 				}
 			}
+			TimestampStrip(
+				created = state.metadata.created,
+				edited = state.metadata.lastEdited,
+			)
 			HorizontalDivider(
 				thickness = Dp.Hairline,
 				color = MaterialTheme.colorScheme.outlineVariant,
@@ -352,6 +360,57 @@ private fun RefChipBucket(
 	}
 	SpacerL()
 }
+
+@Composable
+private fun TimestampStrip(
+	created: Instant?,
+	edited: Instant?,
+) {
+	val unset = Res.string.scene_editor_metadata_timestamp_unset.get()
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+	) {
+		TimestampCell(
+			label = Res.string.scene_editor_metadata_created_label.get(),
+			value = created?.let(::formatStamp) ?: unset,
+			modifier = Modifier.weight(1f),
+		)
+		TimestampCell(
+			label = Res.string.scene_editor_metadata_edited_label.get(),
+			value = edited?.let(::formatStamp) ?: unset,
+			modifier = Modifier.weight(1f),
+		)
+	}
+}
+
+@Composable
+private fun TimestampCell(
+	label: String,
+	value: String,
+	modifier: Modifier = Modifier,
+) {
+	Column(
+		modifier = modifier,
+		verticalArrangement = Arrangement.spacedBy(2.dp),
+	) {
+		HdMonoLabel(
+			text = label,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		Text(
+			text = value,
+			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurface,
+		)
+	}
+}
+
+private fun formatStamp(instant: Instant): String =
+	instant.toLocalDateTime(TimeZone.currentSystemDefault())
+		.format("dd MMM `yy")
+		.uppercase()
 
 @Composable
 private fun AdvancedBody(state: SceneMetadataPanel.State) {

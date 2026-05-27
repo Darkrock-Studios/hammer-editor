@@ -60,15 +60,50 @@ private enum class TimeLineSortMode(
 	SeqAsc(Res.string.timeline_sort_chronological, Res.string.timeline_sort_glyph_seq_asc),
 	SeqDesc(Res.string.timeline_sort_reverse, Res.string.timeline_sort_glyph_seq_desc),
 	TitleAsc(Res.string.timeline_sort_title_az, Res.string.timeline_sort_glyph_title_az),
+	TitleDesc(Res.string.timeline_sort_title_za, Res.string.timeline_sort_glyph_title_za),
 }
 
 private fun TimeLineEvent.firstLine(): String = content.firstNonBlankLine()
+
+// Compare title strings so digit runs sort by numeric value ("Chapter 2" < "Chapter 10").
+private val titleNaturalComparator = Comparator<TimeLineEvent> { a, b ->
+	naturalCompare(a.firstLine(), b.firstLine())
+}
+
+private fun naturalCompare(a: String, b: String): Int {
+	var i = 0
+	var j = 0
+	while (i < a.length && j < b.length) {
+		val ca = a[i]
+		val cb = b[j]
+		if (ca.isDigit() && cb.isDigit()) {
+			var iEnd = i
+			while (iEnd < a.length && a[iEnd].isDigit()) iEnd++
+			var jEnd = j
+			while (jEnd < b.length && b[jEnd].isDigit()) jEnd++
+			val numA = a.substring(i, iEnd).trimStart('0').ifEmpty { "0" }
+			val numB = b.substring(j, jEnd).trimStart('0').ifEmpty { "0" }
+			val cmp = if (numA.length != numB.length) numA.length - numB.length
+			else numA.compareTo(numB)
+			if (cmp != 0) return cmp
+			i = iEnd
+			j = jEnd
+		} else {
+			val cmp = ca.lowercaseChar().compareTo(cb.lowercaseChar())
+			if (cmp != 0) return cmp
+			i++
+			j++
+		}
+	}
+	return (a.length - i) - (b.length - j)
+}
 
 private fun applySort(events: List<TimeLineEvent>, mode: TimeLineSortMode): List<TimeLineEvent> =
 	when (mode) {
 		TimeLineSortMode.SeqAsc -> events.sortedBy { it.order }
 		TimeLineSortMode.SeqDesc -> events.sortedByDescending { it.order }
-		TimeLineSortMode.TitleAsc -> events.sortedBy { it.firstLine().lowercase() }
+		TimeLineSortMode.TitleAsc -> events.sortedWith(titleNaturalComparator)
+		TimeLineSortMode.TitleDesc -> events.sortedWith(titleNaturalComparator.reversed())
 	}
 
 @OptIn(

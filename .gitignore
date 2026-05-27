@@ -62,6 +62,18 @@ fastlane/README.md
 /CLAUDE.md
 /.output.txt
 
+# Mac App Store signing assets (do NOT commit)
+/desktop/embedded.provisionprofile
+/desktop/runtime.provisionprofile
+/desktop/secrets/
+
+# Xcode per-user state (UI layout, breakpoints, scheme prefs)
+**/xcuserdata/
+
+# iOS App Store signing assets (do NOT commit)
+/ios/AppStore.mobileprovision
+/ios/ExportOptions.plist
+
 # Snap/Flatpak/AppImage build artifacts
 /flatpak-build/
 /flatpak-repo/

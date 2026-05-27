@@ -1,0 +1,169 @@
+# Source-of-truth manifest for all generated graphical assets.
+# Regenerate with: scripts/generate-assets.sh
+# Schema documented in DEVELOPMENT.md → "Asset Generation".
+
+sources:
+    logo: hammer-editor-logo.svg    # hammer + #2A2F2D rounded-rect bg
+    icon: hammer-icon.svg           # hammer alone, transparent
+
+fonts:
+    kingthings-trypewriter: server/src/main/resources/assets/Kingthings_Trypewriter_2.ttf
+
+palette:
+    brand-orange: "#B7410E"
+    brand-dark: "#2A2F2D"
+
+# Reusable compositions. Referenced by assets via `layout:`.
+# Sizes are percentages of output canvas so one layout serves many output sizes.
+layouts:
+    hammer-wordmark:
+        background: brand-dark
+        padding-pct: 8             # breathing room around the wordmark
+        icon:
+            source: icon
+            color: brand-orange
+            height-pct: 90           # visible hammer = 90% of available height (icon is trimmed first)
+        text:
+            content: "Hammer"
+            font: kingthings-trypewriter
+            color: brand-orange
+            size-pct: 45             # text cap-height ≈ 45% of available height
+        gap-pct: 12                # horizontal gap between icon and text
+        # If icon+gap+text overflows the canvas width, the generator scales the
+        # whole strip down uniformly so the proportions above are preserved.
+
+    # Full-bleed grey background, hammer centered. No text, no rounded corners
+    # (the background is a flat rect fill, not the rounded-rect logo SVG).
+    hammer-tile:
+        background: brand-dark
+        padding-pct: 12
+        icon:
+            source: icon
+            color: brand-orange
+            height-pct: 90
+
+    # Vertical stack: hammer above "Hammer" wordmark, both horizontally centered,
+    # whole stack vertically centered. Used for square/portrait store assets.
+    hammer-stack-centered:
+        background: brand-dark
+        padding-pct: 10
+        orientation: vertical
+        valign: center
+        icon:
+            source: icon
+            color: brand-orange
+            height-pct: 60           # icon = 60% of available height
+        text:
+            content: "Hammer"
+            font: kingthings-trypewriter
+            color: brand-orange
+            size-pct: 18             # text cap-height = 18% of available height
+        gap-pct: 4                   # vertical gap, % of available height
+
+    # Same vertical stack, but pinned to the top of the canvas (poster art).
+    hammer-stack-top:
+        background: brand-dark
+        padding-pct: 8
+        orientation: vertical
+        valign: top
+        icon:
+            source: icon
+            color: brand-orange
+            height-pct: 35           # smaller — leaves lots of empty space below
+        text:
+            content: "Hammer"
+            font: kingthings-trypewriter
+            color: brand-orange
+            size-pct: 11
+        gap-pct: 3
+
+assets:
+    # ============================================================
+    # TRACKED: consumed by build tooling, live in repo at known paths
+    # ============================================================
+
+    # --- snap (referenced by snapcraft.yaml) ---
+    - { id: snap-desktop,  type: icon, source: logo, size: 256,
+        out: snap/gui/hammer-editor.png }
+    - { id: snap-store,    type: icon, source: logo, size: 512,
+        out: snap/gui/hammer-editor-store.png }
+
+    # --- desktop (jpackage bundle + JVM resource) ---
+    - { id: jvm-linux,     type: icon, source: logo, size: 512,
+        out: desktop/icons/linux.png }
+    - { id: jvm-resource,  type: icon, source: logo, size: 512,
+        out: desktop/src/jvmMain/resources/icon.png }
+    - { id: jvm-windows,   type: ico,  source: logo,
+        sizes: [ 16, 24, 32, 48, 64, 128, 256 ],
+        out: desktop/icons/windows.ico }
+    - { id: jvm-macos,     type: icns, source: logo,
+        sizes: [ 16, 32, 128, 256, 512, 1024 ],
+        out: desktop/icons/macos.icns }
+
+    # --- msix (referenced by Package.appxmanifest) ---
+    - { id: msix-storelogo, type: msix-scale, source: logo, name: StoreLogo,
+        base: [ 50, 50 ],   scales: [ 100 ], out-dir: msix/Assets/ }
+    - { id: msix-square44,  type: msix-scale, source: logo, name: Square44x44Logo,
+        base: [ 44, 44 ],   scales: [ 100 ], out-dir: msix/Assets/ }
+    - { id: msix-square150, type: msix-scale, source: logo, name: Square150x150Logo,
+        base: [ 150, 150 ], scales: [ 100 ], out-dir: msix/Assets/ }
+    - { id: msix-wide,      type: msix-scale, layout: hammer-wordmark, name: Wide310x150Logo,
+        base: [ 310, 150 ], scales: [ 100 ], out-dir: msix/Assets/ }
+    - { id: msix-splash,    type: msix-scale, layout: hammer-wordmark, name: SplashScreen,
+        base: [ 620, 300 ], scales: [ 100 ], out-dir: msix/Assets/ }
+
+    # --- google play / f-droid (read by fastlane supply + F-Droid build server) ---
+    - { id: play-icon, type: icon, source: logo, size: 512,
+        out: fastlane/metadata/android/en-US/images/icon.png }
+    - { id: play-feature-graphic, type: composition, layout: hammer-wordmark,
+        size: [ 1024, 500 ], alpha: strip,
+        out: fastlane/metadata/android/en-US/images/featureGraphic.png }
+
+    # --- ios (Xcode asset catalog) ---
+    - { id: ios-marketing, type: icon, source: logo, size: 1024, alpha: strip,
+        out: ios/ios/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png }
+
+    # --- server (JVM resources) ---
+    - { id: server-favicon,        type: ico,  source: logo, sizes: [ 16, 32, 48 ],
+        out: server/src/main/resources/assets/favicon.ico }
+    - { id: server-hammer-icon,    type: icon, source: logo, size: 200,
+        out: server/src/main/resources/assets/images/hammer_icon.png }
+    - { id: server-hammer-icon-sm, type: icon, source: logo, size: 32,
+        out: server/src/main/resources/assets/images/hammer_icon_sm.png }
+
+    # ============================================================
+    # GITIGNORED: store-dashboard uploads (build/ is in .gitignore)
+    # Regenerate before uploading; not consumed by any local build.
+    # ============================================================
+
+    -   id: snap-featured-banner
+        type: composition
+        layout: hammer-wordmark
+        size: [ 1920, 640 ]              # 3:1, Snapcraft "featured" banner
+        alpha: strip
+        out: build/store-assets/snap/featured-banner.png
+
+    # MS Store Partner Center "1:1 App tile icon" — full-bleed grey, no rounded corners
+    - { id: msstore-tile-icon, type: composition, layout: hammer-tile,
+        size: [ 300, 300 ], alpha: strip,
+        out: build/store-assets/msstore/tile-icon.png }
+
+    # MS Store Partner Center 71×71 tile — full-bleed grey, no rounded corners
+    - { id: msstore-square71, type: composition, layout: hammer-tile,
+        size: [ 71, 71 ], alpha: strip,
+        out: build/store-assets/msstore/square71.png }
+
+    # MS Store Partner Center 150×150 tile — full-bleed grey, no rounded corners
+    - { id: msstore-square150, type: composition, layout: hammer-tile,
+        size: [ 150, 150 ], alpha: strip,
+        out: build/store-assets/msstore/square150.png }
+
+    # MS Store Partner Center "Box art" — 1:1, hammer + wordmark vertically centered
+    - { id: msstore-box-art, type: composition, layout: hammer-stack-centered,
+        size: [ 1080, 1080 ], alpha: strip,
+        out: build/store-assets/msstore/box-art.png }
+
+    # MS Store Partner Center "Poster art" — portrait, hammer + wordmark at top
+    - { id: msstore-poster-art, type: composition, layout: hammer-stack-top,
+        size: [ 1440, 2160 ], alpha: strip,
+        out: build/store-assets/msstore/poster-art.png }

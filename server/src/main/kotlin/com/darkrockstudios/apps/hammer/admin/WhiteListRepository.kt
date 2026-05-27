@@ -55,8 +55,7 @@ class WhiteListRepository(
 
 	suspend fun addToWhiteList(email: String, reason: String = "Added by admin") {
 		val cleanedEmail = cleanEmail(email)
-		val dateAdded = clock.now().epochSeconds
-		whiteListDao.addToWhiteList(cleanedEmail, dateAdded, reason)
+		whiteListDao.addToWhiteList(cleanedEmail, clock.now(), reason)
 	}
 
 	suspend fun removeFromWhiteList(email: String) {

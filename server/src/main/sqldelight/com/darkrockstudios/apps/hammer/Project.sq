@@ -1,16 +1,23 @@
+import kotlinx.datetime.Instant;
+
+-- uuid is declared TEXT for SqlDelight's parser; PostgresSchemaInitializer
+-- ALTERs it to UUID at runtime for 16-byte storage and validation. The
+-- SqlDelight Kotlin API still sees it as String.
 CREATE TABLE project (
-	id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-	uuid TEXT NOT NULL,
-	user_id INTEGER NOT NULL,
-	name TEXT NOT NULL,
-	last_id INTEGER DEFAULT 0 NOT NULL,
-	last_sync TEXT DEFAULT (datetime('now')) NOT NULL,
-	FOREIGN KEY(user_id) REFERENCES account(id),
-	UNIQUE(name, user_id)
+    id BIGSERIAL PRIMARY KEY,
+    uuid TEXT NOT NULL,
+    user_id BIGINT NOT NULL,
+    name TEXT NOT NULL,
+    last_id BIGINT NOT NULL DEFAULT 0,
+    last_sync TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    CONSTRAINT project_name_len CHECK (length(name) BETWEEN 1 AND 200),
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
+    UNIQUE(name, user_id)
 );
 
-CREATE UNIQUE INDEX user_project_name_lookup
-ON project(user_id, name);
+CREATE UNIQUE INDEX project_uuid_unique ON project (uuid);
+CREATE UNIQUE INDEX user_project_name_lookup ON project (user_id, name);
+CREATE INDEX project_user_id_idx ON project (user_id);
 
 getProjects:
 SELECT name, uuid
@@ -40,42 +47,46 @@ SELECT MAX(last_sync) AS last_sync
 FROM project
 WHERE user_id = :userId;
 
+-- uuid is UUID at runtime; Postgres won't auto-cast bound text params against
+-- it, so every binding goes through CAST(:uuid AS UUID).
 insertProject:
 INSERT INTO project(user_id, name, uuid, last_sync, last_id)
-VALUES(:userId, :name, :uuid, :lastSync, :lastId);
+VALUES(:userId, :name, CAST(:uuid AS UUID), :lastSync, :lastId);
 
 createProject:
 INSERT INTO project(user_id, name, uuid)
-VALUES(:userId, :name, :uuid);
+VALUES(:userId, :name, CAST(:uuid AS UUID));
 
 hasProjectById:
-SELECT EXISTS(SELECT 1 FROM project WHERE user_id = :userId AND uuid = :projectId);
+SELECT EXISTS(SELECT 1 FROM project WHERE user_id = :userId AND uuid = CAST(:projectId AS UUID));
 
 updateProjectName:
 UPDATE project
 SET name = :name
-WHERE user_id = :userId AND uuid = :uuid;
+WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);
 
+-- name is CITEXT at runtime; CAST(:name AS CITEXT) so comparison resolves to
+-- the citext-equality operator (case-insensitive).
 updateSyncData:
 UPDATE project
 SET last_id = :lastId, last_sync = :lastSync
-WHERE user_id = :userId AND name = :name;
+WHERE user_id = :userId AND name = CAST(:name AS CITEXT);
 
 findProjectByName:
 SELECT *
 FROM project
-WHERE user_id = :userId AND name = :name;
+WHERE user_id = :userId AND name = CAST(:name AS CITEXT);
 
 getProject:
 SELECT *
 FROM project
-WHERE user_id = :userId AND uuid = :uuid;
+WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);
 
 getProjectId:
 SELECT id
 FROM project
-WHERE user_id = :userId AND uuid = :uuid;
+WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);
 
 deleteProject:
 DELETE FROM project
-WHERE user_id = :userId AND uuid = :uuid;
+WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);

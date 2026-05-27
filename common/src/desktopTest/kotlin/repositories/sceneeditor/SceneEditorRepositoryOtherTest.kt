@@ -30,12 +30,10 @@ import com.darkrockstudios.apps.hammer.create_project_error_blank
 import com.darkrockstudios.apps.hammer.create_project_error_null_filename
 import createProject
 import getProject1Def
-import io.mockk.coEvery
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkObject
+import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
+import okio.IOException
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.AfterEach
@@ -44,6 +42,7 @@ import org.junit.jupiter.api.Test
 import utils.BaseTest
 import utils.getPrivateProperty
 import kotlin.test.*
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 class SceneEditorRepositoryOtherTest : BaseTest() {
@@ -110,7 +109,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		coEvery { idRepository.claimNextId() } answers { claimId() }
 		coEvery { idRepository.findNextId() } answers { }
 
-		metadataRepository = mockk()
+		metadataRepository = mockk(relaxUnitFun = true)
 		every { metadataRepository.loadMetadata(any()) } returns
 			ProjectMetadata(
 				info = Info(
@@ -165,6 +164,8 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
+			clock = Clock.System,
+			strRes = mockk(relaxed = true),
 		)
 	}
 
@@ -228,6 +229,33 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 				}
 			}
 		}
+	}
+
+	// Regression: a single failing rename during cleanupSceneOrder used to throw all
+	// the way out of Activity.onCreate, crashing the app at launch. The cleanup pass
+	// is best-effort — the project should still open if rename fails.
+	@Test
+	fun `Initialize survives IO failure during scene order cleanup`() = runTest {
+		configure(OUT_OF_ORDER_PROJECT_NAME)
+
+		val spy = spyk(sceneDatasource)
+		every { spy.moveScene(any(), any()) } throws IOException("simulated rename failure")
+		sceneDatasource = spy
+		repo = SceneEditorRepository(
+			projectDef = projectDef,
+			syncDataRepository = syncDataRepository,
+			idRepository = idRepository,
+			projectMetadataDatasource = metadataRepository,
+			sceneMetadataDatasource = metadataDatasource,
+			sceneDatasource = spy,
+			statisticsRepository = statisticsRepository,
+			referenceIndexRepository = mockk(relaxed = true),
+			writingSessionTracker = mockk(relaxed = true),
+			clock = Clock.System,
+			strRes = mockk(relaxed = true),
+		)
+
+		repo.initializeSceneEditor()
 	}
 
 	// Regression for #492: two scene files sharing one id crashed cleanupSceneOrder
@@ -359,6 +387,58 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		verifyTreeAndFilesystem()
 	}
 
+	// Names containing newly-allowed OS-forbidden chars (e.g. `\` `/` `?` `:`) must be encoded
+	// via ProjectsRepository.encodeForFilename and use the v2 `~` delimiter, otherwise the file
+	// path either splits on `\`/`/` or is rejected by the OS. Regression for crash where
+	// createScene wrote `1-foo\bar-8.md` to a non-existent parent dir on Windows.
+	@Test
+	fun `Create Scene, Name With Path-Separator Char Does Not Crash`() = runTest {
+		configure(PROJECT_1_NAME)
+
+		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
+
+		repo.initializeSceneEditor()
+
+		val sceneName = "foo\\bar"
+		val newScene = repo.createScene(null, sceneName)
+		assertNotNull(newScene, "Scene should have been created")
+		assertEquals(sceneName, newScene.name)
+
+		val scenePath = repo.getSceneFilePath(newScene.id).toOkioPath()
+		assertTrue(ffs.exists(scenePath), "Scene file should exist at $scenePath")
+
+		val fileName = scenePath.name
+		assertTrue(
+			SceneDatasource.SCENE_FILENAME_PATTERN.matchEntire(fileName) != null,
+			"Filename '$fileName' should match v2 SCENE_FILENAME_PATTERN",
+		)
+		assertFalse('\\' in fileName, "Raw backslash must not appear in filename '$fileName'")
+		assertFalse('/' in fileName, "Raw forward slash must not appear in filename '$fileName'")
+	}
+
+	// Companion regression for groups: same encoding rule applies to the directory name.
+	@Test
+	fun `Create Group, Name With Path-Separator Char Does Not Crash`() = runTest {
+		configure(PROJECT_1_NAME)
+
+		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
+
+		repo.initializeSceneEditor()
+
+		val groupName = "foo\\bar"
+		val newGroup = repo.createGroup(null, groupName)
+		assertNotNull(newGroup, "Group should have been created")
+		assertEquals(groupName, newGroup.name)
+
+		val groupPath = repo.getSceneFilePath(newGroup.id).toOkioPath()
+		assertTrue(ffs.exists(groupPath), "Group directory should exist at $groupPath")
+		assertTrue(ffs.metadata(groupPath).isDirectory, "Group path should be a directory")
+
+		val dirName = groupPath.name
+		assertFalse('\\' in dirName, "Raw backslash must not appear in group dir name '$dirName'")
+		assertFalse('/' in dirName, "Raw forward slash must not appear in group dir name '$dirName'")
+	}
+
 	@Test
 	fun `Delete Scene, In Root`() = runTest {
 		configure(PROJECT_2_NAME)
@@ -380,6 +460,29 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 
 		val scenePostDelete = repo.getSceneItemFromId(sceneId)
 		assertNull(scenePostDelete, "Scene still existed in tree")
+	}
+
+	// Regression: a SceneMetadataPanelComponent bound to a scene that gets removed
+	// from the tree (e.g. by sync or another component) used to crash with
+	// NodeNotFound when its onSceneTreeUpdate refresh hit getSceneFilePath.
+	@Test
+	fun `getSceneFilePathOrNull returns null for missing scene id`() = runTest {
+		configure(PROJECT_2_NAME)
+
+		repo.initializeSceneEditor()
+
+		val sceneId = 6
+		val scenePreDelete = repo.getSceneItemFromId(sceneId)
+		assertNotNull(scenePreDelete)
+		assertNotNull(repo.getSceneFilePathOrNull(sceneId), "Should resolve while scene exists")
+
+		val deleted = repo.deleteScene(scenePreDelete)
+		assertTrue(deleted)
+
+		assertNull(
+			repo.getSceneFilePathOrNull(sceneId),
+			"Should return null once scene is gone from the tree",
+		)
 	}
 
 	@Test

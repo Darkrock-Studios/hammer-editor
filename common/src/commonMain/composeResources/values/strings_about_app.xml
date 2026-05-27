@@ -14,6 +14,15 @@
 	<string name="about_version_new_available_title">New Version Available!</string>
 	<string name="about_version_new_available_message">Version %s is now available</string>
 	<string name="about_version_up_to_date">Up to date!</string>
+	<string name="about_version_view_update_button">View Update</string>
+	<string name="about_version_view_notes_button">Release Notes</string>
+
+	<string name="update_dialog_title">A new version of Hammer is available</string>
+	<string name="update_dialog_title_current">Release notes for %s</string>
+	<string name="update_dialog_release_notes_section">Release notes</string>
+	<string name="update_dialog_release_notes_empty">No release notes provided.</string>
+	<string name="update_dialog_open_release_button">Open Release</string>
+	<string name="update_dialog_dismiss_button">Dismiss</string>
 
 	<string name="about_logs_header">Application Logs</string>
 	<string name="about_logs_directory_label">Log Directory:</string>

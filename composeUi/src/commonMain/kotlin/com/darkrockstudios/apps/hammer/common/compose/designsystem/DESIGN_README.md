@@ -476,6 +476,66 @@ candidate to lift into a real `Hd*` primitive (working name:
 rather than improvising — the cohesion comes from the consistent
 metrics, not just the layout.
 
+### Screen masthead
+
+The "screen masthead" is the title / breadcrumb / close-button row at
+the top of any **screen-level** surface — every tab destination
+(Scenes, Notes, Encyclopedia, Timeline), every modal detail view
+(`ViewNoteUi`, `ViewEntryUi`), every project-selection screen
+(`ProjectListUi`, `AboutAppUi`, `AccountSettingsUi`), and the masthead
+inside `CreateNoteUi` / `CreateEntryUi`. They all share one shape:
+
+```kotlin
+Row(
+	modifier = Modifier
+		.fillMaxWidth()
+		.height(Ui.TOP_BAR_HEIGHT)            // 56.dp
+		.padding(horizontal = Ui.Padding.XL), // 16.dp
+	verticalAlignment = Alignment.CenterVertically,
+	horizontalArrangement = …,
+) { … }
+```
+
+```
+  ┌──────────────────────────────────────────────────┐
+  │  § MARKER · TITLE              17 · 12 GR    ⋮   │   ← 56dp tall, centered
+  └──────────────────────────────────────────────────┘
+  ────────────────────────────────────────────────────   ← HdFolioDivider
+  <body content>
+```
+
+**The rule, restated:** `height(Ui.TOP_BAR_HEIGHT)` + `padding(horizontal = Ui.Padding.XL)` and **nothing else**. No
+`top = …`, no `vertical = …`. The 56dp height with `CenterVertically` is what gives the masthead its breathing room
+above and below the label — the safe-area / modal frame / scaffold container above the masthead is what handles offset
+from the screen edge.
+
+**Why:**
+
+- Adding explicit `top = X` double-pads against `statusBarsPadding` (applied by `Modifier.rootElement(...)`) or the
+  outer modal Column, which is what produced the "iOS has a huge gap above the title" bug we kept patching one screen at
+  a time.
+- Trailing affordances (`IconButton`, `OverflowMenu`) are ≥ 48dp anyway, so the 56dp height floor doesn't actually
+  constrain anything in practice — it just guarantees a consistent minimum across screens.
+- Horizontal padding stays `Ui.Padding.XL` for parity with the body content gutter underneath. Where a responsive
+  horizontal value is in play (e.g. About / Account Settings switch to `56.dp` on Expanded), feed that through — same
+  rule, different number.
+
+**Pairs with `HdFolioDivider`.** A masthead row sits directly above an `HdFolioDivider` (for top-level screens) or a
+`HorizontalDivider(thickness = Dp.Hairline)` (for in-card mastheads). The divider, not extra padding, separates the
+masthead from the body.
+
+**Contrast with [Dialog masthead](#dialog-masthead).** Dialogs are floating overlays on a scrim — no `statusBarsPadding`
+above them, smaller surface — and use the documented `26.dp` horizontal / `22.dp` top body padding. That's a different
+context with a different rule. Screen masthead = any title row that sits at the top of a screen-sized surface. Dialog
+masthead = the §-marker row inside an overlay dialog.
+
+**Exceptions.**
+
+- `EditorTopBar.kt` uses M3 `TopAppBar` patterns and platform-specific status-bar handling — treat as a separate
+  primitive.
+- If a screen's "header zone" is *multiple* rows (e.g. `CreateNoteUi` has masthead + hint), only the topmost title row
+  takes `height(TOP_BAR_HEIGHT)`. Sub-rows below it are body content and use normal vertical spacing.
+
 ### Responsive browse-screen toolbar
 
 The shared shape of every list-of-things screen — Encyclopedia
@@ -488,6 +548,10 @@ The header reads `§ Roman  Title  ──────  meta`, sits above an
 **filter strip** that holds the search field, the type/tag filter,
 and any per-screen affordances (sort menu, "+ new" button). Below
 that, the actual content (grid, list) scrolls.
+
+The header row itself follows the [Screen masthead](#screen-masthead)
+rule — `height(Ui.TOP_BAR_HEIGHT) + padding(horizontal = Ui.Padding.XL)`,
+no top padding. This is the canonical implementation of that rule.
 
 Two behaviors give the pattern its character:
 

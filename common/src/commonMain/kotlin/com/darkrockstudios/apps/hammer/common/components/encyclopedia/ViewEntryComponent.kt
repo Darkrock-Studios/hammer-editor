@@ -201,7 +201,7 @@ class ViewEntryComponent(
 		name: String,
 		text: String,
 		tags: Set<String>
-	): EntryResult {
+	): EntryResult = withContext(dispatcherDefault) {
 		val currentAliases = state.value.content?.aliases.orEmpty()
 		val previousName = state.value.entryDef.name
 		val result = encyclopediaRepository.updateEntry(
@@ -225,7 +225,7 @@ class ViewEntryComponent(
 			}
 		}
 
-		return result
+		result
 	}
 
 	override fun confirmClose() {
@@ -283,7 +283,7 @@ class ViewEntryComponent(
 		}
 	}
 
-	override suspend fun addTags(tagInput: String) {
+	override suspend fun addTags(tagInput: String) = withContext(dispatcherDefault) {
 		val newTags = parseTagInput(tagInput)
 
 		state.value.content?.apply {
@@ -308,13 +308,13 @@ class ViewEntryComponent(
 		_state.getAndUpdate { it.copy(showAliasAdd = false) }
 	}
 
-	override suspend fun addAlias(alias: String): EntryResult {
+	override suspend fun addAlias(alias: String): EntryResult = withContext(dispatcherDefault) {
 		val current = state.value.content
-			?: return EntryResult(EntryError.NONE)
+			?: return@withContext EntryResult(EntryError.NONE)
 		val trimmed = alias.trim()
 		if (trimmed.isEmpty()) {
 			endAliasAdd()
-			return EntryResult(EntryError.NONE)
+			return@withContext EntryResult(EntryError.NONE)
 		}
 		val result = encyclopediaRepository.updateEntry(
 			oldEntryDef = state.value.entryDef,
@@ -328,7 +328,7 @@ class ViewEntryComponent(
 			reload()
 			result.instance?.entry?.let { backfillEntryReferences(it) }
 		}
-		return result
+		result
 	}
 
 	override fun removeAlias(alias: String) {

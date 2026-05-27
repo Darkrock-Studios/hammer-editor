@@ -7,26 +7,20 @@ import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.base.DISCORD_URL
 import com.darkrockstudios.apps.hammer.base.GITHUB_URL
 import com.darkrockstudios.apps.hammer.base.REDDIT_URL
-import com.darkrockstudios.apps.hammer.base.VERSION_CHECK_URL
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getLogDirectory
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
-import com.darkrockstudios.apps.hammer.common.util.isNewVersionAvailable
-import io.github.aakira.napier.Napier
-import io.ktor.client.HttpClient
-import io.ktor.client.request.get
-import io.ktor.client.statement.bodyAsText
 import kotlinx.coroutines.launch
-import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.jsonObject
-import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.coroutines.withContext
 
 class AboutAppComponent(
 	componentContext: ComponentContext,
 	private val urlLauncher: UrlLauncher,
 	private val updateShouldClose: () -> Unit,
-	private val http: HttpClient,
+	private val versionCheckRepository: VersionCheckRepository,
+	private val onShowReleaseDetails: () -> Unit,
 ) : AboutApp, ComponentBase(componentContext) {
 
 	private val _state = MutableValue(AboutApp.State(logDirectoryPath = getLogDirectoryPath()))
@@ -34,21 +28,21 @@ class AboutAppComponent(
 
 	init {
 		scope.launch {
-			try {
-				val response = http.get(VERSION_CHECK_URL)
-				val json = Json.parseToJsonElement(response.bodyAsText()).jsonObject
-				val latestTag = json["tag_name"]?.jsonPrimitive?.content
-				if (latestTag != null) {
+			versionCheckRepository.updates.collect { result ->
+				val tag = result.latestRelease?.bareVersion
+				withContext(dispatcherMain) {
 					_state.update {
 						it.copy(
-							latestVersion = latestTag,
-							newVersionAvailable = isNewVersionAvailable(latestTag)
+							latestVersion = tag,
+							newVersionAvailable = result.isNewVersionAvailable,
 						)
 					}
 				}
-			} catch (e: Exception) {
-				Napier.w("Failed to check latest app version", e)
 			}
+		}
+
+		if (versionCheckRepository.currentResult() == null) {
+			scope.launch { versionCheckRepository.checkForUpdate() }
 		}
 	}
 
@@ -62,6 +56,10 @@ class AboutAppComponent(
 
 	override fun openGithub() {
 		urlLauncher.openInBrowser(GITHUB_URL)
+	}
+
+	override fun viewReleaseDetails() {
+		onShowReleaseDetails()
 	}
 
 	private fun getLogDirectoryPath(): String {

@@ -19,7 +19,7 @@ val desktopModule: Module = module {
 		when (hostOs) {
 			HostOs.Windows -> WindowsJumpList(projects, ioDispatcher)
 			HostOs.Linux -> LinuxQuicklist(projects, ioDispatcher)
-			HostOs.MacOs -> MacOsDockShortcuts(projects, ioDispatcher)
+			HostOs.MacOs -> NoOpQuickShortcuts()
 			HostOs.Other -> NoOpQuickShortcuts()
 		}
 	}

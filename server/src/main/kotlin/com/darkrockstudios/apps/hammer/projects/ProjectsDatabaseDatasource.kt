@@ -45,7 +45,7 @@ class ProjectsDatabaseDatasource(
 		return projectDao.getProjectsCount(userId)
 	}
 
-	override suspend fun getMostRecentSyncForUser(userId: Long): String? {
+	override suspend fun getMostRecentSyncForUser(userId: Long): kotlin.time.Instant? {
 		return projectDao.getMostRecentSyncForUser(userId)
 	}
 

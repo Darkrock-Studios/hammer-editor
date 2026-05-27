@@ -3,199 +3,111 @@ on:
   release:
     types: [ published ]
 
+# Tag-suffix gating: every per-store job runs when the release tag has no `+`
+# suffix (full release) OR when the tag contains that store's platform token
+# (single-store / subset release). `!cancelled() && !contains(needs.*.result,
+# 'failure')` lets the job run when an upstream need was *skipped* (because it
+# wasn't in the platform list) while still bailing out if an upstream actually
+# failed. See buildSrc Platform enum for the token catalog.
 jobs:
+  publish-google-play:
+    if: ${{ !contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+google-play') }}
+    uses: ./.github/workflows/publish-google-play.yml
+    secrets: inherit
+    with:
+      track: production
+
   publish-fdroid-tag:
     needs: publish-google-play
-    runs-on: ubuntu-latest
+    if: |
+      ${{ !cancelled() && !contains(needs.*.result, 'failure') &&
+          (!contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+fdroid')) }}
     permissions:
       contents: write
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Create F-Droid tag
-        run: |
-          VERSION=${{ github.event.release.tag_name }}
-          VERSION=${VERSION#v}
-          MAJOR=$(echo "$VERSION" | cut -d. -f1)
-          MINOR=$(echo "$VERSION" | cut -d. -f2)
-          PATCH=$(echo "$VERSION" | cut -d. -f3)
-          VERSION_CODE=$(( (PATCH + 1) * 10000 + MINOR * 1000000 + MAJOR * 100000000 ))
-          FDROID_TAG="fdroid-${VERSION_CODE}"
-
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
-          git fetch origin release
-          git checkout release
-          git tag -a "$FDROID_TAG" -m "FDroid release tag for $VERSION"
-          git push origin tag "$FDROID_TAG"
-
-  publish-google-play:
-    runs-on: ubuntu-latest
-    env:
-      BUILD_NUMBER: ${{ github.run_number }}
-      RELEASE_BUILD: true
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-
-      - name: set up JDK 21
-        uses: actions/setup-java@v5
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: gradle
-
-      - uses: ruby/setup-ruby@6aaa311d81eba98ae12eaffbcb63296ace0efcde # v1.307.0
-        with:
-          ruby-version: '3.4.8'
-          bundler-cache: true
-
-      - name: Cache Ruby - Bundler
-        uses: actions/cache@v5
-        with:
-          path: vendor/bundle
-          key: ${{ runner.os }}-gems-${{ hashFiles('**/Gemfile.lock') }}
-          restore-keys: |
-            ${{ runner.os }}-gems-
-
-      - name: Grant Permission to Execute
-        run: chmod +x gradlew
-
-      - name: Install bundle
-        run: |
-          bundle config path vendor/bundle
-          bundle install --jobs 4 --retry 3
-
-      - name: Restore key
-        working-directory: /home/runner/work/hammer-editor/hammer-editor/
-        run: |
-          echo "${{ secrets.RELEASE_KEYSTORE }}" > release.keystore.asc
-          echo ${{ secrets.RELEASE_STORE_PASSWORD_BASE64 }} | base64 -d > passphrase
-          gpg -d --passphrase-file passphrase --batch release.keystore.asc > release.keystore
-
-      - name: Create Google Play Config file
-        run: |
-          echo "$PLAY_CONFIG_JSON" > play_config.json.b64
-          base64 -d -i play_config.json.b64 > play_config.json
-        env:
-          PLAY_CONFIG_JSON: ${{ secrets.PLAY_CONFIG_JSON }}
-
-      - name: Distribute app to Production track 🚀
-        run: bundle exec fastlane release
-        env:
-          RELEASE_STORE_FILE: /home/runner/work/hammer-editor/hammer-editor/release.keystore
-          RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
-          RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
-          RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
+    uses: ./.github/workflows/publish-fdroid-tag.yml
+    secrets: inherit
+    with:
+      release_tag: ${{ github.event.release.tag_name }}
 
   publish-snap:
     needs: publish-google-play
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download Snap from Release
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh release download ${{ github.event.release.tag_name }} -p 'hammer.snap' -R ${{ github.repository }}
-
-      - name: Upload to Snap Store
-        uses: snapcore/action-publish@214b86e5ca036ead1668c79afb81e550e6c54d40 # v1.2.0
-        env:
-          SNAPCRAFT_STORE_CREDENTIALS: ${{ secrets.SNAP_TOKEN }}
-        with:
-          snap: hammer.snap
-          release: stable
+    if: |
+      ${{ !cancelled() && !contains(needs.*.result, 'failure') &&
+          (!contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+snap')) }}
+    uses: ./.github/workflows/publish-snap.yml
+    secrets: inherit
+    with:
+      release_tag: ${{ github.event.release.tag_name }}
 
   publish-microsoft-store:
     needs: publish-google-play
-    runs-on: windows-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
+    if: |
+      ${{ !cancelled() && !contains(needs.*.result, 'failure') &&
+          (!contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+ms-store')) }}
+    uses: ./.github/workflows/publish-microsoft-store.yml
+    secrets: inherit
 
-      - name: set up JDK 21
-        uses: actions/setup-java@v5
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-          cache: gradle
+  publish-mac-app-store:
+    if: ${{ !contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+mac-app-store') }}
+    uses: ./.github/workflows/publish-mac-app-store.yml
+    secrets: inherit
 
-      - name: Build MSIX package
-        run: ./gradlew :desktop:packageMsix
-
-      - name: Upload Gradle problems report on failure
-        if: failure()
-        uses: actions/upload-artifact@v7
-        with:
-          name: gradle-problems-report
-          path: build/reports/problems/problems-report.html
-          if-no-files-found: ignore
-
-      - name: Submit to Microsoft Store
-        shell: pwsh
-        env:
-          MS_TENANT_ID: ${{ secrets.MS_TENANT_ID }}
-          MS_CLIENT_ID: ${{ secrets.MS_CLIENT_ID }}
-          MS_CLIENT_SECRET: ${{ secrets.MS_CLIENT_SECRET }}
-          MS_APP_ID: ${{ secrets.MS_APP_ID }}
-        run: |
-          # Get access token
-          $tokenBody = @{
-            grant_type    = "client_credentials"
-            client_id     = $env:MS_CLIENT_ID
-            client_secret = $env:MS_CLIENT_SECRET
-            scope         = "https://manage.devcenter.microsoft.com/.default"
-          }
-          $tokenResponse = Invoke-RestMethod -Uri "https://login.microsoftonline.com/$env:MS_TENANT_ID/oauth2/v2.0/token" -Method POST -Body $tokenBody
-          $accessToken = $tokenResponse.access_token
-          
-          # Create new submission
-          Write-Host "Creating new submission..."
-          $headers = @{
-            Authorization = "Bearer $accessToken"
-            "Content-Type" = "application/json"
-          }
-          $submissionResponse = Invoke-RestMethod -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/$env:MS_APP_ID/submissions" -Method POST -Headers $headers
-          $submissionId = $submissionResponse.id
-          $fileUploadUrl = $submissionResponse.fileUploadUrl
-          
-          Write-Host "Submission ID: $submissionId"
-          Write-Host "Upload URL: $fileUploadUrl"
-          
-          # Find MSIX file
-          $msixFile = Get-ChildItem -Path "desktop\build\installers\Hammer-*.msix" | Select-Object -First 1
-          Write-Host "Uploading: $($msixFile.FullName)"
-          
-          # Upload MSIX to Azure Storage
-          $msixBytes = [System.IO.File]::ReadAllBytes($msixFile.FullName)
-          $headers = @{
-            "x-ms-blob-type" = "BlockBlob"
-          }
-          Invoke-RestMethod -Uri $fileUploadUrl -Method PUT -Headers $headers -Body $msixBytes -ContentType "application/octet-stream"
-          
-          Write-Host "Upload complete!"
-          
-          # Commit submission
-          Write-Host "Committing submission..."
-          $headers = @{
-            Authorization = "Bearer $accessToken"
-            "Content-Type" = "application/json"
-          }
-          Invoke-RestMethod -Uri "https://manage.devcenter.microsoft.com/v1.0/my/applications/$env:MS_APP_ID/submissions/$submissionId/commit" -Method POST -Headers $headers -ContentType "application/json"
-          
-          Write-Host "✓ Submission committed successfully!"
+  publish-ios-app-store:
+    if: ${{ !contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+ios-app-store') }}
+    uses: ./.github/workflows/publish-ios-app-store.yml
+    secrets: inherit
 
   notify:
-    needs: [ publish-fdroid-tag, publish-google-play, publish-snap, publish-microsoft-store ]
+    needs: [ publish-fdroid-tag, publish-google-play, publish-snap, publish-microsoft-store, publish-mac-app-store, publish-ios-app-store ]
+    # Fire when all upstream jobs either succeeded or were intentionally skipped
+    # by the platform filter — but not when something actually failed.
+    if: ${{ !cancelled() && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     steps:
+      - name: Compute scope header
+        id: scope
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          # Tokens → human display names for the Discord audience.
+          to_display() {
+            case "$1" in
+              google-play)   echo "Google Play" ;;
+              fdroid)        echo "F-Droid" ;;
+              snap)          echo "Snap" ;;
+              ms-store)      echo "MS Store" ;;
+              mac-app-store) echo "Mac App Store" ;;
+              ios-app-store) echo "iOS App Store" ;;
+              *)             echo "$1" ;;
+            esac
+          }
+
+          # Emitted as a multi-line $GITHUB_OUTPUT (heredoc) so the trailing
+          # newline survives YAML parsing and reaches Discord as a real line
+          # break. Single-line `echo "header=...\\n"` would arrive as a
+          # literal backslash-n because the substitution happens after YAML
+          # has already finished interpreting escape sequences.
+          if [[ "$TAG" == *+* ]]; then
+            PRETTY=""
+            for token in $(echo "${TAG#*+}" | tr '+' ' '); do
+              display=$(to_display "$token")
+              if [ -z "$PRETTY" ]; then PRETTY="$display"; else PRETTY="$PRETTY, $display"; fi
+            done
+            {
+              echo "header<<HEADER_EOF"
+              echo "🔧 Patch release — ${PRETTY} only"
+              echo "HEADER_EOF"
+            } >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "header<<HEADER_EOF"
+              echo "HEADER_EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Discord notification
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         uses: Ilshidur/action-discord@d2594079a10f1d6739ee50a2471f0ca57418b554 # 0.4.0
         with:
-          args: "**New release:** {{ EVENT_PAYLOAD.release.name }}\n**Download Here:** {{ EVENT_PAYLOAD.release.html_url }}\n\n**Changelog:**\n{{ EVENT_PAYLOAD.release.body }}"
+          args: "${{ steps.scope.outputs.header }}**New release:** {{ EVENT_PAYLOAD.release.name }}\n**Download Here:** {{ EVENT_PAYLOAD.release.html_url }}\n\n**Changelog:**\n{{ EVENT_PAYLOAD.release.body }}"

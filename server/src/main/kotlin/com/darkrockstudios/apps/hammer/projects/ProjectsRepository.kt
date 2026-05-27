@@ -44,7 +44,7 @@ class ProjectsRepository(
 		return projectsDatasource.getProjectsCount(userId)
 	}
 
-	suspend fun getMostRecentSyncForUser(userId: Long): String? {
+	suspend fun getMostRecentSyncForUser(userId: Long): kotlin.time.Instant? {
 		return projectsDatasource.getMostRecentSyncForUser(userId)
 	}
 

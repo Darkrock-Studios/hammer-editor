@@ -1,4 +1,3 @@
-import com.android.build.api.dsl.androidLibrary
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -37,20 +36,8 @@ kotlin {
 		}
 	}
 
-	listOf(
-		iosArm64(),
-		iosSimulatorArm64()
-	).forEach { iosTarget ->
-		iosTarget.binaries.framework {
-			baseName = "Hammer"
-			//isStatic = true
-			//transitiveExport = true
-			export(libs.decompose)
-			export(libs.essenty.lifecycle)
-			export(libs.coroutines.core)
-			export(libs.napier)
-		}
-	}
+	iosArm64()
+	iosSimulatorArm64()
 
 	applyDefaultHierarchyTemplate()
 
@@ -84,14 +71,18 @@ kotlin {
 				implementation(libs.tomlkt)
 				api(libs.bundles.essenty)
 				implementation(libs.cache4k)
-				implementation(compose.runtime)
-				implementation(compose.components.resources)
+				implementation(libs.jetbrains.compose.runtime)
+				implementation(libs.jetbrains.compose.components.resources)
 				implementation(libs.kotlinx.atomicfu)
 				implementation(libs.fluidsonic.locale)
 				implementation(libs.aboutlibraries.core)
 				implementation(libs.multiplatform.settings)
 				implementation(libs.platform.spellcheckerkt)
-				implementation(libs.kompress.core)
+				implementation(libs.kmp.zip)
+				implementation(libs.kmp.zip.okio)
+				implementation(libs.markdown)
+				implementation(libs.epub4kmp.core)
+				implementation(libs.kotlinx.html)
 			}
 		}
 		val commonTest by getting {

@@ -1,43 +1,26 @@
 package com.darkrockstudios.apps.hammer.frontend.utils
 
-import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
-import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import kotlin.time.toJavaInstant
 
-fun formatSyncDate(dateTimeStr: String): String {
-	return formatSqliteDateTime(dateTimeStr, "MMM dd, yyyy 'at' HH:mm")
-}
+/** Format an [Instant] for display in the dashboard's sync log. */
+fun formatSyncDate(instant: kotlin.time.Instant): String =
+	formatInstant(instant, "MMM dd, yyyy 'at' HH:mm")
 
+/** Format a Patreon ISO datetime string for display. Patreon hands us strings, not Instants. */
 fun formatPatreonDate(dateTimeStr: String): String {
-	return formatIsoDateTime(dateTimeStr, "MMM dd, yyyy 'at' HH:mm")
-}
-
-fun formatSqliteDateTime(dateTimeStr: String, pattern: String): String {
 	if (dateTimeStr.isEmpty()) return ""
-
 	return try {
-		val kotlinxInstant = sqliteDateTimeStringToInstant(dateTimeStr)
-		val instant = Instant.ofEpochSecond(kotlinxInstant.epochSeconds)
-		formatInstant(instant, pattern)
-	} catch (e: Exception) {
+		formatInstant(kotlin.time.Instant.parse(dateTimeStr), "MMM dd, yyyy 'at' HH:mm")
+	} catch (_: Exception) {
 		dateTimeStr
 	}
 }
 
-fun formatIsoDateTime(dateTimeStr: String, pattern: String): String {
-	if (dateTimeStr.isEmpty()) return ""
-
-	return try {
-		val instant = Instant.parse(dateTimeStr)
-		formatInstant(instant, pattern)
-	} catch (e: Exception) {
-		dateTimeStr
-	}
-}
-
-private fun formatInstant(instant: Instant, pattern: String): String {
+/** Format a kotlin.time.Instant with the given pattern in the system zone. */
+fun formatInstant(instant: kotlin.time.Instant, pattern: String): String {
 	val formatter = DateTimeFormatter.ofPattern(pattern)
-	val zoned = instant.atZone(ZoneId.systemDefault())
+	val zoned = instant.toJavaInstant().atZone(ZoneId.systemDefault())
 	return formatter.format(zoned)
 }

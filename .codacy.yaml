@@ -10,6 +10,16 @@ exclude_paths:
     - 'android/src/debug/kotlin/com/darkrockstudios/apps/hammer/android/preview/**'
     - '**/*.Preview.kt'
 
+    # Test code — Arrange/Act/Assert produces long methods by design, fixture
+    # passwords and repeated string literals are intentional, and complexity
+    # metrics don't carry the same meaning as in production code.
+    - '**/src/test/**'
+    - '**/src/commonTest/**'
+    - '**/src/jvmTest/**'
+    - '**/src/desktopTest/**'
+    - '**/src/androidTest/**'
+    - '**/src/iosTest/**'
+
     # SQL test fixtures — historical schema snapshots and seed data, not authored
     # SQL. T-SQL linter rules (set-nocount, schema-qualify, etc.) don't apply.
     - 'server/src/test/resources/**/*.sql'

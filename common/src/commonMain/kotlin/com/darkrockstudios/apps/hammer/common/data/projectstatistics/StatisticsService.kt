@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesReposito
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
@@ -26,6 +27,7 @@ import org.koin.core.scope.ScopeCallback
 import kotlin.coroutines.CoroutineContext
 import kotlin.math.sqrt
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 /**
  * Service responsible for calculating project statistics.
@@ -35,6 +37,7 @@ class StatisticsService(
 	projectDef: ProjectDef,
 	private val statisticsRepository: StatisticsRepository,
 	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneMetadataDatasource: SceneMetadataDatasource,
 	private val encyclopediaRepository: EncyclopediaRepository,
 	private val notesRepository: NotesRepository,
 	private val timeLineRepository: TimeLineRepository,
@@ -101,6 +104,9 @@ class StatisticsService(
 			var longestSceneId: Int? = null
 			var longestSceneName: String? = null
 			var longestSceneWords = 0
+			var lastEditedSceneId: Int? = null
+			var lastEditedSceneName: String? = null
+			var lastEditedAt: Instant? = null
 			val wordsByScene = mutableMapOf<Int, Int>()
 
 			tree.forEach { node ->
@@ -114,6 +120,13 @@ class StatisticsService(
 						longestSceneId = node.value.id
 						longestSceneName = node.value.name
 					}
+					val edited = sceneMetadataDatasource.loadMetadata(node.value.id)?.lastEdited
+					val currentMax = lastEditedAt
+					if (edited != null && (currentMax == null || edited > currentMax)) {
+						lastEditedAt = edited
+						lastEditedSceneId = node.value.id
+						lastEditedSceneName = node.value.name
+					}
 				}
 			}
 
@@ -124,16 +137,15 @@ class StatisticsService(
 
 			yield()
 
-			val wordsByChapter = mutableMapOf<String, Int>()
+			val wordsByChapter = mutableMapOf<Int, Int>()
 			tree.children.forEach { node ->
-				val chapterName = node.value.name
 				var wordsInChapter = 0
 				node.forEach { child ->
 					if (child.value.type == SceneItem.Type.Scene) {
 						wordsInChapter += wordsByScene[child.value.id] ?: 0
 					}
 				}
-				wordsByChapter[chapterName] = wordsInChapter
+				wordsByChapter[node.value.id] = wordsInChapter
 			}
 
 			yield()
@@ -201,6 +213,9 @@ class StatisticsService(
 				longestSceneId = longestSceneId,
 				longestSceneName = longestSceneName,
 				longestSceneWords = longestSceneWords,
+				lastEditedSceneId = lastEditedSceneId,
+				lastEditedSceneName = lastEditedSceneName,
+				lastEditedAt = lastEditedAt,
 				shortestSceneWords = shortestSceneWords,
 				medianSceneWords = medianSceneWords,
 				sceneWordsStdDev = sceneWordsStdDev,
@@ -257,9 +272,5 @@ class StatisticsService(
  * Extension function to count words in a scene.
  */
 fun SceneEditorRepository.countWordsInScene(sceneItem: SceneItem): Int {
-	val markdown = loadSceneMarkdownRaw(sceneItem)
-	val count = wordRegex.findAll(markdown.trim()).count()
-	return count
+	return countWords(loadSceneMarkdownRaw(sceneItem))
 }
-
-private val wordRegex = Regex("""(\s+|(\r\n|\r|\n))""")

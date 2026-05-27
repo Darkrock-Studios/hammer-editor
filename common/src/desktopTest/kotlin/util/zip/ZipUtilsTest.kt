@@ -2,6 +2,7 @@ package util.zip
 
 import com.darkrockstudios.apps.hammer.common.util.zip.unzipToDirectory
 import com.darkrockstudios.apps.hammer.common.util.zip.zipDirectory
+import kotlinx.coroutines.runBlocking
 import okio.FileSystem
 import okio.Path
 import org.junit.jupiter.api.AfterEach
@@ -27,74 +28,25 @@ class ZipUtilsTest {
 	}
 
 	@Test
-	fun `zipDirectory creates a zip file`() {
-		// Arrange
+	fun `zipDirectory creates a zip file`() = runBlocking {
 		val sourceDir = tempDir / "test-project"
 		val zipFile = tempDir / "test-project.zip"
 
 		fileSystem.createDirectories(sourceDir)
+		fileSystem.write(sourceDir / "file1.txt") { writeUtf8("Hello World") }
+		fileSystem.write(sourceDir / "file2.txt") { writeUtf8("Test content") }
 
-		// Create some test files
-		fileSystem.write(sourceDir / "file1.txt") {
-			writeUtf8("Hello World")
-		}
-		fileSystem.write(sourceDir / "file2.txt") {
-			writeUtf8("Test content")
-		}
-
-		// Act
 		zipDirectory(
 			fileSystem = fileSystem,
 			sourceDirectory = sourceDir,
 			destinationZip = zipFile,
-			skipHiddenFiles = true
 		)
 
-		// Assert
 		assertTrue(fileSystem.exists(zipFile), "Zip file should be created")
 	}
 
 	@Test
-	fun `zipDirectory skips hidden files when skipHiddenFiles is true`() {
-		// Arrange
-		val sourceDir = tempDir / "test-project"
-		val zipFile = tempDir / "test-project.zip"
-		val extractDir = tempDir / "extracted"
-
-		fileSystem.createDirectories(sourceDir)
-		fileSystem.createDirectories(extractDir)
-
-		// Create regular and hidden files
-		fileSystem.write(sourceDir / "visible.txt") {
-			writeUtf8("Visible content")
-		}
-		fileSystem.write(sourceDir / ".hidden") {
-			writeUtf8("Hidden content")
-		}
-
-		// Act
-		zipDirectory(
-			fileSystem = fileSystem,
-			sourceDirectory = sourceDir,
-			destinationZip = zipFile,
-			skipHiddenFiles = true
-		)
-
-		// Extract and verify
-		unzipToDirectory(
-			fileSystem = fileSystem,
-			zipPath = zipFile,
-			destinationDirectory = extractDir
-		)
-
-		// Assert - hidden file should not be in the zip
-		assertTrue(fileSystem.exists(zipFile), "Zip file should be created")
-		assertTrue(!fileSystem.exists(extractDir / sourceDir.name / ".hidden"), "Hidden file should not be extracted")
-	}
-
-	@Test
-	fun `zipDirectory includes hidden files when skipHiddenFiles is false`() {
-		// Arrange
+	fun `zipDirectory includes dotfiles`() = runBlocking {
 		val sourceDir = tempDir / "test-project"
 		val zipFile = tempDir / "test-project.zip"
 		val extractDir = tempDir / "extracted-all"
@@ -102,88 +54,65 @@ class ZipUtilsTest {
 		fileSystem.createDirectories(sourceDir)
 		fileSystem.createDirectories(extractDir)
 
-		// Create regular and hidden files
-		fileSystem.write(sourceDir / "visible.txt") {
-			writeUtf8("Visible content")
-		}
-		fileSystem.write(sourceDir / ".hidden") {
-			writeUtf8("Hidden content")
-		}
+		fileSystem.write(sourceDir / "visible.txt") { writeUtf8("Visible content") }
+		fileSystem.write(sourceDir / ".hidden") { writeUtf8("Hidden content") }
 
-		// Act
 		zipDirectory(
 			fileSystem = fileSystem,
 			sourceDirectory = sourceDir,
 			destinationZip = zipFile,
-			skipHiddenFiles = false
 		)
 
-		// Extract and verify
 		unzipToDirectory(
 			fileSystem = fileSystem,
 			zipPath = zipFile,
-			destinationDirectory = extractDir
+			destinationDirectory = extractDir,
 		)
 
-		// Assert
 		assertTrue(fileSystem.exists(zipFile), "Zip file should be created")
-		assertTrue(fileSystem.exists(extractDir / sourceDir.name / ".hidden"), "Hidden file should be extracted")
+		assertTrue(
+			fileSystem.exists(extractDir / sourceDir.name / ".hidden"),
+			"Hidden file should be extracted"
+		)
 	}
 
 	@Test
-	fun `zipDirectory handles nested directories`() {
-		// Arrange
+	fun `zipDirectory handles nested directories`() = runBlocking {
 		val sourceDir = tempDir / "test-project-nested"
 		val zipFile = tempDir / "test-project-nested.zip"
 
 		fileSystem.createDirectories(sourceDir / "subdir1" / "subdir2")
+		fileSystem.write(sourceDir / "root.txt") { writeUtf8("Root file") }
+		fileSystem.write(sourceDir / "subdir1" / "level1.txt") { writeUtf8("Level 1 file") }
+		fileSystem.write(sourceDir / "subdir1" / "subdir2" / "level2.txt") { writeUtf8("Level 2 file") }
 
-		// Create files in nested structure
-		fileSystem.write(sourceDir / "root.txt") {
-			writeUtf8("Root file")
-		}
-		fileSystem.write(sourceDir / "subdir1" / "level1.txt") {
-			writeUtf8("Level 1 file")
-		}
-		fileSystem.write(sourceDir / "subdir1" / "subdir2" / "level2.txt") {
-			writeUtf8("Level 2 file")
-		}
-
-		// Act
 		zipDirectory(
 			fileSystem = fileSystem,
 			sourceDirectory = sourceDir,
 			destinationZip = zipFile,
-			skipHiddenFiles = true
 		)
 
-		// Assert
 		assertTrue(fileSystem.exists(zipFile), "Zip file should be created")
 	}
 
 	@Test
-	fun `zipDirectory handles empty directory`() {
-		// Arrange
+	fun `zipDirectory handles empty directory`() = runBlocking {
 		val sourceDir = tempDir / "empty-project"
 		val zipFile = tempDir / "empty-project.zip"
 
 		fileSystem.createDirectories(sourceDir)
 
-		// Act
 		zipDirectory(
 			fileSystem = fileSystem,
 			sourceDirectory = sourceDir,
 			destinationZip = zipFile,
-			skipHiddenFiles = true
 		)
 
-		// Assert
 		assertTrue(fileSystem.exists(zipFile), "Zip file should be created even for empty directory")
 	}
 
 	@Test
-	fun `unzipToDirectory extracts files correctly`() {
-		// Arrange
+	fun `unzipToDirectory extracts files correctly`() = runBlocking {
 		val sourceDir = tempDir / "test-project-unzip"
 		val zipFile = tempDir / "test-project-unzip.zip"
 		val extractDir = tempDir / "extracted-verify"
@@ -192,33 +121,29 @@ class ZipUtilsTest {
 		fileSystem.createDirectories(extractDir)
 
 		val testContent = "Hello World"
-		fileSystem.write(sourceDir / "test.txt") {
-			writeUtf8(testContent)
-		}
+		fileSystem.write(sourceDir / "test.txt") { writeUtf8(testContent) }
 
-		// Create zip
 		zipDirectory(
 			fileSystem = fileSystem,
 			sourceDirectory = sourceDir,
 			destinationZip = zipFile,
-			skipHiddenFiles = false
 		)
 
-		// Act
 		unzipToDirectory(
 			fileSystem = fileSystem,
 			zipPath = zipFile,
-			destinationDirectory = extractDir
+			destinationDirectory = extractDir,
 		)
 
-		// Assert
 		assertTrue(fileSystem.exists(extractDir), "Extract directory should exist")
-		assertTrue(fileSystem.exists(extractDir / sourceDir.name / "test.txt"), "Extracted file should exist")
+		assertTrue(
+			fileSystem.exists(extractDir / sourceDir.name / "test.txt"),
+			"Extracted file should exist"
+		)
 	}
 
 	@Test
-	fun `zip and unzip round trip preserves file content`() {
-		// Arrange
+	fun `zip and unzip round trip preserves file content`() = runBlocking {
 		val sourceDir = tempDir / "round-trip"
 		val zipFile = tempDir / "round-trip.zip"
 		val extractDir = tempDir / "round-trip-extracted"
@@ -229,31 +154,23 @@ class ZipUtilsTest {
 		val testContent1 = "File 1 content"
 		val testContent2 = "File 2 content with special chars: äöü"
 
-		fileSystem.write(sourceDir / "file1.txt") {
-			writeUtf8(testContent1)
-		}
-		fileSystem.write(sourceDir / "file2.txt") {
-			writeUtf8(testContent2)
-		}
+		fileSystem.write(sourceDir / "file1.txt") { writeUtf8(testContent1) }
+		fileSystem.write(sourceDir / "file2.txt") { writeUtf8(testContent2) }
 
-		// Act - zip then unzip
 		zipDirectory(
 			fileSystem = fileSystem,
 			sourceDirectory = sourceDir,
 			destinationZip = zipFile,
-			skipHiddenFiles = false
 		)
 
 		unzipToDirectory(
 			fileSystem = fileSystem,
 			zipPath = zipFile,
-			destinationDirectory = extractDir
+			destinationDirectory = extractDir,
 		)
 
-		// Assert - the zip file should exist
 		assertTrue(fileSystem.exists(zipFile), "Zip file should exist after round trip")
 		assertTrue(fileSystem.read(extractDir / sourceDir.name / "file1.txt") { readUtf8() } == testContent1)
 		assertTrue(fileSystem.read(extractDir / sourceDir.name / "file2.txt") { readUtf8() } == testContent2)
 	}
-
 }

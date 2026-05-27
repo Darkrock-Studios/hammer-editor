@@ -3,8 +3,6 @@ package com.darkrockstudios.apps.hammer.android
 import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import androidx.compose.foundation.layout.*
-import androidx.compose.ui.Modifier
 
 fun isInternetConnected(context: Context): Boolean {
 	val connectivityManager =
@@ -16,31 +14,4 @@ fun isInternetConnected(context: Context): Boolean {
 			?: false
 	}
 	return false
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-fun Modifier.rootElement(
-	scaffoldPadding: PaddingValues,
-): Modifier {
-	return this.then(
-		Modifier
-			.fillMaxSize()
-			.padding(scaffoldPadding)
-			.consumeWindowInsets(scaffoldPadding)
-			.systemBarsPadding()
-	)
-}
-
-fun Modifier.fab(): Modifier {
-	return this.then(
-		Modifier
-			.systemBarsPadding()
-			.navigationBarsPadding()
-	)
-}
-
-fun Modifier.defaultScaffold(): Modifier {
-	return this.then(
-		imePadding().fillMaxSize()
-	)
 }

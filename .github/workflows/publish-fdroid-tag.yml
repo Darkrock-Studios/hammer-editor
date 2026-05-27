@@ -1,0 +1,52 @@
+name: Publish — F-Droid Tag
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to derive the F-Droid tag from (e.g. v1.2.3)"
+        type: string
+        required: true
+  workflow_call:
+    inputs:
+      release_tag:
+        type: string
+        required: true
+
+jobs:
+  publish-fdroid-tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Create F-Droid tag
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          # Partial / single-store releases carry a +platform suffix
+          # (e.g. v1.2.3+fdroid+google-play). Strip the leading `v` and
+          # the suffix before validating so we end up with bare semver.
+          VERSION=${RELEASE_TAG#v}
+          VERSION=${VERSION%%+*}
+
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid release_tag: '$RELEASE_TAG' (expected vMAJOR.MINOR.PATCH or vMAJOR.MINOR.PATCH+platform...)" >&2
+            exit 1
+          fi
+
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+          VERSION_CODE=$(( (PATCH + 1) * 10000 + MINOR * 1000000 + MAJOR * 100000000 ))
+          FDROID_TAG="fdroid-${VERSION_CODE}"
+
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git config --global user.name "github-actions[bot]"
+          git fetch origin release
+          git checkout release
+          git tag -a "$FDROID_TAG" -m "FDroid release tag for $VERSION"
+          git push origin tag "$FDROID_TAG"

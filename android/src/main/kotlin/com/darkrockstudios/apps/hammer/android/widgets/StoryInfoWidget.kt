@@ -3,46 +3,16 @@ package com.darkrockstudios.apps.hammer.android.widgets
 import android.content.Context
 import android.content.Intent
 import android.content.Intent.FLAG_ACTIVITY_NEW_TASK
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.glance.GlanceId
-import androidx.glance.GlanceModifier
-import androidx.glance.LocalContext
-import androidx.glance.LocalSize
-import androidx.glance.action.Action
-import androidx.glance.action.ActionParameters
-import androidx.glance.action.actionParametersOf
-import androidx.glance.action.actionStartActivity
-import androidx.glance.action.clickable
-import androidx.glance.appwidget.GlanceAppWidget
-import androidx.glance.appwidget.GlanceAppWidgetManager
-import androidx.glance.appwidget.GlanceAppWidgetReceiver
-import androidx.glance.appwidget.PreviewSizeMode
-import androidx.glance.appwidget.SizeMode
+import androidx.glance.*
+import androidx.glance.action.*
+import androidx.glance.appwidget.*
 import androidx.glance.appwidget.action.ActionCallback
 import androidx.glance.appwidget.action.actionRunCallback
-import androidx.glance.appwidget.appWidgetBackground
-import androidx.glance.appwidget.cornerRadius
-import androidx.glance.appwidget.provideContent
-import androidx.glance.background
-import androidx.glance.layout.Alignment
-import androidx.glance.layout.Box
-import androidx.glance.layout.Column
-import androidx.glance.layout.Row
-import androidx.glance.layout.Spacer
-import androidx.glance.layout.fillMaxHeight
-import androidx.glance.layout.fillMaxSize
-import androidx.glance.layout.fillMaxWidth
-import androidx.glance.layout.height
-import androidx.glance.layout.padding
-import androidx.glance.layout.width
+import androidx.glance.layout.*
 import androidx.glance.text.FontStyle
 import androidx.glance.text.FontWeight
 import androidx.glance.text.Text
@@ -51,10 +21,10 @@ import com.darkrockstudios.apps.hammer.android.ProjectRootActivity
 import com.darkrockstudios.apps.hammer.android.R
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.deriveWritingStats
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.parseDailyWordTotals
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -62,10 +32,10 @@ import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.toLocalDateTime
-import kotlin.time.Clock
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import org.koin.java.KoinJavaComponent.getKoin
+import kotlin.time.Clock
 
 private val SIZE_STRIP = DpSize(200.dp, 80.dp)    // 3×1 / 4×1
 private val SIZE_SMALL = DpSize(140.dp, 140.dp)   // 2×2
@@ -115,6 +85,8 @@ private val SAMPLE_STORY = StoryInfo(
 	currentStreak = 21,
 	weekWords = 5740,
 	sparkline = listOf(800, 1100, 600, 0, 920, 1080, 1240),
+	lastEditedSceneId = 42,
+	lastEditedSceneName = "The Reckoning",
 )
 
 class StoryInfoWidgetReceiver : GlanceAppWidgetReceiver() {
@@ -132,6 +104,8 @@ private data class StoryInfo(
 	val currentStreak: Int,
 	val weekWords: Int,
 	val sparkline: List<Int>,
+	val lastEditedSceneId: Int?,
+	val lastEditedSceneName: String?,
 )
 
 private suspend fun loadStoryInfo(name: String, accentHex: String?): StoryInfo? {
@@ -163,6 +137,8 @@ private suspend fun loadStoryInfo(name: String, accentHex: String?): StoryInfo? 
 		currentStreak = derived.currentStreak,
 		weekWords = last7.sum(),
 		sparkline = last7,
+		lastEditedSceneId = stats?.lastEditedSceneId,
+		lastEditedSceneName = stats?.lastEditedSceneName,
 	)
 }
 
@@ -414,29 +390,76 @@ private fun StoryInfoFullUi(
 			Spacer(modifier = GlanceModifier.defaultWeight())
 
 			if (hasActions) {
-				WidgetHairline(color = widgetColor { it.rule })
-				Row(modifier = GlanceModifier.fillMaxWidth().height(40.dp)) {
-					ActionTile(
-						label = ctx.getString(R.string.story_info_widget_action_open),
-						glyph = "↗",
-						onClick = openStoryAction(info.name),
-						modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
-					)
-					Box(
-						modifier = GlanceModifier
-							.width(1.dp)
-							.fillMaxHeight()
-							.background(widgetColor { it.ruleSoft }),
-					) {}
-					ActionTile(
-						label = ctx.getString(R.string.story_info_widget_action_note),
-						glyph = "＋",
-						onClick = addStoryNoteAction(info.name),
-						modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
-					)
+				// Glance Columns cap at 10 children; wrap the bottom block in its own
+				// Column so the outer Column counts it as one element.
+				Column(modifier = GlanceModifier.fillMaxWidth()) {
+					if (info.lastEditedSceneId != null && info.lastEditedSceneName != null) {
+						ContinueSceneRow(
+							sceneName = info.lastEditedSceneName,
+							onClick = continueSceneAction(info.name, info.lastEditedSceneId),
+						)
+					}
+					WidgetHairline(color = widgetColor { it.rule })
+					Row(modifier = GlanceModifier.fillMaxWidth().height(40.dp)) {
+						ActionTile(
+							label = ctx.getString(R.string.story_info_widget_action_open),
+							glyph = "↗",
+							onClick = openStoryAction(info.name),
+							modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
+						)
+						Box(
+							modifier = GlanceModifier
+								.width(1.dp)
+								.fillMaxHeight()
+								.background(widgetColor { it.ruleSoft }),
+						) {}
+						ActionTile(
+							label = ctx.getString(R.string.story_info_widget_action_note),
+							glyph = "＋",
+							onClick = addStoryNoteAction(info.name),
+							modifier = GlanceModifier.defaultWeight().fillMaxHeight(),
+						)
+					}
 				}
 			}
 		}
+	}
+}
+
+@Composable
+private fun ContinueSceneRow(sceneName: String, onClick: Action) {
+	val ctx = LocalContext.current
+	WidgetHairline(color = widgetColor { it.ruleSoft })
+	Row(
+		modifier = GlanceModifier
+			.fillMaxWidth()
+			.height(28.dp)
+			.clickable(onClick)
+			.padding(horizontal = 14.dp),
+		verticalAlignment = Alignment.Vertical.CenterVertically,
+	) {
+		Text(
+			text = ctx.getString(R.string.story_info_widget_continue_label),
+			style = monoMicroStyle(widgetColor { it.onSurfaceMuted }),
+		)
+		Spacer(modifier = GlanceModifier.width(8.dp))
+		Text(
+			text = sceneName,
+			maxLines = 1,
+			style = TextStyle(
+				color = widgetColor { it.onSurface },
+				fontSize = 12.sp,
+				fontWeight = FontWeight.Medium,
+			),
+		)
+		Spacer(modifier = GlanceModifier.defaultWeight())
+		Text(
+			text = "→",
+			style = TextStyle(
+				color = widgetColor { it.onSurfaceVariant },
+				fontSize = 12.sp,
+			),
+		)
 	}
 }
 
@@ -594,7 +617,9 @@ private fun StoryInfoStripUi(info: StoryInfo) {
 }
 
 private const val ACTION_KEY_STORY_PROJECT = "story_project_name"
+private const val ACTION_KEY_STORY_SCENE_ID = "story_scene_id"
 private val StoryProjectNameKey = ActionParameters.Key<String>(ACTION_KEY_STORY_PROJECT)
+private val StorySceneIdKey = ActionParameters.Key<Int>(ACTION_KEY_STORY_SCENE_ID)
 
 private fun openStoryAction(name: String): Action =
 	actionRunCallback<OpenStoryClickAction>(
@@ -604,6 +629,14 @@ private fun openStoryAction(name: String): Action =
 private fun addStoryNoteAction(name: String): Action =
 	actionRunCallback<AddStoryNoteClickAction>(
 		actionParametersOf(StoryProjectNameKey to name),
+	)
+
+private fun continueSceneAction(name: String, sceneId: Int): Action =
+	actionRunCallback<ContinueSceneClickAction>(
+		actionParametersOf(
+			StoryProjectNameKey to name,
+			StorySceneIdKey to sceneId,
+		),
 	)
 
 class OpenStoryClickAction : ActionCallback {
@@ -619,6 +652,25 @@ class OpenStoryClickAction : ActionCallback {
 		Napier.d { "Story Info widget tapped: `$name`" }
 
 		val intent = ProjectRootActivity.createIntent(context, def)
+			.setFlags(FLAG_ACTIVITY_NEW_TASK)
+		context.startActivity(intent)
+	}
+}
+
+class ContinueSceneClickAction : ActionCallback {
+	override suspend fun onAction(
+		context: Context,
+		glanceId: GlanceId,
+		parameters: ActionParameters,
+	) {
+		val name = parameters[StoryProjectNameKey].orEmpty()
+		val sceneId = parameters[StorySceneIdKey] ?: return
+		if (name.isBlank()) return
+		val def = getKoin().get<ProjectsRepository>().getProjectDefinition(name)
+
+		Napier.d { "Story Info widget continue tapped: `$name` scene $sceneId" }
+
+		val intent = ProjectRootActivity.createIntent(context, def, deepLinkSceneId = sceneId)
 			.setFlags(FLAG_ACTIVITY_NEW_TASK)
 		context.startActivity(intent)
 	}

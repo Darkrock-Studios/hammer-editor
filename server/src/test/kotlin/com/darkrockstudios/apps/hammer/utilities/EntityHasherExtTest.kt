@@ -88,8 +88,7 @@ class EntityHasherExtTest {
 				notes = "Notes with \"quotes\" and 'apostrophes'",
 				archived = true
 			),
-			// Scene with confirmed and dismissed reference sets - guards against the
-			// extension forgetting to forward these fields to hashScene.
+			// Scene with confirmed and dismissed reference sets
 			ApiProjectEntity.SceneEntity(
 				id = 7,
 				order = 0,
@@ -103,8 +102,7 @@ class EntityHasherExtTest {
 				confirmedReferences = setOf(11, 12, 13),
 				dismissedReferences = setOf(99),
 			),
-			// Scene with tags - guards against the extension forgetting to forward
-			// the tags field to hashScene.
+			// Scene with tags
 			ApiProjectEntity.SceneEntity(
 				id = 8,
 				order = 0,
@@ -116,6 +114,20 @@ class EntityHasherExtTest {
 				notes = "",
 				archived = false,
 				tags = setOf("important", "draft"),
+			),
+			// Scene with timestamps
+			ApiProjectEntity.SceneEntity(
+				id = 9,
+				order = 0,
+				path = listOf(0),
+				name = "Scene With Timestamps",
+				sceneType = ApiSceneType.Scene,
+				content = "",
+				outline = "",
+				notes = "",
+				archived = false,
+				created = Instant.fromEpochSeconds(1_700_000_000),
+				lastEdited = Instant.fromEpochSeconds(1_700_086_400),
 			),
 		)
 
@@ -137,6 +149,8 @@ class EntityHasherExtTest {
 				confirmedReferences = scene.confirmedReferences,
 				dismissedReferences = scene.dismissedReferences,
 				tags = scene.tags,
+				created = scene.created,
+				lastEdited = scene.lastEdited,
 			)
 
 			// They MUST match
@@ -223,6 +237,13 @@ class EntityHasherExtTest {
 				id = 4,
 				created = Instant.fromEpochMilliseconds(1000),
 				content = "Lorem ipsum ".repeat(100)
+			),
+			// Note with tags
+			ApiProjectEntity.NoteEntity(
+				id = 5,
+				created = Instant.fromEpochMilliseconds(2000),
+				content = "Tagged note",
+				tags = setOf("important", "draft"),
 			)
 		)
 
@@ -232,7 +253,8 @@ class EntityHasherExtTest {
 			val hashDirect = EntityHasher.hashNote(
 				id = note.id,
 				created = note.created,
-				content = note.content
+				content = note.content,
+				tags = note.tags,
 			)
 
 			assertEquals(
@@ -273,6 +295,14 @@ class EntityHasherExtTest {
 				order = -5,
 				content = "Content with unicode: éèêë and symbols: !@#$%",
 				date = "Stardate 47634.44"
+			),
+			// Event with tags
+			ApiProjectEntity.TimelineEventEntity(
+				id = 5,
+				order = 1,
+				content = "Tagged event",
+				date = null,
+				tags = setOf("battle", "turning-point"),
 			)
 		)
 
@@ -283,7 +313,8 @@ class EntityHasherExtTest {
 				id = event.id,
 				order = event.order,
 				content = event.content,
-				date = event.date
+				date = event.date,
+				tags = event.tags,
 			)
 
 			assertEquals(
@@ -360,8 +391,7 @@ class EntityHasherExtTest {
 					fileExtension = "jpeg"
 				)
 			),
-			// Entry with aliases - guards against the extension forgetting to forward
-			// the aliases field to hashEncyclopediaEntry.
+			// Entry with aliases
 			ApiProjectEntity.EncyclopediaEntryEntity(
 				id = 7,
 				name = "Robert",

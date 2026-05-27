@@ -9,7 +9,6 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -39,7 +38,10 @@ import com.darkrockstudios.apps.hammer.nav_rail_expand
 import org.jetbrains.compose.resources.stringResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -105,16 +107,23 @@ fun <T> HdNavRail(
 		targetValue = ItemHeight * selectedIndex + IndicatorInset,
 		animationSpec = AnimSpec,
 	)
+	val borderColor = MaterialTheme.colorScheme.outlineVariant
 
 	Column(
 		modifier = modifier
 			.fillMaxHeight()
 			.width(width)
 			.background(MaterialTheme.colorScheme.surface)
-			.border(
-				width = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-			)
+			.drawBehind {
+				val strokeWidth = Dp.Hairline.toPx().coerceAtLeast(1f)
+				val x = if (layoutDirection == LayoutDirection.Ltr) size.width else 0f
+				drawLine(
+					color = borderColor,
+					start = Offset(x, 0f),
+					end = Offset(x, size.height),
+					strokeWidth = strokeWidth,
+				)
+			}
 			.clipToBounds()
 			.padding(top = 8.dp),
 	) {

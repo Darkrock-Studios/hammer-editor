@@ -31,18 +31,14 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
+import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.*
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortMenu
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortOption
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
-import kotlin.time.Instant
 import org.jetbrains.compose.resources.StringResource
+import kotlin.time.Instant
 
 private val WideContentPadding: Dp = Ui.Padding.XXL
 private val NarrowContentPadding: Dp = Ui.Padding.XL
@@ -215,10 +211,8 @@ private fun Masthead(
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(
-				horizontal = horizontalPadding,
-				vertical = Ui.Padding.L,
-			),
+			.height(Ui.TOP_BAR_HEIGHT)
+			.padding(horizontal = horizontalPadding),
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {

@@ -1,12 +1,14 @@
 CREATE TABLE writing_activity (
-	user_id INTEGER NOT NULL,
-	project_id INTEGER NOT NULL,
-	device_id TEXT NOT NULL CHECK (device_id != ''),
-	content TEXT NOT NULL,
-	FOREIGN KEY(user_id) REFERENCES account(id),
-	FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
-	UNIQUE(user_id, project_id, device_id)
+    user_id BIGINT NOT NULL,
+    project_id BIGINT NOT NULL,
+    device_id TEXT NOT NULL CHECK (device_id != ''),
+    content TEXT NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+    UNIQUE(user_id, project_id, device_id)
 );
+
+CREATE INDEX writing_activity_user_project_idx ON writing_activity (user_id, project_id);
 
 getAllForProject:
 SELECT device_id, content
@@ -14,5 +16,7 @@ FROM writing_activity
 WHERE user_id = :userId AND project_id = :projectId;
 
 upsertDeviceLog:
-INSERT OR REPLACE INTO writing_activity(user_id, project_id, device_id, content)
-VALUES (:userId, :projectId, :deviceId, :content);
+INSERT INTO writing_activity(user_id, project_id, device_id, content)
+VALUES (:userId, :projectId, :deviceId, :content)
+ON CONFLICT (user_id, project_id, device_id) DO UPDATE SET
+    content = EXCLUDED.content;

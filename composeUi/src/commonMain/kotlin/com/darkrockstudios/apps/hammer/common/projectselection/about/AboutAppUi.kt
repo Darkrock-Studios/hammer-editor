@@ -103,7 +103,7 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 						)
 					}
 
-					VersionCard(state)
+					VersionCard(state, onViewReleaseDetails = component::viewReleaseDetails)
 
 					HdHairlineSection(
 						section = 4,
@@ -138,7 +138,8 @@ private fun Breadcrumb(isCompact: Boolean) {
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = horizontal, vertical = 14.dp),
+			.height(Ui.TOP_BAR_HEIGHT)
+			.padding(horizontal = horizontal),
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(12.dp),
 	) {
@@ -230,7 +231,7 @@ private fun CommunityRowDivider() {
 }
 
 @Composable
-private fun VersionCard(state: AboutApp.State) {
+private fun VersionCard(state: AboutApp.State, onViewReleaseDetails: () -> Unit) {
 	val statusGreeble = if (state.newVersionAvailable) "UPDATE AVAILABLE" else "UP TO DATE"
 	val latestGreeble = state.latestVersion?.let { "LATEST $it" }
 	val latest = state.latestVersion
@@ -244,6 +245,11 @@ private fun VersionCard(state: AboutApp.State) {
 	} else {
 		MaterialTheme.colorScheme.onSurface
 	}
+	val buttonLabel = if (state.newVersionAvailable) {
+		Res.string.about_version_view_update_button.get()
+	} else {
+		Res.string.about_version_view_notes_button.get()
+	}
 
 	HdCatalogueCard(
 		topStart = "§ III · VERSION",
@@ -251,11 +257,20 @@ private fun VersionCard(state: AboutApp.State) {
 		bottomStart = state.currentVersion,
 		bottomEnd = latestGreeble,
 	) {
-		Text(
-			text = message,
-			style = MaterialTheme.typography.bodyMedium,
-			color = messageColor,
-		)
+		Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+			Text(
+				text = message,
+				style = MaterialTheme.typography.bodyMedium,
+				color = messageColor,
+			)
+			if (latest != null) {
+				HdHairlineButton(
+					label = buttonLabel,
+					onClick = onViewReleaseDetails,
+					emphasised = state.newVersionAvailable,
+				)
+			}
+		}
 	}
 }
 

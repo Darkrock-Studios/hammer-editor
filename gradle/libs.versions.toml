@@ -4,13 +4,14 @@ app = "3.0.3"
 data_version = "1.0"
 
 # Kotlin
+flatlaf = "3.7.1"
 jvm = "21"
 kache = "2.1.1"
-kompressCore = "1.4.3"
+kmpZip = "0.11.3"
 kotlin = "2.3.21"
 
 # Android
-android_gradle_plugin = "8.13.2"
+android_gradle_plugin = "9.0.1"
 android_sdk_compile = "36"
 android_sdk_target = "36"
 android_sdk_min = "28"
@@ -28,10 +29,12 @@ coreKtx = "1.18.0"
 cryptohash = "1.0.2"
 glance = "1.2.0-rc01"
 androix-junit = "1.3.0"
-junit = "6.0.3"
+junit = "6.1.0"
 kotlinx_cli = "0.3.6"
 kotlinx_atomicfu = "0.32.1"
 markdown = "0.7.3"
+epub4kmp = "0.2.0"
+kotlinx_html = "0.12.0"
 material = "1.14.0"
 orchestrator = "1.6.1"
 cryptography = "0.6.0"
@@ -41,7 +44,11 @@ serialization = "1.11.0"
 coroutines = "1.11.0"
 datetime = "0.8.0"
 napier = "2.7.1"
-jetbrains_compose = "1.11.0"
+# Pinned to 1.10.3 until skydoves/colorpicker-compose ships a 1.11-compatible release.
+# CMP 1.11 broke ImageShader / LinearGradientShader ABI, crashing the color picker dialog.
+# See: https://github.com/skydoves/colorpicker-compose/issues/171
+# compose-texteditor is also pinned to 2.0.2 to keep the transitive CMP at 1.10.3.
+jetbrains_compose = "1.10.3"
 compose_compiler_report_generator = "1.5.0"
 jetbrains_kover = "0.9.8"
 
@@ -75,6 +82,11 @@ argon2_jvm = "2.12"
 owasp_html_sanitizer = "20260313.1"
 
 sqldelight = "2.3.2"
+postgresql_jdbc = "42.7.11"
+hikaricp = "7.0.2"
+embedded_postgres = "2.2.2"
+embedded_postgres_binaries = "17.9.0"
+testcontainers = "1.21.4"
 buildconfig = "6.0.9"
 fluidsonic_locale = "0.13.0"
 resources = "1.1.0"
@@ -82,14 +94,12 @@ aboutlibraries = "14.2.0"
 logback_classic = "1.4.14"
 multiplatform_settings = "1.3.0"
 korge-core = "6.0.0"
-kzip = "1.1.1"
 bouncycastle = "1.84"
 kotlinx-io-okio = "0.9.0"
 
-compose-texteditor = "2.0.3"
-platform-spellcheckerkt = "1.1.0"
-flatpak-gradle-generator = "1.7.0"
-nucleus = "1.15.4"
+compose-texteditor = "2.0.4"
+platform-spellcheckerkt = "1.2.2"
+nucleus = "1.15.6"
 colorpicker-compose = "1.1.4"
 material-kolor = "4.1.1"
 
@@ -102,6 +112,7 @@ cache4k = { module = "io.github.reactivecircus.cache4k:cache4k", version.ref = "
 core = { module = "androidx.test:core", version.ref = "core" }
 core-ktx = { module = "androidx.test:core-ktx", version.ref = "core" }
 cryptohash = { module = "com.appmattus.crypto:cryptohash", version.ref = "cryptohash" }
+flatlaf = { module = "com.formdev:flatlaf", version.ref = "flatlaf" }
 glance = { module = "androidx.glance:glance", version.ref = "glance" }
 glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glance" }
 glance-material3 = { module = "androidx.glance:glance-material3", version.ref = "glance" }
@@ -109,6 +120,18 @@ glance-material3 = { module = "androidx.glance:glance-material3", version.ref = 
 cryptography-core = { module = "dev.whyoleg.cryptography:cryptography-core", version.ref = "cryptography" }
 cryptography-provider-jdk = { module = "dev.whyoleg.cryptography:cryptography-provider-jdk", version.ref = "cryptography" }
 
+jetbrains_compose_runtime = { module = "org.jetbrains.compose.runtime:runtime", version.ref = "jetbrains_compose" }
+jetbrains_compose_foundation = { module = "org.jetbrains.compose.foundation:foundation", version.ref = "jetbrains_compose" }
+jetbrains_compose_material = { module = "org.jetbrains.compose.material:material", version.ref = "jetbrains_compose" }
+jetbrains_compose_material3 = { module = "org.jetbrains.compose.material3:material3", version = "1.9.0" }
+jetbrains_compose_material_icons_extended = { module = "org.jetbrains.compose.material:material-icons-extended", version = "1.7.3" }
+jetbrains_compose_animation = { module = "org.jetbrains.compose.animation:animation", version.ref = "jetbrains_compose" }
+jetbrains_compose_animation_graphics = { module = "org.jetbrains.compose.animation:animation-graphics", version.ref = "jetbrains_compose" }
+jetbrains_compose_ui_tooling = { module = "org.jetbrains.compose.ui:ui-tooling", version.ref = "jetbrains_compose" }
+jetbrains_compose_ui_tooling_preview = { module = "org.jetbrains.compose.ui:ui-tooling-preview", version.ref = "jetbrains_compose" }
+jetbrains_compose_ui_test_junit4 = { module = "org.jetbrains.compose.ui:ui-test-junit4", version.ref = "jetbrains_compose" }
+jetbrains_compose_components_resources = { module = "org.jetbrains.compose.components:components-resources", version.ref = "jetbrains_compose" }
+jetbrains_compose_components_ui_tooling_preview = { module = "org.jetbrains.compose.components:components-ui-tooling-preview", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_util = { module = "org.jetbrains.compose.ui:ui-util", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_text = { module = "org.jetbrains.compose.ui:ui-text", version.ref = "jetbrains_compose" }
 jetbrains_compose_ui_backhandler = { module = "org.jetbrains.compose.ui:ui-backhandler", version.ref = "jetbrains_compose" }
@@ -136,7 +159,8 @@ junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher
 kache = { module = "com.mayakapps.kache:kache", version.ref = "kache" }
 koalaplot-core = { module = "io.github.koalaplot:koalaplot-core", version.ref = "koalaplot-core" }
 
-kompress-core = { module = "dev.karmakrafts.kompress:kompress-core", version.ref = "kompressCore" }
+kmp-zip = { module = "no.synth:kmp-zip", version.ref = "kmpZip" }
+kmp-zip-okio = { module = "no.synth:kmp-zip-okio", version.ref = "kmpZip" }
 kotlin_reflect = { group = "org.jetbrains.kotlin", name = "kotlin-reflect", version.ref = "kotlin" }
 kotlin_test_junit = { group = "org.jetbrains.kotlin", name = "kotlin-test-junit", version.ref = "kotlin" }
 
@@ -146,6 +170,8 @@ kotlinx_atomicfu = { group = "org.jetbrains.kotlinx", name = "atomicfu", version
 kotlinx_atomicfu_plugin = { group = "org.jetbrains.kotlinx", name = "atomicfu-gradle-plugin", version.ref = "kotlinx_atomicfu" }
 
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
+epub4kmp_core = { module = "com.darkrockstudios:epub4kmp-core", version.ref = "epub4kmp" }
+kotlinx_html = { module = "org.jetbrains.kotlinx:kotlinx-html", version.ref = "kotlinx_html" }
 multiplatform_window_size = { group = "dev.chrisbanes.material3", name = "material3-window-size-class-multiplatform", version.ref = "multiplatform_window_size" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
 filekit_dialogs_compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
@@ -241,7 +267,23 @@ argon2_jvm = { group = "de.mkammerer", name = "argon2-jvm", version.ref = "argon
 owasp-html-sanitizer = { group = "com.googlecode.owasp-java-html-sanitizer", name = "owasp-java-html-sanitizer", version.ref = "owasp_html_sanitizer" }
 
 sqldelight_driver = { group = "app.cash.sqldelight", name = "sqlite-driver", version.ref = "sqldelight" }
+sqldelight_jdbc_driver = { group = "app.cash.sqldelight", name = "jdbc-driver", version.ref = "sqldelight" }
 sqldelight_adapters = { group = "app.cash.sqldelight", name = "primitive-adapters", version.ref = "sqldelight" }
+sqldelight_postgresql_dialect = { group = "app.cash.sqldelight", name = "postgresql-dialect", version.ref = "sqldelight" }
+
+postgresql_jdbc = { group = "org.postgresql", name = "postgresql", version.ref = "postgresql_jdbc" }
+hikaricp = { group = "com.zaxxer", name = "HikariCP", version.ref = "hikaricp" }
+embedded_postgres = { group = "io.zonky.test", name = "embedded-postgres", version.ref = "embedded_postgres" }
+embedded_postgres_binaries_bom = { group = "io.zonky.test.postgres", name = "embedded-postgres-binaries-bom", version.ref = "embedded_postgres_binaries" }
+embedded_postgres_binaries_darwin_amd64 = { group = "io.zonky.test.postgres", name = "embedded-postgres-binaries-darwin-amd64" }
+embedded_postgres_binaries_darwin_arm64v8 = { group = "io.zonky.test.postgres", name = "embedded-postgres-binaries-darwin-arm64v8" }
+embedded_postgres_binaries_linux_amd64 = { group = "io.zonky.test.postgres", name = "embedded-postgres-binaries-linux-amd64" }
+embedded_postgres_binaries_linux_arm64v8 = { group = "io.zonky.test.postgres", name = "embedded-postgres-binaries-linux-arm64v8" }
+embedded_postgres_binaries_windows_amd64 = { group = "io.zonky.test.postgres", name = "embedded-postgres-binaries-windows-amd64" }
+
+testcontainers_bom = { group = "org.testcontainers", name = "testcontainers-bom", version.ref = "testcontainers" }
+testcontainers_postgresql = { group = "org.testcontainers", name = "postgresql" }
+testcontainers_junit_jupiter = { group = "org.testcontainers", name = "junit-jupiter" }
 
 fluidsonic_locale = { group = "io.fluidsonic.locale", name = "fluid-locale", version.ref = "fluidsonic_locale" }
 resources = { group = "io.herrera.kevin", name = "resource", version.ref = "resources" }
@@ -253,7 +295,6 @@ jetbrains_kover = { group = "org.jetbrains.kotlinx", name = "kover-gradle-plugin
 
 multiplatform_settings = { group = "com.russhwolf", name = "multiplatform-settings-no-arg", version.ref = "multiplatform_settings" }
 korge-core = { group = "com.soywiz.korge", name = "korge-core", version.ref = "korge-core" }
-kzip = { group = "de.jonasbroeckmann.kzip", name = "kzip", version.ref = "kzip" }
 kotlinx-io-okio = { group = "org.jetbrains.kotlinx", name = "kotlinx-io-okio", version.ref = "kotlinx-io-okio" }
 
 moko-permissions = { group = "dev.icerock.moko", name = "permissions", version.ref = "moko_permissions" }
@@ -270,6 +311,7 @@ bouncycastle-bcpkix = { group = "org.bouncycastle", name = "bcpkix-jdk18on", ver
 
 nucleus_darkmode_detector = { module = "io.github.kdroidfilter:nucleus.darkmode-detector", version.ref = "nucleus" }
 nucleus_decorated_window_jbr = { module = "io.github.kdroidfilter:nucleus.decorated-window-jbr", version.ref = "nucleus" }
+nucleus_decorated_window_material3 = { module = "io.github.kdroidfilter:nucleus.decorated-window-material3", version.ref = "nucleus" }
 nucleus_launcher_windows = { module = "io.github.kdroidfilter:nucleus.launcher-windows", version.ref = "nucleus" }
 nucleus_launcher_linux = { module = "io.github.kdroidfilter:nucleus.launcher-linux", version.ref = "nucleus" }
 nucleus_launcher_macos = { module = "io.github.kdroidfilter:nucleus.launcher-macos", version.ref = "nucleus" }
@@ -294,10 +336,16 @@ sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildconfig" }
 aboutlibraries_plugin = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutlibraries" }
 aboutlibraries_plugin_android = { id = "com.mikepenz.aboutlibraries.plugin.android", version.ref = "aboutlibraries" }
-flatpak_gradle_generator = { id = "io.github.jwharm.flatpak-gradle-generator", version.ref = "flatpak-gradle-generator" }
 
 [bundles]
 koin_server = ["koin_core", "koin_core_coroutines", "koin_sl4j", "koin_ktor"]
+embedded_postgres_binaries = [
+	"embedded_postgres_binaries_darwin_amd64",
+	"embedded_postgres_binaries_darwin_arm64v8",
+	"embedded_postgres_binaries_linux_amd64",
+	"embedded_postgres_binaries_linux_arm64v8",
+	"embedded_postgres_binaries_windows_amd64",
+]
 ktor_client = [
 	"ktor_client_core",
 	"ktor_client_auth",

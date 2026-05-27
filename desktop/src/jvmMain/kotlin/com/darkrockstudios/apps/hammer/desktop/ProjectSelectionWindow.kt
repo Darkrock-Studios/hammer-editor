@@ -1,12 +1,17 @@
 package com.darkrockstudios.apps.hammer.desktop
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
@@ -34,9 +39,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.darkrockstudios.apps.hammer.common.projectselection.toHdNavRailDestination
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
-import io.github.kdroidfilter.nucleus.window.DecoratedWindow
-import io.github.kdroidfilter.nucleus.window.TitleBar
-import io.github.kdroidfilter.nucleus.window.styling.LocalTitleBarStyle
+import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedWindow
+import io.github.kdroidfilter.nucleus.window.material.MaterialTitleBar
 
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
@@ -61,7 +65,7 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 	LifecycleController(lifecycle, windowState)
 
 	val title = Res.string.account_window_title.get()
-	DecoratedWindow(
+	MaterialDecoratedWindow(
 		title = title,
 		state = windowState,
 		onCloseRequest = ::exitApplication,
@@ -75,10 +79,10 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 			}
 		}
 	) {
-		TitleBar {
+		MaterialTitleBar {
 			Text(
 				text = title,
-				color = LocalTitleBarStyle.current.colors.content,
+				color = MaterialTheme.colorScheme.onSurface,
 				modifier = Modifier.align(Alignment.CenterHorizontally),
 			)
 		}

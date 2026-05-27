@@ -10,6 +10,15 @@ import kotlin.coroutines.CoroutineContext
 
 var appDirs: AppDirs = AppDirsFactory.getInstance()
 
+/**
+ * True when the desktop build is the Mac App Store flavor. Set via
+ * `-Dhammer.app.store=true` JVM arg (wired through Gradle when
+ * `-PmacOsAppStoreRelease=true` is passed). Sandbox-only code paths
+ * (e.g. fixed projects directory) gate on this.
+ */
+val IS_APP_STORE: Boolean =
+	System.getProperty("hammer.app.store", "false").toBoolean()
+
 actual fun getPlatformName(): String {
 	return "Desktop"
 }

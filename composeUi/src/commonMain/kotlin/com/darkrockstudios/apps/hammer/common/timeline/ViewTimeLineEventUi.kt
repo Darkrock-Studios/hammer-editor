@@ -31,6 +31,7 @@ import kotlinx.coroutines.launch
 
 private val ModalMaxWidth = TextEditorDefaults.MAX_WIDTH * 1.25f
 private val ModalMaxHeight = 760.dp
+private val StampRowCompactThreshold = 420.dp
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
@@ -227,63 +228,69 @@ private fun StampRow(
 		Res.string.timeline_view_header.get()
 	}
 
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HdMonoLabel(
-			text = "§ III · $sectionTitle",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
+	BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+		val isCompact = maxWidth < StampRowCompactThreshold
 
-		if (isEditing) {
-			PulsingDot()
-		}
-
-		Box(
+		Row(
 			modifier = Modifier
-				.height(14.dp)
-				.width(Dp.Hairline)
-				.background(MaterialTheme.colorScheme.outlineVariant),
-		)
-
-		val metaText = if (isEditing) {
-			Res.string.timeline_view_status_unsaved.get()
-		} else {
-			savedDate?.takeIf { it.isNotBlank() } ?: Res.string.timeline_view_undated.get()
-		}
-		with(sharedTransitionScope) {
+				.fillMaxWidth()
+				.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+		) {
 			HdMonoLabel(
-				text = metaText,
-				modifier = Modifier.sharedElement(
-					sharedContentState = rememberSharedContentState(
-						key = "timeline-date-${event?.id}",
-					),
-					animatedVisibilityScope = animatedVisibilityScope,
-				),
+				text = "§ III · $sectionTitle",
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
-		}
 
-		Spacer(modifier = Modifier.weight(1f))
+			if (isEditing) {
+				PulsingDot()
+			}
 
-		if (isEditing) {
-			HdHairlineButton(
-				label = Res.string.timeline_view_save_button.get(),
-				onClick = onSave,
-				emphasised = true,
-			)
-			HdHairlineButton(
-				label = Res.string.timeline_view_cancel_button.get(),
-				onClick = onCancel,
-			)
-		} else {
-			HdHairlineButton(
-				label = Res.string.timeline_view_edit_button.get(),
-				onClick = onEdit,
-			)
+			if (!isCompact) {
+				Box(
+					modifier = Modifier
+						.height(14.dp)
+						.width(Dp.Hairline)
+						.background(MaterialTheme.colorScheme.outlineVariant),
+				)
+
+				val metaText = if (isEditing) {
+					Res.string.timeline_view_status_unsaved.get()
+				} else {
+					savedDate?.takeIf { it.isNotBlank() } ?: Res.string.timeline_view_undated.get()
+				}
+				with(sharedTransitionScope) {
+					HdMonoLabel(
+						text = metaText,
+						modifier = Modifier.sharedElement(
+							sharedContentState = rememberSharedContentState(
+								key = "timeline-date-${event?.id}",
+							),
+							animatedVisibilityScope = animatedVisibilityScope,
+						),
+					)
+				}
+			}
+
+			Spacer(modifier = Modifier.weight(1f))
+
+			if (isEditing) {
+				HdHairlineButton(
+					label = Res.string.timeline_view_save_button.get(),
+					onClick = onSave,
+					emphasised = true,
+				)
+				HdHairlineButton(
+					label = Res.string.timeline_view_cancel_button.get(),
+					onClick = onCancel,
+				)
+			} else {
+				HdHairlineButton(
+					label = Res.string.timeline_view_edit_button.get(),
+					onClick = onEdit,
+				)
+			}
 		}
 	}
 }

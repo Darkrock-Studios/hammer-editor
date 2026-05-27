@@ -68,6 +68,8 @@ class ClientSceneSynchronizer(
 			confirmedReferences = metadata.confirmedReferences,
 			dismissedReferences = metadata.dismissedReferences,
 			tags = metadata.tags,
+			created = metadata.created,
+			lastEdited = metadata.lastEdited,
 		)
 	}
 
@@ -112,6 +114,8 @@ class ClientSceneSynchronizer(
 				confirmedReferences = metadata.confirmedReferences,
 				dismissedReferences = metadata.dismissedReferences,
 				tags = metadata.tags,
+				created = metadata.created,
+				lastEdited = metadata.lastEdited,
 			)
 		} else {
 			null
@@ -175,14 +179,7 @@ class ClientSceneSynchronizer(
 
 			val content = SceneContent(sceneItem, serverEntity.content)
 			if (sceneEditorRepository.storeSceneMarkdownRaw(content, scenePath)) {
-				// On success, update the scene metadata
-				val updatedMetadata = SceneMetadata(
-					notes = serverEntity.notes,
-					outline = serverEntity.outline,
-					confirmedReferences = serverEntity.confirmedReferences,
-					dismissedReferences = serverEntity.dismissedReferences,
-					tags = serverEntity.tags,
-				)
+				val updatedMetadata = mergeServerMetadata(serverEntity)
 				sceneEditorRepository.storeMetadata(updatedMetadata, serverEntity.id)
 
 				// Finally, log our success, and update the running apps data
@@ -292,13 +289,7 @@ class ClientSceneSynchronizer(
 				val content = SceneContent(archivedScene, serverEntity.content)
 				sceneEditorRepository.storeSceneMarkdownRaw(content, scenePath)
 
-				val updatedMetadata = SceneMetadata(
-					notes = serverEntity.notes,
-					outline = serverEntity.outline,
-					confirmedReferences = serverEntity.confirmedReferences,
-					dismissedReferences = serverEntity.dismissedReferences,
-					tags = serverEntity.tags,
-				)
+				val updatedMetadata = mergeServerMetadata(serverEntity)
 				sceneEditorRepository.storeMetadata(updatedMetadata, serverEntity.id)
 			}
 		} else {
@@ -311,6 +302,8 @@ class ClientSceneSynchronizer(
 				confirmedReferences = serverEntity.confirmedReferences,
 				dismissedReferences = serverEntity.dismissedReferences,
 				tags = serverEntity.tags,
+				created = serverEntity.created,
+				lastEdited = serverEntity.lastEdited,
 			)
 
 			sceneEditorRepository.createArchivedScene(
@@ -324,6 +317,21 @@ class ClientSceneSynchronizer(
 		}
 
 		return true
+	}
+
+	// Preserves local `created`/`lastEdited` when the server didn't ship them
+	// (e.g. older client uploaded first).
+	private suspend fun mergeServerMetadata(serverEntity: ApiProjectEntity.SceneEntity): SceneMetadata {
+		val existing = sceneEditorRepository.loadSceneMetadata(serverEntity.id)
+		return SceneMetadata(
+			notes = serverEntity.notes,
+			outline = serverEntity.outline,
+			confirmedReferences = serverEntity.confirmedReferences,
+			dismissedReferences = serverEntity.dismissedReferences,
+			tags = serverEntity.tags,
+			created = serverEntity.created ?: existing.created,
+			lastEdited = serverEntity.lastEdited ?: existing.lastEdited,
+		)
 	}
 
 	override suspend fun reIdEntity(oldId: Int, newId: Int) {

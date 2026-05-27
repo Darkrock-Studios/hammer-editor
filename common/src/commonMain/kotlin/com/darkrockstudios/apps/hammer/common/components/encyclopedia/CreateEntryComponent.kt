@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryR
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
+import kotlinx.coroutines.withContext
 
 class CreateEntryComponent(
 	componentContext: ComponentContext,
@@ -45,7 +46,7 @@ class CreateEntryComponent(
 		text: String,
 		tags: Set<String>,
 		imagePath: String?
-	): EntryResult {
+	): EntryResult = withContext(dispatcherDefault) {
 		val result = encyclopediaRepository.createEntry(name, type, text, tags, imagePath)
 		if (result.error == EntryError.NONE) {
 			encyclopediaRepository.loadEntries()
@@ -54,6 +55,6 @@ class CreateEntryComponent(
 			}
 		}
 
-		return result
+		result
 	}
 }

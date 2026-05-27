@@ -10,39 +10,11 @@ import kotlin.time.Instant
 class EntityHasherTest {
 	@Test
 	fun hashScene() {
-		val hash = EntityHasher.hashScene(
-			id = 2,
-			order = 0,
-			path = listOf(0, 1),
-			name = "Test",
-			type = ApiSceneType.Scene,
-			content = "Content",
-			outline = "outline",
-			notes = "notes",
-		)
-
-		val hash2 = EntityHasher.hashScene(
-			id = 2,
-			order = 0,
-			path = listOf(0, 1),
-			name = "Test",
-			type = ApiSceneType.Scene,
-			content = "Content",
-			outline = "outline",
-			notes = "notes",
-		)
+		val hash = sceneHash()
+		val hash2 = sceneHash()
 		assertEquals(hash, hash2, "Hash should be deterministic")
 
-		val hashDifferentContent = EntityHasher.hashScene(
-			id = 2,
-			order = 0,
-			path = listOf(0, 1),
-			name = "Test",
-			type = ApiSceneType.Scene,
-			content = "Different Content",
-			outline = "outline",
-			notes = "notes",
-		)
+		val hashDifferentContent = sceneHash(content = "Different Content")
 		assertNotEquals(hash, hashDifferentContent, "Hash should change when content changes")
 	}
 
@@ -52,7 +24,8 @@ class EntityHasherTest {
 		val hash = EntityHasher.hashNote(
 			id = 2,
 			created = instant,
-			content = "Content"
+			content = "Content",
+			tags = emptySet(),
 		)
 
 		assertEquals("NKZ2n0XDoHLagRABzkb8Yg", hash)
@@ -64,7 +37,8 @@ class EntityHasherTest {
 			id = 2,
 			order = 1,
 			content = "Content",
-			date = "The Futuer"
+			date = "The Futuer",
+			tags = emptySet(),
 		)
 
 		assertEquals("SAH6B_pamg_T5MCpWZM6vQ", hash)
@@ -81,7 +55,8 @@ class EntityHasherTest {
 			image = ApiProjectEntity.EncyclopediaEntryEntity.Image(
 				base64 = "skjdnviouwenvipnsdv",
 				fileExtension = "jpg"
-			)
+			),
+			aliases = emptyList(),
 		)
 
 		assertEquals("3ovnUSjH8YPOwpe4yUxUww", hash)
@@ -95,6 +70,7 @@ class EntityHasherTest {
 			name = "The Great Debate",
 			created = instant,
 			content = "Some great content",
+			sceneId = 0,
 		)
 
 		assertEquals("lGUFzy0jQtYbLHWa998BfA", hash)
@@ -102,114 +78,43 @@ class EntityHasherTest {
 
 	@Test
 	fun hashSceneWithArchived() {
-		val hashNotArchived = EntityHasher.hashScene(
-			id = 2,
-			order = 0,
-			path = listOf(0, 1),
-			name = "Test",
-			type = ApiSceneType.Scene,
-			content = "Content",
-			outline = "outline",
-			notes = "notes",
-			archived = false,
-		)
-
-		val hashArchived = EntityHasher.hashScene(
-			id = 2,
-			order = 0,
-			path = listOf(0, 1),
-			name = "Test",
-			type = ApiSceneType.Scene,
-			content = "Content",
-			outline = "outline",
-			notes = "notes",
-			archived = true,
-		)
+		val hashNotArchived = sceneHash(archived = false)
+		val hashArchived = sceneHash(archived = true)
 
 		assertNotEquals(hashNotArchived, hashArchived, "Hash should differ when archived status changes")
 
-		val hashArchived2 = EntityHasher.hashScene(
-			id = 2,
-			order = 0,
-			path = listOf(0, 1),
-			name = "Test",
-			type = ApiSceneType.Scene,
-			content = "Content",
-			outline = "outline",
-			notes = "notes",
-			archived = true,
-		)
+		val hashArchived2 = sceneHash(archived = true)
 		assertEquals(hashArchived, hashArchived2, "Archived hash should be deterministic")
 	}
 
 	@Test
 	fun `hashScene differs when confirmedReferences differ`() {
-		val base = EntityHasher.hashScene(
-			id = 2, order = 0, path = listOf(0, 1), name = "Test",
-			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
-			confirmedReferences = setOf(1, 2),
-		)
-		val different = EntityHasher.hashScene(
-			id = 2, order = 0, path = listOf(0, 1), name = "Test",
-			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
-			confirmedReferences = setOf(1, 3),
-		)
-		assertNotEquals(
-			base, different,
-			"hashScene must include confirmedReferences in the digest"
-		)
+		val base = sceneHash(confirmedReferences = setOf(1, 2))
+		val different = sceneHash(confirmedReferences = setOf(1, 3))
+		assertNotEquals(base, different, "hashScene must include confirmedReferences in the digest")
 	}
 
 	@Test
 	fun `hashScene confirmedReferences is order-independent`() {
 		// Defends against a Set-iteration-order regression - the impl must sort before hashing
-		val a = EntityHasher.hashScene(
-			id = 2, order = 0, path = listOf(0, 1), name = "Test",
-			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
-			confirmedReferences = linkedSetOf(1, 2, 3),
-		)
-		val b = EntityHasher.hashScene(
-			id = 2, order = 0, path = listOf(0, 1), name = "Test",
-			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
-			confirmedReferences = linkedSetOf(3, 1, 2),
-		)
+		val a = sceneHash(confirmedReferences = linkedSetOf(1, 2, 3))
+		val b = sceneHash(confirmedReferences = linkedSetOf(3, 1, 2))
 		assertEquals(a, b, "confirmedReferences must be sorted before hashing for stability")
 	}
 
 	@Test
 	fun `hashScene differs when dismissedReferences differ`() {
-		val base = EntityHasher.hashScene(
-			id = 2, order = 0, path = listOf(0, 1), name = "Test",
-			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
-			dismissedReferences = setOf(5),
-		)
-		val different = EntityHasher.hashScene(
-			id = 2, order = 0, path = listOf(0, 1), name = "Test",
-			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
-			dismissedReferences = setOf(5, 6),
-		)
-		assertNotEquals(
-			base, different,
-			"hashScene must include dismissedReferences in the digest"
-		)
+		val base = sceneHash(dismissedReferences = setOf(5))
+		val different = sceneHash(dismissedReferences = setOf(5, 6))
+		assertNotEquals(base, different, "hashScene must include dismissedReferences in the digest")
 	}
 
 	@Test
 	fun `hashScene confirmed and dismissed contribute distinctly`() {
 		// Defends against a swapped-arg regression where confirmed and dismissed get
 		// folded in identically - the same id sets in opposite slots must hash differently.
-		val confirmedOne = EntityHasher.hashScene(
-			id = 2, order = 0, path = listOf(0, 1), name = "Test",
-			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
-			confirmedReferences = setOf(7),
-			dismissedReferences = emptySet(),
-		)
-		val dismissedOne = EntityHasher.hashScene(
-			id = 2, order = 0, path = listOf(0, 1), name = "Test",
-			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
-			confirmedReferences = emptySet(),
-			dismissedReferences = setOf(7),
-		)
+		val confirmedOne = sceneHash(confirmedReferences = setOf(7), dismissedReferences = emptySet())
+		val dismissedOne = sceneHash(confirmedReferences = emptySet(), dismissedReferences = setOf(7))
 		assertNotEquals(
 			confirmedOne, dismissedOne,
 			"confirmedReferences and dismissedReferences must contribute distinctly to the hash"
@@ -228,10 +133,7 @@ class EntityHasherTest {
 			text = "text", tags = emptySet(), image = null,
 			aliases = listOf("Bob", "Bobby"),
 		)
-		assertNotEquals(
-			base, different,
-			"hashEncyclopediaEntry must include aliases in the digest"
-		)
+		assertNotEquals(base, different, "hashEncyclopediaEntry must include aliases in the digest")
 	}
 
 	@Test
@@ -256,65 +158,82 @@ class EntityHasherTest {
 
 	@Test
 	fun `hashScene differs when tags differ`() {
-		val base = EntityHasher.hashScene(
-			id = 2, order = 0, path = listOf(0, 1), name = "Test",
-			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
-			tags = emptySet(),
-		)
-		val different = EntityHasher.hashScene(
-			id = 2, order = 0, path = listOf(0, 1), name = "Test",
-			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
-			tags = setOf("important"),
-		)
-		assertNotEquals(
-			base, different,
-			"hashScene must include tags in the digest"
-		)
+		val base = sceneHash(tags = emptySet())
+		val different = sceneHash(tags = setOf("important"))
+		assertNotEquals(base, different, "hashScene must include tags in the digest")
 	}
 
 	@Test
 	fun `hashScene tags are order-independent`() {
 		// Defends against a Set-iteration-order regression - the impl must sort tags before hashing
-		val a = EntityHasher.hashScene(
-			id = 2, order = 0, path = listOf(0, 1), name = "Test",
-			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
-			tags = linkedSetOf("alpha", "beta", "gamma"),
-		)
-		val b = EntityHasher.hashScene(
-			id = 2, order = 0, path = listOf(0, 1), name = "Test",
-			type = ApiSceneType.Scene, content = "Content", outline = "outline", notes = "notes",
-			tags = linkedSetOf("gamma", "alpha", "beta"),
-		)
+		val a = sceneHash(tags = linkedSetOf("alpha", "beta", "gamma"))
+		val b = sceneHash(tags = linkedSetOf("gamma", "alpha", "beta"))
 		assertEquals(a, b, "tags must be sorted before hashing for stability")
 	}
 
 	@Test
-	fun hashSceneDefaultArchivedMatchesExplicitFalse() {
-		// Hash with default archived (should be false)
-		val hashDefault = EntityHasher.hashScene(
-			id = 2,
-			order = 0,
-			path = listOf(0, 1),
-			name = "Test",
-			type = ApiSceneType.Scene,
-			content = "Content",
-			outline = "outline",
-			notes = "notes",
-		)
-
-		// Hash with explicit archived = false
-		val hashExplicitFalse = EntityHasher.hashScene(
-			id = 2,
-			order = 0,
-			path = listOf(0, 1),
-			name = "Test",
-			type = ApiSceneType.Scene,
-			content = "Content",
-			outline = "outline",
-			notes = "notes",
-			archived = false,
-		)
-
-		assertEquals(hashDefault, hashExplicitFalse, "Default archived should match explicit false")
+	fun `hashScene differs when created differs`() {
+		val base = sceneHash(created = Instant.fromEpochSeconds(1_000_000))
+		val different = sceneHash(created = Instant.fromEpochSeconds(2_000_000))
+		assertNotEquals(base, different, "hashScene must include created in the digest")
 	}
+
+	@Test
+	fun `hashScene null created differs from epoch zero`() {
+		// `null` and "epoch 0" are semantically different states (never set vs deliberately
+		// set to the epoch) and must hash to different values.
+		val nullCreated = sceneHash(created = null)
+		val epochZero = sceneHash(created = Instant.fromEpochSeconds(0))
+		assertNotEquals(nullCreated, epochZero, "null created must hash differently from epoch 0")
+	}
+
+	@Test
+	fun `hashScene differs when lastEdited differs`() {
+		val base = sceneHash(lastEdited = Instant.fromEpochSeconds(1_000_000))
+		val different = sceneHash(lastEdited = Instant.fromEpochSeconds(2_000_000))
+		assertNotEquals(base, different, "hashScene must include lastEdited in the digest")
+	}
+
+	@Test
+	fun `hashScene null lastEdited differs from epoch zero`() {
+		val nullLastEdited = sceneHash(lastEdited = null)
+		val epochZero = sceneHash(lastEdited = Instant.fromEpochSeconds(0))
+		assertNotEquals(
+			nullLastEdited, epochZero,
+			"null lastEdited must hash differently from epoch 0",
+		)
+	}
+
+	// Test-only defaults. Production [EntityHasher.hashScene] has none on purpose.
+	private fun sceneHash(
+		id: Int = 2,
+		order: Int = 0,
+		path: List<Int> = listOf(0, 1),
+		name: String = "Test",
+		type: ApiSceneType = ApiSceneType.Scene,
+		content: String = "Content",
+		outline: String = "outline",
+		notes: String = "notes",
+		archived: Boolean = false,
+		confirmedReferences: Set<Int> = emptySet(),
+		dismissedReferences: Set<Int> = emptySet(),
+		tags: Set<String> = emptySet(),
+		created: Instant? = null,
+		lastEdited: Instant? = null,
+	): String = EntityHasher.hashScene(
+		id = id,
+		order = order,
+		path = path,
+		name = name,
+		type = type,
+		content = content,
+		outline = outline,
+		notes = notes,
+		archived = archived,
+		confirmedReferences = confirmedReferences,
+		dismissedReferences = dismissedReferences,
+		tags = tags,
+		created = created,
+		lastEdited = lastEdited,
+	)
 }

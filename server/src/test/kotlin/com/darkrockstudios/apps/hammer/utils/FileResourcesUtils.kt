@@ -81,10 +81,29 @@ object FileResourcesUtils {
 		dbFiles.forEach { sqlFile ->
 			sqlFile.bufferedReader().use { reader ->
 				val databaseSql = reader.readText()
-				databaseSql.split(";").filter { it.isNotBlank() }.map { it.trim() + ";" }.forEach {
-					database.executeAsync(it)
+				databaseSql.split(";").filter { it.isNotBlank() }.forEach { rawStmt ->
+					val translated = com.darkrockstudios.apps.hammer.e2e.util
+						.LegacyFixtureSqlTranslator.translate(rawStmt)
+					database.executeAsync(translated)
 				}
 			}
+		}
+
+		// Fixtures insert with explicit `id` values, which bypasses Postgres'
+		// BIGSERIAL sequence. Resync each id sequence to MAX(id) (advancing only
+		// when the table is non-empty) so subsequent auto-id inserts don't
+		// collide on `account_pkey` / `project_pkey` / etc., AND empty tables
+		// still start their sequence at 1 (not 2).
+		for (table in listOf("account", "project", "project_access", "password_reset_token")) {
+			database.executeAsync(
+				"""
+				SELECT setval(
+					pg_get_serial_sequence('$table', 'id'),
+					COALESCE((SELECT MAX(id) FROM $table), 1),
+					(SELECT MAX(id) IS NOT NULL FROM $table)
+				);
+				""".trimIndent()
+			)
 		}
 	}
 }

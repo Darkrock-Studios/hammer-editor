@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.notes_menu_delete
 import com.darkrockstudios.apps.hammer.notes_menu_group
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.withContext
 
 class ViewNoteComponent(
 	componentContext: ComponentContext,
@@ -62,10 +63,10 @@ class ViewNoteComponent(
 		updateShouldClose()
 	}
 
-	override suspend fun removeTag(tag: String) {
-		if (state.value.isEditing) return
-		val note = state.value.note ?: return
-		if (tag !in note.tags) return
+	override suspend fun removeTag(tag: String) = withContext(dispatcherDefault) {
+		if (state.value.isEditing) return@withContext
+		val note = state.value.note ?: return@withContext
+		if (tag !in note.tags) return@withContext
 
 		val updatedNote = note.copy(tags = note.tags - tag)
 		notesRepository.updateNote(updatedNote)
@@ -78,7 +79,7 @@ class ViewNoteComponent(
 		onShowGlobalSearchForTag(tag)
 	}
 
-	override suspend fun storeNoteUpdate() {
+	override suspend fun storeNoteUpdate() = withContext(dispatcherDefault) {
 		val note = state.value.note
 		if (note != null) {
 			val updatedNote = note.copy(
@@ -102,7 +103,7 @@ class ViewNoteComponent(
 		}
 	}
 
-	override suspend fun deleteNote(id: Int) {
+	override suspend fun deleteNote(id: Int) = withContext(dispatcherDefault) {
 		notesRepository.deleteNote(id)
 		notesRepository.loadNotes()
 		dismissView()

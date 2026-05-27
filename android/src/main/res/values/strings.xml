@@ -44,4 +44,5 @@
     <string name="story_info_widget_action_note">NOTE</string>
     <string name="story_info_widget_strip_folio">§ %1$s</string>
     <string name="story_info_widget_strip_words_unit">W</string>
+	<string name="story_info_widget_continue_label">CONTINUE ·</string>
 </resources>
