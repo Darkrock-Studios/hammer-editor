@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.database.EmbeddedPostgresDatabase
 import com.darkrockstudios.apps.hammer.database.RemotePostgresDatabase
 import com.darkrockstudios.apps.hammer.database.ServerDatabase
 import com.darkrockstudios.apps.hammer.database.legacy.LegacySqliteDatabase
+import com.darkrockstudios.apps.hammer.database.migration.SqliteToPostgresMigrator.Companion.BATCH_SIZE
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utilities.parseLegacyTimestamp
 import okio.FileSystem
@@ -17,7 +18,7 @@ import java.sql.Timestamp
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import java.util.UUID
+import java.util.*
 
 /**
  * One-shot data migration: copies `~/hammer_data/server.db` into the
@@ -137,6 +138,8 @@ class SqliteToPostgresMigrator(
 		bind: PreparedStatement.(T) -> Unit,
 	): Int {
 		if (rows.isEmpty()) return 0
+		// nosemgrep: kotlin_inject_rule-SqlInjection -- sql is always a compile-time
+		// INSERT string from the copy* methods in this file; no user input reaches it.
 		conn.prepareStatement(sql).use { ps ->
 			var batched = 0
 			for (r in rows) {
