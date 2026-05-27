@@ -18,6 +18,7 @@
 	<string name="project_home_stat_longest_scene">Longest Scene</string>
 	<string name="project_home_stat_longest_scene_words">%1$s words</string>
 	<string name="project_home_stat_longest_scene_empty">No scenes yet</string>
+	<string name="project_home_stat_last_edited_scene">Last Edited</string>
 	<string name="project_home_stat_scene_lengths">Scene Lengths</string>
 	<string name="project_home_stat_scene_median">Median</string>
 	<string name="project_home_stat_scene_shortest">Shortest</string>
@@ -72,13 +73,14 @@
 	<string name="project_home_action_backup_toast_success">Backup Created: %1$s</string>
 	<string name="project_home_action_backup_toast_failure">Backup Failed</string>
 	<string name="project_home_action_export_toast_success">Story Exported</string>
+	<string name="project_home_action_export_toast_failure">Export failed</string>
 	<string name="project_home_export_dialog_title">Export Story</string>
 	<string name="project_home_export_section">EXPORT</string>
 	<string name="project_home_export_close">× CLOSE</string>
 	<string name="project_home_export_chapters_label">Treat top-level scenes as chapters</string>
 	<string name="project_home_export_format_label">Format</string>
 	<string name="project_home_export_format_markdown">Markdown (.md)</string>
-	<string name="project_home_export_format_epub">EPub (coming soon)</string>
+	<string name="project_home_export_format_epub">EPub (.epub)</string>
 	<string name="project_home_export_cancel">Cancel</string>
 	<string name="project_home_export_execute">Export</string>
 	<string name="project_home_action_import">Import Story</string>
