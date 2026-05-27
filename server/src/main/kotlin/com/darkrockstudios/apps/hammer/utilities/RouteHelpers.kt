@@ -1,0 +1,83 @@
+package com.darkrockstudios.apps.hammer.utilities
+
+import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
+import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
+import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.github.aymanizz.ktori18n.R
+import com.github.aymanizz.ktori18n.t
+import io.ktor.http.*
+import io.ktor.server.application.*
+import io.ktor.server.response.*
+
+internal const val ERROR_MISSING_PARAMETER = "Missing Parameter"
+internal const val ERROR_MISSING_ENTITY_ID = "Missing Entity Id"
+
+internal const val ERR_KEY_PROJECT_NAME_MISSING = "api_project_sync_error_projectnamemissing"
+internal const val ERR_KEY_PROJECT_ID_MISSING = "api_project_sync_error_projectidmissing"
+internal const val ERR_KEY_SYNC_ID_MISSING = "api_project_sync_error_syncidmissing"
+internal const val ERR_KEY_ENTITY_ID_MISSING = "api_project_error_entityidmissing"
+internal const val ERR_KEY_UNKNOWN = "api_error_unknown"
+
+/** Responds 400 BadRequest with a localized message from [messageKey]. */
+suspend fun ApplicationCall.respondMissingParameter(
+	messageKey: String,
+	error: String = ERROR_MISSING_PARAMETER,
+) {
+	respond(
+		status = HttpStatusCode.BadRequest,
+		HttpResponseError(
+			error = error,
+			displayMessage = t(R(messageKey)),
+		),
+	)
+}
+
+/**
+ * Reads `projectName` from path params and `projectId` from query params, responding
+ * 400 BadRequest if either is missing. Returns `null` after responding so the caller
+ * should `return@get` / `return@post` immediately.
+ */
+suspend fun ApplicationCall.requireProjectDef(): ProjectDefinition? {
+	val projectName = parameters["projectName"]
+	if (projectName == null) {
+		respondMissingParameter(ERR_KEY_PROJECT_NAME_MISSING)
+		return null
+	}
+	val projectIdRaw = request.queryParameters["projectId"]
+	if (projectIdRaw == null) {
+		respondMissingParameter(ERR_KEY_PROJECT_ID_MISSING)
+		return null
+	}
+	return ProjectDefinition(projectName, ProjectId(projectIdRaw))
+}
+
+/**
+ * Reads the sync id from the [HEADER_SYNC_ID] header, responding 400 BadRequest if
+ * missing or blank. Returns `null` after responding so the caller should
+ * `return@get` / `return@post` immediately.
+ */
+suspend fun ApplicationCall.requireSyncId(): String? {
+	val syncId = request.headers[HEADER_SYNC_ID]
+	if (syncId.isNullOrBlank()) {
+		respondMissingParameter(ERR_KEY_SYNC_ID_MISSING)
+		return null
+	}
+	return syncId
+}
+
+/**
+ * Reads `entityId` from path params and parses as Int, responding 400 BadRequest if
+ * missing or unparseable. Returns `null` after responding so the caller should
+ * `return@get` / `return@post` immediately.
+ */
+suspend fun ApplicationCall.requireEntityId(
+	error: String = ERROR_MISSING_PARAMETER,
+): Int? {
+	val entityId = parameters["entityId"]?.toIntOrNull()
+	if (entityId == null) {
+		respondMissingParameter(ERR_KEY_ENTITY_ID_MISSING, error)
+		return null
+	}
+	return entityId
+}
