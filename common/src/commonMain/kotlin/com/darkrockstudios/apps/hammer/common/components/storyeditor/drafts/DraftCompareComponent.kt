@@ -4,12 +4,15 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
+import com.darkrockstudios.apps.hammer.base.diff.DiffResult
+import com.darkrockstudios.apps.hammer.base.diff.ProseDiff
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -32,6 +35,8 @@ class DraftCompareComponent(
 	)
 	override val state: Value<DraftCompare.State> = _state
 
+	private var diffJob: Job? = null
+
 	override fun loadContents() {
 		scope.launch {
 			val currentBuffer = projectEditor.loadSceneBuffer(sceneItem)
@@ -45,6 +50,12 @@ class DraftCompareComponent(
 					)
 				}
 			}
+
+			val draftMd = draftContent?.markdown
+			val currentMd = currentBuffer.content.markdown
+			if (draftMd != null && currentMd != null) {
+				recomputeDiff(draftMd = draftMd, currentMd = currentMd)
+			}
 		}
 	}
 
@@ -53,6 +64,27 @@ class DraftCompareComponent(
 			it.copy(
 				mergedContent = richText,
 			)
+		}
+	}
+
+	override fun onCurrentMarkdownChanged(markdown: String) {
+		val draftMd = state.value.draftContent?.markdown ?: return
+		recomputeDiff(draftMd = draftMd, currentMd = markdown)
+	}
+
+	override fun setShowDiff(show: Boolean) {
+		_state.getAndUpdate { it.copy(showDiff = show) }
+	}
+
+	private fun recomputeDiff(draftMd: String, currentMd: String) {
+		diffJob?.cancel()
+		diffJob = scope.launch {
+			val result: DiffResult = withContext(dispatcherDefault) {
+				ProseDiff.diff(draftMd, currentMd)
+			}
+			withContext(dispatcherMain) {
+				_state.getAndUpdate { it.copy(diffResult = result) }
+			}
 		}
 	}
 
