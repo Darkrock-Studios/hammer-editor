@@ -218,8 +218,46 @@ val extractMacosNativeLibs = tasks.register("extractMacosNativeLibs") {
 		}
 	}
 }
+// Compile the Objective-C bookmark helper used by sandboxed App Store builds
+// to persist user-selected directory access across relaunches (App Review
+// 2.4.5(i)). Lives in macos-native/ and ships next to the other dylibs so
+// signMacAppResources picks it up.
+val compileMacosBookmarksLib = tasks.register("compileMacosBookmarksLib") {
+	group = "macOS"
+	description = "Compile libhammer_bookmarks.dylib (security-scoped bookmark helper)"
+	// Non-AppStore builds bundling the dylib would trip SandboxStartup's
+	// picker without holding the bookmarks.app-scope entitlement.
+	onlyIf { isAppStoreRelease && org.gradle.internal.os.OperatingSystem.current().isMacOsX }
+
+	val src = project.file("macos-native/HammerBookmarks.m")
+	val outDir = layout.buildDirectory.dir("macos-native-libs/macos").get().asFile
+	val outFile = outDir.resolve("libhammer_bookmarks.dylib")
+
+	inputs.file(src).withPropertyName("source").withPathSensitivity(PathSensitivity.RELATIVE)
+	outputs.file(outFile)
+
+	val execOps = project.providers
+	doLast {
+		outDir.mkdirs()
+		execOps.exec {
+			executable = "clang"
+			args(
+				"-dynamiclib",
+				"-fobjc-arc",
+				"-O2",
+				"-arch", "arm64",
+				"-mmacosx-version-min=12.0",
+				"-framework", "Foundation",
+				"-install_name", "@rpath/libhammer_bookmarks.dylib",
+				"-o", outFile.absolutePath,
+				src.absolutePath
+			)
+		}.result.get()
+		logger.lifecycle("Compiled ${outFile.name}")
+	}
+}
 tasks.matching { it.name == "prepareAppResources" }.configureEach {
-	dependsOn(extractMacosNativeLibs)
+	dependsOn(extractMacosNativeLibs, compileMacosBookmarksLib)
 }
 
 // Any quarantine xattr on bundled files trips App Store validation.
