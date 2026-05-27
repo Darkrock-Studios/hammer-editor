@@ -48,7 +48,7 @@ napier = "2.7.1"
 # CMP 1.11 broke ImageShader / LinearGradientShader ABI, crashing the color picker dialog.
 # See: https://github.com/skydoves/colorpicker-compose/issues/171
 # compose-texteditor is also pinned to 2.0.2 to keep the transitive CMP at 1.10.3.
-jetbrains_compose = "1.10.3"
+jetbrains_compose = "1.11.0"
 compose_compiler_report_generator = "1.5.0"
 jetbrains_kover = "0.9.8"
 
