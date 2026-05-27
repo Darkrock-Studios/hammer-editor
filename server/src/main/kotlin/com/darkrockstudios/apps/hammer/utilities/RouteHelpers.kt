@@ -11,27 +11,33 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 
 internal const val ERROR_MISSING_PARAMETER = "Missing Parameter"
+internal const val ERROR_MISSING_HEADER = "Missing Header"
 internal const val ERROR_MISSING_ENTITY_ID = "Missing Entity Id"
 
 internal const val ERR_KEY_PROJECT_NAME_MISSING = "api_project_sync_error_projectnamemissing"
 internal const val ERR_KEY_PROJECT_ID_MISSING = "api_project_sync_error_projectidmissing"
 internal const val ERR_KEY_SYNC_ID_MISSING = "api_project_sync_error_syncidmissing"
 internal const val ERR_KEY_ENTITY_ID_MISSING = "api_project_error_entityidmissing"
+internal const val ERR_KEY_INVALID_SYNC_ID = "api_project_sync_end_invalidid"
 internal const val ERR_KEY_UNKNOWN = "api_error_unknown"
+
+/** Responds 400 BadRequest with the given error name and a plain-text display message. */
+suspend fun ApplicationCall.respondBadRequest(error: String, displayMessage: String) {
+	respond(
+		status = HttpStatusCode.BadRequest,
+		HttpResponseError(error = error, displayMessage = displayMessage),
+	)
+}
 
 /** Responds 400 BadRequest with a localized message from [messageKey]. */
 suspend fun ApplicationCall.respondMissingParameter(
 	messageKey: String,
 	error: String = ERROR_MISSING_PARAMETER,
-) {
-	respond(
-		status = HttpStatusCode.BadRequest,
-		HttpResponseError(
-			error = error,
-			displayMessage = t(R(messageKey)),
-		),
-	)
-}
+) = respondBadRequest(error, t(R(messageKey)))
+
+/** Responds 400 BadRequest with `"Missing Header"` and a localized message from [messageKey]. */
+suspend fun ApplicationCall.respondMissingHeader(messageKey: String) =
+	respondBadRequest(ERROR_MISSING_HEADER, t(R(messageKey)))
 
 /**
  * Reads `projectName` from path params and `projectId` from query params, responding

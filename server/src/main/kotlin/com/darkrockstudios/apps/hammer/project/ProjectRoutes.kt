@@ -355,13 +355,7 @@ private fun Route.uploadWritingActivity() {
 		val projectDef = call.requireProjectDef() ?: return@post
 		val deviceId = call.parameters["deviceId"]
 		if (deviceId.isNullOrBlank()) {
-			call.respond(
-				status = HttpStatusCode.BadRequest,
-				HttpResponseError(
-					error = "Missing Parameter",
-					displayMessage = "deviceId path parameter is required",
-				),
-			)
+			call.respondMissingParameter("api_project_writingactivity_error_deviceidmissing")
 			return@post
 		}
 
