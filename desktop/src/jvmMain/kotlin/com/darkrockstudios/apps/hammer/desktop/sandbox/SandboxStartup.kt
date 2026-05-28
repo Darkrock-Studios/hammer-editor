@@ -1,8 +1,18 @@
 package com.darkrockstudios.apps.hammer.desktop.sandbox
 
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.IS_APP_STORE
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
+import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.sandbox_choose_folder_button
+import com.darkrockstudios.apps.hammer.sandbox_intro_message
+import com.darkrockstudios.apps.hammer.sandbox_intro_title
+import com.darkrockstudios.apps.hammer.sandbox_picker_title
+import com.darkrockstudios.apps.hammer.sandbox_quit_button
+import com.darkrockstudios.apps.hammer.sandbox_retry_message
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.runBlocking
+import org.jetbrains.compose.resources.StringResource
 import org.koin.java.KoinJavaComponent.getKoin
 import java.awt.FileDialog
 import java.awt.Frame
@@ -22,7 +32,11 @@ import kotlin.system.exitProcess
  */
 object SandboxStartup {
 
-	private const val PICKER_TITLE = "Choose where to store your Hammer projects"
+	private val strRes: StrRes by lazy { getKoin().get(StrRes::class) }
+
+	// These dialogs run on the startup thread before any Compose UI exists, so
+	// resolve the (suspend) localized strings synchronously.
+	private fun str(res: StringResource): String = runBlocking { strRes.get(res) }
 
 	fun ensureProjectsDirAccess() {
 		if (!IS_APP_STORE) return
@@ -69,6 +83,10 @@ object SandboxStartup {
 	}
 
 	private fun pickDirectoryUntilSuccessfulOrQuit(): Pair<String, String> {
+		if (!confirmIntroOrQuit()) {
+			Napier.i("User dismissed the projects-directory intro — exiting")
+			exitProcess(0)
+		}
 		while (true) {
 			val picked = showNativeDirectoryPicker()
 			if (picked != null) {
@@ -98,7 +116,7 @@ object SandboxStartup {
 		try {
 			// Don't set dialog.directory — user.home is the sandbox container.
 			// NSOpenPanel runs out-of-process and defaults to the real ~/Documents.
-			val dialog = FileDialog(null as Frame?, PICKER_TITLE, FileDialog.LOAD)
+			val dialog = FileDialog(null as Frame?, str(Res.string.sandbox_picker_title), FileDialog.LOAD)
 			dialog.isVisible = true
 			val name = dialog.file ?: return null
 			val dir = dialog.directory ?: return null
@@ -108,11 +126,28 @@ object SandboxStartup {
 		}
 	}
 
-	private fun confirmRetryOrQuit(): Boolean {
-		val options = arrayOf<Any>("Choose Folder", "Quit")
+	// Shown once before the native picker so first-time users understand why
+	// macOS is about to ask them to choose a folder.
+	private fun confirmIntroOrQuit(): Boolean {
+		val options = arrayOf<Any>(str(Res.string.sandbox_choose_folder_button), str(Res.string.sandbox_quit_button))
 		val result = JOptionPane.showOptionDialog(
 			null,
-			"Hammer needs a folder to store your projects.\nChoose a folder now, or quit.",
+			str(Res.string.sandbox_intro_message),
+			str(Res.string.sandbox_intro_title),
+			JOptionPane.YES_NO_OPTION,
+			JOptionPane.INFORMATION_MESSAGE,
+			null,
+			options,
+			options[0],
+		)
+		return result == JOptionPane.YES_OPTION
+	}
+
+	private fun confirmRetryOrQuit(): Boolean {
+		val options = arrayOf<Any>(str(Res.string.sandbox_choose_folder_button), str(Res.string.sandbox_quit_button))
+		val result = JOptionPane.showOptionDialog(
+			null,
+			str(Res.string.sandbox_retry_message),
 			"Hammer",
 			JOptionPane.YES_NO_OPTION,
 			JOptionPane.WARNING_MESSAGE,
