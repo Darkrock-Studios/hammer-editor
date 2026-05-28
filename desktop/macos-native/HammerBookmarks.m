@@ -15,12 +15,9 @@
  * so stop_access can find them by path without the caller round-tripping
  * the NSURL pointer.
  */
-#import
-<Foundation/Foundation.h>
-#include
-<stdlib.h>
-#include
-<string.h>
+#import <Foundation/Foundation.h>
+#include <stdlib.h>
+#include <string.h>
 
 static NSMutableDictionary<NSString *, NSURL *> *gAccessedUrls;
 static NSLock *gLock;
