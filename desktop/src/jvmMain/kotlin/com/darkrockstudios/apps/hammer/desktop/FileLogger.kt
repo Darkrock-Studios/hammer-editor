@@ -24,9 +24,6 @@ class FileLogger(
 	private val logsDir = getLogsDirectory()
 	private val logFileName = getLogFilename()
 	private val appendBuffer: BufferedSink
-	private val writeLock = Any()
-	@Volatile
-	private var closed = false
 	private val messageChannel = Channel<LogRecord>(
 		capacity = Channel.UNLIMITED,
 		onUndeliveredElement = {
@@ -46,10 +43,16 @@ class FileLogger(
 		}
 	}
 
+	// The consumer coroutine is the sole owner of appendBuffer: it writes,
+	// flushes, and closes the sink so no other thread can race it.
 	private suspend fun watchForLogs() {
-		messageChannel.consumeEach { record ->
-			writeLogMessage(record)
-			flush()
+		try {
+			messageChannel.consumeEach { record ->
+				writeLogMessage(record)
+				appendBuffer.flush()
+			}
+		} finally {
+			appendBuffer.close()
 		}
 	}
 
@@ -62,29 +65,19 @@ class FileLogger(
 	}
 
 	private fun writeLogMessage(record: LogRecord) {
-		synchronized(writeLock) {
-			if (closed) return
-			appendBuffer.writeUtf8(
-				"${record.instant} | ${record.message}\n"
-			)
-		}
+		appendBuffer.writeUtf8(
+			"${record.instant} | ${record.message}\n"
+		)
 	}
 
 	override fun close() {
 		super.close()
-		synchronized(writeLock) {
-			if (closed) return
-			closed = true
-			messageChannel.close()
-			appendBuffer.close()
-		}
+		// Closing the channel ends the consumer, which then closes the sink.
+		messageChannel.close()
 	}
 
 	override fun flush() {
 		super.flush()
-		synchronized(writeLock) {
-			if (!closed) appendBuffer.flush()
-		}
 	}
 
 	private fun createLogFile(): FileHandle = fileSystem.openReadWrite(logFileName)
