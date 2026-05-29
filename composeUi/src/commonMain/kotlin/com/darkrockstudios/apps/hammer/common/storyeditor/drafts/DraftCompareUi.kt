@@ -25,9 +25,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
@@ -61,8 +59,8 @@ import com.darkrockstudios.apps.hammer.draft_compare_tab_title_current
 import com.darkrockstudios.apps.hammer.draft_compare_tab_title_draft
 import com.darkrockstudios.texteditor.CharLineOffset
 import com.darkrockstudios.texteditor.TextEditor
-import com.darkrockstudios.texteditor.TextEditorRange
 import com.darkrockstudios.texteditor.markdown.withMarkdown
+import com.darkrockstudios.texteditor.richstyle.HighlightSpanStyle
 import com.darkrockstudios.texteditor.state.TextEditorState
 import com.darkrockstudios.texteditor.state.rememberTextEditorState
 import kotlinx.coroutines.delay
@@ -204,15 +202,17 @@ private fun DraftPane(
 ) {
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
-	val deletedStyle = rememberDeletedStyle()
+	val deletedHighlight = rememberDeletedHighlight()
 
-	val draftSource = state.draftContent?.markdown
-	LaunchedEffect(state.diffResult, state.showDiff, draftSource, textEditorState) {
+	// The draft is read-only, so its rendered text never changes — submit it once for the diff.
+	LaunchedEffect(textEditorState) {
+		component.submitDraftText(textEditorState.getAllText().text)
+	}
+	LaunchedEffect(state.diffResult, state.showDiff, textEditorState) {
 		applyDiffHighlights(
 			editorState = textEditorState,
-			source = draftSource,
 			spans = if (state.showDiff) state.diffResult?.leftSpans.orEmpty() else emptyList(),
-			style = deletedStyle,
+			style = deletedHighlight,
 		)
 	}
 
@@ -273,7 +273,7 @@ private fun CurrentPane(
 ) {
 	val state by component.state.subscribeAsState()
 	val markdownConfig = LocalMarkdownConfig.current
-	val insertedStyle = rememberInsertedStyle()
+	val insertedHighlight = rememberInsertedHighlight()
 
 	val markdownExtension = remember(textEditorState) { textEditorState.withMarkdown(markdownConfig) }
 
@@ -282,32 +282,25 @@ private fun CurrentPane(
 	}
 
 	LaunchedEffect(textEditorState) {
-		// `collectLatest` cancels the previous lambda when a new edit arrives, so the
-		// `delay` below acts as a per-keystroke debounce — the recompute only fires
-		// after the user stops typing for [DIFF_RECOMPUTE_DELAY_MS]. The merged-content
-		// update runs synchronously before the delay, so picking the current draft
-		// always uses the latest text.
+		// Seed the diff with the initial text, then watch for edits. `collectLatest` cancels the
+		// previous lambda when a new edit arrives, so the `delay` acts as a per-keystroke debounce:
+		// the diff recompute only fires after the user stops typing for [DIFF_RECOMPUTE_DELAY_MS].
+		// The merged-content update runs synchronously before the delay so picking the current
+		// draft always uses the latest text. Submitting the editor's rendered text (not the
+		// markdown) keeps the diff in the same coordinate space the highlights are drawn in.
+		component.onCurrentTextChanged(textEditorState.getAllText().text)
 		textEditorState.editOperations.collectLatest { _ ->
-			val richText = ComposeRichText(markdownExtension)
-			component.onMergedContentChanged(richText)
+			component.onMergedContentChanged(ComposeRichText(markdownExtension))
 			delay(DIFF_RECOMPUTE_DELAY_MS)
-			component.onCurrentMarkdownChanged(richText.convertToMarkdown())
+			component.onCurrentTextChanged(textEditorState.getAllText().text)
 		}
 	}
 
-	// Source text we map diff offsets through. While the user edits, the latest source
-	// markdown comes from the live markdown extension; the diff was computed against an
-	// earlier snapshot, so highlights may briefly point at slightly stale ranges until
-	// the debounced recompute lands and reapplies them.
-	val initialSource = state.sceneContent?.markdown
-	LaunchedEffect(state.diffResult, state.showDiff, initialSource, textEditorState) {
-		val source = state.diffResult?.let { _ -> markdownExtension.exportAsMarkdown() }
-			?: initialSource
+	LaunchedEffect(state.diffResult, state.showDiff, textEditorState) {
 		applyDiffHighlights(
 			editorState = textEditorState,
-			source = source,
 			spans = if (state.showDiff) state.diffResult?.rightSpans.orEmpty() else emptyList(),
-			style = insertedStyle,
+			style = insertedHighlight,
 		)
 	}
 
@@ -354,53 +347,49 @@ private fun CurrentPane(
 }
 
 @Composable
-private fun rememberDeletedStyle(): SpanStyle {
+private fun rememberDeletedHighlight(): HighlightSpanStyle {
 	val danger = LocalHammerColors.current.danger
-	return remember(danger) {
-		SpanStyle(
-			background = danger.copy(alpha = DIFF_HIGHLIGHT_ALPHA),
-			textDecoration = TextDecoration.LineThrough,
-		)
-	}
+	return remember(danger) { HighlightSpanStyle(danger.copy(alpha = DIFF_HIGHLIGHT_ALPHA)) }
 }
 
 @Composable
-private fun rememberInsertedStyle(): SpanStyle {
+private fun rememberInsertedHighlight(): HighlightSpanStyle {
 	val success = LocalHammerColors.current.success
-	return remember(success) {
-		SpanStyle(
-			background = success.copy(alpha = DIFF_HIGHLIGHT_ALPHA),
-			textDecoration = TextDecoration.Underline,
-		)
-	}
+	return remember(success) { HighlightSpanStyle(success.copy(alpha = DIFF_HIGHLIGHT_ALPHA)) }
 }
 
 /**
- * Clear any previously-applied [style] across the whole document, then re-add the given [spans]
- * mapped from source offsets to editor (line, char) ranges.
+ * Replace the diff highlights drawn with [style] on this editor.
  *
- * No-ops when [source] is null. Skips spans whose range falls outside the editor's current text
- * (which can happen after edits invalidate older diff results until the debounced recompute lands).
+ * Rich spans are a non-destructive draw overlay: they don't emit edit operations (so applying
+ * them doesn't retrigger the edit watcher) and aren't serialized into the saved content. We
+ * remove the prior spans by matching the exact [style] instance — the manager shifts span ranges
+ * to track edits, so range-based removal wouldn't find them, but the style identity is stable.
+ *
+ * Span offsets are clamped to the editor's current text so a diff computed against a slightly
+ * older revision (during the debounce window) can't produce an out-of-range span.
  */
 private fun applyDiffHighlights(
 	editorState: TextEditorState,
-	source: String?,
 	spans: List<DiffSpan>,
-	style: SpanStyle,
+	style: HighlightSpanStyle,
 ) {
-	if (source == null) return
-	val fullRange = TextEditorRange(
-		start = CharLineOffset(0, 0),
-		end = offsetToCharLine(source, source.length),
-	)
-	editorState.removeStyleSpan(fullRange, style)
+	editorState.richSpanManager.getAllRichSpans()
+		.filter { it.style === style }
+		.forEach { editorState.removeRichSpan(it) }
+
+	val text = editorState.getAllText().text
+	val length = text.length
+	if (length == 0) return
 	for (span in spans) {
-		if (span.range.start < 0 || span.range.endExclusive > source.length) continue
-		val range = TextEditorRange(
-			start = offsetToCharLine(source, span.range.start),
-			end = offsetToCharLine(source, span.range.endExclusive),
+		val start = span.range.start.coerceIn(0, length)
+		val end = span.range.endExclusive.coerceIn(start, length)
+		if (end <= start) continue
+		editorState.addRichSpan(
+			start = offsetToCharLine(text, start),
+			end = offsetToCharLine(text, end),
+			style = style,
 		)
-		editorState.addStyleSpan(range, style)
 	}
 }
 

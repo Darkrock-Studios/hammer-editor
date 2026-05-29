@@ -22,20 +22,48 @@ object ProseDiff {
 	/** Threshold (in plain-text chars) for merging adjacent edits separated by a short common run. */
 	private const val SMALL_GAP_THRESHOLD = 3
 
-	fun diff(leftMarkdown: String, rightMarkdown: String): DiffResult {
-		if (leftMarkdown == rightMarkdown) {
+	/**
+	 * Diff two markdown texts. Spans are in *markdown source* coordinates — use this when the UI
+	 * displays the raw markdown (e.g. the conflict-merge plain text fields).
+	 */
+	fun diff(leftMarkdown: String, rightMarkdown: String): DiffResult =
+		diffInternal(
+			left = extractPlainText(leftMarkdown),
+			right = extractPlainText(rightMarkdown),
+			leftSourceLength = leftMarkdown.length,
+			rightSourceLength = rightMarkdown.length,
+		)
+
+	/**
+	 * Diff two already-plain texts. Spans are in the input strings' own coordinates — use this
+	 * when the UI displays the same text being diffed (e.g. the rendered text inside the markdown
+	 * editor, where markdown syntax has already been stripped away).
+	 */
+	fun diffPlain(left: String, right: String): DiffResult =
+		diffInternal(
+			left = identityPlainText(left),
+			right = identityPlainText(right),
+			leftSourceLength = left.length,
+			rightSourceLength = right.length,
+		)
+
+	private fun diffInternal(
+		left: PlainTextResult,
+		right: PlainTextResult,
+		leftSourceLength: Int,
+		rightSourceLength: Int,
+	): DiffResult {
+		if (left.plain == right.plain) {
 			return DiffResult(
 				leftSpans = emptyList(),
 				rightSpans = emptyList(),
 				anchors = listOf(
 					DiffAnchor(0, 0),
-					DiffAnchor(leftMarkdown.length, rightMarkdown.length),
+					DiffAnchor(leftSourceLength, rightSourceLength),
 				),
 			)
 		}
 
-		val left = extractPlainText(leftMarkdown)
-		val right = extractPlainText(rightMarkdown)
 		val leftTokens = tokenize(left.plain)
 		val rightTokens = tokenize(right.plain)
 
@@ -83,7 +111,7 @@ object ProseDiff {
 			)
 		}
 
-		anchors += DiffAnchor(leftMarkdown.length, rightMarkdown.length)
+		anchors += DiffAnchor(leftSourceLength, rightSourceLength)
 
 		return DiffResult(
 			leftSpans = leftSpans,

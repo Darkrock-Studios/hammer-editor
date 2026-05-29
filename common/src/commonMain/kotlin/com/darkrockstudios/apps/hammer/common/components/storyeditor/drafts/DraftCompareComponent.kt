@@ -37,6 +37,11 @@ class DraftCompareComponent(
 
 	private var diffJob: Job? = null
 
+	// The rendered (markdown-stripped) text of each pane's editor. The diff runs on these so its
+	// span offsets land in the editor's own coordinate space, which is what the UI highlights.
+	private var draftText: String? = null
+	private var currentText: String? = null
+
 	override fun loadContents() {
 		scope.launch {
 			val currentBuffer = projectEditor.loadSceneBuffer(sceneItem)
@@ -50,12 +55,6 @@ class DraftCompareComponent(
 					)
 				}
 			}
-
-			val draftMd = draftContent?.markdown
-			val currentMd = currentBuffer.content.markdown
-			if (draftMd != null && currentMd != null) {
-				recomputeDiff(draftMd = draftMd, currentMd = currentMd)
-			}
 		}
 	}
 
@@ -67,20 +66,29 @@ class DraftCompareComponent(
 		}
 	}
 
-	override fun onCurrentMarkdownChanged(markdown: String) {
-		val draftMd = state.value.draftContent?.markdown ?: return
-		recomputeDiff(draftMd = draftMd, currentMd = markdown)
+	override fun submitDraftText(text: String) {
+		if (text == draftText) return
+		draftText = text
+		recomputeDiff()
+	}
+
+	override fun onCurrentTextChanged(text: String) {
+		if (text == currentText) return
+		currentText = text
+		recomputeDiff()
 	}
 
 	override fun setShowDiff(show: Boolean) {
 		_state.getAndUpdate { it.copy(showDiff = show) }
 	}
 
-	private fun recomputeDiff(draftMd: String, currentMd: String) {
+	private fun recomputeDiff() {
+		val left = draftText ?: return
+		val right = currentText ?: return
 		diffJob?.cancel()
 		diffJob = scope.launch {
 			val result: DiffResult = withContext(dispatcherDefault) {
-				ProseDiff.diff(draftMd, currentMd)
+				ProseDiff.diffPlain(left, right)
 			}
 			withContext(dispatcherMain) {
 				_state.getAndUpdate { it.copy(diffResult = result) }

@@ -120,6 +120,35 @@ class ProseDiffTest {
 	}
 
 	@Test
+	fun `diffPlain returns spans in the input text's own coordinates`() {
+		// No markdown stripping: offsets index directly into the given strings.
+		val left = "The cat sat on the mat."
+		val right = "The dog sat on the mat."
+		val result = ProseDiff.diffPlain(left, right)
+		val l = result.leftSpans.single().range
+		val r = result.rightSpans.single().range
+		assertEquals("cat", left.substring(l.start, l.endExclusive))
+		assertEquals("dog", right.substring(r.start, r.endExclusive))
+	}
+
+	@Test
+	fun `diffPlain does not strip markdown so syntax changes are visible`() {
+		// Unlike diff(), diffPlain treats the asterisks as ordinary characters.
+		val left = "Hello world."
+		val right = "**Hello** world."
+		val result = ProseDiff.diffPlain(left, right)
+		assertTrue(result.rightSpans.isNotEmpty(), "diffPlain should see the added ** as a change")
+	}
+
+	@Test
+	fun `diffPlain on identical text yields no spans`() {
+		val text = "Nothing changed here."
+		val result = ProseDiff.diffPlain(text, text)
+		assertTrue(result.leftSpans.isEmpty())
+		assertTrue(result.rightSpans.isEmpty())
+	}
+
+	@Test
 	fun `paragraph insertion is highlighted as one block`() {
 		val left = "Para one.\n\nPara three."
 		val right = "Para one.\n\nPara two.\n\nPara three."

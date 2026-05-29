@@ -85,6 +85,15 @@ internal data class PlainTextResult(
 }
 
 /**
+ * A [PlainTextResult] whose plain text *is* the source: offsets map to themselves. Used by
+ * [ProseDiff.diffPlain] where the input is already plain text and no markdown stripping applies.
+ */
+internal fun identityPlainText(text: String): PlainTextResult {
+	val segments = if (text.isEmpty()) emptyList() else listOf(PlainSegment(0, text.length, 0, text.length))
+	return PlainTextResult(plain = text, segments = segments)
+}
+
+/**
  * Strip markdown syntax from [markdown] and return the resulting plain text along with the
  * offset map back to the original source.
  *

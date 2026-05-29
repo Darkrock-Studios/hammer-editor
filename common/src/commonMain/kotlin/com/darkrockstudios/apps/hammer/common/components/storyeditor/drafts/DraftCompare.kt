@@ -16,7 +16,12 @@ interface DraftCompare : HammerComponent {
 
 	fun loadContents()
 	fun onMergedContentChanged(richText: PlatformRichText)
-	fun onCurrentMarkdownChanged(markdown: String)
+
+	/** The draft pane's rendered (markdown-stripped) editor text — submitted once on load. */
+	fun submitDraftText(text: String)
+
+	/** The current pane's rendered editor text — submitted on load and after each edit. */
+	fun onCurrentTextChanged(text: String)
 	fun setShowDiff(show: Boolean)
 	fun pickDraft()
 	fun pickMerged()
