@@ -76,7 +76,7 @@ class ClientSceneSynchronizer(
 	}
 
 	override suspend fun prepareForSync() {
-		sceneEditorRepository.storeAllBuffers()
+		sceneEditorService.storeAllBuffers()
 	}
 
 	override suspend fun ownsEntity(id: Int): Boolean {
@@ -355,7 +355,7 @@ class ClientSceneSynchronizer(
 		delay(SceneEditorRepository.BUFFER_COOL_DOWN * 0.25)
 
 		sceneEditorRepository.forceSceneListReload()
-		sceneEditorRepository.storeAllBuffers()
+		sceneEditorService.storeAllBuffers()
 	}
 
 	override fun getEntityType() = EntityType.Scene

@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsR
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
@@ -77,6 +78,7 @@ class SceneEditorServiceTest : BaseTest() {
 
 	private lateinit var repo: SceneEditorRepository
 	private lateinit var sceneMetadataRepository: SceneMetadataRepository
+	private lateinit var sceneContentRepository: SceneContentRepository
 
 	private var nextId = 100
 
@@ -121,11 +123,16 @@ class SceneEditorServiceTest : BaseTest() {
 			},
 			clock = Clock.System,
 		)
+		sceneContentRepository = SceneContentRepository(
+			projectDef = projectDef,
+			sceneDatasource = sceneDatasource,
+		)
 		repo = SceneEditorRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
 			sceneMetadataRepository = sceneMetadataRepository,
+			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
@@ -135,8 +142,11 @@ class SceneEditorServiceTest : BaseTest() {
 		)
 		return SceneEditorService(
 			sceneEditorRepository = repo,
+			sceneContentRepository = sceneContentRepository,
 			sceneMetadataRepository = sceneMetadataRepository,
 			referenceIndexRepository = referenceIndexRepository,
+			statisticsRepository = statisticsRepository,
+			writingSessionTracker = writingSessionTracker,
 		)
 	}
 

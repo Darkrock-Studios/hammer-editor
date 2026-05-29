@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsR
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
@@ -18,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMe
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import createProject
 import getProject1Def
@@ -101,23 +103,32 @@ class SceneMetadataRepositoryTest : BaseTest() {
 			},
 			clock = Clock.System,
 		)
+		val sceneContentRepository = SceneContentRepository(
+			projectDef = projectDef,
+			sceneDatasource = sceneDatasource,
+		)
+		val writingSessionTracker = mockk<WritingSessionTracker>(relaxed = true)
 		repo = SceneEditorRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
 			sceneMetadataRepository = sceneMetadataRepository,
+			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = referenceIndexRepository,
-			writingSessionTracker = mockk(relaxed = true),
+			writingSessionTracker = writingSessionTracker,
 			clock = Clock.System,
 		)
 		repo.initializeSceneEditor()
 		return SceneEditorService(
 			sceneEditorRepository = repo,
+			sceneContentRepository = sceneContentRepository,
 			sceneMetadataRepository = sceneMetadataRepository,
 			referenceIndexRepository = referenceIndexRepository,
+			statisticsRepository = statisticsRepository,
+			writingSessionTracker = writingSessionTracker,
 		)
 	}
 

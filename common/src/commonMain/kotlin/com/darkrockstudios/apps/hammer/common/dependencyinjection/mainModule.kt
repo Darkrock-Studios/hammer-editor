@@ -35,6 +35,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsS
 import com.darkrockstudios.apps.hammer.common.data.references.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
@@ -145,6 +146,7 @@ val mainModule = module {
 		scoped<ProjectDef> { get<ProjectDefScope>().projectDef }
 
 		scopedOf(::SceneDatasource)
+		scopedOf(::SceneContentRepository)
 		scopedOf(::SceneEditorRepository)
 		scopedOf(::SceneEditorService)
 		scopedOf(::ImportStoryUseCase)

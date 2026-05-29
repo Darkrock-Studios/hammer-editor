@@ -15,17 +15,12 @@ import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescentBy
 import com.darkrockstudios.apps.hammer.common.util.numDigits
 import io.github.aakira.napier.Napier
-import kotlinx.atomicfu.locks.reentrantLock
-import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -33,29 +28,23 @@ import kotlinx.coroutines.flow.SharedFlow
 import okio.IOException
 import okio.Path
 import org.koin.core.component.KoinComponent
-import org.koin.core.scope.Scope
-import org.koin.core.scope.ScopeCallback
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.milliseconds
 
 class SceneEditorRepository(
 	val projectDef: ProjectDef,
 	private val idRepository: IdRepository,
 	private val syncDataRepository: SyncDataRepository,
 	private val sceneMetadataRepository: SceneMetadataRepository,
+	private val sceneContentRepository: SceneContentRepository,
 	private val sceneMetadataDatasource: SceneMetadataDatasource,
 	private val sceneDatasource: SceneDatasource,
 	private val statisticsRepository: StatisticsRepository,
 	private val referenceIndexRepository: ReferenceIndexRepository,
 	private val writingSessionTracker: WritingSessionTracker,
 	private val clock: Clock,
-) : ScopeCallback, ProjectScoped, KoinComponent {
+) : ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
-
-	init {
-		projectScope.scope.registerCallback(this)
-	}
 
 	val rootScene = SceneItem(
 		projectDef = projectDef,
@@ -66,23 +55,6 @@ class SceneEditorRepository(
 	)
 
 	private val dispatcherMain by injectMainDispatcher()
-	private val dispatcherDefault by injectDefaultDispatcher()
-	private val dispatcherIo by injectIoDispatcher()
-	private val editorScope = CoroutineScope(dispatcherDefault)
-
-	private val _contentFlow = MutableSharedFlow<SceneContentUpdate>(
-		extraBufferCapacity = 1,
-		replay = 1,
-		onBufferOverflow = BufferOverflow.DROP_OLDEST
-	)
-	private val contentFlow: SharedFlow<SceneContentUpdate> = _contentFlow
-	private var contentUpdateJob: Job? = null
-
-	private val _bufferUpdateFlow = MutableSharedFlow<SceneBuffer>(
-		extraBufferCapacity = 1,
-		onBufferOverflow = BufferOverflow.DROP_OLDEST
-	)
-	private val bufferUpdateFlow: SharedFlow<SceneBuffer> = _bufferUpdateFlow
 
 	private val _sceneListChannel = MutableSharedFlow<SceneSummary>(
 		extraBufferCapacity = 1,
@@ -153,22 +125,6 @@ class SceneEditorRepository(
 		}
 	}
 
-	fun subscribeToBufferUpdates(
-		sceneDef: SceneItem?,
-		scope: CoroutineScope,
-		onBufferUpdate: suspend (SceneBuffer) -> Unit
-	): Job {
-		return scope.launch {
-			bufferUpdateFlow.collect { newBuffer ->
-				if (sceneDef == null || newBuffer.content.scene.id == sceneDef.id) {
-					withContext(dispatcherMain) {
-						onBufferUpdate(newBuffer)
-					}
-				}
-			}
-		}
-	}
-
 	fun subscribeToSceneUpdates(
 		scope: CoroutineScope,
 		onSceneListUpdate: (SceneSummary) -> Unit
@@ -184,26 +140,6 @@ class SceneEditorRepository(
 		return job
 	}
 
-	private val sceneBuffersLock = reentrantLock()
-	private val sceneBuffers = mutableMapOf<Int, SceneBuffer>()
-
-	private val storeTempJobs = mutableMapOf<Int, Job>()
-	private fun launchSaveJob(sceneDef: SceneItem) {
-		val job = storeTempJobs[sceneDef.id]
-		job?.cancel("Starting a new one")
-		storeTempJobs[sceneDef.id] = editorScope.launch {
-			storeTempSceneBuffer(sceneDef)
-			storeTempJobs.remove(sceneDef.id)
-		}
-	}
-
-	private fun getDirtyBufferIds(): Set<Int> = sceneBuffersLock.withLock {
-		sceneBuffers
-			.filter { it.value.dirty }
-			.map { it.key }
-			.toSet()
-	}
-
 	/**
 	 * This needs to be called after instantiation
 	 */
@@ -215,25 +151,12 @@ class SceneEditorRepository(
 
 		idRepository.findNextId()
 
-		// Load any existing temp scenes into buffers
-		val tempContent = sceneDatasource.getSceneTempBufferContents()
-		for (content in tempContent) {
-			val buffer = SceneBuffer(content, true, UpdateSource.Repository)
-			updateSceneBuffer(buffer)
-		}
+		// Loads any existing temp buffers and starts the content debounce/autosave engine.
+		sceneContentRepository.initialize()
 
 		reloadScenes()
 
 		sceneMetadataRepository.initialize()
-
-		contentUpdateJob = editorScope.launch {
-			contentFlow.debounceUntilQuiescentBy({ it.content.scene.id }, BUFFER_COOL_DOWN)
-				.collect { contentUpdate ->
-					if (updateSceneBufferContent(contentUpdate.content, contentUpdate.source)) {
-						launchSaveJob(contentUpdate.content.scene)
-					}
-				}
-		}
 
 		return this
 	}
@@ -248,7 +171,7 @@ class SceneEditorRepository(
 	fun getSceneSummaries(): SceneSummary {
 		return SceneSummary(
 			getSceneTree(),
-			getDirtyBufferIds()
+			sceneContentRepository.getDirtyBufferIds()
 		)
 	}
 
@@ -257,76 +180,15 @@ class SceneEditorRepository(
 		_sceneListChannel.tryEmit(scenes)
 	}
 
-	fun onContentChanged(content: SceneContent, source: UpdateSource) {
-		editorScope.launch {
-			val update = SceneContentUpdate(content, source)
-			_contentFlow.emit(update)
-		}
-	}
+	/**
+	 * Transitional forwarders to [SceneContentRepository]. Repo-level readers (GlobalSearch,
+	 * sync) still call these; they are repointed directly at the content repo in a later pass
+	 * (REFACTOR doc, Phase D). The Component-facing API goes through SceneEditorService.
+	 */
+	fun getSceneBuffer(sceneDef: SceneItem): SceneBuffer? = sceneContentRepository.getSceneBuffer(sceneDef)
 
-	private fun updateSceneBufferContent(content: SceneContent, source: UpdateSource): Boolean {
-		if (source == UpdateSource.Editor) {
-			val newBuffer = SceneBuffer(content, dirty = true, source = source)
-			updateSceneBuffer(newBuffer)
-			return true
-		}
-
-		val oldBuffer = sceneBuffersLock.withLock { sceneBuffers[content.scene.id] }
-		return if (content != oldBuffer?.content || content.platformRepresentation?.stateCompare(oldBuffer.content.platformRepresentation) == true) {
-			val newBuffer = SceneBuffer(content, source != UpdateSource.Sync, source)
-			updateSceneBuffer(newBuffer)
-			true
-		} else {
-			false
-		}
-	}
-
-	private fun updateSceneBuffer(newBuffer: SceneBuffer) {
-		sceneBuffersLock.withLock {
-			sceneBuffers[newBuffer.content.scene.id] = newBuffer
-		}
-		_bufferUpdateFlow.tryEmit(newBuffer)
-	}
-
-	fun getSceneBuffer(sceneDef: SceneItem): SceneBuffer? = getSceneBuffer(sceneDef.id)
-	fun getSceneBuffer(sceneId: Int): SceneBuffer? = sceneBuffersLock.withLock { sceneBuffers[sceneId] }
-
-	private fun hasSceneBuffer(sceneDef: SceneItem): Boolean =
-		hasSceneBuffer(sceneDef.id)
-
-	private fun hasSceneBuffer(sceneId: Int): Boolean =
-		sceneBuffersLock.withLock { sceneBuffers.containsKey(sceneId) }
-
-	fun hasDirtyBuffer(sceneId: Int): Boolean =
-		getSceneBuffer(sceneId)?.dirty == true
-
-	fun hasDirtyBuffers(): Boolean = sceneBuffersLock.withLock {
-		sceneBuffers.any { it.value.dirty }
-	}
-
-	suspend fun storeAllBuffers() {
-		val dirtyScenes = sceneBuffersLock.withLock {
-			sceneBuffers.filter { it.value.dirty }.map { it.value.content.scene }
-		}
-		dirtyScenes.forEach { scene ->
-			storeSceneBuffer(scene)
-		}
-	}
-
-	fun discardSceneBuffer(sceneDef: SceneItem) {
-		val wasPresent = sceneBuffersLock.withLock {
-			if (sceneBuffers.containsKey(sceneDef.id)) {
-				sceneBuffers.remove(sceneDef.id)
-				true
-			} else {
-				false
-			}
-		}
-		if (wasPresent) {
-			clearTempScene(sceneDef)
-			loadSceneBuffer(sceneDef)
-		}
-	}
+	fun onContentChanged(content: SceneContent, source: UpdateSource) =
+		sceneContentRepository.onContentChanged(content, source)
 
 	private fun willNextSceneIncreaseMagnitude(parentId: Int?): Boolean {
 		val lastOrder = getLastOrderNumber(parentId)
@@ -405,19 +267,6 @@ class SceneEditorRepository(
 
 	fun validateSceneName(sceneName: String): CResult<Unit> =
 		ProjectsRepository.validateFileName(sceneName)
-
-	override fun onScopeClose(scope: Scope) {
-		contentUpdateJob?.cancel("Editor Closed")
-		runBlocking {
-			storeTempJobs.forEach { it.value.join() }
-		}
-		editorScope.cancel("Editor Closed")
-		// During a proper shutdown, we clear any remaining temp buffers that haven't been saved yet
-		sceneDatasource.getSceneTempBufferContents().forEach {
-			clearTempScene(it.scene)
-		}
-		Napier.i("SceneEditorRepository Closed.")
-	}
 
 	fun getPathSegments(sceneItem: SceneItem): List<Int> {
 		// Archived scenes have no hierarchy - they're flattened in .archived/
@@ -667,7 +516,7 @@ class SceneEditorRepository(
 
 		val newSummary = SceneSummary(
 			imTree,
-			getDirtyBufferIds()
+			sceneContentRepository.getDirtyBufferIds()
 		)
 		reloadScenes(newSummary)
 	}
@@ -1014,76 +863,6 @@ class SceneEditorRepository(
 		return success
 	}
 
-	fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer {
-		val cachedBuffer = getSceneBuffer(sceneItem)
-		return if (cachedBuffer != null) {
-			cachedBuffer
-		} else {
-			val scenePath = getSceneFilePath(sceneItem)
-			val content = sceneDatasource.loadSceneBuffer(scenePath)
-			writingSessionTracker.rememberBaseline(sceneItem.id, content)
-			val newBuffer = SceneBuffer(
-				SceneContent(sceneItem, content),
-				source = UpdateSource.Repository
-			)
-
-			updateSceneBuffer(newBuffer)
-
-			newBuffer
-		}
-	}
-
-	suspend fun loadSceneBufferAsync(sceneItem: SceneItem): SceneBuffer = withContext(dispatcherIo) {
-		loadSceneBuffer(sceneItem)
-	}
-
-	suspend fun storeSceneBuffer(sceneItem: SceneItem): Boolean {
-		val buffer = getSceneBuffer(sceneItem)
-		if (buffer == null) {
-			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
-			return false
-		}
-
-		markForSynchronization(sceneItem)
-
-		val scenePath = getSceneFilePath(sceneItem)
-		val success = sceneDatasource.storeSceneBuffer(buffer, scenePath)
-
-		if (success) {
-			val cleanBuffer = buffer.copy(dirty = false)
-			updateSceneBuffer(cleanBuffer)
-
-			clearTempScene(sceneItem)
-			statisticsRepository.markDirty()
-			writingSessionTracker.onSceneSaved(
-				sceneId = sceneItem.id,
-				newContent = buffer.content.coerceMarkdown(),
-				source = buffer.source,
-			)
-			if (buffer.source == UpdateSource.Editor) {
-				sceneMetadataRepository.recordSceneActivity(sceneItem.id)
-			}
-		}
-
-		return success
-	}
-
-	private suspend fun storeTempSceneBuffer(sceneItem: SceneItem): Boolean {
-		val buffer = getSceneBuffer(sceneItem)
-		if (buffer == null) {
-			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
-			return false
-		}
-		val success = sceneDatasource.storeTempSceneBuffer(buffer)
-		if (success && buffer.source == UpdateSource.Editor) {
-			sceneMetadataRepository.recordSceneActivity(sceneItem.id)
-			statisticsRepository.markDirty()
-		}
-		return success
-	}
-
-	private fun clearTempScene(sceneItem: SceneItem) = sceneDatasource.clearTempScene(sceneItem)
-
 	private fun getLastOrderNumber(parentId: Int?): Int {
 		val parentPath: HPath = if (parentId != null && parentId != 0) {
 			val parentItem =
@@ -1222,6 +1001,7 @@ class SceneEditorRepository(
 	}
 
 	companion object {
-		val BUFFER_COOL_DOWN = 500.milliseconds
+		// Kept for back-compat references; the autosave cool-down lives on SceneContentRepository.
+		val BUFFER_COOL_DOWN = SceneContentRepository.BUFFER_COOL_DOWN
 	}
 }

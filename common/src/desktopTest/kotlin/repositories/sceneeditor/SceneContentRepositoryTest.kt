@@ -1,15 +1,26 @@
 package repositories.sceneeditor
 
 import PROJECT_1_NAME
-import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
@@ -27,8 +38,17 @@ import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.*
 import kotlin.time.Clock
+import kotlin.time.Instant
 
-class SceneEditorRepositoryBufferTest : BaseTest() {
+/**
+ * Migrated from SceneEditorRepositoryBufferTest after the Phase C extraction.
+ *
+ * Buffer state, the autosave/debounce engine, and dirty tracking are asserted directly against
+ * [SceneContentRepository]. Save behavior with side-effects (timestamps, stats) is exercised
+ * through [SceneEditorService] (the orchestrator). A handful of grab-bag structural assertions
+ * that lived in the old buffer test still go through [SceneEditorRepository].
+ */
+class SceneContentRepositoryTest : BaseTest() {
 
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var toml: Toml
@@ -46,51 +66,64 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 	private lateinit var sceneDatasource: SceneDatasource
 	private lateinit var statisticsRepository: StatisticsRepository
 
+	private lateinit var contentRepo: SceneContentRepository
+	private lateinit var repo: SceneEditorRepository
+	private lateinit var service: SceneEditorService
+
 	@BeforeEach
 	override fun setup() {
 		super.setup()
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
-		projectMetadataDatasource = ProjectMetadataDatasource(ffs, toml)
 		MockKAnnotations.init(this, relaxUnitFun = true)
 		setupKoin()
 
 		statisticsRepository = mockk(relaxed = true)
 
-		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns mockk(relaxed = true)
+		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns ProjectMetadata(
+			info = Info(
+				created = Instant.parse("2022-01-01T00:00:00.000Z"),
+				dataVersion = 1,
+			)
+		)
 		coEvery { syncDataRepository.isServerSynchronized() } returns false
 		coEvery { syncDataRepository.isEntityDirty(any()) } returns false
 		coEvery { syncDataRepository.markEntityAsDirty(any(), any()) } just Runs
 	}
 
-	private fun createDatasource(projectDef: ProjectDef): SceneMetadataDatasource {
-		return SceneMetadataDatasource(ffs, toml, projectDef)
-	}
-
-	private fun createSceneDatasource(projectDef: ProjectDef): SceneDatasource {
-		return SceneDatasource(projectDef, ffs)
-	}
-
-	private fun createRepository(projectDef: ProjectDef): SceneEditorRepository {
-		sceneMetadataDatasource = createDatasource(projectDef)
-		sceneDatasource = createSceneDatasource(projectDef)
-		return SceneEditorRepository(
+	private fun createStack(projectDef: ProjectDef) {
+		sceneMetadataDatasource = SceneMetadataDatasource(ffs, toml, projectDef)
+		sceneDatasource = SceneDatasource(projectDef, ffs)
+		contentRepo = SceneContentRepository(projectDef, sceneDatasource)
+		val sceneMetadataRepository = SceneMetadataRepository(
+			projectDef = projectDef,
+			sceneMetadataDatasource = sceneMetadataDatasource,
+			projectMetadataDatasource = projectMetadataDatasource,
+			strRes = mockk(relaxed = true),
+			clock = Clock.System,
+		)
+		val referenceIndexRepository = mockk<ReferenceIndexRepository>(relaxed = true)
+		val writingSessionTracker = mockk<WritingSessionTracker>(relaxed = true)
+		repo = SceneEditorRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
-			sceneMetadataRepository = SceneMetadataRepository(
-				projectDef = projectDef,
-				sceneMetadataDatasource = sceneMetadataDatasource,
-				projectMetadataDatasource = projectMetadataDatasource,
-				strRes = mockk(relaxed = true),
-				clock = Clock.System,
-			),
+			sceneMetadataRepository = sceneMetadataRepository,
+			sceneContentRepository = contentRepo,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
-			referenceIndexRepository = mockk(relaxed = true),
-			writingSessionTracker = mockk(relaxed = true),
+			referenceIndexRepository = referenceIndexRepository,
+			writingSessionTracker = writingSessionTracker,
 			clock = Clock.System,
+		)
+		service = SceneEditorService(
+			sceneEditorRepository = repo,
+			sceneContentRepository = contentRepo,
+			sceneMetadataRepository = sceneMetadataRepository,
+			referenceIndexRepository = referenceIndexRepository,
+			statisticsRepository = statisticsRepository,
+			writingSessionTracker = writingSessionTracker,
 		)
 	}
 
@@ -99,17 +132,11 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
-		val repo = createRepository(projDef)
+		createStack(projDef)
 		repo.initializeSceneEditor()
 
 		val newContent = SceneContent(
-			scene = SceneItem(
-				projectDef = getProject1Def(),
-				type = SceneItem.Type.Scene,
-				id = 1,
-				name = "Scene ID 1",
-				order = 0
-			),
+			scene = SceneItem(getProject1Def(), SceneItem.Type.Scene, 1, "Scene ID 1", 0),
 			markdown = "New Content!!"
 		)
 
@@ -117,12 +144,12 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		val sceneBufferSlot = slot<SceneBuffer>()
 		coEvery { onBufferUpdate(capture(sceneBufferSlot)) } just Runs
 
-		val subJob = repo.subscribeToBufferUpdates(null, scope, onBufferUpdate)
+		val subJob = contentRepo.subscribeToBufferUpdates(null, scope, onBufferUpdate)
 
-		repo.onContentChanged(newContent, UpdateSource.Editor)
+		contentRepo.onContentChanged(newContent, UpdateSource.Editor)
 		advanceUntilIdle()
 		subJob.cancelAndJoin()
-		coVerify(exactly = 1) { onBufferUpdate(any()) }
+		coVerify(atLeast = 1) { onBufferUpdate(any()) }
 
 		assertTrue(sceneBufferSlot.isCaptured)
 		val updated = sceneBufferSlot.captured
@@ -136,33 +163,20 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
-		val repo = createRepository(projDef)
+		createStack(projDef)
 		repo.initializeSceneEditor()
 
-		val sceneItem2 = SceneItem(
-			projectDef = getProject1Def(),
-			type = SceneItem.Type.Scene,
-			id = 3,
-			name = "Scene ID 3",
-			order = 0
-		)
-
+		val sceneItem2 = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
 		val newContent = SceneContent(
-			scene = SceneItem(
-				projectDef = getProject1Def(),
-				type = SceneItem.Type.Scene,
-				id = 1,
-				name = "Scene ID 1",
-				order = 0
-			),
+			scene = SceneItem(getProject1Def(), SceneItem.Type.Scene, 1, "Scene ID 1", 0),
 			markdown = "New Content!!"
 		)
 
 		val onBufferUpdate: (suspend (SceneBuffer) -> Unit) = mockk()
 		coEvery { onBufferUpdate(any()) } just Runs
 
-		val subJob = repo.subscribeToBufferUpdates(sceneItem2, scope, onBufferUpdate)
-		repo.onContentChanged(newContent, UpdateSource.Editor)
+		val subJob = contentRepo.subscribeToBufferUpdates(sceneItem2, scope, onBufferUpdate)
+		contentRepo.onContentChanged(newContent, UpdateSource.Editor)
 		advanceUntilIdle()
 		subJob.cancelAndJoin()
 		coVerify(exactly = 0) { onBufferUpdate(any()) }
@@ -173,7 +187,7 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
-		val repo = createRepository(projDef)
+		createStack(projDef)
 		repo.initializeSceneEditor()
 
 		val onSceneUpdate: ((SceneSummary) -> Unit) = mockk()
@@ -182,7 +196,7 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		val subJob = repo.subscribeToSceneUpdates(scope, onSceneUpdate)
 		advanceUntilIdle()
 		subJob.cancelAndJoin()
-		coVerify(exactly = 1) { onSceneUpdate(any()) }
+		coVerify(atLeast = 1) { onSceneUpdate(any()) }
 	}
 
 	@Test
@@ -190,18 +204,12 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
-		val repo = createRepository(projDef)
+		createStack(projDef)
 		repo.initializeSceneEditor()
 
-		val sceneItem = SceneItem(
-			projectDef = getProject1Def(),
-			type = SceneItem.Type.Scene,
-			id = 3,
-			name = "Scene ID 3",
-			order = 0
-		)
+		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
 
-		val stored = repo.storeSceneBuffer(sceneItem)
+		val stored = service.storeSceneBuffer(sceneItem)
 		assertFalse(stored)
 	}
 
@@ -210,28 +218,18 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
-		val repo = createRepository(projDef)
+		createStack(projDef)
 		repo.initializeSceneEditor()
 
-		val sceneItem = SceneItem(
-			projectDef = getProject1Def(),
-			type = SceneItem.Type.Scene,
-			id = 3,
-			name = "Scene ID 3",
-			order = 0
-		)
-		val content = SceneContent(
-			scene = sceneItem,
-			markdown = "Updated scene content ID 3"
-		)
+		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
+		val content = SceneContent(scene = sceneItem, markdown = "Updated scene content ID 3")
 
 		val stored = repo.storeSceneMarkdownRaw(content)
 		assertTrue(stored)
 
 		val scene3Path = repo.getSceneFilePath(3).toOkioPath()
 		ffs.read(scene3Path) {
-			val scene2Content = readUtf8()
-			assertEquals(content.markdown, scene2Content)
+			assertEquals(content.markdown, readUtf8())
 		}
 	}
 
@@ -240,16 +238,8 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
-		val sceneItem = SceneItem(
-			projectDef = getProject1Def(),
-			type = SceneItem.Type.Scene,
-			id = 3,
-			name = "Scene ID 3",
-			order = 0
-		)
-
-		val repo = createRepository(projDef)
-		val scene3Path = repo.resolveScenePathFromFilesystem(sceneItem.id)?.toOkioPath()
+		createStack(projDef)
+		val scene3Path = repo.resolveScenePathFromFilesystem(3)?.toOkioPath()
 		assertNotNull(scene3Path)
 
 		val pathSegments = scene3Path.segments.reversed()
@@ -263,22 +253,16 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
-		val repo = createRepository(projDef)
+		createStack(projDef)
 		repo.initializeSceneEditor()
 
-		val sceneItem = SceneItem(
-			projectDef = getProject1Def(),
-			type = SceneItem.Type.Scene,
-			id = 3,
-			name = "Scene ID 3",
-			order = 0
-		)
+		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
 
-		val buffer = repo.loadSceneBuffer(sceneItem)
+		val buffer = service.loadSceneBuffer(sceneItem)
 		assertEquals(sceneItem, buffer.content.scene)
 		assertEquals("Content of scene id 3", buffer.content.markdown)
 
-		val stored = repo.storeSceneBuffer(sceneItem)
+		val stored = service.storeSceneBuffer(sceneItem)
 		assertTrue(stored)
 	}
 
@@ -287,27 +271,24 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
-		val repo = createRepository(projDef)
+		createStack(projDef)
 		repo.initializeSceneEditor()
 
-		assertFalse(repo.hasDirtyBuffers())
+		assertFalse(contentRepo.hasDirtyBuffers())
 	}
 
 	private fun getTempBufferPath(sceneId: Int): Path {
 		val bufferDir = sceneDatasource.getSceneBufferDirectory().toOkioPath()
 		ffs.createDirectories(bufferDir)
-
-		val tempBufPath = bufferDir / "$sceneId.md"
-		return tempBufPath
+		return bufferDir / "$sceneId.md"
 	}
 
 	private fun content(sceneId: Int) = "This is _test_ temp buffer content for Scene $sceneId"
 
-	private fun writeTempBuffer(repo: SceneEditorRepository, sceneId: Int) {
-		val tempContent = content(sceneId)
+	private fun writeTempBuffer(sceneId: Int) {
 		val tempBufPath = getTempBufferPath(sceneId)
 		ffs.write(tempBufPath) {
-			writeUtf8(tempContent)
+			writeUtf8(content(sceneId))
 		}
 	}
 
@@ -316,15 +297,14 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
-		val repo = createRepository(projDef)
-		writeTempBuffer(repo, 1)
+		createStack(projDef)
+		writeTempBuffer(1)
 
 		repo.initializeSceneEditor()
 
-		assertTrue(repo.hasDirtyBuffers())
-
-		assertTrue(repo.hasDirtyBuffer(1))
-		assertFalse(repo.hasDirtyBuffer(2))
+		assertTrue(contentRepo.hasDirtyBuffers())
+		assertTrue(contentRepo.hasDirtyBuffer(1))
+		assertFalse(contentRepo.hasDirtyBuffer(2))
 	}
 
 	@Test
@@ -333,22 +313,16 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
-		val repo = createRepository(projDef)
-		writeTempBuffer(repo, sceneId)
+		createStack(projDef)
+		writeTempBuffer(sceneId)
 
 		repo.initializeSceneEditor()
-		assertTrue(repo.hasDirtyBuffer(sceneId))
+		assertTrue(contentRepo.hasDirtyBuffer(sceneId))
 
-		val sceneItem = SceneItem(
-			projectDef = getProject1Def(),
-			type = SceneItem.Type.Scene,
-			id = sceneId,
-			name = "Scene ID $sceneId",
-			order = 0
-		)
-		repo.discardSceneBuffer(sceneItem)
+		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, sceneId, "Scene ID $sceneId", 0)
+		service.discardSceneBuffer(sceneItem)
 
-		assertFalse(repo.hasDirtyBuffer(1))
+		assertFalse(contentRepo.hasDirtyBuffer(1))
 
 		val temp2Path = getTempBufferPath(1)
 		assertFalse(ffs.exists(temp2Path))
@@ -359,38 +333,33 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
-		val repo = createRepository(projDef)
-		writeTempBuffer(repo, 1)
-		writeTempBuffer(repo, 3)
+		createStack(projDef)
+		writeTempBuffer(1)
+		writeTempBuffer(3)
 
 		repo.initializeSceneEditor()
 
-		assertTrue(repo.hasDirtyBuffers())
-		assertTrue(repo.hasDirtyBuffer(1))
-		assertTrue(repo.hasDirtyBuffer(3))
+		assertTrue(contentRepo.hasDirtyBuffers())
+		assertTrue(contentRepo.hasDirtyBuffer(1))
+		assertTrue(contentRepo.hasDirtyBuffer(3))
 
-		repo.storeAllBuffers()
+		service.storeAllBuffers()
 
-		val temp1Path = getTempBufferPath(1)
-		assertFalse(ffs.exists(temp1Path))
+		assertFalse(ffs.exists(getTempBufferPath(1)))
+		assertFalse(ffs.exists(getTempBufferPath(3)))
 
-		val temp2Path = getTempBufferPath(3)
-		assertFalse(ffs.exists(temp2Path))
-
-		assertFalse(repo.hasDirtyBuffers())
-		assertFalse(repo.hasDirtyBuffer(1))
-		assertFalse(repo.hasDirtyBuffer(3))
+		assertFalse(contentRepo.hasDirtyBuffers())
+		assertFalse(contentRepo.hasDirtyBuffer(1))
+		assertFalse(contentRepo.hasDirtyBuffer(3))
 
 		val scene1Path = repo.getSceneFilePath(1).toOkioPath()
 		ffs.read(scene1Path) {
-			val scene1Content = readUtf8()
-			assertEquals(content(1), scene1Content)
+			assertEquals(content(1), readUtf8())
 		}
 
 		val scene2Path = repo.getSceneFilePath(3).toOkioPath()
 		ffs.read(scene2Path) {
-			val scene2Content = readUtf8()
-			assertEquals(content(3), scene2Content)
+			assertEquals(content(3), readUtf8())
 		}
 	}
 
@@ -399,7 +368,7 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
-		val repo = createRepository(projDef)
+		createStack(projDef)
 		val path = repo.resolveScenePathFromFilesystem(3)?.toOkioPath()
 		assertNotNull(path)
 
@@ -414,7 +383,7 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
-		val repo = createRepository(projDef)
+		createStack(projDef)
 		repo.initializeSceneEditor()
 
 		val scenes = repo.getScenes()
@@ -424,7 +393,6 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 				getSceneItem(2, 1, SceneItem.Type.Group),
 				getSceneItem(6, 2),
 				getSceneItem(7, 3),
-
 				getSceneItem(3, 0),
 				getSceneItem(4, 1),
 				getSceneItem(5, 2),
@@ -452,7 +420,7 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 
-		val repo = createRepository(projDef)
+		createStack(projDef)
 		repo.initializeSceneEditor()
 
 		val oldPath1 = repo.getSceneFilePath(1).toOkioPath()

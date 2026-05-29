@@ -5,19 +5,30 @@ import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.koin.core.component.KoinComponent
+import org.koin.core.scope.Scope
+import org.koin.core.scope.ScopeCallback
 
 /**
  * The single Component-facing API for the scene-editing domain. Components and UI
@@ -28,19 +39,41 @@ import kotlinx.coroutines.flow.SharedFlow
  * read delegations. Real logic and state live in the repositories — this is a
  * wide-but-thin door, not a god object.
  *
- * Phase A: every member delegates to the existing [SceneEditorRepository]. As the
- * monolith is carved into SceneRepository / SceneContentRepository /
- * SceneMetadataRepository, these delegations are repointed behind this stable API.
+ * It composes [SceneRepository] (tree/paths/structure), [SceneContentRepository]
+ * (buffers/autosave), and [SceneMetadataRepository] (metadata), and applies the
+ * cross-cutting side-effects (statistics, writing-activity, reference index) that the
+ * data repositories deliberately do not reach up to perform.
  */
 class SceneEditorService(
 	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneContentRepository: SceneContentRepository,
 	private val sceneMetadataRepository: SceneMetadataRepository,
 	private val referenceIndexRepository: ReferenceIndexRepository,
-) : ProjectScoped {
+	private val statisticsRepository: StatisticsRepository,
+	private val writingSessionTracker: WritingSessionTracker,
+) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope: ProjectDefScope get() = sceneEditorRepository.projectScope
 
 	val projectDef: ProjectDef get() = sceneEditorRepository.projectDef
+
+	private val dispatcherDefault by injectDefaultDispatcher()
+	private val dispatcherIo by injectIoDispatcher()
+	private val serviceScope = CoroutineScope(dispatcherDefault)
+
+	init {
+		projectScope.scope.registerCallback(this)
+		// Autosave persists from the content repo's debounce engine fire here; run the
+		// save side-effects (timestamp + stats) the content repo deliberately doesn't.
+		serviceScope.launch {
+			sceneContentRepository.bufferPersistedFlow.collect { event ->
+				if (event.source == UpdateSource.Editor) {
+					sceneMetadataRepository.recordSceneActivity(event.sceneId)
+					statisticsRepository.markDirty()
+				}
+			}
+		}
+	}
 
 	// region Writes / orchestration
 
@@ -97,15 +130,51 @@ class SceneEditorService(
 		}
 	}
 
-	suspend fun storeSceneBuffer(sceneItem: SceneItem): Boolean =
-		sceneEditorRepository.storeSceneBuffer(sceneItem)
+	/**
+	 * Orchestrates a full buffer save: mark for sync, resolve the on-disk path, persist via
+	 * [SceneContentRepository], then apply save side-effects (stats, writing-activity, timestamp).
+	 */
+	suspend fun storeSceneBuffer(sceneItem: SceneItem): Boolean {
+		val buffer = sceneContentRepository.getSceneBuffer(sceneItem)
+		if (buffer == null) {
+			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
+			return false
+		}
 
-	suspend fun storeAllBuffers() = sceneEditorRepository.storeAllBuffers()
+		sceneEditorRepository.markSceneForSynchronization(sceneItem)
 
-	fun discardSceneBuffer(sceneDef: SceneItem) = sceneEditorRepository.discardSceneBuffer(sceneDef)
+		val scenePath = sceneEditorRepository.getSceneFilePath(sceneItem)
+		val success = sceneContentRepository.persistBuffer(buffer, scenePath)
+
+		if (success) {
+			statisticsRepository.markDirty()
+			writingSessionTracker.onSceneSaved(
+				sceneId = sceneItem.id,
+				newContent = buffer.content.coerceMarkdown(),
+				source = buffer.source,
+			)
+			if (buffer.source == UpdateSource.Editor) {
+				sceneMetadataRepository.recordSceneActivity(sceneItem.id)
+			}
+		}
+
+		return success
+	}
+
+	suspend fun storeAllBuffers() {
+		sceneContentRepository.forEachDirtyBuffer { scene -> storeSceneBuffer(scene) }
+	}
+
+	fun discardSceneBuffer(sceneDef: SceneItem) {
+		val scenePath = sceneEditorRepository.getSceneFilePath(sceneDef)
+		val reloaded = sceneContentRepository.discardBuffer(sceneDef, scenePath)
+		if (reloaded != null) {
+			writingSessionTracker.rememberBaseline(sceneDef.id, reloaded.content.coerceMarkdown())
+		}
+	}
 
 	fun onContentChanged(content: SceneContent, source: UpdateSource) =
-		sceneEditorRepository.onContentChanged(content, source)
+		sceneContentRepository.onContentChanged(content, source)
 
 	suspend fun storeSceneMarkdownRaw(sceneItem: SceneContent, scenePath: HPath? = null): Boolean =
 		if (scenePath != null) {
@@ -134,7 +203,7 @@ class SceneEditorService(
 		sceneDef: SceneItem?,
 		scope: CoroutineScope,
 		onBufferUpdate: suspend (SceneBuffer) -> Unit,
-	): Job = sceneEditorRepository.subscribeToBufferUpdates(sceneDef, scope, onBufferUpdate)
+	): Job = sceneContentRepository.subscribeToBufferUpdates(sceneDef, scope, onBufferUpdate)
 
 	// endregion
 
@@ -150,15 +219,27 @@ class SceneEditorService(
 	fun getArchivedScenes(): List<SceneItem> = sceneEditorRepository.getArchivedScenes()
 
 	fun getSceneBuffer(sceneDef: SceneItem): SceneBuffer? =
-		sceneEditorRepository.getSceneBuffer(sceneDef)
+		sceneContentRepository.getSceneBuffer(sceneDef)
 
-	fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer =
-		sceneEditorRepository.loadSceneBuffer(sceneItem)
+	/**
+	 * Returns the cached buffer, or loads it from disk and remembers a writing-session baseline
+	 * for the freshly-loaded content.
+	 */
+	fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer {
+		val cached = sceneContentRepository.getSceneBuffer(sceneItem)
+		if (cached != null) return cached
 
-	suspend fun loadSceneBufferAsync(sceneItem: SceneItem): SceneBuffer =
-		sceneEditorRepository.loadSceneBufferAsync(sceneItem)
+		val scenePath = sceneEditorRepository.getSceneFilePath(sceneItem)
+		val buffer = sceneContentRepository.loadBuffer(sceneItem, scenePath)
+		writingSessionTracker.rememberBaseline(sceneItem.id, buffer.content.coerceMarkdown())
+		return buffer
+	}
 
-	fun hasDirtyBuffers(): Boolean = sceneEditorRepository.hasDirtyBuffers()
+	suspend fun loadSceneBufferAsync(sceneItem: SceneItem): SceneBuffer = withContext(dispatcherIo) {
+		loadSceneBuffer(sceneItem)
+	}
+
+	fun hasDirtyBuffers(): Boolean = sceneContentRepository.hasDirtyBuffers()
 
 	suspend fun getMetadata(): ProjectMetadata = sceneMetadataRepository.getMetadata()
 
@@ -190,4 +271,8 @@ class SceneEditorService(
 		sceneEditorRepository.validateSceneName(sceneName)
 
 	// endregion
+
+	override fun onScopeClose(scope: Scope) {
+		serviceScope.cancel("Editor Closed")
+	}
 }

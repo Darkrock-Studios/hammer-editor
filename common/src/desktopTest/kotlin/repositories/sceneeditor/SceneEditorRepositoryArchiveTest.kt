@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
@@ -47,6 +48,7 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 	private lateinit var metadataRepository: ProjectMetadataDatasource
 	private lateinit var metadataDatasource: SceneMetadataDatasource
 	private lateinit var sceneDatasource: SceneDatasource
+	private lateinit var sceneContentRepository: SceneContentRepository
 	private lateinit var statisticsRepository: StatisticsRepository
 	private var nextId = -1
 
@@ -97,7 +99,7 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 	@AfterEach
 	override fun tearDown() {
 		super.tearDown()
-		repo.onScopeClose(mockk())
+		sceneContentRepository.onScopeClose(mockk())
 		ffs.checkNoOpenFiles()
 	}
 
@@ -112,6 +114,10 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 
 		createProject(ffs, projectName)
 
+		sceneContentRepository = SceneContentRepository(
+			projectDef = projectDef,
+			sceneDatasource = sceneDatasource,
+		)
 		repo = SceneEditorRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
@@ -123,6 +129,7 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 				strRes = mockk(relaxed = true),
 				clock = Clock.System,
 			),
+			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = metadataDatasource,
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,

@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data
 
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
@@ -52,6 +53,10 @@ suspend fun initializeProjectScope(projectDef: ProjectDef) {
 	getKoin().getScopeOrNull(defScope.getScopeId())?.let { projScope ->
 		val projectEditor: SceneEditorRepository = projScope.get { parametersOf(projectDef) }
 		projectEditor.initializeSceneEditor()
+
+		// Eagerly create the service so its autosave side-effect subscription is active from
+		// project open (it subscribes to SceneContentRepository's buffer-persisted signal).
+		projScope.get<SceneEditorService>()
 
 		val timeLineRepository: TimeLineRepository = projScope.get { parametersOf(projectDef) }
 		timeLineRepository.initialize()

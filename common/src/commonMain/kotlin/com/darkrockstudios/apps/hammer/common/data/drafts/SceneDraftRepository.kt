@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
@@ -12,7 +12,7 @@ import kotlin.time.Clock
 
 class SceneDraftRepository(
 	projectDef: ProjectDef,
-	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneContentRepository: SceneContentRepository,
 	private val datasource: SceneDraftsDatasource,
 	private val clock: Clock,
 ) : ProjectScoped {
@@ -51,15 +51,7 @@ class SceneDraftRepository(
 			draftName = draftName
 		)
 
-		val existingBuffer = sceneEditorRepository.getSceneBuffer(sceneItem.id)
-		val content: String = if (existingBuffer != null) {
-			Napier.i { "Draft content loaded from memory" }
-			existingBuffer.content.coerceMarkdown()
-		} else {
-			Napier.i { "Draft content loaded from disk" }
-			val loadedBuffer = sceneEditorRepository.loadSceneBuffer(sceneItem)
-			loadedBuffer.content.coerceMarkdown()
-		}
+		val content: String = sceneContentRepository.getCurrentSceneContent(sceneItem)
 
 		datasource.storeDraft(newDef, content)
 

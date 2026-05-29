@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
@@ -48,6 +49,7 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 	private lateinit var sceneMetadataDatasource: SceneMetadataDatasource
 	private lateinit var sceneMetadataRepository: SceneMetadataRepository
 	private lateinit var sceneDatasource: SceneDatasource
+	private lateinit var sceneContentRepository: SceneContentRepository
 	private lateinit var statisticsRepository: StatisticsRepository
 	private var nextId = -1
 	private lateinit var toml: Toml
@@ -146,11 +148,16 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 			strRes = mockk(relaxed = true),
 			clock = Clock.System,
 		)
+		sceneContentRepository = SceneContentRepository(
+			projectDef = projectDef,
+			sceneDatasource = sceneDatasource,
+		)
 		return SceneEditorRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
 			sceneMetadataRepository = sceneMetadataRepository,
+			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
@@ -190,7 +197,7 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 
 		assertEquals(projectMetadata, metadata)
 
-		repo.onScopeClose(mockk())
+		sceneContentRepository.onScopeClose(mockk())
 	}
 
 	companion object {
