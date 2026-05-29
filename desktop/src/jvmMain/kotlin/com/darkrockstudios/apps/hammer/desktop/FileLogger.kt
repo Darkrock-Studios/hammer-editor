@@ -24,6 +24,9 @@ class FileLogger(
 	private val logsDir = getLogsDirectory()
 	private val logFileName = getLogFilename()
 	private val appendBuffer: BufferedSink
+	private val writeLock = Any()
+	@Volatile
+	private var closed = false
 	private val messageChannel = Channel<LogRecord>(
 		capacity = Channel.UNLIMITED,
 		onUndeliveredElement = {
@@ -59,19 +62,29 @@ class FileLogger(
 	}
 
 	private fun writeLogMessage(record: LogRecord) {
-		appendBuffer.writeUtf8(
-			"${record.instant} | ${record.message}\n"
-		)
+		synchronized(writeLock) {
+			if (closed) return
+			appendBuffer.writeUtf8(
+				"${record.instant} | ${record.message}\n"
+			)
+		}
 	}
 
 	override fun close() {
 		super.close()
-		appendBuffer.close()
+		synchronized(writeLock) {
+			if (closed) return
+			closed = true
+			messageChannel.close()
+			appendBuffer.close()
+		}
 	}
 
 	override fun flush() {
 		super.flush()
-		appendBuffer.flush()
+		synchronized(writeLock) {
+			if (!closed) appendBuffer.flush()
+		}
 	}
 
 	private fun createLogFile(): FileHandle = fileSystem.openReadWrite(logFileName)

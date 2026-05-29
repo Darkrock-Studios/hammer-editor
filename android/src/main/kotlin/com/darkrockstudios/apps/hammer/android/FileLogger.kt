@@ -30,6 +30,9 @@ class FileLogger(
 	private val logsDir = getLogsDirectory()
 	private val logFileName = getLogFilename()
 	private val appendBuffer: BufferedSink
+	private val writeLock = Any()
+	@Volatile
+	private var closed = false
 	private val messageChannel = Channel<String>(
 		capacity = Channel.UNLIMITED,
 		onUndeliveredElement = {
@@ -50,8 +53,12 @@ class FileLogger(
 
 	private suspend fun watchForLogs() {
 		messageChannel.consumeEach { message ->
-			appendBuffer.writeUtf8(message)
-			appendBuffer.flush()
+			synchronized(writeLock) {
+				if (!closed) {
+					appendBuffer.writeUtf8(message)
+					appendBuffer.flush()
+				}
+			}
 		}
 	}
 
@@ -73,7 +80,12 @@ class FileLogger(
 	}
 
 	fun close() {
-		appendBuffer.close()
+		synchronized(writeLock) {
+			if (closed) return
+			closed = true
+			messageChannel.close()
+			appendBuffer.close()
+		}
 	}
 
 	private fun createLogFile(): FileHandle = fileSystem.openReadWrite(logFileName)
