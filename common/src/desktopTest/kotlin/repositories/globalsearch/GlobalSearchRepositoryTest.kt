@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsearchrepository.Global
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -38,7 +38,7 @@ class GlobalSearchRepositoryTest : BaseTest() {
 
 	private val projectDef = ProjectDef(name = "Test", path = HPath("/projects/Test", "Test", false))
 
-	private lateinit var sceneEditor: SceneEditorRepository
+	private lateinit var sceneEditor: SceneRepository
 	private lateinit var notes: NotesRepository
 	private lateinit var encyclopedia: EncyclopediaRepository
 	private lateinit var timeLine: TimeLineRepository

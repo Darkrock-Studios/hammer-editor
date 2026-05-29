@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.references.SceneMetadataReferenceRemapper
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
@@ -37,7 +37,7 @@ class SceneMetadataReferenceRemapperTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var toml: Toml
 	private lateinit var metadataDatasource: SceneMetadataDatasource
-	private lateinit var sceneEditor: SceneEditorRepository
+	private lateinit var sceneEditor: SceneRepository
 	private lateinit var indexDatasource: ReferenceIndexDatasource
 	private lateinit var indexRepository: ReferenceIndexRepository
 

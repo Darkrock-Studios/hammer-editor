@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.SceneItem.Companion.ROOT_ID
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
@@ -37,7 +37,7 @@ class SceneSynchronizerTest : BaseTest() {
 	private val def = getProject1Def()
 
 	@MockK
-	private lateinit var sceneEditorRepository: SceneEditorRepository
+	private lateinit var sceneEditorRepository: SceneRepository
 
 	@MockK
 	private lateinit var sceneEditorService: SceneEditorService

@@ -15,7 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsR
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
@@ -46,7 +46,7 @@ import kotlin.time.Instant
  * Buffer state, the autosave/debounce engine, and dirty tracking are asserted directly against
  * [SceneContentRepository]. Save behavior with side-effects (timestamps, stats) is exercised
  * through [SceneEditorService] (the orchestrator). A handful of grab-bag structural assertions
- * that lived in the old buffer test still go through [SceneEditorRepository].
+ * that lived in the old buffer test still go through [SceneRepository].
  */
 class SceneContentRepositoryTest : BaseTest() {
 
@@ -67,7 +67,7 @@ class SceneContentRepositoryTest : BaseTest() {
 	private lateinit var statisticsRepository: StatisticsRepository
 
 	private lateinit var contentRepo: SceneContentRepository
-	private lateinit var repo: SceneEditorRepository
+	private lateinit var repo: SceneRepository
 	private lateinit var service: SceneEditorService
 
 	@BeforeEach
@@ -104,7 +104,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		)
 		val referenceIndexRepository = mockk<ReferenceIndexRepository>(relaxed = true)
 		val writingSessionTracker = mockk<WritingSessionTracker>(relaxed = true)
-		repo = SceneEditorRepository(
+		repo = SceneRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,

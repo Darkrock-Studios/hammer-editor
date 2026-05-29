@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.references.*
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
@@ -37,7 +37,7 @@ class ReferenceIndexServiceTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var datasource: ReferenceIndexDatasource
 	private lateinit var repository: ReferenceIndexRepository
-	private lateinit var sceneEditor: SceneEditorRepository
+	private lateinit var sceneEditor: SceneRepository
 	private lateinit var encyclopedia: EncyclopediaRepository
 
 	@BeforeEach

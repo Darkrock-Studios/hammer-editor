@@ -12,7 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
@@ -43,7 +43,7 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 	private lateinit var projectsRepo: ProjectsRepository
 	private lateinit var syncDataRepository: SyncDataRepository
 	private lateinit var projectDef: ProjectDef
-	private lateinit var repo: SceneEditorRepository
+	private lateinit var repo: SceneRepository
 	private lateinit var idRepository: IdRepository
 	private lateinit var metadataRepository: ProjectMetadataDatasource
 	private lateinit var metadataDatasource: SceneMetadataDatasource
@@ -118,7 +118,7 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 			projectDef = projectDef,
 			sceneDatasource = sceneDatasource,
 		)
-		repo = SceneEditorRepository(
+		repo = SceneRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,

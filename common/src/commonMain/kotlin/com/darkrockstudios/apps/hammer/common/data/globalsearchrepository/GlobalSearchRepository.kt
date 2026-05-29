@@ -13,7 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
@@ -29,7 +29,7 @@ import kotlin.coroutines.CoroutineContext
 
 class GlobalSearchRepository(
 	projectDef: ProjectDef,
-	private val sceneEditor: SceneEditorRepository,
+	private val sceneEditor: SceneRepository,
 	private val notes: NotesRepository,
 	private val encyclopedia: EncyclopediaRepository,
 	private val timeLine: TimeLineRepository,

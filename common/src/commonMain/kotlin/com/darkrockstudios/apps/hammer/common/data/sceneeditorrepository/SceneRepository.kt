@@ -30,7 +30,7 @@ import okio.Path
 import org.koin.core.component.KoinComponent
 import kotlin.time.Clock
 
-class SceneEditorRepository(
+class SceneRepository(
 	val projectDef: ProjectDef,
 	private val idRepository: IdRepository,
 	private val syncDataRepository: SyncDataRepository,
@@ -143,7 +143,7 @@ class SceneEditorRepository(
 	/**
 	 * This needs to be called after instantiation
 	 */
-	suspend fun initializeSceneEditor(): SceneEditorRepository {
+	suspend fun initializeSceneEditor(): SceneRepository {
 		val root = sceneDatasource.loadSceneTree(rootScene)
 		sceneTree.setRoot(root)
 

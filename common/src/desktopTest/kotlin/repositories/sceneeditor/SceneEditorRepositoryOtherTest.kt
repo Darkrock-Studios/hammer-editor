@@ -17,7 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.Validation
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
@@ -54,7 +54,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	private lateinit var projectsRepo: ProjectsRepository
 	private lateinit var syncDataRepository: SyncDataRepository
 	private lateinit var projectDef: ProjectDef
-	private lateinit var repo: SceneEditorRepository
+	private lateinit var repo: SceneRepository
 	private lateinit var idRepository: IdRepository
 	private lateinit var metadataRepository: ProjectMetadataDatasource
 	private lateinit var metadataDatasource: SceneMetadataDatasource
@@ -74,7 +74,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	}
 
 	private fun verifyTreeAndFilesystem() {
-		val tree = repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
 
 		// Verify tree nodes match file system nodes
 		tree.filter { !it.value.isRootScene }.forEach { node ->
@@ -161,7 +161,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 			projectDef = projectDef,
 			sceneDatasource = sceneDatasource,
 		)
-		repo = SceneEditorRepository(
+		repo = SceneRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
@@ -202,7 +202,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 
 		verifyTreeAndFilesystem()
 
-		val tree = repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
 		tree.forEachIndexed { index, node ->
 			when (index) {
 				0 -> assertTrue(node.value.isRootScene)
@@ -258,7 +258,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 			projectDef = projectDef,
 			sceneDatasource = spy,
 		)
-		repo = SceneEditorRepository(
+		repo = SceneRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
@@ -295,7 +295,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 
 		repo.initializeSceneEditor()
 
-		val tree = repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
 		val idsInTree = tree
 			.filter { !it.value.isRootScene }
 			.map { it.value.id }

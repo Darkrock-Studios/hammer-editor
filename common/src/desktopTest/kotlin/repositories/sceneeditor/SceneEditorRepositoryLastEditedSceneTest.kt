@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
@@ -74,7 +74,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 		coEvery { syncDataRepository.markEntityAsDirty(any(), any()) } just Runs
 	}
 
-	private fun createRepository(projectDef: ProjectDef): SceneEditorRepository {
+	private fun createRepository(projectDef: ProjectDef): SceneRepository {
 		sceneMetadataDatasource = SceneMetadataDatasource(ffs, toml, projectDef)
 		sceneDatasource = SceneDatasource(projectDef, ffs)
 		val sceneMetadataRepository = SceneMetadataRepository(
@@ -90,7 +90,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 		)
 		val writingSessionTracker = mockk<WritingSessionTracker>(relaxed = true)
 		val referenceIndexRepository = mockk<com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository>(relaxed = true)
-		val repo = SceneEditorRepository(
+		val repo = SceneRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,

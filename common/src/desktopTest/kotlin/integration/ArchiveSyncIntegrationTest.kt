@@ -16,7 +16,7 @@ import kotlin.test.assertTrue
 /**
  * Integration tests for archive functionality with sync.
  *
- * These tests use real implementations of SceneEditorRepository and SceneDatasource
+ * These tests use real implementations of SceneRepository and SceneDatasource
  * with FakeFileSystem, testing the actual interaction between components.
  *
  * These tests would have caught the "Tree node not found" bugs that occurred when
@@ -24,7 +24,7 @@ import kotlin.test.assertTrue
  * mocking everything.
  *
  * Note: Some synchronizer tests that require loadSceneMetadata are excluded because
- * SceneEditorRepository.loadSceneMetadata calls Compose resources (getString) which
+ * SceneRepository.loadSceneMetadata calls Compose resources (getString) which
  * requires native Skiko libraries not available in unit tests. Those code paths are
  * tested via the repository-level tests which don't hit resource loading.
  */

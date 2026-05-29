@@ -45,7 +45,7 @@ import org.koin.core.scope.ScopeCallback
  * data repositories deliberately do not reach up to perform.
  */
 class SceneEditorService(
-	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneEditorRepository: SceneRepository,
 	private val sceneContentRepository: SceneContentRepository,
 	private val sceneMetadataRepository: SceneMetadataRepository,
 	private val referenceIndexRepository: ReferenceIndexRepository,

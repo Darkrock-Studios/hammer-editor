@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
@@ -36,7 +36,7 @@ import kotlin.time.Instant
 class StatisticsService(
 	projectDef: ProjectDef,
 	private val statisticsRepository: StatisticsRepository,
-	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneEditorRepository: SceneRepository,
 	private val sceneMetadataDatasource: SceneMetadataDatasource,
 	private val encyclopediaRepository: EncyclopediaRepository,
 	private val notesRepository: NotesRepository,
@@ -271,6 +271,6 @@ class StatisticsService(
 /**
  * Extension function to count words in a scene.
  */
-fun SceneEditorRepository.countWordsInScene(sceneItem: SceneItem): Int {
+fun SceneRepository.countWordsInScene(sceneItem: SceneItem): Int {
 	return countWords(loadSceneMarkdownRaw(sceneItem))
 }

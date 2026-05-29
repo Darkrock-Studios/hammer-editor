@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
@@ -41,7 +41,7 @@ class TagIndexServiceTest : BaseTest() {
 	private lateinit var encyclopedia: EncyclopediaRepository
 	private lateinit var notes: NotesRepository
 	private lateinit var timeline: TimeLineRepository
-	private lateinit var sceneEditor: SceneEditorRepository
+	private lateinit var sceneEditor: SceneRepository
 	private lateinit var sceneMetadata: SceneMetadataRepository
 
 	private lateinit var entryContentChangedFlow: MutableSharedFlow<Unit>

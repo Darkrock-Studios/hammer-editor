@@ -17,7 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
@@ -76,7 +76,7 @@ class SceneEditorServiceTest : BaseTest() {
 	private lateinit var referenceIndexRepository: ReferenceIndexRepository
 	private lateinit var writingSessionTracker: WritingSessionTracker
 
-	private lateinit var repo: SceneEditorRepository
+	private lateinit var repo: SceneRepository
 	private lateinit var sceneMetadataRepository: SceneMetadataRepository
 	private lateinit var sceneContentRepository: SceneContentRepository
 
@@ -127,7 +127,7 @@ class SceneEditorServiceTest : BaseTest() {
 			projectDef = projectDef,
 			sceneDatasource = sceneDatasource,
 		)
-		repo = SceneEditorRepository(
+		repo = SceneRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
@@ -581,7 +581,7 @@ class SceneEditorServiceTest : BaseTest() {
 			service.loadSceneBuffer(scene)
 
 			service.onContentChanged(SceneContent(scene, "Autosaved body"), UpdateSource.Editor)
-			advanceTimeBy(SceneEditorRepository.BUFFER_COOL_DOWN.inWholeMilliseconds + 100)
+			advanceTimeBy(SceneRepository.BUFFER_COOL_DOWN.inWholeMilliseconds + 100)
 			advanceUntilIdle()
 
 			val tempPath = sceneDatasource.getSceneBufferDirectory().toOkioPath() / "3.md"

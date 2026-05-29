@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
@@ -140,7 +140,7 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 		ffs.checkNoOpenFiles()
 	}
 
-	private fun createRepository(): SceneEditorRepository {
+	private fun createRepository(): SceneRepository {
 		sceneMetadataRepository = SceneMetadataRepository(
 			projectDef = projectDef,
 			sceneMetadataDatasource = sceneMetadataDatasource,
@@ -152,7 +152,7 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 			projectDef = projectDef,
 			sceneDatasource = sceneDatasource,
 		)
-		return SceneEditorRepository(
+		return SceneRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,

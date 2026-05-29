@@ -16,7 +16,7 @@ import kotlin.time.Clock
 
 /**
  * Owns scene metadata (per-scene outline/notes/draft/references/timestamps) and the project
- * metadata (responsibilities E + F of the old SceneEditorRepository).
+ * metadata (responsibilities E + F of the old SceneRepository).
  *
  * This is a *data* building block: pure persistence plus the two metadata flows. Higher-level
  * orchestration — marking the scene for sync and applying the reference-index delta on a

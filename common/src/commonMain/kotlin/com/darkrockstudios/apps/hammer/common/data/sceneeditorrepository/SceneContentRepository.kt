@@ -40,7 +40,7 @@ data class BufferPersistedEvent(
 )
 
 /**
- * The buffer / editing engine (responsibilities C + D of the old SceneEditorRepository).
+ * The buffer / editing engine (responsibilities C + D of the old SceneRepository).
  *
  * Owns the in-memory scene buffers, the content debounce pipeline, temp-buffer autosave jobs,
  * dirty tracking, the buffer-update flow, and its own [editorScope] + [ScopeCallback] for temp

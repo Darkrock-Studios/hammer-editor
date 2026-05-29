@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data
 
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -51,7 +51,7 @@ suspend fun openProjectScope(projectDef: ProjectDef): Scope {
 suspend fun initializeProjectScope(projectDef: ProjectDef) {
 	val defScope = ProjectDefScope(projectDef)
 	getKoin().getScopeOrNull(defScope.getScopeId())?.let { projScope ->
-		val projectEditor: SceneEditorRepository = projScope.get { parametersOf(projectDef) }
+		val projectEditor: SceneRepository = projScope.get { parametersOf(projectDef) }
 		projectEditor.initializeSceneEditor()
 
 		// Eagerly create the service so its autosave side-effect subscription is active from

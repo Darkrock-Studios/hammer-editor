@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -23,7 +23,7 @@ import kotlin.time.Clock
 class ReferenceIndexService(
 	projectDef: ProjectDef,
 	private val repository: ReferenceIndexRepository,
-	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneEditorRepository: SceneRepository,
 	private val encyclopediaRepository: EncyclopediaRepository,
 	private val matcher: NameMatcher,
 	private val config: ReferenceIndexConfig,

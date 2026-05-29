@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsR
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
@@ -45,7 +45,7 @@ abstract class BaseIntegrationTest : BaseTest() {
 
 	// Real implementations
 	protected lateinit var sceneDatasource: SceneDatasource
-	protected lateinit var sceneEditorRepository: SceneEditorRepository
+	protected lateinit var sceneEditorRepository: SceneRepository
 	protected lateinit var sceneEditorService: SceneEditorService
 	protected lateinit var sceneContentRepository: SceneContentRepository
 	protected lateinit var sceneMetadataRepository: SceneMetadataRepository
@@ -145,7 +145,7 @@ abstract class BaseIntegrationTest : BaseTest() {
 		)
 
 		// Create real repository with real datasources
-		sceneEditorRepository = SceneEditorRepository(
+		sceneEditorRepository = SceneRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,

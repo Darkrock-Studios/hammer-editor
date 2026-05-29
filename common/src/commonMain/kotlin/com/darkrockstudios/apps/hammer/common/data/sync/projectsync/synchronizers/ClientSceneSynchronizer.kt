@@ -12,7 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
@@ -24,7 +24,7 @@ import kotlinx.coroutines.delay
 
 class ClientSceneSynchronizer(
 	projectDef: ProjectDef,
-	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneEditorRepository: SceneRepository,
 	private val sceneEditorService: SceneEditorService,
 	private val draftRepository: SceneDraftRepository,
 	serverProjectApi: ServerProjectApi,
@@ -352,7 +352,7 @@ class ClientSceneSynchronizer(
 		sceneEditorRepository.cleanupSceneOrder()
 
 		// Wait for buffers to propagate before we save them
-		delay(SceneEditorRepository.BUFFER_COOL_DOWN * 0.25)
+		delay(SceneRepository.BUFFER_COOL_DOWN * 0.25)
 
 		sceneEditorRepository.forceSceneListReload()
 		sceneEditorService.storeAllBuffers()
