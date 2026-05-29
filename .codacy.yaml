@@ -35,10 +35,11 @@ exclude_paths:
 
 engines:
     # Lizard's language-agnostic complexity metrics (NLOC, CCN, parameter count)
-    # don't map well to Jetpack Compose composables — long declarative UI
-    # functions and many composable parameters are idiomatic. Disable Lizard
-    # for composeUi entirely; detekt still enforces complexity on this code.
-    Lizard:
+    # don't map well to Jetpack Compose widgets — long declarative UI functions
+    # and many composable parameters are idiomatic. detekt still enforces
+    # complexity on this code.
+    # NOTE: engine names must be lowercase (`lizard`, not `Lizard`) — an
+    # unrecognized engine key makes Codacy mis-handle the whole engines block.
+    lizard:
         exclude_paths:
-            - 'composeUi/**'
             - 'android/src/main/kotlin/**/widgets/**'
