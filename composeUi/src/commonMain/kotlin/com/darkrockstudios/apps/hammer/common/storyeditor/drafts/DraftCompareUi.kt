@@ -117,6 +117,24 @@ private fun CompactDraftCompareUi(modifier: Modifier, component: DraftCompare) {
 	val draftLabel = Res.string.draft_compare_tab_title_draft.get()
 	val currentLabel = Res.string.draft_compare_tab_title_current.get()
 
+	// Hoist both editor states even though only one pane is on screen at a time. Each state is
+	// seeded from a pre-rendered AnnotatedString, so getAllText() returns the correct rendered
+	// text without the TextEditor being mounted. This lets us submit both texts up front so the
+	// diff can compute regardless of which tab the user is viewing — otherwise recomputeDiff()
+	// never sees both texts and highlights never appear on the tab shown first.
+	val draftState = key(state.draftContent) {
+		rememberTextEditorState(getInitialEditorContent(state.draftContent, markdownConfig))
+	}
+	val currentState = key(state.sceneContent) {
+		rememberTextEditorState(getInitialEditorContent(state.sceneContent, markdownConfig))
+	}
+	LaunchedEffect(draftState) {
+		component.submitDraftText(draftState.getAllText().text)
+	}
+	LaunchedEffect(currentState) {
+		component.onCurrentTextChanged(currentState.getAllText().text)
+	}
+
 	Column(modifier = modifier) {
 		HdHairlineSegmentedPicker(
 			options = listOf(PANE_DRAFT, PANE_CURRENT),
@@ -129,9 +147,6 @@ private fun CompactDraftCompareUi(modifier: Modifier, component: DraftCompare) {
 		)
 		// Only one pane is on screen at a time, so there's nothing to scroll-sync here.
 		if (pane == PANE_DRAFT) {
-			val draftState = key(state.draftContent) {
-				rememberTextEditorState(getInitialEditorContent(state.draftContent, markdownConfig))
-			}
 			DraftPane(
 				modifier = Modifier.fillMaxSize(),
 				sectionNumber = 1,
@@ -139,9 +154,6 @@ private fun CompactDraftCompareUi(modifier: Modifier, component: DraftCompare) {
 				textEditorState = draftState,
 			)
 		} else {
-			val currentState = key(state.sceneContent) {
-				rememberTextEditorState(getInitialEditorContent(state.sceneContent, markdownConfig))
-			}
 			CurrentPane(
 				modifier = Modifier.fillMaxSize(),
 				sectionNumber = 1,
@@ -203,17 +215,20 @@ private fun DraftPane(
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	val deletedHighlight = rememberDeletedHighlight()
+	var appliedStyle by remember(textEditorState) { mutableStateOf<HighlightSpanStyle?>(null) }
 
 	// The draft is read-only, so its rendered text never changes — submit it once for the diff.
 	LaunchedEffect(textEditorState) {
 		component.submitDraftText(textEditorState.getAllText().text)
 	}
-	LaunchedEffect(state.diffResult, state.showDiff, textEditorState) {
+	LaunchedEffect(state.diffResult, state.showDiff, textEditorState, deletedHighlight) {
 		applyDiffHighlights(
 			editorState = textEditorState,
 			spans = if (state.showDiff) state.diffResult?.leftSpans.orEmpty() else emptyList(),
 			style = deletedHighlight,
+			previousStyle = appliedStyle,
 		)
+		appliedStyle = deletedHighlight
 	}
 
 	var title by remember { mutableStateOf("") }
@@ -274,6 +289,7 @@ private fun CurrentPane(
 	val state by component.state.subscribeAsState()
 	val markdownConfig = LocalMarkdownConfig.current
 	val insertedHighlight = rememberInsertedHighlight()
+	var appliedStyle by remember(textEditorState) { mutableStateOf<HighlightSpanStyle?>(null) }
 
 	val markdownExtension = remember(textEditorState) { textEditorState.withMarkdown(markdownConfig) }
 
@@ -296,12 +312,14 @@ private fun CurrentPane(
 		}
 	}
 
-	LaunchedEffect(state.diffResult, state.showDiff, textEditorState) {
+	LaunchedEffect(state.diffResult, state.showDiff, textEditorState, insertedHighlight) {
 		applyDiffHighlights(
 			editorState = textEditorState,
 			spans = if (state.showDiff) state.diffResult?.rightSpans.orEmpty() else emptyList(),
 			style = insertedHighlight,
+			previousStyle = appliedStyle,
 		)
+		appliedStyle = insertedHighlight
 	}
 
 	Column(
@@ -363,8 +381,12 @@ private fun rememberInsertedHighlight(): HighlightSpanStyle {
  *
  * Rich spans are a non-destructive draw overlay: they don't emit edit operations (so applying
  * them doesn't retrigger the edit watcher) and aren't serialized into the saved content. We
- * remove the prior spans by matching the exact [style] instance — the manager shifts span ranges
+ * remove the prior spans by matching the exact style instance — the manager shifts span ranges
  * to track edits, so range-based removal wouldn't find them, but the style identity is stable.
+ *
+ * The highlight style is recreated when the theme color changes, so we match both the [style]
+ * we're about to apply and the [previousStyle] from the last pass; otherwise a theme change mid-
+ * compare would orphan the old-instance spans and they'd accumulate on top of the new ones.
  *
  * Span offsets are clamped to the editor's current text so a diff computed against a slightly
  * older revision (during the debounce window) can't produce an out-of-range span.
@@ -373,9 +395,10 @@ private fun applyDiffHighlights(
 	editorState: TextEditorState,
 	spans: List<DiffSpan>,
 	style: HighlightSpanStyle,
+	previousStyle: HighlightSpanStyle?,
 ) {
 	editorState.richSpanManager.getAllRichSpans()
-		.filter { it.style === style }
+		.filter { it.style === style || it.style === previousStyle }
 		.forEach { editorState.removeRichSpan(it) }
 
 	val text = editorState.getAllText().text
