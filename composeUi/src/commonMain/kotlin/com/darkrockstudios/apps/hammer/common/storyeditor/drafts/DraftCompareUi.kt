@@ -406,18 +406,25 @@ private fun offsetToCharLine(text: String, offset: Int): CharLineOffset {
 	return CharLineOffset(line, safe - lineStart)
 }
 
-/** Tracks which offset we last commanded on each pane so its echo emission isn't propagated back. */
+/**
+ * Tracks the scroll-pixel values we set programmatically on each pane, so the follow-scroll's
+ * echo emission is swallowed instead of bouncing back. A set (not a single slot) is used because
+ * rapid scrolling pipelines several commands before their echoes arrive.
+ */
 private class ScrollSyncGuard {
-	var suppressLeft: CharLineOffset? = null
-	var suppressRight: CharLineOffset? = null
+	val pendingLeft = HashSet<Int>()
+	val pendingRight = HashSet<Int>()
 }
 
 /**
  * Keep two editor panes scrolled to matching prose using the diff anchors.
  *
- * When one pane scrolls, its top-visible offset is mapped through [OffsetMap] to the other pane's
- * corresponding offset, and that pane is scrolled to align. A per-side guard swallows the single
- * echo emission produced by the programmatic follow-scroll so the two don't feed back into a loop.
+ * Driven off the raw scroll-pixel value (Compose-observable). When one pane moves, its top-visible
+ * offset is mapped through [OffsetMap] to the other pane's corresponding offset and converted back
+ * to a pixel position, which we apply with the synchronous [TextEditorScrollState.scrollTo] so we
+ * can read the exact landed value and mark it pending — its echo is then ignored, breaking the
+ * feedback loop. (`scrollToPosition(offset)` normalizes to the wrapped-line start, so an
+ * offset-equality guard never matched and the panes fought each other.)
  *
  * No-ops when [diffResult] is null (diff off, or not yet computed). Mapping uses each editor's
  * current text, so right-pane alignment can drift slightly while the user is mid-edit until the
@@ -434,32 +441,49 @@ private fun SyncScrolling(
 	val guard = remember(leftState, rightState) { ScrollSyncGuard() }
 
 	LaunchedEffect(leftState, rightState, offsetMap) {
-		snapshotFlow { leftState.scrollManager.firstVisibleOffset }
-			.collect { leftOffset ->
-				if (guard.suppressLeft == leftOffset) {
-					guard.suppressLeft = null
-					return@collect
+		snapshotFlow { leftState.scrollState.value }
+			.collect { leftY ->
+				if (guard.pendingLeft.remove(leftY)) return@collect
+				val targetY = mapScrollTop(leftState, rightState, leftY, offsetMap::leftToRight)
+				val before = rightState.scrollState.value
+				if (targetY != before) {
+					rightState.scrollState.scrollTo(targetY)
+					val landed = rightState.scrollState.value
+					if (landed != before) guard.pendingRight.add(landed)
 				}
-				val rightAbs = offsetMap.leftToRight(leftState.absoluteOffsetOf(leftOffset))
-				val rightOffset = rightState.charLineOffsetOf(rightAbs)
-				guard.suppressRight = rightOffset
-				rightState.scrollManager.scrollToPosition(rightOffset, top = true, animated = false)
 			}
 	}
 
 	LaunchedEffect(leftState, rightState, offsetMap) {
-		snapshotFlow { rightState.scrollManager.firstVisibleOffset }
-			.collect { rightOffset ->
-				if (guard.suppressRight == rightOffset) {
-					guard.suppressRight = null
-					return@collect
+		snapshotFlow { rightState.scrollState.value }
+			.collect { rightY ->
+				if (guard.pendingRight.remove(rightY)) return@collect
+				val targetY = mapScrollTop(rightState, leftState, rightY, offsetMap::rightToLeft)
+				val before = leftState.scrollState.value
+				if (targetY != before) {
+					leftState.scrollState.scrollTo(targetY)
+					val landed = leftState.scrollState.value
+					if (landed != before) guard.pendingLeft.add(landed)
 				}
-				val leftAbs = offsetMap.rightToLeft(rightState.absoluteOffsetOf(rightOffset))
-				val leftOffset = leftState.charLineOffsetOf(leftAbs)
-				guard.suppressLeft = leftOffset
-				leftState.scrollManager.scrollToPosition(leftOffset, top = true, animated = false)
 			}
 	}
+}
+
+/**
+ * Given [fromState]'s current scroll-top pixel [fromY], find the matching scroll-top pixel for
+ * [toState]: resolve the offset at the top of [fromState]'s viewport, map it to the other side
+ * via [mapAbs], and convert back to a pixel position in [toState].
+ */
+private fun mapScrollTop(
+	fromState: TextEditorState,
+	toState: TextEditorState,
+	fromY: Int,
+	mapAbs: (Int) -> Int,
+): Int {
+	val fromTop = fromState.scrollManager.offsetAtYPosition(fromY.toFloat())
+	val targetAbs = mapAbs(fromState.absoluteOffsetOf(fromTop))
+	val toTop = toState.charLineOffsetOf(targetAbs)
+	return toState.scrollManager.calculateOffsetYPosition(toTop).toInt()
 }
 
 /** Absolute char offset (into the editor's text) of a (line, char) position. */
