@@ -1,62 +1,29 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.drafts
 
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.Dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.diff.DiffResult
 import com.darkrockstudios.apps.hammer.base.diff.DiffSpan
 import com.darkrockstudios.apps.hammer.base.diff.OffsetMap
-import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompare
-import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
-import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
-import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
+import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
-import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
-import com.darkrockstudios.apps.hammer.draft_compare_current_accept_button
-import com.darkrockstudios.apps.hammer.draft_compare_current_header
-import com.darkrockstudios.apps.hammer.draft_compare_current_subheader
-import com.darkrockstudios.apps.hammer.draft_compare_draft_accept_button
-import com.darkrockstudios.apps.hammer.draft_compare_draft_header
-import com.darkrockstudios.apps.hammer.draft_compare_draft_subheader
-import com.darkrockstudios.apps.hammer.draft_compare_tab_title_current
-import com.darkrockstudios.apps.hammer.draft_compare_tab_title_draft
 import com.darkrockstudios.texteditor.CharLineOffset
 import com.darkrockstudios.texteditor.TextEditor
 import com.darkrockstudios.texteditor.markdown.withMarkdown
@@ -117,11 +84,6 @@ private fun CompactDraftCompareUi(modifier: Modifier, component: DraftCompare) {
 	val draftLabel = Res.string.draft_compare_tab_title_draft.get()
 	val currentLabel = Res.string.draft_compare_tab_title_current.get()
 
-	// Hoist both editor states even though only one pane is on screen at a time. Each state is
-	// seeded from a pre-rendered AnnotatedString, so getAllText() returns the correct rendered
-	// text without the TextEditor being mounted. This lets us submit both texts up front so the
-	// diff can compute regardless of which tab the user is viewing — otherwise recomputeDiff()
-	// never sees both texts and highlights never appear on the tab shown first.
 	val draftState = key(state.draftContent) {
 		rememberTextEditorState(getInitialEditorContent(state.draftContent, markdownConfig))
 	}

@@ -1,11 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectsync
 
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -119,7 +114,7 @@ internal class DiffHighlightTransformation(
 	override fun hashCode(): Int = 31 * spans.hashCode() + style.hashCode()
 }
 
-private fun androidx.compose.ui.text.AnnotatedString.Builder.applyDiffSpans(
+private fun AnnotatedString.Builder.applyDiffSpans(
 	spans: List<DiffSpan>,
 	style: SpanStyle,
 	length: Int,
