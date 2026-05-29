@@ -22,6 +22,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.SpanStyle
@@ -32,6 +33,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.diff.DiffResult
 import com.darkrockstudios.apps.hammer.base.diff.DiffSpan
+import com.darkrockstudios.apps.hammer.base.diff.OffsetMap
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompare
 import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
@@ -112,6 +114,8 @@ fun DraftCompareUi(component: DraftCompare) {
 @Composable
 private fun CompactDraftCompareUi(modifier: Modifier, component: DraftCompare) {
 	var pane by rememberSaveable { mutableIntStateOf(PANE_DRAFT) }
+	val state by component.state.subscribeAsState()
+	val markdownConfig = LocalMarkdownConfig.current
 	val draftLabel = Res.string.draft_compare_tab_title_draft.get()
 	val currentLabel = Res.string.draft_compare_tab_title_current.get()
 
@@ -125,17 +129,26 @@ private fun CompactDraftCompareUi(modifier: Modifier, component: DraftCompare) {
 				.fillMaxWidth()
 				.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
 		)
+		// Only one pane is on screen at a time, so there's nothing to scroll-sync here.
 		if (pane == PANE_DRAFT) {
+			val draftState = key(state.draftContent) {
+				rememberTextEditorState(getInitialEditorContent(state.draftContent, markdownConfig))
+			}
 			DraftPane(
 				modifier = Modifier.fillMaxSize(),
 				sectionNumber = 1,
 				component = component,
+				textEditorState = draftState,
 			)
 		} else {
+			val currentState = key(state.sceneContent) {
+				rememberTextEditorState(getInitialEditorContent(state.sceneContent, markdownConfig))
+			}
 			CurrentPane(
 				modifier = Modifier.fillMaxSize(),
 				sectionNumber = 1,
 				component = component,
+				textEditorState = currentState,
 			)
 		}
 	}
@@ -143,11 +156,31 @@ private fun CompactDraftCompareUi(modifier: Modifier, component: DraftCompare) {
 
 @Composable
 private fun ExpandedDraftCompareUi(modifier: Modifier, component: DraftCompare) {
+	val state by component.state.subscribeAsState()
+	val markdownConfig = LocalMarkdownConfig.current
+
+	// Hoist both editor states here so we can wire synchronized scrolling between the panes.
+	// Each is keyed on its content so it rebuilds when the draft / scene finishes loading.
+	val draftState = key(state.draftContent) {
+		rememberTextEditorState(getInitialEditorContent(state.draftContent, markdownConfig))
+	}
+	val currentState = key(state.sceneContent) {
+		rememberTextEditorState(getInitialEditorContent(state.sceneContent, markdownConfig))
+	}
+
+	SyncScrolling(
+		leftState = draftState,
+		rightState = currentState,
+		// Gate sync on the same toggle as highlights: with DIFF off, leave the user's scroll alone.
+		diffResult = state.diffResult.takeIf { state.showDiff },
+	)
+
 	Row(modifier = modifier) {
 		DraftPane(
 			modifier = Modifier.weight(1f).fillMaxHeight(),
 			sectionNumber = 1,
 			component = component,
+			textEditorState = draftState,
 		)
 		VerticalDivider(
 			color = MaterialTheme.colorScheme.outlineVariant,
@@ -157,6 +190,7 @@ private fun ExpandedDraftCompareUi(modifier: Modifier, component: DraftCompare) 
 			modifier = Modifier.weight(1f).fillMaxHeight(),
 			sectionNumber = 2,
 			component = component,
+			textEditorState = currentState,
 		)
 	}
 }
@@ -166,72 +200,66 @@ private fun DraftPane(
 	modifier: Modifier,
 	sectionNumber: Int,
 	component: DraftCompare,
+	textEditorState: TextEditorState,
 ) {
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
-	val markdownConfig = LocalMarkdownConfig.current
 	val deletedStyle = rememberDeletedStyle()
 
-	key(state.draftContent) {
-		val textEditorState = rememberTextEditorState(
-			initialText = getInitialEditorContent(state.draftContent, markdownConfig)
+	val draftSource = state.draftContent?.markdown
+	LaunchedEffect(state.diffResult, state.showDiff, draftSource, textEditorState) {
+		applyDiffHighlights(
+			editorState = textEditorState,
+			source = draftSource,
+			spans = if (state.showDiff) state.diffResult?.leftSpans.orEmpty() else emptyList(),
+			style = deletedStyle,
 		)
+	}
 
-		val draftSource = state.draftContent?.markdown
-		LaunchedEffect(state.diffResult, state.showDiff, draftSource) {
-			applyDiffHighlights(
-				editorState = textEditorState,
-				source = draftSource,
-				spans = if (state.showDiff) state.diffResult?.leftSpans.orEmpty() else emptyList(),
-				style = deletedStyle,
-			)
-		}
+	var title by remember { mutableStateOf("") }
+	LaunchedEffect(component.draftDef.draftName) {
+		title = strRes.get(Res.string.draft_compare_draft_header, component.draftDef.draftName)
+	}
 
-		var title by remember { mutableStateOf("") }
-		LaunchedEffect(component.draftDef.draftName) {
-			title = strRes.get(Res.string.draft_compare_draft_header, component.draftDef.draftName)
-		}
-
-		Column(
-			modifier = modifier.padding(
-				horizontal = Ui.Padding.XL,
-				vertical = Ui.Padding.L,
-			),
-			verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-		) {
-			HdSectionHeader(
-				section = sectionNumber,
-				title = title,
-				trailing = { HdMonoLabel(text = "READ ONLY") },
-			)
-			Text(
-				text = Res.string.draft_compare_draft_subheader.get(),
-				style = MaterialTheme.typography.bodySmall,
-				fontStyle = FontStyle.Italic,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-			HdHairlineButton(
-				label = Res.string.draft_compare_draft_accept_button.get(),
-				onClick = { component.pickDraft() },
-				emphasised = true,
-			)
-			Box(
-				modifier = Modifier
-					.weight(1f)
-					.fillMaxWidth()
-					.border(
-						width = Dp.Hairline,
-						color = MaterialTheme.colorScheme.outlineVariant,
-						shape = RectangleShape,
-					)
-					.padding(Ui.Padding.L),
-			) {
-				TextEditor(
-					modifier = Modifier.fillMaxSize(),
-					state = textEditorState,
-					enabled = false,
+	Column(
+		modifier = modifier.padding(
+			horizontal = Ui.Padding.XL,
+			vertical = Ui.Padding.L,
+		),
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		HdSectionHeader(
+			section = sectionNumber,
+			title = title,
+			trailing = { HdMonoLabel(text = "READ ONLY") },
+		)
+		Text(
+			text = Res.string.draft_compare_draft_subheader.get(),
+			style = MaterialTheme.typography.bodySmall,
+			fontStyle = FontStyle.Italic,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		HdHairlineButton(
+			label = Res.string.draft_compare_draft_accept_button.get(),
+			onClick = { component.pickDraft() },
+			emphasised = true,
+		)
+		Box(
+			modifier = Modifier
+				.weight(1f)
+				.fillMaxWidth()
+				.border(
+					width = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+					shape = RectangleShape,
 				)
-			}
+				.padding(Ui.Padding.L),
+		) {
+			TextEditor(
+				modifier = Modifier.fillMaxSize(),
+				state = textEditorState,
+				enabled = false,
+			)
 		}
 	}
 }
@@ -241,91 +269,86 @@ private fun CurrentPane(
 	modifier: Modifier,
 	sectionNumber: Int,
 	component: DraftCompare,
+	textEditorState: TextEditorState,
 ) {
 	val state by component.state.subscribeAsState()
 	val markdownConfig = LocalMarkdownConfig.current
 	val insertedStyle = rememberInsertedStyle()
 
-	key(state.sceneContent) {
-		val textEditorState = rememberTextEditorState(
-			initialText = getInitialEditorContent(state.sceneContent, markdownConfig)
+	val markdownExtension = remember(textEditorState) { textEditorState.withMarkdown(markdownConfig) }
+
+	LaunchedEffect(markdownExtension, markdownConfig) {
+		markdownExtension.updateMarkdownConfiguration(markdownConfig)
+	}
+
+	LaunchedEffect(textEditorState) {
+		// `collectLatest` cancels the previous lambda when a new edit arrives, so the
+		// `delay` below acts as a per-keystroke debounce — the recompute only fires
+		// after the user stops typing for [DIFF_RECOMPUTE_DELAY_MS]. The merged-content
+		// update runs synchronously before the delay, so picking the current draft
+		// always uses the latest text.
+		textEditorState.editOperations.collectLatest { _ ->
+			val richText = ComposeRichText(markdownExtension)
+			component.onMergedContentChanged(richText)
+			delay(DIFF_RECOMPUTE_DELAY_MS)
+			component.onCurrentMarkdownChanged(richText.convertToMarkdown())
+		}
+	}
+
+	// Source text we map diff offsets through. While the user edits, the latest source
+	// markdown comes from the live markdown extension; the diff was computed against an
+	// earlier snapshot, so highlights may briefly point at slightly stale ranges until
+	// the debounced recompute lands and reapplies them.
+	val initialSource = state.sceneContent?.markdown
+	LaunchedEffect(state.diffResult, state.showDiff, initialSource, textEditorState) {
+		val source = state.diffResult?.let { _ -> markdownExtension.exportAsMarkdown() }
+			?: initialSource
+		applyDiffHighlights(
+			editorState = textEditorState,
+			source = source,
+			spans = if (state.showDiff) state.diffResult?.rightSpans.orEmpty() else emptyList(),
+			style = insertedStyle,
 		)
+	}
 
-		val markdownExtension = remember { textEditorState.withMarkdown(markdownConfig) }
-
-		LaunchedEffect(markdownConfig) {
-			markdownExtension.updateMarkdownConfiguration(markdownConfig)
-		}
-
-		LaunchedEffect(component.draftDef.draftName) {
-			// `collectLatest` cancels the previous lambda when a new edit arrives, so the
-			// `delay` below acts as a per-keystroke debounce — the recompute only fires
-			// after the user stops typing for [DIFF_RECOMPUTE_DELAY_MS]. The merged-content
-			// update runs synchronously before the delay, so picking the current draft
-			// always uses the latest text.
-			textEditorState.editOperations.collectLatest { _ ->
-				val richText = ComposeRichText(markdownExtension)
-				component.onMergedContentChanged(richText)
-				delay(DIFF_RECOMPUTE_DELAY_MS)
-				component.onCurrentMarkdownChanged(richText.convertToMarkdown())
-			}
-		}
-
-		// Source text we map diff offsets through. While the user edits, the latest source
-		// markdown comes from the live markdown extension; the diff was computed against an
-		// earlier snapshot, so highlights may briefly point at slightly stale ranges until
-		// the debounced recompute lands and reapplies them.
-		val initialSource = state.sceneContent?.markdown
-		LaunchedEffect(state.diffResult, state.showDiff, initialSource) {
-			val source = state.diffResult?.let { _ -> markdownExtension.exportAsMarkdown() }
-				?: initialSource
-			applyDiffHighlights(
-				editorState = textEditorState,
-				source = source,
-				spans = if (state.showDiff) state.diffResult?.rightSpans.orEmpty() else emptyList(),
-				style = insertedStyle,
-			)
-		}
-
-		Column(
-			modifier = modifier.padding(
-				horizontal = Ui.Padding.XL,
-				vertical = Ui.Padding.L,
-			),
-			verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-		) {
-			HdSectionHeader(
-				section = sectionNumber,
-				title = Res.string.draft_compare_current_header.get(),
-				trailing = { HdMonoLabel(text = "EDITABLE") },
-			)
-			Text(
-				text = Res.string.draft_compare_current_subheader.get(),
-				style = MaterialTheme.typography.bodySmall,
-				fontStyle = FontStyle.Italic,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-			HdHairlineButton(
-				label = Res.string.draft_compare_current_accept_button.get(),
-				onClick = { component.pickMerged() },
-				emphasised = true,
-			)
-			Box(
-				modifier = Modifier
-					.weight(1f)
-					.fillMaxWidth()
-					.border(
-						width = Dp.Hairline,
-						color = MaterialTheme.colorScheme.outlineVariant,
-						shape = RectangleShape,
-					)
-					.padding(Ui.Padding.L),
-			) {
-				TextEditor(
-					modifier = Modifier.fillMaxSize(),
-					state = textEditorState,
+	Column(
+		modifier = modifier.padding(
+			horizontal = Ui.Padding.XL,
+			vertical = Ui.Padding.L,
+		),
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		HdSectionHeader(
+			section = sectionNumber,
+			title = Res.string.draft_compare_current_header.get(),
+			trailing = { HdMonoLabel(text = "EDITABLE") },
+		)
+		Text(
+			text = Res.string.draft_compare_current_subheader.get(),
+			style = MaterialTheme.typography.bodySmall,
+			fontStyle = FontStyle.Italic,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
+		HdHairlineButton(
+			label = Res.string.draft_compare_current_accept_button.get(),
+			onClick = { component.pickMerged() },
+			emphasised = true,
+		)
+		Box(
+			modifier = Modifier
+				.weight(1f)
+				.fillMaxWidth()
+				.border(
+					width = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+					shape = RectangleShape,
 				)
-			}
+				.padding(Ui.Padding.L),
+		) {
+			TextEditor(
+				modifier = Modifier.fillMaxSize(),
+				state = textEditorState,
+			)
 		}
 	}
 }
@@ -392,4 +415,88 @@ private fun offsetToCharLine(text: String, offset: Int): CharLineOffset {
 		}
 	}
 	return CharLineOffset(line, safe - lineStart)
+}
+
+/** Tracks which offset we last commanded on each pane so its echo emission isn't propagated back. */
+private class ScrollSyncGuard {
+	var suppressLeft: CharLineOffset? = null
+	var suppressRight: CharLineOffset? = null
+}
+
+/**
+ * Keep two editor panes scrolled to matching prose using the diff anchors.
+ *
+ * When one pane scrolls, its top-visible offset is mapped through [OffsetMap] to the other pane's
+ * corresponding offset, and that pane is scrolled to align. A per-side guard swallows the single
+ * echo emission produced by the programmatic follow-scroll so the two don't feed back into a loop.
+ *
+ * No-ops when [diffResult] is null (diff off, or not yet computed). Mapping uses each editor's
+ * current text, so right-pane alignment can drift slightly while the user is mid-edit until the
+ * debounced recompute lands — same staleness window as the highlights.
+ */
+@Composable
+private fun SyncScrolling(
+	leftState: TextEditorState,
+	rightState: TextEditorState,
+	diffResult: DiffResult?,
+) {
+	if (diffResult == null) return
+	val offsetMap = remember(diffResult) { OffsetMap(diffResult.anchors) }
+	val guard = remember(leftState, rightState) { ScrollSyncGuard() }
+
+	LaunchedEffect(leftState, rightState, offsetMap) {
+		snapshotFlow { leftState.scrollManager.firstVisibleOffset }
+			.collect { leftOffset ->
+				if (guard.suppressLeft == leftOffset) {
+					guard.suppressLeft = null
+					return@collect
+				}
+				val rightAbs = offsetMap.leftToRight(leftState.absoluteOffsetOf(leftOffset))
+				val rightOffset = rightState.charLineOffsetOf(rightAbs)
+				guard.suppressRight = rightOffset
+				rightState.scrollManager.scrollToPosition(rightOffset, top = true, animated = false)
+			}
+	}
+
+	LaunchedEffect(leftState, rightState, offsetMap) {
+		snapshotFlow { rightState.scrollManager.firstVisibleOffset }
+			.collect { rightOffset ->
+				if (guard.suppressRight == rightOffset) {
+					guard.suppressRight = null
+					return@collect
+				}
+				val leftAbs = offsetMap.rightToLeft(rightState.absoluteOffsetOf(rightOffset))
+				val leftOffset = leftState.charLineOffsetOf(leftAbs)
+				guard.suppressLeft = leftOffset
+				leftState.scrollManager.scrollToPosition(leftOffset, top = true, animated = false)
+			}
+	}
+}
+
+/** Absolute char offset (into the editor's text) of a (line, char) position. */
+private fun TextEditorState.absoluteOffsetOf(offset: CharLineOffset): Int {
+	val lines = textLines
+	var sum = 0
+	var line = 0
+	while (line < offset.line && line < lines.size) {
+		sum += lines[line].length + 1 // + newline
+		line++
+	}
+	return sum + offset.char
+}
+
+/** Inverse of [absoluteOffsetOf]: the (line, char) position for an absolute char offset. */
+private fun TextEditorState.charLineOffsetOf(absolute: Int): CharLineOffset {
+	val lines = textLines
+	if (lines.isEmpty()) return CharLineOffset(0, 0)
+	var remaining = absolute.coerceAtLeast(0)
+	var line = 0
+	while (line < lines.size) {
+		val len = lines[line].length
+		if (remaining <= len) return CharLineOffset(line, remaining)
+		remaining -= (len + 1)
+		line++
+	}
+	val last = lines.lastIndex
+	return CharLineOffset(last, lines[last].length)
 }
