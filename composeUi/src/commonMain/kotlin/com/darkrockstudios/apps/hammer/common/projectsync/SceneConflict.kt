@@ -17,6 +17,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -25,9 +26,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.diff.DiffResult
+import com.darkrockstudios.apps.hammer.base.diff.DiffSpan
+import com.darkrockstudios.apps.hammer.base.diff.ProseDiff
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -38,6 +43,9 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSeg
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EntryRefChipLabel
 import com.darkrockstudios.apps.hammer.common.encyclopedia.UnknownEntryRefChipLabel
 import com.darkrockstudios.apps.hammer.sync_conflict_references_confirmed_label
@@ -70,6 +78,20 @@ internal fun SceneConflict(
 	var outlineTextValue by rememberSaveable(client) { mutableStateOf(client.outline) }
 	var notesTextValue by rememberSaveable(client) { mutableStateOf(client.notes) }
 	var nameError by rememberSaveable(client) { mutableStateOf<String?>(null) }
+
+	// Word-level diff between the server content and the (editable) local content, recomputed off
+	// the main thread after a short idle. leftSpans highlight removals on the read-only remote side,
+	// rightSpans highlight additions on the editable local side.
+	val server = entityConflict.serverEntity
+	var contentDiff by remember(client, server) { mutableStateOf<DiffResult?>(null) }
+	LaunchedEffect(server.content, contentTextValue) {
+		delay(CONTENT_DIFF_DELAY_MS)
+		contentDiff = withContext(Dispatchers.Default) {
+			ProseDiff.diff(server.content, contentTextValue)
+		}
+	}
+	val deletedStyle = diffDeletedStyle()
+	val insertedStyle = diffInsertedStyle()
 
 	val useLocal = {
 		val error = component.resolveConflict(
@@ -107,6 +129,8 @@ internal fun SceneConflict(
 				notesValue = notesTextValue,
 				onNotesChange = { notesTextValue = it },
 				nameError = nameError,
+				contentInsertedSpans = contentDiff?.rightSpans.orEmpty(),
+				insertedStyle = insertedStyle,
 				component = component,
 			)
 		},
@@ -116,6 +140,8 @@ internal fun SceneConflict(
 				server = c.serverEntity,
 				client = c.clientEntity,
 				tab = selectedTab,
+				contentDeletedSpans = contentDiff?.leftSpans.orEmpty(),
+				deletedStyle = deletedStyle,
 				component = component,
 			)
 		},
@@ -165,6 +191,8 @@ private fun LocalSceneBody(
 	notesValue: String,
 	onNotesChange: (String) -> Unit,
 	nameError: String?,
+	contentInsertedSpans: List<DiffSpan>,
+	insertedStyle: SpanStyle,
 	component: ProjectSynchronization,
 ) {
 	Column(
@@ -175,6 +203,9 @@ private fun LocalSceneBody(
 	) {
 		when (tab) {
 			SceneConflictTab.CONTENT -> {
+				val contentTransformation = remember(contentInsertedSpans, insertedStyle) {
+					DiffHighlightTransformation(contentInsertedSpans, insertedStyle)
+				}
 				HdConflictField(
 					label = Res.string.sync_conflict_title_scene_field_content.get(),
 					conflict = server.content != client.content,
@@ -185,6 +216,7 @@ private fun LocalSceneBody(
 						onValueChange = onContentChange,
 						singleLine = false,
 						minLines = 8,
+						visualTransformation = contentTransformation,
 						modifier = Modifier.fillMaxWidth(),
 					)
 				}
@@ -249,6 +281,8 @@ private fun RemoteSceneBody(
 	server: ApiProjectEntity.SceneEntity,
 	client: ApiProjectEntity.SceneEntity,
 	tab: SceneConflictTab,
+	contentDeletedSpans: List<DiffSpan>,
+	deletedStyle: SpanStyle,
 	component: ProjectSynchronization,
 ) {
 	Column(
@@ -259,11 +293,14 @@ private fun RemoteSceneBody(
 	) {
 		when (tab) {
 			SceneConflictTab.CONTENT -> {
+				val highlighted = remember(server.content, contentDeletedSpans, deletedStyle) {
+					diffHighlightedString(server.content, contentDeletedSpans, deletedStyle)
+				}
 				HdConflictField(
 					label = Res.string.sync_conflict_title_scene_field_content.get(),
 					conflict = server.content != client.content,
 				) {
-					ReadOnlyBlock(server.content)
+					ReadOnlyBlock(highlighted)
 				}
 			}
 			SceneConflictTab.METADATA -> {
