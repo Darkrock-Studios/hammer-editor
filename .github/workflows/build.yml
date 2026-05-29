@@ -24,6 +24,10 @@ jobs:
         run: chmod +x gradlew
       - name: Build with Gradle
         run: ./gradlew buildDebug
+      # Compiles + packages the Android instrumented (androidTest) source set without a device.
+      # buildDebug does not touch androidTest, so stale instrumented tests rot silently otherwise.
+      - name: Compile Android instrumented tests
+        run: ./gradlew :android:assembleDebugAndroidTest
       - name: Run Kover
         run: ./gradlew koverXmlReport
       - name: Upload coverage reports to Codecov
