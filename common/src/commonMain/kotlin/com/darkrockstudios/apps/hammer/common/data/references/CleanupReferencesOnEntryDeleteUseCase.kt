@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 
 /**
  * Walks the scenes that the inverted reference index reports as confirming a
@@ -24,7 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
  * (e.g. dirty cache).
  */
 class CleanupReferencesOnEntryDeleteUseCase(
-	private val sceneEditor: SceneEditorRepository,
+	private val sceneEditor: SceneEditorService,
 	private val referenceIndexService: ReferenceIndexService,
 	private val scrubInvalidReferences: ScrubInvalidReferencesUseCase,
 ) {

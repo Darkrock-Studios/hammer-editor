@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepo
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
@@ -75,6 +76,7 @@ class SceneEditorServiceTest : BaseTest() {
 	private lateinit var writingSessionTracker: WritingSessionTracker
 
 	private lateinit var repo: SceneEditorRepository
+	private lateinit var sceneMetadataRepository: SceneMetadataRepository
 
 	private var nextId = 100
 
@@ -110,22 +112,32 @@ class SceneEditorServiceTest : BaseTest() {
 	private fun createService(projectDef: ProjectDef): SceneEditorService {
 		sceneMetadataDatasource = SceneMetadataDatasource(ffs, toml, projectDef)
 		sceneDatasource = SceneDatasource(projectDef, ffs)
+		sceneMetadataRepository = SceneMetadataRepository(
+			projectDef = projectDef,
+			sceneMetadataDatasource = sceneMetadataDatasource,
+			projectMetadataDatasource = projectMetadataDatasource,
+			strRes = mockk {
+				coEvery { get(any<StringResource>()) } returns "New Draft"
+			},
+			clock = Clock.System,
+		)
 		repo = SceneEditorRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
-			projectMetadataDatasource = projectMetadataDatasource,
+			sceneMetadataRepository = sceneMetadataRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = referenceIndexRepository,
 			writingSessionTracker = writingSessionTracker,
 			clock = Clock.System,
-			strRes = mockk {
-				coEvery { get(any<StringResource>()) } returns "New Draft"
-			},
 		)
-		return SceneEditorService(repo)
+		return SceneEditorService(
+			sceneEditorRepository = repo,
+			sceneMetadataRepository = sceneMetadataRepository,
+			referenceIndexRepository = referenceIndexRepository,
+		)
 	}
 
 	private suspend fun initializedService(): SceneEditorService {

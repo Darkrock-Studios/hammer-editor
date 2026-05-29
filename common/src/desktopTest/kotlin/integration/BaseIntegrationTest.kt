@@ -4,8 +4,11 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -41,6 +44,9 @@ abstract class BaseIntegrationTest : BaseTest() {
 	// Real implementations
 	protected lateinit var sceneDatasource: SceneDatasource
 	protected lateinit var sceneEditorRepository: SceneEditorRepository
+	protected lateinit var sceneEditorService: SceneEditorService
+	protected lateinit var sceneMetadataRepository: SceneMetadataRepository
+	protected lateinit var referenceIndexRepository: ReferenceIndexRepository
 	protected lateinit var sceneMetadataDatasource: SceneMetadataDatasource
 	protected lateinit var projectMetadataDatasource: ProjectMetadataDatasource
 
@@ -118,20 +124,34 @@ abstract class BaseIntegrationTest : BaseTest() {
 		sceneDatasource = SceneDatasource(projectDef, ffs)
 		sceneMetadataDatasource = SceneMetadataDatasource(ffs, toml, projectDef)
 		projectMetadataDatasource = ProjectMetadataDatasource(ffs, toml)
+		referenceIndexRepository = mockk(relaxed = true)
+
+		sceneMetadataRepository = SceneMetadataRepository(
+			projectDef = projectDef,
+			sceneMetadataDatasource = sceneMetadataDatasource,
+			projectMetadataDatasource = projectMetadataDatasource,
+			strRes = mockk(relaxed = true),
+			clock = Clock.System,
+		)
 
 		// Create real repository with real datasources
 		sceneEditorRepository = SceneEditorRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
-			projectMetadataDatasource = projectMetadataDatasource,
+			sceneMetadataRepository = sceneMetadataRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
-			referenceIndexRepository = mockk(relaxed = true),
+			referenceIndexRepository = referenceIndexRepository,
 			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
-			strRes = mockk(relaxed = true),
+		)
+
+		sceneEditorService = SceneEditorService(
+			sceneEditorRepository = sceneEditorRepository,
+			sceneMetadataRepository = sceneMetadataRepository,
+			referenceIndexRepository = referenceIndexRepository,
 		)
 	}
 

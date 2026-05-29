@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
@@ -76,14 +77,19 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
-			projectMetadataDatasource = projectMetadataDatasource,
+			sceneMetadataRepository = SceneMetadataRepository(
+				projectDef = projectDef,
+				sceneMetadataDatasource = sceneMetadataDatasource,
+				projectMetadataDatasource = projectMetadataDatasource,
+				strRes = mockk(relaxed = true),
+				clock = clock,
+			),
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
 			clock = clock,
-			strRes = mockk(relaxed = true),
 		)
 	}
 

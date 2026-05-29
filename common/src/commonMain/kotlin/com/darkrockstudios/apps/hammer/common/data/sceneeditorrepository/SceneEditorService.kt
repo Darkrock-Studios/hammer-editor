@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -33,6 +34,8 @@ import kotlinx.coroutines.flow.SharedFlow
  */
 class SceneEditorService(
 	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneMetadataRepository: SceneMetadataRepository,
+	private val referenceIndexRepository: ReferenceIndexRepository,
 ) : ProjectScoped {
 
 	override val projectScope: ProjectDefScope get() = sceneEditorRepository.projectScope
@@ -69,8 +72,30 @@ class SceneEditorService(
 	suspend fun unarchiveScene(scene: SceneItem): SceneItem? =
 		sceneEditorRepository.unarchiveScene(scene)
 
-	suspend fun storeMetadata(metadata: SceneMetadata, sceneId: Int) =
-		sceneEditorRepository.storeMetadata(metadata, sceneId)
+	/**
+	 * Orchestrates a scene-metadata write: mark the scene's current identity for sync, persist
+	 * via [SceneMetadataRepository], then apply the reference-index delta if the confirmed set
+	 * changed. The repo handles only the pure persist + flow emission.
+	 */
+	suspend fun storeMetadata(metadata: SceneMetadata, sceneId: Int) {
+		val scene = sceneEditorRepository.getSceneItemFromIdIncludingArchived(sceneId)
+			?: error("storeMetadata: Failed to load scene for id: $sceneId ")
+
+		val previous = sceneMetadataRepository.loadRawMetadata(sceneId)
+
+		sceneEditorRepository.markSceneForSynchronization(scene)
+		sceneMetadataRepository.storeMetadata(metadata, sceneId)
+
+		val previousConfirmed = previous?.confirmedReferences.orEmpty()
+		val newConfirmed = metadata.confirmedReferences
+		if (previousConfirmed != newConfirmed) {
+			referenceIndexRepository.applySceneDelta(
+				sceneId = sceneId,
+				added = newConfirmed - previousConfirmed,
+				removed = previousConfirmed - newConfirmed,
+			)
+		}
+	}
 
 	suspend fun storeSceneBuffer(sceneItem: SceneItem): Boolean =
 		sceneEditorRepository.storeSceneBuffer(sceneItem)
@@ -96,7 +121,7 @@ class SceneEditorService(
 	val sceneListChannel: SharedFlow<SceneSummary> get() = sceneEditorRepository.sceneListChannel
 
 	val metadataUpdateFlow: SharedFlow<Pair<Int, SceneMetadata>>
-		get() = sceneEditorRepository.metadataUpdateFlow
+		get() = sceneMetadataRepository.metadataUpdateFlow
 
 	fun getSceneSummaries(): SceneSummary = sceneEditorRepository.getSceneSummaries()
 
@@ -135,10 +160,10 @@ class SceneEditorService(
 
 	fun hasDirtyBuffers(): Boolean = sceneEditorRepository.hasDirtyBuffers()
 
-	suspend fun getMetadata(): ProjectMetadata = sceneEditorRepository.getMetadata()
+	suspend fun getMetadata(): ProjectMetadata = sceneMetadataRepository.getMetadata()
 
 	suspend fun loadSceneMetadata(sceneId: Int): SceneMetadata =
-		sceneEditorRepository.loadSceneMetadata(sceneId)
+		sceneMetadataRepository.loadSceneMetadata(sceneId)
 
 	fun loadSceneMarkdownRaw(sceneItem: SceneItem, scenePath: HPath? = null): String =
 		if (scenePath != null) {

@@ -39,6 +39,7 @@ class ArchiveSyncIntegrationTest : BaseIntegrationTest() {
 		return ClientSceneSynchronizer(
 			projectDef = projectDef,
 			sceneEditorRepository = sceneEditorRepository,
+			sceneEditorService = sceneEditorService,
 			draftRepository = draftRepository,
 			serverProjectApi = serverProjectApi,
 			projectMetadataDatasource = projectMetadataDatasource,
@@ -286,7 +287,7 @@ class ArchiveSyncIntegrationTest : BaseIntegrationTest() {
 		val updatedMetadata = metadata.copy(outline = "Updated outline for archived scene")
 
 		// This should not throw
-		sceneEditorRepository.storeMetadata(updatedMetadata, 1)
+		sceneEditorService.storeMetadata(updatedMetadata, 1)
 
 		// Verify the metadata was stored
 		val reloadedMetadata = sceneEditorRepository.loadSceneMetadata(1)

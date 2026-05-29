@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.references.*
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import getProject1Def
 import io.mockk.*
@@ -18,7 +18,7 @@ import utils.BaseTest
 class BackfillEntryReferencesUseCaseTest : BaseTest() {
 
 	@MockK
-	private lateinit var sceneEditor: SceneEditorRepository
+	private lateinit var sceneEditor: SceneEditorService
 
 	@MockK
 	private lateinit var referenceIndexService: ReferenceIndexService

@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
@@ -24,6 +25,7 @@ import kotlinx.coroutines.delay
 class ClientSceneSynchronizer(
 	projectDef: ProjectDef,
 	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneEditorService: SceneEditorService,
 	private val draftRepository: SceneDraftRepository,
 	serverProjectApi: ServerProjectApi,
 	projectMetadataDatasource: ProjectMetadataDatasource,
@@ -180,7 +182,7 @@ class ClientSceneSynchronizer(
 			val content = SceneContent(sceneItem, serverEntity.content)
 			if (sceneEditorRepository.storeSceneMarkdownRaw(content, scenePath)) {
 				val updatedMetadata = mergeServerMetadata(serverEntity)
-				sceneEditorRepository.storeMetadata(updatedMetadata, serverEntity.id)
+				sceneEditorService.storeMetadata(updatedMetadata, serverEntity.id)
 
 				// Finally, log our success, and update the running apps data
 				onLog(syncLogI(strRes.get(Res.string.sync_scene_downloading, id), projectDef))
@@ -290,7 +292,7 @@ class ClientSceneSynchronizer(
 				sceneEditorRepository.storeSceneMarkdownRaw(content, scenePath)
 
 				val updatedMetadata = mergeServerMetadata(serverEntity)
-				sceneEditorRepository.storeMetadata(updatedMetadata, serverEntity.id)
+				sceneEditorService.storeMetadata(updatedMetadata, serverEntity.id)
 			}
 		} else {
 			// Scene doesn't exist locally at all - create it directly in archive

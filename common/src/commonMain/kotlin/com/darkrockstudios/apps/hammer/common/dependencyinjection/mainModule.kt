@@ -36,6 +36,7 @@ import com.darkrockstudios.apps.hammer.common.data.references.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
@@ -151,6 +152,7 @@ val mainModule = module {
 		scopedOf(::SceneDraftsDatasource)
 		scopedOf(::SceneDraftRepository)
 		scopedOf(::SceneMetadataDatasource)
+		scopedOf(::SceneMetadataRepository)
 
 		factoryOf(::SceneIdDatasource)
 		factoryOf(::NotesIdDatasource)

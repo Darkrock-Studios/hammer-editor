@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -45,6 +46,7 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 	private lateinit var idRepository: IdRepository
 	private lateinit var projectMetadataRepository: ProjectMetadataDatasource
 	private lateinit var sceneMetadataDatasource: SceneMetadataDatasource
+	private lateinit var sceneMetadataRepository: SceneMetadataRepository
 	private lateinit var sceneDatasource: SceneDatasource
 	private lateinit var statisticsRepository: StatisticsRepository
 	private var nextId = -1
@@ -137,18 +139,24 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 	}
 
 	private fun createRepository(): SceneEditorRepository {
+		sceneMetadataRepository = SceneMetadataRepository(
+			projectDef = projectDef,
+			sceneMetadataDatasource = sceneMetadataDatasource,
+			projectMetadataDatasource = projectMetadataRepository,
+			strRes = mockk(relaxed = true),
+			clock = Clock.System,
+		)
 		return SceneEditorRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
-			projectMetadataDatasource = projectMetadataRepository,
+			sceneMetadataRepository = sceneMetadataRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
-			strRes = mockk(relaxed = true),
 		)
 	}
 
@@ -178,7 +186,7 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 
 		repo.initializeSceneEditor()
 
-		val metadata = repo.getMetadata()
+		val metadata = sceneMetadataRepository.getMetadata()
 
 		assertEquals(projectMetadata, metadata)
 

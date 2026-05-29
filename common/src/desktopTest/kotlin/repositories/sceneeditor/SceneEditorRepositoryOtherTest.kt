@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.Validation
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
@@ -158,14 +159,19 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
-			projectMetadataDatasource = metadataRepository,
+			sceneMetadataRepository = SceneMetadataRepository(
+				projectDef = projectDef,
+				sceneMetadataDatasource = metadataDatasource,
+				projectMetadataDatasource = metadataRepository,
+				strRes = mockk(relaxed = true),
+				clock = Clock.System,
+			),
 			sceneMetadataDatasource = metadataDatasource,
 			sceneDatasource = sceneDatasource,
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
-			strRes = mockk(relaxed = true),
 		)
 	}
 
@@ -245,14 +251,19 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
-			projectMetadataDatasource = metadataRepository,
+			sceneMetadataRepository = SceneMetadataRepository(
+				projectDef = projectDef,
+				sceneMetadataDatasource = metadataDatasource,
+				projectMetadataDatasource = metadataRepository,
+				strRes = mockk(relaxed = true),
+				clock = Clock.System,
+			),
 			sceneMetadataDatasource = metadataDatasource,
 			sceneDatasource = spy,
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
-			strRes = mockk(relaxed = true),
 		)
 
 		repo.initializeSceneEditor()

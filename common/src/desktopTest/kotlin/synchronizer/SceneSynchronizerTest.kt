@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem.Companion.ROOT_ID
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
@@ -37,6 +38,9 @@ class SceneSynchronizerTest : BaseTest() {
 
 	@MockK
 	private lateinit var sceneEditorRepository: SceneEditorRepository
+
+	@MockK
+	private lateinit var sceneEditorService: SceneEditorService
 
 	@MockK
 	private lateinit var draftRepository: SceneDraftRepository
@@ -75,6 +79,7 @@ class SceneSynchronizerTest : BaseTest() {
 	private fun defaultSceneSynchronizer() = ClientSceneSynchronizer(
 		projectDef = def,
 		sceneEditorRepository = sceneEditorRepository,
+		sceneEditorService = sceneEditorService,
 		draftRepository = draftRepository,
 		serverProjectApi = serverProjectApi,
 		projectMetadataDatasource = projectMetadataDatasource,
@@ -495,7 +500,7 @@ class SceneSynchronizerTest : BaseTest() {
 		)
 
 		coVerify(exactly = 1) {
-			sceneEditorRepository.storeMetadata(
+			sceneEditorService.storeMetadata(
 				match { it.tags == setOf("magic", "spoiler") },
 				sceneId,
 			)

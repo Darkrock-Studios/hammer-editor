@@ -1,11 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
-import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
-import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
@@ -24,10 +21,8 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDisp
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescentBy
 import com.darkrockstudios.apps.hammer.common.util.numDigits
-import com.darkrockstudios.apps.hammer.default_draft_name
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
@@ -35,7 +30,6 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.first
 import okio.IOException
 import okio.Path
 import org.koin.core.component.KoinComponent
@@ -48,14 +42,13 @@ class SceneEditorRepository(
 	val projectDef: ProjectDef,
 	private val idRepository: IdRepository,
 	private val syncDataRepository: SyncDataRepository,
-	private val projectMetadataDatasource: ProjectMetadataDatasource,
+	private val sceneMetadataRepository: SceneMetadataRepository,
 	private val sceneMetadataDatasource: SceneMetadataDatasource,
 	private val sceneDatasource: SceneDatasource,
 	private val statisticsRepository: StatisticsRepository,
 	private val referenceIndexRepository: ReferenceIndexRepository,
 	private val writingSessionTracker: WritingSessionTracker,
 	private val clock: Clock,
-	private val strRes: StrRes,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
@@ -71,16 +64,6 @@ class SceneEditorRepository(
 		name = "",
 		order = 0
 	)
-
-	private val metadata = MutableSharedFlow<ProjectMetadata>(
-		extraBufferCapacity = 1,
-		replay = 1,
-		onBufferOverflow = BufferOverflow.DROP_OLDEST
-	)
-
-	suspend fun getMetadata(): ProjectMetadata {
-		return metadata.first()
-	}
 
 	private val dispatcherMain by injectMainDispatcher()
 	private val dispatcherDefault by injectDefaultDispatcher()
@@ -100,12 +83,6 @@ class SceneEditorRepository(
 		onBufferOverflow = BufferOverflow.DROP_OLDEST
 	)
 	private val bufferUpdateFlow: SharedFlow<SceneBuffer> = _bufferUpdateFlow
-
-	private val _metadataUpdateFlow = MutableSharedFlow<Pair<Int, SceneMetadata>>(
-		extraBufferCapacity = 8,
-		onBufferOverflow = BufferOverflow.DROP_OLDEST
-	)
-	val metadataUpdateFlow: SharedFlow<Pair<Int, SceneMetadata>> = _metadataUpdateFlow
 
 	private val _sceneListChannel = MutableSharedFlow<SceneSummary>(
 		extraBufferCapacity = 1,
@@ -151,6 +128,13 @@ class SceneEditorRepository(
 			syncDataRepository.markEntityAsDirty(scene.id, hash)
 		}
 	}
+
+	/**
+	 * Public entry point for marking a scene's current persisted identity for sync.
+	 * Used by [SceneEditorService] (which orchestrates metadata writes) and the sync layer,
+	 * keeping the hashing logic (responsibility G) on the data layer.
+	 */
+	suspend fun markSceneForSynchronization(scene: SceneItem) = markForSynchronization(scene)
 
 	// Runs through the whole tree and makes the scene order match the tree order
 	// this fixes changes that were made else where or possibly due to crashes
@@ -240,8 +224,7 @@ class SceneEditorRepository(
 
 		reloadScenes()
 
-		val newMetadata = projectMetadataDatasource.loadMetadata(projectDef)
-		metadata.emit(newMetadata)
+		sceneMetadataRepository.initialize()
 
 		contentUpdateJob = editorScope.launch {
 			contentFlow.debounceUntilQuiescentBy({ it.content.scene.id }, BUFFER_COOL_DOWN)
@@ -493,37 +476,12 @@ class SceneEditorRepository(
 		}
 	}
 
-	suspend fun loadSceneMetadata(sceneId: Int): SceneMetadata {
-		val defaultName: String = strRes.get(Res.string.default_draft_name)
-		val metadata = sceneMetadataDatasource.loadMetadata(sceneId) ?: SceneMetadata(currentDraftName = defaultName)
-		return if (metadata.currentDraftName.isBlank()) {
-			metadata.copy(currentDraftName = defaultName)
-		} else {
-			metadata
-		}
-	}
-
-	suspend fun storeMetadata(metadata: SceneMetadata, sceneId: Int) {
-		val scene = getSceneItemFromIdIncludingArchived(sceneId)
-			?: error("storeMetadata: Failed to load scene for id: $sceneId ")
-
-		val previous = sceneMetadataDatasource.loadMetadata(sceneId)
-
-		markForSynchronization(scene)
-		sceneMetadataDatasource.storeMetadata(metadata, sceneId)
-
-		val previousConfirmed = previous?.confirmedReferences.orEmpty()
-		val newConfirmed = metadata.confirmedReferences
-		if (previousConfirmed != newConfirmed) {
-			referenceIndexRepository.applySceneDelta(
-				sceneId = sceneId,
-				added = newConfirmed - previousConfirmed,
-				removed = previousConfirmed - newConfirmed,
-			)
-		}
-
-		_metadataUpdateFlow.tryEmit(sceneId to metadata)
-	}
+	/**
+	 * Transitional forwarder to [SceneMetadataRepository]. Repo-level readers still call this;
+	 * they are repointed directly at the metadata repo in a later pass (REFACTOR doc, Phase D).
+	 */
+	suspend fun loadSceneMetadata(sceneId: Int): SceneMetadata =
+		sceneMetadataRepository.loadSceneMetadata(sceneId)
 
 	fun getSceneFilePath(sceneItem: SceneItem, isNewScene: Boolean = false): HPath {
 		val scenePathSegment = getSceneDirectory().toOkioPath()
@@ -1103,7 +1061,7 @@ class SceneEditorRepository(
 				source = buffer.source,
 			)
 			if (buffer.source == UpdateSource.Editor) {
-				recordSceneActivity(sceneItem.id)
+				sceneMetadataRepository.recordSceneActivity(sceneItem.id)
 			}
 		}
 
@@ -1118,24 +1076,10 @@ class SceneEditorRepository(
 		}
 		val success = sceneDatasource.storeTempSceneBuffer(buffer)
 		if (success && buffer.source == UpdateSource.Editor) {
-			recordSceneActivity(sceneItem.id)
+			sceneMetadataRepository.recordSceneActivity(sceneItem.id)
+			statisticsRepository.markDirty()
 		}
 		return success
-	}
-
-	private suspend fun recordSceneActivity(sceneId: Int) {
-		val now = clock.now()
-		val existing = sceneMetadataDatasource.loadMetadata(sceneId)
-		// Backfill `created` for scenes authored before SceneMetadata had the field.
-		val createdFallback = existing?.created ?: getMetadata().info.created
-		val updated = (existing ?: SceneMetadata()).copy(
-			created = createdFallback,
-			lastEdited = now,
-		)
-		sceneMetadataDatasource.storeMetadata(updated, sceneId)
-		// Refresh open editors so their snapshot has the new timestamps.
-		_metadataUpdateFlow.tryEmit(sceneId to updated)
-		statisticsRepository.markDirty()
 	}
 
 	private fun clearTempScene(sceneItem: SceneItem) = sceneDatasource.clearTempScene(sceneItem)
