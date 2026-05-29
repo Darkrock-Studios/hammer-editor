@@ -1,7 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.projectsync
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -9,11 +13,42 @@ import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
+import com.darkrockstudios.apps.hammer.base.diff.DiffResult
 import com.darkrockstudios.apps.hammer.base.diff.DiffSpan
+import com.darkrockstudios.apps.hammer.base.diff.PreparedText
+import com.darkrockstudios.apps.hammer.base.diff.ProseDiff
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 
 /** Idle delay before recomputing a content diff while a local field is being edited. */
 internal const val CONTENT_DIFF_DELAY_MS = 400L
+
+/**
+ * Word-level diff between an immutable [serverContent] and an editable [localContent], recomputed
+ * off the main thread after a short idle. The server side is prepared (markdown-stripped and
+ * tokenized) once and reused, so only the edited side is reprocessed on each keystroke.
+ *
+ * Returns null until the server side is prepared and the first diff completes.
+ */
+@Composable
+internal fun rememberContentDiff(serverContent: String, localContent: String): DiffResult? {
+	var preparedServer by remember(serverContent) { mutableStateOf<PreparedText?>(null) }
+	LaunchedEffect(serverContent) {
+		preparedServer = withContext(Dispatchers.Default) { ProseDiff.prepare(serverContent) }
+	}
+
+	var diffResult by remember(serverContent) { mutableStateOf<DiffResult?>(null) }
+	LaunchedEffect(preparedServer, localContent) {
+		val prepared = preparedServer ?: return@LaunchedEffect
+		delay(CONTENT_DIFF_DELAY_MS)
+		diffResult = withContext(Dispatchers.Default) {
+			ProseDiff.diff(prepared, ProseDiff.prepare(localContent))
+		}
+	}
+	return diffResult
+}
 
 /** Background alpha for conflict diff highlights — light enough to read text through. */
 private const val CONFLICT_DIFF_HIGHLIGHT_ALPHA = 0.28f

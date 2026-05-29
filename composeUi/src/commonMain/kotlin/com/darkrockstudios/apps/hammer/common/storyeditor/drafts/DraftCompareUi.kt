@@ -463,11 +463,18 @@ private fun SyncScrolling(
 	val offsetMap = remember(diffResult) { OffsetMap(diffResult.anchors) }
 	val guard = remember(leftState, rightState) { ScrollSyncGuard() }
 
-	LaunchedEffect(leftState, rightState, offsetMap) {
+	// Prefix-sum line offsets so the per-scroll-event offset<->(line,char) conversions are O(1)/
+	// O(log n) instead of walking every line on each pixel. The left pane is read-only so its
+	// index is built once; the right pane's is rebuilt when the diff settles (textLines may have
+	// changed) — the same staleness window the rest of the sync already accepts mid-edit.
+	val leftIndex = remember(leftState) { LineOffsetIndex(leftState.textLines.map { it.length }) }
+	val rightIndex = remember(rightState, diffResult) { LineOffsetIndex(rightState.textLines.map { it.length }) }
+
+	LaunchedEffect(leftState, rightState, offsetMap, leftIndex, rightIndex) {
 		snapshotFlow { leftState.scrollState.value }
 			.collect { leftY ->
 				if (guard.pendingLeft.remove(leftY)) return@collect
-				val targetY = mapScrollTop(leftState, rightState, leftY, offsetMap::leftToRight)
+				val targetY = mapScrollTop(leftState, leftIndex, rightState, rightIndex, leftY, offsetMap::leftToRight)
 				val before = rightState.scrollState.value
 				if (targetY != before) {
 					rightState.scrollState.scrollTo(targetY)
@@ -477,11 +484,11 @@ private fun SyncScrolling(
 			}
 	}
 
-	LaunchedEffect(leftState, rightState, offsetMap) {
+	LaunchedEffect(leftState, rightState, offsetMap, leftIndex, rightIndex) {
 		snapshotFlow { rightState.scrollState.value }
 			.collect { rightY ->
 				if (guard.pendingRight.remove(rightY)) return@collect
-				val targetY = mapScrollTop(rightState, leftState, rightY, offsetMap::rightToLeft)
+				val targetY = mapScrollTop(rightState, rightIndex, leftState, leftIndex, rightY, offsetMap::rightToLeft)
 				val before = leftState.scrollState.value
 				if (targetY != before) {
 					leftState.scrollState.scrollTo(targetY)
@@ -495,44 +502,60 @@ private fun SyncScrolling(
 /**
  * Given [fromState]'s current scroll-top pixel [fromY], find the matching scroll-top pixel for
  * [toState]: resolve the offset at the top of [fromState]'s viewport, map it to the other side
- * via [mapAbs], and convert back to a pixel position in [toState].
+ * via [mapAbs], and convert back to a pixel position in [toState]. [fromIndex] / [toIndex] are the
+ * prefix-sum line indices for each pane.
  */
 private fun mapScrollTop(
 	fromState: TextEditorState,
+	fromIndex: LineOffsetIndex,
 	toState: TextEditorState,
+	toIndex: LineOffsetIndex,
 	fromY: Int,
 	mapAbs: (Int) -> Int,
 ): Int {
 	val fromTop = fromState.scrollManager.offsetAtYPosition(fromY.toFloat())
-	val targetAbs = mapAbs(fromState.absoluteOffsetOf(fromTop))
-	val toTop = toState.charLineOffsetOf(targetAbs)
+	val targetAbs = mapAbs(fromIndex.absoluteOf(fromTop))
+	val toTop = toIndex.charLineOf(targetAbs)
 	return toState.scrollManager.calculateOffsetYPosition(toTop).toInt()
 }
 
-/** Absolute char offset (into the editor's text) of a (line, char) position. */
-private fun TextEditorState.absoluteOffsetOf(offset: CharLineOffset): Int {
-	val lines = textLines
-	var sum = 0
-	var line = 0
-	while (line < offset.line && line < lines.size) {
-		sum += lines[line].length + 1 // + newline
-		line++
-	}
-	return sum + offset.char
-}
+/**
+ * Precomputed prefix sums of per-line start offsets, so converting between an absolute char offset
+ * and a (line, char) position is O(1) / O(log n) instead of walking the line list. Built from the
+ * editor's line lengths; rebuilt whenever those change.
+ */
+private class LineOffsetIndex(lineLengths: List<Int>) {
+	// lineStart[i] = absolute char offset of the first char of line i (each line is followed by '\n').
+	private val lineStart = IntArray(lineLengths.size)
+	private val lengths = IntArray(lineLengths.size) { lineLengths[it] }
 
-/** Inverse of [absoluteOffsetOf]: the (line, char) position for an absolute char offset. */
-private fun TextEditorState.charLineOffsetOf(absolute: Int): CharLineOffset {
-	val lines = textLines
-	if (lines.isEmpty()) return CharLineOffset(0, 0)
-	var remaining = absolute.coerceAtLeast(0)
-	var line = 0
-	while (line < lines.size) {
-		val len = lines[line].length
-		if (remaining <= len) return CharLineOffset(line, remaining)
-		remaining -= (len + 1)
-		line++
+	init {
+		var acc = 0
+		for (i in lineLengths.indices) {
+			lineStart[i] = acc
+			acc += lineLengths[i] + 1
+		}
 	}
-	val last = lines.lastIndex
-	return CharLineOffset(last, lines[last].length)
+
+	/** Absolute char offset of a (line, char) position. */
+	fun absoluteOf(offset: CharLineOffset): Int {
+		if (lineStart.isEmpty()) return offset.char
+		val line = offset.line.coerceIn(0, lineStart.size - 1)
+		return lineStart[line] + offset.char
+	}
+
+	/** The (line, char) position for an absolute char [absolute] offset. */
+	fun charLineOf(absolute: Int): CharLineOffset {
+		if (lineStart.isEmpty()) return CharLineOffset(0, 0)
+		val target = absolute.coerceAtLeast(0)
+		// Binary search for the last line whose start is <= target.
+		var lo = 0
+		var hi = lineStart.size - 1
+		while (lo < hi) {
+			val mid = (lo + hi + 1) ushr 1
+			if (lineStart[mid] <= target) lo = mid else hi = mid - 1
+		}
+		val charInLine = (target - lineStart[lo]).coerceIn(0, lengths[lo])
+		return CharLineOffset(lo, charInLine)
+	}
 }

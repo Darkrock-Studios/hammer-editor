@@ -17,7 +17,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,9 +29,7 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.base.diff.DiffResult
 import com.darkrockstudios.apps.hammer.base.diff.DiffSpan
-import com.darkrockstudios.apps.hammer.base.diff.ProseDiff
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -43,9 +40,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSeg
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EntryRefChipLabel
 import com.darkrockstudios.apps.hammer.common.encyclopedia.UnknownEntryRefChipLabel
 import com.darkrockstudios.apps.hammer.sync_conflict_references_confirmed_label
@@ -83,13 +77,7 @@ internal fun SceneConflict(
 	// the main thread after a short idle. leftSpans highlight removals on the read-only remote side,
 	// rightSpans highlight additions on the editable local side.
 	val server = entityConflict.serverEntity
-	var contentDiff by remember(client, server) { mutableStateOf<DiffResult?>(null) }
-	LaunchedEffect(server.content, contentTextValue) {
-		delay(CONTENT_DIFF_DELAY_MS)
-		contentDiff = withContext(Dispatchers.Default) {
-			ProseDiff.diff(server.content, contentTextValue)
-		}
-	}
+	val contentDiff = rememberContentDiff(server.content, contentTextValue)
 	val deletedStyle = diffDeletedStyle()
 	val insertedStyle = diffInsertedStyle()
 

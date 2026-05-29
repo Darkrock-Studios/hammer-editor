@@ -5,6 +5,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.base.diff.DiffResult
+import com.darkrockstudios.apps.hammer.base.diff.PreparedText
 import com.darkrockstudios.apps.hammer.base.diff.ProseDiff
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.*
@@ -42,6 +43,10 @@ class DraftCompareComponent(
 	private var draftText: String? = null
 	private var currentText: String? = null
 
+	// The draft is read-only, so we prepare (tokenize) it once and reuse it across recomputes
+	// instead of re-tokenizing it on every edit of the current side.
+	private var preparedDraft: PreparedText? = null
+
 	override fun loadContents() {
 		scope.launch {
 			val currentBuffer = projectEditor.loadSceneBuffer(sceneItem)
@@ -69,6 +74,7 @@ class DraftCompareComponent(
 	override fun submitDraftText(text: String) {
 		if (text == draftText) return
 		draftText = text
+		preparedDraft = null
 		recomputeDiff()
 	}
 
@@ -88,7 +94,9 @@ class DraftCompareComponent(
 		diffJob?.cancel()
 		diffJob = scope.launch {
 			val result: DiffResult = withContext(dispatcherDefault) {
-				ProseDiff.diffPlain(left, right)
+				val preparedLeft = preparedDraft
+					?: ProseDiff.preparePlain(left).also { preparedDraft = it }
+				ProseDiff.diff(preparedLeft, ProseDiff.preparePlain(right))
 			}
 			withContext(dispatcherMain) {
 				_state.getAndUpdate { it.copy(diffResult = result) }

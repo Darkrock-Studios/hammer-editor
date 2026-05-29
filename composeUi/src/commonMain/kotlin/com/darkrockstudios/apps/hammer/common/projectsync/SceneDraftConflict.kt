@@ -8,7 +8,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -17,8 +16,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.base.diff.DiffResult
-import com.darkrockstudios.apps.hammer.base.diff.ProseDiff
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictField
@@ -28,10 +25,7 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.sync_conflict_title_scene_draft_field_content
 import com.darkrockstudios.apps.hammer.sync_conflict_title_scene_draft_field_name
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 @Composable
 internal fun SceneDraftConflict(
@@ -47,13 +41,7 @@ internal fun SceneDraftConflict(
 	var contentTextValue by rememberSaveable(client) { mutableStateOf(client.content) }
 	var nameError by rememberSaveable(client) { mutableStateOf<String?>(null) }
 
-	var contentDiff by remember(client, server) { mutableStateOf<DiffResult?>(null) }
-	LaunchedEffect(server.content, contentTextValue) {
-		delay(CONTENT_DIFF_DELAY_MS)
-		contentDiff = withContext(Dispatchers.Default) {
-			ProseDiff.diff(server.content, contentTextValue)
-		}
-	}
+	val contentDiff = rememberContentDiff(server.content, contentTextValue)
 	val deletedStyle = diffDeletedStyle()
 	val insertedStyle = diffInsertedStyle()
 

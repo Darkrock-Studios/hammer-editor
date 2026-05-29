@@ -3,6 +3,18 @@ package com.darkrockstudios.apps.hammer.base.diff
 import io.github.petertrr.diffutils.diff
 
 /**
+ * A text whose markdown has been stripped and tokenized, ready to be diffed. Preparing the
+ * immutable side of a comparison once and reusing it across recomputes avoids re-stripping and
+ * re-tokenizing it on every edit of the other side. Opaque to callers — build one with
+ * [ProseDiff.prepare] (markdown) or [ProseDiff.preparePlain] (already-plain text).
+ */
+class PreparedText internal constructor(
+	internal val plain: PlainTextResult,
+	internal val tokens: List<Token>,
+	internal val sourceLength: Int,
+)
+
+/**
  * Compute a word-level diff between two markdown texts, returning highlight spans for each
  * side and anchor pairs for synchronized scrolling.
  *
@@ -22,17 +34,24 @@ object ProseDiff {
 	/** Threshold (in plain-text chars) for merging adjacent edits separated by a short common run. */
 	private const val SMALL_GAP_THRESHOLD = 3
 
+	/** Strip markdown to plain text (keeping the offset map back to source) and tokenize. */
+	fun prepare(markdown: String): PreparedText {
+		val plain = extractPlainText(markdown)
+		return PreparedText(plain, tokenize(plain.plain), markdown.length)
+	}
+
+	/** Tokenize an already-plain text with an identity offset map (no markdown stripping). */
+	fun preparePlain(text: String): PreparedText {
+		val plain = identityPlainText(text)
+		return PreparedText(plain, tokenize(plain.plain), text.length)
+	}
+
 	/**
 	 * Diff two markdown texts. Spans are in *markdown source* coordinates — use this when the UI
 	 * displays the raw markdown (e.g. the conflict-merge plain text fields).
 	 */
 	fun diff(leftMarkdown: String, rightMarkdown: String): DiffResult =
-		diffInternal(
-			left = extractPlainText(leftMarkdown),
-			right = extractPlainText(rightMarkdown),
-			leftSourceLength = leftMarkdown.length,
-			rightSourceLength = rightMarkdown.length,
-		)
+		diff(prepare(leftMarkdown), prepare(rightMarkdown))
 
 	/**
 	 * Diff two already-plain texts. Spans are in the input strings' own coordinates — use this
@@ -40,32 +59,26 @@ object ProseDiff {
 	 * editor, where markdown syntax has already been stripped away).
 	 */
 	fun diffPlain(left: String, right: String): DiffResult =
-		diffInternal(
-			left = identityPlainText(left),
-			right = identityPlainText(right),
-			leftSourceLength = left.length,
-			rightSourceLength = right.length,
-		)
+		diff(preparePlain(left), preparePlain(right))
 
-	private fun diffInternal(
-		left: PlainTextResult,
-		right: PlainTextResult,
-		leftSourceLength: Int,
-		rightSourceLength: Int,
-	): DiffResult {
-		if (left.plain == right.plain) {
+	/**
+	 * Diff two [PreparedText]s. Spans are in the source coordinates each side was prepared from —
+	 * both sides must be prepared the same way ([prepare] vs [preparePlain]).
+	 */
+	fun diff(left: PreparedText, right: PreparedText): DiffResult {
+		if (left.plain.plain == right.plain.plain) {
 			return DiffResult(
 				leftSpans = emptyList(),
 				rightSpans = emptyList(),
 				anchors = listOf(
 					DiffAnchor(0, 0),
-					DiffAnchor(leftSourceLength, rightSourceLength),
+					DiffAnchor(left.sourceLength, right.sourceLength),
 				),
 			)
 		}
 
-		val leftTokens = tokenize(left.plain)
-		val rightTokens = tokenize(right.plain)
+		val leftTokens = left.tokens
+		val rightTokens = right.tokens
 
 		val patch = diff(
 			source = leftTokens.map { it.text },
@@ -78,9 +91,9 @@ object ProseDiff {
 			val tgtPos = delta.target.position
 			val tgtEndExclusive = tgtPos + delta.target.lines.size
 			Hunk(
-				leftPlainStart = tokenStartPlain(leftTokens, srcPos, left.plain.length),
+				leftPlainStart = tokenStartPlain(leftTokens, srcPos, left.plain.plain.length),
 				leftPlainEnd = tokenEndPlain(leftTokens, srcEndExclusive),
-				rightPlainStart = tokenStartPlain(rightTokens, tgtPos, right.plain.length),
+				rightPlainStart = tokenStartPlain(rightTokens, tgtPos, right.plain.plain.length),
 				rightPlainEnd = tokenEndPlain(rightTokens, tgtEndExclusive),
 			)
 		}
@@ -94,24 +107,24 @@ object ProseDiff {
 
 		for (h in merged) {
 			anchors += DiffAnchor(
-				leftSource = left.plainOffsetToSource(h.leftPlainStart),
-				rightSource = right.plainOffsetToSource(h.rightPlainStart),
+				leftSource = left.plain.plainOffsetToSource(h.leftPlainStart),
+				rightSource = right.plain.plainOffsetToSource(h.rightPlainStart),
 			)
 			if (h.leftPlainEnd > h.leftPlainStart) {
-				val range = left.plainRangeToSource(h.leftPlainStart, h.leftPlainEnd)
+				val range = left.plain.plainRangeToSource(h.leftPlainStart, h.leftPlainEnd)
 				if (!range.isEmpty) leftSpans += DiffSpan(DiffKind.DELETED, range)
 			}
 			if (h.rightPlainEnd > h.rightPlainStart) {
-				val range = right.plainRangeToSource(h.rightPlainStart, h.rightPlainEnd)
+				val range = right.plain.plainRangeToSource(h.rightPlainStart, h.rightPlainEnd)
 				if (!range.isEmpty) rightSpans += DiffSpan(DiffKind.INSERTED, range)
 			}
 			anchors += DiffAnchor(
-				leftSource = left.plainOffsetToSource(h.leftPlainEnd, preferEnd = true),
-				rightSource = right.plainOffsetToSource(h.rightPlainEnd, preferEnd = true),
+				leftSource = left.plain.plainOffsetToSource(h.leftPlainEnd, preferEnd = true),
+				rightSource = right.plain.plainOffsetToSource(h.rightPlainEnd, preferEnd = true),
 			)
 		}
 
-		anchors += DiffAnchor(leftSourceLength, rightSourceLength)
+		anchors += DiffAnchor(left.sourceLength, right.sourceLength)
 
 		return DiffResult(
 			leftSpans = leftSpans,

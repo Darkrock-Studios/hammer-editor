@@ -149,6 +149,36 @@ class ProseDiffTest {
 	}
 
 	@Test
+	fun `diff on prepared markdown matches the string overload`() {
+		val left = "Say **hello** to the world."
+		val right = "Say **goodbye** to the world."
+		val viaStrings = ProseDiff.diff(left, right)
+		val viaPrepared = ProseDiff.diff(ProseDiff.prepare(left), ProseDiff.prepare(right))
+		assertEquals(viaStrings, viaPrepared)
+	}
+
+	@Test
+	fun `diffPlain matches diffing two preparePlain sides`() {
+		val left = "The cat sat on the mat."
+		val right = "The dog sat on the mat."
+		val viaStrings = ProseDiff.diffPlain(left, right)
+		val viaPrepared = ProseDiff.diff(ProseDiff.preparePlain(left), ProseDiff.preparePlain(right))
+		assertEquals(viaStrings, viaPrepared)
+	}
+
+	@Test
+	fun `a prepared side can be reused across diffs without affecting results`() {
+		val draft = "The quick brown fox."
+		val preparedDraft = ProseDiff.preparePlain(draft)
+
+		val first = ProseDiff.diff(preparedDraft, ProseDiff.preparePlain("The quick red fox."))
+		val second = ProseDiff.diff(preparedDraft, ProseDiff.preparePlain("The slow brown fox."))
+
+		assertEquals(ProseDiff.diffPlain(draft, "The quick red fox."), first)
+		assertEquals(ProseDiff.diffPlain(draft, "The slow brown fox."), second)
+	}
+
+	@Test
 	fun `paragraph insertion is highlighted as one block`() {
 		val left = "Para one.\n\nPara three."
 		val right = "Para one.\n\nPara two.\n\nPara three."
