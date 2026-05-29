@@ -24,7 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsS
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.deriveWritingStats
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.parseDailyWordTotals
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -54,7 +54,7 @@ class ProjectHomeComponent(
 
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val projectBackupRepository: ProjectBackupRepository by inject()
-	private val sceneEditorRepository: SceneEditorRepository by projectInject()
+	private val sceneEditorRepository: SceneEditorService by projectInject()
 	private val exportStoryUseCase: ExportStoryUseCase by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()

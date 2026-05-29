@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -19,7 +19,7 @@ class OutlineOverviewComponent(
 	private val showScene: (SceneItem) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), OutlineOverview {
 
-	private val sceneEditor: SceneEditorRepository by projectInject()
+	private val sceneEditor: SceneEditorService by projectInject()
 
 	private val _state = MutableValue(OutlineOverview.State())
 	override val state: Value<OutlineOverview.State> = _state

@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.countWords
 import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
@@ -42,7 +42,7 @@ class SceneMetadataPanelComponent(
 	SceneMetadataPanel {
 
 	private val appScope: CoroutineScope by inject(named(APP_SCOPE))
-	private val sceneEditor: SceneEditorRepository by projectInject()
+	private val sceneEditor: SceneEditorService by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val scrubInvalidReferences: ScrubInvalidReferencesUseCase by projectInject()
 

@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStory
 import com.darkrockstudios.apps.hammer.common.data.ExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
@@ -44,7 +45,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	private fun useCase() = ExportStoryUseCase(
-		sceneEditorRepository = sceneEditorRepository,
+		sceneEditorRepository = SceneEditorService(sceneEditorRepository),
 		projectDataDatasource = projectDataDatasource,
 		fileSystem = ffs,
 		localeResolver = localeResolver,
