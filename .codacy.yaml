@@ -38,7 +38,9 @@ engines:
     # don't map well to Jetpack Compose composables — long declarative UI
     # functions and many composable parameters are idiomatic. Disable Lizard
     # for composeUi entirely; detekt still enforces complexity on this code.
-    Lizard:
+    # NOTE: engine names must be lowercase (`lizard`, not `Lizard`) — an
+    # unrecognized engine key makes Codacy mis-handle the whole engines block.
+    lizard:
         exclude_paths:
             - 'composeUi/**'
             - 'android/src/main/kotlin/**/widgets/**'
