@@ -9,14 +9,13 @@ class HashTest {
 	@Test
 	fun EntityHashTest() {
 		val hash = EntityHasher.hashNote(
-			id = 1,
-			created = Instant.fromEpochSeconds(123),
-			content = "this is some tet text"
+			id = 2,
+			created = Instant.fromEpochMilliseconds(0),
+			content = "Content",
+			tags = emptySet(),
 		)
 
-		println("hash: $hash")
-
-		val expected = "IAvvisZNMehI-2mBnczrnw"
+		val expected = "NKZ2n0XDoHLagRABzkb8Yg"
 		assert(expected == hash)
 	}
 }
