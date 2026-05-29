@@ -112,9 +112,6 @@ class SceneContentRepositoryTest : BaseTest() {
 			sceneContentRepository = contentRepo,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
-			statisticsRepository = statisticsRepository,
-			referenceIndexRepository = referenceIndexRepository,
-			writingSessionTracker = writingSessionTracker,
 			clock = Clock.System,
 		)
 		service = SceneEditorService(

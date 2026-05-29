@@ -142,7 +142,7 @@ class ClientSceneSynchronizer(
 		val existingArchived = sceneEditorRepository.getArchivedSceneFromId(id)
 		if (existingArchived != null) {
 			// Unarchive it first since server says it's active
-			sceneEditorRepository.unarchiveScene(existingArchived)
+			sceneEditorService.unarchiveScene(existingArchived)
 			onLog(syncLogI(strRes.get(Res.string.sync_scene_downloading, id), projectDef))
 		}
 
@@ -161,7 +161,7 @@ class ClientSceneSynchronizer(
 				existingScene
 			} else {
 				onLog(syncLogI(strRes.get(Res.string.sync_scene_creating, id), projectDef))
-				sceneEditorRepository.createScene(
+				sceneEditorService.createScene(
 					parent = parent,
 					sceneName = serverEntity.name,
 					forceId = serverEntity.id,
@@ -227,7 +227,7 @@ class ClientSceneSynchronizer(
 				existingGroup
 			} else {
 				onLog(syncLogI(strRes.get(Res.string.sync_scene_group_creating, id), projectDef))
-				sceneEditorRepository.createGroup(
+				sceneEditorService.createGroup(
 					parent = parent,
 					groupName = serverEntity.name,
 					forceId = serverEntity.id,
@@ -278,7 +278,7 @@ class ClientSceneSynchronizer(
 		val existingActive = sceneEditorRepository.getSceneItemFromId(id)
 		if (existingActive != null) {
 			// Archive it to match server state
-			sceneEditorRepository.archiveScene(existingActive)
+			sceneEditorService.archiveScene(existingActive)
 			onLog(syncLogI(strRes.get(Res.string.sync_scene_downloading, id), projectDef))
 		}
 
@@ -363,7 +363,7 @@ class ClientSceneSynchronizer(
 	override suspend fun deleteEntityLocal(id: Int, onLog: OnSyncLog) {
 		val sceneItem = sceneEditorRepository.getSceneItemFromId(id)
 		if (sceneItem != null) {
-			if (sceneEditorRepository.deleteScene(sceneItem)) {
+			if (sceneEditorService.deleteScene(sceneItem)) {
 				onLog(syncLogI(strRes.get(Res.string.sync_scene_deleted, id), projectDef))
 			} else {
 				onLog(syncLogE(strRes.get(Res.string.sync_scene_delete_failed, id), projectDef))
@@ -373,7 +373,7 @@ class ClientSceneSynchronizer(
 
 		val archivedScene = sceneEditorRepository.getArchivedSceneFromId(id)
 		if (archivedScene != null) {
-			if (sceneEditorRepository.deleteScene(archivedScene)) {
+			if (sceneEditorService.deleteScene(archivedScene)) {
 				onLog(syncLogI(strRes.get(Res.string.sync_scene_deleted, id), projectDef))
 			} else {
 				onLog(syncLogE(strRes.get(Res.string.sync_scene_delete_failed, id), projectDef))

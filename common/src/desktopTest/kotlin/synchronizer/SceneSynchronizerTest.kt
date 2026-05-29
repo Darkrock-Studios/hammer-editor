@@ -109,7 +109,7 @@ class SceneSynchronizerTest : BaseTest() {
 		every { sceneEditorRepository.getSceneItemFromId(ROOT_ID) } returns rootSceneNode(def)
 		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns null
 		coEvery {
-			sceneEditorRepository.createScene(
+			sceneEditorService.createScene(
 				parent = rootNode.value,
 				sceneName = serverEntity.name,
 				forceId = serverEntity.id,
@@ -136,7 +136,7 @@ class SceneSynchronizerTest : BaseTest() {
 		////////////////////
 		// Verify
 		coVerify(exactly = 1) {
-			sceneEditorRepository.createScene(
+			sceneEditorService.createScene(
 				parent = rootNode.value,
 				sceneName = serverEntity.name,
 				forceId = serverEntity.id,
@@ -296,7 +296,7 @@ class SceneSynchronizerTest : BaseTest() {
 		////////////////////
 		// Verify
 		assertEquals(serverEntity.name, entityTreeNode.value.name)
-		coVerify(exactly = 0) { sceneEditorRepository.createGroup(any(), any(), any(), any()) }
+		coVerify(exactly = 0) { sceneEditorService.createGroup(any(), any(), any(), any()) }
 	}
 
 	@Test
@@ -320,7 +320,7 @@ class SceneSynchronizerTest : BaseTest() {
 		every { sceneEditorRepository.getSceneItemFromId(ROOT_ID) } returns rootSceneNode(def)
 		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns null
 		coEvery {
-			sceneEditorRepository.createGroup(
+			sceneEditorService.createGroup(
 				parent = rootNode.value,
 				groupName = clientEntity.name,
 				forceId = serverEntity.id,
@@ -347,7 +347,7 @@ class SceneSynchronizerTest : BaseTest() {
 		val newGroupNode = tree.findById(serverEntity.id)
 		assertNotNull(newGroupNode)
 
-		coVerify(exactly = 1) { sceneEditorRepository.createGroup(any(), any(), any(), any()) }
+		coVerify(exactly = 1) { sceneEditorService.createGroup(any(), any(), any(), any()) }
 	}
 
 	@Test
@@ -477,7 +477,7 @@ class SceneSynchronizerTest : BaseTest() {
 		every { sceneEditorRepository.getSceneItemFromId(ROOT_ID) } returns rootSceneNode(def)
 		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns null
 		coEvery {
-			sceneEditorRepository.createScene(
+			sceneEditorService.createScene(
 				parent = rootNode.value,
 				sceneName = serverEntity.name,
 				forceId = serverEntity.id,

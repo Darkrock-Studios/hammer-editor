@@ -82,28 +82,55 @@ class SceneEditorService(
 		sceneName: String,
 		forceId: Int? = null,
 		forceOrder: Int? = null,
-	): SceneItem? = sceneEditorRepository.createScene(parent, sceneName, forceId, forceOrder)
+	): SceneItem? {
+		val created = sceneEditorRepository.createScene(parent, sceneName, forceId, forceOrder)
+		if (created != null) statisticsRepository.markDirty()
+		return created
+	}
 
 	suspend fun createGroup(
 		parent: SceneItem?,
 		groupName: String,
 		forceId: Int? = null,
 		forceOrder: Int? = null,
-	): SceneItem? = sceneEditorRepository.createGroup(parent, groupName, forceId, forceOrder)
+	): SceneItem? {
+		val created = sceneEditorRepository.createGroup(parent, groupName, forceId, forceOrder)
+		if (created != null) statisticsRepository.markDirty()
+		return created
+	}
 
-	suspend fun deleteScene(scene: SceneItem): Boolean = sceneEditorRepository.deleteScene(scene)
+	suspend fun deleteScene(scene: SceneItem): Boolean {
+		val deleted = sceneEditorRepository.deleteScene(scene)
+		if (deleted) {
+			statisticsRepository.markDirty()
+			referenceIndexRepository.markSceneDeleted(scene.id)
+			writingSessionTracker.forgetBaseline(scene.id)
+		}
+		return deleted
+	}
 
-	suspend fun deleteGroup(scene: SceneItem): Boolean = sceneEditorRepository.deleteGroup(scene)
+	suspend fun deleteGroup(scene: SceneItem): Boolean {
+		val deleted = sceneEditorRepository.deleteGroup(scene)
+		if (deleted) statisticsRepository.markDirty()
+		return deleted
+	}
 
 	suspend fun renameScene(sceneItem: SceneItem, newName: String): Boolean =
 		sceneEditorRepository.renameScene(sceneItem, newName)
 
 	suspend fun moveScene(moveRequest: MoveRequest) = sceneEditorRepository.moveScene(moveRequest)
 
-	suspend fun archiveScene(scene: SceneItem): Boolean = sceneEditorRepository.archiveScene(scene)
+	suspend fun archiveScene(scene: SceneItem): Boolean {
+		val archived = sceneEditorRepository.archiveScene(scene)
+		if (archived) statisticsRepository.markDirty()
+		return archived
+	}
 
-	suspend fun unarchiveScene(scene: SceneItem): SceneItem? =
-		sceneEditorRepository.unarchiveScene(scene)
+	suspend fun unarchiveScene(scene: SceneItem): SceneItem? {
+		val unarchived = sceneEditorRepository.unarchiveScene(scene)
+		if (unarchived != null) statisticsRepository.markDirty()
+		return unarchived
+	}
 
 	/**
 	 * Orchestrates a scene-metadata write: mark the scene's current identity for sync, persist

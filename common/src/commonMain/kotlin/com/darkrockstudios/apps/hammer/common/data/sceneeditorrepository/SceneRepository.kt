@@ -4,8 +4,6 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
@@ -13,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
-import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -38,9 +35,6 @@ class SceneRepository(
 	private val sceneContentRepository: SceneContentRepository,
 	private val sceneMetadataDatasource: SceneMetadataDatasource,
 	private val sceneDatasource: SceneDatasource,
-	private val statisticsRepository: StatisticsRepository,
-	private val referenceIndexRepository: ReferenceIndexRepository,
-	private val writingSessionTracker: WritingSessionTracker,
 	private val clock: Clock,
 ) : ProjectScoped, KoinComponent {
 
@@ -762,7 +756,6 @@ class SceneRepository(
 			Napier.i("createScene: $cleanedNamed")
 
 			reloadScenes()
-			statisticsRepository.markDirty()
 
 			newSceneItem
 		}
@@ -787,9 +780,6 @@ class SceneRepository(
 				}
 
 				reloadScenes()
-				statisticsRepository.markDirty()
-				referenceIndexRepository.markSceneDeleted(scene.id)
-				writingSessionTracker.forgetBaseline(scene.id)
 
 				true
 			} else {
@@ -820,7 +810,6 @@ class SceneRepository(
 				Napier.w("Group ${scene.id} deleted")
 
 				reloadScenes()
-				statisticsRepository.markDirty()
 
 				true
 			} else {
@@ -917,7 +906,6 @@ class SceneRepository(
 		updateSceneOrder(parentId)
 
 		reloadScenes()
-		statisticsRepository.markDirty()
 
 		Napier.i("Scene ${scene.id} archived")
 		return true
@@ -956,7 +944,6 @@ class SceneRepository(
 		markForSynchronization(unarchivedScene)
 
 		reloadScenes()
-		statisticsRepository.markDirty()
 
 		Napier.i("Scene ${scene.id} unarchived")
 		return unarchivedScene

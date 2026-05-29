@@ -116,9 +116,6 @@ class SceneMetadataRepositoryTest : BaseTest() {
 			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
-			statisticsRepository = statisticsRepository,
-			referenceIndexRepository = referenceIndexRepository,
-			writingSessionTracker = writingSessionTracker,
 			clock = Clock.System,
 		)
 		repo.initializeSceneEditor()

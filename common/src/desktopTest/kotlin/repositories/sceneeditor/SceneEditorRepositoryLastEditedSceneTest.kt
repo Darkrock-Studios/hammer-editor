@@ -98,9 +98,6 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
-			statisticsRepository = statisticsRepository,
-			referenceIndexRepository = referenceIndexRepository,
-			writingSessionTracker = writingSessionTracker,
 			clock = clock,
 		)
 		service = SceneEditorService(
