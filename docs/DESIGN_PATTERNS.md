@@ -247,8 +247,7 @@ metadata, or observe the scene list. There is exactly one door: inject
 
 The scene-editing domain was historically one ~1300-line `SceneEditorRepository`
 that bundled ~12 responsibilities and depended sideways on sibling repos and
-*up* on a Service-level tracker. It was decomposed (see
-[REFACTOR-SceneEditorRepository.md](REFACTOR-SceneEditorRepository.md)) into:
+*up* on a Service-level tracker. It was decomposed into:
 
 - **`SceneEditorService`** — the single Component-facing API. Owns write
   *orchestration* (it applies the cross-cutting side-effects — statistics,
