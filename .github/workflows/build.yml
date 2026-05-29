@@ -30,6 +30,11 @@ jobs:
         uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+      # Explicit gate for the server unit tests (incl. EntityHashSensitivityTest). These otherwise
+      # only run as a side-effect of koverXmlReport, which is fragile - a kover config change would
+      # silently stop running them.
+      - name: Run Server Unit Tests
+        run: ./gradlew :server:test
       - name: Run Server Migration Tests
         run: ./gradlew :server:verifySqlDelightMigration
       - name: Run Round-Trip Sync Integration Tests
