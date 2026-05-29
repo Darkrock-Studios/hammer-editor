@@ -41,6 +41,7 @@ dependencies {
 	androidTestImplementation(libs.core)
 	androidTestImplementation(libs.core.ktx)
 	androidTestImplementation(libs.androidx.runner)
+	androidTestImplementation(libs.jetbrains.compose.ui.test.junit4)
 	androidTestUtil(libs.orchestrator)
 
 	implementation(libs.aboutlibraries.core)
