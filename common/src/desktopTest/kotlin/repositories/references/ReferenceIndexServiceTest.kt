@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.references.*
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
@@ -38,6 +39,7 @@ class ReferenceIndexServiceTest : BaseTest() {
 	private lateinit var datasource: ReferenceIndexDatasource
 	private lateinit var repository: ReferenceIndexRepository
 	private lateinit var sceneEditor: SceneRepository
+	private lateinit var sceneMetadataRepository: SceneMetadataRepository
 	private lateinit var encyclopedia: EncyclopediaRepository
 
 	@BeforeEach
@@ -52,6 +54,7 @@ class ReferenceIndexServiceTest : BaseTest() {
 		datasource = ReferenceIndexDatasource(ffs, toml, projectDef)
 		repository = ReferenceIndexRepository(projectDef, datasource)
 		sceneEditor = mockk(relaxed = true)
+		sceneMetadataRepository = mockk(relaxed = true)
 		encyclopedia = mockk(relaxed = true)
 	}
 
@@ -61,6 +64,7 @@ class ReferenceIndexServiceTest : BaseTest() {
 		projectDef = projectDef,
 		repository = repository,
 		sceneEditorRepository = sceneEditor,
+		sceneMetadataRepository = sceneMetadataRepository,
 		encyclopediaRepository = encyclopedia,
 		matcher = WholeWordCaseSensitiveMatcher(),
 		config = config,
@@ -112,7 +116,7 @@ class ReferenceIndexServiceTest : BaseTest() {
 		every { sceneEditor.sceneListChannel } returns flow
 		coEvery { sceneEditor.getArchivedScenes() } returns emptyList()
 		for ((item, metadata) in scenes) {
-			coEvery { sceneEditor.loadSceneMetadata(item.id) } returns metadata
+			coEvery { sceneMetadataRepository.loadSceneMetadata(item.id) } returns metadata
 		}
 	}
 
@@ -172,7 +176,7 @@ class ReferenceIndexServiceTest : BaseTest() {
 		)
 		val archived = sceneItem(99, "Archived").copy(archived = true)
 		coEvery { sceneEditor.getArchivedScenes() } returns listOf(archived)
-		coEvery { sceneEditor.loadSceneMetadata(99) } returns SceneMetadata(confirmedReferences = setOf(1))
+		coEvery { sceneMetadataRepository.loadSceneMetadata(99) } returns SceneMetadata(confirmedReferences = setOf(1))
 		stubEntries(emptyList())
 
 		val index = makeService().recalculate()

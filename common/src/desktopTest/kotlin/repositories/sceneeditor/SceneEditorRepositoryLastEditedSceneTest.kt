@@ -130,7 +130,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 			order = 0,
 		)
 		val content = SceneContent(scene = sceneItem, markdown = "edited")
-		repo.onContentChanged(content, UpdateSource.Editor)
+		service.onContentChanged(content, UpdateSource.Editor)
 		advanceUntilIdle()
 
 		service.storeSceneBuffer(sceneItem)
@@ -155,7 +155,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 			order = 0,
 		)
 		val content = SceneContent(scene = sceneItem, markdown = "synced in")
-		repo.onContentChanged(content, UpdateSource.Sync)
+		service.onContentChanged(content, UpdateSource.Sync)
 		advanceUntilIdle()
 
 		service.storeSceneBuffer(sceneItem)
@@ -175,7 +175,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 		val first = SceneItem(projDef, SceneItem.Type.Scene, 1, "Scene 1", 0)
 		val second = SceneItem(projDef, SceneItem.Type.Scene, 3, "Scene 3", 0)
 
-		repo.onContentChanged(SceneContent(first, "a"), UpdateSource.Editor)
+		service.onContentChanged(SceneContent(first, "a"), UpdateSource.Editor)
 		advanceUntilIdle()
 		service.storeSceneBuffer(first)
 		advanceUntilIdle()
@@ -184,7 +184,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 
 		clock.advanceTime(1.minutes)
 
-		repo.onContentChanged(SceneContent(second, "b"), UpdateSource.Editor)
+		service.onContentChanged(SceneContent(second, "b"), UpdateSource.Editor)
 		advanceUntilIdle()
 		service.storeSceneBuffer(second)
 		advanceUntilIdle()
@@ -209,7 +209,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 			repo.initializeSceneEditor()
 
 			val sceneItem = SceneItem(projDef, SceneItem.Type.Scene, 7, "Scene 7", 0)
-			repo.onContentChanged(SceneContent(sceneItem, "first edit"), UpdateSource.Editor)
+			service.onContentChanged(SceneContent(sceneItem, "first edit"), UpdateSource.Editor)
 			advanceUntilIdle()
 			service.storeSceneBuffer(sceneItem)
 			advanceUntilIdle()
@@ -238,7 +238,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 			repo.initializeSceneEditor()
 
 			val sceneItem = SceneItem(projDef, SceneItem.Type.Scene, 5, "Scene 5", 0)
-			repo.onContentChanged(SceneContent(sceneItem, "edit"), UpdateSource.Editor)
+			service.onContentChanged(SceneContent(sceneItem, "edit"), UpdateSource.Editor)
 			advanceUntilIdle()
 			service.storeSceneBuffer(sceneItem)
 			advanceUntilIdle()
@@ -258,7 +258,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 		repo.initializeSceneEditor()
 
 		val sceneItem = SceneItem(projDef, SceneItem.Type.Scene, 3, "Scene 3", 0)
-		repo.onContentChanged(SceneContent(sceneItem, "edited"), UpdateSource.Editor)
+		service.onContentChanged(SceneContent(sceneItem, "edited"), UpdateSource.Editor)
 		advanceUntilIdle()
 		service.storeSceneBuffer(sceneItem)
 		advanceUntilIdle()

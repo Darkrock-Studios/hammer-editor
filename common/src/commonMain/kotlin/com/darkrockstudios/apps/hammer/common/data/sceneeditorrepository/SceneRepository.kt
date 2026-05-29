@@ -174,16 +174,6 @@ class SceneRepository(
 		_sceneListChannel.tryEmit(scenes)
 	}
 
-	/**
-	 * Transitional forwarders to [SceneContentRepository]. Repo-level readers (GlobalSearch,
-	 * sync) still call these; they are repointed directly at the content repo in a later pass
-	 * (REFACTOR doc, Phase D). The Component-facing API goes through SceneEditorService.
-	 */
-	fun getSceneBuffer(sceneDef: SceneItem): SceneBuffer? = sceneContentRepository.getSceneBuffer(sceneDef)
-
-	fun onContentChanged(content: SceneContent, source: UpdateSource) =
-		sceneContentRepository.onContentChanged(content, source)
-
 	private fun willNextSceneIncreaseMagnitude(parentId: Int?): Boolean {
 		val lastOrder = getLastOrderNumber(parentId)
 		return lastOrder.numDigits() < (lastOrder + 1).numDigits()
@@ -318,13 +308,6 @@ class SceneRepository(
 			ScenePathSegments(pathSegments = emptyList())
 		}
 	}
-
-	/**
-	 * Transitional forwarder to [SceneMetadataRepository]. Repo-level readers still call this;
-	 * they are repointed directly at the metadata repo in a later pass (REFACTOR doc, Phase D).
-	 */
-	suspend fun loadSceneMetadata(sceneId: Int): SceneMetadata =
-		sceneMetadataRepository.loadSceneMetadata(sceneId)
 
 	fun getSceneFilePath(sceneItem: SceneItem, isNewScene: Boolean = false): HPath {
 		val scenePathSegment = getSceneDirectory().toOkioPath()

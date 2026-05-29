@@ -129,7 +129,7 @@ class TagIndexServiceTest : BaseTest() {
 		every { sceneEditor.getScenes() } returns items
 		every { sceneEditor.getArchivedScenes() } returns emptyList()
 		for ((id, tags) in sceneAndTags) {
-			coEvery { sceneEditor.loadSceneMetadata(id) } returns SceneMetadata(tags = tags)
+			coEvery { sceneMetadata.loadSceneMetadata(id) } returns SceneMetadata(tags = tags)
 		}
 	}
 
@@ -139,6 +139,7 @@ class TagIndexServiceTest : BaseTest() {
 			notesRepository = notes,
 			timeLineRepository = timeline,
 			sceneEditorRepository = sceneEditor,
+			sceneMetadataRepository = sceneMetadata,
 		)
 		return TagIndexService(
 			projectDef = projectDef,

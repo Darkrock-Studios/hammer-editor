@@ -283,14 +283,14 @@ class ArchiveSyncIntegrationTest : BaseIntegrationTest() {
 		// THIS IS THE BUG FIX TEST:
 		// storeMetadata should work for archived scenes
 		// Previously this would throw "storeMetadata: Failed to load scene for id"
-		val metadata = sceneEditorRepository.loadSceneMetadata(1)
+		val metadata = sceneMetadataRepository.loadSceneMetadata(1)
 		val updatedMetadata = metadata.copy(outline = "Updated outline for archived scene")
 
 		// This should not throw
 		sceneEditorService.storeMetadata(updatedMetadata, 1)
 
 		// Verify the metadata was stored
-		val reloadedMetadata = sceneEditorRepository.loadSceneMetadata(1)
+		val reloadedMetadata = sceneMetadataRepository.loadSceneMetadata(1)
 		assertEquals("Updated outline for archived scene", reloadedMetadata.outline)
 	}
 
@@ -346,7 +346,7 @@ class ArchiveSyncIntegrationTest : BaseIntegrationTest() {
 		assertEquals("Content from server", content)
 
 		// Verify metadata was stored
-		val loadedMetadata = sceneEditorRepository.loadSceneMetadata(newId)
+		val loadedMetadata = sceneMetadataRepository.loadSceneMetadata(newId)
 		assertEquals("Test outline", loadedMetadata.outline)
 		assertEquals("Test notes", loadedMetadata.notes)
 	}

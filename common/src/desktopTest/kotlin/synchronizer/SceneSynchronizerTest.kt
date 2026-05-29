@@ -73,7 +73,7 @@ class SceneSynchronizerTest : BaseTest() {
 		every { sceneEditorRepository.getArchivedSceneFromId(any()) } returns null
 
 		// Download path reads existing metadata for created/lastEdited fallback.
-		coEvery { sceneEditorRepository.loadSceneMetadata(any()) } returns SceneMetadata()
+		coEvery { sceneEditorService.loadSceneMetadata(any()) } returns SceneMetadata()
 	}
 
 	private fun defaultSceneSynchronizer() = ClientSceneSynchronizer(
@@ -144,7 +144,7 @@ class SceneSynchronizerTest : BaseTest() {
 			)
 		}
 		coVerify(exactly = 1) { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) }
-		coVerify(exactly = 1) { sceneEditorRepository.onContentChanged(content, UpdateSource.Sync) }
+		coVerify(exactly = 1) { sceneEditorService.onContentChanged(content, UpdateSource.Sync) }
 	}
 
 	@Test
@@ -188,7 +188,7 @@ class SceneSynchronizerTest : BaseTest() {
 		////////////////////
 		// Verify
 		coVerify(exactly = 1) { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) }
-		coVerify(exactly = 1) { sceneEditorRepository.onContentChanged(content, UpdateSource.Sync) }
+		coVerify(exactly = 1) { sceneEditorService.onContentChanged(content, UpdateSource.Sync) }
 	}
 
 	@Test
@@ -250,7 +250,7 @@ class SceneSynchronizerTest : BaseTest() {
 		////////////////////
 		// Verify
 		coVerify(exactly = 1) { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) }
-		coVerify(exactly = 1) { sceneEditorRepository.onContentChanged(content, UpdateSource.Sync) }
+		coVerify(exactly = 1) { sceneEditorService.onContentChanged(content, UpdateSource.Sync) }
 
 		assertEquals(0, sceneNode.parent?.value?.id)
 		assertEquals(0, groupNode.parent?.value?.id)
@@ -400,11 +400,11 @@ class SceneSynchronizerTest : BaseTest() {
 
 		val sync = defaultSceneSynchronizer()
 
-		coEvery { sceneEditorRepository.loadSceneMetadata(sceneId) } returns
+		coEvery { sceneEditorService.loadSceneMetadata(sceneId) } returns
 			SceneMetadata(confirmedReferences = setOf(1, 2))
 		val hashWithRefs = sync.getEntityHash(sceneId)
 
-		coEvery { sceneEditorRepository.loadSceneMetadata(sceneId) } returns
+		coEvery { sceneEditorService.loadSceneMetadata(sceneId) } returns
 			SceneMetadata(confirmedReferences = emptySet())
 		val hashWithoutRefs = sync.getEntityHash(sceneId)
 
@@ -439,11 +439,11 @@ class SceneSynchronizerTest : BaseTest() {
 
 		val sync = defaultSceneSynchronizer()
 
-		coEvery { sceneEditorRepository.loadSceneMetadata(sceneId) } returns
+		coEvery { sceneEditorService.loadSceneMetadata(sceneId) } returns
 			SceneMetadata(tags = setOf("important", "draft"))
 		val hashWithTags = sync.getEntityHash(sceneId)
 
-		coEvery { sceneEditorRepository.loadSceneMetadata(sceneId) } returns
+		coEvery { sceneEditorService.loadSceneMetadata(sceneId) } returns
 			SceneMetadata(tags = emptySet())
 		val hashWithoutTags = sync.getEntityHash(sceneId)
 

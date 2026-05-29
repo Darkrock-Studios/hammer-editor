@@ -55,7 +55,7 @@ class ClientSceneSynchronizer(
 			""
 		}
 
-		val metadata = sceneEditorRepository.loadSceneMetadata(id)
+		val metadata = sceneEditorService.loadSceneMetadata(id)
 
 		return ApiProjectEntity.SceneEntity(
 			id = id,
@@ -101,7 +101,7 @@ class ClientSceneSynchronizer(
 			}
 
 			val sceneContent = sceneEditorRepository.loadSceneMarkdownRaw(sceneItem, scenePath)
-			val metadata = sceneEditorRepository.loadSceneMetadata(sceneItem.id)
+			val metadata = sceneEditorService.loadSceneMetadata(sceneItem.id)
 
 			EntityHasher.hashScene(
 				id = sceneItem.id,
@@ -186,7 +186,7 @@ class ClientSceneSynchronizer(
 
 				// Finally, log our success, and update the running apps data
 				onLog(syncLogI(strRes.get(Res.string.sync_scene_downloading, id), projectDef))
-				sceneEditorRepository.onContentChanged(content, UpdateSource.Sync)
+				sceneEditorService.onContentChanged(content, UpdateSource.Sync)
 
 				if (existingScene != null) {
 					val existingTreeNode = tree.findById(id)
@@ -324,7 +324,7 @@ class ClientSceneSynchronizer(
 	// Preserves local `created`/`lastEdited` when the server didn't ship them
 	// (e.g. older client uploaded first).
 	private suspend fun mergeServerMetadata(serverEntity: ApiProjectEntity.SceneEntity): SceneMetadata {
-		val existing = sceneEditorRepository.loadSceneMetadata(serverEntity.id)
+		val existing = sceneEditorService.loadSceneMetadata(serverEntity.id)
 		return SceneMetadata(
 			notes = serverEntity.notes,
 			outline = serverEntity.outline,
