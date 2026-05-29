@@ -969,9 +969,4 @@ class SceneRepository(
 
 		return sceneItem
 	}
-
-	companion object {
-		// Kept for back-compat references; the autosave cool-down lives on SceneContentRepository.
-		val BUFFER_COOL_DOWN = SceneContentRepository.BUFFER_COOL_DOWN
-	}
 }

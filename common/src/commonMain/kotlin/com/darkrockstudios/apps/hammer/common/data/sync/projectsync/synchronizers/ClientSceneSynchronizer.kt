@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
@@ -352,7 +353,7 @@ class ClientSceneSynchronizer(
 		sceneEditorRepository.cleanupSceneOrder()
 
 		// Wait for buffers to propagate before we save them
-		delay(SceneRepository.BUFFER_COOL_DOWN * 0.25)
+		delay(SceneContentRepository.BUFFER_COOL_DOWN * 0.25)
 
 		sceneEditorRepository.forceSceneListReload()
 		sceneEditorService.storeAllBuffers()

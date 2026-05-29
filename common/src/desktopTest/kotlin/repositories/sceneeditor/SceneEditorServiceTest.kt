@@ -578,7 +578,7 @@ class SceneEditorServiceTest : BaseTest() {
 			service.loadSceneBuffer(scene)
 
 			service.onContentChanged(SceneContent(scene, "Autosaved body"), UpdateSource.Editor)
-			advanceTimeBy(SceneRepository.BUFFER_COOL_DOWN.inWholeMilliseconds + 100)
+			advanceTimeBy(SceneContentRepository.BUFFER_COOL_DOWN.inWholeMilliseconds + 100)
 			advanceUntilIdle()
 
 			val tempPath = sceneDatasource.getSceneBufferDirectory().toOkioPath() / "3.md"
