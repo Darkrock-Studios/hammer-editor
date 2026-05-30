@@ -86,10 +86,13 @@ object ProseDiff {
 		)
 
 		val rawHunks = patch.deltas.map { delta ->
-			val srcPos = delta.source.position
-			val srcEndExclusive = srcPos + delta.source.lines.size
-			val tgtPos = delta.target.position
-			val tgtEndExclusive = tgtPos + delta.target.lines.size
+			val srcLen = delta.source.lines.size
+			val tgtLen = delta.target.lines.size
+			val (srcPos, tgtPos) = slideToBoundary(
+				delta.source.position, srcLen, delta.target.position, tgtLen, leftTokens, rightTokens,
+			)
+			val srcEndExclusive = srcPos + srcLen
+			val tgtEndExclusive = tgtPos + tgtLen
 			Hunk(
 				leftPlainStart = tokenStartPlain(leftTokens, srcPos, left.plain.plain.length),
 				leftPlainEnd = tokenEndPlain(leftTokens, srcEndExclusive),
@@ -140,6 +143,57 @@ private data class Hunk(
 	val rightPlainStart: Int,
 	val rightPlainEnd: Int,
 )
+
+/**
+ * Slide a pure insertion or deletion along its run of equivalent positions so the changed block
+ * lands on a paragraph/line boundary when one is reachable. Myers diff may place such a block at
+ * any position where the bordering tokens repeat, and its default placement can land mid-paragraph
+ * (inserting "Foo.\n\nBar" gets reported as inserting "Bar\n\nFoo"). Preferring a boundary where
+ * the block starts and ends on a newline makes inserted paragraphs read as whole paragraphs.
+ * Substitutions (both sides non-empty) are left untouched. Returns the adjusted (source, target)
+ * positions; both shift by the same amount since the unchanged side's gap moves in lockstep.
+ */
+private fun slideToBoundary(
+	sourcePos: Int,
+	sourceLen: Int,
+	targetPos: Int,
+	targetLen: Int,
+	leftTokens: List<Token>,
+	rightTokens: List<Token>,
+): Pair<Int, Int> {
+	val (tokens, blockStart, blockLen) = when {
+		sourceLen == 0 && targetLen > 0 -> Triple(rightTokens, targetPos, targetLen)
+		targetLen == 0 && sourceLen > 0 -> Triple(leftTokens, sourcePos, sourceLen)
+		else -> return sourcePos to targetPos
+	}
+
+	var bestStart = blockStart
+	var bestScore = boundaryScore(tokens, blockStart, blockLen)
+
+	var p = blockStart
+	while (p > 0 && tokens[p - 1].text == tokens[p + blockLen - 1].text) {
+		p--
+		val s = boundaryScore(tokens, p, blockLen)
+		if (s > bestScore) { bestScore = s; bestStart = p }
+	}
+	p = blockStart
+	while (p + blockLen < tokens.size && tokens[p].text == tokens[p + blockLen].text) {
+		p++
+		val s = boundaryScore(tokens, p, blockLen)
+		if (s > bestScore) { bestScore = s; bestStart = p }
+	}
+
+	val shift = bestStart - blockStart
+	return (sourcePos + shift) to (targetPos + shift)
+}
+
+/** +1 if the block starts right after a line break, +1 if it ends on one; higher reads cleaner. */
+private fun boundaryScore(tokens: List<Token>, start: Int, len: Int): Int {
+	var score = 0
+	if (start == 0 || tokens[start - 1].text.endsWith('\n')) score++
+	if (start + len == tokens.size || tokens[start + len - 1].text.endsWith('\n')) score++
+	return score
+}
 
 private fun tokenStartPlain(tokens: List<Token>, tokenIndex: Int, fallback: Int): Int =
 	tokens.getOrNull(tokenIndex)?.plainStart ?: fallback
