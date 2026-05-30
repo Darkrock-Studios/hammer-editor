@@ -26,6 +26,8 @@ the future of Hammer.
 
 Or visit us on Reddit at [r/hammereditor](https://www.reddit.com/r/hammereditor/)
 
+Take a look at the [Roadmap](docs/ROADMAP.md) to see whats coming.
+
 ## Multi-platform
 
 This app is where ever you are. Your phone, tablet, desktop, laptop, this program can be installed and run, not simply a
@@ -88,8 +90,6 @@ latest commit.~~
 # Development
 
 Want to contribute? Great! [Here are some instructions to get you started](DEVELOPMENT.md).
-
-Take a look at the [Roadmap](docs/ROADMAP.md) to see whats coming.
 
 ## Having a problem?
 
