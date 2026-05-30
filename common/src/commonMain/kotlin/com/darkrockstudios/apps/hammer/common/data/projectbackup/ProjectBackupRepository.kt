@@ -160,7 +160,6 @@ open class ProjectBackupRepository(
 				fileSystem = fileSystem,
 				sourceDirectory = projectDir,
 				destinationZip = newBackupDef.path.toOkioPath(),
-				skipHiddenFiles = false
 			)
 
 			cullBackups(projectDef)

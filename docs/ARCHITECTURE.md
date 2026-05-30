@@ -37,6 +37,8 @@ The majority of code falls under `common` with only the UI layers and some glue 
 reimplemented per platform.
 
 ### Architecture Layers
+Each of these layers should only depend on entities from layers below them, never up, and never sideways.
+
 ```mermaid
 flowchart TD
     UI["fa:fa-desktop UI Layer"]
@@ -69,7 +71,6 @@ The UI is a dumb and stateless as possible, each platform can have it's own impl
 These have a one-to-one relationship with UI elements. They are stateful and contain business logic.
 
 ### Use Cases
-
 Contains re-usable business logic, is stateless and can combine Services and Repositories.
 
 ### Services

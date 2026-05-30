@@ -24,12 +24,21 @@ jobs:
         run: chmod +x gradlew
       - name: Build with Gradle
         run: ./gradlew buildDebug
+      # Compiles + packages the Android instrumented (androidTest) source set without a device.
+      # buildDebug does not touch androidTest, so stale instrumented tests rot silently otherwise.
+      - name: Compile Android instrumented tests
+        run: ./gradlew :android:assembleDebugAndroidTest
       - name: Run Kover
         run: ./gradlew koverXmlReport
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@57e3a136b779b570ffcdbf80b3bdc90e7fab3de2 # v6.0.0
+        uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 # v6.0.1
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+      # Explicit gate for the server unit tests (incl. EntityHashSensitivityTest). These otherwise
+      # only run as a side-effect of koverXmlReport, which is fragile - a kover config change would
+      # silently stop running them.
+      - name: Run Server Unit Tests
+        run: ./gradlew :server:test
       - name: Run Server Migration Tests
         run: ./gradlew :server:verifySqlDelightMigration
       - name: Run Round-Trip Sync Integration Tests

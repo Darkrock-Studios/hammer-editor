@@ -43,10 +43,16 @@ class FileLogger(
 		}
 	}
 
+	// The consumer coroutine is the sole owner of appendBuffer: it writes,
+	// flushes, and closes the sink so no other thread can race it.
 	private suspend fun watchForLogs() {
-		messageChannel.consumeEach { record ->
-			writeLogMessage(record)
-			flush()
+		try {
+			messageChannel.consumeEach { record ->
+				writeLogMessage(record)
+				appendBuffer.flush()
+			}
+		} finally {
+			appendBuffer.close()
 		}
 	}
 
@@ -66,12 +72,12 @@ class FileLogger(
 
 	override fun close() {
 		super.close()
-		appendBuffer.close()
+		// Closing the channel ends the consumer, which then closes the sink.
+		messageChannel.close()
 	}
 
 	override fun flush() {
 		super.flush()
-		appendBuffer.flush()
 	}
 
 	private fun createLogFile(): FileHandle = fileSystem.openReadWrite(logFileName)

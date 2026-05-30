@@ -1,11 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="settings_heading">Configurações</string>
+	<string name="account_settings_breadcrumb">ACCOUNT</string>
+	<string name="account_settings_subtitle_local_install">LOCAL INSTALL</string>
+	<string name="account_settings_folio_caption">ACCOUNT SETTINGS</string>
 	<string name="settings_backups_header">\'Backups\'</string>
 	<string name="settings_backups_description">Gerencie os \'backups\' do seu projeto</string>
 	<string name="settings_backups_explainations">Este sistema de \"backup\" serve como proteção contra a perda e o corrompimento de dados. Ele NÃO serve como um modo de manter antigas revisões das suas histórias. Por favor, utilize o sistema de rascunhos para isso</string>
 	<string name="settings_backups_manage_button">Gerenciar \'Backups\'</string>
 	<string name="settings_theme_label">Tema de \'interface\' do usuário</string>
+	<string name="settings_theme_light">LIGHT</string>
+	<string name="settings_theme_dark">DARK</string>
+	<string name="settings_theme_followsystem">SYSTEM</string>
+	<string name="settings_initial_screen_label">Initial Project Screen</string>
+	<string name="settings_initial_screen_home">Home</string>
+	<string name="settings_initial_screen_editor">Scene Editor</string>
 	<string name="settings_projects_directory">Pasta de Projetos</string>
 	<string name="settings_projects_directory_description">Defina a pasta que o Hammer usará para armazenar os dados do projeto</string>
 	<string name="settings_projects_directory_hint">Caminho para a Pasta de Projetos</string>
@@ -16,6 +25,10 @@
 	<string name="settings_example_project_success_message">Exemplo de projeto criado.</string>
 	<string name="settings_data_version">Dados: v%1$s</string>
 	<string name="settings_server_header">Servidor</string>
+	<string name="settings_server_status_connected">CONNECTED</string>
+	<string name="settings_server_status_not_connected">NOT CONNECTED</string>
+	<string name="settings_server_url_greeble">URL</string>
+	<string name="settings_server_help_link">HELP ↗</string>
 	<string name="settings_server_description">Configurar sincronização de dados</string>
 	<string name="settings_server_url_label">URL:</string>
 	<string name="settings_server_email_label">Endereço eletrônico:</string>

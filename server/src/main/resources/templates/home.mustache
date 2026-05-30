@@ -198,19 +198,19 @@
 				<h3>{{msg.home_download_macos}}</h3>
 				<div class="download-buttons download-selector">
 					<select id="macos-format-select" class="format-dropdown">
+						<option value="store" data-icon="fa-brands fa-app-store-ios"
+						        data-url="https://apps.apple.com/us/app/hammer-editor/id6770841038">
+							Mac App Store
+						</option>
 						<option value="dmg" data-icon="fa-solid fa-compact-disc"
 								data-url="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.dmg">
 							Disk Image (.dmg)
 						</option>
-						<option value="pkg" data-icon="fa-solid fa-box"
-								data-url="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.pkg">
-							Installer (.pkg)
-						</option>
 					</select>
 					<a id="macos-download-btn"
-					   href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.dmg"
+					   href="https://apps.apple.com/us/app/hammer-editor/id6770841038"
 					   class="download-link download-btn">
-						<i id="macos-download-icon" class="fa-solid fa-compact-disc"></i>
+						<i id="macos-download-icon" class="fa-brands fa-app-store-ios"></i>
 						<span>{{msg.home_download_link}}</span>
 					</a>
 				</div>
@@ -288,7 +288,11 @@
 				<span class="download-icon">🍎</span>
 				<h3>iOS</h3>
 				<span class="download-source"><i class="fa-brands fa-app-store-ios"></i> App Store</span>
-				<button class="download-link disabled" disabled>Coming Soon</button>
+				<a href="https://apps.apple.com/us/app/hammer-editor/id6771650681"
+				   class="download-link download-btn">
+					<i class="fa-brands fa-app-store-ios"></i>
+					<span>{{msg.home_download_link}}</span>
+				</a>
 			</div>
 		</div>
 	</section>

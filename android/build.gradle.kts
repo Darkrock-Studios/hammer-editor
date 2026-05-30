@@ -102,7 +102,9 @@ android {
 		resources {
 			excludes += setOf(
 				"/META-INF/{AL2.0,LGPL2.1}",
-				"/META-INF/versions/9/previous-compilation-data.bin"
+				"/META-INF/versions/9/previous-compilation-data.bin",
+				"/META-INF/LICENSE.md",
+				"/META-INF/LICENSE-notice.md"
 			)
 		}
 	}

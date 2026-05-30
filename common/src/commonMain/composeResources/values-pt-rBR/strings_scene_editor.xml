@@ -47,6 +47,9 @@
 	<string name="scene_editor_metadata_entity_id">ID da Entidade:</string>
 	<string name="scene_editor_metadata_entity_filename">Nome do arquivo:</string>
 	<string name="scene_editor_metadata_entity_path">Caminho:</string>
+	<string name="scene_editor_metadata_created_label">Created</string>
+	<string name="scene_editor_metadata_edited_label">Edited</string>
+	<string name="scene_editor_metadata_timestamp_unset">—</string>
 	<string name="scene_editor_metadata_outline_label">Esboço</string>
 	<string name="scene_editor_metadata_outline_placeholder">Uma breve descrição do que acontece na cena.</string>
 	<string name="scene_editor_metadata_notes_label">Anotações</string>
