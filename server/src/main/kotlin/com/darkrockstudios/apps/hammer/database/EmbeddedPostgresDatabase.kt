@@ -8,6 +8,7 @@ import com.zaxxer.hikari.HikariDataSource
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres
 import okio.FileSystem
 import java.sql.Connection
+import java.time.Duration
 import javax.sql.DataSource
 
 /**
@@ -47,6 +48,8 @@ class EmbeddedPostgresDatabase(
 			.setPort(config.port)
 			.setLocaleConfig("encoding", "UTF8")
 			.setLocaleConfig("locale", "C")
+			// Default 10s startup wait flakes on loaded CI runners (initdb + boot under I/O contention).
+			.setPGStartupWait(Duration.ofSeconds(30))
 			.start()
 
 		val pgDataSource: DataSource = embedded.postgresDatabase

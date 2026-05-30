@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.database.PostgresSchemaInitializer
 import com.darkrockstudios.apps.hammer.database.ServerDatabase
 import com.darkrockstudios.apps.hammer.database.buildServerDatabase
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres
+import java.time.Duration
 
 /**
  * Test database backed by a single, process-wide Zonky embedded Postgres
@@ -53,6 +54,8 @@ private object SharedTestPostgres {
 			.setPort(0)
 			.setLocaleConfig("encoding", "UTF8")
 			.setLocaleConfig("locale", "C")
+			// Default 10s startup wait flakes on loaded CI runners (initdb + boot under I/O contention).
+			.setPGStartupWait(Duration.ofSeconds(30))
 			.start()
 		Runtime.getRuntime().addShutdownHook(Thread {
 			runCatching { pg.close() }
