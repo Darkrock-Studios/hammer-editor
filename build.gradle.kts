@@ -167,6 +167,12 @@ tasks.register("prepareForRelease") {
 		val flatpakMetainfoFile = project.rootDir.resolve(flatpakMetainfoPath)
 		updateFlatpakFiles(releaseInfo.semVar, jvmVersion, flatpakManifestFile, flatpakMetainfoFile, releaseInfo.changeLog)
 
+		// Keep the iOS marketing version in sync with the semver. macOS pulls this
+		// from Compose's packageVersion automatically; iOS has no such hook.
+		val iosInfoPlistPath = "ios/ios/Info.plist".replace("/", File.separator)
+		val iosInfoPlistFile = project.rootDir.resolve(iosInfoPlistPath)
+		updateIosShortVersion(releaseInfo.semVar, iosInfoPlistFile)
+
 		fun git(vararg args: String) {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
@@ -188,6 +194,7 @@ tasks.register("prepareForRelease") {
 		git("add", snapcraftFile.absolutePath)
 		git("add", flatpakManifestFile.absolutePath)
 		git("add", flatpakMetainfoFile.absolutePath)
+		git("add", iosInfoPlistFile.absolutePath)
 		git("commit", "-m", "Prepared for release: v${releaseInfo.semVar}")
 
 		// Switch to release and reset to origin/release HEAD

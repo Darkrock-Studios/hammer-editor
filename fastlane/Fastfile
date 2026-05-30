@@ -31,8 +31,8 @@ platform :mac do
   lane :desktop_testflight do
     api_key = appstore_api_key
 
-    # CI sets BUILD_NUMBER (github.run_number) for parity with Android; locally
-    # we query TestFlight and increment so manual builds don't collide.
+    # Build number is the latest in TestFlight + 1 — per-platform, always above
+    # what's shipped, and self-correcting on re-runs. Set BUILD_NUMBER to override.
     build_number = ENV["BUILD_NUMBER"]
     if build_number.nil? || build_number.empty?
       latest = latest_testflight_build_number(
@@ -82,8 +82,8 @@ platform :ios do
   lane :ios_testflight do
     api_key = appstore_api_key
 
-    # Same pattern as :mac — CI sets BUILD_NUMBER (github.run_number); locally
-    # we query TestFlight and increment so manual builds don't collide.
+    # Same pattern as :mac — build number is the latest in TestFlight + 1.
+    # Set BUILD_NUMBER to override.
     build_number = ENV["BUILD_NUMBER"]
     if build_number.nil? || build_number.empty?
       latest = latest_testflight_build_number(

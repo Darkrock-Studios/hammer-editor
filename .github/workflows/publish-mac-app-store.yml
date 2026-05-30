@@ -6,8 +6,6 @@ on:
 jobs:
   publish-mac-app-store:
     runs-on: macos-latest
-    env:
-      BUILD_NUMBER: ${{ github.run_number }}
 
     steps:
       - name: Checkout code
