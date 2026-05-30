@@ -55,6 +55,8 @@ kotlin {
 				api(libs.korlibs.korio)
 				implementation(libs.okio)
 				implementation(libs.tomlkt)
+				implementation(libs.markdown)
+				implementation(libs.kotlin.multiplatform.diff)
 			}
 		}
 		val commonTest by getting {

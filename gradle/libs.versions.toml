@@ -47,7 +47,8 @@ napier = "2.7.1"
 # Pinned to 1.10.3 until skydoves/colorpicker-compose ships a 1.11-compatible release.
 # CMP 1.11 broke ImageShader / LinearGradientShader ABI, crashing the color picker dialog.
 # See: https://github.com/skydoves/colorpicker-compose/issues/171
-# compose-texteditor is also pinned to 2.0.2 to keep the transitive CMP at 1.10.3.
+# compose-texteditor must stay on a build that targets CMP 1.10.3 (2.0.7 downgraded back to it
+# after 2.0.5/2.0.6 briefly shipped against 1.11).
 jetbrains_compose = "1.10.3"
 compose_compiler_report_generator = "1.5.0"
 jetbrains_kover = "0.9.8"
@@ -98,6 +99,7 @@ bouncycastle = "1.84"
 kotlinx-io-okio = "0.9.0"
 
 compose-texteditor = "2.0.7"
+kotlin-multiplatform-diff = "1.3.0"
 platform-spellcheckerkt = "1.2.4"
 nucleus = "1.15.7"
 colorpicker-compose = "1.1.4"
@@ -170,6 +172,7 @@ kotlinx_atomicfu = { group = "org.jetbrains.kotlinx", name = "atomicfu", version
 kotlinx_atomicfu_plugin = { group = "org.jetbrains.kotlinx", name = "atomicfu-gradle-plugin", version.ref = "kotlinx_atomicfu" }
 
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
+kotlin-multiplatform-diff = { module = "io.github.petertrr:kotlin-multiplatform-diff", version.ref = "kotlin-multiplatform-diff" }
 epub4kmp_core = { module = "com.darkrockstudios:epub4kmp-core", version.ref = "epub4kmp" }
 kotlinx_html = { module = "org.jetbrains.kotlinx:kotlinx-html", version.ref = "kotlinx_html" }
 multiplatform_window_size = { group = "dev.chrisbanes.material3", name = "material3-window-size-class-multiplatform", version.ref = "multiplatform_window_size" }

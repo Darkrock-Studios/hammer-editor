@@ -23,6 +23,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.unit.Dp
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
@@ -223,6 +224,18 @@ internal fun ReadOnlyLine(text: String) {
 
 @Composable
 internal fun ReadOnlyBlock(text: String) {
+	SelectionContainer {
+		Text(
+			text = text,
+			style = MaterialTheme.typography.bodyMedium,
+			color = MaterialTheme.colorScheme.onSurface,
+			modifier = Modifier.fillMaxSize(),
+		)
+	}
+}
+
+@Composable
+internal fun ReadOnlyBlock(text: AnnotatedString) {
 	SelectionContainer {
 		Text(
 			text = text,

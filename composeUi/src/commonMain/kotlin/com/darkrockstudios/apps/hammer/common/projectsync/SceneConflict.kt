@@ -2,54 +2,28 @@ package com.darkrockstudios.apps.hammer.common.projectsync
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.diff.DiffSpan
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictField
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictFieldSpacing
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EntryRefChipLabel
 import com.darkrockstudios.apps.hammer.common.encyclopedia.UnknownEntryRefChipLabel
-import com.darkrockstudios.apps.hammer.sync_conflict_references_confirmed_label
-import com.darkrockstudios.apps.hammer.sync_conflict_references_dismissed_label
-import com.darkrockstudios.apps.hammer.sync_conflict_references_empty
-import com.darkrockstudios.apps.hammer.sync_conflict_scene_tab_content
-import com.darkrockstudios.apps.hammer.sync_conflict_scene_tab_metadata
-import com.darkrockstudios.apps.hammer.sync_conflict_scene_tab_references
-import com.darkrockstudios.apps.hammer.sync_conflict_title_scene_field_content
-import com.darkrockstudios.apps.hammer.sync_conflict_title_scene_field_name
-import com.darkrockstudios.apps.hammer.sync_conflict_title_scene_field_notes
-import com.darkrockstudios.apps.hammer.sync_conflict_title_scene_field_outline
 import kotlinx.coroutines.launch
 
 private enum class SceneConflictTab { CONTENT, METADATA, REFERENCES }
@@ -70,6 +44,12 @@ internal fun SceneConflict(
 	var outlineTextValue by rememberSaveable(client) { mutableStateOf(client.outline) }
 	var notesTextValue by rememberSaveable(client) { mutableStateOf(client.notes) }
 	var nameError by rememberSaveable(client) { mutableStateOf<String?>(null) }
+
+	// Word-level diff between the server content and the (editable) local content
+	val server = entityConflict.serverEntity
+	val contentDiff = rememberContentDiff(server.content, contentTextValue)
+	val deletedStyle = diffDeletedStyle()
+	val insertedStyle = diffInsertedStyle()
 
 	val useLocal = {
 		val error = component.resolveConflict(
@@ -107,6 +87,8 @@ internal fun SceneConflict(
 				notesValue = notesTextValue,
 				onNotesChange = { notesTextValue = it },
 				nameError = nameError,
+				contentInsertedSpans = contentDiff?.rightSpans.orEmpty(),
+				insertedStyle = insertedStyle,
 				component = component,
 			)
 		},
@@ -116,6 +98,8 @@ internal fun SceneConflict(
 				server = c.serverEntity,
 				client = c.clientEntity,
 				tab = selectedTab,
+				contentDeletedSpans = contentDiff?.leftSpans.orEmpty(),
+				deletedStyle = deletedStyle,
 				component = component,
 			)
 		},
@@ -165,6 +149,8 @@ private fun LocalSceneBody(
 	notesValue: String,
 	onNotesChange: (String) -> Unit,
 	nameError: String?,
+	contentInsertedSpans: List<DiffSpan>,
+	insertedStyle: SpanStyle,
 	component: ProjectSynchronization,
 ) {
 	Column(
@@ -175,6 +161,9 @@ private fun LocalSceneBody(
 	) {
 		when (tab) {
 			SceneConflictTab.CONTENT -> {
+				val contentTransformation = remember(contentInsertedSpans, insertedStyle) {
+					DiffHighlightTransformation(contentInsertedSpans, insertedStyle)
+				}
 				HdConflictField(
 					label = Res.string.sync_conflict_title_scene_field_content.get(),
 					conflict = server.content != client.content,
@@ -185,6 +174,7 @@ private fun LocalSceneBody(
 						onValueChange = onContentChange,
 						singleLine = false,
 						minLines = 8,
+						visualTransformation = contentTransformation,
 						modifier = Modifier.fillMaxWidth(),
 					)
 				}
@@ -249,6 +239,8 @@ private fun RemoteSceneBody(
 	server: ApiProjectEntity.SceneEntity,
 	client: ApiProjectEntity.SceneEntity,
 	tab: SceneConflictTab,
+	contentDeletedSpans: List<DiffSpan>,
+	deletedStyle: SpanStyle,
 	component: ProjectSynchronization,
 ) {
 	Column(
@@ -259,11 +251,14 @@ private fun RemoteSceneBody(
 	) {
 		when (tab) {
 			SceneConflictTab.CONTENT -> {
+				val highlighted = remember(server.content, contentDeletedSpans, deletedStyle) {
+					diffHighlightedString(server.content, contentDeletedSpans, deletedStyle)
+				}
 				HdConflictField(
 					label = Res.string.sync_conflict_title_scene_field_content.get(),
 					conflict = server.content != client.content,
 				) {
-					ReadOnlyBlock(server.content)
+					ReadOnlyBlock(highlighted)
 				}
 			}
 			SceneConflictTab.METADATA -> {

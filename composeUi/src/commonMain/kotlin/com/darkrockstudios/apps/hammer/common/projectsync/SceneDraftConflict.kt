@@ -10,6 +10,7 @@ import androidx.compose.material3.windowsizeclass.WindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -35,9 +36,14 @@ internal fun SceneDraftConflict(
 	val scope = rememberCoroutineScope()
 	val strRes = rememberStrRes()
 	val client = entityConflict.clientEntity
+	val server = entityConflict.serverEntity
 	var nameTextValue by rememberSaveable(client) { mutableStateOf(client.name) }
 	var contentTextValue by rememberSaveable(client) { mutableStateOf(client.content) }
 	var nameError by rememberSaveable(client) { mutableStateOf<String?>(null) }
+
+	val contentDiff = rememberContentDiff(server.content, contentTextValue)
+	val deletedStyle = diffDeletedStyle()
+	val insertedStyle = diffInsertedStyle()
 
 	val useLocal = {
 		val error = component.resolveConflict(
@@ -75,6 +81,9 @@ internal fun SceneDraftConflict(
 						modifier = Modifier.fillMaxWidth(),
 					)
 				}
+				val contentTransformation = remember(contentDiff, insertedStyle) {
+					DiffHighlightTransformation(contentDiff?.rightSpans.orEmpty(), insertedStyle)
+				}
 				HdConflictField(
 					label = Res.string.sync_conflict_title_scene_draft_field_content.get(),
 					conflict = c.serverEntity.content != c.clientEntity.content,
@@ -85,6 +94,7 @@ internal fun SceneDraftConflict(
 						onValueChange = { contentTextValue = it },
 						singleLine = false,
 						minLines = 8,
+						visualTransformation = contentTransformation,
 						modifier = Modifier.fillMaxWidth(),
 					)
 				}
@@ -103,11 +113,14 @@ internal fun SceneDraftConflict(
 				) {
 					ReadOnlyLine(c.serverEntity.name)
 				}
+				val highlighted = remember(c.serverEntity.content, contentDiff, deletedStyle) {
+					diffHighlightedString(c.serverEntity.content, contentDiff?.leftSpans.orEmpty(), deletedStyle)
+				}
 				HdConflictField(
 					label = Res.string.sync_conflict_title_scene_draft_field_content.get(),
 					conflict = c.serverEntity.content != c.clientEntity.content,
 				) {
-					ReadOnlyBlock(c.serverEntity.content)
+					ReadOnlyBlock(highlighted)
 				}
 			}
 		},
