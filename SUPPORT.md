@@ -31,3 +31,16 @@ No coding required, and every contribution helps.
 
 - **Source code & releases:** [github.com/Wavesonics/hammer-editor](https://github.com/Wavesonics/hammer-editor)
 - **Sync protocol & docs:** see the [`docs/`](docs/) folder in the repo
+
+## Logs
+
+You can find the logs which maybe helful in debugging issues by going to
+the About screen, and scrolling to the bottom.
+
+### Where are the logs stored?
+
+On desktop, Logs are written to:
+
+**Windows:**
+
+`C:\Users\<username>\AppData\Local\DarkrockStudios\hammer\0\logs\`
