@@ -11,7 +11,6 @@
 	<string name="notes_create_header">Criar Anotação</string>
 	<string name="notes_create_marker">III · NEW</string>
 	<string name="notes_create_draft_label">DRAFT</string>
-	<string name="notes_create_body_hint">Nova Anotação:</string>
 	<string name="notes_create_create_button">Criar</string>
 	<string name="notes_create_cancel_button">Cancelar</string>
 	<string name="notes_create_toast_success">Anotação Criada</string>
