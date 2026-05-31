@@ -138,19 +138,21 @@ fun Project.registerBuildDistAppImageTask() {
 				commandLine("ln", "-sf", "usr/bin/hammer", "AppRun")
 			}.result.get()
 
-			// Create the AppImage
+			// Create the AppImage; -u embeds update info and emits hammer.AppImage.zsync for delta updates
 			providers.exec {
 				workingDir = rootDir
 				environment("ARCH", "x86_64")
 				commandLine(
 					appimagetool.absolutePath,
 					"--appimage-extract-and-run",
+					"-u", "gh-releases-zsync|Wavesonics|hammer-editor|latest|hammer*.AppImage.zsync",
 					appDir.absolutePath,
 					outputDir.resolve("hammer.AppImage").absolutePath
 				)
 			}.result.get()
 
 			println("AppImage created: ${outputDir.resolve("hammer.AppImage")}")
+			println("AppImage zsync created: ${outputDir.resolve("hammer.AppImage.zsync")}")
 
 			// Clean up AppDir
 			appDir.deleteRecursively()

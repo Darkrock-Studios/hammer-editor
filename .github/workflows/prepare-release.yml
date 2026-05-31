@@ -195,7 +195,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/deb/hammer.deb,${{ github.workspace }}/desktop/build/installers/main-release/rpm/hammer.rpm,${{ github.workspace }}/desktop/build/installers/main-release/appimage/hammer.AppImage"
+          artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/deb/hammer.deb,${{ github.workspace }}/desktop/build/installers/main-release/rpm/hammer.rpm,${{ github.workspace }}/desktop/build/installers/main-release/appimage/hammer.AppImage,${{ github.workspace }}/desktop/build/installers/main-release/appimage/hammer.AppImage.zsync"
 
   macos:
     needs: integration-tests
