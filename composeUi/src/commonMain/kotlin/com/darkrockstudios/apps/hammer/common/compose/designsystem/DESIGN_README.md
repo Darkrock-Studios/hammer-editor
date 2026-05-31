@@ -590,6 +590,81 @@ The `CollapsingStrip` helper is currently duplicated — a private
 copy lives in each browse screen. Lift it into `HdCollapsingStrip`
 the next time a third browse screen needs it.
 
+### Collapse chrome while typing
+
+Hammer is a writing tool: when the markdown body editor has focus it
+should get **as much vertical space as the screen can give**. On a
+phone the keyboard eats half the screen, and the masthead / crumb row /
+tags / date / dividers above the editor can squeeze it to a single
+line. The pattern: while the keyboard is up for the body editor,
+collapse every piece of chrome that isn't the editor or its action
+buttons, and restore it when the keyboard goes away.
+
+Two primitives in the parent `compose` package implement this (behavior,
+not vocabulary, so not `Hd*`):
+
+- **[`isImeVisible()`](../ImeState.kt)** — `true` while the keyboard is
+  on screen. Mobile-only by nature: desktop / web report a zero IME
+  inset, so it's always `false` and nothing collapses. The only place
+  that reads the raw inset — screens don't call it directly.
+- **[`CollapseWhileTyping`](../CollapseWhileTyping.kt)** — wraps chrome
+  that should fold away while typing. Two params are the whole API:
+
+  ```kotlin
+  CollapseWhileTyping { Masthead() }                              // pure chrome
+  CollapseWhileTyping(enabled = isEditing) { CrumbRow(...) }      // only while editing
+  CollapseWhileTyping(keepVisible = fieldFocused) { DateField(...) }  // stays reachable
+  ```
+
+	- **`enabled`** — `false` to never collapse (e.g. a View/Edit screen
+	  that collapses its crumb row only while editing, not while viewing).
+	- **`keepVisible`** — a focusable field's *own* focus state. A field
+	  that hid on `isImeVisible()` alone could never be edited — tapping
+	  it raises the keyboard, which would hide it. Gating on its own focus
+	  means tapping keeps it open; it collapses only once focus moves to
+	  the body. Leave `false` for never-focused decoration.
+
+**Surfacing focus for `keepVisible`.** The signal must come from the
+composable holding the `BasicTextField`, never a `Modifier.onFocusChanged`
+on a wrapper above it (that was the "date won't hide" bug). Two cases:
+
+- **Baked into the field** ([`HdHairlineTagField`](HdHairlineTagField.kt)
+  wraps itself in `CollapseWhileTyping` and tracks its own focus).
+  Callers pass nothing. Prefer this when the field always collapses.
+- **Wrapped at the call site** (timeline date, encyclopedia name reuse
+  generic fields that must stay visible in non-collapsing forms). The
+  field exposes an `onFocusChanged: (Boolean) -> Unit` wired onto its
+  `BasicTextField`; the screen owns the state:
+
+  ```kotlin
+  var dateFocused by remember { mutableStateOf(false) }
+  CollapseWhileTyping(keepVisible = dateFocused) {
+      HdHairlineField(..., onFocusChanged = { dateFocused = it })
+  }
+  ```
+
+  Add the `onFocusChanged` param (defaulted to `{}`) to a shared field
+  that lacks one rather than reaching for the wrapper modifier.
+
+Two invariants are baked into the primitive — **don't reintroduce them
+at call sites:**
+
+1. **Debounced (~350ms).** Removing content *during* the keyboard's
+   show animation cancels the editor's input session and dismisses the
+   keyboard on first tap. The delay lets it settle first.
+2. **Snaps, never animates.** An animated collapse grows the editor's
+   `weight(1f)` height every frame, reflowing the markdown body each
+   frame; on a long document that stalls the main thread right after a
+   tap, so Android reads the tap as a long-press and pops the selection
+   menu, stealing focus. (Long notes repro it, one-word notes don't —
+   the tell that it's reflow cost.) If a transition is ever wanted,
+   cross-fade alpha only — never the size.
+
+Applied across all six editing screens (Create/View × Notes, Timeline,
+Encyclopedia). Tag collapse lives inside `HdHairlineTagField` so it
+works wherever the field is used; date and crumb rows are wrapped at
+their call sites.
+
 ---
 
 ## Adding to the system

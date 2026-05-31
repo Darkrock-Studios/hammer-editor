@@ -93,15 +93,19 @@ fun ViewNoteUi(
 						animatedVisibilityScope = animatedVisibilityScope,
 					),
 			) {
-				CrumbRow(
-					onClose = { component.confirmClose() },
-					menuSlot = { DetailViewDropdownMenu(menuItems = state.menuItems) },
-				)
+				CollapseWhileTyping(enabled = isEditing) {
+					Column {
+						CrumbRow(
+							onClose = { component.confirmClose() },
+							menuSlot = { DetailViewDropdownMenu(menuItems = state.menuItems) },
+						)
 
-				HorizontalDivider(
-					thickness = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outlineVariant,
-				)
+						HorizontalDivider(
+							thickness = Dp.Hairline,
+							color = MaterialTheme.colorScheme.outlineVariant,
+						)
+					}
+				}
 
 				StampRow(
 					isEditing = isEditing,
@@ -392,10 +396,12 @@ private fun EditBody(
 			),
 		)
 
-		HorizontalDivider(
-			thickness = 2.dp,
-			color = MaterialTheme.colorScheme.outline,
-		)
+		CollapseWhileTyping {
+			HorizontalDivider(
+				thickness = 2.dp,
+				color = MaterialTheme.colorScheme.outline,
+			)
+		}
 
 		MarkdownEditField(
 			initialMarkdown = noteText,

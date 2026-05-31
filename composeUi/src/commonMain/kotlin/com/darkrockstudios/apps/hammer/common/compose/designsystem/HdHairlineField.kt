@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -48,6 +49,7 @@ fun HdHairlineField(
 	keyboardType: KeyboardType = KeyboardType.Text,
 	visualTransformation: VisualTransformation = VisualTransformation.None,
 	enabled: Boolean = true,
+	onFocusChanged: (Boolean) -> Unit = {},
 	trailing: (@Composable () -> Unit)? = null,
 ) {
 	Column(modifier = modifier.fillMaxWidth()) {
@@ -89,7 +91,9 @@ fun HdHairlineField(
 				BasicTextField(
 					value = value,
 					onValueChange = onValueChange,
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier
+						.fillMaxWidth()
+						.onFocusChanged { onFocusChanged(it.isFocused) },
 					enabled = enabled,
 					singleLine = singleLine,
 					minLines = minLines,

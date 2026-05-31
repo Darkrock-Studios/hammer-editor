@@ -118,6 +118,7 @@ class ViewNoteComponent(
 	}
 
 	override fun closeNote() {
+		if (state.value.isEditing) discardEdit()
 		dismissView()
 	}
 
@@ -175,7 +176,7 @@ class ViewNoteComponent(
 				)
 			}
 		} else {
-			dismissView()
+			closeNote()
 		}
 	}
 

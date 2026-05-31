@@ -8,8 +8,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -98,15 +97,19 @@ fun ViewTimeLineEventUi(
 						animatedVisibilityScope = animatedVisibilityScope,
 					),
 			) {
-				CrumbRow(
-					onClose = { component.confirmClose() },
-					menuSlot = { DetailViewDropdownMenu(menuItems = state.menuItems) },
-				)
+				CollapseWhileTyping(enabled = isEditing) {
+					Column {
+						CrumbRow(
+							onClose = { component.confirmClose() },
+							menuSlot = { DetailViewDropdownMenu(menuItems = state.menuItems) },
+						)
 
-				HorizontalDivider(
-					thickness = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outlineVariant,
-				)
+						HorizontalDivider(
+							thickness = Dp.Hairline,
+							color = MaterialTheme.colorScheme.outlineVariant,
+						)
+					}
+				}
 
 				StampRow(
 					isEditing = isEditing,
@@ -388,18 +391,25 @@ private fun EditBody(
 	suggestTags: (prefix: String) -> List<String>,
 	modifier: Modifier = Modifier,
 ) {
+	// Date hides while the body editor has focus, like the tags; kept visible while it holds focus
+	// itself so it stays reachable. CollapseWhileTyping centralizes the IME + debounce rules.
+	var dateFocused by remember { mutableStateOf(false) }
+
 	Column(modifier = modifier.fillMaxWidth()) {
-		HdHairlineField(
-			label = Res.string.timeline_view_date_label.get(),
-			value = dateText,
-			onValueChange = onDateChanged,
-			hint = Res.string.timeline_view_date_hint.get(),
-			placeholder = Res.string.timeline_view_date_placeholder.get(),
-			modifier = Modifier.padding(
-				horizontal = Ui.Padding.XL,
-				vertical = Ui.Padding.L,
-			),
-		)
+		CollapseWhileTyping(keepVisible = dateFocused) {
+			HdHairlineField(
+				label = Res.string.timeline_view_date_label.get(),
+				value = dateText,
+				onValueChange = onDateChanged,
+				hint = Res.string.timeline_view_date_hint.get(),
+				placeholder = Res.string.timeline_view_date_placeholder.get(),
+				onFocusChanged = { dateFocused = it },
+				modifier = Modifier.padding(
+					horizontal = Ui.Padding.XL,
+					vertical = Ui.Padding.L,
+				),
+			)
+		}
 
 		HdHairlineTagField(
 			label = Res.string.timeline_create_tags_label.get(),
@@ -414,10 +424,12 @@ private fun EditBody(
 			),
 		)
 
-		HorizontalDivider(
-			thickness = 2.dp,
-			color = MaterialTheme.colorScheme.outline,
-		)
+		CollapseWhileTyping {
+			HorizontalDivider(
+				thickness = 2.dp,
+				color = MaterialTheme.colorScheme.outline,
+			)
+		}
 
 		MarkdownEditField(
 			initialMarkdown = eventText,
