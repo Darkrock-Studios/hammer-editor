@@ -11,7 +11,6 @@
 	<string name="notes_create_header">Notiz erstellen</string>
 	<string name="notes_create_marker">III · NEW</string>
 	<string name="notes_create_draft_label">DRAFT</string>
-	<string name="notes_create_body_hint">Neue Notiz:</string>
 	<string name="notes_create_create_button">Erstellen</string>
 	<string name="notes_create_cancel_button">Abbruch</string>
 	<string name="notes_create_toast_success">Notiz erstellt</string>
