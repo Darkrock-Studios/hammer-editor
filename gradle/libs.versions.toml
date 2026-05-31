@@ -70,6 +70,7 @@ ktor_i18n = "2.0.0"
 
 okio = "3.17.0"
 slf4jSimple = "2.0.18"
+splashify = "1.0.0-alpha1"
 turbine = "1.2.1"
 work-runtime-ktx = "2.11.2"
 
@@ -215,6 +216,7 @@ koin_sl4j = { group = "io.insert-koin", name = "koin-logger-slf4j" }
 koin_ktor = { group = "io.insert-koin", name = "koin-ktor" }
 koin_compose = { group = "io.insert-koin", name = "koin-compose" }
 
+splashify = { module = "io.github.sudarshanmhasrup.splashify:splashify", version.ref = "splashify" }
 tomlkt = { group = "net.peanuuutz.tomlkt", name = "tomlkt", version.ref = "tomlkt" }
 
 ktor_client_core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }

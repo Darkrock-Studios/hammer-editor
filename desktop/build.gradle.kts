@@ -65,6 +65,7 @@ kotlin {
 				implementation(libs.nucleus.launcher.windows)
 				implementation(libs.nucleus.launcher.linux)
 				implementation(libs.nucleus.launcher.macos)
+				implementation(libs.splashify)
 			}
 		}
 		val jvmTest by getting {

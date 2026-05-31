@@ -35,6 +35,7 @@ import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
 import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
+import io.github.sudarshanmhasrup.splashify.SplashifyApp
 import kotlinx.coroutines.*
 import org.koin.core.context.GlobalContext
 import org.koin.java.KoinJavaComponent.getKoin
@@ -153,8 +154,12 @@ fun main(args: Array<String>) {
 			AppTheme(useDarkTheme = darkMode, settings = settingsState) {
 				when (val windowState = applicationState.windows.value) {
 					is WindowState.ProjectSectionWindow -> {
-						ProjectSelectionWindow { project ->
-							applicationState.openProject(project)
+						SplashifyApp(
+							splashScreen = { SplashScreen() }
+						) {
+							ProjectSelectionWindow { project ->
+								applicationState.openProject(project)
+							}
 						}
 					}
 
