@@ -197,20 +197,44 @@ tasks.register("prepareForRelease") {
 		git("add", iosInfoPlistFile.absolutePath)
 		git("commit", "-m", "Prepared for release: v${releaseInfo.semVar}")
 
-		// Switch to release and reset to origin/release HEAD
-		git("checkout", "release")
-		git("reset", "--hard", "origin/release")
-		git("merge", "-X", "theirs", "develop")
+		// Merge develop into release in a throwaway worktree, never checking
+		// release out in the main tree: the running daemon holds gradle-wrapper.jar
+		// open, so a checkout that replaces it fails on Windows (unable to unlink).
+		fun gitIn(dir: File, vararg args: String): Int {
+			val cmd = listOf("git") + args.toList()
+			println("> (${dir.name}) ${cmd.joinToString(" ")}")
+			val process = ProcessBuilder(cmd)
+				.directory(dir)
+				.redirectErrorStream(true)
+				.start()
+			val output = process.inputStream.bufferedReader().readText()
+			val exitCode = process.waitFor()
+			if (output.isNotBlank()) println(output.trim())
+			return exitCode
+		}
 
-		// Create the release tag
-		git("tag", "-a", releaseInfo.tag, "-m", releaseInfo.changeLog)
+		git("branch", "-f", "release", "origin/release")
+
+		val releaseWorktree = File(project.rootDir, "build/release-merge")
+		// Clear any leftover worktree from a previous failed run (ignore failure).
+		gitIn(project.rootDir, "worktree", "remove", "--force", releaseWorktree.absolutePath)
+		if (gitIn(project.rootDir, "worktree", "add", releaseWorktree.absolutePath, "release") != 0) {
+			error("Failed to create release worktree at ${releaseWorktree.absolutePath}")
+		}
+		try {
+			if (gitIn(releaseWorktree, "merge", "-X", "theirs", "develop") != 0) {
+				error("Failed to merge develop into release")
+			}
+		} finally {
+			gitIn(project.rootDir, "worktree", "remove", "--force", releaseWorktree.absolutePath)
+		}
+
+		// Tag the merge commit explicitly; the main tree stays on develop.
+		git("tag", "-a", releaseInfo.tag, "-m", releaseInfo.changeLog, "release")
 
 		// Push and begin the release process
 		git("push", "origin", "develop", "release")
 		git("push", "origin", "--tags")
-
-		// Leave the repo back on develop
-		git("checkout", "develop")
 	}
 }
 
