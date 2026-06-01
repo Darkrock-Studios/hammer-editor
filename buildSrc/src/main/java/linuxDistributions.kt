@@ -152,7 +152,17 @@ fun Project.registerBuildDistAppImageTask() {
 			}.result.get()
 
 			println("AppImage created: ${outputDir.resolve("hammer.AppImage")}")
-			println("AppImage zsync created: ${outputDir.resolve("hammer.AppImage.zsync")}")
+
+			// appimagetool silently skips the zsync file (exit 0) when zsyncmake is
+			// missing from PATH; fail here instead of at the release-upload step.
+			val zsyncFile = outputDir.resolve("hammer.AppImage.zsync")
+			if (!zsyncFile.exists()) {
+				throw GradleException(
+					"AppImage zsync file was not generated at $zsyncFile. " +
+						"Ensure zsyncmake (the 'zsync' package) is installed and on PATH."
+				)
+			}
+			println("AppImage zsync created: $zsyncFile")
 
 			// Clean up AppDir
 			appDir.deleteRecursively()

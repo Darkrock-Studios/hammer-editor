@@ -143,6 +143,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      # appimagetool only emits the .zsync delta file when zsyncmake is on PATH;
+      # its bundled static copy is broken, so install the system one.
+      - name: Install zsync
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zsync
+
       - name: Package Linux ".deb" distribution
         run: ./gradlew :desktop:packageReleaseDeb
 
