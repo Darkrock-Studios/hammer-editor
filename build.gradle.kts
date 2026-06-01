@@ -365,21 +365,27 @@ tasks.register("revertLastRelease") {
 			error("develop HEAD is '$developHead', expected 'Prepared for release: $tagName'. Cannot safely revert.")
 		}
 
-		// Validate release HEAD is a merge commit (has 2 parents)
-		git("checkout", "release")
-		val releaseParents = gitOutput("log", "-1", "--format=%P").split("\\s+".toRegex()).filter { it.isNotEmpty() }
+		// Validate release HEAD is a merge commit (has 2 parents). Read the ref
+		// directly rather than checking it out — see below for why we must not
+		// materialize the release working tree.
+		val releaseParents = gitOutput("log", "-1", "--format=%P", "refs/heads/release").split("\\s+".toRegex()).filter { it.isNotEmpty() }
 		if (releaseParents.size < 2) {
 			error("release HEAD is not a merge commit. Cannot safely revert.")
 		}
 
-		// Reset release to its pre-merge state (first parent of the merge commit)
+		// Reset release to its pre-merge state (first parent of the merge commit).
+		// Move the ref with `git branch -f` instead of `checkout release` +
+		// `reset --hard`: on Windows the running Gradle daemon holds
+		// gradle/wrapper/gradle-wrapper.jar open, and the merge changes that jar,
+		// so a working-tree reset fails with "unable to unlink ... Invalid argument".
+		// Updating the ref without ever checking release out never touches the file.
 		println("Resetting release to pre-merge state...")
-		git("reset", "--hard", "HEAD^1")
+		git("branch", "-f", "release", releaseParents[0])
 		git("push", "--force", "origin", "release")
 
-		// Reset develop to before the release commit
+		// Reset develop to before the release commit. We're still on develop and
+		// this commit doesn't touch the wrapper jar, so a hard reset is safe here.
 		println("Resetting develop to pre-release state...")
-		git("checkout", "develop")
 		git("reset", "--hard", "HEAD~1")
 		git("push", "--force", "origin", "develop")
 
