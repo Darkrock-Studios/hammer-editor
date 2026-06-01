@@ -1,8 +1,13 @@
 package com.darkrockstudios.apps.hammer
 
+import com.darkrockstudios.apps.hammer.analytics.AnalyticsProvider
+import com.darkrockstudios.apps.hammer.analytics.AnalyticsProviderFactory
 import com.darkrockstudios.apps.hammer.email.EmailProvider
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import java.net.URI
+import java.net.URISyntaxException
 
 @Serializable
 data class ServerConfig(
@@ -23,13 +28,25 @@ data class ServerConfig(
 }
 
 @Serializable
-enum class AnalyticsProviderType { NONE, UMAMI }
+enum class AnalyticsProviderType {
+	// Serial names are lowercase: tomlkt matches the TOML value to the enum's
+	// serial name exactly (case-sensitively), so e.g. `type = "umami"` maps here.
+	@SerialName("none")
+	NONE,
+
+	@SerialName("umami")
+	UMAMI,
+}
 
 @Serializable
 data class AnalyticsConfig(
 	val type: AnalyticsProviderType = AnalyticsProviderType.NONE,
 	val umami: UmamiConfig? = null,
 ) {
+	/** The active provider, resolved once when the config is loaded. Null when analytics is off. */
+	@Transient
+	val provider: AnalyticsProvider? = AnalyticsProviderFactory.create(this)
+
 	fun validate() {
 		when (type) {
 			AnalyticsProviderType.NONE -> Unit
@@ -51,11 +68,25 @@ data class UmamiConfig(
 	fun validate() {
 		require(websiteId.isNotBlank()) { "analytics.umami.websiteId must not be blank" }
 		require(scriptUrl.isNotBlank()) { "analytics.umami.scriptUrl must not be blank" }
+		val uri = try {
+			URI(scriptUrl)
+		} catch (e: URISyntaxException) {
+			throw IllegalArgumentException("analytics.umami.scriptUrl is not a valid URL: $scriptUrl", e)
+		}
+		require(uri.scheme?.lowercase() in setOf("http", "https") && uri.host != null) {
+			"analytics.umami.scriptUrl must be an absolute http(s) URL: $scriptUrl"
+		}
 	}
 }
 
 @Serializable
-enum class StorageMode { EMBEDDED, REMOTE }
+enum class StorageMode {
+	@SerialName("embedded")
+	EMBEDDED,
+
+	@SerialName("remote")
+	REMOTE,
+}
 
 @Serializable
 data class StorageConfig(

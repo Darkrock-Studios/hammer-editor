@@ -6,7 +6,9 @@ import net.peanuuutz.tomlkt.Toml
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
 import kotlin.test.assertNull
+import kotlin.test.assertSame
 
 class AnalyticsConfigTest {
 
@@ -86,5 +88,54 @@ class AnalyticsConfigTest {
 			""".trimIndent()
 		)
 		assertThrows<IllegalArgumentException> { config.analytics.validate() }
+	}
+
+	@Test
+	fun `validate throws on a malformed script URL`() {
+		val config = parse(
+			"""
+			[analytics]
+			type = "umami"
+
+			[analytics.umami]
+			websiteId = "abc-123"
+			scriptUrl = "https://umami.is/bad script.js"
+			""".trimIndent()
+		)
+		assertThrows<IllegalArgumentException> { config.analytics.validate() }
+	}
+
+	@Test
+	fun `validate throws on a non-http script URL`() {
+		val config = parse(
+			"""
+			[analytics]
+			type = "umami"
+
+			[analytics.umami]
+			websiteId = "abc-123"
+			scriptUrl = "ftp://umami.is/script.js"
+			""".trimIndent()
+		)
+		assertThrows<IllegalArgumentException> { config.analytics.validate() }
+	}
+
+	@Test
+	fun `provider is resolved once when umami configured and absent otherwise`() {
+		val umami = parse(
+			"""
+			[analytics]
+			type = "umami"
+
+			[analytics.umami]
+			websiteId = "abc-123"
+			""".trimIndent()
+		)
+		val provider = umami.analytics.provider
+		assertNotNull(provider)
+		// Same precomputed instance is reused, not rebuilt per access.
+		assertSame(provider, umami.analytics.provider)
+
+		assertNull(parse("").analytics.provider)
 	}
 }

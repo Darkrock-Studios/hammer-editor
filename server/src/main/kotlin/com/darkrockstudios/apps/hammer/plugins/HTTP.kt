@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.plugins
 
 import com.darkrockstudios.apps.hammer.ServerConfig
-import com.darkrockstudios.apps.hammer.analytics.AnalyticsProviderFactory
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
@@ -14,7 +13,7 @@ import io.ktor.server.plugins.httpsredirect.*
 import io.ktor.server.routing.*
 
 fun Application.configureHTTP(config: ServerConfig) {
-	val analyticsProvider = AnalyticsProviderFactory.create(config.analytics)
+	val analyticsProvider = config.analytics.provider
 	val analyticsScriptHosts = analyticsProvider?.scriptSrcHosts().orEmpty()
 	val analyticsConnectHosts = analyticsProvider?.connectSrcHosts().orEmpty()
 
