@@ -215,6 +215,18 @@ Otherwise, you can add individual users to the whitelist using the admin page.
 _**Note:** Disabling the whitelist is **strongly discouraged**. There are currently no moderation tools or even account
 verification. I expect any fully open server would become filled with spam very quickly._
 
+## Enable Community
+
+By default this is disabled. To enable it, add this line to your server config:
+
+```toml
+communityEnabled = true
+```
+
+This will enable several new pages on the website found at: `/community`
+
+Users will now be able to opt-in to the community if they have already selected a **Pen Name**.
+
 ## Setup Email Sending (_Optional_)
 
 Currently, we mainly use Email for password reset. Eventually we maybe have account verification, and potentially other
@@ -237,14 +249,32 @@ Then restart your server and navigate to the admin page to configure your email 
 
 Only SMTP has been thoroughly tested so far.
 
-## Enable Community
+## Web Analytics (_Optional_)
 
-By default this is disabled. To enable it, add this line to your server config:
+You can opt into a web analytics provider to measure traffic to your server's
+public web pages.
+
+Analytics is only served on **public (logged-out) pages**. It is never injected
+into the dashboard, story, or admin pages of signed-in users.
+
+By default analytics is disabled (`type = "none"`). Currently, the only supported
+provider is [Umami](https://umami.is).
+
+### Umami
+
+Create a website in your Umami dashboard, copy its **Website ID**, and add:
 
 ```toml
-communityEnabled = true
+[analytics]
+type = "umami"
+
+[analytics.umami]
+websiteId = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# scriptUrl defaults to Umami Cloud. To use a self-hosted Umami instance,
+# point it at your own script, e.g.:
+# scriptUrl = "https://umami.example.com/script.js"
 ```
 
-This will enable several new pages on the website found at: `/community`
-
-Users will now be able to opt-in to the community if they have already selected a **Pen Name**.
+The configuration is designed to grow: support for additional providers can be
+added under the `[analytics]` section in the future by selecting a different
+`type`.

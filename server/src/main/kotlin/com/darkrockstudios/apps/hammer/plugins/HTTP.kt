@@ -13,6 +13,10 @@ import io.ktor.server.plugins.httpsredirect.*
 import io.ktor.server.routing.*
 
 fun Application.configureHTTP(config: ServerConfig) {
+	val analyticsProvider = config.analytics.provider
+	val analyticsScriptHosts = analyticsProvider?.scriptSrcHosts().orEmpty()
+	val analyticsConnectHosts = analyticsProvider?.connectSrcHosts().orEmpty()
+
 	install(DefaultHeaders) {
 		header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 		header(HEADER_SERVER_VERSION, BuildMetadata.APP_VERSION)
@@ -27,13 +31,17 @@ fun Application.configureHTTP(config: ServerConfig) {
 		header("Referrer-Policy", "strict-origin-when-cross-origin")
 
 		// Content Security Policy - relaxed for compatibility
+		val scriptSrc = (listOf("'self'", "https://unpkg.com", "'unsafe-inline'", "'unsafe-eval'") + analyticsScriptHosts)
+			.joinToString(" ") // HTMX + inline scripts + dynamic eval + analytics
+		val connectSrc = (listOf("'self'") + analyticsConnectHosts)
+			.joinToString(" ") // HTMX requests stay on same origin + analytics event endpoint
 		val cspDirectives = listOf(
 			"default-src 'self'",
-			"script-src 'self' https://unpkg.com 'unsafe-inline' 'unsafe-eval'", // HTMX + inline scripts + dynamic eval
+			"script-src $scriptSrc",
 			"style-src 'self' https://cdnjs.cloudflare.com https://fonts.googleapis.com 'unsafe-inline'", // Font Awesome + Google Fonts + inline styles
 			"font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:", // Custom fonts + Font Awesome + Google Fonts
 			"img-src 'self' data:", // Local images + data URIs
-			"connect-src 'self'", // HTMX requests stay on same origin
+			"connect-src $connectSrc",
 			"frame-ancestors 'self'" // Additional clickjacking protection
 		).joinToString("; ")
 		header("Content-Security-Policy", cspDirectives)

@@ -189,5 +189,12 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 		model["isDev"] = true
 	}
 
+	// Inject web analytics on public (logged-out) pages only
+	if (session == null) {
+		serverConfig.analytics.provider?.let { provider ->
+			model["analyticsHead"] = provider.headSnippet()
+		}
+	}
+
 	return model
 }
