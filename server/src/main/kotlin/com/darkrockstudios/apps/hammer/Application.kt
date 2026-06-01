@@ -55,6 +55,7 @@ fun main(args: Array<String>) {
 	} ?: ServerConfig()
 
 	config.storage.validate()
+	config.analytics.validate()
 
 	// Dry-run path exits before the server starts.
 	if (migrateDryRunArg == true) {

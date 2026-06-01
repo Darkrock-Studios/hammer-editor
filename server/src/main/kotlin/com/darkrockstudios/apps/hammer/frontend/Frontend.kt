@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
+import com.darkrockstudios.apps.hammer.analytics.AnalyticsProviderFactory
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
 import com.darkrockstudios.apps.hammer.email.EmailService
@@ -187,6 +188,13 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	// Add development mode flag for header banner
 	if (application.developmentMode) {
 		model["isDev"] = true
+	}
+
+	// Inject web analytics on public (logged-out) pages only
+	if (session == null) {
+		AnalyticsProviderFactory.create(serverConfig.analytics)?.let { provider ->
+			model["analyticsHead"] = provider.headSnippet()
+		}
 	}
 
 	return model

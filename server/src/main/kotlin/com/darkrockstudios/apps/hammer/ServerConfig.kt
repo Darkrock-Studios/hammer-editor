@@ -14,10 +14,43 @@ data class ServerConfig(
 	val emailProvider: String? = null,
 	val communityEnabled: Boolean = false,
 	val storage: StorageConfig = StorageConfig(),
+	val analytics: AnalyticsConfig = AnalyticsConfig(),
 ) {
 	@Transient
 	val emailProviderType: EmailProvider? = emailProvider?.let { provider ->
 		EmailProvider.entries.find { it.name.equals(provider, ignoreCase = true) }
+	}
+}
+
+@Serializable
+enum class AnalyticsProviderType { NONE, UMAMI }
+
+@Serializable
+data class AnalyticsConfig(
+	val type: AnalyticsProviderType = AnalyticsProviderType.NONE,
+	val umami: UmamiConfig? = null,
+) {
+	fun validate() {
+		when (type) {
+			AnalyticsProviderType.NONE -> Unit
+			AnalyticsProviderType.UMAMI -> {
+				requireNotNull(umami) { "analytics.type=umami requires an [analytics.umami] config block" }
+				umami.validate()
+			}
+		}
+	}
+}
+
+@Serializable
+data class UmamiConfig(
+	/** The Umami "website ID" (UUID) for this site. */
+	val websiteId: String,
+	/** Defaults to Umami Cloud; override with https://<your-host>/script.js for self-hosted Umami. */
+	val scriptUrl: String = "https://cloud.umami.is/script.js",
+) {
+	fun validate() {
+		require(websiteId.isNotBlank()) { "analytics.umami.websiteId must not be blank" }
+		require(scriptUrl.isNotBlank()) { "analytics.umami.scriptUrl must not be blank" }
 	}
 }
 

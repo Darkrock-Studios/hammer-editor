@@ -248,3 +248,35 @@ communityEnabled = true
 This will enable several new pages on the website found at: `/community`
 
 Users will now be able to opt-in to the community if they have already selected a **Pen Name**.
+
+## Web Analytics (_Optional_)
+
+You can opt into a web analytics provider to measure traffic to your server's
+public web pages. The tracking script is injected automatically, and the server's
+Content Security Policy is widened to allow the configured provider — no manual
+changes needed.
+
+Analytics is only served on **public (logged-out) pages**. It is never injected
+into the dashboard, story, or admin pages of signed-in users.
+
+By default analytics is disabled (`type = "none"`). Currently the only supported
+provider is [Umami](https://umami.is).
+
+### Umami
+
+Create a website in your Umami dashboard, copy its **Website ID**, and add:
+
+```toml
+[analytics]
+type = "umami"
+
+[analytics.umami]
+websiteId = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# scriptUrl defaults to Umami Cloud. To use a self-hosted Umami instance,
+# point it at your own script, e.g.:
+# scriptUrl = "https://umami.example.com/script.js"
+```
+
+The configuration is designed to grow: support for additional providers can be
+added under the `[analytics]` section in the future by selecting a different
+`type`.
