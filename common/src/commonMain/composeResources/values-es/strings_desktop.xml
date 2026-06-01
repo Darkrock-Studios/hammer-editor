@@ -6,4 +6,5 @@
 	<string name="project_window_menu_item_close">Close Project</string>
 	<string name="project_window_menu_item_exit">Exit</string>
 	<string name="jump_list_recent_projects">Recent Projects</string>
+	<string name="splash_subtitle">A simple tool for building stories.</string>
 </resources>
