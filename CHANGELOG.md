@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.1.0] - 2026-5-31
+
+- EPUB export! Now with a Table of Contents and custom file naming
+- Visualdiffs when comparing drafts and merging sync conflicts
+- Distraction-free editing: phones hide everything but the editor while typing
+- New desktop splash screen
+- Timeline Z-A sort option
+- More reliable sync error handling
+- Faster Linux AppImage delta updates
+- Crash fixes
+- Updated translations
+- Server: Migrate DB to Postgres
+- Server: Optional analytics
+
+
 ## [3.0.3] - 2026-5-17
 
 - Complete UI redesign!
