@@ -35,8 +35,6 @@ import com.darkrockstudios.apps.hammer.project_select_card_rename_button
 import com.darkrockstudios.apps.hammer.projects_list_card_by_author
 import com.darkrockstudios.apps.hammer.projects_list_card_content_description
 import com.darkrockstudios.apps.hammer.projects_list_card_created
-import com.darkrockstudios.apps.hammer.projects_list_card_never_opened
-import com.darkrockstudios.apps.hammer.projects_list_card_opened
 import com.darkrockstudios.apps.hammer.projects_list_card_words
 import com.darkrockstudios.apps.hammer.projects_list_item_more_button
 import kotlinx.datetime.TimeZone
@@ -57,10 +55,12 @@ private val CompactNumberColumnWidth: Dp = 44.dp
  *     │ 01   Alice In Wonderland          29 JAN ’23   ⋮
  *     │      by Lewis Carroll · Created 29 JAN ’23
  *
- * Compact (drops the trailing mono cell, folds dates into the title column):
+ * Compact (drops the trailing mono cell, lays the dates + word count out as
+ * an aligned label/value greeble grid instead of one flowing mono line):
  *     │ 01  Alice In Wonderland           ⋮
  *     │     by Lewis Carroll
- *     │     CREATED 29 JAN ’23 · OPENED 04 MAR ’24
+ *     │     CREATED      OPENED      WORDS
+ *     │     29 JAN ’23   04 MAR ’24  26,351
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -89,21 +89,16 @@ fun ProjectIndexRow(
 	val wordsLabel = projectData.totalWords?.let {
 		Res.string.projects_list_card_words.get(it.formatDecimalSeparator())
 	}
+	val wordsValue = projectData.totalWords?.formatDecimalSeparator()
 	val byAuthor = author?.let { Res.string.projects_list_card_by_author.get(it) }
 	val createdText = Res.string.projects_list_card_created.get(createdDate)
-	val openedText = lastAccessedDate
-		?.let { Res.string.projects_list_card_opened.get(it) }
-		?: Res.string.projects_list_card_never_opened.get()
 	val cardContentDescription =
 		Res.string.projects_list_card_content_description.get(projectData.definition.name)
 	val rowNumber = remember(index) { (index + 1).toString().padStart(2, '0') }
-	val subline = remember(isWide, byAuthor, createdText, openedText, wordsLabel) {
-		val parts = if (isWide) {
-			listOfNotNull(byAuthor, createdText)
-		} else {
-			listOfNotNull(createdText, openedText, wordsLabel)
-		}
-		parts.joinToString(" · ")
+	// Wide keeps the single italic subline; Compact reflows the same facts into
+	// the aligned greeble grid below, so the subline is wide-only now.
+	val subline = remember(byAuthor, createdText) {
+		listOfNotNull(byAuthor, createdText).joinToString(" · ")
 	}
 
 	Row(
@@ -167,10 +162,11 @@ fun ProjectIndexRow(
 						color = MaterialTheme.colorScheme.onSurfaceVariant,
 					)
 				}
-				Spacer(modifier = Modifier.height(2.dp))
-				HdMonoLabel(
-					text = subline,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				Spacer(modifier = Modifier.height(8.dp))
+				CompactMetaGrid(
+					createdValue = createdDate,
+					openedValue = lastAccessedDate,
+					wordsValue = wordsValue,
 				)
 			}
 		}
@@ -219,6 +215,78 @@ fun ProjectIndexRow(
 		thickness = Dp.Hairline,
 		color = MaterialTheme.colorScheme.outlineVariant,
 	)
+}
+
+/**
+ * Compact label-over-value greeble grid. Equal-weight columns keep the dates
+ * and word count aligned down the whole list instead of flowing and wrapping
+ * at arbitrary points. The labels are faint captions; values stay at the same
+ * muted weight as the rest of the row so the project title is the only bright
+ * anchor per row.
+ *
+ *     CREATED      OPENED      WORDS
+ *     29 JAN ’23   04 MAR ’24  26,351
+ */
+@Composable
+private fun CompactMetaGrid(
+	createdValue: String,
+	openedValue: String?,
+	wordsValue: String?,
+) {
+	Row(
+		modifier = Modifier.fillMaxWidth(),
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+	) {
+		MetaColumn(
+			label = "Created",
+			value = createdValue,
+			modifier = Modifier.weight(1f),
+		)
+		MetaColumn(
+			label = "Opened",
+			value = openedValue ?: "—",
+			muted = openedValue == null,
+			modifier = Modifier.weight(1f),
+		)
+		if (wordsValue != null) {
+			MetaColumn(
+				label = "Words",
+				value = wordsValue,
+				modifier = Modifier.weight(1f),
+			)
+		}
+	}
+}
+
+@Composable
+private fun MetaColumn(
+	label: String,
+	value: String,
+	modifier: Modifier = Modifier,
+	muted: Boolean = false,
+) {
+	Column(
+		modifier = modifier,
+		verticalArrangement = Arrangement.spacedBy(3.dp),
+	) {
+		HdMonoLabel(
+			text = label,
+			color = MaterialTheme.colorScheme.outline,
+			maxLines = 1,
+			softWrap = false,
+		)
+		HdMonoLabel(
+			text = value,
+			style = MaterialTheme.typography.labelMedium,
+			color = if (muted) {
+				MaterialTheme.colorScheme.outline
+			} else {
+				MaterialTheme.colorScheme.onSurfaceVariant
+			},
+			maxLines = 1,
+			softWrap = false,
+		)
+	}
 }
 
 @Composable
