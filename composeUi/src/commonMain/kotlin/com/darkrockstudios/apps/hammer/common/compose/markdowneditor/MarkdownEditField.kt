@@ -48,10 +48,9 @@ fun MarkdownEditField(
 
 	val spellCheckRepository = rememberKoinInject<SpellCheckRepository>()
 	val platformSpellChecker by spellCheckRepository.dictionaryFlow.collectAsState(initial = null)
-	val editorSpellChecker = if (enableSpellChecking) platformSpellChecker.toEditorSpellChecker() else null
 
 	val textEditorState = rememberSpellCheckState(
-		spellChecker = editorSpellChecker,
+		spellChecker = platformSpellChecker.toEditorSpellChecker(),
 		initialText = null,
 		enableSpellChecking = enableSpellChecking,
 	)
