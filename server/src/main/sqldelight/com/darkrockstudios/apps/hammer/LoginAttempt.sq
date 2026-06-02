@@ -1,0 +1,33 @@
+import kotlinx.datetime.Instant;
+
+-- Raw login attempts, used for brute-force visibility on the Security page.
+-- `email` is stored lower-cased by the repository for stable counting; it may
+-- not correspond to a real account. `ip_address` is the most PII-sensitive
+-- field and is only written when MonitoringConfig.storeLoginIp is enabled; the
+-- whole table is purged on the loginAttemptRetentionDays window.
+CREATE TABLE login_attempt (
+    id BIGSERIAL PRIMARY KEY,
+    email TEXT,
+    ip_address TEXT,
+    success BOOLEAN NOT NULL,
+    attempted_at TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX login_attempt_email_time ON login_attempt(email, attempted_at);
+CREATE INDEX login_attempt_time ON login_attempt(attempted_at);
+
+recordAttempt:
+INSERT INTO login_attempt(email, ip_address, success, attempted_at)
+VALUES (?, ?, ?, ?);
+
+countRecentFailuresByEmail:
+SELECT count(*) FROM login_attempt
+WHERE email = ? AND success = FALSE AND attempted_at > ?;
+
+getRecentAttempts:
+SELECT * FROM login_attempt
+ORDER BY attempted_at DESC
+LIMIT ? OFFSET ?;
+
+deleteAttemptsBefore:
+DELETE FROM login_attempt WHERE attempted_at < ?;

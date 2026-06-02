@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.email.MailgunConfig
 import com.darkrockstudios.apps.hammer.email.PostmarkConfig
 import com.darkrockstudios.apps.hammer.email.SendGridConfig
 import com.darkrockstudios.apps.hammer.email.SmtpConfig
+import com.darkrockstudios.apps.hammer.monitoring.MonitoringConfig
 import com.darkrockstudios.apps.hammer.patreon.PatreonConfig
 import kotlinx.serialization.json.Json
 
@@ -56,5 +57,11 @@ object AdminServerConfig {
 		default = MailgunConfig(),
 		parse = { Json.decodeFromString<MailgunConfig>(it) },
 		serialize = { Json.encodeToString(MailgunConfig.serializer(), it) }
+	)
+	val MONITORING_CONFIG = ServerConfigKey(
+		key = "monitoring_config",
+		default = MonitoringConfig(),
+		parse = { Json.decodeFromString<MonitoringConfig>(it) },
+		serialize = { Json.encodeToString(MonitoringConfig.serializer(), it) }
 	)
 }

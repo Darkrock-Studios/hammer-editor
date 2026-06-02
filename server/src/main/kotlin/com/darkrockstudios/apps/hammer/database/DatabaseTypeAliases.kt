@@ -7,3 +7,6 @@ typealias DeletedProject = Deleted_project
 typealias StoryEntity = Story_entity
 typealias WhiteList = White_list
 typealias PasswordResetToken = Password_reset_token
+typealias ApiMetricBucket = Api_metric_bucket
+typealias ErrorLog = Error_log
+typealias LoginAttempt = Login_attempt

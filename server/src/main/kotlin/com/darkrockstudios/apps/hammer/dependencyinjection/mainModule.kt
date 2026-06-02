@@ -14,6 +14,10 @@ import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.AesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
+import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
+import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
+import com.darkrockstudios.apps.hammer.monitoring.MonitoringMaintenanceJob
+import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
 import com.darkrockstudios.apps.hammer.patreon.PatreonApiClient
 import com.darkrockstudios.apps.hammer.patreon.PatreonPollingJob
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
@@ -87,6 +91,9 @@ fun mainModule(
 	singleOf(::PasswordResetTokenDao)
 	singleOf(::WritingActivityDao)
 	singleOf(::ProjectDataDao)
+	singleOf(::ApiMetricDao)
+	singleOf(::ErrorLogDao)
+	singleOf(::LoginAttemptDao)
 
 	singleOf(::AccountsRepository)
 	singleOf(::ProjectsRepository)
@@ -96,6 +103,10 @@ fun mainModule(
 	singleOf(::ServerProjectDataRepository)
 	singleOf(::WhiteListRepository)
 	singleOf(::ConfigRepository)
+	singleOf(::MetricsRepository)
+	singleOf(::ErrorRepository)
+	singleOf(::SecurityRepository)
+	singleOf(::MonitoringMaintenanceJob)
 	singleOf(::StoryExportService)
 	singleOf(::PenNameService)
 	singleOf(::BioService)
