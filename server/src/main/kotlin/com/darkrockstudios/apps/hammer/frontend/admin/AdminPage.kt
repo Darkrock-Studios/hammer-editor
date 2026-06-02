@@ -32,11 +32,7 @@ fun Route.adminPage(
 	projectsRepository: ProjectsRepository,
 	serverConfig: ServerConfig,
 	patreonSyncService: PatreonSyncService?,
-	emailService: EmailService?,
-	metricsRepository: com.darkrockstudios.apps.hammer.monitoring.MetricsRepository,
-	projectsSyncManager: com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager<Long, com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession>,
-	projectSyncManager: com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager<*, com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession>,
-	clock: kotlin.time.Clock,
+	emailService: EmailService?
 ) {
 	val patreonFeatureEnabled = serverConfig.patreonEnabled == true
 	val emailFeatureEnabled = serverConfig.emailProviderType != null
@@ -44,10 +40,7 @@ fun Route.adminPage(
 	adminOnly {
 		route("/admin") {
 			adminSettingsPage(configRepository, patreonFeatureEnabled, emailFeatureEnabled)
-			adminMonitoringPages(
-				metricsRepository, configRepository, projectsSyncManager, projectSyncManager,
-				clock, patreonFeatureEnabled, emailFeatureEnabled,
-			)
+			adminMonitoringPages(patreonFeatureEnabled, emailFeatureEnabled)
 			adminWhitelistPage(
 				whiteListRepository,
 				configRepository,

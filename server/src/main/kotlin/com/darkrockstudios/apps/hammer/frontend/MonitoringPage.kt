@@ -2,10 +2,13 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
+import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.monitoring.EndpointStat
 import com.darkrockstudios.apps.hammer.monitoring.LATENCY_OVERFLOW_MS
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
+import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
@@ -16,6 +19,8 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import org.koin.core.qualifier.named
+import org.koin.ktor.ext.get
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
@@ -24,95 +29,82 @@ import kotlin.time.Duration.Companion.hours
  * The Monitoring section of the admin UI: an "analytics ledger" extension of the
  * Writer's Desk system. Overview is the glanceable dashboard; Performance is the
  * per-endpoint deep dive. Registered under the already-admin-gated /admin route.
+ *
+ * Dependencies are resolved from Koin lazily inside each request handler (rather
+ * than injected when routes are built) so that route tests which boot the app
+ * with a narrow mock module don't have to define monitoring beans they never use.
  */
 fun Route.adminMonitoringPages(
-	metricsRepository: MetricsRepository,
-	configRepository: ConfigRepository,
-	projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession>,
-	projectSyncManager: SyncSessionManager<*, ProjectSynchronizationSession>,
-	clock: Clock,
 	patreonFeatureEnabled: Boolean,
 	emailFeatureEnabled: Boolean,
 ) {
 	route("/monitoring") {
-		monitoringOverview(
-			metricsRepository, configRepository, projectsSyncManager, projectSyncManager,
-			clock, patreonFeatureEnabled, emailFeatureEnabled,
-		)
-		monitoringPerformance(metricsRepository, clock, patreonFeatureEnabled, emailFeatureEnabled)
-	}
-}
+		get {
+			val app = call.application
+			val metricsRepository = app.get<MetricsRepository>()
+			val configRepository = app.get<ConfigRepository>()
+			val projectsSyncManager =
+				app.get<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER))
+			val projectSyncManager =
+				app.get<SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>>(named(PROJECT_SYNC_MANAGER))
+			val clock = app.get<Clock>()
 
-private fun Route.monitoringOverview(
-	metricsRepository: MetricsRepository,
-	configRepository: ConfigRepository,
-	projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession>,
-	projectSyncManager: SyncSessionManager<*, ProjectSynchronizationSession>,
-	clock: Clock,
-	patreonFeatureEnabled: Boolean,
-	emailFeatureEnabled: Boolean,
-) {
-	get {
-		val enabled = configRepository.get(AdminServerConfig.MONITORING_CONFIG).enabled
-		val now = clock.now()
-		val since = now - 24.hours
+			val enabled = configRepository.get(AdminServerConfig.MONITORING_CONFIG).enabled
+			val since = clock.now() - 24.hours
 
-		val totals = metricsRepository.getTotals(since)
-		val stats = metricsRepository.getEndpointStats(since)
-		val activeSyncs = projectsSyncManager.activeSessionCount() + projectSyncManager.activeSessionCount()
+			val totals = metricsRepository.getTotals(since)
+			val stats = metricsRepository.getEndpointStats(since)
+			val activeSyncs = projectsSyncManager.activeSessionCount() + projectSyncManager.activeSessionCount()
 
-		val topSlow = stats.sortedByDescending { it.p95 }.take(5).map(::endpointRowModel)
-		val alerts = deriveAlerts(stats)
+			val topSlow = stats.sortedByDescending { it.p95 }.take(5).map(::endpointRowModel)
+			val alerts = deriveAlerts(stats)
+			val chart = buildHourlyChart(metricsRepository.getHourBucketsSince(since))
 
-		val chart = buildHourlyChart(metricsRepository.getHourBucketsSince(since))
+			val model = mutableMapOf<String, Any>(
+				"page_stylesheet" to "/assets/css/admin.css",
+				"activeMonitoring" to true,
+				"activeMonOverview" to true,
+				"patreonFeatureEnabled" to patreonFeatureEnabled,
+				"emailFeatureEnabled" to emailFeatureEnabled,
+				"monitoringEnabled" to enabled,
+				"statRequests" to formatCount(totals.requestCount),
+				"statErrorRate" to formatPercent(totals.errorRate),
+				"statP95" to formatLatency(totals.p95Ms),
+				"statActiveSyncs" to activeSyncs,
+				"hasAlerts" to alerts.isNotEmpty(),
+				"alerts" to alerts,
+				"topSlow" to topSlow,
+				"hasTopSlow" to topSlow.isNotEmpty(),
+				"chartJson" to chart,
+			)
 
-		val model = mutableMapOf<String, Any>(
-			"page_stylesheet" to "/assets/css/admin.css",
-			"activeMonitoring" to true,
-			"activeMonOverview" to true,
-			"patreonFeatureEnabled" to patreonFeatureEnabled,
-			"emailFeatureEnabled" to emailFeatureEnabled,
-			"monitoringEnabled" to enabled,
-			"statRequests" to formatCount(totals.requestCount),
-			"statErrorRate" to formatPercent(totals.errorRate),
-			"statP95" to formatLatency(totals.p95Ms),
-			"statActiveSyncs" to activeSyncs,
-			"hasAlerts" to alerts.isNotEmpty(),
-			"alerts" to alerts,
-			"topSlow" to topSlow,
-			"hasTopSlow" to topSlow.isNotEmpty(),
-			"chartJson" to chart,
-		)
+			call.respond(MustacheContent("admin-monitoring.mustache", call.withDefaults(model)))
+		}
 
-		call.respond(MustacheContent("admin-monitoring.mustache", call.withDefaults(model)))
-	}
-}
+		get("/performance") {
+			val app = call.application
+			val metricsRepository = app.get<MetricsRepository>()
+			val clock = app.get<Clock>()
 
-private fun Route.monitoringPerformance(
-	metricsRepository: MetricsRepository,
-	clock: Clock,
-	patreonFeatureEnabled: Boolean,
-	emailFeatureEnabled: Boolean,
-) {
-	get("/performance") {
-		val range = call.request.queryParameters["range"] ?: RANGE_24H
-		val since = clock.now() - rangeToDuration(range)
-		val stats = metricsRepository.getEndpointStats(since)
+			val range = call.request.queryParameters["range"] ?: RANGE_24H
+			val since = clock.now() - rangeToDuration(range)
+			val stats = metricsRepository.getEndpointStats(since)
 
-		val model = mutableMapOf<String, Any>(
-			"page_stylesheet" to "/assets/css/admin.css",
-			"activeMonitoring" to true,
-			"activeMonPerformance" to true,
-			"patreonFeatureEnabled" to patreonFeatureEnabled,
-			"emailFeatureEnabled" to emailFeatureEnabled,
-			"range24h" to (range == RANGE_24H),
-			"range7d" to (range == RANGE_7D),
-			"range30d" to (range == RANGE_30D),
-			"endpoints" to stats.map(::endpointRowModel),
-			"hasEndpoints" to stats.isNotEmpty(),
-		)
+			val model = mutableMapOf<String, Any>(
+				"page_stylesheet" to "/assets/css/admin.css",
+				"activeMonitoring" to true,
+				"activeMonPerformance" to true,
+				"patreonFeatureEnabled" to patreonFeatureEnabled,
+				"emailFeatureEnabled" to emailFeatureEnabled,
+				"range24h" to (range == RANGE_24H),
+				"range7d" to (range == RANGE_7D),
+				"range30d" to (range == RANGE_30D),
+				"endpoints" to stats.map(::endpointRowModel),
+				"hasEndpoints" to stats.isNotEmpty(),
+			)
 
-		call.respond(MustacheContent("admin-monitoring-performance.mustache", call.withDefaults(model)))
+			call.respond(MustacheContent("admin-monitoring-performance.mustache", call.withDefaults(model)))
+		}
 	}
 }
 
