@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.preview
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
@@ -26,6 +27,22 @@ private fun ProjectCardPreview() {
 
 		AppTheme(globalSettingsPreview, true) {
 			ProjectIndexRow(true, 0, data, {}, {}, {})
+		}
+	}
+}
+
+@Preview
+@Composable
+private fun ProjectCardCompactPreview() {
+	val data = fakeProjectData()
+	Column(modifier = Modifier.width(360.dp)) {
+		Spacer(modifier = Modifier.size(32.dp))
+
+		AppTheme(globalSettingsPreview, true) {
+			Column {
+				ProjectIndexRow(false, 0, data, {}, {}, {})
+				ProjectIndexRow(false, 1, data, {}, {}, {})
+			}
 		}
 	}
 }
