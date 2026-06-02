@@ -7,6 +7,8 @@ import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.monitoring.EndpointStat
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.LATENCY_OVERFLOW_MS
+import com.darkrockstudios.apps.hammer.monitoring.LogLine
+import com.darkrockstudios.apps.hammer.monitoring.LogRingBuffer
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
@@ -23,6 +25,7 @@ import kotlin.math.ceil
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
+import kotlin.time.Instant
 
 /**
  * The Monitoring section of the admin UI: an "analytics ledger" extension of the
@@ -155,8 +158,38 @@ fun Route.adminMonitoringPages(
 
 			call.respond(MustacheContent("admin-monitoring-security.mustache", call.withDefaults(model)))
 		}
+
+		get("/logs") {
+			val model = mutableMapOf<String, Any>(
+				"page_stylesheet" to "/assets/css/admin.css",
+				"activeMonitoring" to true,
+				"activeMonLogs" to true,
+				"patreonFeatureEnabled" to patreonFeatureEnabled,
+				"emailFeatureEnabled" to emailFeatureEnabled,
+			)
+			call.respond(MustacheContent("admin-monitoring-logs.mustache", call.withDefaults(model)))
+		}
+
+		// HTMX-polled fragment: the live tail, filtered by level + search query.
+		get("/logs/tail") {
+			val level = call.request.queryParameters["level"]
+			val query = call.request.queryParameters["q"]
+			val lines = LogRingBuffer.recent(minLevel = level, query = query, limit = 250).map(::logLineModel)
+			val model = call.withDefaults(
+				mutableMapOf<String, Any>("lines" to lines, "hasLines" to lines.isNotEmpty()),
+			)
+			call.respond(MustacheContent("partials/log-lines.mustache", model))
+		}
 	}
 }
+
+private fun logLineModel(line: LogLine): Map<String, Any> = mapOf(
+	"time" to formatInstant(Instant.fromEpochMilliseconds(line.timestampMillis), "HH:mm:ss.SSS"),
+	"level" to line.level,
+	"levelClass" to line.level.lowercase(),
+	"logger" to line.logger,
+	"message" to line.message,
+)
 
 private fun errorRowModel(e: Error_log): Map<String, Any> = mapOf(
 	"type" to e.exception_type,

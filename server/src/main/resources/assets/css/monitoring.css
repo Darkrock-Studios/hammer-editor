@@ -274,6 +274,59 @@
 .mon-badge--ok { background: var(--success); }
 .mon-badge--fail { background: var(--error); }
 
+/* --- Log viewer --- */
+.mon-log-controls {
+	display: flex;
+	align-items: flex-end;
+	gap: 1rem;
+	flex-wrap: wrap;
+	margin-bottom: 1rem;
+}
+.mon-log-controls__search { flex: 1; min-width: 200px; }
+.mon-log-controls__auto {
+	display: flex;
+	align-items: center;
+	gap: 0.4rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.85rem;
+	color: var(--neutral-600);
+	white-space: nowrap;
+}
+
+.mon-log-tail {
+	background: var(--neutral-900);
+	border-radius: 6px;
+	padding: 0.75rem;
+	max-height: 60vh;
+	overflow-y: auto;
+	font-size: 0.78rem;
+	line-height: 1.5;
+}
+.mon-log-line {
+	display: grid;
+	grid-template-columns: 6rem 4rem 10rem 1fr;
+	gap: 0.6rem;
+	padding: 0.1rem 0.3rem;
+	font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+	color: var(--neutral-200);
+	border-radius: 3px;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+.mon-log-line__time { color: var(--neutral-500); }
+.mon-log-line__level { font-weight: 700; }
+.mon-log-line__logger { color: var(--neutral-400); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mon-log-line--warn { background: rgba(245, 158, 11, 0.12); }
+.mon-log-line--warn .mon-log-line__level { color: var(--warning); }
+.mon-log-line--error { background: rgba(239, 68, 68, 0.15); }
+.mon-log-line--error .mon-log-line__level { color: var(--error); }
+.mon-log-line--info .mon-log-line__level { color: var(--primary-light); }
+
+@media (max-width: 768px) {
+	.mon-log-line { grid-template-columns: 5rem 3.5rem 1fr; }
+	.mon-log-line__logger { display: none; }
+}
+
 @media (max-width: 600px) {
 	.mon-stat-card__value { font-size: 1.7rem; }
 	.mon-subnav__link span { font-size: 0.85rem; }

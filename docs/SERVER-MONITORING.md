@@ -115,13 +115,15 @@ Each phase is independently mergeable; commit per phase to
 - [x] Limit is an **injected** `LoginRateLimitConfig` (prod default 10/min) — the test base injects an effectively-unlimited one so login tests never trip
 - Note: relies on the standard Ktor plugin behavior; existing login tests verify the wiring doesn't break login. A dedicated "trips at N+1" test could be added with a low-limit override.
 
-### Phase 5 — Logs
-- [ ] Bounded `RingBufferAppender` registered in `logback.xml`
-- [ ] **Logs** page: SSE live tail + level/logger/text filters, secret-scrubbed — `/frontend-design`
+### Phase 5 — Logs (done)
+- [x] **Switched logging backend to Logback** (was slf4j-simple, with logback commented out) so appenders work — `logback.xml` activated, root kept at INFO to match prior effective level
+- [x] Bounded `LogRingBuffer` (in-memory, capacity 1000) + `RingBufferLogAppender` registered in `logback.xml`, with best-effort secret redaction (Bearer/token/password)
+- [x] **Logs** page (`/admin/monitoring/logs`): HTMX-polled live tail (every 3s, toggleable) with level + text filters
+- [x] Test: ring-buffer filtering/bounding + redaction
+- Note: used HTMX polling rather than SSE (no SSE infra in the app); swap to SSE later if a true push stream is wanted.
 
-### Phase 6 — Optional Prometheus (off by default)
-- [ ] `ktor-server-metrics-micrometer` + `micrometer-registry-prometheus` (version catalog)
-- [ ] Admin-auth-gated scrape endpoint, gated on `prometheusEndpointEnabled`
+### Phase 6 — Optional Prometheus — **ON HOLD**
+Parked on branch `claude/server-monitoring-prometheus-endpoint` (reverted from this branch). See that branch for the implementation.
 
 ---
 

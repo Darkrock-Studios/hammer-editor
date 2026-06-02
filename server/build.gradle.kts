@@ -82,8 +82,9 @@ dependencies {
 	implementation(libs.bouncycastle.bcpkix)
 	implementation(libs.jakarta.mail)
 
-	implementation(libs.slf4j.simple)
-	//implementation(libs.logback.classic)
+	// Logback is the active SLF4J binding (replaces slf4j-simple) so logback.xml's
+	// appenders apply — including the in-memory RingBufferLogAppender for the admin log viewer.
+	implementation(libs.logback.classic)
 
 	implementation(project.dependencies.platform(libs.koin.bom))
 	implementation(libs.bundles.koin.server)

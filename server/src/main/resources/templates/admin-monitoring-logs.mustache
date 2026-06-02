@@ -1,0 +1,52 @@
+{{> header}}
+
+<link rel="stylesheet" href="/assets/css/monitoring.css">
+
+<main class="page">
+	<div class="admin-layout">
+		{{> partials/admin-nav}}
+
+		<div class="admin-content">
+			<div class="page-header">
+				<div class="page-header__content">
+					<h1 class="page-header__title">{{msg.admin_mon_logs_title}}</h1>
+					<p class="page-header__subtitle">{{msg.admin_mon_logs_subtitle}}</p>
+				</div>
+			</div>
+
+			{{> partials/monitoring-nav}}
+
+			<section class="paper-section">
+				<form class="mon-log-controls" id="logControls" onsubmit="return false">
+					<div class="form-field">
+						<label class="form-field__label form-field__label--small" for="logLevel">{{msg.admin_mon_logs_level}}</label>
+						<select id="logLevel" name="level" class="form-select">
+							<option value="">{{msg.admin_mon_logs_all}}</option>
+							<option value="INFO">INFO</option>
+							<option value="WARN">WARN</option>
+							<option value="ERROR">ERROR</option>
+						</select>
+					</div>
+					<div class="form-field mon-log-controls__search">
+						<label class="form-field__label form-field__label--small" for="logSearch">{{msg.admin_mon_logs_search}}</label>
+						<input id="logSearch" name="q" type="text" class="form-input" placeholder="{{msg.admin_mon_logs_search_placeholder}}"/>
+					</div>
+					<label class="mon-log-controls__auto">
+						<input type="checkbox" id="logAutoRefresh" checked/>
+						{{msg.admin_mon_logs_autorefresh}}
+					</label>
+				</form>
+
+				<div id="logTail"
+					 class="mon-log-tail"
+					 hx-get="/admin/monitoring/logs/tail"
+					 hx-trigger="load, every 3s [document.getElementById('logAutoRefresh').checked], submit from:#logControls, change from:#logControls"
+					 hx-include="#logControls"
+					 hx-swap="innerHTML">
+				</div>
+			</section>
+		</div>
+	</div>
+</main>
+
+{{> footer}}
