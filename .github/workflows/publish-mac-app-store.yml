@@ -56,6 +56,12 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"' | xargs)
 
+          # Both the Application (signs .app) and Installer (signs .pkg) identities
+          # must be present, each with its private key. The .pkg step fails late if
+          # the Installer cert is missing — surface it here instead.
+          echo "=== identities in signing keychain ==="
+          security find-identity -v "$KEYCHAIN_PATH" || true
+
       - name: Place provisioning profiles
         env:
           EMBEDDED_PROFILE_B64: ${{ secrets.MAC_EMBEDDED_PROVISIONING_PROFILE_BASE64 }}
