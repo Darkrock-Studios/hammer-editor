@@ -32,6 +32,22 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.1.1" date="2026-06-02">
+            <description>
+                <p>- EPUB export! Now with a Table of Contents and custom file naming</p>
+                <p>- Visualdiffs when comparing drafts and merging sync conflicts</p>
+                <p>- Distraction-free editing: phones hide everything but the editor while typing</p>
+                <p>- New desktop splash screen</p>
+                <p>- Timeline Z-A sort option</p>
+                <p>- More reliable sync error handling</p>
+                <p>- Faster Linux AppImage delta updates</p>
+                <p>- Fix: Spellcheck disabling</p>
+                <p>- Crash fixes</p>
+                <p>- Updated translations</p>
+                <p>- Server: Migrate DB to Postgres</p>
+                <p>- Server: Optional analytics</p>
+            </description>
+        </release>
         <release version="3.1.0" date="2026-06-01">
             <description>
                 <p>- EPUB export! Now with a Table of Contents and custom file naming</p>
