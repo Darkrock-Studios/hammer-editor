@@ -49,7 +49,7 @@ napier = "2.7.1"
 # See: https://github.com/skydoves/colorpicker-compose/issues/171
 # compose-texteditor must stay on a build that targets CMP 1.10.3 (2.0.7 downgraded back to it
 # after 2.0.5/2.0.6 briefly shipped against 1.11).
-jetbrains_compose = "1.10.3"
+jetbrains_compose = "1.11.1"
 compose_compiler_report_generator = "1.5.0"
 jetbrains_kover = "0.9.8"
 
