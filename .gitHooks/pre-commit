@@ -3,8 +3,9 @@
 # Change to the root directory of your project
 #cd /path/to/your/project/root
 
-# Run the Gradle test task
-./gradlew desktopTest server:test
+# Run fast test suites. `:server:test` is excluded because the embedded
+# PostgreSQL make it too slow for every commit.
+./gradlew desktopTest
 
 # Check the exit code of the test task
 if [ $? -ne 0 ]; then

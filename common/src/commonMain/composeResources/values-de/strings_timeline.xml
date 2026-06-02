@@ -35,7 +35,9 @@
 	<string name="timeline_view_toast_save_success">Erfolgreich gespeichert</string>
 	<string name="timeline_view_toast_save_failure">Konnte nicht gespeichert werden</string>
 	<string name="timeline_create_header">Create Event</string>
-	<string name="timeline_create_body_hint">New event:</string>
+	<string name="timeline_create_marker">III · NEW</string>
+	<string name="timeline_create_draft_label">DRAFT</string>
+	<string name="timeline_create_word_count">%1$d W · %2$d CH</string>
 	<string name="timeline_create_cancel_button">Cancel</string>
 	<string name="timeline_create_create_button">Create</string>
 	<string name="timeline_create_date_hint">optional</string>
@@ -59,7 +61,9 @@
 	<string name="timeline_sort_chronological">Chronological</string>
 	<string name="timeline_sort_reverse">Reverse</string>
 	<string name="timeline_sort_title_az">Title A–Z</string>
+	<string name="timeline_sort_title_za">Title Z–A</string>
 	<string name="timeline_sort_glyph_seq_asc">↑ SEQ</string>
 	<string name="timeline_sort_glyph_seq_desc">↓ SEQ</string>
 	<string name="timeline_sort_glyph_title_az">↓ A–Z</string>
+	<string name="timeline_sort_glyph_title_za">↑ Z–A</string>
 </resources>

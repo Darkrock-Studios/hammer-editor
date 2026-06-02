@@ -20,12 +20,9 @@ import coil3.compose.AsyncImage
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
-import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
-import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
-import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -76,11 +73,13 @@ internal fun CreateEntryUi(
 					shape = RectangleShape,
 				),
 		) {
-			HairlineModalHeader(
-				marker = Res.string.encyclopedia_create_entry_section_marker.get(),
-				title = Res.string.encyclopedia_create_entry_header.get(),
-				meta = Res.string.encyclopedia_create_entry_draft_marker.get(),
-			)
+			CollapseWhileTyping {
+				HairlineModalHeader(
+					marker = Res.string.encyclopedia_create_entry_section_marker.get(),
+					title = Res.string.encyclopedia_create_entry_header.get(),
+					meta = Res.string.encyclopedia_create_entry_draft_marker.get(),
+				)
+			}
 
 			Column(
 				modifier = Modifier
@@ -224,8 +223,9 @@ private fun HairlineModalHeader(
 		Row(
 			modifier = Modifier
 				.fillMaxWidth()
-				.padding(start = 28.dp, end = 28.dp, top = 18.dp, bottom = 14.dp),
-			verticalAlignment = Alignment.Bottom,
+				.height(Ui.TOP_BAR_HEIGHT)
+				.padding(horizontal = Ui.Padding.XL),
+			verticalAlignment = Alignment.CenterVertically,
 			horizontalArrangement = Arrangement.spacedBy(12.dp),
 		) {
 			HdMonoLabel(text = "§ $marker")

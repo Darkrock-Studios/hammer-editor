@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.projectstatistics.countWords
 import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
@@ -172,7 +173,9 @@ class SceneMetadataPanelComponent(
 	}
 
 	private suspend fun loadSceneData() {
-		val path = sceneEditor.getSceneFilePath(originalSceneItem.id)
+		// Scene may have been removed from the tree (sync, delete from another component)
+		// between subscribing to updates and this refresh; bail rather than crashing.
+		val path = sceneEditor.getSceneFilePathOrNull(originalSceneItem.id) ?: return
 		val filename = sceneEditor.getSceneFilename(path)
 		_state.getAndUpdate {
 			it.copy(
@@ -211,18 +214,10 @@ class SceneMetadataPanelComponent(
 		refreshReferences()
 	}
 
-	private val wordsRegex = "\\s+".toRegex()
 	private fun calculateWordCount(sceneBuffer: SceneBuffer): Int {
 		// TODO hopefully in the future we'll be able to access some raw text
 		// without having to convert to markdown
-		val text = sceneBuffer.content.coerceMarkdown()
-
-		return if (text.isEmpty()) {
-			0
-		} else {
-			val words = text.split(wordsRegex)
-			words.size
-		}
+		return countWords(sceneBuffer.content.coerceMarkdown())
 	}
 
 	override fun updateOutline(text: String) {

@@ -56,57 +56,41 @@ fun CreateNoteUi(
 	) {
 		Column(modifier = Modifier.fillMaxWidth()) {
 
-			// Masthead — § III · NEW marker, screen title, draft state.
-			Column(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(
-						start = Ui.Padding.XL,
-						end = Ui.Padding.XL,
-						top = Ui.Padding.XL,
-						bottom = Ui.Padding.L,
-					),
-				verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-			) {
-				HdSectionHeader(
-					marker = "III · NEW",
-					title = Res.string.notes_create_header.get(),
-					trailing = {
-						HdMonoLabel(text = "DRAFT")
-					},
-				)
-				HdMonoLabel(
-					text = Res.string.notes_create_body_hint.get(),
-					color = if (newNoteError) {
-						MaterialTheme.colorScheme.error
-					} else {
-						MaterialTheme.colorScheme.onSurfaceVariant
-					},
-				)
+			CollapseWhileTyping {
+				Column(modifier = Modifier.fillMaxWidth()) {
+					HdSectionHeader(
+						marker = Res.string.notes_create_marker.get(),
+						title = Res.string.notes_create_header.get(),
+						trailing = {
+							HdMonoLabel(text = Res.string.notes_create_draft_label.get())
+						},
+						modifier = Modifier
+							.fillMaxWidth()
+							.height(Ui.TOP_BAR_HEIGHT)
+							.padding(horizontal = Ui.Padding.XL),
+					)
+
+					HorizontalDivider(
+						thickness = Dp.Hairline,
+						color = MaterialTheme.colorScheme.outlineVariant,
+					)
+				}
 			}
 
-			HorizontalDivider(
-				thickness = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-			)
-
-			Column(
+			HdHairlineTagField(
+				label = Res.string.notes_create_tags_label.get(),
+				tags = tags,
+				onTagsChange = {
+					tags.clear()
+					tags.addAll(it)
+				},
+				hint = Res.string.notes_create_tags_hint.get(),
+				placeholder = Res.string.notes_create_tags_placeholder.get(),
+				suggestTags = component::suggestTags,
 				modifier = Modifier
 					.fillMaxWidth()
 					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-			) {
-				HdHairlineTagField(
-					label = Res.string.notes_create_tags_label.get(),
-					tags = tags,
-					onTagsChange = {
-						tags.clear()
-						tags.addAll(it)
-					},
-					hint = Res.string.notes_create_tags_hint.get(),
-					placeholder = Res.string.notes_create_tags_placeholder.get(),
-					suggestTags = component::suggestTags,
-				)
-			}
+			)
 
 			// Body editor framed in a hairline so it reads as its own block.
 			Box(

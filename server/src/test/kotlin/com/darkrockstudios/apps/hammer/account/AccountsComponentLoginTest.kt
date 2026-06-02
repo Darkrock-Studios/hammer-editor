@@ -17,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 class AccountsComponentLoginTest {
 
@@ -47,9 +48,9 @@ class AccountsComponentLoginTest {
 		email = validEmail,
 		password_hash = "asd123s",
 		cipher_secret = "abc",
-		created = "11 oclock",
+		created = Instant.parse("2024-01-01T11:00:00Z"),
 		is_admin = false,
-		last_sync = "12 oclock",
+		last_sync = Instant.parse("2024-01-01T12:00:00Z"),
 		pen_name = null,
 		bio = null,
 		email_verified = true,

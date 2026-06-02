@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.accoun
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.DesktopPlatformSettings
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.data.Msg
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.fluidsonic.locale.Locale
@@ -51,6 +52,7 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 			MutableValue(ChildSlot(child = null))
 
 		override fun setUiTheme(theme: UiTheme) {}
+		override fun setInitialProjectScreen(value: InitialProjectScreen) {}
 		override fun reinstallExampleProject(onComplete: (Boolean) -> Unit) {}
 		override fun beginSetupServer() {}
 		override fun cancelServerSetup() {}

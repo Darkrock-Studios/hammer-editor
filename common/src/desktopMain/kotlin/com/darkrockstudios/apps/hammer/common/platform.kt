@@ -10,6 +10,15 @@ import kotlin.coroutines.CoroutineContext
 
 var appDirs: AppDirs = AppDirsFactory.getInstance()
 
+/**
+ * True when the desktop build is the Mac App Store flavor. Set via
+ * `-Dhammer.app.store=true` JVM arg (wired through Gradle when
+ * `-PmacOsAppStoreRelease=true` is passed). Sandbox-only code paths
+ * (e.g. fixed projects directory) gate on this.
+ */
+val IS_APP_STORE: Boolean =
+	System.getProperty("hammer.app.store", "false").toBoolean()
+
 actual fun getPlatformName(): String {
 	return "Desktop"
 }
@@ -48,16 +57,11 @@ actual val platformMainDispatcher: CoroutineContext = Dispatchers.Main
 /**
  * Gets the user's Documents directory, respecting sandboxing on all platforms
  */
-private fun getDocumentsDirectory(): File {
-	return when (val os = System.getProperty("os.name").lowercase()) {
-		"linux", "freebsd", "openbsd", "netbsd" -> getLinuxDocuments()
-		else -> when {
-			os.startsWith("mac") || os.startsWith("darwin") -> getMacosDocuments()
-			os.startsWith("windows") -> getWindowsDocuments()
-			// Unknown OS: Safe fallback
-			else -> File(System.getProperty("user.home"), "Documents")
-		}
-	}
+private fun getDocumentsDirectory(): File = when (hostOs) {
+	HostOs.Linux -> getLinuxDocuments()
+	HostOs.MacOs -> getMacosDocuments()
+	HostOs.Windows -> getWindowsDocuments()
+	HostOs.Other -> File(System.getProperty("user.home"), "Documents")
 }
 
 private fun getMacosDocuments(): File {

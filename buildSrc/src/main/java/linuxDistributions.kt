@@ -138,19 +138,45 @@ fun Project.registerBuildDistAppImageTask() {
 				commandLine("ln", "-sf", "usr/bin/hammer", "AppRun")
 			}.result.get()
 
-			// Create the AppImage
+			// Create the AppImage; -u embeds update info and emits hammer.AppImage.zsync for delta updates
 			providers.exec {
 				workingDir = rootDir
 				environment("ARCH", "x86_64")
 				commandLine(
 					appimagetool.absolutePath,
 					"--appimage-extract-and-run",
+					"-u", "gh-releases-zsync|Wavesonics|hammer-editor|latest|hammer*.AppImage.zsync",
 					appDir.absolutePath,
 					outputDir.resolve("hammer.AppImage").absolutePath
 				)
 			}.result.get()
 
-			println("AppImage created: ${outputDir.resolve("hammer.AppImage")}")
+			val appImageFile = outputDir.resolve("hammer.AppImage")
+			println("AppImage created: $appImageFile")
+
+			// appimagetool picks zsyncmake off PATH, but --appimage-extract-and-run shadows
+			// the system one with its bundled copy, which is broken (succeeds without writing
+			// a file: AppImage/appimagetool#84). So generate the control file ourselves with
+			// the system zsyncmake. URL is the AppImage basename, resolved relative to the
+			// .zsync asset on the GitHub release.
+			val zsyncFile = outputDir.resolve("hammer.AppImage.zsync")
+			providers.exec {
+				workingDir = outputDir
+				commandLine(
+					"zsyncmake",
+					"-u", appImageFile.name,
+					"-o", zsyncFile.absolutePath,
+					appImageFile.absolutePath
+				)
+			}.result.get()
+
+			if (!zsyncFile.exists()) {
+				throw GradleException(
+					"AppImage zsync file was not generated at $zsyncFile. " +
+						"Ensure zsyncmake (the 'zsync' package) is installed and on PATH."
+				)
+			}
+			println("AppImage zsync created: $zsyncFile")
 
 			// Clean up AppDir
 			appDir.deleteRecursively()

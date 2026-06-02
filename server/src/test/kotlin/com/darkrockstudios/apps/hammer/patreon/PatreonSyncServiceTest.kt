@@ -22,6 +22,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 class PatreonSyncServiceTest : BaseTest() {
 
@@ -168,11 +169,11 @@ class PatreonSyncServiceTest : BaseTest() {
 			email = "lapsed@example.com",
 			password_hash = "hash",
 			cipher_secret = "secret",
-			created = "2024-01-01",
+			created = Instant.parse("2024-01-01T00:00:00Z"),
 			is_admin = false,
 			pen_name = null,
 			bio = null,
-			last_sync = "2024-01-01",
+			last_sync = Instant.parse("2024-01-01T00:00:00Z"),
 			email_verified = true,
 			community_member = false,
 		)
@@ -238,11 +239,11 @@ class PatreonSyncServiceTest : BaseTest() {
 			email = "user@example.com",
 			password_hash = "hash",
 			cipher_secret = "secret",
-			created = "2024-01-01",
+			created = Instant.parse("2024-01-01T00:00:00Z"),
 			is_admin = false,
 			pen_name = null,
 			bio = null,
-			last_sync = "2024-01-01",
+			last_sync = Instant.parse("2024-01-01T00:00:00Z"),
 			email_verified = true,
 			community_member = false,
 		)
@@ -325,16 +326,16 @@ class PatreonSyncServiceTest : BaseTest() {
 			password_hash = "hash",
 			cipher_secret = "secret",
 			is_admin = false,
-			created = "2024-01-01",
-			last_sync = "2024-01-01"
+			created = Instant.parse("2024-01-01T00:00:00Z"),
+			last_sync = Instant.parse("2024-01-01T00:00:00Z")
 		)
 		db.serverDatabase.accountQueries.testInsertAccount(
 			email = "patron3@example.com",
 			password_hash = "hash",
 			cipher_secret = "secret",
 			is_admin = false,
-			created = "2024-01-01",
-			last_sync = "2024-01-01"
+			created = Instant.parse("2024-01-01T00:00:00Z"),
+			last_sync = Instant.parse("2024-01-01T00:00:00Z")
 		)
 
 		val service = createSyncService()

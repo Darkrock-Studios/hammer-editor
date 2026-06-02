@@ -274,7 +274,7 @@ class ViewTimeLineEventComponent(
 				)
 			}
 		} else {
-			onCloseEvent()
+			closeEvent()
 		}
 	}
 
@@ -287,6 +287,7 @@ class ViewTimeLineEventComponent(
 	}
 
 	override fun closeEvent() {
+		if (state.value.isEditing) discardEdit()
 		onCloseEvent()
 	}
 

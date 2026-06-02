@@ -67,6 +67,9 @@ class SceneSynchronizerTest : BaseTest() {
 		// Default mocks for archived scenes - returns empty/null unless overridden
 		every { sceneEditorRepository.getArchivedScenes() } returns emptyList()
 		every { sceneEditorRepository.getArchivedSceneFromId(any()) } returns null
+
+		// Download path reads existing metadata for created/lastEdited fallback.
+		coEvery { sceneEditorRepository.loadSceneMetadata(any()) } returns SceneMetadata()
 	}
 
 	private fun defaultSceneSynchronizer() = ClientSceneSynchronizer(

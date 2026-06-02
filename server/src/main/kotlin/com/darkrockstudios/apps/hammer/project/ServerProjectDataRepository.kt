@@ -77,7 +77,7 @@ class ServerProjectDataRepository(
 			projectId = projectId,
 			content = content,
 			hash = newHash,
-			updatedAt = clock.now().toEpochMilliseconds(),
+			updatedAt = clock.now(),
 		)
 		return SResult.success(
 			ProjectDataSaveResult.Saved(ProjectDataDto(data = data, hash = newHash)),

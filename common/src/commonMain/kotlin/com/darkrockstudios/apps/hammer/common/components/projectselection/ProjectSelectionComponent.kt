@@ -15,8 +15,10 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.projec
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubReleaseInfo
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.ShouldNotifyOfUpdateUseCase
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
-import io.ktor.client.*
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
@@ -28,8 +30,9 @@ class ProjectSelectionComponent(
 
 	private val exampleProjectRepository: ExampleProjectRepository by inject()
 	private val urlLauncher: UrlLauncher by inject()
-	private val http: HttpClient by inject()
 	private val settingsRepository: GlobalSettingsRepository by inject()
+	private val versionCheckRepository: VersionCheckRepository by inject()
+	private val shouldNotifyOfUpdate: ShouldNotifyOfUpdateUseCase by inject()
 
 	private val navigation = StackNavigation<ProjectSelection.Config>()
 	override val stack = childStack(
@@ -45,6 +48,9 @@ class ProjectSelectionComponent(
 	)
 	override val navRailState: Value<ProjectSelection.NavRailState> = _navRailState
 
+	private val _updateNotification = MutableValue(ProjectSelection.UpdateNotificationState())
+	override val updateNotification: Value<ProjectSelection.UpdateNotificationState> = _updateNotification
+
 	init {
 		if (exampleProjectRepository.shouldInstallFirstTime()) {
 			exampleProjectRepository.install()
@@ -59,11 +65,65 @@ class ProjectSelectionComponent(
 				}
 			}
 		}
+
+		scope.launch {
+			val result = versionCheckRepository.checkForUpdate()
+			val dismissed = settingsRepository.globalSettings.lastDismissedUpdateVersion
+			if (shouldNotifyOfUpdate(result, dismissed)) {
+				val release = result.latestRelease ?: return@launch
+				withContext(dispatcherMain) {
+					_updateNotification.update {
+						release.toNotificationState(
+							isNewVersionAvailable = result.isNewVersionAvailable,
+							manuallyTriggered = false,
+						)
+					}
+				}
+			}
+		}
 	}
+
+	override fun showCurrentReleaseDetails() {
+		val result = versionCheckRepository.currentResult() ?: return
+		val release = result.latestRelease ?: return
+		val next = release.toNotificationState(
+			isNewVersionAvailable = result.isNewVersionAvailable,
+			manuallyTriggered = true,
+		)
+		if (next == _updateNotification.value) return
+		_updateNotification.update { next }
+	}
+
+	private fun GithubReleaseInfo.toNotificationState(
+		isNewVersionAvailable: Boolean,
+		manuallyTriggered: Boolean,
+	) = ProjectSelection.UpdateNotificationState(
+		visible = true,
+		latestVersionTag = bareVersion,
+		releaseName = name,
+		releaseBody = body,
+		releaseUrl = htmlUrl,
+		isNewVersionAvailable = isNewVersionAvailable,
+		manuallyTriggered = manuallyTriggered,
+	)
 
 	override fun toggleNavRailExpanded() {
 		scope.launch {
 			settingsRepository.updateSettings { it.copy(navRailExpanded = !it.navRailExpanded) }
+		}
+	}
+
+	override fun openReleaseUrl() {
+		_updateNotification.value.releaseUrl?.let { urlLauncher.openInBrowser(it) }
+	}
+
+	override fun dismissUpdateNotification(remember: Boolean) {
+		val tag = _updateNotification.value.latestVersionTag
+		_updateNotification.update { it.copy(visible = false) }
+		if (remember && tag != null) {
+			scope.launch {
+				settingsRepository.updateSettings { it.copy(lastDismissedUpdateVersion = tag) }
+			}
 		}
 	}
 
@@ -95,7 +155,8 @@ class ProjectSelectionComponent(
 						componentContext = componentContext,
 						urlLauncher = urlLauncher,
 						updateShouldClose = { navigation.pop() },
-						http = http
+						versionCheckRepository = versionCheckRepository,
+						onShowReleaseDetails = ::showCurrentReleaseDetails,
 					)
 				)
 			}

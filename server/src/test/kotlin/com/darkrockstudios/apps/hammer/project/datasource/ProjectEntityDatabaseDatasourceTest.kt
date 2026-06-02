@@ -29,6 +29,7 @@ import java.security.SecureRandom
 import kotlin.io.encoding.Base64
 import kotlin.test.*
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 
@@ -41,7 +42,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 	private lateinit var base64: Base64
 
 	private val userId = 1L
-	private val projectDef = ProjectDefinition("Test Project", ProjectId("Test UUID"))
+	private val projectDef = ProjectDefinition("Test Project", ProjectId("11111111-1111-1111-1111-111111111111"))
 
 	@BeforeEach
 	override fun setup() {
@@ -369,7 +370,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 			uuid = projectDef.uuid.id,
 			name = projectDef.name,
 			userId = 1,
-			lastSync = "2023-10-03 17:08:13",
+			lastSync = Instant.parse("2023-10-03T17:08:13Z"),
 			lastId = 20,
 		)
 

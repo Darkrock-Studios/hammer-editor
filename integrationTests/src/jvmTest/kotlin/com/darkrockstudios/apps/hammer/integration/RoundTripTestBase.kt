@@ -82,7 +82,9 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 
 		// Match the existing e2e tests' fixture: whitelist disabled, so any
 		// authenticated user can sync (instead of being rejected with 401).
-		database().execute("INSERT INTO server_config VALUES ('whitelist_enabled', 'false', 1704067200);")
+		database().execute(
+			"INSERT INTO server_config VALUES ('whitelist_enabled', 'false', to_timestamp(1704067200));"
+		)
 
 		doStartServer()
 

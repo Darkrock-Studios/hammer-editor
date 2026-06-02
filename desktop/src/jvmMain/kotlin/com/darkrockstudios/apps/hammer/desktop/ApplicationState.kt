@@ -4,18 +4,41 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.mutableStateOf
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.desktop.shortcuts.QuickShortcuts
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.koin.core.component.getScopeId
 import org.koin.java.KoinJavaComponent
 
-class ApplicationState {
+class ApplicationState(
+	private val appScope: CoroutineScope,
+	private val quickShortcuts: QuickShortcuts,
+	initialProject: ProjectDef? = null,
+	pendingDeepLink: ProjectDeepLink? = null,
+) {
 	private val _windows = mutableStateOf<WindowState>(WindowState.ProjectSectionWindow())
 	val windows: State<WindowState> = _windows
+
+	private var _pendingDeepLink: ProjectDeepLink? = pendingDeepLink
+
+	init {
+		if (initialProject != null) {
+			openProject(initialProject)
+		}
+	}
+
+	fun consumePendingDeepLink(): ProjectDeepLink? {
+		val link = _pendingDeepLink
+		_pendingDeepLink = null
+		return link
+	}
 
 	private val _menu = MutableValue<Set<MenuDescriptor>>(emptySet())
 	val menu: Value<Set<MenuDescriptor>> = _menu
@@ -40,6 +63,7 @@ class ApplicationState {
 		}
 
 		_windows.value = WindowState.ProjectWindow(projectDef)
+		appScope.launch { quickShortcuts.refresh(excludeCurrent = projectDef) }
 	}
 
 	fun closeProject() {

@@ -42,9 +42,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.toHdNavRailDestination
-import io.github.kdroidfilter.nucleus.window.DecoratedWindow
-import io.github.kdroidfilter.nucleus.window.TitleBar
-import io.github.kdroidfilter.nucleus.window.styling.LocalTitleBarStyle
+import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedWindow
+import io.github.kdroidfilter.nucleus.window.material.MaterialTitleBar
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -73,6 +72,7 @@ internal fun ApplicationScope.ProjectEditorWindow(
 			addMenu = { /* No-op: desktop now shows menu items in-UI like mobile */ },
 			removeMenu = { /* No-op: desktop now shows menu items in-UI like mobile */ },
 			onCloseProject = { app.showConfirmProjectClose(ApplicationState.CloseType.Project) },
+			initialDeepLink = app.consumePendingDeepLink(),
 		)
 	}
 
@@ -86,7 +86,7 @@ internal fun ApplicationScope.ProjectEditorWindow(
 	}
 
 	val windowTitle = Res.string.project_window_title.get(projectDef.name)
-	DecoratedWindow(
+	MaterialDecoratedWindow(
 		title = windowTitle,
 		state = windowState,
 		icon = painterResource("icon.png"),
@@ -110,10 +110,10 @@ internal fun ApplicationScope.ProjectEditorWindow(
 		val scope = rememberCoroutineScope()
 		val mainDispatcher = rememberMainDispatcher()
 
-		TitleBar {
+		MaterialTitleBar {
 			Text(
 				text = windowTitle,
-				color = LocalTitleBarStyle.current.colors.content,
+				color = MaterialTheme.colorScheme.onSurface,
 				modifier = Modifier.align(Alignment.CenterHorizontally),
 			)
 		}

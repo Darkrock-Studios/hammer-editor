@@ -170,26 +170,9 @@ The protocol for synchronizing data between client and server is outlined here:
 
 ## How to Release
 
-- Make sure your local repository is in a clean state, nothing outstanding
-- Change branch to `develop`
-- When `develop` is ready to release, run: `./gradlew prepareForRelease`
-	- This will prepare your repo by doing the following:
-		- Increment app version `app` in `libs.versions.toml`
-		- Add new changelog in `fastlane\metadata\android\en-US\changelogs` called `n.txt` where `n` is
-		  the android version code
-		- Merge `develop` into `release`
-		- Tag the latest commit to make the release from in the [semvar](https://semver.org) format
-		  of `v1.1.1`
-		- Push to origin
-- This will trigger the `release` action on GitHub which will create a new **Release**, and build
-  all the artifacts
-- Once the `release` action is complete open the new **Release** on GitHub
-- Click _Edit_
-- Uncheck "_Set as a pre-release_" and instead check "_Set as the latest release_"
-- Click the **Publish Release** button
-- This will trigger the `publish` action which will upload artifacts to stores, deploy
-  to [hammer.ink](https://hammer.ink), and notify the **Discord** channel of a new release
-- All done!
+When `develop` is ready to release, run: `./gradlew prepareForRelease`
+
+For full instructions check out the full doc [here](docs/HOW-TO-RELEASE.md).
 
 ## Re-generate open source library data
 
@@ -205,3 +188,13 @@ Auto-generated on every build by the `aboutlibraries.plugin.android` plugin into
 
 **iOS Target:**
 ???
+
+## Asset Generation
+
+All graphical assets (app icons, store-listing graphics, MSIX tiles, favicons,
+the Play Store feature graphic, the Snap featured banner, etc.) are generated
+from a single manifest at `scripts/assets.yaml`. Run `scripts/generate-assets.sh`
+to (re)build everything.
+
+See [ASSET-GENERATION.md](docs/ASSET-GENERATION.md) for the manifest schema,
+dependencies, asset types, and how to add or modify outputs.

@@ -53,6 +53,8 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	fun showFocusMode(sceneItem: SceneItem)
 	fun dismissFocusMode()
 
+	fun navigateToDeepLink(link: ProjectDeepLink)
+
 	sealed class Destination<T : Router> : Router {
 		abstract val component: T
 

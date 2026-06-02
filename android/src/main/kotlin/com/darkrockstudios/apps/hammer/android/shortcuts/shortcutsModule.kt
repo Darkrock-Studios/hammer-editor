@@ -10,7 +10,6 @@ val shortcutsModule: Module = module {
 		ProjectShortcutsManager(
 			context = get(),
 			projectsRepository = get(),
-			projectMetadataDatasource = get(),
 			ioDispatcher = get(named(DISPATCHER_IO)),
 		)
 	}

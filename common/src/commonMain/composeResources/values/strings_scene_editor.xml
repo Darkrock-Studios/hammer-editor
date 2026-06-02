@@ -52,6 +52,9 @@
 	<string name="scene_editor_metadata_entity_id">Entity ID:</string>
 	<string name="scene_editor_metadata_entity_filename">Filename:</string>
 	<string name="scene_editor_metadata_entity_path">Path:</string>
+	<string name="scene_editor_metadata_created_label">Created</string>
+	<string name="scene_editor_metadata_edited_label">Edited</string>
+	<string name="scene_editor_metadata_timestamp_unset">—</string>
 
 	<string name="scene_editor_metadata_outline_label">Outline</string>
 	<string name="scene_editor_metadata_outline_placeholder">A short description of what happens in the scene.</string>

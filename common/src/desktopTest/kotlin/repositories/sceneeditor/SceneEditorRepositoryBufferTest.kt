@@ -10,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
-import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
 import getProject1Def
@@ -26,6 +25,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.*
+import kotlin.time.Clock
 
 class SceneEditorRepositoryBufferTest : BaseTest() {
 
@@ -83,6 +83,8 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
+			clock = Clock.System,
+			strRes = mockk(relaxed = true),
 		)
 	}
 
@@ -400,47 +402,6 @@ class SceneEditorRepositoryBufferTest : BaseTest() {
 		assertEquals("1-Chapter ID 2-2", pathSegments[1])
 		assertEquals("scenes", pathSegments[2])
 	}
-
-	@Test
-	fun `Export Story`() = runTest(mainTestDispatcher) {
-		val projDef = getProject1Def()
-		createProject(ffs, PROJECT_1_NAME)
-
-		val repo = createRepository(projDef)
-		repo.initializeSceneEditor()
-
-		val exportPath = ffs.workingDirectory
-		val path = repo.exportStory(exportPath.toHPath(), ExportOptions())
-
-		ffs.read(path.toOkioPath()) {
-			val exported = readUtf8()
-			println("\"$exported\"")
-			assertEquals(exportedStory1.trim(), exported.trim())
-		}
-	}
-
-	private val exportedStory1 = """
-		# Test Project 1
-
-
-		## 1. Scene ID 1
-		
-		Content of scene id 1
-		
-		## 2. Chapter ID 2
-		
-		Content of scene id 3
-		Content of scene id 4
-		Content of scene id 5
-		
-		## 3. Scene ID 6
-		
-		Content of scene id 6
-		
-		## 4. Scene ID 7
-		
-		Content of scene id 7
-	""".trimIndent()
 
 	@Test
 	fun `Get all scenes`() = runTest(mainTestDispatcher) {

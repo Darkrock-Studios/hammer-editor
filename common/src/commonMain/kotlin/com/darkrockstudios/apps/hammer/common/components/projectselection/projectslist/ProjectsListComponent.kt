@@ -359,85 +359,113 @@ class ProjectsListComponent(
 		syncScope = newScope
 
 		syncProjectsJob = newScope.launch {
-			var projects = projectsRepository.getProjects()
-			syncNewProjectStatus(projects)
-
-			onSyncLog(syncAccLogI(strRes.get(Res.string.sync_log_begin_account)))
-
-			val success = projectsSynchronizer.syncProjects(
-				onLog = ::onSyncLog,
-				onUnauthorized = ::showReauth
-			)
-
-			yield()
-
-			var allSuccess = success
-			if (success) {
-				onSyncLog(syncAccLogI(strRes.get(Res.string.sync_log_begin_projects)))
-
-				projects = projectsRepository.getProjects()
+			try {
+				var projects = projectsRepository.getProjects()
 				syncNewProjectStatus(projects)
 
-				// Filter to only sync projects that have a serverProjectId assigned
-				val projectsToSync = projects.filter { projectDef ->
-					val metadata = projectMetadataDatasource.loadMetadata(projectDef)
-					val hasServerId = metadata.info.serverProjectId != null
-					if (!hasServerId) {
-						Napier.w { "Skipping project sync for '${projectDef.name}' - no server project ID yet" }
-						syncProgressStatus(projectDef.name, ProjectsList.Status.Pending)
-					}
-					hasServerId
-				}
+				onSyncLog(syncAccLogI(strRes.get(Res.string.sync_log_begin_account)))
 
-				projectsToSync.parallelMap { projectDef ->
-					newScope.launch {
-						try {
-							syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing)
+				val success = projectsSynchronizer.syncProjects(
+					onLog = ::onSyncLog,
+					onUnauthorized = ::showReauth
+				)
 
-							suspend fun onProgress(progress: Float, message: SyncLogMessage?) {
-								syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing, progress)
-								if (message != null) onSyncLog(message)
-							}
+				yield()
 
-							val projectSuccess = syncProject(projectDef, ::onSyncLog, ::onProgress)
-							allSuccess = allSuccess && projectSuccess
+				var allSuccess = success
+				if (success) {
+					onSyncLog(syncAccLogI(strRes.get(Res.string.sync_log_begin_projects)))
 
-							val newStatus =
-								if (projectSuccess) ProjectsList.Status.Complete else ProjectsList.Status.Failed
-							syncProgressStatus(projectDef.name, newStatus)
-						} catch (e: CancellationException) {
-							throw e
-						} catch (e: Exception) {
-							Napier.e("Project sync failed for ${projectDef.name}", e)
-							onSyncLog(syncLogE("Sync failed: ${e.message ?: "Unknown error"}", projectDef))
-							allSuccess = false
-							syncProgressStatus(projectDef.name, ProjectsList.Status.Failed)
+					projects = projectsRepository.getProjects()
+					syncNewProjectStatus(projects)
+
+					// Filter to only sync projects that have a serverProjectId assigned
+					val projectsToSync = projects.filter { projectDef ->
+						val metadata = projectMetadataDatasource.loadMetadata(projectDef)
+						val hasServerId = metadata.info.serverProjectId != null
+						if (!hasServerId) {
+							Napier.w { "Skipping project sync for '${projectDef.name}' - no server project ID yet" }
+							syncProgressStatus(projectDef.name, ProjectsList.Status.Pending)
 						}
+						hasServerId
 					}
-				}.joinAll()
-			} else {
-				projects.forEach { projectDef ->
-					syncProgressStatus(projectDef.name, ProjectsList.Status.Failed)
+
+					projectsToSync.parallelMap { projectDef ->
+						newScope.launch {
+							try {
+								syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing)
+
+								suspend fun onProgress(progress: Float, message: SyncLogMessage?) {
+									syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing, progress)
+									if (message != null) onSyncLog(message)
+								}
+
+								val projectSuccess = syncProject(projectDef, ::onSyncLog, ::onProgress)
+								allSuccess = allSuccess && projectSuccess
+
+								val newStatus =
+									if (projectSuccess) ProjectsList.Status.Complete else ProjectsList.Status.Failed
+								syncProgressStatus(projectDef.name, newStatus)
+							} catch (e: CancellationException) {
+								throw e
+							} catch (e: Exception) {
+								Napier.e("Project sync failed for ${projectDef.name}", e)
+								onSyncLog(syncLogE("Sync failed: ${e.message ?: "Unknown error"}", projectDef))
+								allSuccess = false
+								syncProgressStatus(projectDef.name, ProjectsList.Status.Failed)
+							}
+						}
+					}.joinAll()
+				} else {
+					projects.forEach { projectDef ->
+						syncProgressStatus(projectDef.name, ProjectsList.Status.Failed)
+					}
 				}
-			}
 
-			callback(allSuccess)
+				callback(allSuccess)
 
-			onSyncLog(syncAccLogI(strRes.get(Res.string.sync_log_end_projects)))
+				onSyncLog(syncAccLogI(strRes.get(Res.string.sync_log_end_projects)))
 
-			withContext(mainDispatcher) {
-				_state.getAndUpdate {
-					it.copy(
-						syncState = it.syncState.copy(
-							syncComplete = true
+				withContext(mainDispatcher) {
+					_state.getAndUpdate {
+						it.copy(
+							syncState = it.syncState.copy(
+								syncComplete = true
+							)
 						)
-					)
+					}
+
+					loadProjectList()
+
+					if (allSuccess && globalSettingsRepository.globalSettings.autoCloseSyncDialog) {
+						hideProjectsSync()
+					}
 				}
+			} catch (e: CancellationException) {
+				throw e
+			} catch (e: Exception) {
+				Napier.e("Projects sync failed", e)
+				onSyncLog(syncAccLogE("Sync failed: ${e.message ?: "Unknown error"}"))
+				callback(false)
 
-				loadProjectList()
+				withContext(NonCancellable + mainDispatcher) {
+					_state.getAndUpdate {
+						val statuses = it.syncState.projectsStatus.toMutableMap()
+						it.syncState.projectsStatus.values.forEach { status ->
+							if (status.status == ProjectsList.Status.Pending || status.status == ProjectsList.Status.Syncing) {
+								statuses[status.projectName] = status.copy(status = ProjectsList.Status.Failed)
+							}
+						}
 
-				if (allSuccess && globalSettingsRepository.globalSettings.autoCloseSyncDialog) {
-					hideProjectsSync()
+						it.copy(
+							syncState = it.syncState.copy(
+								syncComplete = true,
+								projectsStatus = statuses,
+							),
+						)
+					}
+
+					loadProjectList()
 				}
 			}
 		}

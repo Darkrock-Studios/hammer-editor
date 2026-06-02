@@ -27,4 +27,5 @@ private val previewComponent = object : AboutApp {
 	override fun openDiscord() {}
 	override fun openReddit() {}
 	override fun openGithub() {}
+	override fun viewReleaseDetails() {}
 }

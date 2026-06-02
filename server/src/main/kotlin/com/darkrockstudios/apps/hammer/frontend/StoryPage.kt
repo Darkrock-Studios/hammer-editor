@@ -360,14 +360,16 @@ fun Route.storyPage(
 				val projectId = ProjectId(project.uuid)
 				val projectNameForUrl = ProjectName.formatForUrl(project.name)
 
-				// Convert date to SQLite datetime format (YYYY-MM-DD HH:MM:SS)
-				val expiresAtSqlite = expiresAt?.let { "$it 23:59:59" }
+				// Form expiresAt is a date (YYYY-MM-DD); treat the boundary as end-of-day UTC.
+				val expiresAtInstant = expiresAt?.let {
+					kotlin.time.Instant.parse("${it}T23:59:59Z")
+				}
 
 				projectAccessRepository.createPrivateAccess(
 					userId = session.userId,
 					projectUuid = projectId,
 					password = password,
-					expiresAt = expiresAtSqlite
+					expiresAt = expiresAtInstant
 				)
 
 				// Return updated publish section

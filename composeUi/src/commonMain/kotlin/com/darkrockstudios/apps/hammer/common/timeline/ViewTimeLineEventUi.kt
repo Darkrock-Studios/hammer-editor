@@ -8,8 +8,7 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -31,6 +30,7 @@ import kotlinx.coroutines.launch
 
 private val ModalMaxWidth = TextEditorDefaults.MAX_WIDTH * 1.25f
 private val ModalMaxHeight = 760.dp
+private val StampRowCompactThreshold = 420.dp
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
@@ -97,15 +97,19 @@ fun ViewTimeLineEventUi(
 						animatedVisibilityScope = animatedVisibilityScope,
 					),
 			) {
-				CrumbRow(
-					onClose = { component.confirmClose() },
-					menuSlot = { DetailViewDropdownMenu(menuItems = state.menuItems) },
-				)
+				CollapseWhileTyping(enabled = isEditing) {
+					Column {
+						CrumbRow(
+							onClose = { component.confirmClose() },
+							menuSlot = { DetailViewDropdownMenu(menuItems = state.menuItems) },
+						)
 
-				HorizontalDivider(
-					thickness = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outlineVariant,
-				)
+						HorizontalDivider(
+							thickness = Dp.Hairline,
+							color = MaterialTheme.colorScheme.outlineVariant,
+						)
+					}
+				}
 
 				StampRow(
 					isEditing = isEditing,
@@ -227,63 +231,69 @@ private fun StampRow(
 		Res.string.timeline_view_header.get()
 	}
 
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HdMonoLabel(
-			text = "§ III · $sectionTitle",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
+	BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+		val isCompact = maxWidth < StampRowCompactThreshold
 
-		if (isEditing) {
-			PulsingDot()
-		}
-
-		Box(
+		Row(
 			modifier = Modifier
-				.height(14.dp)
-				.width(Dp.Hairline)
-				.background(MaterialTheme.colorScheme.outlineVariant),
-		)
-
-		val metaText = if (isEditing) {
-			Res.string.timeline_view_status_unsaved.get()
-		} else {
-			savedDate?.takeIf { it.isNotBlank() } ?: Res.string.timeline_view_undated.get()
-		}
-		with(sharedTransitionScope) {
+				.fillMaxWidth()
+				.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+		) {
 			HdMonoLabel(
-				text = metaText,
-				modifier = Modifier.sharedElement(
-					sharedContentState = rememberSharedContentState(
-						key = "timeline-date-${event?.id}",
-					),
-					animatedVisibilityScope = animatedVisibilityScope,
-				),
+				text = "§ III · $sectionTitle",
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
-		}
 
-		Spacer(modifier = Modifier.weight(1f))
+			if (isEditing) {
+				PulsingDot()
+			}
 
-		if (isEditing) {
-			HdHairlineButton(
-				label = Res.string.timeline_view_save_button.get(),
-				onClick = onSave,
-				emphasised = true,
-			)
-			HdHairlineButton(
-				label = Res.string.timeline_view_cancel_button.get(),
-				onClick = onCancel,
-			)
-		} else {
-			HdHairlineButton(
-				label = Res.string.timeline_view_edit_button.get(),
-				onClick = onEdit,
-			)
+			if (!isCompact) {
+				Box(
+					modifier = Modifier
+						.height(14.dp)
+						.width(Dp.Hairline)
+						.background(MaterialTheme.colorScheme.outlineVariant),
+				)
+
+				val metaText = if (isEditing) {
+					Res.string.timeline_view_status_unsaved.get()
+				} else {
+					savedDate?.takeIf { it.isNotBlank() } ?: Res.string.timeline_view_undated.get()
+				}
+				with(sharedTransitionScope) {
+					HdMonoLabel(
+						text = metaText,
+						modifier = Modifier.sharedElement(
+							sharedContentState = rememberSharedContentState(
+								key = "timeline-date-${event?.id}",
+							),
+							animatedVisibilityScope = animatedVisibilityScope,
+						),
+					)
+				}
+			}
+
+			Spacer(modifier = Modifier.weight(1f))
+
+			if (isEditing) {
+				HdHairlineButton(
+					label = Res.string.timeline_view_save_button.get(),
+					onClick = onSave,
+					emphasised = true,
+				)
+				HdHairlineButton(
+					label = Res.string.timeline_view_cancel_button.get(),
+					onClick = onCancel,
+				)
+			} else {
+				HdHairlineButton(
+					label = Res.string.timeline_view_edit_button.get(),
+					onClick = onEdit,
+				)
+			}
 		}
 	}
 }
@@ -381,18 +391,25 @@ private fun EditBody(
 	suggestTags: (prefix: String) -> List<String>,
 	modifier: Modifier = Modifier,
 ) {
+	// Date hides while the body editor has focus, like the tags; kept visible while it holds focus
+	// itself so it stays reachable. CollapseWhileTyping centralizes the IME + debounce rules.
+	var dateFocused by remember { mutableStateOf(false) }
+
 	Column(modifier = modifier.fillMaxWidth()) {
-		HdHairlineField(
-			label = Res.string.timeline_view_date_label.get(),
-			value = dateText,
-			onValueChange = onDateChanged,
-			hint = Res.string.timeline_view_date_hint.get(),
-			placeholder = Res.string.timeline_view_date_placeholder.get(),
-			modifier = Modifier.padding(
-				horizontal = Ui.Padding.XL,
-				vertical = Ui.Padding.L,
-			),
-		)
+		CollapseWhileTyping(keepVisible = dateFocused) {
+			HdHairlineField(
+				label = Res.string.timeline_view_date_label.get(),
+				value = dateText,
+				onValueChange = onDateChanged,
+				hint = Res.string.timeline_view_date_hint.get(),
+				placeholder = Res.string.timeline_view_date_placeholder.get(),
+				onFocusChanged = { dateFocused = it },
+				modifier = Modifier.padding(
+					horizontal = Ui.Padding.XL,
+					vertical = Ui.Padding.L,
+				),
+			)
+		}
 
 		HdHairlineTagField(
 			label = Res.string.timeline_create_tags_label.get(),
@@ -407,10 +424,12 @@ private fun EditBody(
 			),
 		)
 
-		HorizontalDivider(
-			thickness = 2.dp,
-			color = MaterialTheme.colorScheme.outline,
-		)
+		CollapseWhileTyping {
+			HorizontalDivider(
+				thickness = 2.dp,
+				color = MaterialTheme.colorScheme.outline,
+			)
+		}
 
 		MarkdownEditField(
 			initialMarkdown = eventText,

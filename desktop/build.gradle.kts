@@ -1,5 +1,6 @@
 import com.darkrockstudios.build.registerLinuxDistributionTasks
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
+import java.util.zip.ZipFile
 
 val data_version: String by extra
 
@@ -10,12 +11,24 @@ plugins {
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.jetbrains.kover)
 	alias(libs.plugins.aboutlibraries.plugin)
-	alias(libs.plugins.flatpak.gradle.generator)
 }
 
 group = "com.darkrockstudios.apps.hammer.desktop"
 version = libs.versions.app.get()
 
+// -PmacOsAppStoreRelease=true -PbuildNumber=N enables App Store packaging.
+val isAppStoreRelease: Boolean =
+	(project.findProperty("macOsAppStoreRelease") as String?)?.toBoolean() ?: false
+val macBuildNumber: String =
+	(project.findProperty("buildNumber") as String?) ?: "1"
+
+// Keep JNA classes and the pre-bundled libjnidispatch.jnilib at one version.
+configurations.all {
+	resolutionStrategy {
+		force("net.java.dev.jna:jna:5.18.1")
+		force("net.java.dev.jna:jna-platform:5.18.1")
+	}
+}
 
 kotlin {
 	jvmToolchain {
@@ -43,11 +56,16 @@ kotlin {
 				implementation(project(":base"))
 				implementation(project(":common"))
 				implementation(project(":composeUi"))
-				implementation(compose.components.uiToolingPreview)
+				implementation(libs.jetbrains.compose.components.ui.tooling.preview)
 				implementation(compose.desktop.currentOs)
 				implementation(libs.kotlinx.cli)
 				implementation(libs.nucleus.darkmode.detector)
 				implementation(libs.nucleus.decorated.window.jbr)
+				implementation(libs.nucleus.decorated.window.material3)
+				implementation(libs.nucleus.launcher.windows)
+				implementation(libs.nucleus.launcher.linux)
+				implementation(libs.nucleus.launcher.macos)
+				implementation(libs.splashify)
 			}
 		}
 		val jvmTest by getting {
@@ -73,7 +91,6 @@ compose.desktop {
 			targetFormats(
 				TargetFormat.Dmg,
 				TargetFormat.Pkg,
-				TargetFormat.AppImage,
 				TargetFormat.Msi,
 				TargetFormat.Exe,
 				TargetFormat.Deb,
@@ -87,6 +104,8 @@ compose.desktop {
 			copyright = "© 2025 Adam W. Brown, All rights reserved."
 			licenseFile.set(project.file("../LICENSE"))
 			outputBaseDir.set(project.layout.buildDirectory.dir("installers"))
+
+			appResourcesRootDir.set(project.layout.buildDirectory.dir("macos-native-libs"))
 
 			windows {
 				menuGroup = "Hammer"
@@ -104,13 +123,44 @@ compose.desktop {
 			}
 
 			macOS {
+				bundleID = "com.darkrockstudios.apps.hammer"
 				dockName = "Hammer"
-				appStore = false
+				appCategory = "public.app-category.productivity"
+				minimumSystemVersion = "12.0"
+				appStore = isAppStoreRelease
 
 				iconFile.set(project.file("icons/macos.icns"))
+
+				infoPlist {
+					packageBuildVersion = macBuildNumber
+					extraKeysRawXml = """
+						<key>ITSAppUsesNonExemptEncryption</key>
+						<false/>
+					""".trimIndent()
+				}
+
+				if (isAppStoreRelease) {
+					signing {
+						sign.set(true)
+						// Team Name from `security find-identity -v -p codesigning`.
+						identity.set("Adam Brown")
+					}
+					provisioningProfile.set(project.file("embedded.provisionprofile"))
+					runtimeProvisioningProfile.set(project.file("runtime.provisionprofile"))
+					entitlementsFile.set(project.file("entitlements.plist"))
+					runtimeEntitlementsFile.set(project.file("runtime-entitlements.plist"))
+				}
 			}
 		}
 		jvmArgs("-Dcompose.application.configure.swing.globals=false")
+		if (isAppStoreRelease) {
+			jvmArgs("-Dhammer.app.store=true")
+			// Load libjnidispatch.jnilib from Contents/app/resources/, never extract.
+			jvmArgs("-Djna.nounpack=true", "-Djna.nosys=true")
+			// Lets Nucleus' System.loadLibrary find our pre-bundled signed dylibs
+			// instead of falling back to extraction (Gatekeeper blocks that).
+			jvmArgs("-Djava.library.path=\$APPDIR/resources")
+		}
 
 		buildTypes.release.proguard {
 			version.set("7.6.0")
@@ -131,6 +181,121 @@ aboutLibraries {
 }
 
 registerLinuxDistributionTasks(libs.versions.app.get())
+
+// Pulled from the resolved jars so versions stay in sync with the deps.
+val extractMacosNativeLibs = tasks.register("extractMacosNativeLibs") {
+	group = "macOS"
+	description = "Extract macOS arm64 native libs from JNA + Nucleus jars into resources/macos/"
+	onlyIf { org.gradle.internal.os.OperatingSystem.current().isMacOsX }
+
+	val outDir = layout.buildDirectory.dir("macos-native-libs/macos").get().asFile
+	outputs.dir(outDir)
+
+	val nativeLibs = listOf(
+		Triple("net.java.dev.jna", "jna", "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib"),
+		Triple("io.github.kdroidfilter", "nucleus.launcher-macos", "nucleus/native/darwin-aarch64/libnucleus_launcher_macos.dylib"),
+		Triple("io.github.kdroidfilter", "nucleus.darkmode-detector", "nucleus/native/darwin-aarch64/libnucleus_darkmode.dylib"),
+		Triple("io.github.kdroidfilter", "nucleus.decorated-window-core", "nucleus/native/darwin-aarch64/libnucleus_layout_direction.dylib"),
+		Triple("io.github.kdroidfilter", "nucleus.decorated-window-jbr", "nucleus/native/darwin-aarch64/libnucleus_macos.dylib"),
+	)
+
+	val runtime = configurations.named("jvmRuntimeClasspath")
+	inputs.files(runtime).withPropertyName("jvmRuntimeClasspath")
+		.withPathSensitivity(PathSensitivity.RELATIVE)
+
+	doLast {
+		outDir.mkdirs()
+		val artifacts = runtime.get().resolvedConfiguration.resolvedArtifacts
+		nativeLibs.forEach { (group, artifact, entry) ->
+			val jar = artifacts.firstOrNull {
+				it.moduleVersion.id.group == group && it.moduleVersion.id.name == artifact
+			}?.file ?: error("$group:$artifact not found on jvmRuntimeClasspath")
+			val outFile = outDir.resolve(entry.substringAfterLast('/'))
+			ZipFile(jar).use { zip ->
+				val ze = zip.getEntry(entry) ?: error("$entry not found in ${jar.name}")
+				outFile.outputStream().use { out -> zip.getInputStream(ze).copyTo(out) }
+			}
+			logger.lifecycle("Extracted ${outFile.name} from ${jar.name}")
+		}
+	}
+}
+tasks.matching { it.name == "prepareAppResources" }.configureEach {
+	dependsOn(extractMacosNativeLibs)
+}
+
+// Any quarantine xattr on bundled files trips App Store validation.
+val unquarantineMacApp = tasks.register("unquarantineMacApp") {
+	group = "macOS"
+	description = "Remove com.apple.quarantine xattr from the built .app before signing"
+	onlyIf { org.gradle.internal.os.OperatingSystem.current().isMacOsX }
+	dependsOn("createReleaseDistributable")
+	val appDir = layout.buildDirectory.dir("installers/main-release/app")
+	val execOps = project.providers
+	doLast {
+		val dir = appDir.get().asFile
+		val app = dir.listFiles { f -> f.isDirectory && f.name.endsWith(".app") }?.firstOrNull()
+			?: error("No .app bundle found in $dir after createReleaseDistributable")
+		execOps.exec {
+			executable = "xattr"
+			args("-dr", "com.apple.quarantine", app.absolutePath)
+		}.result.get()
+	}
+}
+// Compose Desktop doesn't sign files under Contents/app/resources/ — they
+// end up adhoc-signed and fail App Store validation (ITMS-90238).
+val signMacAppResources = tasks.register("signMacAppResources") {
+	group = "macOS"
+	description = "Re-sign Mach-O files under Contents/app/resources/ and re-seal the bundle"
+	onlyIf { isAppStoreRelease && org.gradle.internal.os.OperatingSystem.current().isMacOsX }
+	dependsOn(unquarantineMacApp)
+	val appDir = layout.buildDirectory.dir("installers/main-release/app")
+	val appEntitlements = project.file("entitlements.plist")
+	val runtimeEntitlements = project.file("runtime-entitlements.plist")
+	val signingIdentity = "3rd Party Mac Developer Application: Adam Brown (8P3G3HT4J5)"
+	val execOps = project.providers
+	doLast {
+		val dir = appDir.get().asFile
+		val app = dir.listFiles { f -> f.isDirectory && f.name.endsWith(".app") }?.firstOrNull()
+			?: error("No .app bundle found in $dir")
+		val resourcesDir = app.resolve("Contents/app/resources")
+		if (resourcesDir.isDirectory) {
+			resourcesDir.walkTopDown().filter {
+				it.isFile && (it.name.endsWith(".dylib") ||
+					it.name.endsWith(".jnilib") ||
+					it.name.endsWith(".so"))
+			}.forEach { f ->
+				logger.lifecycle("Re-signing ${f.relativeTo(app)}")
+				execOps.exec {
+					executable = "codesign"
+					args(
+						"--force",
+						"--options", "runtime",
+						"--timestamp",
+						"--entitlements", runtimeEntitlements.absolutePath,
+						"--sign", signingIdentity,
+						f.absolutePath
+					)
+				}.result.get()
+			}
+		}
+		// Re-seal the outermost bundle (no --deep) to pick up the new hashes.
+		logger.lifecycle("Re-sealing ${app.name}")
+		execOps.exec {
+			executable = "codesign"
+			args(
+				"--force",
+				"--options", "runtime",
+				"--timestamp",
+				"--entitlements", appEntitlements.absolutePath,
+				"--sign", signingIdentity,
+				app.absolutePath
+			)
+		}.result.get()
+	}
+}
+tasks.matching { it.name == "packageReleasePkg" }.configureEach {
+	dependsOn(signMacAppResources)
+}
 
 // MSIX packaging task for Windows Store
 tasks.register("packageMsix") {
@@ -238,17 +403,3 @@ fun findMakeAppx(): String? {
 		?.absolutePath
 }
 
-tasks.named("flatpakGradleGenerator") {
-	setProperty("outputFile", rootProject.file("flatpak/flatpak-sources.json"))
-
-	// Exclude test configurations to reduce the dependency list
-	setProperty("excludeConfigurations", listOf(
-		"testCompileClasspath",
-		"testRuntimeClasspath",
-		"jvmTestCompileClasspath",
-		"jvmTestRuntimeClasspath"
-	))
-
-	// Set architecture (x86_64 is the default, but can specify for clarity)
-	// setProperty("onlyArches", "x86_64")
-}

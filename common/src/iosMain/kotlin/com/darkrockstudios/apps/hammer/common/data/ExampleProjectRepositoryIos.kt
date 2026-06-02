@@ -1,16 +1,21 @@
 package com.darkrockstudios.apps.hammer.common.data
 
-import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.util.zip.unzipBytesToDirectory
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.runBlocking
+import kotlinx.cinterop.ExperimentalForeignApi
+import kotlinx.cinterop.addressOf
+import kotlinx.cinterop.convert
+import kotlinx.cinterop.usePinned
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
-import org.jetbrains.compose.resources.ExperimentalResourceApi
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import platform.Foundation.NSBundle
+import platform.Foundation.NSData
+import platform.Foundation.dataWithContentsOfFile
+import platform.posix.memcpy
 import kotlin.time.Clock
 
 actual val exampleProjectModule = module {
@@ -29,22 +34,38 @@ private class ExampleProjectRepositoryiOs(
 		fileSystem.deleteRecursively(projectPath)
 	}
 
-	@OptIn(ExperimentalResourceApi::class)
 	override fun platformInstall() {
 		val projectPath = projectsDir() / PROJECT_NAME
 		if (!fileSystem.exists(projectPath)) {
 			Napier.i("Creating example project")
 
-			runBlocking {
-				val zipBytes = Res.readBytes("raw/$EXAMPLE_PROJECT_FILE_NAME")
-				unzipBytesToDirectory(
-					fileSystem = fileSystem,
-					zipBytes = zipBytes,
-					destinationDirectory = projectsDir()
-				)
-			}
+			val zipBytes = loadExampleProjectZip()
+			unzipBytesToDirectory(
+				fileSystem = fileSystem,
+				zipBytes = zipBytes,
+				destinationDirectory = projectsDir()
+			)
 		} else {
 			Napier.i("Skipping example project creation")
 		}
 	}
+
+	private fun loadExampleProjectZip(): ByteArray {
+		val path = NSBundle.mainBundle.pathForResource(EXAMPLE_PROJECT_FILE_NAME, null)
+			?: error("Failed to locate $EXAMPLE_PROJECT_FILE_NAME in main bundle")
+		val data = NSData.dataWithContentsOfFile(path)
+			?: error("Failed to read $EXAMPLE_PROJECT_FILE_NAME at $path")
+		return data.toByteArray()
+	}
+}
+
+@OptIn(ExperimentalForeignApi::class)
+private fun NSData.toByteArray(): ByteArray {
+	val size = length.toInt()
+	val out = ByteArray(size)
+	if (size == 0) return out
+	out.usePinned { pinned ->
+		memcpy(pinned.addressOf(0), bytes, length.convert())
+	}
+	return out
 }

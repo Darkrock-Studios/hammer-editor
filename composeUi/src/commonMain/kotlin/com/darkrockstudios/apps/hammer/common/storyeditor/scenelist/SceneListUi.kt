@@ -1,10 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.*
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.ExperimentalMaterialApi
@@ -111,7 +107,8 @@ fun SceneListUi(
 			Row(
 				modifier = Modifier
 					.fillMaxWidth()
-					.padding(start = Ui.Padding.XL, end = Ui.Padding.M, top = Ui.Padding.L, bottom = Ui.Padding.L),
+					.height(Ui.TOP_BAR_HEIGHT)
+					.padding(horizontal = Ui.Padding.XL),
 				horizontalArrangement = Arrangement.SpaceBetween,
 				verticalAlignment = Alignment.CenterVertically,
 			) {

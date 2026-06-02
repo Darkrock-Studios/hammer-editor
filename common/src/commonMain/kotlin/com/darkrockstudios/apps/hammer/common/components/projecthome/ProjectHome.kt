@@ -6,6 +6,7 @@ import com.arkivanov.essenty.backhandler.BackHandlerOwner
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
+import com.darkrockstudios.apps.hammer.common.data.ExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -25,6 +26,7 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 	val contentRouterState: Value<ChildStack<ProjectHomeContentRouter.Config, ContentDestination>>
 
 	suspend fun exportProject(path: String, options: ExportOptions): HPath
+	suspend fun exportProjectToFile(filePath: String, options: ExportOptions): HPath
 	fun beginProjectExport()
 	fun cancelExportDialog()
 	fun confirmExportDialog(options: ExportOptions)
@@ -41,10 +43,11 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 	fun showGlobalSearch()
 	fun showGlobalSearchForTag(tag: String)
 	fun showLongestScene()
+	fun showLastEditedScene()
 	fun showEntry(entry: EntryAppearance)
 	fun supportsBackup(): Boolean
 	fun createBackup(callback: (ProjectBackupDef?) -> Unit)
-	fun getExportStoryFileName(): String
+	fun getExportStoryFileName(format: ExportFormat): String
 	fun refreshStatistics()
 
 	fun showProjectStats()
@@ -60,11 +63,13 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val created: String,
 		val numberOfScenes: Int = 0,
 		val totalWords: Int = 0,
-		val wordsByChapter: Map<String, Int> = emptyMap(),
+		val wordsByChapter: Map<Int, Int> = emptyMap(),
 		val encyclopediaEntriesByType: Map<EntryType, Int> = emptyMap(),
 		val longestSceneId: Int? = null,
 		val longestSceneName: String? = null,
 		val longestSceneWords: Int = 0,
+		val lastEditedSceneId: Int? = null,
+		val lastEditedSceneName: String? = null,
 		val shortestSceneWords: Int = 0,
 		val medianSceneWords: Int = 0,
 		val sceneWordsStdDev: Int = 0,

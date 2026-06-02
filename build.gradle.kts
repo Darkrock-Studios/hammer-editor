@@ -1,10 +1,4 @@
-import com.darkrockstudios.build.configureRelease
-import com.darkrockstudios.build.registerLinuxDistributionTasks
-import com.darkrockstudios.build.registerPublishTasks
-import com.darkrockstudios.build.updateFlatpakFiles
-import com.darkrockstudios.build.updateSnapcraftYaml
-import com.darkrockstudios.build.writeChangelogMarkdown
-import com.darkrockstudios.build.writeSemvar
+import com.darkrockstudios.build.*
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 group = "com.darkrockstudios.apps.hammer"
@@ -30,8 +24,6 @@ allprojects {
 		google()
 		mavenCentral()
 		maven("https://jitpack.io")
-		// Jewel artifacts (transitive via nucleus.decorated-window-jewel) — IDEA-aligned snapshot versions
-		maven("https://www.jetbrains.com/intellij-repository/snapshots")
 	}
 
 	tasks.withType<Test> {
@@ -77,7 +69,6 @@ plugins {
 	alias(libs.plugins.aboutlibraries.plugin.android) apply false
 	alias(libs.plugins.jetbrains.kover)
 	alias(libs.plugins.kotlinx.atomicfu)
-	alias(libs.plugins.flatpak.gradle.generator) apply false
 }
 
 dependencies {
@@ -129,15 +120,8 @@ val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 	}
 }
 
-// Ensure flatpak generator runs after pre-flight checks
-findProject(":desktop")?.tasks?.configureEach {
-	if (name == "flatpakGradleGenerator") {
-		mustRunAfter(releasePreFlightChecks)
-	}
-}
-
 tasks.register("prepareForRelease") {
-	dependsOn(releasePreFlightChecks, ":desktop:flatpakGradleGenerator")
+	dependsOn(releasePreFlightChecks)
 	doLast {
 		val releaseInfo =
 			configureRelease(libs.versions.app.get()) ?: error("Failed to configure new release")
@@ -183,6 +167,12 @@ tasks.register("prepareForRelease") {
 		val flatpakMetainfoFile = project.rootDir.resolve(flatpakMetainfoPath)
 		updateFlatpakFiles(releaseInfo.semVar, jvmVersion, flatpakManifestFile, flatpakMetainfoFile, releaseInfo.changeLog)
 
+		// Keep the iOS marketing version in sync with the semver. macOS pulls this
+		// from Compose's packageVersion automatically; iOS has no such hook.
+		val iosInfoPlistPath = "ios/ios/Info.plist".replace("/", File.separator)
+		val iosInfoPlistFile = project.rootDir.resolve(iosInfoPlistPath)
+		updateIosShortVersion(releaseInfo.semVar, iosInfoPlistFile)
+
 		fun git(vararg args: String) {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
@@ -204,25 +194,47 @@ tasks.register("prepareForRelease") {
 		git("add", snapcraftFile.absolutePath)
 		git("add", flatpakManifestFile.absolutePath)
 		git("add", flatpakMetainfoFile.absolutePath)
-		val flatpakSourcesPath = "flatpak/flatpak-sources.json".replace("/", File.separator)
-		val flatpakSourcesFile = project.rootDir.resolve(flatpakSourcesPath)
-		git("add", flatpakSourcesFile.absolutePath)
+		git("add", iosInfoPlistFile.absolutePath)
 		git("commit", "-m", "Prepared for release: v${releaseInfo.semVar}")
 
-		// Switch to release and reset to origin/release HEAD
-		git("checkout", "release")
-		git("reset", "--hard", "origin/release")
-		git("merge", "-X", "theirs", "develop")
+		// Merge develop into release in a throwaway worktree, never checking
+		// release out in the main tree: the running daemon holds gradle-wrapper.jar
+		// open, so a checkout that replaces it fails on Windows (unable to unlink).
+		fun gitIn(dir: File, vararg args: String): Int {
+			val cmd = listOf("git") + args.toList()
+			println("> (${dir.name}) ${cmd.joinToString(" ")}")
+			val process = ProcessBuilder(cmd)
+				.directory(dir)
+				.redirectErrorStream(true)
+				.start()
+			val output = process.inputStream.bufferedReader().readText()
+			val exitCode = process.waitFor()
+			if (output.isNotBlank()) println(output.trim())
+			return exitCode
+		}
 
-		// Create the release tag
-		git("tag", "-a", "v${releaseInfo.semVar}", "-m", releaseInfo.changeLog)
+		git("branch", "-f", "release", "origin/release")
+
+		val releaseWorktree = File(project.rootDir, "build/release-merge")
+		// Clear any leftover worktree from a previous failed run (ignore failure).
+		gitIn(project.rootDir, "worktree", "remove", "--force", releaseWorktree.absolutePath)
+		if (gitIn(project.rootDir, "worktree", "add", releaseWorktree.absolutePath, "release") != 0) {
+			error("Failed to create release worktree at ${releaseWorktree.absolutePath}")
+		}
+		try {
+			if (gitIn(releaseWorktree, "merge", "-X", "theirs", "develop") != 0) {
+				error("Failed to merge develop into release")
+			}
+		} finally {
+			gitIn(project.rootDir, "worktree", "remove", "--force", releaseWorktree.absolutePath)
+		}
+
+		// Tag the merge commit explicitly; the main tree stays on develop.
+		git("tag", "-a", releaseInfo.tag, "-m", releaseInfo.changeLog, "release")
 
 		// Push and begin the release process
 		git("push", "origin", "develop", "release")
 		git("push", "origin", "--tags")
-
-		// Leave the repo back on develop
-		git("checkout", "develop")
 	}
 }
 
@@ -248,6 +260,19 @@ tasks.register("backoutLastRelease") {
 			return exitCode == 0
 		}
 
+		// Lists every local tag for this version — both the bare `vX.Y.Z` (full
+		// release) and any `vX.Y.Z+platform+...` (partial release) variants.
+		// Filtered through `isPlatformReleaseTag` so unrelated tags that share
+		// the prefix (`vX.Y.Z+rc1`, `vX.Y.Z+sbom`) aren't included.
+		fun findReleaseTags(): List<String> {
+			val proc = ProcessBuilder("git", "tag", "-l", tagName, "$tagName+*")
+				.directory(project.rootDir)
+				.start()
+			val tags = proc.inputStream.bufferedReader().readLines().filter { it.isNotBlank() }
+			proc.waitFor()
+			return tags.filter { isPlatformReleaseTag(it, tagName) }
+		}
+
 		// Make sure we're on develop
 		gitSafe("checkout", "develop")
 
@@ -266,17 +291,15 @@ tasks.register("backoutLastRelease") {
 			gitSafe("checkout", "--", ".")
 		}
 
-		// Delete tag locally if it exists
-		val tagExists = ProcessBuilder("git", "rev-parse", tagName)
-			.directory(project.rootDir)
-			.start()
-			.waitFor() == 0
-
-		if (tagExists) {
-			println("Deleting local tag $tagName...")
-			gitSafe("tag", "-d", tagName)
+		// Delete every tag for this version (exact + any +platform suffixes)
+		val matchingTags = findReleaseTags()
+		if (matchingTags.isEmpty()) {
+			println("No local tags matching $tagName or $tagName+* found, skipping.")
 		} else {
-			println("Tag $tagName does not exist locally, skipping.")
+			matchingTags.forEach { tag ->
+				println("Deleting local tag $tag...")
+				gitSafe("tag", "-d", tag)
+			}
 		}
 
 		// Reset release branch to origin/release
@@ -324,13 +347,37 @@ tasks.register("revertLastRelease") {
 		}
 
 		fun gitOutput(vararg args: String): String {
-			val process = ProcessBuilder(listOf("git") + args.toList())
+			val cmd = listOf("git") + args.toList()
+			val process = ProcessBuilder(cmd)
 				.directory(project.rootDir)
 				.redirectErrorStream(true)
 				.start()
 			val output = process.inputStream.bufferedReader().readText().trim()
-			process.waitFor()
+			val exitCode = process.waitFor()
+			// Throw on non-zero — otherwise a failing `ls-remote` (network
+			// blip, auth expiry) silently returns its error text on stdout and
+			// findReleaseTags() treats it as "no remote tags", skipping remote
+			// deletion and leaving the suffix tag on origin.
+			if (exitCode != 0) error("Git command failed: ${cmd.joinToString(" ")}\n${output}")
 			return output
+		}
+
+		// Lists every tag for this version on local OR remote — bare `vX.Y.Z`
+		// plus any `vX.Y.Z+platform+...` partial-release variants. Filtered
+		// through `isPlatformReleaseTag` so unrelated tags that share the
+		// prefix (`vX.Y.Z+rc1`, `vX.Y.Z+sbom`) aren't included.
+		fun findReleaseTags(): List<String> {
+			val local = gitOutput("tag", "-l", tagName, "$tagName+*").lines()
+			val remote = gitOutput("ls-remote", "--tags", "origin", tagName, "$tagName+*")
+				.lines()
+				.mapNotNull { line ->
+					// Format: "<sha>\trefs/tags/<name>" (and optionally "...^{}" for peeled tag refs)
+					line.substringAfter("refs/tags/", "").removeSuffix("^{}").ifBlank { null }
+				}
+			return (local + remote)
+				.filter { it.isNotBlank() }
+				.distinct()
+				.filter { isPlatformReleaseTag(it, tagName) }
 		}
 
 		git("fetch", "origin")
@@ -342,28 +389,43 @@ tasks.register("revertLastRelease") {
 			error("develop HEAD is '$developHead', expected 'Prepared for release: $tagName'. Cannot safely revert.")
 		}
 
-		// Validate release HEAD is a merge commit (has 2 parents)
-		git("checkout", "release")
-		val releaseParents = gitOutput("log", "-1", "--format=%P").split("\\s+".toRegex()).filter { it.isNotEmpty() }
+		// Validate release HEAD is a merge commit (has 2 parents). Read the ref
+		// directly rather than checking it out — see below for why we must not
+		// materialize the release working tree.
+		val releaseParents = gitOutput("log", "-1", "--format=%P", "refs/heads/release").split("\\s+".toRegex()).filter { it.isNotEmpty() }
 		if (releaseParents.size < 2) {
 			error("release HEAD is not a merge commit. Cannot safely revert.")
 		}
 
-		// Reset release to its pre-merge state (first parent of the merge commit)
+		// Reset release to its pre-merge state (first parent of the merge commit).
+		// Move the ref with `git branch -f` instead of `checkout release` +
+		// `reset --hard`: on Windows the running Gradle daemon holds
+		// gradle/wrapper/gradle-wrapper.jar open, and the merge changes that jar,
+		// so a working-tree reset fails with "unable to unlink ... Invalid argument".
+		// Updating the ref without ever checking release out never touches the file.
 		println("Resetting release to pre-merge state...")
-		git("reset", "--hard", "HEAD^1")
+		git("branch", "-f", "release", releaseParents[0])
 		git("push", "--force", "origin", "release")
 
-		// Reset develop to before the release commit
+		// Reset develop to before the release commit. We're still on develop and
+		// this commit doesn't touch the wrapper jar, so a hard reset is safe here.
 		println("Resetting develop to pre-release state...")
-		git("checkout", "develop")
 		git("reset", "--hard", "HEAD~1")
 		git("push", "--force", "origin", "develop")
 
-		// Delete tag from remote then local
-		println("Deleting tag $tagName...")
-		gitSafe("push", "origin", "--delete", tagName)
-		gitSafe("tag", "-d", tagName)
+		// Delete every tag for this version (exact + any +platform suffixes) from
+		// remote then local. Remote delete is tried first so a partial failure
+		// (network blip) doesn't leave us with a local tag that re-pushes later.
+		val matchingTags = findReleaseTags()
+		if (matchingTags.isEmpty()) {
+			println("No tags matching $tagName or $tagName+* found.")
+		} else {
+			matchingTags.forEach { tag ->
+				println("Deleting tag $tag from remote and local...")
+				gitSafe("push", "origin", "--delete", tag)
+				gitSafe("tag", "-d", tag)
+			}
+		}
 
 		println("Done. $tagName has been fully reverted on local and remote.")
 	}

@@ -4,8 +4,6 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
-import com.darkrockstudios.apps.hammer.utilities.sqliteDateTimeStringToInstant
-import com.darkrockstudios.apps.hammer.utilities.toSqliteDateTimeString
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import kotlin.time.Instant
@@ -25,7 +23,7 @@ class ProjectsDao(
 			.toSet()
 
 		ProjectsSyncData(
-			lastSync = sqliteDateTimeStringToInstant(lastSync),
+			lastSync = lastSync,
 			deletedProjects = deletedProjects
 		)
 	}
@@ -36,7 +34,7 @@ class ProjectsDao(
 		newDeletedProjects: Set<ProjectId>
 	) = withContext(ioDispatcher) {
 		accountQueries.updateLastSync(
-			newSyncTime = lastSync.toSqliteDateTimeString(),
+			newSyncTime = lastSync,
 			userId = userId,
 		)
 

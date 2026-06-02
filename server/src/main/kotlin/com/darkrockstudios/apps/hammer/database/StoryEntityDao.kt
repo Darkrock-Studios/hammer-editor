@@ -170,6 +170,11 @@ class StoryEntityDao(
 		queries.deleteEntity(userId = userId, projectId = projectId, id = id)
 	}
 
+	suspend fun deleteAllForProject(userId: Long, projectId: Long) =
+		withContext(ioDispatcher) {
+			queries.deleteAllForProject(userId = userId, projectId = projectId)
+		}
+
 	suspend fun getEntity(userId: Long, projectId: Long, id: Long): Story_entity? =
 		withContext(ioDispatcher) {
 			queries.getEntity(userId = userId, projectId = projectId, id = id).executeAsOneOrNull()

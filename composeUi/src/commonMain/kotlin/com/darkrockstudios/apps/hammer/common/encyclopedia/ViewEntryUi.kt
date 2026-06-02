@@ -5,8 +5,10 @@ import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.Add
@@ -17,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
@@ -58,6 +61,7 @@ import kotlinx.coroutines.withContext
 
 private val InsetFigureWidth: Dp = 240.dp
 private val InsetFigureHeight: Dp = 320.dp
+private val StampRowCompactThreshold = 480.dp
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -143,8 +147,6 @@ internal fun ViewEntryUi(
 			Column(
 				modifier = modifier
 					.padding(
-						top = Ui.Padding.XL,
-						bottom = Ui.Padding.L,
 						start = Ui.Padding.M,
 						end = Ui.Padding.M,
 					)
@@ -160,15 +162,30 @@ internal fun ViewEntryUi(
 						animatedVisibilityScope = animatedVisibilityScope,
 					),
 			) {
-				CrumbRow(
-					title = entryNameText.ifBlank { state.entryDef.name }.uppercase(),
-					menuSlot = { DetailViewDropdownMenu(menuItems = state.menuItems) },
-					onClose = {
-						if (editing) component.confirmClose() else closeEntry()
-					},
-				)
+				CollapseWhileTyping(enabled = editing) {
+					Column {
+						CrumbRow(
+							title = entryNameText.ifBlank { state.entryDef.name }.uppercase(),
+							menuSlot = { DetailViewDropdownMenu(menuItems = state.menuItems) },
+							onClose = {
+								val isDirty = content != null &&
+									(entryNameText != content.name || entryText != content.text)
+								when {
+									editing && isDirty -> component.confirmClose()
+									editing -> {
+										component.finishNameEdit()
+										component.finishTextEdit()
+										closeEntry()
+									}
 
-				HorizontalDivider(thickness = Dp.Hairline, color = ruleColor)
+									else -> closeEntry()
+								}
+							},
+						)
+
+						HorizontalDivider(thickness = Dp.Hairline, color = ruleColor)
+					}
+				}
 
 				StampRow(
 					entryDef = state.entryDef,
@@ -191,16 +208,22 @@ internal fun ViewEntryUi(
 
 				HorizontalDivider(thickness = 2.dp, color = ruleStrong)
 
-				NameZone(
-					entryNameText = entryNameText,
-					onNameChange = { entryNameText = it },
-					editName = state.editName,
-					onStartEdit = component::startNameEdit,
-					compact = isCompact,
-					sharedKey = "encyclopedia-title-${state.entryDef.id}",
-					sharedTransitionScope = sharedTransitionScope,
-					animatedVisibilityScope = animatedVisibilityScope,
-				)
+				// The big name collapses while the body editor has focus; kept visible while the name
+				// field itself holds focus so it stays reachable.
+				var nameFocused by remember { mutableStateOf(false) }
+				CollapseWhileTyping(keepVisible = nameFocused) {
+					NameZone(
+						entryNameText = entryNameText,
+						onNameChange = { entryNameText = it },
+						editName = state.editName,
+						onStartEdit = component::startNameEdit,
+						onFocusChanged = { nameFocused = it },
+						compact = isCompact,
+						sharedKey = "encyclopedia-title-${state.entryDef.id}",
+						sharedTransitionScope = sharedTransitionScope,
+						animatedVisibilityScope = animatedVisibilityScope,
+					)
+				}
 
 				val bodyOuterModifier = if (editing) Modifier.weight(1f) else Modifier
 				if (isCompact) {
@@ -321,6 +344,8 @@ internal fun ViewEntryUi(
 			onDismiss = { component.dismissConfirmClose() },
 			onConfirm = {
 				component.dismissConfirmClose()
+				component.finishNameEdit()
+				component.finishTextEdit()
 				closeEntry()
 			},
 		)
@@ -345,7 +370,8 @@ private fun CrumbRow(
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XXL, vertical = Ui.Padding.L),
+			.height(Ui.TOP_BAR_HEIGHT)
+			.padding(horizontal = Ui.Padding.XL),
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
@@ -383,38 +409,44 @@ private fun StampRow(
 	onSave: () -> Unit,
 	onCancel: () -> Unit,
 ) {
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XXL, vertical = Ui.Padding.L),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		FolioStamp(entryDef = entryDef)
-		if (editing) {
-			Spacer(modifier = Modifier.weight(1f))
-			HdHairlineButton(
-				label = Res.string.encyclopedia_entry_edit_save_button.get(),
-				onClick = onSave,
-				emphasised = true,
-			)
-			HdHairlineButton(
-				label = Res.string.encyclopedia_entry_edit_cancel_button.get(),
-				onClick = onCancel,
-			)
-		} else {
-			HdMonoLabel(
-				text = Res.string.encyclopedia_entry_folio_format.get(
-					folioInitials(entryDef),
-					folioId(entryDef),
-				),
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-			Spacer(modifier = Modifier.weight(1f))
-			HdHairlineButton(
-				label = Res.string.encyclopedia_entry_edit_button.get(),
-				onClick = onEdit,
-			)
+	BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+		val isCompact = maxWidth < StampRowCompactThreshold
+
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.padding(horizontal = Ui.Padding.XXL, vertical = Ui.Padding.L),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+		) {
+			FolioStamp(entryDef = entryDef)
+			if (editing) {
+				Spacer(modifier = Modifier.weight(1f))
+				HdHairlineButton(
+					label = Res.string.encyclopedia_entry_edit_save_button.get(),
+					onClick = onSave,
+					emphasised = true,
+				)
+				HdHairlineButton(
+					label = Res.string.encyclopedia_entry_edit_cancel_button.get(),
+					onClick = onCancel,
+				)
+			} else {
+				if (!isCompact) {
+					HdMonoLabel(
+						text = Res.string.encyclopedia_entry_folio_format.get(
+							folioInitials(entryDef),
+							folioId(entryDef),
+						),
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+					)
+				}
+				Spacer(modifier = Modifier.weight(1f))
+				HdHairlineButton(
+					label = Res.string.encyclopedia_entry_edit_button.get(),
+					onClick = onEdit,
+				)
+			}
 		}
 	}
 }
@@ -466,6 +498,7 @@ private fun NameZone(
 	onNameChange: (String) -> Unit,
 	editName: Boolean,
 	onStartEdit: () -> Unit,
+	onFocusChanged: (Boolean) -> Unit,
 	compact: Boolean,
 	sharedKey: String,
 	sharedTransitionScope: SharedTransitionScope,
@@ -473,9 +506,12 @@ private fun NameZone(
 ) {
 	val onSurface = MaterialTheme.colorScheme.onSurface
 	val mutedColor = MaterialTheme.colorScheme.onSurfaceVariant
+	// Smaller ceiling on phones; the view text autosizes down from here so long names fit.
+	val maxNameSize = if (compact) 40.sp else 88.sp
+	val minNameSize = if (compact) 22.sp else 40.sp
 	val titleStyle = TextStyle(
-		fontSize = if (compact) 56.sp else 88.sp,
-		lineHeight = if (compact) 60.sp else 88.sp,
+		fontSize = maxNameSize,
+		lineHeight = if (compact) 44.sp else 88.sp,
 		letterSpacing = (-2).sp,
 		fontWeight = FontWeight.ExtraLight,
 		color = onSurface,
@@ -490,7 +526,9 @@ private fun NameZone(
 			BasicTextField(
 				value = entryNameText,
 				onValueChange = onNameChange,
-				modifier = Modifier.fillMaxWidth(),
+				modifier = Modifier
+					.fillMaxWidth()
+					.onFocusChanged { onFocusChanged(it.isFocused) },
 				textStyle = titleStyle,
 				cursorBrush = SolidColor(onSurface),
 				singleLine = false,
@@ -504,9 +542,15 @@ private fun NameZone(
 			}
 		} else {
 			with(sharedTransitionScope) {
-				Text(
+				BasicText(
 					text = entryNameText,
 					style = titleStyle,
+					maxLines = 3,
+					autoSize = TextAutoSize.StepBased(
+						minFontSize = minNameSize,
+						maxFontSize = maxNameSize,
+						stepSize = 2.sp,
+					),
 					modifier = Modifier
 						.fillMaxWidth()
 						.sharedElement(

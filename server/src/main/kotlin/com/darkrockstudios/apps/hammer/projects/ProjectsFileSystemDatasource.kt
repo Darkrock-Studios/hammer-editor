@@ -83,7 +83,7 @@ class ProjectsFileSystemDatasource(
 		error("getProjectsCount not implemented for FileSystem datasource")
 	}
 
-	override suspend fun getMostRecentSyncForUser(userId: Long): String? {
+	override suspend fun getMostRecentSyncForUser(userId: Long): kotlin.time.Instant? {
 		error("getMostRecentSyncForUser not implemented for FileSystem datasource")
 	}
 

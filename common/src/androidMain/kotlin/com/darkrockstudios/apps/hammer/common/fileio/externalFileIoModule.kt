@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.fileio
 
 import android.content.Context
-import android.net.Uri
+import androidx.core.net.toUri
 import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
@@ -15,7 +15,7 @@ actual val externalFileIoModule = module {
 
 private class AndroidExternalFileIo(private val appContext: Context) : ExternalFileIo {
 	override fun readExternalFile(path: String): ByteArray {
-		val uri = Uri.parse(path)
+		val uri = path.toUri()
 		var bytes: ByteArray? = null
 		appContext.contentResolver.openInputStream(uri)?.use { input ->
 			bytes = input.readBytes()
@@ -26,21 +26,23 @@ private class AndroidExternalFileIo(private val appContext: Context) : ExternalF
 		} ?: error("Failed to read external file: $path")
 	}
 
-	override fun writeExternalFile(path: String, content: String) {
+	override fun writeExternalFile(path: String, content: ByteArray): Boolean {
 		val contentResolver = appContext.contentResolver
-		try {
-			val uri = Uri.parse(path)
-			contentResolver.openFileDescriptor(uri, "w")?.use {
+		return try {
+			val uri = path.toUri()
+			val pfd = contentResolver.openFileDescriptor(uri, "w") ?: return false
+			pfd.use {
 				FileOutputStream(it.fileDescriptor).use { fos ->
-					fos.write(
-						content.toByteArray()
-					)
+					fos.write(content)
 				}
 			}
+			true
 		} catch (e: FileNotFoundException) {
 			e.printStackTrace()
+			false
 		} catch (e: IOException) {
 			e.printStackTrace()
+			false
 		}
 	}
 }

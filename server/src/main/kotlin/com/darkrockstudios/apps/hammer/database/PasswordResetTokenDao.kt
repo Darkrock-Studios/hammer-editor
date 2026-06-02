@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.database
 
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
-import com.darkrockstudios.apps.hammer.utilities.toSqliteDateTimeString
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import kotlin.time.Instant
@@ -18,8 +17,7 @@ class PasswordResetTokenDao(
 	}
 
 	suspend fun createToken(userId: Long, token: String, expires: Instant) = withContext(ioDispatcher) {
-		val expiresString = expires.toSqliteDateTimeString()
-		queries.createToken(userId, token, expiresString)
+		queries.createToken(userId, token, expires)
 	}
 
 	suspend fun markTokenAsUsed(token: String) = withContext(ioDispatcher) {
@@ -31,7 +29,6 @@ class PasswordResetTokenDao(
 	}
 
 	suspend fun getRecentTokenCount(userId: Long, since: Instant): Long = withContext(ioDispatcher) {
-		val sinceString = since.toSqliteDateTimeString()
-		queries.getRecentTokenCount(userId, sinceString).executeAsOne()
+		queries.getRecentTokenCount(userId, since).executeAsOne()
 	}
 }

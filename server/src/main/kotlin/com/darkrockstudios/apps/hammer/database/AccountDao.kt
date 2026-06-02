@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.account.SortDirection
 import com.darkrockstudios.apps.hammer.account.UserSortField
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
+import kotlinx.datetime.Instant
 import org.koin.core.component.KoinComponent
 
 class AccountDao(
@@ -37,19 +38,19 @@ class AccountDao(
 		isAdmin: Boolean
 	): Long =
 		withContext(ioDispatcher) {
-			val newId = queries.transactionWithResult {
+			// INSERT then look up the new row by its unique email. (We avoid
+			// RETURNING here because various test fixtures call `createAccount`
+			// without `.executeAsOne()`; in SqlDelight, a RETURNING query is
+			// lazy and a missing terminal makes the INSERT silently never run.)
+			queries.transactionWithResult {
 				queries.createAccount(
 					email = email,
 					cipher_secret = cipherSecret,
 					password_hash = hashedPassword,
 					is_admin = isAdmin
 				)
-				val rowId = queries.lastInsertedRowId().executeAsOne()
-				val account = queries.getByRowId(rowId).executeAsOne()
-				account.id
+				queries.findAccount(email).executeAsOne().id
 			}
-
-			return@withContext newId
 		}
 
 	suspend fun numAccounts(): Long = withContext(ioDispatcher) {
@@ -82,7 +83,8 @@ class AccountDao(
 			val offset = page * pageSize
 			val limit = pageSize.toLong()
 			val offsetLong = offset.toLong()
-			val ascending = if (sortDirection == SortDirection.ASCENDING) 1L else 0L
+			// Postgres-dialect SqlDelight infers `:ascending = 1` as Int (literal `1`).
+			val ascending = if (sortDirection == SortDirection.ASCENDING) 1 else 0
 
 			return@withContext when (sortBy) {
 				UserSortField.CREATED -> queries.getAccountsPaginatedSortByCreated(ascending, limit, offsetLong)
@@ -164,5 +166,5 @@ data class CommunityAuthor(
 	val id: Long,
 	val penName: String,
 	val bio: String?,
-	val created: String
+	val created: Instant,
 )

@@ -167,12 +167,12 @@ class SceneEditorComponent(
 		}
 	}
 
-	override suspend fun storeSceneContent(): Boolean {
+	override suspend fun storeSceneContent(): Boolean = withContext(dispatcherDefault) {
 		// Auto-confirm reference matches before flushing the buffer. Running this
 		// first lets the resulting metadata write piggyback on the same dirty-mark
 		// that the buffer save will trigger, instead of fighting it for the hash.
 		autoConfirmReferences(sceneDef)
-		return sceneEditor.storeSceneBuffer(sceneDef)
+		sceneEditor.storeSceneBuffer(sceneDef)
 	}
 
 	override fun onContentChanged(content: PlatformRichText) {

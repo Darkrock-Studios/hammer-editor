@@ -42,10 +42,8 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up JBR
-        uses: actions/setup-java@v5
+        uses: ./.github/actions/setup-jbr
         with:
-          distribution: 'jetbrains'
-          java-version: 21
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Gradle caching
@@ -131,10 +129,8 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up JBR
-        uses: actions/setup-java@v5
+        uses: ./.github/actions/setup-jbr
         with:
-          distribution: 'jetbrains'
-          java-version: 21
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Gradle caching
@@ -146,6 +142,13 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
+
+      # buildDistAppImage generates the .zsync delta file with the system zsyncmake;
+      # appimagetool's bundled copy is broken, so install the system zsync package.
+      - name: Install zsync
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zsync
 
       - name: Package Linux ".deb" distribution
         run: ./gradlew :desktop:packageReleaseDeb
@@ -199,7 +202,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/deb/hammer.deb,${{ github.workspace }}/desktop/build/installers/main-release/rpm/hammer.rpm,${{ github.workspace }}/desktop/build/installers/main-release/appimage/hammer.AppImage"
+          artifacts: "${{ github.workspace }}/desktop/build/installers/main-release/deb/hammer.deb,${{ github.workspace }}/desktop/build/installers/main-release/rpm/hammer.rpm,${{ github.workspace }}/desktop/build/installers/main-release/appimage/hammer.AppImage,${{ github.workspace }}/desktop/build/installers/main-release/appimage/hammer.AppImage.zsync"
 
   macos:
     needs: integration-tests
@@ -209,10 +212,8 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up JBR
-        uses: actions/setup-java@v5
+        uses: ./.github/actions/setup-jbr
         with:
-          distribution: 'jetbrains'
-          java-version: 21
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Gradle caching
@@ -411,10 +412,8 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up JBR
-        uses: actions/setup-java@v5
+        uses: ./.github/actions/setup-jbr
         with:
-          distribution: 'jetbrains'
-          java-version: 21
           token: ${{ secrets.GITHUB_TOKEN }}
           cache: gradle
 
@@ -451,10 +450,8 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Set up JBR
-        uses: actions/setup-java@v5
+        uses: ./.github/actions/setup-jbr
         with:
-          distribution: 'jetbrains'
-          java-version: 21
           token: ${{ secrets.GITHUB_TOKEN }}
           cache: gradle
 

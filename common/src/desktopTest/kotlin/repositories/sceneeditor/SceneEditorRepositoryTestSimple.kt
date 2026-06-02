@@ -31,6 +31,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.time.Clock
 import kotlin.time.Instant
 
 class SceneEditorRepositoryTestSimple : BaseTest() {
@@ -146,6 +147,8 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
+			clock = Clock.System,
+			strRes = mockk(relaxed = true),
 		)
 	}
 

@@ -1,0 +1,134 @@
+CREATE TABLE account(
+    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    email TEXT UNIQUE NOT NULL,
+    pen_name TEXT UNIQUE DEFAULT(NULL),
+    password_hash TEXT NOT NULL,
+    cipher_secret TEXT NOT NULL,
+    created TEXT DEFAULT (datetime('now')) NOT NULL,
+    is_admin INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL,
+    last_sync TEXT DEFAULT (datetime('now')) NOT NULL,
+    bio TEXT DEFAULT(NULL),
+    email_verified INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL,
+    community_member INTEGER AS kotlin.Boolean DEFAULT FALSE NOT NULL
+);
+
+getAllAccount:
+SELECT *
+FROM account;
+
+getAccount:
+SELECT *
+FROM account
+WHERE id = ?;
+
+getLastSync:
+SELECT last_sync
+FROM account
+WHERE id = ?;
+
+updateLastSync:
+UPDATE account
+SET last_sync = :newSyncTime
+WHERE id = :userId;
+
+getByRowId:
+SELECT *
+FROM account
+WHERE rowid = ?;
+
+findAccount:
+SELECT *
+FROM account
+WHERE email = ?;
+
+count:
+SELECT COUNT(*) FROM account;
+
+createAccount:
+INSERT INTO account(email, password_hash, cipher_secret, is_admin) VALUES (?, ?, ?, ?);
+
+testInsertAccount:
+INSERT INTO account(email, password_hash, cipher_secret, is_admin, created, last_sync) VALUES (?, ?, ?, ?, ?, ?);
+
+setAdmin:
+UPDATE account SET is_admin = ? WHERE id = ?;
+
+updatePenName:
+UPDATE account SET pen_name = ? WHERE id = ?;
+
+findAccountByPenName:
+SELECT *
+FROM account
+WHERE LOWER(pen_name) = LOWER(?);
+
+isPenNameTaken:
+SELECT COUNT(*) > 0
+FROM account
+WHERE LOWER(pen_name) = LOWER(?) AND (:excludeUserId IS NULL OR id != :excludeUserId);
+
+lastInsertedRowId:
+SELECT last_insert_rowid();
+
+migration_setCipherSecret:
+UPDATE account SET cipher_secret = :cipherSecret WHERE id = :id;
+
+getAccountsPaginated:
+SELECT id, email, pen_name, created, last_sync
+FROM account
+ORDER BY created DESC
+LIMIT :limit OFFSET :offset;
+
+getAccountsPaginatedSortByCreated:
+SELECT a.id, a.email, a.pen_name, a.created, a.last_sync,
+       COALESCE((SELECT MAX(p.last_sync) FROM project p WHERE p.user_id = a.id), a.last_sync) AS most_recent_sync,
+       COALESCE((SELECT COUNT(*) FROM project p WHERE p.user_id = a.id), 0) AS project_count
+FROM account a
+ORDER BY CASE WHEN :ascending = 1 THEN a.created END ASC,
+         CASE WHEN :ascending = 0 THEN a.created END DESC
+LIMIT :limit OFFSET :offset;
+
+getAccountsPaginatedSortByLastSync:
+SELECT a.id, a.email, a.pen_name, a.created, a.last_sync,
+       COALESCE((SELECT MAX(p.last_sync) FROM project p WHERE p.user_id = a.id), a.last_sync) AS most_recent_sync,
+       COALESCE((SELECT COUNT(*) FROM project p WHERE p.user_id = a.id), 0) AS project_count
+FROM account a
+ORDER BY CASE WHEN :ascending = 1 THEN most_recent_sync END ASC,
+         CASE WHEN :ascending = 0 THEN most_recent_sync END DESC
+LIMIT :limit OFFSET :offset;
+
+getAccountsPaginatedSortByProjectCount:
+SELECT a.id, a.email, a.pen_name, a.created, a.last_sync,
+       COALESCE((SELECT MAX(p.last_sync) FROM project p WHERE p.user_id = a.id), a.last_sync) AS most_recent_sync,
+       COALESCE((SELECT COUNT(*) FROM project p WHERE p.user_id = a.id), 0) AS project_count
+FROM account a
+ORDER BY CASE WHEN :ascending = 1 THEN project_count END ASC,
+         CASE WHEN :ascending = 0 THEN project_count END DESC,
+         a.created DESC
+LIMIT :limit OFFSET :offset;
+
+updatePassword:
+UPDATE account SET password_hash = ? WHERE id = ?;
+
+updateBio:
+UPDATE account SET bio = ? WHERE id = ?;
+
+getBio:
+SELECT bio FROM account WHERE id = ?;
+
+updateCommunityMember:
+UPDATE account SET community_member = ? WHERE id = ?;
+
+getCommunityMember:
+SELECT community_member FROM account WHERE id = ?;
+
+getCommunityAuthors:
+SELECT id, pen_name, bio, created
+FROM account
+WHERE community_member = 1 AND pen_name IS NOT NULL
+ORDER BY pen_name COLLATE NOCASE ASC
+LIMIT :limit OFFSET :offset;
+
+countCommunityAuthors:
+SELECT COUNT(*)
+FROM account
+WHERE community_member = 1 AND pen_name IS NOT NULL;

@@ -13,5 +13,12 @@ fun getAppVersionString(): String {
 
 fun isNewVersionAvailable(latestVersion: String): Boolean {
 	val curVersion = getAppVersionString()
-	return latestVersion != curVersion && curVersion.endsWith("-dev").not()
+	return stripReleaseSuffix(latestVersion) != stripReleaseSuffix(curVersion)
+		&& curVersion.endsWith("-dev").not()
 }
+
+/**
+ * Strips a `+platform+platform` partial-release suffix from a tag string,
+ * leaving the bare `vX.Y.Z` (or `vX.Y.Z-dev`). No-op if no `+` is present.
+ */
+fun stripReleaseSuffix(version: String): String = version.substringBefore('+')

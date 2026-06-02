@@ -15,12 +15,9 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLineEvent
-import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
-import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
-import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -38,6 +35,7 @@ fun CreateTimeLineEventUi(
 	val state by component.state.subscribeAsState()
 	val contentText by component.contentText.subscribeAsState()
 	var dateText by remember { mutableStateOf("") }
+	var dateFocused by remember { mutableStateOf(false) }
 	var resetVersion by remember { mutableStateOf(0) }
 	val tags = remember { mutableStateListOf<String>() }
 
@@ -54,34 +52,34 @@ fun CreateTimeLineEventUi(
 	) {
 		Column(modifier = Modifier.fillMaxWidth()) {
 
-			Column(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(
-						start = Ui.Padding.XL,
-						end = Ui.Padding.XL,
-						top = Ui.Padding.XL,
-						bottom = Ui.Padding.L,
-					),
-				verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-			) {
-				HdSectionHeader(
-					marker = "III · NEW",
-					title = Res.string.timeline_create_header.get(),
-					trailing = {
-						HdMonoLabel(text = "DRAFT")
-					},
-				)
-				HdMonoLabel(
-					text = Res.string.timeline_create_body_hint.get(),
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
-			}
+			CollapseWhileTyping {
+				Column(modifier = Modifier.fillMaxWidth()) {
+					Column(
+						modifier = Modifier
+							.fillMaxWidth()
+							.padding(
+								start = Ui.Padding.XL,
+								end = Ui.Padding.XL,
+								top = Ui.Padding.XL,
+								bottom = Ui.Padding.L,
+							),
+						verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+					) {
+						HdSectionHeader(
+							marker = Res.string.timeline_create_marker.get(),
+							title = Res.string.timeline_create_header.get(),
+							trailing = {
+								HdMonoLabel(text = Res.string.timeline_create_draft_label.get())
+							},
+						)
+					}
 
-			HorizontalDivider(
-				thickness = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-			)
+					HorizontalDivider(
+						thickness = Dp.Hairline,
+						color = MaterialTheme.colorScheme.outlineVariant,
+					)
+				}
+			}
 
 			Column(
 				modifier = Modifier
@@ -89,13 +87,18 @@ fun CreateTimeLineEventUi(
 					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 			) {
-				HdHairlineField(
-					label = Res.string.timeline_view_date_label.get(),
-					value = dateText,
-					onValueChange = { dateText = it },
-					hint = Res.string.timeline_create_date_hint.get(),
-					placeholder = Res.string.timeline_create_date_placeholder.get(),
-				)
+				// Date hides while the body editor has focus, like the tags; kept visible while it
+				// holds focus itself so it stays reachable.
+				CollapseWhileTyping(keepVisible = dateFocused) {
+					HdHairlineField(
+						label = Res.string.timeline_view_date_label.get(),
+						value = dateText,
+						onValueChange = { dateText = it },
+						hint = Res.string.timeline_create_date_hint.get(),
+						placeholder = Res.string.timeline_create_date_placeholder.get(),
+						onFocusChanged = { dateFocused = it },
+					)
+				}
 
 				HdHairlineTagField(
 					label = Res.string.timeline_create_tags_label.get(),
@@ -146,7 +149,7 @@ fun CreateTimeLineEventUi(
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 				verticalAlignment = Alignment.CenterVertically,
 			) {
-				HdMonoLabel(text = "$wordCount W · $charCount CH")
+				HdMonoLabel(text = Res.string.timeline_create_word_count.get(wordCount, charCount))
 				Spacer(modifier = Modifier.weight(1f))
 				HdHairlineButton(
 					label = Res.string.timeline_create_cancel_button.get(),

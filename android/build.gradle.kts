@@ -8,7 +8,6 @@ val RELEASE_KEY_PASSWORD = System.getenv("RELEASE_KEY_PASSWORD") ?: ""
 
 plugins {
 	alias(libs.plugins.android.application)
-	alias(libs.plugins.kotlin.android)
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.compose.compiler)
@@ -37,25 +36,14 @@ dependencies {
 	implementation(libs.appcompat)
 	implementation(libs.multiplatform.settings)
 
-//	implementation(libs.lifecycle.runtime.ktx)
-//	implementation(platform(libs.compose.bom))
-//	implementation(libs.ui)
-//	implementation(libs.ui.graphics)
-//	implementation(libs.ui.tooling.preview)
-//	implementation(libs.material3)
-
 	androidTestImplementation(libs.androidx.junit)
 	androidTestImplementation(libs.androidx.junit.ktx)
 	androidTestImplementation(libs.core)
 	androidTestImplementation(libs.core.ktx)
 	androidTestImplementation(libs.androidx.runner)
-//	androidTestImplementation(platform(libs.compose.bom))
-//	androidTestImplementation(libs.ui.test.junit4)
 	androidTestUtil(libs.orchestrator)
 
 	implementation(libs.aboutlibraries.core)
-//	debugImplementation(libs.ui.tooling)
-//	debugImplementation(libs.ui.test.manifest)
 	testImplementation(libs.bundles.junit.jupiter)
 	androidTestImplementation(libs.bundles.junit.jupiter)
 }
@@ -114,13 +102,16 @@ android {
 		resources {
 			excludes += setOf(
 				"/META-INF/{AL2.0,LGPL2.1}",
-				"/META-INF/versions/9/previous-compilation-data.bin"
+				"/META-INF/versions/9/previous-compilation-data.bin",
+				"/META-INF/LICENSE.md",
+				"/META-INF/LICENSE-notice.md"
 			)
 		}
 	}
 }
 
 kotlin {
+	jvmToolchain(libs.versions.jvm.get().toInt())
 	compilerOptions {
 		jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
 	}

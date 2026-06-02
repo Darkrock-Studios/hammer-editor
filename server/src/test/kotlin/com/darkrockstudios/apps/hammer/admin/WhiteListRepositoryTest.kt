@@ -12,6 +12,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 class WhiteListRepositoryTest : BaseTest() {
 
@@ -67,7 +68,7 @@ class WhiteListRepositoryTest : BaseTest() {
 	@Test
 	fun `getWhiteList - all`() = runTest {
 		val emails = listOf("a@b.com", "c@d.com")
-		emails.forEach { whiteListDao.addToWhiteList(it, 0L, "Test") }
+		emails.forEach { whiteListDao.addToWhiteList(it, Instant.fromEpochSeconds(0), "Test") }
 
 		val repo = createRepo()
 		val result = repo.getWhiteList()
@@ -78,7 +79,7 @@ class WhiteListRepositoryTest : BaseTest() {
 	@Test
 	fun `getWhiteList - paginated`() = runTest {
 		val emails = (1..25).map { "user$it@example.com" }.sorted()
-		emails.forEach { whiteListDao.addToWhiteList(it, 0L, "Test") }
+		emails.forEach { whiteListDao.addToWhiteList(it, Instant.fromEpochSeconds(0), "Test") }
 
 		val repo = createRepo()
 		val result = repo.getWhiteList(page = 1, pageSize = 10)
@@ -89,7 +90,7 @@ class WhiteListRepositoryTest : BaseTest() {
 	@Test
 	fun `getWhiteListCount`() = runTest {
 		val emails = listOf("a@b.com", "c@d.com")
-		emails.forEach { whiteListDao.addToWhiteList(it, 0L, "Test") }
+		emails.forEach { whiteListDao.addToWhiteList(it, Instant.fromEpochSeconds(0), "Test") }
 
 		val repo = createRepo()
 		val result = repo.getWhiteListCount()
@@ -99,7 +100,7 @@ class WhiteListRepositoryTest : BaseTest() {
 
 	@Test
 	fun `isOnWhiteList - cleans email`() = runTest {
-		whiteListDao.addToWhiteList("test@example.com", 0L, "Test")
+		whiteListDao.addToWhiteList("test@example.com", Instant.fromEpochSeconds(0), "Test")
 
 		val repo = createRepo()
 		val result = repo.isOnWhiteList("  TEST@Example.com  ")
@@ -117,7 +118,7 @@ class WhiteListRepositoryTest : BaseTest() {
 
 	@Test
 	fun `removeFromWhiteList - cleans email`() = runTest {
-		whiteListDao.addToWhiteList("test@example.com", 0L, "Test")
+		whiteListDao.addToWhiteList("test@example.com", Instant.fromEpochSeconds(0), "Test")
 
 		val repo = createRepo()
 		repo.removeFromWhiteList("  TEST@Example.com  ")

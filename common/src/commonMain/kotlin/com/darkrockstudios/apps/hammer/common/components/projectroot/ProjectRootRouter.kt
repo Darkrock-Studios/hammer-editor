@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -39,6 +40,7 @@ internal class ProjectRootRouter(
 	private val onCloseProject: (() -> Unit),
 	private val scope: CoroutineScope,
 	private val dispatcherMain: CoroutineContext,
+	initialScreen: InitialProjectScreen = InitialProjectScreen.Home,
 ) : Router {
 
 	private val navigation = StackNavigation<Config>()
@@ -46,7 +48,15 @@ internal class ProjectRootRouter(
 	val state: Value<ChildStack<Config, ProjectRoot.Destination<*>>> =
 		componentContext.childStack(
 			source = navigation,
-			initialConfiguration = Config.HomeConfig(projectDef),
+			initialStack = {
+				when (initialScreen) {
+					InitialProjectScreen.Home -> listOf(Config.HomeConfig(projectDef))
+					InitialProjectScreen.Editor -> listOf(
+						Config.HomeConfig(projectDef),
+						Config.EditorConfig(projectDef = projectDef),
+					)
+				}
+			},
 			key = "ProjectRootRouter",
 			childFactory = ::createChild,
 			serializer = Config.serializer()

@@ -114,17 +114,16 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 		val syncData = ProjectsSyncData(
 			lastSync = Instant.fromEpochSeconds(123),
 			deletedProjects = setOf(
-				ProjectId("project-id-1"),
-				ProjectId("project-id-2"),
+				ProjectId("00000000-0000-0000-0000-000000000001"),
+				ProjectId("00000000-0000-0000-0000-000000000002"),
 			)
 		)
 
 		val datasource = createDatasource()
 		datasource.saveSyncData(userId, syncData)
 
-		val lastSyncStr =
+		val lastSync =
 			testDatabase.serverDatabase.accountQueries.getLastSync(userId).executeAsOneOrNull()
-		val lastSync = lastSyncStr?.let { sqliteDateTimeStringToInstant(lastSyncStr) }
 		assertEquals(syncData.lastSync, lastSync)
 		val deletedProjects =
 			testDatabase.serverDatabase.deletedProjectQueries.getDeletedProjects(userId)
@@ -145,16 +144,16 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 			password_hash = "hash",
 			cipher_secret = cipherSecretGenerator.generateToken(),
 			is_admin = true,
-			created = instant.toSqliteDateTimeString(),
-			last_sync = instantLastUpdate.toSqliteDateTimeString()
+			created = instant,
+			last_sync = instantLastUpdate
 		)
 		testDatabase.serverDatabase.deletedProjectQueries.addDeletedProject(
 			userId = userId,
-			uuid = "project-id-1"
+			uuid = "00000000-0000-0000-0000-000000000001"
 		)
 		testDatabase.serverDatabase.deletedProjectQueries.addDeletedProject(
 			userId = userId,
-			uuid = "project-id-2"
+			uuid = "00000000-0000-0000-0000-000000000002"
 		)
 
 		val datasource = createDatasource()
@@ -162,8 +161,8 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 
 		assertEquals(
 			setOf(
-				ProjectId("project-id-1"),
-				ProjectId("project-id-2"),
+				ProjectId("00000000-0000-0000-0000-000000000001"),
+				ProjectId("00000000-0000-0000-0000-000000000002"),
 			), loadedSyncData.deletedProjects
 		)
 		assertEquals(
@@ -183,11 +182,11 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 		)
 		testDatabase.serverDatabase.deletedProjectQueries.addDeletedProject(
 			userId = userId,
-			uuid = "project-id-1"
+			uuid = "00000000-0000-0000-0000-000000000001"
 		)
 		testDatabase.serverDatabase.deletedProjectQueries.addDeletedProject(
 			userId = userId,
-			uuid = "project-id-2"
+			uuid = "00000000-0000-0000-0000-000000000002"
 		)
 
 
@@ -195,16 +194,16 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 		val loadedSyncData = datasource.updateSyncData(userId) { data ->
 			data.copy(
 				lastSync = Instant.fromEpochSeconds(456),
-				deletedProjects = data.deletedProjects + ProjectId("project-id-3")
+				deletedProjects = data.deletedProjects + ProjectId("00000000-0000-0000-0000-000000000003")
 			)
 		}
 
 		val updatedSyncData = ProjectsSyncData(
 			lastSync = Instant.fromEpochSeconds(456),
 			deletedProjects = setOf(
-				ProjectId("project-id-1"),
-				ProjectId("project-id-2"),
-				ProjectId("project-id-3"),
+				ProjectId("00000000-0000-0000-0000-000000000001"),
+				ProjectId("00000000-0000-0000-0000-000000000002"),
+				ProjectId("00000000-0000-0000-0000-000000000003"),
 			)
 		)
 

@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -22,21 +23,17 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.accoun
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.getDataVersion
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.backups.BackupsSettingsUi
-import androidx.compose.runtime.rememberCoroutineScope
 
 private val MaxColumnWidth = 880.dp
-private const val SECTION_COUNT = 6
+private const val SECTION_COUNT = 7
 
 @Composable
 internal fun AccountSettingsUi(
@@ -98,6 +95,22 @@ internal fun AccountSettingsUi(
 
 					HdHairlineSection(
 						section = 2,
+						title = Res.string.settings_initial_screen_label.get(),
+						headerTrailing = {
+							HdMonoLabel(text = initialScreenLabel(state.initialProjectScreen))
+						},
+						contentSpacing = 12.dp,
+					) {
+						HdHairlineSegmentedPicker(
+							options = InitialProjectScreen.entries,
+							selected = state.initialProjectScreen,
+							onSelect = { component.setInitialProjectScreen(it) },
+							label = { initialScreenLabel(it) },
+						)
+					}
+
+					HdHairlineSection(
+						section = 3,
 						title = Res.string.settings_spellcheck_heading.get(),
 						contentSpacing = 18.dp,
 					) {
@@ -111,7 +124,7 @@ internal fun AccountSettingsUi(
 					)
 
 					HdHairlineSection(
-						section = 4,
+						section = 5,
 						title = Res.string.settings_backups_header.get(),
 						headerTrailing = {
 							HdMonoLabel(
@@ -124,7 +137,7 @@ internal fun AccountSettingsUi(
 					}
 
 					HdHairlineSection(
-						section = 5,
+						section = 6,
 						title = Res.string.settings_platform_settings_title.get(),
 						contentSpacing = 16.dp,
 					) {
@@ -132,7 +145,7 @@ internal fun AccountSettingsUi(
 					}
 
 					HdHairlineSection(
-						section = 6,
+						section = 7,
 						title = Res.string.settings_example_project_header.get(),
 						contentSpacing = 14.dp,
 					) {
@@ -158,12 +171,13 @@ private fun Breadcrumb(
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(horizontal = horizontal, vertical = 14.dp),
+			.height(Ui.TOP_BAR_HEIGHT)
+			.padding(horizontal = horizontal),
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(12.dp),
 	) {
 		HdMonoLabel(
-			text = "HAMMER",
+			text = Res.string.app_name.get().uppercase(),
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		HdMonoLabel(
@@ -171,7 +185,7 @@ private fun Breadcrumb(
 			color = MaterialTheme.colorScheme.outlineVariant,
 		)
 		HdMonoLabel(
-			text = "ACCOUNT",
+			text = Res.string.account_settings_breadcrumb.get(),
 			color = MaterialTheme.colorScheme.onSurface,
 		)
 		Spacer(Modifier.weight(1f))
@@ -204,22 +218,23 @@ private fun Hero(
 	email: String?,
 	isCompact: Boolean,
 ) {
+	val connectedLabel = Res.string.settings_server_status_connected.get()
+	val localInstallLabel = Res.string.account_settings_subtitle_local_install.get()
 	val subtitle = buildString {
 		append("v")
 		append(getDataVersion())
 		append(" · ")
 		if (loggedIn && !email.isNullOrBlank()) {
-			append("CONNECTED · ${email.uppercase()}")
+			append("$connectedLabel · ${email.uppercase()}")
 		} else if (loggedIn) {
-			append("CONNECTED")
+			append(connectedLabel)
 		} else {
-			append("LOCAL INSTALL")
+			append(localInstallLabel)
 		}
 	}
 	Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-		HdMonoLabel(text = "§ 0 · ACCOUNT")
 		Text(
-			text = "Hammer",
+			text = Res.string.app_name.get(),
 			style = if (isCompact) MaterialTheme.typography.displaySmall
 			else MaterialTheme.typography.displayMedium,
 			color = MaterialTheme.colorScheme.onSurface,
@@ -271,7 +286,7 @@ private fun FolioCaption(
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
 	) {
-		HdMonoLabel(text = "ACCOUNT SETTINGS")
+		HdMonoLabel(text = Res.string.account_settings_folio_caption.get())
 		HdMonoLabel(
 			text = "·",
 			color = MaterialTheme.colorScheme.outlineVariant,
@@ -280,8 +295,15 @@ private fun FolioCaption(
 	}
 }
 
+@Composable
 private fun uiThemeLabel(theme: UiTheme): String = when (theme) {
-	UiTheme.Light -> "LIGHT"
-	UiTheme.Dark -> "DARK"
-	UiTheme.FollowSystem -> "SYSTEM"
+	UiTheme.Light -> Res.string.settings_theme_light.get()
+	UiTheme.Dark -> Res.string.settings_theme_dark.get()
+	UiTheme.FollowSystem -> Res.string.settings_theme_followsystem.get()
+}
+
+@Composable
+private fun initialScreenLabel(screen: InitialProjectScreen): String = when (screen) {
+	InitialProjectScreen.Home -> Res.string.settings_initial_screen_home.get()
+	InitialProjectScreen.Editor -> Res.string.settings_initial_screen_editor.get()
 }

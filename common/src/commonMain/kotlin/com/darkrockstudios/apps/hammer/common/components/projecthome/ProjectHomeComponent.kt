@@ -55,6 +55,7 @@ class ProjectHomeComponent(
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val projectBackupRepository: ProjectBackupRepository by inject()
 	private val sceneEditorRepository: SceneEditorRepository by projectInject()
+	private val exportStoryUseCase: ExportStoryUseCase by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 	private val statisticsService: StatisticsService by projectInject()
@@ -189,13 +190,28 @@ class ProjectHomeComponent(
 			name = "",
 			isAbsolute = true
 		)
-		val filePath = sceneEditorRepository.exportStory(hpath, options)
+		val filePath = exportStoryUseCase.execute(hpath, options)
 
 		withContext(mainDispatcher) {
 			endProjectExport()
 		}
 
 		return filePath
+	}
+
+	override suspend fun exportProjectToFile(filePath: String, options: ExportOptions): HPath {
+		val hpath = HPath(
+			path = filePath,
+			name = "",
+			isAbsolute = true,
+		)
+		val result = exportStoryUseCase.executeToFile(hpath, options)
+
+		withContext(mainDispatcher) {
+			endProjectExport()
+		}
+
+		return result
 	}
 
 	override fun startProjectSync() = showProjectSync()
@@ -206,6 +222,12 @@ class ProjectHomeComponent(
 
 	override fun showLongestScene() {
 		val id = _state.value.longestSceneId ?: return
+		val sceneItem = sceneEditorRepository.getSceneItemFromId(id) ?: return
+		onShowScene(sceneItem)
+	}
+
+	override fun showLastEditedScene() {
+		val id = _state.value.lastEditedSceneId ?: return
 		val sceneItem = sceneEditorRepository.getSceneItemFromId(id) ?: return
 		onShowScene(sceneItem)
 	}
@@ -245,6 +267,14 @@ class ProjectHomeComponent(
 		listenForSyncEvents()
 	}
 
+	override fun onResume() {
+		super.onResume()
+		// Stats are marked dirty on every scene save; trigger a recalc so
+		// the dashboard reflects edits made since this home was last shown
+		// (e.g. user popped back from the editor with new lastEdited data).
+		scope.launch { statisticsService.loadStatistics() }
+	}
+
 	private fun subscribeToStats() {
 		scope.launch {
 			statisticsService.statsFlow.collect { stats ->
@@ -262,6 +292,8 @@ class ProjectHomeComponent(
 							longestSceneId = stats.longestSceneId,
 							longestSceneName = stats.longestSceneName,
 							longestSceneWords = stats.longestSceneWords,
+							lastEditedSceneId = stats.lastEditedSceneId,
+							lastEditedSceneName = stats.lastEditedSceneName,
 							shortestSceneWords = stats.shortestSceneWords,
 							medianSceneWords = stats.medianSceneWords,
 							sceneWordsStdDev = stats.sceneWordsStdDev,
@@ -353,7 +385,7 @@ class ProjectHomeComponent(
 
 	override fun isAtRoot() = true
 	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
-	override fun getExportStoryFileName() = sceneEditorRepository.getExportStoryFileName()
+	override fun getExportStoryFileName(format: ExportFormat) = exportFileName(projectDef.name, format)
 
 	override fun showProjectStats() = contentRouter.showProjectStats()
 	override fun showProjectSettings() = contentRouter.showProjectSettings()

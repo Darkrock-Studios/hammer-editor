@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 
 class SceneEditorRepositoryLoadTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
@@ -113,6 +114,8 @@ class SceneEditorRepositoryLoadTest : BaseTest() {
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = mockk(relaxed = true),
 			writingSessionTracker = mockk(relaxed = true),
+			clock = Clock.System,
+			strRes = mockk(relaxed = true),
 		)
 	}
 
