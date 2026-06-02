@@ -20,7 +20,7 @@ import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.koin.core.qualifier.named
-import org.koin.ktor.ext.get
+import org.koin.ktor.ext.get as koinGet
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
@@ -41,13 +41,13 @@ fun Route.adminMonitoringPages(
 	route("/monitoring") {
 		get {
 			val app = call.application
-			val metricsRepository = app.get<MetricsRepository>()
-			val configRepository = app.get<ConfigRepository>()
+			val metricsRepository = app.koinGet<MetricsRepository>()
+			val configRepository = app.koinGet<ConfigRepository>()
 			val projectsSyncManager =
-				app.get<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER))
+				app.koinGet<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER))
 			val projectSyncManager =
-				app.get<SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>>(named(PROJECT_SYNC_MANAGER))
-			val clock = app.get<Clock>()
+				app.koinGet<SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>>(named(PROJECT_SYNC_MANAGER))
+			val clock = app.koinGet<Clock>()
 
 			val enabled = configRepository.get(AdminServerConfig.MONITORING_CONFIG).enabled
 			val since = clock.now() - 24.hours
@@ -83,8 +83,8 @@ fun Route.adminMonitoringPages(
 
 		get("/performance") {
 			val app = call.application
-			val metricsRepository = app.get<MetricsRepository>()
-			val clock = app.get<Clock>()
+			val metricsRepository = app.koinGet<MetricsRepository>()
+			val clock = app.koinGet<Clock>()
 
 			val range = call.request.queryParameters["range"] ?: RANGE_24H
 			val since = clock.now() - rangeToDuration(range)
