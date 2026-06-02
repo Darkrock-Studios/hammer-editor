@@ -74,6 +74,15 @@ jobs:
       - name: Upload to TestFlight 🍎
         run: bundle exec fastlane mac desktop_testflight
 
+      - name: Dump jpackage logs on failure
+        if: failure()
+        run: |
+          for f in desktop/build/compose/logs/packageReleasePkg/*.txt; do
+            [ -e "$f" ] || continue
+            echo "===== $f ====="
+            cat "$f"
+          done
+
       - name: Upload Gradle problems report on failure
         if: failure()
         uses: actions/upload-artifact@v7

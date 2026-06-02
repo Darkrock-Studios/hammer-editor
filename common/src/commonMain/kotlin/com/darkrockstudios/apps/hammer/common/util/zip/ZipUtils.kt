@@ -6,7 +6,6 @@ import no.synth.kmpzip.zip.ZipInputStream
 import no.synth.kmpzip.zip.safeEntrySegments
 import okio.FileSystem
 import okio.Path
-import okio.buffer
 
 private const val COPY_BUFFER_SIZE = 8192
 
@@ -60,11 +59,11 @@ fun unzipBytesToDirectory(
 				fileSystem.createDirectories(target)
 			} else {
 				target.parent?.let { fileSystem.createDirectories(it) }
-				fileSystem.sink(target).buffer().use { sink ->
+				fileSystem.write(target) {
 					while (true) {
 						val n = zis.read(buffer, 0, buffer.size)
 						if (n == -1) break
-						sink.write(buffer, 0, n)
+						write(buffer, 0, n)
 					}
 				}
 			}
