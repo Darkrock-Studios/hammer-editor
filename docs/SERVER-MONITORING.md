@@ -75,14 +75,20 @@ Each phase is independently mergeable; commit per phase to
 > dev machine to verify (especially SQLDelight codegen of the new `.sq` files).
 
 ### Phase 2 — API metrics + Overview UI
-- [ ] `MetricsCollector` singleton (accumulator + histogram + live ring buffer)
-- [ ] Custom Ktor timing plugin (route-template keyed), feeds collector
-- [ ] `MetricsRepository` read queries (time series, top endpoints, percentiles)
-- [ ] `SyncSessionManager` read method for active-session count
+**Part A — data pipeline (done):**
+- [x] `MetricsCollector` singleton (atomic accumulator + non-cumulative latency histogram + bounded live ring buffer; no-op when disabled)
+- [x] Custom Ktor timing plugin `apiMetricsPlugin` (keyed by matched route template via `RoutingCall.route`), wired in `appMain` as `configureApiMetrics()`
+- [x] Flush + cadence in `MonitoringMaintenanceJob` (60s flush, 1h rollup/purge; syncs collector enabled-flag from live config)
+- [x] `MetricsRepository` aggregation: `getEndpointStats` / `getTotals` + additive-histogram `percentile()`
+- [x] `SyncSessionManager.activeSessionCount()`
+- [x] Tests: `MetricsCollectorTest` (binning/drain/disabled/percentile), `MetricsRepositoryTest` (aggregation through the DB)
+
+**Part B — UI (next, via `/frontend-design`):**
 - [ ] Vendor frappe-charts asset
-- [ ] `monitoring-nav.mustache` partial + section routing
-- [ ] **Overview** page (alerts, stat cards, live, mini-charts) — `/frontend-design`
-- [ ] **Performance** page (per-endpoint table, percentiles, time-range) — `/frontend-design`
+- [ ] `monitoring-nav.mustache` partial + section routing + nav integration
+- [ ] Monitoring config fields on the Settings page (moved from Phase 1)
+- [ ] **Overview** page (alerts, stat cards, live, mini-charts)
+- [ ] **Performance** page (per-endpoint table, percentiles, time-range)
 
 ### Phase 3 — Errors + alerting
 - [ ] StatusPages hook → `ErrorRepository.record(...)` (fingerprint dedupe, optional user_id)

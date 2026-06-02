@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.frontend.configureFrontEnd
+import com.darkrockstudios.apps.hammer.monitoring.configureApiMetrics
 import com.darkrockstudios.apps.hammer.monitoring.configureMonitoringJob
 import com.darkrockstudios.apps.hammer.patreon.configurePatreonPolling
 import com.darkrockstudios.apps.hammer.plugins.*
@@ -179,6 +180,7 @@ fun Application.appMain(
 	configureDependencyInjection(config, addInModule)
 	configureSerialization()
 	configureMonitoring(logLevel)
+	configureApiMetrics()
 	configureHTTP(config)
 	configureSecurity()
 	configureLocalization()

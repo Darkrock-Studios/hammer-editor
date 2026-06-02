@@ -14,6 +14,9 @@ class SyncSessionManager<K : Any, T : SynchronizationSession>(
 
 	fun findSession(key: K): T? = synchronizationSessions[key]
 
+	/** Number of currently non-expired sessions. Best-effort gauge for monitoring. */
+	fun activeSessionCount(): Int = synchronizationSessions.count { (_, session) -> !session.isExpired(clock) }
+
 	fun terminateSession(key: K): Boolean = synchronizationSessions.remove(key) != null
 
 	suspend fun createNewSession(key: K, createSession: (key: K, syncId: String) -> T): String {

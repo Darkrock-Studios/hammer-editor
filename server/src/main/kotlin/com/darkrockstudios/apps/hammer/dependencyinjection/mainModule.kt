@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.encryption.AesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
+import com.darkrockstudios.apps.hammer.monitoring.MetricsCollector
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringMaintenanceJob
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
@@ -106,6 +107,7 @@ fun mainModule(
 	singleOf(::MetricsRepository)
 	singleOf(::ErrorRepository)
 	singleOf(::SecurityRepository)
+	singleOf(::MetricsCollector)
 	singleOf(::MonitoringMaintenanceJob)
 	singleOf(::StoryExportService)
 	singleOf(::PenNameService)
