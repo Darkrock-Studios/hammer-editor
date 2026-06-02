@@ -19,9 +19,14 @@ class MonitoringState {
 	var storeLoginIp: Boolean = true
 		private set
 
+	@Volatile
+	var prometheusEnabled: Boolean = false
+		private set
+
 	fun update(config: MonitoringConfig) {
 		errorTrackingEnabled = config.enabled && config.trackErrors
 		loginTrackingEnabled = config.enabled && config.trackLoginAttempts
 		storeLoginIp = config.enabled && config.trackLoginAttempts && config.storeLoginIp
+		prometheusEnabled = config.enabled && config.prometheusEndpointEnabled
 	}
 }
