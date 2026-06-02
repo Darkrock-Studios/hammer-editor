@@ -24,7 +24,6 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -92,6 +91,8 @@ class AccountSettingsComponent(
 					_state.getAndUpdate {
 						it.copy(
 							uiTheme = settings.uiTheme,
+							syncAutomaticSync = settings.automaticSyncing,
+							syncAutoCloseDialog = settings.autoCloseSyncDialog,
 							syncAutomaticBackups = settings.automaticBackups,
 							maxBackups = settings.maxBackups,
 							initialProjectScreen = settings.initialProjectScreen,
@@ -331,7 +332,6 @@ class AccountSettingsComponent(
 							serverWorking = false,
 						)
 					}
-					Napier.d { "ABROWN: 1: $message" }
 					showToast(scope, Res.string.settings_server_setup_toast_failure, message)
 				}
 			}
@@ -347,7 +347,6 @@ class AccountSettingsComponent(
 				)
 			}
 		}
-		Napier.d { "ABROWN: 2: $message" }
 		showToast(Res.string.settings_server_setup_toast_failure, message)
 	}
 
