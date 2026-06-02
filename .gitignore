@@ -58,7 +58,8 @@ fastlane/README.md
 
 # Release artifacts
 /android/release/
-/.claude/
+/.claude/*
+!/.claude/skills/
 /CLAUDE.md
 /.output.txt
 
