@@ -5,6 +5,7 @@ import io.github.aakira.napier.Napier
 import io.ktor.client.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
+import io.ktor.http.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -23,6 +24,10 @@ class GithubVersionCheckDataSource(
 	override suspend fun fetchLatestRelease(): GithubReleaseInfo? {
 		return try {
 			val response = http.get(VERSION_CHECK_URL)
+			if (!response.status.isSuccess()) {
+				Napier.w("Version check returned ${response.status} (likely GitHub rate limit)")
+				return null
+			}
 			val release = json.decodeFromString<GithubReleaseInfo>(response.bodyAsText())
 			if (release.body.isNullOrBlank()) {
 				release.copy(body = fetchAnnotatedTagMessage(release.tagName))
