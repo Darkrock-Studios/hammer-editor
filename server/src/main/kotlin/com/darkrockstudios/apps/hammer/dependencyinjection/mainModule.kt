@@ -135,7 +135,9 @@ fun mainModule(
 	}
 
 	factoryOf(::ProjectsDatabaseDatasource) bind ProjectsDatasource::class
-	factoryOf(::ProjectEntityDatabaseDatasource) bind ProjectEntityDatasource::class
+	factory<ProjectEntityDatasource> {
+		ProjectEntityDatabaseDatasource(get(), get(), get(), get(), get(), get(), get())
+	}
 
 	singleOf(::AdminComponent)
 	singleOf(::AccountsComponent)

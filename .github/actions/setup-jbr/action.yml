@@ -17,6 +17,11 @@ runs:
       id: attempt1
       uses: actions/setup-java@v5
       continue-on-error: true
+      # The jetbrains distribution authenticates its release-listing API call via
+      # the GITHUB_TOKEN env var, not the `token` input — without it the request is
+      # unauthenticated and hits GitHub's per-IP rate limit.
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
       with:
         distribution: 'jetbrains'
         java-version: 21
@@ -33,6 +38,8 @@ runs:
       if: steps.attempt1.outcome == 'failure'
       uses: actions/setup-java@v5
       continue-on-error: true
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
       with:
         distribution: 'jetbrains'
         java-version: 21
@@ -48,6 +55,8 @@ runs:
     - name: Set up JBR (attempt 3)
       if: steps.attempt1.outcome == 'failure' && steps.attempt2.outcome == 'failure'
       uses: actions/setup-java@v5
+      env:
+        GITHUB_TOKEN: ${{ inputs.token }}
       with:
         distribution: 'jetbrains'
         java-version: 21

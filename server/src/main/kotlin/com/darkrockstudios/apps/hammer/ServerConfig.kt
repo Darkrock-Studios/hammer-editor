@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer
 import com.darkrockstudios.apps.hammer.analytics.AnalyticsProvider
 import com.darkrockstudios.apps.hammer.analytics.AnalyticsProviderFactory
 import com.darkrockstudios.apps.hammer.email.EmailProvider
-import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import java.net.URI
@@ -27,15 +26,14 @@ data class ServerConfig(
 	}
 }
 
-@Serializable
-enum class AnalyticsProviderType {
-	// Serial names are lowercase: tomlkt matches the TOML value to the enum's
-	// serial name exactly (case-sensitively), so e.g. `type = "umami"` maps here.
-	@SerialName("none")
-	NONE,
+@Serializable(with = AnalyticsProviderType.Serializer::class)
+enum class AnalyticsProviderType(val serial: String) {
+	NONE("none"),
+	UMAMI("umami");
 
-	@SerialName("umami")
-	UMAMI,
+	object Serializer : CaseInsensitiveEnumSerializer<AnalyticsProviderType>(
+		"AnalyticsProviderType", entries.toTypedArray(), { it.serial }
+	)
 }
 
 @Serializable
@@ -79,13 +77,14 @@ data class UmamiConfig(
 	}
 }
 
-@Serializable
-enum class StorageMode {
-	@SerialName("embedded")
-	EMBEDDED,
+@Serializable(with = StorageMode.Serializer::class)
+enum class StorageMode(val serial: String) {
+	EMBEDDED("embedded"),
+	REMOTE("remote");
 
-	@SerialName("remote")
-	REMOTE,
+	object Serializer : CaseInsensitiveEnumSerializer<StorageMode>(
+		"StorageMode", entries.toTypedArray(), { it.serial }
+	)
 }
 
 @Serializable

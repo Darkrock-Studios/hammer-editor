@@ -16,6 +16,12 @@ class EntityTypeConflictException(
 			" Submitted Type: $submittedType"
 	)
 
+class EntityTooLargeException(
+	val id: Int,
+	val size: Int,
+	val maxSize: Int,
+) : Exception("Entity $id too large: $size bytes (max $maxSize)")
+
 class ProjectNotFound(val projectId: ProjectId) :
 	Exception("Project $projectId not found on server") {
 	constructor(projectDef: ProjectDefinition) : this(projectDef.uuid)
