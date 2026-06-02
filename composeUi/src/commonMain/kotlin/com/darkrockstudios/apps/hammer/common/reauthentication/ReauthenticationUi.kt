@@ -1,166 +1,234 @@
 package com.darkrockstudios.apps.hammer.common.reauthentication
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.focus.FocusDirection
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthentication
-import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
-import com.darkrockstudios.apps.hammer.common.compose.SpacerXL
+import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.moveFocusOnTab
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
-@OptIn(ExperimentalMaterial3Api::class)
+private val DialogMaxWidth = 480.dp
+
 @Composable
 fun ReauthenticationUi(
 	component: ServerReauthentication,
 ) {
 	val state by component.state.subscribeAsState()
 
-	val focusManager = LocalFocusManager.current
+	var passwordVisible by rememberSaveable(state.showReauth) { mutableStateOf(false) }
 
-	var passwordVisible by rememberSaveable { mutableStateOf(false) }
-	var isOpen by remember { mutableStateOf(state.showReauth) }
-	LaunchedEffect(state.showReauth) { if (state.showReauth) isOpen = true }
+	var renderInternal by remember { mutableStateOf(state.showReauth) }
+	LaunchedEffect(state.showReauth) { if (state.showReauth) renderInternal = true }
 
-	SimpleDialog(
-		onCloseRequest = { isOpen = false },
-		onDismissed = component::cancelReauthentication,
-		visible = isOpen && state.showReauth,
-		title = Res.string.reauth_title.get(),
+	if (!renderInternal) return
+
+	AnimatedDialogContainer(
+		isOpen = state.showReauth,
+		onDismissRequest = { component.cancelReauthentication() },
+		onClosed = { renderInternal = false },
+		properties = DialogProperties(usePlatformDefaultWidth = false),
 	) {
-		Box(
-			modifier = Modifier.padding(Ui.Padding.XL),
-			contentAlignment = Alignment.Center
-		) {
+		ReauthenticationContent(
+			state = state,
+			passwordVisible = passwordVisible,
+			onPasswordVisibleChange = { passwordVisible = it },
+			onPasswordChange = { component.updateServerPassword(it) },
+			onClose = { component.cancelReauthentication() },
+			onLogin = { component.reauthenticate(password = state.serverPassword) },
+			modifier = Modifier.predictiveBackTransform(),
+		)
+	}
+}
+
+/**
+ * The visual body of the re-auth dialog — masthead, server identity, password field, and
+ * action row — split out from the [AnimatedDialogContainer] shell so it renders directly in
+ * `@Preview` (the dialog opens its own window, which preview tooling can't capture).
+ */
+@Composable
+internal fun ReauthenticationContent(
+	state: ServerReauthentication.State,
+	passwordVisible: Boolean,
+	onPasswordVisibleChange: (Boolean) -> Unit,
+	onPasswordChange: (String) -> Unit,
+	onClose: () -> Unit,
+	onLogin: () -> Unit,
+	modifier: Modifier = Modifier,
+) {
+	Surface(
+		modifier = modifier
+			.padding(Ui.Padding.M)
+			.widthIn(max = DialogMaxWidth)
+			.fillMaxWidth(),
+		shape = RectangleShape,
+		color = MaterialTheme.colorScheme.surface,
+		contentColor = MaterialTheme.colorScheme.onSurface,
+		border = BorderStroke(
+			width = Dp.Hairline,
+			color = MaterialTheme.colorScheme.outlineVariant,
+		),
+	) {
+		Column {
+			HdMasthead(
+				section = Res.string.reauth_title.get(),
+				leadingMeta = listOf(Res.string.reauth_token_expired.get()),
+				trailing = {
+					HdMastheadAction(
+						label = "× " + Res.string.close_dialog_button.get(),
+						onClick = onClose,
+					)
+				},
+			)
+			HdFolioDivider()
+
+			Header()
+
 			if (state.serverWorking) {
-				CircularProgressIndicator(
-					modifier = Modifier.align(Alignment.Center).size(128.dp)
+				LinearProgressIndicator(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(horizontal = Ui.Padding.XL)
+						.height(2.dp),
+					color = MaterialTheme.colorScheme.primary,
 				)
 			}
 
-			Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+			Column(
+				modifier = Modifier
+					.fillMaxWidth()
+					.verticalScroll(rememberScrollState())
+					.padding(
+						start = Ui.Padding.XL,
+						end = Ui.Padding.XL,
+						top = Ui.Padding.L,
+						bottom = Ui.Padding.L,
+					),
+				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+			) {
 				Text(
-					Res.string.reauth_explanation.get(),
-					style = MaterialTheme.typography.bodyMedium
-				)
-
-				Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-				Text(
-					Res.string.reauth_server_url.get(),
-					style = MaterialTheme.typography.bodyLarge,
-					fontWeight = FontWeight.Bold
-				)
-				Text(
-					state.serverUrl,
+					text = Res.string.reauth_explanation.get(),
 					style = MaterialTheme.typography.bodyMedium,
-					fontWeight = FontWeight.Thin
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 
-				Text(
-					Res.string.reauth_server_email.get(),
-					style = MaterialTheme.typography.bodyLarge,
-					fontWeight = FontWeight.Bold
-				)
-				Text(
-					state.serverEmail,
-					style = MaterialTheme.typography.bodyMedium,
-					fontWeight = FontWeight.Thin
+				HdMetadataItem(
+					label = Res.string.reauth_server_url.get(),
+					value = state.serverUrl,
+					selectable = true,
 				)
 
-				SpacerXL()
+				HdMetadataItem(
+					label = Res.string.reauth_server_email.get(),
+					value = state.serverEmail,
+					selectable = true,
+				)
 
-				OutlinedTextField(
+				HdHairlineField(
+					label = Res.string.settings_server_setup_password_hint.get(),
 					value = state.serverPassword,
-					onValueChange = { component.updateServerPassword(it) },
-					label = { Text(Res.string.settings_server_setup_password_hint.get()) },
+					onValueChange = onPasswordChange,
+					placeholder = Res.string.settings_server_setup_password_hint.get(),
 					singleLine = true,
-					placeholder = { Text(Res.string.settings_server_setup_password_hint.get()) },
-					visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-					modifier = Modifier.moveFocusOnTab(),
-					keyboardOptions = KeyboardOptions(
-						autoCorrect = false,
-						imeAction = ImeAction.Done,
-						keyboardType = KeyboardType.Password
-					),
-					keyboardActions = KeyboardActions(
-						onNext = { focusManager.moveFocus(FocusDirection.Down) },
-					),
-					trailingIcon = {
-						val image = if (passwordVisible)
-							Icons.Filled.Visibility
-						else Icons.Filled.VisibilityOff
+					imeAction = ImeAction.Done,
+					keyboardType = KeyboardType.Password,
+					visualTransformation = if (passwordVisible) VisualTransformation.None
+					else PasswordVisualTransformation(),
+					enabled = !state.serverWorking,
+				)
 
-						// Please provide localized description for accessibility services
-						val description = if (passwordVisible)
-							Res.string.settings_server_setup_password_hide.get()
-						else
-							Res.string.settings_server_setup_password_show.get()
-
-						IconButton(onClick = { passwordVisible = !passwordVisible }) {
-							Icon(imageVector = image, description)
-						}
+				HdHairlineToggleRow(
+					checked = passwordVisible,
+					onCheckedChange = onPasswordVisibleChange,
+					label = if (passwordVisible) {
+						Res.string.settings_server_setup_password_hide.get()
+					} else {
+						Res.string.settings_server_setup_password_show.get()
 					},
-					enabled = state.serverWorking.not()
 				)
 
 				state.serverError?.let { error ->
-					Text(
-						error,
+					HdMonoLabel(
+						text = "! $error",
 						color = MaterialTheme.colorScheme.error,
-						style = MaterialTheme.typography.bodySmall,
-						fontStyle = FontStyle.Italic
 					)
 				}
-
-				Spacer(modifier = Modifier.size(Ui.Padding.L))
-
-				Row(
-					horizontalArrangement = Arrangement.SpaceBetween
-				) {
-					Button(
-						onClick = {
-							component.reauthenticate(password = state.serverPassword)
-						},
-						enabled = state.serverWorking.not()
-					) {
-						Text(Res.string.settings_server_setup_login_button.get())
-					}
-
-					SpacerXL()
-
-					Button(
-						onClick = {
-							component.cancelReauthentication()
-						},
-						enabled = state.serverWorking.not()
-					) {
-						Text(Res.string.settings_server_setup_cancel_button.get())
-					}
-				}
 			}
+
+			HorizontalDivider(
+				thickness = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			)
+
+			ActionRow(
+				working = state.serverWorking,
+				onCancel = onClose,
+				onLogin = onLogin,
+			)
 		}
+	}
+}
+
+@Composable
+private fun Header() {
+	Text(
+		text = Res.string.reauth_title.get(),
+		style = MaterialTheme.typography.headlineSmall,
+		color = MaterialTheme.colorScheme.onSurface,
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(
+				start = Ui.Padding.XL,
+				end = Ui.Padding.XL,
+				top = Ui.Padding.L,
+				bottom = Ui.Padding.S,
+			),
+	)
+}
+
+@Composable
+private fun ActionRow(
+	working: Boolean,
+	onCancel: () -> Unit,
+	onLogin: () -> Unit,
+) {
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+	) {
+		HdHairlineButton(
+			label = Res.string.settings_server_setup_cancel_button.get(),
+			onClick = onCancel,
+			enabled = !working,
+		)
+
+		Spacer(modifier = Modifier.weight(1f))
+
+		HdHairlineButton(
+			label = Res.string.settings_server_setup_login_button.get(),
+			onClick = onLogin,
+			enabled = !working,
+			emphasised = true,
+		)
 	}
 }
