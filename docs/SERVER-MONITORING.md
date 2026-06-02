@@ -83,12 +83,18 @@ Each phase is independently mergeable; commit per phase to
 - [x] `SyncSessionManager.activeSessionCount()`
 - [x] Tests: `MetricsCollectorTest` (binning/drain/disabled/percentile), `MetricsRepositoryTest` (aggregation through the DB)
 
-**Part B — UI (next, via `/frontend-design`):**
-- [ ] Vendor frappe-charts asset
-- [ ] `monitoring-nav.mustache` partial + section routing + nav integration
-- [ ] Monitoring config fields on the Settings page (moved from Phase 1)
-- [ ] **Overview** page (alerts, stat cards, live, mini-charts)
-- [ ] **Performance** page (per-endpoint table, percentiles, time-range)
+**Part B — UI (done, via `/frontend-design`):**
+- [x] frappe-charts via CDN (the proxy here can't vendor it, and the app already CDN-loads htmx + Font Awesome, so this matches precedent — swap to a vendored asset later if a CDN-free admin page is wanted)
+- [x] `monitoring-nav.mustache` sub-nav + Monitoring item in `admin-nav` + routing (`MonitoringPage.kt`)
+- [x] Monitoring config fields on the Settings page (`admin-settings.mustache` + `serverSettingsRoutes`)
+- [x] **Overview** page (derived alerts, stat cards, traffic chart, slowest endpoints) — `monitoring.css`
+- [x] **Performance** page (per-endpoint table, percentiles, 24h/7d/30d range)
+- Aesthetic: extended the "Writer's Desk" system (typewriter labels, paper cards, amber/ink, method chips).
+- Deviation from plan: Monitoring nav item is always visible (gating it per-page would mean threading a runtime flag through every admin model); the Overview shows an in-page "disabled" notice instead when the master toggle is off.
+
+> ⚠️ Templates/CSS are not exercised by CI (which compiles Kotlin + runs tests but
+> doesn't render Mustache). Kotlin wiring is CI-verified; the pages themselves need
+> a manual look in a running server.
 
 ### Phase 3 — Errors + alerting
 - [ ] StatusPages hook → `ErrorRepository.record(...)` (fingerprint dedupe, optional user_id)

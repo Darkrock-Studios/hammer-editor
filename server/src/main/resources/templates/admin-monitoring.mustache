@@ -1,0 +1,143 @@
+{{> header}}
+
+<link rel="stylesheet" href="/assets/css/monitoring.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-charts@1.6.2/dist/frappe-charts.min.css">
+
+<main class="page">
+	<div class="admin-layout">
+		{{> partials/admin-nav}}
+
+		<div class="admin-content">
+			<div class="page-header">
+				<div class="page-header__content">
+					<h1 class="page-header__title">{{msg.admin_mon_overview_title}}</h1>
+					<p class="page-header__subtitle">{{msg.admin_mon_overview_subtitle}}</p>
+				</div>
+			</div>
+
+			{{> partials/monitoring-nav}}
+
+			{{^monitoringEnabled}}
+				<div class="mon-notice">
+					<i class="fa-solid fa-circle-info"></i>
+					<span>{{msg.admin_mon_disabled_notice}}</span>
+				</div>
+			{{/monitoringEnabled}}
+
+			<!-- Alerts: the "something needs me" signal -->
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_mon_alerts_title}}</h2>
+				</div>
+				{{#hasAlerts}}
+					<div class="mon-alert-list">
+						{{#alerts}}
+							<div class="mon-alert mon-alert--{{severity}}">
+								<i class="fa-solid fa-triangle-exclamation mon-alert__icon"></i>
+								<div class="mon-alert__body">
+									<span class="mon-alert__route">{{route}}</span>
+									<span class="mon-alert__detail">{{detail}}</span>
+								</div>
+								<a class="mon-alert__action" href="/admin/monitoring/performance">
+									{{msg.admin_mon_alerts_investigate}} <i class="fa-solid fa-chevron-right"></i>
+								</a>
+							</div>
+						{{/alerts}}
+					</div>
+				{{/hasAlerts}}
+				{{^hasAlerts}}
+					<div class="mon-nominal">
+						<i class="fa-solid fa-circle-check"></i>
+						<span>{{msg.admin_mon_alerts_nominal}}</span>
+					</div>
+				{{/hasAlerts}}
+			</section>
+
+			<!-- Key stats (last 24h) -->
+			<div class="mon-stat-grid">
+				<div class="mon-stat-card">
+					<span class="mon-stat-card__label">{{msg.admin_mon_stat_requests}}</span>
+					<span class="mon-stat-card__value">{{statRequests}}</span>
+					<span class="mon-stat-card__note">{{msg.admin_mon_window_24h}}</span>
+				</div>
+				<div class="mon-stat-card">
+					<span class="mon-stat-card__label">{{msg.admin_mon_stat_error_rate}}</span>
+					<span class="mon-stat-card__value">{{statErrorRate}}</span>
+					<span class="mon-stat-card__note">{{msg.admin_mon_window_24h}}</span>
+				</div>
+				<div class="mon-stat-card">
+					<span class="mon-stat-card__label">{{msg.admin_mon_stat_p95}}</span>
+					<span class="mon-stat-card__value">{{statP95}}</span>
+					<span class="mon-stat-card__note">{{msg.admin_mon_window_24h}}</span>
+				</div>
+				<div class="mon-stat-card mon-stat-card--live">
+					<span class="mon-stat-card__label">{{msg.admin_mon_stat_active_syncs}}</span>
+					<span class="mon-stat-card__value">{{statActiveSyncs}}</span>
+					<span class="mon-stat-card__note"><i class="fa-solid fa-circle mon-live-dot"></i> {{msg.admin_mon_live}}</span>
+				</div>
+			</div>
+
+			<!-- Traffic chart -->
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_mon_traffic_title}}</h2>
+				</div>
+				<div class="mon-chart" id="mon-requests-chart"></div>
+			</section>
+
+			<!-- Slowest endpoints -->
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_mon_slowest_title}}</h2>
+					<div class="section-header__actions">
+						<a class="btn btn--ghost" href="/admin/monitoring/performance">{{msg.admin_mon_view_all}}</a>
+					</div>
+				</div>
+				{{#hasTopSlow}}
+					<div class="mon-rank-list">
+						{{#topSlow}}
+							<div class="mon-rank">
+								<span class="mon-rank__method mon-method--{{method}}">{{method}}</span>
+								<span class="mon-rank__route">{{route}}</span>
+								<span class="mon-rank__p95">{{p95}}</span>
+							</div>
+						{{/topSlow}}
+					</div>
+				{{/hasTopSlow}}
+				{{^hasTopSlow}}
+					<div class="empty-state"><p>{{msg.admin_mon_no_data}}</p></div>
+				{{/hasTopSlow}}
+			</section>
+		</div>
+	</div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/frappe-charts@1.6.2/dist/frappe-charts.min.iife.js"></script>
+<script>
+	(function () {
+		var data = {{{chartJson}}};
+		var el = document.getElementById("mon-requests-chart");
+		if (!el || !data.labels || !data.labels.length) {
+			if (el) el.innerHTML = '<p class="mon-chart__empty">{{msg.admin_mon_no_data}}</p>';
+			return;
+		}
+		var ChartCtor = (window.frappe && window.frappe.Chart) || window.Chart;
+		if (!ChartCtor) return;
+		new ChartCtor(el, {
+			data: {
+				labels: data.labels,
+				datasets: [
+					{ name: "{{msg.admin_mon_stat_requests}}", values: data.requests },
+					{ name: "{{msg.admin_mon_errors}}", values: data.errors }
+				]
+			},
+			type: "line",
+			height: 240,
+			colors: ["#d97706", "#ef4444"],
+			axisOptions: { xAxisMode: "tick" },
+			lineOptions: { hideDots: 1, regionFill: 1 }
+		});
+	})();
+</script>
+
+{{> footer}}

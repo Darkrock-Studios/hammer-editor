@@ -1,0 +1,12 @@
+<nav class="mon-subnav">
+	<a href="/admin/monitoring"
+	   class="mon-subnav__link {{#activeMonOverview}}mon-subnav__link--active{{/activeMonOverview}}">
+		<i class="fa-solid fa-gauge-high"></i>
+		<span>{{msg.admin_mon_nav_overview}}</span>
+	</a>
+	<a href="/admin/monitoring/performance"
+	   class="mon-subnav__link {{#activeMonPerformance}}mon-subnav__link--active{{/activeMonPerformance}}">
+		<i class="fa-solid fa-stopwatch"></i>
+		<span>{{msg.admin_mon_nav_performance}}</span>
+	</a>
+</nav>

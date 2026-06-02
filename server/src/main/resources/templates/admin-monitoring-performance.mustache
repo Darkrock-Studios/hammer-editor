@@ -1,0 +1,71 @@
+{{> header}}
+
+<link rel="stylesheet" href="/assets/css/monitoring.css">
+
+<main class="page">
+	<div class="admin-layout">
+		{{> partials/admin-nav}}
+
+		<div class="admin-content">
+			<div class="page-header">
+				<div class="page-header__content">
+					<h1 class="page-header__title">{{msg.admin_mon_perf_title}}</h1>
+					<p class="page-header__subtitle">{{msg.admin_mon_perf_subtitle}}</p>
+				</div>
+			</div>
+
+			{{> partials/monitoring-nav}}
+
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_mon_perf_endpoints}}</h2>
+					<div class="section-header__actions mon-range">
+						<a class="mon-range__btn {{#range24h}}mon-range__btn--active{{/range24h}}"
+						   href="/admin/monitoring/performance?range=24h">{{msg.admin_mon_range_24h}}</a>
+						<a class="mon-range__btn {{#range7d}}mon-range__btn--active{{/range7d}}"
+						   href="/admin/monitoring/performance?range=7d">{{msg.admin_mon_range_7d}}</a>
+						<a class="mon-range__btn {{#range30d}}mon-range__btn--active{{/range30d}}"
+						   href="/admin/monitoring/performance?range=30d">{{msg.admin_mon_range_30d}}</a>
+					</div>
+				</div>
+
+				{{#hasEndpoints}}
+					<div class="mon-table-wrap">
+						<table class="mon-table">
+							<thead>
+							<tr>
+								<th>{{msg.admin_mon_col_endpoint}}</th>
+								<th class="mon-table__num">{{msg.admin_mon_col_requests}}</th>
+								<th class="mon-table__num">{{msg.admin_mon_col_errors}}</th>
+								<th class="mon-table__num">{{msg.admin_mon_col_p50}}</th>
+								<th class="mon-table__num">{{msg.admin_mon_col_p95}}</th>
+								<th class="mon-table__num">{{msg.admin_mon_col_p99}}</th>
+							</tr>
+							</thead>
+							<tbody>
+							{{#endpoints}}
+								<tr>
+									<td class="mon-table__endpoint">
+										<span class="mon-rank__method mon-method--{{method}}">{{method}}</span>
+										<span class="mon-table__route">{{route}}</span>
+									</td>
+									<td class="mon-table__num">{{requestCount}}</td>
+									<td class="mon-table__num {{#hasErrors}}mon-table__num--err{{/hasErrors}}">{{errorRate}}</td>
+									<td class="mon-table__num">{{p50}}</td>
+									<td class="mon-table__num">{{p95}}</td>
+									<td class="mon-table__num">{{p99}}</td>
+								</tr>
+							{{/endpoints}}
+							</tbody>
+						</table>
+					</div>
+				{{/hasEndpoints}}
+				{{^hasEndpoints}}
+					<div class="empty-state"><p>{{msg.admin_mon_no_data}}</p></div>
+				{{/hasEndpoints}}
+			</section>
+		</div>
+	</div>
+</main>
+
+{{> footer}}

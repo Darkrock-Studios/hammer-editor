@@ -64,6 +64,75 @@
 						</div>
 					</div>
 
+					<hr class="settings-divider"/>
+					<h3 class="settings-subheading">{{msg.admin_mon_settings_title}}</h3>
+					<p class="form-field__help">{{msg.admin_mon_settings_help}}</p>
+
+					<div class="form-group form-check">
+						<label class="form-check__label">
+							<input type="checkbox" name="monEnabled" {{#monEnabled}}checked{{/monEnabled}}/>
+							{{msg.admin_mon_settings_enabled}}
+						</label>
+					</div>
+					<div class="form-group form-check">
+						<label class="form-check__label">
+							<input type="checkbox" name="monTrackApiMetrics" {{#monTrackApiMetrics}}checked{{/monTrackApiMetrics}}/>
+							{{msg.admin_mon_settings_track_api}}
+						</label>
+					</div>
+					<div class="form-group form-check">
+						<label class="form-check__label">
+							<input type="checkbox" name="monTrackErrors" {{#monTrackErrors}}checked{{/monTrackErrors}}/>
+							{{msg.admin_mon_settings_track_errors}}
+						</label>
+					</div>
+					<div class="form-group form-check">
+						<label class="form-check__label">
+							<input type="checkbox" name="monTrackLoginAttempts" {{#monTrackLoginAttempts}}checked{{/monTrackLoginAttempts}}/>
+							{{msg.admin_mon_settings_track_logins}}
+						</label>
+					</div>
+					<div class="form-group form-check">
+						<label class="form-check__label">
+							<input type="checkbox" name="monStoreLoginIp" {{#monStoreLoginIp}}checked{{/monStoreLoginIp}}/>
+							{{msg.admin_mon_settings_store_ip}}
+						</label>
+					</div>
+					<div class="form-group form-check">
+						<label class="form-check__label">
+							<input type="checkbox" name="monPrometheus" {{#monPrometheus}}checked{{/monPrometheus}}/>
+							{{msg.admin_mon_settings_prometheus}}
+						</label>
+					</div>
+
+					<div class="form-group">
+						<label for="monMetricsRetention" class="form-field__label">{{msg.admin_mon_settings_metrics_retention}}</label>
+						<input id="monMetricsRetention" name="monMetricsRetention" type="number" min="1" max="3650"
+							   value="{{monMetricsRetention}}" class="form-input"/>
+					</div>
+					<div class="form-group">
+						<label for="monErrorRetention" class="form-field__label">{{msg.admin_mon_settings_error_retention}}</label>
+						<input id="monErrorRetention" name="monErrorRetention" type="number" min="1" max="3650"
+							   value="{{monErrorRetention}}" class="form-input"/>
+					</div>
+					<div class="form-group">
+						<label for="monLoginRetention" class="form-field__label">{{msg.admin_mon_settings_login_retention}}</label>
+						<input id="monLoginRetention" name="monLoginRetention" type="number" min="1" max="3650"
+							   value="{{monLoginRetention}}" class="form-input"/>
+					</div>
+
+					<div class="form-group form-check">
+						<label class="form-check__label">
+							<input type="checkbox" name="monAlertEmailEnabled" {{#monAlertEmailEnabled}}checked{{/monAlertEmailEnabled}}/>
+							{{msg.admin_mon_settings_alert_email_enabled}}
+						</label>
+					</div>
+					<div class="form-group">
+						<label for="monAlertEmail" class="form-field__label">{{msg.admin_mon_settings_alert_email}}</label>
+						<input id="monAlertEmail" name="monAlertEmail" type="email" value="{{monAlertEmail}}" class="form-input"
+							   placeholder="admin@example.com"/>
+					</div>
+
 					<div class="form-actions">
 						<button type="submit" class="save-button">{{msg.admin_serversettings_save_button}}</button>
 					</div>
