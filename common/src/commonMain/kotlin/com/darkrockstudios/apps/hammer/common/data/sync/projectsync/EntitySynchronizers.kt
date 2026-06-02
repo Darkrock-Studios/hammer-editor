@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import io.github.aakira.napier.Napier
 
 class EntitySynchronizers(projectDef: ProjectDef) : ProjectScoped {
 
@@ -65,7 +66,13 @@ class EntitySynchronizers(projectDef: ProjectDef) : ProjectScoped {
 
 	suspend fun reIdEntry(oldId: Int, newId: Int) {
 		val type = findEntityType(oldId)
-			?: throw IllegalArgumentException("Entity $oldId not found for reId")
+		if (type == null) {
+			// Phantom newId with no backing entity (created then deleted before a
+			// successful sync). Skip it so the sync can finish and clear newIds,
+			// instead of wedging every future sync.
+			Napier.w("reId skipped: no local entity owns $oldId")
+			return
+		}
 		when (type) {
 			EntityType.Scene -> sceneSynchronizer.reIdEntity(oldId = oldId, newId = newId)
 			EntityType.Note -> noteSynchronizer.reIdEntity(oldId = oldId, newId = newId)
