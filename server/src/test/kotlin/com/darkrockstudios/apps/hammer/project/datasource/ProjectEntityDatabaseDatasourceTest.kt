@@ -67,7 +67,9 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		setupKoin()
 	}
 
-	private fun createDatasource(): ProjectEntityDatabaseDatasource {
+	private fun createDatasource(
+		maxContentLength: Int = ProjectEntityDatabaseDatasource.MAX_ENTITY_CONTENT_LENGTH,
+	): ProjectEntityDatabaseDatasource {
 		return ProjectEntityDatabaseDatasource(
 			accountDao = AccountDao(testDatabase),
 			projectDao = ProjectDao(testDatabase),
@@ -76,6 +78,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 			deletedEntityDao = DeletedEntityDao(testDatabase),
 			encryptor = contentEncryptor,
 			json = json,
+			maxContentLength = maxContentLength,
 		)
 	}
 
@@ -335,6 +338,48 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 			.checkExists(userId, 1, entityId.toLong())
 			.executeAsOne()
 		assertTrue(exists)
+	}
+
+	@Test
+	fun `Store Entity - Too Large - Rejected`() = runTest {
+		val entityId = 1
+		val entity = ApiProjectEntity.SceneEntity(
+			id = entityId,
+			name = "test",
+			content = "x".repeat(256),
+			order = 0,
+			path = listOf(0),
+			sceneType = ApiSceneType.Scene,
+			outline = "outline",
+			notes = "notes",
+		)
+
+		setupAccount(testDatabase)
+		// Tiny cap so a normal entity exceeds it without allocating the real 64 MiB.
+		val datasource = createDatasource(maxContentLength = 16)
+
+		testDatabase.serverDatabase.projectQueries
+			.createProject(userId, projectDef.name, projectDef.uuid.id)
+
+		val result = datasource.storeEntity(
+			userId,
+			projectDef,
+			entity,
+			ApiProjectEntity.Type.SCENE,
+			ApiProjectEntity.SceneEntity.serializer()
+		)
+
+		assertTrue(isFailure(result))
+		val exception = result.exception
+		assertIs<EntityTooLargeException>(exception)
+		assertEquals(entityId, exception.id)
+		assertEquals(16, exception.maxSize)
+
+		// Nothing was written.
+		val exists = testDatabase.serverDatabase.storyEntityQueries
+			.checkExists(userId, 1, entityId.toLong())
+			.executeAsOne()
+		assertFalse(exists)
 	}
 
 	@Test

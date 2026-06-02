@@ -208,6 +208,17 @@ private suspend fun RoutingContext.respondUploadEntityFailure(
 			log.warn(e.message)
 		}
 
+		is EntityTooLargeException -> {
+			call.respond(
+				status = HttpStatusCode.PayloadTooLarge,
+				HttpResponseError(
+					error = e.message ?: "Entity too large",
+					displayMessage = result.displayMessageText(call, R(ERR_KEY_UNKNOWN)),
+				),
+			)
+			log.warn(e.message)
+		}
+
 		else -> {
 			call.respond(
 				status = HttpStatusCode.ExpectationFailed,

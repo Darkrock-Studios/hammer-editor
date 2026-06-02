@@ -17,7 +17,13 @@ class ProjectEntityDatabaseDatasource(
 	private val deletedEntityDao: DeletedEntityDao,
 	private val encryptor: ContentEncryptor,
 	private val json: Json,
+	private val maxContentLength: Int = MAX_ENTITY_CONTENT_LENGTH,
 ) : ProjectEntityDatasource {
+
+	companion object {
+		// Must match the story_entity_content_max CHECK in StoryEntity.sq. 64 MiB.
+		const val MAX_ENTITY_CONTENT_LENGTH = 67_108_864
+	}
 
 	override suspend fun loadProjectSyncData(
 		userId: Long,
@@ -167,6 +173,12 @@ class ProjectEntityDatabaseDatasource(
 
 		val account = accountDao.getAccount(userId) ?: error("User not found $userId")
 		val encrypted = encryptor.encrypt(jsonString, account.cipher_secret)
+
+		if (encrypted.length > maxContentLength) {
+			return SResult.failure(
+				EntityTooLargeException(entity.id, encrypted.length, maxContentLength)
+			)
+		}
 
 		val result = storyEntityDao.upsert(
 			userId = userId,
