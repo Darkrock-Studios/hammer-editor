@@ -6,7 +6,8 @@ CREATE TABLE story_entity (
     content TEXT NOT NULL,
     hash TEXT NOT NULL,
     cipher TEXT,
-    CONSTRAINT story_entity_content_max CHECK (length(content) <= 10485760),
+    -- 64 MiB; must match MAX_ENTITY_CONTENT_LENGTH in ProjectEntityDatabaseDatasource.
+    CONSTRAINT story_entity_content_max CHECK (length(content) <= 67108864),
     FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
     FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
     UNIQUE(user_id, project_id, id)
