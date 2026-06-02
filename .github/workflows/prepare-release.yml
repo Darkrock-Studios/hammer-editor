@@ -143,8 +143,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      # appimagetool only emits the .zsync delta file when zsyncmake is on PATH;
-      # its bundled static copy is broken, so install the system one.
+      # buildDistAppImage generates the .zsync delta file with the system zsyncmake;
+      # appimagetool's bundled copy is broken, so install the system zsync package.
       - name: Install zsync
         run: |
           sudo apt-get update
