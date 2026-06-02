@@ -50,8 +50,13 @@ class SyncDataRepository(
 		if (globalSettingsRepository.isServerSynchronized().not()) return
 
 		val syncData = datasource.loadSyncData()
-		val updated = syncData.deletedIds + deletedId
-		val newSyncData = syncData.copy(deletedIds = updated)
+		val newSyncData = if (syncData.newIds.contains(deletedId)) {
+			// Brand-new entity the server never saw: drop the claim so it can't
+			// become a phantom newId. Nothing to tell the server to delete.
+			syncData.copy(newIds = syncData.newIds - deletedId)
+		} else {
+			syncData.copy(deletedIds = syncData.deletedIds + deletedId)
+		}
 		datasource.saveSyncData(newSyncData)
 	}
 

@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import kotlinx.coroutines.yield
+import kotlin.math.max
 
 class IdConflictResolutionOperation(
 	projectDef: ProjectDef,
@@ -69,7 +70,24 @@ class IdConflictResolutionOperation(
 		val lastClientIdWithoutNew = calculateLastClientIdWithoutNewIds(clientSyncData)
 		return if (serverSyncData.lastId > lastClientIdWithoutNew) {
 			if (clientSyncData.newIds.isNotEmpty()) {
-				var serverLastId = serverSyncData.lastId
+				// New IDs must be assigned above both the server's last ID and any
+				// ID already present locally. If the server ever reports a lastId
+				// lower than a local entity's ID (e.g. server-side data loss),
+				// seeding only from serverLastId would hand out IDs that collide
+				// with - and clobber - existing local entities.
+				idRepository.findNextId()
+				val clientMaxId = idRepository.peekLastId()
+				if (serverSyncData.lastId < clientMaxId) {
+					onLog(
+						syncLogW(
+							"Server lastId ${serverSyncData.lastId} is below local max ID " +
+								"$clientMaxId; assigning new IDs above local max to avoid collision",
+							projectDef.name
+						)
+					)
+				}
+
+				var serverLastId = max(serverSyncData.lastId, clientMaxId)
 				val updatedNewIds = clientSyncData.newIds.toMutableList()
 				val updatedDirty = clientSyncData.dirty.toMutableList()
 

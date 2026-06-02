@@ -343,6 +343,35 @@ class SyncDataRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `Record deleted ID prunes a brand-new entity from newIds`() = runTest {
+		// A never-synced entity (in newIds) that gets deleted must be dropped from
+		// newIds, not left behind as a phantom. The server never saw it, so there
+		// is nothing to add to deletedIds either. Leaving it in newIds is what
+		// wedged sync with "Entity X not found for reId".
+		createProject(ffs, PROJECT_2_NAME)
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		every { globalSettingsRepository.isServerSynchronized() } returns true
+		val repo = createRepository(projectDef)
+
+		repo.saveSyncData(
+			ProjectSynchronizationData(
+				currentSyncId = null,
+				lastId = 26,
+				newIds = listOf(26),
+				lastSync = Instant.DISTANT_PAST,
+				dirty = emptyList(),
+				deletedIds = emptySet(),
+			)
+		)
+
+		repo.recordIdDeletion(26)
+
+		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)
+		assertEquals(emptyList<Int>(), loadedData?.newIds)
+		assertFalse(loadedData?.deletedIds?.contains(26) ?: true)
+	}
+
+	@Test
 	fun `Load sync data`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
