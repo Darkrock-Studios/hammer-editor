@@ -119,11 +119,9 @@ Each phase is independently mergeable; commit per phase to
 - [ ] Bounded `RingBufferAppender` registered in `logback.xml`
 - [ ] **Logs** page: SSE live tail + level/logger/text filters, secret-scrubbed — `/frontend-design`
 
-### Phase 6 — Optional Prometheus (done, off by default)
-- [x] `/api/admin/{userId}/metrics` scrape endpoint — admin-auth-gated, returns 404 unless `prometheusEndpointEnabled` (cached in `MonitoringState`)
-- [x] `PrometheusExporter` renders our own collected metrics in Prometheus 0.0.4 text format, latency as a real histogram (cumulative buckets from the latency bins + `_sum`/`_count`)
-- [x] Test: exporter format / cumulative buckets
-- **Deviation from plan:** hand-rolled the exposition format from our existing metrics instead of pulling in Micrometer + `micrometer-registry-prometheus`. Avoids a heavyweight dependency (and its version/package ambiguity) and double request-timing; exposes the app's curated request metrics rather than generic JVM/Ktor metrics. Swap to Micrometer later if JVM metrics are wanted.
+### Phase 6 — Optional Prometheus (off by default)
+- [ ] `ktor-server-metrics-micrometer` + `micrometer-registry-prometheus` (version catalog)
+- [ ] Admin-auth-gated scrape endpoint, gated on `prometheusEndpointEnabled`
 
 ---
 

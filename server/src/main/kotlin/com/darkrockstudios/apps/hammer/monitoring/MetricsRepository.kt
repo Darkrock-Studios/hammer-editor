@@ -49,44 +49,35 @@ class MetricsRepository(
 	 * instant lives in exactly one resolution, so summing both is safe). Sorted
 	 * by request volume, busiest first.
 	 */
-	suspend fun getEndpointStats(since: Instant): List<EndpointStat> =
-		getMergedEndpoints(since)
-			.map { e ->
-				EndpointStat(
-					route = e.route,
-					method = e.method,
-					requestCount = e.requestCount,
-					errorCount = e.errorCount,
-					avgMs = if (e.requestCount > 0) e.totalDurationMs / e.requestCount else 0,
-					p50 = percentile(e.histogram, 50.0),
-					p95 = percentile(e.histogram, 95.0),
-					p99 = percentile(e.histogram, 99.0),
-				)
-			}
-			.sortedByDescending { it.requestCount }
-
-	/** Per-endpoint counts + latency histogram, merging HOUR and DAY buckets since [since]. */
-	suspend fun getMergedEndpoints(since: Instant): List<MergedEndpoint> {
+	suspend fun getEndpointStats(since: Instant): List<EndpointStat> {
 		val all = getHourBucketsSince(since) + getDayBucketsSince(since)
 		return all.groupBy { it.route to it.method }
 			.map { (key, rows) ->
-				MergedEndpoint(
+				val requests = rows.sumOf { it.request_count }
+				val errors = rows.sumOf { it.error_count }
+				val totalMs = rows.sumOf { it.total_duration_ms }
+				val histogram = rows.fold(LatencyHistogram()) { acc, r -> acc.plus(r) }
+				EndpointStat(
 					route = key.first,
 					method = key.second,
-					requestCount = rows.sumOf { it.request_count },
-					errorCount = rows.sumOf { it.error_count },
-					totalDurationMs = rows.sumOf { it.total_duration_ms },
-					histogram = rows.fold(LatencyHistogram()) { acc, r -> acc.plus(r) },
+					requestCount = requests,
+					errorCount = errors,
+					avgMs = if (requests > 0) totalMs / requests else 0,
+					p50 = percentile(histogram, 50.0),
+					p95 = percentile(histogram, 95.0),
+					p99 = percentile(histogram, 99.0),
 				)
 			}
+			.sortedByDescending { it.requestCount }
 	}
 
 	/** Server-wide totals across all endpoints since [since]. */
 	suspend fun getTotals(since: Instant): MetricTotals {
-		val merged = getMergedEndpoints(since)
-		val requests = merged.sumOf { it.requestCount }
-		val errors = merged.sumOf { it.errorCount }
-		val histogram = merged.fold(LatencyHistogram()) { acc, e -> acc.plus(e.histogram) }
+		val stats = getEndpointStats(since)
+		val requests = stats.sumOf { it.requestCount }
+		val errors = stats.sumOf { it.errorCount }
+		val histogram = (getHourBucketsSince(since) + getDayBucketsSince(since))
+			.fold(LatencyHistogram()) { acc, r -> acc.plus(r) }
 		return MetricTotals(
 			requestCount = requests,
 			errorCount = errors,
@@ -100,15 +91,6 @@ class MetricsRepository(
 		const val BUCKET_DAY = "DAY"
 	}
 }
-
-data class MergedEndpoint(
-	val route: String,
-	val method: String,
-	val requestCount: Long,
-	val errorCount: Long,
-	val totalDurationMs: Long,
-	val histogram: LatencyHistogram,
-)
 
 data class EndpointStat(
 	val route: String,
@@ -136,17 +118,6 @@ const val LATENCY_OVERFLOW_MS = Long.MAX_VALUE
 
 private fun LatencyHistogram.counts(): LongArray =
 	longArrayOf(le50, le100, le250, le500, le1000, le2500, leInf)
-
-/** Merge two histograms bin-by-bin. */
-private fun LatencyHistogram.plus(other: LatencyHistogram) = LatencyHistogram(
-	le50 = le50 + other.le50,
-	le100 = le100 + other.le100,
-	le250 = le250 + other.le250,
-	le500 = le500 + other.le500,
-	le1000 = le1000 + other.le1000,
-	le2500 = le2500 + other.le2500,
-	leInf = leInf + other.leInf,
-)
 
 /** Add the histogram bins of a persisted bucket row onto this histogram. */
 private fun LatencyHistogram.plus(row: Api_metric_bucket) = LatencyHistogram(
