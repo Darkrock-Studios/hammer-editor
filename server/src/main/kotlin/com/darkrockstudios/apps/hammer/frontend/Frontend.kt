@@ -12,12 +12,22 @@ import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
 import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
+import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
+import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
+import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
+import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
+import com.darkrockstudios.apps.hammer.monitoring.recordMonitoredError
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
+import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
+import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
+import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -29,6 +39,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sessions.*
+import org.koin.core.qualifier.named
 import org.koin.ktor.ext.get
 import org.koin.ktor.ext.inject
 import kotlin.time.Duration.Companion.days
@@ -45,6 +56,12 @@ fun Route.frontend() {
 	val serverConfig: ServerConfig by inject()
 	val passwordResetRepository: PasswordResetRepository by inject()
 	val markdownService: MarkdownService by inject()
+	val metricsRepository: MetricsRepository by inject()
+	val errorRepository: ErrorRepository by inject()
+	val monitoringState: MonitoringState by inject()
+	val clock: kotlin.time.Clock by inject()
+	val projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(named(PROJECTS_SYNC_MANAGER))
+	val projectSyncManager: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession> by inject(named(PROJECT_SYNC_MANAGER))
 
 	// Only inject PatreonSyncService if Patreon is enabled at server level
 	val patreonSyncService: PatreonSyncService? = if (serverConfig.patreonEnabled == true) {
@@ -81,7 +98,12 @@ fun Route.frontend() {
 		projectsRepository,
 		serverConfig,
 		patreonSyncService,
-		emailService
+		emailService,
+		metricsRepository,
+		errorRepository,
+		projectsSyncManager,
+		projectSyncManager,
+		clock,
 	)
 	communityPage(projectAccessRepository, accountsRepository, serverConfig)
 }
@@ -121,6 +143,7 @@ fun Application.configureFrontEnd() {
 				"Unhandled exception on ${call.request.httpMethod.value} ${call.request.path()}",
 				cause
 			)
+			recordMonitoredError(call, cause, errorRepository, monitoringState)
 			if (call.request.isApiCall()) {
 				call.respond(HttpStatusCode.InternalServerError)
 			} else {

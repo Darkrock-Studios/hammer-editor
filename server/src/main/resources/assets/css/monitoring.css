@@ -213,7 +213,56 @@
 .mon-table__endpoint { display: flex; align-items: center; gap: 0.6rem; }
 .mon-table__route { word-break: break-all; font-family: 'Kingthings Typewriter', monospace; color: var(--ink); }
 
+/* --- Error list (grouped, expandable) --- */
+.mon-error-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.mon-error {
+	border: 1px solid var(--neutral-200);
+	border-left: 4px solid var(--error);
+	border-radius: 4px;
+	background: var(--paper-white);
+	overflow: hidden;
+}
+
+.mon-error__summary {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.7rem 0.9rem;
+	cursor: pointer;
+	list-style: none;
+}
+.mon-error__summary::-webkit-details-marker { display: none; }
+.mon-error__summary:hover { background: var(--neutral-50); }
+
+.mon-error__count {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8rem;
+	color: #fff;
+	background: var(--error);
+	padding: 0.1rem 0.5rem;
+	border-radius: 999px;
+	white-space: nowrap;
+}
+.mon-error__type { font-family: 'Kingthings Typewriter', monospace; color: var(--ink); }
+.mon-error__route { font-family: 'Lora', Georgia, serif; color: var(--neutral-600); word-break: break-all; flex: 1; }
+.mon-error__meta { display: flex; gap: 0.9rem; align-items: center; color: var(--neutral-500); font-size: 0.82rem; white-space: nowrap; }
+
+.mon-error__body { padding: 0.25rem 0.9rem 0.9rem; }
+.mon-error__message { font-family: 'Lora', Georgia, serif; color: var(--neutral-800); margin: 0.4rem 0; }
+.mon-error__stack {
+	margin: 0;
+	padding: 0.75rem;
+	background: var(--neutral-900);
+	color: var(--neutral-100);
+	border-radius: 4px;
+	font-size: 0.78rem;
+	overflow-x: auto;
+	white-space: pre;
+}
+
 @media (max-width: 600px) {
 	.mon-stat-card__value { font-size: 1.7rem; }
 	.mon-subnav__link span { font-size: 0.85rem; }
+	.mon-error__summary { flex-wrap: wrap; }
 }

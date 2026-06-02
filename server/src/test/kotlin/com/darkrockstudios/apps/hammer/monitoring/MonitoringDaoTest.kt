@@ -119,6 +119,21 @@ class MonitoringDaoTest : BaseTest() {
 	}
 
 	@Test
+	fun `errors to alert respects threshold, recency and notified flag`() = runTest {
+		val dao = ErrorLogDao(db)
+		repeat(3) { dao.recordError("fp1", "E", "/r", null, "m", "s", base) }   // 3 occurrences, recent
+		dao.recordError("fp2", "E", "/r2", null, "m", "s", base)               // below threshold
+		repeat(5) { dao.recordError("fpOld", "E", "/old", null, "m", "s", base - 10.days) } // outside window
+
+		val toAlert = dao.getErrorsToAlert(minOccurrences = 3, since = base - 1.days)
+		assertEquals(1, toAlert.size)
+		assertEquals("fp1", toAlert.first().fingerprint)
+
+		dao.markNotified(base, toAlert.first().id)
+		assertTrue(dao.getErrorsToAlert(3, base - 1.days).isEmpty(), "notified errors are excluded")
+	}
+
+	@Test
 	fun `login attempts purge by time`() = runTest {
 		val dao = LoginAttemptDao(db)
 		dao.recordAttempt("a@x.com", null, false, base - 10.days)

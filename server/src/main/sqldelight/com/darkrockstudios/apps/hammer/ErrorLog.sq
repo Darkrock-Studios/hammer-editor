@@ -42,5 +42,14 @@ LIMIT ? OFFSET ?;
 getErrorCount:
 SELECT count(*) FROM error_log;
 
+-- Errors that have gone noisy but the admin hasn't been alerted about yet.
+getErrorsToAlert:
+SELECT * FROM error_log
+WHERE notified_at IS NULL AND occurrence_count >= ? AND last_seen >= ?
+ORDER BY occurrence_count DESC;
+
+markNotified:
+UPDATE error_log SET notified_at = ? WHERE id = ?;
+
 deleteErrorsBefore:
 DELETE FROM error_log WHERE last_seen < ?;

@@ -33,6 +33,15 @@ open class ErrorLogDao(
 		queries.getErrorCount().executeAsOne()
 	}
 
+	open suspend fun getErrorsToAlert(minOccurrences: Long, since: Instant): List<Error_log> =
+		withContext(ioDispatcher) {
+			queries.getErrorsToAlert(minOccurrences, since).executeAsList()
+		}
+
+	open suspend fun markNotified(now: Instant, id: Long): Unit = withContext(ioDispatcher) {
+		queries.markNotified(now, id)
+	}
+
 	open suspend fun deleteErrorsBefore(cutoff: Instant): Unit = withContext(ioDispatcher) {
 		queries.deleteErrorsBefore(cutoff)
 	}

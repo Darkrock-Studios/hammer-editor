@@ -1,14 +1,13 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.Error_log
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
-import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
-import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.monitoring.EndpointStat
+import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.LATENCY_OVERFLOW_MS
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
-import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
@@ -19,8 +18,7 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import org.koin.core.qualifier.named
-import org.koin.ktor.ext.get as koinGet
+import kotlin.math.ceil
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
@@ -35,20 +33,17 @@ import kotlin.time.Duration.Companion.hours
  * with a narrow mock module don't have to define monitoring beans they never use.
  */
 fun Route.adminMonitoringPages(
+	metricsRepository: MetricsRepository,
+	configRepository: ConfigRepository,
+	errorRepository: ErrorRepository,
+	projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession>,
+	projectSyncManager: SyncSessionManager<*, ProjectSynchronizationSession>,
+	clock: Clock,
 	patreonFeatureEnabled: Boolean,
 	emailFeatureEnabled: Boolean,
 ) {
 	route("/monitoring") {
 		get {
-			val app = call.application
-			val metricsRepository = app.koinGet<MetricsRepository>()
-			val configRepository = app.koinGet<ConfigRepository>()
-			val projectsSyncManager =
-				app.koinGet<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER))
-			val projectSyncManager =
-				app.koinGet<SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>>(named(PROJECT_SYNC_MANAGER))
-			val clock = app.koinGet<Clock>()
-
 			val enabled = configRepository.get(AdminServerConfig.MONITORING_CONFIG).enabled
 			val since = clock.now() - 24.hours
 
@@ -82,10 +77,6 @@ fun Route.adminMonitoringPages(
 		}
 
 		get("/performance") {
-			val app = call.application
-			val metricsRepository = app.koinGet<MetricsRepository>()
-			val clock = app.koinGet<Clock>()
-
 			val range = call.request.queryParameters["range"] ?: RANGE_24H
 			val since = clock.now() - rangeToDuration(range)
 			val stats = metricsRepository.getEndpointStats(since)
@@ -105,8 +96,49 @@ fun Route.adminMonitoringPages(
 
 			call.respond(MustacheContent("admin-monitoring-performance.mustache", call.withDefaults(model)))
 		}
+
+		get("/errors") {
+			val pageSize = 20
+			val totalCount = errorRepository.getCount()
+			val totalPages = ceil(totalCount.toDouble() / pageSize).toInt()
+			val requestedPage = call.request.queryParameters["page"]?.toIntOrNull() ?: 0
+			val currentPage = if (totalPages > 0) requestedPage.coerceIn(0, totalPages - 1) else 0
+			val errors = errorRepository.getRecent(currentPage, pageSize).map(::errorRowModel)
+
+			val model = mutableMapOf<String, Any>(
+				"page_stylesheet" to "/assets/css/admin.css",
+				"activeMonitoring" to true,
+				"activeMonErrors" to true,
+				"patreonFeatureEnabled" to patreonFeatureEnabled,
+				"emailFeatureEnabled" to emailFeatureEnabled,
+				"errors" to errors,
+				"hasErrors" to errors.isNotEmpty(),
+				"currentPageDisplay" to currentPage + 1,
+				"totalPages" to totalPages,
+				"hasPrev" to (currentPage > 0),
+				"hasNext" to (currentPage < totalPages - 1),
+				"prevPage" to currentPage - 1,
+				"nextPage" to currentPage + 1,
+				"isPaged" to (totalPages > 1),
+			)
+
+			call.respond(MustacheContent("admin-monitoring-errors.mustache", call.withDefaults(model)))
+		}
 	}
 }
+
+private fun errorRowModel(e: Error_log): Map<String, Any> = mapOf(
+	"type" to e.exception_type,
+	"route" to (e.route ?: "—"),
+	"user" to (e.user_id?.toString() ?: "all"),
+	"hasUser" to (e.user_id != null),
+	"count" to e.occurrence_count,
+	"lastSeen" to formatInstant(e.last_seen, "MMM dd, HH:mm"),
+	"message" to (e.message ?: ""),
+	"hasMessage" to (e.message != null),
+	"stackTrace" to (e.stack_trace ?: ""),
+	"hasStack" to (e.stack_trace != null),
+)
 
 // --- model helpers ---
 

@@ -39,6 +39,12 @@ class ErrorRepository(
 
 	suspend fun getCount(): Long = errorLogDao.getErrorCount()
 
+	/** Noisy error groups (>= [minOccurrences], last seen since [since]) not yet alerted on. */
+	suspend fun errorsToAlert(minOccurrences: Int, since: Instant): List<Error_log> =
+		errorLogDao.getErrorsToAlert(minOccurrences.toLong(), since)
+
+	suspend fun markNotified(id: Long) = errorLogDao.markNotified(clock.now(), id)
+
 	suspend fun purgeBefore(cutoff: Instant) = errorLogDao.deleteErrorsBefore(cutoff)
 
 	private fun fingerprint(exceptionType: String, route: String?, userId: Long?): String =

@@ -96,10 +96,13 @@ Each phase is independently mergeable; commit per phase to
 > doesn't render Mustache). Kotlin wiring is CI-verified; the pages themselves need
 > a manual look in a running server.
 
-### Phase 3 — Errors + alerting
-- [ ] StatusPages hook → `ErrorRepository.record(...)` (fingerprint dedupe, optional user_id)
-- [ ] **Errors** page (grouped, per-user filter, drill-down) — `/frontend-design`
-- [ ] Alert threshold evaluation in maintenance job → email via `EmailService` (`notified_at` dedupe)
+### Phase 3 — Errors + alerting (done)
+- [x] StatusPages `exception<Throwable>` hook → `recordMonitoredError(...)` → `ErrorRepository.record` (fingerprint dedupe, route template + user_id)
+- [x] `MonitoringState` cached-flag holder (job refreshes each tick) so the error recorder never hits the DB on the request path
+- [x] **Errors** page (`/admin/monitoring/errors`): grouped, expandable stack traces, paginated
+- [x] Alert evaluation in the maintenance job → email via `EmailService` (occurrence threshold, `notified_at` dedupe, 24h window)
+- [x] Tests: alert query (`MonitoringDaoTest`), email-alert flow (`MonitoringAlertTest`)
+- **DI note:** monitoring deps are **constructor-injected** through `adminPage` (consistent with the rest of the code). The route tests get inert monitoring beans from the shared `setupKtorTestKoin` helper — one place, no per-test churn.
 
 ### Phase 4 — Security
 - [ ] Login-attempt recording in `AccountRoutes.login()` (IP via `request.origin`, gated)

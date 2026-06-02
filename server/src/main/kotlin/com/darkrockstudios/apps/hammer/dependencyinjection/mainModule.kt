@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MetricsCollector
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringMaintenanceJob
+import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
 import com.darkrockstudios.apps.hammer.patreon.PatreonApiClient
 import com.darkrockstudios.apps.hammer.patreon.PatreonPollingJob
@@ -108,6 +109,7 @@ fun mainModule(
 	singleOf(::ErrorRepository)
 	singleOf(::SecurityRepository)
 	singleOf(::MetricsCollector)
+	single { MonitoringState() }
 	singleOf(::MonitoringMaintenanceJob)
 	singleOf(::StoryExportService)
 	singleOf(::PenNameService)
