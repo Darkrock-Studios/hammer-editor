@@ -60,7 +60,8 @@ Each phase is independently mergeable; commit per phase to
 
 ### Phase 1 — Foundation (backend/data only, no UI design needed)
 - [x] `MonitoringConfig` data class + `AdminServerConfig.MONITORING_CONFIG` key
-- [x] `.sq` schema: `api_metric_bucket`, `error_log`, `login_attempt` (no migration — Postgres schema unshipped, so `Schema.create` covers everyone)
+- [x] `.sq` schema: `api_metric_bucket`, `error_log`, `login_attempt`
+- [x] **Schema bump v1 → v2 + migration** (`migrations/1.sqm`): 3.1 shipped the Postgres schema at v1 without these tables, so existing DBs are migrated via `PostgresSchemaInitializer` → `Schema.migrate`; fresh installs get them from `Schema.create`
 - [x] DAOs (`ApiMetricDao`, `ErrorLogDao`, `LoginAttemptDao`) + adapters in `ServerDatabaseFactory`
 - [x] Repositories (`MetricsRepository`, `ErrorRepository`, `SecurityRepository`)
 - [x] Koin wiring in `mainModule.kt`
