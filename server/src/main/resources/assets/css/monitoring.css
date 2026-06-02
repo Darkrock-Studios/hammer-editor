@@ -261,6 +261,19 @@
 	white-space: pre;
 }
 
+/* --- Security: login-attempt result badges --- */
+.mon-badge {
+	display: inline-block;
+	padding: 0.1rem 0.55rem;
+	border-radius: 999px;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.72rem;
+	letter-spacing: 0.04em;
+	color: #fff;
+}
+.mon-badge--ok { background: var(--success); }
+.mon-badge--fail { background: var(--error); }
+
 @media (max-width: 600px) {
 	.mon-stat-card__value { font-size: 1.7rem; }
 	.mon-subnav__link span { font-size: 0.85rem; }

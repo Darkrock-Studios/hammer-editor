@@ -29,5 +29,14 @@ SELECT * FROM login_attempt
 ORDER BY attempted_at DESC
 LIMIT ? OFFSET ?;
 
+-- Accounts with the most failed logins in a window — the brute-force signal.
+getTopFailingEmails:
+SELECT email, count(*) AS failures
+FROM login_attempt
+WHERE success = FALSE AND email IS NOT NULL AND attempted_at >= ?
+GROUP BY email
+ORDER BY failures DESC
+LIMIT ?;
+
 deleteAttemptsBefore:
 DELETE FROM login_attempt WHERE attempted_at < ?;

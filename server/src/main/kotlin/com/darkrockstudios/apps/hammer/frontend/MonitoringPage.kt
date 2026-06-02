@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.monitoring.EndpointStat
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.LATENCY_OVERFLOW_MS
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
+import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
@@ -36,6 +37,7 @@ fun Route.adminMonitoringPages(
 	metricsRepository: MetricsRepository,
 	configRepository: ConfigRepository,
 	errorRepository: ErrorRepository,
+	securityRepository: SecurityRepository,
 	projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession>,
 	projectSyncManager: SyncSessionManager<*, ProjectSynchronizationSession>,
 	clock: Clock,
@@ -123,6 +125,35 @@ fun Route.adminMonitoringPages(
 			)
 
 			call.respond(MustacheContent("admin-monitoring-errors.mustache", call.withDefaults(model)))
+		}
+
+		get("/security") {
+			val since = clock.now() - 24.hours
+			val attempts = securityRepository.getRecentAttempts(0, 50).map { a ->
+				mapOf(
+					"email" to (a.email ?: "—"),
+					"ip" to (a.ip_address ?: "—"),
+					"success" to a.success,
+					"time" to formatInstant(a.attempted_at, "MMM dd, HH:mm:ss"),
+				)
+			}
+			val topFailures = securityRepository.getTopFailingEmails(since, 10).map { f ->
+				mapOf("email" to (f.email ?: "—"), "failures" to f.failures)
+			}
+
+			val model = mutableMapOf<String, Any>(
+				"page_stylesheet" to "/assets/css/admin.css",
+				"activeMonitoring" to true,
+				"activeMonSecurity" to true,
+				"patreonFeatureEnabled" to patreonFeatureEnabled,
+				"emailFeatureEnabled" to emailFeatureEnabled,
+				"topFailures" to topFailures,
+				"hasTopFailures" to topFailures.isNotEmpty(),
+				"attempts" to attempts,
+				"hasAttempts" to attempts.isNotEmpty(),
+			)
+
+			call.respond(MustacheContent("admin-monitoring-security.mustache", call.withDefaults(model)))
 		}
 	}
 }

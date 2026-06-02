@@ -11,7 +11,17 @@ class MonitoringState {
 	var errorTrackingEnabled: Boolean = true
 		private set
 
+	@Volatile
+	var loginTrackingEnabled: Boolean = true
+		private set
+
+	@Volatile
+	var storeLoginIp: Boolean = true
+		private set
+
 	fun update(config: MonitoringConfig) {
 		errorTrackingEnabled = config.enabled && config.trackErrors
+		loginTrackingEnabled = config.enabled && config.trackLoginAttempts
+		storeLoginIp = config.enabled && config.trackLoginAttempts && config.storeLoginIp
 	}
 }

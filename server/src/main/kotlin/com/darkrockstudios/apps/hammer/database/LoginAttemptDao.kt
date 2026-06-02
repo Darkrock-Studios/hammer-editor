@@ -30,6 +30,11 @@ open class LoginAttemptDao(
 		queries.getRecentAttempts(limit, offset).executeAsList()
 	}
 
+	open suspend fun getTopFailingEmails(since: Instant, limit: Long): List<com.darkrockstudios.apps.hammer.GetTopFailingEmails> =
+		withContext(ioDispatcher) {
+			queries.getTopFailingEmails(since, limit).executeAsList()
+		}
+
 	open suspend fun deleteAttemptsBefore(cutoff: Instant): Unit = withContext(ioDispatcher) {
 		queries.deleteAttemptsBefore(cutoff)
 	}

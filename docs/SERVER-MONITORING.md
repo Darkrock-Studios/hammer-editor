@@ -105,9 +105,13 @@ Each phase is independently mergeable; commit per phase to
 - **DI note:** monitoring deps are **constructor-injected** through `adminPage` (consistent with the rest of the code). The route tests get inert monitoring beans from the shared `setupKtorTestKoin` helper — one place, no per-test churn.
 
 ### Phase 4 — Security
-- [ ] Login-attempt recording in `AccountRoutes.login()` (IP via `request.origin`, gated)
-- [ ] `ktor-server-rate-limit` on `/api/account/login`
-- [ ] **Security** page (elevated-failure accounts/IPs, rate-limit trips) — `/frontend-design`
+**4A — login tracking + Security page (done):**
+- [x] Login-attempt recording in `AccountRoutes.login()` (IP via `request.origin.remoteAddress`, gated by cached `MonitoringState` flags `loginTrackingEnabled`/`storeLoginIp`)
+- [x] `getTopFailingEmails` query + **Security** page (`/admin/monitoring/security`): top failed-login accounts (24h) + recent attempts table with OK/FAIL badges
+- [x] Test: `getTopFailingEmails` ranking/window
+
+**4B — rate limiting (next):**
+- [ ] `ktor-server-rate-limit` on `/api/account/login` — handled separately because the plugin's route scoping + per-instance limiter state interacts with the existing login tests; needs a generous, test-safe limit and install in `configureSecurity`.
 
 ### Phase 5 — Logs
 - [ ] Bounded `RingBufferAppender` registered in `logback.xml`

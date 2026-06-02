@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
+import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
@@ -135,6 +136,7 @@ fun Application.setupKtorTestKoin(baseTest: BaseTest, vararg modules: Module) {
 				single { MonitoringState() }
 				single<MetricsRepository> { mockk(relaxed = true) }
 				single<ErrorRepository> { mockk(relaxed = true) }
+				single<SecurityRepository> { mockk(relaxed = true) }
 				single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
 					mockk(relaxed = true)
 				}

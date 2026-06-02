@@ -134,6 +134,20 @@ class MonitoringDaoTest : BaseTest() {
 	}
 
 	@Test
+	fun `top failing emails ranks failed logins in the window`() = runTest {
+		val dao = LoginAttemptDao(db)
+		repeat(3) { dao.recordAttempt("a@x.com", "1.1.1.1", false, base) }
+		dao.recordAttempt("a@x.com", "1.1.1.1", true, base)          // success: not counted
+		dao.recordAttempt("b@x.com", "2.2.2.2", false, base)
+		dao.recordAttempt("old@x.com", null, false, base - 10.days)  // outside window
+
+		val top = dao.getTopFailingEmails(since = base - 1.days, limit = 10L)
+		assertEquals(2, top.size)
+		assertEquals("a@x.com", top.first().email)
+		assertEquals(3L, top.first().failures)
+	}
+
+	@Test
 	fun `login attempts purge by time`() = runTest {
 		val dao = LoginAttemptDao(db)
 		dao.recordAttempt("a@x.com", null, false, base - 10.days)

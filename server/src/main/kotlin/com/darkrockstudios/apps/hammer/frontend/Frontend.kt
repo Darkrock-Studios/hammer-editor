@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
+import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
 import com.darkrockstudios.apps.hammer.monitoring.recordMonitoredError
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
@@ -58,6 +59,7 @@ fun Route.frontend() {
 	val markdownService: MarkdownService by inject()
 	val metricsRepository: MetricsRepository by inject()
 	val errorRepository: ErrorRepository by inject()
+	val securityRepository: SecurityRepository by inject()
 	val clock: kotlin.time.Clock by inject()
 	val projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(named(PROJECTS_SYNC_MANAGER))
 	val projectSyncManager: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession> by inject(named(PROJECT_SYNC_MANAGER))
@@ -100,6 +102,7 @@ fun Route.frontend() {
 		emailService,
 		metricsRepository,
 		errorRepository,
+		securityRepository,
 		projectsSyncManager,
 		projectSyncManager,
 		clock,

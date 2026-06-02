@@ -32,6 +32,10 @@ class SecurityRepository(
 	suspend fun getRecentAttempts(page: Int, pageSize: Int): List<Login_attempt> =
 		loginAttemptDao.getRecentAttempts(pageSize.toLong(), (page.toLong() * pageSize))
 
+	/** Accounts with the most failed logins since [since]. */
+	suspend fun getTopFailingEmails(since: Instant, limit: Int = 10): List<com.darkrockstudios.apps.hammer.GetTopFailingEmails> =
+		loginAttemptDao.getTopFailingEmails(since, limit.toLong())
+
 	suspend fun purgeBefore(cutoff: Instant) = loginAttemptDao.deleteAttemptsBefore(cutoff)
 
 	private fun String.cleaned(): String = trim().toLowerCasePreservingASCIIRules()
