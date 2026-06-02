@@ -58,7 +58,6 @@ fun Route.frontend() {
 	val markdownService: MarkdownService by inject()
 	val metricsRepository: MetricsRepository by inject()
 	val errorRepository: ErrorRepository by inject()
-	val monitoringState: MonitoringState by inject()
 	val clock: kotlin.time.Clock by inject()
 	val projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(named(PROJECTS_SYNC_MANAGER))
 	val projectSyncManager: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession> by inject(named(PROJECT_SYNC_MANAGER))
@@ -112,6 +111,9 @@ const val COOKIE_USER_SESSION = "user_session"
 
 fun Application.configureFrontEnd() {
 	configureTemplating()
+
+	val errorRepository: ErrorRepository by inject()
+	val monitoringState: MonitoringState by inject()
 
 	install(plugin = Sessions) {
 		cookie<UserSession>(COOKIE_USER_SESSION) {
