@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
+import com.darkrockstudios.apps.hammer.plugins.LoginRateLimitConfig
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
@@ -128,6 +129,8 @@ fun Application.setupKtorTestKoin(baseTest: BaseTest, vararg modules: Module) {
 					)
 				}
 				single { ServerConfig() }
+				// Effectively unlimited so login tests never trip the limiter.
+				single { LoginRateLimitConfig(limit = 1_000_000, refillPeriodSeconds = 1) }
 				// Monitoring beans: the web layer (frontend/admin pages + the
 				// StatusPages error recorder) constructor-injects these, so every
 				// test that boots the app via configureRouting needs them present.

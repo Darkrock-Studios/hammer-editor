@@ -63,6 +63,7 @@ fun mainModule(
 	single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.IO }
 
 	single { logger }
+	single { com.darkrockstudios.apps.hammer.plugins.LoginRateLimitConfig() }
 
 	singleOf(::createJsonSerializer) bind Json::class
 	single { Toml { ignoreUnknownKeys = true } } bind Toml::class

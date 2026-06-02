@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.base.http.INVALID_USER_ID
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
+import com.darkrockstudios.apps.hammer.plugins.LOGIN_RATE_LIMIT
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
@@ -12,6 +13,7 @@ import com.github.aymanizz.ktori18n.t
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.*
+import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -20,7 +22,9 @@ import org.koin.ktor.ext.get
 fun Route.accountRoutes() {
 	route("/account") {
 		createAccount()
-		login()
+		rateLimit(RateLimitName(LOGIN_RATE_LIMIT)) {
+			login()
+		}
 		refreshToken()
 		authenticate(USER_AUTH) {
 			testAuth()
