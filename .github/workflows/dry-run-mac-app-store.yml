@@ -48,6 +48,7 @@ jobs:
       - name: Set up signing keychain
         env:
           CERT_P12_BASE64: ${{ secrets.MAC_DISTRIBUTION_CERT_P12_BASE64 }}
+          INSTALLER_P12_BASE64: ${{ secrets.MAC_INSTALLER_CERT_P12_BASE64 }}
           CERT_PASSWORD: ${{ secrets.MAC_DISTRIBUTION_CERT_PASSWORD }}
         run: |
           KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
@@ -65,8 +66,13 @@ jobs:
             -o "$RUNNER_TEMP/AppleWWDRCAG3.cer"
           security import "$RUNNER_TEMP/AppleWWDRCAG3.cer" -k "$KEYCHAIN_PATH"
 
+          # Two separate single-identity .p12 files: macOS `security import`
+          # only ingests one identity from a combined multi-key .p12, so the
+          # Application and Installer certs are imported from their own files.
           echo -n "$CERT_P12_BASE64" | base64 --decode -o "$RUNNER_TEMP/cert.p12"
           security import "$RUNNER_TEMP/cert.p12" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          echo -n "$INSTALLER_P12_BASE64" | base64 --decode -o "$RUNNER_TEMP/installer.p12"
+          security import "$RUNNER_TEMP/installer.p12" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
           security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"' | xargs)
 
