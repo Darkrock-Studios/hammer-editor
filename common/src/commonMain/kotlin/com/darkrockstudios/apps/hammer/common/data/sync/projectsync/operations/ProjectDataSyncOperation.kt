@@ -12,14 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflict
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.IdConflictResolutionState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncOperationState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.ProjectDataApi
 import io.github.aakira.napier.Napier
 
@@ -115,7 +108,7 @@ class ProjectDataSyncOperation(
 				serverHash = conflict.conflict.serverHash,
 			)
 		)
-		val resolved = broker.resolutions.receive()
+		val resolved = broker.awaitResolution()
 
 		val resolveResult = api.uploadProjectData(
 			userId = userId,

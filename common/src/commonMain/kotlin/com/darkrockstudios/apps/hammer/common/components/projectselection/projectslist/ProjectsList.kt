@@ -74,3 +74,13 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 		data class ServerReauth(val component: ServerReauthentication) : ModalDestination()
 	}
 }
+
+/**
+ * True only while a sync is still working. Closing the dialog mid-sync should confirm
+ * cancellation; once every project is in a terminal state (Complete/Failed/Canceled) the
+ * sync is no longer active, so closing should just close — even if [syncComplete] never flipped.
+ */
+val ProjectsList.SyncState.hasActiveSync: Boolean
+	get() = !syncComplete && projectsStatus.values.any { status ->
+		status.status == ProjectsList.Status.Pending || status.status == ProjectsList.Status.Syncing
+	}

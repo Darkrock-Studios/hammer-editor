@@ -32,6 +32,8 @@
 	<string name="account_sync_dialog_header">Account Sync</string>
 	<string name="account_sync_dialog_cancel_button">Cancel</string>
 	<string name="account_sync_log_title">Sync Log</string>
+	<string name="account_sync_log_filter_label">Project</string>
+	<string name="account_sync_log_filter_all">All</string>
 	<string name="account_sync_dialog_status_pending">Pending</string>
 	<string name="account_sync_dialog_status_error">Error</string>
 	<string name="account_sync_dialog_status_complete">Sync Complete</string>

@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
@@ -290,21 +291,44 @@ class ProjectsListComponent(
 		var success = false
 		temporaryProjectTask(projectDef) { projScope ->
 			val synchronizer: ClientProjectSynchronizer = projScope.get { parametersOf(projectDef) }
-			success = synchronizer.sync(
-				onProgress = onProgress,
-				onLog = { message -> onLog(message) },
-				onConflict = {
-					onLog(
-						syncLogW(
-							strRes.get(Res.string.sync_log_project_conflict, projectDef.name),
-							projectDef
+			val conflictBroker: ProjectDataConflictBroker = projScope.get { parametersOf(projectDef) }
+
+			coroutineScope {
+				// Bulk account sync has no interactive resolver. A project-data conflict reports
+				// to the broker and waits on resolutions forever, leaving the project stuck
+				// "Syncing". Watch for it and abort so the project fails instead of hanging.
+				val conflictWatcher = launch {
+					for (conflict in conflictBroker.conflicts) {
+						onLog(
+							syncLogW(
+								strRes.get(Res.string.sync_log_project_conflict, projectDef.name),
+								projectDef
+							)
 						)
+						conflictBroker.abort()
+					}
+				}
+
+				try {
+					success = synchronizer.sync(
+						onProgress = onProgress,
+						onLog = { message -> onLog(message) },
+						onConflict = {
+							onLog(
+								syncLogW(
+									strRes.get(Res.string.sync_log_project_conflict, projectDef.name),
+									projectDef
+								)
+							)
+							throw IllegalStateException("Entity conflict must be handled by Project sync")
+						},
+						onComplete = {},
+						onUnauthorized = ::showReauth
 					)
-					throw IllegalStateException("Entity conflict must be handled by Project sync")
-				},
-				onComplete = {},
-				onUnauthorized = ::showReauth
-			)
+				} finally {
+					conflictWatcher.cancel()
+				}
+			}
 		}
 
 		return success
@@ -320,6 +344,7 @@ class ProjectsListComponent(
 			_state.getAndUpdate {
 				it.copy(
 					syncState = it.syncState.copy(
+						syncComplete = false,
 						projectsStatus = newStatuses
 					)
 				)
