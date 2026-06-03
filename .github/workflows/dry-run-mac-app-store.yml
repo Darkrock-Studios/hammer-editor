@@ -1,0 +1,102 @@
+name: Dry Run — Mac App Store
+# Builds, signs, and verifies the Mac App Store .pkg in CI without uploading
+# anything to App Store Connect. Exercises the same keychain + provisioning
+# profile plumbing as the real publish workflow, then saves the .pkg as an
+# artifact. Safe to run on any branch — nothing is released.
+on:
+  workflow_dispatch:
+    inputs:
+      build_number:
+        description: 'Build number to stamp (dry run only; not validated against TestFlight)'
+        required: false
+        default: '999'
+
+jobs:
+  dry-run-mac-app-store:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - uses: ruby/setup-ruby@6aaa311d81eba98ae12eaffbcb63296ace0efcde # v1.307.0
+        with:
+          ruby-version: '3.4.8'
+          bundler-cache: true
+
+      - name: Grant Permission to Execute
+        run: chmod +x gradlew desktop/scripts/build-appstore.sh
+
+      - name: Install bundle
+        run: |
+          bundle config path vendor/bundle
+          bundle install --jobs 4 --retry 3
+
+      - name: Set up signing keychain
+        env:
+          CERT_P12_BASE64: ${{ secrets.MAC_DISTRIBUTION_CERT_P12_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.MAC_DISTRIBUTION_CERT_PASSWORD }}
+        run: |
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          KEYCHAIN_PASSWORD="$(uuidgen)"
+          echo "KEYCHAIN_PATH=$KEYCHAIN_PATH" >> $GITHUB_ENV
+          echo "KEYCHAIN_PASSWORD=$KEYCHAIN_PASSWORD" >> $GITHUB_ENV
+
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+
+          # The leaf signing certs chain through Apple's WWDR intermediate. Without
+          # it in the keychain, `find-identity -v` (valid-only) silently hides them.
+          curl -fsSL https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer \
+            -o "$RUNNER_TEMP/AppleWWDRCAG3.cer"
+          security import "$RUNNER_TEMP/AppleWWDRCAG3.cer" -k "$KEYCHAIN_PATH"
+
+          echo -n "$CERT_P12_BASE64" | base64 --decode -o "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -P "$CERT_PASSWORD" -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security list-keychain -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"' | xargs)
+
+      - name: Place provisioning profiles
+        env:
+          EMBEDDED_PROFILE_B64: ${{ secrets.MAC_EMBEDDED_PROVISIONING_PROFILE_BASE64 }}
+          RUNTIME_PROFILE_B64: ${{ secrets.MAC_RUNTIME_PROVISIONING_PROFILE_BASE64 }}
+        run: |
+          echo -n "$EMBEDDED_PROFILE_B64" | base64 --decode -o desktop/embedded.provisionprofile
+          echo -n "$RUNTIME_PROFILE_B64" | base64 --decode -o desktop/runtime.provisionprofile
+
+      - name: Build & verify (no upload) 🍎
+        env:
+          BUILD_NUMBER: ${{ github.event.inputs.build_number }}
+        run: bundle exec fastlane mac desktop_build_only
+
+      - name: Upload .pkg artifact
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mac-app-store-pkg-dry-run
+          path: desktop/build/installers/main-release/pkg/*.pkg
+          if-no-files-found: error
+
+      - name: Upload Gradle problems report on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gradle-problems-report-macos-dry-run
+          path: build/reports/problems/problems-report.html
+          if-no-files-found: ignore
+
+      - name: Clean up signing material
+        if: always()
+        run: |
+          if [ -n "${KEYCHAIN_PATH:-}" ] && [ -f "$KEYCHAIN_PATH" ]; then
+            security delete-keychain "$KEYCHAIN_PATH" || true
+          fi
+          rm -f desktop/embedded.provisionprofile desktop/runtime.provisionprofile
