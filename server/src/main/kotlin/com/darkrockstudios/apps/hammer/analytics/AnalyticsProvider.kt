@@ -35,9 +35,14 @@ internal class UmamiAnalyticsProvider(config: UmamiConfig) : AnalyticsProvider {
 
 	override fun scriptSrcHosts(): List<String> = listOf(origin)
 
-	// Umami posts events to <origin>/api/send, i.e. the same origin the script is served from.
-	override fun connectSrcHosts(): List<String> = listOf(origin)
+	// Self-hosted Umami posts events to <script-origin>/api/send, but Umami Cloud's script
+	// POSTs to a separate gateway origin baked into cloud.umami.is/script.js.
+	override fun connectSrcHosts(): List<String> =
+		if (origin == UMAMI_CLOUD_ORIGIN) listOf(UMAMI_CLOUD_EVENT_ORIGIN) else listOf(origin)
 }
+
+private const val UMAMI_CLOUD_ORIGIN = "https://cloud.umami.is"
+private const val UMAMI_CLOUD_EVENT_ORIGIN = "https://api-gateway.umami.dev"
 
 object AnalyticsProviderFactory {
 	/** Returns the active provider, or null when analytics is disabled/unconfigured. */

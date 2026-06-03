@@ -28,15 +28,21 @@ class AnalyticsProviderTest {
 	}
 
 	@Test
-	fun `umami csp hosts use the script origin only`() {
+	fun `umami cloud posts events to the gateway host, not the script host`() {
+		// Umami Cloud serves the script from cloud.umami.is but POSTs events to a separate
+		// gateway origin (baked into cloud.umami.is/script.js). connect-src must allow it.
 		val cloud = UmamiAnalyticsProvider(UmamiConfig(websiteId = "x"))
 		assertEquals(listOf("https://cloud.umami.is"), cloud.scriptSrcHosts())
-		assertEquals(listOf("https://cloud.umami.is"), cloud.connectSrcHosts())
+		assertEquals(listOf("https://api-gateway.umami.dev"), cloud.connectSrcHosts())
+	}
 
+	@Test
+	fun `self-hosted umami posts events to the script origin`() {
 		val selfHosted = UmamiAnalyticsProvider(
 			UmamiConfig(websiteId = "x", scriptUrl = "https://umami.example.com/script.js")
 		)
 		assertEquals(listOf("https://umami.example.com"), selfHosted.scriptSrcHosts())
+		assertEquals(listOf("https://umami.example.com"), selfHosted.connectSrcHosts())
 	}
 
 	@Test
