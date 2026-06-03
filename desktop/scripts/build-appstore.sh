@@ -47,6 +47,18 @@ if ! security find-identity -v -p codesigning | grep -q "3rd Party Mac Developer
 	exit 1
 fi
 
+# jpackage signs the .app with the Application cert (above) and the .pkg with
+# the Installer cert. The installer cert isn't a codesigning identity, so it
+# doesn't show under `-p codesigning` — check the basic identity list. Missing
+# it fails ~9 minutes into the build at :desktop:packageReleasePkg with the
+# cryptic "no signing certificate found", so catch it up front.
+if ! security find-identity -v | grep -q "3rd Party Mac Developer Installer"; then
+	echo "ERROR: Mac Installer Distribution certificate not found in keychain." >&2
+	echo "       Need '3rd Party Mac Developer Installer: ...' to sign the .pkg." >&2
+	echo "       security find-identity -v" >&2
+	exit 1
+fi
+
 echo "→ Building Hammer for the Mac App Store (build #$BUILD_NUMBER)"
 
 ./gradlew --stop
