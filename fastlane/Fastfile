@@ -60,6 +60,21 @@ platform :mac do
     )
   end
 
+  desc "Dry run: build, sign, and verify the .pkg without touching App Store Connect. No API key, no upload — for testing the pipeline. Build number defaults to 999; set BUILD_NUMBER to override."
+  lane :desktop_build_only do
+    build_number = ENV["BUILD_NUMBER"]
+    build_number = "999" if build_number.nil? || build_number.empty?
+    UI.message("Mac App Store DRY RUN build number: #{build_number}")
+
+    # build-appstore.sh builds the .pkg and runs codesign + pkgutil signature
+    # checks; it fails the lane if signing material is missing or invalid.
+    sh("cd \"#{File.expand_path('..', __dir__)}\" && ./desktop/scripts/build-appstore.sh #{build_number}")
+
+    pkg_path = Dir.glob(File.expand_path("../desktop/build/installers/main-release/pkg/*.pkg", __dir__)).first
+    UI.user_error!("Build produced no .pkg") unless pkg_path
+    UI.success("Dry run OK — built and verified #{pkg_path} (not uploaded)")
+  end
+
   desc "Submit the latest processed TestFlight build for App Store review. Metadata + screenshots stay in App Store Connect for now."
   lane :desktop_release do
     api_key = appstore_api_key

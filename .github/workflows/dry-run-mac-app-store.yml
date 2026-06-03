@@ -1,10 +1,18 @@
-name: Publish — Mac App Store
+name: Dry Run — Mac App Store
+# Builds, signs, and verifies the Mac App Store .pkg in CI without uploading
+# anything to App Store Connect. Exercises the same keychain + provisioning
+# profile plumbing as the real publish workflow, then saves the .pkg as an
+# artifact. Safe to run on any branch — nothing is released.
 on:
   workflow_dispatch:
-  workflow_call:
+    inputs:
+      build_number:
+        description: 'Build number to stamp (dry run only; not validated against TestFlight)'
+        required: false
+        default: '999'
 
 jobs:
-  publish-mac-app-store:
+  dry-run-mac-app-store:
     runs-on: macos-latest
 
     steps:
@@ -70,21 +78,24 @@ jobs:
           echo -n "$EMBEDDED_PROFILE_B64" | base64 --decode -o desktop/embedded.provisionprofile
           echo -n "$RUNTIME_PROFILE_B64" | base64 --decode -o desktop/runtime.provisionprofile
 
-      - name: Place App Store Connect API key
+      - name: Build & verify (no upload) 🍎
         env:
-          API_KEY_P8: ${{ secrets.MAC_APP_STORE_CONNECT_API_KEY_P8 }}
-        run: |
-          mkdir -p desktop/secrets
-          printf '%s' "$API_KEY_P8" > desktop/secrets/AuthKey_F8BSZ7LC8Q.p8
+          BUILD_NUMBER: ${{ github.event.inputs.build_number }}
+        run: bundle exec fastlane mac desktop_build_only
 
-      - name: Upload to TestFlight 🍎
-        run: bundle exec fastlane mac desktop_testflight
+      - name: Upload .pkg artifact
+        if: success()
+        uses: actions/upload-artifact@v7
+        with:
+          name: mac-app-store-pkg-dry-run
+          path: desktop/build/installers/main-release/pkg/*.pkg
+          if-no-files-found: error
 
       - name: Upload Gradle problems report on failure
         if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: gradle-problems-report-macos
+          name: gradle-problems-report-macos-dry-run
           path: build/reports/problems/problems-report.html
           if-no-files-found: ignore
 
@@ -95,4 +106,3 @@ jobs:
             security delete-keychain "$KEYCHAIN_PATH" || true
           fi
           rm -f desktop/embedded.provisionprofile desktop/runtime.provisionprofile
-          rm -rf desktop/secrets
