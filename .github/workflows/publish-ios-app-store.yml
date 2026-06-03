@@ -11,6 +11,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Select Xcode 26
+        # macos-latest still defaults to Xcode 16.4 (iOS 18.5 SDK). App Store
+        # Connect now rejects uploads not built with the iOS 26 SDK, so pick the
+        # newest Xcode 26.x installed on the runner. Glob keeps us off a pinned
+        # patch version that could vanish on a future image.
+        run: |
+          XCODE_APP="$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+          echo "Using $XCODE_APP"
+          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          xcodebuild -version
+
       - uses: ruby/setup-ruby@6aaa311d81eba98ae12eaffbcb63296ace0efcde # v1.307.0
         with:
           ruby-version: '3.4.8'

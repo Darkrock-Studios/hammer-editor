@@ -21,6 +21,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
+import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.hasActiveSync
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
@@ -39,11 +40,15 @@ fun ProjectsSyncDialog(component: ProjectsList, rootSnackbar: RootSnackbarHostSt
 	var isOpen by remember { mutableStateOf(true) }
 	var confirmCancel by rememberSaveable { mutableStateOf(false) }
 	var showLog by rememberSaveable { mutableStateOf(false) }
+	val allProjectsLabel = Res.string.account_sync_log_filter_all.get()
+	// null == all projects; storing the project name (not the localized label) keeps the
+	// selection stable across locale changes.
+	var logProjectFilter by rememberSaveable { mutableStateOf<String?>(null) }
 	val syncCanceledText = Res.string.account_sync_toast_canceled.get()
 	val scope = rememberCoroutineScope()
 
 	val requestClose = {
-		if (state.syncState.syncComplete) isOpen = false else confirmCancel = true
+		if (state.syncState.hasActiveSync) confirmCancel = true else isOpen = false
 	}
 
 	AnimatedDialogContainer(
@@ -81,7 +86,17 @@ fun ProjectsSyncDialog(component: ProjectsList, rootSnackbar: RootSnackbarHostSt
 					onToggleLog = { showLog = !showLog },
 				)
 
-				if (!showLog) {
+				if (showLog) {
+					val projectNames = remember(state.syncState.projectsStatus) {
+						state.syncState.projectsStatus.keys.sorted()
+					}
+					LogFilterStrip(
+						allProjectsLabel = allProjectsLabel,
+						projectNames = projectNames,
+						selected = logProjectFilter,
+						onSelect = { logProjectFilter = it },
+					)
+				} else {
 					OverallProgressStrip(state.syncState)
 				}
 
@@ -96,7 +111,15 @@ fun ProjectsSyncDialog(component: ProjectsList, rootSnackbar: RootSnackbarHostSt
 						.heightIn(min = DialogBodyMinHeight),
 				) {
 					if (showLog) {
-						LogList(state.syncState.syncLog)
+						val showAll = logProjectFilter == null
+						val filteredLog = remember(state.syncState.syncLog, logProjectFilter) {
+							if (logProjectFilter == null) {
+								state.syncState.syncLog
+							} else {
+								state.syncState.syncLog.filter { it.projectName == logProjectFilter }
+							}
+						}
+						LogList(log = filteredLog, showProjectName = showAll)
 					} else {
 						val projects = remember(state.syncState.projectsStatus) {
 							state.syncState.projectsStatus.values.toList()
@@ -191,6 +214,31 @@ private fun TitleAndToolbar(
 		HdToolButton(active = inLogView, onClick = onToggleLog) {
 			HdLogGlyph()
 		}
+	}
+}
+
+@Composable
+private fun LogFilterStrip(
+	allProjectsLabel: String,
+	projectNames: List<String>,
+	selected: String?,
+	onSelect: (String?) -> Unit,
+) {
+	val options = remember(allProjectsLabel, projectNames) {
+		listOf(allProjectsLabel) + projectNames
+	}
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+		verticalAlignment = Alignment.CenterVertically,
+	) {
+		HdFilterMenu(
+			label = Res.string.account_sync_log_filter_label.get(),
+			options = options,
+			selected = selected ?: allProjectsLabel,
+			onSelect = { picked -> onSelect(picked.takeIf { it != allProjectsLabel }) },
+		)
 	}
 }
 
@@ -306,7 +354,7 @@ private fun SyncStatusRow(
 }
 
 @Composable
-private fun LogList(log: List<SyncLogMessage>) {
+private fun LogList(log: List<SyncLogMessage>, showProjectName: Boolean) {
 	val listState: LazyListState = rememberLazyListState()
 
 	LazyColumn(
@@ -318,7 +366,7 @@ private fun LogList(log: List<SyncLogMessage>) {
 			count = log.size,
 			key = { log[it].timestamp.toEpochMilliseconds() to it },
 		) { index ->
-			SyncLogMessageUi(log[index], showProjectName = true)
+			SyncLogMessageUi(log[index], showProjectName = showProjectName)
 		}
 	}
 

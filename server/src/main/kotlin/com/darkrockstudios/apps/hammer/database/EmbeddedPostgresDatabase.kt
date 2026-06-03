@@ -48,8 +48,9 @@ class EmbeddedPostgresDatabase(
 			.setPort(config.port)
 			.setLocaleConfig("encoding", "UTF8")
 			.setLocaleConfig("locale", "C")
-			// Default 10s startup wait flakes on loaded CI runners (initdb + boot under I/O contention).
-			.setPGStartupWait(Duration.ofSeconds(30))
+			// Default 10s startup wait flakes on loaded CI runners (initdb + boot under I/O contention);
+			// 30s still occasionally times out, so give it a wide margin.
+			.setPGStartupWait(Duration.ofSeconds(60))
 			.start()
 
 		val pgDataSource: DataSource = embedded.postgresDatabase
