@@ -32,6 +32,8 @@
 	<string name="account_sync_dialog_header">Sincronização de Conta</string>
 	<string name="account_sync_dialog_cancel_button">Cancelar</string>
 	<string name="account_sync_log_title">Registro de Sincronização</string>
+	<string name="account_sync_log_filter_label">Project</string>
+	<string name="account_sync_log_filter_all">All</string>
 	<string name="account_sync_dialog_status_pending">Pendente</string>
 	<string name="account_sync_dialog_status_error">Erro</string>
 	<string name="account_sync_dialog_status_complete">Sincronização Concluída</string>
