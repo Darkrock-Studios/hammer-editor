@@ -4,6 +4,12 @@ name: Dry Run — Mac App Store
 # profile plumbing as the real publish workflow, then saves the .pkg as an
 # artifact. Safe to run on any branch — nothing is released.
 on:
+  # Temporary: lets the dry run trigger on pushes to this branch before the
+  # workflow exists on the default branch (workflow_dispatch requires that).
+  # Remove this `push` block once the workflow is merged to the default branch.
+  push:
+    branches:
+      - ci/mac-app-store-dry-run
   workflow_dispatch:
     inputs:
       build_number:
