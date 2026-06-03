@@ -32,6 +32,8 @@
 	<string name="account_sync_dialog_header">Kontoabgleich</string>
 	<string name="account_sync_dialog_cancel_button">Abbruch</string>
 	<string name="account_sync_log_title">Einträge über den Abgleich</string>
+	<string name="account_sync_log_filter_label">Project</string>
+	<string name="account_sync_log_filter_all">All</string>
 	<string name="account_sync_dialog_status_pending">Läuft</string>
 	<string name="account_sync_dialog_status_error">Fehler</string>
 	<string name="account_sync_dialog_status_complete">Abgleich vollständig</string>
