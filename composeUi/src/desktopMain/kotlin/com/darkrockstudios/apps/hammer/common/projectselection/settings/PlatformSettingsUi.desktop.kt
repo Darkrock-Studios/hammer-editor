@@ -10,15 +10,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.common.IS_APP_STORE
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.DesktopPlatformSettings
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.settings_projects_directory
-import com.darkrockstudios.apps.hammer.settings_projects_directory_button
-import com.darkrockstudios.apps.hammer.settings_projects_directory_description
 import io.github.vinceglb.filekit.absolutePath
 import io.github.vinceglb.filekit.dialogs.compose.rememberDirectoryPickerLauncher
 
@@ -53,9 +51,13 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 				color = MaterialTheme.colorScheme.onSurface,
 			)
 		}
-		HdHairlineButton(
-			label = Res.string.settings_projects_directory_button.get(),
-			onClick = { directoryPickerLauncher.launch() },
-		)
+		// Mac App Store builds are sandboxed; the projects directory is fixed
+		// to the container's ~/Documents and the user cannot relocate it.
+		if (!IS_APP_STORE) {
+			HdHairlineButton(
+				label = Res.string.settings_projects_directory_button.get(),
+				onClick = { directoryPickerLauncher.launch() },
+			)
+		}
 	}
 }

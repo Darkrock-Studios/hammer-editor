@@ -11,8 +11,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
-import com.darkrockstudios.apps.hammer.common.sandbox.SandboxFileAccess
-import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import okio.Path.Companion.toPath
@@ -26,7 +24,6 @@ class DesktopPlatformSettingsComponent(componentContext: ComponentContext) : Des
 
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
 	private val projectsRepository: ProjectsRepository by inject()
-	private val sandboxFileAccess: SandboxFileAccess by inject()
 
 	private val _state by savableState {
 		DesktopPlatformSettings.PlatformState(
@@ -65,13 +62,10 @@ class DesktopPlatformSettingsComponent(componentContext: ComponentContext) : Des
 		)
 
 		scope.launch {
-			if (!sandboxFileAccess.establishAccessForNewDirectory(path)) {
-				Napier.e("Failed to establish sandbox access for $path; aborting directory change")
-				return@launch
-			}
-
 			globalSettingsRepository.updateSettings {
-				it.copy(projectsDirectory = path)
+				it.copy(
+					projectsDirectory = path
+				)
 			}
 
 			projectsRepository.ensureProjectDirectory()

@@ -30,7 +30,6 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
 import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModule
-import com.darkrockstudios.apps.hammer.desktop.sandbox.SandboxStartup
 import com.darkrockstudios.apps.hammer.desktop.shortcuts.QuickShortcuts
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
@@ -89,8 +88,6 @@ fun main(args: Array<String>) {
 		logger(NapierLogger())
 		modules(mainModule, imageLoadingModule, aboutLibrariesModule, desktopModule, appModule(appScope))
 	}
-
-	SandboxStartup.ensureProjectsDirAccess()
 
 	runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }
 
