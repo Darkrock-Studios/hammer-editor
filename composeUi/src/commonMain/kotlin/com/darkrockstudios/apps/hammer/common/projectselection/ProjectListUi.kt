@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -42,6 +43,9 @@ import kotlin.time.Instant
 
 private val WideContentPadding: Dp = Ui.Padding.XXL
 private val NarrowContentPadding: Dp = Ui.Padding.XL
+
+/** Tags the "Create Project" affordance (masthead button when wide, bottom bar when narrow). */
+const val CreateProjectButtonTestTag = "create-project-button"
 
 private enum class ProjectsSortMode(
 	override val labelRes: StringResource,
@@ -239,6 +243,7 @@ private fun Masthead(
 				label = "＋  ${Res.string.projects_list_create_button.get()}",
 				onClick = onCreate,
 				emphasised = true,
+				modifier = Modifier.testTag(CreateProjectButtonTestTag),
 			)
 		}
 	}
@@ -414,6 +419,7 @@ private fun BottomCreateBar(
 			modifier = Modifier
 				.fillMaxWidth()
 				.height(44.dp)
+				.testTag(CreateProjectButtonTestTag)
 				.background(MaterialTheme.colorScheme.primary)
 				.border(
 					width = Dp.Hairline,
