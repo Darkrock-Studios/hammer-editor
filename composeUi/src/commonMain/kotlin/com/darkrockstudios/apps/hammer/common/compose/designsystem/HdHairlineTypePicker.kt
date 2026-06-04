@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -45,6 +46,7 @@ fun HdHairlineTypePicker(
 		EntryType.EVENT,
 		EntryType.IDEA,
 	),
+	cellTestTag: ((EntryType) -> String)? = null,
 ) {
 	val ruleColor = MaterialTheme.colorScheme.outlineVariant
 	Row(
@@ -69,6 +71,7 @@ fun HdHairlineTypePicker(
 				modifier = Modifier
 					.weight(1f)
 					.fillMaxHeight(),
+				testTag = cellTestTag?.invoke(type),
 			)
 		}
 	}
@@ -80,6 +83,7 @@ private fun HdTypePickerCell(
 	active: Boolean,
 	onClick: () -> Unit,
 	modifier: Modifier = Modifier,
+	testTag: String? = null,
 ) {
 	val typeColor = LocalHammerColors.current.colorFor(type)
 	val outlineVariant = MaterialTheme.colorScheme.outlineVariant
@@ -98,7 +102,8 @@ private fun HdTypePickerCell(
 	Column(
 		modifier = modifier
 			.background(background)
-			.clickable(onClick = onClick),
+			.clickable(onClick = onClick)
+			.then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
 		horizontalAlignment = Alignment.CenterHorizontally,
 	) {
 		Box(

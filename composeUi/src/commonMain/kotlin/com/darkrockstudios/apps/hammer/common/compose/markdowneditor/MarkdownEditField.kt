@@ -10,6 +10,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.Dp
@@ -43,6 +44,7 @@ fun MarkdownEditField(
 	autoFocus: Boolean = false,
 	contentPadding: PaddingValues = PaddingValues(),
 	minEditorHeight: Dp = 200.dp,
+	testTag: String? = null,
 ) {
 	val markdownConfig = LocalMarkdownConfig.current
 
@@ -86,7 +88,8 @@ fun MarkdownEditField(
 			modifier = Modifier
 				.fillMaxWidth()
 				.weight(1f)
-				.heightIn(min = minEditorHeight),
+				.heightIn(min = minEditorHeight)
+				.then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
 		)
 	}
 }

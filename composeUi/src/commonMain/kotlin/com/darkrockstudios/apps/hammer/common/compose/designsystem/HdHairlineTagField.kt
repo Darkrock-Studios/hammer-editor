@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.input.key.*
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
@@ -40,6 +41,7 @@ fun HdHairlineTagField(
 	hint: String? = null,
 	placeholder: String? = null,
 	suggestTags: (prefix: String) -> List<String> = { emptyList() },
+	testTag: String? = null,
 ) {
 	var draft by remember { mutableStateOf("") }
 
@@ -134,6 +136,7 @@ fun HdHairlineTagField(
 							.fillMaxWidth()
 							.heightIn(min = 24.dp)
 							.onFocusChanged { tagsFocused = it.isFocused }
+							.then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
 							.onPreviewKeyEvent { event ->
 								if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false
 								when (event.key) {

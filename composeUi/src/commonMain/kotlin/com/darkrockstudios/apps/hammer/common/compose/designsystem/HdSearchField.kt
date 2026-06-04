@@ -20,6 +20,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -45,6 +46,7 @@ fun HdSearchField(
 	onClear: (() -> Unit)? = null,
 	clearContentDescription: String? = null,
 	focusRequester: FocusRequester? = null,
+	testTag: String? = null,
 ) {
 	val ruleColor = MaterialTheme.colorScheme.outlineVariant
 	val onSurface = MaterialTheme.colorScheme.onSurface
@@ -78,7 +80,8 @@ fun HdSearchField(
 				keyboardActions = KeyboardActions(onSearch = { onSearch?.invoke(value) }),
 				modifier = Modifier
 					.fillMaxWidth()
-					.then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier),
+					.then(if (focusRequester != null) Modifier.focusRequester(focusRequester) else Modifier)
+					.then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
 			)
 			if (value.isEmpty()) {
 				Text(

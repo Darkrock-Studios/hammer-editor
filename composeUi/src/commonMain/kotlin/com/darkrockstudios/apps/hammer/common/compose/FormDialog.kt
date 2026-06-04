@@ -16,6 +16,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -233,6 +234,7 @@ fun FormField(
 	singleLine: Boolean = true,
 	imeAction: ImeAction = ImeAction.Done,
 	onImeAction: (() -> Unit)? = null,
+	testTag: String? = null,
 ) {
 	val isError = !error.isNullOrEmpty()
 	val underlineColor = if (isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.outline
@@ -279,7 +281,8 @@ fun FormField(
 				modifier = Modifier
 					.fillMaxWidth()
 					.padding(vertical = 6.dp)
-					.focusRequester(focusRequester),
+					.focusRequester(focusRequester)
+					.then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
 				decorationBox = { inner ->
 					if (value.isEmpty() && !placeholder.isNullOrEmpty()) {
 						Text(

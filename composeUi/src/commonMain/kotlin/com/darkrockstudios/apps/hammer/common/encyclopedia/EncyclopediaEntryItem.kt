@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -46,6 +47,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 private val HeroHeight = 200.dp
+
+fun encyclopediaEntryTag(id: Int) = "encyclopedia-entry-$id"
 
 internal fun getEntryTypeIcon(type: EntryType): ImageVector {
 	return when (type) {
@@ -116,6 +119,7 @@ internal fun EncyclopediaEntryItem(
 					),
 					animatedVisibilityScope = animatedVisibilityScope,
 				)
+				.testTag(encyclopediaEntryTag(entryDef.id))
 				.clickable { viewEntry(entryDef) },
 		) {
 			// Hero zone — image (full-bleed with palette gradient) or
