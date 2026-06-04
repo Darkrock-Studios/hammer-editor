@@ -203,9 +203,6 @@ class SceneDatasource(
 		val sceneDirPath = projOkPath.div(SCENE_DIRECTORY)
 		val bufferPathSegment = sceneDirPath.div(BUFFER_DIRECTORY)
 		if (!fileSystem.exists(bufferPathSegment)) {
-			// createDirectories (not createDirectory): the scenes/ parent may not exist yet, e.g.
-			// closing a never-edited project. A throw here is on the scope-close path and crashes
-			// the process. Matches getSceneDirectory/getArchivedDirectory.
 			fileSystem.createDirectories(bufferPathSegment)
 		}
 		return bufferPathSegment.toHPath()
