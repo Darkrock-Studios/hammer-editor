@@ -14,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
@@ -34,6 +35,11 @@ import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+
+const val ENCYCLOPEDIA_CREATE_NAME_TAG = "encyclopedia-create-name"
+const val ENCYCLOPEDIA_CREATE_TAGS_TAG = "encyclopedia-create-tags"
+const val ENCYCLOPEDIA_CREATE_CONFIRM_TAG = "encyclopedia-create-confirm"
+fun encyclopediaTypeCellTag(type: EntryType) = "encyclopedia-type-${type.name}"
 
 @Composable
 internal fun CreateEntryUi(
@@ -95,11 +101,13 @@ internal fun CreateEntryUi(
 					onValueChange = { name = it.take(EncyclopediaRepository.MAX_NAME_SIZE) },
 					placeholder = Res.string.encyclopedia_create_entry_name_placeholder.get(),
 					counter = "${name.length}/${EncyclopediaRepository.MAX_NAME_SIZE}",
+					testTag = ENCYCLOPEDIA_CREATE_NAME_TAG,
 				)
 
 				HdHairlineTypePicker(
 					selected = selectedType,
 					onSelect = { selectedType = it },
+					cellTestTag = ::encyclopediaTypeCellTag,
 				)
 
 				HdHairlineTagField(
@@ -112,6 +120,7 @@ internal fun CreateEntryUi(
 					hint = Res.string.encyclopedia_create_entry_tags_hint.get(),
 					placeholder = Res.string.encyclopedia_create_entry_tags_placeholder.get(),
 					suggestTags = component::suggestTags,
+					testTag = ENCYCLOPEDIA_CREATE_TAGS_TAG,
 				)
 
 				Text(
@@ -301,6 +310,7 @@ private fun HairlineModalFooter(
 				label = Res.string.encyclopedia_create_entry_create_button.get(),
 				onClick = onCreate,
 				emphasised = true,
+				modifier = Modifier.testTag(ENCYCLOPEDIA_CREATE_CONFIRM_TAG),
 			)
 		}
 	}

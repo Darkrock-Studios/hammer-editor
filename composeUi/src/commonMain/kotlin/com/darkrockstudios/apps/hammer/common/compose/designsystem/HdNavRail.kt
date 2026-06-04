@@ -43,6 +43,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -97,6 +98,7 @@ fun <T> HdNavRail(
 	onToggleExpanded: () -> Unit,
 	modifier: Modifier = Modifier,
 	footer: @Composable (ColumnScope.() -> Unit)? = null,
+	itemTestTag: ((T) -> String)? = null,
 ) {
 	val width by animateDpAsState(
 		targetValue = if (expanded) ExpandedWidth else CollapsedWidth,
@@ -135,6 +137,7 @@ fun <T> HdNavRail(
 						selected = destination.id == selectedId,
 						expanded = expanded,
 						onClick = { onSelect(destination.id) },
+						testTag = itemTestTag?.invoke(destination.id),
 					)
 				}
 			}
@@ -173,6 +176,7 @@ private fun <T> HdNavRailRow(
 	selected: Boolean,
 	expanded: Boolean,
 	onClick: () -> Unit,
+	testTag: String? = null,
 ) {
 	val iconColor = if (selected) MaterialTheme.colorScheme.secondary
 	else MaterialTheme.colorScheme.onSurfaceVariant
@@ -184,7 +188,8 @@ private fun <T> HdNavRailRow(
 			.fillMaxWidth()
 			.height(ItemHeight)
 			.clickable(onClick = onClick)
-			.semantics { contentDescription = destination.label },
+			.semantics { contentDescription = destination.label }
+			.then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
 		verticalAlignment = Alignment.CenterVertically,
 	) {
 		AnimatedContent(

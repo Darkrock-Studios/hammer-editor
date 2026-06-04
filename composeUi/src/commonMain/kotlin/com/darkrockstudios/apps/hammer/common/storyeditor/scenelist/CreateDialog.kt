@@ -64,6 +64,7 @@ internal fun CreateDialog(
 			autoFocus = true,
 			error = if (nameText.isNotEmpty() && !isValid) errorMessage else null,
 			onImeAction = ::submit,
+			testTag = CREATE_ITEM_NAME_FIELD_TAG,
 		)
 	}
 }

@@ -40,6 +40,8 @@ import org.jetbrains.compose.resources.vectorResource
 
 private val DialogMaxWidth = 720.dp
 
+const val GLOBAL_SEARCH_INPUT_TAG = "global-search-input"
+
 @Composable
 fun GlobalSearchUi(component: GlobalSearch) {
 	val state by component.state.subscribeAsState()
@@ -89,6 +91,7 @@ fun GlobalSearchUi(component: GlobalSearch) {
 						onClear = { component.onQueryChanged("") },
 						clearContentDescription = Res.string.global_search_clear.get(),
 						focusRequester = focusRequester,
+						testTag = GLOBAL_SEARCH_INPUT_TAG,
 						modifier = Modifier.fillMaxWidth(),
 					)
 

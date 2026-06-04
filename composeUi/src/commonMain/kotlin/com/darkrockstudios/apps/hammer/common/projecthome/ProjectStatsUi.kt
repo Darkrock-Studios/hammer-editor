@@ -19,6 +19,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -56,6 +57,8 @@ import org.jetbrains.compose.resources.stringResource
 import kotlin.random.Random
 import kotlin.time.Clock
 
+const val PROJECT_STATS_TAG = "project-stats"
+
 @Composable
 fun ProjectStatsUi(
 	modifier: Modifier,
@@ -67,6 +70,7 @@ fun ProjectStatsUi(
 
 	Column(
 		modifier = modifier
+			.testTag(PROJECT_STATS_TAG)
 			.fillMaxSize()
 			.verticalScroll(rememberScrollState())
 			.padding(horizontal = 24.dp, vertical = 16.dp),

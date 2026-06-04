@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
@@ -26,6 +27,10 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+
+const val NOTES_CREATE_BODY_TAG = "notes-create-body"
+const val NOTES_CREATE_CONFIRM_TAG = "notes-create-confirm"
+const val NOTES_CREATE_CANCEL_TAG = "notes-create-cancel"
 
 @Composable
 fun CreateNoteUi(
@@ -110,6 +115,7 @@ fun CreateNoteUi(
 						initialMarkdown = noteText,
 						onMarkdownChanged = { component.onTextChanged(it) },
 						contentPadding = PaddingValues(Ui.Padding.XL),
+						testTag = NOTES_CREATE_BODY_TAG,
 						modifier = Modifier
 							.fillMaxWidth()
 							.widthIn(max = TextEditorDefaults.MAX_WIDTH),
@@ -135,10 +141,12 @@ fun CreateNoteUi(
 				HdHairlineButton(
 					label = Res.string.notes_create_cancel_button.get(),
 					onClick = { component.closeCreate() },
+					modifier = Modifier.testTag(NOTES_CREATE_CANCEL_TAG),
 				)
 				HdHairlineButton(
 					label = Res.string.notes_create_create_button.get(),
 					emphasised = canCreate,
+					modifier = Modifier.testTag(NOTES_CREATE_CONFIRM_TAG),
 					onClick = {
 						scope.launch {
 							val result = component.createNote(noteText, tags.toSet())

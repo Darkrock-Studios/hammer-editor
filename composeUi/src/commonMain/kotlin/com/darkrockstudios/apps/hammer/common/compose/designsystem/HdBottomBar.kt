@@ -34,6 +34,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
@@ -74,6 +75,7 @@ fun <T> HdBottomBar(
 	onSelect: (T) -> Unit,
 	modifier: Modifier = Modifier,
 	contentHeight: Dp = BarHeight,
+	itemTestTag: ((T) -> String)? = null,
 ) {
 	val selectedIndex = destinations.indexOfFirst { it.id == selectedId }.coerceAtLeast(0)
 	var barWidthPx by remember { mutableIntStateOf(0) }
@@ -109,6 +111,7 @@ fun <T> HdBottomBar(
 						destination = destination,
 						selected = destination.id == selectedId,
 						onClick = { onSelect(destination.id) },
+						testTag = itemTestTag?.invoke(destination.id),
 					)
 				}
 			}
@@ -132,6 +135,7 @@ private fun <T> RowScope.HdBottomBarItem(
 	destination: HdBottomBarDestination<T>,
 	selected: Boolean,
 	onClick: () -> Unit,
+	testTag: String? = null,
 ) {
 	val iconColor = if (selected) MaterialTheme.colorScheme.secondary
 	else MaterialTheme.colorScheme.onSurfaceVariant
@@ -143,7 +147,8 @@ private fun <T> RowScope.HdBottomBarItem(
 			.weight(1f)
 			.fillMaxHeight()
 			.clickable(onClick = onClick)
-			.semantics { contentDescription = destination.label },
+			.semantics { contentDescription = destination.label }
+			.then(if (testTag != null) Modifier.testTag(testTag) else Modifier),
 		horizontalAlignment = Alignment.CenterHorizontally,
 		verticalArrangement = Arrangement.Center,
 	) {

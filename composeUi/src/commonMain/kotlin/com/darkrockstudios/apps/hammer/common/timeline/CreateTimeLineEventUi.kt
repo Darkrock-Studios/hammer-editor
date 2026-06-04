@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
@@ -23,6 +24,11 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEv
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+
+const val TIME_LINE_CREATE_DATE_TAG = "timeline-create-date"
+const val TIME_LINE_CREATE_TAGS_TAG = "timeline-create-tags"
+const val TIME_LINE_CREATE_CONTENT_TAG = "timeline-create-content"
+const val TIME_LINE_CREATE_CONFIRM_TAG = "timeline-create-confirm"
 
 @Composable
 fun CreateTimeLineEventUi(
@@ -97,6 +103,7 @@ fun CreateTimeLineEventUi(
 						hint = Res.string.timeline_create_date_hint.get(),
 						placeholder = Res.string.timeline_create_date_placeholder.get(),
 						onFocusChanged = { dateFocused = it },
+						testTag = TIME_LINE_CREATE_DATE_TAG,
 					)
 				}
 
@@ -110,6 +117,7 @@ fun CreateTimeLineEventUi(
 					hint = Res.string.timeline_create_tags_hint.get(),
 					placeholder = Res.string.timeline_create_tags_placeholder.get(),
 					suggestTags = component::suggestTags,
+					testTag = TIME_LINE_CREATE_TAGS_TAG,
 				)
 			}
 
@@ -130,6 +138,7 @@ fun CreateTimeLineEventUi(
 						initialMarkdown = contentText,
 						onMarkdownChanged = { component.onContentChanged(it) },
 						contentPadding = PaddingValues(Ui.Padding.XL),
+						testTag = TIME_LINE_CREATE_CONTENT_TAG,
 						modifier = Modifier
 							.fillMaxWidth()
 							.widthIn(max = TextEditorDefaults.MAX_WIDTH),
@@ -158,6 +167,7 @@ fun CreateTimeLineEventUi(
 				HdHairlineButton(
 					label = Res.string.timeline_create_create_button.get(),
 					emphasised = contentText.isNotBlank(),
+					modifier = Modifier.testTag(TIME_LINE_CREATE_CONFIRM_TAG),
 					onClick = {
 						scope.launch {
 							when (component.createEvent(dateText, contentText, tags.toSet())) {

@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -39,6 +40,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.CoroutineContext
 import kotlin.random.Random
+
+const val SCENE_LIST_ADD_BUTTON_TAG = "scene-list-add"
+const val SCENE_LIST_ADD_SCENE_TAG = "scene-list-add-scene"
+const val SCENE_LIST_ADD_GROUP_TAG = "scene-list-add-group"
+const val CREATE_ITEM_NAME_FIELD_TAG = "create-item-name-field"
 
 @OptIn(
 	ExperimentalMaterialApi::class,
@@ -185,7 +191,10 @@ fun SceneListUi(
 							modifier = Modifier.weight(1f),
 						)
 						Box {
-							IconButton(onClick = { addMenuOpen = true }) {
+							IconButton(
+								onClick = { addMenuOpen = true },
+								modifier = Modifier.testTag(SCENE_LIST_ADD_BUTTON_TAG),
+							) {
 								Icon(
 									imageVector = Icons.Filled.Add,
 									contentDescription = Res.string.scene_list_add_button.get(),
@@ -197,6 +206,7 @@ fun SceneListUi(
 								onDismissRequest = { addMenuOpen = false },
 							) {
 								DropdownMenuItem(
+									modifier = Modifier.testTag(SCENE_LIST_ADD_SCENE_TAG),
 									text = { Text(Res.string.scene_list_create_menu_scene.get()) },
 									leadingIcon = {
 										Icon(
@@ -210,6 +220,7 @@ fun SceneListUi(
 									},
 								)
 								DropdownMenuItem(
+									modifier = Modifier.testTag(SCENE_LIST_ADD_GROUP_TAG),
 									text = { Text(Res.string.scene_list_create_menu_group.get()) },
 									leadingIcon = {
 										Icon(
