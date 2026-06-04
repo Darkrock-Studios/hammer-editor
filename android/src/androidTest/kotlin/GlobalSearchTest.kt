@@ -7,7 +7,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ActivityScenario
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import androidx.test.platform.app.InstrumentationRegistry
 import com.darkrockstudios.apps.hammer.android.ProjectRootActivity
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.globalsearch.GLOBAL_SEARCH_INPUT_TAG
@@ -53,14 +52,15 @@ class GlobalSearchTest {
 		composeRule.onNodeWithTag(GLOBAL_SEARCH_INPUT_TAG).assertIsDisplayed()
 	}
 
-	// ProjectRootActivity.dispatchKeyEvent opens search on Ctrl+Shift+F (key down).
+	// ProjectRootActivity.dispatchKeyEvent opens search on Ctrl+Shift+F (key down). Dispatch it
+	// directly on the activity so it doesn't depend on the emulator's hardware-keyboard config.
 	private fun sendGlobalSearchShortcut() {
 		val now = SystemClock.uptimeMillis()
 		val event = KeyEvent(
 			now, now, KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_F, 0,
 			KeyEvent.META_CTRL_ON or KeyEvent.META_SHIFT_ON,
 		)
-		InstrumentationRegistry.getInstrumentation().sendKeySync(event)
+		scenario.onActivity { it.dispatchKeyEvent(event) }
 	}
 
 	@After
