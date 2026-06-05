@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessa
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 interface ProjectsList : HammerComponent, ComponentToaster {
 	val state: Value<State>
@@ -39,7 +40,8 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 		val projects: List<ProjectData> = mutableListOf(),
 		val projectsPath: HPath,
 		val isServerSynced: Boolean = false,
-		val syncState: SyncState = SyncState(),
+		// In-flight sync progress is not meaningful after a process death; don't restore it.
+		@Transient val syncState: SyncState = SyncState(),
 		val createDialogProjectName: String = "",
 	)
 

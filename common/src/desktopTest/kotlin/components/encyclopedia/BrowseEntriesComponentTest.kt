@@ -3,7 +3,7 @@ package components.encyclopedia
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.backhandler.BackHandler
 import com.arkivanov.essenty.lifecycle.Lifecycle
-import com.arkivanov.essenty.statekeeper.StateKeeper
+import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntriesComponent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
@@ -33,9 +33,6 @@ class BrowseEntriesComponentTest : BaseTest() {
 	lateinit var backHandler: BackHandler
 
 	@MockK
-	lateinit var stateKeeper: StateKeeper
-
-	@MockK
 	lateinit var lifecycle: Lifecycle
 
 	@MockK
@@ -61,7 +58,7 @@ class BrowseEntriesComponentTest : BaseTest() {
 
 		every { context.lifecycle } returns lifecycle
 		every { context.backHandler } returns backHandler
-		every { context.stateKeeper } returns stateKeeper
+		every { context.stateKeeper } returns StateKeeperDispatcher()
 		every { backHandler.register(any()) } just Runs
 	}
 

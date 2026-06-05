@@ -18,19 +18,29 @@ import io.github.aakira.napier.Napier
 import io.github.reactivecircus.cache4k.Cache
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 
 class BrowseEntriesComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef
 ) : ProjectComponentBase(projectDef, componentContext), BrowseEntries {
 
-	private val _state = MutableValue(BrowseEntries.State())
+	private val restoredFilter: SavedFilter? =
+		stateKeeper.consume(FILTER_KEY, SavedFilter.serializer())
+
+	private val _state = MutableValue(BrowseEntries.State(filterType = restoredFilter?.filterType))
 	override val state: Value<BrowseEntries.State> = _state
 
-	private val _filterText = MutableValue("")
+	private val _filterText = MutableValue(restoredFilter?.filterText ?: "")
 	override val filterText: Value<String> = _filterText
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+
+	init {
+		stateKeeper.register(FILTER_KEY, SavedFilter.serializer()) {
+			SavedFilter(filterText = _filterText.value, filterType = _state.value.filterType)
+		}
+	}
 
 	private val entryContentCache = Cache.Builder<Int, EntryContainer>()
 		.maximumCacheSize(20)
@@ -175,5 +185,15 @@ class BrowseEntriesComponent(
 
 	override fun addTagToSearch(tag: String) {
 		_filterText.update { "${filterText.value} #$tag" }
+	}
+
+	@Serializable
+	private data class SavedFilter(
+		val filterText: String,
+		val filterType: EntryType?,
+	)
+
+	private companion object {
+		const val FILTER_KEY = "browse-entries-filter"
 	}
 }

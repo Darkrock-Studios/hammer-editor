@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.Spel
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 interface AccountSettings : ComponentToaster {
 	val state: Value<State>
@@ -59,9 +60,10 @@ interface AccountSettings : ComponentToaster {
 		val serverSsl: Boolean = true,
 		val serverUrl: String? = null,
 		val serverEmail: String? = null,
-		val serverPassword: String? = null,
-		val serverError: String? = null,
-		val serverWorking: Boolean = false,
+		// Never persist the password to disk; drop stale error/working state on restore.
+		@Transient val serverPassword: String? = null,
+		@Transient val serverError: String? = null,
+		@Transient val serverWorking: Boolean = false,
 		val syncAutomaticSync: Boolean,
 		val syncAutomaticBackups: Boolean,
 		val syncAutoCloseDialog: Boolean,
