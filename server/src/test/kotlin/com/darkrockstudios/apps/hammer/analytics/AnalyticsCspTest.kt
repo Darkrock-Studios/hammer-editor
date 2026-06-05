@@ -5,13 +5,11 @@ import com.darkrockstudios.apps.hammer.AnalyticsProviderType
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.UmamiConfig
 import com.darkrockstudios.apps.hammer.plugins.configureHTTP
-import io.ktor.client.request.get
-import io.ktor.client.statement.HttpResponse
-import io.ktor.server.response.respondText
-import io.ktor.server.routing.get
-import io.ktor.server.routing.routing
-import io.ktor.server.testing.ApplicationTestBuilder
-import io.ktor.server.testing.testApplication
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
+import io.ktor.server.testing.*
 import org.junit.jupiter.api.Test
 import kotlin.test.assertContains
 import kotlin.test.assertFalse
@@ -42,7 +40,7 @@ class AnalyticsCspTest {
 		val connectSrc = csp.split(";").first { it.trim().startsWith("connect-src") }
 		assertContains(scriptSrc, "https://cloud.umami.is")
 		// Cloud events go to the gateway origin, so that — not the script host — must be in connect-src.
-		assertContains(connectSrc, "https://api-gateway.umami.dev")
+		assertContains(connectSrc, "https://gateway.umami.is")
 	}
 
 	@Test

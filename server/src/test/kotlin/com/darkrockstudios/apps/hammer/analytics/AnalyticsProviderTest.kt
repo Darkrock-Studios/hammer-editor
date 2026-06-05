@@ -33,7 +33,15 @@ class AnalyticsProviderTest {
 		// gateway origin (baked into cloud.umami.is/script.js). connect-src must allow it.
 		val cloud = UmamiAnalyticsProvider(UmamiConfig(websiteId = "x"))
 		assertEquals(listOf("https://cloud.umami.is"), cloud.scriptSrcHosts())
-		assertEquals(listOf("https://api-gateway.umami.dev"), cloud.connectSrcHosts())
+		assertEquals(
+			listOf(
+				"https://gateway.umami.is",
+				"https://eu.umami.is",
+				"https://api-gateway.umami.dev",
+				"https://api-gateway-eu.umami.dev",
+			),
+			cloud.connectSrcHosts(),
+		)
 	}
 
 	@Test
@@ -43,6 +51,27 @@ class AnalyticsProviderTest {
 		)
 		assertEquals(listOf("https://umami.example.com"), selfHosted.scriptSrcHosts())
 		assertEquals(listOf("https://umami.example.com"), selfHosted.connectSrcHosts())
+	}
+
+	@Test
+	fun `configured connectSrc overrides the cloud default hosts`() {
+		// Escape hatch for when Umami moves the gateway again: config wins over the built-ins.
+		val cloud = UmamiAnalyticsProvider(
+			UmamiConfig(websiteId = "x", connectSrc = listOf("https://new-gateway.umami.is"))
+		)
+		assertEquals(listOf("https://new-gateway.umami.is"), cloud.connectSrcHosts())
+	}
+
+	@Test
+	fun `configured connectSrc overrides the self-hosted script origin`() {
+		val selfHosted = UmamiAnalyticsProvider(
+			UmamiConfig(
+				websiteId = "x",
+				scriptUrl = "https://umami.example.com/script.js",
+				connectSrc = listOf("https://events.example.com"),
+			)
+		)
+		assertEquals(listOf("https://events.example.com"), selfHosted.connectSrcHosts())
 	}
 
 	@Test

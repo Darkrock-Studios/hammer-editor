@@ -121,6 +121,21 @@ class AnalyticsConfigTest {
 	}
 
 	@Test
+	fun `validate throws when a connectSrc entry has a path`() {
+		val config = parse(
+			"""
+			[analytics]
+			type = "umami"
+
+			[analytics.umami]
+			websiteId = "abc-123"
+			connectSrc = ["https://gateway.umami.is/api/send"]
+			""".trimIndent()
+		)
+		assertThrows<IllegalArgumentException> { config.analytics.validate() }
+	}
+
+	@Test
 	fun `provider is resolved once when umami configured and absent otherwise`() {
 		val umami = parse(
 			"""

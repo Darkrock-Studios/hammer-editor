@@ -272,7 +272,12 @@ type = "umami"
 websiteId = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
 # scriptUrl defaults to Umami Cloud. To use a self-hosted Umami instance,
 # point it at your own script, e.g.:
-# scriptUrl = "https://umami.example.com/script.js"
+scriptUrl = "https://umami.example.com/script.js"
+# connectSrc overrides the CSP connect-src event hosts. Umami Cloud's script
+# POSTs events to a gateway origin that has moved several times; if tracking
+# is blocked by CSP after a host change, set the current host(s) here to fix
+# it without a code release, e.g.:
+connectSrc = ["https://gateway.umami.is"]
 ```
 
 The configuration is designed to grow: support for additional providers can be
