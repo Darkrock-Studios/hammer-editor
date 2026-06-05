@@ -26,13 +26,69 @@ private_lane :appstore_api_key do
   )
 end
 
+# Marketing version (CFBundleShortVersionString / packageVersion). Single source
+# of truth is libs.versions.toml `app`; prepareForRelease syncs it into Info.plist.
+def app_marketing_version
+  toml = File.read(File.expand_path("../gradle/libs.versions.toml", __dir__))
+  toml[/^app\s*=\s*"([^"]+)"/, 1] || UI.user_error!("Could not read `app` version from libs.versions.toml")
+end
+
+# Run deliver with a bounded retry. Right after upload the build is processed in
+# TestFlight but can lag propagating to the App Store version API, so deliver
+# crashes with "Could not find build". That crash happens during build lookup —
+# before anything is attached or submitted — so retrying the whole call is safe.
+# https://github.com/fastlane/fastlane/issues/9012
+def deliver_with_retry(params, attempts: 6, wait_seconds: 60)
+  try = 0
+  begin
+    try += 1
+    deliver(params)
+  rescue => e
+    raise if try >= attempts
+    UI.important("deliver attempt #{try}/#{attempts} failed: #{e.message.to_s.lines.first&.strip}")
+    UI.important("Build may still be propagating to App Store Connect; retrying in #{wait_seconds}s…")
+    sleep(wait_seconds)
+    retry
+  end
+end
+
 platform :mac do
-  desc "Build a sandboxed .pkg and upload to TestFlight; build number auto-increments from the latest in TestFlight."
+  desc "Build a sandboxed .pkg and upload to TestFlight only (beta; does not submit for review)."
   lane :desktop_testflight do
+    desktop_build_and_upload(wait: false)
+  end
+
+  desc "Full Mac App Store release: build, upload, wait for processing, submit for review, auto-release on approval."
+  lane :desktop_release do
+    build_number = desktop_build_and_upload(wait: true)
+    desktop_submit(build_number: build_number)
+  end
+
+  desc "Submit an already-processed TestFlight build for review + auto-release. build_number defaults to latest."
+  lane :desktop_submit do |options|
+    params = {
+      api_key: appstore_api_key,
+      app_identifier: "com.darkrockstudios.apps.hammer",
+      platform: "osx",
+      app_version: app_marketing_version,
+      skip_binary_upload: true,
+      skip_metadata: true,
+      skip_screenshots: true,
+      submit_for_review: true,
+      automatic_release: true,
+      run_precheck_before_submit: false,
+      force: true,
+    }
+    params[:build_number] = options[:build_number] if options[:build_number]
+    deliver_with_retry(params)
+  end
+
+  # Build number is the latest in TestFlight + 1 — per-platform, always above
+  # what's shipped, and self-correcting on re-runs. Set BUILD_NUMBER to override.
+  # Returns the build number so the release lane can submit that exact build.
+  private_lane :desktop_build_and_upload do |options|
     api_key = appstore_api_key
 
-    # Build number is the latest in TestFlight + 1 — per-platform, always above
-    # what's shipped, and self-correcting on re-runs. Set BUILD_NUMBER to override.
     build_number = ENV["BUILD_NUMBER"]
     if build_number.nil? || build_number.empty?
       latest = latest_testflight_build_number(
@@ -51,39 +107,56 @@ platform :mac do
     UI.user_error!("Build produced no .pkg") unless pkg_path
     UI.message("Uploading #{pkg_path}")
 
+    # When releasing we must wait for App Store Connect to finish processing the
+    # build before deliver can attach it to the version and submit it.
     upload_to_testflight(
       api_key: api_key,
       app_identifier: "com.darkrockstudios.apps.hammer",
       app_platform: "osx",
       pkg: pkg_path,
-      skip_waiting_for_build_processing: true,
+      skip_waiting_for_build_processing: !options[:wait],
     )
+
+    build_number
+  end
+end
+
+platform :ios do
+  desc "Build a signed .ipa and upload to TestFlight only (beta; does not submit for review)."
+  lane :ios_testflight do
+    ios_build_and_upload(wait: false)
   end
 
-  desc "Submit the latest processed TestFlight build for App Store review. Metadata + screenshots stay in App Store Connect for now."
-  lane :desktop_release do
-    api_key = appstore_api_key
-    deliver(
-      api_key: api_key,
-      app_identifier: "com.darkrockstudios.apps.hammer",
-      platform: "osx",
+  desc "Full iOS App Store release: build, upload, wait for processing, submit for review, auto-release on approval."
+  lane :ios_release do
+    build_number = ios_build_and_upload(wait: true)
+    ios_submit(build_number: build_number)
+  end
+
+  desc "Submit an already-processed TestFlight build for review + auto-release. build_number defaults to latest."
+  lane :ios_submit do |options|
+    params = {
+      api_key: appstore_api_key,
+      app_identifier: "com.darkrockstudios.apps.hammer.ios",
+      platform: "ios",
+      app_version: app_marketing_version,
       skip_binary_upload: true,
       skip_metadata: true,
       skip_screenshots: true,
       submit_for_review: true,
       automatic_release: true,
+      run_precheck_before_submit: false,
       force: true,
-    )
+    }
+    params[:build_number] = options[:build_number] if options[:build_number]
+    deliver_with_retry(params)
   end
-end
 
-platform :ios do
-  desc "Build a signed .ipa and upload to TestFlight; build number auto-increments from the latest in TestFlight."
-  lane :ios_testflight do
+  # Same pattern as :mac — build number is the latest in TestFlight + 1.
+  # Set BUILD_NUMBER to override. Returns the build number.
+  private_lane :ios_build_and_upload do |options|
     api_key = appstore_api_key
 
-    # Same pattern as :mac — build number is the latest in TestFlight + 1.
-    # Set BUILD_NUMBER to override.
     build_number = ENV["BUILD_NUMBER"]
     if build_number.nil? || build_number.empty?
       latest = latest_testflight_build_number(
@@ -124,29 +197,17 @@ platform :ios do
       silent: true,
     )
 
+    # When releasing we must wait for App Store Connect to finish processing the
+    # build before deliver can attach it to the version and submit it.
     upload_to_testflight(
       api_key: api_key,
       app_identifier: "com.darkrockstudios.apps.hammer.ios",
       app_platform: "ios",
       ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
-      skip_waiting_for_build_processing: true,
+      skip_waiting_for_build_processing: !options[:wait],
     )
-  end
 
-  desc "Submit the latest processed TestFlight build for App Store review. Metadata + screenshots stay in App Store Connect for now."
-  lane :ios_release do
-    api_key = appstore_api_key
-    deliver(
-      api_key: api_key,
-      app_identifier: "com.darkrockstudios.apps.hammer.ios",
-      platform: "ios",
-      skip_binary_upload: true,
-      skip_metadata: true,
-      skip_screenshots: true,
-      submit_for_review: true,
-      automatic_release: true,
-      force: true,
-    )
+    build_number
   end
 end
 
