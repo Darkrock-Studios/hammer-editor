@@ -152,6 +152,29 @@ tasks.register("prepareForRelease") {
 		changeLogFile.writeText(truncatedChangelog)
 		println("Changelog for version ${releaseInfo.semVar} written to $changelogsPath/$versionCode.txt")
 
+		// Apple App Store has a 4000 character limit for release notes
+		val truncatedAppleChangelog = if (releaseInfo.changeLog.length > 4000) {
+			"${releaseInfo.changeLog.take(3980)}... and more"
+		} else {
+			releaseInfo.changeLog
+		}
+
+		// Write the macOS App Store release notes
+		val macReleaseNotesPath = "fastlane/metadata/osx/en-US".replace("/", File.separator)
+		val macReleaseNotesDir = rootDir.resolve(macReleaseNotesPath)
+		macReleaseNotesDir.mkdirs()
+		val macReleaseNotesFile = File(macReleaseNotesDir, "release_notes.txt")
+		macReleaseNotesFile.writeText(truncatedAppleChangelog)
+		println("macOS release notes written to $macReleaseNotesPath/release_notes.txt")
+
+		// Write the iOS App Store release notes
+		val iosReleaseNotesPath = "fastlane/metadata/ios/en-US".replace("/", File.separator)
+		val iosReleaseNotesDir = rootDir.resolve(iosReleaseNotesPath)
+		iosReleaseNotesDir.mkdirs()
+		val iosReleaseNotesFile = File(iosReleaseNotesDir, "release_notes.txt")
+		iosReleaseNotesFile.writeText(truncatedAppleChangelog)
+		println("iOS release notes written to $iosReleaseNotesPath/release_notes.txt")
+
 		// Write the Global changelog file
 		val globalChangelogFile = File("${project.rootDir}/CHANGELOG.md")
 		writeChangelogMarkdown(releaseInfo, globalChangelogFile)
@@ -191,6 +214,8 @@ tasks.register("prepareForRelease") {
 
 		// Commit the changes to the repo
 		git("add", changeLogFile.absolutePath)
+		git("add", macReleaseNotesFile.absolutePath)
+		git("add", iosReleaseNotesFile.absolutePath)
 		git("add", versionsFile.absolutePath)
 		git("add", globalChangelogFile.absolutePath)
 		git("add", snapcraftFile.absolutePath)
