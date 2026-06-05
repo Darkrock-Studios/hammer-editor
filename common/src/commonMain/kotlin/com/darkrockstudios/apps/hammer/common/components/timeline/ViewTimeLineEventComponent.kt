@@ -230,12 +230,12 @@ class ViewTimeLineEventComponent(
 	}
 
 	override fun isEditingAndDirty(): Boolean {
-		val event = state.value.event ?: return false
-		return state.value.isEditing && (
-			event.content != contentText.value ||
-				event.date != dateText.value ||
-				event.tags != state.value.tags
-			)
+		if (!state.value.isEditing) return false
+		// Baseline not loaded yet (e.g. restored mid-edit): assume dirty so we don't silently discard.
+		val event = state.value.event ?: return true
+		return event.content != contentText.value ||
+			event.date != dateText.value ||
+			event.tags != state.value.tags
 	}
 
 	private fun removeEntryMenu() {

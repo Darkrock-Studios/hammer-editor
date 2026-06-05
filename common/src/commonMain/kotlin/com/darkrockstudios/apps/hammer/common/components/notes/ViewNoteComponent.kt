@@ -153,9 +153,10 @@ class ViewNoteComponent(
 	}
 
 	override fun isEditingAndDirty(): Boolean {
-		val note = state.value.note ?: return false
-		return state.value.isEditing &&
-			(note.content != noteText.value || note.tags != state.value.tags)
+		if (!state.value.isEditing) return false
+		// Baseline not loaded yet (e.g. restored mid-edit): assume dirty so we don't silently discard.
+		val note = state.value.note ?: return true
+		return note.content != noteText.value || note.tags != state.value.tags
 	}
 
 	override fun discardEdit() {
