@@ -18,6 +18,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 
 class ViewTimeLineEventComponent(
 	componentContext: ComponentContext,
@@ -33,13 +34,22 @@ class ViewTimeLineEventComponent(
 	private val mainDispatcher by injectMainDispatcher()
 	private val timeLineRepository: TimeLineRepository by projectInject()
 
-	private val _state = MutableValue(ViewTimeLineEvent.State())
+	// A restored in-progress edit, only present after process death while editing.
+	private val restoredDraft: SavedDraft? =
+		stateKeeper.consume(DRAFT_KEY, SavedDraft.serializer())?.takeIf { it.isEditing }
+
+	private val _state = MutableValue(
+		ViewTimeLineEvent.State(
+			tags = restoredDraft?.tags ?: emptySet(),
+			isEditing = restoredDraft != null,
+		)
+	)
 	override val state: Value<ViewTimeLineEvent.State> = _state
 
-	private val _dateText = MutableValue("")
+	private val _dateText = MutableValue(restoredDraft?.dateText ?: "")
 	override val dateText: Value<String> = _dateText
 
-	private val _contentText = MutableValue("")
+	private val _contentText = MutableValue(restoredDraft?.contentText ?: "")
 	override val contentText: Value<String> = _contentText
 
 	private val backButtonHandler = BackCallback(isEnabled = false) {
@@ -47,6 +57,17 @@ class ViewTimeLineEventComponent(
 			confirmDiscard()
 		} else if (state.value.isEditing) {
 			discardEdit()
+		}
+	}
+
+	init {
+		stateKeeper.register(DRAFT_KEY, SavedDraft.serializer()) {
+			SavedDraft(
+				contentText = _contentText.value,
+				dateText = _dateText.value,
+				tags = _state.value.tags,
+				isEditing = _state.value.isEditing,
+			)
 		}
 	}
 
@@ -89,11 +110,13 @@ class ViewTimeLineEventComponent(
 				_state.getAndUpdate {
 					it.copy(
 						event = event,
-						tags = event?.tags ?: emptySet(),
+						tags = if (restoredDraft != null) it.tags else event?.tags ?: emptySet(),
 					)
 				}
-				_contentText.update { event?.content ?: "" }
-				_dateText.update { event?.date ?: "" }
+				if (restoredDraft == null) {
+					_contentText.update { event?.content ?: "" }
+					_dateText.update { event?.date ?: "" }
+				}
 			}
 		}
 	}
@@ -297,5 +320,17 @@ class ViewTimeLineEventComponent(
 
 	override fun onStop() {
 		removeEntryMenu()
+	}
+
+	@Serializable
+	private data class SavedDraft(
+		val contentText: String,
+		val dateText: String,
+		val tags: Set<String>,
+		val isEditing: Boolean,
+	)
+
+	private companion object {
+		const val DRAFT_KEY = "view-timeline-event-draft"
 	}
 }

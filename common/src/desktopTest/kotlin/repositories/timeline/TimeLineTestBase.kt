@@ -3,6 +3,7 @@ package repositories.timeline
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.backhandler.BackHandler
 import com.arkivanov.essenty.lifecycle.Lifecycle
+import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
@@ -65,6 +66,7 @@ abstract class TimeLineTestBase : BaseTest() {
 
 		every { lifecycle.state } returns Lifecycle.State.STARTED
 		every { context.lifecycle } returns lifecycle
+		every { context.stateKeeper } returns StateKeeperDispatcher()
 		every { context.backHandler } returns backHandler
 		every { backHandler.register(any()) } just Runs
 		every {

@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 
 class CreateNoteComponent(
 	componentContext: ComponentContext,
@@ -22,13 +23,21 @@ class CreateNoteComponent(
 	private val _state = MutableValue(CreateNote.State())
 	override val state: Value<CreateNote.State> = _state
 
-	private val _noteText = MutableValue("")
+	private val _noteText = MutableValue(
+		stateKeeper.consume(DRAFT_KEY, SavedDraft.serializer())?.noteText ?: ""
+	)
 	override val noteText: Value<String> = _noteText
 
 	private val notesRepository: NotesRepository by projectInject()
 
 	private val backButtonHandler = BackCallback(isEnabled = false) {
 		confirmDiscard()
+	}
+
+	init {
+		stateKeeper.register(DRAFT_KEY, SavedDraft.serializer()) {
+			SavedDraft(noteText = _noteText.value)
+		}
 	}
 
 	override fun onCreate() {
@@ -85,5 +94,12 @@ class CreateNoteComponent(
 		} else {
 			dismissCreate()
 		}
+	}
+
+	@Serializable
+	private data class SavedDraft(val noteText: String)
+
+	private companion object {
+		const val DRAFT_KEY = "create-note-draft"
 	}
 }
