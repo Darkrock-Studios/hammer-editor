@@ -14,6 +14,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -24,6 +25,8 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.scene_group_item_collapsed
 import com.darkrockstudios.apps.hammer.scene_group_item_expanded
+
+fun sceneGroupTag(id: Int) = "scene-group-$id"
 
 @Composable
 internal fun SceneGroupItem(
@@ -43,6 +46,7 @@ internal fun SceneGroupItem(
 
 	val groupModifier = draggable
 		.fillMaxWidth()
+		.testTag(sceneGroupTag(scene.id))
 		.clickable { toggleExpand(scene.id) }
 
 	SceneGroupActionContainer(

@@ -9,11 +9,13 @@ import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.notes_menu_delete
 import com.darkrockstudios.apps.hammer.notes_menu_group
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 
 class ViewNoteComponent(
 	componentContext: ComponentContext,
@@ -28,10 +30,20 @@ class ViewNoteComponent(
 
 	private val notesRepository: NotesRepository by projectInject()
 
-	private val _state = MutableValue(ViewNote.State(projectDef = projectDef))
+	// A restored in-progress edit, only present after process death while editing.
+	private val restoredDraft: SavedDraft? =
+		stateKeeper.consume(DRAFT_KEY, SavedDraft.serializer())?.takeIf { it.isEditing }
+
+	private val _state = MutableValue(
+		ViewNote.State(
+			projectDef = projectDef,
+			tags = restoredDraft?.tags ?: emptySet(),
+			isEditing = restoredDraft != null,
+		)
+	)
 	override val state: Value<ViewNote.State> = _state
 
-	private val _noteText = MutableValue("")
+	private val _noteText = MutableValue(restoredDraft?.noteText ?: "")
 	override val noteText: Value<String> = _noteText
 
 	private val backButtonHandler = BackCallback(isEnabled = false) {
@@ -39,6 +51,16 @@ class ViewNoteComponent(
 			confirmDiscard()
 		} else if (state.value.isEditing) {
 			discardEdit()
+		}
+	}
+
+	init {
+		stateKeeper.register(DRAFT_KEY, SavedDraft.serializer()) {
+			SavedDraft(
+				noteText = _noteText.value,
+				tags = _state.value.tags,
+				isEditing = _state.value.isEditing,
+			)
 		}
 	}
 
@@ -131,9 +153,10 @@ class ViewNoteComponent(
 	}
 
 	override fun isEditingAndDirty(): Boolean {
-		val note = state.value.note ?: return false
-		return state.value.isEditing &&
-			(note.content != noteText.value || note.tags != state.value.tags)
+		if (!state.value.isEditing) return false
+		// Baseline not loaded yet (e.g. restored mid-edit): assume dirty so we don't silently discard.
+		val note = state.value.note ?: return true
+		return note.content != noteText.value || note.tags != state.value.tags
 	}
 
 	override fun discardEdit() {
@@ -194,16 +217,23 @@ class ViewNoteComponent(
 			notesRepository.loadNotes {
 				note = notesRepository.findNoteForId(noteId)
 				if (note != null) {
-					_state.getAndUpdate { it.copy(note = note, tags = note?.tags ?: emptySet()) }
-					_noteText.update { note?.content ?: "" }
+					applyLoadedNote(note)
 				} else {
 					error("Failed to load note: $noteId")
 				}
 			}
 		} else {
-			_state.getAndUpdate { it.copy(note = note, tags = note?.tags ?: emptySet()) }
-			_noteText.update { note?.content ?: "" }
+			applyLoadedNote(note)
 		}
+	}
+
+	// Attach the loaded note. When restoring an in-progress edit across process
+	// death, keep the restored text/tags rather than overwriting with stored values.
+	private fun applyLoadedNote(note: NoteContent?) {
+		_state.getAndUpdate {
+			it.copy(note = note, tags = if (restoredDraft != null) it.tags else note?.tags ?: emptySet())
+		}
+		if (restoredDraft == null) _noteText.update { note?.content ?: "" }
 	}
 
 	override fun onStart() {
@@ -245,5 +275,16 @@ class ViewNoteComponent(
 				menuItems = emptySet()
 			)
 		}
+	}
+
+	@Serializable
+	private data class SavedDraft(
+		val noteText: String,
+		val tags: Set<String>,
+		val isEditing: Boolean,
+	)
+
+	private companion object {
+		const val DRAFT_KEY = "view-note-draft"
 	}
 }

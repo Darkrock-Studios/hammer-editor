@@ -25,6 +25,13 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
 
+// Locale-independent nav testTags; values match "nav-${DestinationTypes.name}".
+const val NAV_HOME_TAG = "nav-Home"
+const val NAV_EDITOR_TAG = "nav-Editor"
+const val NAV_NOTES_TAG = "nav-Notes"
+const val NAV_ENCYCLOPEDIA_TAG = "nav-Encyclopedia"
+const val NAV_TIMELINE_TAG = "nav-TimeLine"
+
 @OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun ProjectRootScaffold(
@@ -80,6 +87,7 @@ private fun CompactNavigation(
 				destinations = destinations,
 				selectedId = router.active.instance.getLocationType(),
 				onSelect = { component.showDestination(it) },
+				itemTestTag = { "nav-${it.name}" },
 			)
 		},
 		floatingActionButton = {
@@ -111,6 +119,7 @@ private fun RailNavigation(
 					onSelect = { component.showDestination(it) },
 					expanded = navRailState.expanded,
 					onToggleExpanded = { component.toggleNavRailExpanded() },
+					itemTestTag = { "nav-${it.name}" },
 					modifier = Modifier.onSizeChanged {
 						navRailWidth = density.run { it.width.toDp() }
 					},

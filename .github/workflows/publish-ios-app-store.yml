@@ -74,8 +74,11 @@ jobs:
           mkdir -p desktop/secrets
           printf '%s' "$API_KEY_P8" > desktop/secrets/AuthKey_F8BSZ7LC8Q.p8
 
-      - name: Upload to TestFlight 📱
-        run: bundle exec fastlane ios ios_testflight
+      - name: Publish to App Store 📱
+        # Builds, uploads, waits for processing, submits for review, and
+        # auto-releases on approval. Waiting for build processing can hold the
+        # runner for several minutes before the submit step.
+        run: bundle exec fastlane ios ios_release
 
       - name: Upload Fastlane logs on failure
         if: failure()

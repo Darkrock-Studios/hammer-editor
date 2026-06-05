@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import io.github.aakira.napier.Napier
+import kotlinx.serialization.Serializable
 
 class CreateTimeLineEventComponent(
 	componentContext: ComponentContext,
@@ -21,11 +22,19 @@ class CreateTimeLineEventComponent(
 	private val _state = MutableValue(CreateTimeLineEvent.State(projectDef))
 	override val state: Value<CreateTimeLineEvent.State> = _state
 
-	private val _contentText = MutableValue("")
+	private val _contentText = MutableValue(
+		stateKeeper.consume(DRAFT_KEY, SavedDraft.serializer())?.contentText ?: ""
+	)
 	override val contentText: Value<String> = _contentText
 
 	private val backButtonHandler = BackCallback(isEnabled = false) {
 		confirmDiscard()
+	}
+
+	init {
+		stateKeeper.register(DRAFT_KEY, SavedDraft.serializer()) {
+			SavedDraft(contentText = _contentText.value)
+		}
 	}
 
 	override fun onCreate() {
@@ -84,5 +93,12 @@ class CreateTimeLineEventComponent(
 		} else {
 			onClose()
 		}
+	}
+
+	@Serializable
+	private data class SavedDraft(val contentText: String)
+
+	private companion object {
+		const val DRAFT_KEY = "create-timeline-event-draft"
 	}
 }

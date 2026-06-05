@@ -18,6 +18,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -32,6 +33,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import kotlinx.coroutines.CoroutineScope
 import kotlin.math.roundToInt
+
+const val ENCYCLOPEDIA_CREATE_FAB_TAG = "encyclopedia-create-fab"
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalMaterial3Api::class)
 @Composable
@@ -436,7 +439,7 @@ fun BrowseEntriesFab(
 				onClick = component::showCreateEntry,
 				icon = Icons.Default.Create,
 				contentDescription = Res.string.encyclopedia_create_button.get(),
-				modifier = modifier,
+				modifier = modifier.testTag(ENCYCLOPEDIA_CREATE_FAB_TAG),
 			)
 		}
 

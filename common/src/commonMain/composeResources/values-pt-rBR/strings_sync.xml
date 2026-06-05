@@ -163,6 +163,7 @@
 	<string name="sync_general_error">Erro de servidor não tratado</string>
 	<string name="reauth_title">Reautorizar</string>
 	<string name="reauth_explanation">Seu token expirou, por favor autorize novamente com seu servidor de sincronização.</string>
+	<string name="reauth_token_expired">Token Expired</string>
 	<string name="reauth_server_url">Endereço</string>
 	<string name="reauth_server_email">E-mail</string>
 	<string name="server_setup_help_title">Sobre Servidores de Sincronização</string>

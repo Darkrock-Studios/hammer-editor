@@ -123,8 +123,10 @@ val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 tasks.register("prepareForRelease") {
 	dependsOn(releasePreFlightChecks)
 	doLast {
+		val lastReleaseChangelog = extractLatestChangelog(File("${project.rootDir}/CHANGELOG.md"))
 		val releaseInfo =
-			configureRelease(libs.versions.app.get()) ?: error("Failed to configure new release")
+			configureRelease(libs.versions.app.get(), lastReleaseChangelog)
+				?: error("Failed to configure new release")
 
 		println("Creating new release")
 		val versionCode = releaseInfo.semVar.createVersionCode(true, 0)
@@ -424,6 +426,51 @@ tasks.register("revertLastRelease") {
 				println("Deleting tag $tag from remote and local...")
 				gitSafe("push", "origin", "--delete", tag)
 				gitSafe("tag", "-d", tag)
+			}
+		}
+
+		// Delete GitHub draft release for this version if one exists.
+		val ghToken = System.getenv("GH_TOKEN") ?: System.getenv("GITHUB_TOKEN")
+		if (ghToken == null) {
+			println("No GH_TOKEN or GITHUB_TOKEN found — skipping GitHub draft release deletion.")
+		} else {
+			val repoSlug = "Wavesonics/hammer-editor"
+			println("Looking up GitHub release for $tagName...")
+			val lookupConn = java.net.URL("https://api.github.com/repos/$repoSlug/releases/tags/$tagName")
+				.openConnection() as java.net.HttpURLConnection
+			lookupConn.setRequestProperty("Authorization", "Bearer $ghToken")
+			lookupConn.setRequestProperty("Accept", "application/vnd.github+json")
+			lookupConn.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
+			when (val lookupStatus = lookupConn.responseCode) {
+				404 -> println("No GitHub release found for $tagName — nothing to delete.")
+				200 -> {
+					val body = lookupConn.inputStream.bufferedReader().readText()
+					val isDraft = body.contains("\"draft\":true")
+					if (!isDraft) {
+						println("GitHub release $tagName is not a draft — skipping deletion.")
+					} else {
+						val releaseId = Regex("\"id\":(\\d+)").find(body)?.groupValues?.get(1)
+						if (releaseId == null) {
+							println("Warning: Could not parse release ID from GitHub response.")
+						} else {
+							println("Deleting GitHub draft release $tagName (id=$releaseId)...")
+							val deleteConn = java.net.URL("https://api.github.com/repos/$repoSlug/releases/$releaseId")
+								.openConnection() as java.net.HttpURLConnection
+							deleteConn.requestMethod = "DELETE"
+							deleteConn.setRequestProperty("Authorization", "Bearer $ghToken")
+							deleteConn.setRequestProperty("Accept", "application/vnd.github+json")
+							deleteConn.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
+							val deleteStatus = deleteConn.responseCode
+							if (deleteStatus == 204) {
+								println("GitHub draft release $tagName deleted.")
+							} else {
+								println("Warning: Failed to delete GitHub release (HTTP $deleteStatus).")
+							}
+						}
+					}
+				}
+
+				else -> println("Warning: GitHub API returned HTTP $lookupStatus for $tagName.")
 			}
 		}
 

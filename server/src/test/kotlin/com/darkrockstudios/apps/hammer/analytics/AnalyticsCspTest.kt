@@ -41,7 +41,8 @@ class AnalyticsCspTest {
 		val scriptSrc = csp.split(";").first { it.trim().startsWith("script-src") }
 		val connectSrc = csp.split(";").first { it.trim().startsWith("connect-src") }
 		assertContains(scriptSrc, "https://cloud.umami.is")
-		assertContains(connectSrc, "https://cloud.umami.is")
+		// Cloud events go to the gateway origin, so that — not the script host — must be in connect-src.
+		assertContains(connectSrc, "https://api-gateway.umami.dev")
 	}
 
 	@Test

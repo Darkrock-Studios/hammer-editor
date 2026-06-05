@@ -203,7 +203,7 @@ class SceneDatasource(
 		val sceneDirPath = projOkPath.div(SCENE_DIRECTORY)
 		val bufferPathSegment = sceneDirPath.div(BUFFER_DIRECTORY)
 		if (!fileSystem.exists(bufferPathSegment)) {
-			fileSystem.createDirectory(bufferPathSegment)
+			fileSystem.createDirectories(bufferPathSegment)
 		}
 		return bufferPathSegment.toHPath()
 	}

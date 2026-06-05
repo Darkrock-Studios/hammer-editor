@@ -2,13 +2,7 @@ package com.darkrockstudios.build
 
 // Use legacy java.text date formatting to avoid Kotlin/Gradle embedded version or Android API constraints
 import com.formdev.flatlaf.FlatDarculaLaf
-import java.awt.BorderLayout
-import java.awt.Color
-import java.awt.Component
-import java.awt.Dimension
-import java.awt.FlowLayout
-import java.awt.Font
-import java.awt.GridLayout
+import java.awt.*
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.io.File
@@ -23,6 +17,19 @@ fun writeSemvar(oldSemVar: String, newSemVar: SemVar, versionFile: File) {
 	val versions = versionFile.readText()
 	val updated = versions.replace("app = \"$oldSemVar\"", "app = \"$newSemVar\"")
 	versionFile.writeText(updated)
+}
+
+/** Body of the most recent `## [version] - date` entry in CHANGELOG.md, or null if none. */
+fun extractLatestChangelog(changelogFile: File): String? {
+	if (!changelogFile.exists()) return null
+	val text = changelogFile.readText()
+	val firstHeader = text.indexOf("## [")
+	if (firstHeader < 0) return null
+	val bodyStart = text.indexOf('\n', firstHeader)
+	if (bodyStart < 0) return null
+	val nextHeader = text.indexOf("## [", bodyStart)
+	val body = if (nextHeader < 0) text.substring(bodyStart) else text.substring(bodyStart, nextHeader)
+	return body.trim().ifEmpty { null }
 }
 
 fun writeChangelogMarkdown(releaseInfo: ReleaseInfo, changelogFile: File) {
@@ -62,7 +69,7 @@ class OnChangeListener(
 	override fun changedUpdate(e: DocumentEvent?) = onChange(e)
 }
 
-fun configureRelease(currentSemVarStr: String): ReleaseInfo? {
+fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = null): ReleaseInfo? {
 	var result: ReleaseInfo? = null
 	val curSemVar = parseSemVar(currentSemVarStr)
 	val windowClosedSignal = CountDownLatch(1)
@@ -234,19 +241,32 @@ fun configureRelease(currentSemVarStr: String): ReleaseInfo? {
 		})
 
 		// ============= Release-type change listeners (after newVersionLabel exists) =============
+		// A patch carries the same notes as the release it patches, so pre-fill the
+		// changelog from the last release. Only clear it again on Major/Minor if the
+		// user hasn't edited the auto-filled text.
+		fun clearAutofill() {
+			if (lastReleaseChangelog != null && changeLog.text == lastReleaseChangelog) {
+				changeLog.text = ""
+			}
+		}
 		optionMajor.addActionListener {
 			newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.MAJOR)
 			newVersionLabel.text = newSemVar.toString()
+			clearAutofill()
 			refreshTitle(); refreshTagPreview()
 		}
 		optionMinor.addActionListener {
 			newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.MINOR)
 			newVersionLabel.text = newSemVar.toString()
+			clearAutofill()
 			refreshTitle(); refreshTagPreview()
 		}
 		optionPatch.addActionListener {
 			newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.PATCH)
 			newVersionLabel.text = newSemVar.toString()
+			if (lastReleaseChangelog != null && changeLog.text.isBlank()) {
+				changeLog.text = lastReleaseChangelog
+			}
 			refreshTitle(); refreshTagPreview()
 		}
 

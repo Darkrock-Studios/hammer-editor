@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -44,6 +45,9 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
+
+const val NOTES_CREATE_FAB_TAG = "notes-create-fab"
+fun noteCardTag(id: Int) = "note-card-$id"
 
 private enum class NotesSortMode(
 	override val labelRes: StringResource,
@@ -394,6 +398,7 @@ private fun NoteCard(
 					sharedContentState = rememberSharedContentState(key = "note-card-${note.id}"),
 					animatedVisibilityScope = animatedVisibilityScope,
 				)
+				.testTag(noteCardTag(note.id))
 				.clickable(onClick = onClick),
 		) {
 			val date = remember(note.created) {
@@ -611,6 +616,6 @@ fun BrowseNotesFab(
 		onClick = { component.showCreate() },
 		icon = Icons.Filled.Create,
 		contentDescription = Res.string.notes_create_note_button.get(),
-		modifier = modifier,
+		modifier = modifier.testTag(NOTES_CREATE_FAB_TAG),
 	)
 }

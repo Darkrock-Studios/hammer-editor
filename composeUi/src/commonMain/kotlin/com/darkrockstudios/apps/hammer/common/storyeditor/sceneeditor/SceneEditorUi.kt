@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.Dp
@@ -34,6 +35,10 @@ import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
 import kotlinx.coroutines.launch
+
+const val SCENE_EDITOR_TEXT_TAG = "scene-editor-text"
+const val SCENE_EDITOR_SAVE_TAG = "scene-editor-save"
+const val RENAME_SCENE_FIELD_TAG = "rename-scene-field"
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
@@ -160,6 +165,7 @@ fun SceneEditorUi(
 							unfocusedBorderColor = Color.Transparent,
 						),
 						modifier = Modifier
+							.testTag(SCENE_EDITOR_TEXT_TAG)
 							.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
 							.fillMaxHeight()
 							.widthIn(128.dp, TextEditorDefaults.MAX_WIDTH),
