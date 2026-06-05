@@ -6,5 +6,14 @@
 	<string name="project_window_menu_item_close">Projekt beenden</string>
 	<string name="project_window_menu_item_exit">Abmelden</string>
 	<string name="jump_list_recent_projects">Recent Projects</string>
+	<!-- Sandbox first-run projects-directory flow (Mac App Store builds) -->
+	<string name="sandbox_intro_title">Welcome to Hammer</string>
+	<string name="sandbox_intro_message">Hammer stores your projects in a folder you choose, so your writing stays in
+		your hands.\n\nOn the next screen, pick an existing hammer projects folder or create a new one. You can change
+		this later in Settings.</string>
+	<string name="sandbox_picker_title">Choose where to store your Hammer projects</string>
+	<string name="sandbox_choose_folder_button">Choose Folder</string>
+	<string name="sandbox_quit_button">Quit</string>
+	<string name="sandbox_retry_message">Hammer needs a folder to store your projects.\nChoose a folder now, or quit.</string>
 	<string name="splash_subtitle">A simple tool for building stories.</string>
 </resources>
