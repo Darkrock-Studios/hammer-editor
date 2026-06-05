@@ -123,8 +123,10 @@ val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 tasks.register("prepareForRelease") {
 	dependsOn(releasePreFlightChecks)
 	doLast {
+		val lastReleaseChangelog = extractLatestChangelog(File("${project.rootDir}/CHANGELOG.md"))
 		val releaseInfo =
-			configureRelease(libs.versions.app.get()) ?: error("Failed to configure new release")
+			configureRelease(libs.versions.app.get(), lastReleaseChangelog)
+				?: error("Failed to configure new release")
 
 		println("Creating new release")
 		val versionCode = releaseInfo.semVar.createVersionCode(true, 0)
