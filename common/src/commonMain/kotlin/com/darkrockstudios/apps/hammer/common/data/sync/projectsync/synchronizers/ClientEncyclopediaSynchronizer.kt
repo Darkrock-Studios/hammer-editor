@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectInject
@@ -39,6 +40,7 @@ class ClientEncyclopediaSynchronizer(
 
 	override val projectScope = ProjectDefScope(projectDef)
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val encyclopediaService: EncyclopediaService by projectInject()
 	private val referenceRemapper: ReferenceRemapper by projectInject()
 
 	private suspend fun getEntity(id: Int): EntryDef? {
@@ -109,7 +111,7 @@ class ClientEncyclopediaSynchronizer(
 
 	override suspend fun deleteEntityLocal(id: Int, onLog: OnSyncLog) {
 		val def = encyclopediaRepository.getEntryDef(id)
-		encyclopediaRepository.deleteEntry(def)
+		encyclopediaService.deleteEntry(def)
 
 		onLog(syncLogI(strRes.get(Res.string.sync_encyclopedia_deleted, id), def.projectDef.name))
 	}
@@ -140,7 +142,7 @@ class ClientEncyclopediaSynchronizer(
 		handleImage(oldDef, serverDef, serverEntity)
 
 		if (oldDef != null) {
-			encyclopediaRepository.updateEntry(
+			encyclopediaService.updateEntry(
 				oldEntryDef = oldDef,
 				name = serverEntity.name,
 				text = serverEntity.text,
@@ -148,7 +150,7 @@ class ClientEncyclopediaSynchronizer(
 				aliases = serverEntity.aliases,
 			)
 		} else {
-			encyclopediaRepository.createEntry(
+			encyclopediaService.createEntry(
 				name = serverEntity.name,
 				text = serverEntity.text,
 				tags = serverEntity.tags,

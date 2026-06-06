@@ -6,6 +6,7 @@ import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.statekeeper.StateKeeper
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntryComponent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
@@ -41,6 +42,9 @@ class ViewEntryComponentTest : BaseTest() {
 	@MockK
 	private lateinit var encyclopediaRepository: EncyclopediaRepository
 
+	@MockK
+	private lateinit var encyclopediaService: EncyclopediaService
+
 	@BeforeEach
 	override fun setup() {
 		super.setup()
@@ -49,6 +53,7 @@ class ViewEntryComponentTest : BaseTest() {
 
 		val testModule = module {
 			single { encyclopediaRepository } bind EncyclopediaRepository::class
+			single { encyclopediaService } bind EncyclopediaService::class
 			single<ReferenceIndexService> { mockk(relaxed = true) }
 			single<SceneRepository> { mockk(relaxed = true) }
 			single<BackfillEntryReferencesUseCase> { mockk(relaxed = true) }
@@ -77,7 +82,7 @@ class ViewEntryComponentTest : BaseTest() {
 		coEvery { encyclopediaRepository.calculateEntryImageHash(any(), any()) } returns null
 		coEvery { encyclopediaRepository.loadEntry(entryDef = any()) } returns newContainer
 		coEvery {
-			encyclopediaRepository.updateEntry(
+			encyclopediaService.updateEntry(
 				oldEntryDef = origDef,
 				name = newName,
 				text = oldEntry.text,
@@ -117,7 +122,7 @@ class ViewEntryComponentTest : BaseTest() {
 		every { encyclopediaRepository.hasEntryImage(any(), any()) } returns false
 		coEvery { encyclopediaRepository.loadEntry(entryDef = any()) } returns newContainer
 		coEvery {
-			encyclopediaRepository.updateEntry(
+			encyclopediaService.updateEntry(
 				oldEntryDef = origDef,
 				name = newName,
 				text = oldEntry.text,

@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
@@ -43,6 +44,7 @@ class ViewEntryComponent(
 	override val state: Value<ViewEntry.State> = _state
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val encyclopediaService: EncyclopediaService by projectInject()
 	private val referenceIndexService: ReferenceIndexService by projectInject()
 	private val sceneEditorRepository: SceneEditorService by projectInject()
 	private val backfillEntryReferences: BackfillEntryReferencesUseCase by projectInject()
@@ -121,7 +123,7 @@ class ViewEntryComponent(
 
 	override suspend fun deleteEntry(entryDef: EntryDef): Boolean {
 		cleanupReferencesOnDelete(entryDef.id)
-		encyclopediaRepository.deleteEntry(entryDef)
+		encyclopediaService.deleteEntry(entryDef)
 		return true
 	}
 
@@ -204,7 +206,7 @@ class ViewEntryComponent(
 	): EntryResult = withContext(dispatcherDefault) {
 		val currentAliases = state.value.content?.aliases.orEmpty()
 		val previousName = state.value.entryDef.name
-		val result = encyclopediaRepository.updateEntry(
+		val result = encyclopediaService.updateEntry(
 			oldEntryDef = state.value.entryDef,
 			name = name,
 			text = text,
@@ -250,7 +252,7 @@ class ViewEntryComponent(
 				val newTags = tags.toMutableSet()
 				newTags.remove(tag)
 
-				encyclopediaRepository.updateEntry(
+				encyclopediaService.updateEntry(
 					oldEntryDef = state.value.entryDef,
 					name = name,
 					text = text,
@@ -287,7 +289,7 @@ class ViewEntryComponent(
 		val newTags = parseTagInput(tagInput)
 
 		state.value.content?.apply {
-			encyclopediaRepository.updateEntry(
+			encyclopediaService.updateEntry(
 				oldEntryDef = state.value.entryDef,
 				name = name,
 				text = text,
@@ -316,7 +318,7 @@ class ViewEntryComponent(
 			endAliasAdd()
 			return@withContext EntryResult(EntryError.NONE)
 		}
-		val result = encyclopediaRepository.updateEntry(
+		val result = encyclopediaService.updateEntry(
 			oldEntryDef = state.value.entryDef,
 			name = current.name,
 			text = current.text,
@@ -334,7 +336,7 @@ class ViewEntryComponent(
 	override fun removeAlias(alias: String) {
 		scope.launch {
 			state.value.content?.apply {
-				encyclopediaRepository.updateEntry(
+				encyclopediaService.updateEntry(
 					oldEntryDef = state.value.entryDef,
 					name = name,
 					text = text,

@@ -7,6 +7,7 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -23,6 +24,7 @@ class CreateEntryComponent(
 	override val state: Value<CreateEntry.State> = _state
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val encyclopediaService: EncyclopediaService by projectInject()
 	private val backfillEntryReferences: BackfillEntryReferencesUseCase by projectInject()
 
 	// Note: Back handler is disabled to allow predictive back animation.
@@ -47,7 +49,7 @@ class CreateEntryComponent(
 		tags: Set<String>,
 		imagePath: String?
 	): EntryResult = withContext(dispatcherDefault) {
-		val result = encyclopediaRepository.createEntry(name, type, text, tags, imagePath)
+		val result = encyclopediaService.createEntry(name, type, text, tags, imagePath)
 		if (result.error == EntryError.NONE) {
 			encyclopediaRepository.loadEntries()
 			result.instance?.entry?.let { newEntry ->

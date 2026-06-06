@@ -10,8 +10,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
@@ -36,8 +34,6 @@ class EncyclopediaRepository(
 	private val idAllocator: IdAllocator,
 	private val datasource: EncyclopediaDatasource,
 	private val syncJournal: SyncJournal,
-	private val statisticsRepository: StatisticsRepository,
-	private val referenceIndexRepository: ReferenceIndexRepository,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
@@ -102,7 +98,6 @@ class EncyclopediaRepository(
 			aliases = cleanedAliases,
 		)
 
-		statisticsRepository.markDirty()
 		_entryContentChangedFlow.emit(Unit)
 		return EntryResult(container, EntryError.NONE)
 	}
@@ -211,7 +206,6 @@ class EncyclopediaRepository(
 
 		if (forceId == null) markForSynchronization(newDef)
 
-		statisticsRepository.markDirty()
 		_entryContentChangedFlow.emit(Unit)
 		return EntryResult(container, EntryError.NONE)
 	}
@@ -219,8 +213,6 @@ class EncyclopediaRepository(
 	suspend fun deleteEntry(entryDef: EntryDef): Boolean {
 		datasource.deleteEntry(entryDef)
 		syncJournal.recordIdDeletion(entryDef.id)
-		statisticsRepository.markDirty()
-		referenceIndexRepository.markEntryDeleted(entryDef.id)
 		_entryContentChangedFlow.emit(Unit)
 		return true
 	}
