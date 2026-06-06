@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.globalsearch
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import kotlinx.serialization.Serializable
 
 interface GlobalSearch {
 	val state: Value<State>
@@ -22,6 +23,7 @@ interface GlobalSearch {
 	)
 }
 
+@Serializable
 enum class GlobalSearchFilter {
 	All,
 	Scenes,

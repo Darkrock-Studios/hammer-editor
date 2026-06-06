@@ -7,11 +7,16 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.update
+import com.arkivanov.essenty.instancekeeper.retainedInstance
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchFilter
+import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchSavedState
+import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchState
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
@@ -23,6 +28,8 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
+
+private const val GLOBAL_SEARCH_STATE_KEY = "global_search_state"
 
 class ProjectRootComponent(
 	componentContext: ComponentContext,
@@ -38,6 +45,25 @@ class ProjectRootComponent(
 	private val projectDataRepository: ProjectDataRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val settingsRepository: GlobalSettingsRepository by inject()
+	private val searchProjectUseCase: SearchProjectUseCase by projectInject()
+
+	// Retained on this long-lived parent so search state survives the modal being dismissed/reopened
+	// and config changes; stateKeeper carries the query/filter slice across process death.
+	private val globalSearchState: GlobalSearchState = run {
+		val saved = stateKeeper.consume(GLOBAL_SEARCH_STATE_KEY, GlobalSearchSavedState.serializer())
+		retainedInstance {
+			GlobalSearchState(
+				searchProjectUseCase = searchProjectUseCase,
+				mainContext = dispatcherMain,
+				initialQuery = saved?.query ?: "",
+				initialFilter = saved?.filter ?: GlobalSearchFilter.All,
+			)
+		}
+	}.also { searchState ->
+		stateKeeper.register(GLOBAL_SEARCH_STATE_KEY, GlobalSearchSavedState.serializer()) {
+			GlobalSearchSavedState(searchState.state.value.query, searchState.state.value.filter)
+		}
+	}
 
 	private var pendingDeepLink: ProjectDeepLink? = initialDeepLink
 
@@ -80,6 +106,7 @@ class ProjectRootComponent(
 	private val modalRouter = ProjectRootModalRouter(
 		componentContext,
 		projectDef,
+		globalSearchState,
 		::navigateGlobalSearchResult,
 		::reopenSceneAfterFocusMode,
 	)
