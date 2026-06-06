@@ -87,6 +87,16 @@ latest commit.~~
 
 ~~_Do not use the test environment for real data! It will get cleared from time-to-time without notice!_~~
 
+## 🪨 Dark Rock Studios
+
+[**Dark Rock Studios**](https://darkrock.studio/) is all about building **Free and Open Source Software**.
+
+🐛 Found bugs?  
+💡 Have suggestions?  
+📚 Want to help translate?  
+🎮 Interested in our other apps?  
+👉 Join our community of Open Source enthusiasts on [**Discord**](https://discord.gg/ju2RQa5x8W)!
+
 # Development
 
 Want to contribute? Great! [Here are some instructions to get you started](DEVELOPMENT.md).
