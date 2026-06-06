@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
 import io.ktor.server.request.*
-import io.ktor.server.routing.*
+import io.ktor.util.*
 
 private const val MAX_STACK_CHARS = 8000
 
@@ -22,7 +22,7 @@ suspend fun recordMonitoredError(
 ) {
 	if (!monitoringState.errorTrackingEnabled) return
 
-	val route = (call as? RoutingCall)?.route?.toString() ?: call.request.path()
+	val route = call.attributes.getOrNull(MatchedRouteTemplateKey) ?: call.request.path()
 	errorRepository.record(
 		exceptionType = cause::class.simpleName ?: "Throwable",
 		route = route,

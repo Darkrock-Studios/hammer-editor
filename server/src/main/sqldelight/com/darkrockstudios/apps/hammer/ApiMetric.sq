@@ -53,12 +53,12 @@ INSERT INTO api_metric_bucket(
     request_count, error_count, total_duration_ms,
     le_50, le_100, le_250, le_500, le_1000, le_2500, le_inf
 )
-SELECT date_trunc('day', bucket_start), 'DAY', route, method,
+SELECT date_trunc('day', bucket_start, 'UTC'), 'DAY', route, method,
     SUM(request_count), SUM(error_count), SUM(total_duration_ms),
     SUM(le_50), SUM(le_100), SUM(le_250), SUM(le_500), SUM(le_1000), SUM(le_2500), SUM(le_inf)
 FROM api_metric_bucket
 WHERE bucket_size = 'HOUR' AND bucket_start < ?
-GROUP BY date_trunc('day', bucket_start), route, method
+GROUP BY date_trunc('day', bucket_start, 'UTC'), route, method
 ON CONFLICT (bucket_start, bucket_size, route, method) DO UPDATE SET
     request_count = api_metric_bucket.request_count + EXCLUDED.request_count,
     error_count = api_metric_bucket.error_count + EXCLUDED.error_count,

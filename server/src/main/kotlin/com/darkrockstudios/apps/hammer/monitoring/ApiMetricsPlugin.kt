@@ -16,22 +16,25 @@ private val RequestStartKey = AttributeKey<TimeSource.Monotonic.ValueTimeMark>("
  * Times every API request and feeds the result to the [MetricsCollector].
  *
  * The metric is keyed by the matched route TEMPLATE (e.g.
- * `/api/project/{userId}/{projectName}/upload_entity`) rather than the concrete
- * path, so per-user / per-project path parameters don't explode the cardinality.
- * Falls back to the raw path only if the route can't be resolved.
+ * `/api/project/{userId}/{projectName}/upload_entity/{entityId}`) rather than the
+ * concrete path, so per-user / per-project path parameters don't explode the
+ * cardinality. The template comes from the [RoutingCall.route] resolved by the
+ * routing machinery; we subscribe to [RoutingRoot.Plugin.RoutingCallFinished]
+ * because an application-level hook only ever sees the raw [ApplicationCall],
+ * whose path is the concrete URL.
  */
 fun apiMetricsPlugin(collector: MetricsCollector) = createApplicationPlugin("ApiMetricsPlugin") {
 	on(CallSetup) { call ->
 		call.attributes.put(RequestStartKey, TimeSource.Monotonic.markNow())
 	}
-	on(ResponseSent) { call ->
-		val start = call.attributes.getOrNull(RequestStartKey) ?: return@on
+	application.monitor.subscribe(RoutingRoot.Plugin.RoutingCallFinished) { call ->
+		val start = call.attributes.getOrNull(RequestStartKey) ?: return@subscribe
 		val path = call.request.path()
-		if (path != "/$API_ROUTE_PREFIX" && !path.startsWith("/$API_ROUTE_PREFIX/")) return@on
+		if (path != "/$API_ROUTE_PREFIX" && !path.startsWith("/$API_ROUTE_PREFIX/")) return@subscribe
 
 		val durationMs = start.elapsedNow().inWholeMilliseconds
 		val status = call.response.status()?.value ?: 0
-		val route = (call as? RoutingCall)?.route?.toString() ?: path
+		val route = routeTemplate(call.route)
 		val method = call.request.httpMethod.value
 
 		collector.record(route = route, method = method, status = status, durationMs = durationMs)
