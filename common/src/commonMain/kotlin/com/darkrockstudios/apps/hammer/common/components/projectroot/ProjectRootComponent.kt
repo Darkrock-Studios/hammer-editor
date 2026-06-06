@@ -15,7 +15,7 @@ import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSear
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchState
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -43,7 +43,7 @@ class ProjectRootComponent(
 	private val syncJournal: SyncJournal by projectInject()
 	private val sceneEditor: SceneEditorService by projectInject()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
-	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val encyclopediaService: EncyclopediaService by projectInject()
 	private val settingsRepository: GlobalSettingsStore by inject()
 	private val searchProjectUseCase: SearchProjectUseCase by projectInject()
 
@@ -281,7 +281,7 @@ class ProjectRootComponent(
 			}
 
 			is ProjectDeepLink.EncyclopediaEntry -> {
-				val entryDef = encyclopediaRepository.findEntryDef(link.entryId)
+				val entryDef = encyclopediaService.findEntryDef(link.entryId)
 				if (entryDef == null) {
 					Napier.w("Deep link skipped: no encyclopedia entry for id ${link.entryId}")
 					return

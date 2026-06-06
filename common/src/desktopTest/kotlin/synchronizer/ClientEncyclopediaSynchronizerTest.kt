@@ -16,7 +16,6 @@ import io.mockk.coVerifyOrder
 import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
-import okio.fakefilesystem.FakeFileSystem
 import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -66,7 +65,6 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		serverProjectApi = serverProjectApi,
 		projectMetadataDatasource = projectMetadataDatasource,
 		strRes = strRes,
-		fileSystem = FakeFileSystem(),
 	)
 
 	@Test

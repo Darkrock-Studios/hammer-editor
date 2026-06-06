@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
@@ -43,7 +43,7 @@ class ProjectSynchronizationComponent(
 
 	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val sceneEditorRepository: SceneEditorService by projectInject()
-	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val encyclopediaService: EncyclopediaService by projectInject()
 	private val notesRepository: NotesRepository by projectInject()
 	private val timeLineRepository: TimeLineRepository by projectInject()
 	private val sceneDraftRepository: SceneDraftRepository by projectInject()
@@ -247,7 +247,7 @@ class ProjectSynchronizationComponent(
 		}
 	}
 
-	override fun resolveEntryRef(id: Int) = encyclopediaRepository.findEntryDef(id)
+	override fun resolveEntryRef(id: Int) = encyclopediaService.findEntryDef(id)
 
 	private suspend fun onSyncProgress(progress: Float, log: SyncLogMessage? = null) {
 		Napier.d("Sync progress: $progress")
@@ -316,10 +316,10 @@ class ProjectSynchronizationComponent(
 	}
 
 	private suspend fun onEncyclopediaEntryConflict(serverEntity: ApiProjectEntity.EncyclopediaEntryEntity) {
-		val local = encyclopediaRepository.loadEntry(serverEntity.id).entry
+		val local = encyclopediaService.loadEntry(serverEntity.id).entry
 		val def = local.toDef(projectDef)
-		val image = if (encyclopediaRepository.hasEntryImage(def, "jpg")) {
-			val imageBytes = encyclopediaRepository.loadEntryImage(def, "jpg")
+		val image = if (encyclopediaService.hasEntryImage(def, "jpg")) {
+			val imageBytes = encyclopediaService.loadEntryImage(def, "jpg")
 			val imageBase64 = Base64.encode(imageBytes, url = true)
 			ApiProjectEntity.EncyclopediaEntryEntity.Image(imageBase64, "jpg")
 		} else {

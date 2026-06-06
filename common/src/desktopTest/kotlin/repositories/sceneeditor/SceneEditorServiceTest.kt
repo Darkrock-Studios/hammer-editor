@@ -180,6 +180,7 @@ class SceneEditorServiceTest : BaseTest() {
 		val path = service.getSceneFilePathOrNull(created.id)!!.toOkioPath()
 		assertTrue(ffs.exists(path))
 		assertTrue(ffs.metadata(path).isDirectory)
+		coVerify { statisticsRepository.markDirty() }
 	}
 
 	@Test
@@ -203,10 +204,13 @@ class SceneEditorServiceTest : BaseTest() {
 		// deleteGroup only succeeds on an empty group, so create a fresh one.
 		val group = service.createGroup(null, "Empty Group")!!
 		assertEquals(SceneItem.Type.Group, group.type)
+		// createGroup itself marks dirty; isolate the delete's own side-effect.
+		clearMocks(statisticsRepository, answers = false)
 
 		val deleted = service.deleteGroup(group)
 		assertTrue(deleted)
 		assertNull(service.getSceneItemFromId(group.id))
+		coVerify { statisticsRepository.markDirty() }
 	}
 
 	@Test
@@ -259,18 +263,22 @@ class SceneEditorServiceTest : BaseTest() {
 			assertNull(service.getSceneItemFromId(1))
 			assertNotNull(service.getSceneItemFromIdIncludingArchived(1))
 			assertTrue(service.getArchivedScenes().any { it.id == 1 })
+			coVerify { statisticsRepository.markDirty() }
 		}
 
 	@Test
 	fun `Unarchive scene restores it to the tree`() = runTest(mainTestDispatcher) {
 		val service = initializedService()
 		service.archiveScene(service.getSceneItemFromId(1)!!)
+		// archiveScene itself marks dirty; isolate the unarchive's own side-effect.
+		clearMocks(statisticsRepository, answers = false)
 
 		val archivedScene = service.getArchivedScenes().first { it.id == 1 }
 		val unarchived = service.unarchiveScene(archivedScene)
 		assertNotNull(unarchived)
 		assertFalse(unarchived.archived)
 		assertNotNull(service.getSceneItemFromId(1))
+		coVerify { statisticsRepository.markDirty() }
 	}
 
 	// endregion
@@ -358,6 +366,19 @@ class SceneEditorServiceTest : BaseTest() {
 		assertNotNull(buffer)
 		assertFalse(buffer.dirty)
 		assertEquals("Content of scene id 3", buffer.content.markdown)
+	}
+
+	@Test
+	fun `Autosaving an edited buffer marks stats dirty`() = runTest(mainTestDispatcher) {
+		val service = initializedService()
+		val scene = service.getSceneItemFromId(3)!!
+		service.loadSceneBuffer(scene)
+
+		service.onContentChanged(SceneContent(scene, "Autosaved body"), UpdateSource.Editor)
+		advanceTimeBy(SceneContentRepository.BUFFER_COOL_DOWN.inWholeMilliseconds + 100)
+		advanceUntilIdle()
+
+		coVerify { statisticsRepository.markDirty() }
 	}
 
 	// endregion

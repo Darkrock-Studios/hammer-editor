@@ -206,6 +206,14 @@ class EncyclopediaDatasource(
 		}
 	}
 
+	/** Writes raw image bytes (e.g. an image pulled from the server during sync) to the entry's image path. */
+	suspend fun writeEntryImage(entryDef: EntryDef, imageBytes: ByteArray, fileExtension: String) {
+		val targetPath = getEntryImagePath(entryDef, fileExtension).toOkioPath()
+		fileSystem.write(targetPath) {
+			write(imageBytes)
+		}
+	}
+
 	suspend fun deleteEntry(entryDef: EntryDef): Boolean {
 		val path = getEntryPath(entryDef).toOkioPath()
 		fileSystem.delete(path)
