@@ -9,8 +9,10 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispat
 import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerializationException
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.IOException
 import okio.Path
 import okio.Path.Companion.toPath
 
@@ -28,7 +30,10 @@ class ReferenceIndexDatasource(
 		return@withContext if (fileSystem.exists(file)) {
 			try {
 				fileSystem.readToml(file, toml)
-			} catch (e: Exception) {
+			} catch (e: IOException) {
+				Napier.e("Failed to load reference index cache", e)
+				null
+			} catch (e: SerializationException) {
 				Napier.e("Failed to load reference index cache", e)
 				null
 			}

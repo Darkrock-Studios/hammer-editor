@@ -13,6 +13,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.datetime.*
 import okio.FileNotFoundException
 import okio.FileSystem
+import okio.IOException
 import okio.Path
 import org.koin.core.component.KoinComponent
 import kotlin.time.Clock
@@ -93,7 +94,7 @@ open class ProjectBackupRepository(
 			} else {
 				Napier.w("Backup file not found: ${backup.path.name}")
 			}
-		} catch (e: Exception) {
+		} catch (e: IOException) {
 			Napier.e("Failed to delete backup: ${backup.path.name}", e)
 			throw e
 		}

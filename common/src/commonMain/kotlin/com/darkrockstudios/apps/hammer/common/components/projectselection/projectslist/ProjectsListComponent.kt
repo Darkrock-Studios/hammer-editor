@@ -35,8 +35,10 @@ import io.github.aakira.napier.Napier
 import korlibs.datastructure.iterators.parallelMap
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+import kotlinx.serialization.SerializationException
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.IOException
 import okio.Path.Companion.toPath
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
@@ -192,7 +194,11 @@ class ProjectsListComponent(
 		val path = projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME
 		return try {
 			fileSystem.readToml<StoredProjectData>(path, toml).data
-		} catch (e: Exception) {
+		} catch (e: IOException) {
+			Napier.w("Failed to read stored project data for ${projectDef.name}, using defaults", e)
+			StoredData()
+		} catch (e: SerializationException) {
+			Napier.w("Failed to read stored project data for ${projectDef.name}, using defaults", e)
 			StoredData()
 		}
 	}

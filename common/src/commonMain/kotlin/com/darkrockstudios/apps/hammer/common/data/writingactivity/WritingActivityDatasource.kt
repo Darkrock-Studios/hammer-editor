@@ -11,8 +11,10 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispat
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerializationException
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.IOException
 import okio.Path
 
 /**
@@ -44,7 +46,10 @@ class WritingActivityDatasource(
 		if (!fileSystem.exists(path)) return@withContext null
 		try {
 			fileSystem.readToml(path, toml)
-		} catch (e: Exception) {
+		} catch (e: IOException) {
+			Napier.e("Failed to load writing activity log: $path", e)
+			null
+		} catch (e: SerializationException) {
 			Napier.e("Failed to load writing activity log: $path", e)
 			null
 		}

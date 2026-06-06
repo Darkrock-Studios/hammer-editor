@@ -83,9 +83,9 @@ class SceneDatasource(
 			val sceneId = captures.groupValues[1].toInt()
 			return sceneId
 		} catch (e: NumberFormatException) {
-			throw InvalidSceneBufferFilename("Number format exception", fileName)
+			throw InvalidSceneBufferFilename("Number format exception", fileName, e)
 		} catch (e: IllegalStateException) {
-			throw InvalidSceneBufferFilename("Invalid filename", fileName)
+			throw InvalidSceneBufferFilename("Invalid filename", fileName, e)
 		}
 	}
 

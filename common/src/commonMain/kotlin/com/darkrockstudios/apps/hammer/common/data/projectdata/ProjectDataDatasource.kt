@@ -13,8 +13,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.IOException
 import okio.Path
 
 /**
@@ -38,7 +40,10 @@ class ProjectDataDatasource(
 		if (!fileSystem.exists(path)) return@withContext StoredProjectData()
 		try {
 			fileSystem.readToml<StoredProjectData>(path, toml)
-		} catch (e: Exception) {
+		} catch (e: IOException) {
+			Napier.e("Failed to load project_data.toml: $path", e)
+			StoredProjectData()
+		} catch (e: SerializationException) {
 			Napier.e("Failed to load project_data.toml: $path", e)
 			StoredProjectData()
 		}

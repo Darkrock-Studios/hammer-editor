@@ -3,8 +3,10 @@ package com.darkrockstudios.apps.hammer.common.data.projectstatistics
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import io.github.aakira.napier.Napier
+import kotlinx.serialization.SerializationException
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.IOException
 
 /** Reads the cached stats file directly, without opening a ProjectDefScope. */
 class ProjectStatisticsCacheReader(
@@ -18,7 +20,10 @@ class ProjectStatisticsCacheReader(
 
 		val stats = try {
 			fileSystem.readToml<ProjectStatistics>(file, toml)
-		} catch (e: Exception) {
+		} catch (e: IOException) {
+			Napier.d("Failed to read statistics cache for ${projectDef.name}", e)
+			return null
+		} catch (e: SerializationException) {
 			Napier.d("Failed to read statistics cache for ${projectDef.name}", e)
 			return null
 		}

@@ -8,8 +8,10 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerializationException
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.IOException
 
 class StatisticsDatasource(
 	private val fileSystem: FileSystem,
@@ -25,7 +27,10 @@ class StatisticsDatasource(
 		return@withContext if (fileSystem.exists(file)) {
 			try {
 				fileSystem.readToml(file, toml)
-			} catch (e: Exception) {
+			} catch (e: IOException) {
+				Napier.e("Failed to load statistics cache", e)
+				null
+			} catch (e: SerializationException) {
 				Napier.e("Failed to load statistics cache", e)
 				null
 			}
