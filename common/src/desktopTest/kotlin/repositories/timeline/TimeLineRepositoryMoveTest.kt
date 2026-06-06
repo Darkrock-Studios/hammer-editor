@@ -6,9 +6,9 @@ import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -42,13 +42,13 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 	lateinit var ffs: FakeFileSystem
 	lateinit var toml: Toml
 	lateinit var json: Json
-	lateinit var idRepo: IdRepository
+	lateinit var idRepo: IdAllocator
 	lateinit var context: ComponentContext
 	lateinit var lifecycle: Lifecycle
 	lateinit var datasource: TimeLineDatasource
 	lateinit var lifecycleCallbacks: MutableList<Lifecycle.Callbacks>
-	lateinit var syncDataRepository: SyncDataRepository
-	lateinit var globalSettingsRepo: GlobalSettingsRepository
+	lateinit var syncJournal: SyncJournal
+	lateinit var globalSettingsRepo: GlobalSettingsStore
 	lateinit var globalSettingsFlow: SharedFlow<GlobalSettings>
 
 	@BeforeEach
@@ -67,15 +67,15 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		globalSettingsFlow = mockk()
 		every { globalSettingsRepo.globalSettingsUpdates } returns globalSettingsFlow
 
-		syncDataRepository = mockk()
-		every { syncDataRepository.isServerSynchronized() } returns false
+		syncJournal = mockk()
+		every { syncJournal.isServerSynchronized() } returns false
 
 		lifecycleCallbacks = mutableListOf()
 
 		val testModule = module {
-			single { idRepo } bind IdRepository::class
+			single { idRepo } bind IdAllocator::class
 			single { globalSettingsRepo }
-			single { syncDataRepository }
+			single { syncJournal }
 		}
 		setupKoin(testModule)
 
@@ -113,7 +113,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		val repo = TimeLineRepository(
 			projectDef = projectDef,
 			datasource = datasource,
-			idRepository = idRepo,
+			idAllocator = idRepo,
 		)
 		repo.initialize()
 

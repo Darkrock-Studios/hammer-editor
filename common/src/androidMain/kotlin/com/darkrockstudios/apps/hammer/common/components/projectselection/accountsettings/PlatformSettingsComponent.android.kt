@@ -14,7 +14,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -48,7 +48,7 @@ class AndroidPlatformSettingsComponent(
 
 	private val mainDispatcher by injectMainDispatcher()
 
-	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectsRepository: ProjectsRepository by inject()
 
 	val permissionsController = PermissionsController(context)
@@ -67,7 +67,7 @@ class AndroidPlatformSettingsComponent(
 			val internalStorage =
 				settings.getBoolean(AndroidSettingsKeys.KEY_USE_INTERNAL_STORAGE, true)
 			val externalStorageAccess = isExternalStorageGranted()
-			val dndSelected = globalSettingsRepository.globalSettings.enableDndInFocusMode
+			val dndSelected = globalSettingsStore.globalSettings.enableDndInFocusMode
 			val dndGranted = isNotificationPolicyGranted()
 
 			_state.getAndUpdate {
@@ -122,7 +122,7 @@ class AndroidPlatformSettingsComponent(
 
 	fun updateEnableDndInFocusMode(enabled: Boolean) {
 		scope.launch {
-			globalSettingsRepository.updateSettings {
+			globalSettingsStore.updateSettings {
 				it.copy(enableDndInFocusMode = enabled)
 			}
 			_state.getAndUpdate {
@@ -167,9 +167,9 @@ class AndroidPlatformSettingsComponent(
 	fun setInternalStorage() = setStorage(internal = true)
 
 	private fun setStorage(internal: Boolean) {
-		val oldPath = globalSettingsRepository.globalSettings.projectsDirectory.toPath()
+		val oldPath = globalSettingsStore.globalSettings.projectsDirectory.toPath()
 		if (internal) setInternalDirectories(context) else setExternalDirectories(context)
-		val newPath = globalSettingsRepository.defaultProjectDir()
+		val newPath = globalSettingsStore.defaultProjectDir()
 		moveProjectDirectory(oldPath = oldPath, newPath = newPath.toOkioPath())
 
 		settings[AndroidSettingsKeys.KEY_USE_INTERNAL_STORAGE] = internal
@@ -216,7 +216,7 @@ class AndroidPlatformSettingsComponent(
 		)
 
 		scope.launch {
-			globalSettingsRepository.updateSettings {
+			globalSettingsStore.updateSettings {
 				it.copy(
 					projectsDirectory = path
 				)

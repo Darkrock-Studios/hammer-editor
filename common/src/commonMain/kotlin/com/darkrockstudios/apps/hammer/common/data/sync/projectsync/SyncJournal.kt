@@ -1,10 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 
-class SyncDataRepository(
-	private val globalSettingsRepository: GlobalSettingsRepository,
+class SyncJournal(
+	private val globalSettingsStore: GlobalSettingsStore,
 	private val networkConnectivity: NetworkConnectivity,
 	private val datasource: SyncDataDatasource,
 ) {
@@ -18,8 +18,8 @@ class SyncDataRepository(
 		return datasource.loadSyncDataOrNull()?.deletedIds ?: emptySet()
 	}
 
-	suspend fun shouldAutoSync(): Boolean = globalSettingsRepository.serverIsSetup() &&
-		globalSettingsRepository.globalSettings.automaticSyncing &&
+	suspend fun shouldAutoSync(): Boolean = globalSettingsStore.serverIsSetup() &&
+		globalSettingsStore.globalSettings.automaticSyncing &&
 		networkConnectivity.hasActiveConnection() &&
 		needsSync()
 
@@ -29,7 +29,7 @@ class SyncDataRepository(
 	}
 
 	suspend fun markEntityAsDirty(id: Int, oldHash: String) {
-		if (globalSettingsRepository.isServerSynchronized().not()) return
+		if (globalSettingsStore.isServerSynchronized().not()) return
 
 		val syncData = datasource.loadSyncData()
 		val newSyncData = syncData.copy(
@@ -39,7 +39,7 @@ class SyncDataRepository(
 	}
 
 	suspend fun recordNewId(claimedId: Int) {
-		if (globalSettingsRepository.isServerSynchronized().not()) return
+		if (globalSettingsStore.isServerSynchronized().not()) return
 
 		val syncData = datasource.loadSyncData()
 		val newSyncData = syncData.copy(newIds = syncData.newIds + claimedId)
@@ -47,7 +47,7 @@ class SyncDataRepository(
 	}
 
 	suspend fun recordIdDeletion(deletedId: Int) {
-		if (globalSettingsRepository.isServerSynchronized().not()) return
+		if (globalSettingsStore.isServerSynchronized().not()) return
 
 		val syncData = datasource.loadSyncData()
 		val newSyncData = if (syncData.newIds.contains(deletedId)) {
@@ -61,7 +61,7 @@ class SyncDataRepository(
 	}
 
 	fun isServerSynchronized(): Boolean {
-		return globalSettingsRepository.serverSettings != null
+		return globalSettingsStore.serverSettings != null
 	}
 
 	suspend fun createSyncData(): Boolean {

@@ -2,11 +2,11 @@ package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
@@ -18,10 +18,13 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.numDigits
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okio.IOException
 import okio.Path
 import org.koin.core.component.KoinComponent
@@ -29,8 +32,8 @@ import kotlin.time.Clock
 
 class SceneRepository(
 	val projectDef: ProjectDef,
-	private val idRepository: IdRepository,
-	private val syncDataRepository: SyncDataRepository,
+	private val idAllocator: IdAllocator,
+	private val syncJournal: SyncJournal,
 	private val sceneMetadataRepository: SceneMetadataRepository,
 	private val sceneContentRepository: SceneContentRepository,
 	private val sceneMetadataDatasource: SceneMetadataDatasource,
@@ -62,7 +65,7 @@ class SceneRepository(
 		get() = sceneTree
 
 	private suspend fun markForSynchronization(scene: SceneItem) {
-		if (syncDataRepository.isServerSynchronized() && !syncDataRepository.isEntityDirty(scene.id)) {
+		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(scene.id)) {
 			val metadata = sceneMetadataDatasource.loadMetadata(scene.id)
 			val pathSegments = getPathSegments(scene)
 
@@ -91,7 +94,7 @@ class SceneRepository(
 				created = metadata?.created,
 				lastEdited = metadata?.lastEdited,
 			)
-			syncDataRepository.markEntityAsDirty(scene.id, hash)
+			syncJournal.markEntityAsDirty(scene.id, hash)
 		}
 	}
 
@@ -143,7 +146,7 @@ class SceneRepository(
 
 		cleanupSceneOrder()
 
-		idRepository.findNextId()
+		idAllocator.findNextId()
 
 		// Loads any existing temp buffers and starts the content debounce/autosave engine.
 		sceneContentRepository.initialize()
@@ -420,7 +423,7 @@ class SceneRepository(
 	}
 
 	private suspend fun markForSynchronization(scene: SceneItem, content: String) {
-		if (syncDataRepository.isServerSynchronized() && !syncDataRepository.isEntityDirty(scene.id)) {
+		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(scene.id)) {
 			val metadata = sceneMetadataDatasource.loadMetadata(scene.id)
 			val pathSegments = getPathSegments(scene)
 			val hash = EntityHasher.hashScene(
@@ -439,7 +442,7 @@ class SceneRepository(
 				created = metadata?.created,
 				lastEdited = metadata?.lastEdited,
 			)
-			syncDataRepository.markEntityAsDirty(scene.id, hash)
+			syncJournal.markEntityAsDirty(scene.id, hash)
 		}
 	}
 
@@ -568,7 +571,7 @@ class SceneRepository(
 		// Must grab a copy of the children before they are modified
 		// we'll need this if we need to calculate their original hash
 		// down below for markForSynchronization()
-		val originalChildren = if (syncDataRepository.isServerSynchronized()) {
+		val originalChildren = if (syncJournal.isServerSynchronized()) {
 			parent.children().map { child -> child.value.copy() }
 		} else {
 			null
@@ -693,7 +696,7 @@ class SceneRepository(
 		} else {
 			val lastOrder = getLastOrderNumber(parent?.id)
 			val nextOrder = forceOrder ?: (lastOrder + 1)
-			val sceneId = forceId ?: idRepository.claimNextId()
+			val sceneId = forceId ?: idAllocator.claimNextId()
 			val type = if (isGroup) SceneItem.Type.Group else SceneItem.Type.Scene
 
 			val newSceneItem = SceneItem(
@@ -758,8 +761,8 @@ class SceneRepository(
 				updateSceneOrder(parentId)
 				Napier.w("Scene ${scene.id} deleted")
 
-				if (syncDataRepository.isServerSynchronized()) {
-					syncDataRepository.recordIdDeletion(scene.id)
+				if (syncJournal.isServerSynchronized()) {
+					syncJournal.recordIdDeletion(scene.id)
 				}
 
 				reloadScenes()
@@ -778,8 +781,8 @@ class SceneRepository(
 		val deleted = sceneDatasource.deleteGroup(scene)
 
 		return if (deleted) {
-			if (syncDataRepository.isServerSynchronized()) {
-				syncDataRepository.recordIdDeletion(scene.id)
+			if (syncJournal.isServerSynchronized()) {
+				syncJournal.recordIdDeletion(scene.id)
 			}
 
 			val sceneNode = getSceneNodeFromId(scene.id)

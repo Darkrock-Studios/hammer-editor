@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.server
 
 import com.darkrockstudios.apps.hammer.base.http.Token
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -11,9 +11,9 @@ import io.ktor.http.*
 
 class ServerAccountApi(
 	httpClient: HttpClient,
-	globalSettingsRepository: GlobalSettingsRepository,
+	globalSettingsStore: GlobalSettingsStore,
 	strRes: StrRes
-) : Api(httpClient, globalSettingsRepository, strRes) {
+) : Api(httpClient, globalSettingsStore, strRes) {
 
 	suspend fun createAccount(
 		email: String,

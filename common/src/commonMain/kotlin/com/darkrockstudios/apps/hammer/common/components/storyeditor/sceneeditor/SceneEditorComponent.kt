@@ -17,7 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings.Companion.DEFAULT_FONT_SIZE
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
@@ -43,7 +43,7 @@ class SceneEditorComponent(
 	ComponentToaster by ComponentToasterImpl(),
 	SceneEditor {
 
-	private val settingsRepository: GlobalSettingsRepository by inject()
+	private val settingsRepository: GlobalSettingsStore by inject()
 	private val sceneEditor: SceneEditorService by projectInject()
 	private val draftsRepository: SceneDraftRepository by projectInject()
 	private val autoConfirmReferences: AutoConfirmReferencesUseCase by projectInject()

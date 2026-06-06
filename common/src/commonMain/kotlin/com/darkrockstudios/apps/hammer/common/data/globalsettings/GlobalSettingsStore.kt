@@ -7,7 +7,6 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
 import com.darkrockstudios.apps.hammer.common.getPlatformName
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
-import kotlin.uuid.Uuid
 import com.darkrockstudios.apps.hammer.common.spellcheck.findBestMatchingLanguage
 import com.darkrockstudios.apps.hammer.common.spellcheck.findBestMatchingLanguageOrNull
 import com.darkrockstudios.apps.hammer.common.spellcheck.toLocale
@@ -20,8 +19,9 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import okio.Path.Companion.toPath
 import org.koin.core.component.KoinComponent
+import kotlin.uuid.Uuid
 
-class GlobalSettingsRepository(
+class GlobalSettingsStore(
 	private val globalSettingsDatasource: GlobalSettingsDatasource,
 	private val serverSettingsDatasource: ServerSettingsDatasource,
 ) : KoinComponent {
@@ -85,7 +85,7 @@ class GlobalSettingsRepository(
 
 	fun serverIsSetup(): Boolean = serverSettingsDatasource.serverIsSetup(projectsDir())
 
-	fun defaultProjectDir() = GlobalSettingsRepository.defaultProjectDir().toHPath()
+	fun defaultProjectDir() = GlobalSettingsStore.defaultProjectDir().toHPath()
 
 	fun deleteServerSettings() {
 		serverSettingsDatasource.removeServerSettings(projectsDir())

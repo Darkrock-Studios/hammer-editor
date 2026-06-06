@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
@@ -52,7 +52,7 @@ class ProjectHomeComponent(
 
 	private val mainDispatcher by injectMainDispatcher()
 
-	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectBackupRepository: ProjectBackupRepository by inject()
 	private val sceneEditorRepository: SceneEditorService by projectInject()
 	private val exportStoryUseCase: ExportStoryUseCase by projectInject()
@@ -305,7 +305,7 @@ class ProjectHomeComponent(
 							totalEntryConnections = stats.totalEntryConnections,
 							wordCountGoal = stats.wordCountGoal,
 							writingActivity = derived,
-							hasServer = globalSettingsRepository.serverSettings != null,
+							hasServer = globalSettingsStore.serverSettings != null,
 							isLoadingStats = false
 						)
 					}

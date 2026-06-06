@@ -3,23 +3,14 @@ package repositories.sceneeditor
 import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
-import com.darkrockstudios.apps.hammer.common.data.SceneContent
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.SceneSummary
-import com.darkrockstudios.apps.hammer.common.data.UpdateSource
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -54,10 +45,10 @@ class SceneContentRepositoryTest : BaseTest() {
 	private lateinit var toml: Toml
 
 	@MockK
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 
 	@MockK
-	private lateinit var idRepository: IdRepository
+	private lateinit var idAllocator: IdAllocator
 
 	@MockK
 	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
@@ -86,9 +77,9 @@ class SceneContentRepositoryTest : BaseTest() {
 				dataVersion = 1,
 			)
 		)
-		coEvery { syncDataRepository.isServerSynchronized() } returns false
-		coEvery { syncDataRepository.isEntityDirty(any()) } returns false
-		coEvery { syncDataRepository.markEntityAsDirty(any(), any()) } just Runs
+		coEvery { syncJournal.isServerSynchronized() } returns false
+		coEvery { syncJournal.isEntityDirty(any()) } returns false
+		coEvery { syncJournal.markEntityAsDirty(any(), any()) } just Runs
 	}
 
 	private fun createStack(projectDef: ProjectDef) {
@@ -106,8 +97,8 @@ class SceneContentRepositoryTest : BaseTest() {
 		val writingSessionTracker = mockk<WritingSessionTracker>(relaxed = true)
 		repo = SceneRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
-			idRepository = idRepository,
+			syncJournal = syncJournal,
+			idAllocator = idAllocator,
 			sceneMetadataRepository = sceneMetadataRepository,
 			sceneContentRepository = contentRepo,
 			sceneMetadataDatasource = sceneMetadataDatasource,

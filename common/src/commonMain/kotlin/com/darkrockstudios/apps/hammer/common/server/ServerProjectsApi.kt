@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
 import com.darkrockstudios.apps.hammer.base.http.CreateProjectResponse
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -12,9 +12,9 @@ import io.ktor.client.request.*
 
 class ServerProjectsApi(
 	httpClient: HttpClient,
-	globalSettingsRepository: GlobalSettingsRepository,
+	globalSettingsStore: GlobalSettingsStore,
 	strRes: StrRes,
-) : Api(httpClient, globalSettingsRepository, strRes) {
+) : Api(httpClient, globalSettingsStore, strRes) {
 
 	suspend fun beginProjectsSync(): Result<BeginProjectsSyncResponse> {
 		return get(

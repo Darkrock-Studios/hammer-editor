@@ -36,7 +36,7 @@ class IndependentEditsTest : RoundTripTestBase() {
 		seedServerEntity(numericProjectId, E2eTestData.createTestScene(id = 1))
 		database().execute("UPDATE project SET last_id = 1 WHERE id = $numericProjectId;")
 
-		// Client creates a different scene locally with id=2 — IdRepository would
+		// Client creates a different scene locally with id=2 — IdAllocator would
 		// claim id=1 (it doesn't know about the server's reservation), causing an
 		// ID conflict. Force id=2 instead.
 		val localScene = client.sceneEditor.createScene(parent = null, sceneName = "Local Scene", forceId = 2)

@@ -4,26 +4,15 @@ import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
-import com.darkrockstudios.apps.hammer.common.data.InsertPosition
-import com.darkrockstudios.apps.hammer.common.data.MoveRequest
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
-import com.darkrockstudios.apps.hammer.common.data.SceneContent
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.SceneSummary
-import com.darkrockstudios.apps.hammer.common.data.UpdateSource
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
@@ -62,10 +51,10 @@ class SceneEditorServiceTest : BaseTest() {
 	private lateinit var toml: Toml
 
 	@MockK
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 
 	@MockK
-	private lateinit var idRepository: IdRepository
+	private lateinit var idAllocator: IdAllocator
 
 	@MockK
 	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
@@ -102,13 +91,13 @@ class SceneEditorServiceTest : BaseTest() {
 		)
 
 		nextId = 100
-		coEvery { idRepository.claimNextId() } answers { nextId++ }
-		coEvery { idRepository.findNextId() } just Runs
+		coEvery { idAllocator.claimNextId() } answers { nextId++ }
+		coEvery { idAllocator.findNextId() } just Runs
 
-		coEvery { syncDataRepository.isServerSynchronized() } returns false
-		coEvery { syncDataRepository.isEntityDirty(any()) } returns false
-		coEvery { syncDataRepository.markEntityAsDirty(any(), any()) } just Runs
-		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
+		coEvery { syncJournal.isServerSynchronized() } returns false
+		coEvery { syncJournal.isEntityDirty(any()) } returns false
+		coEvery { syncJournal.markEntityAsDirty(any(), any()) } just Runs
+		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
 	}
 
 	private fun createService(projectDef: ProjectDef): SceneEditorService {
@@ -129,8 +118,8 @@ class SceneEditorServiceTest : BaseTest() {
 		)
 		repo = SceneRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
-			idRepository = idRepository,
+			syncJournal = syncJournal,
+			idAllocator = idAllocator,
 			sceneMetadataRepository = sceneMetadataRepository,
 			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
@@ -533,8 +522,8 @@ class SceneEditorServiceTest : BaseTest() {
 	@Test
 	fun `Marking for synchronization hashes the exact persisted scene identity`() =
 		runTest(mainTestDispatcher) {
-			coEvery { syncDataRepository.isServerSynchronized() } returns true
-			coEvery { syncDataRepository.isEntityDirty(1) } returns false
+			coEvery { syncJournal.isServerSynchronized() } returns true
+			coEvery { syncJournal.isEntityDirty(1) } returns false
 
 			val service = initializedService()
 			val scene = service.getSceneItemFromId(1)!!
@@ -559,12 +548,12 @@ class SceneEditorServiceTest : BaseTest() {
 			)
 
 			val hashSlot = slot<String>()
-			coEvery { syncDataRepository.markEntityAsDirty(1, capture(hashSlot)) } just Runs
+			coEvery { syncJournal.markEntityAsDirty(1, capture(hashSlot)) } just Runs
 
 			// Any mutation marks the scene for sync before changing it.
 			service.renameScene(scene, "Renamed")
 
-			coVerify { syncDataRepository.markEntityAsDirty(1, any()) }
+			coVerify { syncJournal.markEntityAsDirty(1, any()) }
 			assertEquals(expectedHash, hashSlot.captured)
 		}
 

@@ -3,9 +3,9 @@ package com.darkrockstudios.apps.hammer.common.data.timelinerepository
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectInject
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
@@ -25,12 +25,12 @@ import kotlin.coroutines.CoroutineContext
 
 class TimeLineRepository(
 	private val projectDef: ProjectDef,
-	private val idRepository: IdRepository,
+	private val idAllocator: IdAllocator,
 	private val datasource: TimeLineDatasource,
 ) : ProjectScoped, ScopeCallback {
 	override val projectScope = ProjectDefScope(projectDef)
 
-	private val syncDataRepository: SyncDataRepository by projectInject()
+	private val syncJournal: SyncJournal by projectInject()
 	private val dispatcherDefault: CoroutineContext by injectDefaultDispatcher()
 
 	// Get this one eagerly, it's used during Koin teardown when we can't get it from the scope
@@ -70,7 +70,7 @@ class TimeLineRepository(
 		order: Int? = null,
 		tags: Set<String> = emptySet(),
 	): TimeLineEvent {
-		val eventId = id ?: idRepository.claimNextId()
+		val eventId = id ?: idAllocator.claimNextId()
 		val timeline = timelineFlow.first()
 
 		val event = TimeLineEvent(
@@ -139,7 +139,7 @@ class TimeLineRepository(
 		events.removeAt(index)
 		storeAndEmitTimeline(timeline.copy(events = events))
 
-		syncDataRepository.recordIdDeletion(event.id)
+		syncJournal.recordIdDeletion(event.id)
 
 		return true
 	}
@@ -249,7 +249,7 @@ class TimeLineRepository(
 	}
 
 	private suspend fun markForSynchronization(originalEvent: TimeLineEvent, originalOrder: Int) {
-		if (syncDataRepository.isServerSynchronized() && !syncDataRepository.isEntityDirty(
+		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(
 				originalEvent.id
 			)
 		) {
@@ -260,7 +260,7 @@ class TimeLineRepository(
 				date = originalEvent.date,
 				tags = originalEvent.tags,
 			)
-			syncDataRepository.markEntityAsDirty(originalEvent.id, hash)
+			syncJournal.markEntityAsDirty(originalEvent.id, hash)
 		}
 	}
 

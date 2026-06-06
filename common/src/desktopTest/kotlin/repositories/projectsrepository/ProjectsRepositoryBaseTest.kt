@@ -1,7 +1,7 @@
 package repositories.projectsrepository
 
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import createRootDirectory
@@ -19,7 +19,7 @@ import utils.BaseTest
 
 abstract class ProjectsRepositoryBaseTest : BaseTest() {
 	protected lateinit var ffs: FakeFileSystem
-	protected lateinit var settingsRepo: GlobalSettingsRepository
+	protected lateinit var settingsRepo: GlobalSettingsStore
 	protected lateinit var projectsMetaDatasource: ProjectMetadataDatasource
 	protected lateinit var settings: GlobalSettings
 	protected lateinit var toml: Toml

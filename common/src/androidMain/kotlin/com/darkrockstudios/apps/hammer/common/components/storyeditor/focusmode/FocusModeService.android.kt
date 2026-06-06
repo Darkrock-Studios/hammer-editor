@@ -11,11 +11,11 @@ import androidx.annotation.RequiresApi
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import com.darkrockstudios.apps.hammer.common.R
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 
 actual class FocusModeService(
 	private val appContext: Context,
-	private val globalSettingsRepository: GlobalSettingsRepository,
+	private val globalSettingsStore: GlobalSettingsStore,
 ) {
 
 	private val notificationManager =
@@ -32,7 +32,7 @@ actual class FocusModeService(
 	 * Handles legacy global toggle for API < 35 and ZenRules for API 35+.
 	 */
 	actual fun enterFocusMode() {
-		if (!globalSettingsRepository.globalSettings.enableDndInFocusMode) return
+		if (!globalSettingsStore.globalSettings.enableDndInFocusMode) return
 		if (!notificationManager.isNotificationPolicyAccessGranted) return
 
 		if (Build.VERSION.SDK_INT >= 35) {

@@ -4,17 +4,17 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.In
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -42,9 +42,9 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 	private lateinit var projectPath: HPath
 	private lateinit var scenesPath: HPath
 	private lateinit var projectsRepo: ProjectsRepository
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 	private lateinit var projectDef: ProjectDef
-	private lateinit var idRepository: IdRepository
+	private lateinit var idAllocator: IdAllocator
 	private lateinit var projectMetadataRepository: ProjectMetadataDatasource
 	private lateinit var sceneMetadataDatasource: SceneMetadataDatasource
 	private lateinit var sceneMetadataRepository: SceneMetadataRepository
@@ -115,9 +115,9 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 		toml = createTomlSerializer()
 
 		nextId = -1
-		idRepository = mockk()
-		coEvery { idRepository.claimNextId() } answers { claimId() }
-		coEvery { idRepository.findNextId() } answers {}
+		idAllocator = mockk()
+		coEvery { idAllocator.claimNextId() } answers { claimId() }
+		coEvery { idAllocator.findNextId() } answers {}
 
 		populateProject(ffs)
 
@@ -126,8 +126,8 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 			path = projectPath
 		)
 
-		syncDataRepository = mockk()
-		every { syncDataRepository.isServerSynchronized() } returns false
+		syncJournal = mockk()
+		every { syncJournal.isServerSynchronized() } returns false
 
 		setupKoin()
 		sceneDatasource = SceneDatasource(projectDef, ffs)
@@ -154,8 +154,8 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 		)
 		return SceneRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
-			idRepository = idRepository,
+			syncJournal = syncJournal,
+			idAllocator = idAllocator,
 			sceneMetadataRepository = sceneMetadataRepository,
 			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,

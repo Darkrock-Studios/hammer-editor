@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.projectbackup
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -21,7 +21,7 @@ import kotlin.time.Instant
 open class ProjectBackupRepository(
 	protected val fileSystem: FileSystem,
 	protected val projectsRepository: ProjectsRepository,
-	protected val globalSettingsRepository: GlobalSettingsRepository,
+	protected val globalSettingsStore: GlobalSettingsStore,
 	protected val clock: Clock
 ) : KoinComponent {
 
@@ -100,7 +100,7 @@ open class ProjectBackupRepository(
 	}
 
 	fun cullBackups(project: ProjectDef) {
-		val settings = globalSettingsRepository.globalSettings
+		val settings = globalSettingsStore.globalSettings
 
 		val backups = getBackups(project).toMutableList()
 

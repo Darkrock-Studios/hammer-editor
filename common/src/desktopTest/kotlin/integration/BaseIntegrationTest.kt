@@ -1,18 +1,14 @@
 package integration
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
-import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -55,8 +51,8 @@ abstract class BaseIntegrationTest : BaseTest() {
 	protected lateinit var projectMetadataDatasource: ProjectMetadataDatasource
 
 	// Mocked external dependencies (things we don't want to test here)
-	protected lateinit var syncDataRepository: SyncDataRepository
-	protected lateinit var idRepository: IdRepository
+	protected lateinit var syncJournal: SyncJournal
+	protected lateinit var idAllocator: IdAllocator
 	protected lateinit var statisticsRepository: StatisticsRepository
 
 	// Project state
@@ -96,17 +92,17 @@ abstract class BaseIntegrationTest : BaseTest() {
 
 	private fun setupMockedDependencies() {
 		// ID repository - just provides incrementing IDs
-		idRepository = mockk()
-		coEvery { idRepository.claimNextId() } answers { nextId++ }
-		coEvery { idRepository.findNextId() } returns Unit
+		idAllocator = mockk()
+		coEvery { idAllocator.claimNextId() } answers { nextId++ }
+		coEvery { idAllocator.findNextId() } returns Unit
 
 		// Statistics repository - we don't care about stats in integration tests
 		statisticsRepository = mockk(relaxed = true)
 
 		// Sync data repository - controls whether sync is active
 		// Default to NOT synchronized so we don't trigger sync marking
-		syncDataRepository = mockk()
-		every { syncDataRepository.isServerSynchronized() } returns false
+		syncJournal = mockk()
+		every { syncJournal.isServerSynchronized() } returns false
 	}
 
 	/**
@@ -147,8 +143,8 @@ abstract class BaseIntegrationTest : BaseTest() {
 		// Create real repository with real datasources
 		sceneEditorRepository = SceneRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
-			idRepository = idRepository,
+			syncJournal = syncJournal,
+			idAllocator = idAllocator,
 			sceneMetadataRepository = sceneMetadataRepository,
 			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
@@ -171,9 +167,9 @@ abstract class BaseIntegrationTest : BaseTest() {
 	 * This will cause markForSynchronization to actually run.
 	 */
 	protected fun enableServerSync() {
-		every { syncDataRepository.isServerSynchronized() } returns true
-		coEvery { syncDataRepository.isEntityDirty(any()) } returns false
-		coEvery { syncDataRepository.markEntityAsDirty(any(), any()) } returns Unit
+		every { syncJournal.isServerSynchronized() } returns true
+		coEvery { syncJournal.isEntityDirty(any()) } returns false
+		coEvery { syncJournal.markEntityAsDirty(any(), any()) } returns Unit
 	}
 
 	/**

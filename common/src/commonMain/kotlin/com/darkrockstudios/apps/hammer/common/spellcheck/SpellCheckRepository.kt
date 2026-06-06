@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.spellcheck
 
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
 
 class SpellCheckRepository(
-	private val globalSettingsRepository: GlobalSettingsRepository,
+	private val globalSettingsStore: GlobalSettingsStore,
 	private val spellCheckFactory: PlatformSpellCheckerFactory,
 ) : KoinComponent {
 
@@ -48,11 +48,11 @@ class SpellCheckRepository(
 	init {
 		scope.launch {
 			val initialLocale =
-				globalSettingsRepository.globalSettings.spellCheckSettings.locale
+				globalSettingsStore.globalSettings.spellCheckSettings.locale
 			requestSpellChecker(initialLocale)
 			Napier.i("Spell Check: Initial language set: $initialLocale")
 
-			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
+			globalSettingsStore.globalSettingsUpdates.collect { settings ->
 				val newLanguage = settings.spellCheckSettings.locale
 				if (currentLanguage != settings.spellCheckSettings.locale) {
 					Napier.i("Updating Spell Check Language: $newLanguage")

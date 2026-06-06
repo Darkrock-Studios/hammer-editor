@@ -12,7 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
@@ -41,7 +41,7 @@ class ProjectSynchronizationComponent(
 
 	private val mainDispatcher by injectMainDispatcher()
 
-	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val sceneEditorRepository: SceneEditorService by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val notesRepository: NotesRepository by projectInject()
@@ -123,7 +123,7 @@ class ProjectSynchronizationComponent(
 			}
 
 			// Auto-close dialog on success
-			if (success && globalSettingsRepository.globalSettings.autoCloseSyncDialog) {
+			if (success && globalSettingsStore.globalSettings.autoCloseSyncDialog) {
 				endSync()
 			} else {
 				if (!success) {

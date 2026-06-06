@@ -14,8 +14,8 @@ logic in the wrong layer.
 Layers are ordered from **lowest** (closest to data) to **highest** (closest to the UI):
 
 ```
-Data Sources  →  Repositories  →  Services  →  Use Cases  →  ViewModels
-  (lowest)                                                     (highest)
+Data Sources  →  Foundation  →  Repositories  →  Services  →  Use Cases  →  ViewModels
+  (lowest)                                                                    (highest)
 ```
 
 "Lower" means closer to data; "higher" means closer to the UI. Dependencies always point **downward** (higher depends on
@@ -28,19 +28,21 @@ Data Source  →  Repository  →  ViewModel
 ```
 
 **Services** and **Use Cases** are *optional* layers, inserted only when a specific need arises (see Decision rules). Do
-not create them speculatively.
+not create them speculatively. **Foundation** is a small, *fixed* set of cross-cutting stateful primitives that the
+whole data layer sits on (see Foundation primitives); you depend on it, you do not add to it casually.
 
 ---
 
 ## Layer reference
 
-| Layer       | State     | Lifetime / DI         | May reference                                                  | Required? |
-|-------------|-----------|-----------------------|----------------------------------------------------------------|-----------|
-| Data Source | Stateless | Factory (new per use) | Nothing in these layers                                        | Yes       |
-| Repository  | Stateful  | Scoped singleton      | Data Sources                                                   | Yes       |
-| Service     | Stateful  | Scoped singleton      | Repositories, Data Sources                                     | No        |
-| Use Case    | Stateless | Factory (new per use) | Services, Repositories, Data Sources, other Use Cases (lazily) | No        |
-| ViewModel   | —         | Per screen/owner      | Use Cases, Services, Repositories                              | Yes       |
+| Layer       | State     | Lifetime / DI         | May reference                                                  | Required?  |
+|-------------|-----------|-----------------------|----------------------------------------------------------------|------------|
+| Data Source | Stateless | Factory (new per use) | Nothing in these layers                                        | Yes        |
+| Foundation  | Stateful  | Scoped singleton      | Data Sources, other Foundation primitives (acyclic)           | Fixed set  |
+| Repository  | Stateful  | Scoped singleton      | Data Sources, Foundation                                       | Yes        |
+| Service     | Stateful  | Scoped singleton      | Repositories, Foundation, Data Sources                         | No         |
+| Use Case    | Stateless | Factory (new per use) | Services, Repositories, Foundation, Data Sources, other Use Cases (lazily) | No |
+| ViewModel   | —         | Per screen/owner      | Use Cases, Services, Repositories, Foundation                  | Yes        |
 
 ---
 
@@ -52,11 +54,42 @@ Raw I/O and nothing else: network calls, database/DAO access, file/disk access, 
 stores, etc.). A data source holds **no state** and contains **no business logic**. It does not combine or call other
 data sources. Factory-produced (a fresh instance per use).
 
+### Foundation primitives — stateful, cross-cutting
+
+A small, **fixed** set of stateful primitives the entire data layer is built on. Unlike a Repository, a foundation
+primitive is not a domain area you "get/observe/save" — it is shared infrastructure (ID allocation, sync bookkeeping,
+app settings) that nearly every repository needs. Scoped singleton, like a Repository.
+
+Current members:
+
+- **`IdAllocator`** — hands out the project-wide monotonic entity IDs.
+- **`SyncJournal`** — records dirty entities and created/deleted IDs awaiting server reconciliation.
+- **`GlobalSettingsStore`** — owns the app-global settings (and server settings).
+
+Rules:
+
+- **May reference:** Data Sources, and *other foundation primitives* — but the foundation set must stay **acyclic**. It
+  is a DAG: `GlobalSettingsStore ← SyncJournal ← IdAllocator`. This is the **only** place a stateful component may
+  reference its own tier, and it is allowed precisely because the set is kept acyclic by hand.
+- **May be referenced by:** any higher layer (Repository, Service, Use Case, ViewModel) and other foundation primitives.
+  Depending *down* into a foundation primitive is always allowed.
+- **Must never reference upward.** A foundation primitive may not depend on a Repository or anything above it; that is
+  what keeps it a leaf and the whole graph acyclic.
+- **Not a default home.** Adding a class here is a deliberate, reviewed decision — not a way to dodge the no-sibling
+  rule. If a class is really a domain area, it is a Repository; if it coordinates repositories, it is a Service.
+
+> **Why this tier exists.** The no-sibling rule (below) exists for exactly one reason: to keep the dependency graph
+> acyclic. A handful of primitives — ID allocation, sync bookkeeping, settings — are needed by almost every repository,
+> and they are *already* acyclic leaves (nothing points back up into domain code). Forcing every repository to receive
+> IDs and sync-marking from above would be pure churn that buys nothing the rule was meant to protect. So we name the
+> tier honestly instead of pretending these dependencies are violations.
+
 ### Repositories — stateful
 
 Combine one or more **data sources** for a single domain area, and own the state for that area (caching, in-memory
 flows, dedup, the source-of-truth for that domain). A repository is the default home for "get/observe/save this kind of
-data." Scoped singleton.
+data." May also depend *down* on **Foundation primitives** (e.g. `IdAllocator` for new entity IDs, `SyncJournal` to mark
+edits dirty) — but **never on another Repository**. Scoped singleton.
 
 ### Services — stateful, **optional**
 
@@ -94,6 +127,10 @@ logic out of ViewModels; if logic is accumulating here, extract a Use Case.
    factory, or a `() -> T` lambda — never the constructed instance directly. Statelessness alone does **not** prevent a
    construction cycle; lazy resolution is what breaks it.
 5. **ViewModels never touch Data Sources.** Always go through a Repository (or a Service/Use Case above it).
+6. **Foundation primitives are a shared lower tier, not siblings.** Depending on `IdAllocator`, `SyncJournal`, or
+   `GlobalSettingsStore` from any layer is *downward* and always allowed — they are not siblings of the Repositories
+   that use them. They are the only stateful components that may reference their own tier, and only acyclically (see
+   Foundation primitives). A foundation primitive must never reference a Repository or higher.
 
 ---
 
@@ -122,6 +159,13 @@ Start from the minimal spine and add layers only when a concrete need appears.
 - I need to coordinate **two or more repositories** with shared/stateful logic → **yes, add a Service** (repos can't
   talk to each other, so the coordination goes here).
 - A single repository can do the job → **no.**
+
+**Do I add a Foundation primitive?**
+
+- **Almost never.** The set is fixed (`IdAllocator`, `SyncJournal`, `GlobalSettingsStore`). Only add one if it is a
+  genuinely cross-cutting, stateful primitive needed by *most* repositories *and* it is an acyclic leaf (never depends
+  upward). A domain area is a Repository; cross-repo coordination is a Service. "Two repositories both need it" is **not**
+  a reason — that is what a Service is for.
 
 **Inserting a layer later (minimizing churn):**
 

@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -20,7 +20,7 @@ class FinalizeSyncOperation(
 	private val strRes: StrRes,
 	private val clock: Clock,
 	private val serverProjectApi: ServerProjectApi,
-	private val globalSettingsRepository: GlobalSettingsRepository,
+	private val globalSettingsStore: GlobalSettingsStore,
 	private val syncDataDatasource: SyncDataDatasource,
 ) : SyncOperation(projectDef) {
 
@@ -117,7 +117,7 @@ class FinalizeSyncOperation(
 	}
 
 	private suspend fun userId(): Long {
-		return globalSettingsRepository.serverSettingsUpdates.first()?.userId
+		return globalSettingsStore.serverSettingsUpdates.first()?.userId
 			?: throw IllegalStateException("Server settings missing")
 	}
 }

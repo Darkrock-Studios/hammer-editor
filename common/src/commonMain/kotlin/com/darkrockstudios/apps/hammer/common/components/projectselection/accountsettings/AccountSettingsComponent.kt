@@ -17,7 +17,7 @@ import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.Spel
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
@@ -40,7 +40,7 @@ class AccountSettingsComponent(
 	private val mainDispatcher by injectMainDispatcher()
 	private val strRes: StrRes by inject()
 
-	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val exampleProjectRepository: ExampleProjectRepository by inject()
 	private val accountUseCase: AccountUseCase by inject()
 	private val projectsRepository: ProjectsRepository by inject()
@@ -64,12 +64,12 @@ class AccountSettingsComponent(
 
 	private val _state by savableState {
 		AccountSettings.State(
-			uiTheme = globalSettingsRepository.globalSettings.uiTheme,
-			syncAutomaticSync = globalSettingsRepository.globalSettings.automaticSyncing,
-			syncAutoCloseDialog = globalSettingsRepository.globalSettings.autoCloseSyncDialog,
-			syncAutomaticBackups = globalSettingsRepository.globalSettings.automaticBackups,
-			maxBackups = globalSettingsRepository.globalSettings.maxBackups,
-			initialProjectScreen = globalSettingsRepository.globalSettings.initialProjectScreen,
+			uiTheme = globalSettingsStore.globalSettings.uiTheme,
+			syncAutomaticSync = globalSettingsStore.globalSettings.automaticSyncing,
+			syncAutoCloseDialog = globalSettingsStore.globalSettings.autoCloseSyncDialog,
+			syncAutomaticBackups = globalSettingsStore.globalSettings.automaticBackups,
+			maxBackups = globalSettingsStore.globalSettings.maxBackups,
+			initialProjectScreen = globalSettingsStore.globalSettings.initialProjectScreen,
 		)
 	}
 	override val state: Value<AccountSettings.State> = _state
@@ -86,7 +86,7 @@ class AccountSettingsComponent(
 
 	private fun watchSettingsUpdates() {
 		scope.launch {
-			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
+			globalSettingsStore.globalSettingsUpdates.collect { settings ->
 				withContext(dispatcherMain) {
 					_state.getAndUpdate {
 						it.copy(
@@ -103,7 +103,7 @@ class AccountSettingsComponent(
 		}
 
 		scope.launch {
-			globalSettingsRepository.serverSettingsUpdates.collect { settings ->
+			globalSettingsStore.serverSettingsUpdates.collect { settings ->
 				withContext(dispatcherMain) {
 					_state.getAndUpdate {
 						it.copy(
@@ -121,7 +121,7 @@ class AccountSettingsComponent(
 
 	override fun setUiTheme(theme: UiTheme) {
 		scope.launch {
-			globalSettingsRepository.updateSettings {
+			globalSettingsStore.updateSettings {
 				it.copy(
 					uiTheme = theme
 				)
@@ -131,7 +131,7 @@ class AccountSettingsComponent(
 
 	override fun setInitialProjectScreen(value: InitialProjectScreen) {
 		scope.launch {
-			globalSettingsRepository.updateSettings {
+			globalSettingsStore.updateSettings {
 				it.copy(
 					initialProjectScreen = value
 				)
@@ -186,14 +186,14 @@ class AccountSettingsComponent(
 	}
 
 	override fun removeServer() {
-		globalSettingsRepository.deleteServerSettings()
+		globalSettingsStore.deleteServerSettings()
 		projectsRepository.getProjects().forEach { projectDef ->
 			projectsRepository.removeProjectId(projectDef = projectDef)
 		}
 	}
 
 	override suspend fun setAutomaticBackups(value: Boolean) {
-		globalSettingsRepository.updateSettings {
+		globalSettingsStore.updateSettings {
 			it.copy(
 				automaticBackups = value
 			)
@@ -201,7 +201,7 @@ class AccountSettingsComponent(
 	}
 
 	override suspend fun setAutoCloseDialogs(value: Boolean) {
-		globalSettingsRepository.updateSettings {
+		globalSettingsStore.updateSettings {
 			it.copy(
 				autoCloseSyncDialog = value
 			)
@@ -209,7 +209,7 @@ class AccountSettingsComponent(
 	}
 
 	override suspend fun setAutoSyncing(value: Boolean) {
-		globalSettingsRepository.updateSettings {
+		globalSettingsStore.updateSettings {
 			it.copy(
 				automaticSyncing = value
 			)
@@ -218,7 +218,7 @@ class AccountSettingsComponent(
 
 	override suspend fun setMaxBackups(value: Int): Boolean {
 		return if (value in 1..GlobalSettings.MAX_BACKUPS) {
-			globalSettingsRepository.updateSettings {
+			globalSettingsStore.updateSettings {
 				it.copy(
 					maxBackups = value
 				)

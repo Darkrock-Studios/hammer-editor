@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.*
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import io.github.aakira.napier.Napier
 import io.ktor.client.*
@@ -20,10 +20,10 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.util.*
 import okio.IOException
 
-private val GlobalSettingsKey = AttributeKey<GlobalSettingsRepository>("GlobalSettings")
+private val GlobalSettingsKey = AttributeKey<GlobalSettingsStore>("GlobalSettings")
 
 fun createHttpClient(
-	globalSettingsRepository: GlobalSettingsRepository,
+	globalSettingsStore: GlobalSettingsStore,
 ): HttpClient {
 	val tokenRefreshClient = createRefreshClient()
 	val client = HttpClient(getHttpPlatformEngine()) {
@@ -54,23 +54,23 @@ fun createHttpClient(
 			bearer {
 				realm = AUTH_REALM
 				loadTokens {
-					loadTokens(globalSettingsRepository)
+					loadTokens(globalSettingsStore)
 				}
 				refreshTokens {
-					refreshToken(globalSettingsRepository, tokenRefreshClient)
+					refreshToken(globalSettingsStore, tokenRefreshClient)
 				}
 			}
 		}
 	}
 
-	client.attributes.put(GlobalSettingsKey, globalSettingsRepository)
+	client.attributes.put(GlobalSettingsKey, globalSettingsStore)
 
 	return client
 }
 
-private fun loadTokens(globalSettingsRepository: GlobalSettingsRepository): BearerTokens? {
-	val accessToken = globalSettingsRepository.serverSettings?.bearerToken
-	val refreshToken = globalSettingsRepository.serverSettings?.refreshToken
+private fun loadTokens(globalSettingsStore: GlobalSettingsStore): BearerTokens? {
+	val accessToken = globalSettingsStore.serverSettings?.bearerToken
+	val refreshToken = globalSettingsStore.serverSettings?.refreshToken
 	Napier.d { "loadTokens" }
 	return if (accessToken != null && refreshToken != null) {
 		BearerTokens(
@@ -96,14 +96,14 @@ private fun createRefreshClient(): HttpClient {
 }
 
 private suspend fun refreshToken(
-	globalSettingsRepository: GlobalSettingsRepository,
+	globalSettingsStore: GlobalSettingsStore,
 	client: HttpClient
 ): BearerTokens? {
 
-	val refreshToken = globalSettingsRepository.serverSettings?.refreshToken
+	val refreshToken = globalSettingsStore.serverSettings?.refreshToken
 	val serverSettings =
-		globalSettingsRepository.serverSettings ?: throw IllegalStateException("No server URL")
-	val installId = globalSettingsRepository.ensureInstallId()
+		globalSettingsStore.serverSettings ?: throw IllegalStateException("No server URL")
+	val installId = globalSettingsStore.ensureInstallId()
 	return if (refreshToken != null) {
 		val result = refreshTokenRequest(
 			httpClient = client,
@@ -115,12 +115,12 @@ private suspend fun refreshToken(
 		if (result.isSuccess) {
 			val newTokens = result.getOrThrow()
 
-			globalSettingsRepository.serverSettings?.let { oldSettings ->
+			globalSettingsStore.serverSettings?.let { oldSettings ->
 				val newSettings = oldSettings.copy(
 					bearerToken = newTokens.auth,
 					refreshToken = newTokens.refresh
 				)
-				globalSettingsRepository.updateServerSettings(newSettings)
+				globalSettingsStore.updateServerSettings(newSettings)
 			}
 
 			BearerTokens(
@@ -215,7 +215,7 @@ fun HttpClient.updateCredentials(credentials: BearerTokens) {
 		// This clears the internal cache, forcing `loadTokens` to run again on the next request.
 		authProvider<BearerAuthProvider>()?.clearToken()
 	} else {
-		Napier.e("Failed to update credentials: GlobalSettingsRepository not attached to HttpClient")
+		Napier.e("Failed to update credentials: GlobalSettingsStore not attached to HttpClient")
 	}
 }
 

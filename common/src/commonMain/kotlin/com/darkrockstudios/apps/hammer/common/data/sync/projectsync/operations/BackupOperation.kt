@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -12,7 +12,7 @@ import com.darkrockstudios.apps.hammer.sync_log_backup_made
 
 class BackupOperation(
 	projectDef: ProjectDef,
-	private val globalSettingsRepository: GlobalSettingsRepository,
+	private val globalSettingsStore: GlobalSettingsStore,
 	private val backupRepository: ProjectBackupRepository,
 	private val strRes: StrRes,
 ) : SyncOperation(projectDef) {
@@ -24,7 +24,7 @@ class BackupOperation(
 		onComplete: suspend () -> Unit
 	): CResult<SyncOperationState> {
 		if (
-			globalSettingsRepository.globalSettings.automaticBackups &&
+			globalSettingsStore.globalSettings.automaticBackups &&
 			backupRepository.supportsBackup()
 		) {
 			val backupDef = backupRepository.createBackup(projectDef)

@@ -2,7 +2,7 @@ package repositories.writingactivity
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
@@ -30,7 +30,7 @@ class WritingSessionTrackerTest : BaseTest() {
 	private lateinit var toml: Toml
 	private lateinit var datasource: WritingActivityDatasource
 	private lateinit var repository: WritingActivityRepository
-	private lateinit var globalSettingsRepository: GlobalSettingsRepository
+	private lateinit var globalSettingsStore: GlobalSettingsStore
 	private lateinit var clock: TestClock
 	private lateinit var tracker: WritingSessionTracker
 
@@ -50,11 +50,11 @@ class WritingSessionTrackerTest : BaseTest() {
 
 		datasource = WritingActivityDatasource(fileSystem, toml, projectDef)
 
-		globalSettingsRepository = mockk(relaxed = true)
-		coEvery { globalSettingsRepository.ensureInstallId() } returns "device-test"
-		every { globalSettingsRepository.deviceLabelOrDefault() } returns "Test Device"
+		globalSettingsStore = mockk(relaxed = true)
+		coEvery { globalSettingsStore.ensureInstallId() } returns "device-test"
+		every { globalSettingsStore.deviceLabelOrDefault() } returns "Test Device"
 
-		repository = WritingActivityRepository(datasource, globalSettingsRepository, projectDef)
+		repository = WritingActivityRepository(datasource, globalSettingsStore, projectDef)
 		clock = TestClock(Clock.System)
 		tracker = WritingSessionTracker(repository, clock, projectDef)
 	}

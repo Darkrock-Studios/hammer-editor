@@ -4,14 +4,14 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import kotlinx.coroutines.yield
 import kotlin.math.max
 
 class IdConflictResolutionOperation(
 	projectDef: ProjectDef,
-	private val idRepository: IdRepository,
+	private val idAllocator: IdAllocator,
 	private val entitySynchronizers: EntitySynchronizers,
 ) : SyncOperation(projectDef) {
 	override suspend fun execute(
@@ -27,7 +27,7 @@ class IdConflictResolutionOperation(
 		// Resolve ID conflicts
 		val resolvedClientSyncData =
 			handleIdConflicts(state.clientSyncData, state.serverSyncData, onLog)
-		val currentMaxId: Int = idRepository.let {
+		val currentMaxId: Int = idAllocator.let {
 			it.findNextId()
 			it.peekLastId()
 		}
@@ -75,8 +75,8 @@ class IdConflictResolutionOperation(
 				// lower than a local entity's ID (e.g. server-side data loss),
 				// seeding only from serverLastId would hand out IDs that collide
 				// with - and clobber - existing local entities.
-				idRepository.findNextId()
-				val clientMaxId = idRepository.peekLastId()
+				idAllocator.findNextId()
+				val clientMaxId = idAllocator.peekLastId()
 				if (serverSyncData.lastId < clientMaxId) {
 					onLog(
 						syncLogW(
@@ -123,7 +123,7 @@ class IdConflictResolutionOperation(
 				}
 
 				// Tell ID Repository to re-find the max ID
-				idRepository.findNextId()
+				idAllocator.findNextId()
 
 				clientSyncData.copy(
 					newIds = updatedNewIds,

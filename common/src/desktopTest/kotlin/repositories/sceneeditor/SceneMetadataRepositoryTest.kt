@@ -5,20 +5,16 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import createProject
@@ -50,10 +46,10 @@ class SceneMetadataRepositoryTest : BaseTest() {
 	private lateinit var toml: Toml
 
 	@MockK
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 
 	@MockK
-	private lateinit var idRepository: IdRepository
+	private lateinit var idAllocator: IdAllocator
 
 	@MockK
 	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
@@ -82,9 +78,9 @@ class SceneMetadataRepositoryTest : BaseTest() {
 				dataVersion = 1,
 			)
 		)
-		coEvery { syncDataRepository.isServerSynchronized() } returns false
-		coEvery { syncDataRepository.isEntityDirty(any()) } returns false
-		coEvery { syncDataRepository.markEntityAsDirty(any(), any()) } just Runs
+		coEvery { syncJournal.isServerSynchronized() } returns false
+		coEvery { syncJournal.isEntityDirty(any()) } returns false
+		coEvery { syncJournal.markEntityAsDirty(any(), any()) } just Runs
 
 		setupKoin()
 	}
@@ -110,8 +106,8 @@ class SceneMetadataRepositoryTest : BaseTest() {
 		val writingSessionTracker = mockk<WritingSessionTracker>(relaxed = true)
 		repo = SceneRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
-			idRepository = idRepository,
+			syncJournal = syncJournal,
+			idAllocator = idAllocator,
 			sceneMetadataRepository = sceneMetadataRepository,
 			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
@@ -159,7 +155,7 @@ class SceneMetadataRepositoryTest : BaseTest() {
 			)
 		)
 		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns projectMetadata
-		coEvery { syncDataRepository.isServerSynchronized() } returns true
+		coEvery { syncJournal.isServerSynchronized() } returns true
 
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
@@ -174,7 +170,7 @@ class SceneMetadataRepositoryTest : BaseTest() {
 		service.storeMetadata(newMetadata, sceneId)
 
 		assertEquals(newMetadata, sceneMetadataRepository.loadSceneMetadata(sceneId))
-		coVerify { syncDataRepository.markEntityAsDirty(sceneId, any()) }
+		coVerify { syncJournal.markEntityAsDirty(sceneId, any()) }
 	}
 
 	@Test

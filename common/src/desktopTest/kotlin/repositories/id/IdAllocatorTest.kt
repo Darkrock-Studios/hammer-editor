@@ -5,10 +5,10 @@ import PROJECT_2_NAME
 import PROJECT_EMPTY_NAME
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import createProject
@@ -28,10 +28,10 @@ import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
 
-class IdRepositoryTest : BaseTest() {
+class IdAllocatorTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
-	private lateinit var idRepository: IdRepository
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var idAllocator: IdAllocator
+	private lateinit var syncJournal: SyncJournal
 	private lateinit var toml: Toml
 
 	private lateinit var sceneIdDatasource: SceneIdDatasource
@@ -46,7 +46,7 @@ class IdRepositoryTest : BaseTest() {
 
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
-		syncDataRepository = mockk(relaxed = true)
+		syncJournal = mockk(relaxed = true)
 
 		sceneIdDatasource = SceneIdDatasource(ffs)
 		notesIdDatasource = NotesIdDatasource(ffs)
@@ -59,7 +59,7 @@ class IdRepositoryTest : BaseTest() {
 		sceneDraftIdDatasource = SceneDraftIdDatasource(SceneDraftsDatasource(ffs, sceneDatasource))
 
 		val testModule = module {
-			single { syncDataRepository }
+			single { syncJournal }
 			single { sceneIdDatasource }
 			single { notesIdDatasource }
 			single { encyclopediaIdDatasource }
@@ -81,12 +81,12 @@ class IdRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		setupForProject(getProjectDef(PROJECT_EMPTY_NAME))
 
-		every { syncDataRepository.isServerSynchronized() } returns false
+		every { syncJournal.isServerSynchronized() } returns false
 
-		idRepository = IdRepository(getProjectDef(PROJECT_EMPTY_NAME))
-		idRepository.findNextId()
+		idAllocator = IdAllocator(getProjectDef(PROJECT_EMPTY_NAME))
+		idAllocator.findNextId()
 
-		assertEquals(idRepository.claimNextId(), 1, "First claimed ID should be 1 in empty project")
+		assertEquals(idAllocator.claimNextId(), 1, "First claimed ID should be 1 in empty project")
 	}
 
 	@Test
@@ -94,12 +94,12 @@ class IdRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 		setupForProject(getProjectDef(PROJECT_1_NAME))
 
-		every { syncDataRepository.isServerSynchronized() } returns false
+		every { syncJournal.isServerSynchronized() } returns false
 
-		idRepository = IdRepository(getProject1Def())
-		idRepository.findNextId()
+		idAllocator = IdAllocator(getProject1Def())
+		idAllocator.findNextId()
 
-		assertEquals(8, idRepository.claimNextId(), "Failed to find last scene ID")
+		assertEquals(8, idAllocator.claimNextId(), "Failed to find last scene ID")
 	}
 
 	@Test
@@ -108,13 +108,13 @@ class IdRepositoryTest : BaseTest() {
 		setupForProject(getProjectDef(PROJECT_1_NAME))
 
 		// Last real ID is 7 in "Test Project 1"
-		every { syncDataRepository.isServerSynchronized() } returns true
-		coEvery { syncDataRepository.deletedIds() } returns setOf(8)
+		every { syncJournal.isServerSynchronized() } returns true
+		coEvery { syncJournal.deletedIds() } returns setOf(8)
 
-		idRepository = IdRepository(getProject1Def())
-		idRepository.findNextId()
+		idAllocator = IdAllocator(getProject1Def())
+		idAllocator.findNextId()
 
-		assertEquals(9, idRepository.claimNextId(), "Failed to find last entity ID")
+		assertEquals(9, idAllocator.claimNextId(), "Failed to find last entity ID")
 	}
 
 	@Test
@@ -123,17 +123,17 @@ class IdRepositoryTest : BaseTest() {
 		setupForProject(getProjectDef(PROJECT_EMPTY_NAME))
 
 		val projectPath = getProjectsDirectory().div(PROJECT_EMPTY_NAME).toHPath()
-		every { syncDataRepository.isServerSynchronized() } returns false
+		every { syncJournal.isServerSynchronized() } returns false
 
 		val projectDef = ProjectDef(
 			name = PROJECT_EMPTY_NAME,
 			path = projectPath
 		)
 
-		idRepository = IdRepository(projectDef)
-		idRepository.findNextId()
+		idAllocator = IdAllocator(projectDef)
+		idAllocator.findNextId()
 
-		assertEquals(1, idRepository.claimNextId(), "Failed to find last scene ID")
+		assertEquals(1, idAllocator.claimNextId(), "Failed to find last scene ID")
 	}
 
 	@Test
@@ -142,11 +142,11 @@ class IdRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		setupForProject(projDef)
 
-		every { syncDataRepository.isServerSynchronized() } returns true
+		every { syncJournal.isServerSynchronized() } returns true
 
-		idRepository = IdRepository(projDef)
-		idRepository.findNextId()
+		idAllocator = IdAllocator(projDef)
+		idAllocator.findNextId()
 
-		assertEquals(24, idRepository.claimNextId(), "Failed to find last entity ID")
+		assertEquals(24, idAllocator.claimNextId(), "Failed to find last entity ID")
 	}
 }

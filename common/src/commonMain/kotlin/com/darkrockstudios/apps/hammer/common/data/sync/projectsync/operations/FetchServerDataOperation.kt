@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.first
 
 class FetchServerDataOperation(
 	projectDef: ProjectDef,
-	private val globalSettingsRepository: GlobalSettingsRepository,
+	private val globalSettingsStore: GlobalSettingsStore,
 	private val serverProjectApi: ServerProjectApi,
 	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val strRes: StrRes,
@@ -63,7 +63,7 @@ class FetchServerDataOperation(
 	}
 
 	private suspend fun userId(): Long {
-		return globalSettingsRepository.serverSettingsUpdates.first()?.userId
+		return globalSettingsStore.serverSettingsUpdates.first()?.userId
 			?: throw IllegalStateException("Server settings missing")
 	}
 }

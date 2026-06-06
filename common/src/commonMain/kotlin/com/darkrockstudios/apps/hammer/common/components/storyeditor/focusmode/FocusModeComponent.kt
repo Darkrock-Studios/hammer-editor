@@ -9,7 +9,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.increaseEditorTextSize
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import io.github.aakira.napier.Napier
@@ -26,7 +26,7 @@ class FocusModeComponent(
 	private val closeFocusMode: () -> Unit
 ) : ProjectComponentBase(projectDef, componentContext), FocusMode {
 
-	private val settingsRepository: GlobalSettingsRepository by inject()
+	private val settingsRepository: GlobalSettingsStore by inject()
 	private val spellCheckRepository: SpellCheckRepository by inject()
 	private val focusModeService: FocusModeService by inject()
 	private val sceneEditor: SceneEditorService by projectInject()

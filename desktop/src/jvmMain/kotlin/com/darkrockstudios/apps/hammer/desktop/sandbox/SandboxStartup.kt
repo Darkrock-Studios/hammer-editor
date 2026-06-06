@@ -17,7 +17,7 @@ import kotlin.system.exitProcess
 /**
  * Resolves (or first-time-picks) the user's projects directory under macOS
  * sandboxing before any code touches the filesystem. Must run after Koin
- * starts but before [com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository]
+ * starts but before [com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore]
  * (or anything that depends on it) is instantiated — that repo's init reads
  * from the projects dir, which is inaccessible in the sandbox until we
  * activate a security-scoped bookmark for it.

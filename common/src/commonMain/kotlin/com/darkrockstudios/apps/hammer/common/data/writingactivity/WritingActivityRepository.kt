@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 
 /**
@@ -14,14 +14,14 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
  */
 class WritingActivityRepository(
 	private val datasource: WritingActivityDatasource,
-	private val globalSettingsRepository: GlobalSettingsRepository,
+	private val globalSettingsStore: GlobalSettingsStore,
 	val projectDef: ProjectDef,
 ) : ProjectScoped {
 
 	override val projectScope = ProjectDefScope(projectDef)
 
 	/** Returns this device's id, generating and persisting it on first call. */
-	suspend fun ownDeviceId(): String = globalSettingsRepository.ensureInstallId()
+	suspend fun ownDeviceId(): String = globalSettingsStore.ensureInstallId()
 
 	/**
 	 * Loads this device's slot, returning an empty log labeled with the current
@@ -31,7 +31,7 @@ class WritingActivityRepository(
 	suspend fun loadOwnLog(): DeviceLog {
 		val deviceId = ownDeviceId()
 		return datasource.loadDeviceLog(deviceId)
-			?: DeviceLog(deviceLabel = globalSettingsRepository.deviceLabelOrDefault())
+			?: DeviceLog(deviceLabel = globalSettingsStore.deviceLabelOrDefault())
 	}
 
 	/**
@@ -41,7 +41,7 @@ class WritingActivityRepository(
 	suspend fun saveOwnLog(sessions: List<WritingSession>) {
 		val deviceId = ownDeviceId()
 		val log = DeviceLog(
-			deviceLabel = globalSettingsRepository.deviceLabelOrDefault(),
+			deviceLabel = globalSettingsStore.deviceLabelOrDefault(),
 			sessions = sessions,
 		)
 		datasource.saveDeviceLog(deviceId, log)

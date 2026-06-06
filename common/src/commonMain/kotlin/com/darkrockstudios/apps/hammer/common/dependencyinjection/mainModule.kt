@@ -12,11 +12,11 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.exampleProjectModule
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
 import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
@@ -33,17 +33,13 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsD
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
 import com.darkrockstudios.apps.hammer.common.data.references.*
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.*
 import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
@@ -109,7 +105,7 @@ val mainModule = module {
 
 	singleOf(::ServerSettingsFilesystemDatasource) bind ServerSettingsDatasource::class
 	singleOf(::GlobalSettingsFilesystemDatasource)
-	singleOf(::GlobalSettingsRepository) bind GlobalSettingsRepository::class
+	singleOf(::GlobalSettingsStore) bind GlobalSettingsStore::class
 
 	singleOf(::GithubVersionCheckDataSource) bind VersionCheckDataSource::class
 	singleOf(::VersionCheckRepository)
@@ -161,7 +157,7 @@ val mainModule = module {
 		factoryOf(::EncyclopediaIdDatasource)
 		factoryOf(::TimeLineEventIdDatasource)
 		factoryOf(::SceneDraftIdDatasource)
-		scopedOf(::IdRepository)
+		scopedOf(::IdAllocator)
 
 		scopedOf(::NotesDatasource)
 		scopedOf(::NotesRepository)
@@ -219,7 +215,7 @@ val mainModule = module {
 		factoryOf(::ProjectDataSyncOperation)
 		factoryOf(::FinalizeSyncOperation)
 
-		scopedOf(::SyncDataRepository)
+		scopedOf(::SyncJournal)
 		scopedOf(::ClientProjectSynchronizer)
 
 		scopedOf(::EntitySynchronizers)

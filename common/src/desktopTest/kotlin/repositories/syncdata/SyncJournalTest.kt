@@ -7,8 +7,8 @@ import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.readJson
 import com.darkrockstudios.apps.hammer.base.http.writeJson
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource.Companion.SYNC_FILE_NAME
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -33,20 +33,20 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
-class SyncDataRepositoryTest : BaseTest() {
+class SyncJournalTest : BaseTest() {
 
 	lateinit var ffs: FakeFileSystem
 	lateinit var json: Json
 	lateinit var datasource: SyncDataDatasource
 
 	@MockK
-	lateinit var idRepository: IdRepository
+	lateinit var idAllocator: IdAllocator
 
 	@MockK
 	lateinit var entitySynchronizers: EntitySynchronizers
 
 	@MockK
-	lateinit var globalSettingsRepository: GlobalSettingsRepository
+	lateinit var globalSettingsStore: GlobalSettingsStore
 
 	@MockK
 	lateinit var networkConnectivity: NetworkConnectivity
@@ -60,29 +60,29 @@ class SyncDataRepositoryTest : BaseTest() {
 		MockKAnnotations.init(this)
 	}
 
-	private fun createRepository(projectDef: ProjectDef): SyncDataRepository {
+	private fun createRepository(projectDef: ProjectDef): SyncJournal {
 		datasource = SyncDataDatasource(
 			projectDef = projectDef,
 			fileSystem = ffs,
 			json = json,
-			idRepository = idRepository,
+			idAllocator = idAllocator,
 			entitySynchronizers = entitySynchronizers,
 		)
-		return SyncDataRepository(
-			globalSettingsRepository = globalSettingsRepository,
+		return SyncJournal(
+			globalSettingsStore = globalSettingsStore,
 			networkConnectivity = networkConnectivity,
 			datasource = datasource,
 		)
 	}
 
 	@Test
-	fun `SyncDataRepository Init`() {
+	fun `SyncJournal Init`() {
 		val repo = createRepository(getProject1Def())
 	}
 
 	@Test
 	fun `Check if server is synchronized`() {
-		every { globalSettingsRepository.serverSettings } returns mockk()
+		every { globalSettingsStore.serverSettings } returns mockk()
 
 		val repo = createRepository(getProject1Def())
 		assertTrue(repo.isServerSynchronized())
@@ -90,7 +90,7 @@ class SyncDataRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Check that server is not synchronized`() {
-		every { globalSettingsRepository.serverSettings } returns null
+		every { globalSettingsStore.serverSettings } returns null
 
 		val repo = createRepository(getProject1Def())
 		assertFalse(repo.isServerSynchronized())
@@ -101,8 +101,8 @@ class SyncDataRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 		val projectDef = getProject1Def()
 
-		every { globalSettingsRepository.serverSettings } returns null
-		every { idRepository.peekLastId() } returns 4
+		every { globalSettingsStore.serverSettings } returns null
+		every { idAllocator.peekLastId() } returns 4
 		val idSlot = slot<Int>()
 		coEvery { entitySynchronizers.findEntityType(capture(idSlot)) } answers {
 			when (idSlot.captured) {
@@ -140,8 +140,8 @@ class SyncDataRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 
-		every { globalSettingsRepository.serverSettings } returns null
-		every { idRepository.peekLastId() } returns 4
+		every { globalSettingsStore.serverSettings } returns null
+		every { idAllocator.peekLastId() } returns 4
 		coEvery { entitySynchronizers.findEntityType(any()) } returns null
 
 		val repo = createRepository(projectDef)
@@ -159,7 +159,7 @@ class SyncDataRepositoryTest : BaseTest() {
 		runTest {
 			createProject(ffs, PROJECT_2_NAME)
 			val projectDef = getProjectDef(PROJECT_2_NAME)
-			every { globalSettingsRepository.serverSettings } returns mockk()
+			every { globalSettingsStore.serverSettings } returns mockk()
 
 			val repo = createRepository(projectDef)
 			val path = syncPath(projectDef)
@@ -173,7 +173,7 @@ class SyncDataRepositoryTest : BaseTest() {
 	fun `Check if Entity is Dirty`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
-		every { globalSettingsRepository.serverSettings } returns mockk()
+		every { globalSettingsStore.serverSettings } returns mockk()
 
 		val repo = createRepository(projectDef)
 		val path = syncPath(projectDef)
@@ -198,8 +198,8 @@ class SyncDataRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		writeDirtyData(syncPath(projectDef))
-		every { globalSettingsRepository.serverIsSetup() } returns true
-		every { globalSettingsRepository.globalSettings.automaticSyncing } returns true
+		every { globalSettingsStore.serverIsSetup() } returns true
+		every { globalSettingsStore.globalSettings.automaticSyncing } returns true
 		coEvery { networkConnectivity.hasActiveConnection() } returns true
 
 		val repo = createRepository(projectDef)
@@ -221,8 +221,8 @@ class SyncDataRepositoryTest : BaseTest() {
 				deletedIds = setOf(2, 4)
 			)
 		)
-		every { globalSettingsRepository.serverIsSetup() } returns true
-		every { globalSettingsRepository.globalSettings.automaticSyncing } returns true
+		every { globalSettingsStore.serverIsSetup() } returns true
+		every { globalSettingsStore.globalSettings.automaticSyncing } returns true
 		coEvery { networkConnectivity.hasActiveConnection() } returns true
 
 		val repo = createRepository(projectDef)
@@ -235,8 +235,8 @@ class SyncDataRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		writeDirtyData(syncPath(projectDef))
-		every { globalSettingsRepository.serverIsSetup() } returns true
-		every { globalSettingsRepository.globalSettings.automaticSyncing } returns true
+		every { globalSettingsStore.serverIsSetup() } returns true
+		every { globalSettingsStore.globalSettings.automaticSyncing } returns true
 		coEvery { networkConnectivity.hasActiveConnection() } returns false
 
 		val repo = createRepository(projectDef)
@@ -249,8 +249,8 @@ class SyncDataRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		writeDirtyData(syncPath(projectDef))
-		every { globalSettingsRepository.serverIsSetup() } returns true
-		every { globalSettingsRepository.globalSettings.automaticSyncing } returns false
+		every { globalSettingsStore.serverIsSetup() } returns true
+		every { globalSettingsStore.globalSettings.automaticSyncing } returns false
 		coEvery { networkConnectivity.hasActiveConnection() } returns true
 
 		val repo = createRepository(projectDef)
@@ -263,9 +263,9 @@ class SyncDataRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		writeDirtyData(syncPath(projectDef))
-		every { idRepository.peekLastId() } returns 25
-		every { globalSettingsRepository.serverIsSetup() } returns false
-		every { globalSettingsRepository.globalSettings.automaticSyncing } returns true
+		every { idAllocator.peekLastId() } returns 25
+		every { globalSettingsStore.serverIsSetup() } returns false
+		every { globalSettingsStore.globalSettings.automaticSyncing } returns true
 		coEvery { networkConnectivity.hasActiveConnection() } returns true
 
 		val repo = createRepository(projectDef)
@@ -290,7 +290,7 @@ class SyncDataRepositoryTest : BaseTest() {
 	fun `Mark Entity Dirty`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
-		every { globalSettingsRepository.isServerSynchronized() } returns true
+		every { globalSettingsStore.isServerSynchronized() } returns true
 		val repo = createRepository(projectDef)
 
 		repo.markEntityAsDirty(1, "old-hash")
@@ -306,7 +306,7 @@ class SyncDataRepositoryTest : BaseTest() {
 	fun `Record new ID`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
-		every { globalSettingsRepository.isServerSynchronized() } returns true
+		every { globalSettingsStore.isServerSynchronized() } returns true
 		val newId1 = 26
 		val newId2 = 27
 
@@ -326,7 +326,7 @@ class SyncDataRepositoryTest : BaseTest() {
 	fun `Record deleted ID`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
-		every { globalSettingsRepository.isServerSynchronized() } returns true
+		every { globalSettingsStore.isServerSynchronized() } returns true
 		val newId1 = 14
 		val newId2 = 16
 
@@ -350,7 +350,7 @@ class SyncDataRepositoryTest : BaseTest() {
 		// wedged sync with "Entity X not found for reId".
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
-		every { globalSettingsRepository.isServerSynchronized() } returns true
+		every { globalSettingsStore.isServerSynchronized() } returns true
 		val repo = createRepository(projectDef)
 
 		repo.saveSyncData(
@@ -375,7 +375,7 @@ class SyncDataRepositoryTest : BaseTest() {
 	fun `Load sync data`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
-		every { globalSettingsRepository.isServerSynchronized() } returns true
+		every { globalSettingsStore.isServerSynchronized() } returns true
 		val repo = createRepository(projectDef)
 
 		val loadedData = repo.loadSyncData()
@@ -397,7 +397,7 @@ class SyncDataRepositoryTest : BaseTest() {
 	fun `Save sync data`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
-		every { globalSettingsRepository.isServerSynchronized() } returns true
+		every { globalSettingsStore.isServerSynchronized() } returns true
 		val repo = createRepository(projectDef)
 
 		val newData = ProjectSynchronizationData(
@@ -421,7 +421,7 @@ class SyncDataRepositoryTest : BaseTest() {
 	fun `Get Deleted IDs`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
-		every { globalSettingsRepository.isServerSynchronized() } returns true
+		every { globalSettingsStore.isServerSynchronized() } returns true
 		val repo = createRepository(projectDef)
 
 		val deletedIds = repo.deletedIds()

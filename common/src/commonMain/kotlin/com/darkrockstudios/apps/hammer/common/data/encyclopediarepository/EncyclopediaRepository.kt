@@ -9,10 +9,10 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -33,9 +33,9 @@ import kotlin.coroutines.CoroutineContext
 
 class EncyclopediaRepository(
 	private val projectDef: ProjectDef,
-	private val idRepository: IdRepository,
+	private val idAllocator: IdAllocator,
 	private val datasource: EncyclopediaDatasource,
-	private val syncDataRepository: SyncDataRepository,
+	private val syncJournal: SyncJournal,
 	private val statisticsRepository: StatisticsRepository,
 	private val referenceIndexRepository: ReferenceIndexRepository,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
@@ -147,7 +147,7 @@ class EncyclopediaRepository(
 	}
 
 	private suspend fun markForSynchronization(entryDef: EntryDef) {
-		if (syncDataRepository.isServerSynchronized() && !syncDataRepository.isEntityDirty(
+		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(
 				entryDef.id
 			)
 		) {
@@ -173,7 +173,7 @@ class EncyclopediaRepository(
 				image = image,
 				aliases = entry.aliases,
 			)
-			syncDataRepository.markEntityAsDirty(entryDef.id, hash)
+			syncJournal.markEntityAsDirty(entryDef.id, hash)
 		}
 	}
 
@@ -192,7 +192,7 @@ class EncyclopediaRepository(
 		val cleanedTags = cleanTags(tags)
 		val cleanedAliases = cleanAliases(aliases, name)
 
-		val newId = forceId ?: idRepository.claimNextId()
+		val newId = forceId ?: idAllocator.claimNextId()
 		val entry = EntryContent(
 			id = newId,
 			name = name.trim(),
@@ -218,7 +218,7 @@ class EncyclopediaRepository(
 
 	suspend fun deleteEntry(entryDef: EntryDef): Boolean {
 		datasource.deleteEntry(entryDef)
-		syncDataRepository.recordIdDeletion(entryDef.id)
+		syncJournal.recordIdDeletion(entryDef.id)
 		statisticsRepository.markDirty()
 		referenceIndexRepository.markEntryDeleted(entryDef.id)
 		_entryContentChangedFlow.emit(Unit)

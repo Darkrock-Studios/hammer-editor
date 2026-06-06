@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.sync.Mutex
@@ -48,9 +48,9 @@ class AddNoteWorker(
 				Napier.d { "Note create in proj: ${projectDef.name} result: $result" }
 
 				if (isSuccess(result) && isInternetConnected(context)) {
-					val syncDataRepository: SyncDataRepository = projectScope.get()
+					val syncJournal: SyncJournal = projectScope.get()
 					val synchronizer: ClientProjectSynchronizer = projectScope.get()
-					if (syncDataRepository.isServerSynchronized()) {
+					if (syncJournal.isServerSynchronized()) {
 						val success = synchronizer.sync(
 							onProgress = { _, log ->
 								log?.let {

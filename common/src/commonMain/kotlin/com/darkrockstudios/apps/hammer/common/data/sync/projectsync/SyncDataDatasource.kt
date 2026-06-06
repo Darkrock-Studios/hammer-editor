@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -13,7 +13,7 @@ class SyncDataDatasource(
 	private val projectDef: ProjectDef,
 	private val fileSystem: FileSystem,
 	private val json: Json,
-	private val idRepository: IdRepository,
+	private val idAllocator: IdAllocator,
 	private val entitySynchronizers: EntitySynchronizers
 ) {
 	suspend fun loadSyncDataOrNull(): ProjectSynchronizationData? {
@@ -58,7 +58,7 @@ class SyncDataDatasource(
 	}
 
 	suspend fun createSyncData(): ProjectSynchronizationData {
-		val lastId = idRepository.peekLastId()
+		val lastId = idAllocator.peekLastId()
 
 		val missingIds = mutableSetOf<Int>()
 		for (id in 1..lastId) {

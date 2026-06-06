@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSettings
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -45,7 +45,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 	lateinit var lifecycle: LifecycleRegistry
 	lateinit var context: DefaultComponentContext
 
-	lateinit var globalSettingsRepository: GlobalSettingsRepository
+	lateinit var globalSettingsStore: GlobalSettingsStore
 	lateinit var globalSettingsUpdates: SharedFlow<GlobalSettings>
 	lateinit var serverSettingsUpdates: SharedFlow<ServerSettings?>
 	lateinit var projectsRepository: ProjectsRepository
@@ -71,7 +71,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 		lifecycle = LifecycleRegistry()
 		context = DefaultComponentContext(lifecycle = lifecycle)
 
-		globalSettingsRepository = mockk(relaxed = true)
+		globalSettingsStore = mockk(relaxed = true)
 		projectsRepository = mockk()
 		exampleProjectRepository = mockk()
 		projectsSynchronizer = mockk()
@@ -86,7 +86,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 		every { versionCheckRepository.updates } returns versionCheckUpdates
 
 		val testModule = module {
-			single { globalSettingsRepository } bind GlobalSettingsRepository::class
+			single { globalSettingsStore } bind GlobalSettingsStore::class
 			single { projectsRepository } bind ProjectsRepository::class
 			single { exampleProjectRepository } bind ExampleProjectRepository::class
 			single { projectsSynchronizer }
@@ -105,18 +105,18 @@ class ProjectSelectionComponentTest : BaseTest() {
 
 		globalSettingsUpdates = mockk()
 		coEvery { globalSettingsUpdates.collect(any()) } just Awaits
-		every { globalSettingsRepository.globalSettingsUpdates } returns globalSettingsUpdates
+		every { globalSettingsStore.globalSettingsUpdates } returns globalSettingsUpdates
 
 		globalSettings = GlobalSettings(
 			projectsDirectory = projectsDir.toString(),
 			spellCheckSettings = SpellCheckerSettings(locale = mockk())
 		)
-		every { globalSettingsRepository.globalSettings } answers { globalSettings }
+		every { globalSettingsStore.globalSettings } answers { globalSettings }
 
 		serverSettingsUpdates = mockk()
 		coEvery { serverSettingsUpdates.collect(any()) } just Awaits
 		coEvery { serverSettingsUpdates.first() } returns null
-		every { globalSettingsRepository.serverSettingsUpdates } returns serverSettingsUpdates
+		every { globalSettingsStore.serverSettingsUpdates } returns serverSettingsUpdates
 
 		every { projectsRepository.getProjects(any()) } returns emptyList()
 		every { exampleProjectRepository.shouldInstallFirstTime() } returns false
@@ -196,7 +196,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 				currentVersion = "v1.0.0",
 			)
 		val captured = slot<(GlobalSettings) -> GlobalSettings>()
-		coEvery { globalSettingsRepository.updateSettings(capture(captured)) } just Runs
+		coEvery { globalSettingsStore.updateSettings(capture(captured)) } just Runs
 
 		val component = newComponent()
 		advanceUntilIdle()
@@ -223,7 +223,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 		advanceUntilIdle()
 
 		assertFalse(component.updateNotification.value.visible)
-		coVerify(exactly = 0) { globalSettingsRepository.updateSettings(any()) }
+		coVerify(exactly = 0) { globalSettingsStore.updateSettings(any()) }
 	}
 
 	@Test

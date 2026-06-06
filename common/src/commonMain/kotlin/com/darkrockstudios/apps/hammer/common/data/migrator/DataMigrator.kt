@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.migrator
 
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -12,7 +12,7 @@ import org.koin.mp.KoinPlatform.getKoin
 
 // This is only open for testing purposes
 open class DataMigrator(
-	private val globalSettingsRepository: GlobalSettingsRepository,
+	private val globalSettingsStore: GlobalSettingsStore,
 	private val projectsRepository: ProjectsRepository,
 	private val projectMetadataDatasource: ProjectMetadataDatasource,
 ) {
@@ -31,7 +31,7 @@ open class DataMigrator(
 	)
 
 	private fun getProjects(): List<ProjectData> {
-		val projDir = globalSettingsRepository.globalSettings.projectsDirectory.toPath()
+		val projDir = globalSettingsStore.globalSettings.projectsDirectory.toPath()
 		val projects = projectsRepository.getProjects(projDir.toHPath()).map { projDef ->
 			val metadata = projectMetadataDatasource.loadMetadata(projDef)
 			ProjectData(projDef, metadata)
