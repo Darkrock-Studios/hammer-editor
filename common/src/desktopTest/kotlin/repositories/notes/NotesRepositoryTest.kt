@@ -3,7 +3,7 @@ package repositories.notes
 import PROJECT_2_NAME
 import app.cash.turbine.test
 import com.darkrockstudios.apps.hammer.base.http.readToml
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.InvalidNote
@@ -45,7 +45,7 @@ class NotesRepositoryTest : BaseTest() {
 
 	private val projectDef = getProjectDef(PROJECT_2_NAME)
 
-	private lateinit var idRepository: IdRepository
+	private lateinit var idAllocator: IdAllocator
 	private lateinit var syncDataRepository: SyncDataRepository
 	private lateinit var datasource: NotesDatasource
 	private lateinit var ffs: FakeFileSystem
@@ -56,14 +56,14 @@ class NotesRepositoryTest : BaseTest() {
 		super.setup()
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
-		idRepository = mockk()
+		idAllocator = mockk()
 		syncDataRepository = mockk()
 		setupKoin()
 	}
 
 	private fun createRepository(): NotesRepository {
 		datasource = NotesDatasource(projectDef, ffs, toml)
-		return NotesRepository(projectDef, idRepository, syncDataRepository, datasource)
+		return NotesRepository(projectDef, idAllocator, syncDataRepository, datasource)
 	}
 
 	@Test
@@ -154,7 +154,7 @@ class NotesRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
 		coEvery { syncDataRepository.isServerSynchronized() } returns false
-		coEvery { idRepository.claimNextId() } returns 15
+		coEvery { idAllocator.claimNextId() } returns 15
 
 		val noteText = "New note content"
 
@@ -178,7 +178,7 @@ class NotesRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
 		coEvery { syncDataRepository.isServerSynchronized() } returns false
-		coEvery { idRepository.claimNextId() } returns 15
+		coEvery { idAllocator.claimNextId() } returns 15
 
 		val repo = createRepository()
 		val result = repo.createNote(
@@ -199,7 +199,7 @@ class NotesRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
 		coEvery { syncDataRepository.isServerSynchronized() } returns false
-		coEvery { idRepository.claimNextId() } returns 15
+		coEvery { idAllocator.claimNextId() } returns 15
 
 		val repo = createRepository()
 		val result = repo.createNote(
@@ -237,7 +237,7 @@ class NotesRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
 		coEvery { syncDataRepository.isServerSynchronized() } returns false
-		coEvery { idRepository.claimNextId() } returns 15
+		coEvery { idAllocator.claimNextId() } returns 15
 
 		val repo = createRepository()
 		val result = repo.createNote(noteText)
@@ -285,7 +285,7 @@ class NotesRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
 		coEvery { syncDataRepository.isServerSynchronized() } returns false
-		coEvery { idRepository.claimNextId() } returns 20
+		coEvery { idAllocator.claimNextId() } returns 20
 
 		val repo = createRepository()
 		advanceUntilIdle()

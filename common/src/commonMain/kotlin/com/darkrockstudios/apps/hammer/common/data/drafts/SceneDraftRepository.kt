@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.drafts
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -18,7 +18,7 @@ class SceneDraftRepository(
 ) : ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 
-	private val idRepository: IdRepository by projectInject()
+	private val idAllocator: IdAllocator by projectInject()
 	private val syncDataRepository: SyncDataRepository by projectInject()
 
 	suspend fun getAllDrafts(): Set<DraftDef> = datasource.getAllDrafts()
@@ -42,7 +42,7 @@ class SceneDraftRepository(
 			return null
 		}
 
-		val newId = idRepository.claimNextId()
+		val newId = idAllocator.claimNextId()
 		val newDraftTimestamp = clock.now()
 		val newDef = DraftDef(
 			id = newId,

@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.base.http.readJson
 import com.darkrockstudios.apps.hammer.base.http.writeJson
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource.Companion.SYNC_FILE_NAME
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -40,7 +40,7 @@ class SyncDataRepositoryTest : BaseTest() {
 	lateinit var datasource: SyncDataDatasource
 
 	@MockK
-	lateinit var idRepository: IdRepository
+	lateinit var idAllocator: IdAllocator
 
 	@MockK
 	lateinit var entitySynchronizers: EntitySynchronizers
@@ -65,7 +65,7 @@ class SyncDataRepositoryTest : BaseTest() {
 			projectDef = projectDef,
 			fileSystem = ffs,
 			json = json,
-			idRepository = idRepository,
+			idAllocator = idAllocator,
 			entitySynchronizers = entitySynchronizers,
 		)
 		return SyncDataRepository(
@@ -102,7 +102,7 @@ class SyncDataRepositoryTest : BaseTest() {
 		val projectDef = getProject1Def()
 
 		every { globalSettingsRepository.serverSettings } returns null
-		every { idRepository.peekLastId() } returns 4
+		every { idAllocator.peekLastId() } returns 4
 		val idSlot = slot<Int>()
 		coEvery { entitySynchronizers.findEntityType(capture(idSlot)) } answers {
 			when (idSlot.captured) {
@@ -141,7 +141,7 @@ class SyncDataRepositoryTest : BaseTest() {
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 
 		every { globalSettingsRepository.serverSettings } returns null
-		every { idRepository.peekLastId() } returns 4
+		every { idAllocator.peekLastId() } returns 4
 		coEvery { entitySynchronizers.findEntityType(any()) } returns null
 
 		val repo = createRepository(projectDef)
@@ -263,7 +263,7 @@ class SyncDataRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		writeDirtyData(syncPath(projectDef))
-		every { idRepository.peekLastId() } returns 25
+		every { idAllocator.peekLastId() } returns 25
 		every { globalSettingsRepository.serverIsSetup() } returns false
 		every { globalSettingsRepository.globalSettings.automaticSyncing } returns true
 		coEvery { networkConnectivity.hasActiveConnection() } returns true

@@ -12,7 +12,7 @@ import kotlinx.atomicfu.locks.withLock
 import org.koin.core.component.get
 import kotlin.math.max
 
-class IdRepository(private val projectDef: ProjectDef) : ProjectScoped {
+class IdAllocator(private val projectDef: ProjectDef) : ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 	private val syncDataRepository: SyncDataRepository by projectInject()
 

@@ -9,16 +9,16 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Pr
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
@@ -55,7 +55,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	private lateinit var syncDataRepository: SyncDataRepository
 	private lateinit var projectDef: ProjectDef
 	private lateinit var repo: SceneRepository
-	private lateinit var idRepository: IdRepository
+	private lateinit var idAllocator: IdAllocator
 	private lateinit var metadataRepository: ProjectMetadataDatasource
 	private lateinit var metadataDatasource: SceneMetadataDatasource
 	private lateinit var sceneDatasource: SceneDatasource
@@ -108,9 +108,9 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		toml = createTomlSerializer()
 
 		nextId = 8
-		idRepository = mockk()
-		coEvery { idRepository.claimNextId() } answers { claimId() }
-		coEvery { idRepository.findNextId() } answers { }
+		idAllocator = mockk()
+		coEvery { idAllocator.claimNextId() } answers { claimId() }
+		coEvery { idAllocator.findNextId() } answers { }
 
 		metadataRepository = mockk(relaxUnitFun = true)
 		every { metadataRepository.loadMetadata(any()) } returns
@@ -164,7 +164,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		repo = SceneRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
-			idRepository = idRepository,
+			idAllocator = idAllocator,
 			sceneMetadataRepository = SceneMetadataRepository(
 				projectDef = projectDef,
 				sceneMetadataDatasource = metadataDatasource,
@@ -258,7 +258,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		repo = SceneRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
-			idRepository = idRepository,
+			idAllocator = idAllocator,
 			sceneMetadataRepository = SceneMetadataRepository(
 				projectDef = projectDef,
 				sceneMetadataDatasource = metadataDatasource,

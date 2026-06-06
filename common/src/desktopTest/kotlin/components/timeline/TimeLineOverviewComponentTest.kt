@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverviewComponent
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
@@ -44,7 +44,7 @@ class TimeLineOverviewComponentTest : BaseTest() {
 	lateinit var ffs: FakeFileSystem
 	lateinit var toml: Toml
 	lateinit var json: Json
-	lateinit var idRepo: IdRepository
+	lateinit var idRepo: IdAllocator
 	lateinit var context: ComponentContext
 	lateinit var lifecycle: Lifecycle
 	lateinit var lifecycleCallbacks: MutableList<Lifecycle.Callbacks>
@@ -78,7 +78,7 @@ class TimeLineOverviewComponentTest : BaseTest() {
 
 		val testModule = module {
 			single { timelineRepo } bind TimeLineRepository::class
-			single { idRepo } bind IdRepository::class
+			single { idRepo } bind IdAllocator::class
 			single { globalSettingsRepo }
 			single { tagIndexService } bind TagIndexService::class
 		}

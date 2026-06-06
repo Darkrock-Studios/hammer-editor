@@ -7,7 +7,7 @@ import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -34,7 +34,7 @@ abstract class TimeLineTestBase : BaseTest() {
 	lateinit var timelineRepo: TimeLineRepository
 	lateinit var globalSettingsRepo: GlobalSettingsRepository
 	lateinit var globalSettingsUpdates: SharedFlow<GlobalSettings>
-	lateinit var idRepo: IdRepository
+	lateinit var idRepo: IdAllocator
 	lateinit var context: ComponentContext
 	lateinit var lifecycle: Lifecycle
 	lateinit var backHandler: BackHandler
@@ -117,7 +117,7 @@ abstract class TimeLineTestBase : BaseTest() {
 			//single { globalSettingsRepo } bind GlobalSettingsRepository::class
 			scope<ProjectDefScope> {
 				scoped { timelineRepo } bind TimeLineRepository::class
-				scoped { idRepo } bind IdRepository::class
+				scoped { idRepo } bind IdAllocator::class
 			}
 		}
 		setupKoin(testModule)

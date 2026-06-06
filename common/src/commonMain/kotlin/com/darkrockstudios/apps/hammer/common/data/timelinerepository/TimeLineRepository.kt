@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.timelinerepository
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
@@ -25,7 +25,7 @@ import kotlin.coroutines.CoroutineContext
 
 class TimeLineRepository(
 	private val projectDef: ProjectDef,
-	private val idRepository: IdRepository,
+	private val idAllocator: IdAllocator,
 	private val datasource: TimeLineDatasource,
 ) : ProjectScoped, ScopeCallback {
 	override val projectScope = ProjectDefScope(projectDef)
@@ -70,7 +70,7 @@ class TimeLineRepository(
 		order: Int? = null,
 		tags: Set<String> = emptySet(),
 	): TimeLineEvent {
-		val eventId = id ?: idRepository.claimNextId()
+		val eventId = id ?: idAllocator.claimNextId()
 		val timeline = timelineFlow.first()
 
 		val event = TimeLineEvent(

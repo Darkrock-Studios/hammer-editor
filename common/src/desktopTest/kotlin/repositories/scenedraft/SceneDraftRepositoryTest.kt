@@ -9,9 +9,9 @@ import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
@@ -41,7 +41,7 @@ class SceneDraftRepositoryTest : BaseTest() {
 	private lateinit var toml: Toml
 	private lateinit var datasource: SceneDraftsDatasource
 	private lateinit var sceneDatasource: SceneDatasource
-	private lateinit var idRepository: IdRepository
+	private lateinit var idAllocator: IdAllocator
 	private lateinit var clock: Clock
 
 	@BeforeEach
@@ -50,7 +50,7 @@ class SceneDraftRepositoryTest : BaseTest() {
 
 		sceneContentRepository = mockk<SceneContentRepository>()
 
-		idRepository = mockk<IdRepository>()
+		idAllocator = mockk<IdAllocator>()
 		clock = mockk<Clock>()
 
 		ffs = FakeFileSystem()
@@ -58,7 +58,7 @@ class SceneDraftRepositoryTest : BaseTest() {
 
 		setupKoin(
 			module {
-				single { idRepository }
+				single { idAllocator }
 				single { clock }
 			}
 		)
@@ -185,7 +185,7 @@ class SceneDraftRepositoryTest : BaseTest() {
 		val draftName = "New Draft"
 		val draftId = 11
 
-		coEvery { idRepository.claimNextId() } returns draftId
+		coEvery { idAllocator.claimNextId() } returns draftId
 		every { sceneContentRepository.getCurrentSceneContent(any()) } returns buffer.content.coerceMarkdown()
 		every { clock.now() } returns fakeNow
 
@@ -231,7 +231,7 @@ class SceneDraftRepositoryTest : BaseTest() {
 		val draftName = "New Draft"
 		val draftId = 11
 
-		coEvery { idRepository.claimNextId() } returns draftId
+		coEvery { idAllocator.claimNextId() } returns draftId
 		every { sceneContentRepository.getCurrentSceneContent(any()) } returns buffer.content.coerceMarkdown()
 		every { clock.now() } returns fakeNow
 

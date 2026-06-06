@@ -1,6 +1,7 @@
 package repositories.encyclopedia
 
 import ENCYCLOPEDIA_ONLY_PROJECT_NAME
+import app.cash.turbine.test
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -10,13 +11,12 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryR
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import app.cash.turbine.test
 import createProject
 import getProjectDef
 import io.mockk.*
@@ -37,7 +37,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	private val projDef = getProjectDef(ENCYCLOPEDIA_ONLY_PROJECT_NAME)
 
 	@MockK
-	lateinit var idRepository: IdRepository
+	lateinit var idAllocator: IdAllocator
 
 	@MockK
 	lateinit var externalFileIo: ExternalFileIo
@@ -83,7 +83,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			.ReferenceIndexRepository(projDef, referenceIndexDatasource)
 		return EncyclopediaRepository(
 			projectDef = projDef,
-			idRepository = idRepository,
+			idAllocator = idAllocator,
 			datasource = datasource,
 			syncDataRepository = syncDataRepository,
 			statisticsRepository = statisticsRepository,
@@ -176,7 +176,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Create Entry`() = runTest {
-		coEvery { idRepository.claimNextId() } returns 3
+		coEvery { idAllocator.claimNextId() } returns 3
 
 		val container = EntryContainer(
 			entry = EntryContent(
@@ -209,7 +209,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Create Entry round-trips aliases`() = runTest {
-		coEvery { idRepository.claimNextId() } returns 4
+		coEvery { idAllocator.claimNextId() } returns 4
 
 		val repo = createRepository()
 		val result = repo.createEntry(
@@ -233,7 +233,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Create Entry cleans aliases - trims, dedupes, drops blanks and entry name`() = runTest {
-		coEvery { idRepository.claimNextId() } returns 5
+		coEvery { idAllocator.claimNextId() } returns 5
 
 		val repo = createRepository()
 		val result = repo.createEntry(
@@ -253,7 +253,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Create Entry rejects alias exceeding max length`() = runTest {
-		coEvery { idRepository.claimNextId() } returns 6
+		coEvery { idAllocator.claimNextId() } returns 6
 
 		val repo = createRepository()
 		val tooLong = "x".repeat(MAX_NAME_SIZE + 1)
@@ -374,7 +374,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 
 	@Test
 	fun `entryContentChangedFlow emits on create update and delete`() = runTest {
-		coEvery { idRepository.claimNextId() } returns 50
+		coEvery { idAllocator.claimNextId() } returns 50
 		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
 
 		val repo = createRepository()

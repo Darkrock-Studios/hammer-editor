@@ -4,7 +4,7 @@ import PROJECT_EMPTY_NAME
 import app.cash.turbine.test
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.*
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository.Companion.MAX_TAG_SIZE
@@ -80,11 +80,11 @@ class TimeLineRepositoryTest : BaseTest() {
 	fun `Get Timeline Dir creates Dir`() = runTest {
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
-		val idRepo = mockk<IdRepository>()
+		val idRepo = mockk<IdAllocator>()
 
 		val repo = TimeLineRepository(
 			projectDef = projDef,
-			idRepository = idRepo,
+			idAllocator = idRepo,
 			datasource = datasource,
 		).initialize()
 
@@ -98,11 +98,11 @@ class TimeLineRepositoryTest : BaseTest() {
 	fun `Get timeline when none exists`() = runTest {
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
-		val idRepo = mockk<IdRepository>()
+		val idRepo = mockk<IdAllocator>()
 
 		val repo = TimeLineRepository(
 			projectDef = projDef,
-			idRepository = idRepo,
+			idAllocator = idRepo,
 			datasource = datasource,
 		).initialize()
 
@@ -116,10 +116,10 @@ class TimeLineRepositoryTest : BaseTest() {
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
 		setupTimelne(projDef)
 
-		val idRepo = mockk<IdRepository>()
+		val idRepo = mockk<IdAllocator>()
 		val repo = TimeLineRepository(
 			projectDef = projDef,
-			idRepository = idRepo,
+			idAllocator = idRepo,
 			datasource = datasource,
 		).initialize()
 
@@ -147,10 +147,10 @@ class TimeLineRepositoryTest : BaseTest() {
 		val oldEvents = fakeEvents()
 		setupTimelne(projDef, oldEvents)
 
-		val idRepo = mockk<IdRepository>()
+		val idRepo = mockk<IdAllocator>()
 		val repo = TimeLineRepository(
 			projectDef = projDef,
-			idRepository = idRepo,
+			idAllocator = idRepo,
 			datasource = datasource,
 		).initialize()
 
@@ -205,7 +205,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 		val repo = TimeLineRepository(
 			projectDef = projDef,
-			idRepository = mockk(),
+			idAllocator = mockk(),
 			datasource = datasource,
 		).initialize()
 
@@ -256,12 +256,12 @@ class TimeLineRepositoryTest : BaseTest() {
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
 		setupTimelne(projDef, emptyList())
 
-		val idRepo = mockk<IdRepository>()
+		val idRepo = mockk<IdAllocator>()
 		coEvery { idRepo.claimNextId() } returns 42
 
 		val repo = TimeLineRepository(
 			projectDef = projDef,
-			idRepository = idRepo,
+			idAllocator = idRepo,
 			datasource = datasource,
 		).initialize()
 
@@ -291,7 +291,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 		val repo = TimeLineRepository(
 			projectDef = projDef,
-			idRepository = mockk(),
+			idAllocator = mockk(),
 			datasource = datasource,
 		).initialize()
 
@@ -311,7 +311,7 @@ class TimeLineRepositoryTest : BaseTest() {
 	fun `Validate tags rejects tag exceeding MAX_TAG_SIZE`() {
 		val repo = TimeLineRepository(
 			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
-			idRepository = mockk(),
+			idAllocator = mockk(),
 			datasource = datasource,
 		)
 
@@ -334,12 +334,12 @@ class TimeLineRepositoryTest : BaseTest() {
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
 		setupTimelne(projDef, fakeEvents())
 
-		val idRepo = mockk<IdRepository>()
+		val idRepo = mockk<IdAllocator>()
 		coEvery { idRepo.claimNextId() } returns 99
 
 		val repo = TimeLineRepository(
 			projectDef = projDef,
-			idRepository = idRepo,
+			idAllocator = idRepo,
 			datasource = datasource,
 		).initialize()
 		advanceUntilIdle()

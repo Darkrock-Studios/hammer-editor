@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
@@ -18,10 +18,13 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.numDigits
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okio.IOException
 import okio.Path
 import org.koin.core.component.KoinComponent
@@ -29,7 +32,7 @@ import kotlin.time.Clock
 
 class SceneRepository(
 	val projectDef: ProjectDef,
-	private val idRepository: IdRepository,
+	private val idAllocator: IdAllocator,
 	private val syncDataRepository: SyncDataRepository,
 	private val sceneMetadataRepository: SceneMetadataRepository,
 	private val sceneContentRepository: SceneContentRepository,
@@ -143,7 +146,7 @@ class SceneRepository(
 
 		cleanupSceneOrder()
 
-		idRepository.findNextId()
+		idAllocator.findNextId()
 
 		// Loads any existing temp buffers and starts the content debounce/autosave engine.
 		sceneContentRepository.initialize()
@@ -693,7 +696,7 @@ class SceneRepository(
 		} else {
 			val lastOrder = getLastOrderNumber(parent?.id)
 			val nextOrder = forceOrder ?: (lastOrder + 1)
-			val sceneId = forceId ?: idRepository.claimNextId()
+			val sceneId = forceId ?: idAllocator.claimNextId()
 			val type = if (isGroup) SceneItem.Type.Group else SceneItem.Type.Scene
 
 			val newSceneItem = SceneItem(

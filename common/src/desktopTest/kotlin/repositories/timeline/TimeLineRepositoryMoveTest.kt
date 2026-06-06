@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -42,7 +42,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 	lateinit var ffs: FakeFileSystem
 	lateinit var toml: Toml
 	lateinit var json: Json
-	lateinit var idRepo: IdRepository
+	lateinit var idRepo: IdAllocator
 	lateinit var context: ComponentContext
 	lateinit var lifecycle: Lifecycle
 	lateinit var datasource: TimeLineDatasource
@@ -73,7 +73,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		lifecycleCallbacks = mutableListOf()
 
 		val testModule = module {
-			single { idRepo } bind IdRepository::class
+			single { idRepo } bind IdAllocator::class
 			single { globalSettingsRepo }
 			single { syncDataRepository }
 		}
@@ -113,7 +113,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		val repo = TimeLineRepository(
 			projectDef = projectDef,
 			datasource = datasource,
-			idRepository = idRepo,
+			idAllocator = idRepo,
 		)
 		repo.initialize()
 

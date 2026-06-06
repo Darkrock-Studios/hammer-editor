@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
@@ -27,7 +27,7 @@ import kotlin.time.Clock
 
 class NotesRepository(
 	projectDef: ProjectDef,
-	private val idRepository: IdRepository,
+	private val idAllocator: IdAllocator,
 	private val syncDataRepository: SyncDataRepository,
 	private val notesDatasource: NotesDatasource,
 ) : ScopeCallback, ProjectScoped {
@@ -104,7 +104,7 @@ class NotesRepository(
 		return if (result != NoteError.NONE) {
 			CResult.failure(InvalidNote(result))
 		} else {
-			val newId = idRepository.claimNextId()
+			val newId = idAllocator.claimNextId()
 			val newNote = NoteContainer(
 				NoteContent(
 					id = newId,
