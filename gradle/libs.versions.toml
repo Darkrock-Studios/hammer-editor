@@ -7,7 +7,7 @@ data_version = "1.0"
 flatlaf = "3.7.1"
 jvm = "21"
 kache = "2.1.1"
-kotlin = "2.3.21"
+kotlin = "2.4.0"
 serialization = "1.11.0"
 
 # Android
