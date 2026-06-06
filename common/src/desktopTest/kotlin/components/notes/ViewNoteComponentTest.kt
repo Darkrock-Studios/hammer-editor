@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -156,7 +157,7 @@ class ViewNoteComponentTest : ComponentTest() {
 			comp.storeNoteUpdate()
 
 			coVerify { notesRepository.updateNote(note(content = "new body", tags = setOf("x", "y"))) }
-			coVerify { notesRepository.loadNotes() }
+			verify { notesRepository.loadNotes() }
 			assertEquals("new body", comp.state.value.note?.content)
 			assertEquals(setOf("x", "y"), comp.state.value.tags)
 			assertFalse(comp.state.value.isEditing)
@@ -207,7 +208,7 @@ class ViewNoteComponentTest : ComponentTest() {
 		comp.deleteNote(1)
 
 		coVerify { notesRepository.deleteNote(1) }
-		coVerify { notesRepository.loadNotes() }
+		verify { notesRepository.loadNotes() }
 		assertEquals(1, dismissViewCount)
 	}
 

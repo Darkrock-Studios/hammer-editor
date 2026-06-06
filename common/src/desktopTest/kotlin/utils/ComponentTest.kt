@@ -7,6 +7,7 @@ import com.arkivanov.essenty.instancekeeper.InstanceKeeperDispatcher
 import com.arkivanov.essenty.lifecycle.*
 import com.arkivanov.essenty.statekeeper.SerializableContainer
 import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
+import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 
 /**
@@ -30,6 +31,8 @@ class TestComponentContext private constructor(
 	backHandler = backDispatcher,
 ) {
 
+	private val recreated = mutableListOf<TestComponentContext>()
+
 	fun start() = lifecycle.start()
 	fun resume() = lifecycle.resume()
 	fun pause() = lifecycle.pause()
@@ -43,7 +46,14 @@ class TestComponentContext private constructor(
 	 * Simulate process death: serialize the current saved state and return a fresh context
 	 * restored from it. Build a new component on the result to assert restoration behavior.
 	 */
-	fun saveAndRecreate(): TestComponentContext = create(stateKeeper.save())
+	fun saveAndRecreate(): TestComponentContext =
+		create(stateKeeper.save()).also { recreated.add(it) }
+
+	/** Destroy this lifecycle and any contexts recreated from it, cancelling their component scopes. */
+	fun destroyAll() {
+		recreated.forEach { it.destroyAll() }
+		if (lifecycle.state != Lifecycle.State.DESTROYED) lifecycle.destroy()
+	}
 
 	companion object {
 		fun create(savedState: SerializableContainer? = null): TestComponentContext =
@@ -69,5 +79,17 @@ open class ComponentTest : BaseTest() {
 	override fun setup() {
 		super.setup()
 		context = TestComponentContext.create()
+	}
+
+	@AfterEach
+	override fun tearDown() {
+		// Destroy the lifecycle(s) so each component's lifecycleCoroutineScope is cancelled (it
+		// only cancels on destroy). try/finally so a failing destroy can't skip Koin/dispatcher
+		// cleanup in super.tearDown() and cascade into the next test.
+		try {
+			if (::context.isInitialized) context.destroyAll()
+		} finally {
+			super.tearDown()
+		}
 	}
 }

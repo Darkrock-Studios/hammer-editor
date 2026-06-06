@@ -10,8 +10,8 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteCont
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.mockk.coEvery
-import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -71,7 +71,7 @@ class CreateNoteComponentTest : ComponentTest() {
 
 		assertEquals(NoteError.NONE, error)
 		assertEquals(1, dismissCreateCount)
-		coVerify { notesRepository.loadNotes() }
+		verify { notesRepository.loadNotes() }
 	}
 
 	@Test
@@ -85,7 +85,7 @@ class CreateNoteComponentTest : ComponentTest() {
 
 			assertEquals(NoteError.EMPTY, error)
 			assertEquals(0, dismissCreateCount)
-			coVerify(exactly = 0) { notesRepository.loadNotes() }
+			verify(exactly = 0) { notesRepository.loadNotes() }
 		}
 
 	@Test
