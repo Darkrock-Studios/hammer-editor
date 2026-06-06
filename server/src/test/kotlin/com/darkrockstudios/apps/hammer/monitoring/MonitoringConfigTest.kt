@@ -37,7 +37,6 @@ class MonitoringConfigTest : BaseTest() {
 		assertEquals(MonitoringConfig(), config)
 		// The decisions we care about most:
 		assertTrue(config.enabled, "collection on by default")
-		assertFalse(config.prometheusEndpointEnabled, "prometheus off by default")
 		assertFalse(config.alertEmailEnabled, "alerting off by default")
 		assertEquals(30, config.metricsRetentionDays)
 	}
@@ -49,7 +48,6 @@ class MonitoringConfigTest : BaseTest() {
 			enabled = false,
 			trackApiMetrics = false,
 			storeLoginIp = false,
-			prometheusEndpointEnabled = true,
 			metricsRetentionDays = 7,
 			errorRetentionDays = 14,
 			loginAttemptRetentionDays = 3,
