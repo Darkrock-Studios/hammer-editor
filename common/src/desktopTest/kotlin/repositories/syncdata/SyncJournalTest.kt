@@ -76,7 +76,7 @@ class SyncJournalTest : BaseTest() {
 	}
 
 	@Test
-	fun `SyncDataRepository Init`() {
+	fun `SyncJournal Init`() {
 		val repo = createRepository(getProject1Def())
 	}
 

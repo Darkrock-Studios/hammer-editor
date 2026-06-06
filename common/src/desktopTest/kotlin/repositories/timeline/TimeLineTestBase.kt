@@ -114,7 +114,7 @@ abstract class TimeLineTestBase : BaseTest() {
 		}
 
 		val testModule = module {
-			//single { globalSettingsRepo } bind GlobalSettingsRepository::class
+			//single { globalSettingsRepo } bind GlobalSettingsStore::class
 			scope<ProjectDefScope> {
 				scoped { timelineRepo } bind TimeLineRepository::class
 				scoped { idRepo } bind IdAllocator::class

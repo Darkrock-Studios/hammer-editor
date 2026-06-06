@@ -215,7 +215,7 @@ fun HttpClient.updateCredentials(credentials: BearerTokens) {
 		// This clears the internal cache, forcing `loadTokens` to run again on the next request.
 		authProvider<BearerAuthProvider>()?.clearToken()
 	} else {
-		Napier.e("Failed to update credentials: GlobalSettingsRepository not attached to HttpClient")
+		Napier.e("Failed to update credentials: GlobalSettingsStore not attached to HttpClient")
 	}
 }
 
