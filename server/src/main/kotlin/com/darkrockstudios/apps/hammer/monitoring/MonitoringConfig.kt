@@ -7,8 +7,7 @@ import kotlinx.serialization.Serializable
  * JSON in the `server_config` table via [com.darkrockstudios.apps.hammer.admin.AdminServerConfig.MONITORING_CONFIG].
  *
  * Defaults reflect the project's stance: collection is ON (the value is only
- * realized if the admin can actually see it), the external Prometheus endpoint
- * is OFF (it's an attack surface only power users want), email alerting is OFF
+ * realized if the admin can actually see it), email alerting is OFF
  * (email may be unconfigured), and PII-sensitive data is short-lived via the
  * retention windows. [enabled] is the master kill-switch.
  */
@@ -24,8 +23,6 @@ data class MonitoringConfig(
 	val trackLoginAttempts: Boolean = true,
 	/** Store the source IP with login attempts (the most PII-sensitive bit). */
 	val storeLoginIp: Boolean = true,
-	/** Expose an admin-auth-gated Prometheus scrape endpoint. Off by default. */
-	val prometheusEndpointEnabled: Boolean = false,
 	/** How long rolled-up API metrics are retained (days). */
 	val metricsRetentionDays: Int = 30,
 	/** How long deduplicated errors are retained (days). */

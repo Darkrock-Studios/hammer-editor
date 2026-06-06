@@ -98,13 +98,6 @@
 							{{msg.admin_mon_settings_store_ip}}
 						</label>
 					</div>
-					<div class="form-group form-check">
-						<label class="form-check__label">
-							<input type="checkbox" name="monPrometheus" {{#monPrometheus}}checked{{/monPrometheus}}/>
-							{{msg.admin_mon_settings_prometheus}}
-						</label>
-					</div>
-
 					<div class="form-group">
 						<label for="monMetricsRetention" class="form-field__label">{{msg.admin_mon_settings_metrics_retention}}</label>
 						<input id="monMetricsRetention" name="monMetricsRetention" type="number" min="1" max="3650"
