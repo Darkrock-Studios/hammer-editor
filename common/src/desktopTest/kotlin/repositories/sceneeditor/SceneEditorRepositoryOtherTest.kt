@@ -17,7 +17,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.Validation
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
@@ -165,14 +164,6 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 			projectDef = projectDef,
 			syncJournal = syncJournal,
 			idAllocator = idAllocator,
-			sceneMetadataRepository = SceneMetadataRepository(
-				projectDef = projectDef,
-				sceneMetadataDatasource = metadataDatasource,
-				projectMetadataDatasource = metadataRepository,
-				strRes = mockk(relaxed = true),
-				clock = Clock.System,
-			),
-			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = metadataDatasource,
 			sceneDatasource = sceneDatasource,
 			clock = Clock.System,
@@ -259,14 +250,6 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 			projectDef = projectDef,
 			syncJournal = syncJournal,
 			idAllocator = idAllocator,
-			sceneMetadataRepository = SceneMetadataRepository(
-				projectDef = projectDef,
-				sceneMetadataDatasource = metadataDatasource,
-				projectMetadataDatasource = metadataRepository,
-				strRes = mockk(relaxed = true),
-				clock = Clock.System,
-			),
-			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = metadataDatasource,
 			sceneDatasource = spy,
 			clock = Clock.System,

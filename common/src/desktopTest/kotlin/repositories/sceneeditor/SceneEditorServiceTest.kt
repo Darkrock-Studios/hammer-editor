@@ -120,8 +120,6 @@ class SceneEditorServiceTest : BaseTest() {
 			projectDef = projectDef,
 			syncJournal = syncJournal,
 			idAllocator = idAllocator,
-			sceneMetadataRepository = sceneMetadataRepository,
-			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 			clock = Clock.System,
@@ -140,7 +138,7 @@ class SceneEditorServiceTest : BaseTest() {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)
 		val service = createService(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 		return service
 	}
 

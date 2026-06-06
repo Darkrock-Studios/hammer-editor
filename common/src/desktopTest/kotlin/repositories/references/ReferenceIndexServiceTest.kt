@@ -1,7 +1,6 @@
 package repositories.references
 
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
@@ -106,14 +105,11 @@ class ReferenceIndexServiceTest : BaseTest() {
 			depth = 0,
 			totalChildren = children.size,
 		)
-		val summary = SceneSummary(
-			sceneTree = ImmutableTree(root, totalChildren = children.size + 1),
-			hasDirtyBuffer = emptySet(),
-		)
-		val flow = MutableSharedFlow<SceneSummary>(
+		val tree = ImmutableTree(root, totalChildren = children.size + 1)
+		val flow = MutableSharedFlow<ImmutableTree<SceneItem>>(
 			replay = 1, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST
-		).apply { tryEmit(summary) }
-		every { sceneEditor.sceneListChannel } returns flow
+		).apply { tryEmit(tree) }
+		every { sceneEditor.sceneTreeUpdates } returns flow
 		coEvery { sceneEditor.getArchivedScenes() } returns emptyList()
 		for ((item, metadata) in scenes) {
 			coEvery { sceneMetadataRepository.loadSceneMetadata(item.id) } returns metadata

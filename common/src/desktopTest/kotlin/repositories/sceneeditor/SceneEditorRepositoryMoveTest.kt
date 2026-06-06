@@ -9,7 +9,10 @@ import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.*
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.filterScenePathsOkio
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
@@ -145,14 +148,6 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 			projectDef = projectDef,
 			syncJournal = syncJournal,
 			idAllocator = idAllocator,
-			sceneMetadataRepository = SceneMetadataRepository(
-				projectDef = projectDef,
-				sceneMetadataDatasource = metadataDatasource,
-				projectMetadataDatasource = metadataRepository,
-				strRes = mockk(relaxed = true),
-				clock = Clock.System,
-			),
-			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = metadataDatasource,
 			sceneDatasource = sceneDatasource,
 			clock = Clock.System,
@@ -356,14 +351,6 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 			projectDef = projectDef,
 			syncJournal = syncJournal,
 			idAllocator = idAllocator,
-			sceneMetadataRepository = SceneMetadataRepository(
-				projectDef = projectDef,
-				sceneMetadataDatasource = metadataDatasource,
-				projectMetadataDatasource = metadataRepository,
-				strRes = mockk(relaxed = true),
-				clock = Clock.System,
-			),
-			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = metadataDatasource,
 			sceneDatasource = sceneDatasource,
 			clock = Clock.System,

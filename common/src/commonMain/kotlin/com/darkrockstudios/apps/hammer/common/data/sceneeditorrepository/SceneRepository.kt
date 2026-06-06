@@ -12,30 +12,28 @@ import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.numDigits
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import okio.IOException
 import okio.Path
 import org.koin.core.component.KoinComponent
 import kotlin.time.Clock
 
+/**
+ * Repository owning the scene tree: structure, ordering, paths and on-disk layout
+ * (create/move/delete/rename/archive). Emits structural [sceneTreeUpdates]; the dirty-buffer-aware
+ * [SceneSummary] is composed up in [SceneEditorService].
+ */
 class SceneRepository(
 	val projectDef: ProjectDef,
 	private val idAllocator: IdAllocator,
 	private val syncJournal: SyncJournal,
-	private val sceneMetadataRepository: SceneMetadataRepository,
-	private val sceneContentRepository: SceneContentRepository,
 	private val sceneMetadataDatasource: SceneMetadataDatasource,
 	private val sceneDatasource: SceneDatasource,
 	private val clock: Clock,
@@ -51,14 +49,15 @@ class SceneRepository(
 		order = 0
 	)
 
-	private val dispatcherMain by injectMainDispatcher()
-
-	private val _sceneListChannel = MutableSharedFlow<SceneSummary>(
+	private val _sceneTreeUpdates = MutableSharedFlow<ImmutableTree<SceneItem>>(
 		extraBufferCapacity = 1,
 		replay = 1,
 		onBufferOverflow = BufferOverflow.DROP_OLDEST
 	)
-	val sceneListChannel: SharedFlow<SceneSummary> = _sceneListChannel
+
+	/** Emits the scene tree after every structural change. The cross-cutting
+	 *  [SceneSummary] (tree + dirty buffers) is composed in [SceneEditorService]. */
+	val sceneTreeUpdates: SharedFlow<ImmutableTree<SceneItem>> = _sceneTreeUpdates
 
 	private val sceneTree = Tree<SceneItem>()
 	val rawTree: Tree<SceneItem>
@@ -101,7 +100,7 @@ class SceneRepository(
 	/**
 	 * Public entry point for marking a scene's current persisted identity for sync.
 	 * Used by [SceneEditorService] (which orchestrates metadata writes) and the sync layer,
-	 * keeping the hashing logic (responsibility G) on the data layer.
+	 * keeping the hashing logic on the data layer.
 	 */
 	suspend fun markSceneForSynchronization(scene: SceneItem) = markForSynchronization(scene)
 
@@ -122,23 +121,9 @@ class SceneRepository(
 		}
 	}
 
-	fun subscribeToSceneUpdates(
-		scope: CoroutineScope,
-		onSceneListUpdate: (SceneSummary) -> Unit
-	): Job {
-		val job = scope.launch {
-			sceneListChannel.collect { scenes ->
-				withContext(dispatcherMain) {
-					onSceneListUpdate(scenes)
-				}
-			}
-		}
-		reloadScenes()
-		return job
-	}
-
 	/**
-	 * This needs to be called after instantiation
+	 * Loads the scene tree from disk and starts emitting structural updates.
+	 * Content/metadata initialization is orchestrated by [SceneEditorService].
 	 */
 	suspend fun initializeSceneEditor(): SceneRepository {
 		val root = sceneDatasource.loadSceneTree(rootScene)
@@ -148,12 +133,7 @@ class SceneRepository(
 
 		idAllocator.findNextId()
 
-		// Loads any existing temp buffers and starts the content debounce/autosave engine.
-		sceneContentRepository.initialize()
-
 		reloadScenes()
-
-		sceneMetadataRepository.initialize()
 
 		return this
 	}
@@ -165,16 +145,8 @@ class SceneRepository(
 		reloadScenes()
 	}
 
-	fun getSceneSummaries(): SceneSummary {
-		return SceneSummary(
-			getSceneTree(),
-			sceneContentRepository.getDirtyBufferIds()
-		)
-	}
-
-	fun reloadScenes(summary: SceneSummary? = null) {
-		val scenes = summary ?: getSceneSummaries()
-		_sceneListChannel.tryEmit(scenes)
+	fun reloadScenes() {
+		_sceneTreeUpdates.tryEmit(getSceneTree())
 	}
 
 	private fun willNextSceneIncreaseMagnitude(parentId: Int?): Boolean {
@@ -492,13 +464,7 @@ class SceneRepository(
 		}
 
 		// Notify listeners of the new state of the tree
-		val imTree = sceneTree.toImmutableTree()
-
-		val newSummary = SceneSummary(
-			imTree,
-			sceneContentRepository.getDirtyBufferIds()
-		)
-		reloadScenes(newSummary)
+		reloadScenes()
 	}
 
 	private suspend fun updateSceneTreeForMove(moveRequest: MoveRequest) {

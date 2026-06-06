@@ -3,7 +3,6 @@ package repositories.references
 import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
@@ -76,11 +75,11 @@ class SceneMetadataReferenceRemapperTest : BaseTest() {
 			depth = 0,
 			totalChildren = children.size,
 		)
-		val summary = SceneSummary(ImmutableTree(root, totalChildren = children.size + 1), emptySet())
-		val flow = MutableSharedFlow<SceneSummary>(
+		val tree = ImmutableTree(root, totalChildren = children.size + 1)
+		val flow = MutableSharedFlow<ImmutableTree<SceneItem>>(
 			replay = 1, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST,
-		).apply { tryEmit(summary) }
-		every { sceneEditor.sceneListChannel } returns flow
+		).apply { tryEmit(tree) }
+		every { sceneEditor.sceneTreeUpdates } returns flow
 		coEvery { sceneEditor.getArchivedScenes() } returns archivedIds.map {
 			SceneItem(projectDef, SceneItem.Type.Scene, it, "A$it", it, archived = true)
 		}
