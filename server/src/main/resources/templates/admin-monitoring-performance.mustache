@@ -18,7 +18,7 @@
 
 			<section class="paper-section">
 				<div class="section-header">
-					<h2 class="section-header__title">{{msg.admin_mon_perf_endpoints}}</h2>
+					<h2 class="section-header__title">{{msg.admin_mon_perf_latency_title}}</h2>
 					<div class="section-header__actions mon-range">
 						<a class="mon-range__btn {{#range24h}}mon-range__btn--active{{/range24h}}"
 						   href="/admin/monitoring/performance?range=24h">{{msg.admin_mon_range_24h}}</a>
@@ -28,32 +28,39 @@
 						   href="/admin/monitoring/performance?range=30d">{{msg.admin_mon_range_30d}}</a>
 					</div>
 				</div>
+				<div class="mon-chart" id="mon-latency-chart"></div>
+			</section>
+
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_mon_perf_endpoints}}</h2>
+				</div>
 
 				{{#hasEndpoints}}
 					<div class="mon-table-wrap">
-						<table class="mon-table">
+						<table class="mon-table" id="endpointsTable">
 							<thead>
 							<tr>
-								<th>{{msg.admin_mon_col_endpoint}}</th>
-								<th class="mon-table__num">{{msg.admin_mon_col_requests}}</th>
-								<th class="mon-table__num">{{msg.admin_mon_col_errors}}</th>
-								<th class="mon-table__num">{{msg.admin_mon_col_p50}}</th>
-								<th class="mon-table__num">{{msg.admin_mon_col_p95}}</th>
-								<th class="mon-table__num">{{msg.admin_mon_col_p99}}</th>
+								<th data-col="0" data-type="str">{{msg.admin_mon_col_endpoint}}<span class="mon-sort-ind"></span></th>
+								<th class="mon-table__num" data-col="1" data-type="num">{{msg.admin_mon_col_requests}}<span class="mon-sort-ind"></span></th>
+								<th class="mon-table__num" data-col="2" data-type="num">{{msg.admin_mon_col_errors}}<span class="mon-sort-ind"></span></th>
+								<th class="mon-table__num" data-col="3" data-type="num">{{msg.admin_mon_col_p50}}<span class="mon-sort-ind"></span></th>
+								<th class="mon-table__num" data-col="4" data-type="num">{{msg.admin_mon_col_p95}}<span class="mon-sort-ind"></span></th>
+								<th class="mon-table__num" data-col="5" data-type="num">{{msg.admin_mon_col_p99}}<span class="mon-sort-ind"></span></th>
 							</tr>
 							</thead>
 							<tbody>
 							{{#endpoints}}
 								<tr>
-									<td class="mon-table__endpoint">
+									<td class="mon-table__endpoint" data-val="{{method}} {{route}}">
 										<span class="mon-rank__method mon-method--{{method}}">{{method}}</span>
 										<span class="mon-table__route">{{route}}</span>
 									</td>
-									<td class="mon-table__num">{{requestCount}}</td>
-									<td class="mon-table__num {{#hasErrors}}mon-table__num--err{{/hasErrors}}">{{errorRate}}</td>
-									<td class="mon-table__num">{{p50}}</td>
-									<td class="mon-table__num">{{p95}}</td>
-									<td class="mon-table__num">{{p99}}</td>
+									<td class="mon-table__num" data-val="{{requestCountRaw}}">{{requestCount}}</td>
+									<td class="mon-table__num {{#hasErrors}}mon-table__num--err{{/hasErrors}}" data-val="{{errorRateRaw}}">{{errorRate}}</td>
+									<td class="mon-table__num" data-val="{{p50Raw}}">{{p50}}</td>
+									<td class="mon-table__num" data-val="{{p95Raw}}">{{p95}}</td>
+									<td class="mon-table__num" data-val="{{p99Raw}}">{{p99}}</td>
 								</tr>
 							{{/endpoints}}
 							</tbody>
@@ -67,5 +74,66 @@
 		</div>
 	</div>
 </main>
+
+<script src="/assets/js/frappe-charts.min.js"></script>
+<script>
+	(function () {
+		var ChartCtor = (window.frappe && window.frappe.Chart) || window.Chart;
+		if (!ChartCtor) return;
+
+		var latData = {{{latencyChartJson}}};
+		var el = document.getElementById("mon-latency-chart");
+		if (!el || !latData.labels || latData.labels.length < 2) {
+			if (el) el.innerHTML = '<p class="mon-chart__empty">{{msg.admin_mon_no_data}}</p>';
+			return;
+		}
+		new ChartCtor(el, {
+			data: {
+				labels: latData.labels,
+				datasets: [{ name: "{{msg.admin_mon_perf_latency_label}}", values: latData.p95Ms }]
+			},
+			type: "line",
+			height: 120,
+			colors: ["#d97706"],
+			axisOptions: { xAxisMode: "tick" },
+			lineOptions: { hideDots: 1, regionFill: 1 },
+			tooltipOptions: { formatTooltipY: function(v) { return v != null ? (v >= 1000 ? (v / 1000).toFixed(1) + "s" : v + "ms") : ""; } }
+		});
+	})();
+</script>
+
+<script>
+	(function () {
+		var table = document.getElementById("endpointsTable");
+		if (!table) return;
+		var tbody = table.querySelector("tbody");
+		var headers = Array.from(table.querySelectorAll("th[data-col]"));
+		var sortCol = -1, sortAsc = true;
+
+		headers.forEach(function (th) {
+			th.addEventListener("click", function () {
+				var col = parseInt(th.getAttribute("data-col"));
+				var isNum = th.getAttribute("data-type") === "num";
+				if (sortCol === col) {
+					sortAsc = !sortAsc;
+				} else {
+					sortCol = col;
+					sortAsc = !isNum; // numeric → desc first; string → asc first
+				}
+				headers.forEach(function (h) { h.classList.remove("mon-sort-asc", "mon-sort-desc"); });
+				th.classList.add(sortAsc ? "mon-sort-asc" : "mon-sort-desc");
+
+				var rows = Array.from(tbody.querySelectorAll("tr"));
+				rows.sort(function (a, b) {
+					var aVal = (a.querySelectorAll("td")[col] || {}).getAttribute("data-val") || "";
+					var bVal = (b.querySelectorAll("td")[col] || {}).getAttribute("data-val") || "";
+					var cmp = isNum ? parseFloat(aVal) - parseFloat(bVal) : aVal.localeCompare(bVal);
+					return sortAsc ? cmp : -cmp;
+				});
+				rows.forEach(function (r) { tbody.appendChild(r); });
+			});
+		});
+	})();
+</script>
 
 {{> footer}}

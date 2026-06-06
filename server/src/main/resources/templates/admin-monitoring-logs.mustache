@@ -35,7 +35,19 @@
 						<input type="checkbox" id="logAutoRefresh" checked/>
 						{{msg.admin_mon_logs_autorefresh}}
 					</label>
+					<button class="mon-range__btn" onclick="exportLogs()">{{msg.admin_mon_logs_export}}</button>
 				</form>
+				<script>
+					function exportLogs() {
+						var params = new URLSearchParams();
+						var level = document.getElementById('logLevel').value;
+						var q = document.getElementById('logSearch').value;
+						if (level) params.set('level', level);
+						if (q) params.set('q', q);
+						var qs = params.toString();
+						window.location.href = '/admin/monitoring/logs/export' + (qs ? '?' + qs : '');
+					}
+				</script>
 
 				<div id="logTail"
 					 class="mon-log-tail"

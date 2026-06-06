@@ -7,7 +7,7 @@ package com.darkrockstudios.apps.hammer.monitoring
  * it can never grow without bound.
  */
 object LogRingBuffer {
-	const val CAPACITY = 1000
+	const val CAPACITY = 10_000
 
 	/** Severity names in ascending order; index is the rank used for filtering. */
 	val LEVELS = listOf("TRACE", "DEBUG", "INFO", "WARN", "ERROR")
