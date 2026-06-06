@@ -18,8 +18,40 @@
 
 			<section class="paper-section">
 				<div class="section-header">
-					<h2 class="section-header__title">{{msg.admin_mon_errors_grouped}}</h2>
+					<h2 class="section-header__title">{{msg.admin_mon_perf_error_rate_title}}</h2>
+					<div class="section-header__actions mon-range">
+						<a class="mon-range__btn {{#range24h}}mon-range__btn--active{{/range24h}}"
+						   href="/admin/monitoring/errors?range=24h{{#hasRouteFilter}}&route={{routeFilterEnc}}{{/hasRouteFilter}}">{{msg.admin_mon_range_24h}}</a>
+						<a class="mon-range__btn {{#range7d}}mon-range__btn--active{{/range7d}}"
+						   href="/admin/monitoring/errors?range=7d{{#hasRouteFilter}}&route={{routeFilterEnc}}{{/hasRouteFilter}}">{{msg.admin_mon_range_7d}}</a>
+						<a class="mon-range__btn {{#range30d}}mon-range__btn--active{{/range30d}}"
+						   href="/admin/monitoring/errors?range=30d{{#hasRouteFilter}}&route={{routeFilterEnc}}{{/hasRouteFilter}}">{{msg.admin_mon_range_30d}}</a>
+					</div>
 				</div>
+				<div class="mon-chart" id="mon-error-rate-chart"></div>
+			</section>
+
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_mon_errors_grouped}}</h2>
+					{{#hasErrors}}
+						<div class="section-header__actions">
+							<a class="mon-range__btn" href="/admin/monitoring/errors/export{{#hasRouteFilter}}?route={{routeFilterEnc}}{{/hasRouteFilter}}">
+								<i class="fa-solid fa-download"></i> {{msg.admin_mon_errors_export}}
+							</a>
+						</div>
+					{{/hasErrors}}
+				</div>
+
+				{{#hasRouteFilter}}
+					<div class="mon-filter-chip">
+						<span class="mon-filter-chip__label">{{msg.admin_mon_errors_filtered_by}}</span>
+						<code class="mon-filter-chip__value">{{routeFilter}}</code>
+						<a class="mon-filter-chip__clear" href="/admin/monitoring/errors?range={{range}}" title="{{msg.admin_mon_errors_filter_clear}}">
+							<i class="fa-solid fa-xmark"></i> {{msg.admin_mon_errors_filter_clear}}
+						</a>
+					</div>
+				{{/hasRouteFilter}}
 
 				{{#hasErrors}}
 					<div class="mon-error-list">
@@ -45,11 +77,11 @@
 					{{#isPaged}}
 						<div class="pagination">
 							{{#hasPrev}}
-								<a class="pagination-button" href="/admin/monitoring/errors?page={{prevPage}}">&laquo; {{msg.admin_pagination_prev}}</a>
+								<a class="pagination-button" href="/admin/monitoring/errors?range={{range}}&page={{prevPage}}{{#hasRouteFilter}}&route={{routeFilterEnc}}{{/hasRouteFilter}}">&laquo; {{msg.admin_pagination_prev}}</a>
 							{{/hasPrev}}
 							<span class="pagination-info">{{msg.admin_pagination_page}} {{currentPageDisplay}} {{msg.admin_pagination_of}} {{totalPages}}</span>
 							{{#hasNext}}
-								<a class="pagination-button" href="/admin/monitoring/errors?page={{nextPage}}">{{msg.admin_pagination_next}} &raquo;</a>
+								<a class="pagination-button" href="/admin/monitoring/errors?range={{range}}&page={{nextPage}}{{#hasRouteFilter}}&route={{routeFilterEnc}}{{/hasRouteFilter}}">{{msg.admin_pagination_next}} &raquo;</a>
 							{{/hasNext}}
 						</div>
 					{{/isPaged}}
@@ -64,5 +96,31 @@
 		</div>
 	</div>
 </main>
+
+<script src="/assets/js/frappe-charts.min.js"></script>
+<script>
+	(function () {
+		var data = {{{errorRateChartJson}}};
+		var el = document.getElementById("mon-error-rate-chart");
+		if (!el || !data.labels || data.labels.length < 2) {
+			if (el) el.innerHTML = '<p class="mon-chart__empty">{{msg.admin_mon_no_data}}</p>';
+			return;
+		}
+		var ChartCtor = (window.frappe && window.frappe.Chart) || window.Chart;
+		if (!ChartCtor) return;
+		new ChartCtor(el, {
+			data: {
+				labels: data.labels,
+				datasets: [{ name: "{{msg.admin_mon_perf_error_rate_label}}", values: data.errorRates }]
+			},
+			type: "line",
+			height: 120,
+			colors: ["#ef4444"],
+			axisOptions: { xAxisMode: "tick" },
+			lineOptions: { hideDots: 1, regionFill: 1 },
+			tooltipOptions: { formatTooltipY: function(v) { return v != null ? v.toFixed(1) + "%" : ""; } }
+		});
+	})();
+</script>
 
 {{> footer}}

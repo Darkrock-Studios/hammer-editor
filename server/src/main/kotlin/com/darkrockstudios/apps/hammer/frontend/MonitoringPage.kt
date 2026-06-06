@@ -10,7 +10,10 @@ import com.darkrockstudios.apps.hammer.monitoring.LATENCY_OVERFLOW_MS
 import com.darkrockstudios.apps.hammer.monitoring.LogLine
 import com.darkrockstudios.apps.hammer.monitoring.LogRingBuffer
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
+import com.darkrockstudios.apps.hammer.monitoring.SecurityAlert
+import com.darkrockstudios.apps.hammer.monitoring.SecurityAlerts
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
+import com.darkrockstudios.apps.hammer.monitoring.TimeSeriesPoint
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
@@ -20,7 +23,9 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import java.net.URLEncoder
 import kotlin.math.ceil
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
@@ -57,7 +62,13 @@ fun Route.adminMonitoringPages(
 			val activeSyncs = projectsSyncManager.activeSessionCount() + projectSyncManager.activeSessionCount()
 
 			val topSlow = stats.sortedByDescending { it.p95 }.take(5).map(::endpointRowModel)
-			val alerts = deriveAlerts(stats)
+			val securitySince = clock.now() - SecurityAlerts.WINDOW
+			val securityAlerts = SecurityAlerts.derive(
+				securityRepository.bruteForceEmails(securitySince),
+				securityRepository.bruteForceIps(securitySince),
+			).map(::securityAlertModel)
+			// Critical security alerts lead; endpoint error-rate warnings follow.
+			val alerts = securityAlerts + deriveAlerts(stats)
 			val chart = buildHourlyChart(metricsRepository.getHourBucketsSince(since))
 
 			val model = mutableMapOf<String, Any>(
@@ -85,6 +96,9 @@ fun Route.adminMonitoringPages(
 			val range = call.request.queryParameters["range"] ?: RANGE_24H
 			val since = clock.now() - rangeToDuration(range)
 			val stats = metricsRepository.getEndpointStats(since)
+			val labelFormat = if (range == RANGE_24H) "HH:00" else "MMM dd"
+			val timeSeries = metricsRepository.getTimeSeries(since, range == RANGE_24H)
+			val latencyChart = buildLatencyChart(timeSeries, labelFormat)
 
 			val model = mutableMapOf<String, Any>(
 				"page_stylesheet" to "/assets/css/admin.css",
@@ -97,18 +111,26 @@ fun Route.adminMonitoringPages(
 				"range30d" to (range == RANGE_30D),
 				"endpoints" to stats.map(::endpointRowModel),
 				"hasEndpoints" to stats.isNotEmpty(),
+				"latencyChartJson" to latencyChart,
 			)
 
 			call.respond(MustacheContent("admin-monitoring-performance.mustache", call.withDefaults(model)))
 		}
 
 		get("/errors") {
+			val range = call.request.queryParameters["range"] ?: RANGE_24H
+			val since = clock.now() - rangeToDuration(range)
+			val labelFormat = if (range == RANGE_24H) "HH:00" else "MMM dd"
+			val timeSeries = metricsRepository.getTimeSeries(since, range == RANGE_24H)
+			val errorRateChart = buildErrorRateChart(timeSeries, labelFormat)
+
+			val routeFilter = call.request.queryParameters["route"]?.takeIf { it.isNotBlank() }
 			val pageSize = 20
-			val totalCount = errorRepository.getCount()
+			val totalCount = errorRepository.getCount(routeFilter)
 			val totalPages = ceil(totalCount.toDouble() / pageSize).toInt()
 			val requestedPage = call.request.queryParameters["page"]?.toIntOrNull() ?: 0
 			val currentPage = if (totalPages > 0) requestedPage.coerceIn(0, totalPages - 1) else 0
-			val errors = errorRepository.getRecent(currentPage, pageSize).map(::errorRowModel)
+			val errors = errorRepository.getRecent(currentPage, pageSize, routeFilter).map(::errorRowModel)
 
 			val model = mutableMapOf<String, Any>(
 				"page_stylesheet" to "/assets/css/admin.css",
@@ -116,6 +138,14 @@ fun Route.adminMonitoringPages(
 				"activeMonErrors" to true,
 				"patreonFeatureEnabled" to patreonFeatureEnabled,
 				"emailFeatureEnabled" to emailFeatureEnabled,
+				"range24h" to (range == RANGE_24H),
+				"range7d" to (range == RANGE_7D),
+				"range30d" to (range == RANGE_30D),
+				"range" to range,
+				"hasRouteFilter" to (routeFilter != null),
+				"routeFilter" to (routeFilter ?: ""),
+				"routeFilterEnc" to (routeFilter?.let { URLEncoder.encode(it, "UTF-8") } ?: ""),
+				"errorRateChartJson" to errorRateChart,
 				"errors" to errors,
 				"hasErrors" to errors.isNotEmpty(),
 				"currentPageDisplay" to currentPage + 1,
@@ -128,6 +158,28 @@ fun Route.adminMonitoringPages(
 			)
 
 			call.respond(MustacheContent("admin-monitoring-errors.mustache", call.withDefaults(model)))
+		}
+
+		// Full dump of the grouped errors (respecting the route filter) as JSON —
+		// a complete, machine-readable format self-hosters can hand to maintainers.
+		get("/errors/export") {
+			val routeFilter = call.request.queryParameters["route"]?.takeIf { it.isNotBlank() }
+			val total = errorRepository.getCount(routeFilter).toInt()
+			val export = errorRepository.getRecent(0, total, routeFilter).map { e ->
+				ErrorExport(
+					exceptionType = e.exception_type,
+					route = e.route,
+					userId = e.user_id,
+					occurrences = e.occurrence_count,
+					firstSeen = e.first_seen.toString(),
+					lastSeen = e.last_seen.toString(),
+					message = e.message,
+					stackTrace = e.stack_trace,
+				)
+			}
+			val json = errorExportJson.encodeToString(ListSerializer(ErrorExport.serializer()), export)
+			call.response.headers.append("Content-Disposition", "attachment; filename=\"hammer-errors.json\"")
+			call.respondText(json, io.ktor.http.ContentType.Application.Json)
 		}
 
 		get("/security") {
@@ -180,6 +232,20 @@ fun Route.adminMonitoringPages(
 			)
 			call.respond(MustacheContent("partials/log-lines.mustache", model))
 		}
+
+		get("/logs/export") {
+			val level = call.request.queryParameters["level"]
+			val query = call.request.queryParameters["q"]
+			val lines = LogRingBuffer.recent(minLevel = level, query = query, limit = LogRingBuffer.CAPACITY)
+			val text = buildString {
+				lines.forEach { line ->
+					val ts = formatInstant(Instant.fromEpochMilliseconds(line.timestampMillis), "yyyy-MM-dd HH:mm:ss.SSS")
+					appendLine("[$ts] ${line.level.padEnd(5)} ${line.logger} - ${line.message}")
+				}
+			}
+			call.response.headers.append("Content-Disposition", "attachment; filename=\"server-logs.txt\"")
+			call.respondText(text, io.ktor.http.ContentType.Text.Plain)
+		}
 	}
 }
 
@@ -210,16 +276,21 @@ private fun endpointRowModel(s: EndpointStat): Map<String, Any> = mapOf(
 	"route" to s.route,
 	"method" to s.method,
 	"requestCount" to formatCount(s.requestCount),
+	"requestCountRaw" to s.requestCount,
 	"errorCount" to s.errorCount,
 	"errorRate" to formatPercent(if (s.requestCount > 0) s.errorCount.toDouble() / s.requestCount else 0.0),
+	"errorRateRaw" to if (s.requestCount > 0) (s.errorCount.toDouble() / s.requestCount * 100000).toLong() else 0L,
 	"hasErrors" to (s.errorCount > 0),
 	"p50" to formatLatency(s.p50),
+	"p50Raw" to if (s.p50 == LATENCY_OVERFLOW_MS) 9999L else s.p50,
 	"p95" to formatLatency(s.p95),
+	"p95Raw" to if (s.p95 == LATENCY_OVERFLOW_MS) 9999L else s.p95,
 	"p99" to formatLatency(s.p99),
+	"p99Raw" to if (s.p99 == LATENCY_OVERFLOW_MS) 9999L else s.p99,
 	"avg" to formatLatency(s.avgMs),
 )
 
-private fun deriveAlerts(stats: List<EndpointStat>): List<Map<String, Any>> =
+internal fun deriveAlerts(stats: List<EndpointStat>): List<Map<String, Any>> =
 	stats.filter { it.requestCount >= ALERT_MIN_REQUESTS && it.errorCount.toDouble() / it.requestCount > ALERT_ERROR_RATE }
 		.sortedByDescending { it.errorCount.toDouble() / it.requestCount }
 		.map { s ->
@@ -228,8 +299,35 @@ private fun deriveAlerts(stats: List<EndpointStat>): List<Map<String, Any>> =
 				"severity" to "warning",
 				"route" to s.route,
 				"detail" to "$rate of ${s.requestCount} requests failed in the last 24h",
+				"href" to "/admin/monitoring/errors?route=${URLEncoder.encode(s.route, "UTF-8")}",
 			)
 		}
+
+/** Renders a [SecurityAlert] into the Overview alert model (critical; links to the Security panel). */
+private fun securityAlertModel(alert: SecurityAlert): Map<String, Any> = mapOf(
+	"severity" to "critical",
+	"route" to alert.subject,
+	"detail" to alert.detail,
+	"href" to "/admin/monitoring/security",
+)
+
+private fun buildErrorRateChart(points: List<TimeSeriesPoint>, labelFormat: String): String {
+	val payload = ErrorRateChartPayload(
+		labels = points.map { formatInstant(it.bucketStart, labelFormat) },
+		errorRates = points.map { pt ->
+			if (pt.requests > 0) pt.errors.toDouble() / pt.requests * 100.0 else 0.0
+		},
+	)
+	return Json.encodeToString(ErrorRateChartPayload.serializer(), payload)
+}
+
+private fun buildLatencyChart(points: List<TimeSeriesPoint>, labelFormat: String): String {
+	val payload = LatencyChartPayload(
+		labels = points.map { formatInstant(it.bucketStart, labelFormat) },
+		p95Ms = points.map { it.p95Ms },
+	)
+	return Json.encodeToString(LatencyChartPayload.serializer(), payload)
+}
 
 private fun buildHourlyChart(buckets: List<com.darkrockstudios.apps.hammer.Api_metric_bucket>): String {
 	val byHour = buckets.groupBy { it.bucket_start }.toSortedMap()
@@ -264,8 +362,34 @@ private data class ChartPayload(
 	val errors: List<Long>,
 )
 
+private val errorExportJson = Json { prettyPrint = true }
+
+@Serializable
+private data class ErrorExport(
+	val exceptionType: String,
+	val route: String?,
+	val userId: Long?,
+	val occurrences: Long,
+	val firstSeen: String,
+	val lastSeen: String,
+	val message: String?,
+	val stackTrace: String?,
+)
+
+@Serializable
+private data class ErrorRateChartPayload(
+	val labels: List<String>,
+	val errorRates: List<Double>,
+)
+
+@Serializable
+private data class LatencyChartPayload(
+	val labels: List<String>,
+	val p95Ms: List<Long>,
+)
+
 private const val RANGE_24H = "24h"
 private const val RANGE_7D = "7d"
 private const val RANGE_30D = "30d"
-private const val ALERT_MIN_REQUESTS = 20
-private const val ALERT_ERROR_RATE = 0.25
+internal const val ALERT_MIN_REQUESTS = 20
+internal const val ALERT_ERROR_RATE = 0.25

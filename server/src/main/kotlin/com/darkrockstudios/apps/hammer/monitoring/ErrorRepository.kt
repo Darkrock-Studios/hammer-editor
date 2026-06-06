@@ -34,10 +34,15 @@ class ErrorRepository(
 		)
 	}
 
-	suspend fun getRecent(page: Int, pageSize: Int): List<Error_log> =
-		errorLogDao.getRecentErrors(pageSize.toLong(), (page.toLong() * pageSize))
+	suspend fun getRecent(page: Int, pageSize: Int, route: String? = null): List<Error_log> =
+		if (route == null) {
+			errorLogDao.getRecentErrors(pageSize.toLong(), (page.toLong() * pageSize))
+		} else {
+			errorLogDao.getRecentErrorsByRoute(route, pageSize.toLong(), (page.toLong() * pageSize))
+		}
 
-	suspend fun getCount(): Long = errorLogDao.getErrorCount()
+	suspend fun getCount(route: String? = null): Long =
+		if (route == null) errorLogDao.getErrorCount() else errorLogDao.getErrorCountByRoute(route)
 
 	/** Noisy error groups (>= [minOccurrences], last seen since [since]) not yet alerted on. */
 	suspend fun errorsToAlert(minOccurrences: Int, since: Instant): List<Error_log> =

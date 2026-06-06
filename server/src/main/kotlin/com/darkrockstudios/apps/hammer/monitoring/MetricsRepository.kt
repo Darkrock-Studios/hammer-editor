@@ -86,11 +86,31 @@ class MetricsRepository(
 		)
 	}
 
+	suspend fun getTimeSeries(since: Instant, hourly: Boolean): List<TimeSeriesPoint> {
+		val raw = if (hourly) getHourBucketsSince(since) else getDayBucketsSince(since)
+		return raw.groupBy { it.bucket_start }.entries
+			.sortedBy { it.key }
+			.map { (ts, rows) ->
+				val requests = rows.sumOf { it.request_count }
+				val errors = rows.sumOf { it.error_count }
+				val histogram = rows.fold(LatencyHistogram()) { acc, r -> acc.plus(r) }
+				val p95 = percentile(histogram, 95.0).let { if (it == LATENCY_OVERFLOW_MS) 2500L else it }
+				TimeSeriesPoint(ts, requests, errors, p95)
+			}
+	}
+
 	companion object {
 		const val BUCKET_HOUR = "HOUR"
 		const val BUCKET_DAY = "DAY"
 	}
 }
+
+data class TimeSeriesPoint(
+	val bucketStart: Instant,
+	val requests: Long,
+	val errors: Long,
+	val p95Ms: Long,
+)
 
 data class EndpointStat(
 	val route: String,

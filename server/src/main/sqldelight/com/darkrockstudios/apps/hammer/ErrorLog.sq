@@ -42,6 +42,16 @@ LIMIT ? OFFSET ?;
 getErrorCount:
 SELECT count(*) FROM error_log;
 
+getRecentErrorsByRoute:
+SELECT * FROM error_log
+WHERE route = ?
+ORDER BY last_seen DESC
+LIMIT ? OFFSET ?;
+
+getErrorCountByRoute:
+SELECT count(*) FROM error_log
+WHERE route = ?;
+
 -- Errors that have gone noisy but the admin hasn't been alerted about yet.
 getErrorsToAlert:
 SELECT * FROM error_log

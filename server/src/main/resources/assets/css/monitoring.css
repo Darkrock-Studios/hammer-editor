@@ -137,7 +137,8 @@
 @keyframes monPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
 
 /* --- Chart --- */
-.mon-chart { width: 100%; min-height: 240px; }
+.mon-chart { width: 100%; }
+.mon-chart .chart-container { padding: 0 !important; margin: 0 !important; }
 .mon-chart__empty { text-align: center; color: var(--neutral-400); font-family: 'Lora', Georgia, serif; padding: 2rem 0; }
 
 /* --- Ranked list (slowest endpoints) --- */
@@ -173,6 +174,18 @@
 .mon-method--PUT { background: #d97706; }
 .mon-method--DELETE { background: #ef4444; }
 
+/* --- Stacked chart group --- */
+.mon-chart-stack { display: flex; flex-direction: column; gap: 0.75rem; }
+.mon-chart-label {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.78rem;
+	font-weight: normal;
+	color: var(--neutral-500);
+	margin: 0 0 0.25rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
 /* --- Range selector --- */
 .mon-range { display: inline-flex; gap: 0.25rem; }
 .mon-range__btn {
@@ -187,6 +200,16 @@
 }
 .mon-range__btn:hover { border-color: var(--accent); color: var(--accent-dark); }
 .mon-range__btn--active { background: var(--ink); color: var(--paper-white); border-color: var(--ink); }
+
+/* --- Sortable table headers --- */
+.mon-table th[data-col] { cursor: pointer; user-select: none; white-space: nowrap; }
+.mon-table th[data-col]:hover { color: var(--accent); }
+.mon-sort-ind { display: inline-block; margin-left: 0.4rem; font-size: 1em; color: var(--neutral-400); vertical-align: middle; }
+.mon-sort-ind::after { content: '↕'; }
+.mon-table th.mon-sort-asc .mon-sort-ind { color: var(--accent); }
+.mon-table th.mon-sort-asc .mon-sort-ind::after { content: '▲'; }
+.mon-table th.mon-sort-desc .mon-sort-ind { color: var(--accent); }
+.mon-table th.mon-sort-desc .mon-sort-ind::after { content: '▼'; }
 
 /* --- Performance table --- */
 .mon-table-wrap { overflow-x: auto; }
@@ -212,6 +235,42 @@
 .mon-table__num--err { color: var(--error); }
 .mon-table__endpoint { display: flex; align-items: center; gap: 0.6rem; }
 .mon-table__route { word-break: break-all; font-family: 'Kingthings Typewriter', monospace; color: var(--ink); }
+
+/* --- Active filter chip (e.g. errors filtered to one endpoint) --- */
+.mon-filter-chip {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	flex-wrap: wrap;
+	padding: 0.6rem 0.85rem;
+	margin-bottom: 1rem;
+	background: var(--neutral-50);
+	border: 1px solid var(--neutral-200);
+	border-left: 4px solid var(--accent);
+	border-radius: 4px;
+}
+.mon-filter-chip__label {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.78rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--neutral-500);
+}
+.mon-filter-chip__value {
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--ink);
+	word-break: break-all;
+	flex: 1;
+	min-width: 0;
+}
+.mon-filter-chip__clear {
+	white-space: nowrap;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.82rem;
+	color: var(--accent-dark);
+	text-decoration: none;
+}
+.mon-filter-chip__clear:hover { text-decoration: underline; }
 
 /* --- Error list (grouped, expandable) --- */
 .mon-error-list { display: flex; flex-direction: column; gap: 0.5rem; }

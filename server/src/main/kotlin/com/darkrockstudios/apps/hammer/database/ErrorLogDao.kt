@@ -33,6 +33,15 @@ open class ErrorLogDao(
 		queries.getErrorCount().executeAsOne()
 	}
 
+	open suspend fun getRecentErrorsByRoute(route: String, limit: Long, offset: Long): List<Error_log> =
+		withContext(ioDispatcher) {
+			queries.getRecentErrorsByRoute(route, limit, offset).executeAsList()
+		}
+
+	open suspend fun getErrorCountByRoute(route: String): Long = withContext(ioDispatcher) {
+		queries.getErrorCountByRoute(route).executeAsOne()
+	}
+
 	open suspend fun getErrorsToAlert(minOccurrences: Long, since: Instant): List<Error_log> =
 		withContext(ioDispatcher) {
 			queries.getErrorsToAlert(minOccurrences, since).executeAsList()
