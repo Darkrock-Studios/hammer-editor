@@ -2,11 +2,8 @@ package components.notes
 
 import com.darkrockstudios.apps.hammer.common.components.notes.ViewNoteComponent
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -25,8 +22,6 @@ import kotlin.time.Instant
 
 class ViewNoteComponentTest : ComponentTest() {
 
-	private val projectDef = ProjectDef("Test", HPath("/projects/Test", "Test", false))
-
 	private lateinit var notesRepository: NotesRepository
 
 	private var dismissViewCount = 0
@@ -39,9 +34,8 @@ class ViewNoteComponentTest : ComponentTest() {
 		super.setup()
 
 		notesRepository = mockk(relaxed = true)
-		setupKoin(module {
+		setupComponentKoin(module {
 			single { notesRepository } bind NotesRepository::class
-			single<TagIndexService> { mockk(relaxed = true) }
 		})
 
 		dismissViewCount = 0

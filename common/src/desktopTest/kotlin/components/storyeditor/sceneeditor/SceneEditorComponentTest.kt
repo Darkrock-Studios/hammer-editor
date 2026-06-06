@@ -10,10 +10,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSettings
 import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
-import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
 import io.mockk.*
@@ -37,7 +35,6 @@ import kotlin.time.Instant
 // so its dependencies don't need registering.
 class SceneEditorComponentTest : ComponentTest() {
 
-	private val projectDef = ProjectDef("Test", HPath("/projects/Test", "Test", false))
 	private val sceneItem = SceneItem(projectDef, SceneItem.Type.Scene, id = 7, name = "Chapter One", order = 0)
 
 	private lateinit var settingsStore: GlobalSettingsStore
@@ -97,13 +94,12 @@ class SceneEditorComponentTest : ComponentTest() {
 		} returns mockk(relaxed = true)
 		every { sceneEditor.subscribeToSceneUpdates(any(), capture(sceneTreeCallback)) } returns mockk(relaxed = true)
 
-		setupKoin(module {
+		setupComponentKoin(module {
 			single<GlobalSettingsStore> { settingsStore }
 			single<SpellCheckRepository> { spellCheck }
 			single { sceneEditor } bind SceneEditorService::class
 			single { draftsRepository } bind SceneDraftRepository::class
 			single { autoConfirm } bind AutoConfirmReferencesUseCase::class
-			single<TagIndexService> { mockk(relaxed = true) }
 		})
 
 		closeCount = 0

@@ -1,7 +1,6 @@
 package components.notes
 
 import com.darkrockstudios.apps.hammer.common.components.notes.BrowseNotesComponent
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
@@ -9,7 +8,6 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -27,8 +25,6 @@ import kotlin.time.Instant
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BrowseNotesComponentTest : ComponentTest() {
-
-	private val projectDef = ProjectDef("Test", HPath("/projects/Test", "Test", false))
 
 	private lateinit var notesRepository: NotesRepository
 	private lateinit var tagIndexService: TagIndexService

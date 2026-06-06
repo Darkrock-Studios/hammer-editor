@@ -7,8 +7,14 @@ import com.arkivanov.essenty.instancekeeper.InstanceKeeperDispatcher
 import com.arkivanov.essenty.lifecycle.*
 import com.arkivanov.essenty.statekeeper.SerializableContainer
 import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
+import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import io.mockk.mockk
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
+import org.koin.core.module.Module
+import org.koin.dsl.module
 
 /**
  * A real [ComponentContext] for testing Decompose components, backed by the genuine Essenty
@@ -75,10 +81,26 @@ open class ComponentTest : BaseTest() {
 
 	protected lateinit var context: TestComponentContext
 
+	/** Default project for project-scoped components; override if a test needs a different one. */
+	protected open val projectDef = ProjectDef("Test", HPath("/projects/Test", "Test", false))
+
 	@BeforeEach
 	override fun setup() {
 		super.setup()
 		context = TestComponentContext.create()
+	}
+
+	/**
+	 * Like [setupKoin] but also registers the dependencies every project-scoped component injects
+	 * via [com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase] — currently a
+	 * relaxed [TagIndexService] (lazy, so harmless when a component never uses it). A test that
+	 * needs to control TagIndexService should register its own via plain [setupKoin] instead.
+	 */
+	protected fun setupComponentKoin(module: Module) {
+		setupKoin(
+			module { single<TagIndexService> { mockk(relaxed = true) } },
+			module,
+		)
 	}
 
 	@AfterEach

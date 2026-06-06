@@ -2,13 +2,10 @@ package components.notes
 
 import com.darkrockstudios.apps.hammer.common.components.notes.CreateNoteComponent
 import com.darkrockstudios.apps.hammer.common.data.CResult
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.InvalidNote
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
-import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.verify
@@ -26,8 +23,6 @@ import kotlin.time.Instant
 
 class CreateNoteComponentTest : ComponentTest() {
 
-	private val projectDef = ProjectDef("Test", HPath("/projects/Test", "Test", false))
-
 	private lateinit var notesRepository: NotesRepository
 
 	private var dismissCreateCount = 0
@@ -37,9 +32,8 @@ class CreateNoteComponentTest : ComponentTest() {
 		super.setup()
 
 		notesRepository = mockk(relaxed = true)
-		setupKoin(module {
+		setupComponentKoin(module {
 			single { notesRepository } bind NotesRepository::class
-			single<TagIndexService> { mockk(relaxed = true) }
 		})
 
 		dismissCreateCount = 0
