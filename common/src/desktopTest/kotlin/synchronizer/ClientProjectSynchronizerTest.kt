@@ -35,7 +35,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 	private lateinit var strRes: StrRes
 
 	@MockK(relaxed = true)
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 
 	@MockK(relaxed = true)
 	private lateinit var entitySynchronizers: EntitySynchronizers
@@ -125,7 +125,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 			projectDef = projectDef,
 			entitySynchronizers = entitySynchronizers,
 			strRes = strRes,
-			syncDataRepository = syncDataRepository,
+			syncJournal = syncJournal,
 			globalSettingsRepository = globalSettingsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 			serverProjectApi = serverProjectApi,

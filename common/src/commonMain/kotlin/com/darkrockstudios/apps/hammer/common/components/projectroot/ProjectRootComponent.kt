@@ -21,7 +21,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.sync_menu_group
 import com.darkrockstudios.apps.hammer.sync_menu_item
 import io.github.aakira.napier.Napier
@@ -40,7 +40,7 @@ class ProjectRootComponent(
 	initialDeepLink: ProjectDeepLink? = null,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectRoot {
 
-	private val syncDataRepository: SyncDataRepository by projectInject()
+	private val syncJournal: SyncJournal by projectInject()
 	private val sceneEditor: SceneEditorService by projectInject()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
@@ -318,7 +318,7 @@ class ProjectRootComponent(
 
 			list.addAll(router.shouldConfirmClose())
 
-			if (syncDataRepository.shouldAutoSync()) {
+			if (syncJournal.shouldAutoSync()) {
 				list.add(CloseConfirm.Sync)
 			}
 
@@ -344,7 +344,7 @@ class ProjectRootComponent(
 	}
 
 	private fun addMenuItems() {
-		if (syncDataRepository.isServerSynchronized()) {
+		if (syncJournal.isServerSynchronized()) {
 			addMenu(
 				MenuDescriptor(
 					id = "project-root-sync",
@@ -364,7 +364,7 @@ class ProjectRootComponent(
 	}
 
 	private fun removeMenuItems() {
-		if (syncDataRepository.isServerSynchronized()) {
+		if (syncJournal.isServerSynchronized()) {
 			removeMenu("project-root-sync")
 		}
 	}

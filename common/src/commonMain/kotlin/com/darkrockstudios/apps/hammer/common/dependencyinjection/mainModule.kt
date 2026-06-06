@@ -39,7 +39,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccoun
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.*
 import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
@@ -215,7 +215,7 @@ val mainModule = module {
 		factoryOf(::ProjectDataSyncOperation)
 		factoryOf(::FinalizeSyncOperation)
 
-		scopedOf(::SyncDataRepository)
+		scopedOf(::SyncJournal)
 		scopedOf(::ClientProjectSynchronizer)
 
 		scopedOf(::EntitySynchronizers)

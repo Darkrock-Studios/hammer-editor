@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesReposito
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository.Companion.MAX_TAG_SIZE
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import createProject
@@ -46,7 +46,7 @@ class NotesRepositoryTest : BaseTest() {
 	private val projectDef = getProjectDef(PROJECT_2_NAME)
 
 	private lateinit var idAllocator: IdAllocator
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 	private lateinit var datasource: NotesDatasource
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var toml: Toml
@@ -57,13 +57,13 @@ class NotesRepositoryTest : BaseTest() {
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
 		idAllocator = mockk()
-		syncDataRepository = mockk()
+		syncJournal = mockk()
 		setupKoin()
 	}
 
 	private fun createRepository(): NotesRepository {
 		datasource = NotesDatasource(projectDef, ffs, toml)
-		return NotesRepository(projectDef, idAllocator, syncDataRepository, datasource)
+		return NotesRepository(projectDef, idAllocator, syncJournal, datasource)
 	}
 
 	@Test
@@ -101,7 +101,7 @@ class NotesRepositoryTest : BaseTest() {
 	@Test
 	fun `Delete note`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
-		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
+		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
 		val noteId = 12
 
 		val repo = createRepository()
@@ -122,7 +122,7 @@ class NotesRepositoryTest : BaseTest() {
 	@Test
 	fun `Update note`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
-		coEvery { syncDataRepository.isServerSynchronized() } returns false
+		coEvery { syncJournal.isServerSynchronized() } returns false
 		val noteId = 12
 
 		val noteContainer = NoteContainer(
@@ -152,8 +152,8 @@ class NotesRepositoryTest : BaseTest() {
 	@Test
 	fun `Create note`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
-		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
-		coEvery { syncDataRepository.isServerSynchronized() } returns false
+		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
+		coEvery { syncJournal.isServerSynchronized() } returns false
 		coEvery { idAllocator.claimNextId() } returns 15
 
 		val noteText = "New note content"
@@ -176,8 +176,8 @@ class NotesRepositoryTest : BaseTest() {
 	@Test
 	fun `Create note with tags persists cleaned tags`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
-		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
-		coEvery { syncDataRepository.isServerSynchronized() } returns false
+		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
+		coEvery { syncJournal.isServerSynchronized() } returns false
 		coEvery { idAllocator.claimNextId() } returns 15
 
 		val repo = createRepository()
@@ -197,8 +197,8 @@ class NotesRepositoryTest : BaseTest() {
 	@Test
 	fun `Create note rejects tag exceeding MAX_TAG_SIZE`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
-		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
-		coEvery { syncDataRepository.isServerSynchronized() } returns false
+		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
+		coEvery { syncJournal.isServerSynchronized() } returns false
 		coEvery { idAllocator.claimNextId() } returns 15
 
 		val repo = createRepository()
@@ -214,7 +214,7 @@ class NotesRepositoryTest : BaseTest() {
 	@Test
 	fun `Update note round-trips tags through TOML`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
-		coEvery { syncDataRepository.isServerSynchronized() } returns false
+		coEvery { syncJournal.isServerSynchronized() } returns false
 		val noteId = 12
 
 		val updated = NoteContent(
@@ -235,8 +235,8 @@ class NotesRepositoryTest : BaseTest() {
 	@MethodSource("provideCreateFailureTestData")
 	fun `Create note failure for invalid name`(noteText: String, error: NoteError) = runTest {
 		createProject(ffs, PROJECT_2_NAME)
-		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
-		coEvery { syncDataRepository.isServerSynchronized() } returns false
+		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
+		coEvery { syncJournal.isServerSynchronized() } returns false
 		coEvery { idAllocator.claimNextId() } returns 15
 
 		val repo = createRepository()
@@ -283,8 +283,8 @@ class NotesRepositoryTest : BaseTest() {
 	@Test
 	fun `noteContentChangedFlow emits on create update and delete`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
-		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
-		coEvery { syncDataRepository.isServerSynchronized() } returns false
+		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
+		coEvery { syncJournal.isServerSynchronized() } returns false
 		coEvery { idAllocator.claimNextId() } returns 20
 
 		val repo = createRepository()

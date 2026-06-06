@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -45,7 +45,7 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
 	private lateinit var projectsRepo: ProjectsRepository
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 	private lateinit var projectDef: ProjectDef
 	private lateinit var repo: SceneRepository
 	private lateinit var idAllocator: IdAllocator
@@ -106,8 +106,8 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 		val rootDir = getDefaultRootDocumentDirectory()
 		ffs.createDirectories(rootDir.toPath())
 
-		syncDataRepository = mockk()
-		every { syncDataRepository.isServerSynchronized() } returns false
+		syncJournal = mockk()
+		every { syncJournal.isServerSynchronized() } returns false
 
 		metadataRepository = mockk(relaxed = true)
 		metadataDatasource = mockk(relaxed = true)
@@ -143,7 +143,7 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 		)
 		repo = SceneRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
+			syncJournal = syncJournal,
 			idAllocator = idAllocator,
 			sceneMetadataRepository = SceneMetadataRepository(
 				projectDef = projectDef,
@@ -354,7 +354,7 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 		)
 		repo = SceneRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
+			syncJournal = syncJournal,
 			idAllocator = idAllocator,
 			sceneMetadataRepository = SceneMetadataRepository(
 				projectDef = projectDef,

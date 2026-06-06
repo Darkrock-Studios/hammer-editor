@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.sync.projectsync
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 
-class SyncDataRepository(
+class SyncJournal(
 	private val globalSettingsRepository: GlobalSettingsRepository,
 	private val networkConnectivity: NetworkConnectivity,
 	private val datasource: SyncDataDatasource,

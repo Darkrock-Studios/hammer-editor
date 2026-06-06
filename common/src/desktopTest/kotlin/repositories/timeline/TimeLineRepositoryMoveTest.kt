@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -47,7 +47,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 	lateinit var lifecycle: Lifecycle
 	lateinit var datasource: TimeLineDatasource
 	lateinit var lifecycleCallbacks: MutableList<Lifecycle.Callbacks>
-	lateinit var syncDataRepository: SyncDataRepository
+	lateinit var syncJournal: SyncJournal
 	lateinit var globalSettingsRepo: GlobalSettingsRepository
 	lateinit var globalSettingsFlow: SharedFlow<GlobalSettings>
 
@@ -67,15 +67,15 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		globalSettingsFlow = mockk()
 		every { globalSettingsRepo.globalSettingsUpdates } returns globalSettingsFlow
 
-		syncDataRepository = mockk()
-		every { syncDataRepository.isServerSynchronized() } returns false
+		syncJournal = mockk()
+		every { syncJournal.isServerSynchronized() } returns false
 
 		lifecycleCallbacks = mutableListOf()
 
 		val testModule = module {
 			single { idRepo } bind IdAllocator::class
 			single { globalSettingsRepo }
-			single { syncDataRepository }
+			single { syncJournal }
 		}
 		setupKoin(testModule)
 

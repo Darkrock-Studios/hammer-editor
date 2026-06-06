@@ -15,7 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDa
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -41,7 +41,7 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
 	private lateinit var projectsRepo: ProjectsRepository
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 	private lateinit var projectDef: ProjectDef
 	private lateinit var repo: SceneRepository
 	private lateinit var idAllocator: IdAllocator
@@ -84,8 +84,8 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 		metadataDatasource = mockk(relaxed = true)
 		statisticsRepository = mockk(relaxed = true)
 
-		syncDataRepository = mockk()
-		every { syncDataRepository.isServerSynchronized() } returns false
+		syncJournal = mockk()
+		every { syncJournal.isServerSynchronized() } returns false
 
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
@@ -120,7 +120,7 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 		)
 		repo = SceneRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
+			syncJournal = syncJournal,
 			idAllocator = idAllocator,
 			sceneMetadataRepository = SceneMetadataRepository(
 				projectDef = projectDef,

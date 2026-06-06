@@ -29,7 +29,7 @@ class PrepareForSyncOperationTest : BaseTest() {
 	private lateinit var idAllocator: IdAllocator
 
 	@MockK(relaxed = true)
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 
 	@BeforeEach
 	override fun setup() {
@@ -55,7 +55,7 @@ class PrepareForSyncOperationTest : BaseTest() {
 			projectDef = projectDef,
 			entitySynchronizers = EntitySynchronizers(projectDef),
 			idAllocator = idAllocator,
-			syncDataRepository = syncDataRepository,
+			syncJournal = syncJournal,
 		)
 	}
 
@@ -85,7 +85,7 @@ class PrepareForSyncOperationTest : BaseTest() {
 		assertIs<SyncOperationState>(result.data)
 
 		coVerify { idAllocator.findNextId() }
-		coVerify { syncDataRepository.createSyncData() }
+		coVerify { syncJournal.createSyncData() }
 
 		mockSynchronizers.synchronizers.forEach { synchronizer ->
 			coVerify { synchronizer.prepareForSync() }

@@ -11,7 +11,7 @@ class PrepareForSyncOperation(
 	projectDef: ProjectDef,
 	private val entitySynchronizers: EntitySynchronizers,
 	private val idAllocator: IdAllocator,
-	private val syncDataRepository: SyncDataRepository,
+	private val syncJournal: SyncJournal,
 ) : SyncOperation(projectDef) {
 	override suspend fun execute(
 		state: SyncOperationState,
@@ -25,7 +25,7 @@ class PrepareForSyncOperation(
 		entitySynchronizers.synchronizers.values.forEach { it.prepareForSync() }
 
 		// Create the sync data if it doesnt exist yet
-		if (syncDataRepository.createSyncData()) {
+		if (syncJournal.createSyncData()) {
 			Napier.i("New sync data file created.")
 		}
 

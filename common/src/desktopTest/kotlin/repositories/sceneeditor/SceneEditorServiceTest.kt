@@ -12,7 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepo
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
@@ -51,7 +51,7 @@ class SceneEditorServiceTest : BaseTest() {
 	private lateinit var toml: Toml
 
 	@MockK
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 
 	@MockK
 	private lateinit var idAllocator: IdAllocator
@@ -94,10 +94,10 @@ class SceneEditorServiceTest : BaseTest() {
 		coEvery { idAllocator.claimNextId() } answers { nextId++ }
 		coEvery { idAllocator.findNextId() } just Runs
 
-		coEvery { syncDataRepository.isServerSynchronized() } returns false
-		coEvery { syncDataRepository.isEntityDirty(any()) } returns false
-		coEvery { syncDataRepository.markEntityAsDirty(any(), any()) } just Runs
-		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
+		coEvery { syncJournal.isServerSynchronized() } returns false
+		coEvery { syncJournal.isEntityDirty(any()) } returns false
+		coEvery { syncJournal.markEntityAsDirty(any(), any()) } just Runs
+		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
 	}
 
 	private fun createService(projectDef: ProjectDef): SceneEditorService {
@@ -118,7 +118,7 @@ class SceneEditorServiceTest : BaseTest() {
 		)
 		repo = SceneRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
+			syncJournal = syncJournal,
 			idAllocator = idAllocator,
 			sceneMetadataRepository = sceneMetadataRepository,
 			sceneContentRepository = sceneContentRepository,
@@ -522,8 +522,8 @@ class SceneEditorServiceTest : BaseTest() {
 	@Test
 	fun `Marking for synchronization hashes the exact persisted scene identity`() =
 		runTest(mainTestDispatcher) {
-			coEvery { syncDataRepository.isServerSynchronized() } returns true
-			coEvery { syncDataRepository.isEntityDirty(1) } returns false
+			coEvery { syncJournal.isServerSynchronized() } returns true
+			coEvery { syncJournal.isEntityDirty(1) } returns false
 
 			val service = initializedService()
 			val scene = service.getSceneItemFromId(1)!!
@@ -548,12 +548,12 @@ class SceneEditorServiceTest : BaseTest() {
 			)
 
 			val hashSlot = slot<String>()
-			coEvery { syncDataRepository.markEntityAsDirty(1, capture(hashSlot)) } just Runs
+			coEvery { syncJournal.markEntityAsDirty(1, capture(hashSlot)) } just Runs
 
 			// Any mutation marks the scene for sync before changing it.
 			service.renameScene(scene, "Renamed")
 
-			coVerify { syncDataRepository.markEntityAsDirty(1, any()) }
+			coVerify { syncJournal.markEntityAsDirty(1, any()) }
 			assertEquals(expectedHash, hashSlot.captured)
 		}
 

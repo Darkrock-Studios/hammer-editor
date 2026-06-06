@@ -33,7 +33,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
-class SyncDataRepositoryTest : BaseTest() {
+class SyncJournalTest : BaseTest() {
 
 	lateinit var ffs: FakeFileSystem
 	lateinit var json: Json
@@ -60,7 +60,7 @@ class SyncDataRepositoryTest : BaseTest() {
 		MockKAnnotations.init(this)
 	}
 
-	private fun createRepository(projectDef: ProjectDef): SyncDataRepository {
+	private fun createRepository(projectDef: ProjectDef): SyncJournal {
 		datasource = SyncDataDatasource(
 			projectDef = projectDef,
 			fileSystem = ffs,
@@ -68,7 +68,7 @@ class SyncDataRepositoryTest : BaseTest() {
 			idAllocator = idAllocator,
 			entitySynchronizers = entitySynchronizers,
 		)
-		return SyncDataRepository(
+		return SyncJournal(
 			globalSettingsRepository = globalSettingsRepository,
 			networkConnectivity = networkConnectivity,
 			datasource = datasource,

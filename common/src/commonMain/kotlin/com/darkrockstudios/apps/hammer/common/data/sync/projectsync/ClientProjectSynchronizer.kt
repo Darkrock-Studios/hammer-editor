@@ -27,7 +27,7 @@ class ClientProjectSynchronizer(
 	private val projectDef: ProjectDef,
 	private val entitySynchronizers: EntitySynchronizers,
 	private val strRes: StrRes,
-	private val syncDataRepository: SyncDataRepository,
+	private val syncJournal: SyncJournal,
 	private val globalSettingsRepository: GlobalSettingsRepository,
 	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val serverProjectApi: ServerProjectApi,
@@ -149,7 +149,7 @@ class ClientProjectSynchronizer(
 
 	private suspend fun endSync() {
 		try {
-			val syncId = syncDataRepository.loadSyncData().currentSyncId
+			val syncId = syncJournal.loadSyncData().currentSyncId
 				?: throw IllegalStateException("No sync ID")
 			val serverProjectId = projectMetadataDatasource.requireProjectId(projectDef)
 
@@ -165,8 +165,8 @@ class ClientProjectSynchronizer(
 			if (endSyncResult.isFailure) {
 				Napier.e("Failed to end sync", endSyncResult.exceptionOrNull())
 			} else {
-				val finalSyncData = syncDataRepository.loadSyncData().copy(currentSyncId = null)
-				syncDataRepository.saveSyncData(finalSyncData)
+				val finalSyncData = syncJournal.loadSyncData().copy(currentSyncId = null)
+				syncJournal.saveSyncData(finalSyncData)
 			}
 		} catch (e: IOException) {
 			Napier.e("Sync failed", e)

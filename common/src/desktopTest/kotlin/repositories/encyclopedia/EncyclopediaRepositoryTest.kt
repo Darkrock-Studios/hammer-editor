@@ -13,7 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -43,7 +43,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	lateinit var externalFileIo: ExternalFileIo
 
 	@MockK
-	lateinit var syncDataRepository: SyncDataRepository
+	lateinit var syncJournal: SyncJournal
 
 	@MockK
 	lateinit var statisticsRepository: StatisticsRepository
@@ -64,7 +64,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 
 		setupKoin()
 
-		every { syncDataRepository.isServerSynchronized() } returns false
+		every { syncJournal.isServerSynchronized() } returns false
 		fileSystem = FakeFileSystem()
 		toml = createTomlSerializer()
 		createProject(fileSystem, ENCYCLOPEDIA_ONLY_PROJECT_NAME)
@@ -85,7 +85,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			projectDef = projDef,
 			idAllocator = idAllocator,
 			datasource = datasource,
-			syncDataRepository = syncDataRepository,
+			syncJournal = syncJournal,
 			statisticsRepository = statisticsRepository,
 			referenceIndexRepository = referenceIndexRepository,
 		)
@@ -280,7 +280,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	@Test
 	fun `Delete Entry`() = runTest {
 		val deletionIdSlot = slot<Int>()
-		coEvery { syncDataRepository.recordIdDeletion(capture(deletionIdSlot)) } just Runs
+		coEvery { syncJournal.recordIdDeletion(capture(deletionIdSlot)) } just Runs
 
 		val repo = createRepository()
 		val deleted = repo.deleteEntry(entry1().toDef(projDef))
@@ -289,12 +289,12 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		val path = datasource.getEntryPath(entry1().toDef(projDef)).toOkioPath()
 		assertFalse(fileSystem.exists(path))
 		assertEquals(entry1().id, deletionIdSlot.captured)
-		coVerify { syncDataRepository.recordIdDeletion(any()) }
+		coVerify { syncJournal.recordIdDeletion(any()) }
 	}
 
 	@Test
 	fun `Delete Entry purges that entry id from the reference index`() = runTest {
-		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
+		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
 
 		val repo = createRepository()
 		referenceIndexDatasource.saveIndex(
@@ -375,7 +375,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	@Test
 	fun `entryContentChangedFlow emits on create update and delete`() = runTest {
 		coEvery { idAllocator.claimNextId() } returns 50
-		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
+		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
 
 		val repo = createRepository()
 

@@ -20,7 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDa
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -52,7 +52,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
 	private lateinit var projectsRepo: ProjectsRepository
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 	private lateinit var projectDef: ProjectDef
 	private lateinit var repo: SceneRepository
 	private lateinit var idAllocator: IdAllocator
@@ -125,8 +125,8 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		metadataDatasource = mockk(relaxed = true)
 		statisticsRepository = mockk(relaxed = true)
 
-		syncDataRepository = mockk()
-		every { syncDataRepository.isServerSynchronized() } returns false
+		syncJournal = mockk()
+		every { syncJournal.isServerSynchronized() } returns false
 		//coEvery { projectSynchronizer.recordIdDeletion(any()) } just Runs
 
 		projectsRepo = mockk()
@@ -163,7 +163,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		)
 		repo = SceneRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
+			syncJournal = syncJournal,
 			idAllocator = idAllocator,
 			sceneMetadataRepository = SceneMetadataRepository(
 				projectDef = projectDef,
@@ -257,7 +257,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		)
 		repo = SceneRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
+			syncJournal = syncJournal,
 			idAllocator = idAllocator,
 			sceneMetadataRepository = SceneMetadataRepository(
 				projectDef = projectDef,

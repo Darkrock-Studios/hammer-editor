@@ -5,7 +5,7 @@ import app.cash.turbine.test
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.*
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository.Companion.MAX_TAG_SIZE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -38,7 +38,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	lateinit var ffs: FakeFileSystem
 	lateinit var toml: Toml
-	lateinit var syncDataRepository: SyncDataRepository
+	lateinit var syncJournal: SyncJournal
 	lateinit var datasource: TimeLineDatasource
 
 	@BeforeEach
@@ -47,11 +47,11 @@ class TimeLineRepositoryTest : BaseTest() {
 
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
-		syncDataRepository = mockk()
+		syncJournal = mockk()
 		datasource = TimeLineDatasource(ffs, toml)
 
 		val testModule = module {
-			single { syncDataRepository }
+			single { syncJournal }
 		}
 		setupKoin(testModule)
 	}
@@ -140,7 +140,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Update timeline with new event`() = runTest {
-		every { syncDataRepository.isServerSynchronized() } returns false
+		every { syncJournal.isServerSynchronized() } returns false
 
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
@@ -196,7 +196,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Update timeline with updated event`() = runTest {
-		every { syncDataRepository.isServerSynchronized() } returns false
+		every { syncJournal.isServerSynchronized() } returns false
 
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
@@ -250,7 +250,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Create event with tags persists cleaned tags`() = runTest {
-		every { syncDataRepository.isServerSynchronized() } returns false
+		every { syncJournal.isServerSynchronized() } returns false
 
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
@@ -282,7 +282,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Update event with tags persists cleaned tags`() = runTest {
-		every { syncDataRepository.isServerSynchronized() } returns false
+		every { syncJournal.isServerSynchronized() } returns false
 
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
@@ -327,8 +327,8 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	@Test
 	fun `eventContentChangedFlow emits on create update and delete`() = runTest {
-		every { syncDataRepository.isServerSynchronized() } returns false
-		coEvery { syncDataRepository.recordIdDeletion(any()) } returns Unit
+		every { syncJournal.isServerSynchronized() } returns false
+		coEvery { syncJournal.recordIdDeletion(any()) } returns Unit
 
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)

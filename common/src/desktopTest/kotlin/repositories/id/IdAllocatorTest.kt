@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import createProject
@@ -31,7 +31,7 @@ import kotlin.test.assertEquals
 class IdAllocatorTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var idAllocator: IdAllocator
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 	private lateinit var toml: Toml
 
 	private lateinit var sceneIdDatasource: SceneIdDatasource
@@ -46,7 +46,7 @@ class IdAllocatorTest : BaseTest() {
 
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
-		syncDataRepository = mockk(relaxed = true)
+		syncJournal = mockk(relaxed = true)
 
 		sceneIdDatasource = SceneIdDatasource(ffs)
 		notesIdDatasource = NotesIdDatasource(ffs)
@@ -59,7 +59,7 @@ class IdAllocatorTest : BaseTest() {
 		sceneDraftIdDatasource = SceneDraftIdDatasource(SceneDraftsDatasource(ffs, sceneDatasource))
 
 		val testModule = module {
-			single { syncDataRepository }
+			single { syncJournal }
 			single { sceneIdDatasource }
 			single { notesIdDatasource }
 			single { encyclopediaIdDatasource }
@@ -81,7 +81,7 @@ class IdAllocatorTest : BaseTest() {
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		setupForProject(getProjectDef(PROJECT_EMPTY_NAME))
 
-		every { syncDataRepository.isServerSynchronized() } returns false
+		every { syncJournal.isServerSynchronized() } returns false
 
 		idAllocator = IdAllocator(getProjectDef(PROJECT_EMPTY_NAME))
 		idAllocator.findNextId()
@@ -94,7 +94,7 @@ class IdAllocatorTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 		setupForProject(getProjectDef(PROJECT_1_NAME))
 
-		every { syncDataRepository.isServerSynchronized() } returns false
+		every { syncJournal.isServerSynchronized() } returns false
 
 		idAllocator = IdAllocator(getProject1Def())
 		idAllocator.findNextId()
@@ -108,8 +108,8 @@ class IdAllocatorTest : BaseTest() {
 		setupForProject(getProjectDef(PROJECT_1_NAME))
 
 		// Last real ID is 7 in "Test Project 1"
-		every { syncDataRepository.isServerSynchronized() } returns true
-		coEvery { syncDataRepository.deletedIds() } returns setOf(8)
+		every { syncJournal.isServerSynchronized() } returns true
+		coEvery { syncJournal.deletedIds() } returns setOf(8)
 
 		idAllocator = IdAllocator(getProject1Def())
 		idAllocator.findNextId()
@@ -123,7 +123,7 @@ class IdAllocatorTest : BaseTest() {
 		setupForProject(getProjectDef(PROJECT_EMPTY_NAME))
 
 		val projectPath = getProjectsDirectory().div(PROJECT_EMPTY_NAME).toHPath()
-		every { syncDataRepository.isServerSynchronized() } returns false
+		every { syncJournal.isServerSynchronized() } returns false
 
 		val projectDef = ProjectDef(
 			name = PROJECT_EMPTY_NAME,
@@ -142,7 +142,7 @@ class IdAllocatorTest : BaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		setupForProject(projDef)
 
-		every { syncDataRepository.isServerSynchronized() } returns true
+		every { syncJournal.isServerSynchronized() } returns true
 
 		idAllocator = IdAllocator(projDef)
 		idAllocator.findNextId()

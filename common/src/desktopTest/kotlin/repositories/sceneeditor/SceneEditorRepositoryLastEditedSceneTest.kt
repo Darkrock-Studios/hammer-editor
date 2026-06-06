@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsR
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import createProject
@@ -43,7 +43,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 	private lateinit var clock: TestClock
 
 	@MockK
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 
 	@MockK
 	private lateinit var idAllocator: IdAllocator
@@ -65,9 +65,9 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 		statisticsRepository = mockk(relaxed = true)
 		projectMetadataDatasource = ProjectMetadataDatasource(ffs, toml)
 
-		coEvery { syncDataRepository.isServerSynchronized() } returns false
-		coEvery { syncDataRepository.isEntityDirty(any()) } returns false
-		coEvery { syncDataRepository.markEntityAsDirty(any(), any()) } just Runs
+		coEvery { syncJournal.isServerSynchronized() } returns false
+		coEvery { syncJournal.isEntityDirty(any()) } returns false
+		coEvery { syncJournal.markEntityAsDirty(any(), any()) } just Runs
 	}
 
 	private fun createRepository(projectDef: ProjectDef): SceneRepository {
@@ -88,7 +88,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 		val referenceIndexRepository = mockk<com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository>(relaxed = true)
 		val repo = SceneRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
+			syncJournal = syncJournal,
 			idAllocator = idAllocator,
 			sceneMetadataRepository = sceneMetadataRepository,
 			sceneContentRepository = sceneContentRepository,
