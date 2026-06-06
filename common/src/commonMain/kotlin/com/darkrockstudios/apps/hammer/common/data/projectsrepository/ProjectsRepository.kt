@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.MAX_FILENAME_LENGTH
@@ -30,17 +30,17 @@ import kotlin.time.Clock
 
 class ProjectsRepository(
 	private val fileSystem: FileSystem,
-	globalSettingsRepository: GlobalSettingsRepository,
+	globalSettingsStore: GlobalSettingsStore,
 	private val projectsMetadataDatasource: ProjectMetadataDatasource
 ) : KoinComponent {
 
 	private val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
 	private val projectsScope = CoroutineScope(dispatcherDefault)
 
-	private var globalSettings = globalSettingsRepository.globalSettings
+	private var globalSettings = globalSettingsStore.globalSettings
 
 	init {
-		watchSettings(globalSettingsRepository)
+		watchSettings(globalSettingsStore)
 
 		val projectsDir = getProjectsDirectory().toOkioPath()
 		if (!fileSystem.exists(projectsDir)) {
@@ -48,9 +48,9 @@ class ProjectsRepository(
 		}
 	}
 
-	private fun watchSettings(globalSettingsRepository: GlobalSettingsRepository) {
+	private fun watchSettings(globalSettingsStore: GlobalSettingsStore) {
 		projectsScope.launch {
-			globalSettingsRepository.globalSettingsUpdates.collect { newSettings ->
+			globalSettingsStore.globalSettingsUpdates.collect { newSettings ->
 				globalSettings = newSettings
 			}
 		}

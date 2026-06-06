@@ -23,7 +23,7 @@ import com.darkrockstudios.apps.hammer.android.widgets.AddNoteActivity
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelectionComponent
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectScaffold
@@ -36,8 +36,8 @@ import org.koin.android.ext.android.inject
 @ExperimentalComposeApi
 class ProjectSelectActivity : AppCompatActivity() {
 
-	private val globalSettingsRepository: GlobalSettingsRepository by inject()
-	private val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
+	private val globalSettingsStore: GlobalSettingsStore by inject()
+	private val globalSettings = MutableValue(globalSettingsStore.globalSettings)
 	private var settingsUpdateJob: Job? = null
 
 	override fun onCreate(savedInstanceState: Bundle?) {
@@ -95,7 +95,7 @@ class ProjectSelectActivity : AppCompatActivity() {
 		super.onStart()
 
 		settingsUpdateJob = lifecycleScope.launch {
-			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
+			globalSettingsStore.globalSettingsUpdates.collect { settings ->
 				withContext(platformMainDispatcher) {
 					globalSettings.getAndUpdate { settings }
 				}

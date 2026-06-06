@@ -18,7 +18,7 @@ import com.darkrockstudios.apps.hammer.common.compose.getDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.getMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
@@ -119,10 +119,10 @@ fun main(args: Array<String>) {
 	val mainDispatcher = getMainDispatcher()
 
 	// Listen and react to Global Settings updates
-	val globalSettingsRepository = getKoin().get<GlobalSettingsRepository>()
-	val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
+	val globalSettingsStore = getKoin().get<GlobalSettingsStore>()
+	val globalSettings = MutableValue(globalSettingsStore.globalSettings)
 	val settingsUpdateJob = scope.launch {
-		globalSettingsRepository.globalSettingsUpdates.collect { settings ->
+		globalSettingsStore.globalSettingsUpdates.collect { settings ->
 			withContext(mainDispatcher) {
 				globalSettings.getAndUpdate { settings }
 			}

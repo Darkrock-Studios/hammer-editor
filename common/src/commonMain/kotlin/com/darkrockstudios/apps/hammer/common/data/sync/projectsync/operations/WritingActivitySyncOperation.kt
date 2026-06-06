@@ -4,14 +4,8 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityTransferState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncOperationState
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.mergeOwnSlotSessions
@@ -42,7 +36,7 @@ class WritingActivitySyncOperation(
 	private val repository: WritingActivityRepository,
 	private val tracker: WritingSessionTracker,
 	private val api: WritingActivityApi,
-	private val globalSettingsRepository: GlobalSettingsRepository,
+	private val globalSettingsStore: GlobalSettingsStore,
 ) : SyncOperation(projectDef) {
 
 	override suspend fun execute(
@@ -55,7 +49,7 @@ class WritingActivitySyncOperation(
 		state as EntityTransferState
 
 		try {
-			val userId = globalSettingsRepository.userIdOrThrow()
+			val userId = globalSettingsStore.userIdOrThrow()
 			val projectId = state.serverProjectId
 			val ownDeviceId = repository.ownDeviceId()
 
@@ -78,7 +72,7 @@ class WritingActivitySyncOperation(
 			repository.saveOwnLog(mergedSessions)
 
 			val payload = DeviceLog(
-				deviceLabel = globalSettingsRepository.deviceLabelOrDefault(),
+				deviceLabel = globalSettingsStore.deviceLabelOrDefault(),
 				sessions = mergedSessions,
 			)
 			val postResult = api.uploadDeviceLog(

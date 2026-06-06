@@ -3,7 +3,7 @@ package synchronizer.operations
 import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
@@ -39,7 +39,7 @@ class FetchServerDataOperationTest : BaseTest() {
 	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
 
 	@MockK(relaxed = true)
-	private lateinit var globalSettingsRepository: GlobalSettingsRepository
+	private lateinit var globalSettingsStore: GlobalSettingsStore
 
 	@MockK(relaxed = true)
 	private lateinit var serverProjectApi: ServerProjectApi
@@ -71,7 +71,7 @@ class FetchServerDataOperationTest : BaseTest() {
 			projectDef = projectDef,
 			strRes = strRes,
 			projectMetadataDatasource = projectMetadataDatasource,
-			globalSettingsRepository = globalSettingsRepository,
+			globalSettingsStore = globalSettingsStore,
 			serverProjectApi = serverProjectApi,
 		)
 	}
@@ -89,7 +89,7 @@ class FetchServerDataOperationTest : BaseTest() {
 				any()
 			)
 		} returns Result.success(beganResponse)
-		coEvery { globalSettingsRepository.serverSettingsUpdates } returns sharedFlow {
+		coEvery { globalSettingsStore.serverSettingsUpdates } returns sharedFlow {
 			emit(
 				mockk<ServerSettings>().apply {
 					every { userId } returns 1L
@@ -137,7 +137,7 @@ class FetchServerDataOperationTest : BaseTest() {
 	fun `Handle Failure`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 
-		coEvery { globalSettingsRepository.serverSettingsUpdates } returns sharedFlow {
+		coEvery { globalSettingsStore.serverSettingsUpdates } returns sharedFlow {
 			emit(
 				mockk<ServerSettings>().apply {
 					every { userId } returns 1L

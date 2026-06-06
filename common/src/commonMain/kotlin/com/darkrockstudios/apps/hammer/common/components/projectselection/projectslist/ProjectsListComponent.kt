@@ -13,7 +13,7 @@ import com.darkrockstudios.apps.hammer.common.components.savableState
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
@@ -51,7 +51,7 @@ class ProjectsListComponent(
 	ComponentToaster by ComponentToasterImpl() {
 	private val mainDispatcher by injectMainDispatcher()
 
-	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectsSynchronizer: ClientAccountSynchronizer by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
@@ -72,7 +72,7 @@ class ProjectsListComponent(
 	private val _state by savableState {
 		ProjectsList.State(
 			projects = emptyList(),
-			projectsPath = HPath(globalSettingsRepository.globalSettings.projectsDirectory, "", true),
+			projectsPath = HPath(globalSettingsStore.globalSettings.projectsDirectory, "", true),
 			isServerSynced = projectsSynchronizer.isServerSynchronized(),
 		)
 	}
@@ -81,7 +81,7 @@ class ProjectsListComponent(
 
 	private fun watchSettingsUpdates() {
 		scope.launch {
-			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
+			globalSettingsStore.globalSettingsUpdates.collect { settings ->
 				withContext(dispatcherMain) {
 					val oldPath = state.value.projectsPath
 					_state.getAndUpdate {
@@ -99,7 +99,7 @@ class ProjectsListComponent(
 		}
 
 		scope.launch {
-			globalSettingsRepository.serverSettingsUpdates.collect { settings ->
+			globalSettingsStore.serverSettingsUpdates.collect { settings ->
 				withContext(dispatcherMain) {
 					_state.getAndUpdate {
 						it.copy(
@@ -124,7 +124,7 @@ class ProjectsListComponent(
 
 	private fun initialProjectSync() {
 		scope.launch {
-			globalSettingsRepository.globalSettingsUpdates.first().let { settings ->
+			globalSettingsStore.globalSettingsUpdates.first().let { settings ->
 				if (
 					projectsSynchronizer.isServerSynchronized() &&
 					settings.automaticSyncing &&
@@ -145,7 +145,7 @@ class ProjectsListComponent(
 
 		_state.getAndUpdate {
 			it.copy(
-				projectsPath = HPath(globalSettingsRepository.globalSettings.projectsDirectory, "", true),
+				projectsPath = HPath(globalSettingsStore.globalSettings.projectsDirectory, "", true),
 				isServerSynced = projectsSynchronizer.isServerSynchronized()
 			)
 		}
@@ -153,7 +153,7 @@ class ProjectsListComponent(
 
 	override fun loadProjectList() {
 		val projectsDir = HPath(
-			path = globalSettingsRepository.globalSettings.projectsDirectory,
+			path = globalSettingsStore.globalSettings.projectsDirectory,
 			name = "",
 			isAbsolute = true
 		)
@@ -462,7 +462,7 @@ class ProjectsListComponent(
 
 					loadProjectList()
 
-					if (allSuccess && globalSettingsRepository.globalSettings.autoCloseSyncDialog) {
+					if (allSuccess && globalSettingsStore.globalSettings.autoCloseSyncDialog) {
 						hideProjectsSync()
 					}
 				}

@@ -8,13 +8,12 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.accoun
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSettings
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
-import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -36,7 +35,7 @@ class AccountSettingsComponentTest : BaseTest() {
 	private lateinit var lifecycle: LifecycleRegistry
 	private lateinit var context: DefaultComponentContext
 
-	private lateinit var globalSettingsRepository: GlobalSettingsRepository
+	private lateinit var globalSettingsStore: GlobalSettingsStore
 	private lateinit var globalSettingsUpdates: MutableSharedFlow<GlobalSettings>
 	private lateinit var serverSettingsUpdates: SharedFlow<ServerSettings?>
 
@@ -55,19 +54,19 @@ class AccountSettingsComponentTest : BaseTest() {
 		lifecycle = LifecycleRegistry()
 		context = DefaultComponentContext(lifecycle = lifecycle)
 
-		globalSettingsRepository = mockk(relaxed = true)
+		globalSettingsStore = mockk(relaxed = true)
 		globalSettingsUpdates = MutableSharedFlow(replay = 1)
-		every { globalSettingsRepository.globalSettingsUpdates } returns globalSettingsUpdates
-		every { globalSettingsRepository.globalSettings } answers { globalSettings }
+		every { globalSettingsStore.globalSettingsUpdates } returns globalSettingsUpdates
+		every { globalSettingsStore.globalSettings } answers { globalSettings }
 
 		serverSettingsUpdates = MutableSharedFlow(replay = 1)
-		every { globalSettingsRepository.serverSettingsUpdates } returns serverSettingsUpdates
+		every { globalSettingsStore.serverSettingsUpdates } returns serverSettingsUpdates
 
 		val spellCheckerFactory = mockk<PlatformSpellCheckerFactory>(relaxed = true)
 		every { spellCheckerFactory.availableLocales() } returns emptyList()
 
 		val testModule = module {
-			single { globalSettingsRepository } bind GlobalSettingsRepository::class
+			single { globalSettingsStore } bind GlobalSettingsStore::class
 			single { mockk<ExampleProjectRepository>(relaxed = true) } bind ExampleProjectRepository::class
 			single { mockk<AccountUseCase>(relaxed = true) } bind AccountUseCase::class
 			single { mockk<ProjectsRepository>(relaxed = true) } bind ProjectsRepository::class

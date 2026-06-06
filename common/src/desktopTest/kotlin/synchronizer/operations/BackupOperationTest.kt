@@ -3,7 +3,7 @@ package synchronizer.operations
 import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.CollateIdsState
@@ -28,7 +28,7 @@ import kotlin.test.assertTrue
 class BackupOperationTest : BaseTest() {
 
 	@MockK(relaxed = true)
-	private lateinit var globalSettingsRepository: GlobalSettingsRepository
+	private lateinit var globalSettingsStore: GlobalSettingsStore
 
 	@MockK(relaxed = true)
 	private lateinit var backupRepository: ProjectBackupRepository
@@ -47,14 +47,14 @@ class BackupOperationTest : BaseTest() {
 		return BackupOperation(
 			projectDef = projectDef,
 			strRes = strRes,
-			globalSettingsRepository = globalSettingsRepository,
+			globalSettingsStore = globalSettingsStore,
 			backupRepository = backupRepository,
 		)
 	}
 
 	@Test
 	fun `Golden Path`() = runTest {
-		coEvery { globalSettingsRepository.globalSettings.automaticBackups } returns true
+		coEvery { globalSettingsStore.globalSettings.automaticBackups } returns true
 		coEvery { backupRepository.supportsBackup() } returns true
 		coEvery { backupRepository.createBackup(any()) } returns mockk(relaxed = true)
 
@@ -91,7 +91,7 @@ class BackupOperationTest : BaseTest() {
 
 	@Test
 	fun `Backups disabled`() = runTest {
-		coEvery { globalSettingsRepository.globalSettings.automaticBackups } returns false
+		coEvery { globalSettingsStore.globalSettings.automaticBackups } returns false
 		coEvery { backupRepository.supportsBackup() } returns true
 		coEvery { backupRepository.createBackup(any()) } returns mockk(relaxed = true)
 
@@ -128,7 +128,7 @@ class BackupOperationTest : BaseTest() {
 
 	@Test
 	fun `Platform does not support backups`() = runTest {
-		coEvery { globalSettingsRepository.globalSettings.automaticBackups } returns true
+		coEvery { globalSettingsStore.globalSettings.automaticBackups } returns true
 		coEvery { backupRepository.supportsBackup() } returns false
 		coEvery { backupRepository.createBackup(any()) } returns mockk(relaxed = true)
 

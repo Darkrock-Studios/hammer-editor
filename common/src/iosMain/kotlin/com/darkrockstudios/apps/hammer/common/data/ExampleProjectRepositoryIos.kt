@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data
 
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.util.zip.unzipBytesToDirectory
 import io.github.aakira.napier.Napier
 import kotlinx.cinterop.ExperimentalForeignApi
@@ -23,11 +23,11 @@ actual val exampleProjectModule = module {
 }
 
 private class ExampleProjectRepositoryiOs(
-	globalSettingsRepository: GlobalSettingsRepository,
+	globalSettingsStore: GlobalSettingsStore,
 	fileSystem: FileSystem,
 	toml: Toml,
 	clock: Clock,
-) : ExampleProjectRepository(globalSettingsRepository, fileSystem, toml, clock) {
+) : ExampleProjectRepository(globalSettingsStore, fileSystem, toml, clock) {
 
 	override fun removeExampleProject() {
 		val projectPath = projectsDir() / PROJECT_NAME

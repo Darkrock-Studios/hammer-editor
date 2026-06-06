@@ -9,22 +9,10 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,7 +35,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
 import com.darkrockstudios.apps.hammer.common.compose.serializableStateSaver
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -60,8 +48,8 @@ import org.koin.android.ext.android.inject
 private val ContentMaxWidth = 480.dp
 
 class StoryInfoWidgetConfigActivity : ComponentActivity() {
-	private val globalSettingsRepository: GlobalSettingsRepository by inject()
-	private val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
+	private val globalSettingsStore: GlobalSettingsStore by inject()
+	private val globalSettings = MutableValue(globalSettingsStore.globalSettings)
 	private val projectsRepository: ProjectsRepository by inject()
 	private val fileSystem: FileSystem by inject()
 	private val toml: Toml by inject()

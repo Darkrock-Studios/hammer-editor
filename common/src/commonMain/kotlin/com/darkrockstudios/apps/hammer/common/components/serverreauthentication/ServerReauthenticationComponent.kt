@@ -6,7 +6,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -23,15 +23,15 @@ class ServerReauthenticationComponent(
 
 	private val strRes: StrRes by inject()
 	private val mainDispatcher by injectMainDispatcher()
-	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val reauthUseCase: AccountReauthUseCase by inject()
 
 	private var authenticateJob: Job? = null
 
 	private val _state = MutableValue(
 		ServerReauthentication.State(
-			serverUrl = globalSettingsRepository.serverSettings?.url ?: "",
-			serverEmail = globalSettingsRepository.serverSettings?.email ?: "",
+			serverUrl = globalSettingsStore.serverSettings?.url ?: "",
+			serverEmail = globalSettingsStore.serverSettings?.email ?: "",
 		)
 	)
 	override val state: Value<ServerReauthentication.State> = _state

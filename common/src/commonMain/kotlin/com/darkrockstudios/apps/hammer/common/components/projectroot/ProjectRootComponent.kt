@@ -16,9 +16,9 @@ import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSear
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
-import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
@@ -44,7 +44,7 @@ class ProjectRootComponent(
 	private val sceneEditor: SceneEditorService by projectInject()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
-	private val settingsRepository: GlobalSettingsRepository by inject()
+	private val settingsRepository: GlobalSettingsStore by inject()
 	private val searchProjectUseCase: SearchProjectUseCase by projectInject()
 
 	// Retained on this long-lived parent so search state survives the modal being dismissed/reopened

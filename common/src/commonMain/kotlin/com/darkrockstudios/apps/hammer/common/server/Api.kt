@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.server
 
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.url
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
@@ -23,11 +23,11 @@ import org.koin.core.component.inject
 
 abstract class Api(
 	private val httpClient: HttpClient,
-	private val globalSettingsRepository: GlobalSettingsRepository,
+	private val globalSettingsStore: GlobalSettingsStore,
 	private val strRes: StrRes,
 ) : KoinComponent {
 	protected val userId: Long?
-		get() = globalSettingsRepository.serverSettings?.userId
+		get() = globalSettingsStore.serverSettings?.userId
 
 	private val ioDispatcher by injectIoDispatcher()
 	private val localeResolver: DeviceLocaleResolver by inject()
@@ -39,7 +39,7 @@ abstract class Api(
 		failureHandler: FailureHandler = { defaultFailureHandler(it, strRes) },
 		parse: suspend (HttpResponse) -> T,
 	): Result<T> = withContext(ioDispatcher) {
-		val server = globalSettingsRepository.serverSettings ?: return@withContext Result.failure<T>(
+		val server = globalSettingsStore.serverSettings ?: return@withContext Result.failure<T>(
 			IllegalStateException("Server not configured")
 		)
 

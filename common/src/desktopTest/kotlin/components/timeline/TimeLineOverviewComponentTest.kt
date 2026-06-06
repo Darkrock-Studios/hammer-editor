@@ -6,7 +6,7 @@ import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverviewComponent
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
@@ -50,7 +50,7 @@ class TimeLineOverviewComponentTest : BaseTest() {
 	lateinit var lifecycleCallbacks: MutableList<Lifecycle.Callbacks>
 	lateinit var timelineRepoCollectCallback: CapturingSlot<FlowCollector<TimeLineContainer>>
 	lateinit var timelineRepo: TimeLineRepository
-	lateinit var globalSettingsRepo: GlobalSettingsRepository
+	lateinit var globalSettingsRepo: GlobalSettingsStore
 	lateinit var globalSettingsFlow: SharedFlow<GlobalSettings>
 	lateinit var tagIndexService: TagIndexService
 

@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource
 
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository.Companion.DEFAULT_PROJECTS_DIR
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore.Companion.DEFAULT_PROJECTS_DIR
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
 
 /**

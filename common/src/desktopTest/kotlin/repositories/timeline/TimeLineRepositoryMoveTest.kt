@@ -6,7 +6,7 @@ import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
@@ -48,7 +48,7 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 	lateinit var datasource: TimeLineDatasource
 	lateinit var lifecycleCallbacks: MutableList<Lifecycle.Callbacks>
 	lateinit var syncJournal: SyncJournal
-	lateinit var globalSettingsRepo: GlobalSettingsRepository
+	lateinit var globalSettingsRepo: GlobalSettingsStore
 	lateinit var globalSettingsFlow: SharedFlow<GlobalSettings>
 
 	@BeforeEach

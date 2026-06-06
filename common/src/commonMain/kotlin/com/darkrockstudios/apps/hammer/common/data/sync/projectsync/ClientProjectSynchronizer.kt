@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.*
@@ -28,7 +28,7 @@ class ClientProjectSynchronizer(
 	private val entitySynchronizers: EntitySynchronizers,
 	private val strRes: StrRes,
 	private val syncJournal: SyncJournal,
-	private val globalSettingsRepository: GlobalSettingsRepository,
+	private val globalSettingsStore: GlobalSettingsStore,
 	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val serverProjectApi: ServerProjectApi,
 ) : ProjectScoped {
@@ -154,7 +154,7 @@ class ClientProjectSynchronizer(
 			val serverProjectId = projectMetadataDatasource.requireProjectId(projectDef)
 
 			val endSyncResult = serverProjectApi.endProjectSync(
-				globalSettingsRepository.userIdOrThrow(),
+				globalSettingsStore.userIdOrThrow(),
 				projectDef.name,
 				serverProjectId,
 				syncId,

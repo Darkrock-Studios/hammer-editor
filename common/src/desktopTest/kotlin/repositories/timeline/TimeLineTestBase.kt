@@ -6,7 +6,7 @@ import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -32,7 +32,7 @@ abstract class TimeLineTestBase : BaseTest() {
 	lateinit var toml: Toml
 	lateinit var json: Json
 	lateinit var timelineRepo: TimeLineRepository
-	lateinit var globalSettingsRepo: GlobalSettingsRepository
+	lateinit var globalSettingsRepo: GlobalSettingsStore
 	lateinit var globalSettingsUpdates: SharedFlow<GlobalSettings>
 	lateinit var idRepo: IdAllocator
 	lateinit var context: ComponentContext

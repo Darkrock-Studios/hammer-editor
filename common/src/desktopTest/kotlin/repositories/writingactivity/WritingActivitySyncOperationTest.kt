@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivityResponse
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityTransferState
@@ -17,23 +17,14 @@ import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessio
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.server.WritingActivityApi
-import io.mockk.MockKAnnotations
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.every
+import io.mockk.*
 import io.mockk.impl.annotations.MockK
-import io.mockk.mockk
-import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import okio.Path.Companion.toPath
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
-import synchronizer.operations.beganResponse
-import synchronizer.operations.collatedIds
-import synchronizer.operations.entityState
-import synchronizer.operations.projId
-import synchronizer.operations.projectData
+import synchronizer.operations.*
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -51,7 +42,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 	private lateinit var api: WritingActivityApi
 
 	@MockK(relaxed = true)
-	private lateinit var globalSettingsRepository: GlobalSettingsRepository
+	private lateinit var globalSettingsStore: GlobalSettingsStore
 
 	private val projectDef = ProjectDef(
 		name = "Test Project",
@@ -77,8 +68,8 @@ class WritingActivitySyncOperationTest : BaseTest() {
 			}
 		})
 
-		coEvery { globalSettingsRepository.userIdOrThrow() } returns userId
-		every { globalSettingsRepository.deviceLabelOrDefault() } returns deviceLabel
+		coEvery { globalSettingsStore.userIdOrThrow() } returns userId
+		every { globalSettingsStore.deviceLabelOrDefault() } returns deviceLabel
 		coEvery { repository.ownDeviceId() } returns ownDeviceId
 	}
 
@@ -87,7 +78,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 		repository = repository,
 		tracker = tracker,
 		api = api,
-		globalSettingsRepository = globalSettingsRepository,
+		globalSettingsStore = globalSettingsStore,
 	)
 
 	private fun startState() = EntityTransferState(

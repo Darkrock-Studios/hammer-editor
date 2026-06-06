@@ -1,7 +1,7 @@
 package repositories.globalsettings
 
 import app.cash.turbine.test
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
@@ -21,7 +21,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
-class GlobalSettingsRepositoryTest : BaseTest() {
+class GlobalSettingsStoreTest : BaseTest() {
 
 	private lateinit var serverSettings: ServerSettingsDatasource
 	private lateinit var globalSettings: GlobalSettingsDatasource
@@ -37,22 +37,22 @@ class GlobalSettingsRepositoryTest : BaseTest() {
 		every { languageUtil.getCurrentLocale() } returns Locale.forLanguageTag("en")
 	}
 
-	private fun createDefaultRepository(): GlobalSettingsRepository {
-		coEvery { globalSettings.loadSettings() } returns GlobalSettingsRepository.createDefault(
+	private fun createDefaultRepository(): GlobalSettingsStore {
+		coEvery { globalSettings.loadSettings() } returns GlobalSettingsStore.createDefault(
 			languageUtil,
 			mockk(relaxed = true)
 		)
 		coEvery { serverSettings.loadServerSettings(any()) } returns null
 
-		return GlobalSettingsRepository(
+		return GlobalSettingsStore(
 			globalSettings,
 			serverSettings,
 		)
 	}
 
-	private fun defaultGlobalSettings() = GlobalSettingsRepository.createDefault(languageUtil, mockk(relaxed = true))
+	private fun defaultGlobalSettings() = GlobalSettingsStore.createDefault(languageUtil, mockk(relaxed = true))
 
-	private fun projectsDir() = GlobalSettingsRepository.defaultProjectDir().toHPath()
+	private fun projectsDir() = GlobalSettingsStore.defaultProjectDir().toHPath()
 
 	private fun createServerConfig() = ServerSettings(
 		ssl = true,
@@ -68,7 +68,7 @@ class GlobalSettingsRepositoryTest : BaseTest() {
 		coEvery { globalSettings.loadSettings() } returns defaultGlobalSettings()
 		coEvery { serverSettings.loadServerSettings(any()) } returns createServerConfig()
 
-		val repo = GlobalSettingsRepository(
+		val repo = GlobalSettingsStore(
 			globalSettings,
 			serverSettings,
 		)
@@ -134,7 +134,7 @@ class GlobalSettingsRepositoryTest : BaseTest() {
 	@Test
 	fun `Change projects directory, no server config in new dir`() = runTest {
 		val newDirName = "NewProjectDir"
-		val newProjDir = GlobalSettingsRepository.defaultProjectDir().parent!! / newDirName
+		val newProjDir = GlobalSettingsStore.defaultProjectDir().parent!! / newDirName
 
 		val defaultSettings = defaultGlobalSettings()
 		coEvery { globalSettings.loadSettings() } returns defaultSettings
@@ -150,7 +150,7 @@ class GlobalSettingsRepositoryTest : BaseTest() {
 			projectsDirectory = newProjDir.toHPath().path
 		)
 
-		val repo = GlobalSettingsRepository(
+		val repo = GlobalSettingsStore(
 			globalSettings,
 			serverSettings,
 		)
@@ -214,14 +214,14 @@ class GlobalSettingsRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Delete server settings successfully`() = runTest {
-		coEvery { globalSettings.loadSettings() } returns GlobalSettingsRepository.createDefault(
+		coEvery { globalSettings.loadSettings() } returns GlobalSettingsStore.createDefault(
 			mockk(relaxed = true),
 			mockk(relaxed = true)
 		)
 		coEvery { serverSettings.loadServerSettings(any()) } returns createServerConfig()
 		coEvery { serverSettings.removeServerSettings(any()) } just Runs
 
-		val repo = GlobalSettingsRepository(
+		val repo = GlobalSettingsStore(
 			globalSettings,
 			serverSettings,
 		)

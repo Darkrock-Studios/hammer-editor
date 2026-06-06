@@ -3,7 +3,7 @@ package synchronizer.operations
 import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
@@ -32,7 +32,7 @@ class FinalizeSyncOperationTest : BaseTest() {
 	private lateinit var mockSynchronizers: MockSynchronizers
 
 	@MockK(relaxed = true)
-	private lateinit var globalSettingsRepository: GlobalSettingsRepository
+	private lateinit var globalSettingsStore: GlobalSettingsStore
 
 	@MockK(relaxed = true)
 	private lateinit var serverProjectApi: ServerProjectApi
@@ -72,7 +72,7 @@ class FinalizeSyncOperationTest : BaseTest() {
 			strRes = strRes,
 			entitySynchronizers = EntitySynchronizers(projectDef),
 			clock = clock,
-			globalSettingsRepository = globalSettingsRepository,
+			globalSettingsStore = globalSettingsStore,
 			syncDataDatasource = syncDataDatasource,
 		)
 	}
@@ -81,7 +81,7 @@ class FinalizeSyncOperationTest : BaseTest() {
 	fun `Golden Path`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 
-		coEvery { globalSettingsRepository.serverSettingsUpdates } returns sharedFlow {
+		coEvery { globalSettingsStore.serverSettingsUpdates } returns sharedFlow {
 			emit(
 				mockk<ServerSettings>().apply {
 					every { userId } returns 1L

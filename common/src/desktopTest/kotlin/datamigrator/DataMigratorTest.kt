@@ -5,13 +5,8 @@ import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
-import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
-import com.darkrockstudios.apps.hammer.common.data.migrator.MigrateInstallIdToGlobal
-import com.darkrockstudios.apps.hammer.common.data.migrator.Migration
-import com.darkrockstudios.apps.hammer.common.data.migrator.Migration0_1
-import com.darkrockstudios.apps.hammer.common.data.migrator.Migration1_2
-import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.migrator.*
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import getProjectDef
@@ -30,7 +25,7 @@ import kotlin.time.Clock
 class DataMigratorTest : BaseTest() {
 
 	@MockK(relaxed = true)
-	private lateinit var globalSettingsRepository: GlobalSettingsRepository
+	private lateinit var globalSettingsStore: GlobalSettingsStore
 
 	@MockK(relaxed = true)
 	private lateinit var projectsRepository: ProjectsRepository
@@ -71,7 +66,7 @@ class DataMigratorTest : BaseTest() {
 		)
 
 		val migrator = DataMigrator(
-			globalSettingsRepository = globalSettingsRepository,
+			globalSettingsStore = globalSettingsStore,
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 		)
@@ -107,7 +102,7 @@ class DataMigratorTest : BaseTest() {
 		)
 
 		val migrator = DataMigrator(
-			globalSettingsRepository = globalSettingsRepository,
+			globalSettingsStore = globalSettingsStore,
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 		)
@@ -151,7 +146,7 @@ class DataMigratorTest : BaseTest() {
 		)
 
 		val migrator = DataMigrator(
-			globalSettingsRepository = globalSettingsRepository,
+			globalSettingsStore = globalSettingsStore,
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 		)
@@ -211,7 +206,7 @@ class DataMigratorTest : BaseTest() {
 		// Pin latestProjectDataVersion to 1 so this test stays focused on a single 0→1
 		// hop regardless of the global PROJECT_DATA_VERSION value.
 		val migrator = object : DataMigrator(
-			globalSettingsRepository = globalSettingsRepository,
+			globalSettingsStore = globalSettingsStore,
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 		) {
@@ -289,7 +284,7 @@ class DataMigratorTest : BaseTest() {
 		})
 
 		val migrator = object : DataMigrator(
-			globalSettingsRepository = globalSettingsRepository,
+			globalSettingsStore = globalSettingsStore,
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 		) {
@@ -377,7 +372,7 @@ class DataMigratorTest : BaseTest() {
 		})
 
 		val migrator = object : DataMigrator(
-			globalSettingsRepository = globalSettingsRepository,
+			globalSettingsStore = globalSettingsStore,
 			projectsRepository = projectsRepository,
 			projectMetadataDatasource = projectMetadataDatasource,
 		) {

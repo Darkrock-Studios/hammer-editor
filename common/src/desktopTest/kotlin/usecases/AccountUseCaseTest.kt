@@ -2,7 +2,7 @@ package usecases
 
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
@@ -25,7 +25,7 @@ import kotlin.test.assertTrue
 class AccountUseCaseTest : BaseTest() {
 
 	@MockK
-	private lateinit var globalSettingsRepository: GlobalSettingsRepository
+	private lateinit var globalSettingsStore: GlobalSettingsStore
 
 	@MockK
 	private lateinit var accountApi: ServerAccountApi
@@ -51,8 +51,8 @@ class AccountUseCaseTest : BaseTest() {
 	}
 
 	private fun createSut(installId: String = "test-uuid"): AccountUseCase {
-		coEvery { globalSettingsRepository.ensureInstallId() } returns installId
-		return AccountUseCase(globalSettingsRepository, accountApi, httpClient, strRes)
+		coEvery { globalSettingsStore.ensureInstallId() } returns installId
+		return AccountUseCase(globalSettingsStore, accountApi, httpClient, strRes)
 	}
 
 	@Test
@@ -74,7 +74,7 @@ class AccountUseCaseTest : BaseTest() {
 		every { httpClient.updateCredentials(credentials = capture(bearerTokenSlot)) } just Runs
 
 		val settingsSlot = slot<ServerSettings>()
-		every { globalSettingsRepository.updateServerSettings(settings = capture(settingsSlot)) } just Runs
+		every { globalSettingsStore.updateServerSettings(settings = capture(settingsSlot)) } just Runs
 
 		val usecase = createSut()
 
@@ -90,7 +90,7 @@ class AccountUseCaseTest : BaseTest() {
 		coVerify { accountApi.createAccount(any(), any(), any()) }
 		coVerify(exactly = 0) { accountApi.login(any(), any(), any()) }
 
-		coVerify { globalSettingsRepository.updateServerSettings(any()) }
+		coVerify { globalSettingsStore.updateServerSettings(any()) }
 		assertEquals(
 			token.auth,
 			settingsSlot.captured.bearerToken
@@ -143,7 +143,7 @@ class AccountUseCaseTest : BaseTest() {
 		coVerify { accountApi.createAccount(any(), any(), any()) }
 		coVerify(exactly = 0) { accountApi.login(any(), any(), any()) }
 		coVerify(exactly = 0) { httpClient.updateCredentials(any()) }
-		coVerify { globalSettingsRepository.deleteServerSettings() }
+		coVerify { globalSettingsStore.deleteServerSettings() }
 	}
 
 	@Test
@@ -165,7 +165,7 @@ class AccountUseCaseTest : BaseTest() {
 		every { httpClient.updateCredentials(credentials = capture(bearerTokenSlot)) } just Runs
 
 		val settingsSlot = slot<ServerSettings>()
-		every { globalSettingsRepository.updateServerSettings(settings = capture(settingsSlot)) } just Runs
+		every { globalSettingsStore.updateServerSettings(settings = capture(settingsSlot)) } just Runs
 
 		val usecase = createSut()
 
@@ -181,7 +181,7 @@ class AccountUseCaseTest : BaseTest() {
 		coVerify(exactly = 0) { accountApi.createAccount(any(), any(), any()) }
 		coVerify { accountApi.login(any(), any(), any()) }
 
-		coVerify { globalSettingsRepository.updateServerSettings(any()) }
+		coVerify { globalSettingsStore.updateServerSettings(any()) }
 		assertEquals(
 			token.auth,
 			settingsSlot.captured.bearerToken

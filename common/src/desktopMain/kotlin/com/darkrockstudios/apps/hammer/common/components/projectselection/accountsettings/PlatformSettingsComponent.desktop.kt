@@ -5,7 +5,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
 import com.darkrockstudios.apps.hammer.common.components.savableState
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -24,7 +24,7 @@ class DesktopPlatformSettingsComponent(componentContext: ComponentContext) : Des
 
 	private val mainDispatcher by injectMainDispatcher()
 
-	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectsRepository: ProjectsRepository by inject()
 	private val sandboxFileAccess: SandboxFileAccess by inject()
 
@@ -44,7 +44,7 @@ class DesktopPlatformSettingsComponent(componentContext: ComponentContext) : Des
 
 	private fun watchSettingsUpdates() {
 		scope.launch {
-			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
+			globalSettingsStore.globalSettingsUpdates.collect { settings ->
 				withContext(dispatcherMain) {
 					_state.getAndUpdate {
 						val projectsPath = settings.projectsDirectory.toPath().toHPath()
@@ -70,7 +70,7 @@ class DesktopPlatformSettingsComponent(componentContext: ComponentContext) : Des
 				return@launch
 			}
 
-			globalSettingsRepository.updateSettings {
+			globalSettingsStore.updateSettings {
 				it.copy(projectsDirectory = path)
 			}
 
