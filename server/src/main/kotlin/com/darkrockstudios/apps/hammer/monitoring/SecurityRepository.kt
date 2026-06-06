@@ -36,6 +36,14 @@ class SecurityRepository(
 	suspend fun getTopFailingEmails(since: Instant, limit: Int = 10): List<com.darkrockstudios.apps.hammer.GetTopFailingEmails> =
 		loginAttemptDao.getTopFailingEmails(since, limit.toLong())
 
+	/** Accounts crossing the brute-force failure threshold since [since]. */
+	suspend fun bruteForceEmails(since: Instant): List<com.darkrockstudios.apps.hammer.GetBruteForceEmails> =
+		loginAttemptDao.getBruteForceEmails(since, SecurityAlerts.ACCOUNT_FAILURES)
+
+	/** IPs crossing a brute-force threshold (failure volume or distinct accounts) since [since]. */
+	suspend fun bruteForceIps(since: Instant): List<com.darkrockstudios.apps.hammer.GetBruteForceIps> =
+		loginAttemptDao.getBruteForceIps(since, SecurityAlerts.IP_FAILURES, SecurityAlerts.IP_ACCOUNTS)
+
 	suspend fun purgeBefore(cutoff: Instant) = loginAttemptDao.deleteAttemptsBefore(cutoff)
 
 	private fun String.cleaned(): String = trim().toLowerCasePreservingASCIIRules()

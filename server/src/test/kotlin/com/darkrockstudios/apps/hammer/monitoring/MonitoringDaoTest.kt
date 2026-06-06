@@ -157,4 +157,38 @@ class MonitoringDaoTest : BaseTest() {
 
 		assertEquals(1, dao.getRecentAttempts(10, 0).size)
 	}
+
+	@Test
+	fun `brute-force emails returns only accounts at or above the failure threshold`() = runTest {
+		val dao = LoginAttemptDao(db)
+		repeat(10) { dao.recordAttempt("hit@x.com", "1.1.1.1", false, base) }     // == threshold
+		repeat(9) { dao.recordAttempt("near@x.com", "1.1.1.1", false, base) }     // below
+		dao.recordAttempt("old@x.com", "1.1.1.1", false, base - 10.days)          // outside window
+
+		val breaching = dao.getBruteForceEmails(since = base - 1.hours, failThreshold = 10L)
+		assertEquals(1, breaching.size)
+		assertEquals("hit@x.com", breaching.first().email)
+		assertEquals(10L, breaching.first().failures)
+	}
+
+	@Test
+	fun `brute-force ips flags a low-volume spray via the distinct-accounts lens`() = runTest {
+		val dao = LoginAttemptDao(db)
+		// Spray: 6 distinct accounts, 1 failure each — only 6 total, well under the volume
+		// threshold, but must still be flagged (this is the case a top-N LIMIT could hide).
+		(1..6).forEach { dao.recordAttempt("a$it@x.com", "203.0.113.9", false, base) }
+		// Volume: one account hammered 20x from another IP.
+		repeat(20) { dao.recordAttempt("victim@x.com", "203.0.113.7", false, base) }
+		// Neither lens: 3 failures across 2 accounts from a quiet IP.
+		repeat(2) { dao.recordAttempt("q1@x.com", "198.51.100.1", false, base) }
+		dao.recordAttempt("q2@x.com", "198.51.100.1", false, base)
+
+		val breaching = dao.getBruteForceIps(since = base - 1.hours, failThreshold = 20L, accountThreshold = 6L)
+			.associateBy { it.ip_address }
+		assertEquals(2, breaching.size)
+		assertEquals(6L, breaching["203.0.113.9"]?.accounts)
+		assertEquals(6L, breaching["203.0.113.9"]?.failures)
+		assertEquals(20L, breaching["203.0.113.7"]?.failures)
+		assertEquals(null, breaching["198.51.100.1"])
+	}
 }

@@ -38,5 +38,24 @@ GROUP BY email
 ORDER BY failures DESC
 LIMIT ?;
 
+-- Accounts crossing the brute-force failure threshold in the window. Returns
+-- every breaching row (no LIMIT) so the alert path can't truncate a real hit.
+getBruteForceEmails:
+SELECT email, count(*) AS failures
+FROM login_attempt
+WHERE success = FALSE AND email IS NOT NULL AND attempted_at >= ?
+GROUP BY email
+HAVING count(*) >= ?;
+
+-- IPs crossing a brute-force threshold (high failure volume OR many distinct
+-- accounts — the credential-stuffing / spray signal). HAVING applies the
+-- thresholds in-query so a low-volume spray can't be hidden behind a LIMIT.
+getBruteForceIps:
+SELECT ip_address, count(*) AS failures, count(DISTINCT email) AS accounts
+FROM login_attempt
+WHERE success = FALSE AND ip_address IS NOT NULL AND attempted_at >= ?
+GROUP BY ip_address
+HAVING count(*) >= ? OR count(DISTINCT email) >= ?;
+
 deleteAttemptsBefore:
 DELETE FROM login_attempt WHERE attempted_at < ?;

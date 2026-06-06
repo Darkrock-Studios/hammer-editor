@@ -1,7 +1,6 @@
 {{> header}}
 
 <link rel="stylesheet" href="/assets/css/monitoring.css">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/frappe-charts@1.6.2/dist/frappe-charts.min.css">
 
 <main class="page">
 	<div class="admin-layout">
@@ -38,7 +37,7 @@
 									<span class="mon-alert__route">{{route}}</span>
 									<span class="mon-alert__detail">{{detail}}</span>
 								</div>
-								<a class="mon-alert__action" href="/admin/monitoring/performance">
+								<a class="mon-alert__action" href="{{href}}">
 									{{msg.admin_mon_alerts_investigate}} <i class="fa-solid fa-chevron-right"></i>
 								</a>
 							</div>
@@ -112,7 +111,7 @@
 	</div>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/frappe-charts@1.6.2/dist/frappe-charts.min.iife.js"></script>
+<script src="/assets/js/frappe-charts.min.js"></script>
 <script>
 	(function () {
 		var data = {{{chartJson}}};

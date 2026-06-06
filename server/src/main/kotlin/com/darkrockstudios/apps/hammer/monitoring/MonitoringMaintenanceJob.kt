@@ -42,6 +42,9 @@ class MonitoringMaintenanceJob(
 	private var job: Job? = null
 	private var lastMaintenance: Instant = Instant.DISTANT_PAST
 
+	// Per-subject cooldown for security alert emails. Single-coroutine access; resets on restart.
+	private val securityAlertCooldown = mutableMapOf<String, Instant>()
+
 	fun start(scope: CoroutineScope) {
 		if (job?.isActive == true) {
 			logger.info("Monitoring maintenance job already running")
@@ -87,6 +90,10 @@ class MonitoringMaintenanceJob(
 			evaluateErrorAlerts(config)
 		}
 
+		if (config.trackLoginAttempts && config.alertEmailEnabled && config.alertEmail.isNotBlank()) {
+			evaluateSecurityAlerts(config)
+		}
+
 		val now = clock.now()
 		if (now - lastMaintenance >= MAINTENANCE_INTERVAL) {
 			runMaintenance(config, now)
@@ -122,6 +129,49 @@ class MonitoringMaintenanceJob(
 				is EmailResult.Failure -> logger.error("Failed to send monitoring alert email: ${result.reason}")
 			}
 		}
+	}
+
+	/**
+	 * Email the admin about brute-force signals crossing the [SecurityAlerts]
+	 * thresholds, suppressing repeats per subject for [SECURITY_ALERT_COOLDOWN].
+	 * Public for tests.
+	 */
+	suspend fun evaluateSecurityAlerts(config: MonitoringConfig) {
+		if (config.alertEmail.isBlank() || !emailService.isConfigured()) return
+
+		val now = clock.now()
+		val since = now - SecurityAlerts.WINDOW
+		val alerts = SecurityAlerts.derive(
+			securityRepository.bruteForceEmails(since),
+			securityRepository.bruteForceIps(since),
+		)
+		for (alert in alerts) {
+			val until = securityAlertCooldown[alert.cooldownKey]
+			if (until != null && now < until) continue
+
+			// subject is an attacker-controlled login email/IP — strip CR/LF so it can't inject email headers.
+			val safeSubject = alert.subject.replace(Regex("[\\r\\n]+"), " ").take(120)
+			val subject = when (alert.kind) {
+				SecurityAlertKind.ACCOUNT -> "[Hammer] Failed-login spike for $safeSubject"
+				SecurityAlertKind.IP -> "[Hammer] Failed-login spike from $safeSubject"
+			}
+			val text = buildString {
+				appendLine("A login-failure threshold was crossed on your Hammer server.")
+				appendLine()
+				when (alert.kind) {
+					SecurityAlertKind.ACCOUNT -> appendLine("Account:   $safeSubject")
+					SecurityAlertKind.IP -> appendLine("Source IP: $safeSubject")
+				}
+				appendLine("Detail:    ${alert.detail}")
+				appendLine()
+				appendLine("See the Security panel for the full list of recent attempts.")
+			}
+			when (val result = emailService.sendEmail(config.alertEmail, subject, htmlBody(text), text)) {
+				is EmailResult.Success -> securityAlertCooldown[alert.cooldownKey] = now + SECURITY_ALERT_COOLDOWN
+				is EmailResult.Failure -> logger.error("Failed to send security alert email: ${result.reason}")
+			}
+		}
+		securityAlertCooldown.entries.removeAll { it.value <= now }
 	}
 
 	private fun htmlBody(text: String): String {
@@ -169,5 +219,8 @@ class MonitoringMaintenanceJob(
 
 		/** Only alert on error groups seen within this window. */
 		private val ALERT_WINDOW = 24.hours
+
+		/** Per-subject suppression after a security alert email, so a sustained attack emails at most once per window. */
+		private val SECURITY_ALERT_COOLDOWN = 6.hours
 	}
 }

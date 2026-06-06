@@ -35,6 +35,16 @@ open class LoginAttemptDao(
 			queries.getTopFailingEmails(since, limit).executeAsList()
 		}
 
+	open suspend fun getBruteForceEmails(since: Instant, failThreshold: Long): List<com.darkrockstudios.apps.hammer.GetBruteForceEmails> =
+		withContext(ioDispatcher) {
+			queries.getBruteForceEmails(since, failThreshold).executeAsList()
+		}
+
+	open suspend fun getBruteForceIps(since: Instant, failThreshold: Long, accountThreshold: Long): List<com.darkrockstudios.apps.hammer.GetBruteForceIps> =
+		withContext(ioDispatcher) {
+			queries.getBruteForceIps(since, failThreshold, accountThreshold).executeAsList()
+		}
+
 	open suspend fun deleteAttemptsBefore(cutoff: Instant): Unit = withContext(ioDispatcher) {
 		queries.deleteAttemptsBefore(cutoff)
 	}
