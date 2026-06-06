@@ -103,7 +103,8 @@ class PatreonApiClient(
 			} while (cursor != null)
 
 			return Result.success(allEmails)
-		} catch (e: Exception) {
+			// API boundary: any failure becomes a failed Result.
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			logger.error("Failed to fetch Patreon members", e)
 			return Result.failure(e)
 		}

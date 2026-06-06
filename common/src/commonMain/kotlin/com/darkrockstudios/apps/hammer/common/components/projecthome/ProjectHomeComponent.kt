@@ -176,7 +176,8 @@ class ProjectHomeComponent(
 			withContext(mainDispatcher) {
 				showToast(scope, ClientMessage.Resource(Res.string.project_home_action_import_toast_success))
 			}
-		} catch (e: Exception) {
+			// Import can fail many ways (parse, IO); report and show failure toast.
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			io.github.aakira.napier.Napier.e("Import failed", e)
 			withContext(mainDispatcher) {
 				showToast(scope, ClientMessage.Resource(Res.string.project_home_action_import_toast_failure))

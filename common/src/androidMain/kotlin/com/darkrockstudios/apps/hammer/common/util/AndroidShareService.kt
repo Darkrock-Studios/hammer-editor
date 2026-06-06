@@ -50,7 +50,8 @@ class AndroidShareService(private val context: Context) {
 
 			Napier.i("Started file share: ${file.name}")
 			true
-		} catch (e: Exception) {
+			// Share can fail for many reasons (no app, security, IO); report and return false.
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			Napier.e("Failed to share file: ${file.name}", e)
 			false
 		}

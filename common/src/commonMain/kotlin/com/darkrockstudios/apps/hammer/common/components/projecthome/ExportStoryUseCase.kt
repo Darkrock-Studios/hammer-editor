@@ -82,7 +82,8 @@ class ExportStoryUseCase(
 					}
 				}
 			}
-		} catch (t: Throwable) {
+			// Any failure must clean up the partial file, then rethrow unchanged.
+		} catch (@Suppress("TooGenericExceptionCaught") t: Throwable) {
 			// fileSystem.write truncates exportPath before the body runs; clean up the partial file on failure.
 			runCatching { fileSystem.delete(exportPath, mustExist = false) }
 			throw t

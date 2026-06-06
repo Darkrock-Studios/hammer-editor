@@ -93,6 +93,7 @@ class TagIndexService(
 			.sortedWith(compareByDescending<TagCount> { it.count }.thenBy { it.tag })
 			.take(limit)
 
+	@Suppress("TooGenericExceptionCaught") // Background rebuild must not crash on any failure
 	private suspend fun rebuild() {
 		_isCalculating.value = true
 		try {

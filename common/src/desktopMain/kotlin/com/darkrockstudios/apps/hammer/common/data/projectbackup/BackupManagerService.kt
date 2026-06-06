@@ -16,7 +16,8 @@ actual class BackupManagerService {
 			} else {
 				Napier.w("Cannot open directory: ${parentDir?.path}")
 			}
-		} catch (e: Exception) {
+			// Desktop.open can throw IO/security/unsupported errors; report and continue.
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			Napier.e("Failed to open backup directory", e)
 		}
 	}

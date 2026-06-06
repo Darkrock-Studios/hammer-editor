@@ -90,6 +90,8 @@ class ClientProjectSynchronizer(
 		conflictResolution.trySend(entity)
 	}
 
+	// Must-not-crash sync boundary; failures handled, logged, returned as CResult.
+	@Suppress("TooGenericExceptionCaught")
 	suspend fun execute(
 		initialState: SyncOperationState,
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,

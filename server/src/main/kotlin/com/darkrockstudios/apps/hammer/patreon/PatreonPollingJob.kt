@@ -49,7 +49,8 @@ class PatreonPollingJob(
 				delay(intervalMinutes.minutes)
 			} catch (e: CancellationException) {
 				throw e
-			} catch (e: Exception) {
+				// Background loop must survive any sync failure.
+			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 				logger.error("Error in Patreon polling loop", e)
 				// Wait a bit before retrying on error
 				delay(5.minutes)

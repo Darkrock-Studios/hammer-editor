@@ -93,7 +93,8 @@ class GlobalSearchState(
 				_state.getAndUpdate { it.copy(isSearching = false, results = results) }
 			} catch (e: CancellationException) {
 				throw e
-			} catch (e: Exception) {
+				// Search backend can fail many ways; report and clear searching state.
+			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 				Napier.e("Global search failed", e)
 				_state.getAndUpdate { it.copy(isSearching = false) }
 			}

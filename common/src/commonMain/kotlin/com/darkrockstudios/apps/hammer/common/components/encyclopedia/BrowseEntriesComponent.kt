@@ -159,7 +159,7 @@ class BrowseEntriesComponent(
 				entryContentCache.put(entryDef.id, container)
 				container.entry
 			} catch (e: EntryLoadError) {
-				Napier.w("Failed to load encyclopedia entry: ${entryDef.id} - ${entryDef.name}")
+				Napier.w("Failed to load encyclopedia entry: ${entryDef.id} - ${entryDef.name}", e)
 				EntryContent(
 					id = entryDef.id,
 					name = entryDef.name,

@@ -63,6 +63,7 @@ abstract class ExampleProjectRepository(
 	protected fun projectsDir(): Path =
 		globalSettingsStore.globalSettings.projectsDirectory.toPath()
 
+	@Suppress("TooGenericExceptionCaught") // Best-effort fabrication; any failure is logged
 	private fun fabricateExampleActivity() {
 		val activityDir = projectsDir() / PROJECT_NAME /
 			SceneDatasource.SCENE_DIRECTORY / WritingActivityDatasource.ACTIVITY_DIRECTORY

@@ -41,11 +41,11 @@ class Migration0_1(
 				Napier.i("No timeline content found for Migration0_1, skipping.")
 			}
 		} catch (e: FileNotFoundException) {
-			Napier.i("No timeline found for Migration0_1, skipping.")
+			Napier.i("No timeline found for Migration0_1, skipping.", e)
 		} catch (e: SerializationException) {
-			Napier.w("Failed to deserialize Timeline, it's likely it is already migrated")
+			Napier.w("Failed to deserialize Timeline, it's likely it is already migrated", e)
 		} catch (e: IllegalArgumentException) {
-			Napier.w("Failed to deserialize Timeline, it's likely it is already migrated")
+			Napier.w("Failed to deserialize Timeline, it's likely it is already migrated", e)
 		}
 	}
 

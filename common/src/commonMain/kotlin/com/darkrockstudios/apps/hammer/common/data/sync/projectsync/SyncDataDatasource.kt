@@ -25,6 +25,8 @@ class SyncDataDatasource(
 		}
 	}
 
+	// Corrupt sync data recovers by recreating it; not an error to surface.
+	@Suppress("SwallowedException")
 	suspend fun loadSyncData(): ProjectSynchronizationData {
 		val path = getSyncDataPath()
 		return if (fileSystem.exists(path)) {

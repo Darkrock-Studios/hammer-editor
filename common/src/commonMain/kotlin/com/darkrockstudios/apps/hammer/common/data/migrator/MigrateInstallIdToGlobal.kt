@@ -27,6 +27,8 @@ class MigrateInstallIdToGlobal(
 	private val json: Json,
 ) : GlobalMigration {
 
+	// Best-effort migration; any read failure logged and treated as no legacy id.
+	@Suppress("TooGenericExceptionCaught")
 	override suspend fun migrate() {
 		if (globalSettingsStore.globalSettings.installId != null) return
 

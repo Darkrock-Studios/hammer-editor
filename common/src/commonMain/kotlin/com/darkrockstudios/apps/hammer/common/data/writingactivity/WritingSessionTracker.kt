@@ -86,6 +86,7 @@ class WritingSessionTracker(
 		return added
 	}
 
+	@Suppress("TooGenericExceptionCaught") // Persist failure keeps in-memory state for retry
 	private suspend fun recordWriting(words: Int, at: Instant) = mutex.withLock {
 		val current = sessions ?: repository.loadOwnLog().sessions
 		val updated = mergeWriting(current, words, at, TimeZone.currentSystemDefault())

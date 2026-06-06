@@ -93,7 +93,8 @@ class PostmarkEmailService(
 					EmailResult.Failure("Postmark API error: ${response.status} - $errorBody")
 				}
 			}
-		} catch (e: Exception) {
+			// Send boundary: any failure becomes an EmailResult.Failure.
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			println("PostmarkEmailService: ERROR sending email: ${e.message}")
 			e.printStackTrace()
 			EmailResult.Failure(e.message ?: "Unknown error sending email", e)

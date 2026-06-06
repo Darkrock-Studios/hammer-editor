@@ -39,6 +39,8 @@ class WritingActivitySyncOperation(
 	private val globalSettingsStore: GlobalSettingsStore,
 ) : SyncOperation(projectDef) {
 
+	// Auxiliary sync; must-not-crash boundary, failure logged and passed through.
+	@Suppress("TooGenericExceptionCaught")
 	override suspend fun execute(
 		state: SyncOperationState,
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,

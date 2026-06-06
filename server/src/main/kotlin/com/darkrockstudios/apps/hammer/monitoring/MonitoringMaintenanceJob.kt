@@ -70,7 +70,8 @@ class MonitoringMaintenanceJob(
 				tick()
 			} catch (e: CancellationException) {
 				throw e
-			} catch (e: Exception) {
+				// Background loop must survive any tick failure.
+			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 				logger.error("Error in monitoring maintenance loop", e)
 			}
 			delay(FLUSH_INTERVAL)

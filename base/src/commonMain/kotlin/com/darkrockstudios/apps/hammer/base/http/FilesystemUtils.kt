@@ -19,6 +19,8 @@ fun <T : Any> FileSystem.readJson(path: Path, json: Json, clazz: KClass<T>): T? 
 	}
 }
 
+// Intentional or-null fallback; deserialization/IO failures map to null.
+@Suppress("SwallowedException")
 fun <T : Any> FileSystem.readJsonOrNull(path: Path, json: Json, clazz: KClass<T>): T? {
 	return try {
 		readJson(path, json, clazz)

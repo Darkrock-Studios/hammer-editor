@@ -18,6 +18,8 @@ class FetchLocalDataOperation(
 	private val strRes: StrRes,
 ) : SyncOperation(projectDef) {
 
+	// Must-not-crash operation boundary; failure wrapped into the returned CResult.
+	@Suppress("TooGenericExceptionCaught")
 	override suspend fun execute(
 		state: SyncOperationState,
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,

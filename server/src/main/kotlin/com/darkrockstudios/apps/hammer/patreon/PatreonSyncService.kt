@@ -86,7 +86,8 @@ class PatreonSyncService(
 					logger.debug("Skipping Patreon member (already whitelisted): $email")
 					skippedCount++
 				}
-			} catch (e: Exception) {
+				// Per-member: one failure must not abort the whole sync.
+			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 				logger.error("Failed to add Patreon member to whitelist: $email", e)
 				errors.add("Failed to add $email: ${e.message}")
 			}

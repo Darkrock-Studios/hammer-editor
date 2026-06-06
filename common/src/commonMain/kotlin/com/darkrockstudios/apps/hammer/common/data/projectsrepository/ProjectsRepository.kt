@@ -173,6 +173,7 @@ class ProjectsRepository(
 		}
 	}
 
+	@Suppress("SwallowedException") // IOException maps to a typed failure result
 	fun renameProject(projectDef: ProjectDef, newName: String): CResult<ProjectDef> {
 		if (validateFileName(newName).isFailure) {
 			return CResult.failure(ProjectRenameFailed(ProjectRenameFailed.Reason.InvalidName))

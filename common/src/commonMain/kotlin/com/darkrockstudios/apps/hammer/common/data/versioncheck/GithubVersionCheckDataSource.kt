@@ -21,6 +21,7 @@ class GithubVersionCheckDataSource(
 
 	private val apiBase: String = VERSION_CHECK_URL.substringBefore("/releases/latest")
 
+	@Suppress("TooGenericExceptionCaught") // Network/decode failure falls back to null
 	override suspend fun fetchLatestRelease(): GithubReleaseInfo? {
 		return try {
 			val response = http.get(VERSION_CHECK_URL)
