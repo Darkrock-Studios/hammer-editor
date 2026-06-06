@@ -1,11 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
-import com.darkrockstudios.apps.hammer.common.data.SceneContent
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.UpdateSource
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -14,33 +9,19 @@ import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescentBy
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.StateFlow
 import org.koin.core.component.KoinComponent
 import org.koin.core.scope.Scope
 import org.koin.core.scope.ScopeCallback
 import kotlin.time.Duration.Companion.milliseconds
 
 /**
- * Signal emitted when a scene buffer is persisted to its temp (autosave) file, so callers can
- * hang side-effects (writing-activity timestamps, stats) off saves without this repository
- * reaching up into those collaborators. Full-save side-effects are handled inline by the
- * caller of [persistBuffer].
- */
-data class BufferPersistedEvent(
-	val sceneId: Int,
-	val source: UpdateSource,
-)
-
-/**
- * The buffer / editing engine (responsibilities C + D of the old SceneRepository).
+ * The buffer / editing engine for scenes.
  *
  * Owns the in-memory scene buffers, the content debounce pipeline, temp-buffer autosave jobs,
  * dirty tracking, the buffer-update flow, and its own [editorScope] + [ScopeCallback] for temp
@@ -86,6 +67,11 @@ class SceneContentRepository(
 		onBufferOverflow = BufferOverflow.DROP_OLDEST
 	)
 	val bufferPersistedFlow: SharedFlow<BufferPersistedEvent> = _bufferPersistedFlow
+
+	private val _dirtyBufferIds = MutableStateFlow<Set<Int>>(emptySet())
+
+	/** The set of scene ids with unsaved buffers; re-emits on every dirty/clean transition. */
+	val dirtyBufferIds: StateFlow<Set<Int>> = _dirtyBufferIds
 
 	private val sceneBuffersLock = reentrantLock()
 	private val sceneBuffers = mutableMapOf<Int, SceneBuffer>()
@@ -153,6 +139,8 @@ class SceneContentRepository(
 	private fun updateSceneBuffer(newBuffer: SceneBuffer) {
 		sceneBuffersLock.withLock {
 			sceneBuffers[newBuffer.content.scene.id] = newBuffer
+			// Snapshot + publish under the lock so the dirty set can't lose a concurrent update.
+			_dirtyBufferIds.value = getDirtyBufferIds()
 		}
 		_bufferUpdateFlow.tryEmit(newBuffer)
 	}
@@ -227,7 +215,9 @@ class SceneContentRepository(
 	 */
 	fun discardBuffer(sceneItem: SceneItem, scenePath: HPath): SceneBuffer? {
 		val wasPresent = sceneBuffersLock.withLock {
-			sceneBuffers.remove(sceneItem.id) != null
+			val removed = sceneBuffers.remove(sceneItem.id) != null
+			if (removed) _dirtyBufferIds.value = getDirtyBufferIds()
+			removed
 		}
 		return if (wasPresent) {
 			clearTempScene(sceneItem)

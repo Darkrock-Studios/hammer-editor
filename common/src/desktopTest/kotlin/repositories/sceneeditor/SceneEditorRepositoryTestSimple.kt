@@ -156,8 +156,6 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 			projectDef = projectDef,
 			syncJournal = syncJournal,
 			idAllocator = idAllocator,
-			sceneMetadataRepository = sceneMetadataRepository,
-			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 			clock = Clock.System,
@@ -189,6 +187,8 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 		val repo = createRepository()
 
 		repo.initializeSceneEditor()
+		sceneContentRepository.initialize()
+		sceneMetadataRepository.initialize()
 
 		val metadata = sceneMetadataRepository.getMetadata()
 

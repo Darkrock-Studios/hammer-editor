@@ -96,8 +96,7 @@ class StatisticsService(
 		Napier.d("Recalculating project statistics...")
 
 		try {
-			val sceneSummary = sceneEditorRepository.sceneListChannel.first()
-			val tree = sceneSummary.sceneTree.root
+			val tree = sceneEditorRepository.sceneTreeUpdates.first().root
 
 			var numScenes = 0
 			var totalWords = 0

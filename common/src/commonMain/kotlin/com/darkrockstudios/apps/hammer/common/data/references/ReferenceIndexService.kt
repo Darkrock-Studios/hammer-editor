@@ -21,6 +21,10 @@ import org.koin.core.scope.ScopeCallback
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Clock
 
+/**
+ * Service that builds and maintains the encyclopedia reference index — which scenes reference which
+ * entries — by scanning scene metadata and matching entry names across the scene/encyclopedia repositories.
+ */
 class ReferenceIndexService(
 	projectDef: ProjectDef,
 	private val repository: ReferenceIndexRepository,
@@ -80,8 +84,8 @@ class ReferenceIndexService(
 		try {
 			val map = mutableMapOf<Int, MutableSet<Int>>()
 
-			val sceneSummary = sceneEditorRepository.sceneListChannel.first()
-			sceneSummary.sceneTree.root.forEach { node ->
+			val sceneTree = sceneEditorRepository.sceneTreeUpdates.first()
+			sceneTree.root.forEach { node ->
 				if (node.value.type == SceneItem.Type.Scene) {
 					val metadata = sceneMetadataRepository.loadSceneMetadata(node.value.id)
 					accumulate(map, node.value.id, metadata.confirmedReferences)
@@ -187,8 +191,8 @@ class ReferenceIndexService(
 			if (hits.isNotEmpty()) results.add(sceneItem.id)
 		}
 
-		val sceneSummary = sceneEditorRepository.sceneListChannel.first()
-		sceneSummary.sceneTree.root.forEach { node ->
+		val sceneTree = sceneEditorRepository.sceneTreeUpdates.first()
+		sceneTree.root.forEach { node ->
 			if (node.value.type == SceneItem.Type.Scene) {
 				consider(node.value)
 				yield()

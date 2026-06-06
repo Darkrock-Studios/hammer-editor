@@ -1,15 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
-import com.darkrockstudios.apps.hammer.common.data.CResult
-import com.darkrockstudios.apps.hammer.common.data.MoveRequest
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
-import com.darkrockstudios.apps.hammer.common.data.SceneContent
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.SceneSummary
-import com.darkrockstudios.apps.hammer.common.data.UpdateSource
+import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
@@ -18,14 +10,14 @@ import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessio
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.shareIn
 import org.koin.core.component.KoinComponent
 import org.koin.core.scope.Scope
 import org.koin.core.scope.ScopeCallback
@@ -59,6 +51,7 @@ class SceneEditorService(
 
 	private val dispatcherDefault by injectDefaultDispatcher()
 	private val dispatcherIo by injectIoDispatcher()
+	private val dispatcherMain by injectMainDispatcher()
 	private val serviceScope = CoroutineScope(dispatcherDefault)
 
 	init {
@@ -76,6 +69,16 @@ class SceneEditorService(
 	}
 
 	// region Writes / orchestration
+
+	/**
+	 * Project-open entry point: loads the scene tree, then starts the content (autosave) and
+	 * metadata engines, in order.
+	 */
+	suspend fun initialize() {
+		sceneEditorRepository.initializeSceneEditor()
+		sceneContentRepository.initialize()
+		sceneMetadataRepository.initialize()
+	}
 
 	suspend fun createScene(
 		parent: SceneItem?,
@@ -214,17 +217,38 @@ class SceneEditorService(
 
 	// region Derived state
 
-	val sceneListChannel: SharedFlow<SceneSummary> get() = sceneEditorRepository.sceneListChannel
+	/**
+	 * The scene list: the structural tree (from [SceneRepository]) combined with the dirty-buffer
+	 * set (from [SceneContentRepository]). Re-emits when either changes, so dirty markers update live.
+	 */
+	val sceneListChannel: SharedFlow<SceneSummary> = combine(
+		sceneEditorRepository.sceneTreeUpdates,
+		sceneContentRepository.dirtyBufferIds,
+	) { tree, dirtyBufferIds -> SceneSummary(tree, dirtyBufferIds) }
+		.shareIn(serviceScope, SharingStarted.Eagerly, replay = 1)
 
 	val metadataUpdateFlow: SharedFlow<Pair<Int, SceneMetadata>>
 		get() = sceneMetadataRepository.metadataUpdateFlow
 
-	fun getSceneSummaries(): SceneSummary = sceneEditorRepository.getSceneSummaries()
+	fun getSceneSummaries(): SceneSummary = SceneSummary(
+		sceneEditorRepository.getSceneTree(),
+		sceneContentRepository.getDirtyBufferIds(),
+	)
 
 	fun subscribeToSceneUpdates(
 		scope: CoroutineScope,
 		onSceneListUpdate: (SceneSummary) -> Unit,
-	): Job = sceneEditorRepository.subscribeToSceneUpdates(scope, onSceneListUpdate)
+	): Job {
+		val job = scope.launch {
+			sceneListChannel.collect { summary ->
+				withContext(dispatcherMain) {
+					onSceneListUpdate(summary)
+				}
+			}
+		}
+		sceneEditorRepository.forceSceneListReload()
+		return job
+	}
 
 	fun subscribeToBufferUpdates(
 		sceneDef: SceneItem?,

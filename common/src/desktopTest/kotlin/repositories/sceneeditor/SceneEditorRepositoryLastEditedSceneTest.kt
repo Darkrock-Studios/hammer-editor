@@ -90,8 +90,6 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 			projectDef = projectDef,
 			syncJournal = syncJournal,
 			idAllocator = idAllocator,
-			sceneMetadataRepository = sceneMetadataRepository,
-			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 			clock = clock,
@@ -116,7 +114,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		val repo = createRepository(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		val sceneItem = SceneItem(
 			projectDef = projDef,
@@ -141,7 +139,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		val repo = createRepository(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		val sceneItem = SceneItem(
 			projectDef = projDef,
@@ -166,7 +164,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		val repo = createRepository(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		val first = SceneItem(projDef, SceneItem.Type.Scene, 1, "Scene 1", 0)
 		val second = SceneItem(projDef, SceneItem.Type.Scene, 3, "Scene 3", 0)
@@ -202,7 +200,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 			clock.advanceTime(30.minutes)
 
 			val repo = createRepository(projDef)
-			repo.initializeSceneEditor()
+			service.initialize()
 
 			val sceneItem = SceneItem(projDef, SceneItem.Type.Scene, 7, "Scene 7", 0)
 			service.onContentChanged(SceneContent(sceneItem, "first edit"), UpdateSource.Editor)
@@ -231,7 +229,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 
 			clock.advanceTime(2.minutes)
 
-			repo.initializeSceneEditor()
+			service.initialize()
 
 			val sceneItem = SceneItem(projDef, SceneItem.Type.Scene, 5, "Scene 5", 0)
 			service.onContentChanged(SceneContent(sceneItem, "edit"), UpdateSource.Editor)
@@ -251,7 +249,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		val repo = createRepository(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		val sceneItem = SceneItem(projDef, SceneItem.Type.Scene, 3, "Scene 3", 0)
 		service.onContentChanged(SceneContent(sceneItem, "edited"), UpdateSource.Editor)

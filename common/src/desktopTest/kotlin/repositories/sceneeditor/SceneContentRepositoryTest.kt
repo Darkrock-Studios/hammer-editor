@@ -99,8 +99,6 @@ class SceneContentRepositoryTest : BaseTest() {
 			projectDef = projectDef,
 			syncJournal = syncJournal,
 			idAllocator = idAllocator,
-			sceneMetadataRepository = sceneMetadataRepository,
-			sceneContentRepository = contentRepo,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 			clock = Clock.System,
@@ -121,7 +119,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		createStack(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		val newContent = SceneContent(
 			scene = SceneItem(getProject1Def(), SceneItem.Type.Scene, 1, "Scene ID 1", 0),
@@ -152,7 +150,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		createStack(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		val sceneItem2 = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
 		val newContent = SceneContent(
@@ -176,12 +174,12 @@ class SceneContentRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		createStack(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		val onSceneUpdate: ((SceneSummary) -> Unit) = mockk()
 		coEvery { onSceneUpdate(any()) } just Runs
 
-		val subJob = repo.subscribeToSceneUpdates(scope, onSceneUpdate)
+		val subJob = service.subscribeToSceneUpdates(scope, onSceneUpdate)
 		advanceUntilIdle()
 		subJob.cancelAndJoin()
 		coVerify(atLeast = 1) { onSceneUpdate(any()) }
@@ -193,7 +191,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		createStack(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
 
@@ -207,7 +205,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		createStack(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
 		val content = SceneContent(scene = sceneItem, markdown = "Updated scene content ID 3")
@@ -242,7 +240,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		createStack(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
 
@@ -260,7 +258,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		createStack(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		assertFalse(contentRepo.hasDirtyBuffers())
 	}
@@ -288,7 +286,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		createStack(projDef)
 		writeTempBuffer(1)
 
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		assertTrue(contentRepo.hasDirtyBuffers())
 		assertTrue(contentRepo.hasDirtyBuffer(1))
@@ -304,7 +302,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		createStack(projDef)
 		writeTempBuffer(sceneId)
 
-		repo.initializeSceneEditor()
+		service.initialize()
 		assertTrue(contentRepo.hasDirtyBuffer(sceneId))
 
 		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, sceneId, "Scene ID $sceneId", 0)
@@ -325,7 +323,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		writeTempBuffer(1)
 		writeTempBuffer(3)
 
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		assertTrue(contentRepo.hasDirtyBuffers())
 		assertTrue(contentRepo.hasDirtyBuffer(1))
@@ -372,7 +370,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		createStack(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		val scenes = repo.getScenes()
 		assertEquals(
@@ -409,7 +407,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		createStack(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		val oldPath1 = repo.getSceneFilePath(1).toOkioPath()
 		val oldPath6 = repo.getSceneFilePath(6).toOkioPath()

@@ -108,8 +108,6 @@ class SceneMetadataRepositoryTest : BaseTest() {
 			projectDef = projectDef,
 			syncJournal = syncJournal,
 			idAllocator = idAllocator,
-			sceneMetadataRepository = sceneMetadataRepository,
-			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
 			clock = Clock.System,
