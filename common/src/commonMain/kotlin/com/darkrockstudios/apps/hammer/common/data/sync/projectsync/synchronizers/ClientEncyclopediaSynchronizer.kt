@@ -74,8 +74,8 @@ class ClientEncyclopediaSynchronizer(
 		val def = entry.toDef(projectDef)
 
 		val DEFAULT_EXTENSION = "jpg"
-		val image = if (encyclopediaRepository.hasEntryImage(def, DEFAULT_EXTENSION)) {
-			val imageBytes = encyclopediaRepository.loadEntryImage(def, DEFAULT_EXTENSION)
+		val image = if (encyclopediaDatasource.hasEntryImage(def, DEFAULT_EXTENSION)) {
+			val imageBytes = encyclopediaDatasource.loadEntryImage(def, DEFAULT_EXTENSION)
 			val imageBase64 = Base64.encode(imageBytes, url = true)
 
 			ApiProjectEntity.EncyclopediaEntryEntity.Image(
