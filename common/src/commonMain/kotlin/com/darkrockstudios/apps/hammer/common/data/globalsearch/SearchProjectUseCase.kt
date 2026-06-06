@@ -1,14 +1,8 @@
-package com.darkrockstudios.apps.hammer.common.data.globalsearchrepository
+package com.darkrockstudios.apps.hammer.common.data.globalsearch
 
-import com.arkivanov.decompose.value.MutableValue
-import com.arkivanov.decompose.value.Value
-import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.AnnotatedSnippet
-import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearch
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchFilter
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -19,96 +13,67 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRe
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import io.github.aakira.napier.Napier
-import kotlinx.coroutines.*
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
-import org.koin.core.scope.Scope
-import org.koin.core.scope.ScopeCallback
 import kotlin.coroutines.CoroutineContext
 
-class GlobalSearchRepository(
-	projectDef: ProjectDef,
+/** Parsed search query: free text plus any `#tags` pulled out of it. */
+internal data class ParsedQuery(
+	val text: String,
+	val tags: List<String>,
+) {
+	fun isUsable(): Boolean {
+		val tagOk = tags.any { it.length >= SearchProjectUseCase.MIN_TAG_LENGTH }
+		val textOk = text.length >= SearchProjectUseCase.MIN_QUERY_LENGTH
+		return tagOk || textOk
+	}
+}
+
+/**
+ * Stateless cross-repo project search. Given a query and a filter it fans out across the
+ * scene/notes/encyclopedia/timeline repositories and returns the matched results. Holds no state.
+ */
+class SearchProjectUseCase(
 	private val sceneEditor: SceneRepository,
 	private val sceneMetadataRepository: SceneMetadataRepository,
 	private val sceneContentRepository: SceneContentRepository,
 	private val notes: NotesRepository,
 	private val encyclopedia: EncyclopediaRepository,
 	private val timeLine: TimeLineRepository,
-) : ScopeCallback, ProjectScoped, KoinComponent {
-
-	override val projectScope = ProjectDefScope(projectDef)
+) : KoinComponent {
 
 	private val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
 	private val dispatcherIo: CoroutineContext by inject(named(DISPATCHER_IO))
 
-	private val scope = CoroutineScope(dispatcherDefault)
-	private var searchJob: Job? = null
-
-	private val _state = MutableValue(GlobalSearch.State())
-	val state: Value<GlobalSearch.State> = _state
-
-	init {
-		projectScope.scope.registerCallback(this)
-	}
-
-	fun setQuery(query: String) {
+	suspend fun search(query: String, filter: GlobalSearchFilter): List<SearchResult> {
 		val parsed = parseQuery(query)
-		_state.getAndUpdate {
-			it.copy(query = query, parsedText = parsed.text, parsedTags = parsed.tags)
-		}
-		startSearch(parsed, _state.value.filter, debounce = true)
-	}
-
-	fun setFilter(filter: GlobalSearchFilter) {
-		if (_state.value.filter == filter) return
-		_state.getAndUpdate { it.copy(filter = filter) }
-		startSearch(parseQuery(_state.value.query), filter, debounce = false)
-	}
-
-	private fun startSearch(parsed: ParsedQuery, filter: GlobalSearchFilter, debounce: Boolean) {
-		searchJob?.cancel()
-
-		if (!parsed.isUsable()) {
-			_state.getAndUpdate { it.copy(isSearching = false, results = emptyList()) }
-			return
-		}
-
-		searchJob = scope.launch {
-			try {
-				if (debounce) delay(DEBOUNCE_MS)
-				_state.getAndUpdate { it.copy(isSearching = true) }
-				val results = runSearch(parsed, filter)
-				_state.getAndUpdate { it.copy(isSearching = false, results = results) }
-			} catch (e: CancellationException) {
-				throw e
-			} catch (e: Exception) {
-				Napier.e("Global search failed", e)
-				_state.getAndUpdate { it.copy(isSearching = false) }
-			}
-		}
+		if (!parsed.isUsable()) return emptyList()
+		return withContext(dispatcherDefault) { runSearch(parsed, filter) }
 	}
 
 	private suspend fun runSearch(parsed: ParsedQuery, filter: GlobalSearchFilter): List<SearchResult> =
 		coroutineScope {
-		val notesDeferred = async {
-			if (filter.includesNotes) searchNotes(parsed) else emptyList()
-		}
-		val timelineDeferred = async {
-			if (filter.includesTimeline) searchTimeline(parsed) else emptyList()
-		}
-		val encyclopediaDeferred = async {
-			if (filter.includesEncyclopedia) searchEncyclopedia(parsed) else emptyList()
-		}
-		val scenesDeferred = async {
-			if (filter.includesScenes) searchScenes(parsed) else emptyList()
-		}
+			val notesDeferred = async {
+				if (filter.includesNotes) searchNotes(parsed) else emptyList()
+			}
+			val timelineDeferred = async {
+				if (filter.includesTimeline) searchTimeline(parsed) else emptyList()
+			}
+			val encyclopediaDeferred = async {
+				if (filter.includesEncyclopedia) searchEncyclopedia(parsed) else emptyList()
+			}
+			val scenesDeferred = async {
+				if (filter.includesScenes) searchScenes(parsed) else emptyList()
+			}
 
-		awaitAll(notesDeferred, timelineDeferred, encyclopediaDeferred, scenesDeferred)
-			.flatten()
-	}
+			awaitAll(notesDeferred, timelineDeferred, encyclopediaDeferred, scenesDeferred)
+				.flatten()
+		}
 
 	private val GlobalSearchFilter.includesScenes: Boolean
 		get() = this == GlobalSearchFilter.All || this == GlobalSearchFilter.Scenes
@@ -289,29 +254,13 @@ class GlobalSearchRepository(
 		}
 	}
 
-	override fun onScopeClose(scope: Scope) {
-		this.scope.cancel("Closing GlobalSearchRepository")
-	}
-
 	companion object {
 		const val MIN_QUERY_LENGTH = 2
 		const val MIN_TAG_LENGTH = 1
-		const val DEBOUNCE_MS = 250L
 		const val PER_SOURCE_CAP = 25
 		const val TITLE_MAX = 60
 		const val SNIPPET_BEFORE = 40
 		const val SNIPPET_AFTER = 80
-
-		internal data class ParsedQuery(
-			val text: String,
-			val tags: List<String>,
-		) {
-			fun isUsable(): Boolean {
-				val tagOk = tags.any { it.length >= MIN_TAG_LENGTH }
-				val textOk = text.length >= MIN_QUERY_LENGTH
-				return tagOk || textOk
-			}
-		}
 
 		internal fun parseQuery(query: String): ParsedQuery {
 			val tags = mutableListOf<String>()

@@ -1,5 +1,6 @@
-package repositories.globalsearch
+package usecases.globalsearch
 
+import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchFilter
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -7,7 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.data.globalsearchrepository.GlobalSearchRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
@@ -22,10 +23,6 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.test.advanceTimeBy
-import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -36,7 +33,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 
-class GlobalSearchRepositoryTest : BaseTest() {
+class SearchProjectUseCaseTest : BaseTest() {
 
 	private val projectDef = ProjectDef(name = "Test", path = HPath("/projects/Test", "Test", false))
 
@@ -65,15 +62,10 @@ class GlobalSearchRepositoryTest : BaseTest() {
 		coEvery { sceneMetadataRepository.loadSceneMetadata(any()) } returns SceneMetadata()
 		every { notes.getNotes() } returns emptyList()
 		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(emptyList())
-		every { encyclopedia.entryListFlow } returns MutableSharedFlow<List<EntryDef>>(
-			replay = 1,
-			extraBufferCapacity = 1,
-			onBufferOverflow = BufferOverflow.DROP_OLDEST,
-		).apply { tryEmit(emptyList()) }
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns emptyList()
 	}
 
-	private fun createRepository() = GlobalSearchRepository(
-		projectDef = projectDef,
+	private fun createUseCase() = SearchProjectUseCase(
 		sceneEditor = sceneEditor,
 		sceneMetadataRepository = sceneMetadataRepository,
 		sceneContentRepository = sceneContentRepository,
@@ -84,18 +76,18 @@ class GlobalSearchRepositoryTest : BaseTest() {
 
 	@Test
 	fun `findMatch returns null for empty text or query`() {
-		assertNull(GlobalSearchRepository.findMatch("", "foo"))
-		assertNull(GlobalSearchRepository.findMatch("hello", ""))
+		assertNull(SearchProjectUseCase.findMatch("", "foo"))
+		assertNull(SearchProjectUseCase.findMatch("hello", ""))
 	}
 
 	@Test
 	fun `findMatch returns null when no match`() {
-		assertNull(GlobalSearchRepository.findMatch("hello world", "xyz"))
+		assertNull(SearchProjectUseCase.findMatch("hello world", "xyz"))
 	}
 
 	@Test
 	fun `findMatch is case insensitive`() {
-		val match = GlobalSearchRepository.findMatch("Hello WORLD", "world")
+		val match = SearchProjectUseCase.findMatch("Hello WORLD", "world")
 		assertNotNull(match)
 		assertEquals("Hello WORLD", match.text)
 	}
@@ -103,7 +95,7 @@ class GlobalSearchRepositoryTest : BaseTest() {
 	@Test
 	fun `buildSnippet trims a window around match with ellipses`() {
 		val text = "x".repeat(200) + "needle" + "y".repeat(200)
-		val match = GlobalSearchRepository.findMatch(text, "needle")
+		val match = SearchProjectUseCase.findMatch(text, "needle")
 		assertNotNull(match)
 		assertTrue(match.text.startsWith("…"))
 		assertTrue(match.text.endsWith("…"))
@@ -113,7 +105,7 @@ class GlobalSearchRepositoryTest : BaseTest() {
 	@Test
 	fun `buildSnippet does not add leading ellipsis when match is at start`() {
 		val text = "needle" + "y".repeat(200)
-		val match = GlobalSearchRepository.findMatch(text, "needle")
+		val match = SearchProjectUseCase.findMatch(text, "needle")
 		assertNotNull(match)
 		assertTrue(!match.text.startsWith("…"))
 		assertEquals(0, match.matchStart)
@@ -122,35 +114,45 @@ class GlobalSearchRepositoryTest : BaseTest() {
 	@Test
 	fun `buildSnippet collapses whitespace`() {
 		val text = "before\n\n\tneedle  after"
-		val match = GlobalSearchRepository.findMatch(text, "needle")
+		val match = SearchProjectUseCase.findMatch(text, "needle")
 		assertNotNull(match)
 		assertTrue(!match.text.contains("\n"))
 		assertTrue(!match.text.contains("\t"))
 	}
 
 	@Test
-	fun `setQuery shorter than min length clears results without searching`() = runTest {
-		val repo = createRepository()
-		repo.setQuery("a")
-		advanceUntilIdle()
-
-		assertEquals("a", repo.state.value.query)
-		assertEquals(emptyList(), repo.state.value.results)
-		assertTrue(!repo.state.value.isSearching)
+	fun `parseQuery extracts tags and free text in any order`() {
+		val parsed = SearchProjectUseCase.parseQuery("dragon #fantasy battle #adventure")
+		assertEquals(listOf("fantasy", "adventure"), parsed.tags)
+		assertEquals("dragon battle", parsed.text)
 	}
 
 	@Test
-	fun `setQuery searches notes content`() = runTest {
+	fun `parseQuery handles tag-only and stray hash`() {
+		val tagOnly = SearchProjectUseCase.parseQuery("#hero")
+		assertEquals(listOf("hero"), tagOnly.tags)
+		assertEquals("", tagOnly.text)
+
+		val strayHash = SearchProjectUseCase.parseQuery("# foo")
+		assertTrue(strayHash.tags.isEmpty())
+		assertEquals("foo", strayHash.text)
+	}
+
+	@Test
+	fun `search with query shorter than min length returns nothing`() = runTest {
+		val results = createUseCase().search("a", GlobalSearchFilter.All)
+		assertEquals(emptyList(), results)
+	}
+
+	@Test
+	fun `search finds notes content`() = runTest {
 		every { notes.getNotes() } returns listOf(
 			NoteContainer(NoteContent(id = 1, created = Clock.System.now(), content = "Once a hero rose")),
 			NoteContainer(NoteContent(id = 2, created = Clock.System.now(), content = "Random text")),
 		)
 
-		val repo = createRepository()
-		repo.setQuery("hero")
-		advanceUntilIdle()
+		val results = createUseCase().search("hero", GlobalSearchFilter.All)
 
-		val results = repo.state.value.results
 		assertEquals(1, results.size)
 		val note = results.first() as SearchResult.Note
 		assertEquals(1, note.noteId)
@@ -158,7 +160,7 @@ class GlobalSearchRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `setQuery prefers in-memory scene buffer over disk`() = runTest {
+	fun `search prefers in-memory scene buffer over disk`() = runTest {
 		val scene = SceneItem(
 			projectDef = projectDef,
 			type = SceneItem.Type.Scene,
@@ -174,17 +176,15 @@ class GlobalSearchRepositoryTest : BaseTest() {
 		// loadSceneMarkdownRaw should not be consulted because buffer wins
 		every { sceneEditor.loadSceneMarkdownRaw(scene, any()) } returns "On-disk text"
 
-		val repo = createRepository()
-		repo.setQuery("dragon")
-		advanceUntilIdle()
+		val results = createUseCase().search("dragon", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Scene>()
 
-		val results = repo.state.value.results.filterIsInstance<SearchResult.Scene>()
 		assertEquals(1, results.size)
 		assertTrue(results.first().snippet.text.contains("dragon"))
 	}
 
 	@Test
-	fun `setQuery includes archived scenes`() = runTest {
+	fun `search includes archived scenes`() = runTest {
 		val scene = SceneItem(
 			projectDef = projectDef,
 			type = SceneItem.Type.Scene,
@@ -195,42 +195,28 @@ class GlobalSearchRepositoryTest : BaseTest() {
 		)
 		every { sceneEditor.getScenes() } returns listOf(scene)
 
-		val repo = createRepository()
-		repo.setQuery("Forgotten")
-		advanceUntilIdle()
+		val results = createUseCase().search("Forgotten", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Scene>()
 
-		val results = repo.state.value.results.filterIsInstance<SearchResult.Scene>()
 		assertEquals(1, results.size)
 		assertEquals(9, results.first().sceneItem.id)
 	}
 
 	@Test
-	fun `setQuery matches encyclopedia entry name`() = runTest {
+	fun `search matches encyclopedia entry name`() = runTest {
 		val def = EntryDef(projectDef = projectDef, id = 11, type = EntryType.PERSON, name = "Aragorn")
-		every { encyclopedia.entryListFlow } returns MutableSharedFlow<List<EntryDef>>(
-			replay = 1,
-			extraBufferCapacity = 1,
-			onBufferOverflow = BufferOverflow.DROP_OLDEST,
-		).apply { tryEmit(listOf(def)) }
 		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(def)
 
-		val repo = createRepository()
-		repo.setQuery("aragorn")
-		advanceUntilIdle()
+		val results = createUseCase().search("aragorn", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.EncyclopediaEntry>()
 
-		val results = repo.state.value.results.filterIsInstance<SearchResult.EncyclopediaEntry>()
 		assertEquals(1, results.size)
 		assertEquals(11, results.first().entryDef.id)
 	}
 
 	@Test
-	fun `setQuery matches encyclopedia entry body when name does not`() = runTest {
+	fun `search matches encyclopedia entry body when name does not`() = runTest {
 		val def = EntryDef(projectDef = projectDef, id = 12, type = EntryType.PLACE, name = "Mordor")
-		every { encyclopedia.entryListFlow } returns MutableSharedFlow<List<EntryDef>>(
-			replay = 1,
-			extraBufferCapacity = 1,
-			onBufferOverflow = BufferOverflow.DROP_OLDEST,
-		).apply { tryEmit(listOf(def)) }
 		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(def)
 		every { encyclopedia.loadEntry(def) } returns EntryContainer(
 			EntryContent(
@@ -242,17 +228,15 @@ class GlobalSearchRepositoryTest : BaseTest() {
 			)
 		)
 
-		val repo = createRepository()
-		repo.setQuery("Sauron")
-		advanceUntilIdle()
+		val results = createUseCase().search("Sauron", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.EncyclopediaEntry>()
 
-		val results = repo.state.value.results.filterIsInstance<SearchResult.EncyclopediaEntry>()
 		assertEquals(1, results.size)
 		assertTrue(results.first().snippet.text.contains("Sauron"))
 	}
 
 	@Test
-	fun `setQuery matches timeline event content`() = runTest {
+	fun `search matches timeline event content`() = runTest {
 		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(
 			listOf(
 				TimeLineEvent(id = 21, order = 0, date = "Year 3", content = "Coronation"),
@@ -260,35 +244,15 @@ class GlobalSearchRepositoryTest : BaseTest() {
 			)
 		)
 
-		val repo = createRepository()
-		repo.setQuery("coronation")
-		advanceUntilIdle()
+		val results = createUseCase().search("coronation", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.TimelineEvent>()
 
-		val results = repo.state.value.results.filterIsInstance<SearchResult.TimelineEvent>()
 		assertEquals(1, results.size)
 		assertEquals(21, results.first().eventId)
 	}
 
 	@Test
-	fun `parseQuery extracts tags and free text in any order`() {
-		val parsed = GlobalSearchRepository.parseQuery("dragon #fantasy battle #adventure")
-		assertEquals(listOf("fantasy", "adventure"), parsed.tags)
-		assertEquals("dragon battle", parsed.text)
-	}
-
-	@Test
-	fun `parseQuery handles tag-only and stray hash`() {
-		val tagOnly = GlobalSearchRepository.parseQuery("#hero")
-		assertEquals(listOf("hero"), tagOnly.tags)
-		assertEquals("", tagOnly.text)
-
-		val strayHash = GlobalSearchRepository.parseQuery("# foo")
-		assertTrue(strayHash.tags.isEmpty())
-		assertEquals("foo", strayHash.text)
-	}
-
-	@Test
-	fun `setQuery filters notes by tag when only a tag is specified`() = runTest {
+	fun `search filters notes by tag when only a tag is specified`() = runTest {
 		every { notes.getNotes() } returns listOf(
 			NoteContainer(
 				NoteContent(
@@ -308,17 +272,15 @@ class GlobalSearchRepositoryTest : BaseTest() {
 			),
 		)
 
-		val repo = createRepository()
-		repo.setQuery("#fantasy")
-		advanceUntilIdle()
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
 
-		val results = repo.state.value.results.filterIsInstance<SearchResult.Note>()
 		assertEquals(1, results.size)
 		assertEquals(1, results.first().noteId)
 	}
 
 	@Test
-	fun `setQuery combines tag filter with free text`() = runTest {
+	fun `search combines tag filter with free text`() = runTest {
 		every { notes.getNotes() } returns listOf(
 			NoteContainer(
 				NoteContent(
@@ -346,17 +308,15 @@ class GlobalSearchRepositoryTest : BaseTest() {
 			),
 		)
 
-		val repo = createRepository()
-		repo.setQuery("#fantasy dragon")
-		advanceUntilIdle()
+		val results = createUseCase().search("#fantasy dragon", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
 
-		val results = repo.state.value.results.filterIsInstance<SearchResult.Note>()
 		assertEquals(1, results.size)
 		assertEquals(1, results.first().noteId)
 	}
 
 	@Test
-	fun `setQuery with tag returns matching scenes by metadata`() = runTest {
+	fun `search with tag returns matching scenes by metadata`() = runTest {
 		val taggedScene = SceneItem(
 			projectDef = projectDef,
 			type = SceneItem.Type.Scene,
@@ -375,18 +335,16 @@ class GlobalSearchRepositoryTest : BaseTest() {
 		coEvery { sceneMetadataRepository.loadSceneMetadata(7) } returns SceneMetadata(tags = setOf("plot"))
 		coEvery { sceneMetadataRepository.loadSceneMetadata(8) } returns SceneMetadata(tags = setOf("misc"))
 
-		val repo = createRepository()
-		repo.setQuery("#plot")
-		advanceUntilIdle()
+		val results = createUseCase().search("#plot", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Scene>()
 
-		val results = repo.state.value.results.filterIsInstance<SearchResult.Scene>()
 		assertEquals(1, results.size)
 		assertEquals(7, results.first().sceneItem.id)
 		assertTrue(results.first().title.contains("#plot"))
 	}
 
 	@Test
-	fun `setQuery combines tag filter with free text for scenes`() = runTest {
+	fun `search combines tag filter with free text for scenes`() = runTest {
 		val matchingScene = SceneItem(
 			projectDef = projectDef,
 			type = SceneItem.Type.Scene,
@@ -405,40 +363,30 @@ class GlobalSearchRepositoryTest : BaseTest() {
 		coEvery { sceneMetadataRepository.loadSceneMetadata(7) } returns SceneMetadata(tags = setOf("fantasy"))
 		coEvery { sceneMetadataRepository.loadSceneMetadata(8) } returns SceneMetadata(tags = setOf("fantasy"))
 
-		val repo = createRepository()
-		repo.setQuery("#fantasy dragon")
-		advanceUntilIdle()
+		val results = createUseCase().search("#fantasy dragon", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Scene>()
 
-		val results = repo.state.value.results.filterIsInstance<SearchResult.Scene>()
 		assertEquals(1, results.size)
 		assertEquals(7, results.first().sceneItem.id)
 	}
 
 	@Test
-	fun `setQuery exposes parsed tags on state`() = runTest {
-		val repo = createRepository()
-		repo.setQuery("#a #b text")
-		advanceUntilIdle()
-
-		assertEquals(listOf("a", "b"), repo.state.value.parsedTags)
-		assertEquals("text", repo.state.value.parsedText)
-	}
-
-	@Test
-	fun `setQuery debounces - only the latest query produces results`() = runTest {
+	fun `search honors filter to a single source`() = runTest {
 		every { notes.getNotes() } returns listOf(
-			NoteContainer(NoteContent(id = 1, created = Clock.System.now(), content = "alpha line")),
-			NoteContainer(NoteContent(id = 2, created = Clock.System.now(), content = "bravo line")),
+			NoteContainer(NoteContent(id = 1, created = Clock.System.now(), content = "dragon note")),
 		)
+		val scene = SceneItem(
+			projectDef = projectDef,
+			type = SceneItem.Type.Scene,
+			id = 7,
+			name = "dragon scene",
+			order = 0,
+		)
+		every { sceneEditor.getScenes() } returns listOf(scene)
 
-		val repo = createRepository()
-		repo.setQuery("alpha")
-		advanceTimeBy(100)
-		repo.setQuery("bravo")
-		advanceUntilIdle()
+		val results = createUseCase().search("dragon", GlobalSearchFilter.Notes)
 
-		val results = repo.state.value.results.filterIsInstance<SearchResult.Note>()
 		assertEquals(1, results.size)
-		assertEquals(2, results.first().noteId)
+		assertTrue(results.first() is SearchResult.Note)
 	}
 }
