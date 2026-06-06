@@ -37,6 +37,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.IOException
 import okio.Path.Companion.toPath
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
@@ -162,7 +163,15 @@ class ProjectsListComponent(
 		loadProjectsJob = scope.launch {
 			val projects = projectsRepository.getProjects(projectsDir)
 			val projectData = projects.parallelMap { projectDef ->
-				val metadata = projectMetadataDatasource.loadMetadata(projectDef)
+				// The project can be deleted concurrently (e.g. another window, or a refresh
+				// racing a delete) between listing it and reading its metadata. loadMetadata
+				// then tries to recreate the file in a directory that no longer exists and
+				// throws - skip the vanished project rather than failing the whole load.
+				val metadata = try {
+					projectMetadataDatasource.loadMetadata(projectDef)
+				} catch (e: IOException) {
+					null
+				}
 				if (metadata != null) {
 					ProjectData(
 						definition = projectDef,
