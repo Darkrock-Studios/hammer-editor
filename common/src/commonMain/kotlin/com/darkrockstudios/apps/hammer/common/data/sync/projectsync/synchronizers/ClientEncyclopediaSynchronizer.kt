@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -18,20 +19,17 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchr
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.sync_encyclopedia_deleted
 import korlibs.crypto.encoding.Base64
 import kotlinx.coroutines.flow.first
-import okio.FileSystem
 
 class ClientEncyclopediaSynchronizer(
 	projectDef: ProjectDef,
 	serverProjectApi: ServerProjectApi,
 	projectMetadataDatasource: ProjectMetadataDatasource,
 	private val strRes: StrRes,
-	private val fileSystem: FileSystem
 ) : EntitySynchronizer<ApiProjectEntity.EncyclopediaEntryEntity>(
 	projectDef,
 	serverProjectApi,
@@ -41,6 +39,7 @@ class ClientEncyclopediaSynchronizer(
 	override val projectScope = ProjectDefScope(projectDef)
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val encyclopediaService: EncyclopediaService by projectInject()
+	private val encyclopediaDatasource: EncyclopediaDatasource by projectInject()
 	private val referenceRemapper: ReferenceRemapper by projectInject()
 
 	private suspend fun getEntity(id: Int): EntryDef? {
@@ -164,25 +163,19 @@ class ClientEncyclopediaSynchronizer(
 		return true
 	}
 
-	private fun handleImage(
+	private suspend fun handleImage(
 		oldDef: EntryDef?,
 		serverDef: EntryDef,
 		serverEntity: ApiProjectEntity.EncyclopediaEntryEntity
 	) {
-		// Write the new image
 		val image = serverEntity.image
 		if (image != null) {
 			val imageBytes = Base64.decode(image.base64, url = true)
-			val imagePath = encyclopediaRepository.getEntryImagePath(serverDef, image.fileExtension)
-			fileSystem.write(imagePath.toOkioPath()) {
-				write(imageBytes)
-			}
-		} else {
-			// Delete the old image, if there is a new one it'll get written regardless
-			if (oldDef != null) {
-				val oldImagePath = encyclopediaRepository.getEntryImagePath(oldDef, "jpg")
-				fileSystem.delete(oldImagePath.toOkioPath(), false)
-			}
+			encyclopediaDatasource.writeEntryImage(serverDef, imageBytes, image.fileExtension)
+		} else if (oldDef != null && encyclopediaDatasource.hasEntryImage(oldDef, "jpg")) {
+			// Server reports no image; drop the local one. Raw datasource delete (no
+			// sync-marking) since we're applying server state, not making a local edit.
+			encyclopediaDatasource.removeEntryImage(oldDef)
 		}
 	}
 }
