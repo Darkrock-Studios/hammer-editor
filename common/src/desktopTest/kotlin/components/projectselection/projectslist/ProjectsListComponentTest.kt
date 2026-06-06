@@ -29,6 +29,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.IOException
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -346,6 +347,27 @@ class ProjectsListComponentTest : ComponentTest() {
 
 			assertEquals(
 				listOf("Newest", "Middle", "Oldest"),
+				comp.state.value.projects.map { it.definition.name },
+			)
+		}
+
+	@Test
+	fun `loadProjectList skips a project whose metadata fails to load`() =
+		runTest(mainTestDispatcher) {
+			val good = ProjectDef("Good", HPath("/projects/Good", "Good", false))
+			val vanished = ProjectDef("Vanished", HPath("/projects/Vanished", "Vanished", false))
+			every { projectsRepository.getProjects(any()) } returns listOf(good, vanished)
+			every { metadataDatasource.loadMetadata(good) } returns metadata(Instant.fromEpochSeconds(100))
+			// Deleted concurrently between listing and reading: loadMetadata throws.
+			every { metadataDatasource.loadMetadata(vanished) } throws IOException("deleted")
+			every { statsReader.loadTotalWords(any()) } returns null
+			val comp = newComponent()
+
+			comp.loadProjectList()
+			advanceUntilIdle()
+
+			assertEquals(
+				listOf("Good"),
 				comp.state.value.projects.map { it.definition.name },
 			)
 		}

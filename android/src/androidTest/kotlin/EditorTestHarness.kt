@@ -50,6 +50,13 @@ fun hasTestTagPrefix(prefix: String) = SemanticsMatcher("testTag starts with '$p
 	node.config.getOrNull(SemanticsProperties.TestTag)?.startsWith(prefix) == true
 }
 
+/** Concatenated text of the first node with [tag], or empty if it isn't present. */
+fun ComposeTestRule.textOf(tag: String): String =
+	onAllNodesWithTag(tag).fetchSemanticsNodes().firstOrNull()
+		?.config?.getOrNull(SemanticsProperties.Text)
+		?.joinToString("") { it.text }
+		.orEmpty()
+
 /** Wait for a nav destination tag to render, then click it. */
 fun ComposeTestRule.navigateTo(navTag: String) {
 	waitUntil(timeoutMillis = 10_000) {
