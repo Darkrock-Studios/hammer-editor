@@ -1,0 +1,13 @@
+{{#hasLines}}
+	{{#lines}}
+		<div class="mon-log-line mon-log-line--{{levelClass}}">
+			<span class="mon-log-line__time">{{time}}</span>
+			<span class="mon-log-line__level">{{level}}</span>
+			<span class="mon-log-line__logger">{{logger}}</span>
+			<span class="mon-log-line__msg">{{message}}</span>
+		</div>
+	{{/lines}}
+{{/hasLines}}
+{{^hasLines}}
+	<div class="empty-state"><p>{{msg.admin_mon_logs_empty}}</p></div>
+{{/hasLines}}

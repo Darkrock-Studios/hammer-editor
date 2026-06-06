@@ -39,7 +39,7 @@ sqldelight {
 			packageName.set("com.darkrockstudios.apps.hammer.database")
 			dialect(libs.sqldelight.postgresql.dialect.get().toString())
 			srcDirs("src/main/sqldelight")
-			version = 1
+			version = 2
 			schemaOutputDirectory.set(project.file("build/generated/sqldelight"))
 		}
 		// Read-only legacy database — used ONLY by the one-time SQLite-to-Postgres migrator.
@@ -82,8 +82,9 @@ dependencies {
 	implementation(libs.bouncycastle.bcpkix)
 	implementation(libs.jakarta.mail)
 
-	implementation(libs.slf4j.simple)
-	//implementation(libs.logback.classic)
+	// Logback is the active SLF4J binding (replaces slf4j-simple) so logback.xml's
+	// appenders apply — including the in-memory RingBufferLogAppender for the admin log viewer.
+	implementation(libs.logback.classic)
 
 	implementation(project.dependencies.platform(libs.koin.bom))
 	implementation(libs.bundles.koin.server)

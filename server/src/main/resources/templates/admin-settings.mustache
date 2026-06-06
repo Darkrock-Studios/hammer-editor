@@ -64,6 +64,106 @@
 						</div>
 					</div>
 
+					<hr class="settings-divider"/>
+					<h3 class="settings-subheading">{{msg.admin_mon_settings_title}}</h3>
+					<p class="form-field__help">{{msg.admin_mon_settings_help}}</p>
+
+					<div class="mon-master-toggle">
+						<label class="toggle-switch" title="{{msg.admin_mon_settings_enabled}}">
+							<input type="checkbox" name="monEnabled" id="monEnabled" {{#monEnabled}}checked{{/monEnabled}}/>
+							<span class="toggle-switch__slider"></span>
+						</label>
+						<span class="mon-master-toggle__label">{{msg.admin_mon_settings_enabled}}</span>
+					</div>
+
+					<div class="mon-subfields" id="monSubfields">
+						<div class="mon-toggle-row">
+							<label class="toggle-switch">
+								<input type="checkbox" name="monTrackApiMetrics" {{#monTrackApiMetrics}}checked{{/monTrackApiMetrics}}/>
+								<span class="toggle-switch__slider"></span>
+							</label>
+							<span class="mon-toggle-row__label">{{msg.admin_mon_settings_track_api}}</span>
+						</div>
+						<div class="mon-toggle-row">
+							<label class="toggle-switch">
+								<input type="checkbox" name="monTrackErrors" {{#monTrackErrors}}checked{{/monTrackErrors}}/>
+								<span class="toggle-switch__slider"></span>
+							</label>
+							<span class="mon-toggle-row__label">{{msg.admin_mon_settings_track_errors}}</span>
+						</div>
+						<div class="mon-toggle-row">
+							<label class="toggle-switch">
+								<input type="checkbox" name="monTrackLoginAttempts" {{#monTrackLoginAttempts}}checked{{/monTrackLoginAttempts}}/>
+								<span class="toggle-switch__slider"></span>
+							</label>
+							<span class="mon-toggle-row__label">{{msg.admin_mon_settings_track_logins}}</span>
+						</div>
+						<div class="mon-toggle-row">
+							<label class="toggle-switch">
+								<input type="checkbox" name="monStoreLoginIp" {{#monStoreLoginIp}}checked{{/monStoreLoginIp}}/>
+								<span class="toggle-switch__slider"></span>
+							</label>
+							<span class="mon-toggle-row__label">{{msg.admin_mon_settings_store_ip}}</span>
+						</div>
+						<div class="form-group">
+							<label for="monMetricsRetention" class="form-field__label">{{msg.admin_mon_settings_metrics_retention}}</label>
+							<input id="monMetricsRetention" name="monMetricsRetention" type="number" min="1" max="3650"
+								   value="{{monMetricsRetention}}" class="form-input"/>
+						</div>
+						<div class="form-group">
+							<label for="monErrorRetention" class="form-field__label">{{msg.admin_mon_settings_error_retention}}</label>
+							<input id="monErrorRetention" name="monErrorRetention" type="number" min="1" max="3650"
+								   value="{{monErrorRetention}}" class="form-input"/>
+						</div>
+						<div class="form-group">
+							<label for="monLoginRetention" class="form-field__label">{{msg.admin_mon_settings_login_retention}}</label>
+							<input id="monLoginRetention" name="monLoginRetention" type="number" min="1" max="3650"
+								   value="{{monLoginRetention}}" class="form-input"/>
+						</div>
+
+						<div class="mon-toggle-row mon-toggle-row--section-start">
+							<label class="toggle-switch">
+								<input type="checkbox" name="monAlertEmailEnabled" id="monAlertEmailEnabled" {{#monAlertEmailEnabled}}checked{{/monAlertEmailEnabled}}/>
+								<span class="toggle-switch__slider"></span>
+							</label>
+							<span class="mon-toggle-row__label">{{msg.admin_mon_settings_alert_email_enabled}}</span>
+						</div>
+						<div class="form-group">
+							<label for="monAlertEmail" class="form-field__label">{{msg.admin_mon_settings_alert_email}}</label>
+							<input id="monAlertEmail" name="monAlertEmail" type="email" value="{{monAlertEmail}}" class="form-input"
+								   placeholder="admin@example.com"/>
+						</div>
+					</div>
+
+					<script>
+						(function () {
+							var monToggle = document.getElementById('monEnabled');
+							var subfields = document.getElementById('monSubfields');
+							function syncMon() {
+								var off = !monToggle.checked;
+								subfields.classList.toggle('mon-subfields--disabled', off);
+								subfields.querySelectorAll('input').forEach(function(i) { i.disabled = off; });
+							}
+							monToggle.addEventListener('change', syncMon);
+							syncMon();
+
+							var alertToggle = document.getElementById('monAlertEmailEnabled');
+							var alertEmail = document.getElementById('monAlertEmail');
+							function syncAlert() {
+								var active = alertToggle.checked && monToggle.checked;
+								alertEmail.disabled = !active;
+								alertEmail.required = active;
+							}
+							alertToggle.addEventListener('change', syncAlert);
+							monToggle.addEventListener('change', syncAlert);
+							syncAlert();
+
+							document.querySelector('form[action="/admin/settings"]').addEventListener('htmx:before-request', function (e) {
+								if (!e.target.reportValidity()) e.preventDefault();
+							});
+						})();
+					</script>
+
 					<div class="form-actions">
 						<button type="submit" class="save-button">{{msg.admin_serversettings_save_button}}</button>
 					</div>

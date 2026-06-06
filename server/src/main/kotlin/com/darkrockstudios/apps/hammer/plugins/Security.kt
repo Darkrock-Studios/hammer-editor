@@ -9,7 +9,10 @@ import com.darkrockstudios.apps.hammer.frontend.frontendAuthentication
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.plugins.*
+import io.ktor.server.plugins.ratelimit.*
 import org.koin.ktor.ext.inject
+import kotlin.time.Duration.Companion.seconds
 
 const val USER_AUTH = "UserAuth"
 const val ADMIN_AUTH = "AdminAuth"
@@ -17,6 +20,14 @@ const val ADMIN_AUTH = "AdminAuth"
 fun Application.configureSecurity() {
 	val accountRepo: AccountsRepository by inject()
 	val whitelistRepo: WhiteListRepository by inject()
+	val loginRateLimit: LoginRateLimitConfig by inject()
+
+	install(RateLimit) {
+		register(RateLimitName(LOGIN_RATE_LIMIT)) {
+			rateLimiter(limit = loginRateLimit.limit, refillPeriod = loginRateLimit.refillPeriodSeconds.seconds)
+			requestKey { call -> call.request.origin.remoteHost }
+		}
+	}
 
 	authentication {
 		bearer(name = USER_AUTH) {

@@ -4,8 +4,12 @@
 			<pattern>%d{YYYY-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n</pattern>
 		</encoder>
 	</appender>
-	<root level="trace">
+	<!-- Mirrors log events into an in-memory ring buffer for the admin log viewer. -->
+	<appender name="RING" class="com.darkrockstudios.apps.hammer.monitoring.RingBufferLogAppender"/>
+	<!-- INFO preserves the effective level from the previous slf4j-simple binding. -->
+	<root level="info">
 		<appender-ref ref="STDOUT"/>
+		<appender-ref ref="RING"/>
 	</root>
 	<logger name="org.eclipse.jetty" level="INFO"/>
 	<logger name="io.netty" level="INFO"/>

@@ -4,7 +4,20 @@ import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_MAIN
+import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
+import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
+import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
+import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
+import com.darkrockstudios.apps.hammer.plugins.LoginRateLimitConfig
+import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
+import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
+import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
+import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import io.ktor.server.application.*
+import io.mockk.mockk
+import kotlin.time.Clock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -116,6 +129,23 @@ fun Application.setupKtorTestKoin(baseTest: BaseTest, vararg modules: Module) {
 					)
 				}
 				single { ServerConfig() }
+				// Effectively unlimited so login tests never trip the limiter.
+				single { LoginRateLimitConfig(limit = 1_000_000, refillPeriodSeconds = 1) }
+				// Monitoring beans: the web layer (frontend/admin pages + the
+				// StatusPages error recorder) constructor-injects these, so every
+				// test that boots the app via configureRouting needs them present.
+				// They're inert stand-ins; no monitoring route is exercised here.
+				single<Clock> { Clock.System }
+				single { MonitoringState() }
+				single<MetricsRepository> { mockk(relaxed = true) }
+				single<ErrorRepository> { mockk(relaxed = true) }
+				single<SecurityRepository> { mockk(relaxed = true) }
+				single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
+					mockk(relaxed = true)
+				}
+				single<SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>>(named(PROJECT_SYNC_MANAGER)) {
+					mockk(relaxed = true)
+				}
 			},
 			*modules
 		)
