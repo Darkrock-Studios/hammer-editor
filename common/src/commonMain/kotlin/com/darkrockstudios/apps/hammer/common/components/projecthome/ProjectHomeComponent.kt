@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -56,7 +56,7 @@ class ProjectHomeComponent(
 	private val projectBackupRepository: ProjectBackupRepository by inject()
 	private val sceneEditorRepository: SceneEditorService by projectInject()
 	private val exportStoryUseCase: ExportStoryUseCase by projectInject()
-	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val encyclopediaService: EncyclopediaService by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 	private val statisticsService: StatisticsService by projectInject()
 	private val tagIndexService: TagIndexService by projectInject()
@@ -233,7 +233,7 @@ class ProjectHomeComponent(
 	}
 
 	override fun showEntry(entry: EntryAppearance) {
-		val def = encyclopediaRepository.findEntryDef(entry.entryId) ?: return
+		val def = encyclopediaService.findEntryDef(entry.entryId) ?: return
 		onShowEntry(def)
 	}
 

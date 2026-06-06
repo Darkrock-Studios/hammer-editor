@@ -5,7 +5,6 @@ import com.arkivanov.essenty.backhandler.BackHandler
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.statekeeper.StateKeeper
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntryComponent
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
@@ -40,9 +39,6 @@ class ViewEntryComponentTest : BaseTest() {
 	private lateinit var context: ComponentContext
 
 	@MockK
-	private lateinit var encyclopediaRepository: EncyclopediaRepository
-
-	@MockK
 	private lateinit var encyclopediaService: EncyclopediaService
 
 	@BeforeEach
@@ -52,7 +48,6 @@ class ViewEntryComponentTest : BaseTest() {
 		MockKAnnotations.init(this, relaxUnitFun = true)
 
 		val testModule = module {
-			single { encyclopediaRepository } bind EncyclopediaRepository::class
 			single { encyclopediaService } bind EncyclopediaService::class
 			single<ReferenceIndexService> { mockk(relaxed = true) }
 			single<SceneRepository> { mockk(relaxed = true) }
@@ -78,9 +73,9 @@ class ViewEntryComponentTest : BaseTest() {
 		val newEntry = oldEntry.copy(name = newName)
 		val newContainer = EntryContainer(newEntry)
 
-		every { encyclopediaRepository.hasEntryImage(any(), any()) } returns false
-		coEvery { encyclopediaRepository.calculateEntryImageHash(any(), any()) } returns null
-		coEvery { encyclopediaRepository.loadEntry(entryDef = any()) } returns newContainer
+		every { encyclopediaService.hasEntryImage(any(), any()) } returns false
+		coEvery { encyclopediaService.calculateEntryImageHash(any(), any()) } returns null
+		coEvery { encyclopediaService.loadEntry(entryDef = any()) } returns newContainer
 		coEvery {
 			encyclopediaService.updateEntry(
 				oldEntryDef = origDef,
@@ -119,8 +114,8 @@ class ViewEntryComponentTest : BaseTest() {
 		val newEntry = oldEntry.copy(name = newName)
 		val newContainer = EntryContainer(newEntry)
 
-		every { encyclopediaRepository.hasEntryImage(any(), any()) } returns false
-		coEvery { encyclopediaRepository.loadEntry(entryDef = any()) } returns newContainer
+		every { encyclopediaService.hasEntryImage(any(), any()) } returns false
+		coEvery { encyclopediaService.loadEntry(entryDef = any()) } returns newContainer
 		coEvery {
 			encyclopediaService.updateEntry(
 				oldEntryDef = origDef,

@@ -7,7 +7,7 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryLoadError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
@@ -34,7 +34,7 @@ class BrowseEntriesComponent(
 	private val _filterText = MutableValue(restoredFilter?.filterText ?: "")
 	override val filterText: Value<String> = _filterText
 
-	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val encyclopediaService: EncyclopediaService by projectInject()
 
 	init {
 		stateKeeper.register(FILTER_KEY, SavedFilter.serializer()) {
@@ -54,13 +54,13 @@ class BrowseEntriesComponent(
 
 	override fun onResume() {
 		super.onResume()
-		encyclopediaRepository.loadEntries()
+		encyclopediaService.loadEntries()
 	}
 
 	private fun reindexEntries(entryDefs: List<EntryDef>) {
 		indexByTag.clear()
 		entryDefs.forEach { entryDef ->
-			val entryContainer = encyclopediaRepository.loadEntry(entryDef)
+			val entryContainer = encyclopediaService.loadEntry(entryDef)
 			entryContainer.entry.tags.forEach { tag ->
 				val ids = indexByTag[tag]
 				if (ids == null) {
@@ -74,7 +74,7 @@ class BrowseEntriesComponent(
 
 	private fun watchEntries() {
 		scope.launch {
-			encyclopediaRepository.entryListFlow.collect { entryDefs ->
+			encyclopediaService.entryListFlow.collect { entryDefs ->
 				entryContentCache.invalidateAll()
 				reindexEntries(entryDefs)
 
@@ -155,7 +155,7 @@ class BrowseEntriesComponent(
 			cachedEntry.entry
 		} else {
 			try {
-				val container = encyclopediaRepository.loadEntry(entryDef)
+				val container = encyclopediaService.loadEntry(entryDef)
 				entryContentCache.put(entryDef.id, container)
 				container.entry
 			} catch (e: EntryLoadError) {
@@ -172,8 +172,8 @@ class BrowseEntriesComponent(
 	}
 
 	override fun getImagePath(entryDef: EntryDef): String? {
-		return if (encyclopediaRepository.hasEntryImage(entryDef, "jpg")) {
-			encyclopediaRepository.getEntryImagePath(entryDef, "jpg").path
+		return if (encyclopediaService.hasEntryImage(entryDef, "jpg")) {
+			encyclopediaService.getEntryImagePath(entryDef, "jpg").path
 		} else {
 			null
 		}

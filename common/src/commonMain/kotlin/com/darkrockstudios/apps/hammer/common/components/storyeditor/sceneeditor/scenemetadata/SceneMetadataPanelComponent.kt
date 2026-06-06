@@ -9,7 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.countWords
@@ -43,7 +43,7 @@ class SceneMetadataPanelComponent(
 
 	private val appScope: CoroutineScope by inject(named(APP_SCOPE))
 	private val sceneEditor: SceneEditorService by projectInject()
-	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val encyclopediaService: EncyclopediaService by projectInject()
 	private val scrubInvalidReferences: ScrubInvalidReferencesUseCase by projectInject()
 
 	private val searchableEntries = MutableStateFlow<List<SearchableEntry>>(emptyList())
@@ -85,7 +85,7 @@ class SceneMetadataPanelComponent(
 		}
 
 		scope.launch {
-			encyclopediaRepository.entryListFlow.collect { defs ->
+			encyclopediaService.entryListFlow.collect { defs ->
 				rebuildSearchableEntries(defs)
 				refreshReferences()
 			}
@@ -94,7 +94,7 @@ class SceneMetadataPanelComponent(
 		// Force the encyclopedia to publish its entry list so the search cache and
 		// chip resolver have data even if no other part of the UI has triggered a
 		// load yet.
-		scope.launch { encyclopediaRepository.ensureEntriesLoaded() }
+		scope.launch { encyclopediaService.ensureEntriesLoaded() }
 	}
 
 	private fun subscribeToMetadataUpdates() {
@@ -127,7 +127,7 @@ class SceneMetadataPanelComponent(
 
 	private suspend fun rebuildSearchableEntries(defs: List<EntryDef>) {
 		searchableEntries.value = defs.map { def ->
-			val container = encyclopediaRepository.loadEntry(def)
+			val container = encyclopediaService.loadEntry(def)
 			val terms = (listOf(def.name) + container.entry.aliases)
 				.filter { it.isNotBlank() }
 				.map { it.lowercase() }
@@ -153,9 +153,9 @@ class SceneMetadataPanelComponent(
 
 	private suspend fun refreshReferences() {
 		val metadata = state.value.metadata
-		val confirmed = metadata.confirmedReferences.mapNotNull { encyclopediaRepository.findEntryDef(it) }
+		val confirmed = metadata.confirmedReferences.mapNotNull { encyclopediaService.findEntryDef(it) }
 			.sortedBy { it.name.lowercase() }
-		val dismissed = metadata.dismissedReferences.mapNotNull { encyclopediaRepository.findEntryDef(it) }
+		val dismissed = metadata.dismissedReferences.mapNotNull { encyclopediaService.findEntryDef(it) }
 			.sortedBy { it.name.lowercase() }
 
 		withContext(dispatcherMain) {

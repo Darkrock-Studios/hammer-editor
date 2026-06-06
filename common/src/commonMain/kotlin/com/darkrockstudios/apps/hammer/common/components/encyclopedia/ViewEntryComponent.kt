@@ -11,7 +11,6 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
@@ -43,7 +42,6 @@ class ViewEntryComponent(
 	)
 	override val state: Value<ViewEntry.State> = _state
 
-	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val encyclopediaService: EncyclopediaService by projectInject()
 	private val referenceIndexService: ReferenceIndexService by projectInject()
 	private val sceneEditorRepository: SceneEditorService by projectInject()
@@ -93,7 +91,7 @@ class ViewEntryComponent(
 	private fun reload() {
 		scope.launch {
 			val entryImagePath = getImagePath(state.value.entryDef)
-			val imageHash = encyclopediaRepository.calculateEntryImageHash(state.value.entryDef, "jpg")
+			val imageHash = encyclopediaService.calculateEntryImageHash(state.value.entryDef, "jpg")
 
 			val content = loadEntryContent(state.value.entryDef)
 			withContext(dispatcherMain) {
@@ -109,15 +107,15 @@ class ViewEntryComponent(
 	}
 
 	override fun getImagePath(entryDef: EntryDef): String? {
-		return if (encyclopediaRepository.hasEntryImage(entryDef, "jpg")) {
-			encyclopediaRepository.getEntryImagePath(entryDef, "jpg").path
+		return if (encyclopediaService.hasEntryImage(entryDef, "jpg")) {
+			encyclopediaService.getEntryImagePath(entryDef, "jpg").path
 		} else {
 			null
 		}
 	}
 
 	override suspend fun loadEntryContent(entryDef: EntryDef): EntryContent {
-		val container = encyclopediaRepository.loadEntry(entryDef)
+		val container = encyclopediaService.loadEntry(entryDef)
 		return container.entry
 	}
 
@@ -128,14 +126,14 @@ class ViewEntryComponent(
 	}
 
 	override suspend fun removeEntryImage(): Boolean {
-		if (encyclopediaRepository.removeEntryImage(state.value.entryDef)) {
+		if (encyclopediaService.removeEntryImage(state.value.entryDef)) {
 			reload()
 		}
 		return true
 	}
 
 	override suspend fun setImage(path: String) {
-		encyclopediaRepository.setEntryImage(state.value.entryDef, path)
+		encyclopediaService.setEntryImage(state.value.entryDef, path)
 		reload()
 	}
 

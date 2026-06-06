@@ -5,7 +5,7 @@ import com.arkivanov.essenty.backhandler.BackHandler
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntriesComponent
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -39,7 +39,7 @@ class BrowseEntriesComponentTest : BaseTest() {
 	private lateinit var context: ComponentContext
 
 	@MockK
-	private lateinit var encyclopediaRepository: EncyclopediaRepository
+	private lateinit var encyclopediaService: EncyclopediaService
 
 	private lateinit var entryListFlow: SharedFlow<List<EntryDef>>
 
@@ -50,7 +50,7 @@ class BrowseEntriesComponentTest : BaseTest() {
 		MockKAnnotations.init(this, relaxUnitFun = true)
 
 		val testModule = module {
-			single { encyclopediaRepository } bind EncyclopediaRepository::class
+			single { encyclopediaService } bind EncyclopediaService::class
 		}
 		setupKoin(testModule)
 
@@ -233,10 +233,10 @@ class BrowseEntriesComponentTest : BaseTest() {
 			flow.emit(entries.map { it.toDef(projDef) })
 		}
 
-		every { encyclopediaRepository.entryListFlow } returns entryListFlow
+		every { encyclopediaService.entryListFlow } returns entryListFlow
 
 		val entryDefSlot = slot<EntryDef>()
-		every { encyclopediaRepository.loadEntry(entryDef = capture(entryDefSlot)) } answers {
+		every { encyclopediaService.loadEntry(entryDef = capture(entryDefSlot)) } answers {
 			entries.find { it.entry.id == entryDefSlot.captured.id }!!
 		}
 	}
