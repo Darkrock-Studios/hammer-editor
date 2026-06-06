@@ -4,8 +4,13 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -40,7 +45,12 @@ abstract class BaseIntegrationTest : BaseTest() {
 
 	// Real implementations
 	protected lateinit var sceneDatasource: SceneDatasource
-	protected lateinit var sceneEditorRepository: SceneEditorRepository
+	protected lateinit var sceneEditorRepository: SceneRepository
+	protected lateinit var sceneEditorService: SceneEditorService
+	protected lateinit var sceneContentRepository: SceneContentRepository
+	protected lateinit var sceneMetadataRepository: SceneMetadataRepository
+	protected lateinit var referenceIndexRepository: ReferenceIndexRepository
+	protected lateinit var writingSessionTracker: WritingSessionTracker
 	protected lateinit var sceneMetadataDatasource: SceneMetadataDatasource
 	protected lateinit var projectMetadataDatasource: ProjectMetadataDatasource
 
@@ -76,8 +86,8 @@ abstract class BaseIntegrationTest : BaseTest() {
 
 	@AfterEach
 	override fun tearDown() {
-		if (::sceneEditorRepository.isInitialized) {
-			sceneEditorRepository.onScopeClose(mockk())
+		if (::sceneContentRepository.isInitialized) {
+			sceneContentRepository.onScopeClose(mockk())
 		}
 		ffs.checkNoOpenFiles()
 		unmockkStatic("org.jetbrains.compose.resources.StringResourcesKt")
@@ -118,20 +128,41 @@ abstract class BaseIntegrationTest : BaseTest() {
 		sceneDatasource = SceneDatasource(projectDef, ffs)
 		sceneMetadataDatasource = SceneMetadataDatasource(ffs, toml, projectDef)
 		projectMetadataDatasource = ProjectMetadataDatasource(ffs, toml)
+		referenceIndexRepository = mockk(relaxed = true)
+		writingSessionTracker = mockk(relaxed = true)
+
+		sceneMetadataRepository = SceneMetadataRepository(
+			projectDef = projectDef,
+			sceneMetadataDatasource = sceneMetadataDatasource,
+			projectMetadataDatasource = projectMetadataDatasource,
+			strRes = mockk(relaxed = true),
+			clock = Clock.System,
+		)
+
+		sceneContentRepository = SceneContentRepository(
+			projectDef = projectDef,
+			sceneDatasource = sceneDatasource,
+		)
 
 		// Create real repository with real datasources
-		sceneEditorRepository = SceneEditorRepository(
+		sceneEditorRepository = SceneRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
-			projectMetadataDatasource = projectMetadataDatasource,
+			sceneMetadataRepository = sceneMetadataRepository,
+			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
-			statisticsRepository = statisticsRepository,
-			referenceIndexRepository = mockk(relaxed = true),
-			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
-			strRes = mockk(relaxed = true),
+		)
+
+		sceneEditorService = SceneEditorService(
+			sceneEditorRepository = sceneEditorRepository,
+			sceneContentRepository = sceneContentRepository,
+			sceneMetadataRepository = sceneMetadataRepository,
+			referenceIndexRepository = referenceIndexRepository,
+			statisticsRepository = statisticsRepository,
+			writingSessionTracker = writingSessionTracker,
 		)
 	}
 

@@ -10,7 +10,9 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -45,7 +47,9 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 	private lateinit var idRepository: IdRepository
 	private lateinit var projectMetadataRepository: ProjectMetadataDatasource
 	private lateinit var sceneMetadataDatasource: SceneMetadataDatasource
+	private lateinit var sceneMetadataRepository: SceneMetadataRepository
 	private lateinit var sceneDatasource: SceneDatasource
+	private lateinit var sceneContentRepository: SceneContentRepository
 	private lateinit var statisticsRepository: StatisticsRepository
 	private var nextId = -1
 	private lateinit var toml: Toml
@@ -136,19 +140,27 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 		ffs.checkNoOpenFiles()
 	}
 
-	private fun createRepository(): SceneEditorRepository {
-		return SceneEditorRepository(
+	private fun createRepository(): SceneRepository {
+		sceneMetadataRepository = SceneMetadataRepository(
+			projectDef = projectDef,
+			sceneMetadataDatasource = sceneMetadataDatasource,
+			projectMetadataDatasource = projectMetadataRepository,
+			strRes = mockk(relaxed = true),
+			clock = Clock.System,
+		)
+		sceneContentRepository = SceneContentRepository(
+			projectDef = projectDef,
+			sceneDatasource = sceneDatasource,
+		)
+		return SceneRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
-			projectMetadataDatasource = projectMetadataRepository,
+			sceneMetadataRepository = sceneMetadataRepository,
+			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
-			statisticsRepository = statisticsRepository,
-			referenceIndexRepository = mockk(relaxed = true),
-			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
-			strRes = mockk(relaxed = true),
 		)
 	}
 
@@ -178,11 +190,11 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 
 		repo.initializeSceneEditor()
 
-		val metadata = repo.getMetadata()
+		val metadata = sceneMetadataRepository.getMetadata()
 
 		assertEquals(projectMetadata, metadata)
 
-		repo.onScopeClose(mockk())
+		sceneContentRepository.onScopeClose(mockk())
 	}
 
 	companion object {

@@ -224,3 +224,64 @@ the repository — don't replicate it inline.
 | [ProjectRootComponent.kt](../common/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/common/components/projectroot/ProjectRootComponent.kt)    | Owns the screen stack, defines `showEditorScene` / `showEncyclopediaEntry`       |
 | [ProjectRootRouter.kt](../common/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/common/components/projectroot/ProjectRootRouter.kt)          | Constructs leaf components, injects the navigation callbacks                     |
 | [GlobalSearchComponent.kt](../common/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/common/components/globalsearch/GlobalSearchComponent.kt) | Canonical deep-link source — sealed `SearchResult` carries the typed destination |
+
+---
+
+## Scene-Editing Domain API
+
+> **TL;DR** — Components and UI talk to the scene-editing domain **only through
+> `SceneEditorService`** (plus a couple of purpose-built UseCases like
+> export/import). The three data repositories behind it —
+> `SceneRepository` (tree/structure/paths/sync-hash), `SceneContentRepository`
+> (buffers/autosave), `SceneMetadataRepository` (scene + project metadata) — are
+> lower-level building blocks. Components never inject them directly.
+
+### When to use this
+
+Any Component (or component-scoped UseCase) that needs to create/rename/move/
+delete/archive a scene, read or edit a scene's buffer, read/write scene
+metadata, or observe the scene list. There is exactly one door: inject
+`SceneEditorService`. A caller never has to decide "repo or service?"
+
+### Why this shape
+
+The scene-editing domain was historically one ~1300-line `SceneEditorRepository`
+that bundled ~12 responsibilities and depended sideways on sibling repos and
+*up* on a Service-level tracker. It was decomposed into:
+
+- **`SceneEditorService`** — the single Component-facing API. Owns write
+  *orchestration* (it applies the cross-cutting side-effects — statistics,
+  reference-index deltas, writing-activity, sync-marking — around each command),
+  composes the derived scene-list, and delegates reads one-to-one to the owning
+  repository. Wide surface, but thin: all real logic/state lives in the repos.
+- **`SceneRepository`** — the scene tree, structure, path computation, and
+  sync-hash. Pure data; depends only on datasources + the foundational
+  `IdRepository`/`SyncDataRepository`. Does **not** know about statistics,
+  references, or writing-activity.
+- **`SceneContentRepository`** — the buffer/editing engine: in-memory buffers,
+  the content debounce pipeline, temp-buffer autosave, dirty tracking, and the
+  `bufferUpdateFlow`. Emits a "buffer persisted" signal the service hangs save
+  side-effects off, rather than reaching up into those collaborators itself.
+- **`SceneMetadataRepository`** — scene + project metadata (pure persist + the
+  `metadataUpdateFlow`); the reference-index delta on a confirmed-references
+  change is orchestrated by the service, not here.
+
+The repositories are still consumed *directly* by other Services, UseCases, and
+the sync layer (Service→Repository / UseCase→Repository edges are legal). Only
+the **Component tier** is restricted to the service.
+
+> **Note (Stage 1).** A few reverse edges remain by design — sibling repos like
+> `SceneDraftRepository`/`GlobalSearchRepository` still depend on the scene
+> repos, and `SceneRepository` still leans on its sibling sub-repos for
+> project-scope init and scene-list dirty-buffer composition. Resolving those
+> (e.g. reclassifying `GlobalSearchRepository` as a Service, pushing `Id`/`Sync`
+> into a true foundational layer) is deferred to Stage 2.
+
+### File map
+
+| File                                                                                                                                                             | Role                                                                  |
+|------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
+| [SceneEditorService.kt](../common/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/common/data/sceneeditorrepository/SceneEditorService.kt)                 | The single Component-facing API: orchestration + derived state + reads |
+| [SceneRepository.kt](../common/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/common/data/sceneeditorrepository/SceneRepository.kt)                       | Tree / structure / paths / sync-hash (pure data)                      |
+| [SceneContentRepository.kt](../common/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/common/data/sceneeditorrepository/SceneContentRepository.kt)         | Buffers, content debounce, temp-buffer autosave, lifecycle            |
+| [SceneMetadataRepository.kt](../common/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/common/data/sceneeditorrepository/SceneMetadataRepository.kt)       | Scene + project metadata                                              |

@@ -11,7 +11,9 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -41,11 +43,12 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 	private lateinit var projectsRepo: ProjectsRepository
 	private lateinit var syncDataRepository: SyncDataRepository
 	private lateinit var projectDef: ProjectDef
-	private lateinit var repo: SceneEditorRepository
+	private lateinit var repo: SceneRepository
 	private lateinit var idRepository: IdRepository
 	private lateinit var metadataRepository: ProjectMetadataDatasource
 	private lateinit var metadataDatasource: SceneMetadataDatasource
 	private lateinit var sceneDatasource: SceneDatasource
+	private lateinit var sceneContentRepository: SceneContentRepository
 	private lateinit var statisticsRepository: StatisticsRepository
 	private var nextId = -1
 
@@ -96,7 +99,7 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 	@AfterEach
 	override fun tearDown() {
 		super.tearDown()
-		repo.onScopeClose(mockk())
+		sceneContentRepository.onScopeClose(mockk())
 		ffs.checkNoOpenFiles()
 	}
 
@@ -111,18 +114,25 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 
 		createProject(ffs, projectName)
 
-		repo = SceneEditorRepository(
+		sceneContentRepository = SceneContentRepository(
+			projectDef = projectDef,
+			sceneDatasource = sceneDatasource,
+		)
+		repo = SceneRepository(
 			projectDef = projectDef,
 			syncDataRepository = syncDataRepository,
 			idRepository = idRepository,
-			projectMetadataDatasource = metadataRepository,
+			sceneMetadataRepository = SceneMetadataRepository(
+				projectDef = projectDef,
+				sceneMetadataDatasource = metadataDatasource,
+				projectMetadataDatasource = metadataRepository,
+				strRes = mockk(relaxed = true),
+				clock = Clock.System,
+			),
+			sceneContentRepository = sceneContentRepository,
 			sceneMetadataDatasource = metadataDatasource,
 			sceneDatasource = sceneDatasource,
-			statisticsRepository = statisticsRepository,
-			referenceIndexRepository = mockk(relaxed = true),
-			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
-			strRes = mockk(relaxed = true),
 		)
 	}
 

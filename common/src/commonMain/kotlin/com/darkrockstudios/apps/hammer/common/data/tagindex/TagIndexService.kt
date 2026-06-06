@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -25,7 +25,7 @@ class TagIndexService(
 	private val encyclopediaRepository: EncyclopediaRepository,
 	private val notesRepository: NotesRepository,
 	private val timeLineRepository: TimeLineRepository,
-	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneMetadataRepository: SceneMetadataRepository,
 	private val buildTagIndex: BuildTagIndexUseCase,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
@@ -45,7 +45,7 @@ class TagIndexService(
 	// thrashes the index rebuild.
 	private val sceneTagChangedFlow = flow {
 		val seenTags = mutableMapOf<Int, Set<String>>()
-		sceneEditorRepository.metadataUpdateFlow.collect { (sceneId, metadata) ->
+		sceneMetadataRepository.metadataUpdateFlow.collect { (sceneId, metadata) ->
 			if (seenTags[sceneId].orEmpty() != metadata.tags) {
 				seenTags[sceneId] = metadata.tags
 				emit(Unit)

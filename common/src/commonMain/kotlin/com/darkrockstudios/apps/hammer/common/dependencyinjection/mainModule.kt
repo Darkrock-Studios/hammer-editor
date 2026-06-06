@@ -34,7 +34,10 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsR
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
 import com.darkrockstudios.apps.hammer.common.data.references.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
@@ -143,12 +146,15 @@ val mainModule = module {
 		scoped<ProjectDef> { get<ProjectDefScope>().projectDef }
 
 		scopedOf(::SceneDatasource)
-		scopedOf(::SceneEditorRepository)
+		scopedOf(::SceneContentRepository)
+		scopedOf(::SceneRepository)
+		scopedOf(::SceneEditorService)
 		scopedOf(::ImportStoryUseCase)
 		scopedOf(::ExportStoryUseCase)
 		scopedOf(::SceneDraftsDatasource)
 		scopedOf(::SceneDraftRepository)
 		scopedOf(::SceneMetadataDatasource)
+		scopedOf(::SceneMetadataRepository)
 
 		factoryOf(::SceneIdDatasource)
 		factoryOf(::NotesIdDatasource)

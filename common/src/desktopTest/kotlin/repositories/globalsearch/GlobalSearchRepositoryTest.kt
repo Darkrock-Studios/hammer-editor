@@ -11,7 +11,9 @@ import com.darkrockstudios.apps.hammer.common.data.globalsearchrepository.Global
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -38,7 +40,9 @@ class GlobalSearchRepositoryTest : BaseTest() {
 
 	private val projectDef = ProjectDef(name = "Test", path = HPath("/projects/Test", "Test", false))
 
-	private lateinit var sceneEditor: SceneEditorRepository
+	private lateinit var sceneEditor: SceneRepository
+	private lateinit var sceneMetadataRepository: SceneMetadataRepository
+	private lateinit var sceneContentRepository: SceneContentRepository
 	private lateinit var notes: NotesRepository
 	private lateinit var encyclopedia: EncyclopediaRepository
 	private lateinit var timeLine: TimeLineRepository
@@ -49,14 +53,16 @@ class GlobalSearchRepositoryTest : BaseTest() {
 		setupKoin()
 
 		sceneEditor = mockk(relaxed = true)
+		sceneMetadataRepository = mockk(relaxed = true)
+		sceneContentRepository = mockk(relaxed = true)
 		notes = mockk(relaxed = true)
 		encyclopedia = mockk(relaxed = true)
 		timeLine = mockk(relaxed = true)
 
 		// Defaults: empty results
 		every { sceneEditor.getScenes() } returns emptyList()
-		every { sceneEditor.getSceneBuffer(any<SceneItem>()) } returns null
-		coEvery { sceneEditor.loadSceneMetadata(any()) } returns SceneMetadata()
+		every { sceneContentRepository.getSceneBuffer(any<SceneItem>()) } returns null
+		coEvery { sceneMetadataRepository.loadSceneMetadata(any()) } returns SceneMetadata()
 		every { notes.getNotes() } returns emptyList()
 		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(emptyList())
 		every { encyclopedia.entryListFlow } returns MutableSharedFlow<List<EntryDef>>(
@@ -69,6 +75,8 @@ class GlobalSearchRepositoryTest : BaseTest() {
 	private fun createRepository() = GlobalSearchRepository(
 		projectDef = projectDef,
 		sceneEditor = sceneEditor,
+		sceneMetadataRepository = sceneMetadataRepository,
+		sceneContentRepository = sceneContentRepository,
 		notes = notes,
 		encyclopedia = encyclopedia,
 		timeLine = timeLine,
@@ -159,7 +167,7 @@ class GlobalSearchRepositoryTest : BaseTest() {
 			order = 0,
 		)
 		every { sceneEditor.getScenes() } returns listOf(scene)
-		every { sceneEditor.getSceneBuffer(scene) } returns SceneBuffer(
+		every { sceneContentRepository.getSceneBuffer(scene) } returns SceneBuffer(
 			content = SceneContent(scene = scene, markdown = "Unsaved dragon attack"),
 			source = UpdateSource.Editor,
 		)
@@ -364,8 +372,8 @@ class GlobalSearchRepositoryTest : BaseTest() {
 			order = 1,
 		)
 		every { sceneEditor.getScenes() } returns listOf(taggedScene, untaggedScene)
-		coEvery { sceneEditor.loadSceneMetadata(7) } returns SceneMetadata(tags = setOf("plot"))
-		coEvery { sceneEditor.loadSceneMetadata(8) } returns SceneMetadata(tags = setOf("misc"))
+		coEvery { sceneMetadataRepository.loadSceneMetadata(7) } returns SceneMetadata(tags = setOf("plot"))
+		coEvery { sceneMetadataRepository.loadSceneMetadata(8) } returns SceneMetadata(tags = setOf("misc"))
 
 		val repo = createRepository()
 		repo.setQuery("#plot")
@@ -394,8 +402,8 @@ class GlobalSearchRepositoryTest : BaseTest() {
 			order = 1,
 		)
 		every { sceneEditor.getScenes() } returns listOf(matchingScene, tagOnlyScene)
-		coEvery { sceneEditor.loadSceneMetadata(7) } returns SceneMetadata(tags = setOf("fantasy"))
-		coEvery { sceneEditor.loadSceneMetadata(8) } returns SceneMetadata(tags = setOf("fantasy"))
+		coEvery { sceneMetadataRepository.loadSceneMetadata(7) } returns SceneMetadata(tags = setOf("fantasy"))
+		coEvery { sceneMetadataRepository.loadSceneMetadata(8) } returns SceneMetadata(tags = setOf("fantasy"))
 
 		val repo = createRepository()
 		repo.setQuery("#fantasy dragon")

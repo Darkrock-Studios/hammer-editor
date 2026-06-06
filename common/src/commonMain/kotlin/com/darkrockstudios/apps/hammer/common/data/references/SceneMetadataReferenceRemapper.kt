@@ -1,13 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import kotlinx.coroutines.flow.first
 
 class SceneMetadataReferenceRemapper(
-	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneEditorRepository: SceneRepository,
 	private val sceneMetadataDatasource: SceneMetadataDatasource,
 	private val referenceIndexRepository: ReferenceIndexRepository,
 ) : ReferenceRemapper {

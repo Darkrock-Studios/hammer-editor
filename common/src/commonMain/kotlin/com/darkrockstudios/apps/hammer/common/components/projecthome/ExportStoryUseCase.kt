@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.common.data.ExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -34,7 +34,7 @@ private fun String.sanitizedFileName(): String =
 	replace(unsafeFileNameChars, "_").trim().trim('.')
 
 class ExportStoryUseCase(
-	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneEditorRepository: SceneEditorService,
 	private val projectDataDatasource: ProjectDataDatasource,
 	private val fileSystem: FileSystem,
 	private val localeResolver: DeviceLocaleResolver,

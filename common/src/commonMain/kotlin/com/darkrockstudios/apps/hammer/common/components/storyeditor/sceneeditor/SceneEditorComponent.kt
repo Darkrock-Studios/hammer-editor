@@ -20,7 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
@@ -44,7 +44,7 @@ class SceneEditorComponent(
 	SceneEditor {
 
 	private val settingsRepository: GlobalSettingsRepository by inject()
-	private val sceneEditor: SceneEditorRepository by projectInject()
+	private val sceneEditor: SceneEditorService by projectInject()
 	private val draftsRepository: SceneDraftRepository by projectInject()
 	private val autoConfirmReferences: AutoConfirmReferencesUseCase by projectInject()
 

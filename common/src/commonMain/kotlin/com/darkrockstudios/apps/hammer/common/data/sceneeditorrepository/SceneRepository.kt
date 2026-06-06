@@ -1,14 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
-import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
-import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
-import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
@@ -16,53 +11,34 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
-import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import com.darkrockstudios.apps.hammer.common.util.StrRes
-import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescentBy
 import com.darkrockstudios.apps.hammer.common.util.numDigits
-import com.darkrockstudios.apps.hammer.default_draft_name
 import io.github.aakira.napier.Napier
-import kotlinx.atomicfu.locks.reentrantLock
-import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.first
 import okio.IOException
 import okio.Path
 import org.koin.core.component.KoinComponent
-import org.koin.core.scope.Scope
-import org.koin.core.scope.ScopeCallback
 import kotlin.time.Clock
-import kotlin.time.Duration.Companion.milliseconds
 
-class SceneEditorRepository(
+class SceneRepository(
 	val projectDef: ProjectDef,
 	private val idRepository: IdRepository,
 	private val syncDataRepository: SyncDataRepository,
-	private val projectMetadataDatasource: ProjectMetadataDatasource,
+	private val sceneMetadataRepository: SceneMetadataRepository,
+	private val sceneContentRepository: SceneContentRepository,
 	private val sceneMetadataDatasource: SceneMetadataDatasource,
 	private val sceneDatasource: SceneDatasource,
-	private val statisticsRepository: StatisticsRepository,
-	private val referenceIndexRepository: ReferenceIndexRepository,
-	private val writingSessionTracker: WritingSessionTracker,
 	private val clock: Clock,
-	private val strRes: StrRes,
-) : ScopeCallback, ProjectScoped, KoinComponent {
+) : ProjectScoped, KoinComponent {
 
 	override val projectScope = ProjectDefScope(projectDef)
-
-	init {
-		projectScope.scope.registerCallback(this)
-	}
 
 	val rootScene = SceneItem(
 		projectDef = projectDef,
@@ -72,40 +48,7 @@ class SceneEditorRepository(
 		order = 0
 	)
 
-	private val metadata = MutableSharedFlow<ProjectMetadata>(
-		extraBufferCapacity = 1,
-		replay = 1,
-		onBufferOverflow = BufferOverflow.DROP_OLDEST
-	)
-
-	suspend fun getMetadata(): ProjectMetadata {
-		return metadata.first()
-	}
-
 	private val dispatcherMain by injectMainDispatcher()
-	private val dispatcherDefault by injectDefaultDispatcher()
-	private val dispatcherIo by injectIoDispatcher()
-	private val editorScope = CoroutineScope(dispatcherDefault)
-
-	private val _contentFlow = MutableSharedFlow<SceneContentUpdate>(
-		extraBufferCapacity = 1,
-		replay = 1,
-		onBufferOverflow = BufferOverflow.DROP_OLDEST
-	)
-	private val contentFlow: SharedFlow<SceneContentUpdate> = _contentFlow
-	private var contentUpdateJob: Job? = null
-
-	private val _bufferUpdateFlow = MutableSharedFlow<SceneBuffer>(
-		extraBufferCapacity = 1,
-		onBufferOverflow = BufferOverflow.DROP_OLDEST
-	)
-	private val bufferUpdateFlow: SharedFlow<SceneBuffer> = _bufferUpdateFlow
-
-	private val _metadataUpdateFlow = MutableSharedFlow<Pair<Int, SceneMetadata>>(
-		extraBufferCapacity = 8,
-		onBufferOverflow = BufferOverflow.DROP_OLDEST
-	)
-	val metadataUpdateFlow: SharedFlow<Pair<Int, SceneMetadata>> = _metadataUpdateFlow
 
 	private val _sceneListChannel = MutableSharedFlow<SceneSummary>(
 		extraBufferCapacity = 1,
@@ -152,6 +95,13 @@ class SceneEditorRepository(
 		}
 	}
 
+	/**
+	 * Public entry point for marking a scene's current persisted identity for sync.
+	 * Used by [SceneEditorService] (which orchestrates metadata writes) and the sync layer,
+	 * keeping the hashing logic (responsibility G) on the data layer.
+	 */
+	suspend fun markSceneForSynchronization(scene: SceneItem) = markForSynchronization(scene)
+
 	// Runs through the whole tree and makes the scene order match the tree order
 	// this fixes changes that were made else where or possibly due to crashes
 	suspend fun cleanupSceneOrder() {
@@ -165,22 +115,6 @@ class SceneEditorRepository(
 				updateSceneOrder(node.value.id)
 			} catch (e: IOException) {
 				Napier.e("Failed to clean up scene order for group ${node.value.id}", e)
-			}
-		}
-	}
-
-	fun subscribeToBufferUpdates(
-		sceneDef: SceneItem?,
-		scope: CoroutineScope,
-		onBufferUpdate: suspend (SceneBuffer) -> Unit
-	): Job {
-		return scope.launch {
-			bufferUpdateFlow.collect { newBuffer ->
-				if (sceneDef == null || newBuffer.content.scene.id == sceneDef.id) {
-					withContext(dispatcherMain) {
-						onBufferUpdate(newBuffer)
-					}
-				}
 			}
 		}
 	}
@@ -200,30 +134,10 @@ class SceneEditorRepository(
 		return job
 	}
 
-	private val sceneBuffersLock = reentrantLock()
-	private val sceneBuffers = mutableMapOf<Int, SceneBuffer>()
-
-	private val storeTempJobs = mutableMapOf<Int, Job>()
-	private fun launchSaveJob(sceneDef: SceneItem) {
-		val job = storeTempJobs[sceneDef.id]
-		job?.cancel("Starting a new one")
-		storeTempJobs[sceneDef.id] = editorScope.launch {
-			storeTempSceneBuffer(sceneDef)
-			storeTempJobs.remove(sceneDef.id)
-		}
-	}
-
-	private fun getDirtyBufferIds(): Set<Int> = sceneBuffersLock.withLock {
-		sceneBuffers
-			.filter { it.value.dirty }
-			.map { it.key }
-			.toSet()
-	}
-
 	/**
 	 * This needs to be called after instantiation
 	 */
-	suspend fun initializeSceneEditor(): SceneEditorRepository {
+	suspend fun initializeSceneEditor(): SceneRepository {
 		val root = sceneDatasource.loadSceneTree(rootScene)
 		sceneTree.setRoot(root)
 
@@ -231,26 +145,12 @@ class SceneEditorRepository(
 
 		idRepository.findNextId()
 
-		// Load any existing temp scenes into buffers
-		val tempContent = sceneDatasource.getSceneTempBufferContents()
-		for (content in tempContent) {
-			val buffer = SceneBuffer(content, true, UpdateSource.Repository)
-			updateSceneBuffer(buffer)
-		}
+		// Loads any existing temp buffers and starts the content debounce/autosave engine.
+		sceneContentRepository.initialize()
 
 		reloadScenes()
 
-		val newMetadata = projectMetadataDatasource.loadMetadata(projectDef)
-		metadata.emit(newMetadata)
-
-		contentUpdateJob = editorScope.launch {
-			contentFlow.debounceUntilQuiescentBy({ it.content.scene.id }, BUFFER_COOL_DOWN)
-				.collect { contentUpdate ->
-					if (updateSceneBufferContent(contentUpdate.content, contentUpdate.source)) {
-						launchSaveJob(contentUpdate.content.scene)
-					}
-				}
-		}
+		sceneMetadataRepository.initialize()
 
 		return this
 	}
@@ -265,84 +165,13 @@ class SceneEditorRepository(
 	fun getSceneSummaries(): SceneSummary {
 		return SceneSummary(
 			getSceneTree(),
-			getDirtyBufferIds()
+			sceneContentRepository.getDirtyBufferIds()
 		)
 	}
 
 	fun reloadScenes(summary: SceneSummary? = null) {
 		val scenes = summary ?: getSceneSummaries()
 		_sceneListChannel.tryEmit(scenes)
-	}
-
-	fun onContentChanged(content: SceneContent, source: UpdateSource) {
-		editorScope.launch {
-			val update = SceneContentUpdate(content, source)
-			_contentFlow.emit(update)
-		}
-	}
-
-	private fun updateSceneBufferContent(content: SceneContent, source: UpdateSource): Boolean {
-		if (source == UpdateSource.Editor) {
-			val newBuffer = SceneBuffer(content, dirty = true, source = source)
-			updateSceneBuffer(newBuffer)
-			return true
-		}
-
-		val oldBuffer = sceneBuffersLock.withLock { sceneBuffers[content.scene.id] }
-		return if (content != oldBuffer?.content || content.platformRepresentation?.stateCompare(oldBuffer.content.platformRepresentation) == true) {
-			val newBuffer = SceneBuffer(content, source != UpdateSource.Sync, source)
-			updateSceneBuffer(newBuffer)
-			true
-		} else {
-			false
-		}
-	}
-
-	private fun updateSceneBuffer(newBuffer: SceneBuffer) {
-		sceneBuffersLock.withLock {
-			sceneBuffers[newBuffer.content.scene.id] = newBuffer
-		}
-		_bufferUpdateFlow.tryEmit(newBuffer)
-	}
-
-	fun getSceneBuffer(sceneDef: SceneItem): SceneBuffer? = getSceneBuffer(sceneDef.id)
-	fun getSceneBuffer(sceneId: Int): SceneBuffer? = sceneBuffersLock.withLock { sceneBuffers[sceneId] }
-
-	private fun hasSceneBuffer(sceneDef: SceneItem): Boolean =
-		hasSceneBuffer(sceneDef.id)
-
-	private fun hasSceneBuffer(sceneId: Int): Boolean =
-		sceneBuffersLock.withLock { sceneBuffers.containsKey(sceneId) }
-
-	fun hasDirtyBuffer(sceneId: Int): Boolean =
-		getSceneBuffer(sceneId)?.dirty == true
-
-	fun hasDirtyBuffers(): Boolean = sceneBuffersLock.withLock {
-		sceneBuffers.any { it.value.dirty }
-	}
-
-	suspend fun storeAllBuffers() {
-		val dirtyScenes = sceneBuffersLock.withLock {
-			sceneBuffers.filter { it.value.dirty }.map { it.value.content.scene }
-		}
-		dirtyScenes.forEach { scene ->
-			storeSceneBuffer(scene)
-		}
-	}
-
-	fun discardSceneBuffer(sceneDef: SceneItem) {
-		val wasPresent = sceneBuffersLock.withLock {
-			if (sceneBuffers.containsKey(sceneDef.id)) {
-				sceneBuffers.remove(sceneDef.id)
-				true
-			} else {
-				false
-			}
-		}
-		if (wasPresent) {
-			clearTempScene(sceneDef)
-			loadSceneBuffer(sceneDef)
-		}
 	}
 
 	private fun willNextSceneIncreaseMagnitude(parentId: Int?): Boolean {
@@ -423,19 +252,6 @@ class SceneEditorRepository(
 	fun validateSceneName(sceneName: String): CResult<Unit> =
 		ProjectsRepository.validateFileName(sceneName)
 
-	override fun onScopeClose(scope: Scope) {
-		contentUpdateJob?.cancel("Editor Closed")
-		runBlocking {
-			storeTempJobs.forEach { it.value.join() }
-		}
-		editorScope.cancel("Editor Closed")
-		// During a proper shutdown, we clear any remaining temp buffers that haven't been saved yet
-		sceneDatasource.getSceneTempBufferContents().forEach {
-			clearTempScene(it.scene)
-		}
-		Napier.i("SceneEditorRepository Closed.")
-	}
-
 	fun getPathSegments(sceneItem: SceneItem): List<Int> {
 		// Archived scenes have no hierarchy - they're flattened in .archived/
 		if (sceneItem.archived) {
@@ -491,38 +307,6 @@ class SceneEditorRepository(
 		} else {
 			ScenePathSegments(pathSegments = emptyList())
 		}
-	}
-
-	suspend fun loadSceneMetadata(sceneId: Int): SceneMetadata {
-		val defaultName: String = strRes.get(Res.string.default_draft_name)
-		val metadata = sceneMetadataDatasource.loadMetadata(sceneId) ?: SceneMetadata(currentDraftName = defaultName)
-		return if (metadata.currentDraftName.isBlank()) {
-			metadata.copy(currentDraftName = defaultName)
-		} else {
-			metadata
-		}
-	}
-
-	suspend fun storeMetadata(metadata: SceneMetadata, sceneId: Int) {
-		val scene = getSceneItemFromIdIncludingArchived(sceneId)
-			?: error("storeMetadata: Failed to load scene for id: $sceneId ")
-
-		val previous = sceneMetadataDatasource.loadMetadata(sceneId)
-
-		markForSynchronization(scene)
-		sceneMetadataDatasource.storeMetadata(metadata, sceneId)
-
-		val previousConfirmed = previous?.confirmedReferences.orEmpty()
-		val newConfirmed = metadata.confirmedReferences
-		if (previousConfirmed != newConfirmed) {
-			referenceIndexRepository.applySceneDelta(
-				sceneId = sceneId,
-				added = newConfirmed - previousConfirmed,
-				removed = previousConfirmed - newConfirmed,
-			)
-		}
-
-		_metadataUpdateFlow.tryEmit(sceneId to metadata)
 	}
 
 	fun getSceneFilePath(sceneItem: SceneItem, isNewScene: Boolean = false): HPath {
@@ -709,7 +493,7 @@ class SceneEditorRepository(
 
 		val newSummary = SceneSummary(
 			imTree,
-			getDirtyBufferIds()
+			sceneContentRepository.getDirtyBufferIds()
 		)
 		reloadScenes(newSummary)
 	}
@@ -955,7 +739,6 @@ class SceneEditorRepository(
 			Napier.i("createScene: $cleanedNamed")
 
 			reloadScenes()
-			statisticsRepository.markDirty()
 
 			newSceneItem
 		}
@@ -980,9 +763,6 @@ class SceneEditorRepository(
 				}
 
 				reloadScenes()
-				statisticsRepository.markDirty()
-				referenceIndexRepository.markSceneDeleted(scene.id)
-				writingSessionTracker.forgetBaseline(scene.id)
 
 				true
 			} else {
@@ -1013,7 +793,6 @@ class SceneEditorRepository(
 				Napier.w("Group ${scene.id} deleted")
 
 				reloadScenes()
-				statisticsRepository.markDirty()
 
 				true
 			} else {
@@ -1055,90 +834,6 @@ class SceneEditorRepository(
 		val success = sceneDatasource.storeSceneMarkdownRaw(sceneItem, scenePath)
 		return success
 	}
-
-	fun loadSceneBuffer(sceneItem: SceneItem): SceneBuffer {
-		val cachedBuffer = getSceneBuffer(sceneItem)
-		return if (cachedBuffer != null) {
-			cachedBuffer
-		} else {
-			val scenePath = getSceneFilePath(sceneItem)
-			val content = sceneDatasource.loadSceneBuffer(scenePath)
-			writingSessionTracker.rememberBaseline(sceneItem.id, content)
-			val newBuffer = SceneBuffer(
-				SceneContent(sceneItem, content),
-				source = UpdateSource.Repository
-			)
-
-			updateSceneBuffer(newBuffer)
-
-			newBuffer
-		}
-	}
-
-	suspend fun loadSceneBufferAsync(sceneItem: SceneItem): SceneBuffer = withContext(dispatcherIo) {
-		loadSceneBuffer(sceneItem)
-	}
-
-	suspend fun storeSceneBuffer(sceneItem: SceneItem): Boolean {
-		val buffer = getSceneBuffer(sceneItem)
-		if (buffer == null) {
-			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
-			return false
-		}
-
-		markForSynchronization(sceneItem)
-
-		val scenePath = getSceneFilePath(sceneItem)
-		val success = sceneDatasource.storeSceneBuffer(buffer, scenePath)
-
-		if (success) {
-			val cleanBuffer = buffer.copy(dirty = false)
-			updateSceneBuffer(cleanBuffer)
-
-			clearTempScene(sceneItem)
-			statisticsRepository.markDirty()
-			writingSessionTracker.onSceneSaved(
-				sceneId = sceneItem.id,
-				newContent = buffer.content.coerceMarkdown(),
-				source = buffer.source,
-			)
-			if (buffer.source == UpdateSource.Editor) {
-				recordSceneActivity(sceneItem.id)
-			}
-		}
-
-		return success
-	}
-
-	private suspend fun storeTempSceneBuffer(sceneItem: SceneItem): Boolean {
-		val buffer = getSceneBuffer(sceneItem)
-		if (buffer == null) {
-			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
-			return false
-		}
-		val success = sceneDatasource.storeTempSceneBuffer(buffer)
-		if (success && buffer.source == UpdateSource.Editor) {
-			recordSceneActivity(sceneItem.id)
-		}
-		return success
-	}
-
-	private suspend fun recordSceneActivity(sceneId: Int) {
-		val now = clock.now()
-		val existing = sceneMetadataDatasource.loadMetadata(sceneId)
-		// Backfill `created` for scenes authored before SceneMetadata had the field.
-		val createdFallback = existing?.created ?: getMetadata().info.created
-		val updated = (existing ?: SceneMetadata()).copy(
-			created = createdFallback,
-			lastEdited = now,
-		)
-		sceneMetadataDatasource.storeMetadata(updated, sceneId)
-		// Refresh open editors so their snapshot has the new timestamps.
-		_metadataUpdateFlow.tryEmit(sceneId to updated)
-		statisticsRepository.markDirty()
-	}
-
-	private fun clearTempScene(sceneItem: SceneItem) = sceneDatasource.clearTempScene(sceneItem)
 
 	private fun getLastOrderNumber(parentId: Int?): Int {
 		val parentPath: HPath = if (parentId != null && parentId != 0) {
@@ -1194,7 +889,6 @@ class SceneEditorRepository(
 		updateSceneOrder(parentId)
 
 		reloadScenes()
-		statisticsRepository.markDirty()
 
 		Napier.i("Scene ${scene.id} archived")
 		return true
@@ -1233,7 +927,6 @@ class SceneEditorRepository(
 		markForSynchronization(unarchivedScene)
 
 		reloadScenes()
-		statisticsRepository.markDirty()
 
 		Napier.i("Scene ${scene.id} unarchived")
 		return unarchivedScene
@@ -1275,9 +968,5 @@ class SceneEditorRepository(
 		sceneMetadataDatasource.storeMetadata(metadata, id)
 
 		return sceneItem
-	}
-
-	companion object {
-		val BUFFER_COOL_DOWN = 500.milliseconds
 	}
 }

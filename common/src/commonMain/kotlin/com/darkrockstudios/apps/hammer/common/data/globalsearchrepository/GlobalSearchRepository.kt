@@ -13,7 +13,9 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
@@ -29,7 +31,9 @@ import kotlin.coroutines.CoroutineContext
 
 class GlobalSearchRepository(
 	projectDef: ProjectDef,
-	private val sceneEditor: SceneEditorRepository,
+	private val sceneEditor: SceneRepository,
+	private val sceneMetadataRepository: SceneMetadataRepository,
+	private val sceneContentRepository: SceneContentRepository,
 	private val notes: NotesRepository,
 	private val encyclopedia: EncyclopediaRepository,
 	private val timeLine: TimeLineRepository,
@@ -242,7 +246,7 @@ class GlobalSearchRepository(
 		}
 
 		val metadata = withContext(dispatcherIo) {
-			runCatching { sceneEditor.loadSceneMetadata(scene.id) }.getOrNull()
+			runCatching { sceneMetadataRepository.loadSceneMetadata(scene.id) }.getOrNull()
 		} ?: return null
 		if (!metadata.tags.matchesAllTags(tagNeedles)) return null
 
@@ -270,7 +274,7 @@ class GlobalSearchRepository(
 	}
 
 	private fun loadSceneText(scene: SceneItem): String? {
-		val buffer = sceneEditor.getSceneBuffer(scene)
+		val buffer = sceneContentRepository.getSceneBuffer(scene)
 		val bufferText = buffer?.content?.markdown
 		if (bufferText != null) return bufferText
 		return runCatching { sceneEditor.loadSceneMarkdownRaw(scene) }.getOrNull()

@@ -44,7 +44,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	private fun useCase() = ExportStoryUseCase(
-		sceneEditorRepository = sceneEditorRepository,
+		sceneEditorRepository = sceneEditorService,
 		projectDataDatasource = projectDataDatasource,
 		fileSystem = ffs,
 		localeResolver = localeResolver,

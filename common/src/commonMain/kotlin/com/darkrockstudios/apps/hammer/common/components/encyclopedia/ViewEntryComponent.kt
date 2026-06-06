@@ -20,7 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.CleanupReferencesOnEntryDeleteUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -44,7 +44,7 @@ class ViewEntryComponent(
 
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val referenceIndexService: ReferenceIndexService by projectInject()
-	private val sceneEditorRepository: SceneEditorRepository by projectInject()
+	private val sceneEditorRepository: SceneEditorService by projectInject()
 	private val backfillEntryReferences: BackfillEntryReferencesUseCase by projectInject()
 	private val cleanupReferencesOnDelete: CleanupReferencesOnEntryDeleteUseCase by projectInject()
 

@@ -3,7 +3,8 @@ package com.darkrockstudios.apps.hammer.common.data.tagindex
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import kotlinx.coroutines.async
@@ -25,7 +26,8 @@ class BuildTagIndexUseCase(
 	private val encyclopediaRepository: EncyclopediaRepository,
 	private val notesRepository: NotesRepository,
 	private val timeLineRepository: TimeLineRepository,
-	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneEditorRepository: SceneRepository,
+	private val sceneMetadataRepository: SceneMetadataRepository,
 ) : KoinComponent {
 
 	private val dispatcherIo: CoroutineContext by inject(named(DISPATCHER_IO))
@@ -68,7 +70,7 @@ class BuildTagIndexUseCase(
 				.filter { it.type == SceneItem.Type.Scene } + sceneEditorRepository.getArchivedScenes()
 			coroutineScope {
 				sceneItems.map { scene ->
-					async { scene.id to sceneEditorRepository.loadSceneMetadata(scene.id).tags }
+					async { scene.id to sceneMetadataRepository.loadSceneMetadata(scene.id).tags }
 				}.awaitAll()
 			}
 		}

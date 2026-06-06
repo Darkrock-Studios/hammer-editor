@@ -7,7 +7,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import okio.Path
@@ -34,7 +35,8 @@ class HeadlessClient private constructor(
 	val projectPath: Path = projectDef.path.toOkioPath()
 
 	val synchronizer: ClientProjectSynchronizer get() = scope.get()
-	val sceneEditor: SceneEditorRepository get() = scope.get()
+	val sceneEditor: SceneRepository get() = scope.get()
+	val sceneEditorService: SceneEditorService get() = scope.get()
 
 	/**
 	 * Runs a full sync against the server. Conflicts are routed through [resolveConflict],

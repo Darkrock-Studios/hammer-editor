@@ -26,13 +26,13 @@ class SceneTimestampsTest : RoundTripTestBase() {
 		)
 
 		val beforeEdit = kotlin.time.Clock.System.now()
-		val scene = client.sceneEditor.createScene(parent = null, sceneName = "Timed Scene")
+		val scene = client.sceneEditorService.createScene(parent = null, sceneName = "Timed Scene")
 		assertNotNull(scene)
-		client.sceneEditor.onContentChanged(
+		client.sceneEditorService.onContentChanged(
 			SceneContent(scene, "first content"),
 			com.darkrockstudios.apps.hammer.common.data.UpdateSource.Editor,
 		)
-		client.sceneEditor.storeSceneBuffer(scene)
+		client.sceneEditorService.storeSceneBuffer(scene)
 
 		assertTrue(client.sync(), "Sync should succeed")
 		val afterSync = kotlin.time.Clock.System.now()
@@ -47,7 +47,7 @@ class SceneTimestampsTest : RoundTripTestBase() {
 		assertNotNull(numericProjectId)
 		val storedEntity = loadServerSceneEntity(numericProjectId, scene.id)
 
-		// SceneEditorRepository's storeAllBuffers runs inside prepareForSync and
+		// SceneRepository's storeAllBuffers runs inside prepareForSync and
 		// bumps lastEdited via recordSceneActivity right before upload, and the
 		// debounced contentFlow can fire again post-sync. That means there's no
 		// race-free local snapshot we can pin against the server's value, and

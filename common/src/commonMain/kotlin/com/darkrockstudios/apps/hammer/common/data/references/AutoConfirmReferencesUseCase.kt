@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import io.github.aakira.napier.Napier
 
 /**
@@ -21,7 +21,7 @@ import io.github.aakira.napier.Napier
  * confirmations, so we don't accumulate stale data.
  */
 class AutoConfirmReferencesUseCase(
-	private val sceneEditor: SceneEditorRepository,
+	private val sceneEditor: SceneEditorService,
 	private val referenceIndexService: ReferenceIndexService,
 	private val scrubInvalidReferences: ScrubInvalidReferencesUseCase,
 ) {

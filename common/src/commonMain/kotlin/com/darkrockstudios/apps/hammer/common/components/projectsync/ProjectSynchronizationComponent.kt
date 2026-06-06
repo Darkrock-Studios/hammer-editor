@@ -18,7 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -42,7 +42,7 @@ class ProjectSynchronizationComponent(
 	private val mainDispatcher by injectMainDispatcher()
 
 	private val globalSettingsRepository: GlobalSettingsRepository by inject()
-	private val sceneEditorRepository: SceneEditorRepository by projectInject()
+	private val sceneEditorRepository: SceneEditorService by projectInject()
 	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
 	private val notesRepository: NotesRepository by projectInject()
 	private val timeLineRepository: TimeLineRepository by projectInject()

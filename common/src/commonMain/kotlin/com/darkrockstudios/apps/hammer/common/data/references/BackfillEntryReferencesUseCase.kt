@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 
 /**
  * When an entry is created, renamed, or gets a new alias, walks the project's
@@ -19,7 +19,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
  * the touched scenes' metadata get cleaned in the same write.
  */
 class BackfillEntryReferencesUseCase(
-	private val sceneEditor: SceneEditorRepository,
+	private val sceneEditor: SceneEditorService,
 	private val referenceIndexService: ReferenceIndexService,
 	private val scrubInvalidReferences: ScrubInvalidReferencesUseCase,
 	private val config: ReferenceIndexConfig,
