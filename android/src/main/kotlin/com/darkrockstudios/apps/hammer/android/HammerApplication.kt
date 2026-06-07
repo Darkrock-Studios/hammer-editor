@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.android.shortcuts.shortcutsModule
 import com.darkrockstudios.apps.hammer.android.widgets.AddNoteWidgetReceiver
 import com.darkrockstudios.apps.hammer.android.widgets.StoriesListWidgetReceiver
 import com.darkrockstudios.apps.hammer.android.widgets.StoryInfoWidgetReceiver
+import com.darkrockstudios.apps.hammer.common.BuildConfig
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
@@ -104,7 +105,10 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 	}
 
 	private fun initializeDirectories() {
-		val useInternalData = Settings().getBoolean(
+		// Public (external) storage is only available on F-Droid builds. On any other
+		// build, force internal storage so a stale "use internal = false" preference can
+		// never send us to a directory we have no permission for.
+		val useInternalData = !BuildConfig.FDROID || Settings().getBoolean(
 			AndroidSettingsKeys.KEY_USE_INTERNAL_STORAGE,
 			true
 		)
