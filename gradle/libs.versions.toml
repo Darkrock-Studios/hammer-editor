@@ -7,7 +7,7 @@ data_version = "1.0"
 flatlaf = "3.7.1"
 jvm = "21"
 kache = "2.1.1"
-kotlin = "2.3.21"
+kotlin = "2.4.0"
 serialization = "1.11.0"
 
 # Android
@@ -25,7 +25,7 @@ appcompat = "1.7.1"
 appdirs = "1.5.0"
 cache4k = "0.14.0"
 core = "1.7.0"
-coreKtx = "1.16.0"
+coreKtx = "1.19.0"
 cryptohash = "1.0.2"
 glance = "1.2.0-rc01"
 androix-junit = "1.3.0"
@@ -43,12 +43,7 @@ kmpZip = "0.12.1"
 coroutines = "1.11.0"
 datetime = "0.8.0"
 napier = "2.7.1"
-# Pinned to 1.10.3 until skydoves/colorpicker-compose ships a 1.11-compatible release.
-# CMP 1.11 broke ImageShader / LinearGradientShader ABI, crashing the color picker dialog.
-# See: https://github.com/skydoves/colorpicker-compose/issues/171
-# compose-texteditor must stay on a build that targets CMP 1.10.3 (2.0.7 downgraded back to it
-# after 2.0.5/2.0.6 briefly shipped against 1.11).
-jetbrains_compose = "1.10.3"
+jetbrains_compose = "1.11.1"
 compose_compiler_report_generator = "1.5.0"
 jetbrains_kover = "0.9.8"
 
@@ -98,11 +93,11 @@ korge-core = "6.0.0"
 bouncycastle = "1.84"
 kotlinx-io-okio = "0.9.0"
 
-compose-texteditor = "2.1.0"
+compose-texteditor = "2.1.2"
 kotlin-multiplatform-diff = "1.3.0"
 platform-spellcheckerkt = "1.2.4"
 nucleus = "1.15.7"
-colorpicker-compose = "1.1.4"
+colorpicker-compose = "1.2.0"
 material-kolor = "4.1.1"
 
 [libraries]
