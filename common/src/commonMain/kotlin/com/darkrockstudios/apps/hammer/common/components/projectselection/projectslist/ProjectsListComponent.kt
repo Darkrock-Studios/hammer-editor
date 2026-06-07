@@ -4,7 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.*
-import com.darkrockstudios.apps.hammer.base.http.readToml
+import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
@@ -35,7 +35,6 @@ import io.github.aakira.napier.Napier
 import korlibs.datastructure.iterators.parallelMap
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
-import kotlinx.serialization.SerializationException
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.IOException
@@ -164,13 +163,10 @@ class ProjectsListComponent(
 		loadProjectsJob = scope.launch {
 			val projects = projectsRepository.getProjects(projectsDir)
 			val projectData = projects.parallelMap { projectDef ->
-				// The project can be deleted concurrently (e.g. another window, or a refresh
-				// racing a delete) between listing it and reading its metadata. loadMetadata
-				// then tries to recreate the file in a directory that no longer exists and
-				// throws - skip the vanished project rather than failing the whole load.
+				// The project can be deleted concurrently
 				val metadata = try {
 					projectMetadataDatasource.loadMetadata(projectDef)
-				} catch (e: IOException) {
+				} catch (_: IOException) {
 					null
 				}
 				if (metadata != null) {
@@ -181,7 +177,7 @@ class ProjectsListComponent(
 						totalWords = statisticsCacheReader.loadTotalWords(projectDef),
 					)
 				} else {
-					Napier.w { "Failed to load metadata for project: ${projectDef.name}" }
+					Napier.d { "Failed to load metadata for project: ${projectDef.name}" }
 					null
 				}
 			}.filterNotNull().sortedByDescending { it.metadata.info.lastAccessed }
@@ -200,15 +196,9 @@ class ProjectsListComponent(
 	 */
 	private fun loadStoredProjectData(projectDef: ProjectDef): StoredData {
 		val path = projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME
-		return try {
-			fileSystem.readToml<StoredProjectData>(path, toml).data
-		} catch (e: IOException) {
-			Napier.w("Failed to read stored project data for ${projectDef.name}, using defaults", e)
-			StoredData()
-		} catch (e: SerializationException) {
-			Napier.w("Failed to read stored project data for ${projectDef.name}, using defaults", e)
-			StoredData()
-		}
+		return fileSystem.readTomlOrNull<StoredProjectData>(path, toml) { e ->
+			Napier.d("Failed to read stored project data for ${projectDef.name}, using defaults", e)
+		}?.data ?: StoredData()
 	}
 
 	private fun updateLastAccessed(projectDef: ProjectDef) {

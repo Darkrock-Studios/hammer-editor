@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.writingactivity
 
-import com.darkrockstudios.apps.hammer.base.http.readToml
+import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -11,10 +11,8 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispat
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerializationException
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
-import okio.IOException
 import okio.Path
 
 /**
@@ -44,14 +42,8 @@ class WritingActivityDatasource(
 	suspend fun loadDeviceLog(deviceId: String): DeviceLog? = withContext(dispatcherIo) {
 		val path = getDeviceLogPath(deviceId)
 		if (!fileSystem.exists(path)) return@withContext null
-		try {
-			fileSystem.readToml(path, toml)
-		} catch (e: IOException) {
+		fileSystem.readTomlOrNull<DeviceLog>(path, toml) { e ->
 			Napier.e("Failed to load writing activity log: $path", e)
-			null
-		} catch (e: SerializationException) {
-			Napier.e("Failed to load writing activity log: $path", e)
-			null
 		}
 	}
 
@@ -62,11 +54,8 @@ class WritingActivityDatasource(
 			.filter { it.name.endsWith(FILE_SUFFIX) }
 			.mapNotNull { path ->
 				val deviceId = path.name.removeSuffix(FILE_SUFFIX)
-				val log: DeviceLog? = try {
-					fileSystem.readToml(path, toml)
-				} catch (e: Exception) {
+				val log = fileSystem.readTomlOrNull<DeviceLog>(path, toml) { e ->
 					Napier.e("Failed to load writing activity log: $path", e)
-					null
 				}
 				log?.let { deviceId to it }
 			}.toMap()

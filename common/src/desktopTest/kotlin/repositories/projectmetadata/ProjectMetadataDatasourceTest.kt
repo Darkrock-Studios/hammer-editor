@@ -57,6 +57,28 @@ class ProjectMetadataDatasourceTest : BaseTest() {
 	}
 
 	@Test
+	fun `Corrupt project metadata recovers instead of throwing`() {
+		createProject(fileSystem, PROJECT_1_NAME)
+		val path = projectMetadataDatasource.getMetadataPath(getProject1Def()).toOkioPath()
+		// dataVersion is an Int; a non-numeric value throws NumberFormatException on decode,
+		// which is not a SerializationException. Loading must recover, not crash the project load.
+		fileSystem.write(path) {
+			writeUtf8(
+				"""
+				[info]
+				created = "2022-12-30T07:08:02.691261600Z"
+				dataVersion = "not-a-number"
+				""".trimIndent()
+			)
+		}
+
+		val metadata = projectMetadataDatasource.loadMetadata(getProject1Def())
+
+		// Recreated fresh (dataVersion 0 so migrators re-run) rather than throwing.
+		assertEquals(0, metadata.info.dataVersion)
+	}
+
+	@Test
 	fun `Get Project Metadata Path`() {
 		createProject(fileSystem, PROJECT_1_NAME)
 		val path = projectMetadataDatasource.getMetadataPath(getProject1Def()).toOkioPath()

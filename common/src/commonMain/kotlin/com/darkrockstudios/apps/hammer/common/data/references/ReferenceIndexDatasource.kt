@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
-import com.darkrockstudios.apps.hammer.base.http.readToml
+import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
@@ -9,10 +9,8 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispat
 import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerializationException
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
-import okio.IOException
 import okio.Path
 import okio.Path.Companion.toPath
 
@@ -28,14 +26,8 @@ class ReferenceIndexDatasource(
 	suspend fun loadIndex(): ReferenceIndex? = withContext(dispatcherIo) {
 		val file = getIndexPath()
 		return@withContext if (fileSystem.exists(file)) {
-			try {
-				fileSystem.readToml(file, toml)
-			} catch (e: IOException) {
+			fileSystem.readTomlOrNull<ReferenceIndex>(file, toml) { e ->
 				Napier.e("Failed to load reference index cache", e)
-				null
-			} catch (e: SerializationException) {
-				Napier.e("Failed to load reference index cache", e)
-				null
 			}
 		} else {
 			null

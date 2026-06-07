@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectstatistics
 
-import com.darkrockstudios.apps.hammer.base.http.readToml
+import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
@@ -8,10 +8,8 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.SerializationException
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
-import okio.IOException
 
 class StatisticsDatasource(
 	private val fileSystem: FileSystem,
@@ -25,14 +23,8 @@ class StatisticsDatasource(
 	suspend fun loadStatistics(): ProjectStatistics? = withContext(dispatcherIo) {
 		val file = StatisticsCachePaths.statsFile(projectDef)
 		return@withContext if (fileSystem.exists(file)) {
-			try {
-				fileSystem.readToml(file, toml)
-			} catch (e: IOException) {
+			fileSystem.readTomlOrNull<ProjectStatistics>(file, toml) { e ->
 				Napier.e("Failed to load statistics cache", e)
-				null
-			} catch (e: SerializationException) {
-				Napier.e("Failed to load statistics cache", e)
-				null
 			}
 		} else {
 			null

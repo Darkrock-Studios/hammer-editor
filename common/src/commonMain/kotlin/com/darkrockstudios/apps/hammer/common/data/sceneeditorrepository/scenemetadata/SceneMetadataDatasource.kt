@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata
 
-import com.darkrockstudios.apps.hammer.base.http.readToml
+import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
@@ -27,7 +27,9 @@ class SceneMetadataDatasource(
 	suspend fun loadMetadata(sceneId: Int): SceneMetadata? = withContext(dispatcherIo) {
 		val file = getMetadataPath(sceneId).toOkioPath()
 		return@withContext if (fileSystem.exists(file)) {
-			fileSystem.readToml(file, toml)
+			fileSystem.readTomlOrNull<SceneMetadata>(file, toml) { e ->
+				Napier.e("Failed to load scene metadata for SceneId: $sceneId", e)
+			}
 		} else {
 			null
 		}
