@@ -36,7 +36,6 @@ import kotlinx.datetime.toLocalDateTime
 
 private val ModalMaxWidth = TextEditorDefaults.MAX_WIDTH * 1.25f
 private val ModalMaxHeight = 760.dp
-private val StampRowCompactThreshold = 420.dp
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
@@ -224,16 +223,9 @@ private fun StampRow(
 			.orEmpty()
 	}
 
-	BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-		val isCompact = maxWidth < StampRowCompactThreshold
-
-		Row(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-		) {
+	HdDetailStampRow(
+		stackActionsWhenNarrow = isEditing,
+		leading = {
 			HdMonoLabel(
 				text = "§ III · $sectionTitle",
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -242,35 +234,33 @@ private fun StampRow(
 			if (isEditing) {
 				PulsingDot()
 			}
+		},
+		meta = {
+			Box(
+				modifier = Modifier
+					.height(14.dp)
+					.width(Dp.Hairline)
+					.background(MaterialTheme.colorScheme.outlineVariant),
+			)
 
-			if (!isCompact) {
-				Box(
-					modifier = Modifier
-						.height(14.dp)
-						.width(Dp.Hairline)
-						.background(MaterialTheme.colorScheme.outlineVariant),
-				)
-
-				val metaText = if (isEditing) {
-					Res.string.notes_view_status_unsaved.get()
-				} else {
-					date
-				}
-				with(sharedTransitionScope) {
-					HdMonoLabel(
-						text = metaText,
-						modifier = Modifier.sharedElement(
-							sharedContentState = rememberSharedContentState(
-								key = "note-date-${note?.id}",
-							),
-							animatedVisibilityScope = animatedVisibilityScope,
-						),
-					)
-				}
+			val metaText = if (isEditing) {
+				Res.string.notes_view_status_unsaved.get()
+			} else {
+				date
 			}
-
-			Spacer(modifier = Modifier.weight(1f))
-
+			with(sharedTransitionScope) {
+				HdMonoLabel(
+					text = metaText,
+					modifier = Modifier.sharedElement(
+						sharedContentState = rememberSharedContentState(
+							key = "note-date-${note?.id}",
+						),
+						animatedVisibilityScope = animatedVisibilityScope,
+					),
+				)
+			}
+		},
+		actions = {
 			if (isEditing) {
 				HdHairlineButton(
 					label = Res.string.notes_view_action_save.get(),
@@ -287,8 +277,8 @@ private fun StampRow(
 					onClick = onEdit,
 				)
 			}
-		}
-	}
+		},
+	)
 }
 
 @Composable

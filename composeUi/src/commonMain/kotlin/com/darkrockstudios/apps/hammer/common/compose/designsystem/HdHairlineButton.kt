@@ -58,6 +58,8 @@ fun HdHairlineButton(
 			text = label,
 			style = MaterialTheme.typography.labelLarge,
 			color = labelColor,
+			maxLines = 1,
+			softWrap = false,
 		)
 	}
 }
