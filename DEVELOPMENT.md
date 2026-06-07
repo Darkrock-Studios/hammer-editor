@@ -78,6 +78,50 @@ flowchart TD
 	classDef desktopColor fill:#577590,stroke:#333,stroke-width:2px,color:#FFFFFF;
 ```
 
+## Build Variants
+
+### The F-Droid build flag
+
+F-Droid builds are produced by the same modules as the Google Play build, but with a
+single build flag toggled. There are no Gradle product flavors; instead the flag is read
+directly from a Gradle property (or an environment variable) wherever it's needed:
+
+- Property: `-Pfdroid=true` (any non-empty value works)
+- Environment variable: `FDROID_BUILD` (any value, even empty, enables it)
+
+Build the F-Droid APK locally with:
+
+```
+./gradlew :android:assembleRelease -Pfdroid=true
+```
+
+Omitting the flag produces the default (Google Play) build.
+
+#### What the flag changes
+
+| Location | Effect when set |
+| --- | --- |
+| `settings.gradle.kts` | Skips the foojay toolchain resolver (F-Droid can't reach foojay) and excludes the `:desktop` module from the build. |
+| `common/build.gradle.kts` | Emits `BuildConfig.FDROID = true` (via the `buildConfig {}` block) so runtime code can branch on the build channel. Reachable from `common`, `composeUi`, and `android`. |
+| `android/build.gradle.kts` | Swaps the app manifest to `android/src/fdroid/AndroidManifest.xml`, which additionally declares the storage permissions needed for public-storage projects. |
+
+#### Public-storage projects (F-Droid only)
+
+Storing projects in shared/public storage requires `MANAGE_EXTERNAL_STORAGE` (All Files
+Access), which Google Play does not allow, so the feature is gated to F-Droid builds:
+
+- The permissions live **only** in `android/src/fdroid/AndroidManifest.xml`. That file is a
+  full copy of `src/main/AndroidManifest.xml` plus the storage permissions — if you add or
+  remove an activity/receiver/provider in the main manifest, mirror the change there.
+- The settings UI (`PlatformSettingsUi.android.kt`) shows the storage-location toggle only
+  when `BuildConfig.FDROID` is true.
+- `HammerApplication` forces internal storage on non-F-Droid builds, so a leftover
+  preference can never point a Google Play build at a directory it has no permission for.
+
+When adding new runtime behaviour that should differ between channels, branch on
+`com.darkrockstudios.apps.hammer.common.BuildConfig.FDROID` rather than re-reading the
+Gradle property.
+
 ## Client Development
 
 ### Client Architecture
