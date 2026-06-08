@@ -11,6 +11,8 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
+import kotlinx.atomicfu.locks.SynchronizedObject
+import kotlinx.atomicfu.locks.synchronized
 import okio.FileSystem
 import okio.IOException
 import okio.Path
@@ -19,6 +21,12 @@ class SceneDatasource(
 	private val projectDef: ProjectDef,
 	private val fileSystem: FileSystem,
 ) {
+
+	// Cached recursive scan of the (non-archived) scenes directory; invalidated on structural mutation.
+	private val scenePathCacheLock = SynchronizedObject()
+	private var cachedScenePaths: List<HPath>? = null
+
+	private fun invalidateScenePathCache() = synchronized(scenePathCacheLock) { cachedScenePaths = null }
 
 	fun getSceneDirectory(): HPath = getSceneDirectory(projectDef, fileSystem)
 
@@ -38,23 +46,19 @@ class SceneDatasource(
 			}
 	}
 
-	private fun getAllScenePathsOkio(): List<Path> {
-		val sceneDirPath = getSceneDirectory().toOkioPath()
-		val scenePaths = fileSystem.listRecursively(sceneDirPath)
-			.filterScenePathsOkio()
-			.sortedBy { it.name }
-			.map { it.toOkioPath() }
-			.toList()
-		return scenePaths
-	}
+	private fun getAllScenePathsOkio(): List<Path> = getAllScenePaths().map { it.toOkioPath() }
 
-	fun getAllScenePaths(): List<HPath> {
-		val sceneDirPath = getSceneDirectory().toOkioPath()
-		val scenePaths = fileSystem.listRecursively(sceneDirPath)
-			.filterScenePathsOkio()
-			.sortedBy { it.name }
-			.toList()
-		return scenePaths
+	// Scan runs inside the lock so an invalidation can't interleave between scan and store and
+	// resurrect a stale list. The scan is blocking, not suspending, so holding the lock is safe.
+	fun getAllScenePaths(): List<HPath> = synchronized(scenePathCacheLock) {
+		cachedScenePaths ?: run {
+			val sceneDirPath = getSceneDirectory().toOkioPath()
+			fileSystem.listRecursively(sceneDirPath)
+				.filterScenePathsOkio()
+				.sortedBy { it.name }
+				.toList()
+				.also { cachedScenePaths = it }
+		}
 	}
 
 	fun getAllScenes(): List<SceneItem> {
@@ -196,6 +200,7 @@ class SceneDatasource(
 
 	fun moveScene(sourcePath: HPath, targetPath: HPath) {
 		fileSystem.atomicMove(sourcePath.toOkioPath(), targetPath.toOkioPath())
+		invalidateScenePathCache()
 	}
 
 	fun getSceneBufferDirectory(): HPath {
@@ -313,12 +318,14 @@ class SceneDatasource(
 
 	fun createNewScene(scenePath: HPath) {
 		fileSystem.createDirectory(scenePath.toOkioPath(), true)
+		invalidateScenePathCache()
 	}
 
 	fun createNewGroup(scenePath: HPath) {
 		fileSystem.write(scenePath.toOkioPath(), true) {
 			writeUtf8("")
 		}
+		invalidateScenePathCache()
 	}
 
 	suspend fun deleteScene(scene: SceneItem): Boolean {
@@ -333,6 +340,7 @@ class SceneDatasource(
 				false
 			} else {
 				fileSystem.delete(scenePath)
+				invalidateScenePathCache()
 				true
 			}
 		} catch (e: IOException) {
@@ -355,6 +363,7 @@ class SceneDatasource(
 				false
 			} else {
 				fileSystem.delete(scenePath)
+				invalidateScenePathCache()
 				true
 			}
 		} catch (e: IOException) {

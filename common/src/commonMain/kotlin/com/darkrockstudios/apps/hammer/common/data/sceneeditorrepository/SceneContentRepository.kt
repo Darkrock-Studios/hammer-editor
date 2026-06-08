@@ -258,8 +258,11 @@ class SceneContentRepository(
 
 	override fun onScopeClose(scope: Scope) {
 		contentUpdateJob?.cancel("Editor Closed")
+		// Time-bounded so a stuck save can't block process shutdown.
 		runBlocking {
-			storeTempJobs.forEach { it.value.join() }
+			withTimeoutOrNull(SHUTDOWN_SAVE_TIMEOUT) {
+				storeTempJobs.values.toList().joinAll()
+			} ?: Napier.w("Timed out waiting for temp scene saves on close; forcing shutdown.")
 		}
 		editorScope.cancel("Editor Closed")
 		// During a proper shutdown, we clear any remaining temp buffers that haven't been saved yet
@@ -271,5 +274,6 @@ class SceneContentRepository(
 
 	companion object {
 		val BUFFER_COOL_DOWN = 500.milliseconds
+		val SHUTDOWN_SAVE_TIMEOUT = 5000.milliseconds
 	}
 }
