@@ -95,6 +95,7 @@
 	<string name="project_home_export_format_label">Format</string>
 	<string name="project_home_export_format_markdown">Markdown (.md)</string>
 	<string name="project_home_export_format_epub">EPub (.epub)</string>
+	<string name="project_home_export_format_pdf">PDF (.pdf)</string>
 	<string name="project_home_export_cancel">Cancel</string>
 	<string name="project_home_export_execute">Export</string>
 

@@ -34,6 +34,7 @@ kotlinx_cli = "0.3.6"
 kotlinx_atomicfu = "0.33.0"
 markdown = "0.7.5"
 epub4kmp = "0.3.0"
+pdfkmp = "1.2.0"
 kotlinx_html = "0.12.0"
 material = "1.14.0"
 orchestrator = "1.6.1"
@@ -169,6 +170,8 @@ kotlinx_atomicfu_plugin = { group = "org.jetbrains.kotlinx", name = "atomicfu-gr
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
 kotlin-multiplatform-diff = { module = "io.github.petertrr:kotlin-multiplatform-diff", version.ref = "kotlin-multiplatform-diff" }
 epub4kmp_core = { module = "com.darkrockstudios:epub4kmp-core", version.ref = "epub4kmp" }
+pdfkmp = { module = "io.github.conamobiledev:pdfkmp", version.ref = "pdfkmp" }
+pdfkmp_markdown = { module = "io.github.conamobiledev:pdfkmp-markdown", version.ref = "pdfkmp" }
 kotlinx_html = { module = "org.jetbrains.kotlinx:kotlinx-html", version.ref = "kotlinx_html" }
 multiplatform_window_size = { group = "dev.chrisbanes.material3", name = "material3-window-size-class-multiplatform", version.ref = "multiplatform_window_size" }
 material = { module = "com.google.android.material:material", version.ref = "material" }

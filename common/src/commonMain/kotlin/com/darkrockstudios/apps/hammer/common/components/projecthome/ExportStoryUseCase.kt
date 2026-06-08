@@ -26,6 +26,7 @@ val ExportFormat.fileExtension: String
 	get() = when (this) {
 		ExportFormat.Markdown -> "md"
 		ExportFormat.Epub -> "epub"
+		ExportFormat.Pdf -> "pdf"
 	}
 
 /** Strips characters that have meaning in file paths or the SAF picker; covers project names that came from sync. */
@@ -67,17 +68,22 @@ class ExportStoryUseCase(
 
 					ExportFormat.Epub -> {
 						val projectData = projectDataDatasource.load().data
-						val epubChapters = if (options.treatTopLevelAsChapters) {
-							perNodeChapters
-						} else {
-							listOf(StoryChapter(projectName, perNodeChapters.joinToString("\n\n") { it.markdown }))
-						}
 						writeStoryAsEpub(
 							sink = this,
 							projectName = projectName,
 							projectData = projectData,
-							chapters = epubChapters,
+							chapters = chaptersFor(options, projectName, perNodeChapters),
 							language = localeResolver.getCurrentLocale().language?.takeIf { it.isNotBlank() } ?: "en",
+						)
+					}
+
+					ExportFormat.Pdf -> {
+						val projectData = projectDataDatasource.load().data
+						writeStoryAsPdf(
+							sink = this,
+							projectName = projectName,
+							projectData = projectData,
+							chapters = chaptersFor(options, projectName, perNodeChapters),
 						)
 					}
 				}
@@ -90,6 +96,17 @@ class ExportStoryUseCase(
 		}
 
 		exportPath.toHPath()
+	}
+
+	/** Per-node chapters when treating top-level scenes as chapters; otherwise a single chapter named after the project. */
+	private fun chaptersFor(
+		options: ExportOptions,
+		projectName: String,
+		perNodeChapters: List<StoryChapter>,
+	): List<StoryChapter> = if (options.treatTopLevelAsChapters) {
+		perNodeChapters
+	} else {
+		listOf(StoryChapter(projectName, perNodeChapters.joinToString("\n\n") { it.markdown }))
 	}
 
 	private fun collectMarkdown(node: TreeValue<SceneItem>): String {

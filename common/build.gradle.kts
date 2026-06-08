@@ -82,6 +82,8 @@ kotlin {
 				implementation(libs.kmp.zip.okio)
 				implementation(libs.markdown)
 				implementation(libs.epub4kmp.core)
+				implementation(libs.pdfkmp)
+				implementation(libs.pdfkmp.markdown)
 				implementation(libs.kotlinx.html)
 			}
 		}

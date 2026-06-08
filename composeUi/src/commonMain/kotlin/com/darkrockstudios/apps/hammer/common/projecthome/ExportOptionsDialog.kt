@@ -133,9 +133,10 @@ fun ExportOptionsDialog(
 	}
 }
 
-private val AVAILABLE_EXPORT_FORMATS = listOf(ExportFormat.Markdown, ExportFormat.Epub)
+private val AVAILABLE_EXPORT_FORMATS = listOf(ExportFormat.Markdown, ExportFormat.Epub, ExportFormat.Pdf)
 
 private fun ExportFormat.labelRes(): StringResource = when (this) {
 	ExportFormat.Markdown -> Res.string.project_home_export_format_markdown
 	ExportFormat.Epub -> Res.string.project_home_export_format_epub
+	ExportFormat.Pdf -> Res.string.project_home_export_format_pdf
 }
