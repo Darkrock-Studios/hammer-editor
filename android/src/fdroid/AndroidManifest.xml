@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+	F-Droid-only manifest. Selected by android/build.gradle.kts when the build is
+	invoked with -Pfdroid=true (or FDROID_BUILD set in the environment).
+
+	It is identical to src/main/AndroidManifest.xml EXCEPT that it also declares the
+	storage permissions required for the "store projects in public storage" feature.
+	Those permissions (notably MANAGE_EXTERNAL_STORAGE / All Files Access) are not
+	allowed on Google Play, so they must never appear in the default/main manifest.
+
+	IMPORTANT: keep the <application> block below in sync with src/main/AndroidManifest.xml.
+	If you add/remove an activity, receiver or provider there, mirror it here.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+	<uses-permission android:name="android.permission.INTERNET"/>
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+	<uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY"/>
+
+	<!-- Public-storage projects (F-Droid only) -->
+	<uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
+	<uses-permission
+		android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+		android:maxSdkVersion="29"/>
+	<uses-permission
+		android:name="android.permission.READ_EXTERNAL_STORAGE"
+		android:maxSdkVersion="29"/>
+
+	<application
+		android:name=".HammerApplication"
+		android:allowBackup="true"
+		android:enableOnBackInvokedCallback="true"
+		android:dataExtractionRules="@xml/data_extraction_rules"
+		android:fullBackupContent="@xml/backup_rules"
+		android:icon="@mipmap/ic_launcher"
+		android:label="@string/app_name"
+		android:roundIcon="@mipmap/ic_launcher_round"
+		android:supportsRtl="true"
+		android:theme="@style/Theme.Hammer"
+		android:usesCleartextTraffic="true">
+
+		<activity
+			android:name=".ProjectSelectActivity"
+			android:exported="true"
+			android:windowSoftInputMode="adjustResize">
+			<intent-filter>
+				<action android:name="android.intent.action.MAIN"/>
+
+				<category android:name="android.intent.category.LAUNCHER"/>
+			</intent-filter>
+
+			<meta-data
+				android:name="android.app.shortcuts"
+				android:resource="@xml/shortcuts"/>
+		</activity>
+		<activity
+			android:name=".ProjectRootActivity"
+			android:exported="true"
+			android:windowSoftInputMode="adjustResize"/>
+		<activity
+			android:name=".widgets.AddNoteActivity"
+			android:excludeFromRecents="true"
+			android:exported="true"
+			android:label="@string/title_activity_add_note"
+			android:theme="@style/Theme.AppCompat.DayNight.Dialog"
+			android:windowSoftInputMode="adjustResize"/>
+		<activity
+			android:name=".widgets.AddNoteWidgetConfigActivity"
+			android:exported="false"
+			android:label="@string/title_activity_add_note_widget_config">
+			<intent-filter>
+				<action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+			</intent-filter>
+		</activity>
+
+		<receiver
+			android:name=".widgets.AddNoteWidgetReceiver"
+			android:enabled="@bool/glance_appwidget_available"
+			android:exported="false">
+			<intent-filter>
+				<action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+			</intent-filter>
+
+			<meta-data
+				android:name="android.appwidget.provider"
+				android:resource="@xml/add_note_widget_info"/>
+		</receiver>
+
+		<receiver
+			android:name=".widgets.StoriesListWidgetReceiver"
+			android:enabled="@bool/glance_appwidget_available"
+			android:exported="false">
+			<intent-filter>
+				<action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+			</intent-filter>
+
+			<meta-data
+				android:name="android.appwidget.provider"
+				android:resource="@xml/stories_list_widget_info"/>
+		</receiver>
+
+		<activity
+			android:name=".widgets.StoryInfoWidgetConfigActivity"
+			android:exported="false"
+			android:label="@string/title_activity_story_info_widget_config">
+			<intent-filter>
+				<action android:name="android.appwidget.action.APPWIDGET_CONFIGURE"/>
+			</intent-filter>
+		</activity>
+
+		<receiver
+			android:name=".widgets.StoryInfoWidgetReceiver"
+			android:enabled="@bool/glance_appwidget_available"
+			android:exported="false">
+			<intent-filter>
+				<action android:name="android.appwidget.action.APPWIDGET_UPDATE"/>
+			</intent-filter>
+
+			<meta-data
+				android:name="android.appwidget.provider"
+				android:resource="@xml/story_info_widget_info"/>
+		</receiver>
+
+		<provider
+				android:name="androidx.core.content.FileProvider"
+				android:authorities="${applicationId}.fileprovider"
+				android:exported="false"
+				android:grantUriPermissions="true">
+			<meta-data
+					android:name="android.support.FILE_PROVIDER_PATHS"
+					android:resource="@xml/file_provider_paths"/>
+		</provider>
+	</application>
+
+</manifest>

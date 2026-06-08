@@ -14,10 +14,12 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.common.BuildConfig
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AndroidPlatformSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import dev.icerock.moko.permissions.compose.BindEffect
 
@@ -68,6 +70,62 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 					emphasised = true,
 				)
 			}
+		}
+
+		// Public-storage projects are only offered on F-Droid builds: the required
+		// MANAGE_EXTERNAL_STORAGE permission is not permitted on Google Play.
+		if (BuildConfig.FDROID) {
+			PublicStorageSettings(component, state)
+		}
+	}
+}
+
+@Composable
+private fun PublicStorageSettings(
+	component: AndroidPlatformSettingsComponent,
+	state: AndroidPlatformSettingsComponent.PlatformState,
+) {
+	Column(
+		modifier = Modifier.fillMaxWidth(),
+		verticalArrangement = Arrangement.spacedBy(10.dp),
+	) {
+		HdHairlineToggleRow(
+			checked = !state.dataStorageInternal,
+			onCheckedChange = { usePublic ->
+				if (usePublic) {
+					if (state.fileAccessGranted) {
+						component.setExternalStorage()
+					} else {
+						component.promptForFileAccess()
+					}
+				} else {
+					component.setInternalStorage()
+				}
+			},
+			label = Res.string.settings_storage_public_label.get(),
+			hint = Res.string.settings_storage_public_hint.get(),
+		)
+
+		Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+			HdMonoLabel(text = Res.string.settings_storage_location_label.get())
+			Text(
+				text = state.projectsDir.path,
+				style = MaterialTheme.typography.titleMedium,
+				color = MaterialTheme.colorScheme.onSurface,
+			)
+		}
+
+		if (!state.fileAccessGranted) {
+			Text(
+				text = Res.string.settings_storage_permission_explanation.get(),
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.onSurface,
+			)
+			HdHairlineButton(
+				label = Res.string.settings_storage_permission_button.get(),
+				onClick = component::promptForFileAccess,
+				emphasised = true,
+			)
 		}
 	}
 }
