@@ -9,7 +9,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.iosroot.IosRoot
 import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootScaffold
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectScaffold
@@ -21,9 +21,9 @@ fun MainViewController(root: IosRoot): UIViewController = ComposeUIViewControlle
 
 @Composable
 private fun HammerApp(root: IosRoot) {
-	val globalSettingsRepository: GlobalSettingsRepository = rememberKoinInject()
-	val settingsState by globalSettingsRepository.globalSettingsUpdates
-		.collectAsState(initial = globalSettingsRepository.globalSettings)
+	val globalSettingsStore: GlobalSettingsStore = rememberKoinInject()
+	val settingsState by globalSettingsStore.globalSettingsUpdates
+		.collectAsState(initial = globalSettingsStore.globalSettings)
 
 	val systemDark = isSystemInDarkTheme()
 	val isDark = when (settingsState.uiTheme) {

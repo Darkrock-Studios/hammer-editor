@@ -35,7 +35,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
@@ -55,12 +55,12 @@ import kotlin.time.Clock
 class ProjectRootActivity : AppCompatActivity() {
 
 	private val settings: Settings by inject()
-	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val shortcutsManager: ProjectShortcutsManager by inject()
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectMetadataDatasource: ProjectMetadataDatasource by inject()
 	private val mainDispatcher by injectMainDispatcher()
-	private val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
+	private val globalSettings = MutableValue(globalSettingsStore.globalSettings)
 	private var settingsUpdateJob: Job? = null
 
 	private val viewModel: ProjectRootViewModel by viewModels()
@@ -148,7 +148,7 @@ class ProjectRootActivity : AppCompatActivity() {
 		super.onStart()
 
 		settingsUpdateJob = lifecycleScope.launch {
-			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
+			globalSettingsStore.globalSettingsUpdates.collect { settings ->
 				withContext(mainDispatcher) {
 					globalSettings.getAndUpdate { settings }
 				}

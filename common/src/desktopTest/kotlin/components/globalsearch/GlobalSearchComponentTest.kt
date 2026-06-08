@@ -8,17 +8,15 @@ import com.arkivanov.essenty.statekeeper.StateKeeper
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.AnnotatedSnippet
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearch
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchComponent
+import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchState
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsearchrepository.GlobalSearchRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.koin.dsl.bind
-import org.koin.dsl.module
 import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertSame
@@ -38,28 +36,24 @@ class GlobalSearchComponentTest : BaseTest() {
 	private lateinit var context: ComponentContext
 
 	@MockK
-	private lateinit var searchRepository: GlobalSearchRepository
+	private lateinit var searchState: GlobalSearchState
 
 	private val projectDef = ProjectDef(name = "Test", path = HPath("/p", "Test", false))
-	private val repoState = MutableValue(GlobalSearch.State())
+	private val state = MutableValue(GlobalSearch.State())
 
 	@BeforeEach
 	override fun setup() {
 		super.setup()
 
 		MockKAnnotations.init(this, relaxUnitFun = true)
-
-		val testModule = module {
-			single { searchRepository } bind GlobalSearchRepository::class
-		}
-		setupKoin(testModule)
+		setupKoin()
 
 		every { lifecycle.state } returns Lifecycle.State.STARTED
 		every { context.lifecycle } returns lifecycle
 		every { context.backHandler } returns backHandler
 		every { context.stateKeeper } returns stateKeeper
 		every { backHandler.register(any()) } just Runs
-		every { searchRepository.state } returns repoState
+		every { searchState.state } returns state
 	}
 
 	private fun createComponent(
@@ -68,12 +62,13 @@ class GlobalSearchComponentTest : BaseTest() {
 	) = GlobalSearchComponent(
 		componentContext = context,
 		projectDef = projectDef,
+		searchState = searchState,
 		onDismiss = onDismiss,
 		navigateToResult = navigateToResult,
 	)
 
 	@Test
-	fun `state is sourced from repository - retains across construction`() = runTest {
+	fun `state is sourced from the holder`() = runTest {
 		val existingResults = listOf(
 			SearchResult.Note(
 				noteId = 1,
@@ -81,7 +76,7 @@ class GlobalSearchComponentTest : BaseTest() {
 				snippet = AnnotatedSnippet("matched text", 0, 7),
 			)
 		)
-		repoState.value = GlobalSearch.State(query = "previous", results = existingResults)
+		state.value = GlobalSearch.State(query = "previous", results = existingResults)
 
 		val component = createComponent()
 
@@ -90,13 +85,11 @@ class GlobalSearchComponentTest : BaseTest() {
 	}
 
 	@Test
-	fun `onQueryChanged delegates to repository`() = runTest {
-		every { searchRepository.setQuery(any()) } just Runs
-
+	fun `onQueryChanged delegates to the holder`() = runTest {
 		val component = createComponent()
 		component.onQueryChanged("dragon")
 
-		verify { searchRepository.setQuery("dragon") }
+		verify { searchState.setQuery("dragon") }
 	}
 
 	@Test

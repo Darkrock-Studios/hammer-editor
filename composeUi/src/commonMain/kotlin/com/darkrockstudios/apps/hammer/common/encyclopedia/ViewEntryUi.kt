@@ -409,19 +409,28 @@ private fun StampRow(
 	onSave: () -> Unit,
 	onCancel: () -> Unit,
 ) {
-	BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-		val isCompact = maxWidth < StampRowCompactThreshold
+	val folioMeta: (@Composable RowScope.() -> Unit)? = if (editing) {
+		null
+	} else {
+		{
+			HdMonoLabel(
+				text = Res.string.encyclopedia_entry_folio_format.get(
+					folioInitials(entryDef),
+					folioId(entryDef),
+				),
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
+	}
 
-		Row(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(horizontal = Ui.Padding.XXL, vertical = Ui.Padding.L),
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-		) {
-			FolioStamp(entryDef = entryDef)
+	HdDetailStampRow(
+		stackActionsWhenNarrow = editing,
+		compactThreshold = StampRowCompactThreshold,
+		contentPadding = PaddingValues(horizontal = Ui.Padding.XXL, vertical = Ui.Padding.L),
+		leading = { FolioStamp(entryDef = entryDef) },
+		meta = folioMeta,
+		actions = {
 			if (editing) {
-				Spacer(modifier = Modifier.weight(1f))
 				HdHairlineButton(
 					label = Res.string.encyclopedia_entry_edit_save_button.get(),
 					onClick = onSave,
@@ -432,23 +441,13 @@ private fun StampRow(
 					onClick = onCancel,
 				)
 			} else {
-				if (!isCompact) {
-					HdMonoLabel(
-						text = Res.string.encyclopedia_entry_folio_format.get(
-							folioInitials(entryDef),
-							folioId(entryDef),
-						),
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
-					)
-				}
-				Spacer(modifier = Modifier.weight(1f))
 				HdHairlineButton(
 					label = Res.string.encyclopedia_entry_edit_button.get(),
 					onClick = onEdit,
 				)
 			}
-		}
-	}
+		},
+	)
 }
 
 @Composable

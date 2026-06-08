@@ -3,23 +3,23 @@ package com.darkrockstudios.apps.hammer.common.data.drafts
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
 import kotlin.time.Clock
 
 class SceneDraftRepository(
 	projectDef: ProjectDef,
-	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneContentRepository: SceneContentRepository,
 	private val datasource: SceneDraftsDatasource,
 	private val clock: Clock,
 ) : ProjectScoped {
 	override val projectScope = ProjectDefScope(projectDef)
 
-	private val idRepository: IdRepository by projectInject()
-	private val syncDataRepository: SyncDataRepository by projectInject()
+	private val idAllocator: IdAllocator by projectInject()
+	private val syncJournal: SyncJournal by projectInject()
 
 	suspend fun getAllDrafts(): Set<DraftDef> = datasource.getAllDrafts()
 	fun getSceneIdsThatHaveDrafts(): List<Int> = datasource.getSceneIdsThatHaveDrafts()
@@ -42,7 +42,7 @@ class SceneDraftRepository(
 			return null
 		}
 
-		val newId = idRepository.claimNextId()
+		val newId = idAllocator.claimNextId()
 		val newDraftTimestamp = clock.now()
 		val newDef = DraftDef(
 			id = newId,
@@ -51,15 +51,7 @@ class SceneDraftRepository(
 			draftName = draftName
 		)
 
-		val existingBuffer = sceneEditorRepository.getSceneBuffer(sceneItem.id)
-		val content: String = if (existingBuffer != null) {
-			Napier.i { "Draft content loaded from memory" }
-			existingBuffer.content.coerceMarkdown()
-		} else {
-			Napier.i { "Draft content loaded from disk" }
-			val loadedBuffer = sceneEditorRepository.loadSceneBuffer(sceneItem)
-			loadedBuffer.content.coerceMarkdown()
-		}
+		val content: String = sceneContentRepository.getCurrentSceneContent(sceneItem)
 
 		datasource.storeDraft(newDef, content)
 
@@ -72,7 +64,7 @@ class SceneDraftRepository(
 	 * But I'm leaving it here just in case we need it at some point.
 	 */
 	protected suspend fun markForSynchronization(originalDef: DraftDef, originalContent: String) {
-		if (syncDataRepository.isServerSynchronized() && !syncDataRepository.isEntityDirty(
+		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(
 				originalDef.id
 			)
 		) {
@@ -83,7 +75,7 @@ class SceneDraftRepository(
 				name = originalDef.draftName,
 				content = originalContent,
 			)
-			syncDataRepository.markEntityAsDirty(originalDef.id, hash)
+			syncJournal.markEntityAsDirty(originalDef.id, hash)
 		}
 	}
 }

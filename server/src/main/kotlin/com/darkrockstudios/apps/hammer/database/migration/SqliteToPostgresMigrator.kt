@@ -81,7 +81,8 @@ class SqliteToPostgresMigrator(
 
 				connection.commit()
 				return Result.Success(rowCounts, renameLegacyToBackup())
-			} catch (t: Throwable) {
+				// Any migration failure must roll back and abort, not crash.
+			} catch (@Suppress("TooGenericExceptionCaught") t: Throwable) {
 				runCatching { connection.rollback() }
 				return Result.Aborted("Migration failed: ${t.message}")
 			} finally {

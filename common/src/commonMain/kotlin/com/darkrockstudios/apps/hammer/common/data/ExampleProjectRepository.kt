@@ -3,7 +3,8 @@ package com.darkrockstudios.apps.hammer.common.data
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository.Companion.EXAMPLE_DAYS
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
@@ -11,14 +12,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDisp
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.datetime.DateTimeUnit
-import kotlinx.datetime.LocalDateTime
-import kotlinx.datetime.LocalTime
-import kotlinx.datetime.TimeZone
-import kotlinx.datetime.atTime
-import kotlinx.datetime.minus
-import kotlinx.datetime.toInstant
-import kotlinx.datetime.toLocalDateTime
+import kotlinx.datetime.*
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path
@@ -34,7 +28,7 @@ import kotlin.time.Instant
 expect val exampleProjectModule: Module
 
 abstract class ExampleProjectRepository(
-	protected val globalSettingsRepository: GlobalSettingsRepository,
+	protected val globalSettingsStore: GlobalSettingsStore,
 	protected val fileSystem: FileSystem,
 	private val toml: Toml,
 	private val clock: Clock,
@@ -44,7 +38,7 @@ abstract class ExampleProjectRepository(
 	private val scope = CoroutineScope(dispatcherDefault)
 
 	fun shouldInstallFirstTime(): Boolean =
-		!globalSettingsRepository.globalSettings.nux.exampleProjectCreated
+		!globalSettingsStore.globalSettings.nux.exampleProjectCreated
 
 	fun install() {
 		removeExampleProject()
@@ -52,9 +46,9 @@ abstract class ExampleProjectRepository(
 
 		scope.launch {
 			fabricateExampleActivity()
-			globalSettingsRepository.updateSettings {
+			globalSettingsStore.updateSettings {
 				it.copy(
-					nux = globalSettingsRepository.globalSettings.nux.copy(
+					nux = globalSettingsStore.globalSettings.nux.copy(
 						exampleProjectCreated = true
 					)
 				)
@@ -67,8 +61,9 @@ abstract class ExampleProjectRepository(
 	protected abstract fun platformInstall()
 
 	protected fun projectsDir(): Path =
-		globalSettingsRepository.globalSettings.projectsDirectory.toPath()
+		globalSettingsStore.globalSettings.projectsDirectory.toPath()
 
+	@Suppress("TooGenericExceptionCaught") // Best-effort fabrication; any failure is logged
 	private fun fabricateExampleActivity() {
 		val activityDir = projectsDir() / PROJECT_NAME /
 			SceneDatasource.SCENE_DIRECTORY / WritingActivityDatasource.ACTIVITY_DIRECTORY

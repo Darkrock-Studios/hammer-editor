@@ -169,7 +169,7 @@ private fun drawInsertLine(
 				} else {
 					summary.sceneTree[insertPos.coords.globalIndex]
 				}
-			} catch (e: IndexOutOfBoundsException) {
+			} catch (@Suppress("TooGenericExceptionCaught", "SwallowedException") e: IndexOutOfBoundsException) { // stale insert coords: skip drawing
 				return@let
 			}
 

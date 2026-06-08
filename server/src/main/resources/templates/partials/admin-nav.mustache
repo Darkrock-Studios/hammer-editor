@@ -18,6 +18,12 @@
 				<span>{{msg.admin_nav_users}}</span>
 			</a>
 		</li>
+		<li class="admin-nav-item">
+			<a href="/admin/monitoring" class="admin-nav-link {{#activeMonitoring}}active{{/activeMonitoring}}">
+				<i class="fa-solid fa-chart-line"></i>
+				<span>{{msg.admin_nav_monitoring}}</span>
+			</a>
+		</li>
 		{{#patreonFeatureEnabled}}
 			<li class="admin-nav-item">
 				<a href="/admin/patreon" class="admin-nav-link {{#activePatreon}}active{{/activePatreon}}">

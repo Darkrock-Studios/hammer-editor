@@ -6,23 +6,21 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataConflict
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataDto
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataUploadRequest
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataConflictException
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.request.setBody
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
-import io.ktor.http.HttpStatusCode
-import io.ktor.http.contentType
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.client.statement.*
+import io.ktor.http.*
 import kotlinx.serialization.json.Json
 
 class ProjectDataApi(
 	httpClient: HttpClient,
-	globalSettingsRepository: GlobalSettingsRepository,
+	globalSettingsStore: GlobalSettingsStore,
 	private val json: Json,
 	private val strRes: StrRes,
-) : Api(httpClient, globalSettingsRepository, strRes) {
+) : Api(httpClient, globalSettingsStore, strRes) {
 
 	suspend fun getProjectData(
 		userId: Long,

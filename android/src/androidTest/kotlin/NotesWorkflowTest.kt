@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.notes.NOTES_CREATE_BODY_TAG
 import com.darkrockstudios.apps.hammer.common.notes.NOTES_CREATE_CONFIRM_TAG
 import com.darkrockstudios.apps.hammer.common.notes.NOTES_CREATE_FAB_TAG
+import com.darkrockstudios.apps.hammer.common.notes.NOTES_CREATE_META_TAG
 import com.darkrockstudios.apps.hammer.common.projectroot.NAV_NOTES_TAG
 import org.junit.After
 import org.junit.Before
@@ -49,7 +50,15 @@ class NotesWorkflowTest {
 		composeRule.waitUntil(10_000) {
 			composeRule.onAllNodesWithTag(NOTES_CREATE_BODY_TAG).fetchSemanticsNodes().isNotEmpty()
 		}
+		val emptyMeta = composeRule.textOf(NOTES_CREATE_META_TAG)
 		composeRule.typeIntoEditor(NOTES_CREATE_BODY_TAG, "E2E smoke note body")
+
+		// The editor reports text changes through an async flow, so the body can still be
+		// empty right after typing. Creating an empty note silently no-ops (stays on this
+		// screen), so wait for the word/char counter to change before confirming.
+		composeRule.waitUntil(10_000) {
+			composeRule.textOf(NOTES_CREATE_META_TAG) != emptyMeta
+		}
 		composeRule.onNodeWithTag(NOTES_CREATE_CONFIRM_TAG).performClick()
 
 		// Creating returns to the browse grid; the new note card appears (id unknown, match by prefix).

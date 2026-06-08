@@ -4,7 +4,7 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.*
-import com.darkrockstudios.apps.hammer.base.http.readToml
+import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
@@ -13,7 +13,7 @@ import com.darkrockstudios.apps.hammer.common.components.savableState
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
@@ -37,6 +37,7 @@ import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.IOException
 import okio.Path.Companion.toPath
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
@@ -51,7 +52,7 @@ class ProjectsListComponent(
 	ComponentToaster by ComponentToasterImpl() {
 	private val mainDispatcher by injectMainDispatcher()
 
-	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectsSynchronizer: ClientAccountSynchronizer by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
@@ -72,7 +73,7 @@ class ProjectsListComponent(
 	private val _state by savableState {
 		ProjectsList.State(
 			projects = emptyList(),
-			projectsPath = HPath(globalSettingsRepository.globalSettings.projectsDirectory, "", true),
+			projectsPath = HPath(globalSettingsStore.globalSettings.projectsDirectory, "", true),
 			isServerSynced = projectsSynchronizer.isServerSynchronized(),
 		)
 	}
@@ -81,7 +82,7 @@ class ProjectsListComponent(
 
 	private fun watchSettingsUpdates() {
 		scope.launch {
-			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
+			globalSettingsStore.globalSettingsUpdates.collect { settings ->
 				withContext(dispatcherMain) {
 					val oldPath = state.value.projectsPath
 					_state.getAndUpdate {
@@ -99,7 +100,7 @@ class ProjectsListComponent(
 		}
 
 		scope.launch {
-			globalSettingsRepository.serverSettingsUpdates.collect { settings ->
+			globalSettingsStore.serverSettingsUpdates.collect { settings ->
 				withContext(dispatcherMain) {
 					_state.getAndUpdate {
 						it.copy(
@@ -124,7 +125,7 @@ class ProjectsListComponent(
 
 	private fun initialProjectSync() {
 		scope.launch {
-			globalSettingsRepository.globalSettingsUpdates.first().let { settings ->
+			globalSettingsStore.globalSettingsUpdates.first().let { settings ->
 				if (
 					projectsSynchronizer.isServerSynchronized() &&
 					settings.automaticSyncing &&
@@ -145,7 +146,7 @@ class ProjectsListComponent(
 
 		_state.getAndUpdate {
 			it.copy(
-				projectsPath = HPath(globalSettingsRepository.globalSettings.projectsDirectory, "", true),
+				projectsPath = HPath(globalSettingsStore.globalSettings.projectsDirectory, "", true),
 				isServerSynced = projectsSynchronizer.isServerSynchronized()
 			)
 		}
@@ -153,7 +154,7 @@ class ProjectsListComponent(
 
 	override fun loadProjectList() {
 		val projectsDir = HPath(
-			path = globalSettingsRepository.globalSettings.projectsDirectory,
+			path = globalSettingsStore.globalSettings.projectsDirectory,
 			name = "",
 			isAbsolute = true
 		)
@@ -162,7 +163,12 @@ class ProjectsListComponent(
 		loadProjectsJob = scope.launch {
 			val projects = projectsRepository.getProjects(projectsDir)
 			val projectData = projects.parallelMap { projectDef ->
-				val metadata = projectMetadataDatasource.loadMetadata(projectDef)
+				// The project can be deleted concurrently
+				val metadata = try {
+					projectMetadataDatasource.loadMetadata(projectDef)
+				} catch (_: IOException) {
+					null
+				}
 				if (metadata != null) {
 					ProjectData(
 						definition = projectDef,
@@ -171,7 +177,7 @@ class ProjectsListComponent(
 						totalWords = statisticsCacheReader.loadTotalWords(projectDef),
 					)
 				} else {
-					Napier.w { "Failed to load metadata for project: ${projectDef.name}" }
+					Napier.d { "Failed to load metadata for project: ${projectDef.name}" }
 					null
 				}
 			}.filterNotNull().sortedByDescending { it.metadata.info.lastAccessed }
@@ -190,11 +196,9 @@ class ProjectsListComponent(
 	 */
 	private fun loadStoredProjectData(projectDef: ProjectDef): StoredData {
 		val path = projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME
-		return try {
-			fileSystem.readToml<StoredProjectData>(path, toml).data
-		} catch (e: Exception) {
-			StoredData()
-		}
+		return fileSystem.readTomlOrNull<StoredProjectData>(path, toml) { e ->
+			Napier.d("Failed to read stored project data for ${projectDef.name}, using defaults", e)
+		}?.data ?: StoredData()
 	}
 
 	private fun updateLastAccessed(projectDef: ProjectDef) {
@@ -462,7 +466,7 @@ class ProjectsListComponent(
 
 					loadProjectList()
 
-					if (allSuccess && globalSettingsRepository.globalSettings.autoCloseSyncDialog) {
+					if (allSuccess && globalSettingsStore.globalSettings.autoCloseSyncDialog) {
 						hideProjectsSync()
 					}
 				}

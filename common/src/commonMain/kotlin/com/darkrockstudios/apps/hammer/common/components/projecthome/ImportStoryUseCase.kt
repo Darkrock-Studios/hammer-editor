@@ -4,11 +4,11 @@ import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.PreviewItem
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import io.github.aakira.napier.Napier
 
 class ImportStoryUseCase(
-	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneEditorRepository: SceneEditorService,
 ) {
 	/**
 	 * Creates the scenes/groups described by [preview] at the project root.

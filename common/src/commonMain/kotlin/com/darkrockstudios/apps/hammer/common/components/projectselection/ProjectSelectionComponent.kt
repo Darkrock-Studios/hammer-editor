@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.accoun
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsListComponent
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubReleaseInfo
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.ShouldNotifyOfUpdateUseCase
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
@@ -30,7 +30,7 @@ class ProjectSelectionComponent(
 
 	private val exampleProjectRepository: ExampleProjectRepository by inject()
 	private val urlLauncher: UrlLauncher by inject()
-	private val settingsRepository: GlobalSettingsRepository by inject()
+	private val settingsRepository: GlobalSettingsStore by inject()
 	private val versionCheckRepository: VersionCheckRepository by inject()
 	private val shouldNotifyOfUpdate: ShouldNotifyOfUpdateUseCase by inject()
 

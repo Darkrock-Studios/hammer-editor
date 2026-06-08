@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.projectbackup
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -13,6 +13,7 @@ import io.github.aakira.napier.Napier
 import kotlinx.datetime.*
 import okio.FileNotFoundException
 import okio.FileSystem
+import okio.IOException
 import okio.Path
 import org.koin.core.component.KoinComponent
 import kotlin.time.Clock
@@ -21,7 +22,7 @@ import kotlin.time.Instant
 open class ProjectBackupRepository(
 	protected val fileSystem: FileSystem,
 	protected val projectsRepository: ProjectsRepository,
-	protected val globalSettingsRepository: GlobalSettingsRepository,
+	protected val globalSettingsStore: GlobalSettingsStore,
 	protected val clock: Clock
 ) : KoinComponent {
 
@@ -93,14 +94,14 @@ open class ProjectBackupRepository(
 			} else {
 				Napier.w("Backup file not found: ${backup.path.name}")
 			}
-		} catch (e: Exception) {
+		} catch (e: IOException) {
 			Napier.e("Failed to delete backup: ${backup.path.name}", e)
 			throw e
 		}
 	}
 
 	fun cullBackups(project: ProjectDef) {
-		val settings = globalSettingsRepository.globalSettings
+		val settings = globalSettingsStore.globalSettings
 
 		val backups = getBackups(project).toMutableList()
 

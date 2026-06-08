@@ -40,6 +40,7 @@ class ProjectDao(
 			queries.getMostRecentSyncForUser(userId).executeAsOneOrNull()?.last_sync
 		}
 
+	@Suppress("TooGenericExceptionCaught") // any insert failure means create did not succeed
 	suspend fun createProject(
 		userId: Long,
 		uuid: ProjectId,

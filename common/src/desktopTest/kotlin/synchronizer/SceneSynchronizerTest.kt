@@ -6,7 +6,8 @@ import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.SceneItem.Companion.ROOT_ID
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
@@ -36,7 +37,10 @@ class SceneSynchronizerTest : BaseTest() {
 	private val def = getProject1Def()
 
 	@MockK
-	private lateinit var sceneEditorRepository: SceneEditorRepository
+	private lateinit var sceneEditorRepository: SceneRepository
+
+	@MockK
+	private lateinit var sceneEditorService: SceneEditorService
 
 	@MockK
 	private lateinit var draftRepository: SceneDraftRepository
@@ -69,12 +73,13 @@ class SceneSynchronizerTest : BaseTest() {
 		every { sceneEditorRepository.getArchivedSceneFromId(any()) } returns null
 
 		// Download path reads existing metadata for created/lastEdited fallback.
-		coEvery { sceneEditorRepository.loadSceneMetadata(any()) } returns SceneMetadata()
+		coEvery { sceneEditorService.loadSceneMetadata(any()) } returns SceneMetadata()
 	}
 
 	private fun defaultSceneSynchronizer() = ClientSceneSynchronizer(
 		projectDef = def,
 		sceneEditorRepository = sceneEditorRepository,
+		sceneEditorService = sceneEditorService,
 		draftRepository = draftRepository,
 		serverProjectApi = serverProjectApi,
 		projectMetadataDatasource = projectMetadataDatasource,
@@ -104,7 +109,7 @@ class SceneSynchronizerTest : BaseTest() {
 		every { sceneEditorRepository.getSceneItemFromId(ROOT_ID) } returns rootSceneNode(def)
 		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns null
 		coEvery {
-			sceneEditorRepository.createScene(
+			sceneEditorService.createScene(
 				parent = rootNode.value,
 				sceneName = serverEntity.name,
 				forceId = serverEntity.id,
@@ -131,7 +136,7 @@ class SceneSynchronizerTest : BaseTest() {
 		////////////////////
 		// Verify
 		coVerify(exactly = 1) {
-			sceneEditorRepository.createScene(
+			sceneEditorService.createScene(
 				parent = rootNode.value,
 				sceneName = serverEntity.name,
 				forceId = serverEntity.id,
@@ -139,7 +144,7 @@ class SceneSynchronizerTest : BaseTest() {
 			)
 		}
 		coVerify(exactly = 1) { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) }
-		coVerify(exactly = 1) { sceneEditorRepository.onContentChanged(content, UpdateSource.Sync) }
+		coVerify(exactly = 1) { sceneEditorService.onContentChanged(content, UpdateSource.Sync) }
 	}
 
 	@Test
@@ -183,7 +188,7 @@ class SceneSynchronizerTest : BaseTest() {
 		////////////////////
 		// Verify
 		coVerify(exactly = 1) { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) }
-		coVerify(exactly = 1) { sceneEditorRepository.onContentChanged(content, UpdateSource.Sync) }
+		coVerify(exactly = 1) { sceneEditorService.onContentChanged(content, UpdateSource.Sync) }
 	}
 
 	@Test
@@ -245,7 +250,7 @@ class SceneSynchronizerTest : BaseTest() {
 		////////////////////
 		// Verify
 		coVerify(exactly = 1) { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) }
-		coVerify(exactly = 1) { sceneEditorRepository.onContentChanged(content, UpdateSource.Sync) }
+		coVerify(exactly = 1) { sceneEditorService.onContentChanged(content, UpdateSource.Sync) }
 
 		assertEquals(0, sceneNode.parent?.value?.id)
 		assertEquals(0, groupNode.parent?.value?.id)
@@ -291,7 +296,7 @@ class SceneSynchronizerTest : BaseTest() {
 		////////////////////
 		// Verify
 		assertEquals(serverEntity.name, entityTreeNode.value.name)
-		coVerify(exactly = 0) { sceneEditorRepository.createGroup(any(), any(), any(), any()) }
+		coVerify(exactly = 0) { sceneEditorService.createGroup(any(), any(), any(), any()) }
 	}
 
 	@Test
@@ -315,7 +320,7 @@ class SceneSynchronizerTest : BaseTest() {
 		every { sceneEditorRepository.getSceneItemFromId(ROOT_ID) } returns rootSceneNode(def)
 		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns null
 		coEvery {
-			sceneEditorRepository.createGroup(
+			sceneEditorService.createGroup(
 				parent = rootNode.value,
 				groupName = clientEntity.name,
 				forceId = serverEntity.id,
@@ -342,7 +347,7 @@ class SceneSynchronizerTest : BaseTest() {
 		val newGroupNode = tree.findById(serverEntity.id)
 		assertNotNull(newGroupNode)
 
-		coVerify(exactly = 1) { sceneEditorRepository.createGroup(any(), any(), any(), any()) }
+		coVerify(exactly = 1) { sceneEditorService.createGroup(any(), any(), any(), any()) }
 	}
 
 	@Test
@@ -395,11 +400,11 @@ class SceneSynchronizerTest : BaseTest() {
 
 		val sync = defaultSceneSynchronizer()
 
-		coEvery { sceneEditorRepository.loadSceneMetadata(sceneId) } returns
+		coEvery { sceneEditorService.loadSceneMetadata(sceneId) } returns
 			SceneMetadata(confirmedReferences = setOf(1, 2))
 		val hashWithRefs = sync.getEntityHash(sceneId)
 
-		coEvery { sceneEditorRepository.loadSceneMetadata(sceneId) } returns
+		coEvery { sceneEditorService.loadSceneMetadata(sceneId) } returns
 			SceneMetadata(confirmedReferences = emptySet())
 		val hashWithoutRefs = sync.getEntityHash(sceneId)
 
@@ -434,11 +439,11 @@ class SceneSynchronizerTest : BaseTest() {
 
 		val sync = defaultSceneSynchronizer()
 
-		coEvery { sceneEditorRepository.loadSceneMetadata(sceneId) } returns
+		coEvery { sceneEditorService.loadSceneMetadata(sceneId) } returns
 			SceneMetadata(tags = setOf("important", "draft"))
 		val hashWithTags = sync.getEntityHash(sceneId)
 
-		coEvery { sceneEditorRepository.loadSceneMetadata(sceneId) } returns
+		coEvery { sceneEditorService.loadSceneMetadata(sceneId) } returns
 			SceneMetadata(tags = emptySet())
 		val hashWithoutTags = sync.getEntityHash(sceneId)
 
@@ -472,7 +477,7 @@ class SceneSynchronizerTest : BaseTest() {
 		every { sceneEditorRepository.getSceneItemFromId(ROOT_ID) } returns rootSceneNode(def)
 		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns null
 		coEvery {
-			sceneEditorRepository.createScene(
+			sceneEditorService.createScene(
 				parent = rootNode.value,
 				sceneName = serverEntity.name,
 				forceId = serverEntity.id,
@@ -495,7 +500,7 @@ class SceneSynchronizerTest : BaseTest() {
 		)
 
 		coVerify(exactly = 1) {
-			sceneEditorRepository.storeMetadata(
+			sceneEditorService.storeMetadata(
 				match { it.tags == setOf("magic", "spoiler") },
 				sceneId,
 			)

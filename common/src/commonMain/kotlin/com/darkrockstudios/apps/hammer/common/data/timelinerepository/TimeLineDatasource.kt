@@ -56,6 +56,7 @@ class TimeLineDatasource(
 			return (getTimelineDir(projectDef).toOkioPath() / TIMELINE_FILENAME).toHPath()
 		}
 
+		@Suppress("SwallowedException") // Missing file means an empty timeline
 		fun loadTimeline(hpath: HPath, fileSystem: FileSystem, toml: Toml): TimeLineContainer {
 			val path = hpath.toOkioPath()
 			return if (fileSystem.exists(path)) {

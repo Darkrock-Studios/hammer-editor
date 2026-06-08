@@ -62,17 +62,36 @@ data class UmamiConfig(
 	val websiteId: String,
 	/** Defaults to Umami Cloud; override with https://<your-host>/script.js for self-hosted Umami. */
 	val scriptUrl: String = "https://cloud.umami.is/script.js",
+	/**
+	 * Overrides the CSP `connect-src` event hosts. Umami Cloud's script POSTs events to a
+	 * gateway origin that has changed several times (gateway.umami.is, api-gateway.umami.dev,
+	 * …); set this to patch CSP from config when it changes again, without a code release.
+	 * Each entry must be a bare origin (scheme://host[:port], no path). Empty = built-in defaults.
+	 */
+	val connectSrc: List<String> = emptyList(),
 ) {
 	fun validate() {
 		require(websiteId.isNotBlank()) { "analytics.umami.websiteId must not be blank" }
 		require(scriptUrl.isNotBlank()) { "analytics.umami.scriptUrl must not be blank" }
+		requireHttpUrl(scriptUrl, "analytics.umami.scriptUrl")
+		// connect-src entries must be bare origins: a path/query/fragment would be emitted
+		// verbatim into the CSP header and silently narrow what the browser allows.
+		connectSrc.forEach { requireHttpUrl(it, "analytics.umami.connectSrc entry", bareOrigin = true) }
+	}
+
+	private fun requireHttpUrl(value: String, label: String, bareOrigin: Boolean = false) {
 		val uri = try {
-			URI(scriptUrl)
+			URI(value)
 		} catch (e: URISyntaxException) {
-			throw IllegalArgumentException("analytics.umami.scriptUrl is not a valid URL: $scriptUrl", e)
+			throw IllegalArgumentException("$label is not a valid URL: $value", e)
 		}
 		require(uri.scheme?.lowercase() in setOf("http", "https") && uri.host != null) {
-			"analytics.umami.scriptUrl must be an absolute http(s) URL: $scriptUrl"
+			"$label must be an absolute http(s) URL: $value"
+		}
+		if (bareOrigin) {
+			require(uri.path.isNullOrEmpty() && uri.query == null && uri.fragment == null) {
+				"$label must be a bare origin (scheme://host[:port], no path): $value"
+			}
 		}
 	}
 }

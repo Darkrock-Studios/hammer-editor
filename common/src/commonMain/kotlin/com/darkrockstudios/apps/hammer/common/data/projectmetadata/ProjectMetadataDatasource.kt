@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.projectmetadata
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -8,11 +9,9 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
-import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
-import okio.IOException
 import kotlin.time.Clock
 
 class ProjectMetadataDatasource(
@@ -26,21 +25,14 @@ class ProjectMetadataDatasource(
 	fun loadMetadata(projectDef: ProjectDef): ProjectMetadata {
 		val path = getMetadataPath(projectDef).toOkioPath()
 
-		val metadata = try {
-			val metadataText = fileSystem.read(path) {
-				readUtf8()
-			}
-			toml.decodeFromString(metadataText)
-		} catch (e: IOException) {
-			Napier.e("Failed to load project metadata: ${path.toHPath().path}")
-
-			// Delete any old corrupt file if we got here
+		return fileSystem.readTomlOrNull<ProjectMetadata>(path, toml) { e ->
+			Napier.e("Failed to load project metadata: ${path.toHPath().path}", e)
+		} ?: run {
+			// Missing or corrupt (tomlkt throws beyond SerializationException): drop the
+			// bad file and start fresh so migrators re-run instead of crashing the load.
 			fileSystem.delete(path, false)
-
 			createNewMetadata(projectDef)
 		}
-
-		return metadata
 	}
 
 	fun saveMetadata(metadata: ProjectMetadata, projectDef: ProjectDef) {

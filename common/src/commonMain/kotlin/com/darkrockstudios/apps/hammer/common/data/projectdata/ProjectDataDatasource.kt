@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.projectdata
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
-import com.darkrockstudios.apps.hammer.base.http.readToml
+import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
@@ -36,12 +36,9 @@ class ProjectDataDatasource(
 	suspend fun load(): StoredProjectData = withContext(dispatcherIo) {
 		val path = getPath()
 		if (!fileSystem.exists(path)) return@withContext StoredProjectData()
-		try {
-			fileSystem.readToml<StoredProjectData>(path, toml)
-		} catch (e: Exception) {
+		fileSystem.readTomlOrNull<StoredProjectData>(path, toml) { e ->
 			Napier.e("Failed to load project_data.toml: $path", e)
-			StoredProjectData()
-		}
+		} ?: StoredProjectData()
 	}
 
 	suspend fun save(stored: StoredProjectData): Unit = withContext(dispatcherIo) {
@@ -72,10 +69,7 @@ suspend fun loadStoredProjectData(
 	toml: Toml,
 ): StoredProjectData = withContext(Dispatchers.IO) {
 	val path = projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME
-	try {
-		fileSystem.readToml<StoredProjectData>(path, toml)
-	} catch (e: Exception) {
+	fileSystem.readTomlOrNull<StoredProjectData>(path, toml) { e ->
 		Napier.d("No project_data.toml at $path (${e.message})")
-		StoredProjectData()
-	}
+	} ?: StoredProjectData()
 }

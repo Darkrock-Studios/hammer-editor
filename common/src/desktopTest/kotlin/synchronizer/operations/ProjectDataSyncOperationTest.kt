@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataConflict
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataDto
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataConflictException
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictUnresolvedException
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
@@ -39,7 +39,7 @@ class ProjectDataSyncOperationTest : BaseTest() {
 	private lateinit var api: ProjectDataApi
 
 	@MockK(relaxed = true)
-	private lateinit var globalSettingsRepository: GlobalSettingsRepository
+	private lateinit var globalSettingsStore: GlobalSettingsStore
 
 	@BeforeEach
 	override fun setup() {
@@ -65,7 +65,7 @@ class ProjectDataSyncOperationTest : BaseTest() {
 			repository = repository,
 			api = api,
 			broker = broker,
-			globalSettingsRepository = globalSettingsRepository,
+			globalSettingsStore = globalSettingsStore,
 		)
 	}
 
@@ -86,7 +86,7 @@ class ProjectDataSyncOperationTest : BaseTest() {
 		val broker = ProjectDataConflictBroker(projectDef)
 		val op = createOperation(projectDef, broker)
 
-		coEvery { globalSettingsRepository.userIdOrThrow() } returns 1L
+		coEvery { globalSettingsStore.userIdOrThrow() } returns 1L
 		coEvery { repository.load() } returns StoredProjectData(
 			data = ProjectData(authorName = "local"),
 			lastSyncedHash = "old-hash",

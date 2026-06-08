@@ -30,7 +30,7 @@ actual fun ImportFilePicker(
 				val content = withContext(ioDispatcher) {
 					try {
 						file.readString()
-					} catch (e: Exception) {
+					} catch (@Suppress("TooGenericExceptionCaught") e: Exception) { // file read can fail many ways
 						Napier.e("Failed to read import file", e)
 						null
 					}

@@ -2,6 +2,9 @@ package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.base.http.INVALID_USER_ID
+import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
+import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
+import com.darkrockstudios.apps.hammer.plugins.LOGIN_RATE_LIMIT
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
@@ -9,6 +12,8 @@ import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
 import io.ktor.http.*
 import io.ktor.server.auth.*
+import io.ktor.server.plugins.*
+import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -17,7 +22,9 @@ import org.koin.ktor.ext.get
 fun Route.accountRoutes() {
 	route("/account") {
 		createAccount()
-		login()
+		rateLimit(RateLimitName(LOGIN_RATE_LIMIT)) {
+			login()
+		}
 		refreshToken()
 		authenticate(USER_AUTH) {
 			testAuth()
@@ -50,6 +57,8 @@ private fun Route.createAccount() {
 
 private fun Route.login() {
 	val accountsComponent: AccountsComponent = get()
+	val securityRepository: SecurityRepository = get()
+	val monitoringState: MonitoringState = get()
 
 	post("/login") {
 		val formParameters = call.receiveParameters()
@@ -58,6 +67,13 @@ private fun Route.login() {
 		val installId = formParameters["installId"].toString()
 
 		val result = accountsComponent.login(email = email, password = password, installId = installId)
+		val success = isSuccess(result)
+
+		if (monitoringState.loginTrackingEnabled) {
+			val ip = if (monitoringState.storeLoginIp) call.request.origin.remoteAddress else null
+			securityRepository.recordLoginAttempt(email = email, ipAddress = ip, success = success)
+		}
+
 		if (isSuccess(result)) {
 			val authToken = result.data
 			call.respond(authToken)

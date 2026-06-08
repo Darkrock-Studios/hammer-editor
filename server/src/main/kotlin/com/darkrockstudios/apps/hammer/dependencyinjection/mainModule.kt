@@ -14,6 +14,12 @@ import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.AesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
+import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
+import com.darkrockstudios.apps.hammer.monitoring.MetricsCollector
+import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
+import com.darkrockstudios.apps.hammer.monitoring.MonitoringMaintenanceJob
+import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
+import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
 import com.darkrockstudios.apps.hammer.patreon.PatreonApiClient
 import com.darkrockstudios.apps.hammer.patreon.PatreonPollingJob
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
@@ -57,6 +63,7 @@ fun mainModule(
 	single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.IO }
 
 	single { logger }
+	single { com.darkrockstudios.apps.hammer.plugins.LoginRateLimitConfig() }
 
 	singleOf(::createJsonSerializer) bind Json::class
 	single { Toml { ignoreUnknownKeys = true } } bind Toml::class
@@ -87,6 +94,9 @@ fun mainModule(
 	singleOf(::PasswordResetTokenDao)
 	singleOf(::WritingActivityDao)
 	singleOf(::ProjectDataDao)
+	singleOf(::ApiMetricDao)
+	singleOf(::ErrorLogDao)
+	singleOf(::LoginAttemptDao)
 
 	singleOf(::AccountsRepository)
 	singleOf(::ProjectsRepository)
@@ -96,6 +106,12 @@ fun mainModule(
 	singleOf(::ServerProjectDataRepository)
 	singleOf(::WhiteListRepository)
 	singleOf(::ConfigRepository)
+	singleOf(::MetricsRepository)
+	singleOf(::ErrorRepository)
+	singleOf(::SecurityRepository)
+	singleOf(::MetricsCollector)
+	single { MonitoringState() }
+	singleOf(::MonitoringMaintenanceJob)
 	singleOf(::StoryExportService)
 	singleOf(::PenNameService)
 	singleOf(::BioService)

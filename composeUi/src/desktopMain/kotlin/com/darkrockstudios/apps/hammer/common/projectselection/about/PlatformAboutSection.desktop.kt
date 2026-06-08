@@ -48,7 +48,7 @@ private fun openLogDirectory(logDir: String) {
 		if (dir.exists() && Desktop.isDesktopSupported()) {
 			Desktop.getDesktop().open(dir)
 		}
-	} catch (e: Exception) {
+	} catch (@Suppress("TooGenericExceptionCaught") e: Exception) { // Desktop.open can throw varied IO/security errors
 		Napier.e("Failed to open log directory", e)
 	}
 }

@@ -44,7 +44,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	private fun useCase() = ExportStoryUseCase(
-		sceneEditorRepository = sceneEditorRepository,
+		sceneEditorRepository = sceneEditorService,
 		projectDataDatasource = projectDataDatasource,
 		fileSystem = ffs,
 		localeResolver = localeResolver,
@@ -80,6 +80,39 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		// EPUB is a ZIP container; first two bytes are the local file header signature "PK".
 		assertEquals('P'.code.toByte(), bytes[0])
 		assertEquals('K'.code.toByte(), bytes[1])
+	}
+
+	@Test
+	fun `pdf export produces a valid pdf file with the PDF header`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Test Author"))
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = ExportFormat.Pdf, treatTopLevelAsChapters = true),
+		)
+
+		assertTrue(exportPath.path.endsWith(".pdf"), "Should produce a .pdf file, got $exportPath")
+		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
+		assertTrue(bytes.size > 100, "PDF output should be more than a stub, got ${bytes.size} bytes")
+		// Every PDF starts with the "%PDF" magic header.
+		assertEquals('%'.code.toByte(), bytes[0])
+		assertEquals('P'.code.toByte(), bytes[1])
+		assertEquals('D'.code.toByte(), bytes[2])
+		assertEquals('F'.code.toByte(), bytes[3])
+	}
+
+	@Test
+	fun `pdf export still produces a valid file when treatTopLevelAsChapters is false`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = ExportFormat.Pdf, treatTopLevelAsChapters = false),
+		)
+
+		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
+		assertTrue(bytes.size > 100, "Single-chapter PDF should still produce a real file")
 	}
 
 	@Test

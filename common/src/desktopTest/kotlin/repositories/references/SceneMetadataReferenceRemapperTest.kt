@@ -3,12 +3,11 @@ package repositories.references
 import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
 import com.darkrockstudios.apps.hammer.common.data.references.SceneMetadataReferenceRemapper
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
@@ -37,7 +36,7 @@ class SceneMetadataReferenceRemapperTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var toml: Toml
 	private lateinit var metadataDatasource: SceneMetadataDatasource
-	private lateinit var sceneEditor: SceneEditorRepository
+	private lateinit var sceneEditor: SceneRepository
 	private lateinit var indexDatasource: ReferenceIndexDatasource
 	private lateinit var indexRepository: ReferenceIndexRepository
 
@@ -76,11 +75,11 @@ class SceneMetadataReferenceRemapperTest : BaseTest() {
 			depth = 0,
 			totalChildren = children.size,
 		)
-		val summary = SceneSummary(ImmutableTree(root, totalChildren = children.size + 1), emptySet())
-		val flow = MutableSharedFlow<SceneSummary>(
+		val tree = ImmutableTree(root, totalChildren = children.size + 1)
+		val flow = MutableSharedFlow<ImmutableTree<SceneItem>>(
 			replay = 1, extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST,
-		).apply { tryEmit(summary) }
-		every { sceneEditor.sceneListChannel } returns flow
+		).apply { tryEmit(tree) }
+		every { sceneEditor.sceneTreeUpdates } returns flow
 		coEvery { sceneEditor.getArchivedScenes() } returns archivedIds.map {
 			SceneItem(projectDef, SceneItem.Type.Scene, it, "A$it", it, archived = true)
 		}

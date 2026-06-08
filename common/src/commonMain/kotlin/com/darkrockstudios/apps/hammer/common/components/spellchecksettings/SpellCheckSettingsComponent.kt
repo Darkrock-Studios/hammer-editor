@@ -5,7 +5,7 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
 import com.darkrockstudios.apps.hammer.common.components.savableState
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.spellcheck.toLocale
@@ -20,14 +20,14 @@ class SpellCheckSettingsComponent(
 ) : SpellCheckSettings, HammerComponent, SavableComponent<SpellCheckSettings.State>(componentContext) {
 
 	private val mainDispatcher by injectMainDispatcher()
-	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val platformSpellCheckerFactory: PlatformSpellCheckerFactory by inject()
 
 	private val _state by savableState {
 		SpellCheckSettings.State(
-			spellCheckingEnabled = globalSettingsRepository.globalSettings.spellCheckSettings.enabled,
-			spellCheckingInFocusEnabled = globalSettingsRepository.globalSettings.spellCheckSettings.enabledInFocusMode,
-			spellCheckingLanguage = globalSettingsRepository.globalSettings.spellCheckSettings.locale,
+			spellCheckingEnabled = globalSettingsStore.globalSettings.spellCheckSettings.enabled,
+			spellCheckingInFocusEnabled = globalSettingsStore.globalSettings.spellCheckSettings.enabledInFocusMode,
+			spellCheckingLanguage = globalSettingsStore.globalSettings.spellCheckSettings.locale,
 			spellCheckLanguages = platformSpellCheckerFactory.availableLocales().map { it.toLocale() },
 		)
 	}
@@ -41,7 +41,7 @@ class SpellCheckSettingsComponent(
 
 	private fun watchSettingsUpdates() {
 		scope.launch {
-			globalSettingsRepository.globalSettingsUpdates.collect { settings ->
+			globalSettingsStore.globalSettingsUpdates.collect { settings ->
 				withContext(mainDispatcher) {
 					_state.getAndUpdate {
 						it.copy(
@@ -56,7 +56,7 @@ class SpellCheckSettingsComponent(
 	}
 
 	override suspend fun setSpellcheckEnable(enable: Boolean) {
-		globalSettingsRepository.updateSettings {
+		globalSettingsStore.updateSettings {
 			it.copy(
 				spellCheckSettings = it.spellCheckSettings.copy(
 					enabled = enable
@@ -66,7 +66,7 @@ class SpellCheckSettingsComponent(
 	}
 
 	override suspend fun setSpellCheckingInFocusEnabled(enable: Boolean) {
-		globalSettingsRepository.updateSettings {
+		globalSettingsStore.updateSettings {
 			it.copy(
 				spellCheckSettings = it.spellCheckSettings.copy(
 					enabledInFocusMode = enable
@@ -76,7 +76,7 @@ class SpellCheckSettingsComponent(
 	}
 
 	override suspend fun setSpellCheckLanguage(locale: Locale) {
-		globalSettingsRepository.updateSettings {
+		globalSettingsStore.updateSettings {
 			it.copy(
 				spellCheckSettings = it.spellCheckSettings.copy(
 					locale = locale

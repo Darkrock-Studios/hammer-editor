@@ -112,7 +112,8 @@ class SmtpEmailService(
 			Transport.send(message)
 			println("SmtpEmailService: Email sent successfully!")
 			EmailResult.Success
-		} catch (e: Exception) {
+			// Send boundary: any failure becomes an EmailResult.Failure.
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			println("SmtpEmailService: ERROR sending email: ${e.message}")
 			e.printStackTrace()
 			EmailResult.Failure(e.message ?: "Unknown error sending email", e)

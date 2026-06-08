@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource
 
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository.Companion.createDefault
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore.Companion.createDefault
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory

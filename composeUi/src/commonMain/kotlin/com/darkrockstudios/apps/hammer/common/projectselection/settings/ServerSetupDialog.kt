@@ -48,6 +48,8 @@ fun ServerSetupDialog(
 	var renderInternal by remember { mutableStateOf(state.serverSetup) }
 	LaunchedEffect(state.serverSetup) { if (state.serverSetup) renderInternal = true }
 
+	RequestLocalNetworkPermission(show = state.serverSetup)
+
 	if (renderInternal) {
 		AnimatedDialogContainer(
 			isOpen = state.serverSetup,

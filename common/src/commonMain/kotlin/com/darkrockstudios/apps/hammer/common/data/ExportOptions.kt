@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data
 import kotlinx.serialization.Serializable
 
 @Serializable
-enum class ExportFormat { Markdown, Epub }
+enum class ExportFormat { Markdown, Epub, Pdf }
 
 @Serializable
 data class ExportOptions(

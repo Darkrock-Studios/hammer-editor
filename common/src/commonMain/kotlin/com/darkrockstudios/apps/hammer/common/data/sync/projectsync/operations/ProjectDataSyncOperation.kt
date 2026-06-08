@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataConflic
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflict
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
@@ -25,7 +25,7 @@ class ProjectDataSyncOperation(
 	private val repository: ProjectDataRepository,
 	private val api: ProjectDataApi,
 	private val broker: ProjectDataConflictBroker,
-	private val globalSettingsRepository: GlobalSettingsRepository,
+	private val globalSettingsStore: GlobalSettingsStore,
 ) : SyncOperation(projectDef) {
 
 	override suspend fun execute(
@@ -37,7 +37,7 @@ class ProjectDataSyncOperation(
 	): CResult<SyncOperationState> {
 		state as IdConflictResolutionState
 
-		val userId = globalSettingsRepository.userIdOrThrow()
+		val userId = globalSettingsStore.userIdOrThrow()
 		val projectId = state.serverProjectId
 
 		val getResult = api.getProjectData(userId, projectDef.name, projectId)

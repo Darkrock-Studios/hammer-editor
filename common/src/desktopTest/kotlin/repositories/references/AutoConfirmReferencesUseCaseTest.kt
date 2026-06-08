@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferen
 import com.darkrockstudios.apps.hammer.common.data.references.EntrySuggestion
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import getProject1Def
 import io.mockk.*
@@ -26,7 +26,7 @@ import kotlin.test.assertTrue
 class AutoConfirmReferencesUseCaseTest : BaseTest() {
 
 	@MockK
-	private lateinit var sceneEditor: SceneEditorRepository
+	private lateinit var sceneEditor: SceneEditorService
 
 	@MockK
 	private lateinit var referenceIndexService: ReferenceIndexService

@@ -1,0 +1,84 @@
+import kotlinx.datetime.Instant;
+
+-- Rolled-up API request metrics. The in-memory collector accumulates requests
+-- and flushes them into HOUR buckets; the maintenance job later rolls HOUR
+-- buckets into DAY buckets and purges per the configured retention window.
+--
+-- Latency is stored as a fixed histogram (le_* = "count of requests <= N ms").
+-- These buckets are additive across time windows, so an approximate p95/p99
+-- over any range is just the summed histogram — no raw per-request rows needed.
+CREATE TABLE api_metric_bucket (
+    bucket_start TIMESTAMPTZ AS Instant NOT NULL,
+    bucket_size TEXT NOT NULL,          -- 'HOUR' or 'DAY'
+    route TEXT NOT NULL,                -- matched route TEMPLATE, never a concrete path
+    method TEXT NOT NULL,
+    request_count BIGINT NOT NULL DEFAULT 0,
+    error_count BIGINT NOT NULL DEFAULT 0,
+    total_duration_ms BIGINT NOT NULL DEFAULT 0,
+    le_50 BIGINT NOT NULL DEFAULT 0,
+    le_100 BIGINT NOT NULL DEFAULT 0,
+    le_250 BIGINT NOT NULL DEFAULT 0,
+    le_500 BIGINT NOT NULL DEFAULT 0,
+    le_1000 BIGINT NOT NULL DEFAULT 0,
+    le_2500 BIGINT NOT NULL DEFAULT 0,
+    le_inf BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (bucket_start, bucket_size, route, method)
+);
+
+CREATE INDEX api_metric_bucket_time ON api_metric_bucket(bucket_size, bucket_start);
+
+-- Accumulate a flush into a bucket, summing into any existing row.
+upsertBucket:
+INSERT INTO api_metric_bucket(
+    bucket_start, bucket_size, route, method,
+    request_count, error_count, total_duration_ms,
+    le_50, le_100, le_250, le_500, le_1000, le_2500, le_inf
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+ON CONFLICT (bucket_start, bucket_size, route, method) DO UPDATE SET
+    request_count = api_metric_bucket.request_count + EXCLUDED.request_count,
+    error_count = api_metric_bucket.error_count + EXCLUDED.error_count,
+    total_duration_ms = api_metric_bucket.total_duration_ms + EXCLUDED.total_duration_ms,
+    le_50 = api_metric_bucket.le_50 + EXCLUDED.le_50,
+    le_100 = api_metric_bucket.le_100 + EXCLUDED.le_100,
+    le_250 = api_metric_bucket.le_250 + EXCLUDED.le_250,
+    le_500 = api_metric_bucket.le_500 + EXCLUDED.le_500,
+    le_1000 = api_metric_bucket.le_1000 + EXCLUDED.le_1000,
+    le_2500 = api_metric_bucket.le_2500 + EXCLUDED.le_2500,
+    le_inf = api_metric_bucket.le_inf + EXCLUDED.le_inf;
+
+-- Fold HOUR buckets older than the cutoff into DAY buckets (summing all counters).
+rollupHourToDay:
+INSERT INTO api_metric_bucket(
+    bucket_start, bucket_size, route, method,
+    request_count, error_count, total_duration_ms,
+    le_50, le_100, le_250, le_500, le_1000, le_2500, le_inf
+)
+SELECT date_trunc('day', bucket_start, 'UTC'), 'DAY', route, method,
+    SUM(request_count), SUM(error_count), SUM(total_duration_ms),
+    SUM(le_50), SUM(le_100), SUM(le_250), SUM(le_500), SUM(le_1000), SUM(le_2500), SUM(le_inf)
+FROM api_metric_bucket
+WHERE bucket_size = 'HOUR' AND bucket_start < ?
+GROUP BY date_trunc('day', bucket_start, 'UTC'), route, method
+ON CONFLICT (bucket_start, bucket_size, route, method) DO UPDATE SET
+    request_count = api_metric_bucket.request_count + EXCLUDED.request_count,
+    error_count = api_metric_bucket.error_count + EXCLUDED.error_count,
+    total_duration_ms = api_metric_bucket.total_duration_ms + EXCLUDED.total_duration_ms,
+    le_50 = api_metric_bucket.le_50 + EXCLUDED.le_50,
+    le_100 = api_metric_bucket.le_100 + EXCLUDED.le_100,
+    le_250 = api_metric_bucket.le_250 + EXCLUDED.le_250,
+    le_500 = api_metric_bucket.le_500 + EXCLUDED.le_500,
+    le_1000 = api_metric_bucket.le_1000 + EXCLUDED.le_1000,
+    le_2500 = api_metric_bucket.le_2500 + EXCLUDED.le_2500,
+    le_inf = api_metric_bucket.le_inf + EXCLUDED.le_inf;
+
+deleteHourBucketsBefore:
+DELETE FROM api_metric_bucket WHERE bucket_size = 'HOUR' AND bucket_start < ?;
+
+deleteDayBucketsBefore:
+DELETE FROM api_metric_bucket WHERE bucket_size = 'DAY' AND bucket_start < ?;
+
+-- Read API (used by the dashboard from Phase 2 onward).
+getBucketsSince:
+SELECT * FROM api_metric_bucket
+WHERE bucket_size = ? AND bucket_start >= ?
+ORDER BY bucket_start ASC;

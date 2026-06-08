@@ -1,6 +1,12 @@
 import com.darkrockstudios.build.getVersionCode
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+// Mirrors the F-Droid detection in settings.gradle.kts. F-Droid builds may declare
+// storage permissions (for public-storage projects) that Google Play disallows, so the
+// extra permissions live in src/fdroid/AndroidManifest.xml and are only used here.
+val isFDroidBuild = project.findProperty("fdroid")?.toString()?.isNotEmpty() == true ||
+	System.getenv("FDROID_BUILD") != null
+
 val RELEASE_STORE_FILE = System.getenv("RELEASE_STORE_FILE") ?: "/"
 val RELEASE_STORE_PASSWORD = System.getenv("RELEASE_STORE_PASSWORD") ?: ""
 val RELEASE_KEY_ALIAS = System.getenv("RELEASE_KEY_ALIAS") ?: ""
@@ -63,6 +69,10 @@ android {
 		vectorDrawables {
 			useSupportLibrary = true
 		}
+	}
+	if (isFDroidBuild) {
+		// Swap in the manifest that also declares the public-storage permissions.
+		sourceSets.getByName("main").manifest.srcFile("src/fdroid/AndroidManifest.xml")
 	}
 	buildFeatures {
 		compose = true

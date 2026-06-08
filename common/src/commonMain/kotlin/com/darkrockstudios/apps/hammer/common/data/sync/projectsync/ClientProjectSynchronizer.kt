@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.*
@@ -27,8 +27,8 @@ class ClientProjectSynchronizer(
 	private val projectDef: ProjectDef,
 	private val entitySynchronizers: EntitySynchronizers,
 	private val strRes: StrRes,
-	private val syncDataRepository: SyncDataRepository,
-	private val globalSettingsRepository: GlobalSettingsRepository,
+	private val syncJournal: SyncJournal,
+	private val globalSettingsStore: GlobalSettingsStore,
 	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val serverProjectApi: ServerProjectApi,
 ) : ProjectScoped {
@@ -90,6 +90,8 @@ class ClientProjectSynchronizer(
 		conflictResolution.trySend(entity)
 	}
 
+	// Must-not-crash sync boundary; failures handled, logged, returned as CResult.
+	@Suppress("TooGenericExceptionCaught")
 	suspend fun execute(
 		initialState: SyncOperationState,
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,
@@ -149,12 +151,12 @@ class ClientProjectSynchronizer(
 
 	private suspend fun endSync() {
 		try {
-			val syncId = syncDataRepository.loadSyncData().currentSyncId
+			val syncId = syncJournal.loadSyncData().currentSyncId
 				?: throw IllegalStateException("No sync ID")
 			val serverProjectId = projectMetadataDatasource.requireProjectId(projectDef)
 
 			val endSyncResult = serverProjectApi.endProjectSync(
-				globalSettingsRepository.userIdOrThrow(),
+				globalSettingsStore.userIdOrThrow(),
 				projectDef.name,
 				serverProjectId,
 				syncId,
@@ -165,8 +167,8 @@ class ClientProjectSynchronizer(
 			if (endSyncResult.isFailure) {
 				Napier.e("Failed to end sync", endSyncResult.exceptionOrNull())
 			} else {
-				val finalSyncData = syncDataRepository.loadSyncData().copy(currentSyncId = null)
-				syncDataRepository.saveSyncData(finalSyncData)
+				val finalSyncData = syncJournal.loadSyncData().copy(currentSyncId = null)
+				syncJournal.saveSyncData(finalSyncData)
 			}
 		} catch (e: IOException) {
 			Napier.e("Sync failed", e)

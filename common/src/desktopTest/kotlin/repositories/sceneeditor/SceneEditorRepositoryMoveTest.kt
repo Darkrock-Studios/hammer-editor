@@ -5,15 +5,16 @@ import com.darkrockstudios.apps.hammer.common.data.InsertPosition
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.filterScenePathsOkio
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -47,13 +48,14 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
 	private lateinit var projectsRepo: ProjectsRepository
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 	private lateinit var projectDef: ProjectDef
-	private lateinit var repo: SceneEditorRepository
-	private lateinit var idRepository: IdRepository
+	private lateinit var repo: SceneRepository
+	private lateinit var idAllocator: IdAllocator
 	private lateinit var metadataRepository: ProjectMetadataDatasource
 	private lateinit var metadataDatasource: SceneMetadataDatasource
 	private lateinit var sceneDatasource: SceneDatasource
+	private lateinit var sceneContentRepository: SceneContentRepository
 	private lateinit var statisticsRepository: StatisticsRepository
 	private var nextId = -1
 	private lateinit var toml: Toml
@@ -107,8 +109,8 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 		val rootDir = getDefaultRootDocumentDirectory()
 		ffs.createDirectories(rootDir.toPath())
 
-		syncDataRepository = mockk()
-		every { syncDataRepository.isServerSynchronized() } returns false
+		syncJournal = mockk()
+		every { syncJournal.isServerSynchronized() } returns false
 
 		metadataRepository = mockk(relaxed = true)
 		metadataDatasource = mockk(relaxed = true)
@@ -130,26 +132,25 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 		toml = createTomlSerializer()
 
 		nextId = -1
-		idRepository = mockk()
-		coEvery { idRepository.claimNextId() } answers { claimId() }
-		coEvery { idRepository.findNextId() } answers {}
+		idAllocator = mockk()
+		coEvery { idAllocator.claimNextId() } answers { claimId() }
+		coEvery { idAllocator.findNextId() } answers {}
 
 		createProject(ffs, PROJECT_1_NAME)
 
 		setupKoin()
 
-		repo = SceneEditorRepository(
+		sceneContentRepository = SceneContentRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
-			idRepository = idRepository,
-			projectMetadataDatasource = metadataRepository,
+			sceneDatasource = sceneDatasource,
+		)
+		repo = SceneRepository(
+			projectDef = projectDef,
+			syncJournal = syncJournal,
+			idAllocator = idAllocator,
 			sceneMetadataDatasource = metadataDatasource,
 			sceneDatasource = sceneDatasource,
-			statisticsRepository = statisticsRepository,
-			referenceIndexRepository = mockk(relaxed = true),
-			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
-			strRes = mockk(relaxed = true),
 		)
 
 		runBlocking {
@@ -160,14 +161,14 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 	@AfterEach
 	override fun tearDown() {
 		super.tearDown()
-		repo.onScopeClose(mockk())
+		sceneContentRepository.onScopeClose(mockk())
 
 		ffs.checkNoOpenFiles()
 	}
 
 	@Test
 	fun `Verify Initial Layout`() {
-		val tree = repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
 
 		for (index in 0..tree.numChildrenRecursive()) {
 			assertEquals(index, tree[index].value.id)
@@ -181,12 +182,12 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 		print: Boolean,
 		vararg ids: Int
 	) = runTest {
-		val tree = repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
 		verifyCoords(tree, request.toPosition.coords, targetPosId)
 		repo.moveScene(request)
 
 		val afterTree =
-			repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
+			repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
 		verify(afterTree[leafToVerify], ffs, print, *ids)
 	}
 
@@ -340,25 +341,24 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 		ffs.createDirectory(legacyGroupFolder)
 
 		// Reinitialize the repo to pick up the manually created files
-		repo.onScopeClose(mockk())
+		sceneContentRepository.onScopeClose(mockk())
 
-		repo = SceneEditorRepository(
+		sceneContentRepository = SceneContentRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
-			idRepository = idRepository,
-			projectMetadataDatasource = metadataRepository,
+			sceneDatasource = sceneDatasource,
+		)
+		repo = SceneRepository(
+			projectDef = projectDef,
+			syncJournal = syncJournal,
+			idAllocator = idAllocator,
 			sceneMetadataDatasource = metadataDatasource,
 			sceneDatasource = sceneDatasource,
-			statisticsRepository = statisticsRepository,
-			referenceIndexRepository = mockk(relaxed = true),
-			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
-			strRes = mockk(relaxed = true),
 		)
 		repo.initializeSceneEditor()
 
 		// Find the legacy group in the tree
-		val tree = repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
 		val legacyGroupNode = tree.findOrNull { it.id == groupId }
 		assertNotNull(legacyGroupNode, "Legacy group should be found in tree")
 
@@ -387,7 +387,7 @@ class SceneEditorRepositoryMoveTest : BaseTest() {
 		repo.moveScene(moveRequest)
 
 		// Verify the scene is now in the group
-		val afterTree = repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
+		val afterTree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
 		val groupAfterMove = afterTree.findOrNull { it.id == groupId }
 		assertNotNull(groupAfterMove, "Group should still exist after move")
 		assertEquals(1, groupAfterMove.numChildrenImmedate(), "Group should have 1 child after move")

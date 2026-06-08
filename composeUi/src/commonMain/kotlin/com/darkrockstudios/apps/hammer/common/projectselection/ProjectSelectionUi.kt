@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
@@ -72,10 +73,10 @@ fun ProjectSelectionUi(
 		val rootSnackbar = rememberRootSnackbarHostState()
 		val stackState by component.stack.subscribeAsState()
 
-		Box {
+		Box(modifier = modifier) {
 			Children(
 				stack = stackState,
-				modifier = modifier,
+				modifier = Modifier.fillMaxSize(),
 				animation = predictiveBackAnimation(
 					backHandler = component.backHandler,
 					fallbackAnimation = stackAnimation { _ -> fade() },

@@ -3,7 +3,7 @@ package synchronizer.operations
 import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.PrepareForSyncOperation
@@ -26,10 +26,10 @@ class PrepareForSyncOperationTest : BaseTest() {
 	private lateinit var mockSynchronizers: MockSynchronizers
 
 	@MockK
-	private lateinit var idRepository: IdRepository
+	private lateinit var idAllocator: IdAllocator
 
 	@MockK(relaxed = true)
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 
 	@BeforeEach
 	override fun setup() {
@@ -54,15 +54,15 @@ class PrepareForSyncOperationTest : BaseTest() {
 		return PrepareForSyncOperation(
 			projectDef = projectDef,
 			entitySynchronizers = EntitySynchronizers(projectDef),
-			idRepository = idRepository,
-			syncDataRepository = syncDataRepository,
+			idAllocator = idAllocator,
+			syncJournal = syncJournal,
 		)
 	}
 
 	@Test
 	fun `Golden Path`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
-		coEvery { idRepository.findNextId() } just Runs
+		coEvery { idAllocator.findNextId() } just Runs
 		mockSynchronizers.synchronizers.forEach { synchronizer ->
 			coEvery { synchronizer.prepareForSync() } just Runs
 		}
@@ -84,8 +84,8 @@ class PrepareForSyncOperationTest : BaseTest() {
 		assertTrue(isSuccess(result))
 		assertIs<SyncOperationState>(result.data)
 
-		coVerify { idRepository.findNextId() }
-		coVerify { syncDataRepository.createSyncData() }
+		coVerify { idAllocator.findNextId() }
+		coVerify { syncJournal.createSyncData() }
 
 		mockSynchronizers.synchronizers.forEach { synchronizer ->
 			coVerify { synchronizer.prepareForSync() }

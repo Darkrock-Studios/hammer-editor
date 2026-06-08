@@ -11,10 +11,10 @@ import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.data.*
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
@@ -24,7 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsS
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.deriveWritingStats
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.parseDailyWordTotals
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
@@ -52,11 +52,11 @@ class ProjectHomeComponent(
 
 	private val mainDispatcher by injectMainDispatcher()
 
-	private val globalSettingsRepository: GlobalSettingsRepository by inject()
+	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectBackupRepository: ProjectBackupRepository by inject()
-	private val sceneEditorRepository: SceneEditorRepository by projectInject()
+	private val sceneEditorRepository: SceneEditorService by projectInject()
 	private val exportStoryUseCase: ExportStoryUseCase by projectInject()
-	private val encyclopediaRepository: EncyclopediaRepository by projectInject()
+	private val encyclopediaService: EncyclopediaService by projectInject()
 	private val projectSynchronizer: ClientProjectSynchronizer by projectInject()
 	private val statisticsService: StatisticsService by projectInject()
 	private val tagIndexService: TagIndexService by projectInject()
@@ -95,9 +95,9 @@ class ProjectHomeComponent(
 	}
 
 	override fun confirmExportDialog(options: ExportOptions) {
+		// Keep the dialog open through the file picker and export so it can show the working state.
 		_state.getAndUpdate {
 			it.copy(
-				showExportDialog = false,
 				exportOptions = options,
 				showExportFilePicker = true,
 			)
@@ -107,7 +107,9 @@ class ProjectHomeComponent(
 	override fun endProjectExport() {
 		_state.getAndUpdate {
 			it.copy(
-				showExportFilePicker = false
+				showExportDialog = false,
+				showExportFilePicker = false,
+				isExporting = false,
 			)
 		}
 	}
@@ -176,7 +178,8 @@ class ProjectHomeComponent(
 			withContext(mainDispatcher) {
 				showToast(scope, ClientMessage.Resource(Res.string.project_home_action_import_toast_success))
 			}
-		} catch (e: Exception) {
+			// Import can fail many ways (parse, IO); report and show failure toast.
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			io.github.aakira.napier.Napier.e("Import failed", e)
 			withContext(mainDispatcher) {
 				showToast(scope, ClientMessage.Resource(Res.string.project_home_action_import_toast_failure))
@@ -190,13 +193,12 @@ class ProjectHomeComponent(
 			name = "",
 			isAbsolute = true
 		)
-		val filePath = exportStoryUseCase.execute(hpath, options)
-
-		withContext(mainDispatcher) {
-			endProjectExport()
+		withContext(mainDispatcher) { setExporting() }
+		return try {
+			exportStoryUseCase.execute(hpath, options)
+		} finally {
+			withContext(mainDispatcher) { endProjectExport() }
 		}
-
-		return filePath
 	}
 
 	override suspend fun exportProjectToFile(filePath: String, options: ExportOptions): HPath {
@@ -205,13 +207,16 @@ class ProjectHomeComponent(
 			name = "",
 			isAbsolute = true,
 		)
-		val result = exportStoryUseCase.executeToFile(hpath, options)
-
-		withContext(mainDispatcher) {
-			endProjectExport()
+		withContext(mainDispatcher) { setExporting() }
+		return try {
+			exportStoryUseCase.executeToFile(hpath, options)
+		} finally {
+			withContext(mainDispatcher) { endProjectExport() }
 		}
+	}
 
-		return result
+	private fun setExporting() {
+		_state.getAndUpdate { it.copy(isExporting = true) }
 	}
 
 	override fun startProjectSync() = showProjectSync()
@@ -233,7 +238,7 @@ class ProjectHomeComponent(
 	}
 
 	override fun showEntry(entry: EntryAppearance) {
-		val def = encyclopediaRepository.findEntryDef(entry.entryId) ?: return
+		val def = encyclopediaService.findEntryDef(entry.entryId) ?: return
 		onShowEntry(def)
 	}
 
@@ -305,7 +310,7 @@ class ProjectHomeComponent(
 							totalEntryConnections = stats.totalEntryConnections,
 							wordCountGoal = stats.wordCountGoal,
 							writingActivity = derived,
-							hasServer = globalSettingsRepository.serverSettings != null,
+							hasServer = globalSettingsStore.serverSettings != null,
 							isLoadingStats = false
 						)
 					}

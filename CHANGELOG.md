@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.2.0] - 2026-6-8
+
+- Added PDF export option
+- Re-enabled public-storage of projects on F-Droid builds
+- Improved text input: Dead Key keyboards now supported on desktop
+- Server admin panel now includes a monitoring dashboard
+- Fixed notifications/toasts not appearing on Android
+- Fixed a crash when opening projects with older saved data
+- Refactored Domain layer to improve testability
+- Performance improvements for the Scene Tree
+
+
 ## [3.1.3] - 2026-6-4
 
 - EPUB export! Now with a Table of Contents and custom file naming

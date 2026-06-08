@@ -4,7 +4,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -20,10 +21,15 @@ import org.koin.core.scope.ScopeCallback
 import kotlin.coroutines.CoroutineContext
 import kotlin.time.Clock
 
+/**
+ * Service that builds and maintains the encyclopedia reference index — which scenes reference which
+ * entries — by scanning scene metadata and matching entry names across the scene/encyclopedia repositories.
+ */
 class ReferenceIndexService(
 	projectDef: ProjectDef,
 	private val repository: ReferenceIndexRepository,
-	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneEditorRepository: SceneRepository,
+	private val sceneMetadataRepository: SceneMetadataRepository,
 	private val encyclopediaRepository: EncyclopediaRepository,
 	private val matcher: NameMatcher,
 	private val config: ReferenceIndexConfig,
@@ -78,10 +84,10 @@ class ReferenceIndexService(
 		try {
 			val map = mutableMapOf<Int, MutableSet<Int>>()
 
-			val sceneSummary = sceneEditorRepository.sceneListChannel.first()
-			sceneSummary.sceneTree.root.forEach { node ->
+			val sceneTree = sceneEditorRepository.sceneTreeUpdates.first()
+			sceneTree.root.forEach { node ->
 				if (node.value.type == SceneItem.Type.Scene) {
-					val metadata = sceneEditorRepository.loadSceneMetadata(node.value.id)
+					val metadata = sceneMetadataRepository.loadSceneMetadata(node.value.id)
 					accumulate(map, node.value.id, metadata.confirmedReferences)
 				}
 			}
@@ -89,7 +95,7 @@ class ReferenceIndexService(
 			yield()
 
 			sceneEditorRepository.getArchivedScenes().forEach { archived ->
-				val metadata = sceneEditorRepository.loadSceneMetadata(archived.id)
+				val metadata = sceneMetadataRepository.loadSceneMetadata(archived.id)
 				accumulate(map, archived.id, metadata.confirmedReferences)
 			}
 
@@ -171,7 +177,7 @@ class ReferenceIndexService(
 		val results = mutableListOf<Int>()
 
 		suspend fun consider(sceneItem: SceneItem) {
-			val metadata = sceneEditorRepository.loadSceneMetadata(sceneItem.id)
+			val metadata = sceneMetadataRepository.loadSceneMetadata(sceneItem.id)
 			if (entryId in metadata.confirmedReferences) return
 			if (entryId in metadata.dismissedReferences) return
 			val text = if (sceneItem.archived) {
@@ -185,8 +191,8 @@ class ReferenceIndexService(
 			if (hits.isNotEmpty()) results.add(sceneItem.id)
 		}
 
-		val sceneSummary = sceneEditorRepository.sceneListChannel.first()
-		sceneSummary.sceneTree.root.forEach { node ->
+		val sceneTree = sceneEditorRepository.sceneTreeUpdates.first()
+		sceneTree.root.forEach { node ->
 			if (node.value.type == SceneItem.Type.Scene) {
 				consider(node.value)
 				yield()

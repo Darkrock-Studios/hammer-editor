@@ -4,10 +4,10 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -27,8 +27,8 @@ import kotlin.time.Clock
 
 class NotesRepository(
 	projectDef: ProjectDef,
-	private val idRepository: IdRepository,
-	private val syncDataRepository: SyncDataRepository,
+	private val idAllocator: IdAllocator,
+	private val syncJournal: SyncJournal,
 	private val notesDatasource: NotesDatasource,
 ) : ScopeCallback, ProjectScoped {
 
@@ -80,7 +80,7 @@ class NotesRepository(
 	}
 
 	private suspend fun markForSync(id: Int, originalHash: String? = null) {
-		if (syncDataRepository.isServerSynchronized() && !syncDataRepository.isEntityDirty(id)) {
+		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(id)) {
 			val hash = if (originalHash != null) {
 				originalHash
 			} else {
@@ -92,7 +92,7 @@ class NotesRepository(
 					tags = noteContainer.note.tags,
 				)
 			}
-			syncDataRepository.markEntityAsDirty(id, hash)
+			syncJournal.markEntityAsDirty(id, hash)
 		}
 	}
 
@@ -104,7 +104,7 @@ class NotesRepository(
 		return if (result != NoteError.NONE) {
 			CResult.failure(InvalidNote(result))
 		} else {
-			val newId = idRepository.claimNextId()
+			val newId = idAllocator.claimNextId()
 			val newNote = NoteContainer(
 				NoteContent(
 					id = newId,
@@ -128,7 +128,7 @@ class NotesRepository(
 
 	suspend fun deleteNote(id: Int) {
 		notesDatasource.deleteNote(id)
-		syncDataRepository.recordIdDeletion(id)
+		syncJournal.recordIdDeletion(id)
 		_noteContentChangedFlow.emit(Unit)
 	}
 

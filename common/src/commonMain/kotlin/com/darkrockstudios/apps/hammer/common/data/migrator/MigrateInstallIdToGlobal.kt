@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.migrator
 
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import io.github.aakira.napier.Napier
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -22,15 +22,17 @@ import okio.Path.Companion.toPath
  * time has passed that any user upgrading would already have run it.
  */
 class MigrateInstallIdToGlobal(
-	private val globalSettingsRepository: GlobalSettingsRepository,
+	private val globalSettingsStore: GlobalSettingsStore,
 	private val fileSystem: FileSystem,
 	private val json: Json,
 ) : GlobalMigration {
 
+	// Best-effort migration; any read failure logged and treated as no legacy id.
+	@Suppress("TooGenericExceptionCaught")
 	override suspend fun migrate() {
-		if (globalSettingsRepository.globalSettings.installId != null) return
+		if (globalSettingsStore.globalSettings.installId != null) return
 
-		val projectsDir = globalSettingsRepository.globalSettings.projectsDirectory.toPath()
+		val projectsDir = globalSettingsStore.globalSettings.projectsDirectory.toPath()
 		val legacyPath = projectsDir / LEGACY_SERVER_FILE_NAME
 		if (!fileSystem.exists(legacyPath)) return
 
@@ -43,7 +45,7 @@ class MigrateInstallIdToGlobal(
 		} ?: return
 
 		Napier.i("Migrating installId from server.json to GlobalSettings")
-		globalSettingsRepository.updateSettings { it.copy(installId = legacyInstallId) }
+		globalSettingsStore.updateSettings { it.copy(installId = legacyInstallId) }
 	}
 
 	@Serializable

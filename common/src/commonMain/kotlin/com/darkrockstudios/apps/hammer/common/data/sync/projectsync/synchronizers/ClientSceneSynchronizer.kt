@@ -12,7 +12,9 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
@@ -23,7 +25,8 @@ import kotlinx.coroutines.delay
 
 class ClientSceneSynchronizer(
 	projectDef: ProjectDef,
-	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneEditorRepository: SceneRepository,
+	private val sceneEditorService: SceneEditorService,
 	private val draftRepository: SceneDraftRepository,
 	serverProjectApi: ServerProjectApi,
 	projectMetadataDatasource: ProjectMetadataDatasource,
@@ -53,7 +56,7 @@ class ClientSceneSynchronizer(
 			""
 		}
 
-		val metadata = sceneEditorRepository.loadSceneMetadata(id)
+		val metadata = sceneEditorService.loadSceneMetadata(id)
 
 		return ApiProjectEntity.SceneEntity(
 			id = id,
@@ -74,7 +77,7 @@ class ClientSceneSynchronizer(
 	}
 
 	override suspend fun prepareForSync() {
-		sceneEditorRepository.storeAllBuffers()
+		sceneEditorService.storeAllBuffers()
 	}
 
 	override suspend fun ownsEntity(id: Int): Boolean {
@@ -99,7 +102,7 @@ class ClientSceneSynchronizer(
 			}
 
 			val sceneContent = sceneEditorRepository.loadSceneMarkdownRaw(sceneItem, scenePath)
-			val metadata = sceneEditorRepository.loadSceneMetadata(sceneItem.id)
+			val metadata = sceneEditorService.loadSceneMetadata(sceneItem.id)
 
 			EntityHasher.hashScene(
 				id = sceneItem.id,
@@ -140,7 +143,7 @@ class ClientSceneSynchronizer(
 		val existingArchived = sceneEditorRepository.getArchivedSceneFromId(id)
 		if (existingArchived != null) {
 			// Unarchive it first since server says it's active
-			sceneEditorRepository.unarchiveScene(existingArchived)
+			sceneEditorService.unarchiveScene(existingArchived)
 			onLog(syncLogI(strRes.get(Res.string.sync_scene_downloading, id), projectDef))
 		}
 
@@ -159,7 +162,7 @@ class ClientSceneSynchronizer(
 				existingScene
 			} else {
 				onLog(syncLogI(strRes.get(Res.string.sync_scene_creating, id), projectDef))
-				sceneEditorRepository.createScene(
+				sceneEditorService.createScene(
 					parent = parent,
 					sceneName = serverEntity.name,
 					forceId = serverEntity.id,
@@ -180,11 +183,11 @@ class ClientSceneSynchronizer(
 			val content = SceneContent(sceneItem, serverEntity.content)
 			if (sceneEditorRepository.storeSceneMarkdownRaw(content, scenePath)) {
 				val updatedMetadata = mergeServerMetadata(serverEntity)
-				sceneEditorRepository.storeMetadata(updatedMetadata, serverEntity.id)
+				sceneEditorService.storeMetadata(updatedMetadata, serverEntity.id)
 
 				// Finally, log our success, and update the running apps data
 				onLog(syncLogI(strRes.get(Res.string.sync_scene_downloading, id), projectDef))
-				sceneEditorRepository.onContentChanged(content, UpdateSource.Sync)
+				sceneEditorService.onContentChanged(content, UpdateSource.Sync)
 
 				if (existingScene != null) {
 					val existingTreeNode = tree.findById(id)
@@ -225,7 +228,7 @@ class ClientSceneSynchronizer(
 				existingGroup
 			} else {
 				onLog(syncLogI(strRes.get(Res.string.sync_scene_group_creating, id), projectDef))
-				sceneEditorRepository.createGroup(
+				sceneEditorService.createGroup(
 					parent = parent,
 					groupName = serverEntity.name,
 					forceId = serverEntity.id,
@@ -276,7 +279,7 @@ class ClientSceneSynchronizer(
 		val existingActive = sceneEditorRepository.getSceneItemFromId(id)
 		if (existingActive != null) {
 			// Archive it to match server state
-			sceneEditorRepository.archiveScene(existingActive)
+			sceneEditorService.archiveScene(existingActive)
 			onLog(syncLogI(strRes.get(Res.string.sync_scene_downloading, id), projectDef))
 		}
 
@@ -290,7 +293,7 @@ class ClientSceneSynchronizer(
 				sceneEditorRepository.storeSceneMarkdownRaw(content, scenePath)
 
 				val updatedMetadata = mergeServerMetadata(serverEntity)
-				sceneEditorRepository.storeMetadata(updatedMetadata, serverEntity.id)
+				sceneEditorService.storeMetadata(updatedMetadata, serverEntity.id)
 			}
 		} else {
 			// Scene doesn't exist locally at all - create it directly in archive
@@ -322,7 +325,7 @@ class ClientSceneSynchronizer(
 	// Preserves local `created`/`lastEdited` when the server didn't ship them
 	// (e.g. older client uploaded first).
 	private suspend fun mergeServerMetadata(serverEntity: ApiProjectEntity.SceneEntity): SceneMetadata {
-		val existing = sceneEditorRepository.loadSceneMetadata(serverEntity.id)
+		val existing = sceneEditorService.loadSceneMetadata(serverEntity.id)
 		return SceneMetadata(
 			notes = serverEntity.notes,
 			outline = serverEntity.outline,
@@ -350,10 +353,10 @@ class ClientSceneSynchronizer(
 		sceneEditorRepository.cleanupSceneOrder()
 
 		// Wait for buffers to propagate before we save them
-		delay(SceneEditorRepository.BUFFER_COOL_DOWN * 0.25)
+		delay(SceneContentRepository.BUFFER_COOL_DOWN * 0.25)
 
 		sceneEditorRepository.forceSceneListReload()
-		sceneEditorRepository.storeAllBuffers()
+		sceneEditorService.storeAllBuffers()
 	}
 
 	override fun getEntityType() = EntityType.Scene
@@ -361,7 +364,7 @@ class ClientSceneSynchronizer(
 	override suspend fun deleteEntityLocal(id: Int, onLog: OnSyncLog) {
 		val sceneItem = sceneEditorRepository.getSceneItemFromId(id)
 		if (sceneItem != null) {
-			if (sceneEditorRepository.deleteScene(sceneItem)) {
+			if (sceneEditorService.deleteScene(sceneItem)) {
 				onLog(syncLogI(strRes.get(Res.string.sync_scene_deleted, id), projectDef))
 			} else {
 				onLog(syncLogE(strRes.get(Res.string.sync_scene_delete_failed, id), projectDef))
@@ -371,7 +374,7 @@ class ClientSceneSynchronizer(
 
 		val archivedScene = sceneEditorRepository.getArchivedSceneFromId(id)
 		if (archivedScene != null) {
-			if (sceneEditorRepository.deleteScene(archivedScene)) {
+			if (sceneEditorService.deleteScene(archivedScene)) {
 				onLog(syncLogI(strRes.get(Res.string.sync_scene_deleted, id), projectDef))
 			} else {
 				onLog(syncLogE(strRes.get(Res.string.sync_scene_delete_failed, id), projectDef))

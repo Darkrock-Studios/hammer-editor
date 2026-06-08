@@ -4,15 +4,17 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.In
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -40,12 +42,14 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 	private lateinit var projectPath: HPath
 	private lateinit var scenesPath: HPath
 	private lateinit var projectsRepo: ProjectsRepository
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 	private lateinit var projectDef: ProjectDef
-	private lateinit var idRepository: IdRepository
+	private lateinit var idAllocator: IdAllocator
 	private lateinit var projectMetadataRepository: ProjectMetadataDatasource
 	private lateinit var sceneMetadataDatasource: SceneMetadataDatasource
+	private lateinit var sceneMetadataRepository: SceneMetadataRepository
 	private lateinit var sceneDatasource: SceneDatasource
+	private lateinit var sceneContentRepository: SceneContentRepository
 	private lateinit var statisticsRepository: StatisticsRepository
 	private var nextId = -1
 	private lateinit var toml: Toml
@@ -111,9 +115,9 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 		toml = createTomlSerializer()
 
 		nextId = -1
-		idRepository = mockk()
-		coEvery { idRepository.claimNextId() } answers { claimId() }
-		coEvery { idRepository.findNextId() } answers {}
+		idAllocator = mockk()
+		coEvery { idAllocator.claimNextId() } answers { claimId() }
+		coEvery { idAllocator.findNextId() } answers {}
 
 		populateProject(ffs)
 
@@ -122,8 +126,8 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 			path = projectPath
 		)
 
-		syncDataRepository = mockk()
-		every { syncDataRepository.isServerSynchronized() } returns false
+		syncJournal = mockk()
+		every { syncJournal.isServerSynchronized() } returns false
 
 		setupKoin()
 		sceneDatasource = SceneDatasource(projectDef, ffs)
@@ -136,19 +140,25 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 		ffs.checkNoOpenFiles()
 	}
 
-	private fun createRepository(): SceneEditorRepository {
-		return SceneEditorRepository(
+	private fun createRepository(): SceneRepository {
+		sceneMetadataRepository = SceneMetadataRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
-			idRepository = idRepository,
+			sceneMetadataDatasource = sceneMetadataDatasource,
 			projectMetadataDatasource = projectMetadataRepository,
+			strRes = mockk(relaxed = true),
+			clock = Clock.System,
+		)
+		sceneContentRepository = SceneContentRepository(
+			projectDef = projectDef,
+			sceneDatasource = sceneDatasource,
+		)
+		return SceneRepository(
+			projectDef = projectDef,
+			syncJournal = syncJournal,
+			idAllocator = idAllocator,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
-			statisticsRepository = statisticsRepository,
-			referenceIndexRepository = mockk(relaxed = true),
-			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
-			strRes = mockk(relaxed = true),
 		)
 	}
 
@@ -177,12 +187,14 @@ class SceneEditorRepositoryTestSimple : BaseTest() {
 		val repo = createRepository()
 
 		repo.initializeSceneEditor()
+		sceneContentRepository.initialize()
+		sceneMetadataRepository.initialize()
 
-		val metadata = repo.getMetadata()
+		val metadata = sceneMetadataRepository.getMetadata()
 
 		assertEquals(projectMetadata, metadata)
 
-		repo.onScopeClose(mockk())
+		sceneContentRepository.onScopeClose(mockk())
 	}
 
 	companion object {

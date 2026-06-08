@@ -39,7 +39,7 @@ class FetchLocalDataOperationTest : BaseTest() {
 	private lateinit var mockSynchronizers: MockSynchronizers
 
 	@MockK(relaxed = true)
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 
 	@MockK(relaxed = true)
 	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
@@ -71,7 +71,7 @@ class FetchLocalDataOperationTest : BaseTest() {
 			projectDef = projectDef,
 			entitySynchronizers = EntitySynchronizers(projectDef),
 			strRes = strRes,
-			syncDataRepository = syncDataRepository,
+			syncJournal = syncJournal,
 			projectMetadataDatasource = projectMetadataDatasource,
 		)
 	}
@@ -81,7 +81,7 @@ class FetchLocalDataOperationTest : BaseTest() {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 
 		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns metadata
-		coEvery { syncDataRepository.loadSyncData() } returns projectData
+		coEvery { syncJournal.loadSyncData() } returns projectData
 
 		mockSynchronizers.synchronizers.forEach { synchronizer ->
 			when (synchronizer) {

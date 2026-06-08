@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.*
@@ -35,13 +35,13 @@ class ClientProjectSynchronizerTest : BaseTest() {
 	private lateinit var strRes: StrRes
 
 	@MockK(relaxed = true)
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 
 	@MockK(relaxed = true)
 	private lateinit var entitySynchronizers: EntitySynchronizers
 
 	@MockK(relaxed = true)
-	private lateinit var globalSettingsRepository: GlobalSettingsRepository
+	private lateinit var globalSettingsStore: GlobalSettingsStore
 
 	@MockK(relaxed = true)
 	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
@@ -125,8 +125,8 @@ class ClientProjectSynchronizerTest : BaseTest() {
 			projectDef = projectDef,
 			entitySynchronizers = entitySynchronizers,
 			strRes = strRes,
-			syncDataRepository = syncDataRepository,
-			globalSettingsRepository = globalSettingsRepository,
+			syncJournal = syncJournal,
+			globalSettingsStore = globalSettingsStore,
 			projectMetadataDatasource = projectMetadataDatasource,
 			serverProjectApi = serverProjectApi,
 		)

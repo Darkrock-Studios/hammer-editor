@@ -62,7 +62,8 @@ class StoryExportService(
 				sceneCount = scenes.size,
 				totalWordCount = totalWordCount
 			)
-		} catch (e: Exception) {
+			// Export boundary: any failure becomes a StoryExportResult.Error.
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			StoryExportResult.Error(e.message ?: "Unknown error occurred")
 		}
 	}

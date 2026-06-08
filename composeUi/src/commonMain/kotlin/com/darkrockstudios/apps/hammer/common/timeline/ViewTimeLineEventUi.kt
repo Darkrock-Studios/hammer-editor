@@ -30,7 +30,6 @@ import kotlinx.coroutines.launch
 
 private val ModalMaxWidth = TextEditorDefaults.MAX_WIDTH * 1.25f
 private val ModalMaxHeight = 760.dp
-private val StampRowCompactThreshold = 420.dp
 
 @OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
 @Composable
@@ -231,16 +230,9 @@ private fun StampRow(
 		Res.string.timeline_view_header.get()
 	}
 
-	BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
-		val isCompact = maxWidth < StampRowCompactThreshold
-
-		Row(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-		) {
+	HdDetailStampRow(
+		stackActionsWhenNarrow = isEditing,
+		leading = {
 			HdMonoLabel(
 				text = "§ III · $sectionTitle",
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -249,35 +241,33 @@ private fun StampRow(
 			if (isEditing) {
 				PulsingDot()
 			}
+		},
+		meta = {
+			Box(
+				modifier = Modifier
+					.height(14.dp)
+					.width(Dp.Hairline)
+					.background(MaterialTheme.colorScheme.outlineVariant),
+			)
 
-			if (!isCompact) {
-				Box(
-					modifier = Modifier
-						.height(14.dp)
-						.width(Dp.Hairline)
-						.background(MaterialTheme.colorScheme.outlineVariant),
-				)
-
-				val metaText = if (isEditing) {
-					Res.string.timeline_view_status_unsaved.get()
-				} else {
-					savedDate?.takeIf { it.isNotBlank() } ?: Res.string.timeline_view_undated.get()
-				}
-				with(sharedTransitionScope) {
-					HdMonoLabel(
-						text = metaText,
-						modifier = Modifier.sharedElement(
-							sharedContentState = rememberSharedContentState(
-								key = "timeline-date-${event?.id}",
-							),
-							animatedVisibilityScope = animatedVisibilityScope,
-						),
-					)
-				}
+			val metaText = if (isEditing) {
+				Res.string.timeline_view_status_unsaved.get()
+			} else {
+				savedDate?.takeIf { it.isNotBlank() } ?: Res.string.timeline_view_undated.get()
 			}
-
-			Spacer(modifier = Modifier.weight(1f))
-
+			with(sharedTransitionScope) {
+				HdMonoLabel(
+					text = metaText,
+					modifier = Modifier.sharedElement(
+						sharedContentState = rememberSharedContentState(
+							key = "timeline-date-${event?.id}",
+						),
+						animatedVisibilityScope = animatedVisibilityScope,
+					),
+				)
+			}
+		},
+		actions = {
 			if (isEditing) {
 				HdHairlineButton(
 					label = Res.string.timeline_view_save_button.get(),
@@ -294,8 +284,8 @@ private fun StampRow(
 					onClick = onEdit,
 				)
 			}
-		}
-	}
+		},
+	)
 }
 
 @Composable

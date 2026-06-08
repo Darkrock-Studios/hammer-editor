@@ -4,34 +4,31 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsearchrepository.GlobalSearchRepository
-import com.darkrockstudios.apps.hammer.common.data.projectInject
 
 class GlobalSearchComponent(
 	componentContext: ComponentContext,
 	projectDef: ProjectDef,
+	private val searchState: GlobalSearchState,
 	private val onDismiss: () -> Unit,
 	private val navigateToResult: (SearchResult) -> Unit,
 	initialQuery: String? = null,
 ) : ProjectComponentBase(projectDef, componentContext), GlobalSearch {
 
-	private val searchRepository: GlobalSearchRepository by projectInject()
-
 	override val state: Value<GlobalSearch.State>
-		get() = searchRepository.state
+		get() = searchState.state
 
 	init {
 		if (!initialQuery.isNullOrBlank()) {
-			searchRepository.setQuery(initialQuery)
+			searchState.setQuery(initialQuery)
 		}
 	}
 
 	override fun onQueryChanged(query: String) {
-		searchRepository.setQuery(query)
+		searchState.setQuery(query)
 	}
 
 	override fun onFilterChanged(filter: GlobalSearchFilter) {
-		searchRepository.setFilter(filter)
+		searchState.setFilter(filter)
 	}
 
 	override fun onResultClicked(result: SearchResult) {

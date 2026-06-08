@@ -82,6 +82,8 @@ kotlin {
 				implementation(libs.kmp.zip.okio)
 				implementation(libs.markdown)
 				implementation(libs.epub4kmp.core)
+				implementation(libs.pdfkmp)
+				implementation(libs.pdfkmp.markdown)
 				implementation(libs.kotlinx.html)
 			}
 		}
@@ -154,6 +156,12 @@ buildConfig {
 
 	val isDebug = project.findProperty("hammer.debug")?.toString()?.toBoolean() ?: false
 	buildConfigField("Boolean", "DEBUG", isDebug.toString())
+
+	// Mirrors the F-Droid detection in settings.gradle.kts so runtime code can branch
+	// on the build channel (e.g. public-storage projects, which Google Play disallows).
+	val isFDroid = project.findProperty("fdroid")?.toString()?.isNotEmpty() == true ||
+		System.getenv("FDROID_BUILD") != null
+	buildConfigField("Boolean", "FDROID", isFDroid.toString())
 }
 
 kover {

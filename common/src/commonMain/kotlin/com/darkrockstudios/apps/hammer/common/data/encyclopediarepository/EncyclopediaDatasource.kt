@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import net.peanuuutz.tomlkt.Toml
@@ -136,7 +137,16 @@ class EncyclopediaDatasource(
 
 			val entry: EntryContainer = toml.decodeFromString(contentToml)
 			return entry
-		} catch (e: Exception) {
+		} catch (e: IOException) {
+			throw EntryLoadError(entryPath, e)
+		} catch (e: SerializationException) {
+			throw EntryLoadError(entryPath, e)
+		} catch (e: IllegalArgumentException) {
+			// tomlkt coercion failures (e.g. NumberFormatException on a non-integer id) are
+			// IllegalArgumentException, not SerializationException.
+			throw EntryLoadError(entryPath, e)
+		} catch (e: IllegalStateException) {
+			// tomlkt parser errors surface as IllegalStateException.
 			throw EntryLoadError(entryPath, e)
 		}
 	}
@@ -203,6 +213,14 @@ class EncyclopediaDatasource(
 			}
 		} else {
 			fileSystem.delete(targetPath)
+		}
+	}
+
+	/** Writes raw image bytes (e.g. an image pulled from the server during sync) to the entry's image path. */
+	suspend fun writeEntryImage(entryDef: EntryDef, imageBytes: ByteArray, fileExtension: String) {
+		val targetPath = getEntryImagePath(entryDef, fileExtension).toOkioPath()
+		fileSystem.write(targetPath) {
+			write(imageBytes)
 		}
 	}
 
@@ -287,9 +305,9 @@ class EncyclopediaDatasource(
 				val entryId = captures.groupValues[2].toInt()
 				return entryId
 			} catch (e: NumberFormatException) {
-				throw InvalidSceneFilename("Number format exception", fileName)
+				throw InvalidSceneFilename("Number format exception", fileName, e)
 			} catch (e: IllegalStateException) {
-				throw InvalidSceneFilename("Invalid filename", fileName)
+				throw InvalidSceneFilename("Invalid filename", fileName, e)
 			}
 		}
 
@@ -311,11 +329,11 @@ class EncyclopediaDatasource(
 				)
 				return def
 			} catch (e: NumberFormatException) {
-				throw InvalidEntryFilename("Number format exception", fileName)
+				throw InvalidEntryFilename("Number format exception", fileName, e)
 			} catch (e: IllegalStateException) {
-				throw InvalidEntryFilename("Invalid filename", fileName)
+				throw InvalidEntryFilename("Invalid filename", fileName, e)
 			} catch (e: IllegalArgumentException) {
-				throw InvalidEntryFilename(e.message ?: "Invalid filename argument", fileName)
+				throw InvalidEntryFilename(e.message ?: "Invalid filename argument", fileName, cause = e)
 			}
 		}
 
@@ -357,5 +375,5 @@ fun Sequence<HPath>.filterEntryPaths() = filter {
 	!it.name.startsWith(".") && ENTRY_FILENAME_PATTERN.matches(it.name)
 }.sortedBy { it.name }
 
-open class InvalidEntryFilename(message: String, fileName: String) :
-	IllegalStateException("$fileName failed to parse because: $message")
+open class InvalidEntryFilename(message: String, fileName: String, cause: Throwable? = null) :
+	IllegalStateException("$fileName failed to parse because: $message", cause)

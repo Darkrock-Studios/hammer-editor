@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectDefinition
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
@@ -28,7 +28,7 @@ import kotlin.uuid.Uuid
 
 class ClientAccountSynchronizer(
 	private val fileSystem: FileSystem,
-	private val globalSettingsRepository: GlobalSettingsRepository,
+	private val globalSettingsStore: GlobalSettingsStore,
 	private val projectsRepository: ProjectsRepository,
 	private val serverProjectsApi: ServerProjectsApi,
 	private val networkConnectivity: NetworkConnectivity,
@@ -38,13 +38,15 @@ class ClientAccountSynchronizer(
 	var initialSync = false
 
 	fun isServerSynchronized(): Boolean {
-		return (globalSettingsRepository.serverSettings?.userId ?: -1) > -1
+		return (globalSettingsStore.serverSettings?.userId ?: -1) > -1
 	}
 
 	suspend fun shouldAutoSync(): Boolean =
-		globalSettingsRepository.globalSettings.automaticSyncing &&
+		globalSettingsStore.globalSettings.automaticSyncing &&
 			networkConnectivity.hasActiveConnection()
 
+	// Must-not-crash sync boundary; any failure logged and reported as false.
+	@Suppress("TooGenericExceptionCaught")
 	suspend fun syncProjects(onLog: OnSyncLog, onUnauthorized: suspend () -> Unit): Boolean {
 		onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_begin)))
 
@@ -499,6 +501,8 @@ class ClientAccountSynchronizer(
 	private fun getSyncDataPath(): Path =
 		projectsRepository.getProjectsDirectory().toOkioPath() / SYNC_FILE_NAME
 
+	// Corrupt sync data recovers by recreating it; not an error to surface.
+	@Suppress("SwallowedException")
 	private fun loadSyncData(): ProjectsSynchronizationData {
 		val path = getSyncDataPath()
 		val syncData = if (fileSystem.exists(path)) {
@@ -520,7 +524,7 @@ class ClientAccountSynchronizer(
 				Uuid.parse(it.id)
 				true
 			} catch (e: InvalidArgumentException) {
-				Napier.w("Invalid UUID for deleted project: $it")
+				Napier.w("Invalid UUID for deleted project: $it", e)
 				false
 			}
 		}

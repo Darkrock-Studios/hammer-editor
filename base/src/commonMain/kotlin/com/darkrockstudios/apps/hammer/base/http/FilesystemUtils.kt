@@ -19,6 +19,8 @@ fun <T : Any> FileSystem.readJson(path: Path, json: Json, clazz: KClass<T>): T? 
 	}
 }
 
+// Intentional or-null fallback; deserialization/IO failures map to null.
+@Suppress("SwallowedException")
 fun <T : Any> FileSystem.readJsonOrNull(path: Path, json: Json, clazz: KClass<T>): T? {
 	return try {
 		readJson(path, json, clazz)
@@ -62,6 +64,40 @@ inline fun <reified T : Any> FileSystem.readToml(path: Path, toml: Toml, clazz: 
 	return read(path) {
 		val tomlStr = readUtf8()
 		toml.decodeFromString(clazz.serializer(), tomlStr)
+	}
+}
+
+/**
+ * Reads and decodes [T] from a TOML file, returning null on any read or decode
+ * failure rather than throwing. [onError] is invoked with the failure (default
+ * no-op) so callers can log site-specific context including the exception.
+ *
+ * tomlkt does not funnel every decode failure through [SerializationException]:
+ * stale or hand-edited files can throw [IllegalArgumentException] (numeric
+ * coercion via NumberFormatException, type-mismatch casts, bad booleans) or
+ * [IllegalStateException] (parser errors such as a malformed date-time). All are
+ * treated as a missing/unusable file.
+ */
+@Suppress("SwallowedException")
+inline fun <reified T : Any> FileSystem.readTomlOrNull(
+	path: Path,
+	toml: Toml,
+	onError: (Throwable) -> Unit = {},
+): T? {
+	return try {
+		readToml<T>(path, toml)
+	} catch (e: IOException) {
+		onError(e)
+		null
+	} catch (e: SerializationException) {
+		onError(e)
+		null
+	} catch (e: IllegalArgumentException) {
+		onError(e)
+		null
+	} catch (e: IllegalStateException) {
+		onError(e)
+		null
 	}
 }
 

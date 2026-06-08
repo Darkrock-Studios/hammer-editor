@@ -125,13 +125,15 @@ class AccountsRepository(
 		}
 	}
 
+	// Any verify failure (invalid/old hash format) is treated as a wrong password.
+	@Suppress("TooGenericExceptionCaught", "SwallowedException")
 	private fun checkPassword(account: Account, plainTextPassword: String): Boolean {
 		val argon2 = Argon2Factory.create()
 		val passwordChars = plainTextPassword.toCharArray()
 
 		return try {
 			argon2.verify(account.password_hash, passwordChars)
-		} catch (e: Exception) {
+		} catch (_: Exception) {
 			// If verification fails (e.g., invalid format, old hash), return false
 			false
 		} finally {

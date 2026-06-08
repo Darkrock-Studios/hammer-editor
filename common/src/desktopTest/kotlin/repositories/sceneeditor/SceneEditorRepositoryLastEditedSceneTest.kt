@@ -5,14 +5,14 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import createProject
 import getProject1Def
@@ -43,14 +43,15 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 	private lateinit var clock: TestClock
 
 	@MockK
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 
 	@MockK
-	private lateinit var idRepository: IdRepository
+	private lateinit var idAllocator: IdAllocator
 
 	private lateinit var sceneMetadataDatasource: SceneMetadataDatasource
 	private lateinit var sceneDatasource: SceneDatasource
 	private lateinit var statisticsRepository: StatisticsRepository
+	private lateinit var service: SceneEditorService
 
 	@BeforeEach
 	override fun setup() {
@@ -64,27 +65,44 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 		statisticsRepository = mockk(relaxed = true)
 		projectMetadataDatasource = ProjectMetadataDatasource(ffs, toml)
 
-		coEvery { syncDataRepository.isServerSynchronized() } returns false
-		coEvery { syncDataRepository.isEntityDirty(any()) } returns false
-		coEvery { syncDataRepository.markEntityAsDirty(any(), any()) } just Runs
+		coEvery { syncJournal.isServerSynchronized() } returns false
+		coEvery { syncJournal.isEntityDirty(any()) } returns false
+		coEvery { syncJournal.markEntityAsDirty(any(), any()) } just Runs
 	}
 
-	private fun createRepository(projectDef: ProjectDef): SceneEditorRepository {
+	private fun createRepository(projectDef: ProjectDef): SceneRepository {
 		sceneMetadataDatasource = SceneMetadataDatasource(ffs, toml, projectDef)
 		sceneDatasource = SceneDatasource(projectDef, ffs)
-		return SceneEditorRepository(
+		val sceneMetadataRepository = SceneMetadataRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
-			idRepository = idRepository,
+			sceneMetadataDatasource = sceneMetadataDatasource,
 			projectMetadataDatasource = projectMetadataDatasource,
+			strRes = mockk(relaxed = true),
+			clock = clock,
+		)
+		val sceneContentRepository = SceneContentRepository(
+			projectDef = projectDef,
+			sceneDatasource = sceneDatasource,
+		)
+		val writingSessionTracker = mockk<WritingSessionTracker>(relaxed = true)
+		val referenceIndexRepository = mockk<com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository>(relaxed = true)
+		val repo = SceneRepository(
+			projectDef = projectDef,
+			syncJournal = syncJournal,
+			idAllocator = idAllocator,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
-			statisticsRepository = statisticsRepository,
-			referenceIndexRepository = mockk(relaxed = true),
-			writingSessionTracker = mockk(relaxed = true),
 			clock = clock,
-			strRes = mockk(relaxed = true),
 		)
+		service = SceneEditorService(
+			sceneEditorRepository = repo,
+			sceneContentRepository = sceneContentRepository,
+			sceneMetadataRepository = sceneMetadataRepository,
+			referenceIndexRepository = referenceIndexRepository,
+			statisticsRepository = statisticsRepository,
+			writingSessionTracker = writingSessionTracker,
+		)
+		return repo
 	}
 
 	private suspend fun lastEdited(sceneId: Int): kotlin.time.Instant? =
@@ -96,7 +114,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		val repo = createRepository(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		val sceneItem = SceneItem(
 			projectDef = projDef,
@@ -106,10 +124,10 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 			order = 0,
 		)
 		val content = SceneContent(scene = sceneItem, markdown = "edited")
-		repo.onContentChanged(content, UpdateSource.Editor)
+		service.onContentChanged(content, UpdateSource.Editor)
 		advanceUntilIdle()
 
-		repo.storeSceneBuffer(sceneItem)
+		service.storeSceneBuffer(sceneItem)
 		advanceUntilIdle()
 
 		assertEquals(clock.now(), lastEdited(3))
@@ -121,7 +139,7 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		val repo = createRepository(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		val sceneItem = SceneItem(
 			projectDef = projDef,
@@ -131,10 +149,10 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 			order = 0,
 		)
 		val content = SceneContent(scene = sceneItem, markdown = "synced in")
-		repo.onContentChanged(content, UpdateSource.Sync)
+		service.onContentChanged(content, UpdateSource.Sync)
 		advanceUntilIdle()
 
-		repo.storeSceneBuffer(sceneItem)
+		service.storeSceneBuffer(sceneItem)
 		advanceUntilIdle()
 
 		assertNull(lastEdited(3))
@@ -146,23 +164,23 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		val repo = createRepository(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		val first = SceneItem(projDef, SceneItem.Type.Scene, 1, "Scene 1", 0)
 		val second = SceneItem(projDef, SceneItem.Type.Scene, 3, "Scene 3", 0)
 
-		repo.onContentChanged(SceneContent(first, "a"), UpdateSource.Editor)
+		service.onContentChanged(SceneContent(first, "a"), UpdateSource.Editor)
 		advanceUntilIdle()
-		repo.storeSceneBuffer(first)
+		service.storeSceneBuffer(first)
 		advanceUntilIdle()
 		val firstStamp = lastEdited(1)
 		assertNotNull(firstStamp)
 
 		clock.advanceTime(1.minutes)
 
-		repo.onContentChanged(SceneContent(second, "b"), UpdateSource.Editor)
+		service.onContentChanged(SceneContent(second, "b"), UpdateSource.Editor)
 		advanceUntilIdle()
-		repo.storeSceneBuffer(second)
+		service.storeSceneBuffer(second)
 		advanceUntilIdle()
 		val secondStamp = lastEdited(3)
 		assertNotNull(secondStamp)
@@ -182,12 +200,12 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 			clock.advanceTime(30.minutes)
 
 			val repo = createRepository(projDef)
-			repo.initializeSceneEditor()
+			service.initialize()
 
 			val sceneItem = SceneItem(projDef, SceneItem.Type.Scene, 7, "Scene 7", 0)
-			repo.onContentChanged(SceneContent(sceneItem, "first edit"), UpdateSource.Editor)
+			service.onContentChanged(SceneContent(sceneItem, "first edit"), UpdateSource.Editor)
 			advanceUntilIdle()
-			repo.storeSceneBuffer(sceneItem)
+			service.storeSceneBuffer(sceneItem)
 			advanceUntilIdle()
 
 			val metadata = sceneMetadataDatasource.loadMetadata(7)
@@ -211,12 +229,12 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 
 			clock.advanceTime(2.minutes)
 
-			repo.initializeSceneEditor()
+			service.initialize()
 
 			val sceneItem = SceneItem(projDef, SceneItem.Type.Scene, 5, "Scene 5", 0)
-			repo.onContentChanged(SceneContent(sceneItem, "edit"), UpdateSource.Editor)
+			service.onContentChanged(SceneContent(sceneItem, "edit"), UpdateSource.Editor)
 			advanceUntilIdle()
-			repo.storeSceneBuffer(sceneItem)
+			service.storeSceneBuffer(sceneItem)
 			advanceUntilIdle()
 
 			val metadata = sceneMetadataDatasource.loadMetadata(5)
@@ -231,12 +249,12 @@ class SceneEditorRepositoryLastEditedSceneTest : BaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 
 		val repo = createRepository(projDef)
-		repo.initializeSceneEditor()
+		service.initialize()
 
 		val sceneItem = SceneItem(projDef, SceneItem.Type.Scene, 3, "Scene 3", 0)
-		repo.onContentChanged(SceneContent(sceneItem, "edited"), UpdateSource.Editor)
+		service.onContentChanged(SceneContent(sceneItem, "edited"), UpdateSource.Editor)
 		advanceUntilIdle()
-		repo.storeSceneBuffer(sceneItem)
+		service.storeSceneBuffer(sceneItem)
 		advanceUntilIdle()
 		val originalStamp = lastEdited(3)
 		assertNotNull(originalStamp)

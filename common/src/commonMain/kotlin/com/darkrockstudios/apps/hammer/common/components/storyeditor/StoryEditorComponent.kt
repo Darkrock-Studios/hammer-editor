@@ -15,7 +15,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfir
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.outlineoverview.OutlineOverviewComponent
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -30,7 +30,7 @@ class StoryEditorComponent(
 	showGlobalSearchForTag: (String) -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), StoryEditor {
 
-	private val sceneEditor: SceneEditorRepository by projectInject()
+	private val sceneEditor: SceneEditorService by projectInject()
 
 	private val selectedSceneItemFlow = MutableSharedFlow<SceneItem?>(
 		replay = 1,

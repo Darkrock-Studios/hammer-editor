@@ -14,10 +14,12 @@ class FetchLocalDataOperation(
 	projectDef: ProjectDef,
 	private val projectMetadataDatasource: ProjectMetadataDatasource,
 	private val entitySynchronizers: EntitySynchronizers,
-	private val syncDataRepository: SyncDataRepository,
+	private val syncJournal: SyncJournal,
 	private val strRes: StrRes,
 ) : SyncOperation(projectDef) {
 
+	// Must-not-crash operation boundary; failure wrapped into the returned CResult.
+	@Suppress("TooGenericExceptionCaught")
 	override suspend fun execute(
 		state: SyncOperationState,
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,
@@ -34,7 +36,7 @@ class FetchLocalDataOperation(
 				return CResult.failure(MissingProjectIdException(projectDef.name))
 			}
 
-			val clientSyncData = syncDataRepository.loadSyncData()
+			val clientSyncData = syncJournal.loadSyncData()
 			val entityState = if (state.onlyNew) {
 				null
 			} else {

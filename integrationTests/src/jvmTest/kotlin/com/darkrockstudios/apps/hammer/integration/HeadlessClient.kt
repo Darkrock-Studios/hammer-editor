@@ -2,17 +2,17 @@ package com.darkrockstudios.apps.hammer.integration
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import okio.Path
 import org.koin.core.component.KoinComponent
-import org.koin.core.component.get
 import org.koin.core.scope.Scope
 import org.koin.mp.KoinPlatform.getKoin
 
@@ -34,7 +34,8 @@ class HeadlessClient private constructor(
 	val projectPath: Path = projectDef.path.toOkioPath()
 
 	val synchronizer: ClientProjectSynchronizer get() = scope.get()
-	val sceneEditor: SceneEditorRepository get() = scope.get()
+	val sceneEditor: SceneRepository get() = scope.get()
+	val sceneEditorService: SceneEditorService get() = scope.get()
 
 	/**
 	 * Runs a full sync against the server. Conflicts are routed through [resolveConflict],
@@ -66,7 +67,7 @@ class HeadlessClient private constructor(
 		suspend fun create(projectName: String, serverSettings: ServerSettings): HeadlessClient {
 			val koin = getKoin()
 			val projectsRepository: ProjectsRepository = koin.get<ProjectsRepository>()
-			val globalSettings: GlobalSettingsRepository = koin.get<GlobalSettingsRepository>()
+			val globalSettings: GlobalSettingsStore = koin.get<GlobalSettingsStore>()
 
 			val createResult = projectsRepository.createProject(projectName)
 			check(isSuccess(createResult)) { "Failed to create local project: $createResult" }

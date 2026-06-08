@@ -8,7 +8,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
@@ -40,7 +41,8 @@ class TagIndexServiceTest : BaseTest() {
 	private lateinit var encyclopedia: EncyclopediaRepository
 	private lateinit var notes: NotesRepository
 	private lateinit var timeline: TimeLineRepository
-	private lateinit var sceneEditor: SceneEditorRepository
+	private lateinit var sceneEditor: SceneRepository
+	private lateinit var sceneMetadata: SceneMetadataRepository
 
 	private lateinit var entryContentChangedFlow: MutableSharedFlow<Unit>
 	private lateinit var noteContentChangedFlow: MutableSharedFlow<Unit>
@@ -58,6 +60,7 @@ class TagIndexServiceTest : BaseTest() {
 		notes = mockk(relaxed = true)
 		timeline = mockk(relaxed = true)
 		sceneEditor = mockk(relaxed = true)
+		sceneMetadata = mockk(relaxed = true)
 
 		entryContentChangedFlow = unitFlow()
 		noteContentChangedFlow = unitFlow()
@@ -77,7 +80,7 @@ class TagIndexServiceTest : BaseTest() {
 		every { timeline.eventContentChangedFlow } returns eventContentChangedFlow
 		every { notes.notesListFlow } returns notesListFlow
 		every { timeline.timelineFlow } returns timelineFlow
-		every { sceneEditor.metadataUpdateFlow } returns sceneMetadataUpdateFlow
+		every { sceneMetadata.metadataUpdateFlow } returns sceneMetadataUpdateFlow
 		every { sceneEditor.getScenes() } returns emptyList()
 		every { sceneEditor.getArchivedScenes() } returns emptyList()
 	}
@@ -126,7 +129,7 @@ class TagIndexServiceTest : BaseTest() {
 		every { sceneEditor.getScenes() } returns items
 		every { sceneEditor.getArchivedScenes() } returns emptyList()
 		for ((id, tags) in sceneAndTags) {
-			coEvery { sceneEditor.loadSceneMetadata(id) } returns SceneMetadata(tags = tags)
+			coEvery { sceneMetadata.loadSceneMetadata(id) } returns SceneMetadata(tags = tags)
 		}
 	}
 
@@ -136,13 +139,14 @@ class TagIndexServiceTest : BaseTest() {
 			notesRepository = notes,
 			timeLineRepository = timeline,
 			sceneEditorRepository = sceneEditor,
+			sceneMetadataRepository = sceneMetadata,
 		)
 		return TagIndexService(
 			projectDef = projectDef,
 			encyclopediaRepository = encyclopedia,
 			notesRepository = notes,
 			timeLineRepository = timeline,
-			sceneEditorRepository = sceneEditor,
+			sceneMetadataRepository = sceneMetadata,
 			buildTagIndex = buildTagIndex,
 		)
 	}

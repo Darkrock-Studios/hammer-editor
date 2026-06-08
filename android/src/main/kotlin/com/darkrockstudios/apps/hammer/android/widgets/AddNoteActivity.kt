@@ -9,20 +9,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBarsPadding
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.ColorScheme
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.dynamicDarkColorScheme
-import androidx.compose.material3.dynamicLightColorScheme
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -43,15 +31,11 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.android.R
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.serializableStateSaver
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -64,8 +48,8 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectsMetadataRepository: ProjectMetadataDatasource by inject()
-	private val globalSettingsRepository: GlobalSettingsRepository by inject()
-	private val globalSettings = MutableValue(globalSettingsRepository.globalSettings)
+	private val globalSettingsStore: GlobalSettingsStore by inject()
+	private val globalSettings = MutableValue(globalSettingsStore.globalSettings)
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)

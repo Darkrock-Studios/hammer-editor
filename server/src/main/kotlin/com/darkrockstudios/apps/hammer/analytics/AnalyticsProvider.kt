@@ -28,6 +28,7 @@ interface AnalyticsProvider {
 internal class UmamiAnalyticsProvider(config: UmamiConfig) : AnalyticsProvider {
 	// Computed once at construction: the provider is built once per config load, not per request.
 	private val origin = originOf(config.scriptUrl)
+	private val configuredConnectSrc = config.connectSrc
 	private val snippet =
 		"""<script defer src="${escapeAttr(config.scriptUrl)}" data-website-id="${escapeAttr(config.websiteId)}"></script>"""
 
@@ -35,14 +36,27 @@ internal class UmamiAnalyticsProvider(config: UmamiConfig) : AnalyticsProvider {
 
 	override fun scriptSrcHosts(): List<String> = listOf(origin)
 
-	// Self-hosted Umami posts events to <script-origin>/api/send, but Umami Cloud's script
-	// POSTs to a separate gateway origin baked into cloud.umami.is/script.js.
+	// An explicit config override always wins. Otherwise: self-hosted Umami posts events to
+	// <script-origin>/api/send, but Umami Cloud's script POSTs to separate gateway origins
+	// baked into cloud.umami.is/script.js.
 	override fun connectSrcHosts(): List<String> =
-		if (origin == UMAMI_CLOUD_ORIGIN) listOf(UMAMI_CLOUD_EVENT_ORIGIN) else listOf(origin)
+		configuredConnectSrc.ifEmpty {
+			if (origin == UMAMI_CLOUD_ORIGIN) UMAMI_CLOUD_EVENT_ORIGINS else listOf(origin)
+		}
 }
 
 private const val UMAMI_CLOUD_ORIGIN = "https://cloud.umami.is"
-private const val UMAMI_CLOUD_EVENT_ORIGIN = "https://api-gateway.umami.dev"
+
+// cloud.umami.is/script.js POSTs events to a gateway origin that Umami has moved several times
+// (and varies by region). All known hosts are allowed so cloud tracking keeps working across
+// regions and cached script versions. If Umami moves it again, set analytics.umami.connectSrc
+// in config to patch this without a code release.
+private val UMAMI_CLOUD_EVENT_ORIGINS = listOf(
+	"https://gateway.umami.is",
+	"https://eu.umami.is",
+	"https://api-gateway.umami.dev",
+	"https://api-gateway-eu.umami.dev",
+)
 
 object AnalyticsProviderFactory {
 	/** Returns the active provider, or null when analytics is disabled/unconfigured. */

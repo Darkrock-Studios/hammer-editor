@@ -31,6 +31,7 @@ import kotlinx.coroutines.withContext
 const val NOTES_CREATE_BODY_TAG = "notes-create-body"
 const val NOTES_CREATE_CONFIRM_TAG = "notes-create-confirm"
 const val NOTES_CREATE_CANCEL_TAG = "notes-create-cancel"
+const val NOTES_CREATE_META_TAG = "notes-create-meta"
 
 @Composable
 fun CreateNoteUi(
@@ -136,7 +137,10 @@ fun CreateNoteUi(
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 				verticalAlignment = Alignment.CenterVertically,
 			) {
-				HdMonoLabel(text = "$wordCount W · $charCount CH")
+				HdMonoLabel(
+					text = "$wordCount W · $charCount CH",
+					modifier = Modifier.testTag(NOTES_CREATE_META_TAG),
+				)
 				Spacer(modifier = Modifier.weight(1f))
 				HdHairlineButton(
 					label = Res.string.notes_create_cancel_button.get(),

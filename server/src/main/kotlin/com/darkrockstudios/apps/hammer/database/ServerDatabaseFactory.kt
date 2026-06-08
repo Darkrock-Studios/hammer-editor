@@ -2,9 +2,12 @@ package com.darkrockstudios.apps.hammer.database
 
 import app.cash.sqldelight.db.SqlDriver
 import com.darkrockstudios.apps.hammer.Account
+import com.darkrockstudios.apps.hammer.Api_metric_bucket
 import com.darkrockstudios.apps.hammer.Auth_token
 import com.darkrockstudios.apps.hammer.Deleted_entity
 import com.darkrockstudios.apps.hammer.Deleted_project
+import com.darkrockstudios.apps.hammer.Error_log
+import com.darkrockstudios.apps.hammer.Login_attempt
 import com.darkrockstudios.apps.hammer.Password_reset_token
 import com.darkrockstudios.apps.hammer.Project
 import com.darkrockstudios.apps.hammer.Project_access
@@ -51,6 +54,17 @@ fun buildServerDatabase(driver: SqlDriver): ServerDatabase {
 		),
 		white_listAdapter = White_list.Adapter(
 			date_addedAdapter = instant,
+		),
+		api_metric_bucketAdapter = Api_metric_bucket.Adapter(
+			bucket_startAdapter = instant,
+		),
+		error_logAdapter = Error_log.Adapter(
+			first_seenAdapter = instant,
+			last_seenAdapter = instant,
+			notified_atAdapter = instant,
+		),
+		login_attemptAdapter = Login_attempt.Adapter(
+			attempted_atAdapter = instant,
 		),
 	)
 }

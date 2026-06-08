@@ -1,22 +1,22 @@
 package repositories.encyclopedia
 
 import ENCYCLOPEDIA_ONLY_PROJECT_NAME
+import app.cash.turbine.test
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository.Companion.MAX_NAME_SIZE
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryLoadError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import app.cash.turbine.test
 import createProject
 import getProjectDef
 import io.mockk.*
@@ -28,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -37,19 +38,13 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	private val projDef = getProjectDef(ENCYCLOPEDIA_ONLY_PROJECT_NAME)
 
 	@MockK
-	lateinit var idRepository: IdRepository
+	lateinit var idAllocator: IdAllocator
 
 	@MockK
 	lateinit var externalFileIo: ExternalFileIo
 
 	@MockK
-	lateinit var syncDataRepository: SyncDataRepository
-
-	@MockK
-	lateinit var statisticsRepository: StatisticsRepository
-
-	private lateinit var referenceIndexDatasource: com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
-	private lateinit var referenceIndexRepository: com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
+	lateinit var syncJournal: SyncJournal
 
 	lateinit var datasource: EncyclopediaDatasource
 
@@ -64,7 +59,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 
 		setupKoin()
 
-		every { syncDataRepository.isServerSynchronized() } returns false
+		every { syncJournal.isServerSynchronized() } returns false
 		fileSystem = FakeFileSystem()
 		toml = createTomlSerializer()
 		createProject(fileSystem, ENCYCLOPEDIA_ONLY_PROJECT_NAME)
@@ -77,17 +72,11 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			fileSystem = fileSystem,
 			externalFileIo = externalFileIo,
 		)
-		referenceIndexDatasource = com.darkrockstudios.apps.hammer.common.data.references
-			.ReferenceIndexDatasource(fileSystem, toml, projDef)
-		referenceIndexRepository = com.darkrockstudios.apps.hammer.common.data.references
-			.ReferenceIndexRepository(projDef, referenceIndexDatasource)
 		return EncyclopediaRepository(
 			projectDef = projDef,
-			idRepository = idRepository,
+			idAllocator = idAllocator,
 			datasource = datasource,
-			syncDataRepository = syncDataRepository,
-			statisticsRepository = statisticsRepository,
-			referenceIndexRepository = referenceIndexRepository,
+			syncJournal = syncJournal,
 		)
 	}
 
@@ -176,7 +165,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Create Entry`() = runTest {
-		coEvery { idRepository.claimNextId() } returns 3
+		coEvery { idAllocator.claimNextId() } returns 3
 
 		val container = EntryContainer(
 			entry = EntryContent(
@@ -209,7 +198,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Create Entry round-trips aliases`() = runTest {
-		coEvery { idRepository.claimNextId() } returns 4
+		coEvery { idAllocator.claimNextId() } returns 4
 
 		val repo = createRepository()
 		val result = repo.createEntry(
@@ -233,7 +222,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Create Entry cleans aliases - trims, dedupes, drops blanks and entry name`() = runTest {
-		coEvery { idRepository.claimNextId() } returns 5
+		coEvery { idAllocator.claimNextId() } returns 5
 
 		val repo = createRepository()
 		val result = repo.createEntry(
@@ -253,7 +242,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Create Entry rejects alias exceeding max length`() = runTest {
-		coEvery { idRepository.claimNextId() } returns 6
+		coEvery { idAllocator.claimNextId() } returns 6
 
 		val repo = createRepository()
 		val tooLong = "x".repeat(MAX_NAME_SIZE + 1)
@@ -280,7 +269,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	@Test
 	fun `Delete Entry`() = runTest {
 		val deletionIdSlot = slot<Int>()
-		coEvery { syncDataRepository.recordIdDeletion(capture(deletionIdSlot)) } just Runs
+		coEvery { syncJournal.recordIdDeletion(capture(deletionIdSlot)) } just Runs
 
 		val repo = createRepository()
 		val deleted = repo.deleteEntry(entry1().toDef(projDef))
@@ -289,30 +278,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		val path = datasource.getEntryPath(entry1().toDef(projDef)).toOkioPath()
 		assertFalse(fileSystem.exists(path))
 		assertEquals(entry1().id, deletionIdSlot.captured)
-		coVerify { syncDataRepository.recordIdDeletion(any()) }
-	}
-
-	@Test
-	fun `Delete Entry purges that entry id from the reference index`() = runTest {
-		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
-
-		val repo = createRepository()
-		referenceIndexDatasource.saveIndex(
-			com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex(
-				isDirty = false,
-				entryToScenes = mapOf(
-					entry1().id to setOf(100, 200),
-					99 to setOf(100),
-				),
-			)
-		)
-		referenceIndexRepository.loadIndex()
-
-		repo.deleteEntry(entry1().toDef(projDef))
-
-		val saved = referenceIndexDatasource.loadIndex()
-		assertEquals(null, saved?.entryToScenes?.get(entry1().id))
-		assertEquals(setOf(100), saved?.entryToScenes?.get(99))
+		coVerify { syncJournal.recordIdDeletion(any()) }
 	}
 
 	@Test
@@ -359,6 +325,32 @@ class EncyclopediaRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `Load corrupt entry wraps tomlkt coercion failure as EntryLoadError`() = runTest {
+		val repo = createRepository()
+		val def = entry1().toDef(projDef)
+		val path = datasource.getEntryPath(def).toOkioPath()
+
+		// id is an Int; a non-integer value makes tomlkt throw NumberFormatException
+		// (an IllegalArgumentException), which is not a SerializationException. loadEntry
+		// must still wrap it as EntryLoadError so callers degrade gracefully.
+		fileSystem.write(path) {
+			writeUtf8(
+				"""
+				[entry]
+				id = "not-a-number"
+				name = "Entry 1"
+				type = "PERSON"
+				text = "x"
+				tags = []
+				""".trimIndent()
+			)
+		}
+
+		val error = assertFailsWith<EntryLoadError> { repo.loadEntry(def) }
+		assertTrue(error.cause is IllegalArgumentException)
+	}
+
+	@Test
 	fun `Find Entry`() = runTest {
 		val repo = createRepository()
 		val entryDef = repo.findEntryDef(entry1().id)
@@ -374,8 +366,8 @@ class EncyclopediaRepositoryTest : BaseTest() {
 
 	@Test
 	fun `entryContentChangedFlow emits on create update and delete`() = runTest {
-		coEvery { idRepository.claimNextId() } returns 50
-		coEvery { syncDataRepository.recordIdDeletion(any()) } just Runs
+		coEvery { idAllocator.claimNextId() } returns 50
+		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
 
 		val repo = createRepository()
 

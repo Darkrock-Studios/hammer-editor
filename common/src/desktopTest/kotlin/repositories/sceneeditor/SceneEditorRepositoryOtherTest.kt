@@ -9,16 +9,17 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Pr
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -50,13 +51,14 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var projectPath: HPath
 	private lateinit var projectsRepo: ProjectsRepository
-	private lateinit var syncDataRepository: SyncDataRepository
+	private lateinit var syncJournal: SyncJournal
 	private lateinit var projectDef: ProjectDef
-	private lateinit var repo: SceneEditorRepository
-	private lateinit var idRepository: IdRepository
+	private lateinit var repo: SceneRepository
+	private lateinit var idAllocator: IdAllocator
 	private lateinit var metadataRepository: ProjectMetadataDatasource
 	private lateinit var metadataDatasource: SceneMetadataDatasource
 	private lateinit var sceneDatasource: SceneDatasource
+	private lateinit var sceneContentRepository: SceneContentRepository
 	private lateinit var statisticsRepository: StatisticsRepository
 	private var nextId = -1
 	private lateinit var toml: Toml
@@ -71,7 +73,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	}
 
 	private fun verifyTreeAndFilesystem() {
-		val tree = repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
 
 		// Verify tree nodes match file system nodes
 		tree.filter { !it.value.isRootScene }.forEach { node ->
@@ -105,9 +107,9 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		toml = createTomlSerializer()
 
 		nextId = 8
-		idRepository = mockk()
-		coEvery { idRepository.claimNextId() } answers { claimId() }
-		coEvery { idRepository.findNextId() } answers { }
+		idAllocator = mockk()
+		coEvery { idAllocator.claimNextId() } answers { claimId() }
+		coEvery { idAllocator.findNextId() } answers { }
 
 		metadataRepository = mockk(relaxUnitFun = true)
 		every { metadataRepository.loadMetadata(any()) } returns
@@ -122,8 +124,8 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		metadataDatasource = mockk(relaxed = true)
 		statisticsRepository = mockk(relaxed = true)
 
-		syncDataRepository = mockk()
-		every { syncDataRepository.isServerSynchronized() } returns false
+		syncJournal = mockk()
+		every { syncJournal.isServerSynchronized() } returns false
 		//coEvery { projectSynchronizer.recordIdDeletion(any()) } just Runs
 
 		projectsRepo = mockk()
@@ -138,7 +140,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	@AfterEach
 	override fun tearDown() {
 		super.tearDown()
-		repo.onScopeClose(mockk())
+		sceneContentRepository.onScopeClose(mockk())
 
 		ffs.checkNoOpenFiles()
 	}
@@ -154,18 +156,17 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 
 		createProject(ffs, projectName)
 
-		repo = SceneEditorRepository(
+		sceneContentRepository = SceneContentRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
-			idRepository = idRepository,
-			projectMetadataDatasource = metadataRepository,
+			sceneDatasource = sceneDatasource,
+		)
+		repo = SceneRepository(
+			projectDef = projectDef,
+			syncJournal = syncJournal,
+			idAllocator = idAllocator,
 			sceneMetadataDatasource = metadataDatasource,
 			sceneDatasource = sceneDatasource,
-			statisticsRepository = statisticsRepository,
-			referenceIndexRepository = mockk(relaxed = true),
-			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
-			strRes = mockk(relaxed = true),
 		)
 	}
 
@@ -189,7 +190,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 
 		verifyTreeAndFilesystem()
 
-		val tree = repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
 		tree.forEachIndexed { index, node ->
 			when (index) {
 				0 -> assertTrue(node.value.isRootScene)
@@ -241,18 +242,17 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		val spy = spyk(sceneDatasource)
 		every { spy.moveScene(any(), any()) } throws IOException("simulated rename failure")
 		sceneDatasource = spy
-		repo = SceneEditorRepository(
+		sceneContentRepository = SceneContentRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
-			idRepository = idRepository,
-			projectMetadataDatasource = metadataRepository,
+			sceneDatasource = spy,
+		)
+		repo = SceneRepository(
+			projectDef = projectDef,
+			syncJournal = syncJournal,
+			idAllocator = idAllocator,
 			sceneMetadataDatasource = metadataDatasource,
 			sceneDatasource = spy,
-			statisticsRepository = statisticsRepository,
-			referenceIndexRepository = mockk(relaxed = true),
-			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
-			strRes = mockk(relaxed = true),
 		)
 
 		repo.initializeSceneEditor()
@@ -272,7 +272,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 
 		repo.initializeSceneEditor()
 
-		val tree = repo.getPrivateProperty<SceneEditorRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
 		val idsInTree = tree
 			.filter { !it.value.isRootScene }
 			.map { it.value.id }

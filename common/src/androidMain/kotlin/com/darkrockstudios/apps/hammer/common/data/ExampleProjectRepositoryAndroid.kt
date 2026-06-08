@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data
 
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.util.zip.unzipBytesToDirectory
 import io.github.aakira.napier.Napier
 import net.peanuuutz.tomlkt.Toml
@@ -16,11 +16,11 @@ actual val exampleProjectModule = module {
 }
 
 class ExampleProjectRepositoryAndroid(
-	globalSettingsRepository: GlobalSettingsRepository,
+	globalSettingsStore: GlobalSettingsStore,
 	fileSystem: FileSystem,
 	toml: Toml,
 	clock: Clock,
-) : ExampleProjectRepository(globalSettingsRepository, fileSystem, toml, clock) {
+) : ExampleProjectRepository(globalSettingsStore, fileSystem, toml, clock) {
 
 	private fun loadExampleProjectZip(): ByteArray {
 		val path = "/raw/$EXAMPLE_PROJECT_FILE_NAME"

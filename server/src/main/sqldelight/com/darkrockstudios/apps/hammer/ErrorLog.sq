@@ -1,0 +1,65 @@
+import kotlinx.datetime.Instant;
+
+-- Deduplicated server-side errors. Rather than a row per occurrence, errors are
+-- grouped by `fingerprint` (a hash of exception type + route, optionally + user)
+-- with a running occurrence_count and first/last seen timestamps. A flood of
+-- identical sync failures collapses into one growing row.
+--
+-- `user_id` is nullable and carried so the dashboard can answer "is sync failing
+-- for one user or everyone". `notified_at` dedupes alert emails.
+CREATE TABLE error_log (
+    id BIGSERIAL PRIMARY KEY,
+    fingerprint TEXT NOT NULL UNIQUE,
+    exception_type TEXT NOT NULL,
+    route TEXT,
+    user_id BIGINT,
+    message TEXT,
+    stack_trace TEXT,
+    occurrence_count BIGINT NOT NULL DEFAULT 1,
+    first_seen TIMESTAMPTZ AS Instant NOT NULL,
+    last_seen TIMESTAMPTZ AS Instant NOT NULL,
+    notified_at TIMESTAMPTZ AS Instant
+);
+
+CREATE INDEX error_log_last_seen ON error_log(last_seen);
+
+recordError:
+INSERT INTO error_log(
+    fingerprint, exception_type, route, user_id, message, stack_trace,
+    occurrence_count, first_seen, last_seen
+) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+ON CONFLICT (fingerprint) DO UPDATE SET
+    occurrence_count = error_log.occurrence_count + 1,
+    last_seen = EXCLUDED.last_seen,
+    message = EXCLUDED.message,
+    stack_trace = EXCLUDED.stack_trace;
+
+getRecentErrors:
+SELECT * FROM error_log
+ORDER BY last_seen DESC
+LIMIT ? OFFSET ?;
+
+getErrorCount:
+SELECT count(*) FROM error_log;
+
+getRecentErrorsByRoute:
+SELECT * FROM error_log
+WHERE route = ?
+ORDER BY last_seen DESC
+LIMIT ? OFFSET ?;
+
+getErrorCountByRoute:
+SELECT count(*) FROM error_log
+WHERE route = ?;
+
+-- Errors that have gone noisy but the admin hasn't been alerted about yet.
+getErrorsToAlert:
+SELECT * FROM error_log
+WHERE notified_at IS NULL AND occurrence_count >= ? AND last_seen >= ?
+ORDER BY occurrence_count DESC;
+
+markNotified:
+UPDATE error_log SET notified_at = ? WHERE id = ?;
+
+deleteErrorsBefore:
+DELETE FROM error_log WHERE last_seen < ?;

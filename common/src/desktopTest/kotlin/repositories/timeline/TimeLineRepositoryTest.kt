@@ -4,8 +4,8 @@ import PROJECT_EMPTY_NAME
 import app.cash.turbine.test
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.*
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository.Companion.MAX_TAG_SIZE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -38,7 +38,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	lateinit var ffs: FakeFileSystem
 	lateinit var toml: Toml
-	lateinit var syncDataRepository: SyncDataRepository
+	lateinit var syncJournal: SyncJournal
 	lateinit var datasource: TimeLineDatasource
 
 	@BeforeEach
@@ -47,11 +47,11 @@ class TimeLineRepositoryTest : BaseTest() {
 
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
-		syncDataRepository = mockk()
+		syncJournal = mockk()
 		datasource = TimeLineDatasource(ffs, toml)
 
 		val testModule = module {
-			single { syncDataRepository }
+			single { syncJournal }
 		}
 		setupKoin(testModule)
 	}
@@ -80,11 +80,11 @@ class TimeLineRepositoryTest : BaseTest() {
 	fun `Get Timeline Dir creates Dir`() = runTest {
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
-		val idRepo = mockk<IdRepository>()
+		val idRepo = mockk<IdAllocator>()
 
 		val repo = TimeLineRepository(
 			projectDef = projDef,
-			idRepository = idRepo,
+			idAllocator = idRepo,
 			datasource = datasource,
 		).initialize()
 
@@ -98,11 +98,11 @@ class TimeLineRepositoryTest : BaseTest() {
 	fun `Get timeline when none exists`() = runTest {
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
-		val idRepo = mockk<IdRepository>()
+		val idRepo = mockk<IdAllocator>()
 
 		val repo = TimeLineRepository(
 			projectDef = projDef,
-			idRepository = idRepo,
+			idAllocator = idRepo,
 			datasource = datasource,
 		).initialize()
 
@@ -116,10 +116,10 @@ class TimeLineRepositoryTest : BaseTest() {
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
 		setupTimelne(projDef)
 
-		val idRepo = mockk<IdRepository>()
+		val idRepo = mockk<IdAllocator>()
 		val repo = TimeLineRepository(
 			projectDef = projDef,
-			idRepository = idRepo,
+			idAllocator = idRepo,
 			datasource = datasource,
 		).initialize()
 
@@ -140,17 +140,17 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Update timeline with new event`() = runTest {
-		every { syncDataRepository.isServerSynchronized() } returns false
+		every { syncJournal.isServerSynchronized() } returns false
 
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
 		val oldEvents = fakeEvents()
 		setupTimelne(projDef, oldEvents)
 
-		val idRepo = mockk<IdRepository>()
+		val idRepo = mockk<IdAllocator>()
 		val repo = TimeLineRepository(
 			projectDef = projDef,
-			idRepository = idRepo,
+			idAllocator = idRepo,
 			datasource = datasource,
 		).initialize()
 
@@ -196,7 +196,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Update timeline with updated event`() = runTest {
-		every { syncDataRepository.isServerSynchronized() } returns false
+		every { syncJournal.isServerSynchronized() } returns false
 
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
@@ -205,7 +205,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 		val repo = TimeLineRepository(
 			projectDef = projDef,
-			idRepository = mockk(),
+			idAllocator = mockk(),
 			datasource = datasource,
 		).initialize()
 
@@ -250,18 +250,18 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Create event with tags persists cleaned tags`() = runTest {
-		every { syncDataRepository.isServerSynchronized() } returns false
+		every { syncJournal.isServerSynchronized() } returns false
 
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
 		setupTimelne(projDef, emptyList())
 
-		val idRepo = mockk<IdRepository>()
+		val idRepo = mockk<IdAllocator>()
 		coEvery { idRepo.claimNextId() } returns 42
 
 		val repo = TimeLineRepository(
 			projectDef = projDef,
-			idRepository = idRepo,
+			idAllocator = idRepo,
 			datasource = datasource,
 		).initialize()
 
@@ -282,7 +282,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Update event with tags persists cleaned tags`() = runTest {
-		every { syncDataRepository.isServerSynchronized() } returns false
+		every { syncJournal.isServerSynchronized() } returns false
 
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
@@ -291,7 +291,7 @@ class TimeLineRepositoryTest : BaseTest() {
 
 		val repo = TimeLineRepository(
 			projectDef = projDef,
-			idRepository = mockk(),
+			idAllocator = mockk(),
 			datasource = datasource,
 		).initialize()
 
@@ -311,7 +311,7 @@ class TimeLineRepositoryTest : BaseTest() {
 	fun `Validate tags rejects tag exceeding MAX_TAG_SIZE`() {
 		val repo = TimeLineRepository(
 			projectDef = getProjectDef(PROJECT_EMPTY_NAME),
-			idRepository = mockk(),
+			idAllocator = mockk(),
 			datasource = datasource,
 		)
 
@@ -327,19 +327,19 @@ class TimeLineRepositoryTest : BaseTest() {
 
 	@Test
 	fun `eventContentChangedFlow emits on create update and delete`() = runTest {
-		every { syncDataRepository.isServerSynchronized() } returns false
-		coEvery { syncDataRepository.recordIdDeletion(any()) } returns Unit
+		every { syncJournal.isServerSynchronized() } returns false
+		coEvery { syncJournal.recordIdDeletion(any()) } returns Unit
 
 		createProject(ffs, PROJECT_EMPTY_NAME)
 		val projDef = getProjectDef(PROJECT_EMPTY_NAME)
 		setupTimelne(projDef, fakeEvents())
 
-		val idRepo = mockk<IdRepository>()
+		val idRepo = mockk<IdAllocator>()
 		coEvery { idRepo.claimNextId() } returns 99
 
 		val repo = TimeLineRepository(
 			projectDef = projDef,
-			idRepository = idRepo,
+			idAllocator = idRepo,
 			datasource = datasource,
 		).initialize()
 		advanceUntilIdle()

@@ -1,13 +1,14 @@
 package integration
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -40,13 +41,18 @@ abstract class BaseIntegrationTest : BaseTest() {
 
 	// Real implementations
 	protected lateinit var sceneDatasource: SceneDatasource
-	protected lateinit var sceneEditorRepository: SceneEditorRepository
+	protected lateinit var sceneEditorRepository: SceneRepository
+	protected lateinit var sceneEditorService: SceneEditorService
+	protected lateinit var sceneContentRepository: SceneContentRepository
+	protected lateinit var sceneMetadataRepository: SceneMetadataRepository
+	protected lateinit var referenceIndexRepository: ReferenceIndexRepository
+	protected lateinit var writingSessionTracker: WritingSessionTracker
 	protected lateinit var sceneMetadataDatasource: SceneMetadataDatasource
 	protected lateinit var projectMetadataDatasource: ProjectMetadataDatasource
 
 	// Mocked external dependencies (things we don't want to test here)
-	protected lateinit var syncDataRepository: SyncDataRepository
-	protected lateinit var idRepository: IdRepository
+	protected lateinit var syncJournal: SyncJournal
+	protected lateinit var idAllocator: IdAllocator
 	protected lateinit var statisticsRepository: StatisticsRepository
 
 	// Project state
@@ -76,8 +82,8 @@ abstract class BaseIntegrationTest : BaseTest() {
 
 	@AfterEach
 	override fun tearDown() {
-		if (::sceneEditorRepository.isInitialized) {
-			sceneEditorRepository.onScopeClose(mockk())
+		if (::sceneContentRepository.isInitialized) {
+			sceneContentRepository.onScopeClose(mockk())
 		}
 		ffs.checkNoOpenFiles()
 		unmockkStatic("org.jetbrains.compose.resources.StringResourcesKt")
@@ -86,17 +92,17 @@ abstract class BaseIntegrationTest : BaseTest() {
 
 	private fun setupMockedDependencies() {
 		// ID repository - just provides incrementing IDs
-		idRepository = mockk()
-		coEvery { idRepository.claimNextId() } answers { nextId++ }
-		coEvery { idRepository.findNextId() } returns Unit
+		idAllocator = mockk()
+		coEvery { idAllocator.claimNextId() } answers { nextId++ }
+		coEvery { idAllocator.findNextId() } returns Unit
 
 		// Statistics repository - we don't care about stats in integration tests
 		statisticsRepository = mockk(relaxed = true)
 
 		// Sync data repository - controls whether sync is active
 		// Default to NOT synchronized so we don't trigger sync marking
-		syncDataRepository = mockk()
-		every { syncDataRepository.isServerSynchronized() } returns false
+		syncJournal = mockk()
+		every { syncJournal.isServerSynchronized() } returns false
 	}
 
 	/**
@@ -118,20 +124,39 @@ abstract class BaseIntegrationTest : BaseTest() {
 		sceneDatasource = SceneDatasource(projectDef, ffs)
 		sceneMetadataDatasource = SceneMetadataDatasource(ffs, toml, projectDef)
 		projectMetadataDatasource = ProjectMetadataDatasource(ffs, toml)
+		referenceIndexRepository = mockk(relaxed = true)
+		writingSessionTracker = mockk(relaxed = true)
+
+		sceneMetadataRepository = SceneMetadataRepository(
+			projectDef = projectDef,
+			sceneMetadataDatasource = sceneMetadataDatasource,
+			projectMetadataDatasource = projectMetadataDatasource,
+			strRes = mockk(relaxed = true),
+			clock = Clock.System,
+		)
+
+		sceneContentRepository = SceneContentRepository(
+			projectDef = projectDef,
+			sceneDatasource = sceneDatasource,
+		)
 
 		// Create real repository with real datasources
-		sceneEditorRepository = SceneEditorRepository(
+		sceneEditorRepository = SceneRepository(
 			projectDef = projectDef,
-			syncDataRepository = syncDataRepository,
-			idRepository = idRepository,
-			projectMetadataDatasource = projectMetadataDatasource,
+			syncJournal = syncJournal,
+			idAllocator = idAllocator,
 			sceneMetadataDatasource = sceneMetadataDatasource,
 			sceneDatasource = sceneDatasource,
-			statisticsRepository = statisticsRepository,
-			referenceIndexRepository = mockk(relaxed = true),
-			writingSessionTracker = mockk(relaxed = true),
 			clock = Clock.System,
-			strRes = mockk(relaxed = true),
+		)
+
+		sceneEditorService = SceneEditorService(
+			sceneEditorRepository = sceneEditorRepository,
+			sceneContentRepository = sceneContentRepository,
+			sceneMetadataRepository = sceneMetadataRepository,
+			referenceIndexRepository = referenceIndexRepository,
+			statisticsRepository = statisticsRepository,
+			writingSessionTracker = writingSessionTracker,
 		)
 	}
 
@@ -140,9 +165,9 @@ abstract class BaseIntegrationTest : BaseTest() {
 	 * This will cause markForSynchronization to actually run.
 	 */
 	protected fun enableServerSync() {
-		every { syncDataRepository.isServerSynchronized() } returns true
-		coEvery { syncDataRepository.isEntityDirty(any()) } returns false
-		coEvery { syncDataRepository.markEntityAsDirty(any(), any()) } returns Unit
+		every { syncJournal.isServerSynchronized() } returns true
+		coEvery { syncJournal.isEntityDirty(any()) } returns false
+		coEvery { syncJournal.markEntityAsDirty(any(), any()) } returns Unit
 	}
 
 	/**

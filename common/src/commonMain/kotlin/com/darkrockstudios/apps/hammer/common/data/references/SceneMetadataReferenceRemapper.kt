@@ -1,13 +1,17 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import kotlinx.coroutines.flow.first
 
+/**
+ * Rewrites confirmed/dismissed references in scene metadata when an entry id is remapped
+ * (e.g. after a sync re-id). The scene-side implementation of [ReferenceRemapper].
+ */
 class SceneMetadataReferenceRemapper(
-	private val sceneEditorRepository: SceneEditorRepository,
+	private val sceneEditorRepository: SceneRepository,
 	private val sceneMetadataDatasource: SceneMetadataDatasource,
 	private val referenceIndexRepository: ReferenceIndexRepository,
 ) : ReferenceRemapper {
@@ -28,8 +32,8 @@ class SceneMetadataReferenceRemapper(
 
 	private suspend fun collectAllSceneIds(): Set<Int> {
 		val ids = mutableSetOf<Int>()
-		val summary = sceneEditorRepository.sceneListChannel.first()
-		summary.sceneTree.root.forEach { node ->
+		val sceneTree = sceneEditorRepository.sceneTreeUpdates.first()
+		sceneTree.root.forEach { node ->
 			if (node.value.type == SceneItem.Type.Scene) ids.add(node.value.id)
 		}
 		sceneEditorRepository.getArchivedScenes().forEach { ids.add(it.id) }

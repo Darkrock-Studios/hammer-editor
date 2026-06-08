@@ -1,0 +1,80 @@
+{{> header}}
+
+<link rel="stylesheet" href="/assets/css/monitoring.css">
+
+<main class="page">
+	<div class="admin-layout">
+		{{> partials/admin-nav}}
+
+		<div class="admin-content">
+			<div class="page-header">
+				<div class="page-header__content">
+					<h1 class="page-header__title">{{msg.admin_mon_security_title}}</h1>
+					<p class="page-header__subtitle">{{msg.admin_mon_security_subtitle}}</p>
+				</div>
+			</div>
+
+			{{> partials/monitoring-nav}}
+
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_mon_security_top_failures}}</h2>
+				</div>
+				{{#hasTopFailures}}
+					<div class="mon-rank-list">
+						{{#topFailures}}
+							<div class="mon-rank">
+								<span class="mon-error__count">{{failures}}</span>
+								<span class="mon-rank__route">{{email}}</span>
+							</div>
+						{{/topFailures}}
+					</div>
+				{{/hasTopFailures}}
+				{{^hasTopFailures}}
+					<div class="mon-nominal">
+						<i class="fa-solid fa-circle-check"></i>
+						<span>{{msg.admin_mon_security_no_failures}}</span>
+					</div>
+				{{/hasTopFailures}}
+			</section>
+
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_mon_security_recent}}</h2>
+				</div>
+				{{#hasAttempts}}
+					<div class="mon-table-wrap">
+						<table class="mon-table">
+							<thead>
+							<tr>
+								<th>{{msg.admin_mon_security_col_result}}</th>
+								<th>{{msg.admin_mon_security_col_email}}</th>
+								<th>{{msg.admin_mon_security_col_ip}}</th>
+								<th>{{msg.admin_mon_security_col_time}}</th>
+							</tr>
+							</thead>
+							<tbody>
+							{{#attempts}}
+								<tr>
+									<td>
+										{{#success}}<span class="mon-badge mon-badge--ok">{{msg.admin_mon_security_ok}}</span>{{/success}}
+										{{^success}}<span class="mon-badge mon-badge--fail">{{msg.admin_mon_security_fail}}</span>{{/success}}
+									</td>
+									<td class="mon-table__route">{{email}}</td>
+									<td>{{ip}}</td>
+									<td>{{time}}</td>
+								</tr>
+							{{/attempts}}
+							</tbody>
+						</table>
+					</div>
+				{{/hasAttempts}}
+				{{^hasAttempts}}
+					<div class="empty-state"><p>{{msg.admin_mon_security_no_attempts}}</p></div>
+				{{/hasAttempts}}
+			</section>
+		</div>
+	</div>
+</main>
+
+{{> footer}}

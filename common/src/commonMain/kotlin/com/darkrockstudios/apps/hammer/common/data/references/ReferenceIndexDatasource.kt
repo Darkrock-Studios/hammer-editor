@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
-import com.darkrockstudios.apps.hammer.base.http.readToml
+import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
@@ -26,11 +26,8 @@ class ReferenceIndexDatasource(
 	suspend fun loadIndex(): ReferenceIndex? = withContext(dispatcherIo) {
 		val file = getIndexPath()
 		return@withContext if (fileSystem.exists(file)) {
-			try {
-				fileSystem.readToml(file, toml)
-			} catch (e: Exception) {
+			fileSystem.readTomlOrNull<ReferenceIndex>(file, toml) { e ->
 				Napier.e("Failed to load reference index cache", e)
-				null
 			}
 		} else {
 			null

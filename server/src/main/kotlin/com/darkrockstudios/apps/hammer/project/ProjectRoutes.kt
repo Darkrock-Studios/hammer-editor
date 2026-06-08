@@ -95,14 +95,16 @@ private fun Route.endProjectSync() {
 
 		val formParameters = try {
 			call.receiveParameters()
-		} catch (e: Exception) {
+			// Log the read failure, then let the route's error handling take over.
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			log.error("end_sync: Failed to read request body", e)
 			throw e
 		}
 
 		val lastSync = try {
 			Instant.parse(formParameters["lastSync"].toString())
-		} catch (e: IllegalArgumentException) {
+			// Unparseable timestamp is treated as absent.
+		} catch (@Suppress("SwallowedException") e: IllegalArgumentException) {
 			null
 		}
 		val lastId = formParameters["lastId"].toString().toIntOrNull()

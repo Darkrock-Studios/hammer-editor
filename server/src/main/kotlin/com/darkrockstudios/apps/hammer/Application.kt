@@ -2,6 +2,9 @@ package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.frontend.configureFrontEnd
+import com.darkrockstudios.apps.hammer.monitoring.configureApiMetrics
+import com.darkrockstudios.apps.hammer.monitoring.configureRouteTemplateCapture
+import com.darkrockstudios.apps.hammer.monitoring.configureMonitoringJob
 import com.darkrockstudios.apps.hammer.patreon.configurePatreonPolling
 import com.darkrockstudios.apps.hammer.plugins.*
 import com.darkrockstudios.apps.hammer.utilities.loadPemAsKeyStore
@@ -178,6 +181,8 @@ fun Application.appMain(
 	configureDependencyInjection(config, addInModule)
 	configureSerialization()
 	configureMonitoring(logLevel)
+	configureApiMetrics()
+	configureRouteTemplateCapture()
 	configureHTTP(config)
 	configureSecurity()
 	configureLocalization()
@@ -185,4 +190,5 @@ fun Application.appMain(
 	configureRouting(config)
 	configureFrontEnd()
 	configurePatreonPolling(config)
+	configureMonitoringJob()
 }

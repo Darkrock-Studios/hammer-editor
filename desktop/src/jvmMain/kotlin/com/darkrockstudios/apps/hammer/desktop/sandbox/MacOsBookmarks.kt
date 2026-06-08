@@ -72,7 +72,7 @@ internal object MacOsBookmarks {
 		if (!osName.lowercase().contains("mac")) return null
 		return try {
 			Native.load(LIB_NAME, HammerBookmarksLib::class.java)
-		} catch (t: Throwable) {
+		} catch (@Suppress("TooGenericExceptionCaught") t: Throwable) { // native load failure is a graceful no-op fallback
 			Napier.w("Could not load libhammer_bookmarks.dylib — sandbox bookmarks disabled", t)
 			null
 		}

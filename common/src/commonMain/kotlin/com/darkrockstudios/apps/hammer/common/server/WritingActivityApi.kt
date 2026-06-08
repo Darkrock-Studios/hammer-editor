@@ -3,13 +3,12 @@ package com.darkrockstudios.apps.hammer.common.server
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivityResponse
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsRepository
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import io.ktor.client.HttpClient
-import io.ktor.client.call.body
-import io.ktor.client.request.setBody
-import io.ktor.http.ContentType
-import io.ktor.http.contentType
+import io.ktor.client.*
+import io.ktor.client.call.*
+import io.ktor.client.request.*
+import io.ktor.http.*
 
 /**
  * Client API for the project's writing-activity sync endpoints. The server
@@ -19,9 +18,9 @@ import io.ktor.http.contentType
  */
 class WritingActivityApi(
 	httpClient: HttpClient,
-	globalSettingsRepository: GlobalSettingsRepository,
+	globalSettingsStore: GlobalSettingsStore,
 	private val strRes: StrRes,
-) : Api(httpClient, globalSettingsRepository, strRes) {
+) : Api(httpClient, globalSettingsStore, strRes) {
 
 	/** Fetch every device's slot for this project. */
 	suspend fun getWritingActivity(

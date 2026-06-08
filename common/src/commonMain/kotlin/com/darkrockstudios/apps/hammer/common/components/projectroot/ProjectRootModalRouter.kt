@@ -7,6 +7,7 @@ import com.arkivanov.decompose.router.slot.activate
 import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchComponent
+import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchState
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot.ModalDestination.*
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronizationComponent
@@ -19,6 +20,7 @@ import kotlinx.serialization.Serializable
 class ProjectRootModalRouter(
 	componentContext: ComponentContext,
 	private val projectDef: ProjectDef,
+	private val globalSearchState: GlobalSearchState,
 	private val navigateGlobalSearchResult: (SearchResult) -> Unit,
 	private val onFocusModeDismissed: (SceneItem) -> Unit,
 ) : Router {
@@ -66,6 +68,7 @@ class ProjectRootModalRouter(
 				GlobalSearchComponent(
 					componentContext,
 					projectDef,
+					globalSearchState,
 					::dismissGlobalSearch,
 					navigateGlobalSearchResult,
 					initialQuery = config.initialQuery,

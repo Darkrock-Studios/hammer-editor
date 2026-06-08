@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.projectstatistics
 
-import com.darkrockstudios.apps.hammer.base.http.readToml
+import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
@@ -23,11 +23,8 @@ class StatisticsDatasource(
 	suspend fun loadStatistics(): ProjectStatistics? = withContext(dispatcherIo) {
 		val file = StatisticsCachePaths.statsFile(projectDef)
 		return@withContext if (fileSystem.exists(file)) {
-			try {
-				fileSystem.readToml(file, toml)
-			} catch (e: Exception) {
+			fileSystem.readTomlOrNull<ProjectStatistics>(file, toml) { e ->
 				Napier.e("Failed to load statistics cache", e)
-				null
 			}
 		} else {
 			null

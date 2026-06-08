@@ -70,4 +70,5 @@ private fun mimeTypeFor(format: ExportFormat): String = when (format) {
 	// extension on the suggested filename ("$projectName.md") is what determines association.
 	ExportFormat.Markdown -> "text/plain"
 	ExportFormat.Epub -> "application/epub+zip"
+	ExportFormat.Pdf -> "application/pdf"
 }

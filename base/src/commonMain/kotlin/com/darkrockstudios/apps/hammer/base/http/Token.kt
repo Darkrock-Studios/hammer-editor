@@ -14,6 +14,8 @@ data class Token(
 		return validateToken(auth) && validateToken(refresh)
 	}
 
+	// Undecodable input is simply an invalid token.
+	@Suppress("SwallowedException")
 	@OptIn(ExperimentalEncodingApi::class)
 	private fun validateToken(base64Encoded: String): Boolean {
 		return try {

@@ -1,0 +1,53 @@
+-- Migration 1 -> 2: add the server monitoring tables.
+--
+-- The 3.1 Postgres schema shipped at version 1 without these tables, so existing
+-- databases need them created here. Fresh installs get them from Schema.create
+-- (see ApiMetric.sq / ErrorLog.sq / LoginAttempt.sq); this migration mirrors
+-- those CREATE TABLE statements for already-deployed v1 databases.
+
+CREATE TABLE api_metric_bucket (
+    bucket_start TIMESTAMPTZ NOT NULL,
+    bucket_size TEXT NOT NULL,
+    route TEXT NOT NULL,
+    method TEXT NOT NULL,
+    request_count BIGINT NOT NULL DEFAULT 0,
+    error_count BIGINT NOT NULL DEFAULT 0,
+    total_duration_ms BIGINT NOT NULL DEFAULT 0,
+    le_50 BIGINT NOT NULL DEFAULT 0,
+    le_100 BIGINT NOT NULL DEFAULT 0,
+    le_250 BIGINT NOT NULL DEFAULT 0,
+    le_500 BIGINT NOT NULL DEFAULT 0,
+    le_1000 BIGINT NOT NULL DEFAULT 0,
+    le_2500 BIGINT NOT NULL DEFAULT 0,
+    le_inf BIGINT NOT NULL DEFAULT 0,
+    PRIMARY KEY (bucket_start, bucket_size, route, method)
+);
+
+CREATE INDEX api_metric_bucket_time ON api_metric_bucket(bucket_size, bucket_start);
+
+CREATE TABLE error_log (
+    id BIGSERIAL PRIMARY KEY,
+    fingerprint TEXT NOT NULL UNIQUE,
+    exception_type TEXT NOT NULL,
+    route TEXT,
+    user_id BIGINT,
+    message TEXT,
+    stack_trace TEXT,
+    occurrence_count BIGINT NOT NULL DEFAULT 1,
+    first_seen TIMESTAMPTZ NOT NULL,
+    last_seen TIMESTAMPTZ NOT NULL,
+    notified_at TIMESTAMPTZ
+);
+
+CREATE INDEX error_log_last_seen ON error_log(last_seen);
+
+CREATE TABLE login_attempt (
+    id BIGSERIAL PRIMARY KEY,
+    email TEXT,
+    ip_address TEXT,
+    success BOOLEAN NOT NULL,
+    attempted_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX login_attempt_email_time ON login_attempt(email, attempted_at);
+CREATE INDEX login_attempt_time ON login_attempt(attempted_at);

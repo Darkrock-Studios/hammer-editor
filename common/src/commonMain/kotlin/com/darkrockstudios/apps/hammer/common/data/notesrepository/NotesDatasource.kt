@@ -99,9 +99,9 @@ class NotesDatasource(
 				val sceneId = captures.groupValues[1].toInt()
 				return sceneId
 			} catch (e: NumberFormatException) {
-				throw InvalidSceneFilename("Number format exception", fileName)
+				throw InvalidSceneFilename("Number format exception", fileName, e)
 			} catch (e: IllegalStateException) {
-				throw InvalidSceneFilename("Invalid filename", fileName)
+				throw InvalidSceneFilename("Invalid filename", fileName, e)
 			}
 		}
 

@@ -4,7 +4,7 @@ import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.id.IdRepository
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.IdConflictResolutionOperation
@@ -30,7 +30,7 @@ class IdConflictResolutionOperationTest : BaseTest() {
 	private lateinit var mockSynchronizers: MockSynchronizers
 
 	@MockK(relaxed = true)
-	private lateinit var idRepository: IdRepository
+	private lateinit var idAllocator: IdAllocator
 
 	private lateinit var strRes: TestStrRes
 
@@ -57,7 +57,7 @@ class IdConflictResolutionOperationTest : BaseTest() {
 		configureKoin(projectDef)
 		return IdConflictResolutionOperation(
 			projectDef = projectDef,
-			idRepository = idRepository,
+			idAllocator = idAllocator,
 			entitySynchronizers = EntitySynchronizers(projectDef),
 		)
 	}
@@ -65,8 +65,8 @@ class IdConflictResolutionOperationTest : BaseTest() {
 	@Test
 	fun `Golden Path`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
-		coEvery { idRepository.findNextId() } just Runs
-		coEvery { idRepository.peekLastId() } returns 11
+		coEvery { idAllocator.findNextId() } just Runs
+		coEvery { idAllocator.peekLastId() } returns 11
 
 		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(11) } returns true
 		coEvery { mockSynchronizers.sceneSynchronizer.deleteEntityLocal(any(), any()) } just Runs
@@ -117,8 +117,8 @@ class IdConflictResolutionOperationTest : BaseTest() {
 		// and used to throw, aborting every sync forever. It must instead skip
 		// the phantom so the sync can finish and clear it.
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
-		coEvery { idRepository.findNextId() } just Runs
-		coEvery { idRepository.peekLastId() } returns 50
+		coEvery { idAllocator.findNextId() } just Runs
+		coEvery { idAllocator.peekLastId() } returns 50
 
 		// No synchronizer owns the phantom id.
 		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(any()) } returns false
@@ -183,8 +183,8 @@ class IdConflictResolutionOperationTest : BaseTest() {
 		// above the local max. Seeding only from serverLastId would hand out IDs
 		// that collide with - and clobber - real local entities.
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
-		coEvery { idRepository.findNextId() } just Runs
-		coEvery { idRepository.peekLastId() } returns 100 // local max entity id
+		coEvery { idAllocator.findNextId() } just Runs
+		coEvery { idAllocator.peekLastId() } returns 100 // local max entity id
 
 		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(30) } returns true
 		coEvery { mockSynchronizers.sceneSynchronizer.reIdEntity(any(), any()) } just Runs
