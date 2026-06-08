@@ -95,9 +95,9 @@ class ProjectHomeComponent(
 	}
 
 	override fun confirmExportDialog(options: ExportOptions) {
+		// Keep the dialog open through the file picker and export so it can show the working state.
 		_state.getAndUpdate {
 			it.copy(
-				showExportDialog = false,
 				exportOptions = options,
 				showExportFilePicker = true,
 			)
@@ -107,7 +107,9 @@ class ProjectHomeComponent(
 	override fun endProjectExport() {
 		_state.getAndUpdate {
 			it.copy(
-				showExportFilePicker = false
+				showExportDialog = false,
+				showExportFilePicker = false,
+				isExporting = false,
 			)
 		}
 	}
@@ -191,13 +193,12 @@ class ProjectHomeComponent(
 			name = "",
 			isAbsolute = true
 		)
-		val filePath = exportStoryUseCase.execute(hpath, options)
-
-		withContext(mainDispatcher) {
-			endProjectExport()
+		withContext(mainDispatcher) { setExporting() }
+		return try {
+			exportStoryUseCase.execute(hpath, options)
+		} finally {
+			withContext(mainDispatcher) { endProjectExport() }
 		}
-
-		return filePath
 	}
 
 	override suspend fun exportProjectToFile(filePath: String, options: ExportOptions): HPath {
@@ -206,13 +207,16 @@ class ProjectHomeComponent(
 			name = "",
 			isAbsolute = true,
 		)
-		val result = exportStoryUseCase.executeToFile(hpath, options)
-
-		withContext(mainDispatcher) {
-			endProjectExport()
+		withContext(mainDispatcher) { setExporting() }
+		return try {
+			exportStoryUseCase.executeToFile(hpath, options)
+		} finally {
+			withContext(mainDispatcher) { endProjectExport() }
 		}
+	}
 
-		return result
+	private fun setExporting() {
+		_state.getAndUpdate { it.copy(isExporting = true) }
 	}
 
 	override fun startProjectSync() = showProjectSync()

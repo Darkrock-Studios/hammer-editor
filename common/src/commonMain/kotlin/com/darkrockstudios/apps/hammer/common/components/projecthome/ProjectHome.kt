@@ -85,6 +85,7 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val writingActivity: WritingActivityDerived = WritingActivityDerived.Empty,
 		val showExportDialog: Boolean = false,
 		val showExportFilePicker: Boolean = false,
+		val isExporting: Boolean = false,
 		val exportOptions: ExportOptions = ExportOptions(),
 		val showImportFilePicker: Boolean = false,
 		val showImportDialog: Boolean = false,

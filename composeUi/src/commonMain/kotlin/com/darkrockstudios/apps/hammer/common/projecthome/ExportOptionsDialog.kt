@@ -30,6 +30,7 @@ fun ExportOptionsDialog(
 	initialOptions: ExportOptions,
 	onCancel: () -> Unit,
 	onConfirm: (ExportOptions) -> Unit,
+	working: Boolean = false,
 ) {
 	var treatAsChapters by remember(initialOptions, visible) {
 		mutableStateOf(initialOptions.treatTopLevelAsChapters)
@@ -40,8 +41,8 @@ fun ExportOptionsDialog(
 
 	AnimatedDialog(
 		visible = visible,
-		onCloseRequest = onCancel,
-		dismissOnTapOutside = true,
+		onCloseRequest = { if (!working) onCancel() },
+		dismissOnTapOutside = !working,
 	) {
 		Surface(
 			modifier = Modifier
@@ -62,7 +63,7 @@ fun ExportOptionsDialog(
 					trailing = {
 						HdMastheadAction(
 							label = stringResource(Res.string.project_home_export_close),
-							onClick = onCancel,
+							onClick = { if (!working) onCancel() },
 						)
 					},
 				)
@@ -127,6 +128,8 @@ fun ExportOptionsDialog(
 							)
 						)
 					},
+					primaryLoading = working,
+					cancelEnabled = !working,
 				)
 			}
 		}
