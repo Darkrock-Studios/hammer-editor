@@ -1,4 +1,13 @@
-import com.darkrockstudios.build.*
+import com.darkrockstudios.build.configureRelease
+import com.darkrockstudios.build.extractLatestChangelog
+import com.darkrockstudios.build.isPlatformReleaseTag
+import com.darkrockstudios.build.registerLinuxDistributionTasks
+import com.darkrockstudios.build.registerPublishTasks
+import com.darkrockstudios.build.updateFlatpakFiles
+import com.darkrockstudios.build.updateIosShortVersion
+import com.darkrockstudios.build.updateSnapcraftYaml
+import com.darkrockstudios.build.writeChangelogMarkdown
+import com.darkrockstudios.build.writeSemvar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
 
 group = "com.darkrockstudios.apps.hammer"
@@ -259,9 +268,10 @@ tasks.register("prepareForRelease") {
 		// Tag the merge commit explicitly; the main tree stays on develop.
 		git("tag", "-a", releaseInfo.tag, "-m", releaseInfo.changeLog, "release")
 
-		// Push and begin the release process
+		// Push the branches and only this release's tag. Pushing --tags would try
+		// to sync every stale local tag and fail when one already exists on origin.
 		git("push", "origin", "develop", "release")
-		git("push", "origin", "--tags")
+		git("push", "origin", "refs/tags/${releaseInfo.tag}")
 	}
 }
 
