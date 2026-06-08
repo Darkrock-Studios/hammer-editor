@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.components.SavableComponent
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -33,6 +34,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import okio.FileSystem
+import okio.IOException
 import okio.Path
 import okio.Path.Companion.toPath
 import org.koin.core.component.get
@@ -47,6 +49,7 @@ class AndroidPlatformSettingsComponent(
 	SavableComponent<AndroidPlatformSettingsComponent.PlatformState>(componentContext) {
 
 	private val mainDispatcher by injectMainDispatcher()
+	private val ioDispatcher by injectIoDispatcher()
 
 	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectsRepository: ProjectsRepository by inject()
@@ -167,22 +170,40 @@ class AndroidPlatformSettingsComponent(
 	fun setInternalStorage() = setStorage(internal = true)
 
 	private fun setStorage(internal: Boolean) {
-		val oldPath = globalSettingsStore.globalSettings.projectsDirectory.toPath()
-		if (internal) setInternalDirectories(context) else setExternalDirectories(context)
-		val newPath = globalSettingsStore.defaultProjectDir()
-		moveProjectDirectory(oldPath = oldPath, newPath = newPath.toOkioPath())
+		scope.launch {
+			val oldPath = globalSettingsStore.globalSettings.projectsDirectory.toPath()
+			if (internal) setInternalDirectories(context) else setExternalDirectories(context)
+			val newPath = globalSettingsStore.defaultProjectDir()
+			val newOkioPath = newPath.toOkioPath()
 
-		settings[AndroidSettingsKeys.KEY_USE_INTERNAL_STORAGE] = internal
+			// Only move when the directory actually changes. Moving a directory onto itself
+			// would copy every file onto itself and then delete it (data loss), and iterating
+			// a listing while deleting from it crashes with FileNotFoundException.
+			if (oldPath != newOkioPath) {
+				try {
+					withContext(ioDispatcher) {
+						moveProjectDirectory(oldPath = oldPath, newPath = newOkioPath)
+					}
+				} catch (e: IOException) {
+					Napier.e("Failed to move projects from $oldPath to $newOkioPath", e)
+				}
+			}
 
-		setProjectsDir(newPath.path)
-		_state.getAndUpdate {
-			it.copy(
-				dataStorageInternal = internal
-			)
+			settings[AndroidSettingsKeys.KEY_USE_INTERNAL_STORAGE] = internal
+
+			setProjectsDir(newPath.path)
+			withContext(mainDispatcher) {
+				_state.getAndUpdate {
+					it.copy(
+						dataStorageInternal = internal
+					)
+				}
+			}
 		}
 	}
 
 	private fun moveProjectDirectory(oldPath: Path, newPath: Path) {
+		if (!fileSystem.exists(oldPath)) return
 		moveFilesRecursively(oldPath, newPath, fileSystem)
 		fileSystem.deleteRecursively(oldPath)
 	}
@@ -197,6 +218,9 @@ class AndroidPlatformSettingsComponent(
 		}
 
 		fileSystem.list(sourceDir).forEach { sourcePath ->
+			// Defensive: a listed entry may already be gone (e.g. a stale snapshot); don't crash.
+			if (!fileSystem.exists(sourcePath)) return@forEach
+
 			val destinationPath = destinationDir / sourcePath.name
 			if (fileSystem.metadata(sourcePath).isDirectory) {
 				moveFilesRecursively(sourcePath, destinationPath, fileSystem)
