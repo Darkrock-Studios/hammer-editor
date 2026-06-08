@@ -372,7 +372,10 @@ jobs:
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
         run: |
-          ./gradlew :android:assembleRelease
+          # Build the F-Droid flavor for the GitHub release APK: it enables the
+          # public-storage projects feature (adds the storage permissions). The
+          # Google Play build is produced separately via publish-google-play.yml.
+          ./gradlew :android:assembleRelease -Pfdroid=true
 
       - name: Rename APK Artifact
         run: |
