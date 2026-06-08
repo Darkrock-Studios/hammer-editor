@@ -22,7 +22,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 
 /**
  * The root composable take takes a scene tree and handles rendering, reorder, collapsing
@@ -38,7 +40,8 @@ fun SceneTree(
 ) {
 	Box {
 		Row {
-			if (state.summary.sceneTree.totalNodes <= 1) {
+			val visibleNodes = visibleSceneTreeNodes(state.summary, state.collapsedNodes)
+			if (visibleNodes.isEmpty()) {
 				Text(
 					text = "No Scenes",
 					modifier = Modifier.fillMaxWidth().padding(Ui.Padding.XL),
@@ -54,32 +57,25 @@ fun SceneTree(
 					contentPadding = contentPadding
 				) {
 					items(
-						count = state.summary.sceneTree.totalNodes,
-						key = { state.summary.sceneTree[it].value.id },
-						contentType = { state.summary.sceneTree[it].value.type }
+						count = visibleNodes.size,
+						key = { visibleNodes[it].value.id },
+						contentType = { visibleNodes[it].value.type }
 					) { index ->
-						val childNode = state.summary.sceneTree[index]
-						val shouldCollapseSelf = shouldCollapseNode(
-							index,
-							state.summary,
-							state.collapsedNodes
-						)
+						val childNode = visibleNodes[index]
 						val nodeCollapsesChildren =
 							state.collapsedNodes[childNode.value.id] ?: false
 
-						if (!childNode.value.isRootScene) {
-							SceneTreeNode(
-								node = childNode,
-								collapsed = shouldCollapseSelf, // need to take parent into account
-								nodeCollapsesChildren = nodeCollapsesChildren,
-								selectedId = state.selectedId,
-								toggleExpanded = state::toggleExpanded,
-								modifier = Modifier.wrapContentHeight()
-									.fillMaxWidth()
-									.animateItem(),
-								itemUi = itemUi
-							)
-						}
+						SceneTreeNode(
+							node = childNode,
+							collapsed = false,
+							nodeCollapsesChildren = nodeCollapsesChildren,
+							selectedId = state.selectedId,
+							toggleExpanded = state::toggleExpanded,
+							modifier = Modifier.wrapContentHeight()
+								.fillMaxWidth()
+								.animateItem(),
+							itemUi = itemUi
+						)
 					}
 				}
 				MpScrollBarList(state = state.listState)
@@ -89,7 +85,16 @@ fun SceneTree(
 	}
 }
 
-private fun shouldCollapseNode(
+internal fun visibleSceneTreeNodes(
+	summary: SceneSummary,
+	collapsedNodes: SnapshotStateMap<Int, Boolean>
+): List<TreeValue<SceneItem>> {
+	return summary.sceneTree.filter { node ->
+		!node.value.isRootScene && !shouldCollapseNode(node.index, summary, collapsedNodes)
+	}
+}
+
+internal fun shouldCollapseNode(
 	index: Int,
 	summary: SceneSummary,
 	collapsedNodes: SnapshotStateMap<Int, Boolean>
