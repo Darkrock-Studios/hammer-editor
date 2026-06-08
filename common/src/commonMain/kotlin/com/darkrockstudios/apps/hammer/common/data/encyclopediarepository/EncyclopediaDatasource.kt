@@ -141,6 +141,13 @@ class EncyclopediaDatasource(
 			throw EntryLoadError(entryPath, e)
 		} catch (e: SerializationException) {
 			throw EntryLoadError(entryPath, e)
+		} catch (e: IllegalArgumentException) {
+			// tomlkt coercion failures (e.g. NumberFormatException on a non-integer id) are
+			// IllegalArgumentException, not SerializationException.
+			throw EntryLoadError(entryPath, e)
+		} catch (e: IllegalStateException) {
+			// tomlkt parser errors surface as IllegalStateException.
+			throw EntryLoadError(entryPath, e)
 		}
 	}
 

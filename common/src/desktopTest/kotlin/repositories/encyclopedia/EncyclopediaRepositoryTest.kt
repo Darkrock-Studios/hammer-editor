@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository.Companion.MAX_NAME_SIZE
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryLoadError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -320,6 +322,32 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		val container = repo.loadEntry(entry1().toDef(projDef))
 
 		assertEquals(entry1(), container.entry)
+	}
+
+	@Test
+	fun `Load corrupt entry wraps tomlkt coercion failure as EntryLoadError`() = runTest {
+		val repo = createRepository()
+		val def = entry1().toDef(projDef)
+		val path = datasource.getEntryPath(def).toOkioPath()
+
+		// id is an Int; a non-integer value makes tomlkt throw NumberFormatException
+		// (an IllegalArgumentException), which is not a SerializationException. loadEntry
+		// must still wrap it as EntryLoadError so callers degrade gracefully.
+		fileSystem.write(path) {
+			writeUtf8(
+				"""
+				[entry]
+				id = "not-a-number"
+				name = "Entry 1"
+				type = "PERSON"
+				text = "x"
+				tags = []
+				""".trimIndent()
+			)
+		}
+
+		val error = assertFailsWith<EntryLoadError> { repo.loadEntry(def) }
+		assertTrue(error.cause is IllegalArgumentException)
 	}
 
 	@Test
