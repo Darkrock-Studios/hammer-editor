@@ -11,9 +11,9 @@ kotlin = "2.4.0"
 serialization = "1.11.0"
 
 # Android
-android_gradle_plugin = "9.0.0"
-android_sdk_compile = "36"
-android_sdk_target = "36"
+android_gradle_plugin = "9.1.1"
+android_sdk_compile = "37"
+android_sdk_target = "37"
 android_sdk_min = "28"
 
 # Other libraries
@@ -51,7 +51,7 @@ jetbrains_kover = "0.9.8"
 moko_permissions = "0.20.1"
 
 decompose = "3.5.0"
-essenty = "2.5.0" # This should match what ever decompose is referncing internally
+essenty = "2.5.0" # This should match whatever decompose is referncing internally
 
 filekit = "0.14.1"
 koalaplot-core = "0.11.2"
