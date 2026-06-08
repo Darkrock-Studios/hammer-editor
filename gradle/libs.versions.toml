@@ -11,7 +11,7 @@ kotlin = "2.4.0"
 serialization = "1.11.0"
 
 # Android
-android_gradle_plugin = "9.1.1"
+android_gradle_plugin = "9.2.1"
 android_sdk_compile = "37"
 android_sdk_target = "37"
 android_sdk_min = "28"
