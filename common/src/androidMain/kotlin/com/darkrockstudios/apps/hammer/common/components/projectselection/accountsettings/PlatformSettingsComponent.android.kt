@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.moveDirectory
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.setExternalDirectories
 import com.darkrockstudios.apps.hammer.common.setInternalDirectories
@@ -35,7 +36,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import okio.FileSystem
 import okio.IOException
-import okio.Path
 import okio.Path.Companion.toPath
 import org.koin.core.component.get
 import org.koin.core.component.inject
@@ -67,8 +67,13 @@ class AndroidPlatformSettingsComponent(
 	init {
 		scope.launch {
 			val screenOn = settings.getBoolean(AndroidSettingsKeys.KEY_SCREEN_ON, false)
-			val internalStorage =
-				settings.getBoolean(AndroidSettingsKeys.KEY_USE_INTERNAL_STORAGE, true)
+			// Derive the toggle from where projects actually live rather than trusting the
+			// stored flag alone, so the UI can't desync from reality. Heal the stored flag
+			// (read at startup by HammerApplication) if the two disagree.
+			val internalStorage = !isProjectsDirExternal()
+			if (settings.getBoolean(AndroidSettingsKeys.KEY_USE_INTERNAL_STORAGE, true) != internalStorage) {
+				settings[AndroidSettingsKeys.KEY_USE_INTERNAL_STORAGE] = internalStorage
+			}
 			val externalStorageAccess = isExternalStorageGranted()
 			val dndSelected = globalSettingsStore.globalSettings.enableDndInFocusMode
 			val dndGranted = isNotificationPolicyGranted()
@@ -166,6 +171,18 @@ class AndroidPlatformSettingsComponent(
 		}
 	}
 
+	/**
+	 * Whether the current projects directory lives under public (external) storage. Used to
+	 * keep the storage toggle in sync with the real location. Reads only the path string, so
+	 * it's safe to call without storage permission.
+	 */
+	private fun isProjectsDirExternal(): Boolean {
+		val externalRoot = Environment
+			.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+			.absolutePath
+		return globalSettingsStore.globalSettings.projectsDirectory.startsWith(externalRoot)
+	}
+
 	fun setExternalStorage() = setStorage(internal = false)
 	fun setInternalStorage() = setStorage(internal = true)
 
@@ -176,17 +193,14 @@ class AndroidPlatformSettingsComponent(
 			val newPath = globalSettingsStore.defaultProjectDir()
 			val newOkioPath = newPath.toOkioPath()
 
-			// Only move when the directory actually changes. Moving a directory onto itself
-			// would copy every file onto itself and then delete it (data loss), and iterating
-			// a listing while deleting from it crashes with FileNotFoundException.
-			if (oldPath != newOkioPath) {
-				try {
-					withContext(ioDispatcher) {
-						moveProjectDirectory(oldPath = oldPath, newPath = newOkioPath)
-					}
-				} catch (e: IOException) {
-					Napier.e("Failed to move projects from $oldPath to $newOkioPath", e)
+			// moveDirectory no-ops when the source and destination are the same directory or
+			// the source is missing, and tolerates entries vanishing mid-iteration.
+			try {
+				withContext(ioDispatcher) {
+					fileSystem.moveDirectory(source = oldPath, destination = newOkioPath)
 				}
+			} catch (e: IOException) {
+				Napier.e("Failed to move projects from $oldPath to $newOkioPath", e)
 			}
 
 			settings[AndroidSettingsKeys.KEY_USE_INTERNAL_STORAGE] = internal
@@ -198,36 +212,6 @@ class AndroidPlatformSettingsComponent(
 						dataStorageInternal = internal
 					)
 				}
-			}
-		}
-	}
-
-	private fun moveProjectDirectory(oldPath: Path, newPath: Path) {
-		if (!fileSystem.exists(oldPath)) return
-		moveFilesRecursively(oldPath, newPath, fileSystem)
-		fileSystem.deleteRecursively(oldPath)
-	}
-
-	private fun moveFilesRecursively(
-		sourceDir: Path,
-		destinationDir: Path,
-		fileSystem: FileSystem,
-	) {
-		if (!fileSystem.exists(destinationDir)) {
-			fileSystem.createDirectories(destinationDir)
-		}
-
-		fileSystem.list(sourceDir).forEach { sourcePath ->
-			// Defensive: a listed entry may already be gone (e.g. a stale snapshot); don't crash.
-			if (!fileSystem.exists(sourcePath)) return@forEach
-
-			val destinationPath = destinationDir / sourcePath.name
-			if (fileSystem.metadata(sourcePath).isDirectory) {
-				moveFilesRecursively(sourcePath, destinationPath, fileSystem)
-				fileSystem.delete(sourcePath)
-			} else {
-				fileSystem.copy(sourcePath, destinationPath)
-				fileSystem.delete(sourcePath)
 			}
 		}
 	}
