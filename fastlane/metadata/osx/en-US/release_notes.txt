@@ -1,10 +1,8 @@
-- EPUB export! Now with a Table of Contents and custom file naming
-- Visual diffs when comparing drafts and merging sync conflicts
-- Distraction-free editing: phones hide everything but the editor while typing
-- New desktop splash screen
-- Timeline Z-A sort option
-- More reliable sync error handling
-- Faster Linux AppImage delta updates
-- Fix: Spellcheck disabling
-- Fix: Sync re-ID error
-- Updated translations
+- Added PDF export option
+- Re-enabled public-storage of projects on F-Droid builds
+- Improved text input: Dead Key keyboards now supported on desktop
+- Server admin panel now includes a monitoring dashboard
+- Fixed notifications/toasts not appearing on Android
+- Fixed a crash when opening projects with older saved data
+- Refactored Domain layer to improve testability
+- Performance improvements for the Scene Tree

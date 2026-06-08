@@ -32,6 +32,18 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.2.0" date="2026-06-08">
+            <description>
+                <p>- Added PDF export option</p>
+                <p>- Re-enabled public-storage of projects on F-Droid builds</p>
+                <p>- Improved text input: Dead Key keyboards now supported on desktop</p>
+                <p>- Server admin panel now includes a monitoring dashboard</p>
+                <p>- Fixed notifications/toasts not appearing on Android</p>
+                <p>- Fixed a crash when opening projects with older saved data</p>
+                <p>- Refactored Domain layer to improve testability</p>
+                <p>- Performance improvements for the Scene Tree</p>
+            </description>
+        </release>
         <release version="3.1.3" date="2026-06-04">
             <description>
                 <p>- EPUB export! Now with a Table of Contents and custom file naming</p>
