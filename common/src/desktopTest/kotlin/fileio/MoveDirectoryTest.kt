@@ -42,8 +42,8 @@ class MoveDirectoryTest {
 		val dir = "/sdcard/Documents/HammerProjects".toPath()
 		fs.writeText(dir / "Alice" / "scenes" / "02-Chapter", "two")
 
-		// Regression: previously this copied every file onto itself and deleted it,
-		// destroying data and crashing on the stale listing.
+		// Moving a directory onto itself must be a no-op: copying every file onto itself
+		// and then deleting it would destroy data.
 		fs.moveDirectory(source = dir, destination = dir)
 
 		assertTrue(fs.exists(dir / "Alice" / "scenes" / "02-Chapter"))
