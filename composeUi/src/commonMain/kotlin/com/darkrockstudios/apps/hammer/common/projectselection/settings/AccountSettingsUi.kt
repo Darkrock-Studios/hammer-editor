@@ -22,6 +22,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -45,6 +46,8 @@ internal fun AccountSettingsUi(
 	val scope = rememberCoroutineScope()
 	val screen = LocalScreenCharacteristic.current
 	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
+
+	Toaster(component, rootSnackbar)
 
 	val outerHorizontal: Dp = if (isCompact) Ui.Padding.XL else 56.dp
 	val outerVertical: Dp = if (isCompact) Ui.Padding.L else 28.dp
