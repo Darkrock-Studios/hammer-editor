@@ -18,10 +18,6 @@ private fun chapterAnchorId(index: Int): String = "chapter-$index"
  * Renders the story as a PDF mirroring the EPUB layout: a title page, a clickable table of contents,
  * then one auto-paginating section per chapter. Chapter bodies are rendered from markdown so headings,
  * emphasis, and lists are laid out as formatted text rather than literal syntax.
- *
- * The contents page is hand-built from anchor/linkToAnchor rather than the library's `tableOfContents`,
- * which prints page numbers and so forces a full dry-run layout of the whole book to resolve them —
- * doubling export time. Matching EPUB, entries carry no page numbers, so a single layout pass suffices.
  */
 fun writeStoryAsPdf(
 	sink: BufferedSink,
