@@ -3,6 +3,9 @@ package com.darkrockstudios.build
 import org.gradle.api.GradleException
 import org.gradle.api.Project
 
+private const val APPIMAGETOOL_VERSION = "1.9.1"
+private const val APPIMAGE_RUNTIME_VERSION = "20251108"
+
 /**
  * Checks if the current OS is Linux, throws a GradleException with helpful message if not.
  */
@@ -76,6 +79,7 @@ fun Project.registerBuildDistAppImageTask() {
 			val appSourceDir = rootDir.resolve("desktop/build/installers/main-release/app/hammer")
 			val iconFile = rootDir.resolve("desktop/icons/linux.png")
 			val appimagetool = rootDir.resolve("appimagetool-x86_64.AppImage")
+			val runtimeFile = rootDir.resolve("appimage-runtime-x86_64")
 
 			// Clean previous build
 			appDir.deleteRecursively()
@@ -86,12 +90,25 @@ fun Project.registerBuildDistAppImageTask() {
 				providers.exec {
 					workingDir = rootDir
 					commandLine(
-						"wget", "-q",
-						"https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
+						"wget", "-q", "-O", appimagetool.absolutePath,
+						"https://github.com/AppImage/appimagetool/releases/download/$APPIMAGETOOL_VERSION/appimagetool-x86_64.AppImage"
 					)
 				}.result.get()
 				providers.exec {
 					commandLine("chmod", "+x", appimagetool.absolutePath)
+				}.result.get()
+			}
+
+			// Download the AppImage runtime if not present. Passing it via --runtime-file
+			// stops appimagetool from fetching the runtime from GitHub at pack time, which
+			// removes a network dependency from the release build.
+			if (!runtimeFile.exists()) {
+				providers.exec {
+					workingDir = rootDir
+					commandLine(
+						"wget", "-q", "-O", runtimeFile.absolutePath,
+						"https://github.com/AppImage/type2-runtime/releases/download/$APPIMAGE_RUNTIME_VERSION/runtime-x86_64"
+					)
 				}.result.get()
 			}
 
@@ -145,6 +162,7 @@ fun Project.registerBuildDistAppImageTask() {
 				commandLine(
 					appimagetool.absolutePath,
 					"--appimage-extract-and-run",
+					"--runtime-file", runtimeFile.absolutePath,
 					"-u", "gh-releases-zsync|Wavesonics|hammer-editor|latest|hammer*.AppImage.zsync",
 					appDir.absolutePath,
 					outputDir.resolve("hammer.AppImage").absolutePath

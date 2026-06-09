@@ -66,7 +66,12 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Package Windows ".msi" distribution
-        run: ./gradlew :desktop:packageReleaseMsi
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          shell: pwsh
+          command: ./gradlew :desktop:packageReleaseMsi
 
       - name: Rename MSI Artifact
         shell: cmd
@@ -93,7 +98,12 @@ jobs:
           echo Successfully renamed file to "hammer.msi"
 
       - name: Package Windows ".exe" distribution
-        run: ./gradlew :desktop:packageReleaseExe
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          shell: pwsh
+          command: ./gradlew :desktop:packageReleaseExe
 
       - name: Rename EXE Artifact
         shell: cmd
@@ -152,15 +162,33 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      # appimagetool and the AppImage runtime are pinned in linuxDistributions.kt;
+      # cache them so buildDistAppImage doesn't re-download them every release.
+      - name: Cache appimagetool
+        uses: actions/cache@v5
+        with:
+          path: |
+            appimagetool-x86_64.AppImage
+            appimage-runtime-x86_64
+          key: appimagetool-1.9.1-runtime-20251108
+
       # buildDistAppImage generates the .zsync delta file with the system zsyncmake;
       # appimagetool's bundled copy is broken, so install the system zsync package.
       - name: Install zsync
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y zsync
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y zsync
 
       - name: Package Linux ".deb" distribution
-        run: ./gradlew :desktop:packageReleaseDeb
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: ./gradlew :desktop:packageReleaseDeb
 
       - name: Rename DEB Artifact
         run: |
@@ -180,7 +208,11 @@ jobs:
           echo "File renamed successfully."
 
       - name: Package Linux ".rpm" distribution
-        run: ./gradlew :desktop:packageReleaseRpm
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: ./gradlew :desktop:packageReleaseRpm
 
       - name: Rename RPM Artifact
         run: |
@@ -200,7 +232,11 @@ jobs:
           echo "File renamed successfully."
 
       - name: Build Linux ".appimage" distribution
-        run: ./gradlew buildDistAppImage
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: ./gradlew buildDistAppImage
 
       - name: Create Release
         uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
@@ -236,7 +272,11 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Package MacOS ".dmg" distribution
-        run: ./gradlew :desktop:packageReleaseDmg
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: ./gradlew :desktop:packageReleaseDmg
 
       - name: Rename DMG Artifact
         run: |
@@ -256,7 +296,11 @@ jobs:
           echo "File renamed successfully."
 
       - name: Package MacOS ".pkg" distribution
-        run: ./gradlew :desktop:packageReleasePkg
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: ./gradlew :desktop:packageReleasePkg
 
       - name: Rename PKG Artifact
         run: |
@@ -312,7 +356,11 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Package Server distributions
-        run: ./gradlew :server:assembleDist
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: ./gradlew :server:assembleDist
 
       - name: Rename tar Artifact
         run: |
@@ -380,11 +428,14 @@ jobs:
           RELEASE_STORE_PASSWORD: ${{ secrets.RELEASE_STORE_PASSWORD }}
           RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
           RELEASE_KEY_PASSWORD: ${{ secrets.RELEASE_KEY_PASSWORD }}
-        run: |
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
           # Build the F-Droid flavor for the GitHub release APK: it enables the
           # public-storage projects feature (adds the storage permissions). The
           # Google Play build is produced separately via publish-google-play.yml.
-          ./gradlew :android:assembleRelease -Pfdroid=true
+          command: ./gradlew :android:assembleRelease -Pfdroid=true
 
       - name: Rename APK Artifact
         run: |
@@ -468,10 +519,14 @@ jobs:
           cache: gradle
 
       - name: Install Flatpak and flatpak-builder
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder
-          flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 10
+          max_attempts: 3
+          command: |
+            sudo apt-get update
+            sudo apt-get install -y flatpak flatpak-builder
+            flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
       - name: Cache Flatpak SDK and runtime
         uses: actions/cache@v5
@@ -480,15 +535,23 @@ jobs:
           key: flatpak-sdk-runtime-24.08
 
       - name: Install Flatpak SDK and runtime
-        run: |
-          flatpak install --user -y flathub org.freedesktop.Platform//24.08
-          flatpak install --user -y flathub org.freedesktop.Sdk//24.08
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 15
+          max_attempts: 3
+          command: |
+            flatpak install --user -y flathub org.freedesktop.Platform//24.08
+            flatpak install --user -y flathub org.freedesktop.Sdk//24.08
 
       - name: Grant Permission to Execute
         run: chmod +x gradlew
 
       - name: Build Flatpak
-        run: ./gradlew buildDistFlatpak
+        uses: nick-fields/retry@ce71cc2ab81d554ebbe88c79ab5975992d79ba08 # v3.0.2
+        with:
+          timeout_minutes: 30
+          max_attempts: 3
+          command: ./gradlew buildDistFlatpak
 
       - name: Create Release
         uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
