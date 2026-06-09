@@ -12,6 +12,8 @@ import okio.BufferedSink
 
 private const val TOC_TITLE = "Contents"
 
+private fun chapterAnchorId(index: Int): String = "chapter-$index"
+
 /**
  * Renders the story as a PDF mirroring the EPUB layout: a title page, a clickable table of contents,
  * then one auto-paginating section per chapter. Chapter bodies are rendered from markdown so headings,
@@ -43,17 +45,25 @@ fun writeStoryAsPdf(
 			authorName?.let { text("by $it") { fontSize = 16.sp } }
 		}
 
-		// Contents page — tableOfContents expands the chapter bookmarks below into clickable rows.
+		// Contents page — each row links to the matching chapter's anchor below.
 		page {
 			text(TOC_TITLE) { fontSize = 26.sp; bold = true }
-			tableOfContents(maxLevel = 0)
+			column(spacing = 6.dp) {
+				effective.forEachIndexed { index, chapter ->
+					linkToAnchor(chapterAnchorId(index)) {
+						text("${index + 1}. ${chapter.name}")
+					}
+				}
+			}
 		}
 
 		// One section per chapter. The title is a literal text heading (not markdown) so metacharacters
 		// in a chapter name render verbatim; Slice keeps it on the same page as the body that follows.
+		// bookmark drives the reader's outline panel; anchor is the jump target for the contents page.
 		effective.forEachIndexed { index, chapter ->
 			page {
 				bookmark(chapter.name)
+				anchor(chapterAnchorId(index))
 				text("${index + 1}. ${chapter.name}") { fontSize = 22.sp; bold = true }
 				if (chapter.markdown.isNotBlank()) {
 					markdown(chapter.markdown.stripBackslashEscapes(), theme = MarkdownTheme())
