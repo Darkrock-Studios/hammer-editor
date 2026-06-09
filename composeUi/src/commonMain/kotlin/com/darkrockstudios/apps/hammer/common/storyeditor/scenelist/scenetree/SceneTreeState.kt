@@ -138,8 +138,11 @@ class SceneTreeState(
 	}
 
 	fun toggleExpanded(nodeId: Int) {
-		val collapse = !(collapsedNodes[nodeId] ?: false)
-		collapsedNodes[nodeId] = collapse
+		if (collapsedNodes[nodeId] == true) {
+			collapsedNodes.remove(nodeId)
+		} else {
+			collapsedNodes[nodeId] = true
+		}
 	}
 
 	companion object {
