@@ -96,7 +96,7 @@ class SceneEditorServiceTest : BaseTest() {
 
 		coEvery { syncJournal.isServerSynchronized() } returns false
 		coEvery { syncJournal.isEntityDirty(any()) } returns false
-		coEvery { syncJournal.markEntityAsDirty(any(), any()) } just Runs
+		coEvery { syncJournal.markEntityAsDirty(any()) } just Runs
 		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
 	}
 
@@ -536,44 +536,24 @@ class SceneEditorServiceTest : BaseTest() {
 			)
 		}
 
-	// Risk Register #4: markForSynchronization must hash the exact persisted identity. Pin the
-	// EntityHasher inputs so a future carve can't silently change what gets hashed.
+	// Risk Register #4: a mutation must flag the scene for sync. The conflict baseline is the
+	// server-confirmed hash recorded at sync time (SyncJournal.syncedHashes), NOT a hash
+	// re-derived from the already-mutated local state — re-deriving here is what let `lastEdited`
+	// taint the baseline and forge a phantom conflict on every edit.
 	@Test
-	fun `Marking for synchronization hashes the exact persisted scene identity`() =
+	fun `Marking for synchronization flags the scene dirty`() =
 		runTest(mainTestDispatcher) {
 			coEvery { syncJournal.isServerSynchronized() } returns true
 			coEvery { syncJournal.isEntityDirty(1) } returns false
+			coEvery { syncJournal.markEntityAsDirty(1) } just Runs
 
 			val service = initializedService()
 			val scene = service.getSceneItemFromId(1)!!
-			val metadata = sceneMetadataDatasource.loadMetadata(1)
-
-			// Recompute the expected hash from the pre-mutation persisted state.
-			val expectedHash = EntityHasher.hashScene(
-				id = scene.id,
-				order = scene.order,
-				path = service.getPathSegments(scene),
-				name = scene.name,
-				type = scene.type.toApiType(),
-				content = service.loadSceneMarkdownRaw(scene),
-				outline = metadata?.outline ?: "",
-				notes = metadata?.notes ?: "",
-				archived = scene.archived,
-				confirmedReferences = metadata?.confirmedReferences ?: emptySet(),
-				dismissedReferences = metadata?.dismissedReferences ?: emptySet(),
-				tags = metadata?.tags ?: emptySet(),
-				created = metadata?.created,
-				lastEdited = metadata?.lastEdited,
-			)
-
-			val hashSlot = slot<String>()
-			coEvery { syncJournal.markEntityAsDirty(1, capture(hashSlot)) } just Runs
 
 			// Any mutation marks the scene for sync before changing it.
 			service.renameScene(scene, "Renamed")
 
-			coVerify { syncJournal.markEntityAsDirty(1, any()) }
-			assertEquals(expectedHash, hashSlot.captured)
+			coVerify { syncJournal.markEntityAsDirty(1) }
 		}
 
 	// Risk Register #3: editor edits are debounced by BUFFER_COOL_DOWN then autosaved to a

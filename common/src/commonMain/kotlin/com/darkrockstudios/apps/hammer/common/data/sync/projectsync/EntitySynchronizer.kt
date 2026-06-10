@@ -30,7 +30,11 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 		originalHash: String?,
 		onConflict: EntityConflictHandler<T>,
 		onLog: OnSyncLog,
-		force: Boolean = false
+		force: Boolean = false,
+		// Invoked with the hash the server now holds when an upload is accepted, so the caller can
+		// lock it in as the conflict baseline. The hash of the exact entity we sent, captured here
+		// rather than re-derived later (local state may have already drifted).
+		onSynced: suspend (id: Int, hash: String) -> Unit = { _, _ -> },
 	): Boolean {
 		Napier.d("Uploading Scene $id")
 
@@ -47,6 +51,7 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 		)
 		return if (result.isSuccess) {
 			onLog(syncLogI("Uploaded Scene $id", projectDef))
+			onSynced(id, entity.hash())
 			true
 		} else {
 			val exception = result.exceptionOrNull()
@@ -68,6 +73,7 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 				if (resolveResult.isSuccess) {
 					onLog(syncLogI("Resolved conflict for scene $id", projectDef))
 					storeEntity(resolvedEntity, syncId, onLog)
+					onSynced(id, resolvedEntity.hash())
 					true
 				} else {
 					onLog(syncLogE("Scene conflict resolution failed for $id", projectDef))

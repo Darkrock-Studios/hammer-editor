@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.data.timelinerepository
 
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
@@ -89,7 +88,7 @@ class TimeLineRepository(
 
 		if (id != null) {
 			val index = newTimeline.events.indexOf(event)
-			markForSynchronization(event, index)
+			markForSynchronization(event)
 		}
 
 		return event
@@ -125,7 +124,7 @@ class TimeLineRepository(
 		storeAndEmitTimeline(updatedTimeline)
 
 		if (markForSync) {
-			markForSynchronization(oldEvent ?: cleaned, originalIndex)
+			markForSynchronization(oldEvent ?: cleaned)
 		}
 
 		return true
@@ -233,7 +232,7 @@ class TimeLineRepository(
 
 						// Mark for synchronization
 						val originalEvent = originalTimeline.events.first { it.id == curEvent.id }
-						markForSynchronization(originalEvent, originalEvent.order)
+						markForSynchronization(originalEvent)
 					}
 				}
 
@@ -248,19 +247,9 @@ class TimeLineRepository(
 		}
 	}
 
-	private suspend fun markForSynchronization(originalEvent: TimeLineEvent, originalOrder: Int) {
-		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(
-				originalEvent.id
-			)
-		) {
-			val hash = EntityHasher.hashTimelineEvent(
-				id = originalEvent.id,
-				order = originalOrder,
-				content = originalEvent.content,
-				date = originalEvent.date,
-				tags = originalEvent.tags,
-			)
-			syncJournal.markEntityAsDirty(originalEvent.id, hash)
+	private suspend fun markForSynchronization(originalEvent: TimeLineEvent) {
+		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(originalEvent.id)) {
+			syncJournal.markEntityAsDirty(originalEvent.id)
 		}
 	}
 

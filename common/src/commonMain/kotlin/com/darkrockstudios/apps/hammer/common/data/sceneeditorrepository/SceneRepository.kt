@@ -1,13 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.toApiType
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -65,35 +63,7 @@ class SceneRepository(
 
 	private suspend fun markForSynchronization(scene: SceneItem) {
 		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(scene.id)) {
-			val metadata = sceneMetadataDatasource.loadMetadata(scene.id)
-			val pathSegments = getPathSegments(scene)
-
-			// For archived scenes, resolve path from filesystem since they're not in tree
-			val content = if (scene.archived) {
-				val scenePath = resolveScenePathFromFilesystemIncludingArchived(scene.id)
-					?: error("Archived scene file not found for ID ${scene.id}")
-				loadSceneMarkdownRaw(scene, scenePath)
-			} else {
-				loadSceneMarkdownRaw(scene)
-			}
-
-			val hash = EntityHasher.hashScene(
-				id = scene.id,
-				order = scene.order,
-				path = pathSegments,
-				name = scene.name,
-				type = scene.type.toApiType(),
-				content = content,
-				outline = metadata?.outline ?: "",
-				notes = metadata?.notes ?: "",
-				archived = scene.archived,
-				confirmedReferences = metadata?.confirmedReferences ?: emptySet(),
-				dismissedReferences = metadata?.dismissedReferences ?: emptySet(),
-				tags = metadata?.tags ?: emptySet(),
-				created = metadata?.created,
-				lastEdited = metadata?.lastEdited,
-			)
-			syncJournal.markEntityAsDirty(scene.id, hash)
+			syncJournal.markEntityAsDirty(scene.id)
 		}
 	}
 
@@ -394,30 +364,6 @@ class SceneRepository(
 		}
 	}
 
-	private suspend fun markForSynchronization(scene: SceneItem, content: String) {
-		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(scene.id)) {
-			val metadata = sceneMetadataDatasource.loadMetadata(scene.id)
-			val pathSegments = getPathSegments(scene)
-			val hash = EntityHasher.hashScene(
-				id = scene.id,
-				order = scene.order,
-				path = pathSegments,
-				name = scene.name,
-				type = scene.type.toApiType(),
-				content = content,
-				outline = metadata?.outline ?: "",
-				notes = metadata?.notes ?: "",
-				archived = scene.archived,
-				confirmedReferences = metadata?.confirmedReferences ?: emptySet(),
-				dismissedReferences = metadata?.dismissedReferences ?: emptySet(),
-				tags = metadata?.tags ?: emptySet(),
-				created = metadata?.created,
-				lastEdited = metadata?.lastEdited,
-			)
-			syncJournal.markEntityAsDirty(scene.id, hash)
-		}
-	}
-
 	suspend fun moveScene(moveRequest: MoveRequest) {
 		val fromNode = sceneTree.find { it.id == moveRequest.id }
 		val fromParentNode = fromNode.parent
@@ -553,11 +499,7 @@ class SceneRepository(
 			if (existingPath != newPath) {
 				try {
 					originalChildren?.find { it.id == childNode.value.id }?.let { originalChild ->
-						val realPath = sceneDatasource.getPathFromFilesystem(childNode.value)
-							?: error("Could not find Scene on filesystem: ${childNode.value.id}")
-
-						val content = loadSceneMarkdownRaw(childNode.value, realPath)
-						markForSynchronization(originalChild, content)
+						markForSynchronization(originalChild)
 					}
 					sceneDatasource.moveScene(sourcePath = existingPath, targetPath = newPath)
 				} catch (e: IOException) {

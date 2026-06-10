@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.drafts
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
@@ -63,19 +62,9 @@ class SceneDraftRepository(
 	 * after the fact, we should never need to mark them for sync again, so this is unused.
 	 * But I'm leaving it here just in case we need it at some point.
 	 */
-	protected suspend fun markForSynchronization(originalDef: DraftDef, originalContent: String) {
-		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(
-				originalDef.id
-			)
-		) {
-			val hash = EntityHasher.hashSceneDraft(
-				id = originalDef.id,
-				sceneId = originalDef.sceneId,
-				created = originalDef.draftTimestamp,
-				name = originalDef.draftName,
-				content = originalContent,
-			)
-			syncJournal.markEntityAsDirty(originalDef.id, hash)
+	protected suspend fun markForSynchronization(originalDef: DraftDef) {
+		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(originalDef.id)) {
+			syncJournal.markEntityAsDirty(originalDef.id)
 		}
 	}
 }

@@ -167,7 +167,7 @@ abstract class BaseIntegrationTest : BaseTest() {
 	protected fun enableServerSync() {
 		every { syncJournal.isServerSynchronized() } returns true
 		coEvery { syncJournal.isEntityDirty(any()) } returns false
-		coEvery { syncJournal.markEntityAsDirty(any(), any()) } returns Unit
+		coEvery { syncJournal.markEntityAsDirty(any()) } returns Unit
 	}
 
 	/**

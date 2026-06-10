@@ -80,7 +80,7 @@ class SceneMetadataRepositoryTest : BaseTest() {
 		)
 		coEvery { syncJournal.isServerSynchronized() } returns false
 		coEvery { syncJournal.isEntityDirty(any()) } returns false
-		coEvery { syncJournal.markEntityAsDirty(any(), any()) } just Runs
+		coEvery { syncJournal.markEntityAsDirty(any()) } just Runs
 
 		setupKoin()
 	}
@@ -168,7 +168,7 @@ class SceneMetadataRepositoryTest : BaseTest() {
 		service.storeMetadata(newMetadata, sceneId)
 
 		assertEquals(newMetadata, sceneMetadataRepository.loadSceneMetadata(sceneId))
-		coVerify { syncJournal.markEntityAsDirty(sceneId, any()) }
+		coVerify { syncJournal.markEntityAsDirty(sceneId) }
 	}
 
 	@Test
