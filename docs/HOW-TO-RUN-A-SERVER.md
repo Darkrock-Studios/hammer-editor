@@ -89,6 +89,42 @@ Run the server:
 
 (Optional) To set up the server to run automatically, configure a systemd service.
 
+#### SystemD Service Example
+
+You will want to create a system user without login ability for security purposes.
+
+```
+sudo adduser hammer --disabled-login
+```
+
+And then make sure to change ownership for the installation directory to the new user.
+
+```
+sudo chown -R hammer:hammer hammer/
+```
+
+Finally, create the `hammer.service` file in your `systemd/system` folder.
+
+```
+[Unit]
+Description=Hammer Server for Story Editing
+After=network.target postgresql.service
+
+[Service]
+User=hammer
+Group=hammer
+
+Type=simple
+
+WorkingDirectory=[installation directory]
+ExecStart=[installation directory]/run.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
 ### Windows
 
 Create a script to run the server: `run.bat`
