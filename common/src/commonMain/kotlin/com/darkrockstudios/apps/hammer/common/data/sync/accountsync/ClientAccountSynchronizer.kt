@@ -18,6 +18,8 @@ import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
 import io.ktor.http.*
 import korlibs.io.lang.InvalidArgumentException
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -99,12 +101,18 @@ class ClientAccountSynchronizer(
 			}
 		} catch (e: CancellationException) {
 			Napier.i("Projects sync canceled: ${e.message}")
+
+			// End the session even while cancelling, or it leaks server-side and blocks the
+			// next begin until it expires.
+			syncId?.let {
+				withContext(NonCancellable) { serverProjectsApi.endProjectsSync(it) }
+			}
 			throw e
 		} catch (e: Exception) {
 			Napier.e("Projects sync failed", e)
 
 			syncId?.let {
-				serverProjectsApi.endProjectsSync(syncId)
+				withContext(NonCancellable) { serverProjectsApi.endProjectsSync(it) }
 			}
 
 			if (e.isAuthenticationFailure()) {

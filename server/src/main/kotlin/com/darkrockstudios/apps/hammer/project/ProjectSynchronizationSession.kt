@@ -7,5 +7,7 @@ data class ProjectSynchronizationSession(
 	override val userId: Long,
 	val projectDef: ProjectDefinition,
 	override val started: Instant,
-	override val syncId: String
+	override val syncId: String,
+	// The install that began the session. Only this install may reclaim it before it expires.
+	val installId: String? = null,
 ) : SynchronizationSession(userId, started, syncId)

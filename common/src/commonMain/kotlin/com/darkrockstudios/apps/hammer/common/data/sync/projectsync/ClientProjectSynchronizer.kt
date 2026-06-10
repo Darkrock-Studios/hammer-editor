@@ -16,9 +16,11 @@ import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.sync_log_entity_failed
 import io.github.aakira.napier.Napier
 import io.ktor.http.*
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import okio.IOException
 import org.koin.core.component.get
 import kotlin.coroutines.cancellation.CancellationException
@@ -149,7 +151,10 @@ class ClientProjectSynchronizer(
 		}
 	}
 
-	private suspend fun endSync() {
+	// Runs as cleanup, often from a cancelled sync coroutine. Without NonCancellable the
+	// endProjectSync network call would be skipped at its first suspension point, leaking the
+	// server session and blocking the next begin_sync until it expires.
+	private suspend fun endSync() = withContext(NonCancellable) {
 		try {
 			val syncId = syncJournal.loadSyncData().currentSyncId
 				?: throw IllegalStateException("No sync ID")

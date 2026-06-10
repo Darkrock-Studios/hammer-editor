@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.project
 
+import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataUploadRequest
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
@@ -44,6 +45,7 @@ fun Route.projectRoutes(logger: Logger) {
 
 private fun Route.beginProjectSync() {
 	val projectEntityRepository: ProjectEntityRepository = get()
+	val accountsRepository: AccountsRepository = get()
 	val json: Json = get()
 	val ioDispatcher: CoroutineContext = get(named(DISPATCHER_IO))
 
@@ -51,6 +53,13 @@ private fun Route.beginProjectSync() {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
 		val projectDef = call.requireProjectDef() ?: return@post
 		val lite = call.parameters["lite"]?.toBoolean() ?: false
+
+		// Derived from the authenticated token (not client-asserted) so only the originating
+		// install can reclaim its own stale sync session.
+		val installId = call.request.headers[HttpHeaders.Authorization]
+			?.substringAfter("Bearer ", "")
+			?.takeIf { it.isNotBlank() }
+			?.let { accountsRepository.getInstallId(it) }
 
 		val clientState: ClientEntityState? = withContext(ioDispatcher) {
 			val compressed = call.receiveStream().readAllBytes()
@@ -67,6 +76,7 @@ private fun Route.beginProjectSync() {
 			projectDef,
 			clientState,
 			lite,
+			installId,
 		)
 		if (isSuccess(result)) {
 			call.respond(result.data)

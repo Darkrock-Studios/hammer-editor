@@ -42,51 +42,65 @@ class ProjectEntityRepository(
 		userId: Long,
 		projectDef: ProjectDefinition,
 		clientState: ClientEntityState?,
-		lite: Boolean
+		lite: Boolean,
+		installId: String? = null,
 	): SResult<ProjectSynchronizationBegan> {
 
 		val syncKey = ProjectSyncKey(userId, projectDef)
 
-		return if (
-			projectsSessions.hasActiveSyncSession(userId) ||
-			sessionManager.hasActiveSyncSession(syncKey)
-		) {
-			SResult.failure(
-				"begin sync failure: existing session",
+		// An in-progress account-level sync (creating/renaming/deleting projects) must not be
+		// raced by a project sync, so it still blocks beginning one.
+		if (projectsSessions.hasActiveSyncSession(userId)) {
+			return SResult.failure(
+				"begin sync failure: existing account session",
 				Msg.r("api_project_sync_begin_error_session", userId)
 			)
-		} else {
-			if (projectEntityDatasource.checkProjectExists(userId, projectDef).not()) {
-				return SResult.failure(ProjectNotFound(projectDef))
-			}
-
-			var projectSyncData = projectEntityDatasource.loadProjectSyncData(userId, projectDef)
-
-			if (projectSyncData.lastId < 0) {
-				val lastId = projectEntityDatasource.findLastId(userId, projectDef)
-				projectSyncData = projectSyncData.copy(lastId = lastId ?: -1)
-			}
-
-			val newSyncId =
-				sessionManager.createNewSession(syncKey) { key: ProjectSyncKey, sync: String ->
-					ProjectSynchronizationSession(
-						userId = key.userId,
-						projectDef = key.projectDef,
-						started = clock.now(),
-						syncId = sync
-					)
-				}
-
-			val updateSequence = getUpdateSequence(userId, projectDef, clientState, lite)
-			val syncBegan = ProjectSynchronizationBegan(
-				syncId = newSyncId,
-				lastId = projectSyncData.lastId,
-				lastSync = projectSyncData.lastSync,
-				idSequence = updateSequence,
-				deletedIds = projectSyncData.deletedIds,
-			)
-			SResult.success(syncBegan)
 		}
+
+		if (projectEntityDatasource.checkProjectExists(userId, projectDef).not()) {
+			return SResult.failure(ProjectNotFound(projectDef))
+		}
+
+		// Reclaim a stale session, but only the originating install may do so. A prior sync from
+		// this install whose end_sync never reached the server (cancelled mid-flight, expired
+		// auth, dropped network) must not lock the owner out. A still-active session from a
+		// *different* install is a genuine concurrent sync and keeps its claim until it expires.
+		val activeSession = sessionManager.getActiveSyncSession(syncKey)
+		if (activeSession != null && activeSession.installId != installId) {
+			return SResult.failure(
+				"begin sync failure: active session on another install",
+				Msg.r("api_project_sync_begin_error_session", userId)
+			)
+		}
+		sessionManager.terminateSession(syncKey)
+
+		var projectSyncData = projectEntityDatasource.loadProjectSyncData(userId, projectDef)
+
+		if (projectSyncData.lastId < 0) {
+			val lastId = projectEntityDatasource.findLastId(userId, projectDef)
+			projectSyncData = projectSyncData.copy(lastId = lastId ?: -1)
+		}
+
+		val newSyncId =
+			sessionManager.createNewSession(syncKey) { key: ProjectSyncKey, sync: String ->
+				ProjectSynchronizationSession(
+					userId = key.userId,
+					projectDef = key.projectDef,
+					started = clock.now(),
+					syncId = sync,
+					installId = installId,
+				)
+			}
+
+		val updateSequence = getUpdateSequence(userId, projectDef, clientState, lite)
+		val syncBegan = ProjectSynchronizationBegan(
+			syncId = newSyncId,
+			lastId = projectSyncData.lastId,
+			lastSync = projectSyncData.lastSync,
+			idSequence = updateSequence,
+			deletedIds = projectSyncData.deletedIds,
+		)
+		return SResult.success(syncBegan)
 	}
 
 	suspend fun endProjectSync(

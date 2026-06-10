@@ -2,11 +2,14 @@ package com.darkrockstudios.apps.hammer.project.repository
 
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSyncData
+import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.just
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -36,7 +39,6 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 		)
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
-		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
 
 		coEvery {
 			projectEntityDatasource.checkProjectExists(
@@ -64,6 +66,65 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 	}
 
 	@Test
+	fun `Begin Project Sync reclaims the same install's existing session`() = runTest {
+		val syncId = "sync-id"
+		val installId = "install-1"
+		val syncData = ProjectSyncData(
+			lastSync = clock.now(),
+			lastId = 1,
+			deletedIds = emptySet()
+		)
+
+		// This install already has a leaked/stale session (e.g. a prior sync whose end_sync
+		// never reached the server). The owner must be able to begin again rather than being
+		// locked out until it expires.
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		every { projectSessionManager.getActiveSyncSession(any()) } returns ProjectSynchronizationSession(
+			userId, projectDefinition, clock.now(), "stale-sync-id", installId
+		)
+		every { projectSessionManager.terminateSession(any()) } returns true
+
+		coEvery {
+			projectEntityDatasource.checkProjectExists(userId, projectDefinition)
+		} returns true
+		coEvery {
+			projectEntityDatasource.loadProjectSyncData(userId, projectDefinition)
+		} returns syncData
+
+		mockCreateSession(syncId)
+
+		createProjectRepository().apply {
+			val result = beginProjectSync(userId, projectDefinition, clientState, false, installId)
+
+			assertTrue(isSuccess(result))
+			assertTrue(result.data.syncId.isNotBlank())
+		}
+
+		verify { projectSessionManager.terminateSession(ProjectSyncKey(userId, projectDefinition)) }
+	}
+
+	@Test
+	fun `Begin Project Sync is rejected when another install holds an active session`() = runTest {
+		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
+		every { projectSessionManager.getActiveSyncSession(any()) } returns ProjectSynchronizationSession(
+			userId, projectDefinition, clock.now(), "other-sync-id", "other-install"
+		)
+
+		coEvery {
+			projectEntityDatasource.checkProjectExists(userId, projectDefinition)
+		} returns true
+
+		createProjectRepository().apply {
+			val result = beginProjectSync(userId, projectDefinition, clientState, false, "install-1")
+
+			assertFalse(isSuccess(result))
+		}
+
+		// The other install's session must be left intact.
+		verify(exactly = 0) { projectSessionManager.terminateSession(any()) }
+	}
+
+	@Test
 	fun `Begin Project Sync - Update Sequence - Remove Dupes`() = runTest {
 		val syncId = "sync-id"
 		val syncData = ProjectSyncData(
@@ -73,7 +134,6 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 		)
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
-		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
 
 		coEvery {
 			projectEntityDatasource.checkProjectExists(
