@@ -163,7 +163,8 @@ class TimeLineRepository(
 	}
 
 	suspend fun storeTimeline() {
-		datasource.storeTimeline(timelineFlow.replayCache.first(), projectDef)
+		// Nothing to persist if the timeline was never loaded this session.
+		timelineFlow.replayCache.firstOrNull()?.let { datasource.storeTimeline(it, projectDef) }
 	}
 
 	suspend fun getTimelineEvent(id: Int): TimeLineEvent? {
