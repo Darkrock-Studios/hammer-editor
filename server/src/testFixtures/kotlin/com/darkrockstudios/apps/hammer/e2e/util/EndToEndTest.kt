@@ -68,6 +68,9 @@ abstract class EndToEndTest {
 
 	@AfterEach
 	fun tearDown() {
+		// Close the per-test HttpClient before stopping the server so its engine threads and
+		// connection pool don't accumulate across the suite (a leak that grows test-to-test).
+		runCatching { client.close() }
 		server.stop(1000, 3000)
 	}
 
