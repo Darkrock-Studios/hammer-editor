@@ -4,7 +4,6 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
 import kotlin.time.Clock
@@ -18,7 +17,6 @@ class SceneDraftRepository(
 	override val projectScope = ProjectDefScope(projectDef)
 
 	private val idAllocator: IdAllocator by projectInject()
-	private val syncJournal: SyncJournal by projectInject()
 
 	suspend fun getAllDrafts(): Set<DraftDef> = datasource.getAllDrafts()
 	fun getSceneIdsThatHaveDrafts(): List<Int> = datasource.getSceneIdsThatHaveDrafts()
@@ -55,16 +53,5 @@ class SceneDraftRepository(
 		datasource.storeDraft(newDef, content)
 
 		return newDef
-	}
-
-	/**
-	 * Drafts are never edited after creation. Creation marks them to be synced implicitly, then
-	 * after the fact, we should never need to mark them for sync again, so this is unused.
-	 * But I'm leaving it here just in case we need it at some point.
-	 */
-	protected suspend fun markForSynchronization(originalDef: DraftDef) {
-		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(originalDef.id)) {
-			syncJournal.markEntityAsDirty(originalDef.id)
-		}
 	}
 }
