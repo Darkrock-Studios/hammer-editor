@@ -103,7 +103,7 @@ And then make sure to change ownership for the installation directory to the new
 sudo chown -R hammer:hammer hammer/
 ```
 
-Finally, create the `hammer.service` file in your `systemd/system` folder.
+Finally, create the `hammer.service` file in your `systemd/system` folder. Be sure to change the `[installation directory]` to your directory.
 
 ```
 [Unit]
