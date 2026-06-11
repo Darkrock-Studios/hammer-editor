@@ -77,13 +77,21 @@ class FinalizeSyncOperation(
 				state.collatedIds.dirtyEntities.clear()
 
 				if (newLastId != null && syncFinishedAt != null) {
+					// syncedHashes are written to disk per-entity during transfer; reload them here
+					// so this final write (built from the sync-start snapshot) doesn't clobber them.
+					// dirty/newIds come from the in-memory state, which holds the id-conflict
+					// remapping. Prune deleted ids (incl. server-driven deletions that bypass
+					// recordIdDeletion) so stale baselines can't mis-fire if an id is reused.
+					val persistedSyncedHashes = syncDataDatasource.loadSyncData().syncedHashes -
+						state.collatedIds.combinedDeletions
 					val finalSyncData = state.clientSyncData.copy(
 						currentSyncId = null,
 						lastId = newLastId,
 						lastSync = syncFinishedAt,
 						dirty = state.collatedIds.dirtyEntities,
 						newIds = emptyList(),
-						deletedIds = state.collatedIds.combinedDeletions
+						deletedIds = state.collatedIds.combinedDeletions,
+						syncedHashes = persistedSyncedHashes,
 					)
 					syncDataDatasource.saveSyncData(finalSyncData)
 				} else {

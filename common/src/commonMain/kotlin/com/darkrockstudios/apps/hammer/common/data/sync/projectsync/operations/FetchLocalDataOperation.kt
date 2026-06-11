@@ -36,11 +36,22 @@ class FetchLocalDataOperation(
 				return CResult.failure(MissingProjectIdException(projectDef.name))
 			}
 
-			val clientSyncData = syncJournal.loadSyncData()
+			val loadedSyncData = syncJournal.loadSyncData()
 			val entityState = if (state.onlyNew) {
 				null
 			} else {
-				getEntityState(clientSyncData)
+				getEntityState(loadedSyncData)
+			}
+
+			// Give every entity a conflict baseline before an upload reads one: a missing baseline
+			// uploads as null, which the server lets overwrite a concurrent edit unchecked. An
+			// empty syncedHashes map (an upgraded client) leaves entities exposed until backfilled.
+			val clientSyncData = if (entityState != null) {
+				val backfilled = backfillSyncedHashes(loadedSyncData, entityState)
+				if (backfilled !== loadedSyncData) syncJournal.saveSyncData(backfilled)
+				backfilled
+			} else {
+				loadedSyncData
 			}
 
 			val fetchLocalDataState = FetchLocalDataState.fromSyncOperationState(
@@ -68,6 +79,31 @@ class FetchLocalDataOperation(
 		}.toSet()
 
 		return ClientEntityState(entities)
+	}
+
+	private fun backfillSyncedHashes(
+		syncData: ProjectSynchronizationData,
+		entityState: ClientEntityState,
+	): ProjectSynchronizationData {
+		val dirtyById = syncData.dirty.associateBy { it.id }
+		val additions = HashMap<Int, String>()
+		for (entity in entityState.entities) {
+			if (syncData.syncedHashes.containsKey(entity.id)) continue
+			val baseline = if (entity.id in dirtyById) {
+				// A dirty entity's local hash is the edited content; its baseline is the frozen
+				// pre-edit hash from the dirty entry (null when unrecoverable).
+				dirtyById.getValue(entity.id).originalHash
+			} else {
+				// An in-sync entity's local hash equals the server's, so it is a valid baseline.
+				entity.hash
+			}
+			if (baseline != null) additions[entity.id] = baseline
+		}
+		return if (additions.isEmpty()) {
+			syncData
+		} else {
+			syncData.copy(syncedHashes = syncData.syncedHashes + additions)
+		}
 	}
 }
 

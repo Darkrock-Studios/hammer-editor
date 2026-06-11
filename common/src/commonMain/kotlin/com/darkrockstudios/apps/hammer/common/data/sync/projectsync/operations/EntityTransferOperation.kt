@@ -25,7 +25,8 @@ class EntityTransferOperation(
 	private val strRes: StrRes,
 	private val entitySynchronizers: EntitySynchronizers,
 	private val projectMetadataDatasource: ProjectMetadataDatasource,
-	private val serverProjectApi: ServerProjectApi
+	private val serverProjectApi: ServerProjectApi,
+	private val syncJournal: SyncJournal,
 ) : SyncOperation(projectDef) {
 	override suspend fun execute(
 		state: SyncOperationState,
@@ -147,7 +148,11 @@ class EntityTransferOperation(
 			allSuccess =
 				if (clientHasEntity && (isNewlyCreated || (localIsDirty != null || thisId > state.serverSyncData.lastId))) {
 					Napier.d("Upload ID $thisId (clientHasEntity: $clientHasEntity isNewlyCreated: $isNewlyCreated localIsDirty: $localIsDirty thisId: $thisId Server Last ID: ${state.serverSyncData.lastId})")
-					val originalHash = localIsDirty?.originalHash
+					// Source the conflict baseline from the server-confirmed hash, not the dirty
+					// entry's frozen copy: a partial sync (this entity uploaded, a later one failed,
+					// so finalize never ran to clear the dirty list) advances syncedHashes but leaves
+					// the dirty entry stale. On retry the stale baseline would forge a phantom conflict.
+					val originalHash = state.resolvedClientSyncData.syncedHashes[thisId]
 					val success =
 						uploadEntity(
 							thisId,
@@ -223,7 +228,8 @@ class EntityTransferOperation(
 		)
 
 		return if (entityResponse.isSuccess) {
-			val success = when (val serverEntity = entityResponse.getOrThrow().entity) {
+			val serverEntity = entityResponse.getOrThrow().entity
+			val success = when (serverEntity) {
 				is ApiProjectEntity.SceneEntity ->
 					entitySynchronizers.sceneSynchronizer.storeEntity(
 						serverEntity,
@@ -261,6 +267,9 @@ class EntityTransferOperation(
 			}
 
 			if (success) {
+				// Lock the downloaded entity's hash in as the conflict baseline: it's exactly
+				// what the server holds, so a later local edit won't forge a phantom conflict.
+				syncJournal.recordSyncedHash(serverEntity.id, serverEntity.hash())
 				onLog(
 					syncLogI(
 						strRes.get(Res.string.sync_log_entity_download_success, id),
@@ -359,7 +368,10 @@ class EntityTransferOperation(
 	): Boolean {
 		val type: EntityType? = entitySynchronizers.findEntityType(id)
 		return if (type != null) {
-			entitySynchronizers[type].uploadEntity(id, syncId, originalHash, onConflict, onLog, force)
+			entitySynchronizers[type].uploadEntity(
+				id, syncId, originalHash, onConflict, onLog, force,
+				onSynced = { syncedId, hash -> syncJournal.recordSyncedHash(syncedId, hash) },
+			)
 		} else {
 			onLog(
 				syncLogW(

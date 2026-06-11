@@ -79,7 +79,7 @@ class SceneContentRepositoryTest : BaseTest() {
 		)
 		coEvery { syncJournal.isServerSynchronized() } returns false
 		coEvery { syncJournal.isEntityDirty(any()) } returns false
-		coEvery { syncJournal.markEntityAsDirty(any(), any()) } just Runs
+		coEvery { syncJournal.markEntityAsDirty(any()) } just Runs
 	}
 
 	private fun createStack(projectDef: ProjectDef) {
