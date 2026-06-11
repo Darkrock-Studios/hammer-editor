@@ -68,12 +68,10 @@ To rehearse the migration against a copy of production before flipping the live 
 
 ### Linux
 
-Create a script to run the server: `run.sh`
+Create a script to run the server in the top level of the installation directory (e.g. `hammer/`): `run.sh`
 ```bash
 #!/bin/bash
-
-cd bin
-./server --config /[installation directory]/serverConfig.toml
+./bin/server --config serverConfig.toml
 ```
 
 Make the script executable:
