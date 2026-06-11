@@ -32,6 +32,14 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.2.1" date="2026-06-10">
+            <description>
+                <p>- [Fix] several iOS crashes</p>
+                <p>- [Fix] Sync error where scenes always conflicted with them selves</p>
+                <p>- [Fix] Sync server now allows a client to reclaim it&apos;s token</p>
+                <p>- [Improve] Desktop/iOS can now select their spell check language</p>
+            </description>
+        </release>
         <release version="3.2.0" date="2026-06-08">
             <description>
                 <p>- Added PDF export option</p>
