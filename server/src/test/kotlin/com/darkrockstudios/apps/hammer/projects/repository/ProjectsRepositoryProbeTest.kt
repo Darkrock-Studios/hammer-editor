@@ -1,13 +1,11 @@
 package com.darkrockstudios.apps.hammer.projects.repository
 
-import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.ProjectHashItem
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataDto
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
-import com.darkrockstudios.apps.hammer.project.EntityDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import io.mockk.coEvery
@@ -23,12 +21,10 @@ class ProjectsRepositoryProbeTest : ProjectsRepositoryBaseTest() {
 
 	private fun stubTwoEntities() {
 		coEvery { projectsDatasource.getProject(userId, projectId) } returns projectDefinition
-		coEvery { projectEntityDatasource.getEntityDefs(userId, projectDefinition, any()) } returns listOf(
-			EntityDefinition(1, ApiProjectEntity.Type.SCENE),
-			EntityDefinition(2, ApiProjectEntity.Type.NOTE),
+		coEvery { projectEntityDatasource.getEntityHashes(userId, projectDefinition) } returns listOf(
+			EntityHash(1, "h1"),
+			EntityHash(2, "h2"),
 		)
-		coEvery { projectEntityDatasource.getCachedHash(userId, projectDefinition, 1) } returns "h1"
-		coEvery { projectEntityDatasource.getCachedHash(userId, projectDefinition, 2) } returns "h2"
 		coEvery { serverProjectDataRepository.load(userId, projectDefinition) } returns
 			SResult.success<ProjectDataDto?>(null)
 	}
@@ -57,9 +53,10 @@ class ProjectsRepositoryProbeTest : ProjectsRepositoryBaseTest() {
 	}
 
 	@Test
-	fun `a missing cached entity hash forces a full sync`() = runTest {
+	fun `an unreadable project-data blob forces a full sync`() = runTest {
 		stubTwoEntities()
-		coEvery { projectEntityDatasource.getCachedHash(userId, projectDefinition, 2) } returns null
+		coEvery { serverProjectDataRepository.load(userId, projectDefinition) } returns
+			SResult.failure(Exception("boom"))
 
 		createProjectsRepository().apply {
 			val result = probeProjectChanges(userId, listOf(ProjectHashItem(projectId, expectedServerHash())))

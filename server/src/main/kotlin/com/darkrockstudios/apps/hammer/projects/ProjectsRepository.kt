@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.projects
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
-import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.ProjectHashItem
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
@@ -149,12 +148,8 @@ class ProjectsRepository(
 		userId: Long,
 		projectDef: ProjectDefinition,
 	): String? {
-		val defs = projectEntityDatasource.getEntityDefs(userId, projectDef)
-		val entityHashes = ArrayList<EntityHash>(defs.size)
-		for (def in defs) {
-			val hash = projectEntityDatasource.getCachedHash(userId, projectDef, def.id) ?: return null
-			entityHashes += EntityHash(def.id, hash)
-		}
+		// One query for all (id, hash) pairs rather than a per-entity lookup.
+		val entityHashes = projectEntityDatasource.getEntityHashes(userId, projectDef)
 
 		val dataResult = serverProjectDataRepository.load(userId, projectDef)
 		if (!isSuccess(dataResult)) return null

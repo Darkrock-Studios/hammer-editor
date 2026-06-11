@@ -18,6 +18,7 @@ import com.github.aymanizz.ktori18n.t
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.plugins.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -115,7 +116,18 @@ private fun Route.syncProbe() {
 			return@post
 		}
 
-		val request = call.receive<ProjectsSyncProbeRequest>()
+		// A malformed body is a routine client condition, not a server error: answer 400 rather than
+		// letting it fall through to the global handler as a 500 (and a recorded monitored error).
+		val request = try {
+			call.receive<ProjectsSyncProbeRequest>()
+		} catch (e: ContentTransformationException) {
+			call.respondBadRequest(ERROR_GENERIC, e.message ?: "Malformed request body")
+			return@post
+		} catch (e: BadRequestException) {
+			call.respondBadRequest(ERROR_GENERIC, e.message ?: "Malformed request body")
+			return@post
+		}
+
 		val unchanged = projectsRepository.probeProjectChanges(principal.id, request.projects)
 		call.respond(ProjectsSyncProbeResponse(unchangedProjects = unchanged))
 	}
