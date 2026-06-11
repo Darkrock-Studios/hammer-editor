@@ -28,11 +28,12 @@ class SceneTimestampsTest : RoundTripTestBase() {
 		val beforeEdit = kotlin.time.Clock.System.now()
 		val scene = client.sceneEditorService.createScene(parent = null, sceneName = "Timed Scene")
 		assertNotNull(scene)
-		client.sceneEditorService.onContentChanged(
-			SceneContent(scene, "first content"),
-			com.darkrockstudios.apps.hammer.common.data.UpdateSource.Editor,
+		// Persist synchronously: onContentChanged registers the editor buffer asynchronously, so an
+		// immediate storeSceneBuffer would find none and silently no-op.
+		assertTrue(
+			client.sceneEditor.storeSceneMarkdownRaw(SceneContent(scene, "first content")),
+			"raw store should persist the scene content to disk",
 		)
-		client.sceneEditorService.storeSceneBuffer(scene)
 
 		assertTrue(client.sync(), "Sync should succeed")
 		val afterSync = kotlin.time.Clock.System.now()
@@ -47,14 +48,14 @@ class SceneTimestampsTest : RoundTripTestBase() {
 		assertNotNull(numericProjectId)
 		val storedEntity = loadServerSceneEntity(numericProjectId, scene.id)
 
-		// SceneRepository's storeAllBuffers runs inside prepareForSync and
-		// bumps lastEdited via recordSceneActivity right before upload, and the
-		// debounced contentFlow can fire again post-sync. That means there's no
-		// race-free local snapshot we can pin against the server's value, and
-		// "client bumped to NOW just before upload" is observationally identical
-		// to "server stamped NOW on receipt" — we can't distinguish them here.
-		// What we can prove: timestamps are non-null and land inside the test's
-		// window, ruling out drops, epoch-0 resets, and clearly-wrong stamps.
+		assertEquals(
+			"first content", storedEntity.content,
+			"the uploaded scene content must reach the server",
+		)
+
+		// A client stamp of NOW is observationally identical to a server stamp of NOW on receipt,
+		// so assert the timestamps land inside the test window rather than pinning an exact value —
+		// ruling out drops, epoch-0 resets, and clearly-wrong stamps.
 		val serverCreated = storedEntity.created
 		val serverLastEdited = storedEntity.lastEdited
 		assertNotNull(serverCreated, "server stored a created timestamp")

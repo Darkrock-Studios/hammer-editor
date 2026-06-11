@@ -36,6 +36,9 @@ class EntityTransferOperationTest : BaseTest() {
 	@MockK(relaxed = true)
 	private lateinit var projectMetadataDatasource: ProjectMetadataDatasource
 
+	@MockK(relaxed = true)
+	private lateinit var syncJournal: SyncJournal
+
 	private lateinit var strRes: TestStrRes
 
 	private lateinit var clock: TestClock
@@ -68,6 +71,7 @@ class EntityTransferOperationTest : BaseTest() {
 			strRes = strRes,
 			entitySynchronizers = EntitySynchronizers(projectDef),
 			projectMetadataDatasource = projectMetadataDatasource,
+			syncJournal = syncJournal,
 		)
 	}
 
@@ -101,7 +105,10 @@ class EntityTransferOperationTest : BaseTest() {
 				any()
 			)
 		} returns Result.success(
-			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity>())
+			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
+				every { id } returns 4
+				every { hash() } returns "downloaded-hash-4"
+			})
 		)
 		coEvery {
 			serverProjectApi.downloadEntity(
@@ -112,7 +119,10 @@ class EntityTransferOperationTest : BaseTest() {
 				any()
 			)
 		} returns Result.success(
-			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity>())
+			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
+				every { id } returns 11
+				every { hash() } returns "downloaded-hash-11"
+			})
 		)
 
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
@@ -152,11 +162,13 @@ class EntityTransferOperationTest : BaseTest() {
 		val data = result.data
 		assertIs<EntityTransferState>(data)
 
-		coVerify { mockSynchronizers.sceneSynchronizer.uploadEntity(1, any(), any(), any(), any()) }
-		coVerify { mockSynchronizers.sceneSynchronizer.uploadEntity(3, any(), any(), any(), any()) }
+		coVerify { mockSynchronizers.sceneSynchronizer.uploadEntity(1, any(), any(), any(), any(), any(), any()) }
+		coVerify { mockSynchronizers.sceneSynchronizer.uploadEntity(3, any(), any(), any(), any(), any(), any()) }
 		coVerify {
 			mockSynchronizers.sceneSynchronizer.uploadEntity(
 				12,
+				any(),
+				any(),
 				any(),
 				any(),
 				any(),

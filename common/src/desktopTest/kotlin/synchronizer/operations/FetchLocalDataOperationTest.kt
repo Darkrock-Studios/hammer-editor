@@ -123,10 +123,71 @@ class FetchLocalDataOperationTest : BaseTest() {
 		val data = result.data
 		assertIs<FetchLocalDataState>(data)
 
-		assertEquals(projectData, data.clientSyncData)
+		// Backfill gives every entity a baseline: dirty entities (1, 3) recover the frozen hash from
+		// the dirty list, in-sync entities (2, 4, 5, 6, 7, 10) take their local hash. The new id
+		// (11) is absent from the entity state, so it stays unbackfilled.
+		val expectedSyncData = projectData.copy(
+			syncedHashes = mapOf(
+				1 to "old-hash-1",
+				3 to "old-hash-3",
+				2 to "hash-2",
+				4 to "hash-4",
+				5 to "hash-5",
+				6 to "hash-6",
+				7 to "hash-7",
+				10 to "hash-10",
+			)
+		)
+		assertEquals(expectedSyncData, data.clientSyncData)
 		assertEquals(
 			data.entityState,
 			ClientEntityState(produceEntityHashSet(1, 2, 3, 4, 5, 6, 7, 10))
+		)
+	}
+
+	@Test
+	fun `Backfill leaves already-recorded baselines untouched`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+
+		val existing = ProjectSynchronizationData(
+			lastId = 3,
+			newIds = emptyList(),
+			lastSync = Instant.fromEpochSeconds(123456),
+			dirty = produceEntityStateList(1),
+			deletedIds = emptySet(),
+			syncedHashes = mapOf(2 to "already-recorded-2"),
+		)
+
+		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns metadata
+		coEvery { syncJournal.loadSyncData() } returns existing
+
+		mockSynchronizers.synchronizers.forEach { synchronizer ->
+			when (synchronizer) {
+				is ClientSceneSynchronizer ->
+					coEvery { synchronizer.hashEntities(any()) } returns produceEntityHashSet(1, 2, 3)
+
+				else -> coEvery { synchronizer.hashEntities(any()) } returns emptySet()
+			}
+		}
+
+		val result = op.execute(
+			state = InitialSyncOperationState(false),
+			onProgress = mockk(relaxed = true),
+			onLog = mockk(relaxed = true),
+			onConflict = mockk(relaxed = true),
+			onComplete = mockk(relaxed = true),
+		)
+
+		assertTrue(isSuccess(result))
+		val data = result.data
+		assertIs<FetchLocalDataState>(data)
+		assertEquals(
+			mapOf(
+				2 to "already-recorded-2", // untouched — never overwritten
+				1 to "old-hash-1",         // dirty: recovered from the frozen baseline
+				3 to "hash-3",             // in-sync: local hash
+			),
+			data.clientSyncData.syncedHashes,
 		)
 	}
 

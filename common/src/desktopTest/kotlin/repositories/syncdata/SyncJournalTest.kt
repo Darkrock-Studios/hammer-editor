@@ -287,17 +287,37 @@ class SyncJournalTest : BaseTest() {
 	}
 
 	@Test
-	fun `Mark Entity Dirty`() = runTest {
+	fun `Mark Entity Dirty uses the server-confirmed hash as the baseline`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
 		val projectDef = getProjectDef(PROJECT_2_NAME)
 		every { globalSettingsStore.isServerSynchronized() } returns true
 		val repo = createRepository(projectDef)
 
-		repo.markEntityAsDirty(1, "old-hash")
+		// The baseline is the hash the server last confirmed, not a value re-derived now.
+		repo.recordSyncedHash(1, "confirmed-hash")
+		repo.markEntityAsDirty(1)
 
 		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)
 		assertEquals(
-			listOf(EntityOriginalState(1, "old-hash")),
+			listOf(EntityOriginalState(1, "confirmed-hash")),
+			loadedData?.dirty
+		)
+	}
+
+	@Test
+	fun `Mark Entity Dirty with no synced hash records a null baseline`() = runTest {
+		createProject(ffs, PROJECT_2_NAME)
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		every { globalSettingsStore.isServerSynchronized() } returns true
+		val repo = createRepository(projectDef)
+
+		// No prior sync for this entity: the server never confirmed a hash, so the baseline is
+		// null and the server will accept the upload without a conflict check.
+		repo.markEntityAsDirty(1)
+
+		val loadedData = ffs.readJson<ProjectSynchronizationData>(syncPath(projectDef), json)
+		assertEquals(
+			listOf(EntityOriginalState(1, null)),
 			loadedData?.dirty
 		)
 	}

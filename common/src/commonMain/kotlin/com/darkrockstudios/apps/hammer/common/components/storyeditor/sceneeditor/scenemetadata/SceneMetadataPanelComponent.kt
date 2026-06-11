@@ -328,11 +328,10 @@ class SceneMetadataPanelComponent(
 		bufferUpdateSubscription?.cancel()
 		bufferUpdateSubscription = null
 
+		val scrubbed = scrubInvalidReferences(state.value.metadata)
+		val editor = sceneEditor
 		appScope.launch {
-			sceneEditor.storeMetadata(
-				scrubInvalidReferences(state.value.metadata),
-				originalSceneItem.id,
-			)
+			editor.storeMetadata(scrubbed, originalSceneItem.id)
 		}
 	}
 

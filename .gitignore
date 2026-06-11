@@ -85,5 +85,6 @@ fastlane/README.md
 /stage/
 /Hammer.AppDir/
 /appimagetool-x86_64.AppImage
+/appimage-runtime-x86_64
 /nul
 /.claude/

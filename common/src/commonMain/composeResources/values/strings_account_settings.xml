@@ -86,10 +86,12 @@
 
 	<string name="notice_experimental_label">Experimental</string>
 	<string name="settings_spellcheck_heading">Spell Checking</string>
-	<string name="settings_spellcheck_notice">Spell Check is experimental! If it is causing problems just turn it off.</string>
-	<string name="settings_spellcheck_enable">Enable spell checking (experimental)</string>
+	<string name="settings_spellcheck_notice">If it is causing problems just turn it off.</string>
+	<string name="settings_spellcheck_enable">Enable spell checking</string>
 	<string name="settings_spellcheck_in_focus_enable">Enable in focus mode</string>
 	<string name="settings_spellcheck_dictionary">Dictionary</string>
+	<string name="settings_spellcheck_dictionary_android_info_title">Spell check language</string>
+	<string name="settings_spellcheck_dictionary_android_info_message">On Android, the spell check language is chosen by your device, not the app. To change it, update your system and keyboard languages in Android Settings.</string>
 	<string name="settings_server_enable_sync_backup">Enable Sync &amp; Backup</string>
 	<string
 		name="settings_server_enable_sync_backup_desc">Set up a server to sync your projects across devices and create secure backups.

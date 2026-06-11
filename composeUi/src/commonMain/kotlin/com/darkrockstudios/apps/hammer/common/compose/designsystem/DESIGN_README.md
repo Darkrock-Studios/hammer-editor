@@ -282,6 +282,11 @@ The handwriting of the system. Reach for these instead of styling
   borders by overlapping 1dp; selected cell takes `onSurface` border
   and label color, the rest stay muted. Use for small enums (3–4
   values) where a dropdown would feel out of vocabulary.
+- **[`HdHairlineDropdown`](HdHairlineDropdown.kt)** — generic
+  full-width hairline pill `[ Markdown            ▾ ]` opening a
+  `DropdownMenu`. Same signature as `HdHairlineSegmentedPicker`, so
+  swapping is one-for-one. Use for enums of 4+ values where a
+  segmented row would crowd.
 
 ### Categorization
 

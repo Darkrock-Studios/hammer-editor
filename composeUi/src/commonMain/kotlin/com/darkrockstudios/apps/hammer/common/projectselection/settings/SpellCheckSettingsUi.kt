@@ -23,13 +23,16 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.notice_experimental_label
+import com.darkrockstudios.apps.hammer.settings_spellcheck_enable
+import com.darkrockstudios.apps.hammer.settings_spellcheck_in_focus_enable
+import com.darkrockstudios.apps.hammer.settings_spellcheck_notice
 import kotlinx.coroutines.launch
 
 @Composable
@@ -59,14 +62,12 @@ internal fun SpellCheckSettingsContent(
 				},
 			)
 		}
-		Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-			HdMonoLabel(text = Res.string.settings_spellcheck_dictionary.get())
-			Text(
-				text = state.spellCheckingLanguage.toString(),
-				style = MaterialTheme.typography.titleMedium,
-				color = MaterialTheme.colorScheme.onSurface,
-			)
-		}
+		SpellCheckDictionaryControl(
+			selected = state.spellCheckingLanguage,
+			available = state.spellCheckLanguages,
+			enabled = state.spellCheckingEnabled,
+			onSelect = { scope.launch { component.setSpellCheckLanguage(it) } },
+		)
 	}
 }
 

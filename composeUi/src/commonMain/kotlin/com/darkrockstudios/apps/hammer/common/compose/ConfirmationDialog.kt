@@ -1,9 +1,34 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -15,6 +40,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
@@ -113,6 +139,7 @@ fun ConfirmationDialog(
  * [androidx.compose.material3.Button] / [androidx.compose.material3.TextButton] children
  * and they line up against the right edge.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun IndexStripDialog(
 	visible: Boolean,
@@ -147,67 +174,81 @@ fun IndexStripDialog(
 				.widthIn(max = 560.dp)
 				.fillMaxWidth(),
 		) {
-			Row(
-				modifier = Modifier
-					.fillMaxWidth()
-					.height(IntrinsicSize.Min),
-			) {
-				IndexGutter(index = resolvedIndex, kind = kind, accent = accent)
-				VerticalDivider(
-					color = MaterialTheme.colorScheme.outlineVariant,
-					thickness = 1.dp,
-				)
-				Column(modifier = Modifier.weight(1f)) {
-					Column(
-						modifier = Modifier.padding(
-							start = 26.dp,
-							end = 26.dp,
-							top = 22.dp,
-							bottom = 20.dp,
-						),
-						verticalArrangement = Arrangement.spacedBy(10.dp),
-					) {
-						Text(
-							text = title,
-							style = MaterialTheme.typography.titleLarge.copy(
-								fontWeight = FontWeight.Normal,
-								letterSpacing = (-0.22).sp,
-								lineHeight = 25.sp,
-							),
-							color = MaterialTheme.colorScheme.onSurface,
-						)
-						if (message.isNotEmpty()) {
-							Text(
-								text = message,
-								style = MaterialTheme.typography.bodyMedium.copy(
-									lineHeight = 22.sp,
-								),
-								color = MaterialTheme.colorScheme.onSurfaceVariant,
-							)
-						}
-					}
-					HorizontalDivider(
+			BoxWithConstraints {
+				val gutterWidth = if (maxWidth < 380.dp) 60.dp else GutterWidth
+				Row(
+					modifier = Modifier
+						.fillMaxWidth()
+						.height(IntrinsicSize.Min),
+				) {
+					IndexGutter(
+						index = resolvedIndex,
+						kind = kind,
+						accent = accent,
+						width = gutterWidth
+					)
+					VerticalDivider(
 						color = MaterialTheme.colorScheme.outlineVariant,
 						thickness = 1.dp,
 					)
-					Row(
-						modifier = Modifier
-							.fillMaxWidth()
-							.padding(start = 22.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
-						verticalAlignment = Alignment.CenterVertically,
-						horizontalArrangement = Arrangement.spacedBy(10.dp),
-					) {
-						if (keyboardHint != null) {
+					Column(modifier = Modifier.weight(1f)) {
+						Column(
+							modifier = Modifier.padding(
+								start = 26.dp,
+								end = 26.dp,
+								top = 22.dp,
+								bottom = 20.dp,
+							),
+							verticalArrangement = Arrangement.spacedBy(10.dp),
+						) {
 							Text(
-								text = keyboardHint,
-								fontFamily = hammerMonoFontFamily(),
-								fontSize = 10.sp,
-								letterSpacing = 0.4.sp,
-								color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+								text = title,
+								style = MaterialTheme.typography.titleLarge.copy(
+									fontWeight = FontWeight.Normal,
+									letterSpacing = (-0.22).sp,
+									lineHeight = 25.sp,
+								),
+								color = MaterialTheme.colorScheme.onSurface,
 							)
+							if (message.isNotEmpty()) {
+								Text(
+									text = message,
+									style = MaterialTheme.typography.bodyMedium.copy(
+										lineHeight = 22.sp,
+									),
+									color = MaterialTheme.colorScheme.onSurfaceVariant,
+								)
+							}
 						}
-						Spacer(modifier = Modifier.weight(1f))
-						actions()
+						HorizontalDivider(
+							color = MaterialTheme.colorScheme.outlineVariant,
+							thickness = 1.dp,
+						)
+						Row(
+							modifier = Modifier
+								.fillMaxWidth()
+								.padding(start = 22.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+							verticalAlignment = Alignment.CenterVertically,
+							horizontalArrangement = Arrangement.spacedBy(10.dp),
+						) {
+							if (keyboardHint != null) {
+								Text(
+									text = keyboardHint,
+									fontFamily = hammerMonoFontFamily(),
+									fontSize = 10.sp,
+									letterSpacing = 0.4.sp,
+									color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+								)
+							}
+							FlowRow(
+								modifier = Modifier.weight(1f),
+								horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.End),
+								verticalArrangement = Arrangement.spacedBy(8.dp),
+								itemVerticalAlignment = Alignment.CenterVertically,
+							) {
+								actions()
+							}
+						}
 					}
 				}
 			}
@@ -218,13 +259,14 @@ fun IndexStripDialog(
 private val GutterWidth = 88.dp
 
 @Composable
-private fun IndexGutter(index: String?, kind: String, accent: Color) {
+private fun IndexGutter(index: String?, kind: String, accent: Color, width: Dp = GutterWidth) {
+	val horizontalPadding = if (width < GutterWidth) 10.dp else 12.dp
 	Column(
 		modifier = Modifier
-			.width(GutterWidth)
+			.width(width)
 			.fillMaxHeight()
 			.background(MaterialTheme.colorScheme.surfaceContainerLow)
-			.padding(horizontal = 12.dp, vertical = 20.dp),
+			.padding(horizontal = horizontalPadding, vertical = 20.dp),
 		verticalArrangement = Arrangement.spacedBy(14.dp),
 		horizontalAlignment = Alignment.Start,
 	) {
