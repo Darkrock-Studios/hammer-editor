@@ -8,8 +8,10 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataDto
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.project.EntityDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import io.mockk.coEvery
+import io.mockk.every
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -62,6 +64,19 @@ class ProjectsRepositoryProbeTest : ProjectsRepositoryBaseTest() {
 		createProjectsRepository().apply {
 			val result = probeProjectChanges(userId, listOf(ProjectHashItem(projectId, expectedServerHash())))
 			assertTrue(result.isEmpty(), "an uncomputable hash must never be reported as unchanged")
+		}
+	}
+
+	@Test
+	fun `a project with an in-flight sync session is left out`() = runTest {
+		stubTwoEntities()
+		every {
+			projectSessionManager.hasActiveSyncSession(ProjectSyncKey(userId, projectDefinition))
+		} returns true
+
+		createProjectsRepository().apply {
+			val result = probeProjectChanges(userId, listOf(ProjectHashItem(projectId, expectedServerHash())))
+			assertTrue(result.isEmpty(), "a project being synced elsewhere must not be reported unchanged")
 		}
 	}
 

@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHash
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.project.*
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.Msg
@@ -26,6 +27,11 @@ class ProjectsRepository(
 	private val syncSessionManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(
 		clazz = SyncSessionManager::class.java,
 		qualifier = named(PROJECTS_SYNC_MANAGER)
+	)
+
+	private val projectSyncSessionManager: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession> by inject(
+		clazz = SyncSessionManager::class.java,
+		qualifier = named(PROJECT_SYNC_MANAGER)
 	)
 
 	suspend fun createUserData(userId: Long) = projectsDatasource.createUserData(userId)
@@ -123,6 +129,9 @@ class ProjectsRepository(
 		val unchanged = mutableSetOf<ProjectId>()
 		for (item in items) {
 			val projectDef = projectsDatasource.getProject(userId, item.projectId) ?: continue
+			// A project with an in-flight sync (e.g. from another device) may have half-updated
+			// stored hashes, so we can't certify it "unchanged". Omit it → the client full-syncs.
+			if (projectSyncSessionManager.hasActiveSyncSession(ProjectSyncKey(userId, projectDef))) continue
 			val serverHash = computeProjectContentHash(userId, projectDef) ?: continue
 			if (serverHash == item.hash) {
 				unchanged += item.projectId

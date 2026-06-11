@@ -189,15 +189,22 @@ The asymmetry of risk:
 - A **false mismatch** (hashes differ but nothing actually needs syncing) is harmless — it just runs a redundant full sync.
 - A **false match** (we skip a project that was actually divergent) does **not** lose data: skipping is a pure no-op on local and server state — nothing is deleted, overwritten, or cleared, `lastSync` does not advance, and the dirty list (with its pre-edit `originalHash`) survives, so the eventual sync still detects conflicts correctly. The only cost is that client and server **stay divergent longer than they should**, and the UI may show `Complete` prematurely.
 
-The journal backstop makes even that impossible in correct operation. A stale cache can only arise from a mutation that failed to clear it — but the *same* mutation also writes the dirty list. So:
+The local backstop makes even that impossible in correct operation. A stale cache can only arise from a mutation that failed to clear it — but the *same* mutation also records pending local work. So:
 
-> stale cache ⟺ a mutation occurred ⟺ the journal has pending work ⟹ the project is force-synced.
+> stale cache ⟺ a mutation occurred ⟺ there is pending local work ⟹ the project is force-synced.
 
-Therefore the rule: **never skip a project whose journal shows pending work (`dirty` / `newIds` / `deletedIds`), regardless of its cached hash.** The only way to defeat this is a write path that updates *neither* the cache *nor* the dirty list — which would already be breaking conflict detection in today's protocol, independent of this optimization. So the probe introduces no new divergence risk beyond what the dirty list already guards.
+Therefore the rule: **never skip a project that has pending local work, regardless of its cached hash.** "Pending local work" is:
 
-Because of that, `cachedProjectHash != null` together with a non-empty journal is an **invariant violation**, not a normal state. When the backstop sees it, it forces the sync *and* logs an error so the latent bug is attributable:
+- **pending entity work** — `dirty` or `newIds` is non-empty (this is exactly `SyncJournal.needsSync`). `deletedIds` is *deliberately excluded*: it is a persistent tombstone set that never empties, so testing it would disqualify every project that ever deleted an entity. A pending deletion needs no separate guard — it drops the entity out of the project-wide hash (→ mismatch → sync) and `recordIdDeletion` clears the cache anyway.
+- **a project-data edit** — the project-data blob does not touch the entity journal, so it gets its own backstop: the probe compares the blob's current hash to the `lastSyncedHash` the server last confirmed (a never-synced project baselines against the default-data hash). This is what catches a stale cache if `ProjectDataRepository.updateData`'s invalidation is ever missed.
 
-> `Cache/journal inconsistency for project '{name}': cached hash present despite pending journal work. A write path likely bypassed the dirty-tracking hook. Forcing full sync.`
+The only way to defeat this is a write path that updates *neither* the cache *nor* the journal/lastSyncedHash — which would already be breaking conflict detection in today's protocol, independent of this optimization. So the probe introduces no new divergence risk beyond what the existing tracking already guards.
+
+Because of that, `cachedProjectHash != null` together with pending local work is an **invariant violation**, not a normal state. When the backstop sees it, it forces the sync *and* logs an error so the latent bug is attributable:
+
+> `Cache/journal inconsistency for project '{name}': cached hash present despite pending {journal|project-data} work. A write path likely bypassed the invalidation hook. Forcing full sync.`
+
+On the server side, the probe also skips any project with an **in-flight sync session** (e.g. a concurrent sync from another device): its stored hashes may be half-updated, so it can't be certified unchanged and is reported as changed (the client full-syncs).
 
 ### Per-Project Skip Decision
 
@@ -205,10 +212,10 @@ Because of that, `cachedProjectHash != null` together with a non-empty journal i
 flowchart TD
     A[Project from reconciled list] --> B{serverProjectId<br/>and cached hash?}
     B -- no --> S[Full sync today's way]
-    B -- yes --> C{Journal has<br/>pending work?}
+    B -- yes --> C{Pending local work?<br/>dirty / newIds / project-data}
     C -- yes --> L[Log invariant violation] --> S
     C -- no --> D[Include in probe request]
-    D --> E{Server says<br/>unchanged?}
+    D --> E{Server: known, no active<br/>session, hash matches?}
     E -- yes --> K[Mark Complete, skip]
     E -- no --> S
 ```

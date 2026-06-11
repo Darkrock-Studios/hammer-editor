@@ -40,13 +40,9 @@ class SyncJournal(
 		if (syncData.dirty.any { it.id == id }) return
 
 		val baseline = syncData.syncedHashes[id]
-		// Clearing the cached project hash in the same write keeps the invariant
-		// "cached hash present ⟹ no pending journal work" airtight (see SYNCING-PROTOCOL.md).
-		val newSyncData = syncData.copy(
-			dirty = syncData.dirty + EntityOriginalState(id, baseline),
-			cachedProjectHash = null,
+		saveInvalidatingProjectHash(
+			syncData.copy(dirty = syncData.dirty + EntityOriginalState(id, baseline))
 		)
-		datasource.saveSyncData(newSyncData)
 	}
 
 	/**
@@ -68,11 +64,7 @@ class SyncJournal(
 		if (globalSettingsStore.isServerSynchronized().not()) return
 
 		val syncData = datasource.loadSyncData()
-		val newSyncData = syncData.copy(
-			newIds = syncData.newIds + claimedId,
-			cachedProjectHash = null,
-		)
-		datasource.saveSyncData(newSyncData)
+		saveInvalidatingProjectHash(syncData.copy(newIds = syncData.newIds + claimedId))
 	}
 
 	suspend fun recordIdDeletion(deletedId: Int) {
@@ -83,17 +75,22 @@ class SyncJournal(
 		val newSyncData = if (withoutSyncedHash.newIds.contains(deletedId)) {
 			// Brand-new entity the server never saw: drop the claim so it can't
 			// become a phantom newId. Nothing to tell the server to delete.
-			withoutSyncedHash.copy(
-				newIds = withoutSyncedHash.newIds - deletedId,
-				cachedProjectHash = null,
-			)
+			withoutSyncedHash.copy(newIds = withoutSyncedHash.newIds - deletedId)
 		} else {
-			withoutSyncedHash.copy(
-				deletedIds = withoutSyncedHash.deletedIds + deletedId,
-				cachedProjectHash = null,
-			)
+			withoutSyncedHash.copy(deletedIds = withoutSyncedHash.deletedIds + deletedId)
 		}
-		datasource.saveSyncData(newSyncData)
+		saveInvalidatingProjectHash(newSyncData)
+	}
+
+	/**
+	 * Single chokepoint for content mutations: persists [data] with the cached project-wide hash
+	 * cleared in the same write. This keeps the invariant "cached hash present ⟹ no pending local
+	 * work" airtight (see SYNCING-PROTOCOL.md) so a new mutation path can't silently leave the probe
+	 * able to skip a project that actually changed. Sync-internal writes that must preserve the cache
+	 * (e.g. [recordSyncedHash], FinalizeSync) go through [datasource] directly instead.
+	 */
+	private fun saveInvalidatingProjectHash(data: ProjectSynchronizationData) {
+		datasource.saveSyncData(data.copy(cachedProjectHash = null))
 	}
 
 	fun isServerSynchronized(): Boolean {

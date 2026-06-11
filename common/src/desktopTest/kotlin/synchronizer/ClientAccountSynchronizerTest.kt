@@ -9,7 +9,10 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
+import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
@@ -24,6 +27,7 @@ import io.ktor.http.*
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import net.peanuuutz.tomlkt.Toml
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
@@ -91,6 +95,7 @@ class ClientAccountSynchronizerTest {
 		serverProjectsApi = serverProjectsApi,
 		networkConnectivity = networkConnectivity,
 		json = json,
+		toml = Toml,
 		strRes = TestStrRes(),
 	)
 
@@ -129,6 +134,12 @@ class ClientAccountSynchronizerTest {
 		val path = projectDef.path.toOkioPath() / "sync.json"
 		path.parent?.let { ffs.createDirectories(it) }
 		ffs.write(path) { writeUtf8(json.encodeToString(data)) }
+	}
+
+	private fun writeProjectData(projectDef: ProjectDef, data: StoredProjectData) {
+		val path = projectDef.path.toOkioPath() / "project_data.toml"
+		path.parent?.let { ffs.createDirectories(it) }
+		ffs.write(path) { writeUtf8(Toml.encodeToString(data)) }
 	}
 
 	@Test
@@ -206,6 +217,42 @@ class ClientAccountSynchronizerTest {
 			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))
 
 		assertTrue(result.isEmpty())
+	}
+
+	@Test
+	fun `probe skips a project whose project-data changed but entity journal is clean`() = runTest {
+		val def = projectDef("Zeta")
+		val projectId = ProjectId("uuid-zeta")
+		// Clean entity journal + a cached hash, but project-data diverges from its last-synced hash.
+		writeProjectSyncData(def, cleanProjectSyncData(hash = "zeta-hash"))
+		writeProjectData(
+			def,
+			StoredProjectData(
+				data = ProjectData(authorName = "Edited"),
+				lastSyncedHash = ProjectDataHasher.hash(ProjectData()),
+			),
+		)
+
+		val result = createSynchronizer()
+			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))
+
+		assertTrue(result.isEmpty(), "a project-data-only edit must not be probe-skipped")
+		coVerify(exactly = 0) { serverProjectsApi.probeProjectChanges(any()) }
+	}
+
+	@Test
+	fun `probe treats an unreadable journal as ineligible without throwing`() = runTest {
+		val def = projectDef("Eta")
+		val projectId = ProjectId("uuid-eta")
+		val path = def.path.toOkioPath() / "sync.json"
+		path.parent?.let { ffs.createDirectories(it) }
+		ffs.write(path) { writeUtf8("}{ not valid json") }
+
+		val result = createSynchronizer()
+			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))
+
+		assertTrue(result.isEmpty())
+		coVerify(exactly = 0) { serverProjectsApi.probeProjectChanges(any()) }
 	}
 
 	@Test
