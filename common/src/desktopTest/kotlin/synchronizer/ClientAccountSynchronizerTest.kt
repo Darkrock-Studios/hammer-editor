@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
+import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
@@ -139,7 +140,7 @@ class ClientAccountSynchronizerTest {
 	private fun writeProjectData(projectDef: ProjectDef, data: StoredProjectData) {
 		val path = projectDef.path.toOkioPath() / "project_data.toml"
 		path.parent?.let { ffs.createDirectories(it) }
-		ffs.write(path) { writeUtf8(Toml.encodeToString(data)) }
+		ffs.writeToml(path, Toml, data)
 	}
 
 	@Test
