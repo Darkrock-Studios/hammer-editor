@@ -165,6 +165,12 @@ class AccountsRepository(
 		}
 	}
 
+	/** The install id bound to [token], or null if the token is unknown. */
+	suspend fun getInstallId(token: String): String? {
+		val hashedToken = tokenHasher.hashToken(token)
+		return authTokenDao.getTokenByAuthToken(hashedToken)?.install_id
+	}
+
 	suspend fun refreshToken(userId: Long, installId: String, refreshToken: String): SResult<Token> {
 		val hashedRefreshToken = tokenHasher.hashToken(refreshToken)
 		val authToken = authTokenDao.getTokenByInstallId(userId, installId)
