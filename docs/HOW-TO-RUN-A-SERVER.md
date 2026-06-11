@@ -168,7 +168,7 @@ _This step is optional but strongly recommended._
 
 There are two methods this can be done by.
  * One: Java SSL
- * Two: Reverse Proxy (see Reverse Proxy Documentation)
+ * Two: Reverse Proxy (do NOT follow the steps in this section; see Reverse Proxy Documentation)
 
 If you want to enable SSL (`https`), you'll first need to edit your server config file and add these lines:
 
