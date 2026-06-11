@@ -1,7 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.components.notes
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.value.*
+import com.arkivanov.decompose.value.MutableValue
+import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.getAndUpdate
+import com.arkivanov.decompose.value.subscribe
+import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -64,7 +68,7 @@ class CreateNoteComponent(
 		withContext(dispatcherDefault) {
 			val result = notesRepository.createNote(noteText, tags)
 			if (isSuccess(result)) {
-				dismissCreate()
+				withContext(dispatcherMain) { dismissCreate() }
 				notesRepository.loadNotes()
 				NoteError.NONE
 			} else {
