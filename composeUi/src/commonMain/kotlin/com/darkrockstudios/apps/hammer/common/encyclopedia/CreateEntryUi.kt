@@ -30,9 +30,9 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import io.github.vinceglb.filekit.PlatformFile
-import io.github.vinceglb.filekit.absolutePath
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.path
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -146,7 +146,7 @@ internal fun CreateEntryUi(
 					image = if (attachedImage != null) {
 						{
 							AsyncImage(
-								model = attachedImage.absolutePath(),
+								model = attachedImage.path,
 								contentDescription = null,
 								modifier = Modifier.fillMaxSize(),
 								contentScale = ContentScale.Crop,
@@ -169,7 +169,7 @@ internal fun CreateEntryUi(
 							type = selectedType,
 							text = description,
 							tags = tags.toSet(),
-							imagePath = imagePath?.absolutePath(),
+							imagePath = imagePath?.path,
 						)
 						val message = when (result.error) {
 							EntryError.NAME_TOO_LONG -> strRes.get(

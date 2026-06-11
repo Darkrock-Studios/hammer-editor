@@ -52,9 +52,9 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryE
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import io.github.vinceglb.filekit.absolutePath
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.path
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -82,7 +82,7 @@ internal fun ViewEntryUi(
 
 	val filePickerLauncher = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
 		if (file != null) {
-			scope.launch { component.setImage(file.absolutePath()) }
+			scope.launch { component.setImage(file.path) }
 		}
 		component.closeAddImageDialog()
 	}
