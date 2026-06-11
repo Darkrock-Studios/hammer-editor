@@ -5,7 +5,11 @@ import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
-import com.darkrockstudios.apps.hammer.project.synchronizers.*
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerEncyclopediaSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerNoteSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneDraftSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerTimelineSynchronizer
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.Msg
@@ -61,10 +65,7 @@ class ProjectEntityRepository(
 			return SResult.failure(ProjectNotFound(projectDef))
 		}
 
-		// Reclaim a stale session, but only the originating install may do so. A prior sync from
-		// this install whose end_sync never reached the server (cancelled mid-flight, expired
-		// auth, dropped network) must not lock the owner out. A still-active session from a
-		// *different* install is a genuine concurrent sync and keeps its claim until it expires.
+		// Reclaim a stale session for a given installId
 		val activeSession = sessionManager.getActiveSyncSession(syncKey)
 		if (activeSession != null && activeSession.installId != installId) {
 			return SResult.failure(

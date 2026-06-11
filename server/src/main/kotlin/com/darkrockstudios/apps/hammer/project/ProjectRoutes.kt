@@ -1,23 +1,46 @@
 package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
-import com.darkrockstudios.apps.hammer.base.http.*
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.ClientEntityState
+import com.darkrockstudios.apps.hammer.base.http.DeleteIdsResponse
+import com.darkrockstudios.apps.hammer.base.http.HEADER_ENTITY_HASH
+import com.darkrockstudios.apps.hammer.base.http.HEADER_ENTITY_TYPE
+import com.darkrockstudios.apps.hammer.base.http.HEADER_ORIGINAL_HASH
+import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
+import com.darkrockstudios.apps.hammer.base.http.SaveEntityResponse
+import com.darkrockstudios.apps.hammer.base.http.StaleHashResponse
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataUploadRequest
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
-import com.darkrockstudios.apps.hammer.utilities.*
+import com.darkrockstudios.apps.hammer.utilities.ERROR_MISSING_ENTITY_ID
+import com.darkrockstudios.apps.hammer.utilities.ERR_KEY_UNKNOWN
+import com.darkrockstudios.apps.hammer.utilities.ServerResult
+import com.darkrockstudios.apps.hammer.utilities.isSuccess
+import com.darkrockstudios.apps.hammer.utilities.requireEntityId
+import com.darkrockstudios.apps.hammer.utilities.requireProjectDef
+import com.darkrockstudios.apps.hammer.utilities.requireSyncId
+import com.darkrockstudios.apps.hammer.utilities.respondMissingParameter
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import io.ktor.util.logging.*
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.log
+import io.ktor.server.auth.authenticate
+import io.ktor.server.auth.principal
+import io.ktor.server.request.receive
+import io.ktor.server.request.receiveParameters
+import io.ktor.server.request.receiveStream
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.RoutingContext
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.route
+import io.ktor.util.logging.Logger
 import korlibs.io.compression.deflate.GZIP
 import korlibs.io.compression.uncompress
 import kotlinx.coroutines.withContext
@@ -54,8 +77,7 @@ private fun Route.beginProjectSync() {
 		val projectDef = call.requireProjectDef() ?: return@post
 		val lite = call.parameters["lite"]?.toBoolean() ?: false
 
-		// Derived from the authenticated token (not client-asserted) so only the originating
-		// install can reclaim its own stale sync session.
+		// Derived from the authenticated token (not client-asserted)
 		val installId = call.request.headers[HttpHeaders.Authorization]
 			?.substringAfter("Bearer ", "")
 			?.takeIf { it.isNotBlank() }

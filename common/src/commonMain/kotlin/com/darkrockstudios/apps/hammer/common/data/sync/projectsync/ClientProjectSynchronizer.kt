@@ -8,14 +8,25 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.*
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.BackupOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EnsureProjectIdOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityDeleteOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityTransferOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchLocalDataOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchServerDataOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FinalizeSyncOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.IdConflictResolutionOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.PrepareForSyncOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectDataSyncOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.WritingActivitySyncOperation
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.sync_log_entity_failed
 import io.github.aakira.napier.Napier
-import io.ktor.http.*
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
@@ -151,9 +162,7 @@ class ClientProjectSynchronizer(
 		}
 	}
 
-	// Runs as cleanup, often from a cancelled sync coroutine. Without NonCancellable the
-	// endProjectSync network call would be skipped at its first suspension point, leaking the
-	// server session and blocking the next begin_sync until it expires.
+	// Runs as cleanup, often from a cancelled sync coroutine
 	private suspend fun endSync() = withContext(NonCancellable) {
 		try {
 			val syncId = syncJournal.loadSyncData().currentSyncId
