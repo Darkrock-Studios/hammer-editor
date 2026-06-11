@@ -2,9 +2,8 @@ package com.darkrockstudios.apps.hammer.common.components.projecthome
 
 import com.conamobile.pdfkmp.geometry.Padding
 import com.conamobile.pdfkmp.layout.PageBreakStrategy
-import com.conamobile.pdfkmp.markdown.MarkdownTheme
-import com.conamobile.pdfkmp.markdown.markdown
 import com.conamobile.pdfkmp.pdf
+import com.conamobile.pdfkmp.style.PdfColor
 import com.conamobile.pdfkmp.unit.dp
 import com.conamobile.pdfkmp.unit.sp
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
@@ -16,8 +15,10 @@ private fun chapterAnchorId(index: Int): String = "chapter-$index"
 
 /**
  * Renders the story as a PDF mirroring the EPUB layout: a title page, a clickable table of contents,
- * then one auto-paginating section per chapter. Chapter bodies are rendered from markdown so headings,
- * emphasis, and lists are laid out as formatted text rather than literal syntax.
+ * then one auto-paginating section per chapter. Chapter bodies are rendered from markdown with book
+ * typography (first-line paragraph indents) via [proseMarkdown]. Like the EPUB stylesheet, the
+ * project theme's primary color accents the title page, contents, chapter headings, and links;
+ * secondary accents h2 headings within chapters.
  */
 fun writeStoryAsPdf(
 	sink: BufferedSink,
@@ -27,6 +28,9 @@ fun writeStoryAsPdf(
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
+	val primary = projectData.theme?.primary?.let(::argbHexToPdfColor)
+	val secondary = projectData.theme?.secondary?.let(::argbHexToPdfColor)
+	val proseColors = ProseColors(primary = primary, secondary = secondary)
 
 	val document = pdf {
 		// Bottom/side margins so text doesn't run to the page edge; Slice lets long bodies flow
@@ -39,19 +43,37 @@ fun writeStoryAsPdf(
 			authorName?.let { author = it }
 		}
 
-		// Title page.
+		// Title page — accent rule under the title mirrors the EPUB's title-page hr.
 		page {
-			text(projectName) { fontSize = 36.sp; bold = true }
-			authorName?.let { text("by $it") { fontSize = 16.sp } }
+			text(projectName) {
+				fontSize = 36.sp
+				bold = true
+				primary?.let { color = it }
+			}
+			spacer(height = 10.dp)
+			box(width = 200.dp) {
+				divider(thickness = 2.dp, color = primary ?: PdfColor.Gray)
+			}
+			authorName?.let {
+				spacer(height = 10.dp)
+				text("by $it") { fontSize = 16.sp; italic = true }
+			}
 		}
 
 		// Contents page — each row links to the matching chapter's anchor below.
 		page {
-			text(TOC_TITLE) { fontSize = 26.sp; bold = true }
+			text(TOC_TITLE) {
+				fontSize = 26.sp
+				bold = true
+				primary?.let { color = it }
+			}
+			spacer(height = 10.dp)
 			column(spacing = 6.dp) {
 				effective.forEachIndexed { index, chapter ->
 					linkToAnchor(chapterAnchorId(index)) {
-						text("${index + 1}. ${chapter.name}")
+						text("${index + 1}. ${chapter.name}") {
+							primary?.let { color = it }
+						}
 					}
 				}
 			}
@@ -64,9 +86,14 @@ fun writeStoryAsPdf(
 			page {
 				bookmark(chapter.name)
 				anchor(chapterAnchorId(index))
-				text("${index + 1}. ${chapter.name}") { fontSize = 22.sp; bold = true }
+				text("${index + 1}. ${chapter.name}") {
+					fontSize = 22.sp
+					bold = true
+					primary?.let { color = it }
+				}
 				if (chapter.markdown.isNotBlank()) {
-					markdown(chapter.markdown.stripBackslashEscapes(), theme = MarkdownTheme())
+					spacer(height = 14.dp)
+					proseMarkdown(chapter.markdown, proseColors)
 				}
 			}
 		}
@@ -75,31 +102,18 @@ fun writeStoryAsPdf(
 	sink.write(document.toByteArray())
 }
 
-private const val ASCII_PUNCTUATION = "!\"#$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
-
-/** Unescaping these would create active markdown (emphasis/code/link/strikethrough), so keep them escaped. */
-private const val MARKDOWN_DELIMITERS = "*_`[]~"
-
-/**
- * Resolves CommonMark backslash escapes (`\!`, `\(`, `\-`, …) to the bare punctuation a compliant
- * parser would emit. pdfkmp-markdown leaves the backslash in, so imported content that was escaped
- * upstream would otherwise show stray backslashes throughout the prose. Markdown delimiters are left
- * escaped so `\*literal\*` is not turned back into emphasis.
- */
-private fun String.stripBackslashEscapes(): String {
-	if ('\\' !in this) return this
-	val out = StringBuilder(length)
-	var i = 0
-	while (i < length) {
-		val c = this[i]
-		val next = if (i + 1 < length) this[i + 1] else null
-		if (c == '\\' && next != null && next in ASCII_PUNCTUATION && next !in MARKDOWN_DELIMITERS) {
-			out.append(next)
-			i += 2
-		} else {
-			out.append(c)
-			i++
-		}
+/** Project themes store colors as ARGB hex (`#FFRRGGBB`, sometimes `#RRGGBB`); null for anything else. */
+internal fun argbHexToPdfColor(argb: String): PdfColor? {
+	val hex = argb.trim().removePrefix("#")
+	val rgb = when (hex.length) {
+		6 -> hex
+		8 -> hex.substring(2)
+		else -> return null
 	}
-	return out.toString()
+	val value = rgb.toIntOrNull(16) ?: return null
+	return PdfColor(
+		((value shr 16) and 0xFF) / 255f,
+		((value shr 8) and 0xFF) / 255f,
+		(value and 0xFF) / 255f,
+	)
 }
