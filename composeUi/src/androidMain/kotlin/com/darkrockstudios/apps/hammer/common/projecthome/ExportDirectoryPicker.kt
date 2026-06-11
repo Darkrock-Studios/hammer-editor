@@ -71,4 +71,5 @@ private fun mimeTypeFor(format: ExportFormat): String = when (format) {
 	ExportFormat.Markdown -> "text/plain"
 	ExportFormat.Epub -> "application/epub+zip"
 	ExportFormat.Pdf -> "application/pdf"
+	ExportFormat.Docx -> "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 }

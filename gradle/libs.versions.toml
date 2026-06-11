@@ -35,6 +35,8 @@ kotlinx_atomicfu = "0.33.0"
 markdown = "0.7.5"
 epub4kmp = "0.3.0"
 pdfkmp = "1.2.0"
+xmlutil = "1.0.0-rc3"
+poi = "5.5.1"
 kotlinx_html = "0.12.0"
 material = "1.14.0"
 orchestrator = "1.6.1"
@@ -170,6 +172,8 @@ kotlinx_atomicfu_plugin = { group = "org.jetbrains.kotlinx", name = "atomicfu-gr
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
 kotlin-multiplatform-diff = { module = "io.github.petertrr:kotlin-multiplatform-diff", version.ref = "kotlin-multiplatform-diff" }
 epub4kmp_core = { module = "com.darkrockstudios:epub4kmp-core", version.ref = "epub4kmp" }
+xmlutil_core = { module = "io.github.pdvrieze.xmlutil:core", version.ref = "xmlutil" }
+poi_ooxml = { module = "org.apache.poi:poi-ooxml", version.ref = "poi" }
 pdfkmp = { module = "io.github.conamobiledev:pdfkmp", version.ref = "pdfkmp" }
 pdfkmp_markdown = { module = "io.github.conamobiledev:pdfkmp-markdown", version.ref = "pdfkmp" }
 kotlinx_html = { module = "org.jetbrains.kotlinx:kotlinx-html", version.ref = "kotlinx_html" }

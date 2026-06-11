@@ -27,6 +27,7 @@ val ExportFormat.fileExtension: String
 		ExportFormat.Markdown -> "md"
 		ExportFormat.Epub -> "epub"
 		ExportFormat.Pdf -> "pdf"
+		ExportFormat.Docx -> "docx"
 	}
 
 /** Strips characters that have meaning in file paths or the SAF picker; covers project names that came from sync. */
@@ -80,6 +81,16 @@ class ExportStoryUseCase(
 					ExportFormat.Pdf -> {
 						val projectData = projectDataDatasource.load().data
 						writeStoryAsPdf(
+							sink = this,
+							projectName = projectName,
+							projectData = projectData,
+							chapters = chaptersFor(options, projectName, perNodeChapters),
+						)
+					}
+
+					ExportFormat.Docx -> {
+						val projectData = projectDataDatasource.load().data
+						writeStoryAsDocx(
 							sink = this,
 							projectName = projectName,
 							projectData = projectData,

@@ -81,6 +81,7 @@ kotlin {
 				implementation(libs.kmp.zip)
 				implementation(libs.kmp.zip.okio)
 				implementation(libs.markdown)
+				implementation(libs.xmlutil.core)
 				implementation(libs.epub4kmp.core)
 				implementation(libs.pdfkmp)
 				implementation(libs.pdfkmp.markdown)
@@ -140,6 +141,7 @@ kotlin {
 				implementation(libs.koin.test)
 				implementation(libs.koin.test.junit5)
 				implementation(compose.desktop.currentOs)
+				implementation(libs.poi.ooxml)
 			}
 		}
 	}
