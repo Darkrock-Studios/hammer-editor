@@ -175,7 +175,6 @@ epub4kmp_core = { module = "com.darkrockstudios:epub4kmp-core", version.ref = "e
 xmlutil_core = { module = "io.github.pdvrieze.xmlutil:core", version.ref = "xmlutil" }
 poi_ooxml = { module = "org.apache.poi:poi-ooxml", version.ref = "poi" }
 pdfkmp = { module = "io.github.conamobiledev:pdfkmp", version.ref = "pdfkmp" }
-pdfkmp_markdown = { module = "io.github.conamobiledev:pdfkmp-markdown", version.ref = "pdfkmp" }
 kotlinx_html = { module = "org.jetbrains.kotlinx:kotlinx-html", version.ref = "kotlinx_html" }
 multiplatform_window_size = { group = "dev.chrisbanes.material3", name = "material3-window-size-class-multiplatform", version.ref = "multiplatform_window_size" }
 material = { module = "com.google.android.material:material", version.ref = "material" }

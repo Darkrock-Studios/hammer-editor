@@ -84,7 +84,6 @@ kotlin {
 				implementation(libs.xmlutil.core)
 				implementation(libs.epub4kmp.core)
 				implementation(libs.pdfkmp)
-				implementation(libs.pdfkmp.markdown)
 				implementation(libs.kotlinx.html)
 			}
 		}
