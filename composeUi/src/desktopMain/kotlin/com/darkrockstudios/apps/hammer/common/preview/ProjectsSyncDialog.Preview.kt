@@ -9,6 +9,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.Padded
+import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineProgressBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatus
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatusGlyph
@@ -18,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
 import com.darkrockstudios.apps.hammer.common.projectselection.SyncLogMessageUi
+import com.darkrockstudios.apps.hammer.common.projectselection.SyncStatusRow
 
 @Preview
 @Composable
@@ -31,6 +33,43 @@ private fun SyncLogRowsPreview() = Padded {
 		SyncLogMessageUi(syncLogW("Scene 12 — local newer, kept local", "Insurgency"))
 		SyncLogMessageUi(syncLogE("Connection lost (504) — queued for retry", "Alice In Wonderland"))
 		SyncLogMessageUi(syncAccLogD("Sync started · 8 projects"))
+	}
+}
+
+@Preview
+@Composable
+internal fun SyncStatusRowsPreview() = Padded {
+	Column(modifier = Modifier.fillMaxWidth()) {
+		val rows = listOf(
+			ProjectsList.ProjectSyncStatus(
+				"Pending Project",
+				progress = 0f,
+				status = ProjectsList.Status.Pending
+			),
+			ProjectsList.ProjectSyncStatus(
+				"Syncing Project",
+				progress = 0.4f,
+				status = ProjectsList.Status.Syncing
+			),
+			ProjectsList.ProjectSyncStatus(
+				"Conflicted Project",
+				progress = 0.6f,
+				status = ProjectsList.Status.NeedsResolution
+			),
+			ProjectsList.ProjectSyncStatus(
+				"Failed Project",
+				progress = 0.6f,
+				status = ProjectsList.Status.Failed
+			),
+			ProjectsList.ProjectSyncStatus(
+				"Synced Project",
+				progress = 1f,
+				status = ProjectsList.Status.Complete
+			),
+		)
+		rows.forEachIndexed { index, row ->
+			SyncStatusRow(projectStatus = row, isLast = index == rows.lastIndex)
+		}
 	}
 }
 

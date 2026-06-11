@@ -63,6 +63,7 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 		Pending,
 		Syncing,
 		Failed,
+		NeedsResolution,
 		Complete,
 		Canceled
 	}
@@ -79,8 +80,8 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 
 /**
  * True only while a sync is still working. Closing the dialog mid-sync should confirm
- * cancellation; once every project is in a terminal state (Complete/Failed/Canceled) the
- * sync is no longer active, so closing should just close — even if [syncComplete] never flipped.
+ * cancellation; once every project is in a terminal state (Complete/Failed/NeedsResolution/Canceled)
+ * the sync is no longer active, so closing should just close — even if [syncComplete] never flipped.
  */
 val ProjectsList.SyncState.hasActiveSync: Boolean
 	get() = !syncComplete && projectsStatus.values.any { status ->

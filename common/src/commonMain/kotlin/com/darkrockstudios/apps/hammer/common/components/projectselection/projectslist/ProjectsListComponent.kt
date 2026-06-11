@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection.proje
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
@@ -22,7 +22,15 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogE
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogI
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogW
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -31,10 +39,26 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.lifecycleCoroutineScope
+import com.darkrockstudios.apps.hammer.projects_list_toast_sync_complete
+import com.darkrockstudios.apps.hammer.projects_list_toast_sync_failed
+import com.darkrockstudios.apps.hammer.sync_log_begin_account
+import com.darkrockstudios.apps.hammer.sync_log_begin_project
+import com.darkrockstudios.apps.hammer.sync_log_begin_projects
+import com.darkrockstudios.apps.hammer.sync_log_end_projects
+import com.darkrockstudios.apps.hammer.sync_log_project_conflict
 import io.github.aakira.napier.Napier
 import korlibs.datastructure.iterators.parallelMap
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.yield
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.IOException
@@ -289,54 +313,79 @@ class ProjectsListComponent(
 		projectDef: ProjectDef,
 		onLog: OnSyncLog,
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit
-	): Boolean {
+	): ProjectSyncOutcome {
 		onLog(syncLogI(strRes.get(Res.string.sync_log_begin_project, projectDef.name), projectDef))
 
 		var success = false
-		temporaryProjectTask(projectDef) { projScope ->
-			val synchronizer: ClientProjectSynchronizer = projScope.get { parametersOf(projectDef) }
-			val conflictBroker: ProjectDataConflictBroker = projScope.get { parametersOf(projectDef) }
+		var conflicted = false
 
-			coroutineScope {
-				// Bulk account sync has no interactive resolver. A project-data conflict reports
-				// to the broker and waits on resolutions forever, leaving the project stuck
-				// "Syncing". Watch for it and abort so the project fails instead of hanging.
-				val conflictWatcher = launch {
-					for (conflict in conflictBroker.conflicts) {
-						onLog(
-							syncLogW(
-								strRes.get(Res.string.sync_log_project_conflict, projectDef.name),
-								projectDef
-							)
-						)
-						conflictBroker.abort()
-					}
-				}
+		try {
+			temporaryProjectTask(projectDef) { projScope ->
+				val synchronizer: ClientProjectSynchronizer =
+					projScope.get { parametersOf(projectDef) }
+				val conflictBroker: ProjectDataConflictBroker =
+					projScope.get { parametersOf(projectDef) }
 
-				try {
-					success = synchronizer.sync(
-						onProgress = onProgress,
-						onLog = { message -> onLog(message) },
-						onConflict = {
+				coroutineScope {
+					// Bulk account sync has no interactive resolver. A project-data conflict reports
+					// to the broker and waits on resolutions forever, leaving the project stuck
+					// "Syncing". Watch for it and abort so the project stops instead of hanging.
+					val conflictWatcher = launch {
+						for (conflict in conflictBroker.conflicts) {
 							onLog(
 								syncLogW(
-									strRes.get(Res.string.sync_log_project_conflict, projectDef.name),
+									strRes.get(
+										Res.string.sync_log_project_conflict,
+										projectDef.name
+									),
 									projectDef
 								)
 							)
-							throw IllegalStateException("Entity conflict must be handled by Project sync")
-						},
-						onComplete = {},
-						onUnauthorized = ::showReauth
-					)
-				} finally {
-					conflictWatcher.cancel()
+							conflicted = true
+							conflictBroker.abort()
+						}
+					}
+
+					try {
+						success = synchronizer.sync(
+							onProgress = onProgress,
+							onLog = { message -> onLog(message) },
+							onConflict = {
+								onLog(
+									syncLogW(
+										strRes.get(
+											Res.string.sync_log_project_conflict,
+											projectDef.name
+										),
+										projectDef
+									)
+								)
+								conflicted = true
+								throw IllegalStateException("Entity conflict must be handled by Project sync")
+							},
+							onComplete = {},
+							onUnauthorized = ::showReauth
+						)
+					} finally {
+						conflictWatcher.cancel()
+					}
 				}
 			}
+		} catch (e: CancellationException) {
+			throw e
+		} catch (e: Exception) {
+			// A conflict aborts the entity sync by throwing; that's a resolvable state, not a failure.
+			if (!conflicted) throw e
 		}
 
-		return success
+		return when {
+			success -> ProjectSyncOutcome.Success
+			conflicted -> ProjectSyncOutcome.NeedsResolution
+			else -> ProjectSyncOutcome.Failed
+		}
 	}
+
+	private enum class ProjectSyncOutcome { Success, NeedsResolution, Failed }
 
 	private suspend fun syncNewProjectStatus(projects: List<ProjectDef>) {
 		val newStatuses = mutableMapOf<String, ProjectsList.ProjectSyncStatus>()
@@ -429,11 +478,14 @@ class ProjectsListComponent(
 									if (message != null) onSyncLog(message)
 								}
 
-								val projectSuccess = syncProject(projectDef, ::onSyncLog, ::onProgress)
-								allSuccess = allSuccess && projectSuccess
+								val outcome = syncProject(projectDef, ::onSyncLog, ::onProgress)
+								allSuccess = allSuccess && (outcome == ProjectSyncOutcome.Success)
 
-								val newStatus =
-									if (projectSuccess) ProjectsList.Status.Complete else ProjectsList.Status.Failed
+								val newStatus = when (outcome) {
+									ProjectSyncOutcome.Success -> ProjectsList.Status.Complete
+									ProjectSyncOutcome.NeedsResolution -> ProjectsList.Status.NeedsResolution
+									ProjectSyncOutcome.Failed -> ProjectsList.Status.Failed
+								}
 								syncProgressStatus(projectDef.name, newStatus)
 							} catch (e: CancellationException) {
 								throw e

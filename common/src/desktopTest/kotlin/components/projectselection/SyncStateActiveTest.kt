@@ -60,6 +60,15 @@ class SyncStateActiveTest {
 	}
 
 	@Test
+	fun `Project needing conflict resolution is not active`() {
+		// A conflict stops the project's sync in a terminal state; closing the dialog
+		// should not prompt the cancel confirmation.
+		val state = syncState(syncComplete = false, Status.Complete, Status.NeedsResolution)
+
+		assertFalse(state.hasActiveSync)
+	}
+
+	@Test
 	fun `Canceled projects are not active`() {
 		val state = syncState(syncComplete = true, Status.Canceled, Status.Canceled)
 
