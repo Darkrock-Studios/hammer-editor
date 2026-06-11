@@ -122,6 +122,18 @@ The client calls `begin_sync` to get a valid `syncID`. This `syncID` is provided
 
 There can be only one valid `syncID` per project at any given time. This prevents race conditions with two clients syncing the same project at the same time.
 
+#### Reclaiming a session (same install only)
+
+A stale session would otherwise lock a user out of their own project until it expires — for example when a prior sync's `end_sync` never reached the server (the client was cancelled mid-sync, lost auth, or dropped its connection). To avoid this, `begin_sync` may **reclaim** an existing project session, but only when the request comes from the **same install** that owns it.
+
+The install is identified server-side from the authenticated bearer token (never a client-supplied value), so it cannot be spoofed. The rules are:
+
+- **Same install** as the active session → the old session is terminated and a fresh `syncID` is issued. The previous `syncID` immediately becomes invalid.
+- **Different install**, session still active → `400 Bad Request`; the original session keeps its claim, preserving the cross-device race protection above.
+- **Expired session** (any install) → treated as gone and reclaimable by anyone.
+
+The client also fires `end_sync` even when its sync is cancelled, so sessions are normally released cleanly; reclaim is the safety net for the cases where that request can't be delivered.
+
 You may however have `syncID`s for multiple different projects simultaneously.
 
 These are Project level `syncID`s. Account syncing use separate Account level `syncID`s. There may only be one valid Account level `syncID` at a time, and if there is a valid Account `syncID`, then no Project level `syncID`s are allowed to be created. The Account level sync must finish before any Project level syncs may begin.
