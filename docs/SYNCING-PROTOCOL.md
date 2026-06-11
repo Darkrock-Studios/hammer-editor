@@ -100,6 +100,121 @@ sequenceDiagram
 
 ---
 
+## Pre-Sync Change Probe
+
+Between Account Sync and Project Sync sits an optional optimization step. Account Sync brings the *set* of projects into parity; the probe then asks, in a single batched request, *which of those projects actually have content changes* — so we can skip the per-project sync entirely for the ones that don't.
+
+### Motivation
+
+A full project sync, even for a project with zero changes, costs at minimum ~4 HTTP round-trips (`begin_sync`, `project_data`, `writing_activity`, `end_sync`). On app open that is paid once *per project*. For a user with many untouched projects this is the dominant cost of "opening the app," even though nothing needs to happen.
+
+The probe collapses that to **one** request for the whole account, and lets every unchanged project jump straight to `Complete` in the UI without opening a project-level sync session at all.
+
+### The Project-Wide Hash
+
+Each project gets a single **project-wide content hash** computed over the two data sources whose divergence is unacceptable:
+
+- all of the project's **entities** (the same per-entity hashes already produced for `ClientEntityState`), and
+- the **project-data blob** (author, theme, word-count goal — hashed via `ProjectDataHasher`).
+
+The aggregate is order-independent of enumeration: sort the entity `{id, hash}` pairs by id, fold `id:hash` pairs plus the project-data hash through the same MurmurHash3 used elsewhere. The function lives in the `base` module (alongside `EntityHasher` / `ProjectDataHasher`) so the **client and server run byte-identical code**.
+
+**Writing activity is deliberately excluded.** It is per-device, conflict-free, and the project's authoritative record is the *union* of every device's slot — so no single device ever holds the full set, and a symmetric content hash that included it would never match across devices. It is also explicitly auxiliary (its sync phase already swallows errors and retries next time), so a skipped opportunistic activity sync is consistent with the existing tolerance. The trade-off: a change that touches *only* another device's writing activity will not be detected by the probe, and is picked up on the next sync that runs for any other reason.
+
+### The Comparison Is Symmetric
+
+The probe does **not** ask "did the server change since I last synced." It compares **the client's current hash against the server's current hash**:
+
+- if the client edited locally, its hash differs from the server's → sync,
+- if another device pushed changes, the server's hash differs from the client's → sync,
+- only when both currently agree do we skip.
+
+This catches changes in *both* directions with a single comparison and **zero persisted bookkeeping on the server** — the server recomputes its hash on demand from its stored (cached) entity hashes and project-data hash. This honors the protocol's "no required book keeping data" principle: the probe is a pure optimization, and losing or ignoring it changes nothing but speed.
+
+### Network Protocol
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+
+    Note over Client,Server: After Account Sync, before any Project Sync
+
+    Client->>Server: POST /api/projects/{userId}/sync_probe
+    activate Server
+    Note right of Client: ProjectsSyncProbeRequest<br/>[ { projectId, hash } ]
+    Note over Server: For each project, recompute the<br/>project-wide hash and compare
+    Server -->> Client: 200 OK
+    deactivate Server
+    activate Client
+    Note left of Server: ProjectsSyncProbeResponse<br/>{ unchangedProjects }
+
+    Note right of Client: Mark unchangedProjects → Complete (skip).<br/>Sync everything else as today.
+    deactivate Client
+```
+
+- `POST /api/projects/{userId}/sync_probe` — read-only, no `syncId` required.
+- Request `ProjectsSyncProbeRequest { projects: List<ProjectHashItem> }`, where `ProjectHashItem { projectId, hash }`.
+- Response `ProjectsSyncProbeResponse { unchangedProjects: Set<ProjectId> }`.
+
+The client sends entries **only** for projects that have a `serverProjectId` *and* a cached hash (see below). The server returns a project in `unchangedProjects` only when it is certain (project exists, hash matches); anything unknown or mismatched is simply omitted, and the client syncs it the normal way. Projects not sent in the request are never skipped.
+
+If the endpoint is unsupported (older server) or the request fails for any reason, the client silently falls back to a full per-project sync — no behavior change. The protocol version is bumped accordingly.
+
+### Client-Side Hash Cache
+
+Computing the hash requires hashing every entity, which is local disk I/O. To avoid an N-project crawl on every app open, the client **caches** each project's hash in that project's own sync journal (`ProjectSynchronizationData`):
+
+```
+cachedProjectHash: String?   // the project-wide hash as of the last successful sync
+hashAlgoVersion: Int         // bumped when the hashing algorithm changes
+```
+
+The cache has exactly one of each path:
+
+- **Write** — only in `FinalizeSyncOperation`, at the end of a successful project sync. The hash is computed from the **final, reconciled** local state (not the pre-sync snapshot, since entity transfer may have changed things). This only runs for projects that actually synced, whose entities were read/written anyway.
+- **Clear** — at the **repository / datasource layer**, wherever an entity or the project-data blob is mutated. Because every writer (editor, Android widgets, background workers) funnels through the same repositories, threading invalidation through that single chokepoint covers all of them — there are no special cases to audit per call-site.
+- **Read** — by the probe, to build its request.
+
+There is intentionally **no compute-on-the-fly and no migration path.** A missing or stale-version hash simply makes a project ineligible for the fast skip, so it syncs the normal way — which is already quick — and `FinalizeSync` writes a fresh hash on the way out. Every edge case collapses into this one self-healing path:
+
+- first run after the feature ships → no caches → today's behavior once, then cached,
+- new device / fresh install / restored backup → same,
+- `hashAlgoVersion` bump after the hasher changes → mismatched version treated as missing → one normal sync → re-cached at the new version.
+
+### Correctness
+
+The asymmetry of risk:
+
+- A **false mismatch** (hashes differ but nothing actually needs syncing) is harmless — it just runs a redundant full sync.
+- A **false match** (we skip a project that was actually divergent) does **not** lose data: skipping is a pure no-op on local and server state — nothing is deleted, overwritten, or cleared, `lastSync` does not advance, and the dirty list (with its pre-edit `originalHash`) survives, so the eventual sync still detects conflicts correctly. The only cost is that client and server **stay divergent longer than they should**, and the UI may show `Complete` prematurely.
+
+The journal backstop makes even that impossible in correct operation. A stale cache can only arise from a mutation that failed to clear it — but the *same* mutation also writes the dirty list. So:
+
+> stale cache ⟺ a mutation occurred ⟺ the journal has pending work ⟹ the project is force-synced.
+
+Therefore the rule: **never skip a project whose journal shows pending work (`dirty` / `newIds` / `deletedIds`), regardless of its cached hash.** The only way to defeat this is a write path that updates *neither* the cache *nor* the dirty list — which would already be breaking conflict detection in today's protocol, independent of this optimization. So the probe introduces no new divergence risk beyond what the dirty list already guards.
+
+Because of that, `cachedProjectHash != null` together with a non-empty journal is an **invariant violation**, not a normal state. When the backstop sees it, it forces the sync *and* logs an error so the latent bug is attributable:
+
+> `Cache/journal inconsistency for project '{name}': cached hash present despite pending journal work. A write path likely bypassed the dirty-tracking hook. Forcing full sync.`
+
+### Per-Project Skip Decision
+
+```mermaid
+flowchart TD
+    A[Project from reconciled list] --> B{serverProjectId<br/>and cached hash?}
+    B -- no --> S[Full sync today's way]
+    B -- yes --> C{Journal has<br/>pending work?}
+    C -- yes --> L[Log invariant violation] --> S
+    C -- no --> D[Include in probe request]
+    D --> E{Server says<br/>unchanged?}
+    E -- yes --> K[Mark Complete, skip]
+    E -- no --> S
+```
+
+---
+
 ## Project Sync Protocol
 
 ## Goal
