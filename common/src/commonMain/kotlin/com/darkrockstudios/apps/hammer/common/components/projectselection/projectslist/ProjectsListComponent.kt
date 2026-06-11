@@ -457,20 +457,32 @@ class ProjectsListComponent(
 					projects = projectsRepository.getProjects()
 					syncNewProjectStatus(projects)
 
-					// Filter to only sync projects that have a serverProjectId assigned
-					val projectsToSync = projects.filter { projectDef ->
+					// Only sync projects that have a serverProjectId assigned
+					val projectsToSync = projects.mapNotNull { projectDef ->
 						val metadata = projectMetadataDatasource.loadMetadata(projectDef)
-						val hasServerId = metadata.info.serverProjectId != null
-						if (!hasServerId) {
+						val serverProjectId = metadata.info.serverProjectId
+						if (serverProjectId == null) {
 							Napier.w { "Skipping project sync for '${projectDef.name}' - no server project ID yet" }
 							syncProgressStatus(projectDef.name, ProjectsList.Status.Pending)
+							null
+						} else {
+							SyncedProjectDefinition(projectDef, serverProjectId)
 						}
-						hasServerId
 					}
 
-					projectsToSync.parallelMap { projectDef ->
+					// Pre-sync change probe: skip projects the server confirms are unchanged.
+					val unchangedProjectIds = projectsSynchronizer.probeUnchangedProjects(projectsToSync)
+
+					projectsToSync.parallelMap { synced ->
+						val projectDef = synced.projectDef
 						newScope.launch {
 							try {
+								if (synced.projectId in unchangedProjectIds) {
+									onSyncLog(syncLogI("No changes — skipped", projectDef))
+									syncProgressStatus(projectDef.name, ProjectsList.Status.Complete)
+									return@launch
+								}
+
 								syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing)
 
 								suspend fun onProgress(progress: Float, message: SyncLogMessage?) {

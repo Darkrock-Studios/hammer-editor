@@ -40,8 +40,11 @@ class SyncJournal(
 		if (syncData.dirty.any { it.id == id }) return
 
 		val baseline = syncData.syncedHashes[id]
+		// Clearing the cached project hash in the same write keeps the invariant
+		// "cached hash present ⟹ no pending journal work" airtight (see SYNCING-PROTOCOL.md).
 		val newSyncData = syncData.copy(
-			dirty = syncData.dirty + EntityOriginalState(id, baseline)
+			dirty = syncData.dirty + EntityOriginalState(id, baseline),
+			cachedProjectHash = null,
 		)
 		datasource.saveSyncData(newSyncData)
 	}
@@ -65,7 +68,10 @@ class SyncJournal(
 		if (globalSettingsStore.isServerSynchronized().not()) return
 
 		val syncData = datasource.loadSyncData()
-		val newSyncData = syncData.copy(newIds = syncData.newIds + claimedId)
+		val newSyncData = syncData.copy(
+			newIds = syncData.newIds + claimedId,
+			cachedProjectHash = null,
+		)
 		datasource.saveSyncData(newSyncData)
 	}
 
@@ -77,9 +83,15 @@ class SyncJournal(
 		val newSyncData = if (withoutSyncedHash.newIds.contains(deletedId)) {
 			// Brand-new entity the server never saw: drop the claim so it can't
 			// become a phantom newId. Nothing to tell the server to delete.
-			withoutSyncedHash.copy(newIds = withoutSyncedHash.newIds - deletedId)
+			withoutSyncedHash.copy(
+				newIds = withoutSyncedHash.newIds - deletedId,
+				cachedProjectHash = null,
+			)
 		} else {
-			withoutSyncedHash.copy(deletedIds = withoutSyncedHash.deletedIds + deletedId)
+			withoutSyncedHash.copy(
+				deletedIds = withoutSyncedHash.deletedIds + deletedId,
+				cachedProjectHash = null,
+			)
 		}
 		datasource.saveSyncData(newSyncData)
 	}

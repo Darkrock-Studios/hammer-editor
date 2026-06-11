@@ -4,6 +4,8 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectDefinition
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
+import com.darkrockstudios.apps.hammer.base.http.ProjectHashItem
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -120,6 +122,59 @@ class ClientAccountSynchronizer(
 			}
 
 			false
+		}
+	}
+
+	/**
+	 * Pre-sync change probe. Reads each project's cached project-wide hash from its journal and asks
+	 * the server, in a single request, which of them still match. Returns the [ProjectId]s the caller
+	 * can skip syncing this session.
+	 *
+	 * A project is only probed when it is provably clean: it has a cached hash at the current algorithm
+	 * version and no pending journal work. A cached hash coexisting with pending work is an invariant
+	 * violation (a mutation that failed to clear the cache) — we log it and fall back to a full sync.
+	 * Any probe failure returns an empty set, so everything syncs the normal way.
+	 */
+	suspend fun probeUnchangedProjects(projects: List<SyncedProjectDefinition>): Set<ProjectId> {
+		val items = mutableListOf<ProjectHashItem>()
+		for (synced in projects) {
+			val syncData = loadProjectSyncData(synced.projectDef) ?: continue
+			if (syncData.hashAlgoVersion != ProjectContentHasher.ALGO_VERSION) continue
+			val cachedHash = syncData.cachedProjectHash ?: continue
+
+			val hasPendingWork = syncData.dirty.isNotEmpty() || syncData.newIds.isNotEmpty()
+			if (hasPendingWork) {
+				Napier.e(
+					"Cache/journal inconsistency for project '${synced.projectDef.name}': cached hash " +
+						"present despite pending journal work. A write path likely bypassed the " +
+						"dirty-tracking hook. Forcing full sync."
+				)
+				continue
+			}
+
+			items += ProjectHashItem(synced.projectId, cachedHash)
+		}
+
+		if (items.isEmpty()) return emptySet()
+
+		val result = serverProjectsApi.probeProjectChanges(items)
+		return if (result.isSuccess) {
+			result.getOrThrow().unchangedProjects
+		} else {
+			Napier.w("Sync probe failed; syncing all projects", result.exceptionOrNull())
+			emptySet()
+		}
+	}
+
+	// Corrupt or unreadable journal just makes the project ineligible for the probe (full sync).
+	@Suppress("SwallowedException")
+	private fun loadProjectSyncData(projectDef: ProjectDef): ProjectSynchronizationData? {
+		val path = projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME
+		if (!fileSystem.exists(path)) return null
+		return try {
+			fileSystem.read(path) { json.decodeFromString<ProjectSynchronizationData>(readUtf8()) }
+		} catch (e: SerializationException) {
+			null
 		}
 	}
 

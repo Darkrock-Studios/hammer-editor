@@ -5,6 +5,8 @@ import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
 import com.darkrockstudios.apps.hammer.base.http.CreateProjectResponse
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
+import com.darkrockstudios.apps.hammer.base.http.ProjectsSyncProbeRequest
+import com.darkrockstudios.apps.hammer.base.http.ProjectsSyncProbeResponse
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
 import com.darkrockstudios.apps.hammer.project.InvalidProjectName
@@ -16,6 +18,7 @@ import com.github.aymanizz.ktori18n.t
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.get
@@ -65,6 +68,7 @@ fun Route.projectsRoutes() {
 			deleteProject()
 			createProject()
 			renameProject()
+			syncProbe()
 		}
 	}
 }
@@ -98,6 +102,22 @@ private fun Route.beginProjectsSync() {
 				),
 			)
 		}
+	}
+}
+
+private fun Route.syncProbe() {
+	val projectsRepository: ProjectsRepository = get()
+
+	post("/sync_probe") {
+		val principal = call.principal<ServerUserIdPrincipal>()
+		if (principal == null) {
+			call.respond(HttpStatusCode.Unauthorized)
+			return@post
+		}
+
+		val request = call.receive<ProjectsSyncProbeRequest>()
+		val unchanged = projectsRepository.probeProjectChanges(principal.id, request.projects)
+		call.respond(ProjectsSyncProbeResponse(unchangedProjects = unchanged))
 	}
 }
 

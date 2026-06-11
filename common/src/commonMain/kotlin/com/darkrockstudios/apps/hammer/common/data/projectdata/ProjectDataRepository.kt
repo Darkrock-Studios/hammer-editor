@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer.common.data.projectdata
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
+import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +18,9 @@ class ProjectDataRepository(
 ) : ProjectScoped {
 
 	override val projectScope = ProjectDefScope(projectDef)
+
+	// Lazy to avoid eager construction of the sync journal for projects that never sync.
+	private val syncDataDatasource: SyncDataDatasource by projectInject()
 
 	private val mutex = Mutex()
 	private val _state = MutableStateFlow<StoredProjectData?>(null)
@@ -37,6 +42,8 @@ class ProjectDataRepository(
 		val next = current.copy(data = nextData)
 		datasource.save(next)
 		_state.value = next
+		// Project data is part of the project-wide hash; invalidate so the probe re-syncs it.
+		syncDataDatasource.invalidateProjectHash()
 	}
 
 	/**
