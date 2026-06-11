@@ -411,11 +411,21 @@ references to that ID in the process.
 **Conflicts**
 The same file that has been edited in different ways on different devices, must allow the user to resolve the conflict in order to bring them back into sync with each other.
 
-**Dirty Entity** When a client edits a local Entity, the client first hashes the existing,
-pre-edited content, and saves off the **Entity ID** and this pre-edit hash of the data to a "dirty
-list". If the client and server are in sync at the time of this edit, then the saved hash in the
-dirty list will match the hash of the server's copy of the Entity.
-At syncing time this allows us to detect conflicts. If another client edits the same entity, and
-syncs with the server first.
-Thus our local "dirty list" hash will not match the hash of the server side copy, and we'll know we
-have a conflict that needs resolving.
+**Dirty Entity** When a client edits a local Entity, it adds the **Entity ID** to a "dirty list"
+together with that Entity's **conflict baseline** — the hash the server last confirmed for it. At
+sync time the client sends this baseline as the upload's `original hash`; if another client edited
+the same Entity and synced first, the server's hash no longer matches the baseline and the conflict
+is detected.
+
+The baseline is the hash recorded the last time the client and server agreed on the Entity (on a
+successful upload or download), **not** a hash re-derived from the current local content at edit
+time. Re-deriving it is unsafe: an Entity's hash includes fields such as `lastEdited` that the
+autosave can stamp independently of a real content change, so a freshly computed baseline can
+disagree with the server even when nothing meaningful changed — forging a phantom conflict. This is
+the same locked-baseline scheme `project_data` uses with its `lastSyncedHash`.
+
+A baseline exists for every Entity the client and server have agreed on, set on each successful
+transfer. If a baseline is absent the server cannot conflict-check and accepts the upload, so a
+project whose sync data predates this scheme backfills a baseline for every in-sync Entity on its
+first sync (the local hash, which equals the server's for an agreed Entity) before any upload relies
+on it.
