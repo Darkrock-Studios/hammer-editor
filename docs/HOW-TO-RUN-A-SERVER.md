@@ -12,7 +12,7 @@ The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 	- [ZIP](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.zip)
 	- [TAR](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.tar)
 2. Extract the archive to your desired location
-3. Create your config file: `serverConfig.toml` in a location of your choice
+3. Create your config file: `serverConfig.toml` in a location of your choice. Strongly advise using a port other than `80`, unless this is the only web-based program running on the system.
 
    ```toml
    host = "example.com"
