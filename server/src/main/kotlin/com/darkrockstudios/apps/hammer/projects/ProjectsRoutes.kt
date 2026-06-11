@@ -118,11 +118,9 @@ private fun Route.syncProbe() {
 
 		// A malformed body is a routine client condition, not a server error: answer 400 rather than
 		// letting it fall through to the global handler as a 500 (and a recorded monitored error).
+		// ContentNegotiation wraps any body-conversion failure in BadRequestException.
 		val request = try {
 			call.receive<ProjectsSyncProbeRequest>()
-		} catch (e: ContentTransformationException) {
-			call.respondBadRequest(ERROR_GENERIC, e.message ?: "Malformed request body")
-			return@post
 		} catch (e: BadRequestException) {
 			call.respondBadRequest(ERROR_GENERIC, e.message ?: "Malformed request body")
 			return@post
