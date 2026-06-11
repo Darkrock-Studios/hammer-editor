@@ -14,7 +14,12 @@ actual val externalFileIoModule = module {
 
 private class IosExternalFileIo : ExternalFileIo {
 	override fun readExternalFile(path: String): ByteArray {
-		val data = NSData.dataWithContentsOfFile(path)
+		val url = if (path.startsWith("file://")) {
+			NSURL.URLWithString(path)
+		} else {
+			NSURL.fileURLWithPath(path)
+		} ?: error("Failed to parse external file path: $path")
+		val data = NSData.dataWithContentsOfURL(url)
 			?: error("Failed to read external file: $path")
 		return data.toByteArray()
 	}
