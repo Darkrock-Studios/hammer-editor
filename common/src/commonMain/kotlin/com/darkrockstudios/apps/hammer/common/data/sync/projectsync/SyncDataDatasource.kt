@@ -59,6 +59,17 @@ class SyncDataDatasource(
 		}
 	}
 
+	/**
+	 * Clears the cached project-wide hash so the next pre-sync probe can't skip a project whose
+	 * content just changed. No-op when sync data doesn't exist yet or the hash is already cleared,
+	 * so it never creates a journal for a not-yet-synchronized project.
+	 */
+	suspend fun invalidateProjectHash() {
+		val current = loadSyncDataOrNull() ?: return
+		if (current.cachedProjectHash == null) return
+		saveSyncData(current.copy(cachedProjectHash = null))
+	}
+
 	suspend fun createSyncData(): ProjectSynchronizationData {
 		val lastId = idAllocator.peekLastId()
 

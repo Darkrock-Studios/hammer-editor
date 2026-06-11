@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import kotlinx.serialization.KSerializer
 
@@ -74,4 +75,10 @@ interface ProjectEntityDatasource {
 		projectDef: ProjectDefinition,
 		entityId: Int
 	): String?
+
+	/** All of a project's entity ids paired with their cached hashes, in one query, sorted by id. */
+	suspend fun getEntityHashes(
+		userId: Long,
+		projectDef: ProjectDefinition,
+	): List<EntityHash>
 }

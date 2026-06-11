@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.project
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.database.*
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -324,5 +325,13 @@ class ProjectEntityDatabaseDatasource(
 	): String? {
 		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
 		return storyEntityDao.getEntityHash(userId, projectId, entityId.toLong())
+	}
+
+	override suspend fun getEntityHashes(
+		userId: Long,
+		projectDef: ProjectDefinition,
+	): List<EntityHash> {
+		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
+		return storyEntityDao.getEntityHashes(userId, projectId)
 	}
 }

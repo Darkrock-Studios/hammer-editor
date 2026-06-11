@@ -6,6 +6,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FinalizeSyncOperation
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -39,6 +41,9 @@ class FinalizeSyncOperationTest : BaseTest() {
 
 	@MockK(relaxed = true)
 	private lateinit var syncDataDatasource: SyncDataDatasource
+
+	@MockK(relaxed = true)
+	private lateinit var projectDataDatasource: ProjectDataDatasource
 
 	private lateinit var strRes: TestStrRes
 
@@ -74,6 +79,7 @@ class FinalizeSyncOperationTest : BaseTest() {
 			clock = clock,
 			globalSettingsStore = globalSettingsStore,
 			syncDataDatasource = syncDataDatasource,
+			projectDataDatasource = projectDataDatasource,
 		)
 	}
 
@@ -90,7 +96,9 @@ class FinalizeSyncOperationTest : BaseTest() {
 		}
 		mockSynchronizers.synchronizers.forEach { synchronizer ->
 			coEvery { synchronizer.finalizeSync() } just Runs
+			coEvery { synchronizer.hashEntities(any()) } returns emptySet()
 		}
+		coEvery { projectDataDatasource.load() } returns StoredProjectData()
 
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val onLog = mockk<OnSyncLog>(relaxed = true)

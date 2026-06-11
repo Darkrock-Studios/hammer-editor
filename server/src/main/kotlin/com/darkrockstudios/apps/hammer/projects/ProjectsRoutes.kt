@@ -5,6 +5,8 @@ import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
 import com.darkrockstudios.apps.hammer.base.http.CreateProjectResponse
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
+import com.darkrockstudios.apps.hammer.base.http.ProjectsSyncProbeRequest
+import com.darkrockstudios.apps.hammer.base.http.ProjectsSyncProbeResponse
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
 import com.darkrockstudios.apps.hammer.project.InvalidProjectName
@@ -16,6 +18,8 @@ import com.github.aymanizz.ktori18n.t
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.plugins.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.get
@@ -65,6 +69,7 @@ fun Route.projectsRoutes() {
 			deleteProject()
 			createProject()
 			renameProject()
+			syncProbe()
 		}
 	}
 }
@@ -98,6 +103,31 @@ private fun Route.beginProjectsSync() {
 				),
 			)
 		}
+	}
+}
+
+private fun Route.syncProbe() {
+	val projectsRepository: ProjectsRepository = get()
+
+	post("/sync_probe") {
+		val principal = call.principal<ServerUserIdPrincipal>()
+		if (principal == null) {
+			call.respond(HttpStatusCode.Unauthorized)
+			return@post
+		}
+
+		// A malformed body is a routine client condition, not a server error: answer 400 rather than
+		// letting it fall through to the global handler as a 500 (and a recorded monitored error).
+		// ContentNegotiation wraps any body-conversion failure in BadRequestException.
+		val request = try {
+			call.receive<ProjectsSyncProbeRequest>()
+		} catch (e: BadRequestException) {
+			call.respondBadRequest(ERROR_GENERIC, e.message ?: "Malformed request body")
+			return@post
+		}
+
+		val unchanged = projectsRepository.probeProjectChanges(principal.id, request.projects)
+		call.respond(ProjectsSyncProbeResponse(unchangedProjects = unchanged))
 	}
 }
 

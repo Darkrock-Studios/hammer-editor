@@ -100,6 +100,72 @@ sequenceDiagram
 
 ---
 
+## Pre-Sync Change Probe
+
+Between Account Sync and Project Sync sits an optional optimization. Account Sync brings the *set* of projects into parity; the probe then asks, in a single batched request, *which* of those projects actually have content changes — so the client can skip the per-project sync for every project that has none.
+
+This matters because a full project sync costs ~4 round-trips (`begin_sync`, `project_data`, `writing_activity`, `end_sync`) even when nothing has changed, paid once per project on every app open. The probe collapses that to one request for the whole account.
+
+The probe keeps no required state of its own: a client or server that ignores it loses nothing but speed.
+
+### The Project-Wide Hash
+
+Each project gets a single **project-wide content hash** computed over the two data sources whose divergence is unacceptable:
+
+- all of the project's **entities** (the same per-entity hashes already produced for `ClientEntityState`), and
+- the **project-data blob** (author, theme, word-count goal — hashed via `ProjectDataHasher`).
+
+The aggregate is order-independent of enumeration: sort the entity `{id, hash}` pairs by id, fold `id:hash` pairs plus the project-data hash through the same MurmurHash3 used elsewhere. The function lives in the `base` module (alongside `EntityHasher` / `ProjectDataHasher`) so the **client and server run byte-identical code**.
+
+**Writing activity is deliberately excluded.** It is per-device, conflict-free, and the project's authoritative record is the *union* of every device's slot — so no single device ever holds the full set, and a symmetric content hash that included it would never match across devices. It is also explicitly auxiliary (its sync phase already swallows errors and retries next time), so a skipped opportunistic activity sync is consistent with the existing tolerance. The trade-off: a change that touches *only* another device's writing activity will not be detected by the probe, and is picked up on the next sync that runs for any other reason.
+
+### Symmetric Comparison
+
+The probe compares **the client's current hash against the server's current hash** — not "did the server change since I last synced." A local edit makes the client's hash differ; another device's push makes the server's hash differ; only when both currently agree is the project skipped. One comparison covers both directions, and the server recomputes its hash on demand from its stored state — no per-client bookkeeping, in keeping with the protocol's "no required book keeping data" principle.
+
+### Network Protocol
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+
+    Note over Client,Server: After Account Sync, before any Project Sync
+
+    Client->>Server: POST /api/projects/{userId}/sync_probe
+    activate Server
+    Note right of Client: ProjectsSyncProbeRequest<br/>[ { projectId, hash } ]
+    Note over Server: For each project, recompute the<br/>project-wide hash and compare
+    Server -->> Client: 200 OK
+    deactivate Server
+    activate Client
+    Note left of Server: ProjectsSyncProbeResponse<br/>{ unchangedProjects }
+
+    Note right of Client: Skip unchangedProjects;<br/>sync everything else as normal.
+    deactivate Client
+```
+
+- `POST /api/projects/{userId}/sync_probe` — read-only, no `syncId` required.
+- Request `ProjectsSyncProbeRequest { projects: List<ProjectHashItem> }`, where `ProjectHashItem { projectId, hash }`.
+- Response `ProjectsSyncProbeResponse { unchangedProjects: Set<ProjectId> }`.
+
+The server returns a project in `unchangedProjects` **only** when it is certain it is in sync — the project exists and its freshly recomputed hash matches. It omits anything it cannot certify, including any project with an **in-flight sync session** (whose stored hashes may be mid-update). A project the client never sends, or the server never returns, is simply synced the normal way.
+
+If the endpoint is unsupported (older server) or the request fails for any reason, the client silently falls back to a full per-project sync — no behavior change.
+
+### Correctness
+
+The risk is asymmetric:
+
+- A **false mismatch** — the hashes differ but nothing needed syncing — is harmless: just a redundant full sync.
+- A **false match** — skipping a project that was actually divergent — loses no data: skipping is a no-op on both sides, and the next sync still reconciles through the normal dirty/conflict machinery. The only cost is that the two stay divergent longer than they should.
+
+So the one rule the client must uphold is: **never skip a project that has un-synced local changes.** As long as a local change is recorded before a project could be reported unchanged, the probe can only ever *defer* a sync, never hide one — it adds no divergence risk beyond what the existing change tracking already guards.
+
+How the client decides a project is eligible — and how it caches its own project-wide hash to avoid re-hashing every entity on each open — is a client implementation detail, not part of the wire protocol.
+
+---
+
 ## Project Sync Protocol
 
 ## Goal

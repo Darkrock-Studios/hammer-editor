@@ -30,6 +30,14 @@ data class ProjectSynchronizationData(
 	// only on a successful transfer (to the hash of exactly what was sent), never re-derived from
 	// local state — so a field that mutates after a sync (e.g. `lastEdited`) can't taint it.
 	val syncedHashes: Map<Int, String> = emptyMap(),
+	/**
+	 * The project-wide content hash as of the last successful sync, read by the pre-sync change
+	 * probe to skip unchanged projects. Written only by FinalizeSyncOperation; cleared by any
+	 * content mutation (see SyncJournal). Null/absent means "recompute via a normal sync".
+	 */
+	val cachedProjectHash: String? = null,
+	/** [ProjectContentHasher.ALGO_VERSION] under which [cachedProjectHash] was computed. */
+	val hashAlgoVersion: Int = 0,
 )
 
 @Serializable
