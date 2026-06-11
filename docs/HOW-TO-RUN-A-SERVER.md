@@ -71,8 +71,9 @@ To rehearse the migration against a copy of production before flipping the live 
 Create a script to run the server: `run.sh`
 ```bash
 #!/bin/bash
-cd server
-./server --args="--config /some/path/serverConfig.toml"
+
+cd bin
+./server --config /[installation directory]/serverConfig.toml
 ```
 
 Make the script executable:
