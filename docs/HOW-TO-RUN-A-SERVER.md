@@ -166,6 +166,10 @@ Run the server:
 
 _This step is optional but strongly recommended._
 
+There are two methods this can be done by.
+ * One: Java SSL
+ * Two: Reverse Proxy (see Reverse Proxy Documentation)
+
 If you want to enable SSL (`https`), you'll first need to edit your server config file and add these lines:
 
 ```toml
@@ -318,3 +322,73 @@ connectSrc = ["https://gateway.umami.is"]
 The configuration is designed to grow: support for additional providers can be
 added under the `[analytics]` section in the future by selecting a different
 `type`.
+
+## Reverse Proxy using Nginx
+
+Instead of directly exposing Hammer's server to the network, it is good practice to put it behind a reverse proxy. This editor uses Nginx and therefore can document it for Nginx.
+
+### Changes to serverConfig
+
+Example port used. (If you're running multiple services on a webserver, you've probably already used 8080.)
+
+```toml
+port = 8200
+```
+
+Make sure to update your DNS with your desired URL to be able to use LetsEncrypt and the like.
+
+### Base Nginx Config
+
+Create your base file.
+
+`nano /etc/nginx/sites-available/hammer`
+
+```nginx
+server {
+        listen 80;
+        server_name hammer.example.com;
+
+        location / {
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+
+                proxy_pass http://localhost:8200;
+        }
+}
+```
+
+### HTTPS
+
+See LetsEncrypt or your favorite SSL provider for an SSL certificate. Once that is completed, install said new cert into your Nginx file. Be sure to set the proper path for your certificate fullchain and private key.
+
+```nginx
+server {
+	listen 443 ssl http2;
+	ssl_protocols TLSv1.2 TLSv1.3;
+	ssl_dhparam /etc/nginx/dhparams.pem;
+	ssl_ciphers TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+	ssl_session_cache shared:SSL:10m;
+	ssl_session_timeout 1d;
+	add_header X-Frame-Options "SAMEORIGIN" always;
+	add_header X-Content-Type-Options "nosniff" always;
+	add_header 'Referrer-Policy' 'same-origin';
+	ssl_certificate /etc/letsencrypt/live/hammer.example.com/fullchain;
+	ssl_certificate_key /etc/letsencrypt/live/hammer.example.com/key;
+
+	server_name hammer.example.com;
+
+	[...]
+}
+```
+
+### Test and Reload
+
+Make sure to test your configuration!
+
+```
+sudo nginx -t
+```
+
+As long as that doesn't throw any errors, you can restart nginx. You should now be able to access your Hammer server web page at your URL!
