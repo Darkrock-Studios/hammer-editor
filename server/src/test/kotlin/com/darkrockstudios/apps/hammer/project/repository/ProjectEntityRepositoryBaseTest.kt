@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.serialization.json.Json
@@ -59,6 +60,10 @@ abstract class ProjectEntityRepositoryBaseTest : BaseTest() {
 		projectEntityDatasource = mockk()
 
 		clientState = mockk()
+
+		// beginProjectSync inspects any existing session for the key, then reclaims it.
+		every { projectSessionManager.getActiveSyncSession(any()) } returns null
+		every { projectSessionManager.terminateSession(any()) } returns false
 
 		coEvery {
 			sceneSynchronizer.getUpdateSequence(

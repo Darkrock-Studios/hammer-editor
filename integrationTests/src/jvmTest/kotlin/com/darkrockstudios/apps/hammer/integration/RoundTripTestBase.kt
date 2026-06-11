@@ -39,6 +39,7 @@ import org.koin.test.KoinTest
 import org.koin.test.get
 import java.util.concurrent.Executors
 import kotlin.coroutines.CoroutineContext
+import kotlin.test.assertFalse
 import kotlin.uuid.Uuid
 
 /**
@@ -65,6 +66,7 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 
 	private var mainExecutor: java.util.concurrent.ExecutorService? = null
 	private val loadedClientModules = mutableListOf<Module>()
+	private val openClients = mutableListOf<HeadlessClient>()
 
 	@BeforeEach
 	override fun setup() {
@@ -109,6 +111,10 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 
 	@AfterEach
 	fun tearDownClient() {
+		// Close tracked clients before the modules unload, so a test that throws before its own
+		// cleanup can't leak its project scope into the next test.
+		openClients.forEach { runCatching { it.close() } }
+		openClients.clear()
 		try {
 			GlobalContext.getOrNull()?.let {
 				it.get<HttpClient>().close()
@@ -216,9 +222,12 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 			// and rejects the pre-seeded auth token).
 			single<FileSystem> { sharedFileSystem }
 
+			// FakeFileSystem is not thread-safe, so bind IO and Default to the same single-threaded
+			// dispatcher as Main: this serializes all client-side filesystem work and keeps
+			// concurrent opens from corrupting its open-file list.
 			single<CoroutineContext>(named(DISPATCHER_MAIN)) { mainDispatcher }
-			single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.IO }
-			single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { Dispatchers.Default }
+			single<CoroutineContext>(named(DISPATCHER_IO)) { mainDispatcher }
+			single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { mainDispatcher }
 		}
 
 		val clientModules = listOf(mainModule, testOverrides)
@@ -238,4 +247,24 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 		bearerToken = authToken.auth,
 		refreshToken = authToken.refresh,
 	)
+
+	/** Creates a client and registers it for teardown-close so it can't leak the project scope. */
+	protected suspend fun newClient(projectName: String): HeadlessClient =
+		HeadlessClient.create(projectName, makeServerSettings()).also { openClients += it }
+
+	/** The hash the server currently stores for an entity, or null if it holds none. */
+	protected fun serverEntityHash(projectName: String, entityId: Int): String? {
+		val projectId = serverNumericProjectIdFor(projectName) ?: return null
+		return database().serverDatabase.storyEntityQueries
+			.getEntityHash(userId = userId, projectId = projectId, id = entityId.toLong())
+			.executeAsOneOrNull()
+	}
+
+	/** Runs a sync that must not hit the conflict resolver; returns the sync's success flag. */
+	protected suspend fun HeadlessClient.syncNoConflict(): Boolean {
+		var conflicted = false
+		val ok = sync(resolveConflict = { entity -> conflicted = true; entity })
+		assertFalse(conflicted, "single-client resync raised a phantom conflict")
+		return ok
+	}
 }

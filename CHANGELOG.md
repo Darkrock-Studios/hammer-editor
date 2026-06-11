@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.2.1] - 2026-6-10
+
+- [Fix] several iOS crashes
+- [Fix] Sync error where scenes always conflicted with them selves
+- [Fix] Sync server now allows a client to reclaim it's token
+- [Improve] Desktop/iOS can now select their spell check language
+
+
 ## [3.2.0] - 2026-6-8
 
 - Added PDF export option

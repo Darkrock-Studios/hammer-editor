@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource.Companion.ENTRY_NAME_PATTERN
@@ -15,7 +14,6 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import korlibs.crypto.encoding.Base64
 import korlibs.io.async.launch
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
@@ -142,33 +140,8 @@ class EncyclopediaRepository(
 	}
 
 	private suspend fun markForSynchronization(entryDef: EntryDef) {
-		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(
-				entryDef.id
-			)
-		) {
-			val DEFAULT_EXTENSION = "jpg"
-			val entry = datasource.loadEntry(entryDef).entry
-			val image = if (datasource.hasEntryImage(entryDef, DEFAULT_EXTENSION)) {
-				val imageBytes = datasource.loadEntryImage(entryDef, DEFAULT_EXTENSION)
-				val imageBase64 = Base64.encode(imageBytes, url = true)
-
-				ApiProjectEntity.EncyclopediaEntryEntity.Image(
-					base64 = imageBase64,
-					fileExtension = DEFAULT_EXTENSION,
-				)
-			} else {
-				null
-			}
-			val hash = EntityHasher.hashEncyclopediaEntry(
-				id = entryDef.id,
-				name = entryDef.name,
-				entryType = entryDef.type.text,
-				text = entry.text,
-				tags = entry.tags,
-				image = image,
-				aliases = entry.aliases,
-			)
-			syncJournal.markEntityAsDirty(entryDef.id, hash)
+		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(entryDef.id)) {
+			syncJournal.markEntityAsDirty(entryDef.id)
 		}
 	}
 

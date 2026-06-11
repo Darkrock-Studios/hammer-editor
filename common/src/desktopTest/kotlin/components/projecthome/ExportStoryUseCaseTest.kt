@@ -103,6 +103,47 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	@Test
+	fun `docx export produces a valid zip file with PK magic bytes`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Test Author"))
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = ExportFormat.Docx, treatTopLevelAsChapters = true),
+		)
+
+		assertTrue(
+			exportPath.path.endsWith(".docx"),
+			"Should produce a .docx file, got $exportPath"
+		)
+		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
+		assertTrue(
+			bytes.size > 100,
+			"DOCX output should be more than a stub, got ${bytes.size} bytes"
+		)
+		// DOCX is a ZIP container; first two bytes are the local file header signature "PK".
+		assertEquals('P'.code.toByte(), bytes[0])
+		assertEquals('K'.code.toByte(), bytes[1])
+	}
+
+	@Test
+	fun `docx export still produces a valid file when treatTopLevelAsChapters is false`() =
+		runTest {
+			initRepo()
+
+			val exportPath = useCase().execute(
+				exportDir = projectPath,
+				options = ExportOptions(
+					format = ExportFormat.Docx,
+					treatTopLevelAsChapters = false
+				),
+			)
+
+			val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
+			assertTrue(bytes.size > 100, "Single-chapter DOCX should still produce a real file")
+		}
+
+	@Test
 	fun `pdf export still produces a valid file when treatTopLevelAsChapters is false`() = runTest {
 		initRepo()
 

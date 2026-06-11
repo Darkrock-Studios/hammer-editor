@@ -14,7 +14,12 @@ actual val externalFileIoModule = module {
 
 private class IosExternalFileIo : ExternalFileIo {
 	override fun readExternalFile(path: String): ByteArray {
-		val data = NSData.dataWithContentsOfFile(path)
+		val url = if (path.startsWith("file://")) {
+			NSURL.URLWithString(path)
+		} else {
+			NSURL.fileURLWithPath(path)
+		} ?: error("Failed to parse external file path: $path")
+		val data = NSData.dataWithContentsOfURL(url)
 			?: error("Failed to read external file: $path")
 		return data.toByteArray()
 	}
@@ -22,7 +27,14 @@ private class IosExternalFileIo : ExternalFileIo {
 	@OptIn(ExperimentalForeignApi::class, BetaInteropApi::class)
 	override fun writeExternalFile(path: String, content: ByteArray): Boolean = memScoped {
 		val data = content.toNSData()
-		val url = NSURL.fileURLWithPath(path)
+		val url = if (path.startsWith("file://")) {
+			NSURL.URLWithString(path)
+		} else {
+			NSURL.fileURLWithPath(path)
+		} ?: run {
+			Napier.e("Failed to parse external file path: $path")
+			return@memScoped false
+		}
 		val errorVar = alloc<ObjCObjectVar<NSError?>>()
 		val ok = data.writeToURL(url, options = NSDataWritingAtomic, error = errorVar.ptr)
 		if (!ok) {

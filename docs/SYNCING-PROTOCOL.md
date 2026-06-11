@@ -100,6 +100,72 @@ sequenceDiagram
 
 ---
 
+## Pre-Sync Change Probe
+
+Between Account Sync and Project Sync sits an optional optimization. Account Sync brings the *set* of projects into parity; the probe then asks, in a single batched request, *which* of those projects actually have content changes — so the client can skip the per-project sync for every project that has none.
+
+This matters because a full project sync costs ~4 round-trips (`begin_sync`, `project_data`, `writing_activity`, `end_sync`) even when nothing has changed, paid once per project on every app open. The probe collapses that to one request for the whole account.
+
+The probe keeps no required state of its own: a client or server that ignores it loses nothing but speed.
+
+### The Project-Wide Hash
+
+Each project gets a single **project-wide content hash** computed over the two data sources whose divergence is unacceptable:
+
+- all of the project's **entities** (the same per-entity hashes already produced for `ClientEntityState`), and
+- the **project-data blob** (author, theme, word-count goal — hashed via `ProjectDataHasher`).
+
+The aggregate is order-independent of enumeration: sort the entity `{id, hash}` pairs by id, fold `id:hash` pairs plus the project-data hash through the same MurmurHash3 used elsewhere. The function lives in the `base` module (alongside `EntityHasher` / `ProjectDataHasher`) so the **client and server run byte-identical code**.
+
+**Writing activity is deliberately excluded.** It is per-device, conflict-free, and the project's authoritative record is the *union* of every device's slot — so no single device ever holds the full set, and a symmetric content hash that included it would never match across devices. It is also explicitly auxiliary (its sync phase already swallows errors and retries next time), so a skipped opportunistic activity sync is consistent with the existing tolerance. The trade-off: a change that touches *only* another device's writing activity will not be detected by the probe, and is picked up on the next sync that runs for any other reason.
+
+### Symmetric Comparison
+
+The probe compares **the client's current hash against the server's current hash** — not "did the server change since I last synced." A local edit makes the client's hash differ; another device's push makes the server's hash differ; only when both currently agree is the project skipped. One comparison covers both directions, and the server recomputes its hash on demand from its stored state — no per-client bookkeeping, in keeping with the protocol's "no required book keeping data" principle.
+
+### Network Protocol
+
+```mermaid
+sequenceDiagram
+    participant Client
+    participant Server
+
+    Note over Client,Server: After Account Sync, before any Project Sync
+
+    Client->>Server: POST /api/projects/{userId}/sync_probe
+    activate Server
+    Note right of Client: ProjectsSyncProbeRequest<br/>[ { projectId, hash } ]
+    Note over Server: For each project, recompute the<br/>project-wide hash and compare
+    Server -->> Client: 200 OK
+    deactivate Server
+    activate Client
+    Note left of Server: ProjectsSyncProbeResponse<br/>{ unchangedProjects }
+
+    Note right of Client: Skip unchangedProjects;<br/>sync everything else as normal.
+    deactivate Client
+```
+
+- `POST /api/projects/{userId}/sync_probe` — read-only, no `syncId` required.
+- Request `ProjectsSyncProbeRequest { projects: List<ProjectHashItem> }`, where `ProjectHashItem { projectId, hash }`.
+- Response `ProjectsSyncProbeResponse { unchangedProjects: Set<ProjectId> }`.
+
+The server returns a project in `unchangedProjects` **only** when it is certain it is in sync — the project exists and its freshly recomputed hash matches. It omits anything it cannot certify, including any project with an **in-flight sync session** (whose stored hashes may be mid-update). A project the client never sends, or the server never returns, is simply synced the normal way.
+
+If the endpoint is unsupported (older server) or the request fails for any reason, the client silently falls back to a full per-project sync — no behavior change.
+
+### Correctness
+
+The risk is asymmetric:
+
+- A **false mismatch** — the hashes differ but nothing needed syncing — is harmless: just a redundant full sync.
+- A **false match** — skipping a project that was actually divergent — loses no data: skipping is a no-op on both sides, and the next sync still reconciles through the normal dirty/conflict machinery. The only cost is that the two stay divergent longer than they should.
+
+So the one rule the client must uphold is: **never skip a project that has un-synced local changes.** As long as a local change is recorded before a project could be reported unchanged, the probe can only ever *defer* a sync, never hide one — it adds no divergence risk beyond what the existing change tracking already guards.
+
+How the client decides a project is eligible — and how it caches its own project-wide hash to avoid re-hashing every entity on each open — is a client implementation detail, not part of the wire protocol.
+
+---
+
 ## Project Sync Protocol
 
 ## Goal
@@ -121,6 +187,18 @@ This is largely a client driven synchronization process.
 The client calls `begin_sync` to get a valid `syncID`. This `syncID` is provided to all subsequent calls, and is terminated with a call to `end_sync`.
 
 There can be only one valid `syncID` per project at any given time. This prevents race conditions with two clients syncing the same project at the same time.
+
+#### Reclaiming a session (same install only)
+
+A stale session would otherwise lock a user out of their own project until it expires — for example when a prior sync's `end_sync` never reached the server (the client was cancelled mid-sync, lost auth, or dropped its connection). To avoid this, `begin_sync` may **reclaim** an existing project session, but only when the request comes from the **same install** that owns it.
+
+The install is identified server-side from the authenticated bearer token (never a client-supplied value), so it cannot be spoofed. The rules are:
+
+- **Same install** as the active session → the old session is terminated and a fresh `syncID` is issued. The previous `syncID` immediately becomes invalid.
+- **Different install**, session still active → `400 Bad Request`; the original session keeps its claim, preserving the cross-device race protection above.
+- **Expired session** (any install) → treated as gone and reclaimable by anyone.
+
+The client also fires `end_sync` even when its sync is cancelled, so sessions are normally released cleanly; reclaim is the safety net for the cases where that request can't be delivered.
 
 You may however have `syncID`s for multiple different projects simultaneously.
 
@@ -411,11 +489,21 @@ references to that ID in the process.
 **Conflicts**
 The same file that has been edited in different ways on different devices, must allow the user to resolve the conflict in order to bring them back into sync with each other.
 
-**Dirty Entity** When a client edits a local Entity, the client first hashes the existing,
-pre-edited content, and saves off the **Entity ID** and this pre-edit hash of the data to a "dirty
-list". If the client and server are in sync at the time of this edit, then the saved hash in the
-dirty list will match the hash of the server's copy of the Entity.
-At syncing time this allows us to detect conflicts. If another client edits the same entity, and
-syncs with the server first.
-Thus our local "dirty list" hash will not match the hash of the server side copy, and we'll know we
-have a conflict that needs resolving.
+**Dirty Entity** When a client edits a local Entity, it adds the **Entity ID** to a "dirty list"
+together with that Entity's **conflict baseline** — the hash the server last confirmed for it. At
+sync time the client sends this baseline as the upload's `original hash`; if another client edited
+the same Entity and synced first, the server's hash no longer matches the baseline and the conflict
+is detected.
+
+The baseline is the hash recorded the last time the client and server agreed on the Entity (on a
+successful upload or download), **not** a hash re-derived from the current local content at edit
+time. Re-deriving it is unsafe: an Entity's hash includes fields such as `lastEdited` that the
+autosave can stamp independently of a real content change, so a freshly computed baseline can
+disagree with the server even when nothing meaningful changed — forging a phantom conflict. This is
+the same locked-baseline scheme `project_data` uses with its `lastSyncedHash`.
+
+A baseline exists for every Entity the client and server have agreed on, set on each successful
+transfer. If a baseline is absent the server cannot conflict-check and accepts the upload, so a
+project whose sync data predates this scheme backfills a baseline for every in-sync Entity on its
+first sync (the local hash, which equals the server's for an agreed Entity) before any upload relies
+on it.

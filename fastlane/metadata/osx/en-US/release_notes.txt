@@ -1,8 +1,4 @@
-- Added PDF export option
-- Re-enabled public-storage of projects on F-Droid builds
-- Improved text input: Dead Key keyboards now supported on desktop
-- Server admin panel now includes a monitoring dashboard
-- Fixed notifications/toasts not appearing on Android
-- Fixed a crash when opening projects with older saved data
-- Refactored Domain layer to improve testability
-- Performance improvements for the Scene Tree
+- [Fix] several iOS crashes
+- [Fix] Sync error where scenes always conflicted with them selves
+- [Fix] Sync server now allows a client to reclaim it's token
+- [Improve] Desktop/iOS can now select their spell check language

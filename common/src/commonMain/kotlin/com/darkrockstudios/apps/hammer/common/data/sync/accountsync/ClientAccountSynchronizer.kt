@@ -4,10 +4,15 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectDefinition
 import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
+import com.darkrockstudios.apps.hammer.base.http.ProjectHashItem
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -18,9 +23,14 @@ import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
 import io.ktor.http.*
 import korlibs.io.lang.InvalidArgumentException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.IO
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path
 import kotlin.coroutines.cancellation.CancellationException
@@ -33,6 +43,7 @@ class ClientAccountSynchronizer(
 	private val serverProjectsApi: ServerProjectsApi,
 	private val networkConnectivity: NetworkConnectivity,
 	private val json: Json,
+	private val toml: Toml,
 	private val strRes: StrRes,
 ) {
 	var initialSync = false
@@ -99,12 +110,18 @@ class ClientAccountSynchronizer(
 			}
 		} catch (e: CancellationException) {
 			Napier.i("Projects sync canceled: ${e.message}")
+
+			// End the session even while cancelling, or it leaks server-side and blocks the
+			// next begin until it expires.
+			syncId?.let {
+				withContext(NonCancellable) { serverProjectsApi.endProjectsSync(it) }
+			}
 			throw e
 		} catch (e: Exception) {
 			Napier.e("Projects sync failed", e)
 
 			syncId?.let {
-				serverProjectsApi.endProjectsSync(syncId)
+				withContext(NonCancellable) { serverProjectsApi.endProjectsSync(it) }
 			}
 
 			if (e.isAuthenticationFailure()) {
@@ -114,6 +131,92 @@ class ClientAccountSynchronizer(
 			false
 		}
 	}
+
+	/**
+	 * Pre-sync change probe. Reads each project's cached project-wide hash from its journal and asks
+	 * the server, in a single request, which of them still match. Returns the [ProjectId]s the caller
+	 * can skip syncing this session.
+	 *
+	 * A project is only probed when it is provably clean: it has a cached hash at the current algorithm
+	 * version and no pending local work — neither pending entity work (`dirty`/`newIds`) nor an
+	 * unsynced project-data edit. (`deletedIds` is deliberately excluded: it is a persistent tombstone
+	 * set, not pending work — matching [SyncJournal.needsSync] — and deletions are already caught by
+	 * the project-wide hash itself.) A cached hash coexisting with pending work is an invariant
+	 * violation (a mutation that failed to clear the cache) — we log it and fall back to a full sync.
+	 *
+	 * The whole probe is best-effort: any failure (an unreadable journal, an I/O error, a probe call
+	 * that fails) degrades to an empty set so everything syncs the normal way. It must never turn a
+	 * recoverable per-project issue into a failure of the surrounding account sync.
+	 */
+	@Suppress("TooGenericExceptionCaught")
+	suspend fun probeUnchangedProjects(projects: List<SyncedProjectDefinition>): Set<ProjectId> {
+		return try {
+			val items = mutableListOf<ProjectHashItem>()
+			for (synced in projects) {
+				val syncData = loadProjectSyncData(synced.projectDef) ?: continue
+				if (syncData.hashAlgoVersion != ProjectContentHasher.ALGO_VERSION) continue
+				val cachedHash = syncData.cachedProjectHash ?: continue
+
+				val entityWorkPending = syncData.dirty.isNotEmpty() || syncData.newIds.isNotEmpty()
+				val projectDataDirty = isProjectDataDirty(synced.projectDef)
+				if (entityWorkPending || projectDataDirty) {
+					val kind = if (projectDataDirty) "project-data" else "journal"
+					Napier.e(
+						"Cache/journal inconsistency for project '${synced.projectDef.name}': cached hash " +
+							"present despite pending $kind work. A write path likely bypassed the " +
+							"invalidation hook. Forcing full sync."
+					)
+					continue
+				}
+
+				items += ProjectHashItem(synced.projectId, cachedHash)
+			}
+
+			if (items.isEmpty()) return emptySet()
+
+			val result = serverProjectsApi.probeProjectChanges(items)
+			if (result.isSuccess) {
+				result.getOrThrow().unchangedProjects
+			} else {
+				Napier.w("Sync probe failed; syncing all projects", result.exceptionOrNull())
+				emptySet()
+			}
+		} catch (e: CancellationException) {
+			throw e
+		} catch (e: Exception) {
+			Napier.w("Sync probe failed; syncing all projects", e)
+			emptySet()
+		}
+	}
+
+	/**
+	 * True when the project's local project-data blob differs from the hash the server last confirmed.
+	 * Project-data edits don't touch the entity journal, so this is their backstop: it catches a stale
+	 * cached hash even if [ProjectDataRepository.updateData]'s invalidation was missed. A never-synced
+	 * project (null `lastSyncedHash`) baselines against the default-data hash, which is what the server
+	 * holds for it too.
+	 */
+	private suspend fun isProjectDataDirty(projectDef: ProjectDef): Boolean {
+		val stored = loadStoredProjectData(projectDef, fileSystem, toml)
+		val currentHash = ProjectDataHasher.hash(stored.data)
+		val baseline = stored.lastSyncedHash ?: ProjectDataHasher.hash(ProjectData())
+		return currentHash != baseline
+	}
+
+	// Reads a project's sync journal off the IO dispatcher without opening a project scope. Any read
+	// or parse failure just makes the project ineligible for the probe (it full-syncs) — never throws.
+	@Suppress("TooGenericExceptionCaught", "SwallowedException")
+	private suspend fun loadProjectSyncData(projectDef: ProjectDef): ProjectSynchronizationData? =
+		withContext(Dispatchers.IO) {
+			val path = projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME
+			if (!fileSystem.exists(path)) return@withContext null
+			try {
+				fileSystem.read(path) { json.decodeFromString<ProjectSynchronizationData>(readUtf8()) }
+			} catch (e: Exception) {
+				Napier.d("Unreadable sync journal for '${projectDef.name}', will full-sync: ${e.message}")
+				null
+			}
+		}
 
 	private fun processProjectSyncData(
 		serverSyncData: BeginProjectsSyncResponse,

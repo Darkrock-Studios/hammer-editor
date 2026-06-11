@@ -11,6 +11,7 @@ import io.ktor.http.*
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
 class ProjectSyncTest : ProjectSyncTestBase() {
@@ -315,7 +316,7 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 	}
 
 	@Test
-	fun `Client tries to begin sync while another sync is in progress`(): Unit = runBlocking {
+	fun `Beginning sync again reclaims the same user's existing session`(): Unit = runBlocking {
 		val database = database()
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
 		TestDataSet1.createFullDataset(database, encryptor())
@@ -331,21 +332,68 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 		client().apply {
 			val synchronizationBegan1 = projectSynchronizationBegan(userId, authToken, state)
 
-			val synchronizationBegan2Response =
-				projectSynchronizationBeganRequest(userId, authToken, state)
-			assertEquals(HttpStatusCode.BadRequest, synchronizationBegan2Response.status)
+			// A leaked/stale session must not lock the owner out: beginning again succeeds and
+			// reclaims the session with a fresh sync ID.
+			val synchronizationBegan2 = projectSynchronizationBegan(userId, authToken, state)
+			assertNotEquals(synchronizationBegan1.syncId, synchronizationBegan2.syncId)
 
-			// Check that the original sync ID is still valid
-			val downloadResponse: ApiProjectEntity.SceneEntity = downloadEntity(
+			// The reclaimed (old) sync ID is no longer valid.
+			val staleDownloadResponse = downloadEntityRequest(
 				userId,
 				authToken,
 				synchronizationBegan1.syncId,
 				checkEntityId,
 				null,
 			)
+			assertNotEquals(HttpStatusCode.OK, staleDownloadResponse.status)
+
+			// The new session works.
+			val downloadResponse: ApiProjectEntity.SceneEntity = downloadEntity(
+				userId,
+				authToken,
+				synchronizationBegan2.syncId,
+				checkEntityId,
+				null,
+			)
 			assertEquals(checkEntityId, downloadResponse.id)
 
-			endSyncRequest(userId, authToken, synchronizationBegan1)
+			endSyncRequest(userId, authToken, synchronizationBegan2)
+		}
+	}
+
+	@Test
+	fun `Begin sync from a different install is rejected while a session is active`(): Unit = runBlocking {
+		val database = database()
+		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		TestDataSet1.createFullDataset(database, encryptor())
+		val userId = 1L
+		val checkEntityId = 1
+		val authTokenA = createAuthToken(userId, "install-a", database = database, tokenHasher = tokenHasher())
+		val authTokenB = createAuthToken(userId, "install-b", database = database, tokenHasher = tokenHasher())
+		doStartServer()
+
+		val state = ClientEntityState(
+			entities = emptySet()
+		)
+
+		client().apply {
+			val began = projectSynchronizationBegan(userId, authTokenA, state)
+
+			// A different install must not steal an active session.
+			val otherInstallResponse = projectSynchronizationBeganRequest(userId, authTokenB, state)
+			assertEquals(HttpStatusCode.BadRequest, otherInstallResponse.status)
+
+			// The original install's session is untouched and still usable.
+			val download: ApiProjectEntity.SceneEntity = downloadEntity(
+				userId,
+				authTokenA,
+				began.syncId,
+				checkEntityId,
+				null,
+			)
+			assertEquals(checkEntityId, download.id)
+
+			endSyncRequest(userId, authTokenA, began)
 		}
 	}
 }

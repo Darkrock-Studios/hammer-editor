@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.database
 
 import com.darkrockstudios.apps.hammer.Story_entity
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.project.EntityDefinition
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
@@ -184,5 +185,12 @@ class StoryEntityDao(
 		withContext(ioDispatcher) {
 			queries.getEntityHash(userId = userId, projectId = projectId, id = id)
 				.executeAsOneOrNull()
+		}
+
+	suspend fun getEntityHashes(userId: Long, projectId: Long): List<EntityHash> =
+		withContext(ioDispatcher) {
+			queries.getEntityHashes(userId = userId, projectId = projectId).executeAsList().map {
+				EntityHash(id = it.id.toInt(), hash = it.hash)
+			}
 		}
 }

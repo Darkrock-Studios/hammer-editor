@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.data.notesrepository
 
-import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
@@ -79,20 +78,9 @@ class NotesRepository(
 		_notesListFlow.emit(notes)
 	}
 
-	private suspend fun markForSync(id: Int, originalHash: String? = null) {
+	private suspend fun markForSync(id: Int) {
 		if (syncJournal.isServerSynchronized() && !syncJournal.isEntityDirty(id)) {
-			val hash = if (originalHash != null) {
-				originalHash
-			} else {
-				val noteContainer = _notes.first { it.note.id == id }
-				EntityHasher.hashNote(
-					id = noteContainer.note.id,
-					created = noteContainer.note.created,
-					content = noteContainer.note.content,
-					tags = noteContainer.note.tags,
-				)
-			}
-			syncJournal.markEntityAsDirty(id, hash)
+			syncJournal.markEntityAsDirty(id)
 		}
 	}
 
@@ -116,10 +104,7 @@ class NotesRepository(
 
 			notesDatasource.storeNote(newNote)
 
-			markForSync(
-				id = newId,
-				originalHash = ""
-			)
+			markForSync(id = newId)
 
 			_noteContentChangedFlow.emit(Unit)
 			CResult.success(newNote.note)

@@ -28,12 +28,34 @@ class SyncJournal(
 		return syncData.dirty.any { it.id == id }
 	}
 
-	suspend fun markEntityAsDirty(id: Int, oldHash: String) {
+	/**
+	 * Flags an entity as changed since the last sync. The conflict baseline is the hash the server
+	 * last confirmed ([ProjectSynchronizationData.syncedHashes]), not a hash re-derived from the
+	 * current (already-edited) local state — re-deriving it would let `lastEdited` taint the baseline.
+	 */
+	suspend fun markEntityAsDirty(id: Int) {
+		if (globalSettingsStore.isServerSynchronized().not()) return
+
+		val syncData = datasource.loadSyncData()
+		if (syncData.dirty.any { it.id == id }) return
+
+		val baseline = syncData.syncedHashes[id]
+		saveInvalidatingProjectHash(
+			syncData.copy(dirty = syncData.dirty + EntityOriginalState(id, baseline))
+		)
+	}
+
+	/**
+	 * Records the hash the server now holds for an entity, captured at the moment of a successful
+	 * transfer (the exact bytes uploaded or downloaded). This is the only place the conflict
+	 * baseline is ever set.
+	 */
+	suspend fun recordSyncedHash(id: Int, hash: String) {
 		if (globalSettingsStore.isServerSynchronized().not()) return
 
 		val syncData = datasource.loadSyncData()
 		val newSyncData = syncData.copy(
-			dirty = syncData.dirty + EntityOriginalState(id, oldHash)
+			syncedHashes = syncData.syncedHashes + (id to hash)
 		)
 		datasource.saveSyncData(newSyncData)
 	}
@@ -42,22 +64,33 @@ class SyncJournal(
 		if (globalSettingsStore.isServerSynchronized().not()) return
 
 		val syncData = datasource.loadSyncData()
-		val newSyncData = syncData.copy(newIds = syncData.newIds + claimedId)
-		datasource.saveSyncData(newSyncData)
+		saveInvalidatingProjectHash(syncData.copy(newIds = syncData.newIds + claimedId))
 	}
 
 	suspend fun recordIdDeletion(deletedId: Int) {
 		if (globalSettingsStore.isServerSynchronized().not()) return
 
 		val syncData = datasource.loadSyncData()
-		val newSyncData = if (syncData.newIds.contains(deletedId)) {
+		val withoutSyncedHash = syncData.copy(syncedHashes = syncData.syncedHashes - deletedId)
+		val newSyncData = if (withoutSyncedHash.newIds.contains(deletedId)) {
 			// Brand-new entity the server never saw: drop the claim so it can't
 			// become a phantom newId. Nothing to tell the server to delete.
-			syncData.copy(newIds = syncData.newIds - deletedId)
+			withoutSyncedHash.copy(newIds = withoutSyncedHash.newIds - deletedId)
 		} else {
-			syncData.copy(deletedIds = syncData.deletedIds + deletedId)
+			withoutSyncedHash.copy(deletedIds = withoutSyncedHash.deletedIds + deletedId)
 		}
-		datasource.saveSyncData(newSyncData)
+		saveInvalidatingProjectHash(newSyncData)
+	}
+
+	/**
+	 * Single chokepoint for content mutations: persists [data] with the cached project-wide hash
+	 * cleared in the same write. This keeps the invariant "cached hash present ⟹ no pending local
+	 * work" airtight (see SYNCING-PROTOCOL.md) so a new mutation path can't silently leave the probe
+	 * able to skip a project that actually changed. Sync-internal writes that must preserve the cache
+	 * (e.g. [recordSyncedHash], FinalizeSync) go through [datasource] directly instead.
+	 */
+	private fun saveInvalidatingProjectHash(data: ProjectSynchronizationData) {
+		datasource.saveSyncData(data.copy(cachedProjectHash = null))
 	}
 
 	fun isServerSynchronized(): Boolean {

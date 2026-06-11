@@ -8,8 +8,10 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
 import com.darkrockstudios.apps.hammer.project_home_action_export_toast_success
-import io.github.vinceglb.filekit.absolutePath
 import io.github.vinceglb.filekit.dialogs.compose.rememberDirectoryPickerLauncher
+import io.github.vinceglb.filekit.path
+import io.github.vinceglb.filekit.startAccessingSecurityScopedResource
+import io.github.vinceglb.filekit.stopAccessingSecurityScopedResource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -26,8 +28,16 @@ actual fun ExportDirectoryPicker(
 		if (directory != null) {
 			val options = state.exportOptions
 			scope.launch(defaultDispatcher) {
-				component.exportProject(directory.absolutePath(), options)
-				component.showToast(Res.string.project_home_action_export_toast_success)
+				// FileKit's absolutePath() returns nsUrl.absoluteString (with "file://" scheme), which okio's
+				// posix sink can't open — use .path for the bare filesystem path. UIDocumentPicker URLs are
+				// security-scoped, so writes outside the sandbox require start/stopAccessingSecurityScopedResource.
+				val accessGranted = directory.startAccessingSecurityScopedResource()
+				try {
+					component.exportProject(directory.path, options)
+					component.showToast(Res.string.project_home_action_export_toast_success)
+				} finally {
+					if (accessGranted) directory.stopAccessingSecurityScopedResource()
+				}
 			}
 		} else {
 			component.endProjectExport()
