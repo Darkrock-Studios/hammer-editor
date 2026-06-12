@@ -417,4 +417,16 @@ class SceneDraftRepositoryTest : BaseTest() {
 		val newFraftFile = datasource.getDraftPath(newDraftDef).toOkioPath()
 		assertTrue(ffs.exists(newFraftFile))
 	}
+
+	@Test
+	fun `ReId Scene with no drafts does not throw`() = runTest {
+		createProject(ffs, PROJECT_2_NAME)
+		val sceneIdWithoutDrafts = 7
+
+		val repo = createRepository()
+
+		repo.reIdScene(oldId = sceneIdWithoutDrafts, newId = 15)
+
+		assertEquals(0, repo.findDrafts(15).size)
+	}
 }
