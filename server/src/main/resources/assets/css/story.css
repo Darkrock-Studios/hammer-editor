@@ -1439,7 +1439,7 @@
 
 .dialog--review {
 	max-width: 540px;
-	width: 100%;
+	width: 92%;
 	max-height: calc(100vh - 48px);
 	display: flex;
 	flex-direction: column;
