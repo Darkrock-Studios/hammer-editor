@@ -12,6 +12,8 @@ import com.darkrockstudios.apps.hammer.Password_reset_token
 import com.darkrockstudios.apps.hammer.Project
 import com.darkrockstudios.apps.hammer.Project_access
 import com.darkrockstudios.apps.hammer.Project_data
+import com.darkrockstudios.apps.hammer.Review_request
+import com.darkrockstudios.apps.hammer.Review_suggestion
 import com.darkrockstudios.apps.hammer.White_list
 
 /**
@@ -65,6 +67,18 @@ fun buildServerDatabase(driver: SqlDriver): ServerDatabase {
 		),
 		login_attemptAdapter = Login_attempt.Adapter(
 			attempted_atAdapter = instant,
+		),
+		review_requestAdapter = Review_request.Adapter(
+			createdAdapter = instant,
+			expiresAdapter = instant,
+			opened_atAdapter = instant,
+			last_active_atAdapter = instant,
+			submitted_atAdapter = instant,
+			resolved_atAdapter = instant,
+		),
+		review_suggestionAdapter = Review_suggestion.Adapter(
+			createdAdapter = instant,
+			updatedAdapter = instant,
 		),
 	)
 }

@@ -1,0 +1,344 @@
+package com.darkrockstudios.apps.hammer.review
+
+import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.validate.EmailValidator
+import com.darkrockstudios.apps.hammer.database.AccountDao
+import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.database.ReviewRequestDao
+import com.darkrockstudios.apps.hammer.database.ReviewSceneDao
+import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
+import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
+import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
+import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneDraftSynchronizer
+import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
+import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
+import com.darkrockstudios.apps.hammer.utilities.Msg
+import com.darkrockstudios.apps.hammer.utilities.SResult
+import com.darkrockstudios.apps.hammer.utilities.ServerResult
+import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
+import com.darkrockstudios.apps.hammer.utilities.TokenHasher
+import com.darkrockstudios.apps.hammer.utilities.isFailure
+import com.darkrockstudios.apps.hammer.database.ReviewRequest as ReviewRequestRow
+import com.darkrockstudios.apps.hammer.database.ReviewScene as ReviewSceneRow
+import org.koin.core.component.KoinComponent
+import org.koin.core.qualifier.named
+import org.koin.java.KoinJavaComponent
+import java.util.UUID
+import kotlin.io.encoding.Base64
+import kotlin.time.Clock
+import kotlin.time.Duration
+
+class ReviewRepository(
+	private val accountDao: AccountDao,
+	private val projectDao: ProjectDao,
+	private val reviewRequestDao: ReviewRequestDao,
+	private val reviewSceneDao: ReviewSceneDao,
+	private val projectEntityDatasource: ProjectEntityDatasource,
+	private val sceneDraftSynchronizer: ServerSceneDraftSynchronizer,
+	private val contentEncryptor: ContentEncryptor,
+	private val tokenHasher: TokenHasher,
+	private val clock: Clock,
+	base64: Base64,
+) : KoinComponent {
+
+	private val tokenGenerator = SecureTokenGenerator(REVIEW_TOKEN_LENGTH, base64)
+
+	private val projectsSessions: SyncSessionManager<Long, ProjectsSynchronizationSession> by KoinJavaComponent.inject(
+		clazz = SyncSessionManager::class.java,
+		qualifier = named(PROJECTS_SYNC_MANAGER)
+	)
+
+	private val projectSessions: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession> by KoinJavaComponent.inject(
+		clazz = SyncSessionManager::class.java,
+		qualifier = named(PROJECT_SYNC_MANAGER)
+	)
+
+	data class CreatedReviewRequest(
+		val reviewRequestId: Long,
+		/** Plaintext capability token; only ever returned here, stored hashed. */
+		val token: String,
+	)
+
+	suspend fun createReviewRequest(
+		userId: Long,
+		projectId: ProjectId,
+		reviewerEmail: String,
+		label: String,
+		note: String?,
+		expiresIn: Duration?,
+		sceneIds: List<Int>,
+	): SResult<CreatedReviewRequest> {
+		if (sceneIds.isEmpty()) {
+			return SResult.failure("No scenes selected", Msg.r("api_review_create_error_no_scenes"))
+		}
+		if (sceneIds.size != sceneIds.distinct().size) {
+			return SResult.failure("Duplicate scene ids", Msg.r("api_review_create_error_invalid_scene"))
+		}
+		if (EmailValidator.validate(reviewerEmail).not()) {
+			return SResult.failure("Invalid email", Msg.r("api_review_create_error_invalid_email"))
+		}
+
+		val projectDef = projectEntityDatasource.getProject(userId, projectId)
+			?: return SResult.failure("Project not found", Msg.r("api_review_create_error_project_not_found"))
+		val numericProjectId = projectDao.getProjectIdOrNull(userId, projectId)
+			?: return SResult.failure("Project not found", Msg.r("api_review_create_error_project_not_found"))
+
+		// Load and validate every requested scene before minting anything.
+		val scenes = mutableListOf<ApiProjectEntity.SceneEntity>()
+		for (sceneId in sceneIds) {
+			val type = projectEntityDatasource.findEntityType(sceneId, userId, projectDef)
+			if (type != ApiProjectEntity.Type.SCENE) {
+				return SResult.failure(
+					"Entity $sceneId is not a scene",
+					Msg.r("api_review_create_error_invalid_scene")
+				)
+			}
+			val result = projectEntityDatasource.loadEntity(
+				userId, projectDef, sceneId,
+				ApiProjectEntity.Type.SCENE,
+				ApiProjectEntity.SceneEntity.serializer(),
+			)
+			if (isFailure(result)) {
+				return SResult.failure(
+					"Failed to load scene $sceneId",
+					Msg.r("api_review_create_error_invalid_scene"),
+					result.exception,
+				)
+			}
+			scenes += result.data
+		}
+
+		val draftName = forEditDraftName(label)
+		val now = clock.now()
+
+		val draftIds = withInternalSyncSession(userId, projectDef) {
+			// Reserve the ID range first: a failure mid-store burns IDs (harmless gap)
+			// instead of leaving stored entities below last_id (future collision).
+			val syncData = projectEntityDatasource.loadProjectSyncData(userId, projectDef)
+			val maxKnownId = maxOf(
+				syncData.lastId,
+				projectEntityDatasource.findLastId(userId, projectDef) ?: -1,
+				syncData.deletedIds.maxOrNull() ?: -1,
+			)
+			val firstId = maxKnownId + 1
+			projectEntityDatasource.updateSyncData(userId, projectDef) {
+				it.copy(lastId = maxKnownId + scenes.size)
+			}
+
+			val mintedIds = mutableListOf<Int>()
+			for ((index, scene) in scenes.withIndex()) {
+				val draft = ApiProjectEntity.SceneDraftEntity(
+					id = firstId + index,
+					sceneId = scene.id,
+					created = now,
+					name = draftName,
+					content = scene.content,
+				)
+				val saveResult = sceneDraftSynchronizer.saveEntity(
+					userId, projectDef, draft,
+					originalHash = null,
+					force = true,
+				)
+				if (isFailure(saveResult)) {
+					mintedIds.forEach { mintedId ->
+						sceneDraftSynchronizer.deleteEntity(userId, projectDef, mintedId)
+					}
+					return@withInternalSyncSession SResult.failure(
+						"Failed to store for-edit draft",
+						Msg.r("api_review_create_error_draft_failed"),
+						saveResult.exception,
+					)
+				}
+				mintedIds += draft.id
+			}
+			SResult.success(mintedIds.toList())
+		}
+
+		if (draftIds is ServerResult.Failure) {
+			return SResult.failure(draftIds.error, draftIds.displayMessage, draftIds.exception)
+		}
+		draftIds as ServerResult.Success
+
+		val plainToken = tokenGenerator.generateToken()
+		val hashedToken = tokenHasher.hashToken(plainToken)
+		val cipherSecret = accountDao.getAccount(userId)?.cipher_secret
+			?: return SResult.failure("Account not found", Msg.r("api_review_error_not_found"))
+
+		val request = reviewRequestDao.createRequest(
+			userId = userId,
+			projectId = numericProjectId,
+			token = hashedToken,
+			reviewerEmail = reviewerEmail.trim(),
+			label = label.trim().ifEmpty { reviewerEmail.trim() },
+			note = note?.trim()?.ifEmpty { null },
+			status = ReviewStatus.SENT,
+			expires = expiresIn?.let { now + it },
+		)
+
+		scenes.forEachIndexed { index, scene ->
+			reviewSceneDao.createScene(
+				reviewRequestId = request.id,
+				sceneId = scene.id,
+				draftId = draftIds.data[index],
+				sceneName = scene.name,
+				sceneOrder = index,
+				snapshotContent = contentEncryptor.encrypt(scene.content, cipherSecret),
+			)
+		}
+
+		return SResult.success(CreatedReviewRequest(request.id, plainToken))
+	}
+
+	/**
+	 * Resolve a reviewer's capability token. Marks the request opened on first use
+	 * and refuses expired or canceled requests.
+	 */
+	suspend fun openReviewByToken(plainToken: String): SResult<ReviewRequest> {
+		val hashedToken = tokenHasher.hashToken(plainToken)
+		val row = reviewRequestDao.getRequestByToken(hashedToken)
+			?: return SResult.failure("Unknown token", Msg.r("api_review_token_error_invalid"))
+
+		val request = row.toDomain()
+		val now = clock.now()
+		return when {
+			request.status == ReviewStatus.CANCELED ->
+				SResult.failure("Request revoked", Msg.r("api_review_token_error_revoked"))
+
+			request.expires != null && now > request.expires ->
+				SResult.failure("Request expired", Msg.r("api_review_token_error_expired"))
+
+			request.status == ReviewStatus.SENT -> {
+				reviewRequestDao.markOpened(request.id, ReviewStatus.OPENED, now)
+				SResult.success(
+					request.copy(status = ReviewStatus.OPENED, openedAt = now, lastActiveAt = now)
+				)
+			}
+
+			else -> SResult.success(request)
+		}
+	}
+
+	suspend fun getReviewsForProject(userId: Long, projectId: ProjectId): SResult<List<ReviewRequest>> {
+		val numericProjectId = projectDao.getProjectIdOrNull(userId, projectId)
+			?: return SResult.failure("Project not found", Msg.r("api_review_create_error_project_not_found"))
+		val rows = reviewRequestDao.getRequestsForProject(userId, numericProjectId)
+		return SResult.success(rows.map { it.toDomain() })
+	}
+
+	suspend fun getReview(userId: Long, reviewRequestId: Long): SResult<ReviewRequest> {
+		val row = reviewRequestDao.getRequest(reviewRequestId, userId)
+			?: return SResult.failure("Review not found", Msg.r("api_review_error_not_found"))
+		return SResult.success(row.toDomain())
+	}
+
+	/** Scenes for a request with their snapshots decrypted. */
+	suspend fun getReviewScenes(request: ReviewRequest): List<ReviewScene> {
+		val cipherSecret = accountDao.getAccount(request.userId)?.cipher_secret
+			?: error("Account ${request.userId} missing for review ${request.id}")
+		return reviewSceneDao.getScenesForRequest(request.id).map { it.toDomain(cipherSecret) }
+	}
+
+	suspend fun revokeReview(userId: Long, reviewRequestId: Long): SResult<Unit> {
+		val row = reviewRequestDao.getRequest(reviewRequestId, userId)
+			?: return SResult.failure("Review not found", Msg.r("api_review_error_not_found"))
+		val status = ReviewStatus.fromString(row.status)
+		return when (status) {
+			ReviewStatus.SUBMITTED, ReviewStatus.RESOLVED ->
+				SResult.failure("Already submitted", Msg.r("api_review_revoke_error_submitted"))
+
+			else -> {
+				reviewRequestDao.updateStatus(reviewRequestId, ReviewStatus.CANCELED)
+				SResult.success()
+			}
+		}
+	}
+
+	/**
+	 * Run [block] holding an exclusive project sync session, so entity minting can't
+	 * race a client sync (mid-session ID collisions, end_sync last_id regression).
+	 */
+	private suspend fun <T> withInternalSyncSession(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		block: suspend () -> SResult<T>,
+	): SResult<T> {
+		val syncKey = ProjectSyncKey(userId, projectDef)
+		if (projectsSessions.hasActiveSyncSession(userId) ||
+			projectSessions.hasActiveSyncSession(syncKey)
+		) {
+			return SResult.failure("Project sync in progress", Msg.r("api_review_create_error_sync_busy"))
+		}
+
+		// Unique installId so a client's begin-sync can never reclaim this session.
+		projectSessions.createNewSession(syncKey) { key, syncId ->
+			ProjectSynchronizationSession(
+				userId = key.userId,
+				projectDef = key.projectDef,
+				started = clock.now(),
+				syncId = syncId,
+				installId = "$INTERNAL_INSTALL_PREFIX${UUID.randomUUID()}",
+			)
+		}
+		return try {
+			block()
+		} finally {
+			projectSessions.terminateSession(syncKey)
+		}
+	}
+
+	private fun ReviewRequestRow.toDomain() = ReviewRequest(
+		id = id,
+		userId = user_id,
+		projectId = project_id,
+		reviewerEmail = reviewer_email,
+		label = label,
+		note = note,
+		status = ReviewStatus.fromString(status)
+			?: error("Unknown review status '$status' for review $id"),
+		created = created,
+		expires = expires,
+		openedAt = opened_at,
+		lastActiveAt = last_active_at,
+		submittedAt = submitted_at,
+		resolvedAt = resolved_at,
+	)
+
+	private suspend fun ReviewSceneRow.toDomain(cipherSecret: String) = ReviewScene(
+		id = id,
+		reviewRequestId = review_request_id,
+		sceneId = scene_id,
+		draftId = draft_id,
+		sceneName = scene_name,
+		sceneOrder = scene_order,
+		snapshotContent = contentEncryptor.decrypt(snapshot_content, cipherSecret),
+		reviewerDone = reviewer_done,
+	)
+
+	companion object {
+		const val REVIEW_TOKEN_LENGTH = 32
+		const val INTERNAL_INSTALL_PREFIX = "internal:review:"
+
+		private val invalidDraftNameChars = Regex("""[^\da-zA-Z _']""")
+		private val collapseSpaces = Regex(""" {2,}""")
+
+		/**
+		 * Build a for-edit draft name that satisfies the client's
+		 * SceneDraftsDatasource.validDraftName rules (alphanumeric, space, apostrophe, max 128).
+		 */
+		fun forEditDraftName(label: String): String {
+			val sanitizedLabel = label
+				.replace(invalidDraftNameChars, " ")
+				.replace(collapseSpaces, " ")
+				.trim()
+			val base = if (sanitizedLabel.isEmpty()) "Sent for review" else "Sent for review $sanitizedLabel"
+			return base.take(MAX_DRAFT_NAME_LENGTH).trim()
+		}
+
+		private const val MAX_DRAFT_NAME_LENGTH = 128
+	}
+}

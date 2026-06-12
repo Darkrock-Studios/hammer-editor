@@ -1,0 +1,42 @@
+import kotlinx.datetime.Instant;
+
+CREATE TABLE review_suggestion(
+    id BIGSERIAL PRIMARY KEY,
+    review_scene_id BIGINT NOT NULL,
+    type TEXT NOT NULL,
+    paragraph INTEGER NOT NULL,
+    start_offset INTEGER NOT NULL,
+    end_offset INTEGER NOT NULL,
+    original_text TEXT NOT NULL,
+    replacement_text TEXT,
+    reason TEXT,
+    status TEXT NOT NULL,
+    created TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    updated TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    FOREIGN KEY(review_scene_id) REFERENCES review_scene(id) ON DELETE CASCADE
+);
+
+CREATE INDEX review_suggestion_scene_idx ON review_suggestion (review_scene_id);
+
+createSuggestion:
+INSERT INTO review_suggestion(review_scene_id, type, paragraph, start_offset, end_offset, original_text, replacement_text, reason, status)
+VALUES (:reviewSceneId, :type, :paragraph, :startOffset, :endOffset, :originalText, :replacementText, :reason, :status);
+
+getSuggestionsForScene:
+SELECT * FROM review_suggestion
+WHERE review_scene_id = :reviewSceneId
+ORDER BY paragraph, start_offset;
+
+getSuggestion:
+SELECT * FROM review_suggestion WHERE id = :id;
+
+deleteSuggestion:
+DELETE FROM review_suggestion WHERE id = :id;
+
+updateSuggestionStatus:
+UPDATE review_suggestion SET status = :status, updated = :at WHERE id = :id;
+
+countSuggestionsForRequest:
+SELECT COUNT(*) FROM review_suggestion
+JOIN review_scene ON review_suggestion.review_scene_id = review_scene.id
+WHERE review_scene.review_request_id = :reviewRequestId;

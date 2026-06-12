@@ -1,0 +1,48 @@
+package com.darkrockstudios.apps.hammer.database
+
+import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
+import kotlinx.coroutines.withContext
+import org.koin.core.component.KoinComponent
+
+class ReviewSceneDao(
+	database: Database,
+) : KoinComponent {
+
+	private val ioDispatcher by injectIoDispatcher()
+	private val queries = database.serverDatabase.reviewSceneQueries
+
+	suspend fun createScene(
+		reviewRequestId: Long,
+		sceneId: Int,
+		draftId: Int,
+		sceneName: String,
+		sceneOrder: Int,
+		snapshotContent: String,
+	) {
+		withContext(ioDispatcher) {
+			queries.createScene(
+				reviewRequestId = reviewRequestId,
+				sceneId = sceneId,
+				draftId = draftId,
+				sceneName = sceneName,
+				sceneOrder = sceneOrder,
+				snapshotContent = snapshotContent,
+			)
+		}
+	}
+
+	suspend fun getScenesForRequest(reviewRequestId: Long): List<ReviewScene> =
+		withContext(ioDispatcher) {
+				queries.getScenesForRequest(reviewRequestId).executeAsList()
+			}
+
+		suspend fun getScene(id: Long): ReviewScene? = withContext(ioDispatcher) {
+			queries.getScene(id).executeAsOneOrNull()
+		}
+
+		suspend fun setReviewerDone(id: Long, done: Boolean) {
+			withContext(ioDispatcher) {
+			queries.setReviewerDone(done, id)
+		}
+	}
+}
