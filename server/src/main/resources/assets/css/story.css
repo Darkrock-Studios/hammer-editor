@@ -1443,6 +1443,13 @@
 	max-height: calc(100vh - 48px);
 	display: flex;
 	flex-direction: column;
+	/* Fully opaque: this dialog is tall enough to overlap the page footer,
+	   and the shared dialog's translucent fill would let it bleed through */
+	background: #fffdfa;
+}
+
+.dialog--review .dialog__actions {
+	background: #faf6ee;
 }
 
 .dialog--review form {
