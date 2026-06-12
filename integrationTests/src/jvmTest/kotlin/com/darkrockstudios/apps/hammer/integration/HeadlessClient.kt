@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.integration
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
@@ -36,6 +37,7 @@ class HeadlessClient private constructor(
 	val synchronizer: ClientProjectSynchronizer get() = scope.get()
 	val sceneEditor: SceneRepository get() = scope.get()
 	val sceneEditorService: SceneEditorService get() = scope.get()
+	val draftRepository: SceneDraftRepository get() = scope.get()
 
 	/**
 	 * Runs a full sync against the server. Conflicts are routed through [resolveConflict],
