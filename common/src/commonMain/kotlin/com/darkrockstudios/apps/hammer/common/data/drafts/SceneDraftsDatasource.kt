@@ -175,6 +175,8 @@ class SceneDraftsDatasource(
 
 	suspend fun reIdScene(oldId: Int, newId: Int) {
 		val draftsDir = getSceneDraftsDirectory(oldId).toOkioPath()
+		// Scenes with no drafts have no directory to move
+		if (!fileSystem.exists(draftsDir)) return
 		val newDraftsDir = getSceneDraftsDirectory(newId).toOkioPath()
 
 		fileSystem.atomicMove(draftsDir, newDraftsDir)
