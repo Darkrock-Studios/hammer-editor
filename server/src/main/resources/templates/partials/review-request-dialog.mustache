@@ -1,0 +1,107 @@
+<div class="dialog-overlay" id="review-dialog-overlay" onclick="closeReviewDialog(event)">
+	<div class="dialog dialog--review" onclick="event.stopPropagation()">
+		<div class="dialog__header">
+			<h3>{{msg.review_dialog_title}}</h3>
+			<button type="button" class="dialog__close" onclick="closeReviewDialog()">
+				<i class="fas fa-times"></i>
+			</button>
+		</div>
+		<!-- The server response closes or replaces this dialog via OOB swap -->
+		<form id="review-request-form"
+			  hx-post="/story/{{projectNameForUrl}}/reviews"
+			  hx-target="#review-panel"
+			  hx-swap="outerHTML">
+			<div class="dialog__body">
+				<div class="review-form__row">
+					<div class="form-field review-form__field--grow">
+						<label for="review-email" class="form-field__label">{{msg.review_dialog_email}}</label>
+						<input type="email"
+							   id="review-email"
+							   name="reviewerEmail"
+							   class="form-input"
+							   required
+							   autocomplete="off"
+							   placeholder="{{msg.review_dialog_email_placeholder}}">
+					</div>
+					<div class="form-field">
+						<label for="review-label" class="form-field__label">
+							{{msg.review_dialog_label}}
+							<span class="optional-label">{{msg.review_dialog_label_hint}}</span>
+						</label>
+						<input type="text"
+							   id="review-label"
+							   name="label"
+							   class="form-input"
+							   autocomplete="off"
+							   placeholder="{{msg.review_dialog_label_placeholder}}">
+					</div>
+				</div>
+
+				<div class="form-field">
+					<label for="review-note" class="form-field__label">
+						{{msg.review_dialog_note}}
+						<span class="optional-label">{{msg.review_dialog_note_hint}}</span>
+					</label>
+					<textarea id="review-note"
+							  name="note"
+							  class="form-textarea review-form__note"
+							  rows="2"
+							  placeholder="{{msg.review_dialog_note_placeholder}}"></textarea>
+				</div>
+
+				<div class="form-field">
+					<span class="form-field__label">{{msg.review_dialog_expiry}}</span>
+					<div class="review-form__expiry" role="radiogroup">
+						<input type="radio" id="expiry-30" name="expiry" value="30" checked>
+						<label class="review-form__chip" for="expiry-30">{{msg.review_dialog_expiry_30}}</label>
+						<input type="radio" id="expiry-60" name="expiry" value="60">
+						<label class="review-form__chip" for="expiry-60">{{msg.review_dialog_expiry_60}}</label>
+						<input type="radio" id="expiry-90" name="expiry" value="90">
+						<label class="review-form__chip" for="expiry-90">{{msg.review_dialog_expiry_90}}</label>
+						<input type="radio" id="expiry-never" name="expiry" value="never">
+						<label class="review-form__chip" for="expiry-never">{{msg.review_dialog_expiry_never}}</label>
+					</div>
+				</div>
+
+				<div class="form-field">
+					<div class="review-form__scenes-head">
+						<span class="form-field__label">{{msg.review_dialog_scenes}}</span>
+						<span class="review-form__scene-count"
+							  id="review-scene-count"
+							  data-total="{{sceneCount}}"
+							  data-none-label="{{msg.review_dialog_scenes_none}}">{{msg.review_dialog_scenes_none}}</span>
+					</div>
+					<div class="review-form__scene-tree" id="review-scene-tree">
+						{{#sceneTree}}
+							{{#isGroup}}
+								<div class="review-scene-group" style="padding-left: {{indentPx}}px;">
+									<span class="review-scene-group__name">{{name}}</span>
+									<button type="button"
+											class="review-scene-group__toggle"
+											data-group-depth="{{depth}}">{{msg.review_dialog_select_all}}</button>
+								</div>
+							{{/isGroup}}
+							{{#isScene}}
+								<label class="review-scene-row" style="padding-left: {{indentPx}}px;"
+									   data-depth="{{depth}}">
+									<input type="checkbox" name="sceneIds" value="{{id}}"
+										   class="review-scene-row__check">
+									<span class="review-scene-row__box"><i class="fa-solid fa-check"></i></span>
+									<span class="review-scene-row__name">{{name}}</span>
+								</label>
+							{{/isScene}}
+						{{/sceneTree}}
+					</div>
+				</div>
+			</div>
+			<div class="dialog__actions">
+				<button type="button" class="btn btn--ghost" onclick="closeReviewDialog()">
+					{{msg.review_dialog_cancel}}
+				</button>
+				<button type="submit" class="btn btn--accent" id="review-send-btn" disabled>
+					<i class="fa-solid fa-paper-plane"></i> {{msg.review_dialog_send}}
+				</button>
+			</div>
+		</form>
+	</div>
+</div>

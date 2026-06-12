@@ -1,0 +1,27 @@
+<div class="dialog-overlay" id="review-dialog-overlay" onclick="closeReviewDialog(event)">
+	<div class="dialog" onclick="event.stopPropagation()">
+		<div class="dialog__header">
+			<h3>{{msg.review_link_dialog_title}}</h3>
+			<button type="button" class="dialog__close" onclick="closeReviewDialog()">
+				<i class="fas fa-times"></i>
+			</button>
+		</div>
+		<div class="dialog__body">
+			<p class="review-link-dialog__explain">{{msg.review_link_dialog_body}}</p>
+			<div class="review-link-dialog__row">
+				<input type="text" class="form-input review-link-dialog__url" id="review-link-url"
+					   value="{{reviewUrl}}" readonly onclick="this.select()">
+				<button type="button" class="btn btn--primary" id="review-link-copy"
+						data-copied-label="{{msg.review_link_dialog_copied}}"
+						onclick="copyReviewLink()">
+					<i class="fa-solid fa-copy"></i> {{msg.review_link_dialog_copy}}
+				</button>
+			</div>
+		</div>
+		<div class="dialog__actions">
+			<button type="button" class="btn btn--accent" onclick="closeReviewDialog()">
+				{{msg.review_link_dialog_done}}
+			</button>
+		</div>
+	</div>
+</div>

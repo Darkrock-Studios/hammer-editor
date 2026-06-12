@@ -92,6 +92,16 @@
 						</div>
 					</div>
 				{{/hasPenName}}
+
+				<!-- Editorial Reviews Panel -->
+				<div class="story-info-panel review-panel">
+					<div class="info-panel-header">
+						<span class="info-panel-icon info-panel-icon--review"><i class="fas fa-pen-nib"></i></span>
+						<span class="info-panel-title">{{msg.review_panel_title}}</span>
+					</div>
+					{{> partials/review-panel}}
+				</div>
+				<div id="review-dialog-container"></div>
 			</aside>
 		</div>
 	</div>

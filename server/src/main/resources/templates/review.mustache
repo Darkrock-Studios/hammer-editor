@@ -1,0 +1,45 @@
+{{> header}}
+
+<main class="review-page">
+	<div class="review-page__container">
+
+		<!-- Review masthead -->
+		<div class="review-masthead">
+			<div class="review-masthead__title-block">
+				<span class="review-masthead__overline">{{msg.review_page_overline}}</span>
+				<h1 class="review-masthead__title">{{projectName}}
+					<span class="review-masthead__author">&mdash; {{msg.review_page_by}} {{authorName}}</span>
+				</h1>
+			</div>
+			<div class="review-masthead__reviewer">
+				<span class="review-masthead__email"><i class="fa-solid fa-user-pen"></i> {{reviewerEmail}}</span>
+				{{#hasExpiry}}
+					<span class="review-masthead__expiry">{{expiryLine}}</span>
+				{{/hasExpiry}}
+			</div>
+		</div>
+
+		{{#hasNote}}
+			<div class="review-note">
+				<span class="review-note__title"><i class="fa-solid fa-thumbtack"></i> {{msg.review_page_note_title}}</span>
+				<p class="review-note__body">{{note}}</p>
+			</div>
+		{{/hasNote}}
+
+		<!-- Manuscript -->
+		<div class="review-manuscript-list" id="review-manuscript" data-review-token="{{reviewToken}}">
+			{{#scenes}}
+				<article class="review-manuscript" data-scene-id="{{sceneId}}" data-review-scene-id="{{reviewSceneId}}">
+					<span class="review-manuscript__position">{{position}}</span>
+					<h2 class="review-manuscript__title">{{name}}</h2>
+					<div class="review-manuscript__content">
+						{{{contentHtml}}}
+					</div>
+				</article>
+			{{/scenes}}
+		</div>
+
+	</div>
+</main>
+
+{{> footer}}

@@ -1,0 +1,36 @@
+<div class="review-panel__content" id="review-panel">
+	<p class="review-panel__description">{{msg.review_panel_description}}</p>
+
+	{{#hasReviews}}
+		<div class="review-card-list">
+			{{#reviews}}
+				<div class="review-card {{#isSubmitted}}review-card--submitted{{/isSubmitted}}">
+					<div class="review-card__head">
+						<span class="review-card__label">{{label}}</span>
+						<span class="review-card__status {{statusClass}}">{{status}}</span>
+					</div>
+					<span class="review-card__email">{{email}}</span>
+					<span class="review-card__meta">{{meta}}</span>
+					{{#canRevoke}}
+						<div class="review-card__actions">
+							<button class="review-card__revoke"
+									hx-post="/story/{{projectNameForUrl}}/reviews/{{id}}/revoke"
+									hx-target="#review-panel"
+									hx-swap="outerHTML"
+									hx-confirm="{{msg.review_panel_revoke_confirm}}">
+								<i class="fa-solid fa-ban"></i> {{msg.review_panel_revoke}}
+							</button>
+						</div>
+					{{/canRevoke}}
+				</div>
+			{{/reviews}}
+		</div>
+	{{/hasReviews}}
+
+	<button class="btn btn--accent btn--block review-panel__request-btn"
+			hx-get="/story/{{projectNameForUrl}}/reviews/dialog"
+			hx-target="#review-dialog-container"
+			hx-swap="innerHTML">
+		<i class="fa-solid fa-envelope-open-text"></i> {{msg.review_panel_request_button}}
+	</button>
+</div>

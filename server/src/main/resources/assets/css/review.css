@@ -1,0 +1,227 @@
+/* Reviewer Page Styles — the external editor's manuscript view */
+
+.review-page {
+	min-height: calc(100vh - 200px);
+	padding: 2rem 1rem 5rem 1rem;
+	background:
+		radial-gradient(ellipse at top, rgba(217, 119, 6, 0.05), transparent 50%),
+		linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-50) 100%);
+	display: flex;
+	justify-content: center;
+}
+
+.review-page__container {
+	max-width: 860px;
+	width: 100%;
+	animation: fadeIn 0.5s ease-out;
+}
+
+/* ===== Masthead ===== */
+
+.review-masthead {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 1.5rem;
+	flex-wrap: wrap;
+	border-bottom: 3px solid var(--accent);
+	padding-bottom: 1.1rem;
+	margin-bottom: 1.6rem;
+}
+
+.review-masthead__overline {
+	display: block;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.72rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--accent);
+	margin-bottom: 0.3rem;
+}
+
+.review-masthead__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-weight: 400;
+	font-size: clamp(1.6rem, 4vw, 2.4rem);
+	color: var(--ink);
+	margin: 0;
+	line-height: 1.15;
+}
+
+.review-masthead__author {
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.55em;
+	color: var(--neutral-500);
+	white-space: nowrap;
+}
+
+.review-masthead__reviewer {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 0.2rem;
+	padding-bottom: 0.2rem;
+}
+
+.review-masthead__email {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9rem;
+	color: var(--neutral-600);
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+}
+
+.review-masthead__email i {
+	color: var(--neutral-400);
+	font-size: 0.78rem;
+}
+
+.review-masthead__expiry {
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.78rem;
+	color: var(--neutral-400);
+}
+
+/* ===== Author's note — a sticky note pinned above the manuscript ===== */
+
+.review-note {
+	background: var(--sticky-yellow);
+	border-radius: 4px;
+	box-shadow: var(--shadow-sticky);
+	transform: rotate(-0.4deg);
+	padding: 1rem 1.3rem;
+	max-width: 540px;
+	margin: 0 auto 1.8rem auto;
+}
+
+.review-note__title {
+	display: block;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.78rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--accent-dark);
+	margin-bottom: 0.4rem;
+}
+
+.review-note__title i {
+	margin-right: 0.4rem;
+}
+
+.review-note__body {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.95rem;
+	line-height: 1.55;
+	color: var(--neutral-700);
+	margin: 0;
+	white-space: pre-line;
+}
+
+/* ===== Manuscript pages ===== */
+
+.review-manuscript-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2.2rem;
+}
+
+.review-manuscript {
+	position: relative;
+	background: var(--paper-white);
+	border-radius: 10px;
+	box-shadow: var(--shadow-lg);
+	padding: clamp(2rem, 6vw, 3.5rem) clamp(1.4rem, 7vw, 4rem);
+}
+
+.review-manuscript__position {
+	display: block;
+	text-align: center;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.7rem;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+	color: var(--neutral-400);
+	margin-bottom: 0.5rem;
+}
+
+.review-manuscript__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-weight: 400;
+	font-size: 1.7rem;
+	color: var(--ink);
+	text-align: center;
+	margin: 0 0 2rem 0;
+}
+
+.review-manuscript__content {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 1.08rem;
+	line-height: 2;
+	color: var(--neutral-800);
+	text-align: justify;
+}
+
+.review-manuscript__content p {
+	margin: 0 0 0.85rem 0;
+	text-indent: 2.2rem;
+}
+
+.review-manuscript__content p:first-child {
+	text-indent: 0;
+}
+
+/* ===== Error page ===== */
+
+.review-page--error {
+	align-items: center;
+}
+
+.review-error__card {
+	background: var(--sticky-yellow);
+	border-radius: 4px;
+	box-shadow: var(--shadow-sticky);
+	transform: rotate(-0.6deg);
+	padding: 2.2rem 2.6rem;
+	max-width: 460px;
+	text-align: center;
+}
+
+.review-error__icon {
+	font-size: 1.8rem;
+	color: var(--accent-dark);
+	margin-bottom: 0.8rem;
+}
+
+.review-error__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-weight: 400;
+	font-size: 1.5rem;
+	color: var(--ink);
+	margin: 0 0 0.6rem 0;
+}
+
+.review-error__message {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.98rem;
+	line-height: 1.6;
+	color: var(--neutral-700);
+	margin: 0;
+}
+
+@media only screen and (max-width: 600px) {
+	.review-masthead {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.review-masthead__reviewer {
+		align-items: flex-start;
+	}
+
+	.review-manuscript__content {
+		text-align: left;
+	}
+}

@@ -238,3 +238,112 @@ function initSceneSelector() {
 		contentArea.scrollIntoView({behavior: 'smooth', block: 'start'});
 	});
 }
+
+/* ===== Editorial Review dialog ===== */
+
+// The dialog arrives via HTMX swap, so all listeners are delegated to document.
+
+/**
+ * Close the review dialog with animation
+ * @param {Event} event - Optional click event (for overlay clicks)
+ */
+function closeReviewDialog(event) {
+	if (event && event.target !== event.currentTarget) {
+		return;
+	}
+
+	const overlay = document.getElementById('review-dialog-overlay');
+	if (overlay) {
+		overlay.classList.add('closing');
+		setTimeout(function () {
+			const container = document.getElementById('review-dialog-container');
+			if (container) {
+				container.innerHTML = '';
+			}
+		}, 200);
+	}
+}
+
+/**
+ * Copy the review link (no-email fallback dialog)
+ */
+function copyReviewLink() {
+	const input = document.getElementById('review-link-url');
+	const button = document.getElementById('review-link-copy');
+	if (!input || !button) return;
+
+	navigator.clipboard.writeText(input.value).then(function () {
+		const original = button.innerHTML;
+		button.innerHTML = '<i class="fa-solid fa-check"></i> ' + button.dataset.copiedLabel;
+		setTimeout(function () {
+			button.innerHTML = original;
+		}, 2000);
+	});
+}
+
+document.addEventListener('keydown', function (e) {
+	if (e.key === 'Escape') closeReviewDialog();
+});
+
+// Scene checkbox changes: update the count and gate the send button
+document.addEventListener('change', function (e) {
+	const form = document.getElementById('review-request-form');
+	if (!form || !form.contains(e.target)) return;
+	updateReviewFormState(form);
+});
+
+document.addEventListener('input', function (e) {
+	const form = document.getElementById('review-request-form');
+	if (!form || !form.contains(e.target)) return;
+	updateReviewFormState(form);
+});
+
+// Group "Select all"/"Clear" buttons toggle every scene nested under the group
+document.addEventListener('click', function (e) {
+	const toggle = e.target.closest('.review-scene-group__toggle');
+	if (!toggle) return;
+	e.preventDefault();
+
+	const groupDepth = parseInt(toggle.dataset.groupDepth, 10);
+	const groupRow = toggle.closest('.review-scene-group');
+	const boxes = [];
+	let node = groupRow.nextElementSibling;
+	while (node) {
+		if (node.classList.contains('review-scene-group')) {
+			const depth = parseInt(node.querySelector('.review-scene-group__toggle')?.dataset.groupDepth ?? '0', 10);
+			if (depth <= groupDepth) break;
+		} else if (node.classList.contains('review-scene-row')) {
+			const depth = parseInt(node.dataset.depth ?? '0', 10);
+			if (depth <= groupDepth) break;
+			boxes.push(node.querySelector('.review-scene-row__check'));
+		}
+		node = node.nextElementSibling;
+	}
+
+	const anyUnchecked = boxes.some(function (b) { return b && !b.checked; });
+	boxes.forEach(function (b) { if (b) b.checked = anyUnchecked; });
+
+	const form = document.getElementById('review-request-form');
+	if (form) updateReviewFormState(form);
+});
+
+/**
+ * Update the selected-scene count and enable/disable the send button
+ * @param {HTMLFormElement} form - The review request form
+ */
+function updateReviewFormState(form) {
+	const checked = form.querySelectorAll('.review-scene-row__check:checked').length;
+	const email = form.querySelector('#review-email');
+	const sendBtn = form.querySelector('#review-send-btn');
+	const counter = document.getElementById('review-scene-count');
+
+	if (counter) {
+		const total = counter.dataset.total;
+		counter.textContent = checked === 0
+			? counter.dataset.noneLabel || 'none selected'
+			: checked + ' of ' + total + ' selected';
+	}
+	if (sendBtn) {
+		sendBtn.disabled = checked === 0 || !email || !email.value.includes('@');
+	}
+}

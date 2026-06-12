@@ -20,7 +20,8 @@ fun Route.storyPage(
 	storyExportService: StoryExportService,
 	projectAccessRepository: ProjectAccessRepository,
 	projectsRepository: ProjectsRepository,
-	accountsRepository: AccountsRepository
+	accountsRepository: AccountsRepository,
+	reviewRepository: com.darkrockstudios.apps.hammer.review.ReviewRepository,
 ) {
 	authenticatedOnly {
 		route("/story/{projectName}") {
@@ -97,10 +98,14 @@ fun Route.storyPage(
 							)
 						}
 
+						val reviewModels = call.reviewCards(reviewRepository, session.userId, projectId)
+
 						val model = call.withDefaults(
 							mapOf(
 								"page_stylesheet" to "/assets/css/story.css",
 								"page_script" to "/assets/js/story.js",
+								"reviews" to reviewModels,
+								"hasReviews" to reviewModels.isNotEmpty(),
 								"projectName" to result.projectName,
 								"projectNameForUrl" to projectNameForUrl,
 								"storyHtml" to storyHtml,
