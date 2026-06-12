@@ -1462,6 +1462,9 @@
 
 .review-form__row .form-field {
 	flex: 1;
+	/* Let inputs shrink with the dialog instead of forcing horizontal overflow
+	   when the body gains a vertical scrollbar */
+	min-width: 0;
 }
 
 .review-form__field--grow {
@@ -1530,6 +1533,38 @@
 	padding: 0.4rem 0;
 	max-height: 260px;
 	overflow-y: auto;
+}
+
+.review-scene-master {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.6rem;
+	padding: 0.55rem 1rem;
+	margin: 0 0.4rem 0.25rem 0.4rem;
+	border-bottom: 1px dashed var(--neutral-200);
+	position: sticky;
+	top: 0;
+	background: #ffffff;
+	z-index: 1;
+}
+
+.review-scene-master__name {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8rem;
+	letter-spacing: 0.04em;
+	color: var(--neutral-600);
+}
+
+.review-scene-master__toggle {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.74rem;
+	background: transparent;
+	border: none;
+	color: var(--primary);
+	cursor: pointer;
+	padding: 0.1rem 0;
+	flex-shrink: 0;
 }
 
 .review-scene-group {

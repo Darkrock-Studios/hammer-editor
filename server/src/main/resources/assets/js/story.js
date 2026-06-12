@@ -320,19 +320,42 @@ document.addEventListener('click', function (e) {
 		node = node.nextElementSibling;
 	}
 
-	const anyUnchecked = boxes.some(function (b) { return b && !b.checked; });
-	boxes.forEach(function (b) { if (b) b.checked = anyUnchecked; });
+	toggleBoxes(boxes);
+
+	const form = document.getElementById('review-request-form');
+	if (form) updateReviewFormState(form);
+});
+
+// Master "Select all"/"Clear all" toggles every scene in the project
+document.addEventListener('click', function (e) {
+	const master = e.target.closest('.review-scene-master__toggle');
+	if (!master) return;
+	e.preventDefault();
+
+	const tree = document.getElementById('review-scene-tree');
+	if (!tree) return;
+	toggleBoxes(Array.from(tree.querySelectorAll('.review-scene-row__check')));
 
 	const form = document.getElementById('review-request-form');
 	if (form) updateReviewFormState(form);
 });
 
 /**
- * Update the selected-scene count and enable/disable the send button
+ * Check all boxes if any are unchecked; otherwise clear them all.
+ * @param {HTMLInputElement[]} boxes - Checkbox inputs to toggle together
+ */
+function toggleBoxes(boxes) {
+	const anyUnchecked = boxes.some(function (b) { return b && !b.checked; });
+	boxes.forEach(function (b) { if (b) b.checked = anyUnchecked; });
+}
+
+/**
+ * Update the selected-scene count, the toggle button labels, and the send button
  * @param {HTMLFormElement} form - The review request form
  */
 function updateReviewFormState(form) {
-	const checked = form.querySelectorAll('.review-scene-row__check:checked').length;
+	const allBoxes = Array.from(form.querySelectorAll('.review-scene-row__check'));
+	const checked = allBoxes.filter(function (b) { return b.checked; }).length;
 	const email = form.querySelector('#review-email');
 	const sendBtn = form.querySelector('#review-send-btn');
 	const counter = document.getElementById('review-scene-count');
@@ -343,6 +366,14 @@ function updateReviewFormState(form) {
 			? counter.dataset.noneLabel || 'none selected'
 			: checked + ' of ' + total + ' selected';
 	}
+
+	// Master toggle reads "Clear all" once everything is selected
+	const master = document.getElementById('review-select-all');
+	if (master) {
+		const allChecked = allBoxes.length > 0 && checked === allBoxes.length;
+		master.textContent = allChecked ? master.dataset.clearLabel : master.dataset.selectLabel;
+	}
+
 	if (sendBtn) {
 		sendBtn.disabled = checked === 0 || !email || !email.value.includes('@');
 	}
