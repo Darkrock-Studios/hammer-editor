@@ -169,6 +169,20 @@ dependencies {
 	testFixturesApi(libs.bundles.embedded.postgres.binaries)
 }
 
+// Runs the reviewer-editor JavaScript unit tests with Node's built-in test runner.
+// Kept separate from the Kotlin `test` task so contributors without Node can still
+// build; CI runs it as its own explicit gate (see .github/workflows/build.yml).
+val jsTest by tasks.registering(Exec::class) {
+	group = "verification"
+	description = "Runs the reviewer-editor JavaScript unit tests (requires Node)."
+	workingDir = projectDir
+	commandLine("node", "--test", "src/jsTest/**/*.test.js")
+	inputs.dir("src/main/resources/assets/js")
+	inputs.dir("src/jsTest")
+	// Node availability/version isn't tracked as an input, so don't cache as up-to-date.
+	outputs.upToDateWhen { false }
+}
+
 @OptIn(ExperimentalKotlinGradlePluginApi::class)
 powerAssert {
 	functions = listOf(
