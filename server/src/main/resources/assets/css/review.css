@@ -1,5 +1,8 @@
 /* Reviewer Page Styles — the external editor's manuscript view */
 
+/* The pen-ink handwriting for suggested text; without this the inks fall back to the generic cursive font */
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap');
+
 .review-page {
 	min-height: calc(100vh - 200px);
 	padding: 2rem 1rem 5rem 1rem;
