@@ -451,7 +451,11 @@ private suspend fun ApplicationCall.buildReviewStringsJson(): String {
 		"suggestionsTitle" to "review_suggestions_title",
 		"noSuggestions" to "review_no_suggestions",
 		"scenesTitle" to "review_scenes_title",
-		"submitConfirm" to "review_submit_confirm",
+		"submitTitle" to "review_submit_confirm_title",
+		"submitBody" to "review_submit_confirm_body",
+		"submitTallyOne" to "review_submit_tally_one",
+		"submitTallyMany" to "review_submit_tally_many",
+		"submitAction" to "review_submit_confirm_action",
 		"saveFailed" to "review_save_failed",
 	)
 	val strings = buildMap {

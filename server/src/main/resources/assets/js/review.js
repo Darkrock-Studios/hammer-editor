@@ -573,16 +573,46 @@
 	function initSubmit() {
 		const btn = document.getElementById('review-submit-btn');
 		if (!btn) return;
-		btn.addEventListener('click', async () => {
-			if (!window.confirm(S.submitConfirm)) return;
-			btn.disabled = true;
-			try {
-				const res = await fetch('/review/' + TOKEN + '/submit', { method: 'POST' });
-				if (res.ok) { window.location.reload(); return; }
-			} catch (e) { /* fallthrough */ }
-			btn.disabled = false;
-			toastError();
-		});
+		btn.addEventListener('click', showSubmitDialog);
+	}
+
+	function closeSubmitDialog() {
+		const overlay = document.getElementById('review-submit-dialog');
+		if (overlay) overlay.remove();
+	}
+
+	function showSubmitDialog() {
+		closeSubmitDialog();
+		const total = DATA.scenes.reduce((acc, sc) => acc + sc.suggestions.length, 0);
+		const tally = total === 1 ? S.submitTallyOne : S.submitTallyMany.replace('{0}', String(total));
+		const body = S.submitBody.replace('{0}', tally);
+
+		const submitBtn = el('button', {
+			class: 'btn btn--accent', type: 'button',
+			onclick: async () => {
+				submitBtn.disabled = true;
+				try {
+					const res = await fetch('/review/' + TOKEN + '/submit', { method: 'POST' });
+					if (res.ok) { window.location.reload(); return; }
+				} catch (e) { /* fallthrough */ }
+				submitBtn.disabled = false;
+				toastError();
+			},
+		}, icon('fa-paper-plane'), ' ' + S.submitAction);
+
+		const overlay = el('div', {
+			class: 'dialog-overlay', id: 'review-submit-dialog',
+			onclick: (e) => { if (e.target === e.currentTarget) closeSubmitDialog(); },
+		},
+			el('div', { class: 'dialog' },
+				el('div', { class: 'dialog__header' },
+					el('h3', {}, S.submitTitle),
+					el('button', { class: 'dialog__close', type: 'button', onclick: closeSubmitDialog }, icon('fa-times'))),
+				el('div', { class: 'dialog__body review-submit-dialog__body' }, body),
+				el('div', { class: 'dialog__actions' },
+					el('button', { class: 'btn btn--ghost', type: 'button', onclick: closeSubmitDialog }, S.cancel),
+					submitBtn)));
+		document.body.appendChild(overlay);
 	}
 
 	/* ---------- helpers ---------- */
@@ -610,7 +640,9 @@
 		setTimeout(() => t.remove(), 5000);
 	}
 
-	document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePopup(); });
+	document.addEventListener('keydown', (e) => {
+		if (e.key === 'Escape') { closePopup(); closeSubmitDialog(); }
+	});
 
 	// Give each suggestion an `original` display slice (markers dropped) for the gutter quote.
 	DATA.scenes.forEach((sc) => {

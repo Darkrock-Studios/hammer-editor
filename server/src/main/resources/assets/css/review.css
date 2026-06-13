@@ -337,6 +337,13 @@
 	}
 }
 
+.review-submit-dialog__body {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.97rem;
+	line-height: 1.6;
+	color: var(--neutral-700);
+}
+
 /* ===== Selection popup ===== */
 
 .review-popup {
