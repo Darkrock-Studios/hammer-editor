@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import io.fluidsonic.locale.Locale
+import com.darkrockstudios.apps.hammer.common.util.Locale
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import org.jetbrains.compose.resources.StringResource

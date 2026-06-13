@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.spellcheck
 
+import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import com.darkrockstudios.libs.platformspellchecker.SpLocale
-import io.fluidsonic.locale.Locale
 
 /**
  * Finds the best matching Language for a given Locale.

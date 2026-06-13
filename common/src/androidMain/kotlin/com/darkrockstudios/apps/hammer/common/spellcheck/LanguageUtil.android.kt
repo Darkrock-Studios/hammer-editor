@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.spellcheck
 
-import io.fluidsonic.locale.Locale
+import com.darkrockstudios.apps.hammer.common.util.Locale
 
 actual class LanguageUtil {
 	actual fun getCurrentLocale(): Locale {
