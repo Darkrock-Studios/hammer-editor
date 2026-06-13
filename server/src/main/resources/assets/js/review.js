@@ -126,11 +126,32 @@
 		return nav;
 	}
 
+	// A selection endpoint can land in inserted ink (the caret/replacement text,
+	// which carries no source offset). Snap to the nearest registered manuscript
+	// text node in the same paragraph so the selection still maps to source.
+	function snapToRegistered(node) {
+		const host = node.parentElement && node.parentElement.closest('[data-para]');
+		if (!host) return null;
+		const walker = document.createTreeWalker(host, NodeFilter.SHOW_TEXT);
+		let prevReg = null, seen = false, n;
+		while ((n = walker.nextNode())) {
+			if (n === node) { seen = true; continue; }
+			if (!nodeSrcStart.has(n)) continue;
+			if (!seen) { prevReg = n; continue; }
+			// first registered node after the endpoint
+			if (prevReg) return { node: prevReg, off: prevReg.nodeValue.length };
+			return { node: n, off: 0 };
+		}
+		return prevReg ? { node: prevReg, off: prevReg.nodeValue.length } : null;
+	}
+
 	// Resolve a selection endpoint to a concrete text position. Real drag
 	// selections often land on element nodes at run boundaries; descend to the
 	// nearest text node so those selections still produce a popup.
 	function resolvePoint(container, offset) {
-		if (container.nodeType === 3) return { node: container, off: offset };
+		if (container.nodeType === 3) {
+			return nodeSrcStart.has(container) ? { node: container, off: offset } : snapToRegistered(container);
+		}
 		if (container.nodeType !== 1) return null;
 		const before = container.childNodes[offset];
 		const probe = before || container.lastChild;
@@ -149,10 +170,12 @@
 		};
 		if (before) {
 			const tn = findText(before, false);
-			return tn ? { node: tn, off: 0 } : null;
+			if (!tn) return null;
+			return nodeSrcStart.has(tn) ? { node: tn, off: 0 } : snapToRegistered(tn);
 		}
 		const tn = findText(probe, true);
-		return tn ? { node: tn, off: tn.nodeValue.length } : null;
+		if (!tn) return null;
+		return nodeSrcStart.has(tn) ? { node: tn, off: tn.nodeValue.length } : snapToRegistered(tn);
 	}
 
 	function buildManuscript() {
@@ -351,7 +374,7 @@
 		const rect = ink.getBoundingClientRect();
 		const crect = manuscriptEl.getBoundingClientRect();
 		popup.top = rect.top - crect.top - 10;
-		popup.left = Math.max(120, Math.min(rect.left + rect.width / 2 - crect.left, crect.width - 120));
+		popup.left = clampCenter(rect.left + rect.width / 2 - crect.left, crect, popupHalfWidth());
 		renderPopup();
 	}
 
@@ -581,7 +604,7 @@
 	function openPopup(p, rect) {
 		const crect = manuscriptEl.getBoundingClientRect();
 		p.top = rect.top - crect.top - 10;
-		p.left = Math.max(120, Math.min(rect.left + rect.width / 2 - crect.left, crect.width - 120));
+		p.left = clampCenter(rect.left + rect.width / 2 - crect.left, crect, popupHalfWidth());
 		p.draft = '';
 		p.reason = '';
 		popup = p;
@@ -891,7 +914,8 @@
 		const rect = ink.getBoundingClientRect();
 		const crect = manuscriptEl.getBoundingClientRect();
 		wrap.style.top = (rect.top - crect.top - 6) + 'px';
-		wrap.style.left = Math.max(130, Math.min(rect.left + rect.width / 2 - crect.left, crect.width - 130)) + 'px';
+		// Tooltip max-width is 300px; clamp by its half so it can't spill off-card.
+		wrap.style.left = clampCenter(rect.left + rect.width / 2 - crect.left, crect, 150) + 'px';
 		manuscriptEl.appendChild(wrap);
 		tip = wrap;
 	}
@@ -1020,6 +1044,18 @@
 		return runsForRange(runs, start, end).map((r) => r.text).join('');
 	}
 	function clearSelection() { const sel = window.getSelection(); if (sel) sel.removeAllRanges(); }
+	/**
+	 * Clamp a horizontal center (relative to the manuscript) so a box of the given
+	 * half-width stays inside the manuscript card; centers it when the card is too
+	 * narrow to hold the box. Both popups and tooltips use translateX(-50%), so the
+	 * old fixed 120/130px margins let wide boxes spill off-screen on phones.
+	 */
+	function clampCenter(center, crect, half) {
+		const min = half;
+		const max = crect.width - half;
+		return max < min ? crect.width / 2 : Math.max(min, Math.min(center, max));
+	}
+	function popupHalfWidth() { return Math.min(330, window.innerWidth * 0.88) / 2; }
 	/** The server's localized {error} message from a failed JSON response, or a fallback. */
 	async function errorMessage(res, fallback) {
 		try {
@@ -1041,8 +1077,14 @@
 		setTimeout(() => t.remove(), 5000);
 	}
 
+	// Escape closes only the topmost layer, so dismissing a dialog opened over an
+	// in-progress suggestion popup doesn't also discard the popup's typed text.
 	document.addEventListener('keydown', (e) => {
-		if (e.key === 'Escape') { closePopup(); closeSubmitDialog(); closeCommitDialog(); closeWelcome(); }
+		if (e.key !== 'Escape') return;
+		if (document.getElementById('review-commit-dialog')) { closeCommitDialog(); return; }
+		if (document.getElementById('review-welcome-dialog')) { closeWelcome(); return; }
+		if (document.getElementById('review-submit-dialog')) { closeSubmitDialog(); return; }
+		if (popup) { closePopup(); return; }
 	});
 
 	// Give each suggestion an `original` display slice (markers dropped) for the gutter quote.
