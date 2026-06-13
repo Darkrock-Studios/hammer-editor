@@ -1,0 +1,62 @@
+{{> header}}
+
+<main class="review-page">
+	<div class="review-page__container">
+
+		<!-- Review masthead -->
+		<div class="review-masthead">
+			<div class="review-masthead__title-block">
+				<span class="review-masthead__overline">{{msg.review_page_overline}}</span>
+				<h1 class="review-masthead__title">{{projectName}}
+					<span class="review-masthead__author">&mdash; {{msg.review_page_by}} {{authorName}}</span>
+				</h1>
+			</div>
+			<div class="review-masthead__actions">
+				<div class="review-masthead__reviewer">
+					<span class="review-masthead__email"><i class="fa-solid fa-user-pen"></i> {{reviewerEmail}}</span>
+					{{#hasExpiry}}
+						<span class="review-masthead__expiry">{{expiryLine}}</span>
+					{{/hasExpiry}}
+				</div>
+				{{^locked}}
+					<button class="btn btn--accent review-submit-btn" id="review-submit-btn" type="button">
+						<i class="fa-solid fa-paper-plane"></i> {{msg.review_submit}}
+					</button>
+				{{/locked}}
+				{{#locked}}
+					<span class="review-submitted-pill"><i class="fa-solid fa-lock"></i> {{msg.review_status_submitted}}</span>
+				{{/locked}}
+			</div>
+		</div>
+
+		{{#locked}}
+			<div class="review-locked-banner">
+				<i class="fa-solid fa-lock"></i>
+				<span>{{msg.review_locked_banner}}</span>
+			</div>
+		{{/locked}}
+
+		{{#hasNote}}
+			<div class="review-note">
+				<span class="review-note__title"><i class="fa-solid fa-thumbtack"></i> {{msg.review_page_note_title}}</span>
+				<p class="review-note__body">{{note}}</p>
+			</div>
+		{{/hasNote}}
+
+		{{^locked}}
+			<div class="review-hint" id="review-hint">
+				<i class="fa-solid fa-highlighter"></i>
+				<span>{{msg.review_hint}}</span>
+			</div>
+		{{/locked}}
+
+		<!-- review.js renders the scene nav + manuscript + gutter into here -->
+		<div class="review-editor" id="review-editor"></div>
+
+	</div>
+</main>
+
+<script type="application/json" id="review-data">{{{reviewData}}}</script>
+<script type="application/json" id="review-strings">{{{reviewStrings}}}</script>
+
+{{> footer}}

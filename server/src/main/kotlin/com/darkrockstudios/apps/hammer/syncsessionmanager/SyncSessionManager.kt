@@ -26,6 +26,30 @@ class SyncSessionManager<K : Any, T : SynchronizationSession>(
 		return newSyncId
 	}
 
+	/**
+	 * Atomically claim the session slot for [key]: replaces an expired session or one
+	 * [canReplace] approves, otherwise leaves the holder in place and returns null.
+	 * Check-then-create via [hasActiveSyncSession]/[createNewSession] races concurrent
+	 * claimants; this does not.
+	 */
+	suspend fun claimSession(
+		key: K,
+		canReplace: (T) -> Boolean = { false },
+		createSession: (key: K, syncId: String) -> T,
+	): String? {
+		val newSyncId = syncIdGenerator.nextString()
+		var claimed = false
+		synchronizationSessions.compute(key) { _, existing ->
+			if (existing != null && !existing.isExpired(clock) && !canReplace(existing)) {
+				existing
+			} else {
+				claimed = true
+				createSession(key, newSyncId)
+			}
+		}
+		return if (claimed) newSyncId else null
+	}
+
 	fun hasActiveSyncSession(key: K): Boolean {
 		var isActive = false
 		synchronizationSessions.computeIfPresent(key) { _, session ->

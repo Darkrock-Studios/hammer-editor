@@ -92,6 +92,8 @@ class ApplicationTest : BaseTest() {
 			single { passwordResetRepository }
 			single { bioService }
 			single { markdownService }
+			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
+			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
 			single { mockk<Json>() }
 		}
 	}

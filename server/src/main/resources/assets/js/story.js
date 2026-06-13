@@ -238,3 +238,166 @@ function initSceneSelector() {
 		contentArea.scrollIntoView({behavior: 'smooth', block: 'start'});
 	});
 }
+
+/* ===== Editorial Review dialog ===== */
+
+// The dialog arrives via HTMX swap, so all listeners are delegated to document.
+
+/**
+ * Close the review dialog with animation
+ * @param {Event} event - Optional click event (for overlay clicks)
+ */
+function closeReviewDialog(event) {
+	if (event && event.target !== event.currentTarget) {
+		return;
+	}
+
+	const overlay = document.getElementById('review-dialog-overlay');
+	if (overlay) {
+		overlay.classList.add('closing');
+		setTimeout(function () {
+			const container = document.getElementById('review-dialog-container');
+			if (container) {
+				container.innerHTML = '';
+			}
+		}, 200);
+	}
+}
+
+/**
+ * Copy the review link (no-email fallback dialog)
+ */
+function copyReviewLink() {
+	const input = document.getElementById('review-link-url');
+	const button = document.getElementById('review-link-copy');
+	if (!input || !button) return;
+
+	const showCopied = function () {
+		const original = button.innerHTML;
+		button.innerHTML = '<i class="fa-solid fa-check"></i> ' + button.dataset.copiedLabel;
+		setTimeout(function () { button.innerHTML = original; }, 2000);
+	};
+
+	// navigator.clipboard is undefined on insecure (plain HTTP) self-hosted
+	// origins; fall back to execCommand like the publish copy button does.
+	const fallback = function () {
+		input.select();
+		try { document.execCommand('copy'); showCopied(); } catch (err) { /* nothing to do */ }
+	};
+
+	if (navigator.clipboard && navigator.clipboard.writeText) {
+		navigator.clipboard.writeText(input.value).then(showCopied, fallback);
+	} else {
+		fallback();
+	}
+}
+
+document.addEventListener('keydown', function (e) {
+	if (e.key === 'Escape') closeReviewDialog();
+});
+
+// Scene checkbox changes: update the count and gate the send button
+document.addEventListener('change', function (e) {
+	const form = document.getElementById('review-request-form');
+	if (!form || !form.contains(e.target)) return;
+	updateReviewFormState(form);
+});
+
+document.addEventListener('input', function (e) {
+	const form = document.getElementById('review-request-form');
+	if (!form || !form.contains(e.target)) return;
+	updateReviewFormState(form);
+});
+
+/** Every scene checkbox nested under a group toggle, to the next sibling at or above its depth. */
+function groupToggleBoxes(toggle) {
+	const groupDepth = parseInt(toggle.dataset.groupDepth, 10);
+	const groupRow = toggle.closest('.review-scene-group');
+	const boxes = [];
+	let node = groupRow ? groupRow.nextElementSibling : null;
+	while (node) {
+		if (node.classList.contains('review-scene-group')) {
+			const depth = parseInt(node.querySelector('.review-scene-group__toggle')?.dataset.groupDepth ?? '0', 10);
+			if (depth <= groupDepth) break;
+		} else if (node.classList.contains('review-scene-row')) {
+			const depth = parseInt(node.dataset.depth ?? '0', 10);
+			if (depth <= groupDepth) break;
+			boxes.push(node.querySelector('.review-scene-row__check'));
+		}
+		node = node.nextElementSibling;
+	}
+	return boxes;
+}
+
+// Group "Select all"/"Clear" buttons toggle every scene nested under the group
+document.addEventListener('click', function (e) {
+	const toggle = e.target.closest('.review-scene-group__toggle');
+	if (!toggle) return;
+	e.preventDefault();
+
+	toggleBoxes(groupToggleBoxes(toggle));
+
+	const form = document.getElementById('review-request-form');
+	if (form) updateReviewFormState(form);
+});
+
+// Master "Select all"/"Clear all" toggles every scene in the project
+document.addEventListener('click', function (e) {
+	const master = e.target.closest('.review-scene-master__toggle');
+	if (!master) return;
+	e.preventDefault();
+
+	const tree = document.getElementById('review-scene-tree');
+	if (!tree) return;
+	toggleBoxes(Array.from(tree.querySelectorAll('.review-scene-row__check')));
+
+	const form = document.getElementById('review-request-form');
+	if (form) updateReviewFormState(form);
+});
+
+/**
+ * Check all boxes if any are unchecked; otherwise clear them all.
+ * @param {HTMLInputElement[]} boxes - Checkbox inputs to toggle together
+ */
+function toggleBoxes(boxes) {
+	const anyUnchecked = boxes.some(function (b) { return b && !b.checked; });
+	boxes.forEach(function (b) { if (b) b.checked = anyUnchecked; });
+}
+
+/**
+ * Update the selected-scene count, the toggle button labels, and the send button
+ * @param {HTMLFormElement} form - The review request form
+ */
+function updateReviewFormState(form) {
+	const allBoxes = Array.from(form.querySelectorAll('.review-scene-row__check'));
+	const checked = allBoxes.filter(function (b) { return b.checked; }).length;
+	const email = form.querySelector('#review-email');
+	const sendBtn = form.querySelector('#review-send-btn');
+	const counter = document.getElementById('review-scene-count');
+
+	if (counter) {
+		const total = counter.dataset.total;
+		counter.textContent = checked === 0
+			? counter.dataset.noneLabel || 'none selected'
+			: checked + ' of ' + total + ' selected';
+	}
+
+	// Master toggle reads "Clear all" once everything is selected
+	const master = document.getElementById('review-select-all');
+	if (master) {
+		const allChecked = allBoxes.length > 0 && checked === allBoxes.length;
+		master.textContent = allChecked ? master.dataset.clearLabel : master.dataset.selectLabel;
+	}
+
+	// Each group toggle likewise flips to "Clear" once its whole subtree is checked,
+	// so it never silently clears scenes while still labelled "Select all".
+	form.querySelectorAll('.review-scene-group__toggle').forEach(function (toggle) {
+		const boxes = groupToggleBoxes(toggle);
+		const allChecked = boxes.length > 0 && boxes.every(function (b) { return b && b.checked; });
+		toggle.textContent = allChecked ? toggle.dataset.clearLabel : toggle.dataset.selectLabel;
+	});
+
+	if (sendBtn) {
+		sendBtn.disabled = checked === 0 || !email || !email.value.includes('@');
+	}
+}

@@ -1,0 +1,41 @@
+CREATE TABLE review_scene(
+    id BIGSERIAL PRIMARY KEY,
+    review_request_id BIGINT NOT NULL,
+    scene_id INTEGER NOT NULL,
+    draft_id INTEGER NOT NULL,
+    scene_name TEXT NOT NULL,
+    scene_order INTEGER NOT NULL,
+    snapshot_content TEXT NOT NULL,
+    reviewer_done BOOLEAN NOT NULL DEFAULT FALSE,
+    FOREIGN KEY(review_request_id) REFERENCES review_request(id) ON DELETE CASCADE
+);
+
+CREATE INDEX review_scene_request_idx ON review_scene (review_request_id);
+
+createScene:
+INSERT INTO review_scene(review_request_id, scene_id, draft_id, scene_name, scene_order, snapshot_content)
+VALUES (:reviewRequestId, :sceneId, :draftId, :sceneName, :sceneOrder, :snapshotContent);
+
+getScenesForRequest:
+SELECT * FROM review_scene
+WHERE review_request_id = :reviewRequestId
+ORDER BY scene_order;
+
+getScene:
+SELECT * FROM review_scene WHERE id = :id;
+
+setReviewerDone:
+UPDATE review_scene SET reviewer_done = :done WHERE id = :id;
+
+sceneProgressForRequest:
+SELECT COUNT(*) AS total, COUNT(CASE WHEN reviewer_done THEN 1 END) AS done
+FROM review_scene
+WHERE review_request_id = :reviewRequestId;
+
+sceneProgressForRequests:
+SELECT review_request_id,
+       COUNT(*) AS total,
+       COUNT(CASE WHEN reviewer_done THEN 1 END) AS done
+FROM review_scene
+WHERE review_request_id IN :reviewRequestIds
+GROUP BY review_request_id;

@@ -44,6 +44,7 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.testApplication
 import io.mockk.MockKAnnotations
+import io.mockk.mockk
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.impl.annotations.MockK
@@ -106,6 +107,8 @@ class ProjectDataRoutesTest : BaseTest() {
 			single { bioService }
 			single { passwordResetRepository }
 			single { markdownService }
+			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
+			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
 			single { json }
 		}
 	}

@@ -79,10 +79,6 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 		// never reached the server). The owner must be able to begin again rather than being
 		// locked out until it expires.
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
-		every { projectSessionManager.getActiveSyncSession(any()) } returns ProjectSynchronizationSession(
-			userId, projectDefinition, clock.now(), "stale-sync-id", installId
-		)
-		every { projectSessionManager.terminateSession(any()) } returns true
 
 		coEvery {
 			projectEntityDatasource.checkProjectExists(userId, projectDefinition)
@@ -91,7 +87,12 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 			projectEntityDatasource.loadProjectSyncData(userId, projectDefinition)
 		} returns syncData
 
-		mockCreateSession(syncId)
+		mockCreateSession(
+			syncId,
+			existing = ProjectSynchronizationSession(
+				userId, projectDefinition, clock.now(), "stale-sync-id", installId
+			),
+		)
 
 		createProjectRepository().apply {
 			val result = beginProjectSync(userId, projectDefinition, clientState, false, installId)
@@ -99,20 +100,22 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 			assertTrue(isSuccess(result))
 			assertTrue(result.data.syncId.isNotBlank())
 		}
-
-		verify { projectSessionManager.terminateSession(ProjectSyncKey(userId, projectDefinition)) }
 	}
 
 	@Test
 	fun `Begin Project Sync is rejected when another install holds an active session`() = runTest {
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
-		every { projectSessionManager.getActiveSyncSession(any()) } returns ProjectSynchronizationSession(
-			userId, projectDefinition, clock.now(), "other-sync-id", "other-install"
-		)
 
 		coEvery {
 			projectEntityDatasource.checkProjectExists(userId, projectDefinition)
 		} returns true
+
+		mockCreateSession(
+			"unused-sync-id",
+			existing = ProjectSynchronizationSession(
+				userId, projectDefinition, clock.now(), "other-sync-id", "other-install"
+			),
+		)
 
 		createProjectRepository().apply {
 			val result = beginProjectSync(userId, projectDefinition, clientState, false, "install-1")

@@ -1,0 +1,64 @@
+import kotlinx.datetime.Instant;
+
+CREATE TABLE review_request(
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    project_id BIGINT NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    reviewer_email TEXT NOT NULL,
+    label TEXT NOT NULL,
+    note TEXT,
+    status TEXT NOT NULL,
+    created TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    expires TIMESTAMPTZ AS Instant,
+    opened_at TIMESTAMPTZ AS Instant,
+    last_active_at TIMESTAMPTZ AS Instant,
+    submitted_at TIMESTAMPTZ AS Instant,
+    resolved_at TIMESTAMPTZ AS Instant,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE
+);
+
+CREATE INDEX review_request_project_idx ON review_request (user_id, project_id);
+
+createRequest:
+INSERT INTO review_request(user_id, project_id, token, reviewer_email, label, note, status, expires)
+VALUES (:userId, :projectId, :token, :reviewerEmail, :label, :note, :status, :expires);
+
+getRequestByToken:
+SELECT * FROM review_request WHERE token = :token;
+
+getRequest:
+SELECT * FROM review_request WHERE id = :id AND user_id = :userId;
+
+getRequestsForProject:
+SELECT * FROM review_request
+WHERE user_id = :userId AND project_id = :projectId
+ORDER BY created DESC;
+
+-- Every status write below is guarded on the current status so a racing
+-- transition (revoke, submit, resolve) can never be silently overwritten.
+
+deleteRequest:
+DELETE FROM review_request WHERE id = :id;
+
+updateStatus:
+UPDATE review_request SET status = :status WHERE id = :id AND status IN :allowed;
+
+markOpened:
+UPDATE review_request
+SET status = :status, opened_at = :at, last_active_at = :at
+WHERE id = :id AND status = :expected;
+
+touchActivity:
+UPDATE review_request SET status = :status, last_active_at = :at
+WHERE id = :id AND status IN :allowed;
+
+markSubmitted:
+UPDATE review_request
+SET status = :status, submitted_at = :at, last_active_at = :at
+WHERE id = :id AND status IN :allowed;
+
+markResolved:
+UPDATE review_request SET status = :status, resolved_at = :at
+WHERE id = :id AND status = :expected;

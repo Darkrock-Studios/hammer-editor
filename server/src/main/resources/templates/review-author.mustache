@@ -1,0 +1,51 @@
+{{> header}}
+
+<main class="review-page">
+	<div class="review-page__container">
+
+		<!-- Author review masthead -->
+		<div class="review-masthead">
+			<div class="review-masthead__title-block">
+				<span class="review-masthead__overline">{{msg.review_page_overline}}</span>
+				<h1 class="review-masthead__title">{{projectName}}</h1>
+			</div>
+			<div class="review-masthead__actions">
+				<div class="review-masthead__reviewer">
+					<span class="review-masthead__email"><i class="fa-solid fa-user-pen"></i> {{reviewerLine}} &middot; {{reviewerEmail}}</span>
+					<span class="review-masthead__expiry">{{submittedLine}}</span>
+				</div>
+				{{^resolved}}
+					<button class="btn btn--accent review-submit-btn" id="review-commit-btn" type="button">
+						<i class="fa-solid fa-stamp"></i> {{msg.review_commit}}
+					</button>
+				{{/resolved}}
+				{{#resolved}}
+					<span class="review-submitted-pill"><i class="fa-solid fa-circle-check"></i> {{msg.review_status_resolved}}</span>
+				{{/resolved}}
+			</div>
+		</div>
+
+		{{#resolved}}
+			<div class="review-locked-banner">
+				<i class="fa-solid fa-circle-check"></i>
+				<span>{{resolvedLine}}</span>
+			</div>
+		{{/resolved}}
+
+		{{^resolved}}
+			<div class="review-hint" id="review-hint">
+				<i class="fa-solid fa-stamp"></i>
+				<span>{{msg.review_author_hint}}</span>
+			</div>
+		{{/resolved}}
+
+		<!-- review.js renders the scene nav + manuscript + gutter into here -->
+		<div class="review-editor" id="review-editor"></div>
+
+	</div>
+</main>
+
+<script type="application/json" id="review-data">{{{reviewData}}}</script>
+<script type="application/json" id="review-strings">{{{reviewStrings}}}</script>
+
+{{> footer}}

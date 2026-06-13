@@ -61,31 +61,27 @@ class ProjectsRepository(
 	}
 
 	suspend fun beginProjectsSync(userId: Long): SResult<ProjectsBeginSyncData> {
-		return if (syncSessionManager.hasActiveSyncSession(userId)) {
-			SResult.failure(
-				"User $userId already has a synchronization session",
-				Msg.r("api_project_sync_begin_error_session", userId)
+		val newSyncId = syncSessionManager.claimSession(userId) { user, sync ->
+			ProjectsSynchronizationSession(
+				userId = user,
+				started = clock.now(),
+				syncId = sync
 			)
-		} else {
-			val newSyncId = syncSessionManager.createNewSession(userId) { user, sync ->
-				ProjectsSynchronizationSession(
-					userId = user,
-					started = clock.now(),
-					syncId = sync
-				)
-			}
+		} ?: return SResult.failure(
+			"User $userId already has a synchronization session",
+			Msg.r("api_project_sync_begin_error_session", userId)
+		)
 
-			val projects = projectsDatasource.getProjects(userId)
-			val deletedProjects = getDeletedProjects(userId)
+		val projects = projectsDatasource.getProjects(userId)
+		val deletedProjects = getDeletedProjects(userId)
 
-			val data = ProjectsBeginSyncData(
-				syncId = newSyncId,
-				projects = projects,
-				deletedProjects = deletedProjects
-			)
+		val data = ProjectsBeginSyncData(
+			syncId = newSyncId,
+			projects = projects,
+			deletedProjects = deletedProjects
+		)
 
-			SResult.success(data)
-		}
+		return SResult.success(data)
 	}
 
 	suspend fun endProjectsSync(userId: Long, syncId: String): SResult<Unit> {

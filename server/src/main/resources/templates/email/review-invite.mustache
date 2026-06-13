@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<style>
+		body {
+			font-family: Georgia, 'Times New Roman', serif;
+			line-height: 1.6;
+			color: #292524;
+			background-color: #f5f5f4;
+		}
+
+		.container {
+			max-width: 600px;
+			margin: 0 auto;
+			padding: 24px;
+			background-color: #fffef9;
+			border-top: 4px solid #d97706;
+		}
+
+		h1 {
+			font-family: 'Courier New', Courier, monospace;
+			font-weight: normal;
+			font-size: 24px;
+			color: #1c1917;
+		}
+
+		.note {
+			background-color: #fef9e7;
+			border-left: 3px solid #d97706;
+			padding: 12px 16px;
+			margin: 20px 0;
+			font-style: italic;
+		}
+
+		.note-title {
+			font-family: 'Courier New', Courier, monospace;
+			font-style: normal;
+			font-size: 12px;
+			letter-spacing: 1px;
+			text-transform: uppercase;
+			color: #b45309;
+			display: block;
+			margin-bottom: 6px;
+		}
+
+		.button {
+			display: inline-block;
+			padding: 12px 24px;
+			background-color: #d97706;
+			color: #fffef9 !important;
+			text-decoration: none !important;
+			border-radius: 6px;
+			margin: 20px 0;
+			font-family: 'Courier New', Courier, monospace;
+			font-weight: bold;
+		}
+
+		.footer {
+			margin-top: 30px;
+			font-size: 12px;
+			color: #78716c;
+		}
+	</style>
+</head>
+<body>
+<div class="container">
+	<h1>{{title}}</h1>
+	<p>{{intro}}</p>
+	{{#hasNote}}
+		<div class="note">
+			<span class="note-title">{{msg.review_page_note_title}}</span>
+			{{note}}
+		</div>
+	{{/hasNote}}
+	<p>{{msg.review_invite_explain}}</p>
+	<a href="{{reviewUrl}}" class="button"
+	   style="color: #fffef9; text-decoration: none;">{{msg.review_invite_button}}</a>
+	<p>{{msg.review_invite_or_copy}}</p>
+	<p><a href="{{reviewUrl}}">{{reviewUrl}}</a></p>
+	<p><strong>{{expiryLine}}</strong></p>
+	<p>{{msg.review_invite_ignore}}</p>
+	<div class="footer">
+		<p>{{msg.review_invite_footer}}</p>
+	</div>
+</div>
+</body>
+</html>

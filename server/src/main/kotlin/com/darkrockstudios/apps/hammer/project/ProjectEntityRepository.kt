@@ -65,15 +65,22 @@ class ProjectEntityRepository(
 			return SResult.failure(ProjectNotFound(projectDef))
 		}
 
-		// Reclaim a stale session for a given installId
-		val activeSession = sessionManager.getActiveSyncSession(syncKey)
-		if (activeSession != null && activeSession.installId != installId) {
-			return SResult.failure(
-				"begin sync failure: active session on another install",
-				Msg.r("api_project_sync_begin_error_session", userId)
+		// Atomically claim the slot, reclaiming only this install's own stale session
+		val newSyncId = sessionManager.claimSession(
+			syncKey,
+			canReplace = { it.installId == installId },
+		) { key: ProjectSyncKey, sync: String ->
+			ProjectSynchronizationSession(
+				userId = key.userId,
+				projectDef = key.projectDef,
+				started = clock.now(),
+				syncId = sync,
+				installId = installId,
 			)
-		}
-		sessionManager.terminateSession(syncKey)
+		} ?: return SResult.failure(
+			"begin sync failure: active session on another install",
+			Msg.r("api_project_sync_begin_error_session", userId)
+		)
 
 		var projectSyncData = projectEntityDatasource.loadProjectSyncData(userId, projectDef)
 
@@ -81,17 +88,6 @@ class ProjectEntityRepository(
 			val lastId = projectEntityDatasource.findLastId(userId, projectDef)
 			projectSyncData = projectSyncData.copy(lastId = lastId ?: -1)
 		}
-
-		val newSyncId =
-			sessionManager.createNewSession(syncKey) { key: ProjectSyncKey, sync: String ->
-				ProjectSynchronizationSession(
-					userId = key.userId,
-					projectDef = key.projectDef,
-					started = clock.now(),
-					syncId = sync,
-					installId = installId,
-				)
-			}
 
 		val updateSequence = getUpdateSequence(userId, projectDef, clientState, lite)
 		val syncBegan = ProjectSynchronizationBegan(

@@ -130,18 +130,28 @@ abstract class ProjectEntityRepositoryBaseTest : BaseTest() {
 		setupKoin(testModule)
 	}
 
-	protected fun mockCreateSession(syncId: String) {
+	/**
+	 * Stub claimSession with real-manager semantics: an [existing] session is kept
+	 * (claim returns null) unless the repository's canReplace approves replacing it.
+	 */
+	protected fun mockCreateSession(syncId: String, existing: ProjectSynchronizationSession? = null) {
+		val canReplaceSlot = slot<(ProjectSynchronizationSession) -> Boolean>()
 		val createSessionSlot =
 			slot<(key: ProjectSyncKey, syncId: String) -> ProjectSynchronizationSession>()
 		val key = ProjectSyncKey(userId, projectDefinition)
 		coEvery {
-			projectSessionManager.createNewSession(
+			projectSessionManager.claimSession(
 				key,
+				capture(canReplaceSlot),
 				capture(createSessionSlot)
 			)
 		} coAnswers {
-			val session = createSessionSlot.captured(key, syncId)
-			session.syncId
+			if (existing != null && !canReplaceSlot.captured(existing)) {
+				null
+			} else {
+				val session = createSessionSlot.captured(key, syncId)
+				session.syncId
+			}
 		}
 	}
 

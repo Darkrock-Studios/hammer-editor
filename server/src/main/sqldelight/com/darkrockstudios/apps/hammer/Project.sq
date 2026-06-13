@@ -87,6 +87,11 @@ SELECT id
 FROM project
 WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);
 
+getProjectByRowId:
+SELECT *
+FROM project
+WHERE id = :id;
+
 deleteProject:
 DELETE FROM project
 WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);
