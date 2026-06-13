@@ -70,6 +70,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDragHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
@@ -297,7 +298,8 @@ fun TimeLineOverviewUi(
 			vertical = Ui.Padding.L,
 		)
 
-		val eventRow: @Composable (TimeLineEvent) -> Unit = { event ->
+		val eventRow: @Composable (event: TimeLineEvent, draggable: Boolean) -> Unit =
+			{ event, draggable ->
 			val isLast = visibleEvents.lastOrNull()?.id == event.id
 			Box(
 				modifier = Modifier
@@ -310,6 +312,7 @@ fun TimeLineOverviewUi(
 					activeTags = activeTags,
 					onTagClick = toggleTag,
 					onClick = { viewEvent(event.id) },
+					isDraggable = draggable,
 					sharedTransitionScope = sharedTransitionScope,
 					animatedVisibilityScope = animatedVisibilityScope,
 				)
@@ -349,7 +352,7 @@ fun TimeLineOverviewUi(
 						.testTag(TIME_LINE_LIST_TAG),
 					contentPadding = listContentPadding,
 				) { event, _ ->
-					eventRow(event)
+					eventRow(event, true)
 				}
 			}
 
@@ -364,7 +367,7 @@ fun TimeLineOverviewUi(
 						items = visibleEvents,
 						key = { event -> event.id },
 					) { event ->
-						eventRow(event)
+						eventRow(event, false)
 					}
 				}
 			}
@@ -382,6 +385,7 @@ internal fun EventCard(
 	onClick: () -> Unit,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
+	isDraggable: Boolean = false,
 ) {
 	val hammerColors = LocalHammerColors.current
 	val railColor = MaterialTheme.colorScheme.outlineVariant
@@ -459,6 +463,9 @@ internal fun EventCard(
 							.testTag(EVENT_CARD_DATE_TAG),
 					)
 					Spacer(modifier = Modifier.weight(1f))
+					if (isDraggable) {
+						HdDragHandle()
+					}
 				}
 
 				HorizontalDivider(
