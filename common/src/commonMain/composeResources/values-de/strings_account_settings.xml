@@ -61,6 +61,7 @@
 	<string name="remove_local_dialog_title">Lokalen Inhalt löschen?</string>
 	<string name="remove_local_dialog_message">Sollen wir deine aktuellen lokalen Inhalte vor der Synchronisierung entfernen? Falls nicht, werden wir versuchen, deine lokalen Inhalte mit den Serverinhalten zusammenzuführen. Wenn der Inhalt nicht miteinander kompatibel ist, kann es zu Problemen kommen.</string>
 	<string name="settings_platform_settings_title">Plattform-Einstellungen</string>
+	<string name="settings_platform_settings_empty">No platform-specific settings.</string>
 	<string name="settings_keep_screen_on">Bildschirm nicht ausschalten</string>
 	<string name="settings_enable_dnd_focus_mode_title">\"Nicht stören\" im Fokus-Modus aktivieren</string>
 	<string name="settings_dnd_permission_button">\"Bitte nicht stören\"-Berechtigung gewähren</string>
