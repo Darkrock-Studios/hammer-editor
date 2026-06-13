@@ -132,15 +132,31 @@ a:focus-visible {
 
 /* Header/Navigation */
 .site-header {
-	background: var(--surface-elevated);
 	border-bottom: 2px solid var(--neutral-200);
 	padding: 1.25rem 0;
 	position: sticky;
 	top: 0;
 	z-index: 100;
-	backdrop-filter: blur(8px);
-	background: rgba(255, 255, 255, 0.95);
 	box-shadow: var(--shadow-sm);
+}
+
+/*
+ * The frosted-glass background lives on a pseudo-element rather than on
+ * .site-header itself. If backdrop-filter is applied to the header, the
+ * header becomes the containing block AND stacking context for the fixed
+ * mobile nav drawer nested inside it, trapping the drawer in the header's
+ * layer so it renders beneath page content (e.g. the home page hero).
+ * Keeping the filter on a pseudo-element preserves the look without
+ * trapping the drawer.
+ */
+.site-header::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	z-index: -1;
+	background: rgba(255, 255, 255, 0.95);
+	backdrop-filter: blur(8px);
+	pointer-events: none;
 }
 
 .header-container {
