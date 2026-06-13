@@ -55,7 +55,7 @@ moko_permissions = "0.20.1"
 decompose = "3.5.0"
 essenty = "2.5.0" # This should match whatever decompose is referncing internally
 
-filekit = "0.14.1"
+filekit = "0.14.2"
 koalaplot-core = "0.11.2"
 coil = "3.4.0"
 kmpalette = "3.1.0"
