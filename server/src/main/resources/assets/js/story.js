@@ -272,13 +272,24 @@ function copyReviewLink() {
 	const button = document.getElementById('review-link-copy');
 	if (!input || !button) return;
 
-	navigator.clipboard.writeText(input.value).then(function () {
+	const showCopied = function () {
 		const original = button.innerHTML;
 		button.innerHTML = '<i class="fa-solid fa-check"></i> ' + button.dataset.copiedLabel;
-		setTimeout(function () {
-			button.innerHTML = original;
-		}, 2000);
-	});
+		setTimeout(function () { button.innerHTML = original; }, 2000);
+	};
+
+	// navigator.clipboard is undefined on insecure (plain HTTP) self-hosted
+	// origins; fall back to execCommand like the publish copy button does.
+	const fallback = function () {
+		input.select();
+		try { document.execCommand('copy'); showCopied(); } catch (err) { /* nothing to do */ }
+	};
+
+	if (navigator.clipboard && navigator.clipboard.writeText) {
+		navigator.clipboard.writeText(input.value).then(showCopied, fallback);
+	} else {
+		fallback();
+	}
 }
 
 document.addEventListener('keydown', function (e) {
@@ -298,16 +309,12 @@ document.addEventListener('input', function (e) {
 	updateReviewFormState(form);
 });
 
-// Group "Select all"/"Clear" buttons toggle every scene nested under the group
-document.addEventListener('click', function (e) {
-	const toggle = e.target.closest('.review-scene-group__toggle');
-	if (!toggle) return;
-	e.preventDefault();
-
+/** Every scene checkbox nested under a group toggle, to the next sibling at or above its depth. */
+function groupToggleBoxes(toggle) {
 	const groupDepth = parseInt(toggle.dataset.groupDepth, 10);
 	const groupRow = toggle.closest('.review-scene-group');
 	const boxes = [];
-	let node = groupRow.nextElementSibling;
+	let node = groupRow ? groupRow.nextElementSibling : null;
 	while (node) {
 		if (node.classList.contains('review-scene-group')) {
 			const depth = parseInt(node.querySelector('.review-scene-group__toggle')?.dataset.groupDepth ?? '0', 10);
@@ -319,8 +326,16 @@ document.addEventListener('click', function (e) {
 		}
 		node = node.nextElementSibling;
 	}
+	return boxes;
+}
 
-	toggleBoxes(boxes);
+// Group "Select all"/"Clear" buttons toggle every scene nested under the group
+document.addEventListener('click', function (e) {
+	const toggle = e.target.closest('.review-scene-group__toggle');
+	if (!toggle) return;
+	e.preventDefault();
+
+	toggleBoxes(groupToggleBoxes(toggle));
 
 	const form = document.getElementById('review-request-form');
 	if (form) updateReviewFormState(form);
@@ -373,6 +388,14 @@ function updateReviewFormState(form) {
 		const allChecked = allBoxes.length > 0 && checked === allBoxes.length;
 		master.textContent = allChecked ? master.dataset.clearLabel : master.dataset.selectLabel;
 	}
+
+	// Each group toggle likewise flips to "Clear" once its whole subtree is checked,
+	// so it never silently clears scenes while still labelled "Select all".
+	form.querySelectorAll('.review-scene-group__toggle').forEach(function (toggle) {
+		const boxes = groupToggleBoxes(toggle);
+		const allChecked = boxes.length > 0 && boxes.every(function (b) { return b && b.checked; });
+		toggle.textContent = allChecked ? toggle.dataset.clearLabel : toggle.dataset.selectLabel;
+	});
 
 	if (sendBtn) {
 		sendBtn.disabled = checked === 0 || !email || !email.value.includes('@');
