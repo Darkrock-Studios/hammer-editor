@@ -13,6 +13,12 @@ data class ServerConfig(
 	val host: String = "localhost",
 	val port: Int = 8080,
 	val sslPort: Int = 443,
+	/**
+	 * The externally visible base URL (e.g. "https://hammer.example.com"), used for
+	 * links placed in emails. Set this when running behind a reverse proxy; otherwise
+	 * links are derived from each request's Host header.
+	 */
+	val publicUrl: String? = null,
 	val sslCert: SslCertConfig? = null,
 	val patreonEnabled: Boolean? = null,
 	val emailProvider: String? = null,

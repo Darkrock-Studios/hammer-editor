@@ -830,22 +830,13 @@ private suspend fun ApplicationCall.respondReviewErrorModel(title: String, body:
 	respond(HttpStatusCode.Gone, MustacheContent("review-error.mustache", model))
 }
 
-private fun ApplicationCall.constructBaseUrl(): String {
-	val scheme = request.origin.scheme
-	val host = request.host()
-	val port = request.port()
-	return if (port == 80 || port == 443) {
-		"$scheme://$host"
-	} else {
-		"$scheme://$host:$port"
-	}
-}
+private fun ApplicationCall.constructBaseUrl(): String = publicBaseUrl()
 
 private fun ApplicationCall.constructReviewUrl(token: String): String =
 	"${constructBaseUrl()}/review/$token"
 
 internal fun formatReviewDate(instant: Instant): String =
-	DateTimeFormatter.ofPattern("MMM d, yyyy")
+	DateTimeFormatter.ofPattern("MMM d, yyyy", java.util.Locale.ENGLISH)
 		.withZone(ZoneOffset.UTC)
 		.format(instant.toJavaInstant())
 

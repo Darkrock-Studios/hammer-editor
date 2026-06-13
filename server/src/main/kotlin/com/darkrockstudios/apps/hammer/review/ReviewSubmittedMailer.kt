@@ -2,12 +2,8 @@ package com.darkrockstudios.apps.hammer.review
 
 import com.darkrockstudios.apps.hammer.email.EmailResult
 import com.darkrockstudios.apps.hammer.email.EmailService
-import com.github.mustachejava.DefaultMustacheFactory
 import org.slf4j.LoggerFactory
-import java.io.StringWriter
-import java.text.MessageFormat
 import java.util.Locale
-import java.util.ResourceBundle
 
 /** Tells the author their reviewer has submitted, with a link to the review page. */
 class ReviewSubmittedMailer(
@@ -21,11 +17,9 @@ class ReviewSubmittedMailer(
 		reviewUrl: String,
 		locale: Locale,
 	): EmailResult {
-		val messages = loadMessages(locale)
-		fun m(key: String, vararg args: Any): String {
-			val raw = messages[key] ?: key
-			return if (args.isEmpty()) raw else MessageFormat.format(raw, *args)
-		}
+		val messages = ReviewMailTemplates.loadMessages(locale)
+		fun m(key: String, vararg args: Any): String =
+			ReviewMailTemplates.format(messages, key, *args)
 
 		val tally = if (suggestionCount == 1L) {
 			m("review_submit_tally_one")
@@ -43,7 +37,7 @@ class ReviewSubmittedMailer(
 		val result = emailService.sendEmail(
 			to = toEmail,
 			subject = m("review_submitted_subject", reviewerLabel, projectName),
-			bodyHtml = renderTemplate("email/review-submitted.mustache", model),
+			bodyHtml = ReviewMailTemplates.render("email/review-submitted.mustache", model),
 			bodyText = buildTextBody(messages, reviewerLabel, projectName, tally, reviewUrl),
 		)
 		if (result is EmailResult.Failure) {
@@ -59,37 +53,23 @@ class ReviewSubmittedMailer(
 		tally: String,
 		reviewUrl: String,
 	): String {
-		fun t(key: String, vararg args: Any): String {
-			val raw = messages[key] ?: key
-			return if (args.isEmpty()) raw else MessageFormat.format(raw, *args)
-		}
-		return """
-			${t("review_submitted_title")}
+		fun t(key: String, vararg args: Any): String =
+			ReviewMailTemplates.format(messages, key, *args)
 
-			${t("review_submitted_intro", reviewerLabel, projectName, tally)}
-
-			${t("review_submitted_button")}:
-			$reviewUrl
-
-			---
-			${t("review_invite_footer")}
-		""".trimIndent()
-	}
-
-	private fun loadMessages(locale: Locale): Map<String, String> {
-		val bundle = ResourceBundle.getBundle("i18n.Messages", locale)
-		return bundle.keys.asSequence().associateWith { key -> bundle.getString(key) }
-	}
-
-	private fun renderTemplate(templatePath: String, model: Map<String, Any?>): String {
-		val mustache = mustacheFactory.compile(templatePath)
-		val writer = StringWriter()
-		mustache.execute(writer, model)
-		return writer.toString()
+		return buildList {
+			add(t("review_submitted_title"))
+			add("")
+			add(t("review_submitted_intro", reviewerLabel, projectName, tally))
+			add("")
+			add("${t("review_submitted_button")}:")
+			add(reviewUrl)
+			add("")
+			add("---")
+			add(t("review_invite_footer"))
+		}.joinToString("\n")
 	}
 
 	companion object {
-		private val mustacheFactory = DefaultMustacheFactory("templates")
 		private val logger = LoggerFactory.getLogger(ReviewSubmittedMailer::class.java)
 	}
 }
