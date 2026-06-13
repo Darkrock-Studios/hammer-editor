@@ -88,6 +88,9 @@ class ReviewRepository(
 		if (EmailValidator.validate(reviewerEmail).not()) {
 			return SResult.failure("Invalid email", Msg.r("api_review_create_error_invalid_email"))
 		}
+		if (label.length > MAX_LABEL_LENGTH || (note?.length ?: 0) > MAX_NOTE_LENGTH) {
+			return SResult.failure("Label or note too long", Msg.r("api_review_create_error_too_long"))
+		}
 
 		val projectDef = projectEntityDatasource.getProject(userId, projectId)
 			?: return SResult.failure("Project not found", Msg.r("api_review_create_error_project_not_found"))
@@ -329,9 +332,16 @@ class ReviewRepository(
 		) {
 			return SResult.failure("Missing replacement", Msg.r("api_review_suggestion_error_invalid"))
 		}
+		if ((replacement?.length ?: 0) > MAX_REPLACEMENT_LENGTH || (reason?.length ?: 0) > MAX_REASON_LENGTH) {
+			return SResult.failure("Suggestion too long", Msg.r("api_review_suggestion_error_too_long"))
+		}
+		if (type == ReviewSuggestionType.COMMENT && reason?.trim().isNullOrEmpty()) {
+			return SResult.failure("Missing comment", Msg.r("api_review_suggestion_error_invalid"))
+		}
 
-		// Reject ranges that overlap an existing edit in the same paragraph; a caret
-		// insert may not land strictly inside another suggestion's span.
+		// Reject ranges that overlap an existing edit in the same paragraph. A caret
+		// may not land strictly inside another suggestion's span, and a range edit may
+		// not span an existing caret — applying both would swallow the insertion.
 		val existing = reviewSuggestionDao.getSuggestionsForScene(reviewSceneId)
 			.filter { it.paragraph == paragraph }
 		for (s in existing) {
@@ -395,6 +405,9 @@ class ReviewRepository(
 		val newReason = reason?.trim()?.ifEmpty { null }
 		if (type == ReviewSuggestionType.COMMENT && newReason == null) {
 			return SResult.failure("Missing comment", Msg.r("api_review_suggestion_error_invalid"))
+		}
+		if ((newReplacement?.length ?: 0) > MAX_REPLACEMENT_LENGTH || (newReason?.length ?: 0) > MAX_REASON_LENGTH) {
+			return SResult.failure("Suggestion too long", Msg.r("api_review_suggestion_error_too_long"))
 		}
 
 		reviewSuggestionDao.updateSuggestionContent(suggestionId, newReplacement, newReason, clock.now())
@@ -767,5 +780,12 @@ class ReviewRepository(
 			.trim()
 
 		private const val MAX_DRAFT_NAME_LENGTH = 128
+
+		// Generous caps on free-text fields; the anonymous token endpoints
+		// must not accept unbounded input.
+		const val MAX_REPLACEMENT_LENGTH = 10_000
+		const val MAX_REASON_LENGTH = 5_000
+		const val MAX_NOTE_LENGTH = 2_000
+		const val MAX_LABEL_LENGTH = 100
 	}
 }

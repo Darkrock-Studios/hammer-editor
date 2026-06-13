@@ -147,6 +147,31 @@ class ReviewSuggestionTest : EndToEndTest() {
 	}
 
 	@Test
+	fun `over-long suggestion content is rejected`(): Unit = runBlocking {
+		doStartServer()
+		val sceneId = seed()
+
+		val longReplacement = postSuggestion(
+			sceneId,
+			mapOf("type" to "reword", "paragraph" to "0", "start" to "25", "end" to "35", "replacement" to "x".repeat(10_001)),
+		)
+		assertEquals(HttpStatusCode.Conflict, longReplacement.status)
+
+		val longComment = postSuggestion(
+			sceneId,
+			mapOf("type" to "comment", "paragraph" to "0", "start" to "25", "end" to "35", "reason" to "x".repeat(5_001)),
+		)
+		assertEquals(HttpStatusCode.Conflict, longComment.status)
+
+		// At the cap is still fine
+		val atCap = postSuggestion(
+			sceneId,
+			mapOf("type" to "reword", "paragraph" to "0", "start" to "25", "end" to "35", "replacement" to "x".repeat(10_000)),
+		)
+		assertEquals(HttpStatusCode.OK, atCap.status)
+	}
+
+	@Test
 	fun `editing a reword to an empty replacement is rejected`(): Unit = runBlocking {
 		doStartServer()
 		val sceneId = seed()
@@ -167,7 +192,10 @@ class ReviewSuggestionTest : EndToEndTest() {
 	fun `reviewer deletes a suggestion`(): Unit = runBlocking {
 		doStartServer()
 		val sceneId = seed()
-		val created = postSuggestion(sceneId, mapOf("type" to "comment", "paragraph" to "0", "start" to "25", "end" to "35"))
+		val created = postSuggestion(
+			sceneId,
+			mapOf("type" to "comment", "paragraph" to "0", "start" to "25", "end" to "35", "reason" to "Needs a citation"),
+		)
 		val id = Regex("\"id\":(\\d+)").find(created.bodyAsText())!!.groupValues[1]
 
 		val del = client().delete(route("review/$plainToken/suggestions/$id"))

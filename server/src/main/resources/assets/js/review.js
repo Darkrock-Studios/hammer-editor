@@ -633,6 +633,8 @@
 			const textarea = el('textarea', {
 				class: 'review-popup__textarea',
 				placeholder: popup.mode === 'comment' ? S.commentPlaceholder : S.typePlaceholder,
+				// Server caps: replacement 10000, reason 5000; insert keeps one char for the smart space
+				maxlength: popup.mode === 'comment' ? 5000 : popup.mode === 'insert' ? 9999 : 10000,
 				oninput: (e) => { popup.draft = e.target.value; saveBtn.disabled = !popup.draft.trim(); },
 			});
 			textarea.value = popup.draft || '';
@@ -641,7 +643,7 @@
 		}
 		if (popup.mode !== 'comment') {
 			const reasonInput = el('input', {
-				class: 'review-popup__reason', placeholder: S.reasonPlaceholder,
+				class: 'review-popup__reason', placeholder: S.reasonPlaceholder, maxlength: 5000,
 				oninput: (e) => { popup.reason = e.target.value; },
 			});
 			reasonInput.value = popup.reason || '';

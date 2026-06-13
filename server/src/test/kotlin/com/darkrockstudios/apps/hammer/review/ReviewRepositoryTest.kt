@@ -421,6 +421,16 @@ class ReviewRepositoryTest : BaseTest() {
 			userId, projectId, "reviewer@example.com", "label", null, null, listOf(1, 1)
 		)
 		assertTrue(isFailure(dupes))
+
+		val longLabel = repo.createReviewRequest(
+			userId, projectId, "reviewer@example.com", "x".repeat(101), null, null, listOf(1)
+		)
+		assertTrue(isFailure(longLabel))
+
+		val longNote = repo.createReviewRequest(
+			userId, projectId, "reviewer@example.com", "label", "x".repeat(2001), null, listOf(1)
+		)
+		assertTrue(isFailure(longNote))
 	}
 
 	@Test
