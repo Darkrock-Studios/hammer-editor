@@ -453,26 +453,45 @@
 		}, icon(ic), ' ' + label);
 	}
 
-	async function setStatus(s, status) {
+	// One decision (or bulk run) at a time: a second click while a status POST is
+	// in flight would race, and an out-of-order response would desync the chip
+	// from what the server stored.
+	let busy = false;
+
+	/** POST one status change and update the local suggestion. No re-render. */
+	async function postStatus(s, status) {
 		try {
 			const res = await fetch(BASE + '/suggestions/' + s.id + '/status', {
 				method: 'POST',
 				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
 				body: new URLSearchParams({ status: status }),
 			});
-			if (!res.ok) { toastError(); return false; }
+			if (!res.ok) { toastError(await errorMessage(res, S.saveFailed)); return false; }
 			const updated = await res.json();
 			s.status = updated.status;
-			render();
 			return true;
 		} catch (e) { toastError(); return false; }
 	}
 
+	async function setStatus(s, status) {
+		if (busy) return false;
+		busy = true;
+		const ok = await postStatus(s, status);
+		busy = false;
+		if (ok) render();
+		return ok;
+	}
+
 	async function decideAll(status) {
+		if (busy) return;
 		const pend = suggsForScene().filter((x) => x.status === 'pending' && x.type !== 'comment');
+		if (pend.length === 0) return;
+		busy = true;
 		for (const s of pend) {
-			if (!(await setStatus(s, status))) break;
+			if (!(await postStatus(s, status))) break;
 		}
+		busy = false;
+		render();
 	}
 
 	/* ---------- selection / popup ---------- */
@@ -604,20 +623,25 @@
 			: popup.mode === 'comment' ? S.commentLabel
 			: S.reasonLabel;
 
-		function save() {
+		async function save() {
+			if (saveBtn.disabled) return;
 			if (!isReasonOnly && !popup.draft.trim()) return;
+			saveBtn.disabled = true;
+			let ok;
 			if (popup.editing) {
 				const replacement = isReasonOnly ? null
 					: popup.mode === 'comment' ? null : popup.draft;
 				const reason = popup.mode === 'comment' ? popup.draft.trim() : (popup.reason || '').trim();
-				commitEdit(popup.editing, replacement, reason);
+				ok = await commitEdit(popup.editing, replacement, reason);
 			} else if (isReasonOnly) {
-				commit('delete', '', (popup.reason || '').trim());
+				ok = await commit('delete', '', (popup.reason || '').trim());
 			} else if (popup.mode === 'comment') {
-				commit('comment', '', popup.draft.trim());
+				ok = await commit('comment', '', popup.draft.trim());
 			} else {
-				commit(popup.mode, popup.draft, (popup.reason || '').trim());
+				ok = await commit(popup.mode, popup.draft, (popup.reason || '').trim());
 			}
+			// On failure the popup is still open with the typed text; let them retry.
+			if (!ok && saveBtn.isConnected) saveBtn.disabled = false;
 		}
 
 		const saveBtn = el('button', {
@@ -661,28 +685,31 @@
 	}
 
 	/* ---------- persistence ---------- */
+	// These capture the scene they act on BEFORE awaiting, and the popup stays
+	// open until the save succeeds — so switching scenes mid-flight can't land a
+	// response in the wrong scene, and a failed save doesn't discard typed text.
 	async function commit(type, replacement, reason) {
 		const p = popup;
-		if (!p) return;
+		if (!p) return false;
+		const sc = scene();
 		const isInsert = type === 'insert';
 		let repl = replacement || '';
 		if (isInsert && repl) repl = smartSpaceInsert(paraTextOf(p.para), p.end, repl);
 		const payload = {
-			reviewSceneId: scene().reviewSceneId, type: type, paragraph: p.para,
+			reviewSceneId: sc.reviewSceneId, type: type, paragraph: p.para,
 			start: isInsert ? p.end : p.start, end: p.end, replacement: repl, reason: reason || '',
 		};
+		const saved = await postSuggestion(payload);
+		if (!saved) return false;
+		sc.suggestions.push(toClient(saved, sc));
 		closePopup();
 		clearSelection();
-		const saved = await postSuggestion(payload);
-		if (saved) {
-			scene().suggestions.push(toClient(saved));
-			activeSugg = saved.id;
-			render();
-		}
+		if (sc === scene()) { activeSugg = saved.id; render(); }
+		return true;
 	}
 
 	async function commitEdit(s, replacement, reason) {
-		closePopup();
+		const sc = scene();
 		const body = new URLSearchParams();
 		if (replacement != null) body.set('replacement', replacement);
 		if (reason != null) body.set('reason', reason);
@@ -690,21 +717,24 @@
 			const res = await fetch('/review/' + TOKEN + '/suggestions/' + s.id, {
 				method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body,
 			});
-			if (!res.ok) { toastError(); return; }
+			if (!res.ok) { toastError(await errorMessage(res, S.saveFailed)); return false; }
 			const updated = await res.json();
-			const list = scene().suggestions;
+			const list = sc.suggestions;
 			const i = list.findIndex((x) => x.id === s.id);
-			if (i !== -1) list[i] = toClient(updated);
-			render();
-		} catch (e) { toastError(); }
+			if (i !== -1) list[i] = toClient(updated, sc);
+			closePopup();
+			if (sc === scene()) render();
+			return true;
+		} catch (e) { toastError(); return false; }
 	}
 
 	async function doRemove(s) {
 		if (!window.confirm(S.removeConfirm)) return;
+		const sc = scene();
 		if (await deleteSuggestion(s.id)) {
-			scene().suggestions = scene().suggestions.filter((x) => x.id !== s.id);
+			sc.suggestions = sc.suggestions.filter((x) => x.id !== s.id);
 			if (activeSugg === s.id) activeSugg = null;
-			render();
+			if (sc === scene()) render();
 		}
 	}
 
@@ -715,7 +745,7 @@
 			const res = await fetch('/review/' + TOKEN + '/suggestions', {
 				method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body,
 			});
-			if (!res.ok) { toastError(); return null; }
+			if (!res.ok) { toastError(await errorMessage(res, S.saveFailed)); return null; }
 			return await res.json();
 		} catch (e) { toastError(); return null; }
 	}
@@ -729,12 +759,12 @@
 	}
 
 	// Server wire shape -> client suggestion shape (adds `original` for the gutter quote).
-	function toClient(saved) {
+	function toClient(saved, sc) {
 		return {
 			id: saved.id, reviewSceneId: saved.reviewSceneId, type: saved.type,
 			paragraph: saved.paragraph, start: saved.start, end: saved.end,
 			replacement: saved.replacement || '', reason: saved.reason || '',
-			original: saved.type === 'insert' ? '' : displayText(saved.paragraph, saved.start, saved.end),
+			original: saved.type === 'insert' ? '' : displayText(saved.paragraph, saved.start, saved.end, sc),
 		};
 	}
 
@@ -874,8 +904,10 @@
 	}
 
 	let commitDone = false;
+	let committing = false;
 
 	function closeCommitDialog() {
+		if (committing) return; // the POST is in flight; don't detach the dialog
 		if (commitDone) { window.location.reload(); return; }
 		const overlay = document.getElementById('review-commit-dialog');
 		if (overlay) overlay.remove();
@@ -905,16 +937,21 @@
 			class: 'btn btn--accent', type: 'button',
 			onclick: async () => {
 				commitBtn.disabled = true;
+				committing = true;
+				let failure = null;
 				try {
 					const res = await fetch(BASE + '/commit', { method: 'POST' });
 					if (res.ok) {
+						committing = false;
 						commitDone = true;
 						renderCommitResult(dialog, await res.json());
 						return;
 					}
-				} catch (e) { /* fallthrough */ }
-				closeCommitDialog();
-				toastError(S.commitFailed);
+					failure = await errorMessage(res, S.commitFailed);
+				} catch (e) { failure = S.commitFailed; }
+				committing = false;
+				commitBtn.disabled = false;
+				toastError(failure || S.commitFailed);
 			},
 		}, icon('fa-stamp'), ' ' + S.commitAction);
 
@@ -973,16 +1010,23 @@
 	}
 
 	/* ---------- helpers ---------- */
-	function paraTextOf(index) {
-		const para = scene().paragraphs.find((p) => p.index === index);
+	function paraTextOf(index, sc) {
+		const para = (sc || scene()).paragraphs.find((p) => p.index === index);
 		return para ? para.text : '';
 	}
 	/** Display text for a source slice: emphasis markers dropped, like the manuscript shows it. */
-	function displayText(paraIndex, start, end) {
-		const runs = parseInlineMarkdown(paraTextOf(paraIndex));
+	function displayText(paraIndex, start, end, sc) {
+		const runs = parseInlineMarkdown(paraTextOf(paraIndex, sc));
 		return runsForRange(runs, start, end).map((r) => r.text).join('');
 	}
 	function clearSelection() { const sel = window.getSelection(); if (sel) sel.removeAllRanges(); }
+	/** The server's localized {error} message from a failed JSON response, or a fallback. */
+	async function errorMessage(res, fallback) {
+		try {
+			const body = await res.json();
+			return body && body.error ? body.error : fallback;
+		} catch (e) { return fallback; }
+	}
 	function hexToRing(hex, alpha) {
 		const n = parseInt(hex.slice(1), 16);
 		return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + (alpha || 0.35) + ')';
