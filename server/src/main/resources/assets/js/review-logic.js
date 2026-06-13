@@ -73,6 +73,97 @@ function applyAccepted(text, suggestions) {
 	return result;
 }
 
+/* ===== Inline markdown (bold/italic) -> styled runs ===== */
+
+/**
+ * Parse a paragraph's inline markdown emphasis into styled display runs.
+ * Supports **bold**, *italic*, __bold__, _italic_ (and nesting). Marker
+ * characters are excluded from the runs, but every run remembers where its
+ * text lives in the ORIGINAL source string (srcStart), so suggestion offsets
+ * stay anchored in source space while the display omits the markers.
+ *
+ * Deliberately conservative: an emphasis only opens when the marker is
+ * preceded by start/whitespace/punctuation and followed by non-whitespace,
+ * and only closes after non-whitespace (so intraword snake_case and stray
+ * asterisks render literally).
+ *
+ * @returns {Array<{text:string, srcStart:number, bold:boolean, italic:boolean}>}
+ */
+function parseInlineMarkdown(text) {
+	const runs = [];
+
+	function emit(str, srcStart, bold, italic) {
+		if (str.length === 0) return;
+		runs.push({ text: str, srcStart: srcStart, bold: bold, italic: italic });
+	}
+
+	function isFlankableBefore(ch) { return !ch || !/[\w*_]/.test(ch); }
+
+	function findClose(marker, from, end) {
+		let i = from;
+		while (i < end) {
+			i = text.indexOf(marker, i);
+			if (i === -1 || i >= end) return -1;
+			const prev = text[i - 1];
+			const after = text[i + marker.length];
+			// closes after non-space; for single _ require not intraword
+			if (prev && !/\s/.test(prev) && prev !== marker[0] &&
+				(marker !== '_' || !after || !/\w/.test(after))) {
+				return i;
+			}
+			i += marker.length;
+		}
+		return -1;
+	}
+
+	function walk(start, end, bold, italic) {
+		let plainFrom = start;
+		let i = start;
+		while (i < end) {
+			const ch = text[i];
+			if (ch !== '*' && ch !== '_') { i++; continue; }
+			const double = text[i + 1] === ch;
+			const marker = double ? ch + ch : ch;
+			const contentFrom = i + marker.length;
+			const openOk = isFlankableBefore(text[i - 1]) &&
+				contentFrom < end && !/\s/.test(text[contentFrom]);
+			if (!openOk) { i++; continue; }
+			const close = findClose(marker, contentFrom + 1, end);
+			if (close === -1) { i++; continue; }
+
+			emit(text.slice(plainFrom, i), plainFrom, bold, italic);
+			walk(contentFrom, close, bold || double, italic || !double);
+			i = close + marker.length;
+			plainFrom = i;
+		}
+		emit(text.slice(plainFrom, end), plainFrom, bold, italic);
+	}
+
+	walk(0, text.length, false, false);
+	return runs;
+}
+
+/**
+ * Clip styled runs to a source range [start,end): the display pieces for one
+ * suggestion segment. Markers falling inside the range simply have no run.
+ */
+function runsForRange(runs, start, end) {
+	const out = [];
+	for (const r of runs) {
+		const rEnd = r.srcStart + r.text.length;
+		const s = Math.max(start, r.srcStart);
+		const e = Math.min(end, rEnd);
+		if (e <= s) continue;
+		out.push({
+			text: r.text.slice(s - r.srcStart, e - r.srcStart),
+			srcStart: s,
+			bold: r.bold,
+			italic: r.italic,
+		});
+	}
+	return out;
+}
+
 /* ===== Pen-ink strike rendering ===== */
 
 /** Deterministic FNV-1a hash of a seed, as an unsigned 32-bit int. */
@@ -130,6 +221,8 @@ if (typeof module !== 'undefined' && module.exports) {
 		overlapsAny: overlapsAny,
 		smartSpaceInsert: smartSpaceInsert,
 		applyAccepted: applyAccepted,
+		parseInlineMarkdown: parseInlineMarkdown,
+		runsForRange: runsForRange,
 		hashSeed: hashSeed,
 		strikeSlope: strikeSlope,
 		buildStrikeBackground: buildStrikeBackground,

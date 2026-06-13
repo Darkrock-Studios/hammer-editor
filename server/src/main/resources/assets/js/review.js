@@ -7,9 +7,9 @@
  * (segments, overlap, smart-spacing, pen-ink) lives in review-logic.js.
  *
  * Functions from review-logic.js are globals here: computeSegments, overlapsAny,
- * smartSpaceInsert, strikeStyle.
+ * smartSpaceInsert, strikeStyle, parseInlineMarkdown, runsForRange.
  */
-/* global computeSegments, overlapsAny, smartSpaceInsert, strikeStyle */
+/* global computeSegments, overlapsAny, smartSpaceInsert, strikeStyle, parseInlineMarkdown, runsForRange */
 (function () {
 	'use strict';
 
@@ -58,18 +58,36 @@
 	function icon(name) { return el('i', { class: 'fa-solid ' + name }); }
 
 	/* ---------- offset mapping ---------- */
-	// Char offset within a paragraph's ORIGINAL text. Skips inserted-ink spans
-	// (data-ins) so offsets anchor to the snapshot, never to handwritten insertions.
-	function offsetIn(paraEl, node, off) {
-		let total = 0;
-		const walker = document.createTreeWalker(paraEl, NodeFilter.SHOW_TEXT);
-		let n;
-		while ((n = walker.nextNode())) {
-			const inserted = n.parentElement && n.parentElement.closest('[data-ins]');
-			if (n === node) return inserted ? total : total + off;
-			if (!inserted) total += n.nodeValue.length;
-		}
-		return total;
+	// The display omits markdown markers, so DOM positions are NOT source
+	// positions. Every rendered manuscript text node is registered here with
+	// the source offset its first character corresponds to; selection mapping
+	// is then a lookup + local offset. Inserted-ink text is never registered.
+	const nodeSrcStart = new WeakMap();
+
+	/** Source offset for (textNode, offsetInNode), or null if not manuscript text. */
+	function srcOffsetOf(node, off) {
+		if (!nodeSrcStart.has(node)) return null;
+		return nodeSrcStart.get(node) + off;
+	}
+
+	/** Make a text node carrying styled-run text, registered at its source offset. */
+	function runNode(run) {
+		const tn = document.createTextNode(run.text);
+		nodeSrcStart.set(tn, run.srcStart);
+		if (!run.bold && !run.italic) return tn;
+		const span = el('span', {
+			style: {
+				fontWeight: run.bold ? '700' : '',
+				fontStyle: run.italic ? 'italic' : '',
+			},
+		});
+		span.appendChild(tn);
+		return span;
+	}
+
+	/** Append the styled display pieces for source range [start,end) of a paragraph. */
+	function appendRange(parent, paraRuns, start, end) {
+		runsForRange(paraRuns, start, end).forEach((run) => parent.appendChild(runNode(run)));
 	}
 
 	/* ---------- render ---------- */
@@ -113,25 +131,34 @@
 
 	function buildParagraph(para) {
 		const p = el('p', { class: 'review-para', data: { para: para.index } });
-		const segs = computeSegments(para.text, suggsForPara(para.index));
-		segs.forEach((seg, j) => p.appendChild(renderSegment(seg, para.index + '-' + j)));
+		const paraRuns = parseInlineMarkdown(para.text);
+		let cur = 0;
+		const sorted = suggsForPara(para.index).slice().sort((a, b) => a.start - b.start || a.end - b.end);
+		sorted.forEach((s) => {
+			if (s.start > cur) appendRange(p, paraRuns, cur, s.start);
+			p.appendChild(renderSuggestion(s, paraRuns));
+			cur = Math.max(cur, s.end);
+		});
+		if (cur < para.text.length) appendRange(p, paraRuns, cur, para.text.length);
 		return p;
 	}
 
-	function renderSegment(seg) {
-		if (!seg.suggestion) return document.createTextNode(seg.text);
-		const s = seg.suggestion;
+	function renderSuggestion(s, paraRuns) {
 		const color = TYPE_COLOR[s.type];
 		const active = activeSugg === s.id;
 		const onClick = (ev) => { ev.stopPropagation(); activeSugg = active ? null : s.id; render(); };
 		const ring = active ? { boxShadow: '0 0 0 2.5px ' + hexToRing(color), borderRadius: '3px' } : {};
 
 		if (s.type === 'delete') {
-			return el('span', { class: 'review-ink', style: Object.assign({ cursor: 'pointer' }, ring, strikeStyle(color, s.id)), onclick: onClick }, seg.text);
+			const span = el('span', { class: 'review-ink', style: Object.assign({ cursor: 'pointer' }, ring, strikeStyle(color, s.id)), onclick: onClick });
+			appendRange(span, paraRuns, s.start, s.end);
+			return span;
 		}
 		if (s.type === 'reword') {
+			const struck = el('span', { style: strikeStyle(color, s.id) });
+			appendRange(struck, paraRuns, s.start, s.end);
 			return el('span', { class: 'review-ink', style: Object.assign({ cursor: 'pointer' }, ring), onclick: onClick },
-				el('span', { style: strikeStyle(color, s.id) }, seg.text),
+				struck,
 				el('span', { 'data-ins': '1', style: { fontFamily: CAVEAT, fontSize: '1.15em', fontWeight: '600', color: color } }, ' ' + (s.replacement || ''))
 			);
 		}
@@ -142,10 +169,12 @@
 			);
 		}
 		// comment: yellow marker swipe
-		return el('span', {
+		const span = el('span', {
 			class: 'review-ink', onclick: onClick,
 			style: Object.assign({ cursor: 'pointer', background: 'rgba(254,240,138,0.85)', borderRadius: '2px' }, ring),
-		}, seg.text);
+		});
+		appendRange(span, paraRuns, s.start, s.end);
+		return span;
 	}
 
 	function buildGutter() {
@@ -200,9 +229,9 @@
 			const ep = ec.parentElement.closest('[data-para]');
 			if (!sp || sp !== ep) return;
 			const para = parseInt(sp.getAttribute('data-para'), 10);
-			const start = offsetIn(sp, sc, range.startOffset);
-			const end = offsetIn(sp, ec, range.endOffset);
-			if (end <= start) return;
+			const start = srcOffsetOf(sc, range.startOffset);
+			const end = srcOffsetOf(ec, range.endOffset);
+			if (start == null || end == null || end <= start) return;
 			if (overlapsAny(start, end, suggsForPara(para))) return;
 			openPopup({ para: para, start: start, end: end, text: paraTextOf(para).slice(start, end), mode: 'menu' }, range.getBoundingClientRect());
 		}, 10);
@@ -216,7 +245,8 @@
 		const pe = n.parentElement.closest('[data-para]');
 		if (!pe) { closePopup(); return; }
 		const para = parseInt(pe.getAttribute('data-para'), 10);
-		const pos = offsetIn(pe, n, r.startOffset);
+		const pos = srcOffsetOf(n, r.startOffset);
+		if (pos == null) { closePopup(); return; }
 		for (const s of suggsForPara(para)) {
 			if (s.start === s.end) { if (pos === s.start) return; continue; }
 			if (pos > s.start && pos < s.end) { closePopup(); return; }
@@ -309,6 +339,7 @@
 	}
 
 	async function doRemove(s) {
+		if (!window.confirm(S.removeConfirm)) return;
 		if (await deleteSuggestion(s.id)) {
 			scene().suggestions = scene().suggestions.filter((x) => x.id !== s.id);
 			if (activeSugg === s.id) activeSugg = null;
@@ -342,7 +373,7 @@
 			id: saved.id, reviewSceneId: saved.reviewSceneId, type: saved.type,
 			paragraph: saved.paragraph, start: saved.start, end: saved.end,
 			replacement: saved.replacement || '', reason: saved.reason || '',
-			original: saved.type === 'insert' ? '' : paraTextOf(saved.paragraph).slice(saved.start, saved.end),
+			original: saved.type === 'insert' ? '' : displayText(saved.paragraph, saved.start, saved.end),
 		};
 	}
 
@@ -367,6 +398,11 @@
 		const para = scene().paragraphs.find((p) => p.index === index);
 		return para ? para.text : '';
 	}
+	/** Display text for a source slice: emphasis markers dropped, like the manuscript shows it. */
+	function displayText(paraIndex, start, end) {
+		const runs = parseInlineMarkdown(paraTextOf(paraIndex));
+		return runsForRange(runs, start, end).map((r) => r.text).join('');
+	}
 	function clearSelection() { const sel = window.getSelection(); if (sel) sel.removeAllRanges(); }
 	function hexToRing(hex) {
 		const n = parseInt(hex.slice(1), 16);
@@ -384,12 +420,14 @@
 
 	document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePopup(); });
 
-	// Give each suggestion an `original` text slice for the gutter quote.
+	// Give each suggestion an `original` display slice (markers dropped) for the gutter quote.
 	DATA.scenes.forEach((sc) => {
 		sc.suggestions = sc.suggestions.map((s) => Object.assign({}, s, {
 			original: s.type === 'insert' ? '' : (function () {
 				const para = sc.paragraphs.find((p) => p.index === s.paragraph);
-				return para ? para.text.slice(s.start, s.end) : '';
+				if (!para) return '';
+				return runsForRange(parseInlineMarkdown(para.text), s.start, s.end)
+					.map((r) => r.text).join('');
 			})(),
 		}));
 	});

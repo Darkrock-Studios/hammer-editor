@@ -70,6 +70,59 @@ test('strikeSlope is deterministic, varies by seed, and never lands flat', () =>
 	assert.ok(someUp && someDown, 'expected both up and down strikes');
 });
 
+test('parseInlineMarkdown renders bold and italic without markers, offsets stay in source space', () => {
+	const text = '**Down the Rabbit-Hole** and *italic* tail';
+	const runs = logic.parseInlineMarkdown(text);
+	assert.deepEqual(runs.map((r) => [r.text, r.srcStart, r.bold, r.italic]), [
+		['Down the Rabbit-Hole', 2, true, false],
+		[' and ', 24, false, false],
+		['italic', 30, false, true],
+		[' tail', 37, false, false],
+	]);
+	// every run's text is literally present at its claimed source position
+	for (const r of runs) {
+		assert.equal(text.slice(r.srcStart, r.srcStart + r.text.length), r.text);
+	}
+});
+
+test('parseInlineMarkdown handles the Alice sample with quoted italics', () => {
+	const text = 'no pictures in it, "*and what is the use of a book,*" thought Alice';
+	const runs = logic.parseInlineMarkdown(text);
+	const italic = runs.find((r) => r.italic);
+	assert.equal(italic.text, 'and what is the use of a book,');
+	assert.equal(text.slice(italic.srcStart, italic.srcStart + italic.text.length), italic.text);
+	// surrounding quotes stay plain
+	assert.equal(runs[0].text, 'no pictures in it, "');
+	assert.equal(runs[0].bold || runs[0].italic, false);
+});
+
+test('parseInlineMarkdown supports nesting and leaves unmatched or intraword markers literal', () => {
+	const nested = logic.parseInlineMarkdown('**bold *both* bold**');
+	assert.deepEqual(nested.map((r) => [r.text, r.bold, r.italic]), [
+		['bold ', true, false],
+		['both', true, true],
+		[' bold', true, false],
+	]);
+
+	const literal = logic.parseInlineMarkdown('a * b and snake_case_name and 2*3');
+	assert.equal(literal.length, 1);
+	assert.equal(literal[0].text, 'a * b and snake_case_name and 2*3');
+
+	const unclosed = logic.parseInlineMarkdown('an *unclosed marker');
+	assert.equal(unclosed.map((r) => r.text).join(''), 'an *unclosed marker');
+});
+
+test('runsForRange clips runs to a source range and skips marker gaps', () => {
+	const text = 'plain **bold** end';
+	const runs = logic.parseInlineMarkdown(text);
+	// Range covering "n **bo" in source space: plain tail + opening marker + "bo"
+	const clipped = logic.runsForRange(runs, 4, 10);
+	assert.deepEqual(clipped.map((r) => [r.text, r.srcStart, r.bold]), [
+		['n ', 4, false],
+		['bo', 8, true],
+	]);
+});
+
 test('buildStrikeBackground embeds the colour and is a data url', () => {
 	const bg = logic.buildStrikeBackground('#b91c1c', 'abc');
 	assert.match(bg, /^url\("data:image\/svg\+xml,/);
