@@ -31,3 +31,11 @@ sceneProgressForRequest:
 SELECT COUNT(*) AS total, COUNT(CASE WHEN reviewer_done THEN 1 END) AS done
 FROM review_scene
 WHERE review_request_id = :reviewRequestId;
+
+sceneProgressForRequests:
+SELECT review_request_id,
+       COUNT(*) AS total,
+       COUNT(CASE WHEN reviewer_done THEN 1 END) AS done
+FROM review_scene
+WHERE review_request_id IN :reviewRequestIds
+GROUP BY review_request_id;

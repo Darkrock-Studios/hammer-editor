@@ -228,6 +228,10 @@ fun Route.reviewFrontend(
 					return@get
 				}
 				val review = (reviewResult as ServerResult.Success).data
+				if (!call.reviewMatchesUrlProject(projectDao, review)) {
+					call.respondReviewError(call.msg("api_review_error_not_found"))
+					return@get
+				}
 				if (review.status != ReviewStatus.SUBMITTED && review.status != ReviewStatus.RESOLVED) {
 					call.respondReviewError(call.msg("api_review_commit_error_not_submitted"))
 					return@get
@@ -287,6 +291,10 @@ fun Route.reviewFrontend(
 					call.respondJsonError(HttpStatusCode.BadRequest, call.msg("api_review_suggestion_error_invalid"))
 					return@post
 				}
+				if (!call.reviewBelongsToUrlProject(reviewRepository, projectDao, session.userId, reviewId)) {
+					call.respondJsonError(HttpStatusCode.NotFound, call.msg("api_review_error_not_found"))
+					return@post
+				}
 
 				val result = reviewRepository.setSuggestionStatus(session.userId, reviewId, suggestionId, status)
 				when (result) {
@@ -308,6 +316,10 @@ fun Route.reviewFrontend(
 				val reviewId = call.parameters["reviewId"]?.toLongOrNull()
 				if (reviewId == null) {
 					call.respondJsonError(HttpStatusCode.BadRequest, call.msg("api_review_error_not_found"))
+					return@post
+				}
+				if (!call.reviewBelongsToUrlProject(reviewRepository, projectDao, session.userId, reviewId)) {
+					call.respondJsonError(HttpStatusCode.NotFound, call.msg("api_review_error_not_found"))
 					return@post
 				}
 
@@ -343,29 +355,29 @@ fun Route.reviewFrontend(
 				return@get
 			}
 
+			// One side-effect-free lookup, reused for the owner redirect, the
+			// friendly error kinds, and the open transition below.
+			val found = reviewRepository.findReviewByToken(token)
+
 			// The author following their own reviewer link gets their side of the
 			// review, not the reviewer's — and the request isn't marked opened.
 			val session = call.sessions.get<UserSession>()
-			if (session != null) {
-				val owned = reviewRepository.findReviewByToken(token)
-				if (owned != null && owned.userId == session.userId) {
-					val project = projectDao.getProjectByRowId(owned.projectId)
-					if (project != null) {
-						val projectUrl = ProjectName.formatForUrl(project.name)
-						val submitted = owned.status == ReviewStatus.SUBMITTED ||
-							owned.status == ReviewStatus.RESOLVED
-						call.respondRedirect(
-							if (submitted) "/story/$projectUrl/reviews/${owned.id}"
-							else "/story/$projectUrl"
-						)
-						return@get
-					}
+			if (session != null && found != null && found.userId == session.userId) {
+				val project = projectDao.getProjectByRowId(found.projectId)
+				if (project != null) {
+					val projectUrl = ProjectName.formatForUrl(project.name)
+					val submitted = found.status == ReviewStatus.SUBMITTED ||
+						found.status == ReviewStatus.RESOLVED
+					call.respondRedirect(
+						if (submitted) "/story/$projectUrl/reviews/${found.id}"
+						else "/story/$projectUrl"
+					)
+					return@get
 				}
 			}
 
 			// Resolve the failure kind up front (no side effects) so the editor gets
 			// a specific, friendly page instead of a generic error.
-			val found = reviewRepository.findReviewByToken(token)
 			val now = clock.now()
 			when {
 				found == null -> {
@@ -384,61 +396,51 @@ fun Route.reviewFrontend(
 				}
 			}
 
-			val result = reviewRepository.openReviewByToken(token)
-			when (result) {
-				is ServerResult.Failure -> {
-					call.respondReviewError(
-						result.displayMessageText(call) ?: call.msg("api_review_token_error_invalid"),
-					)
-				}
+			val opened = reviewRepository.markReviewOpened(found)
+			val review = opened.request
+			val firstOpen = opened.firstOpen
+			val scenes = reviewRepository.getReviewScenes(review)
+			val suggestionsByScene = reviewRepository.getSuggestionsByScene(review)
+			val project = projectDao.getProjectByRowId(review.projectId)
+			val account = accountsRepository.getAccount(review.userId)
+			val authorName = account.pen_name?.ifBlank { null } ?: "the author"
+			val locked = review.status == ReviewStatus.SUBMITTED ||
+				review.status == ReviewStatus.RESOLVED
 
-				is ServerResult.Success -> {
-					val review = result.data.request
-					val firstOpen = result.data.firstOpen
-					val scenes = reviewRepository.getReviewScenes(review)
-					val suggestionsByScene = reviewRepository.getSuggestionsByScene(review)
-					val project = projectDao.getProjectByRowId(review.projectId)
-					val account = accountsRepository.getAccount(review.userId)
-					val authorName = account.pen_name?.ifBlank { null } ?: "the author"
-					val locked = review.status == ReviewStatus.SUBMITTED ||
-						review.status == ReviewStatus.RESOLVED
+			val appData = ReviewAppData(
+				token = token,
+				locked = locked,
+				firstOpen = firstOpen,
+				authorName = authorName,
+				scenes = buildSceneDtos(scenes, suggestionsByScene),
+			)
 
-					val appData = ReviewAppData(
-						token = token,
-						locked = locked,
-						firstOpen = firstOpen,
-						authorName = authorName,
-						scenes = buildSceneDtos(scenes, suggestionsByScene),
-					)
-
-					val hasExpiry = review.expires != null
-					val model = call.withDefaults(
-						mapOf(
-							"page_stylesheet" to "/assets/css/review.css",
-							"page_script" to "/assets/js/review.js",
-							"page_pre_script" to "/assets/js/review-logic.js",
-							"projectName" to (project?.name ?: ""),
-							"authorName" to authorName,
-							"reviewerEmail" to review.reviewerEmail,
-							"note" to (review.note ?: ""),
-							"hasNote" to (review.note.isNullOrBlank().not()),
-							"hasExpiry" to hasExpiry,
-							"expiryLine" to if (hasExpiry) {
-								call.msg("review_page_expires", formatReviewDate(review.expires))
-							} else {
-								""
-							},
-							"locked" to locked,
-							"sceneCount" to scenes.size,
-							"reviewData" to jsonIsland(
-								reviewJson.encodeToString(ReviewAppData.serializer(), appData)
-							),
-							"reviewStrings" to call.buildReviewStringsJson(),
-						)
-					)
-					call.respond(MustacheContent("review.mustache", model))
-				}
-			}
+			val hasExpiry = review.expires != null
+			val model = call.withDefaults(
+				mapOf(
+					"page_stylesheet" to "/assets/css/review.css",
+					"page_script" to "/assets/js/review.js",
+					"page_pre_script" to "/assets/js/review-logic.js",
+					"projectName" to (project?.name ?: ""),
+					"authorName" to authorName,
+					"reviewerEmail" to review.reviewerEmail,
+					"note" to (review.note ?: ""),
+					"hasNote" to (review.note.isNullOrBlank().not()),
+					"hasExpiry" to hasExpiry,
+					"expiryLine" to if (hasExpiry) {
+						call.msg("review_page_expires", formatReviewDate(review.expires))
+					} else {
+						""
+					},
+					"locked" to locked,
+					"sceneCount" to scenes.size,
+					"reviewData" to jsonIsland(
+						reviewJson.encodeToString(ReviewAppData.serializer(), appData)
+					),
+					"reviewStrings" to call.buildReviewStringsJson(),
+				)
+			)
+			call.respond(MustacheContent("review.mustache", model))
 		}
 
 		// Create a suggestion. Form-encoded; responds JSON { id } so the client can track it.
@@ -782,6 +784,31 @@ private suspend fun ApplicationCall.resolveProject(
 	return project
 }
 
+/**
+ * True if [review] actually belongs to the project named in the URL. The review
+ * is already scoped to the session user; this stops one of the user's reviews
+ * from rendering or being acted on under a different project's URL.
+ */
+private suspend fun ApplicationCall.reviewMatchesUrlProject(
+	projectDao: ProjectDao,
+	review: ReviewRequest,
+): Boolean {
+	val urlName = parameters["projectName"]?.let { ProjectName.decodeFromUrl(it) } ?: return false
+	val reviewProject = projectDao.getProjectByRowId(review.projectId) ?: return false
+	return reviewProject.name == urlName
+}
+
+/** As [reviewMatchesUrlProject] but for routes that only have the review id. */
+private suspend fun ApplicationCall.reviewBelongsToUrlProject(
+	reviewRepository: ReviewRepository,
+	projectDao: ProjectDao,
+	userId: Long,
+	reviewId: Long,
+): Boolean {
+	val review = (reviewRepository.getReview(userId, reviewId) as? ServerResult.Success)?.data ?: return false
+	return reviewMatchesUrlProject(projectDao, review)
+}
+
 // 410 Gone rather than 404: the StatusPages plugin swallows non-API 404s and
 // replaces them with the generic notfound page.
 private suspend fun ApplicationCall.respondReviewError(message: String) {
@@ -850,9 +877,12 @@ suspend fun ApplicationCall.reviewCards(
 		as? ServerResult.Success)?.data ?: emptyList()
 
 	val now = kotlin.time.Clock.System.now()
-	return reviews
-		.filter { it.status != ReviewStatus.CANCELED }
-		.map { review -> reviewCardModel(reviewRepository, review, now) }
+	val visible = reviews.filter { it.status != ReviewStatus.CANCELED }
+
+	// One grouped query for every card's scene progress, instead of one per card.
+	val progressById = reviewRepository.getSceneProgress(visible.map { it.id })
+
+	return visible.map { review -> reviewCardModel(review, now, progressById[review.id]) }
 }
 
 /** Builds the model for the Editorial Reviews sidebar panel partial. */
@@ -873,9 +903,9 @@ suspend fun ApplicationCall.reviewPanelModel(
 }
 
 private suspend fun ApplicationCall.reviewCardModel(
-	reviewRepository: ReviewRepository,
 	review: ReviewRequest,
 	now: Instant,
+	progress: Pair<Long, Long>?,
 ): Map<String, Any?> {
 	val isExpired = review.expires != null && now > review.expires &&
 		review.status != ReviewStatus.SUBMITTED && review.status != ReviewStatus.RESOLVED
@@ -905,7 +935,7 @@ private suspend fun ApplicationCall.reviewCardModel(
 		(review.status == ReviewStatus.OPENED || review.status == ReviewStatus.IN_PROGRESS)
 	var progressPct = 0
 	if (showProgress) {
-		val (done, total) = reviewRepository.getSceneProgress(review.id)
+		val (done, total) = progress ?: (0L to 0L)
 		metaParts += msg("review_meta_progress", done, total)
 		progressPct = if (total > 0) (done * 100 / total).toInt() else 0
 	}

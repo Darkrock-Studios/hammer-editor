@@ -51,4 +51,16 @@ class ReviewSceneDao(
 		val row = queries.sceneProgressForRequest(reviewRequestId).executeAsOne()
 		row.done to row.total
 	}
+
+	/** (done, total) scene counts for several requests in one query, keyed by request id. */
+	suspend fun sceneProgress(reviewRequestIds: Collection<Long>): Map<Long, Pair<Long, Long>> =
+		withContext(ioDispatcher) {
+			if (reviewRequestIds.isEmpty()) {
+				emptyMap()
+			} else {
+				queries.sceneProgressForRequests(reviewRequestIds.toList())
+					.executeAsList()
+					.associate { it.review_request_id to (it.done to it.total) }
+			}
+		}
 }

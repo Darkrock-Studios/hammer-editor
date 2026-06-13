@@ -249,17 +249,25 @@ class ReviewRepository(
 			request.expires != null && now > request.expires ->
 				SResult.failure("Request expired", Msg.r("api_review_token_error_expired"))
 
-			request.status == ReviewStatus.SENT -> {
-				reviewRequestDao.markOpened(request.id, ReviewStatus.OPENED, now)
-				SResult.success(
-					OpenedReview(
-						request.copy(status = ReviewStatus.OPENED, openedAt = now, lastActiveAt = now),
-						firstOpen = true,
-					)
-				)
-			}
+			else -> SResult.success(markReviewOpened(request))
+		}
+	}
 
-			else -> SResult.success(OpenedReview(request, firstOpen = false))
+	/**
+	 * Apply the opened side effect to an already-resolved request: a SENT request
+	 * transitions to OPENED (the editor's first open), otherwise it's unchanged.
+	 * Lets the page route do a single token lookup instead of re-resolving.
+	 */
+	suspend fun markReviewOpened(request: ReviewRequest): OpenedReview {
+		return if (request.status == ReviewStatus.SENT) {
+			val now = clock.now()
+			reviewRequestDao.markOpened(request.id, ReviewStatus.OPENED, now)
+			OpenedReview(
+				request.copy(status = ReviewStatus.OPENED, openedAt = now, lastActiveAt = now),
+				firstOpen = true,
+			)
+		} else {
+			OpenedReview(request, firstOpen = false)
 		}
 	}
 
@@ -468,6 +476,10 @@ class ReviewRepository(
 	/** (done, total) scene progress for a request, for the author's status display. */
 	suspend fun getSceneProgress(reviewRequestId: Long): Pair<Long, Long> =
 		reviewSceneDao.sceneProgress(reviewRequestId)
+
+	/** (done, total) progress for several requests in one query, for the panel cards. */
+	suspend fun getSceneProgress(reviewRequestIds: Collection<Long>): Map<Long, Pair<Long, Long>> =
+		reviewSceneDao.sceneProgress(reviewRequestIds)
 
 	suspend fun submitReview(token: String): SResult<ReviewRequest> {
 		val request = when (val r = resolveOpenReview(token)) {

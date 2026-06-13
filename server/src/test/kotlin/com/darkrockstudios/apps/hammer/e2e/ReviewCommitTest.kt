@@ -133,6 +133,26 @@ class ReviewCommitTest : EndToEndTest() {
 	}
 
 	@Test
+	fun `a review does not render or commit under another of the user's projects`(): Unit = runBlocking {
+		doStartServer()
+		val seeded = seed()
+		// A second project owned by the same user; the review belongs to Insurgency.
+		E2eTestData.createProject(TestProject("Decoy", Uuid.random(), userId), database())
+
+		login().use { authed ->
+			val page = authed.get(route("story/Decoy/reviews/${seeded.requestId}"))
+			assertEquals(HttpStatusCode.Gone, page.status)
+
+			val commit = authed.post(route("story/Decoy/reviews/${seeded.requestId}/commit"))
+			assertEquals(HttpStatusCode.NotFound, commit.status)
+
+			// Still reachable under its real project
+			val real = authed.get(route("story/Insurgency/reviews/${seeded.requestId}"))
+			assertEquals(HttpStatusCode.OK, real.status)
+		}
+	}
+
+	@Test
 	fun `accept and commit updates the clean scene and resolves the request`(): Unit = runBlocking {
 		doStartServer()
 		val seeded = seed()
