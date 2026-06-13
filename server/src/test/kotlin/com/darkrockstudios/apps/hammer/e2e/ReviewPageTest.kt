@@ -128,6 +128,21 @@ class ReviewPageTest : EndToEndTest() {
 	}
 
 	@Test
+	fun `review page falls back to English for untranslated locales`(): Unit = runBlocking {
+		doStartServer()
+		seedReview(ReviewStatus.SENT)
+
+		val response = client().get(route("review/$plainToken")) {
+			header(HttpHeaders.AcceptLanguage, "fr")
+		}
+
+		// The review keys only exist in the English bundle so far; the page must
+		// fall back to them rather than 500 on MissingResourceException.
+		assertEquals(HttpStatusCode.OK, response.status)
+		assertContains(response.bodyAsText(), "Submit Revisions")
+	}
+
+	@Test
 	fun `welcome flag is set only on the very first open`(): Unit = runBlocking {
 		doStartServer()
 		seedReview(ReviewStatus.SENT)

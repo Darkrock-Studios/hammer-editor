@@ -37,26 +37,43 @@ suspend fun ApplicationCall.getLocale(): Locale {
 	}
 }
 
+private fun messagesBundle(locale: Locale): ResourceBundle =
+	ResourceBundle.getBundle("i18n.Messages", locale)
+
+/**
+ * Bundle lookup that falls back to English for keys a translation doesn't
+ * carry yet, instead of throwing MissingResourceException.
+ */
+private fun localizedString(bundle: ResourceBundle, key: String): String =
+	try {
+		bundle.getString(key)
+	} catch (_: MissingResourceException) {
+		messagesBundle(Locale.ENGLISH).getString(key)
+	}
+
 suspend fun ApplicationCall.msg(key: String, vararg args: Any): String {
 	val locale = getLocale()
-	val bundle = ResourceBundle.getBundle("i18n.Messages", locale)
-	val message = bundle.getString(key)
+	val message = localizedString(messagesBundle(locale), key)
 	return if (args.isEmpty()) message else MessageFormat.format(message, *args)
 }
 
 suspend fun ApplicationCall.msg(data: MutableMap<String, Any>, key: String, vararg args: Any) {
-	val locale = getLocale()
-	val bundle = ResourceBundle.getBundle("i18n.Messages", locale)
-	val message = bundle.getString(key)
+	val message = msg(key, *args)
 	val msgData = data["msg"] as? MutableMap<String, String> ?: mutableMapOf()
-	msgData[key] = if (args.isEmpty()) message else MessageFormat.format(message, *args)
+	msgData[key] = message
 }
 
 suspend fun ApplicationCall.withMessages(data: Map<String, Any> = emptyMap()): MutableMap<String, Any> {
 	val locale = getLocale()
-	val bundle = ResourceBundle.getBundle("i18n.Messages", locale)
+	val bundle = messagesBundle(locale)
 
+	// English first as the complete baseline, then the locale's translations on
+	// top — untranslated keys render in English rather than as blank template vars.
 	val messages = mutableMapOf<String, Any>()
+	val english = messagesBundle(Locale.ENGLISH)
+	english.keys.asSequence().forEach { key ->
+		messages[key] = english.getString(key)
+	}
 	bundle.keys.asSequence().forEach { key ->
 		messages[key] = bundle.getString(key)
 	}
