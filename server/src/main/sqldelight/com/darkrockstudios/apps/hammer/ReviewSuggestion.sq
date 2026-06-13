@@ -43,6 +43,11 @@ DELETE FROM review_suggestion WHERE id = :id;
 updateSuggestionStatus:
 UPDATE review_suggestion SET status = :status, updated = :at WHERE id = :id;
 
+updateSuggestionContent:
+UPDATE review_suggestion
+SET replacement_text = :replacementText, reason = :reason, updated = :at
+WHERE id = :id;
+
 countSuggestionsForRequest:
 SELECT COUNT(*) FROM review_suggestion
 JOIN review_scene ON review_suggestion.review_scene_id = review_scene.id

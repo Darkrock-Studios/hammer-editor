@@ -341,6 +341,47 @@ class ReviewRepository(
 		return SResult.success(created.toDomain())
 	}
 
+	suspend fun updateSuggestion(
+		token: String,
+		suggestionId: Long,
+		replacement: String?,
+		reason: String?,
+	): SResult<ReviewSuggestion> {
+		val request = when (val r = resolveOpenReview(token)) {
+			is ServerResult.Failure -> return SResult.failure(r.error, r.displayMessage, r.exception)
+			is ServerResult.Success -> r.data
+		}
+		val suggestion = reviewSuggestionDao.getSuggestion(suggestionId)
+			?: return SResult.failure("Not found", Msg.r("api_review_suggestion_error_invalid"))
+		val scene = reviewSceneDao.getScene(suggestion.review_scene_id)
+		if (scene == null || scene.review_request_id != request.id) {
+			return SResult.failure("Not in review", Msg.r("api_review_suggestion_error_invalid"))
+		}
+
+		val type = ReviewSuggestionType.fromString(suggestion.type)
+		val newReplacement = when (type) {
+			ReviewSuggestionType.REWORD, ReviewSuggestionType.INSERT -> {
+				if (replacement.isNullOrEmpty()) {
+					return SResult.failure("Missing replacement", Msg.r("api_review_suggestion_error_invalid"))
+				}
+				replacement
+			}
+
+			else -> null
+		}
+		val newReason = reason?.trim()?.ifEmpty { null }
+		if (type == ReviewSuggestionType.COMMENT && newReason == null) {
+			return SResult.failure("Missing comment", Msg.r("api_review_suggestion_error_invalid"))
+		}
+
+		reviewSuggestionDao.updateSuggestionContent(suggestionId, newReplacement, newReason, clock.now())
+		touchInProgress(request)
+
+		val updated = reviewSuggestionDao.getSuggestion(suggestionId)
+			?: return SResult.failure("Lost suggestion", Msg.r("api_review_suggestion_error_invalid"))
+		return SResult.success(updated.toDomain())
+	}
+
 	suspend fun deleteSuggestion(token: String, suggestionId: Long): SResult<Unit> {
 		val request = when (val r = resolveOpenReview(token)) {
 			is ServerResult.Failure -> return SResult.failure(r.error, r.displayMessage, r.exception)

@@ -146,35 +146,61 @@
 	function renderSuggestion(s, paraRuns) {
 		const color = TYPE_COLOR[s.type];
 		const active = activeSugg === s.id;
-		const onClick = (ev) => { ev.stopPropagation(); activeSugg = active ? null : s.id; render(); };
+		const onClick = (ev) => { ev.stopPropagation(); editSuggestion(s); };
 		const ring = active ? { boxShadow: '0 0 0 2.5px ' + hexToRing(color), borderRadius: '3px' } : {};
+		const inkData = { 'sugg-id': s.id };
 
 		if (s.type === 'delete') {
-			const span = el('span', { class: 'review-ink', style: Object.assign({ cursor: 'pointer' }, ring, strikeStyle(color, s.id)), onclick: onClick });
+			const span = el('span', { class: 'review-ink', data: inkData, style: Object.assign({ cursor: 'pointer' }, ring, strikeStyle(color, s.id)), onclick: onClick });
 			appendRange(span, paraRuns, s.start, s.end);
 			return span;
 		}
 		if (s.type === 'reword') {
 			const struck = el('span', { style: strikeStyle(color, s.id) });
 			appendRange(struck, paraRuns, s.start, s.end);
-			return el('span', { class: 'review-ink', style: Object.assign({ cursor: 'pointer' }, ring), onclick: onClick },
+			return el('span', { class: 'review-ink', data: inkData, style: Object.assign({ cursor: 'pointer' }, ring), onclick: onClick },
 				struck,
 				el('span', { 'data-ins': '1', style: { fontFamily: CAVEAT, fontSize: '1.15em', fontWeight: '600', color: color } }, ' ' + (s.replacement || ''))
 			);
 		}
 		if (s.type === 'insert') {
-			return el('span', { class: 'review-ink', style: Object.assign({ cursor: 'pointer' }, ring), onclick: onClick },
+			return el('span', { class: 'review-ink', data: inkData, style: Object.assign({ cursor: 'pointer' }, ring), onclick: onClick },
 				el('span', { 'data-ins': '1', style: { color: color, fontWeight: '700' } }, '‸'),
 				el('span', { 'data-ins': '1', style: { fontFamily: CAVEAT, fontSize: '1.15em', fontWeight: '600', color: color } }, s.replacement || '')
 			);
 		}
 		// comment: yellow marker swipe
 		const span = el('span', {
-			class: 'review-ink', onclick: onClick,
+			class: 'review-ink', data: inkData, onclick: onClick,
 			style: Object.assign({ cursor: 'pointer', background: 'rgba(254,240,138,0.85)', borderRadius: '2px' }, ring),
 		});
 		appendRange(span, paraRuns, s.start, s.end);
 		return span;
+	}
+
+	/** Open the suggestion's form popup over its ink, prefilled for editing. */
+	function editSuggestion(s) {
+		if (LOCKED) {
+			activeSugg = activeSugg === s.id ? null : s.id;
+			render();
+			return;
+		}
+		activeSugg = s.id;
+		popup = null;
+		render();
+		const ink = manuscriptEl.querySelector('[data-sugg-id="' + s.id + '"]');
+		if (!ink) return;
+		const mode = s.type === 'delete' ? 'reason' : s.type;
+		popup = {
+			para: s.paragraph, start: s.start, end: s.end, mode: mode, editing: s,
+			draft: mode === 'comment' ? (s.reason || '') : (s.replacement || ''),
+			reason: s.reason || '',
+		};
+		const rect = ink.getBoundingClientRect();
+		const crect = manuscriptEl.getBoundingClientRect();
+		popup.top = rect.top - crect.top - 10;
+		popup.left = Math.max(120, Math.min(rect.left + rect.width / 2 - crect.left, crect.width - 120));
+		renderPopup();
 	}
 
 	function buildGutter() {
@@ -194,7 +220,7 @@
 		const card = el('div', {
 			class: 'review-card' + (active ? ' review-card--active' : ''),
 			style: { borderColor: active ? color : '' },
-			onclick: () => { activeSugg = active ? null : s.id; render(); },
+			onclick: () => { editSuggestion(s); },
 		});
 		const head = el('div', { class: 'review-card__head' },
 			el('span', { class: 'review-card__type', style: { color: color } }, icon(TYPE_ICON[s.type]), ' ' + TYPE_LABEL[s.type]));
@@ -285,31 +311,58 @@
 				menuBtn(S.comment, 'fa-comment', () => { popup.mode = 'comment'; renderPopup(); })
 			);
 		}
-		const title = popup.mode === 'reword' ? S.replacementLabel : popup.mode === 'insert' ? S.insertLabel : S.commentLabel;
+		// form modes: reword / insert / comment, plus 'reason' (editing a delete's reason)
+		const isReasonOnly = popup.mode === 'reason';
+		const title = popup.mode === 'reword' ? S.replacementLabel
+			: popup.mode === 'insert' ? S.insertLabel
+			: popup.mode === 'comment' ? S.commentLabel
+			: S.reasonLabel;
+
+		function save() {
+			if (!isReasonOnly && !popup.draft.trim()) return;
+			if (popup.editing) {
+				const replacement = isReasonOnly ? null
+					: popup.mode === 'comment' ? null : popup.draft;
+				const reason = popup.mode === 'comment' ? popup.draft.trim() : (popup.reason || '').trim();
+				commitEdit(popup.editing, replacement, reason);
+			} else if (popup.mode === 'comment') {
+				commit('comment', '', popup.draft.trim());
+			} else {
+				commit(popup.mode, popup.draft, (popup.reason || '').trim());
+			}
+		}
+
 		const saveBtn = el('button', {
-			class: 'btn btn--accent review-popup__save', type: 'button', disabled: 'true',
-			onclick: () => {
-				if (!popup.draft.trim()) return;
-				if (popup.mode === 'comment') commit('comment', '', popup.draft.trim());
-				else commit(popup.mode, popup.draft, (popup.reason || '').trim());
-			},
+			class: 'btn btn--accent review-popup__save', type: 'button', onclick: save,
 		}, S.save);
-		const textarea = el('textarea', {
-			class: 'review-popup__textarea',
-			placeholder: popup.mode === 'comment' ? S.commentPlaceholder : S.typePlaceholder,
-			oninput: (e) => { popup.draft = e.target.value; saveBtn.disabled = !popup.draft.trim(); },
-		});
+		saveBtn.disabled = !isReasonOnly && !popup.draft.trim();
+
 		const wrap = el('div', { 'data-popup': '1', class: 'review-popup review-popup--form', style: pos },
-			el('div', { class: 'review-popup__label' }, title), textarea);
+			el('div', { class: 'review-popup__label' }, title));
+
+		let focusTarget;
+		if (!isReasonOnly) {
+			const textarea = el('textarea', {
+				class: 'review-popup__textarea',
+				placeholder: popup.mode === 'comment' ? S.commentPlaceholder : S.typePlaceholder,
+				oninput: (e) => { popup.draft = e.target.value; saveBtn.disabled = !popup.draft.trim(); },
+			});
+			textarea.value = popup.draft || '';
+			wrap.appendChild(textarea);
+			focusTarget = textarea;
+		}
 		if (popup.mode !== 'comment') {
-			wrap.appendChild(el('input', {
+			const reasonInput = el('input', {
 				class: 'review-popup__reason', placeholder: S.reasonPlaceholder,
 				oninput: (e) => { popup.reason = e.target.value; },
-			}));
+			});
+			reasonInput.value = popup.reason || '';
+			wrap.appendChild(reasonInput);
+			if (isReasonOnly) focusTarget = reasonInput;
 		}
 		wrap.appendChild(el('div', { class: 'review-popup__actions' },
 			el('button', { class: 'btn btn--ghost', type: 'button', onclick: closePopup }, S.cancel), saveBtn));
-		setTimeout(() => textarea.focus(), 0);
+		if (focusTarget) setTimeout(() => focusTarget.focus(), 0);
 		return wrap;
 	}
 
@@ -336,6 +389,24 @@
 			activeSugg = saved.id;
 			render();
 		}
+	}
+
+	async function commitEdit(s, replacement, reason) {
+		closePopup();
+		const body = new URLSearchParams();
+		if (replacement != null) body.set('replacement', replacement);
+		if (reason != null) body.set('reason', reason);
+		try {
+			const res = await fetch('/review/' + TOKEN + '/suggestions/' + s.id, {
+				method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body,
+			});
+			if (!res.ok) { toastError(); return; }
+			const updated = await res.json();
+			const list = scene().suggestions;
+			const i = list.findIndex((x) => x.id === s.id);
+			if (i !== -1) list[i] = toClient(updated);
+			render();
+		} catch (e) { toastError(); }
 	}
 
 	async function doRemove(s) {

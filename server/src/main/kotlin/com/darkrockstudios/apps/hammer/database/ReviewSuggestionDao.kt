@@ -61,6 +61,11 @@ class ReviewSuggestionDao(
 			queries.updateSuggestionStatus(status.toStringId(), at, id)
 		}
 
+	suspend fun updateSuggestionContent(id: Long, replacementText: String?, reason: String?, at: Instant) =
+		withContext(ioDispatcher) {
+			queries.updateSuggestionContent(replacementText, reason, at, id)
+		}
+
 	suspend fun countSuggestionsForRequest(reviewRequestId: Long): Long = withContext(ioDispatcher) {
 		queries.countSuggestionsForRequest(reviewRequestId).executeAsOne()
 	}

@@ -320,6 +320,34 @@ fun Route.reviewFrontend(
 			}
 		}
 
+		// Edit an existing suggestion's replacement/reason. Responds the updated DTO.
+		post("/suggestions/{id}") {
+			val token = call.parameters["token"].orEmpty()
+			val id = call.parameters["id"]?.toLongOrNull()
+			if (id == null) {
+				call.respond(HttpStatusCode.BadRequest)
+				return@post
+			}
+			val form = call.receiveParameters()
+			val result = reviewRepository.updateSuggestion(
+				token = token,
+				suggestionId = id,
+				replacement = form["replacement"],
+				reason = form["reason"],
+			)
+			when (result) {
+				is ServerResult.Success -> call.respondText(
+					reviewJson.encodeToString(ReviewSuggestionDto.serializer(), result.data.toDto()),
+					ContentType.Application.Json,
+				)
+
+				is ServerResult.Failure -> call.respondJsonError(
+					HttpStatusCode.Conflict,
+					result.displayMessageText(call) ?: call.msg("api_review_suggestion_error_invalid"),
+				)
+			}
+		}
+
 		delete("/suggestions/{id}") {
 			val token = call.parameters["token"].orEmpty()
 			val id = call.parameters["id"]?.toLongOrNull()
@@ -416,6 +444,7 @@ private suspend fun ApplicationCall.buildReviewStringsJson(): String {
 		"insertLabel" to "review_action_insert_label",
 		"commentLabel" to "review_action_comment_label",
 		"reasonPlaceholder" to "review_action_reason_placeholder",
+		"reasonLabel" to "review_action_reason_label",
 		"commentPlaceholder" to "review_action_comment_placeholder",
 		"typePlaceholder" to "review_action_type_placeholder",
 		"suggestionsTitle" to "review_suggestions_title",
