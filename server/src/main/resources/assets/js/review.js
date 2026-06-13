@@ -1,10 +1,11 @@
 /**
- * Reviewer markup editor.
- *
- * Renders the manuscript from the JSON island the server emits (#review-data),
- * lets the reviewer select text to suggest delete/reword/comment or click to
- * insert, and autosaves each suggestion to the server. Pure suggestion logic
- * (segments, overlap, smart-spacing, pen-ink) lives in review-logic.js.
+ * Review markup editor, in two modes driven by the #review-data island:
+ *  - reviewer: select text to suggest delete/reword/comment or click to insert;
+ *    each suggestion autosaves against the capability token.
+ *  - author: read the submitted suggestions, accept/reject each one (the
+ *    manuscript previews the result), then apply the revisions.
+ * Pure suggestion logic (segments, overlap, smart-spacing, pen-ink) lives in
+ * review-logic.js.
  *
  * Functions from review-logic.js are globals here: computeSegments, overlapsAny,
  * smartSpaceInsert, strikeStyle, parseInlineMarkdown, runsForRange.
@@ -19,6 +20,9 @@
 	const S = JSON.parse(document.getElementById('review-strings').textContent);
 	const TOKEN = DATA.token;
 	const LOCKED = DATA.locked;
+	const IS_AUTHOR = DATA.mode === 'author';
+	const CAN_DECIDE = IS_AUTHOR && DATA.canDecide;
+	const BASE = DATA.basePath || '';
 
 	const TYPE_COLOR = { delete: '#b91c1c', reword: '#1d4ed8', insert: '#15803d', comment: '#a16207' };
 	const TYPE_ICON = { delete: 'fa-strikethrough', reword: 'fa-pen-nib', insert: 'fa-plus', comment: 'fa-comment' };
@@ -209,6 +213,10 @@
 			return span;
 		}
 
+		if (IS_AUTHOR && s.status && s.status !== 'pending') {
+			return renderDecidedInk(s, paraRuns, color, ring, inkData, onClick, decorateInk);
+		}
+
 		if (s.type === 'delete') {
 			const span = el('span', { class: 'review-ink', data: inkData, style: Object.assign({ cursor: 'pointer' }, ring, strikeStyle(color, s.id)), onclick: onClick });
 			appendRange(span, paraRuns, s.start, s.end);
@@ -234,6 +242,46 @@
 			style: Object.assign({ cursor: 'pointer', background: 'rgba(254,240,138,0.85)', borderRadius: '2px' }, ring),
 		});
 		appendRange(span, paraRuns, s.start, s.end);
+		return decorateInk(span);
+	}
+
+	/**
+	 * Author mode: a decided suggestion previews its outcome in the manuscript —
+	 * accepted edits read as the revised text, rejected ones restore the original
+	 * with a faint dotted memory of the ink.
+	 */
+	function renderDecidedInk(s, paraRuns, color, ring, inkData, onClick, decorateInk) {
+		const span = el('span', {
+			class: 'review-ink', data: inkData,
+			style: Object.assign({ cursor: 'pointer' }, ring),
+			onclick: onClick,
+		});
+		if (s.type === 'comment') {
+			// resolved comment: the marker swipe fades to gray
+			span.style.background = 'rgba(168,162,158,0.28)';
+			span.style.borderRadius = '2px';
+			appendRange(span, paraRuns, s.start, s.end);
+			return decorateInk(span);
+		}
+		if (s.status === 'accepted') {
+			if (s.type === 'delete') {
+				const struck = el('span', { class: 'review-ink--ghost', style: strikeStyle(color, s.id) });
+				appendRange(struck, paraRuns, s.start, s.end);
+				span.appendChild(struck);
+				return decorateInk(span);
+			}
+			// reword/insert: the replacement reads as real text, softly tinted
+			span.appendChild(el('span', { class: 'review-ink--applied' }, s.replacement || ''));
+			return decorateInk(span);
+		}
+		// rejected: the original stands
+		if (s.type === 'insert') {
+			span.appendChild(el('span', { class: 'review-ink--ghost', style: { color: color, fontWeight: '700' } }, '‸'));
+			return decorateInk(span);
+		}
+		const orig = el('span', { class: 'review-ink--rejected' });
+		appendRange(orig, paraRuns, s.start, s.end);
+		span.appendChild(orig);
 		return decorateInk(span);
 	}
 
@@ -264,6 +312,20 @@
 	function buildGutter() {
 		const gutter = el('div', { class: 'review-gutter' });
 		gutter.appendChild(el('h3', { class: 'review-gutter__title' }, S.suggestionsTitle));
+		if (CAN_DECIDE) {
+			const pendingEdits = suggsForScene().filter((s) => s.status === 'pending' && s.type !== 'comment');
+			if (pendingEdits.length > 0) {
+				gutter.appendChild(el('div', { class: 'review-gutter__bulk' },
+					el('button', {
+						class: 'review-bulk-btn review-bulk-btn--accept', type: 'button',
+						onclick: () => decideAll('accepted'),
+					}, icon('fa-check'), ' ' + S.acceptAll),
+					el('button', {
+						class: 'review-bulk-btn review-bulk-btn--reject', type: 'button',
+						onclick: () => decideAll('rejected'),
+					}, icon('fa-xmark'), ' ' + S.rejectAll)));
+			}
+		}
 		const cards = el('div', { class: 'review-gutter__cards' });
 		const list = suggsForScene().slice().sort((a, b) => a.paragraph - b.paragraph || a.start - b.start);
 		if (list.length === 0) cards.appendChild(el('div', { class: 'review-card--empty' }, S.noSuggestions));
@@ -275,8 +337,9 @@
 	function buildCard(s) {
 		const color = TYPE_COLOR[s.type];
 		const active = activeSugg === s.id;
+		const decidedClass = IS_AUTHOR && s.status !== 'pending' ? ' review-card--' + s.status : '';
 		const card = el('div', {
-			class: 'review-card' + (active ? ' review-card--active' : ''),
+			class: 'review-card' + (active ? ' review-card--active' : '') + decidedClass,
 			data: { 'card-id': s.id },
 			style: { borderColor: active ? color : '' },
 			onclick: () => { selectSuggestion(s, 'card'); },
@@ -305,7 +368,65 @@
 				icon('fa-arrow-right'), ' ' + s.replacement.trim()));
 		}
 		if (s.reason) card.appendChild(el('div', { class: 'review-card__reason' }, s.reason));
+		if (IS_AUTHOR) card.appendChild(buildDecision(s));
 		return card;
+	}
+
+	/* ---------- author decisions ---------- */
+	function buildDecision(s) {
+		const wrap = el('div', { class: 'review-card__decide' });
+		if (s.status === 'pending') {
+			if (!CAN_DECIDE) return wrap;
+			if (s.type === 'comment') {
+				wrap.appendChild(decideBtn(S.resolve, 'fa-check', 'resolved', s, 'accept'));
+			} else {
+				wrap.appendChild(decideBtn(S.accept, 'fa-check', 'accepted', s, 'accept'));
+				wrap.appendChild(decideBtn(S.reject, 'fa-xmark', 'rejected', s, 'reject'));
+			}
+			return wrap;
+		}
+		const label = s.status === 'accepted' ? S.chipAccepted
+			: s.status === 'rejected' ? S.chipRejected
+			: S.chipResolved;
+		const chip = el('span', { class: 'review-chip review-chip--' + s.status },
+			icon(s.status === 'rejected' ? 'fa-xmark' : 'fa-check'), ' ' + label);
+		if (CAN_DECIDE) {
+			chip.appendChild(el('button', {
+				class: 'review-chip__undo', type: 'button', title: S.undo,
+				onclick: (ev) => { ev.stopPropagation(); setStatus(s, 'pending'); },
+			}, icon('fa-rotate-left')));
+		}
+		wrap.appendChild(chip);
+		return wrap;
+	}
+
+	function decideBtn(label, ic, status, s, kind) {
+		return el('button', {
+			class: 'review-decide-btn review-decide-btn--' + kind, type: 'button',
+			onclick: (ev) => { ev.stopPropagation(); setStatus(s, status); },
+		}, icon(ic), ' ' + label);
+	}
+
+	async function setStatus(s, status) {
+		try {
+			const res = await fetch(BASE + '/suggestions/' + s.id + '/status', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+				body: new URLSearchParams({ status: status }),
+			});
+			if (!res.ok) { toastError(); return false; }
+			const updated = await res.json();
+			s.status = updated.status;
+			render();
+			return true;
+		} catch (e) { toastError(); return false; }
+	}
+
+	async function decideAll(status) {
+		const pend = suggsForScene().filter((x) => x.status === 'pending' && x.type !== 'comment');
+		for (const s of pend) {
+			if (!(await setStatus(s, status))) break;
+		}
 	}
 
 	/* ---------- selection / popup ---------- */
@@ -585,7 +706,7 @@
 		closeSubmitDialog();
 		const total = DATA.scenes.reduce((acc, sc) => acc + sc.suggestions.length, 0);
 		const tally = total === 1 ? S.submitTallyOne : S.submitTallyMany.replace('{0}', String(total));
-		const body = S.submitBody.replace('{0}', tally);
+		const body = S.submitBody.replace('{0}', tally).replace('{1}', DATA.authorName || '');
 
 		const submitBtn = el('button', {
 			class: 'btn btn--accent', type: 'button',
@@ -615,6 +736,112 @@
 		document.body.appendChild(overlay);
 	}
 
+	/* ---------- author commit ---------- */
+	function initCommit() {
+		const btn = document.getElementById('review-commit-btn');
+		if (!btn) return;
+		btn.addEventListener('click', showCommitDialog);
+	}
+
+	let commitDone = false;
+
+	function closeCommitDialog() {
+		if (commitDone) { window.location.reload(); return; }
+		const overlay = document.getElementById('review-commit-dialog');
+		if (overlay) overlay.remove();
+	}
+
+	function showCommitDialog() {
+		closeCommitDialog();
+		const edits = [];
+		DATA.scenes.forEach((sc) => sc.suggestions.forEach((s) => { if (s.type !== 'comment') edits.push(s); }));
+		const count = (status) => edits.filter((s) => s.status === status).length;
+		const pending = count('pending');
+		const tallyParts = [
+			S.commitTallyAccepted.replace('{0}', String(count('accepted'))),
+			S.commitTallyRejected.replace('{0}', String(count('rejected'))),
+		];
+		if (pending > 0) tallyParts.push(S.commitTallyPending.replace('{0}', String(pending)));
+
+		const body = el('div', { class: 'dialog__body review-submit-dialog__body' },
+			el('div', { class: 'review-commit-tally' }, tallyParts.join(' · ')),
+			el('p', {}, S.commitBody));
+		if (pending > 0) {
+			body.appendChild(el('p', { class: 'review-commit-warning' },
+				icon('fa-triangle-exclamation'), ' ' + S.commitPendingWarning));
+		}
+
+		const commitBtn = el('button', {
+			class: 'btn btn--accent', type: 'button',
+			onclick: async () => {
+				commitBtn.disabled = true;
+				try {
+					const res = await fetch(BASE + '/commit', { method: 'POST' });
+					if (res.ok) {
+						commitDone = true;
+						renderCommitResult(dialog, await res.json());
+						return;
+					}
+				} catch (e) { /* fallthrough */ }
+				closeCommitDialog();
+				toastError(S.commitFailed);
+			},
+		}, icon('fa-stamp'), ' ' + S.commitAction);
+
+		const dialog = el('div', { class: 'dialog' },
+			el('div', { class: 'dialog__header' },
+				el('h3', {}, S.commitTitle),
+				el('button', { class: 'dialog__close', type: 'button', onclick: closeCommitDialog }, icon('fa-times'))),
+			body,
+			el('div', { class: 'dialog__actions' },
+				el('button', { class: 'btn btn--ghost', type: 'button', onclick: closeCommitDialog }, S.cancel),
+				commitBtn));
+		const overlay = el('div', {
+			class: 'dialog-overlay', id: 'review-commit-dialog',
+			onclick: (e) => { if (e.target === e.currentTarget) closeCommitDialog(); },
+		}, dialog);
+		document.body.appendChild(overlay);
+	}
+
+	/** Swap the confirm dialog's content for the per-scene outcome report. */
+	function renderCommitResult(dialog, result) {
+		const OUTCOME_TEXT = {
+			applied: S.outcomeApplied,
+			diverged: S.outcomeDiverged,
+			unchanged: S.outcomeUnchanged,
+			scene_missing: S.outcomeSceneMissing,
+		};
+		const OUTCOME_ICON = {
+			applied: 'fa-check',
+			diverged: 'fa-code-branch',
+			unchanged: 'fa-minus',
+			scene_missing: 'fa-triangle-exclamation',
+		};
+		dialog.innerHTML = '';
+		dialog.appendChild(el('div', { class: 'dialog__header' }, el('h3', {}, S.commitResultTitle)));
+
+		const body = el('div', { class: 'dialog__body review-submit-dialog__body' });
+		const draftMade = result.scenes.some((sc) => sc.outcome === 'applied' || sc.outcome === 'diverged');
+		if (draftMade) {
+			body.appendChild(el('p', { class: 'review-commit-draft' },
+				icon('fa-file-pen'), ' ' + S.commitResultDraft.replace('{0}', result.draftName)));
+		}
+		const list = el('div', { class: 'review-commit-outcomes' });
+		result.scenes.forEach((sc) => {
+			list.appendChild(el('div', { class: 'review-commit-outcome review-commit-outcome--' + sc.outcome },
+				el('span', { class: 'review-commit-outcome__scene' }, icon(OUTCOME_ICON[sc.outcome] || 'fa-minus'), ' ' + sc.sceneName),
+				el('span', { class: 'review-commit-outcome__text' }, OUTCOME_TEXT[sc.outcome] || sc.outcome)));
+		});
+		body.appendChild(list);
+		dialog.appendChild(body);
+
+		dialog.appendChild(el('div', { class: 'dialog__actions' },
+			el('button', {
+				class: 'btn btn--accent', type: 'button',
+				onclick: () => { window.location.reload(); },
+			}, S.commitDone)));
+	}
+
 	/* ---------- helpers ---------- */
 	function paraTextOf(index) {
 		const para = scene().paragraphs.find((p) => p.index === index);
@@ -630,18 +857,18 @@
 		const n = parseInt(hex.slice(1), 16);
 		return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + (alpha || 0.35) + ')';
 	}
-	function toastError() {
+	function toastError(message) {
 		const container = document.getElementById('toast-container');
 		if (!container) return;
 		const t = el('div', { class: 'toast toast-error', role: 'alert' },
-			el('span', { class: 'toast-message' }, S.saveFailed),
+			el('span', { class: 'toast-message' }, message || S.saveFailed),
 			el('button', { class: 'toast-dismiss', onclick: function () { t.remove(); } }, '×'));
 		container.appendChild(t);
 		setTimeout(() => t.remove(), 5000);
 	}
 
 	document.addEventListener('keydown', (e) => {
-		if (e.key === 'Escape') { closePopup(); closeSubmitDialog(); }
+		if (e.key === 'Escape') { closePopup(); closeSubmitDialog(); closeCommitDialog(); }
 	});
 
 	// Give each suggestion an `original` display slice (markers dropped) for the gutter quote.
@@ -658,4 +885,5 @@
 
 	render();
 	initSubmit();
+	initCommit();
 })();

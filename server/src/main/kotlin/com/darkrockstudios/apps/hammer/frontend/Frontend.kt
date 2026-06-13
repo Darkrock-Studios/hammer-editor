@@ -112,6 +112,7 @@ fun Route.frontend() {
 		projectDao = projectDao,
 		markdownService = markdownService,
 		reviewInviteMailer = emailService?.let { com.darkrockstudios.apps.hammer.review.ReviewInviteMailer(it) },
+		reviewSubmittedMailer = emailService?.let { com.darkrockstudios.apps.hammer.review.ReviewSubmittedMailer(it) },
 		clock = clock,
 	)
 	authorPage(accountsRepository, projectAccessRepository, markdownService)

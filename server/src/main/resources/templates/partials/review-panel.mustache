@@ -11,6 +11,16 @@
 					</div>
 					<span class="review-card__email">{{email}}</span>
 					<span class="review-card__meta">{{meta}}</span>
+					{{#isSubmitted}}
+						<a class="review-card__open" href="/story/{{projectNameForUrl}}/reviews/{{id}}">
+							<i class="fa-solid fa-stamp"></i> {{msg.review_panel_open_review}}
+						</a>
+					{{/isSubmitted}}
+					{{#isResolved}}
+						<a class="review-card__open review-card__open--resolved" href="/story/{{projectNameForUrl}}/reviews/{{id}}">
+							<i class="fa-solid fa-eye"></i> {{msg.review_panel_view_review}}
+						</a>
+					{{/isResolved}}
 					{{#canRevoke}}
 						<div class="review-card__actions">
 							<button class="review-card__revoke"

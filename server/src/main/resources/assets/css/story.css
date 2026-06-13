@@ -1435,6 +1435,41 @@
 	color: var(--error);
 }
 
+/* Link into the author's accept/reject page, the call to action once a review lands */
+.review-card__open {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	align-self: flex-start;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.78rem;
+	color: var(--accent-dark);
+	background: rgba(217, 119, 6, 0.08);
+	border: 1.5px solid rgba(217, 119, 6, 0.35);
+	border-radius: 8px;
+	padding: 0.3rem 0.65rem;
+	margin-top: 0.3rem;
+	text-decoration: none;
+	transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.review-card__open:hover {
+	background: var(--accent);
+	color: #fffef9;
+}
+
+.review-card__open--resolved {
+	color: var(--neutral-500);
+	background: var(--neutral-100);
+	border-color: var(--neutral-300);
+}
+
+.review-card__open--resolved:hover {
+	background: var(--neutral-600);
+	border-color: var(--neutral-600);
+	color: #fffef9;
+}
+
 /* ===== Request a Review dialog ===== */
 
 .dialog--review {
