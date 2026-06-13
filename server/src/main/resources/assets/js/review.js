@@ -94,6 +94,16 @@
 		runsForRange(paraRuns, start, end).forEach((run) => parent.appendChild(runNode(run)));
 	}
 
+	/** Append free text with its inline emphasis rendered (no source offsets — not manuscript text). */
+	function appendStyledText(parent, text) {
+		parseInlineMarkdown(text).forEach((run) => {
+			if (!run.bold && !run.italic) { parent.appendChild(document.createTextNode(run.text)); return; }
+			const span = el('span', { style: { fontWeight: run.bold ? '700' : '', fontStyle: run.italic ? 'italic' : '' } });
+			span.appendChild(document.createTextNode(run.text));
+			parent.appendChild(span);
+		});
+	}
+
 	/* ---------- render ---------- */
 	function render() {
 		caretMarker = null; // discarded with the rebuilt DOM
@@ -339,8 +349,11 @@
 				span.appendChild(struck);
 				return decorateInk(span);
 			}
-			// reword/insert: the replacement reads as real text, softly tinted
-			span.appendChild(el('span', { class: 'review-ink--applied' }, s.replacement || ''));
+			// reword/insert: the replacement reads as real text, softly tinted —
+			// with its own emphasis rendered, like the manuscript shows markdown.
+			const applied = el('span', { class: 'review-ink--applied' });
+			appendStyledText(applied, s.replacement || '');
+			span.appendChild(applied);
 			return decorateInk(span);
 		}
 		// rejected: the original stands

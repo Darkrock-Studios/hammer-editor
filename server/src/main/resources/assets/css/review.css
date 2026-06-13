@@ -957,7 +957,8 @@
 		align-items: flex-start;
 	}
 
-	.review-manuscript__content {
+	/* Justified text rivers badly in a narrow column; left-align on phones. */
+	.review-para {
 		text-align: left;
 	}
 }
