@@ -16,7 +16,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.boldShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.icons.*
+import com.darkrockstudios.apps.hammer.common.compose.italicShortcutModifier
+import com.darkrockstudios.apps.hammer.common.compose.strikethroughShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.markdown_format_bar_decrease_text_size
 import com.darkrockstudios.apps.hammer.markdown_format_bar_increase_text_size
@@ -128,19 +131,19 @@ private fun RowScope.FormatButtons(
 		icon = EditorIcons.IconBold,
 		active = isBoldActive,
 	) {
-		toggleStyle(state, isBoldActive, markdownState.markdownStyles.BOLD)
+		toggleStyle(state, markdownState.markdownStyles.BOLD)
 	}
 	EditorAction(
 		icon = EditorIcons.IconItalic,
 		active = isItalicActive,
 	) {
-		toggleStyle(state, isItalicActive, markdownState.markdownStyles.ITALICS)
+		toggleStyle(state, markdownState.markdownStyles.ITALICS)
 	}
 	EditorAction(
 		icon = EditorIcons.IconStrikethrough,
 		active = isStrikethroughActive,
 	) {
-		toggleStyle(state, isStrikethroughActive, markdownState.markdownStyles.STRIKETHROUGH)
+		toggleStyle(state, markdownState.markdownStyles.STRIKETHROUGH)
 	}
 	EditorTextAction(
 		label = if (currentHeaderLevel == 0) "H" else "H$currentHeaderLevel",
@@ -152,7 +155,7 @@ private fun RowScope.FormatButtons(
 		icon = Icons.Default.FormatQuote,
 		active = isBlockquoteActive,
 	) {
-		toggleStyle(state, isBlockquoteActive, markdownState.markdownStyles.BLOCKQUOTE)
+		toggleStyle(state, markdownState.markdownStyles.BLOCKQUOTE)
 	}
 	EditorAction(
 		icon = Icons.AutoMirrored.Filled.FormatListBulleted,
@@ -258,19 +261,39 @@ private fun HistoryAndOverflow(
 	}
 }
 
+/**
+ * Hooks Ctrl/Cmd+B, Ctrl/Cmd+I and Ctrl/Cmd+Shift+X up to bold, italic and
+ * strikethrough so the inline styles in the format bar are also reachable from
+ * the keyboard. Apply to an ancestor of the editor (the events are caught in the
+ * preview phase, before the editor's own key handling sees them).
+ */
+fun Modifier.markdownFormatShortcuts(markdownExtension: MarkdownExtension): Modifier {
+	val state = markdownExtension.editorState
+	return this
+		.boldShortcutModifier { toggleStyle(state, markdownExtension.markdownStyles.BOLD) }
+		.italicShortcutModifier { toggleStyle(state, markdownExtension.markdownStyles.ITALICS) }
+		.strikethroughShortcutModifier { toggleStyle(state, markdownExtension.markdownStyles.STRIKETHROUGH) }
+}
+
+/**
+ * Toggles [spanStyle] over the current selection, or at the cursor when there is
+ * no selection. The active state is read synchronously from the editor so this is
+ * safe to call from a keyboard shortcut as well as a toolbar button.
+ */
 private fun toggleStyle(
 	state: TextEditorState,
-	isActive: Boolean,
-	spanStyle: SpanStyle
+	spanStyle: SpanStyle,
 ) {
 	val selection = state.selector.selection
 	if (selection != null) {
+		val isActive = state.getSpanStylesInRange(selection).contains(spanStyle)
 		if (isActive) {
 			state.removeStyleSpan(selection, spanStyle)
 		} else {
 			state.addStyleSpan(selection, spanStyle)
 		}
 	} else {
+		val isActive = state.cursor.styles.contains(spanStyle)
 		if (isActive) {
 			state.cursor.removeStyle(spanStyle)
 		} else {

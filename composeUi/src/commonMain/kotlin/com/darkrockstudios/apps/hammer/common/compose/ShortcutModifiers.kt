@@ -30,3 +30,12 @@ fun Modifier.saveShortcutModifier(onSave: () -> Unit): Modifier =
 
 fun Modifier.syncShortcutModifier(onSync: () -> Unit): Modifier =
 	onKeyShortcut(Key.F3, action = onSync)
+
+fun Modifier.boldShortcutModifier(onBold: () -> Unit): Modifier =
+	onKeyShortcut(Key.B, ctrl = true, action = onBold)
+
+fun Modifier.italicShortcutModifier(onItalic: () -> Unit): Modifier =
+	onKeyShortcut(Key.I, ctrl = true, action = onItalic)
+
+fun Modifier.strikethroughShortcutModifier(onStrikethrough: () -> Unit): Modifier =
+	onKeyShortcut(Key.X, ctrl = true, shift = true, action = onStrikethrough)
