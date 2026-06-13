@@ -11,7 +11,7 @@
 }
 
 .review-page__container {
-	max-width: 860px;
+	max-width: 1500px;
 	width: 100%;
 	animation: fadeIn 0.5s ease-out;
 }
@@ -260,7 +260,7 @@
 	position: relative;
 	flex: 1;
 	min-width: 0;
-	max-width: 760px;
+	max-width: 860px;
 	background: var(--paper-white);
 	border-radius: 10px;
 	box-shadow: var(--shadow-lg);
