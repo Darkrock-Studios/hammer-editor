@@ -302,9 +302,9 @@
 	}
 
 	/* ---------- insertion caret marker ---------- */
-	// A visible caret in the text while the insert flow is active, so the exact
-	// landing spot is unambiguous. Splitting a text node keeps source mapping
-	// valid by registering the tail at its own source offset.
+	// A caret overlaid on the text while the insert flow is active, so the exact
+	// landing spot is unambiguous. Positioned from a collapsed Range's rect —
+	// the manuscript DOM itself is never touched.
 	let caretMarker = null;
 
 	function removeInsertCaret() {
@@ -322,17 +322,17 @@
 			const s = nodeSrcStart.get(n);
 			const e = s + n.nodeValue.length;
 			if (pos < s || pos > e) continue;
-			const marker = el('span', { class: 'review-caret', 'data-ins': '1' });
-			if (pos === s) {
-				n.parentNode.insertBefore(marker, n);
-			} else if (pos === e) {
-				n.parentNode.insertBefore(marker, n.nextSibling);
-			} else {
-				const tail = n.splitText(pos - s);
-				nodeSrcStart.set(tail, pos);
-				n.parentNode.insertBefore(marker, tail);
-			}
-			caretMarker = marker;
+			const range = document.createRange();
+			range.setStart(n, pos - s);
+			range.collapse(true);
+			const rect = range.getBoundingClientRect();
+			if (!rect || (rect.top === 0 && rect.height === 0)) return;
+			const crect = manuscriptEl.getBoundingClientRect();
+			caretMarker = el('span', { class: 'review-caret' });
+			caretMarker.style.left = (rect.left - crect.left - 1) + 'px';
+			caretMarker.style.top = (rect.top - crect.top) + 'px';
+			caretMarker.style.height = rect.height + 'px';
+			manuscriptEl.appendChild(caretMarker);
 			return;
 		}
 	}
