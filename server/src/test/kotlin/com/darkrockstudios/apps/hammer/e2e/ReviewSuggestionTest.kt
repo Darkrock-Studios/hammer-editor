@@ -114,36 +114,31 @@ class ReviewSuggestionTest : EndToEndTest() {
 	}
 
 	@Test
+	fun `a range edit spanning an existing insert caret is rejected`(): Unit = runBlocking {
+		doStartServer()
+		val sceneId = seed()
+
+		val caret = postSuggestion(
+			sceneId,
+			mapOf("type" to "insert", "paragraph" to "0", "start" to "28", "end" to "28", "replacement" to "X"),
+		)
+		assertEquals(HttpStatusCode.OK, caret.status)
+
+		// A delete spanning the caret would swallow the insertion at apply time
+		val spanning = postSuggestion(sceneId, mapOf("type" to "delete", "paragraph" to "0", "start" to "25", "end" to "35"))
+		assertEquals(HttpStatusCode.Conflict, spanning.status)
+
+		// Touching the caret only at its boundary is fine
+		val adjacent = postSuggestion(sceneId, mapOf("type" to "delete", "paragraph" to "0", "start" to "25", "end" to "28"))
+		assertEquals(HttpStatusCode.OK, adjacent.status)
+	}
+
+	@Test
 	fun `out-of-range offsets are rejected`(): Unit = runBlocking {
 		doStartServer()
 		val sceneId = seed()
 		val response = postSuggestion(sceneId, mapOf("type" to "delete", "paragraph" to "0", "start" to "5", "end" to "999"))
 		assertEquals(HttpStatusCode.Conflict, response.status)
-	}
-
-	@Test
-	fun `reviewer edits an existing suggestion`(): Unit = runBlocking {
-		doStartServer()
-		val sceneId = seed()
-		val created = postSuggestion(
-			sceneId,
-			mapOf("type" to "reword", "paragraph" to "0", "start" to "25", "end" to "35", "replacement" to "nonviable"),
-		)
-		val id = Regex("\"id\":(\\d+)").find(created.bodyAsText())!!.groupValues[1]
-
-		val update = client().post(route("review/$plainToken/suggestions/$id")) {
-			contentType(ContentType.Application.FormUrlEncoded)
-			setBody("replacement=${java.net.URLEncoder.encode("not viable", "UTF-8")}&reason=${java.net.URLEncoder.encode("Softer phrasing", "UTF-8")}")
-		}
-		assertEquals(HttpStatusCode.OK, update.status)
-
-		val stored = database().serverDatabase.reviewSuggestionQueries
-			.getSuggestionsForScene(sceneId).executeAsOne()
-		assertEquals("not viable", stored.replacement_text)
-		assertEquals("Softer phrasing", stored.reason)
-		// anchors untouched by content edits
-		assertEquals(25, stored.start_offset)
-		assertEquals(35, stored.end_offset)
 	}
 
 	@Test
@@ -169,6 +164,31 @@ class ReviewSuggestionTest : EndToEndTest() {
 			mapOf("type" to "reword", "paragraph" to "0", "start" to "25", "end" to "35", "replacement" to "x".repeat(10_000)),
 		)
 		assertEquals(HttpStatusCode.OK, atCap.status)
+	}
+
+	@Test
+	fun `reviewer edits an existing suggestion`(): Unit = runBlocking {
+		doStartServer()
+		val sceneId = seed()
+		val created = postSuggestion(
+			sceneId,
+			mapOf("type" to "reword", "paragraph" to "0", "start" to "25", "end" to "35", "replacement" to "nonviable"),
+		)
+		val id = Regex("\"id\":(\\d+)").find(created.bodyAsText())!!.groupValues[1]
+
+		val update = client().post(route("review/$plainToken/suggestions/$id")) {
+			contentType(ContentType.Application.FormUrlEncoded)
+			setBody("replacement=${java.net.URLEncoder.encode("not viable", "UTF-8")}&reason=${java.net.URLEncoder.encode("Softer phrasing", "UTF-8")}")
+		}
+		assertEquals(HttpStatusCode.OK, update.status)
+
+		val stored = database().serverDatabase.reviewSuggestionQueries
+			.getSuggestionsForScene(sceneId).executeAsOne()
+		assertEquals("not viable", stored.replacement_text)
+		assertEquals("Softer phrasing", stored.reason)
+		// anchors untouched by content edits
+		assertEquals(25, stored.start_offset)
+		assertEquals(35, stored.end_offset)
 	}
 
 	@Test

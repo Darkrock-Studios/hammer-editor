@@ -23,7 +23,13 @@ object ReviewApplier {
 	private fun applyToParagraph(text: String, edits: List<ReviewSuggestion>): String {
 		var result = text
 		edits
-			.sortedWith(compareByDescending<ReviewSuggestion> { it.startOffset }.thenByDescending { it.endOffset })
+			// Descending id last: same-position carets must apply newest-first so the
+			// committed order matches the left-to-right display order.
+			.sortedWith(
+				compareByDescending<ReviewSuggestion> { it.startOffset }
+					.thenByDescending { it.endOffset }
+					.thenByDescending { it.id }
+			)
 			.forEach { edit ->
 				if (edit.startOffset < 0 || edit.endOffset > result.length || edit.startOffset > edit.endOffset) {
 					return@forEach

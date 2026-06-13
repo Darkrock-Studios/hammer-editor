@@ -23,18 +23,27 @@ test('computeSegments orders multiple suggestions and keeps plain tails', () => 
 	assert.deepEqual(segs.map((x) => x.text), ['a', 'bc', 'def', 'gh', 'ij']);
 });
 
-test('rangesOverlap treats touching ranges as non-overlapping and carets as never overlapping', () => {
+test('rangesOverlap treats touching ranges as non-overlapping', () => {
 	assert.equal(logic.rangesOverlap(0, 5, 5, 9), false); // adjacent
 	assert.equal(logic.rangesOverlap(0, 5, 4, 9), true); // overlap
-	assert.equal(logic.rangesOverlap(3, 3, 0, 9), false); // caret inside
 });
 
-test('smartSpaceInsert pads a word after a non-space but not punctuation', () => {
+test('rangesOverlap counts a caret strictly inside a range as a collision', () => {
+	assert.equal(logic.rangesOverlap(3, 3, 0, 9), true); // caret inside range
+	assert.equal(logic.rangesOverlap(0, 9, 3, 3), true); // range spans caret
+	assert.equal(logic.rangesOverlap(0, 0, 0, 9), false); // caret at range start
+	assert.equal(logic.rangesOverlap(9, 9, 0, 9), false); // caret at range end
+	assert.equal(logic.rangesOverlap(3, 3, 3, 3), false); // caret on caret
+});
+
+test('smartSpaceInsert pads a word on both sides but never around punctuation', () => {
 	const text = 'one two';
-	assert.equal(logic.smartSpaceInsert(text, 3, 'and'), ' and'); // between words
+	assert.equal(logic.smartSpaceInsert(text, 3, 'and'), ' and'); // after a word, before a space
 	assert.equal(logic.smartSpaceInsert(text, 3, ','), ','); // punctuation, no pad
-	assert.equal(logic.smartSpaceInsert(text, 0, 'New'), 'New'); // start of para
-	assert.equal(logic.smartSpaceInsert(text, 4, 'x'), 'x'); // after a space already
+	assert.equal(logic.smartSpaceInsert(text, 0, 'New'), 'New '); // start of para, before a word
+	assert.equal(logic.smartSpaceInsert(text, 4, 'x'), 'x '); // after a space, before a word
+	assert.equal(logic.smartSpaceInsert(text, 7, 'more'), ' more'); // end of para
+	assert.equal(logic.smartSpaceInsert('one, two', 3, 'word'), ' word'); // before a comma, no trail
 });
 
 test('applyAccepted applies only accepted edits, right-to-left', () => {
@@ -54,6 +63,18 @@ test('applyAccepted inserts at a caret and ignores comments', () => {
 		{ type: 'comment', start: 0, end: 5, status: 'accepted' },
 	];
 	assert.equal(logic.applyAccepted(text, suggestions), 'Power reserves nominal. Systems green.');
+});
+
+test('applyAccepted commits same-position carets in display order', () => {
+	const text = 'abcdef';
+	const suggestions = [
+		{ id: 1, type: 'insert', start: 3, end: 3, replacement: 'A', status: 'accepted' },
+		{ id: 2, type: 'insert', start: 3, end: 3, replacement: 'B', status: 'accepted' },
+	];
+	// computeSegments renders [A, B] at the caret; the splice must agree.
+	const segs = logic.computeSegments(text, suggestions);
+	assert.deepEqual(segs.filter((s) => s.suggestion).map((s) => s.suggestion.id), [1, 2]);
+	assert.equal(logic.applyAccepted(text, suggestions), 'abcABdef');
 });
 
 test('strikeSlope is deterministic, varies by seed, and never lands flat', () => {

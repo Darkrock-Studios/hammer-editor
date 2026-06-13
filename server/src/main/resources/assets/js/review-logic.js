@@ -30,9 +30,17 @@ function computeSegments(text, suggestions) {
 	return segments;
 }
 
-/** True if [aStart,aEnd) and [bStart,bEnd) share any character (zero-width carets never overlap). */
+/**
+ * True if [aStart,aEnd) and [bStart,bEnd) collide. A caret (zero-width) collides
+ * with a range only when strictly inside it — a spanning edit would swallow the
+ * insertion at apply time. Two carets never collide.
+ */
 function rangesOverlap(aStart, aEnd, bStart, bEnd) {
-	if (aStart === aEnd || bStart === bEnd) return false;
+	const aCaret = aStart === aEnd;
+	const bCaret = bStart === bEnd;
+	if (aCaret && bCaret) return false;
+	if (aCaret) return aStart > bStart && aStart < bEnd;
+	if (bCaret) return bStart > aStart && bStart < aEnd;
 	return !(aEnd <= bStart || aStart >= bEnd);
 }
 
@@ -44,16 +52,21 @@ function overlapsAny(start, end, suggestions) {
 }
 
 /**
- * Pad an inserted string with a leading space only when it reads as a new word
- * after a non-space — but not when inserting punctuation. Mirrors the prototype.
+ * Pad an inserted string with spaces so it reads as its own word: a leading
+ * space when it follows a non-space, a trailing one when it abuts the next
+ * word — but never around punctuation.
  */
 function smartSpaceInsert(paraText, start, replacement) {
 	if (!replacement) return replacement;
+	const punct = ',.;:!?—’”)…-';
 	const prev = start > 0 ? paraText[start - 1] : '';
 	const first = replacement[0];
-	const punct = ',.;:!?—’”)…-';
-	const needsSpace = !/\s/.test(first) && punct.indexOf(first) === -1 && prev && !/\s/.test(prev);
-	return needsSpace ? ' ' + replacement : replacement;
+	const needsLead = !/\s/.test(first) && punct.indexOf(first) === -1 && prev && !/\s/.test(prev);
+	const next = paraText[start] || '';
+	const last = replacement[replacement.length - 1];
+	const needsTrail = next && !/\s/.test(next) && punct.indexOf(next) === -1 &&
+		!/\s/.test(last) && punct.indexOf(last) === -1;
+	return (needsLead ? ' ' : '') + replacement + (needsTrail ? ' ' : '');
 }
 
 /**
@@ -64,7 +77,9 @@ function smartSpaceInsert(paraText, start, replacement) {
 function applyAccepted(text, suggestions) {
 	const accepted = suggestions
 		.filter(function (s) { return s.status === 'accepted' && s.type !== 'comment'; })
-		.sort(function (a, b) { return b.start - a.start || b.end - a.end; });
+		// Descending id last: same-position carets apply newest-first so the result
+		// matches the left-to-right display order.
+		.sort(function (a, b) { return b.start - a.start || b.end - a.end || (b.id || 0) - (a.id || 0); });
 	let result = text;
 	for (const s of accepted) {
 		const replacement = s.type === 'delete' ? '' : (s.replacement || '');

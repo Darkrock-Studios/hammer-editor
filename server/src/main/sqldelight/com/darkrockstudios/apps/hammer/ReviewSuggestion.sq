@@ -27,12 +27,12 @@ getSuggestionsForRequest:
 SELECT review_suggestion.* FROM review_suggestion
 JOIN review_scene ON review_suggestion.review_scene_id = review_scene.id
 WHERE review_scene.review_request_id = :reviewRequestId
-ORDER BY review_suggestion.paragraph, review_suggestion.start_offset;
+ORDER BY review_suggestion.paragraph, review_suggestion.start_offset, review_suggestion.id;
 
 getSuggestionsForScene:
 SELECT * FROM review_suggestion
 WHERE review_scene_id = :reviewSceneId
-ORDER BY paragraph, start_offset;
+ORDER BY paragraph, start_offset, id;
 
 getSuggestion:
 SELECT * FROM review_suggestion WHERE id = :id;

@@ -98,6 +98,18 @@ class ReviewApplierTest {
 	}
 
 	@Test
+	fun `same-position carets apply in display order`() {
+		val result = ReviewApplier.applyAccepted(
+			"abcdef",
+			listOf(
+				suggestion(ReviewSuggestionType.INSERT, 0, 3, 3, replacement = "A"),
+				suggestion(ReviewSuggestionType.INSERT, 0, 3, 3, replacement = "B"),
+			),
+		)
+		assertEquals("abcABdef", result)
+	}
+
+	@Test
 	fun `out-of-range edits are skipped defensively`() {
 		val snapshot = "Short"
 		val result = ReviewApplier.applyAccepted(

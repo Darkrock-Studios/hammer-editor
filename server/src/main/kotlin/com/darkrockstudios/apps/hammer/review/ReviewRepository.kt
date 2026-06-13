@@ -362,8 +362,10 @@ class ReviewRepository(
 			val sIsCaret = s.start_offset == s.end_offset
 			val clash = if (isInsert) {
 				!sIsCaret && start > s.start_offset && start < s.end_offset
+			} else if (sIsCaret) {
+				s.start_offset > start && s.start_offset < end
 			} else {
-				!sIsCaret && !(end <= s.start_offset || start >= s.end_offset)
+				!(end <= s.start_offset || start >= s.end_offset)
 			}
 			if (clash) return SResult.failure("Overlapping suggestion", Msg.r("api_review_suggestion_error_overlap"))
 		}
