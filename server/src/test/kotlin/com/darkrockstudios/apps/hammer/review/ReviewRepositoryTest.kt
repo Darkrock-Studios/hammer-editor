@@ -317,7 +317,8 @@ class ReviewRepositoryTest : BaseTest() {
 		val result = createRepository().openReviewByToken("plain-token")
 
 		assertTrue(isSuccess(result))
-		assertEquals(ReviewStatus.OPENED, result.data.status)
+		assertEquals(ReviewStatus.OPENED, result.data.request.status)
+		assertTrue(result.data.firstOpen)
 		coVerify(exactly = 1) { reviewRequestDao.markOpened(42L, ReviewStatus.OPENED, any()) }
 	}
 
@@ -329,7 +330,8 @@ class ReviewRepositoryTest : BaseTest() {
 		val result = createRepository().openReviewByToken("plain-token")
 
 		assertTrue(isSuccess(result))
-		assertEquals(ReviewStatus.IN_PROGRESS, result.data.status)
+		assertEquals(ReviewStatus.IN_PROGRESS, result.data.request.status)
+		assertFalse(result.data.firstOpen)
 		coVerify(exactly = 0) { reviewRequestDao.markOpened(any(), any(), any()) }
 	}
 

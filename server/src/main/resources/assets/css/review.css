@@ -573,6 +573,19 @@
 	line-height: 1.45;
 }
 
+/* The welcome's submit reminder — the one thing the editor must not miss */
+.review-welcome__note {
+	background: rgba(217, 119, 6, 0.08);
+	border-left: 3px solid var(--accent);
+	border-radius: 0 6px 6px 0;
+	padding: 0.65rem 0.8rem;
+	color: var(--accent-dark);
+}
+
+.review-welcome__note i {
+	margin-right: 0.3rem;
+}
+
 /* ===== Scene done progress ===== */
 
 .review-nav__done {

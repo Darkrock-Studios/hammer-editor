@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.time.Duration.Companion.days
 import kotlin.uuid.Uuid
 
 class ReviewPageTest : EndToEndTest() {
@@ -20,7 +21,7 @@ class ReviewPageTest : EndToEndTest() {
 	private val userId = 1L
 	private val plainToken = "test-review-token-0123456789abcdef"
 
-	private fun seedReview(status: ReviewStatus): Long = runBlocking {
+	private fun seedReview(status: ReviewStatus, expires: kotlin.time.Instant? = null): Long = runBlocking {
 		val account = TestAccount(email = "author@test.com", password = "password123!@#")
 		E2eTestData.createAccount(account, database())
 		E2eTestData.createProject(
@@ -41,7 +42,7 @@ class ReviewPageTest : EndToEndTest() {
 			label = "My agent",
 			note = "Please focus on pacing in the middle scenes.",
 			status = status.toStringId(),
-			expires = null,
+			expires = expires,
 		)
 		val requestId = db.reviewRequestQueries.getRequestByToken(hashedToken).executeAsOne().id
 
@@ -97,13 +98,44 @@ class ReviewPageTest : EndToEndTest() {
 	}
 
 	@Test
-	fun `review page rejects a revoked token`(): Unit = runBlocking {
+	fun `review page rejects a revoked token with a friendly page`(): Unit = runBlocking {
 		doStartServer()
 		seedReview(ReviewStatus.CANCELED)
 
 		val response = client().get(route("review/$plainToken"))
 
 		assertEquals(HttpStatusCode.Gone, response.status)
-		assertContains(response.bodyAsText(), "review-error")
+		val body = response.bodyAsText()
+		assertContains(body, "review-error")
+		assertContains(body, "The author closed this review")
+		// Names the story so the editor knows which request this was
+		assertContains(body, "Insurgency")
+	}
+
+	@Test
+	fun `review page rejects an expired token with a friendly page`(): Unit = runBlocking {
+		doStartServer()
+		seedReview(ReviewStatus.IN_PROGRESS, expires = kotlin.time.Clock.System.now() - 1.days)
+
+		val response = client().get(route("review/$plainToken"))
+
+		assertEquals(HttpStatusCode.Gone, response.status)
+		val body = response.bodyAsText()
+		assertContains(body, "This review link has expired")
+		assertContains(body, "Insurgency")
+		// MessageFormat collapsed the doubled source apostrophe; Mustache HTML-escapes it
+		assertContains(body, "For the author&#39;s security")
+	}
+
+	@Test
+	fun `welcome flag is set only on the very first open`(): Unit = runBlocking {
+		doStartServer()
+		seedReview(ReviewStatus.SENT)
+
+		val first = client().get(route("review/$plainToken")).bodyAsText()
+		assertContains(first, "\"firstOpen\":true")
+
+		val second = client().get(route("review/$plainToken")).bodyAsText()
+		assertContains(second, "\"firstOpen\":false")
 	}
 }

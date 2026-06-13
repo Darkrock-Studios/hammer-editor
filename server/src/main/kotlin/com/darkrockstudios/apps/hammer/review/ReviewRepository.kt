@@ -208,11 +208,17 @@ class ReviewRepository(
 	suspend fun findReviewByToken(plainToken: String): ReviewRequest? =
 		reviewRequestDao.getRequestByToken(tokenHasher.hashToken(plainToken))?.toDomain()
 
+	data class OpenedReview(
+		val request: ReviewRequest,
+		/** True the very first time this link is opened — the editor's welcome moment. */
+		val firstOpen: Boolean,
+	)
+
 	/**
 	 * Resolve a reviewer's capability token. Marks the request opened on first use
 	 * and refuses expired or canceled requests.
 	 */
-	suspend fun openReviewByToken(plainToken: String): SResult<ReviewRequest> {
+	suspend fun openReviewByToken(plainToken: String): SResult<OpenedReview> {
 		val hashedToken = tokenHasher.hashToken(plainToken)
 		val row = reviewRequestDao.getRequestByToken(hashedToken)
 			?: return SResult.failure("Unknown token", Msg.r("api_review_token_error_invalid"))
@@ -229,11 +235,14 @@ class ReviewRepository(
 			request.status == ReviewStatus.SENT -> {
 				reviewRequestDao.markOpened(request.id, ReviewStatus.OPENED, now)
 				SResult.success(
-					request.copy(status = ReviewStatus.OPENED, openedAt = now, lastActiveAt = now)
+					OpenedReview(
+						request.copy(status = ReviewStatus.OPENED, openedAt = now, lastActiveAt = now),
+						firstOpen = true,
+					)
 				)
 			}
 
-			else -> SResult.success(request)
+			else -> SResult.success(OpenedReview(request, firstOpen = false))
 		}
 	}
 

@@ -782,6 +782,37 @@
 		document.body.appendChild(overlay);
 	}
 
+	/* ---------- first-open welcome ---------- */
+	// Shown once, the first time the editor's link is ever opened: what this is,
+	// how to mark up, and that nothing reaches the author until Submit Revisions.
+	function closeWelcome() {
+		const overlay = document.getElementById('review-welcome-dialog');
+		if (overlay) overlay.remove();
+	}
+
+	function showWelcomeDialog() {
+		const tally = DATA.scenes.length === 1
+			? S.sceneTallyOne
+			: S.sceneTallyMany.replace('{0}', String(DATA.scenes.length));
+		const overlay = el('div', {
+			class: 'dialog-overlay', id: 'review-welcome-dialog',
+			onclick: (e) => { if (e.target === e.currentTarget) closeWelcome(); },
+		},
+			el('div', { class: 'dialog' },
+				el('div', { class: 'dialog__header' },
+					el('h3', {}, S.welcomeTitle),
+					el('button', { class: 'dialog__close', type: 'button', onclick: closeWelcome }, icon('fa-times'))),
+				el('div', { class: 'dialog__body review-submit-dialog__body' },
+					el('p', {}, S.welcomeIntro.replace('{0}', DATA.authorName || '').replace('{1}', tally)),
+					el('p', {}, S.welcomeHow),
+					el('p', { class: 'review-welcome__note' },
+						icon('fa-paper-plane'), ' ' + S.welcomeSubmitNote.replace('{0}', S.submit))),
+				el('div', { class: 'dialog__actions' },
+					el('button', { class: 'btn btn--accent', type: 'button', onclick: closeWelcome },
+						icon('fa-pen-nib'), ' ' + S.welcomeAction))));
+		document.body.appendChild(overlay);
+	}
+
 	/* ---------- author ink tooltip ---------- */
 	// Hovering ink surfaces the reviewer's note — and quick accept/reject while
 	// the suggestion is pending — right at the text, no glance to the gutter.
@@ -965,7 +996,7 @@
 	}
 
 	document.addEventListener('keydown', (e) => {
-		if (e.key === 'Escape') { closePopup(); closeSubmitDialog(); closeCommitDialog(); }
+		if (e.key === 'Escape') { closePopup(); closeSubmitDialog(); closeCommitDialog(); closeWelcome(); }
 	});
 
 	// Give each suggestion an `original` display slice (markers dropped) for the gutter quote.
@@ -983,4 +1014,5 @@
 	render();
 	initSubmit();
 	initCommit();
+	if (!IS_AUTHOR && !LOCKED && DATA.firstOpen) showWelcomeDialog();
 })();

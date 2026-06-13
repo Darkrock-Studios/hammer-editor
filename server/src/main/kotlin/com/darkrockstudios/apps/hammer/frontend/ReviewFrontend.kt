@@ -363,6 +363,27 @@ fun Route.reviewFrontend(
 				}
 			}
 
+			// Resolve the failure kind up front (no side effects) so the editor gets
+			// a specific, friendly page instead of a generic error.
+			val found = reviewRepository.findReviewByToken(token)
+			val now = clock.now()
+			when {
+				found == null -> {
+					call.respondReviewErrorPage("invalid")
+					return@get
+				}
+
+				found.status == ReviewStatus.CANCELED -> {
+					call.respondReviewErrorKind(found, "revoked", accountsRepository, projectDao)
+					return@get
+				}
+
+				found.expires != null && now > found.expires -> {
+					call.respondReviewErrorKind(found, "expired", accountsRepository, projectDao)
+					return@get
+				}
+			}
+
 			val result = reviewRepository.openReviewByToken(token)
 			when (result) {
 				is ServerResult.Failure -> {
@@ -372,7 +393,8 @@ fun Route.reviewFrontend(
 				}
 
 				is ServerResult.Success -> {
-					val review = result.data
+					val review = result.data.request
+					val firstOpen = result.data.firstOpen
 					val scenes = reviewRepository.getReviewScenes(review)
 					val suggestionsByScene = reviewRepository.getSuggestionsByScene(review)
 					val project = projectDao.getProjectByRowId(review.projectId)
@@ -384,6 +406,7 @@ fun Route.reviewFrontend(
 					val appData = ReviewAppData(
 						token = token,
 						locked = locked,
+						firstOpen = firstOpen,
 						authorName = authorName,
 						scenes = buildSceneDtos(scenes, suggestionsByScene),
 					)
@@ -547,7 +570,9 @@ private data class ReviewAppData(
 	val canDecide: Boolean = false,
 	/** Author page only: URL prefix for the author's status/commit endpoints. */
 	val basePath: String = "",
-	/** Reviewer page only: for personalizing the submit dialog. */
+	/** Editor page only: true on the link's very first open — shows the welcome. */
+	val firstOpen: Boolean = false,
+	/** Editor page only: for personalizing the dialogs. */
 	val authorName: String = "",
 	val scenes: List<ReviewSceneDto>,
 )
@@ -706,6 +731,14 @@ private suspend fun ApplicationCall.buildReviewStringsJson(): String {
 		"commitDone" to "review_commit_done",
 		"doneMark" to "review_done_mark",
 		"doneMarked" to "review_done_marked",
+		"submit" to "review_submit",
+		"sceneTallyOne" to "review_meta_one_scene",
+		"sceneTallyMany" to "review_meta_scenes",
+		"welcomeTitle" to "review_welcome_title",
+		"welcomeIntro" to "review_welcome_intro",
+		"welcomeHow" to "review_welcome_how",
+		"welcomeSubmitNote" to "review_welcome_submit_note",
+		"welcomeAction" to "review_welcome_action",
 	)
 	val strings = buildMap {
 		for ((jsonKey, msgKey) in keys) put(jsonKey, msg(msgKey))
@@ -752,10 +785,46 @@ private suspend fun ApplicationCall.resolveProject(
 // 410 Gone rather than 404: the StatusPages plugin swallows non-API 404s and
 // replaces them with the generic notfound page.
 private suspend fun ApplicationCall.respondReviewError(message: String) {
+	respondReviewErrorModel(msg("review_page_error_title"), message, "fa-link-slash")
+}
+
+/** A friendly, kind-specific error page; revoked/expired name the author and story. */
+private suspend fun ApplicationCall.respondReviewErrorKind(
+	review: ReviewRequest,
+	kind: String,
+	accountsRepository: AccountsRepository,
+	projectDao: ProjectDao,
+) {
+	val authorName = runCatching {
+		accountsRepository.getAccount(review.userId).pen_name?.ifBlank { null }
+	}.getOrNull() ?: msg("review_error_the_author")
+	val projectName = projectDao.getProjectByRowId(review.projectId)?.name
+	if (projectName == null) {
+		respondReviewErrorPage("invalid")
+		return
+	}
+	respondReviewErrorModel(
+		title = msg("review_error_${kind}_title"),
+		body = msg("review_error_${kind}_body", authorName, projectName),
+		icon = if (kind == "expired") "fa-hourglass-end" else "fa-ban",
+	)
+}
+
+private suspend fun ApplicationCall.respondReviewErrorPage(kind: String) {
+	respondReviewErrorModel(
+		title = msg("review_error_${kind}_title"),
+		body = msg("review_error_${kind}_body"),
+		icon = "fa-link-slash",
+	)
+}
+
+private suspend fun ApplicationCall.respondReviewErrorModel(title: String, body: String, icon: String) {
 	val model = withDefaults(
 		mapOf(
 			"page_stylesheet" to "/assets/css/review.css",
-			"errorMessage" to message,
+			"errorTitle" to title,
+			"errorMessage" to body,
+			"errorIcon" to icon,
 		)
 	)
 	respond(HttpStatusCode.Gone, MustacheContent("review-error.mustache", model))
