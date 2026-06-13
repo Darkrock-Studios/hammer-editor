@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.*
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.review.ReviewInviteMailer
@@ -340,6 +341,26 @@ fun Route.reviewFrontend(
 			if (token.isNullOrBlank()) {
 				call.respondReviewError(call.msg("api_review_token_error_invalid"))
 				return@get
+			}
+
+			// The author following their own reviewer link gets their side of the
+			// review, not the reviewer's — and the request isn't marked opened.
+			val session = call.sessions.get<UserSession>()
+			if (session != null) {
+				val owned = reviewRepository.findReviewByToken(token)
+				if (owned != null && owned.userId == session.userId) {
+					val project = projectDao.getProjectByRowId(owned.projectId)
+					if (project != null) {
+						val projectUrl = ProjectName.formatForUrl(project.name)
+						val submitted = owned.status == ReviewStatus.SUBMITTED ||
+							owned.status == ReviewStatus.RESOLVED
+						call.respondRedirect(
+							if (submitted) "/story/$projectUrl/reviews/${owned.id}"
+							else "/story/$projectUrl"
+						)
+						return@get
+					}
+				}
 			}
 
 			val result = reviewRepository.openReviewByToken(token)

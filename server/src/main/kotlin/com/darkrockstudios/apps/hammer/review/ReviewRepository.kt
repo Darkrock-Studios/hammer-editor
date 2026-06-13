@@ -201,6 +201,14 @@ class ReviewRepository(
 	}
 
 	/**
+	 * Look up the request a capability token belongs to, with no side effects and
+	 * no status/expiry checks. Used to recognize the author following their own
+	 * reviewer link, before [openReviewByToken] would mark it opened.
+	 */
+	suspend fun findReviewByToken(plainToken: String): ReviewRequest? =
+		reviewRequestDao.getRequestByToken(tokenHasher.hashToken(plainToken))?.toDomain()
+
+	/**
 	 * Resolve a reviewer's capability token. Marks the request opened on first use
 	 * and refuses expired or canceled requests.
 	 */

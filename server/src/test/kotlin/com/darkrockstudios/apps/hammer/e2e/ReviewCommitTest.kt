@@ -31,7 +31,10 @@ class ReviewCommitTest : EndToEndTest() {
 
 	private data class Seeded(val projectRowId: Long, val requestId: Long, val suggestionId: Long)
 
-	private fun seed(currentSceneContent: String = snapshot): Seeded = runBlocking {
+	private fun seed(
+		currentSceneContent: String = snapshot,
+		status: ReviewStatus = ReviewStatus.SUBMITTED,
+	): Seeded = runBlocking {
 		E2eTestData.createAccount(TestAccount(email, password), database())
 		E2eTestData.createProject(TestProject("Insurgency", Uuid.random(), userId), database())
 		val db = database().serverDatabase
@@ -59,7 +62,7 @@ class ReviewCommitTest : EndToEndTest() {
 			reviewerEmail = "reviewer@example.com",
 			label = "My agent",
 			note = null,
-			status = ReviewStatus.SUBMITTED.toStringId(),
+			status = status.toStringId(),
 			expires = null,
 		)
 		val requestId = db.reviewRequestQueries.getRequestByToken(hashedToken).executeAsOne().id
@@ -89,8 +92,11 @@ class ReviewCommitTest : EndToEndTest() {
 		Seeded(projectRowId, requestId, suggestionId)
 	}
 
-	private suspend fun login(): HttpClient {
-		val authed = HttpClient { install(HttpCookies) }
+	private suspend fun login(followRedirects: Boolean = true): HttpClient {
+		val authed = HttpClient {
+			install(HttpCookies)
+			this.followRedirects = followRedirects
+		}
 		val response = authed.post(route("login")) {
 			contentType(ContentType.Application.FormUrlEncoded)
 			setBody(
@@ -202,6 +208,38 @@ class ReviewCommitTest : EndToEndTest() {
 		val draftRow = db.storyEntityQueries.getEntity(userId, seeded.projectRowId, 2L).executeAsOne()
 		assertEquals("scene_draft", draftRow.type)
 		assertContains(encryptor().decrypt(draftRow.content, cipherSecret), "nonviable")
+	}
+
+	@Test
+	fun `author following the reviewer link is forwarded to their review page`(): Unit = runBlocking {
+		doStartServer()
+		val seeded = seed()
+
+		login(followRedirects = false).use { authed ->
+			val response = authed.get(route("review/$plainToken"))
+			assertEquals(HttpStatusCode.Found, response.status)
+			assertEquals(
+				"/story/Insurgency/reviews/${seeded.requestId}",
+				response.headers[HttpHeaders.Location],
+			)
+		}
+	}
+
+	@Test
+	fun `author following an unsubmitted reviewer link lands on the story page unopened`(): Unit = runBlocking {
+		doStartServer()
+		val seeded = seed(status = ReviewStatus.SENT)
+
+		login(followRedirects = false).use { authed ->
+			val response = authed.get(route("review/$plainToken"))
+			assertEquals(HttpStatusCode.Found, response.status)
+			assertEquals("/story/Insurgency", response.headers[HttpHeaders.Location])
+		}
+
+		// The author's own visit must not flip the request to opened
+		val status = database().serverDatabase.reviewRequestQueries
+			.getRequest(seeded.requestId, userId).executeAsOne().status
+		assertEquals(ReviewStatus.SENT.toStringId(), status)
 	}
 
 	@Test
