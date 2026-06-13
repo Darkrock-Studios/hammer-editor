@@ -125,6 +125,11 @@ class ReviewRepository(
 		val draftName = forEditDraftName(label)
 		val now = clock.now()
 
+		// Resolve the cipher secret before minting anything, so a missing account
+		// can't leave orphaned for-edit drafts behind.
+		val cipherSecret = accountDao.getAccount(userId)?.cipher_secret
+			?: return SResult.failure("Account not found", Msg.r("api_review_error_not_found"))
+
 		val draftIds = withInternalSyncSession(userId, projectDef) {
 			// Reserve the ID range first: a failure mid-store burns IDs (harmless gap)
 			// instead of leaving stored entities below last_id (future collision).
@@ -141,6 +146,7 @@ class ReviewRepository(
 
 			val mintedIds = mutableListOf<Int>()
 			for ((index, scene) in scenes.withIndex()) {
+				touchInternalSession(userId, projectDef)
 				val draft = ApiProjectEntity.SceneDraftEntity(
 					id = firstId + index,
 					sceneId = scene.id,
@@ -175,8 +181,6 @@ class ReviewRepository(
 
 		val plainToken = tokenGenerator.generateToken()
 		val hashedToken = tokenHasher.hashToken(plainToken)
-		val cipherSecret = accountDao.getAccount(userId)?.cipher_secret
-			?: return SResult.failure("Account not found", Msg.r("api_review_error_not_found"))
 
 		val request = reviewRequestDao.createRequest(
 			userId = userId,
@@ -189,14 +193,24 @@ class ReviewRepository(
 			expires = expiresIn?.let { now + it },
 		)
 
-		scenes.forEachIndexed { index, scene ->
-			reviewSceneDao.createScene(
-				reviewRequestId = request.id,
-				sceneId = scene.id,
-				draftId = draftIds.data[index],
-				sceneName = scene.name,
-				sceneOrder = index,
-				snapshotContent = contentEncryptor.encrypt(scene.content, cipherSecret),
+		try {
+			scenes.forEachIndexed { index, scene ->
+				reviewSceneDao.createScene(
+					reviewRequestId = request.id,
+					sceneId = scene.id,
+					draftId = draftIds.data[index],
+					sceneName = scene.name,
+					sceneOrder = index,
+					snapshotContent = contentEncryptor.encrypt(scene.content, cipherSecret),
+				)
+			}
+		} catch (e: Exception) {
+			// Don't leave a half-snapshotted request visible; cascade removes its scenes.
+			reviewRequestDao.deleteRequest(request.id)
+			return SResult.failure(
+				"Failed to snapshot scenes for review",
+				Msg.r("api_review_create_error_draft_failed"),
+				e,
 			)
 		}
 
@@ -538,10 +552,22 @@ class ReviewRepository(
 		}
 		val changed = plans.filter { it.revised != it.scene.snapshotContent }
 
-		val outcomes = if (changed.isEmpty()) {
-			SResult.success(plans.map { ReviewCommitScene(it.scene.sceneId, it.scene.sceneName, ReviewCommitOutcome.UNCHANGED) })
-		} else {
-			withInternalSyncSession(userId, projectDef) {
+		data class Minted(val plan: Plan, val current: ApiProjectEntity.SceneEntity, val draftId: Int)
+
+		// The whole commit — including the no-change path and marking resolved — runs
+		// inside the exclusive session, so two overlapping commits serialize and the
+		// second one fails the re-check instead of double-minting drafts.
+		val outcomes = withInternalSyncSession(userId, projectDef) {
+			when (val r = resolveSubmittedReview(userId, reviewRequestId)) {
+				is ServerResult.Failure -> return@withInternalSyncSession SResult.failure(
+					r.error, r.displayMessage, r.exception
+				)
+
+				is ServerResult.Success -> Unit
+			}
+
+			val results = mutableMapOf<Long, ReviewCommitOutcome>()
+			if (changed.isNotEmpty()) {
 				// Reserve the full ID range up front; a mid-commit failure burns IDs
 				// (harmless gap) instead of risking stored entities above last_id.
 				val syncData = projectEntityDatasource.loadProjectSyncData(userId, projectDef)
@@ -555,9 +581,11 @@ class ReviewRepository(
 					it.copy(lastId = maxKnownId + changed.size)
 				}
 
-				val results = mutableMapOf<Long, ReviewCommitOutcome>()
-				val mintedIds = mutableListOf<Int>()
+				// Phase 1: mint every draft before touching any working scene, so a
+				// failure here rolls back cleanly while the scenes are still untouched.
+				val minted = mutableListOf<Minted>()
 				for ((index, plan) in changed.withIndex()) {
+					touchInternalSession(userId, projectDef)
 					val currentResult = projectEntityDatasource.loadEntity(
 						userId, projectDef, plan.scene.sceneId,
 						ApiProjectEntity.Type.SCENE,
@@ -567,7 +595,6 @@ class ReviewRepository(
 						results[plan.scene.id] = ReviewCommitOutcome.SCENE_MISSING
 						continue
 					}
-					val current = currentResult.data
 
 					val draft = ApiProjectEntity.SceneDraftEntity(
 						id = firstId + index,
@@ -582,8 +609,8 @@ class ReviewRepository(
 						force = true,
 					)
 					if (isFailure(draftResult)) {
-						mintedIds.forEach { mintedId ->
-							sceneDraftSynchronizer.deleteEntity(userId, projectDef, mintedId)
+						minted.forEach { m ->
+							sceneDraftSynchronizer.deleteEntity(userId, projectDef, m.draftId)
 						}
 						return@withInternalSyncSession SResult.failure(
 							"Failed to store reviewed draft",
@@ -591,28 +618,34 @@ class ReviewRepository(
 							draftResult.exception,
 						)
 					}
-					mintedIds += draft.id
+					minted += Minted(plan, currentResult.data, draft.id)
+				}
 
-					results[plan.scene.id] = if (current.content == plan.scene.snapshotContent) {
+				// Phase 2: overwrite clean working scenes. Every draft already exists,
+				// so a failure here needs no rollback — Draft Compare is the recovery.
+				for (m in minted) {
+					touchInternalSession(userId, projectDef)
+					results[m.plan.scene.id] = if (m.current.content == m.plan.scene.snapshotContent) {
 						val sceneResult = sceneSynchronizer.saveEntity(
-							userId, projectDef, current.copy(content = plan.revised),
+							userId, projectDef, m.current.copy(content = m.plan.revised),
 							originalHash = null,
 							force = true,
 						)
-						// On failure the draft still exists; Draft Compare is the recovery.
 						if (isSuccess(sceneResult)) ReviewCommitOutcome.APPLIED else ReviewCommitOutcome.DIVERGED
 					} else {
 						ReviewCommitOutcome.DIVERGED
 					}
 				}
-				SResult.success(plans.map { plan ->
-					ReviewCommitScene(
-						sceneId = plan.scene.sceneId,
-						sceneName = plan.scene.sceneName,
-						outcome = results[plan.scene.id] ?: ReviewCommitOutcome.UNCHANGED,
-					)
-				})
 			}
+
+			reviewRequestDao.markResolved(request.id, clock.now())
+			SResult.success(plans.map { plan ->
+				ReviewCommitScene(
+					sceneId = plan.scene.sceneId,
+					sceneName = plan.scene.sceneName,
+					outcome = results[plan.scene.id] ?: ReviewCommitOutcome.UNCHANGED,
+				)
+			})
 		}
 
 		if (outcomes is ServerResult.Failure) {
@@ -620,7 +653,6 @@ class ReviewRepository(
 		}
 		outcomes as ServerResult.Success
 
-		reviewRequestDao.markResolved(request.id, clock.now())
 		return SResult.success(ReviewCommitResult(draftName, outcomes.data))
 	}
 
@@ -674,14 +706,12 @@ class ReviewRepository(
 		block: suspend () -> SResult<T>,
 	): SResult<T> {
 		val syncKey = ProjectSyncKey(userId, projectDef)
-		if (projectsSessions.hasActiveSyncSession(userId) ||
-			projectSessions.hasActiveSyncSession(syncKey)
-		) {
+		if (projectsSessions.hasActiveSyncSession(userId)) {
 			return SResult.failure("Project sync in progress", Msg.r("api_review_create_error_sync_busy"))
 		}
 
-		// Unique installId so a client's begin-sync can never reclaim this session.
-		projectSessions.createNewSession(syncKey) { key, syncId ->
+		// Atomic claim; unique installId so a client's begin-sync can never reclaim this session.
+		projectSessions.claimSession(syncKey) { key, syncId ->
 			ProjectSynchronizationSession(
 				userId = key.userId,
 				projectDef = key.projectDef,
@@ -689,12 +719,18 @@ class ReviewRepository(
 				syncId = syncId,
 				installId = "$INTERNAL_INSTALL_PREFIX${UUID.randomUUID()}",
 			)
-		}
+		} ?: return SResult.failure("Project sync in progress", Msg.r("api_review_create_error_sync_busy"))
+
 		return try {
 			block()
 		} finally {
 			projectSessions.terminateSession(syncKey)
 		}
+	}
+
+	/** Keep the internal session from expiring during long per-scene mint/encrypt loops. */
+	private fun touchInternalSession(userId: Long, projectDef: ProjectDefinition) {
+		projectSessions.findSession(ProjectSyncKey(userId, projectDef))?.updateLastAccessed(clock)
 	}
 
 	private fun ReviewRequestRow.toDomain() = ReviewRequest(

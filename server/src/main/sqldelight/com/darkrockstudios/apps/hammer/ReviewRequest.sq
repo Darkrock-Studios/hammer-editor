@@ -37,21 +37,29 @@ SELECT * FROM review_request
 WHERE user_id = :userId AND project_id = :projectId
 ORDER BY created DESC;
 
+-- Every status write below is guarded on the current status so a racing
+-- transition (revoke, submit, resolve) can never be silently overwritten.
+
+deleteRequest:
+DELETE FROM review_request WHERE id = :id;
+
 updateStatus:
-UPDATE review_request SET status = :status WHERE id = :id;
+UPDATE review_request SET status = :status WHERE id = :id AND status IN :allowed;
 
 markOpened:
 UPDATE review_request
 SET status = :status, opened_at = :at, last_active_at = :at
-WHERE id = :id;
+WHERE id = :id AND status = :expected;
 
 touchActivity:
-UPDATE review_request SET status = :status, last_active_at = :at WHERE id = :id;
+UPDATE review_request SET status = :status, last_active_at = :at
+WHERE id = :id AND status IN :allowed;
 
 markSubmitted:
 UPDATE review_request
 SET status = :status, submitted_at = :at, last_active_at = :at
-WHERE id = :id;
+WHERE id = :id AND status IN :allowed;
 
 markResolved:
-UPDATE review_request SET status = :status, resolved_at = :at WHERE id = :id;
+UPDATE review_request SET status = :status, resolved_at = :at
+WHERE id = :id AND status = :expected;

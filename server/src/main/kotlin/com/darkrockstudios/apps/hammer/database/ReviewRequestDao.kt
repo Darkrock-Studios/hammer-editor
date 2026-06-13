@@ -46,36 +46,51 @@ class ReviewRequestDao(
 
 	suspend fun getRequestsForProject(userId: Long, projectId: Long): List<ReviewRequest> =
 		withContext(ioDispatcher) {
-				queries.getRequestsForProject(userId, projectId).executeAsList()
-			}
+			queries.getRequestsForProject(userId, projectId).executeAsList()
+		}
 
-		suspend fun updateStatus(id: Long, status: ReviewStatus) {
-			withContext(ioDispatcher) {
-			queries.updateStatus(status.toStringId(), id)
+	suspend fun deleteRequest(id: Long) {
+		withContext(ioDispatcher) {
+			queries.deleteRequest(id)
+		}
+	}
+
+	suspend fun updateStatus(id: Long, status: ReviewStatus) {
+		withContext(ioDispatcher) {
+			queries.updateStatus(status.toStringId(), id, OPEN_STATUSES)
 		}
 	}
 
 	suspend fun markOpened(id: Long, status: ReviewStatus, at: Instant) {
 		withContext(ioDispatcher) {
-			queries.markOpened(status.toStringId(), at, id)
+			queries.markOpened(status.toStringId(), at, id, ReviewStatus.SENT.toStringId())
 		}
 	}
 
 	suspend fun touchActivity(id: Long, status: ReviewStatus, at: Instant) {
 		withContext(ioDispatcher) {
-			queries.touchActivity(status.toStringId(), at, id)
+			queries.touchActivity(status.toStringId(), at, id, OPEN_STATUSES)
 		}
 	}
 
 	suspend fun markSubmitted(id: Long, at: Instant) {
 		withContext(ioDispatcher) {
-			queries.markSubmitted(ReviewStatus.SUBMITTED.toStringId(), at, id)
+			queries.markSubmitted(ReviewStatus.SUBMITTED.toStringId(), at, id, OPEN_STATUSES)
 		}
 	}
 
 	suspend fun markResolved(id: Long, at: Instant) {
 		withContext(ioDispatcher) {
-			queries.markResolved(ReviewStatus.RESOLVED.toStringId(), at, id)
+			queries.markResolved(ReviewStatus.RESOLVED.toStringId(), at, id, ReviewStatus.SUBMITTED.toStringId())
 		}
+	}
+
+	companion object {
+		/** Statuses the editor is still working in; the only ones activity writes may move. */
+		private val OPEN_STATUSES = listOf(
+			ReviewStatus.SENT,
+			ReviewStatus.OPENED,
+			ReviewStatus.IN_PROGRESS,
+		).map { it.toStringId() }
 	}
 }
