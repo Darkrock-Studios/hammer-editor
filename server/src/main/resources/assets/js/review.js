@@ -421,7 +421,7 @@
 		if (popup.mode === 'menu') {
 			return el('div', { 'data-popup': '1', class: 'review-popup review-popup--menu', style: pos },
 				menuBtn(S.reword, 'fa-pen-nib', () => { popup.mode = 'reword'; renderPopup(); }),
-				menuBtn(S.delete, 'fa-strikethrough', () => commit('delete', '', '')),
+				menuBtn(S.delete, 'fa-strikethrough', () => { popup.mode = 'reason'; renderPopup(); }),
 				menuBtn(S.insert, 'fa-plus', () => {
 					popup.mode = 'insert';
 					renderPopup();
@@ -444,6 +444,8 @@
 					: popup.mode === 'comment' ? null : popup.draft;
 				const reason = popup.mode === 'comment' ? popup.draft.trim() : (popup.reason || '').trim();
 				commitEdit(popup.editing, replacement, reason);
+			} else if (isReasonOnly) {
+				commit('delete', '', (popup.reason || '').trim());
 			} else if (popup.mode === 'comment') {
 				commit('comment', '', popup.draft.trim());
 			} else {
