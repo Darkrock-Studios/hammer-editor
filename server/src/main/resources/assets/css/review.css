@@ -307,6 +307,14 @@
 .review-ink {
 	-webkit-box-decoration-break: clone;
 	box-decoration-break: clone;
+	transition: box-shadow var(--transition-fast);
+}
+
+/* Hovering the gutter card rings its ink in the suggestion's own colour.
+   (Inline box-shadow from the active state wins over this when selected.) */
+.review-ink--linked {
+	box-shadow: 0 0 0 2.5px var(--sugg-ring, rgba(217, 119, 6, 0.25));
+	border-radius: 3px;
 }
 
 /* ===== Selection popup ===== */
@@ -446,7 +454,15 @@
 	display: flex;
 	flex-direction: column;
 	gap: 0.5rem;
-	transition: border-color var(--transition-fast);
+	transition: border-color var(--transition-fast),
+	transform var(--transition-fast),
+	box-shadow var(--transition-fast);
+}
+
+/* Hovering the ink lifts its gutter card and rings it in the suggestion's colour */
+.review-card--linked {
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-md), 0 0 0 2px var(--sugg-ring, rgba(217, 119, 6, 0.25));
 }
 
 .review-card--empty {

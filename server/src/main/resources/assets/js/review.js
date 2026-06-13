@@ -143,6 +143,14 @@
 		return p;
 	}
 
+	/** Cross-highlight a suggestion's ink and gutter card while hovering either one. */
+	function linkHover(id, on) {
+		const ink = manuscriptEl && manuscriptEl.querySelector('[data-sugg-id="' + id + '"]');
+		const card = root.querySelector('[data-card-id="' + id + '"]');
+		if (ink) ink.classList.toggle('review-ink--linked', on);
+		if (card) card.classList.toggle('review-card--linked', on);
+	}
+
 	function renderSuggestion(s, paraRuns) {
 		const color = TYPE_COLOR[s.type];
 		const active = activeSugg === s.id;
@@ -150,24 +158,31 @@
 		const ring = active ? { boxShadow: '0 0 0 2.5px ' + hexToRing(color), borderRadius: '3px' } : {};
 		const inkData = { 'sugg-id': s.id };
 
+		function decorateInk(span) {
+			span.style.setProperty('--sugg-ring', hexToRing(color, 0.22));
+			span.addEventListener('mouseenter', () => linkHover(s.id, true));
+			span.addEventListener('mouseleave', () => linkHover(s.id, false));
+			return span;
+		}
+
 		if (s.type === 'delete') {
 			const span = el('span', { class: 'review-ink', data: inkData, style: Object.assign({ cursor: 'pointer' }, ring, strikeStyle(color, s.id)), onclick: onClick });
 			appendRange(span, paraRuns, s.start, s.end);
-			return span;
+			return decorateInk(span);
 		}
 		if (s.type === 'reword') {
 			const struck = el('span', { style: strikeStyle(color, s.id) });
 			appendRange(struck, paraRuns, s.start, s.end);
-			return el('span', { class: 'review-ink', data: inkData, style: Object.assign({ cursor: 'pointer' }, ring), onclick: onClick },
+			return decorateInk(el('span', { class: 'review-ink', data: inkData, style: Object.assign({ cursor: 'pointer' }, ring), onclick: onClick },
 				struck,
 				el('span', { 'data-ins': '1', style: { fontFamily: CAVEAT, fontSize: '1.15em', fontWeight: '600', color: color } }, ' ' + (s.replacement || ''))
-			);
+			));
 		}
 		if (s.type === 'insert') {
-			return el('span', { class: 'review-ink', data: inkData, style: Object.assign({ cursor: 'pointer' }, ring), onclick: onClick },
+			return decorateInk(el('span', { class: 'review-ink', data: inkData, style: Object.assign({ cursor: 'pointer' }, ring), onclick: onClick },
 				el('span', { 'data-ins': '1', style: { color: color, fontWeight: '700' } }, '‸'),
 				el('span', { 'data-ins': '1', style: { fontFamily: CAVEAT, fontSize: '1.15em', fontWeight: '600', color: color } }, s.replacement || '')
-			);
+			));
 		}
 		// comment: yellow marker swipe
 		const span = el('span', {
@@ -175,7 +190,7 @@
 			style: Object.assign({ cursor: 'pointer', background: 'rgba(254,240,138,0.85)', borderRadius: '2px' }, ring),
 		});
 		appendRange(span, paraRuns, s.start, s.end);
-		return span;
+		return decorateInk(span);
 	}
 
 	/** Open the suggestion's form popup over its ink, prefilled for editing. */
@@ -219,9 +234,13 @@
 		const active = activeSugg === s.id;
 		const card = el('div', {
 			class: 'review-card' + (active ? ' review-card--active' : ''),
+			data: { 'card-id': s.id },
 			style: { borderColor: active ? color : '' },
 			onclick: () => { editSuggestion(s); },
 		});
+		card.style.setProperty('--sugg-ring', hexToRing(color, 0.22));
+		card.addEventListener('mouseenter', () => linkHover(s.id, true));
+		card.addEventListener('mouseleave', () => linkHover(s.id, false));
 		const head = el('div', { class: 'review-card__head' },
 			el('span', { class: 'review-card__type', style: { color: color } }, icon(TYPE_ICON[s.type]), ' ' + TYPE_LABEL[s.type]));
 		if (!LOCKED) {
@@ -475,9 +494,9 @@
 		return runsForRange(runs, start, end).map((r) => r.text).join('');
 	}
 	function clearSelection() { const sel = window.getSelection(); if (sel) sel.removeAllRanges(); }
-	function hexToRing(hex) {
+	function hexToRing(hex, alpha) {
 		const n = parseInt(hex.slice(1), 16);
-		return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',0.35)';
+		return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + (alpha || 0.35) + ')';
 	}
 	function toastError() {
 		const container = document.getElementById('toast-container');
