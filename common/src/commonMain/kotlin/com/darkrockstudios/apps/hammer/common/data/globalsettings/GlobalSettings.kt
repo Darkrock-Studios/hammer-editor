@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings
 
 import androidx.compose.runtime.Immutable
-import io.fluidsonic.locale.Locale
+import com.darkrockstudios.apps.hammer.common.util.Locale
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
@@ -90,7 +90,7 @@ object LocaleSerializer : KSerializer<Locale> {
 		PrimitiveSerialDescriptor("Locale", PrimitiveKind.STRING)
 
 	override fun serialize(encoder: Encoder, value: Locale) {
-		encoder.encodeString(value.toLanguageTag().toString())
+		encoder.encodeString(value.toLanguageTag())
 	}
 
 	override fun deserialize(decoder: Decoder): Locale {

@@ -8,8 +8,13 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Glo
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
-import io.fluidsonic.locale.Locale
-import io.mockk.*
+import com.darkrockstudios.apps.hammer.common.util.Locale
+import io.mockk.Runs
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.just
+import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import okio.Path.Companion.toPath
 import org.junit.jupiter.api.Assertions.assertFalse

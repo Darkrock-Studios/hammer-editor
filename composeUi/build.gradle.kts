@@ -95,7 +95,6 @@ kotlin {
 				implementation(libs.compose.texteditor.find)
 				implementation(libs.compose.texteditor.spellcheck)
 				implementation(libs.platform.spellcheckerkt)
-				implementation(libs.fluidsonic.locale)
 			}
 		}
 		val commonTest by getting {

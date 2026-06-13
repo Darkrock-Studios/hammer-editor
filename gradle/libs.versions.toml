@@ -87,7 +87,6 @@ embedded_postgres = "2.2.2"
 embedded_postgres_binaries = "18.4.0"
 testcontainers = "1.21.4"
 buildconfig = "6.0.10"
-fluidsonic_locale = "0.13.0"
 resources = "1.1.0"
 aboutlibraries = "14.2.1"
 logback_classic = "1.4.14"
@@ -291,7 +290,6 @@ testcontainers_bom = { group = "org.testcontainers", name = "testcontainers-bom"
 testcontainers_postgresql = { group = "org.testcontainers", name = "postgresql" }
 testcontainers_junit_jupiter = { group = "org.testcontainers", name = "junit-jupiter" }
 
-fluidsonic_locale = { group = "io.fluidsonic.locale", name = "fluid-locale", version.ref = "fluidsonic_locale" }
 resources = { group = "io.herrera.kevin", name = "resource", version.ref = "resources" }
 aboutlibraries_core = { group = "com.mikepenz", name = "aboutlibraries-core", version.ref = "aboutlibraries" }
 aboutlibraries_compose = { group = "com.mikepenz", name = "aboutlibraries-compose-m3", version.ref = "aboutlibraries" }

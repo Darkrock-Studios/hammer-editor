@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.util
 
-import io.fluidsonic.locale.Locale
 import platform.Foundation.NSLocale
 import platform.Foundation.currentLocale
 import platform.Foundation.languageCode

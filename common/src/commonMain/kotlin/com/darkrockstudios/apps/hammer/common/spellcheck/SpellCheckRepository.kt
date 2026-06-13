@@ -2,10 +2,10 @@ package com.darkrockstudios.apps.hammer.common.spellcheck
 
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import com.darkrockstudios.libs.platformspellchecker.SpLocale
-import io.fluidsonic.locale.Locale
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.channels.BufferOverflow
@@ -63,5 +63,7 @@ class SpellCheckRepository(
 	}
 }
 
-fun Locale.toSpLocale() = SpLocale(language = language!!, country = region)
+// A null language (root/garbage tag) falls back to the default dictionary rather than crashing.
+fun Locale.toSpLocale() =
+	language?.let { SpLocale(language = it, country = region) } ?: SpLocale.EN_US
 fun SpLocale.toLocale() = Locale.forLanguage(language, region = country)

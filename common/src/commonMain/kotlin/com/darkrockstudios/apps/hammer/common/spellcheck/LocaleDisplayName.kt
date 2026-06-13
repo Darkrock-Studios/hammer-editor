@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.spellcheck
 
-import io.fluidsonic.locale.Locale
+import com.darkrockstudios.apps.hammer.common.util.Locale
 
 /**
  * Human-readable name for a locale, localized to the user's current system

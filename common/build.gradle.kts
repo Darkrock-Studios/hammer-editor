@@ -29,6 +29,8 @@ kotlin {
 		compilerOptions {
 			jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
 		}
+
+		withHostTest {}
 	}
 	jvm("desktop") {
 		compilerOptions {
@@ -74,7 +76,6 @@ kotlin {
 				implementation(libs.jetbrains.compose.runtime)
 				implementation(libs.jetbrains.compose.components.resources)
 				implementation(libs.kotlinx.atomicfu)
-				implementation(libs.fluidsonic.locale)
 				implementation(libs.aboutlibraries.core)
 				implementation(libs.multiplatform.settings)
 				implementation(libs.platform.spellcheckerkt)
@@ -120,6 +121,11 @@ kotlin {
 			}
 		}
 		val iosTest by getting
+		val androidHostTest by getting {
+			dependencies {
+				implementation(kotlin("test"))
+			}
+		}
 		val desktopMain by getting {
 			dependsOn(jvmMain)
 			dependencies {

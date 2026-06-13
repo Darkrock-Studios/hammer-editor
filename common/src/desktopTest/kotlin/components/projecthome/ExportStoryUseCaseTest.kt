@@ -9,8 +9,8 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDataso
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
+import com.darkrockstudios.apps.hammer.common.util.Locale
 import integration.BaseIntegrationTest
-import io.fluidsonic.locale.Locale
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk

@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.spellchecksettings
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.LocaleListSerializer
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.LocaleSerializer
-import io.fluidsonic.locale.Locale
+import com.darkrockstudios.apps.hammer.common.util.Locale
 import kotlinx.serialization.Serializable
 
 interface SpellCheckSettings {

@@ -1,21 +1,37 @@
 package com.darkrockstudios.apps.hammer.common.server
 
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.url
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.network_request_failure_parse_body
+import com.darkrockstudios.apps.hammer.server_error_connection_generic
+import com.darkrockstudios.apps.hammer.server_error_connection_timeout
+import com.darkrockstudios.apps.hammer.server_error_dns
+import com.darkrockstudios.apps.hammer.server_error_timeout
+import com.darkrockstudios.apps.hammer.sync_general_error
+import com.darkrockstudios.apps.hammer.sync_unauthorized
 import io.github.aakira.napier.Napier
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.network.sockets.*
-import io.ktor.client.plugins.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.util.network.*
+import io.ktor.client.HttpClient
+import io.ktor.client.call.NoTransformationFoundException
+import io.ktor.client.call.body
+import io.ktor.client.network.sockets.ConnectTimeoutException
+import io.ktor.client.network.sockets.SocketTimeoutException
+import io.ktor.client.plugins.HttpRequestTimeoutException
+import io.ktor.client.request.HttpRequestBuilder
+import io.ktor.client.request.delete
+import io.ktor.client.request.get
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.put
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.isSuccess
+import io.ktor.util.network.UnresolvedAddressException
 import kotlinx.coroutines.withContext
 import okio.IOException
 import org.koin.core.component.KoinComponent
@@ -46,7 +62,7 @@ abstract class Api(
 		var outerResponse: HttpResponse? = null
 		return@withContext try {
 			val response = execute {
-				header("Accept-Language", localeResolver.getCurrentLocale().toLanguageTag().toString())
+				header("Accept-Language", localeResolver.getCurrentLocale().toLanguageTag())
 				url(server, path)
 				builder()
 			}
