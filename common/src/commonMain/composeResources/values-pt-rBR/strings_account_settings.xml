@@ -61,6 +61,7 @@
 	<string name="remove_local_dialog_title">Remover Conteúdo Local?</string>
 	<string name="remove_local_dialog_message">Devemos remover seu conteúdo local atual antes de sincronizar? Caso contrário, tentaremos mesclar seu conteúdo local com o conteúdo do servidor. Se o conteúdo não estiver relacionado, isso pode causar problemas</string>
 	<string name="settings_platform_settings_title">Configurações da Plataforma</string>
+	<string name="settings_platform_settings_empty">No platform-specific settings.</string>
 	<string name="settings_keep_screen_on">Manter a tela ligada</string>
 	<string name="settings_enable_dnd_focus_mode_title">Ativar o modo Não Perturbe quando estiver no Modo de Foco</string>
 	<string name="settings_dnd_permission_button">Conceder permissão de Não Perturbe</string>
