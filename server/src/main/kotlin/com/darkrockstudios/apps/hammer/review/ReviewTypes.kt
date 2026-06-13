@@ -74,6 +74,34 @@ data class ReviewScene(
 	val reviewerDone: Boolean,
 )
 
+/** What happened to one reviewed scene when the author committed the review. */
+enum class ReviewCommitOutcome {
+	/** Working scene still matched the snapshot; it now carries the revised text. */
+	APPLIED,
+
+	/** Scene changed since the review was sent; only the draft was created. */
+	DIVERGED,
+
+	/** No accepted edits changed this scene's text. */
+	UNCHANGED,
+
+	/** The scene no longer exists in the project. */
+	SCENE_MISSING;
+
+	fun toStringId(): String = name.lowercase()
+}
+
+data class ReviewCommitScene(
+	val sceneId: Int,
+	val sceneName: String,
+	val outcome: ReviewCommitOutcome,
+)
+
+data class ReviewCommitResult(
+	val draftName: String,
+	val scenes: List<ReviewCommitScene>,
+)
+
 data class ReviewSuggestion(
 	val id: Long,
 	val reviewSceneId: Long,

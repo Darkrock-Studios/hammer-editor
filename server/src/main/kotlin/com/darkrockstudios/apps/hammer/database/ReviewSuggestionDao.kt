@@ -56,10 +56,11 @@ class ReviewSuggestionDao(
 		queries.deleteSuggestion(id)
 	}
 
-	suspend fun updateSuggestionStatus(id: Long, status: ReviewSuggestionStatus, at: Instant) =
+	suspend fun updateSuggestionStatus(id: Long, status: ReviewSuggestionStatus, at: Instant) {
 		withContext(ioDispatcher) {
 			queries.updateSuggestionStatus(status.toStringId(), at, id)
 		}
+	}
 
 	suspend fun updateSuggestionContent(id: Long, replacementText: String?, reason: String?, at: Instant) =
 		withContext(ioDispatcher) {

@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneDraftSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.Msg
@@ -23,6 +24,7 @@ import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import com.darkrockstudios.apps.hammer.utilities.isFailure
+import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.darkrockstudios.apps.hammer.database.ReviewSuggestionDao
 import com.darkrockstudios.apps.hammer.database.ReviewRequest as ReviewRequestRow
 import com.darkrockstudios.apps.hammer.database.ReviewScene as ReviewSceneRow
@@ -43,6 +45,7 @@ class ReviewRepository(
 	private val reviewSuggestionDao: ReviewSuggestionDao,
 	private val projectEntityDatasource: ProjectEntityDatasource,
 	private val sceneDraftSynchronizer: ServerSceneDraftSynchronizer,
+	private val sceneSynchronizer: ServerSceneSynchronizer,
 	private val contentEncryptor: ContentEncryptor,
 	private val tokenHasher: TokenHasher,
 	private val clock: Clock,
@@ -269,6 +272,9 @@ class ReviewRepository(
 			.map { it.toDomain() }
 			.groupBy { it.reviewSceneId }
 
+	suspend fun countSuggestions(reviewRequestId: Long): Long =
+		reviewSuggestionDao.countSuggestionsForRequest(reviewRequestId)
+
 	suspend fun addSuggestion(
 		token: String,
 		reviewSceneId: Long,
@@ -408,6 +414,183 @@ class ReviewRepository(
 		return SResult.success(request.copy(status = ReviewStatus.SUBMITTED, submittedAt = now))
 	}
 
+	/* ===== Author-side resolution (session authenticated) ===== */
+
+	/**
+	 * Author accepts/rejects an edit (or resolves a comment). Anchors and content
+	 * are immutable here; only the status moves, and only while the review is
+	 * submitted but not yet resolved. Any status can return to PENDING (undo).
+	 */
+	suspend fun setSuggestionStatus(
+		userId: Long,
+		reviewRequestId: Long,
+		suggestionId: Long,
+		status: ReviewSuggestionStatus,
+	): SResult<ReviewSuggestion> {
+		val request = when (val r = resolveSubmittedReview(userId, reviewRequestId)) {
+			is ServerResult.Failure -> return SResult.failure(r.error, r.displayMessage, r.exception)
+			is ServerResult.Success -> r.data
+		}
+		val suggestion = reviewSuggestionDao.getSuggestion(suggestionId)
+			?: return SResult.failure("Not found", Msg.r("api_review_suggestion_error_invalid"))
+		val scene = reviewSceneDao.getScene(suggestion.review_scene_id)
+		if (scene == null || scene.review_request_id != request.id) {
+			return SResult.failure("Not in review", Msg.r("api_review_suggestion_error_invalid"))
+		}
+
+		val type = ReviewSuggestionType.fromString(suggestion.type)
+		val allowed = when (type) {
+			ReviewSuggestionType.COMMENT ->
+				setOf(ReviewSuggestionStatus.RESOLVED, ReviewSuggestionStatus.PENDING)
+
+			else -> setOf(
+				ReviewSuggestionStatus.ACCEPTED,
+				ReviewSuggestionStatus.REJECTED,
+				ReviewSuggestionStatus.PENDING,
+			)
+		}
+		if (status !in allowed) {
+			return SResult.failure("Invalid status", Msg.r("api_review_suggestion_error_invalid"))
+		}
+
+		reviewSuggestionDao.updateSuggestionStatus(suggestionId, status, clock.now())
+		val updated = reviewSuggestionDao.getSuggestion(suggestionId)
+			?: return SResult.failure("Lost suggestion", Msg.r("api_review_suggestion_error_invalid"))
+		return SResult.success(updated.toDomain())
+	}
+
+	/**
+	 * Commit a submitted review: apply the accepted suggestions to each scene's
+	 * snapshot, store the revised text as a new draft, and — when the working
+	 * scene hasn't changed since the snapshot was taken — overwrite the scene
+	 * itself so clean clients pick it up on their next sync. Diverged scenes get
+	 * the draft only; the author merges in-app via Draft Compare. Marks the
+	 * request resolved.
+	 */
+	suspend fun commitReview(userId: Long, reviewRequestId: Long): SResult<ReviewCommitResult> {
+		val request = when (val r = resolveSubmittedReview(userId, reviewRequestId)) {
+			is ServerResult.Failure -> return SResult.failure(r.error, r.displayMessage, r.exception)
+			is ServerResult.Success -> r.data
+		}
+		val projectRow = projectDao.getProjectByRowId(request.projectId)
+			?: return SResult.failure("Project not found", Msg.r("api_review_create_error_project_not_found"))
+		val projectDef = projectEntityDatasource.getProject(userId, ProjectId(projectRow.uuid))
+			?: return SResult.failure("Project not found", Msg.r("api_review_create_error_project_not_found"))
+
+		val scenes = getReviewScenes(request).sortedBy { it.sceneOrder }
+		val suggestionsByScene = getSuggestionsByScene(request)
+		val now = clock.now()
+		val draftName = reviewedDraftName(request.label, now)
+
+		data class Plan(val scene: ReviewScene, val revised: String)
+
+		val plans = scenes.map { scene ->
+			Plan(scene, ReviewApplier.applyAccepted(scene.snapshotContent, suggestionsByScene[scene.id].orEmpty()))
+		}
+		val changed = plans.filter { it.revised != it.scene.snapshotContent }
+
+		val outcomes = if (changed.isEmpty()) {
+			SResult.success(plans.map { ReviewCommitScene(it.scene.sceneId, it.scene.sceneName, ReviewCommitOutcome.UNCHANGED) })
+		} else {
+			withInternalSyncSession(userId, projectDef) {
+				// Reserve the full ID range up front; a mid-commit failure burns IDs
+				// (harmless gap) instead of risking stored entities above last_id.
+				val syncData = projectEntityDatasource.loadProjectSyncData(userId, projectDef)
+				val maxKnownId = maxOf(
+					syncData.lastId,
+					projectEntityDatasource.findLastId(userId, projectDef) ?: -1,
+					syncData.deletedIds.maxOrNull() ?: -1,
+				)
+				val firstId = maxKnownId + 1
+				projectEntityDatasource.updateSyncData(userId, projectDef) {
+					it.copy(lastId = maxKnownId + changed.size)
+				}
+
+				val results = mutableMapOf<Long, ReviewCommitOutcome>()
+				val mintedIds = mutableListOf<Int>()
+				for ((index, plan) in changed.withIndex()) {
+					val currentResult = projectEntityDatasource.loadEntity(
+						userId, projectDef, plan.scene.sceneId,
+						ApiProjectEntity.Type.SCENE,
+						ApiProjectEntity.SceneEntity.serializer(),
+					)
+					if (isFailure(currentResult)) {
+						results[plan.scene.id] = ReviewCommitOutcome.SCENE_MISSING
+						continue
+					}
+					val current = currentResult.data
+
+					val draft = ApiProjectEntity.SceneDraftEntity(
+						id = firstId + index,
+						sceneId = plan.scene.sceneId,
+						created = now,
+						name = draftName,
+						content = plan.revised,
+					)
+					val draftResult = sceneDraftSynchronizer.saveEntity(
+						userId, projectDef, draft,
+						originalHash = null,
+						force = true,
+					)
+					if (isFailure(draftResult)) {
+						mintedIds.forEach { mintedId ->
+							sceneDraftSynchronizer.deleteEntity(userId, projectDef, mintedId)
+						}
+						return@withInternalSyncSession SResult.failure(
+							"Failed to store reviewed draft",
+							Msg.r("api_review_commit_error_draft_failed"),
+							draftResult.exception,
+						)
+					}
+					mintedIds += draft.id
+
+					results[plan.scene.id] = if (current.content == plan.scene.snapshotContent) {
+						val sceneResult = sceneSynchronizer.saveEntity(
+							userId, projectDef, current.copy(content = plan.revised),
+							originalHash = null,
+							force = true,
+						)
+						// On failure the draft still exists; Draft Compare is the recovery.
+						if (isSuccess(sceneResult)) ReviewCommitOutcome.APPLIED else ReviewCommitOutcome.DIVERGED
+					} else {
+						ReviewCommitOutcome.DIVERGED
+					}
+				}
+				SResult.success(plans.map { plan ->
+					ReviewCommitScene(
+						sceneId = plan.scene.sceneId,
+						sceneName = plan.scene.sceneName,
+						outcome = results[plan.scene.id] ?: ReviewCommitOutcome.UNCHANGED,
+					)
+				})
+			}
+		}
+
+		if (outcomes is ServerResult.Failure) {
+			return SResult.failure(outcomes.error, outcomes.displayMessage, outcomes.exception)
+		}
+		outcomes as ServerResult.Success
+
+		reviewRequestDao.markResolved(request.id, clock.now())
+		return SResult.success(ReviewCommitResult(draftName, outcomes.data))
+	}
+
+	/** Resolve an author's review that has been submitted but not yet resolved. */
+	private suspend fun resolveSubmittedReview(userId: Long, reviewRequestId: Long): SResult<ReviewRequest> {
+		val row = reviewRequestDao.getRequest(reviewRequestId, userId)
+			?: return SResult.failure("Review not found", Msg.r("api_review_error_not_found"))
+		val request = row.toDomain()
+		return when (request.status) {
+			ReviewStatus.RESOLVED ->
+				SResult.failure("Already resolved", Msg.r("api_review_commit_error_resolved"))
+
+			ReviewStatus.SUBMITTED -> SResult.success(request)
+
+			else ->
+				SResult.failure("Not submitted", Msg.r("api_review_commit_error_not_submitted"))
+		}
+	}
+
 	/** Resolve a token to a review that is still open for editing (not submitted, expired, or revoked). */
 	private suspend fun resolveOpenReview(token: String): SResult<ReviewRequest> {
 		val row = reviewRequestDao.getRequestByToken(tokenHasher.hashToken(token))
@@ -522,13 +705,30 @@ class ReviewRepository(
 		 * SceneDraftsDatasource.validDraftName rules (alphanumeric, space, apostrophe, max 128).
 		 */
 		fun forEditDraftName(label: String): String {
-			val sanitizedLabel = label
-				.replace(invalidDraftNameChars, " ")
-				.replace(collapseSpaces, " ")
-				.trim()
+			val sanitizedLabel = sanitizeForDraftName(label)
 			val base = if (sanitizedLabel.isEmpty()) "Sent for review" else "Sent for review $sanitizedLabel"
 			return base.take(MAX_DRAFT_NAME_LENGTH).trim()
 		}
+
+		/** Name for the committed draft, same validDraftName constraints (so no comma in the date). */
+		fun reviewedDraftName(label: String, at: kotlin.time.Instant): String {
+			val date = java.time.format.DateTimeFormatter
+				.ofPattern("MMM d yyyy", java.util.Locale.ENGLISH)
+				.withZone(java.time.ZoneOffset.UTC)
+				.format(java.time.Instant.ofEpochMilli(at.toEpochMilliseconds()))
+			val sanitizedLabel = sanitizeForDraftName(label)
+			val base = if (sanitizedLabel.isEmpty()) {
+				"Editorial Review $date"
+			} else {
+				"Editorial Review $sanitizedLabel $date"
+			}
+			return base.take(MAX_DRAFT_NAME_LENGTH).trim()
+		}
+
+		private fun sanitizeForDraftName(label: String): String = label
+			.replace(invalidDraftNameChars, " ")
+			.replace(collapseSpaces, " ")
+			.trim()
 
 		private const val MAX_DRAFT_NAME_LENGTH = 128
 	}
