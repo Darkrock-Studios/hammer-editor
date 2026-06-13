@@ -1,20 +1,56 @@
 package com.darkrockstudios.apps.hammer.common.timeline
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
@@ -30,19 +66,32 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
-import com.darkrockstudios.apps.hammer.common.compose.firstNonBlankLine
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
+import com.darkrockstudios.apps.hammer.timeline_filter_all
+import com.darkrockstudios.apps.hammer.timeline_filter_clear_all
+import com.darkrockstudios.apps.hammer.timeline_filter_filtered
+import com.darkrockstudios.apps.hammer.timeline_header
+import com.darkrockstudios.apps.hammer.timeline_header_meta
+import com.darkrockstudios.apps.hammer.timeline_no_events
+import com.darkrockstudios.apps.hammer.timeline_search_button
+import com.darkrockstudios.apps.hammer.timeline_search_clear
+import com.darkrockstudios.apps.hammer.timeline_search_close
+import com.darkrockstudios.apps.hammer.timeline_search_placeholder
+import com.darkrockstudios.apps.hammer.timeline_view_undated
 import kotlinx.coroutines.CoroutineScope
-import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
@@ -52,59 +101,6 @@ const val EVENT_CARD_TAG = "Timeline Event Card"
 const val EVENT_CARD_DATE_TAG = "Timeline Event Card Date"
 const val EVENT_CARD_CONTENT_TAG = "Timeline Event Card Content"
 const val EVENT_CARD_MAX_CONTENT_LENGTH = 256
-
-private enum class TimeLineSortMode(
-	val labelRes: StringResource,
-	val glyphRes: StringResource,
-) {
-	SeqAsc(Res.string.timeline_sort_chronological, Res.string.timeline_sort_glyph_seq_asc),
-	SeqDesc(Res.string.timeline_sort_reverse, Res.string.timeline_sort_glyph_seq_desc),
-	TitleAsc(Res.string.timeline_sort_title_az, Res.string.timeline_sort_glyph_title_az),
-	TitleDesc(Res.string.timeline_sort_title_za, Res.string.timeline_sort_glyph_title_za),
-}
-
-private fun TimeLineEvent.firstLine(): String = content.firstNonBlankLine()
-
-// Compare title strings so digit runs sort by numeric value ("Chapter 2" < "Chapter 10").
-private val titleNaturalComparator = Comparator<TimeLineEvent> { a, b ->
-	naturalCompare(a.firstLine(), b.firstLine())
-}
-
-private fun naturalCompare(a: String, b: String): Int {
-	var i = 0
-	var j = 0
-	while (i < a.length && j < b.length) {
-		val ca = a[i]
-		val cb = b[j]
-		if (ca.isDigit() && cb.isDigit()) {
-			var iEnd = i
-			while (iEnd < a.length && a[iEnd].isDigit()) iEnd++
-			var jEnd = j
-			while (jEnd < b.length && b[jEnd].isDigit()) jEnd++
-			val numA = a.substring(i, iEnd).trimStart('0').ifEmpty { "0" }
-			val numB = b.substring(j, jEnd).trimStart('0').ifEmpty { "0" }
-			val cmp = if (numA.length != numB.length) numA.length - numB.length
-			else numA.compareTo(numB)
-			if (cmp != 0) return cmp
-			i = iEnd
-			j = jEnd
-		} else {
-			val cmp = ca.lowercaseChar().compareTo(cb.lowercaseChar())
-			if (cmp != 0) return cmp
-			i++
-			j++
-		}
-	}
-	return (a.length - i) - (b.length - j)
-}
-
-private fun applySort(events: List<TimeLineEvent>, mode: TimeLineSortMode): List<TimeLineEvent> =
-	when (mode) {
-		TimeLineSortMode.SeqAsc -> events.sortedBy { it.order }
-		TimeLineSortMode.SeqDesc -> events.sortedByDescending { it.order }
-		TimeLineSortMode.TitleAsc -> events.sortedWith(titleNaturalComparator)
-		TimeLineSortMode.TitleDesc -> events.sortedWith(titleNaturalComparator.reversed())
-	}
 
 @OptIn(
 	ExperimentalSharedTransitionApi::class,
@@ -126,13 +122,12 @@ fun TimeLineOverviewUi(
 	val isExpanded = screen.windowWidthClass == WindowWidthSizeClass.Expanded
 
 	var searchQuery by rememberSaveable { mutableStateOf("") }
-	var sortMode by remember { mutableStateOf(TimeLineSortMode.SeqAsc) }
 	var activeTags by remember { mutableStateOf<Set<String>>(emptySet()) }
 	var showSearchBar by rememberSaveable { mutableStateOf(false) }
 
 	val events = state.timeLine?.events ?: emptyList()
 
-	val visibleEvents by remember(events, searchQuery, sortMode, activeTags) {
+	val visibleEvents by remember(events, searchQuery, activeTags) {
 		derivedStateOf {
 			val byText = if (searchQuery.isBlank()) {
 				events
@@ -147,7 +142,7 @@ fun TimeLineOverviewUi(
 			} else {
 				byText.filter { event -> activeTags.all { it in event.tags } }
 			}
-			applySort(byTags, sortMode)
+			byTags.sortedBy { it.order }
 		}
 	}
 
@@ -276,12 +271,6 @@ fun TimeLineOverviewUi(
 					{ searchField() }
 				} else {
 					null
-				},
-				trailing = {
-					SortMenuButton(
-						sortMode = sortMode,
-						onSortChange = { sortMode = it },
-					)
 				},
 			)
 
@@ -536,7 +525,6 @@ private fun TagFilterBar(
 	onToggle: (String) -> Unit,
 	onClear: () -> Unit,
 	leading: (@Composable () -> Unit)? = null,
-	trailing: @Composable () -> Unit = {},
 ) {
 	val hammerColors = LocalHammerColors.current
 	val allActive = activeTags.isEmpty()
@@ -582,7 +570,6 @@ private fun TagFilterBar(
 				)
 			}
 		}
-		trailing()
 	}
 }
 
@@ -657,70 +644,6 @@ private fun ActiveFiltersStrip(
 				contentAlignment = Alignment.Center,
 			) {
 				HdMonoLabel(text = stringResource(Res.string.timeline_filter_clear_all))
-			}
-		}
-	}
-}
-
-@Composable
-private fun SortMenuButton(
-	sortMode: TimeLineSortMode,
-	onSortChange: (TimeLineSortMode) -> Unit,
-) {
-	var expanded by remember { mutableStateOf(false) }
-	Box {
-		Row(
-			modifier = Modifier
-				.height(32.dp)
-				.border(
-					width = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outlineVariant,
-					shape = RectangleShape,
-				)
-				.clickable { expanded = true }
-				.padding(horizontal = Ui.Padding.L),
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
-		) {
-			HdMonoLabel(
-				text = stringResource(Res.string.timeline_sort_label),
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-			HdMonoLabel(
-				text = stringResource(sortMode.glyphRes),
-				color = MaterialTheme.colorScheme.onSurface,
-			)
-		}
-		DropdownMenu(
-			expanded = expanded,
-			onDismissRequest = { expanded = false },
-		) {
-			TimeLineSortMode.entries.forEach { mode ->
-				DropdownMenuItem(
-					text = {
-						Row(
-							modifier = Modifier.fillMaxWidth(),
-							verticalAlignment = Alignment.CenterVertically,
-						) {
-							Text(
-								text = stringResource(mode.labelRes),
-								style = MaterialTheme.typography.bodyMedium,
-								color = if (mode == sortMode) {
-									MaterialTheme.colorScheme.onSurface
-								} else {
-									MaterialTheme.colorScheme.onSurfaceVariant
-								},
-							)
-							Spacer(modifier = Modifier.weight(1f))
-							Spacer(modifier = Modifier.width(Ui.Padding.XL))
-							HdMonoLabel(text = stringResource(mode.glyphRes))
-						}
-					},
-					onClick = {
-						onSortChange(mode)
-						expanded = false
-					},
-				)
 			}
 		}
 	}
