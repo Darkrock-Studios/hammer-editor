@@ -120,9 +120,37 @@
 		return nav;
 	}
 
+	// Resolve a selection endpoint to a concrete text position. Real drag
+	// selections often land on element nodes at run boundaries; descend to the
+	// nearest text node so those selections still produce a popup.
+	function resolvePoint(container, offset) {
+		if (container.nodeType === 3) return { node: container, off: offset };
+		if (container.nodeType !== 1) return null;
+		const before = container.childNodes[offset];
+		const probe = before || container.lastChild;
+		if (!probe) return null;
+		// boundary after the previous node when we're past the last child
+		const findText = (node, last) => {
+			if (!node) return null;
+			if (node.nodeType === 3) return node;
+			const kids = node.childNodes;
+			for (let i = 0; i < kids.length; i++) {
+				const k = kids[last ? kids.length - 1 - i : i];
+				const found = findText(k, last);
+				if (found) return found;
+			}
+			return null;
+		};
+		if (before) {
+			const tn = findText(before, false);
+			return tn ? { node: tn, off: 0 } : null;
+		}
+		const tn = findText(probe, true);
+		return tn ? { node: tn, off: tn.nodeValue.length } : null;
+	}
+
 	function buildManuscript() {
 		const card = el('div', { class: 'review-manuscript' });
-		if (!LOCKED) card.addEventListener('mouseup', onTextMouseUp);
 		card.appendChild(el('div', { class: 'review-manuscript__pos' },
 			DATA.scenes.length > 1 ? (activeScene + 1) + ' / ' + DATA.scenes.length : ''));
 		card.appendChild(el('h2', { class: 'review-manuscript__title' }, scene().name));
@@ -152,10 +180,25 @@
 		if (card) card.classList.toggle('review-card--linked', on);
 	}
 
+	/**
+	 * Select a suggestion and scroll its counterpart into view: tapping ink
+	 * brings the gutter card over, tapping the card brings the ink over.
+	 */
+	function selectSuggestion(s, source) {
+		activeSugg = activeSugg === s.id ? null : s.id;
+		popup = null;
+		render();
+		if (activeSugg !== s.id) return;
+		const target = source === 'ink'
+			? root.querySelector('[data-card-id="' + s.id + '"]')
+			: manuscriptEl.querySelector('[data-sugg-id="' + s.id + '"]');
+		if (target) target.scrollIntoView({ block: source === 'ink' ? 'nearest' : 'center', behavior: 'smooth' });
+	}
+
 	function renderSuggestion(s, paraRuns) {
 		const color = TYPE_COLOR[s.type];
 		const active = activeSugg === s.id;
-		const onClick = (ev) => { ev.stopPropagation(); editSuggestion(s); };
+		const onClick = (ev) => { ev.stopPropagation(); selectSuggestion(s, 'ink'); };
 		const ring = active ? { boxShadow: '0 0 0 2.5px ' + hexToRing(color), borderRadius: '3px' } : {};
 		const inkData = { 'sugg-id': s.id };
 
@@ -197,8 +240,7 @@
 	/** Open the suggestion's form popup over its ink, prefilled for editing. */
 	function editSuggestion(s) {
 		if (LOCKED) {
-			activeSugg = activeSugg === s.id ? null : s.id;
-			render();
+			selectSuggestion(s, 'card');
 			return;
 		}
 		activeSugg = s.id;
@@ -237,7 +279,7 @@
 			class: 'review-card' + (active ? ' review-card--active' : ''),
 			data: { 'card-id': s.id },
 			style: { borderColor: active ? color : '' },
-			onclick: () => { editSuggestion(s); },
+			onclick: () => { selectSuggestion(s, 'card'); },
 		});
 		card.style.setProperty('--sugg-ring', hexToRing(color, 0.22));
 		card.addEventListener('mouseenter', () => linkHover(s.id, true));
@@ -245,10 +287,16 @@
 		const head = el('div', { class: 'review-card__head' },
 			el('span', { class: 'review-card__type', style: { color: color } }, icon(TYPE_ICON[s.type]), ' ' + TYPE_LABEL[s.type]));
 		if (!LOCKED) {
-			head.appendChild(el('button', {
-				class: 'review-card__remove', title: S.remove, type: 'button',
-				onclick: (ev) => { ev.stopPropagation(); doRemove(s); },
-			}, icon('fa-trash-can')));
+			const actions = el('span', { class: 'review-card__actions' },
+				el('button', {
+					class: 'review-card__action', title: S.edit, type: 'button',
+					onclick: (ev) => { ev.stopPropagation(); editSuggestion(s); },
+				}, icon('fa-pen')),
+				el('button', {
+					class: 'review-card__action review-card__action--remove', title: S.remove, type: 'button',
+					onclick: (ev) => { ev.stopPropagation(); doRemove(s); },
+				}, icon('fa-trash-can')));
+			head.appendChild(actions);
 		}
 		card.appendChild(head);
 		if (s.type !== 'insert' && s.original) card.appendChild(el('div', { class: 'review-card__quote' }, '“' + s.original + '”'));
@@ -261,27 +309,34 @@
 	}
 
 	/* ---------- selection / popup ---------- */
+	// Document-level so a drag that releases outside the manuscript still works.
 	function onTextMouseUp(e) {
 		if (LOCKED) return;
 		if (e.target.closest && e.target.closest('[data-popup]')) return;
 		const onInk = e.target.closest && e.target.closest('[data-ins]');
+		const inManuscript = e.target.closest && e.target.closest('.review-manuscript');
 		setTimeout(() => {
 			const sel = window.getSelection();
-			if (!sel || sel.rangeCount === 0 || sel.isCollapsed) { placeCaret(sel, onInk); return; }
+			if (!sel || sel.rangeCount === 0 || sel.isCollapsed) {
+				if (inManuscript) placeCaret(sel, onInk);
+				return;
+			}
 			const range = sel.getRangeAt(0);
-			const sc = range.startContainer, ec = range.endContainer;
-			if (sc.nodeType !== 3 || ec.nodeType !== 3) return;
-			const sp = sc.parentElement.closest('[data-para]');
-			const ep = ec.parentElement.closest('[data-para]');
+			const startPt = resolvePoint(range.startContainer, range.startOffset);
+			const endPt = resolvePoint(range.endContainer, range.endOffset);
+			if (!startPt || !endPt) return;
+			const sp = startPt.node.parentElement.closest('[data-para]');
+			const ep = endPt.node.parentElement.closest('[data-para]');
 			if (!sp || sp !== ep) return;
 			const para = parseInt(sp.getAttribute('data-para'), 10);
-			const start = srcOffsetOf(sc, range.startOffset);
-			const end = srcOffsetOf(ec, range.endOffset);
+			const start = srcOffsetOf(startPt.node, startPt.off);
+			const end = srcOffsetOf(endPt.node, endPt.off);
 			if (start == null || end == null || end <= start) return;
 			if (overlapsAny(start, end, suggsForPara(para))) return;
 			openPopup({ para: para, start: start, end: end, text: paraTextOf(para).slice(start, end), mode: 'menu' }, range.getBoundingClientRect());
 		}, 10);
 	}
+	if (!LOCKED) document.addEventListener('mouseup', onTextMouseUp);
 
 	function placeCaret(sel, onInk) {
 		if (onInk) return;

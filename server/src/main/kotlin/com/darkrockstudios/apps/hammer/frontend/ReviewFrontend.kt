@@ -440,6 +440,7 @@ private suspend fun ApplicationCall.buildReviewStringsJson(): String {
 		"cancel" to "review_dialog_cancel",
 		"remove" to "review_action_remove",
 		"removeConfirm" to "review_action_remove_confirm",
+		"edit" to "review_action_edit",
 		"replacementLabel" to "review_action_replacement_label",
 		"insertLabel" to "review_action_insert_label",
 		"commentLabel" to "review_action_comment_label",

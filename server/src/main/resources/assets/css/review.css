@@ -512,7 +512,12 @@
 	gap: 0.4rem;
 }
 
-.review-card__remove {
+.review-card__actions {
+	display: inline-flex;
+	gap: 0.15rem;
+}
+
+.review-card__action {
 	background: transparent;
 	border: none;
 	color: var(--neutral-400);
@@ -521,7 +526,11 @@
 	transition: color var(--transition-fast);
 }
 
-.review-card__remove:hover {
+.review-card__action:hover {
+	color: var(--accent-dark);
+}
+
+.review-card__action--remove:hover {
 	color: var(--error);
 }
 
