@@ -4,11 +4,16 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.composed
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
@@ -24,6 +29,7 @@ fun <T> DragDropList(
 	key: ((index: Int, item: T) -> Any)? = null,
 	onMove: (Int, Int) -> Unit,
 	modifier: Modifier = Modifier,
+	contentPadding: PaddingValues = PaddingValues(),
 	itemContent: @Composable (item: T, dragging: Boolean) -> Unit
 ) {
 	val scope = rememberCoroutineScope()
@@ -76,7 +82,8 @@ fun <T> DragDropList(
 					onDragCancel = { dragDropListState.onDragInterrupted() }
 				)
 			},
-		state = dragDropListState.lazyListState
+		state = dragDropListState.lazyListState,
+		contentPadding = contentPadding
 	) {
 		itemsIndexed(data, key) { index, item ->
 			val isDragging = index == dragDropListState.currentIndexOfDraggedItem
@@ -85,19 +92,18 @@ fun <T> DragDropList(
 			} else {
 				0f
 			}
+			// Only the displaced items animate into place.
+			val itemModifier = if (isDragging) {
+				Modifier.graphicsLayer {
+					translationY = dragDropListState.elementDisplacement ?: 0f
+				}
+			} else {
+				Modifier.animateItem()
+			}
 			Box(
 				modifier = Modifier
 					.zIndex(zIndex)
-					.animateItem()
-					.composed {
-						if (index == dragDropListState.currentIndexOfDraggedItem) {
-							graphicsLayer {
-								translationY = dragDropListState.elementDisplacement ?: 0f
-							}
-						} else {
-							this  // No-op for non-dragging items
-						}
-					}
+					.then(itemModifier)
 			) {
 				itemContent(item, isDragging)
 			}

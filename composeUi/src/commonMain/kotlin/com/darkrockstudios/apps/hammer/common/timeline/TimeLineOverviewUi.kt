@@ -76,6 +76,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
+import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
@@ -92,6 +93,7 @@ import com.darkrockstudios.apps.hammer.timeline_search_close
 import com.darkrockstudios.apps.hammer.timeline_search_placeholder
 import com.darkrockstudios.apps.hammer.timeline_view_undated
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
@@ -290,52 +292,80 @@ fun TimeLineOverviewUi(
 			)
 		}
 
-		LazyColumn(
-			modifier = Modifier
-				.fillMaxSize()
-				.testTag(TIME_LINE_LIST_TAG),
-			contentPadding = PaddingValues(
-				horizontal = Ui.Padding.XL,
-				vertical = Ui.Padding.L,
-			),
-		) {
-			if (visibleEvents.isEmpty()) {
-				item {
-					Box(
-						modifier = Modifier
-							.fillMaxWidth()
-							.padding(vertical = Ui.Padding.XXL),
-						contentAlignment = Alignment.Center,
-					) {
-						Text(
-							text = stringResource(Res.string.timeline_no_events),
-							style = MaterialTheme.typography.headlineSmall,
-							color = MaterialTheme.colorScheme.onSurfaceVariant,
-							textAlign = TextAlign.Center,
-						)
-					}
+		val listContentPadding = PaddingValues(
+			horizontal = Ui.Padding.XL,
+			vertical = Ui.Padding.L,
+		)
+
+		val eventRow: @Composable (TimeLineEvent) -> Unit = { event ->
+			val isLast = visibleEvents.lastOrNull()?.id == event.id
+			Box(
+				modifier = Modifier
+					.fillMaxWidth()
+					.widthIn(max = 980.dp),
+			) {
+				EventCard(
+					event = event,
+					isLast = isLast,
+					activeTags = activeTags,
+					onTagClick = toggleTag,
+					onClick = { viewEvent(event.id) },
+					sharedTransitionScope = sharedTransitionScope,
+					animatedVisibilityScope = animatedVisibilityScope,
+				)
+			}
+		}
+
+		when {
+			visibleEvents.isEmpty() -> {
+				Box(
+					modifier = Modifier
+						.fillMaxSize()
+						.testTag(TIME_LINE_LIST_TAG)
+						.padding(vertical = Ui.Padding.XXL),
+					contentAlignment = Alignment.Center,
+				) {
+					Text(
+						text = stringResource(Res.string.timeline_no_events),
+						style = MaterialTheme.typography.headlineSmall,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
+						textAlign = TextAlign.Center,
+					)
+				}
+			}
+			// Reordering maps display indices to stored order, which only holds
+			// when nothing is filtered out. Filtered views fall back to a static list.
+			searchQuery.isBlank() && activeTags.isEmpty() -> {
+				DragDropList(
+					items = visibleEvents,
+					key = { _, item -> item.id },
+					onMove = { from, to ->
+						visibleEvents.getOrNull(from)?.let { event ->
+							scope.launch { component.moveEvent(event, to, from < to) }
+						}
+					},
+					modifier = Modifier
+						.fillMaxSize()
+						.testTag(TIME_LINE_LIST_TAG),
+					contentPadding = listContentPadding,
+				) { event, _ ->
+					eventRow(event)
 				}
 			}
 
-			items(
-				items = visibleEvents,
-				key = { event -> event.id },
-			) { event ->
-				val isLast = visibleEvents.lastOrNull()?.id == event.id
-				Box(
+			else -> {
+				LazyColumn(
 					modifier = Modifier
-						.fillMaxWidth()
-						.widthIn(max = 980.dp),
+						.fillMaxSize()
+						.testTag(TIME_LINE_LIST_TAG),
+					contentPadding = listContentPadding,
 				) {
-					EventCard(
-						event = event,
-						isLast = isLast,
-						activeTags = activeTags,
-						onTagClick = toggleTag,
-						onClick = { viewEvent(event.id) },
-						sharedTransitionScope = sharedTransitionScope,
-						animatedVisibilityScope = animatedVisibilityScope,
-					)
+					items(
+						items = visibleEvents,
+						key = { event -> event.id },
+					) { event ->
+						eventRow(event)
+					}
 				}
 			}
 		}
