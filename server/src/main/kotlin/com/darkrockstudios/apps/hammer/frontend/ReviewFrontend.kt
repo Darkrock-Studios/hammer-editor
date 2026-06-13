@@ -272,7 +272,10 @@ fun Route.reviewFrontend(
 							},
 							"locked" to locked,
 							"sceneCount" to scenes.size,
-							"reviewData" to reviewJson.encodeToString(ReviewAppData.serializer(), appData),
+							"reviewData" to jsonIsland(
+								reviewJson.encodeToString(ReviewAppData.serializer(), appData)
+							),
+							"reviewStrings" to call.buildReviewStringsJson(),
 						)
 					)
 					call.respond(MustacheContent("review.mustache", model))
@@ -390,6 +393,50 @@ private fun com.darkrockstudios.apps.hammer.review.ReviewSuggestion.toDto() = Re
 )
 
 private val reviewJson = kotlinx.serialization.json.Json { encodeDefaults = true }
+
+/**
+ * JSON destined for an inline <script type="application/json"> island. Escapes `<`
+ * so user content containing `</script>` can't break out of the element.
+ */
+private fun jsonIsland(json: String): String = json.replace("<", "\\u003c")
+
+/** Editor UI strings as a JSON island, properly JSON-escaped (Mustache would HTML-escape). */
+private suspend fun ApplicationCall.buildReviewStringsJson(): String {
+	val keys = mapOf(
+		"reword" to "review_action_reword",
+		"delete" to "review_action_delete",
+		"insert" to "review_action_insert",
+		"insertHere" to "review_action_insert_here",
+		"comment" to "review_action_comment",
+		"save" to "review_action_save",
+		"cancel" to "review_dialog_cancel",
+		"remove" to "review_action_remove",
+		"removeConfirm" to "review_action_remove_confirm",
+		"replacementLabel" to "review_action_replacement_label",
+		"insertLabel" to "review_action_insert_label",
+		"commentLabel" to "review_action_comment_label",
+		"reasonPlaceholder" to "review_action_reason_placeholder",
+		"commentPlaceholder" to "review_action_comment_placeholder",
+		"typePlaceholder" to "review_action_type_placeholder",
+		"suggestionsTitle" to "review_suggestions_title",
+		"noSuggestions" to "review_no_suggestions",
+		"scenesTitle" to "review_scenes_title",
+		"submitConfirm" to "review_submit_confirm",
+		"saveFailed" to "review_save_failed",
+	)
+	val strings = buildMap {
+		for ((jsonKey, msgKey) in keys) put(jsonKey, msg(msgKey))
+	}
+	return jsonIsland(
+		reviewJson.encodeToString(
+			kotlinx.serialization.builtins.MapSerializer(
+				kotlinx.serialization.serializer<String>(),
+				kotlinx.serialization.serializer<String>(),
+			),
+			strings,
+		)
+	)
+}
 
 @Serializable
 private data class ReviewErrorDto(val error: String)

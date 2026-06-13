@@ -12,6 +12,7 @@ import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.uuid.Uuid
 
 class ReviewPageTest : EndToEndTest() {
@@ -73,6 +74,9 @@ class ReviewPageTest : EndToEndTest() {
 		assertContains(body, "Weary valves clunked shut")
 		assertContains(body, "reviewer@example.com")
 		assertContains(body, "Please focus on pacing")
+		// UI strings island is real JSON, not HTML-entity-escaped
+		assertContains(body, "can't be undone")
+		assertFalse(body.contains("&#39;"))
 
 		val statusAfter = database().serverDatabase.reviewRequestQueries
 			.getRequestByToken(tokenHasher().hashToken(plainToken))
