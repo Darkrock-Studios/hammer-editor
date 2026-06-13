@@ -243,6 +243,23 @@ class ReviewCommitTest : EndToEndTest() {
 	}
 
 	@Test
+	fun `story page shows the editor's scene progress while the review is out`(): Unit = runBlocking {
+		doStartServer()
+		val seeded = seed(status = ReviewStatus.IN_PROGRESS)
+		val db = database().serverDatabase
+		val sceneRowId = db.reviewSceneQueries.getScenesForRequest(seeded.requestId).executeAsOne().id
+		db.reviewSceneQueries.setReviewerDone(true, sceneRowId)
+
+		login().use { authed ->
+			val page = authed.get(route("story/Insurgency"))
+			assertEquals(HttpStatusCode.OK, page.status)
+			val body = page.bodyAsText()
+			assertContains(body, "1 of 1 scenes read")
+			assertContains(body, "review-card__progress")
+		}
+	}
+
+	@Test
 	fun `author endpoints require a logged-in session`(): Unit = runBlocking {
 		doStartServer()
 		val seeded = seed()

@@ -1435,6 +1435,23 @@
 	color: var(--error);
 }
 
+/* Editor's reading progress while the review is out */
+.review-card__progress {
+	height: 5px;
+	border-radius: 999px;
+	background: var(--neutral-100);
+	border: 1px solid var(--neutral-200);
+	overflow: hidden;
+	margin-top: 0.25rem;
+}
+
+.review-card__progress-fill {
+	height: 100%;
+	border-radius: 999px;
+	background: linear-gradient(90deg, var(--accent-light), var(--accent));
+	transition: width var(--transition-slow);
+}
+
 /* Link into the author's accept/reject page, the call to action once a review lands */
 .review-card__open {
 	display: inline-flex;

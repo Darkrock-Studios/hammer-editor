@@ -45,4 +45,10 @@ class ReviewSceneDao(
 			queries.setReviewerDone(done, id)
 		}
 	}
+
+	/** (done, total) scene counts for a request. */
+	suspend fun sceneProgress(reviewRequestId: Long): Pair<Long, Long> = withContext(ioDispatcher) {
+		val row = queries.sceneProgressForRequest(reviewRequestId).executeAsOne()
+		row.done to row.total
+	}
 }

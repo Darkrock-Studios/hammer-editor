@@ -179,6 +179,37 @@ class ReviewSuggestionTest : EndToEndTest() {
 	}
 
 	@Test
+	fun `editor marks a scene done and can unmark it`(): Unit = runBlocking {
+		doStartServer()
+		val sceneId = seed()
+
+		val mark = client().post(route("review/$plainToken/scenes/$sceneId/done")) {
+			contentType(ContentType.Application.FormUrlEncoded)
+			setBody("done=true")
+		}
+		assertEquals(HttpStatusCode.OK, mark.status)
+		assertEquals(
+			true,
+			database().serverDatabase.reviewSceneQueries.getScene(sceneId).executeAsOne().reviewer_done,
+		)
+
+		// Counts as activity
+		val status = database().serverDatabase.reviewRequestQueries
+			.getRequestByToken(tokenHasher().hashToken(plainToken)).executeAsOne().status
+		assertEquals(ReviewStatus.IN_PROGRESS.toStringId(), status)
+
+		val unmark = client().post(route("review/$plainToken/scenes/$sceneId/done")) {
+			contentType(ContentType.Application.FormUrlEncoded)
+			setBody("done=false")
+		}
+		assertEquals(HttpStatusCode.OK, unmark.status)
+		assertEquals(
+			false,
+			database().serverDatabase.reviewSceneQueries.getScene(sceneId).executeAsOne().reviewer_done,
+		)
+	}
+
+	@Test
 	fun `submit locks the review against further edits`(): Unit = runBlocking {
 		doStartServer()
 		val sceneId = seed()

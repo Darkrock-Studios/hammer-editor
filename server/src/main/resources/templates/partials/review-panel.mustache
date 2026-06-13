@@ -11,6 +11,11 @@
 					</div>
 					<span class="review-card__email">{{email}}</span>
 					<span class="review-card__meta">{{meta}}</span>
+					{{#hasProgress}}
+						<div class="review-card__progress">
+							<div class="review-card__progress-fill" style="width: {{progressPct}}%"></div>
+						</div>
+					{{/hasProgress}}
 					{{#isSubmitted}}
 						<a class="review-card__open" href="/story/{{projectNameForUrl}}/reviews/{{id}}">
 							<i class="fa-solid fa-stamp"></i> {{msg.review_panel_open_review}}

@@ -239,6 +239,7 @@
 	font-family: 'Kingthings Typewriter', monospace;
 	font-size: 0.9rem;
 	color: var(--neutral-700);
+	flex: 1;
 }
 
 .review-nav__item--active .review-nav__name {
@@ -570,6 +571,47 @@
 	font-size: 0.86rem;
 	color: var(--neutral-500);
 	line-height: 1.45;
+}
+
+/* ===== Scene done progress ===== */
+
+.review-nav__done {
+	color: #15803d;
+	font-size: 0.85rem;
+	display: flex;
+	align-items: center;
+}
+
+.review-done {
+	display: flex;
+	justify-content: center;
+	margin-top: 2.2rem;
+	padding-top: 1.4rem;
+	border-top: 1px dashed var(--neutral-200);
+}
+
+.review-done-btn {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.88rem;
+	background: #ffffff;
+	border: 1.5px solid var(--neutral-300);
+	border-radius: 999px;
+	padding: 0.45rem 1.1rem;
+	color: var(--neutral-600);
+	cursor: pointer;
+	transition: border-color var(--transition-fast), color var(--transition-fast),
+	background var(--transition-fast);
+}
+
+.review-done-btn:hover {
+	border-color: #15803d;
+	color: #15803d;
+}
+
+.review-done-btn--done {
+	background: rgba(21, 128, 61, 0.1);
+	border-color: rgba(21, 128, 61, 0.45);
+	color: #15803d;
 }
 
 /* ===== Author mode: decisions ===== */

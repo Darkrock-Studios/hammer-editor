@@ -118,6 +118,7 @@
 				onclick: () => { activeScene = i; activeSugg = null; popup = null; render(); },
 			},
 				el('span', { class: 'review-nav__name' }, sc.name),
+				sc.done ? el('span', { class: 'review-nav__done', title: S.doneMarked }, icon('fa-circle-check')) : null,
 				el('span', { class: 'review-nav__count' }, String(sc.suggestions.length))
 			));
 		});
@@ -160,7 +161,47 @@
 			DATA.scenes.length > 1 ? (activeScene + 1) + ' / ' + DATA.scenes.length : ''));
 		card.appendChild(el('h2', { class: 'review-manuscript__title' }, scene().name));
 		scene().paragraphs.forEach((para) => card.appendChild(buildParagraph(para)));
+		if (!IS_AUTHOR && !LOCKED) card.appendChild(buildDoneToggle());
 		return card;
+	}
+
+	/**
+	 * "Mark scene as done" at the end of the manuscript: a progress signal the
+	 * author can watch. Marking the last unread scene done stays put; otherwise
+	 * it advances to the next not-done scene, reading-flow style.
+	 */
+	function buildDoneToggle() {
+		const sc = scene();
+		return el('div', { class: 'review-done' },
+			el('button', {
+				class: 'review-done-btn' + (sc.done ? ' review-done-btn--done' : ''),
+				type: 'button',
+				onclick: async () => {
+					const next = !sc.done;
+					try {
+						const res = await fetch('/review/' + TOKEN + '/scenes/' + sc.reviewSceneId + '/done', {
+							method: 'POST',
+							headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+							body: new URLSearchParams({ done: String(next) }),
+						});
+						if (!res.ok) { toastError(); return; }
+					} catch (e) { toastError(); return; }
+					sc.done = next;
+					if (next) {
+						for (let k = 1; k < DATA.scenes.length; k++) {
+							const j = (activeScene + k) % DATA.scenes.length;
+							if (!DATA.scenes[j].done) {
+								activeScene = j;
+								window.scrollTo({ top: 0, behavior: 'smooth' });
+								break;
+							}
+						}
+					}
+					activeSugg = null;
+					popup = null;
+					render();
+				},
+			}, icon('fa-circle-check'), ' ' + (sc.done ? S.doneMarked : S.doneMark)));
 	}
 
 	function buildParagraph(para) {

@@ -412,6 +412,25 @@ class ReviewRepository(
 		return SResult.success()
 	}
 
+	/** Editor marks a scene as read/done (or unmarks it); pure progress signal for the author. */
+	suspend fun setSceneDone(token: String, reviewSceneId: Long, done: Boolean): SResult<Unit> {
+		val request = when (val r = resolveOpenReview(token)) {
+			is ServerResult.Failure -> return SResult.failure(r.error, r.displayMessage, r.exception)
+			is ServerResult.Success -> r.data
+		}
+		val scene = reviewSceneDao.getScene(reviewSceneId)
+		if (scene == null || scene.review_request_id != request.id) {
+			return SResult.failure("Scene not in review", Msg.r("api_review_suggestion_error_invalid"))
+		}
+		reviewSceneDao.setReviewerDone(reviewSceneId, done)
+		touchInProgress(request)
+		return SResult.success()
+	}
+
+	/** (done, total) scene progress for a request, for the author's status display. */
+	suspend fun getSceneProgress(reviewRequestId: Long): Pair<Long, Long> =
+		reviewSceneDao.sceneProgress(reviewRequestId)
+
 	suspend fun submitReview(token: String): SResult<ReviewRequest> {
 		val request = when (val r = resolveOpenReview(token)) {
 			is ServerResult.Failure -> return SResult.failure(r.error, r.displayMessage, r.exception)

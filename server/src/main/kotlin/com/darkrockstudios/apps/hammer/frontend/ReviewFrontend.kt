@@ -500,6 +500,24 @@ fun Route.reviewFrontend(
 			}
 		}
 
+		// Editor toggles a scene's read/done flag — progress the author can see.
+		post("/scenes/{id}/done") {
+			val token = call.parameters["token"].orEmpty()
+			val id = call.parameters["id"]?.toLongOrNull()
+			val done = call.receiveParameters()["done"]?.toBooleanStrictOrNull()
+			if (id == null || done == null) {
+				call.respondJsonError(HttpStatusCode.BadRequest, call.msg("api_review_suggestion_error_invalid"))
+				return@post
+			}
+			when (val result = reviewRepository.setSceneDone(token, id, done)) {
+				is ServerResult.Success -> call.respondText("""{"ok":true}""", ContentType.Application.Json)
+				is ServerResult.Failure -> call.respondJsonError(
+					HttpStatusCode.Conflict,
+					result.displayMessageText(call) ?: call.msg("api_review_suggestion_error_invalid"),
+				)
+			}
+		}
+
 		post("/submit") {
 			val token = call.parameters["token"].orEmpty()
 			when (val result = reviewRepository.submitReview(token)) {
@@ -539,6 +557,7 @@ private data class ReviewSceneDto(
 	val reviewSceneId: Long,
 	val sceneId: Int,
 	val name: String,
+	val done: Boolean = false,
 	val paragraphs: List<ReviewParaDto>,
 	val suggestions: List<ReviewSuggestionDto>,
 )
@@ -592,6 +611,7 @@ private fun buildSceneDtos(
 		reviewSceneId = scene.id,
 		sceneId = scene.sceneId,
 		name = scene.sceneName,
+		done = scene.reviewerDone,
 		paragraphs = paragraphs,
 		suggestions = (suggestionsByScene[scene.id] ?: emptyList()).map { it.toDto() },
 	)
@@ -684,6 +704,8 @@ private suspend fun ApplicationCall.buildReviewStringsJson(): String {
 		"outcomeUnchanged" to "review_commit_outcome_unchanged",
 		"outcomeSceneMissing" to "review_commit_outcome_scene_missing",
 		"commitDone" to "review_commit_done",
+		"doneMark" to "review_done_mark",
+		"doneMarked" to "review_done_marked",
 	)
 	val strings = buildMap {
 		for ((jsonKey, msgKey) in keys) put(jsonKey, msg(msgKey))
@@ -770,7 +792,7 @@ suspend fun ApplicationCall.reviewCards(
 	val now = kotlin.time.Clock.System.now()
 	return reviews
 		.filter { it.status != ReviewStatus.CANCELED }
-		.map { review -> reviewCardModel(review, now) }
+		.map { review -> reviewCardModel(reviewRepository, review, now) }
 }
 
 /** Builds the model for the Editorial Reviews sidebar panel partial. */
@@ -791,6 +813,7 @@ suspend fun ApplicationCall.reviewPanelModel(
 }
 
 private suspend fun ApplicationCall.reviewCardModel(
+	reviewRepository: ReviewRepository,
 	review: ReviewRequest,
 	now: Instant,
 ): Map<String, Any?> {
@@ -817,6 +840,16 @@ private suspend fun ApplicationCall.reviewCardModel(
 		metaParts += msg("review_meta_expires", formatReviewDate(review.expires))
 	}
 
+	// While the editor is working, show how far through the scenes they are
+	val showProgress = !isExpired &&
+		(review.status == ReviewStatus.OPENED || review.status == ReviewStatus.IN_PROGRESS)
+	var progressPct = 0
+	if (showProgress) {
+		val (done, total) = reviewRepository.getSceneProgress(review.id)
+		metaParts += msg("review_meta_progress", done, total)
+		progressPct = if (total > 0) (done * 100 / total).toInt() else 0
+	}
+
 	val canRevoke = !isExpired && review.status in setOf(
 		ReviewStatus.SENT, ReviewStatus.OPENED, ReviewStatus.IN_PROGRESS
 	)
@@ -830,6 +863,8 @@ private suspend fun ApplicationCall.reviewCardModel(
 		"statusClass" to "review-card__status--$statusKey",
 		"isSubmitted" to (review.status == ReviewStatus.SUBMITTED),
 		"isResolved" to (review.status == ReviewStatus.RESOLVED),
+		"hasProgress" to showProgress,
+		"progressPct" to progressPct,
 		"canRevoke" to canRevoke,
 	)
 }

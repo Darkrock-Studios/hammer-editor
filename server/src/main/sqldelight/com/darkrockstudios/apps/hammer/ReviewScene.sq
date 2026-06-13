@@ -26,3 +26,8 @@ SELECT * FROM review_scene WHERE id = :id;
 
 setReviewerDone:
 UPDATE review_scene SET reviewer_done = :done WHERE id = :id;
+
+sceneProgressForRequest:
+SELECT COUNT(*) AS total, COUNT(CASE WHEN reviewer_done THEN 1 END) AS done
+FROM review_scene
+WHERE review_request_id = :reviewRequestId;
