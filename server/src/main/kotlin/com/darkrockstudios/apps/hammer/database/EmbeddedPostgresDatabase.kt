@@ -7,6 +7,7 @@ import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.zonky.test.db.postgres.embedded.EmbeddedPostgres
 import okio.FileSystem
+import java.io.IOException
 import java.sql.Connection
 import java.time.Duration
 import javax.sql.DataSource
@@ -40,18 +41,10 @@ class EmbeddedPostgresDatabase(
 
 	override fun initialize() {
 		check(shutdownHook == null) { "EmbeddedPostgresDatabase.initialize() called twice" }
+		val startedEmpty = !dataDir.exists() || dataDir.list().isNullOrEmpty()
 		if (!dataDir.exists()) dataDir.mkdirs()
 
-		embedded = EmbeddedPostgres.builder()
-			.setDataDirectory(dataDir)
-			.setCleanDataDirectory(false)
-			.setPort(config.port)
-			.setLocaleConfig("encoding", "UTF8")
-			.setLocaleConfig("locale", "C")
-			// Default 10s startup wait flakes on loaded CI runners (initdb + boot under I/O contention);
-			// 30s still occasionally times out, so give it a wide margin.
-			.setPGStartupWait(Duration.ofSeconds(60))
-			.start()
+		embedded = startEmbedded(resetOnFailure = startedEmpty)
 
 		val pgDataSource: DataSource = embedded.postgresDatabase
 		hikari = buildHikariPool(pgDataSource)
@@ -81,6 +74,40 @@ class EmbeddedPostgresDatabase(
 		runCatching { if (::embedded.isInitialized) embedded.close() }
 	}
 
+	/**
+	 * Boots the embedded server, retrying transient start failures. The Postgres
+	 * process occasionally dies during boot on loaded runners (initdb / postmaster
+	 * crash under I/O contention), which the startup wait can't help. A crashed
+	 * boot can leave a partial data dir that blocks initdb on retry, so wipe it
+	 * between attempts when [resetOnFailure] is set — only safe when we started
+	 * from an empty dir and would not be destroying real data.
+	 */
+	private fun startEmbedded(resetOnFailure: Boolean): EmbeddedPostgres {
+		var lastError: IOException? = null
+		repeat(START_ATTEMPTS) { attempt ->
+			try {
+				return EmbeddedPostgres.builder()
+					.setDataDirectory(dataDir)
+					.setCleanDataDirectory(false)
+					.setPort(config.port)
+					.setLocaleConfig("encoding", "UTF8")
+					.setLocaleConfig("locale", "C")
+					.setPGStartupWait(Duration.ofSeconds(60))
+					.start()
+			} catch (e: IOException) {
+				lastError = e
+				if (resetOnFailure && attempt < START_ATTEMPTS - 1) {
+					dataDir.deleteRecursively()
+					dataDir.mkdirs()
+				}
+			}
+		}
+		throw IllegalStateException(
+			"Embedded Postgres failed to start after $START_ATTEMPTS attempts on port ${config.port}",
+			lastError,
+		)
+	}
+
 	private fun buildHikariPool(source: DataSource): HikariDataSource {
 		val hikariConfig = HikariConfig().apply {
 			dataSource = source
@@ -89,6 +116,10 @@ class EmbeddedPostgresDatabase(
 			poolName = "embedded-postgres"
 		}
 		return HikariDataSource(hikariConfig)
+	}
+
+	private companion object {
+		const val START_ATTEMPTS = 3
 	}
 }
 
