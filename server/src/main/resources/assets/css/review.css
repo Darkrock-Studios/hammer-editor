@@ -317,6 +317,27 @@
 	border-radius: 3px;
 }
 
+/* Blinking caret marking exactly where an insert suggestion will land */
+.review-caret {
+	display: inline-block;
+	width: 2px;
+	height: 1.05em;
+	margin: 0 -1px;
+	background: #15803d;
+	border-radius: 1px;
+	vertical-align: text-bottom;
+	animation: review-caret-blink 1s steps(2, jump-none) infinite;
+}
+
+@keyframes review-caret-blink {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0.15;
+	}
+}
+
 /* ===== Selection popup ===== */
 
 .review-popup {

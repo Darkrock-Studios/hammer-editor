@@ -92,6 +92,7 @@
 
 	/* ---------- render ---------- */
 	function render() {
+		caretMarker = null; // discarded with the rebuilt DOM
 		root.innerHTML = '';
 		const layout = el('div', { class: 'review-editor__layout' });
 		layout.appendChild(buildNav());
@@ -297,6 +298,43 @@
 			if (pos > s.start && pos < s.end) { closePopup(); return; }
 		}
 		openPopup({ para: para, start: pos, end: pos, text: '', mode: 'caret' }, r.getBoundingClientRect());
+		showInsertCaret(para, pos);
+	}
+
+	/* ---------- insertion caret marker ---------- */
+	// A visible caret in the text while the insert flow is active, so the exact
+	// landing spot is unambiguous. Splitting a text node keeps source mapping
+	// valid by registering the tail at its own source offset.
+	let caretMarker = null;
+
+	function removeInsertCaret() {
+		if (caretMarker) { caretMarker.remove(); caretMarker = null; }
+	}
+
+	function showInsertCaret(paraIndex, pos) {
+		removeInsertCaret();
+		const pe = manuscriptEl.querySelector('[data-para="' + paraIndex + '"]');
+		if (!pe) return;
+		const walker = document.createTreeWalker(pe, NodeFilter.SHOW_TEXT);
+		let n;
+		while ((n = walker.nextNode())) {
+			if (!nodeSrcStart.has(n)) continue;
+			const s = nodeSrcStart.get(n);
+			const e = s + n.nodeValue.length;
+			if (pos < s || pos > e) continue;
+			const marker = el('span', { class: 'review-caret', 'data-ins': '1' });
+			if (pos === s) {
+				n.parentNode.insertBefore(marker, n);
+			} else if (pos === e) {
+				n.parentNode.insertBefore(marker, n.nextSibling);
+			} else {
+				const tail = n.splitText(pos - s);
+				nodeSrcStart.set(tail, pos);
+				n.parentNode.insertBefore(marker, tail);
+			}
+			caretMarker = marker;
+			return;
+		}
 	}
 
 	function openPopup(p, rect) {
@@ -308,7 +346,10 @@
 		popup = p;
 		renderPopup();
 	}
-	function closePopup() { if (popup) { popup = null; renderPopup(); } }
+	function closePopup() {
+		removeInsertCaret();
+		if (popup) { popup = null; renderPopup(); }
+	}
 
 	function renderPopup() {
 		const existing = manuscriptEl.querySelector('[data-popup]');
@@ -326,7 +367,11 @@
 			return el('div', { 'data-popup': '1', class: 'review-popup review-popup--menu', style: pos },
 				menuBtn(S.reword, 'fa-pen-nib', () => { popup.mode = 'reword'; renderPopup(); }),
 				menuBtn(S.delete, 'fa-strikethrough', () => commit('delete', '', '')),
-				menuBtn(S.insert, 'fa-plus', () => { popup.mode = 'insert'; renderPopup(); }),
+				menuBtn(S.insert, 'fa-plus', () => {
+					popup.mode = 'insert';
+					renderPopup();
+					showInsertCaret(popup.para, popup.end);
+				}),
 				menuBtn(S.comment, 'fa-comment', () => { popup.mode = 'comment'; renderPopup(); })
 			);
 		}
