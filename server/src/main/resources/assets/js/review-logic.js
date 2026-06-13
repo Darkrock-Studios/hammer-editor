@@ -189,27 +189,35 @@ function strikeSlope(seed) {
 	return Number((sign * magnitude).toFixed(2));
 }
 
-const STRIKE_TILE = 140;
-
-/** A repeating-x SVG background drawing a straight pen line at the seed's slight angle. */
+/**
+ * An SVG background drawing one straight pen line at the seed's slight angle,
+ * stretched across whatever box it paints (preserveAspectRatio is off).
+ */
 function buildStrikeBackground(color, seed) {
 	const dy = strikeSlope(seed);
 	const y1 = (5 - dy / 2).toFixed(2);
 	const y2 = (5 + dy / 2).toFixed(2);
-	const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + STRIKE_TILE +
-		'" height="10" viewBox="0 0 ' + STRIKE_TILE + ' 10" preserveAspectRatio="none">' +
-		'<line x1="0" y1="' + y1 + '" x2="' + STRIKE_TILE + '" y2="' + y2 +
+	const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="10" ' +
+		'viewBox="0 0 100 10" preserveAspectRatio="none">' +
+		'<line x1="1" y1="' + y1 + '" x2="99" y2="' + y2 +
 		'" stroke="' + color + '" stroke-width="2" stroke-linecap="round"/></svg>';
 	return 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
 }
 
-/** Inline style object that strikes text with the seed's pen line; spreads onto element.style. */
+/**
+ * Inline style object that strikes text with the seed's pen line; spreads onto
+ * element.style. The line stretches across each box fragment, and
+ * box-decoration-break: clone repaints it per wrapped line — so every physical
+ * line of struck text gets exactly one continuous straight stroke.
+ */
 function strikeStyle(color, seed) {
 	return {
 		backgroundImage: buildStrikeBackground(color, seed),
-		backgroundRepeat: 'repeat-x',
+		backgroundRepeat: 'no-repeat',
 		backgroundPosition: '0 56%',
-		backgroundSize: STRIKE_TILE + 'px 10px',
+		backgroundSize: '100% 10px',
+		boxDecorationBreak: 'clone',
+		WebkitBoxDecorationBreak: 'clone',
 		color: '#78716c',
 	};
 }
