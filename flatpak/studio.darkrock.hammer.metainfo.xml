@@ -32,6 +32,18 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.3.0" date="2026-06-13">
+            <description>
+                <p>- [New/Web] New Feature: Request editor review</p>
+                <p>- [New/Client] Added .docx export format</p>
+                <p>- [New/Sync] Faster syncing with many projects</p>
+                <p>- [Fix] Improved PDF export</p>
+                <p>- [Fix] Many many iOS bugs</p>
+                <p>- [Fix] Timeline drag-to-reorder</p>
+                <p>- [New/Client] Removed Timeline sorting</p>
+                <p>- [Fix] Rich text editor bugs</p>
+            </description>
+        </release>
         <release version="3.2.1" date="2026-06-10">
             <description>
                 <p>- [Fix] several iOS crashes</p>
