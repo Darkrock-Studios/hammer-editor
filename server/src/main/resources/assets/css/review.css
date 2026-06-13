@@ -718,6 +718,52 @@
 	opacity: 0.75;
 }
 
+/* Hover tooltip over ink: the reviewer's note + quick accept/reject */
+.review-tip {
+	position: absolute;
+	transform: translate(-50%, -100%);
+	z-index: 70;
+	background: #fffef9;
+	border: 1.5px solid var(--neutral-200);
+	border-radius: 10px;
+	box-shadow: var(--shadow-lg);
+	padding: 0.6rem 0.75rem;
+	min-width: 150px;
+	max-width: 300px;
+	animation: fadeIn 120ms ease-out;
+}
+
+/* Little arrow pointing at the ink; also bridges the hover gap */
+.review-tip::after {
+	content: '';
+	position: absolute;
+	left: 50%;
+	bottom: -7px;
+	transform: translateX(-50%) rotate(45deg);
+	width: 12px;
+	height: 12px;
+	background: #fffef9;
+	border-right: 1.5px solid var(--neutral-200);
+	border-bottom: 1.5px solid var(--neutral-200);
+}
+
+.review-tip__reason {
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.88rem;
+	color: var(--neutral-600);
+	line-height: 1.45;
+}
+
+.review-tip__actions {
+	display: flex;
+	gap: 0.45rem;
+}
+
+.review-tip__reason + .review-tip__actions {
+	margin-top: 0.55rem;
+}
+
 /* Commit dialog */
 .review-commit-tally {
 	font-family: 'Kingthings Typewriter', monospace;

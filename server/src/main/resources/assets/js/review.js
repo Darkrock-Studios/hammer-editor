@@ -97,6 +97,7 @@
 	/* ---------- render ---------- */
 	function render() {
 		caretMarker = null; // discarded with the rebuilt DOM
+		tip = null;
 		root.innerHTML = '';
 		const layout = el('div', { class: 'review-editor__layout' });
 		layout.appendChild(buildNav());
@@ -210,6 +211,10 @@
 			span.style.setProperty('--sugg-ring', hexToRing(color, 0.22));
 			span.addEventListener('mouseenter', () => linkHover(s.id, true));
 			span.addEventListener('mouseleave', () => linkHover(s.id, false));
+			if (IS_AUTHOR) {
+				span.addEventListener('mouseenter', () => showTip(s, span));
+				span.addEventListener('mouseleave', scheduleTipHide);
+			}
 			return span;
 		}
 
@@ -734,6 +739,57 @@
 					el('button', { class: 'btn btn--ghost', type: 'button', onclick: closeSubmitDialog }, S.cancel),
 					submitBtn)));
 		document.body.appendChild(overlay);
+	}
+
+	/* ---------- author ink tooltip ---------- */
+	// Hovering ink surfaces the reviewer's note — and quick accept/reject while
+	// the suggestion is pending — right at the text, no glance to the gutter.
+	// The tooltip survives the mouse crossing over to it; a short grace timer
+	// hides it once both the ink and the tooltip are left.
+	let tip = null;
+	let tipHideTimer = null;
+
+	function removeTip() {
+		clearTimeout(tipHideTimer);
+		tipHideTimer = null;
+		if (tip) { tip.remove(); tip = null; }
+	}
+
+	function scheduleTipHide() {
+		clearTimeout(tipHideTimer);
+		tipHideTimer = setTimeout(removeTip, 250);
+	}
+
+	function showTip(s, ink) {
+		const pendingActions = CAN_DECIDE && s.status === 'pending';
+		if (!s.reason && !pendingActions) return;
+		if (tip && tip.getAttribute('data-tip-id') === String(s.id)) {
+			clearTimeout(tipHideTimer);
+			return;
+		}
+		removeTip();
+
+		const wrap = el('div', { class: 'review-tip', data: { 'tip-id': s.id } });
+		if (s.reason) wrap.appendChild(el('div', { class: 'review-tip__reason' }, s.reason));
+		if (pendingActions) {
+			const actions = el('div', { class: 'review-tip__actions' });
+			if (s.type === 'comment') {
+				actions.appendChild(decideBtn(S.resolve, 'fa-check', 'resolved', s, 'accept'));
+			} else {
+				actions.appendChild(decideBtn(S.accept, 'fa-check', 'accepted', s, 'accept'));
+				actions.appendChild(decideBtn(S.reject, 'fa-xmark', 'rejected', s, 'reject'));
+			}
+			wrap.appendChild(actions);
+		}
+		wrap.addEventListener('mouseenter', () => clearTimeout(tipHideTimer));
+		wrap.addEventListener('mouseleave', scheduleTipHide);
+
+		const rect = ink.getBoundingClientRect();
+		const crect = manuscriptEl.getBoundingClientRect();
+		wrap.style.top = (rect.top - crect.top - 6) + 'px';
+		wrap.style.left = Math.max(130, Math.min(rect.left + rect.width / 2 - crect.left, crect.width - 130)) + 'px';
+		manuscriptEl.appendChild(wrap);
+		tip = wrap;
 	}
 
 	/* ---------- author commit ---------- */
