@@ -6,9 +6,12 @@ import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.frontend.utils.*
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.review.ReviewInviteMailer
+import com.darkrockstudios.apps.hammer.review.ReviewParagraphs
 import com.darkrockstudios.apps.hammer.review.ReviewRepository
 import com.darkrockstudios.apps.hammer.review.ReviewRequest
 import com.darkrockstudios.apps.hammer.review.ReviewStatus
+import com.darkrockstudios.apps.hammer.review.ReviewSuggestionType
+import kotlinx.serialization.Serializable
 import com.darkrockstudios.apps.hammer.story.SceneHierarchyResult
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
@@ -223,26 +226,39 @@ fun Route.reviewFrontend(
 				is ServerResult.Success -> {
 					val review = result.data
 					val scenes = reviewRepository.getReviewScenes(review)
+					val suggestionsByScene = reviewRepository.getSuggestionsByScene(review)
 					val project = projectDao.getProjectByRowId(review.projectId)
 					val account = accountsRepository.getAccount(review.userId)
 					val authorName = account.pen_name?.ifBlank { null } ?: "the author"
+					val locked = review.status == ReviewStatus.SUBMITTED ||
+						review.status == ReviewStatus.RESOLVED
 
-					val sceneModels = scenes.mapIndexed { index, scene ->
-						mapOf(
-							"sceneId" to scene.sceneId,
-							"reviewSceneId" to scene.id,
-							"name" to scene.sceneName,
-							"position" to call.msg("review_page_scene_position", index + 1, scenes.size),
-							"contentHtml" to markdownService.markdownToSafeHtml(scene.snapshotContent),
-							"isFirst" to (index == 0),
+					val sceneDtos = scenes.map { scene ->
+						val paragraphs = ReviewParagraphs.split(scene.snapshotContent)
+							.mapIndexedNotNull { i, text ->
+								if (text.isBlank()) null else ReviewParaDto(i, text)
+							}
+						val suggestions = (suggestionsByScene[scene.id] ?: emptyList()).map { it.toDto() }
+						ReviewSceneDto(
+							reviewSceneId = scene.id,
+							sceneId = scene.sceneId,
+							name = scene.sceneName,
+							paragraphs = paragraphs,
+							suggestions = suggestions,
 						)
 					}
+					val appData = ReviewAppData(
+						token = token,
+						locked = locked,
+						scenes = sceneDtos,
+					)
 
 					val hasExpiry = review.expires != null
 					val model = call.withDefaults(
 						mapOf(
 							"page_stylesheet" to "/assets/css/review.css",
 							"page_script" to "/assets/js/review.js",
+							"page_pre_script" to "/assets/js/review-logic.js",
 							"projectName" to (project?.name ?: ""),
 							"authorName" to authorName,
 							"reviewerEmail" to review.reviewerEmail,
@@ -254,16 +270,136 @@ fun Route.reviewFrontend(
 							} else {
 								""
 							},
-							"scenes" to sceneModels,
+							"locked" to locked,
 							"sceneCount" to scenes.size,
-							"reviewToken" to token,
+							"reviewData" to reviewJson.encodeToString(ReviewAppData.serializer(), appData),
 						)
 					)
 					call.respond(MustacheContent("review.mustache", model))
 				}
 			}
 		}
+
+		// Create a suggestion. Form-encoded; responds JSON { id } so the client can track it.
+		post("/suggestions") {
+			val token = call.parameters["token"].orEmpty()
+			val form = call.receiveParameters()
+			val reviewSceneId = form["reviewSceneId"]?.toLongOrNull()
+			val type = ReviewSuggestionType.fromString(form["type"])
+			val paragraph = form["paragraph"]?.toIntOrNull()
+			val start = form["start"]?.toIntOrNull()
+			val end = form["end"]?.toIntOrNull()
+			if (reviewSceneId == null || type == null || paragraph == null || start == null || end == null) {
+				call.respondJsonError(HttpStatusCode.BadRequest, call.msg("api_review_suggestion_error_invalid"))
+				return@post
+			}
+
+			val result = reviewRepository.addSuggestion(
+				token = token,
+				reviewSceneId = reviewSceneId,
+				type = type,
+				paragraph = paragraph,
+				start = start,
+				end = end,
+				replacement = form["replacement"],
+				reason = form["reason"],
+			)
+			when (result) {
+				is ServerResult.Success -> call.respondText(
+					reviewJson.encodeToString(ReviewSuggestionDto.serializer(), result.data.toDto()),
+					ContentType.Application.Json,
+				)
+
+				is ServerResult.Failure -> call.respondJsonError(
+					HttpStatusCode.Conflict,
+					result.displayMessageText(call) ?: call.msg("api_review_suggestion_error_invalid"),
+				)
+			}
+		}
+
+		delete("/suggestions/{id}") {
+			val token = call.parameters["token"].orEmpty()
+			val id = call.parameters["id"]?.toLongOrNull()
+			if (id == null) {
+				call.respond(HttpStatusCode.BadRequest)
+				return@delete
+			}
+			val result = reviewRepository.deleteSuggestion(token, id)
+			when (result) {
+				is ServerResult.Success -> call.respond(HttpStatusCode.NoContent)
+				is ServerResult.Failure -> call.respondJsonError(
+					HttpStatusCode.Conflict,
+					result.displayMessageText(call) ?: call.msg("api_review_suggestion_error_invalid"),
+				)
+			}
+		}
+
+		post("/submit") {
+			val token = call.parameters["token"].orEmpty()
+			when (val result = reviewRepository.submitReview(token)) {
+				is ServerResult.Success -> call.respondText("""{"ok":true}""", ContentType.Application.Json)
+				is ServerResult.Failure -> call.respondJsonError(
+					HttpStatusCode.Conflict,
+					result.displayMessageText(call) ?: call.msg("api_review_token_error_invalid"),
+				)
+			}
+		}
 	}
+}
+
+@Serializable
+private data class ReviewAppData(
+	val token: String,
+	val locked: Boolean,
+	val scenes: List<ReviewSceneDto>,
+)
+
+@Serializable
+private data class ReviewSceneDto(
+	val reviewSceneId: Long,
+	val sceneId: Int,
+	val name: String,
+	val paragraphs: List<ReviewParaDto>,
+	val suggestions: List<ReviewSuggestionDto>,
+)
+
+@Serializable
+private data class ReviewParaDto(val index: Int, val text: String)
+
+@Serializable
+private data class ReviewSuggestionDto(
+	val id: Long,
+	val reviewSceneId: Long,
+	val type: String,
+	val paragraph: Int,
+	val start: Int,
+	val end: Int,
+	val replacement: String?,
+	val reason: String?,
+)
+
+private fun com.darkrockstudios.apps.hammer.review.ReviewSuggestion.toDto() = ReviewSuggestionDto(
+	id = id,
+	reviewSceneId = reviewSceneId,
+	type = type.toStringId(),
+	paragraph = paragraph,
+	start = startOffset,
+	end = endOffset,
+	replacement = replacementText,
+	reason = reason,
+)
+
+private val reviewJson = kotlinx.serialization.json.Json { encodeDefaults = true }
+
+@Serializable
+private data class ReviewErrorDto(val error: String)
+
+private suspend fun ApplicationCall.respondJsonError(status: HttpStatusCode, message: String) {
+	respondText(
+		reviewJson.encodeToString(ReviewErrorDto.serializer(), ReviewErrorDto(message)),
+		ContentType.Application.Json,
+		status,
+	)
 }
 
 private suspend fun ApplicationCall.resolveProject(

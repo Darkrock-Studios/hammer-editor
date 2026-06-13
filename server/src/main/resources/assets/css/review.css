@@ -120,57 +120,422 @@
 	white-space: pre-line;
 }
 
-/* ===== Manuscript pages ===== */
+/* ===== Masthead actions / submit ===== */
 
-.review-manuscript-list {
+.review-masthead__actions {
+	display: flex;
+	align-items: flex-end;
+	gap: 1rem;
+}
+
+.review-submit-btn {
+	white-space: nowrap;
+}
+
+.review-submitted-pill {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.85rem;
+	background: #ecfdf5;
+	color: #047857;
+	border: 1px solid #a7f3d0;
+	border-radius: 8px;
+	padding: 0.6rem 1rem;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	white-space: nowrap;
+}
+
+.review-locked-banner {
+	margin: 0 0 1.4rem 0;
+	background: #ecfdf5;
+	border: 1px solid #a7f3d0;
+	border-radius: 10px;
+	padding: 0.85rem 1.2rem;
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.95rem;
+	color: #065f46;
+}
+
+.review-hint {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	margin: 0 0 1.2rem 0;
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.92rem;
+	color: var(--neutral-500);
+}
+
+.review-hint i {
+	color: var(--accent);
+}
+
+/* ===== Editor layout: nav | manuscript | gutter ===== */
+
+.review-editor__layout {
+	display: flex;
+	gap: 1.6rem;
+	align-items: flex-start;
+}
+
+.review-nav {
+	width: 220px;
+	flex-shrink: 0;
+	position: sticky;
+	top: 1.5rem;
+	background: var(--paper-white);
+	border-left: 4px solid var(--accent);
+	border-radius: 8px;
+	padding: 1.1rem;
+	box-shadow: var(--shadow-md);
+}
+
+.review-nav__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-weight: 400;
+	font-size: 1rem;
+	color: var(--ink);
+	margin: 0 0 0.8rem 0;
+}
+
+.review-nav__list {
 	display: flex;
 	flex-direction: column;
-	gap: 2.2rem;
+	gap: 0.5rem;
+}
+
+.review-nav__item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.6rem;
+	padding: 0.6rem 0.7rem;
+	border-radius: 8px;
+	cursor: pointer;
+	border: 1px solid var(--neutral-200);
+	background: #ffffff;
+	text-align: left;
+	transition: border-color var(--transition-fast);
+}
+
+.review-nav__item:hover {
+	border-color: var(--accent);
+}
+
+.review-nav__item--active {
+	border-color: var(--accent);
+	background: #fdf1e3;
+}
+
+.review-nav__name {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9rem;
+	color: var(--neutral-700);
+}
+
+.review-nav__item--active .review-nav__name {
+	color: var(--accent-dark);
+}
+
+.review-nav__count {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.75rem;
+	color: var(--accent-dark);
+	background: #fef3e2;
+	border-radius: 999px;
+	min-width: 22px;
+	height: 22px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 6px;
 }
 
 .review-manuscript {
 	position: relative;
+	flex: 1;
+	min-width: 0;
+	max-width: 760px;
 	background: var(--paper-white);
 	border-radius: 10px;
 	box-shadow: var(--shadow-lg);
-	padding: clamp(2rem, 6vw, 3.5rem) clamp(1.4rem, 7vw, 4rem);
+	padding: clamp(2rem, 5vw, 3.5rem) clamp(1.4rem, 5vw, 3.5rem);
 }
 
-.review-manuscript__position {
+.review-manuscript__pos {
 	display: block;
 	text-align: center;
 	font-family: 'Kingthings Typewriter', monospace;
 	font-size: 0.7rem;
 	letter-spacing: 0.16em;
-	text-transform: uppercase;
 	color: var(--neutral-400);
-	margin-bottom: 0.5rem;
+	margin-bottom: 0.4rem;
 }
 
 .review-manuscript__title {
 	font-family: 'Kingthings Typewriter', monospace;
 	font-weight: 400;
-	font-size: 1.7rem;
+	font-size: 1.6rem;
 	color: var(--ink);
 	text-align: center;
 	margin: 0 0 2rem 0;
 }
 
-.review-manuscript__content {
+.review-para {
 	font-family: 'Lora', Georgia, serif;
 	font-size: 1.08rem;
-	line-height: 2;
+	line-height: 2.1;
 	color: var(--neutral-800);
 	text-align: justify;
-}
-
-.review-manuscript__content p {
-	margin: 0 0 0.85rem 0;
+	margin: 0 0 0.8rem 0;
 	text-indent: 2.2rem;
 }
 
-.review-manuscript__content p:first-child {
+.review-para:first-of-type {
 	text-indent: 0;
+}
+
+::selection {
+	background: rgba(217, 119, 6, 0.25);
+}
+
+.review-ink {
+	-webkit-box-decoration-break: clone;
+	box-decoration-break: clone;
+}
+
+/* ===== Selection popup ===== */
+
+.review-popup {
+	text-align: left;
+}
+
+.review-popup--menu {
+	background: #292524;
+	border-radius: 10px;
+	padding: 5px;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	max-width: min(360px, 88vw);
+	gap: 2px;
+	box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.review-popup__btn {
+	background: transparent;
+	border: none;
+	color: #fafaf9;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.84rem;
+	padding: 0.55rem 0.8rem;
+	border-radius: 7px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	white-space: nowrap;
+}
+
+.review-popup__btn:hover {
+	background: #44403c;
+}
+
+.review-popup__btn i {
+	color: var(--accent-light);
+	font-size: 0.78rem;
+}
+
+.review-popup--form {
+	background: var(--paper-white);
+	border: 1px solid var(--neutral-300);
+	border-radius: 10px;
+	padding: 0.9rem;
+	width: min(330px, 88vw);
+	box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+}
+
+.review-popup__label {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.72rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--neutral-500);
+	margin-bottom: 0.5rem;
+}
+
+.review-popup__textarea {
+	width: 100%;
+	min-height: 64px;
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.95rem;
+	padding: 0.5rem 0.6rem;
+	border: 1px solid var(--neutral-300);
+	border-radius: 7px;
+	background: #ffffff;
+	resize: vertical;
+	box-sizing: border-box;
+	color: var(--neutral-800);
+}
+
+.review-popup__reason {
+	width: 100%;
+	margin-top: 0.5rem;
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.85rem;
+	padding: 0.45rem 0.6rem;
+	border: 1px solid var(--neutral-200);
+	border-radius: 7px;
+	background: #ffffff;
+	box-sizing: border-box;
+	color: var(--neutral-600);
+}
+
+.review-popup__actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	margin-top: 0.75rem;
+}
+
+.review-popup__save:disabled {
+	background: var(--neutral-200);
+	color: var(--neutral-400);
+	cursor: default;
+}
+
+/* ===== Gutter cards ===== */
+
+.review-gutter {
+	width: 300px;
+	flex-shrink: 0;
+	position: sticky;
+	top: 1.5rem;
+}
+
+.review-gutter__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-weight: 400;
+	font-size: 1.05rem;
+	color: var(--ink);
+	margin: 0 0 0.8rem 0.2rem;
+}
+
+.review-gutter__cards {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	max-height: calc(100vh - 9rem);
+	overflow-y: auto;
+	padding: 2px;
+}
+
+.review-card {
+	background: #ffffff;
+	border: 1.5px solid var(--neutral-200);
+	border-radius: 10px;
+	padding: 0.8rem 0.9rem;
+	cursor: pointer;
+	box-shadow: var(--shadow-sm);
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	transition: border-color var(--transition-fast);
+}
+
+.review-card--empty {
+	border: 1.5px dashed var(--neutral-300);
+	border-radius: 10px;
+	padding: 1.6rem 1.2rem;
+	text-align: center;
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.9rem;
+	color: var(--neutral-400);
+}
+
+.review-card__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.review-card__type {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8rem;
+	letter-spacing: 0.03em;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.review-card__remove {
+	background: transparent;
+	border: none;
+	color: var(--neutral-400);
+	cursor: pointer;
+	padding: 2px 4px;
+	transition: color var(--transition-fast);
+}
+
+.review-card__remove:hover {
+	color: var(--error);
+}
+
+.review-card__quote {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9rem;
+	color: var(--neutral-600);
+	border-left: 3px solid var(--neutral-200);
+	padding-left: 0.65rem;
+	line-height: 1.5;
+}
+
+.review-card__replacement {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9rem;
+	line-height: 1.5;
+}
+
+.review-card__replacement i {
+	font-size: 0.75rem;
+	margin-right: 0.3rem;
+}
+
+.review-card__reason {
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.86rem;
+	color: var(--neutral-500);
+	line-height: 1.45;
+}
+
+@media only screen and (max-width: 1100px) {
+	.review-editor__layout {
+		flex-direction: column;
+	}
+
+	.review-nav,
+	.review-gutter {
+		width: 100%;
+		position: static;
+	}
+
+	.review-manuscript {
+		max-width: none;
+		width: 100%;
+	}
+
+	.review-gutter__cards {
+		max-height: none;
+	}
 }
 
 /* ===== Error page ===== */

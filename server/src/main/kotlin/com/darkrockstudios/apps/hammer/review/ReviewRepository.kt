@@ -23,8 +23,10 @@ import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utilities.SecureTokenGenerator
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import com.darkrockstudios.apps.hammer.utilities.isFailure
+import com.darkrockstudios.apps.hammer.database.ReviewSuggestionDao
 import com.darkrockstudios.apps.hammer.database.ReviewRequest as ReviewRequestRow
 import com.darkrockstudios.apps.hammer.database.ReviewScene as ReviewSceneRow
+import com.darkrockstudios.apps.hammer.database.ReviewSuggestion as ReviewSuggestionRow
 import org.koin.core.component.KoinComponent
 import org.koin.core.qualifier.named
 import org.koin.java.KoinJavaComponent
@@ -38,6 +40,7 @@ class ReviewRepository(
 	private val projectDao: ProjectDao,
 	private val reviewRequestDao: ReviewRequestDao,
 	private val reviewSceneDao: ReviewSceneDao,
+	private val reviewSuggestionDao: ReviewSuggestionDao,
 	private val projectEntityDatasource: ProjectEntityDatasource,
 	private val sceneDraftSynchronizer: ServerSceneDraftSynchronizer,
 	private val contentEncryptor: ContentEncryptor,
@@ -258,6 +261,136 @@ class ReviewRepository(
 		}
 	}
 
+	/* ===== Reviewer-side suggestion editing (capability-token authenticated) ===== */
+
+	/** All suggestions for a request, grouped by review_scene id. */
+	suspend fun getSuggestionsByScene(request: ReviewRequest): Map<Long, List<ReviewSuggestion>> =
+		reviewSuggestionDao.getSuggestionsForRequest(request.id)
+			.map { it.toDomain() }
+			.groupBy { it.reviewSceneId }
+
+	suspend fun addSuggestion(
+		token: String,
+		reviewSceneId: Long,
+		type: ReviewSuggestionType,
+		paragraph: Int,
+		start: Int,
+		end: Int,
+		replacement: String?,
+		reason: String?,
+	): SResult<ReviewSuggestion> {
+		val request = when (val r = resolveOpenReview(token)) {
+			is ServerResult.Failure -> return SResult.failure(r.error, r.displayMessage, r.exception)
+			is ServerResult.Success -> r.data
+		}
+
+		val scene = reviewSceneDao.getScene(reviewSceneId)
+		if (scene == null || scene.review_request_id != request.id) {
+			return SResult.failure("Scene not in review", Msg.r("api_review_suggestion_error_invalid"))
+		}
+
+		val cipherSecret = accountDao.getAccount(request.userId)?.cipher_secret
+			?: return SResult.failure("Account missing", Msg.r("api_review_error_not_found"))
+		val snapshot = contentEncryptor.decrypt(scene.snapshot_content, cipherSecret)
+		val paraText = ReviewParagraphs.paragraph(snapshot, paragraph)
+			?: return SResult.failure("Bad paragraph", Msg.r("api_review_suggestion_error_invalid"))
+
+		val isInsert = type == ReviewSuggestionType.INSERT
+		val validOffsets = start in 0..paraText.length && end in start..paraText.length &&
+			(if (isInsert) start == end else end > start)
+		if (!validOffsets) {
+			return SResult.failure("Bad offsets", Msg.r("api_review_suggestion_error_invalid"))
+		}
+		if ((type == ReviewSuggestionType.REWORD || type == ReviewSuggestionType.INSERT) &&
+			replacement.isNullOrEmpty()
+		) {
+			return SResult.failure("Missing replacement", Msg.r("api_review_suggestion_error_invalid"))
+		}
+
+		// Reject ranges that overlap an existing edit in the same paragraph; a caret
+		// insert may not land strictly inside another suggestion's span.
+		val existing = reviewSuggestionDao.getSuggestionsForScene(reviewSceneId)
+			.filter { it.paragraph == paragraph }
+		for (s in existing) {
+			val sIsCaret = s.start_offset == s.end_offset
+			val clash = if (isInsert) {
+				!sIsCaret && start > s.start_offset && start < s.end_offset
+			} else {
+				!sIsCaret && !(end <= s.start_offset || start >= s.end_offset)
+			}
+			if (clash) return SResult.failure("Overlapping suggestion", Msg.r("api_review_suggestion_error_overlap"))
+		}
+
+		val originalText = if (isInsert) "" else paraText.substring(start, end)
+		val id = reviewSuggestionDao.createSuggestion(
+			reviewSceneId = reviewSceneId,
+			type = type,
+			paragraph = paragraph,
+			startOffset = start,
+			endOffset = end,
+			originalText = originalText,
+			replacementText = replacement?.ifEmpty { null },
+			reason = reason?.trim()?.ifEmpty { null },
+			status = ReviewSuggestionStatus.PENDING,
+		)
+
+		touchInProgress(request)
+
+		val created = reviewSuggestionDao.getSuggestion(id)
+			?: return SResult.failure("Lost suggestion", Msg.r("api_review_suggestion_error_invalid"))
+		return SResult.success(created.toDomain())
+	}
+
+	suspend fun deleteSuggestion(token: String, suggestionId: Long): SResult<Unit> {
+		val request = when (val r = resolveOpenReview(token)) {
+			is ServerResult.Failure -> return SResult.failure(r.error, r.displayMessage, r.exception)
+			is ServerResult.Success -> r.data
+		}
+		val suggestion = reviewSuggestionDao.getSuggestion(suggestionId)
+			?: return SResult.failure("Not found", Msg.r("api_review_suggestion_error_invalid"))
+		val scene = reviewSceneDao.getScene(suggestion.review_scene_id)
+		if (scene == null || scene.review_request_id != request.id) {
+			return SResult.failure("Not in review", Msg.r("api_review_suggestion_error_invalid"))
+		}
+		reviewSuggestionDao.deleteSuggestion(suggestionId)
+		touchInProgress(request)
+		return SResult.success()
+	}
+
+	suspend fun submitReview(token: String): SResult<ReviewRequest> {
+		val request = when (val r = resolveOpenReview(token)) {
+			is ServerResult.Failure -> return SResult.failure(r.error, r.displayMessage, r.exception)
+			is ServerResult.Success -> r.data
+		}
+		val now = clock.now()
+		reviewRequestDao.markSubmitted(request.id, now)
+		return SResult.success(request.copy(status = ReviewStatus.SUBMITTED, submittedAt = now))
+	}
+
+	/** Resolve a token to a review that is still open for editing (not submitted, expired, or revoked). */
+	private suspend fun resolveOpenReview(token: String): SResult<ReviewRequest> {
+		val row = reviewRequestDao.getRequestByToken(tokenHasher.hashToken(token))
+			?: return SResult.failure("Unknown token", Msg.r("api_review_token_error_invalid"))
+		val request = row.toDomain()
+		val now = clock.now()
+		return when {
+			request.status == ReviewStatus.CANCELED ->
+				SResult.failure("Revoked", Msg.r("api_review_token_error_revoked"))
+
+			request.status == ReviewStatus.SUBMITTED || request.status == ReviewStatus.RESOLVED ->
+				SResult.failure("Already submitted", Msg.r("api_review_token_error_submitted"))
+
+			request.expires != null && now > request.expires ->
+				SResult.failure("Expired", Msg.r("api_review_token_error_expired"))
+
+			else -> SResult.success(request)
+		}
+	}
+
+	private suspend fun touchInProgress(request: ReviewRequest) {
+		reviewRequestDao.touchActivity(request.id, ReviewStatus.IN_PROGRESS, clock.now())
+	}
+
 	/**
 	 * Run [block] holding an exclusive project sync session, so entity minting can't
 	 * race a client sync (mid-session ID collisions, end_sync last_id regression).
@@ -306,6 +439,23 @@ class ReviewRepository(
 		lastActiveAt = last_active_at,
 		submittedAt = submitted_at,
 		resolvedAt = resolved_at,
+	)
+
+	private fun ReviewSuggestionRow.toDomain() = ReviewSuggestion(
+		id = id,
+		reviewSceneId = review_scene_id,
+		type = ReviewSuggestionType.fromString(type)
+			?: error("Unknown suggestion type '$type' for suggestion $id"),
+		paragraph = paragraph,
+		startOffset = start_offset,
+		endOffset = end_offset,
+		originalText = original_text,
+		replacementText = replacement_text,
+		reason = reason,
+		status = ReviewSuggestionStatus.fromString(status)
+			?: error("Unknown suggestion status '$status' for suggestion $id"),
+		created = created,
+		updated = updated,
 	)
 
 	private suspend fun ReviewSceneRow.toDomain(cipherSecret: String) = ReviewScene(

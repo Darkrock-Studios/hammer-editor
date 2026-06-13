@@ -11,13 +11,30 @@
 					<span class="review-masthead__author">&mdash; {{msg.review_page_by}} {{authorName}}</span>
 				</h1>
 			</div>
-			<div class="review-masthead__reviewer">
-				<span class="review-masthead__email"><i class="fa-solid fa-user-pen"></i> {{reviewerEmail}}</span>
-				{{#hasExpiry}}
-					<span class="review-masthead__expiry">{{expiryLine}}</span>
-				{{/hasExpiry}}
+			<div class="review-masthead__actions">
+				<div class="review-masthead__reviewer">
+					<span class="review-masthead__email"><i class="fa-solid fa-user-pen"></i> {{reviewerEmail}}</span>
+					{{#hasExpiry}}
+						<span class="review-masthead__expiry">{{expiryLine}}</span>
+					{{/hasExpiry}}
+				</div>
+				{{^locked}}
+					<button class="btn btn--accent review-submit-btn" id="review-submit-btn" type="button">
+						<i class="fa-solid fa-paper-plane"></i> {{msg.review_submit}}
+					</button>
+				{{/locked}}
+				{{#locked}}
+					<span class="review-submitted-pill"><i class="fa-solid fa-lock"></i> {{msg.review_status_submitted}}</span>
+				{{/locked}}
 			</div>
 		</div>
+
+		{{#locked}}
+			<div class="review-locked-banner">
+				<i class="fa-solid fa-lock"></i>
+				<span>{{msg.review_locked_banner}}</span>
+			</div>
+		{{/locked}}
 
 		{{#hasNote}}
 			<div class="review-note">
@@ -26,20 +43,40 @@
 			</div>
 		{{/hasNote}}
 
-		<!-- Manuscript -->
-		<div class="review-manuscript-list" id="review-manuscript" data-review-token="{{reviewToken}}">
-			{{#scenes}}
-				<article class="review-manuscript" data-scene-id="{{sceneId}}" data-review-scene-id="{{reviewSceneId}}">
-					<span class="review-manuscript__position">{{position}}</span>
-					<h2 class="review-manuscript__title">{{name}}</h2>
-					<div class="review-manuscript__content">
-						{{{contentHtml}}}
-					</div>
-				</article>
-			{{/scenes}}
-		</div>
+		{{^locked}}
+			<div class="review-hint" id="review-hint">
+				<i class="fa-solid fa-highlighter"></i>
+				<span>{{msg.review_hint}}</span>
+			</div>
+		{{/locked}}
+
+		<!-- review.js renders the scene nav + manuscript + gutter into here -->
+		<div class="review-editor" id="review-editor"></div>
 
 	</div>
 </main>
+
+<script type="application/json" id="review-data">{{{reviewData}}}</script>
+<script type="application/json" id="review-strings">{
+	"reword": "{{msg.review_action_reword}}",
+	"delete": "{{msg.review_action_delete}}",
+	"insert": "{{msg.review_action_insert}}",
+	"insertHere": "{{msg.review_action_insert_here}}",
+	"comment": "{{msg.review_action_comment}}",
+	"save": "{{msg.review_action_save}}",
+	"cancel": "{{msg.review_dialog_cancel}}",
+	"remove": "{{msg.review_action_remove}}",
+	"replacementLabel": "{{msg.review_action_replacement_label}}",
+	"insertLabel": "{{msg.review_action_insert_label}}",
+	"commentLabel": "{{msg.review_action_comment_label}}",
+	"reasonPlaceholder": "{{msg.review_action_reason_placeholder}}",
+	"commentPlaceholder": "{{msg.review_action_comment_placeholder}}",
+	"typePlaceholder": "{{msg.review_action_type_placeholder}}",
+	"suggestionsTitle": "{{msg.review_suggestions_title}}",
+	"noSuggestions": "{{msg.review_no_suggestions}}",
+	"scenesTitle": "{{msg.review_scenes_title}}",
+	"submitConfirm": "{{msg.review_submit_confirm}}",
+	"saveFailed": "{{msg.review_save_failed}}"
+}</script>
 
 {{> footer}}

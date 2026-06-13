@@ -69,7 +69,8 @@ class ReviewPageTest : EndToEndTest() {
 		assertEquals(HttpStatusCode.OK, response.status)
 		assertContains(body, "Insurgency")
 		assertContains(body, "Ship Arrival")
-		assertContains(body, "<em>extended</em>")
+		// Snapshot content rides along in the JSON data island as raw markdown
+		assertContains(body, "Weary valves clunked shut")
 		assertContains(body, "reviewer@example.com")
 		assertContains(body, "Please focus on pacing")
 

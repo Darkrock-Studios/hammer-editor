@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ReviewRequestDao
 import com.darkrockstudios.apps.hammer.database.ReviewSceneDao
+import com.darkrockstudios.apps.hammer.database.ReviewSuggestionDao
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
@@ -57,6 +58,7 @@ class ReviewRepositoryTest : BaseTest() {
 	private lateinit var projectDao: ProjectDao
 	private lateinit var reviewRequestDao: ReviewRequestDao
 	private lateinit var reviewSceneDao: ReviewSceneDao
+	private lateinit var reviewSuggestionDao: ReviewSuggestionDao
 	private lateinit var projectEntityDatasource: ProjectEntityDatasource
 	private lateinit var sceneDraftSynchronizer: ServerSceneDraftSynchronizer
 	private lateinit var contentEncryptor: ContentEncryptor
@@ -74,6 +76,7 @@ class ReviewRepositoryTest : BaseTest() {
 		projectDao = mockk()
 		reviewRequestDao = mockk()
 		reviewSceneDao = mockk()
+		reviewSuggestionDao = mockk()
 		projectEntityDatasource = mockk()
 		sceneDraftSynchronizer = mockk()
 		contentEncryptor = mockk()
@@ -107,6 +110,7 @@ class ReviewRepositoryTest : BaseTest() {
 		projectDao = projectDao,
 		reviewRequestDao = reviewRequestDao,
 		reviewSceneDao = reviewSceneDao,
+		reviewSuggestionDao = reviewSuggestionDao,
 		projectEntityDatasource = projectEntityDatasource,
 		sceneDraftSynchronizer = sceneDraftSynchronizer,
 		contentEncryptor = contentEncryptor,

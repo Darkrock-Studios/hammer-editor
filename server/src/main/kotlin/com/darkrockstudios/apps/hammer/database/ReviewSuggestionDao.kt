@@ -24,35 +24,36 @@ class ReviewSuggestionDao(
 		replacementText: String?,
 		reason: String?,
 		status: ReviewSuggestionStatus,
-	) {
-		withContext(ioDispatcher) {
-			queries.createSuggestion(
-				reviewSceneId = reviewSceneId,
-				type = type.toStringId(),
-				paragraph = paragraph,
-				startOffset = startOffset,
-				endOffset = endOffset,
-				originalText = originalText,
-				replacementText = replacementText,
-				reason = reason,
-				status = status.toStringId(),
-			)
-		}
+	): Long = withContext(ioDispatcher) {
+		queries.createSuggestion(
+			reviewSceneId = reviewSceneId,
+			type = type.toStringId(),
+			paragraph = paragraph,
+			startOffset = startOffset,
+			endOffset = endOffset,
+			originalText = originalText,
+			replacementText = replacementText,
+			reason = reason,
+			status = status.toStringId(),
+		).executeAsOne()
 	}
 
 	suspend fun getSuggestionsForScene(reviewSceneId: Long): List<ReviewSuggestion> =
 		withContext(ioDispatcher) {
-				queries.getSuggestionsForScene(reviewSceneId).executeAsList()
-			}
-
-		suspend fun getSuggestion(id: Long): ReviewSuggestion? = withContext(ioDispatcher) {
-			queries.getSuggestion(id).executeAsOneOrNull()
+			queries.getSuggestionsForScene(reviewSceneId).executeAsList()
 		}
 
-		suspend fun deleteSuggestion(id: Long) {
-			withContext(ioDispatcher) {
-			queries.deleteSuggestion(id)
+	suspend fun getSuggestionsForRequest(reviewRequestId: Long): List<ReviewSuggestion> =
+		withContext(ioDispatcher) {
+			queries.getSuggestionsForRequest(reviewRequestId).executeAsList()
 		}
+
+	suspend fun getSuggestion(id: Long): ReviewSuggestion? = withContext(ioDispatcher) {
+		queries.getSuggestion(id).executeAsOneOrNull()
+	}
+
+	suspend fun deleteSuggestion(id: Long) = withContext(ioDispatcher) {
+		queries.deleteSuggestion(id)
 	}
 
 	suspend fun updateSuggestionStatus(id: Long, status: ReviewSuggestionStatus, at: Instant) =
