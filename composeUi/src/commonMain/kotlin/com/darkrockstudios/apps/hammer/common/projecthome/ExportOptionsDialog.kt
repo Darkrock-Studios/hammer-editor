@@ -40,6 +40,7 @@ import com.darkrockstudios.apps.hammer.project_home_export_chapters_label
 import com.darkrockstudios.apps.hammer.project_home_export_close
 import com.darkrockstudios.apps.hammer.project_home_export_dialog_title
 import com.darkrockstudios.apps.hammer.project_home_export_execute
+import com.darkrockstudios.apps.hammer.project_home_export_format_docx
 import com.darkrockstudios.apps.hammer.project_home_export_format_epub
 import com.darkrockstudios.apps.hammer.project_home_export_format_label
 import com.darkrockstudios.apps.hammer.project_home_export_format_markdown
@@ -162,10 +163,12 @@ fun ExportOptionsDialog(
 	}
 }
 
-private val AVAILABLE_EXPORT_FORMATS = listOf(ExportFormat.Markdown, ExportFormat.Epub, ExportFormat.Pdf)
+private val AVAILABLE_EXPORT_FORMATS =
+	listOf(ExportFormat.Markdown, ExportFormat.Epub, ExportFormat.Pdf, ExportFormat.Docx)
 
 private fun ExportFormat.labelRes(): StringResource = when (this) {
 	ExportFormat.Markdown -> Res.string.project_home_export_format_markdown
 	ExportFormat.Epub -> Res.string.project_home_export_format_epub
 	ExportFormat.Pdf -> Res.string.project_home_export_format_pdf
+	ExportFormat.Docx -> Res.string.project_home_export_format_docx
 }

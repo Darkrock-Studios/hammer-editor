@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.3.0] - 2026-6-13
+
+- [New/Web] New Feature: Request editor review
+- [New/Client] Added .docx export format
+- [New/Sync] Faster syncing with many projects
+- [Fix] Improved PDF export
+- [Fix] Many many iOS bugs
+- [Fix] Timeline drag-to-reorder
+- [New/Client] Removed Timeline sorting
+- [Fix] Rich text editor bugs
+
+
 ## [3.2.1] - 2026-6-10
 
 - [Fix] several iOS crashes

@@ -1,7 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.components.notes
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.value.*
+import com.arkivanov.decompose.value.MutableValue
+import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.getAndUpdate
+import com.arkivanov.decompose.value.subscribe
+import com.arkivanov.decompose.value.update
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
@@ -128,7 +132,7 @@ class ViewNoteComponent(
 	override suspend fun deleteNote(id: Int) = withContext(dispatcherDefault) {
 		notesRepository.deleteNote(id)
 		notesRepository.loadNotes()
-		dismissView()
+		withContext(dispatcherMain) { dismissView() }
 	}
 
 	override fun confirmDelete() {

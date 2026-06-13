@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
 import io.ktor.server.application.*
 import io.ktor.server.testing.*
 import io.mockk.MockKAnnotations
+import io.mockk.mockk
 import io.mockk.impl.annotations.MockK
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.BeforeEach
@@ -102,6 +103,8 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 			single { json }
 			single { passwordResetRepository }
 			single { markdownService }
+			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
+			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
 		}
 	}
 

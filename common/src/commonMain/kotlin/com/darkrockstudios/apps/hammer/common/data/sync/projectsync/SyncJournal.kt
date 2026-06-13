@@ -40,10 +40,9 @@ class SyncJournal(
 		if (syncData.dirty.any { it.id == id }) return
 
 		val baseline = syncData.syncedHashes[id]
-		val newSyncData = syncData.copy(
-			dirty = syncData.dirty + EntityOriginalState(id, baseline)
+		saveInvalidatingProjectHash(
+			syncData.copy(dirty = syncData.dirty + EntityOriginalState(id, baseline))
 		)
-		datasource.saveSyncData(newSyncData)
 	}
 
 	/**
@@ -65,8 +64,7 @@ class SyncJournal(
 		if (globalSettingsStore.isServerSynchronized().not()) return
 
 		val syncData = datasource.loadSyncData()
-		val newSyncData = syncData.copy(newIds = syncData.newIds + claimedId)
-		datasource.saveSyncData(newSyncData)
+		saveInvalidatingProjectHash(syncData.copy(newIds = syncData.newIds + claimedId))
 	}
 
 	suspend fun recordIdDeletion(deletedId: Int) {
@@ -81,7 +79,18 @@ class SyncJournal(
 		} else {
 			withoutSyncedHash.copy(deletedIds = withoutSyncedHash.deletedIds + deletedId)
 		}
-		datasource.saveSyncData(newSyncData)
+		saveInvalidatingProjectHash(newSyncData)
+	}
+
+	/**
+	 * Single chokepoint for content mutations: persists [data] with the cached project-wide hash
+	 * cleared in the same write. This keeps the invariant "cached hash present ⟹ no pending local
+	 * work" airtight (see SYNCING-PROTOCOL.md) so a new mutation path can't silently leave the probe
+	 * able to skip a project that actually changed. Sync-internal writes that must preserve the cache
+	 * (e.g. [recordSyncedHash], FinalizeSync) go through [datasource] directly instead.
+	 */
+	private fun saveInvalidatingProjectHash(data: ProjectSynchronizationData) {
+		datasource.saveSyncData(data.copy(cachedProjectHash = null))
 	}
 
 	fun isServerSynchronized(): Boolean {

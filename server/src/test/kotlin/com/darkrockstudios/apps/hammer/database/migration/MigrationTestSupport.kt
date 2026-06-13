@@ -5,19 +5,19 @@ import com.darkrockstudios.apps.hammer.StorageConfig
 import com.darkrockstudios.apps.hammer.StorageMode
 import com.darkrockstudios.apps.hammer.database.EmbeddedPostgresDatabase
 import okio.FileSystem
+import java.net.ServerSocket
 import java.nio.file.Path
-import java.util.concurrent.atomic.AtomicInteger
 
 /**
  * Shared scaffolding for the migration test suite. Each test gets its own
  * temp directory pointed at via `user.home` (so `getRootDataDirectory()`
- * resolves there), and a unique port for its embedded Postgres so test
- * classes can run in parallel.
+ * resolves there), and a free OS-assigned port for its embedded Postgres so
+ * test classes can run in parallel without collisions.
  */
 internal object MigrationTestSupport {
-	private val portAllocator = AtomicInteger(54500)
 
-	fun nextPort(): Int = portAllocator.getAndIncrement()
+	/** Asks the OS for an unused ephemeral port, then releases it for Postgres to bind. */
+	fun nextPort(): Int = ServerSocket(0).use { it.localPort }
 
 	fun storageFor(port: Int = nextPort()): StorageConfig =
 		StorageConfig(

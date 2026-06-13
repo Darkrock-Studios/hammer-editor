@@ -2,7 +2,18 @@ package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -10,8 +21,15 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -19,14 +37,36 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.account_sync_confirm_cancel_message
+import com.darkrockstudios.apps.hammer.account_sync_confirm_cancel_title
+import com.darkrockstudios.apps.hammer.account_sync_dialog_header
+import com.darkrockstudios.apps.hammer.account_sync_dialog_status_canceled
+import com.darkrockstudios.apps.hammer.account_sync_dialog_status_complete
+import com.darkrockstudios.apps.hammer.account_sync_dialog_status_conflict
+import com.darkrockstudios.apps.hammer.account_sync_dialog_status_error
+import com.darkrockstudios.apps.hammer.account_sync_dialog_status_pending
+import com.darkrockstudios.apps.hammer.account_sync_log_filter_all
+import com.darkrockstudios.apps.hammer.account_sync_log_filter_label
+import com.darkrockstudios.apps.hammer.account_sync_log_title
+import com.darkrockstudios.apps.hammer.account_sync_toast_canceled
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.hasActiveSync
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFilterMenu
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineProgressBar
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdLogGlyph
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatus
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatusGlyph
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdToolButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.accentColor
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import kotlinx.coroutines.launch
@@ -293,7 +333,7 @@ private fun ProgressList(projects: List<ProjectsList.ProjectSyncStatus>) {
 }
 
 @Composable
-private fun SyncStatusRow(
+internal fun SyncStatusRow(
 	projectStatus: ProjectsList.ProjectSyncStatus,
 	isLast: Boolean,
 ) {
@@ -301,6 +341,7 @@ private fun SyncStatusRow(
 		ProjectsList.Status.Pending -> HdStatus.Pending
 		ProjectsList.Status.Syncing -> HdStatus.Syncing
 		ProjectsList.Status.Failed -> HdStatus.Failed
+		ProjectsList.Status.NeedsResolution -> HdStatus.Warning
 		ProjectsList.Status.Complete -> HdStatus.Complete
 		ProjectsList.Status.Canceled -> HdStatus.Canceled
 	}
@@ -308,6 +349,7 @@ private fun SyncStatusRow(
 		ProjectsList.Status.Pending -> Res.string.account_sync_dialog_status_pending.get()
 		ProjectsList.Status.Syncing -> "${(projectStatus.progress * 100).toInt()}%"
 		ProjectsList.Status.Failed -> Res.string.account_sync_dialog_status_error.get()
+		ProjectsList.Status.NeedsResolution -> Res.string.account_sync_dialog_status_conflict.get()
 		ProjectsList.Status.Complete -> Res.string.account_sync_dialog_status_complete.get()
 		ProjectsList.Status.Canceled -> Res.string.account_sync_dialog_status_canceled.get()
 	}

@@ -1,0 +1,964 @@
+/* Reviewer Page Styles — the external editor's manuscript view */
+
+/* The pen-ink handwriting for suggested text; without this the inks fall back to the generic cursive font */
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&display=swap');
+
+.review-page {
+	min-height: calc(100vh - 200px);
+	padding: 2rem 1rem 5rem 1rem;
+	background:
+		radial-gradient(ellipse at top, rgba(217, 119, 6, 0.05), transparent 50%),
+		linear-gradient(135deg, var(--neutral-100) 0%, var(--neutral-50) 100%);
+	display: flex;
+	justify-content: center;
+}
+
+.review-page__container {
+	max-width: 1500px;
+	width: 100%;
+	animation: fadeIn 0.5s ease-out;
+}
+
+/* ===== Masthead ===== */
+
+.review-masthead {
+	display: flex;
+	align-items: flex-end;
+	justify-content: space-between;
+	gap: 1.5rem;
+	flex-wrap: wrap;
+	border-bottom: 3px solid var(--accent);
+	padding-bottom: 1.1rem;
+	margin-bottom: 1.6rem;
+}
+
+.review-masthead__overline {
+	display: block;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.72rem;
+	letter-spacing: 0.18em;
+	text-transform: uppercase;
+	color: var(--accent);
+	margin-bottom: 0.3rem;
+}
+
+.review-masthead__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-weight: 400;
+	font-size: clamp(1.6rem, 4vw, 2.4rem);
+	color: var(--ink);
+	margin: 0;
+	line-height: 1.15;
+}
+
+.review-masthead__author {
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.55em;
+	color: var(--neutral-500);
+	white-space: nowrap;
+}
+
+.review-masthead__reviewer {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 0.2rem;
+	padding-bottom: 0.2rem;
+}
+
+.review-masthead__email {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9rem;
+	color: var(--neutral-600);
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+}
+
+.review-masthead__email i {
+	color: var(--neutral-400);
+	font-size: 0.78rem;
+}
+
+.review-masthead__expiry {
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.78rem;
+	color: var(--neutral-400);
+}
+
+/* ===== Author's note — a sticky note pinned above the manuscript ===== */
+
+.review-note {
+	background: var(--sticky-yellow);
+	border-radius: 4px;
+	box-shadow: var(--shadow-sticky);
+	transform: rotate(-0.4deg);
+	padding: 1rem 1.3rem;
+	max-width: 540px;
+	margin: 0 auto 1.8rem auto;
+}
+
+.review-note__title {
+	display: block;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.78rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--accent-dark);
+	margin-bottom: 0.4rem;
+}
+
+.review-note__title i {
+	margin-right: 0.4rem;
+}
+
+.review-note__body {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.95rem;
+	line-height: 1.55;
+	color: var(--neutral-700);
+	margin: 0;
+	white-space: pre-line;
+}
+
+/* ===== Masthead actions / submit ===== */
+
+.review-masthead__actions {
+	display: flex;
+	align-items: flex-end;
+	gap: 1rem;
+}
+
+.review-submit-btn {
+	white-space: nowrap;
+}
+
+.review-submitted-pill {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.85rem;
+	background: #ecfdf5;
+	color: #047857;
+	border: 1px solid #a7f3d0;
+	border-radius: 8px;
+	padding: 0.6rem 1rem;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5rem;
+	white-space: nowrap;
+}
+
+.review-locked-banner {
+	margin: 0 0 1.4rem 0;
+	background: #ecfdf5;
+	border: 1px solid #a7f3d0;
+	border-radius: 10px;
+	padding: 0.85rem 1.2rem;
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.95rem;
+	color: #065f46;
+}
+
+.review-hint {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	margin: 0 0 1.2rem 0;
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.92rem;
+	color: var(--neutral-500);
+}
+
+.review-hint i {
+	color: var(--accent);
+}
+
+/* ===== Editor layout: nav | manuscript | gutter ===== */
+
+.review-editor__layout {
+	display: flex;
+	gap: 1.6rem;
+	align-items: flex-start;
+}
+
+.review-nav {
+	width: 220px;
+	flex-shrink: 0;
+	position: sticky;
+	top: 1.5rem;
+	background: var(--paper-white);
+	border-left: 4px solid var(--accent);
+	border-radius: 8px;
+	padding: 1.1rem;
+	box-shadow: var(--shadow-md);
+}
+
+.review-nav__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-weight: 400;
+	font-size: 1rem;
+	color: var(--ink);
+	margin: 0 0 0.8rem 0;
+}
+
+.review-nav__list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+}
+
+.review-nav__item {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.6rem;
+	padding: 0.6rem 0.7rem;
+	border-radius: 8px;
+	cursor: pointer;
+	border: 1px solid var(--neutral-200);
+	background: #ffffff;
+	text-align: left;
+	transition: border-color var(--transition-fast);
+}
+
+.review-nav__item:hover {
+	border-color: var(--accent);
+}
+
+.review-nav__item--active {
+	border-color: var(--accent);
+	background: #fdf1e3;
+}
+
+.review-nav__name {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9rem;
+	color: var(--neutral-700);
+	flex: 1;
+}
+
+.review-nav__item--active .review-nav__name {
+	color: var(--accent-dark);
+}
+
+.review-nav__count {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.75rem;
+	color: var(--accent-dark);
+	background: #fef3e2;
+	border-radius: 999px;
+	min-width: 22px;
+	height: 22px;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 6px;
+}
+
+.review-manuscript {
+	position: relative;
+	flex: 1;
+	min-width: 0;
+	max-width: 860px;
+	background: var(--paper-white);
+	border-radius: 10px;
+	box-shadow: var(--shadow-lg);
+	padding: clamp(2rem, 5vw, 3.5rem) clamp(1.4rem, 5vw, 3.5rem);
+}
+
+.review-manuscript__pos {
+	display: block;
+	text-align: center;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.7rem;
+	letter-spacing: 0.16em;
+	color: var(--neutral-400);
+	margin-bottom: 0.4rem;
+}
+
+.review-manuscript__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-weight: 400;
+	font-size: 1.6rem;
+	color: var(--ink);
+	text-align: center;
+	margin: 0 0 2rem 0;
+}
+
+.review-para {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 1.08rem;
+	line-height: 2.1;
+	color: var(--neutral-800);
+	text-align: justify;
+	margin: 0 0 0.8rem 0;
+	text-indent: 2.2rem;
+}
+
+.review-para:first-of-type {
+	text-indent: 0;
+}
+
+::selection {
+	background: rgba(217, 119, 6, 0.25);
+}
+
+.review-ink {
+	-webkit-box-decoration-break: clone;
+	box-decoration-break: clone;
+	transition: box-shadow var(--transition-fast);
+}
+
+/* Hovering the gutter card rings its ink in the suggestion's own colour.
+   (Inline box-shadow from the active state wins over this when selected.) */
+.review-ink--linked {
+	box-shadow: 0 0 0 2.5px var(--sugg-ring, rgba(217, 119, 6, 0.25));
+	border-radius: 3px;
+}
+
+/* Blinking caret overlaid exactly where an insert suggestion will land */
+.review-caret {
+	position: absolute;
+	width: 2px;
+	background: #15803d;
+	border-radius: 1px;
+	pointer-events: none;
+	z-index: 50;
+	animation: review-caret-blink 1s steps(2, jump-none) infinite;
+}
+
+@keyframes review-caret-blink {
+	from {
+		opacity: 1;
+	}
+	to {
+		opacity: 0.15;
+	}
+}
+
+.review-submit-dialog__body {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.97rem;
+	line-height: 1.6;
+	color: var(--neutral-700);
+}
+
+/* ===== Selection popup ===== */
+
+.review-popup {
+	text-align: left;
+}
+
+.review-popup--menu {
+	background: #292524;
+	border-radius: 10px;
+	padding: 5px;
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	max-width: min(360px, 88vw);
+	gap: 2px;
+	box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+}
+
+.review-popup__btn {
+	background: transparent;
+	border: none;
+	color: #fafaf9;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.84rem;
+	padding: 0.55rem 0.8rem;
+	border-radius: 7px;
+	cursor: pointer;
+	display: flex;
+	align-items: center;
+	gap: 0.45rem;
+	white-space: nowrap;
+}
+
+.review-popup__btn:hover {
+	background: #44403c;
+}
+
+.review-popup__btn i {
+	color: var(--accent-light);
+	font-size: 0.78rem;
+}
+
+.review-popup--form {
+	background: var(--paper-white);
+	border: 1px solid var(--neutral-300);
+	border-radius: 10px;
+	padding: 0.9rem;
+	width: min(330px, 88vw);
+	box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18);
+}
+
+.review-popup__label {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.72rem;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--neutral-500);
+	margin-bottom: 0.5rem;
+}
+
+.review-popup__textarea {
+	width: 100%;
+	min-height: 64px;
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.95rem;
+	padding: 0.5rem 0.6rem;
+	border: 1px solid var(--neutral-300);
+	border-radius: 7px;
+	background: #ffffff;
+	resize: vertical;
+	box-sizing: border-box;
+	color: var(--neutral-800);
+}
+
+.review-popup__reason {
+	width: 100%;
+	margin-top: 0.5rem;
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.85rem;
+	padding: 0.45rem 0.6rem;
+	border: 1px solid var(--neutral-200);
+	border-radius: 7px;
+	background: #ffffff;
+	box-sizing: border-box;
+	color: var(--neutral-600);
+}
+
+.review-popup__actions {
+	display: flex;
+	justify-content: flex-end;
+	gap: 0.5rem;
+	margin-top: 0.75rem;
+}
+
+.review-popup__save:disabled {
+	background: var(--neutral-200);
+	color: var(--neutral-400);
+	cursor: default;
+}
+
+/* ===== Gutter cards ===== */
+
+.review-gutter {
+	width: 300px;
+	flex-shrink: 0;
+	position: sticky;
+	top: 1.5rem;
+}
+
+.review-gutter__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-weight: 400;
+	font-size: 1.05rem;
+	color: var(--ink);
+	margin: 0 0 0.8rem 0.2rem;
+}
+
+.review-gutter__cards {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
+	max-height: calc(100vh - 9rem);
+	overflow-y: auto;
+	padding: 2px;
+}
+
+.review-card {
+	background: #ffffff;
+	border: 1.5px solid var(--neutral-200);
+	border-radius: 10px;
+	padding: 0.8rem 0.9rem;
+	cursor: pointer;
+	box-shadow: var(--shadow-sm);
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	transition: border-color var(--transition-fast),
+	transform var(--transition-fast),
+	box-shadow var(--transition-fast);
+}
+
+/* Hovering the ink lifts its gutter card and rings it in the suggestion's colour */
+.review-card--linked {
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-md), 0 0 0 2px var(--sugg-ring, rgba(217, 119, 6, 0.25));
+}
+
+.review-card--empty {
+	border: 1.5px dashed var(--neutral-300);
+	border-radius: 10px;
+	padding: 1.6rem 1.2rem;
+	text-align: center;
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.9rem;
+	color: var(--neutral-400);
+}
+
+.review-card__head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.5rem;
+}
+
+.review-card__type {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8rem;
+	letter-spacing: 0.03em;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+}
+
+.review-card__actions {
+	display: inline-flex;
+	gap: 0.15rem;
+}
+
+.review-card__action {
+	background: transparent;
+	border: none;
+	color: var(--neutral-400);
+	cursor: pointer;
+	padding: 2px 4px;
+	transition: color var(--transition-fast);
+}
+
+.review-card__action:hover {
+	color: var(--accent-dark);
+}
+
+.review-card__action--remove:hover {
+	color: var(--error);
+}
+
+.review-card__quote {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9rem;
+	color: var(--neutral-600);
+	border-left: 3px solid var(--neutral-200);
+	padding-left: 0.65rem;
+	line-height: 1.5;
+}
+
+.review-card__replacement {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9rem;
+	line-height: 1.5;
+}
+
+.review-card__replacement i {
+	font-size: 0.75rem;
+	margin-right: 0.3rem;
+}
+
+.review-card__reason {
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.86rem;
+	color: var(--neutral-500);
+	line-height: 1.45;
+}
+
+/* The welcome's submit reminder — the one thing the editor must not miss */
+.review-welcome__note {
+	background: rgba(217, 119, 6, 0.08);
+	border-left: 3px solid var(--accent);
+	border-radius: 0 6px 6px 0;
+	padding: 0.65rem 0.8rem;
+	color: var(--accent-dark);
+}
+
+.review-welcome__note i {
+	margin-right: 0.3rem;
+}
+
+/* ===== Scene done progress ===== */
+
+.review-nav__done {
+	color: #15803d;
+	font-size: 0.85rem;
+	display: flex;
+	align-items: center;
+}
+
+.review-done {
+	display: flex;
+	justify-content: center;
+	margin-top: 2.2rem;
+	padding-top: 1.4rem;
+	border-top: 1px dashed var(--neutral-200);
+}
+
+.review-done-btn {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.88rem;
+	background: #ffffff;
+	border: 1.5px solid var(--neutral-300);
+	border-radius: 999px;
+	padding: 0.45rem 1.1rem;
+	color: var(--neutral-600);
+	cursor: pointer;
+	transition: border-color var(--transition-fast), color var(--transition-fast),
+	background var(--transition-fast);
+}
+
+.review-done-btn:hover {
+	border-color: #15803d;
+	color: #15803d;
+}
+
+.review-done-btn--done {
+	background: rgba(21, 128, 61, 0.1);
+	border-color: rgba(21, 128, 61, 0.45);
+	color: #15803d;
+}
+
+/* ===== Author mode: decisions ===== */
+
+/* Decided suggestions preview their outcome in the manuscript */
+.review-ink--applied {
+	background: rgba(21, 128, 61, 0.12);
+	box-shadow: inset 0 -2px 0 rgba(21, 128, 61, 0.35);
+	border-radius: 2px;
+	padding: 0 1px;
+}
+
+.review-ink--ghost {
+	opacity: 0.35;
+}
+
+.review-ink--rejected {
+	text-decoration: underline dotted var(--neutral-400);
+	text-underline-offset: 3px;
+}
+
+.review-gutter__bulk {
+	display: flex;
+	gap: 0.5rem;
+	margin: -0.3rem 0.2rem 0.8rem;
+}
+
+.review-bulk-btn {
+	flex: 1;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.78rem;
+	background: #ffffff;
+	border: 1.5px solid var(--neutral-200);
+	border-radius: 8px;
+	padding: 0.35rem 0.5rem;
+	color: var(--neutral-600);
+	cursor: pointer;
+	transition: border-color var(--transition-fast), color var(--transition-fast),
+	background var(--transition-fast);
+}
+
+.review-bulk-btn--accept:hover {
+	border-color: #15803d;
+	color: #15803d;
+	background: rgba(21, 128, 61, 0.07);
+}
+
+.review-bulk-btn--reject:hover {
+	border-color: #b91c1c;
+	color: #b91c1c;
+	background: rgba(185, 28, 28, 0.06);
+}
+
+.review-card__decide {
+	display: flex;
+	gap: 0.45rem;
+	align-items: center;
+}
+
+.review-decide-btn {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8rem;
+	border-radius: 8px;
+	padding: 0.3rem 0.7rem;
+	cursor: pointer;
+	transition: background var(--transition-fast), color var(--transition-fast),
+	border-color var(--transition-fast);
+}
+
+.review-decide-btn--accept {
+	background: rgba(21, 128, 61, 0.09);
+	border: 1.5px solid rgba(21, 128, 61, 0.4);
+	color: #15803d;
+}
+
+.review-decide-btn--accept:hover {
+	background: #15803d;
+	border-color: #15803d;
+	color: #fffef9;
+}
+
+.review-decide-btn--reject {
+	background: rgba(185, 28, 28, 0.06);
+	border: 1.5px solid rgba(185, 28, 28, 0.35);
+	color: #b91c1c;
+}
+
+.review-decide-btn--reject:hover {
+	background: #b91c1c;
+	border-color: #b91c1c;
+	color: #fffef9;
+}
+
+/* Status chip with the ✕-style undo, shown once a suggestion is decided */
+.review-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.78rem;
+	border-radius: 999px;
+	padding: 0.22rem 0.65rem;
+}
+
+.review-chip--accepted {
+	background: rgba(21, 128, 61, 0.12);
+	color: #15803d;
+}
+
+.review-chip--rejected {
+	background: rgba(185, 28, 28, 0.1);
+	color: #b91c1c;
+}
+
+.review-chip--resolved {
+	background: var(--neutral-100);
+	color: var(--neutral-500);
+}
+
+.review-chip__undo {
+	background: transparent;
+	border: none;
+	color: inherit;
+	opacity: 0.55;
+	cursor: pointer;
+	padding: 0 0 0 0.15rem;
+	font-size: 0.75rem;
+	transition: opacity var(--transition-fast);
+}
+
+.review-chip__undo:hover {
+	opacity: 1;
+}
+
+.review-card--accepted {
+	border-left: 4px solid rgba(21, 128, 61, 0.55);
+}
+
+.review-card--rejected {
+	border-left: 4px solid rgba(185, 28, 28, 0.45);
+	opacity: 0.75;
+}
+
+.review-card--resolved {
+	border-left: 4px solid var(--neutral-300);
+	opacity: 0.75;
+}
+
+/* Hover tooltip over ink: the reviewer's note + quick accept/reject */
+.review-tip {
+	position: absolute;
+	transform: translate(-50%, -100%);
+	z-index: 70;
+	background: #fffef9;
+	border: 1.5px solid var(--neutral-200);
+	border-radius: 10px;
+	box-shadow: var(--shadow-lg);
+	padding: 0.6rem 0.75rem;
+	min-width: 150px;
+	max-width: 300px;
+	animation: fadeIn 120ms ease-out;
+}
+
+/* Little arrow pointing at the ink; also bridges the hover gap */
+.review-tip::after {
+	content: '';
+	position: absolute;
+	left: 50%;
+	bottom: -7px;
+	transform: translateX(-50%) rotate(45deg);
+	width: 12px;
+	height: 12px;
+	background: #fffef9;
+	border-right: 1.5px solid var(--neutral-200);
+	border-bottom: 1.5px solid var(--neutral-200);
+}
+
+.review-tip__reason {
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.88rem;
+	color: var(--neutral-600);
+	line-height: 1.45;
+}
+
+.review-tip__actions {
+	display: flex;
+	gap: 0.45rem;
+}
+
+.review-tip__reason + .review-tip__actions {
+	margin-top: 0.55rem;
+}
+
+/* Commit dialog */
+.review-commit-tally {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.95rem;
+	color: var(--ink);
+	margin-bottom: 0.6rem;
+}
+
+.review-commit-warning {
+	color: var(--accent-dark);
+	font-size: 0.88rem;
+}
+
+.review-commit-warning i {
+	margin-right: 0.25rem;
+}
+
+.review-commit-draft {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9rem;
+	color: var(--ink);
+}
+
+.review-commit-outcomes {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin-top: 0.6rem;
+}
+
+.review-commit-outcome {
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+	border-left: 3px solid var(--neutral-200);
+	padding-left: 0.65rem;
+}
+
+.review-commit-outcome--applied {
+	border-left-color: rgba(21, 128, 61, 0.55);
+}
+
+.review-commit-outcome--diverged {
+	border-left-color: var(--accent);
+}
+
+.review-commit-outcome--scene_missing {
+	border-left-color: var(--error);
+}
+
+.review-commit-outcome__scene {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.88rem;
+	color: var(--ink);
+}
+
+.review-commit-outcome__scene i {
+	font-size: 0.75rem;
+	margin-right: 0.25rem;
+	color: var(--neutral-500);
+}
+
+.review-commit-outcome__text {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.84rem;
+	color: var(--neutral-500);
+	line-height: 1.4;
+}
+
+@media only screen and (max-width: 1100px) {
+	.review-editor__layout {
+		flex-direction: column;
+	}
+
+	.review-nav,
+	.review-gutter {
+		width: 100%;
+		position: static;
+	}
+
+	.review-manuscript {
+		max-width: none;
+		width: 100%;
+	}
+
+	.review-gutter__cards {
+		max-height: none;
+	}
+}
+
+/* ===== Error page ===== */
+
+.review-page--error {
+	align-items: center;
+}
+
+.review-error__card {
+	background: var(--sticky-yellow);
+	border-radius: 4px;
+	box-shadow: var(--shadow-sticky);
+	transform: rotate(-0.6deg);
+	padding: 2.2rem 2.6rem;
+	max-width: 460px;
+	text-align: center;
+}
+
+.review-error__icon {
+	font-size: 1.8rem;
+	color: var(--accent-dark);
+	margin-bottom: 0.8rem;
+}
+
+.review-error__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-weight: 400;
+	font-size: 1.5rem;
+	color: var(--ink);
+	margin: 0 0 0.6rem 0;
+}
+
+.review-error__message {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.98rem;
+	line-height: 1.6;
+	color: var(--neutral-700);
+	margin: 0;
+}
+
+@media only screen and (max-width: 600px) {
+	.review-masthead {
+		flex-direction: column;
+		align-items: flex-start;
+	}
+
+	.review-masthead__reviewer {
+		align-items: flex-start;
+	}
+
+	/* Justified text rivers badly in a narrow column; left-align on phones. */
+	.review-para {
+		text-align: left;
+	}
+}

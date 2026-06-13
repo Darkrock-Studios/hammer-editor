@@ -1,21 +1,34 @@
 package com.darkrockstudios.apps.hammer.common.components.projecthome
 
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import kotlinx.coroutines.withContext
+import okio.Buffer
 import okio.FileSystem
 import org.koin.core.component.KoinComponent
 
 data class StoryChapter(val name: String, val markdown: String)
+
+/** Source data read from disk before rendering; [projectData] is null only for Markdown, which doesn't need it. */
+private class ExportSource(
+	val perNodeChapters: List<StoryChapter>,
+	val projectData: ProjectData?,
+	val language: String,
+) {
+	fun requireProjectData(): ProjectData =
+		requireNotNull(projectData) { "Project data is required for this export format" }
+}
 
 fun exportFileName(projectName: String, format: ExportFormat): String {
 	val safeName = projectName.sanitizedFileName().ifBlank { "story" }
@@ -27,6 +40,7 @@ val ExportFormat.fileExtension: String
 		ExportFormat.Markdown -> "md"
 		ExportFormat.Epub -> "epub"
 		ExportFormat.Pdf -> "pdf"
+		ExportFormat.Docx -> "docx"
 	}
 
 /** Strips characters that have meaning in file paths or the SAF picker; covers project names that came from sync. */
@@ -42,6 +56,7 @@ class ExportStoryUseCase(
 ) : KoinComponent {
 
 	private val ioDispatcher by injectIoDispatcher()
+	private val defaultDispatcher by injectDefaultDispatcher()
 
 	suspend fun execute(exportDir: HPath, options: ExportOptions): HPath {
 		val projectName = sceneEditorRepository.projectDef.name
@@ -49,53 +64,73 @@ class ExportStoryUseCase(
 		return executeToFile(targetFile, options)
 	}
 
-	suspend fun executeToFile(exportFile: HPath, options: ExportOptions): HPath = withContext(ioDispatcher) {
+	suspend fun executeToFile(exportFile: HPath, options: ExportOptions): HPath {
 		val projectName = sceneEditorRepository.projectDef.name
-		val perNodeChapters = sceneEditorRepository.getSceneTree().root.children.map { node ->
-			StoryChapter(name = node.value.name, markdown = collectMarkdown(node))
-		}
 		val exportPath = exportFile.toOkioPath()
 
-		try {
-			fileSystem.write(exportPath) {
-				when (options.format) {
-					ExportFormat.Markdown -> writeStoryAsMarkdown(
-						sink = this,
-						projectName = projectName,
-						chapters = perNodeChapters,
-						treatTopLevelAsChapters = options.treatTopLevelAsChapters,
-					)
+		val rendered = render(projectName, options)
 
-					ExportFormat.Epub -> {
-						val projectData = projectDataDatasource.load().data
-						writeStoryAsEpub(
-							sink = this,
-							projectName = projectName,
-							projectData = projectData,
-							chapters = chaptersFor(options, projectName, perNodeChapters),
-							language = localeResolver.getCurrentLocale().language?.takeIf { it.isNotBlank() } ?: "en",
-						)
-					}
-
-					ExportFormat.Pdf -> {
-						val projectData = projectDataDatasource.load().data
-						writeStoryAsPdf(
-							sink = this,
-							projectName = projectName,
-							projectData = projectData,
-							chapters = chaptersFor(options, projectName, perNodeChapters),
-						)
-					}
-				}
+		withContext(ioDispatcher) {
+			try {
+				fileSystem.write(exportPath) { writeAll(rendered) }
+				// Any failure must clean up the partial file, then rethrow unchanged.
+			} catch (@Suppress("TooGenericExceptionCaught") t: Throwable) {
+				// fileSystem.write truncates exportPath before the body runs; clean up the partial file on failure.
+				runCatching { fileSystem.delete(exportPath, mustExist = false) }
+				throw t
 			}
-			// Any failure must clean up the partial file, then rethrow unchanged.
-		} catch (@Suppress("TooGenericExceptionCaught") t: Throwable) {
-			// fileSystem.write truncates exportPath before the body runs; clean up the partial file on failure.
-			runCatching { fileSystem.delete(exportPath, mustExist = false) }
-			throw t
 		}
 
-		exportPath.toHPath()
+		return exportPath.toHPath()
+	}
+
+	/** Reads source data off [ioDispatcher], then renders the document into an in-memory buffer on [defaultDispatcher]. */
+	private suspend fun render(projectName: String, options: ExportOptions): Buffer {
+		val source = withContext(ioDispatcher) {
+			val perNodeChapters = sceneEditorRepository.getSceneTree().root.children.map { node ->
+				StoryChapter(name = node.value.name, markdown = collectMarkdown(node))
+			}
+			val projectData =
+				if (options.format == ExportFormat.Markdown) null else projectDataDatasource.load().data
+			val language =
+				localeResolver.getCurrentLocale().language?.takeIf { it.isNotBlank() } ?: "en"
+			ExportSource(perNodeChapters, projectData, language)
+		}
+
+		return withContext(defaultDispatcher) {
+			val buffer = Buffer()
+			when (options.format) {
+				ExportFormat.Markdown -> writeStoryAsMarkdown(
+					sink = buffer,
+					projectName = projectName,
+					chapters = source.perNodeChapters,
+					treatTopLevelAsChapters = options.treatTopLevelAsChapters,
+				)
+
+				ExportFormat.Epub -> writeStoryAsEpub(
+					sink = buffer,
+					projectName = projectName,
+					projectData = source.requireProjectData(),
+					chapters = chaptersFor(options, projectName, source.perNodeChapters),
+					language = source.language,
+				)
+
+				ExportFormat.Pdf -> writeStoryAsPdf(
+					sink = buffer,
+					projectName = projectName,
+					projectData = source.requireProjectData(),
+					chapters = chaptersFor(options, projectName, source.perNodeChapters),
+				)
+
+				ExportFormat.Docx -> writeStoryAsDocx(
+					sink = buffer,
+					projectName = projectName,
+					projectData = source.requireProjectData(),
+					chapters = chaptersFor(options, projectName, source.perNodeChapters),
+				)
+			}
+			buffer
+		}
 	}
 
 	/** Per-node chapters when treating top-level scenes as chapters; otherwise a single chapter named after the project. */

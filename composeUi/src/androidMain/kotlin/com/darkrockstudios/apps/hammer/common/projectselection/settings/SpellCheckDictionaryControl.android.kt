@@ -29,10 +29,10 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.spellcheck.displayName
+import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.apps.hammer.settings_spellcheck_dictionary
 import com.darkrockstudios.apps.hammer.settings_spellcheck_dictionary_android_info_message
 import com.darkrockstudios.apps.hammer.settings_spellcheck_dictionary_android_info_title
-import io.fluidsonic.locale.Locale
 
 @Composable
 internal actual fun SpellCheckDictionaryControl(

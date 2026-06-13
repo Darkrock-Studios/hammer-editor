@@ -9,8 +9,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.spellcheck.toLocale
+import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
-import io.fluidsonic.locale.Locale
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject

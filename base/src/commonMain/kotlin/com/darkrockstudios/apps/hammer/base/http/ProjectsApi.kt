@@ -21,3 +21,22 @@ data class CreateProjectResponse(
 	val projectId: ProjectId,
 	val alreadyExisted: Boolean,
 )
+
+/** One project's locally-computed project-wide content hash, sent to the change probe. */
+@Serializable
+data class ProjectHashItem(
+	val projectId: ProjectId,
+	val hash: String,
+)
+
+/** Batched pre-sync probe: the client's current project-wide hash for each eligible project. */
+@Serializable
+data class ProjectsSyncProbeRequest(
+	val projects: List<ProjectHashItem>,
+)
+
+/** Projects whose server-side hash matches the client's — safe to skip syncing this session. */
+@Serializable
+data class ProjectsSyncProbeResponse(
+	val unchangedProjects: Set<ProjectId>,
+)

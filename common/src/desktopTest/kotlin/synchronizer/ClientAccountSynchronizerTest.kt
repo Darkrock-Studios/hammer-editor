@@ -9,10 +9,18 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
+import com.darkrockstudios.apps.hammer.base.http.writeToml
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
+import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectsSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.RenamedProject
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
@@ -20,6 +28,7 @@ import io.ktor.http.*
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
+import net.peanuuutz.tomlkt.Toml
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
@@ -29,6 +38,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 class ClientAccountSynchronizerTest {
 
@@ -86,6 +96,7 @@ class ClientAccountSynchronizerTest {
 		serverProjectsApi = serverProjectsApi,
 		networkConnectivity = networkConnectivity,
 		json = json,
+		toml = Toml,
 		strRes = TestStrRes(),
 	)
 
@@ -107,6 +118,142 @@ class ClientAccountSynchronizerTest {
 		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(emptyServerResponse())
 		coEvery { serverProjectsApi.endProjectsSync(any()) } returns Result.success("ok")
 		coEvery { networkConnectivity.hasActiveConnection() } returns true
+	}
+
+	private fun cleanProjectSyncData(hash: String?, algoVersion: Int = ProjectContentHasher.ALGO_VERSION) =
+		ProjectSynchronizationData(
+			lastId = 0,
+			newIds = emptyList(),
+			lastSync = Instant.DISTANT_PAST,
+			dirty = emptyList(),
+			deletedIds = emptySet(),
+			cachedProjectHash = hash,
+			hashAlgoVersion = algoVersion,
+		)
+
+	private fun writeProjectSyncData(projectDef: ProjectDef, data: ProjectSynchronizationData) {
+		val path = projectDef.path.toOkioPath() / "sync.json"
+		path.parent?.let { ffs.createDirectories(it) }
+		ffs.write(path) { writeUtf8(json.encodeToString(data)) }
+	}
+
+	private fun writeProjectData(projectDef: ProjectDef, data: StoredProjectData) {
+		val path = projectDef.path.toOkioPath() / "project_data.toml"
+		path.parent?.let { ffs.createDirectories(it) }
+		ffs.writeToml(path, Toml, data)
+	}
+
+	@Test
+	fun `probe sends a clean project's cached hash and returns the server's unchanged set`() = runTest {
+		val def = projectDef("Alpha")
+		val projectId = ProjectId("uuid-alpha")
+		writeProjectSyncData(def, cleanProjectSyncData(hash = "alpha-hash"))
+
+		val captured = slot<List<ProjectHashItem>>()
+		coEvery { serverProjectsApi.probeProjectChanges(capture(captured)) } returns
+			Result.success(ProjectsSyncProbeResponse(unchangedProjects = setOf(projectId)))
+
+		val result = createSynchronizer()
+			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))
+
+		assertEquals(setOf(projectId), result)
+		assertEquals(listOf(ProjectHashItem(projectId, "alpha-hash")), captured.captured)
+	}
+
+	@Test
+	fun `probe skips a project with pending journal work and never calls the server`() = runTest {
+		val def = projectDef("Beta")
+		val projectId = ProjectId("uuid-beta")
+		writeProjectSyncData(
+			def,
+			cleanProjectSyncData(hash = "beta-hash").copy(dirty = listOf(EntityOriginalState(1, "old"))),
+		)
+
+		val result = createSynchronizer()
+			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))
+
+		assertTrue(result.isEmpty())
+		coVerify(exactly = 0) { serverProjectsApi.probeProjectChanges(any()) }
+	}
+
+	@Test
+	fun `probe ignores a cache written under an older algorithm version`() = runTest {
+		val def = projectDef("Gamma")
+		val projectId = ProjectId("uuid-gamma")
+		writeProjectSyncData(
+			def,
+			cleanProjectSyncData(hash = "gamma-hash", algoVersion = ProjectContentHasher.ALGO_VERSION - 1),
+		)
+
+		val result = createSynchronizer()
+			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))
+
+		assertTrue(result.isEmpty())
+		coVerify(exactly = 0) { serverProjectsApi.probeProjectChanges(any()) }
+	}
+
+	@Test
+	fun `probe ignores a project with no cached hash`() = runTest {
+		val def = projectDef("Delta")
+		val projectId = ProjectId("uuid-delta")
+		writeProjectSyncData(def, cleanProjectSyncData(hash = null))
+
+		val result = createSynchronizer()
+			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))
+
+		assertTrue(result.isEmpty())
+		coVerify(exactly = 0) { serverProjectsApi.probeProjectChanges(any()) }
+	}
+
+	@Test
+	fun `probe failure falls back to syncing everything`() = runTest {
+		val def = projectDef("Epsilon")
+		val projectId = ProjectId("uuid-epsilon")
+		writeProjectSyncData(def, cleanProjectSyncData(hash = "epsilon-hash"))
+
+		coEvery { serverProjectsApi.probeProjectChanges(any()) } returns
+			Result.failure(unauthorizedException())
+
+		val result = createSynchronizer()
+			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))
+
+		assertTrue(result.isEmpty())
+	}
+
+	@Test
+	fun `probe skips a project whose project-data changed but entity journal is clean`() = runTest {
+		val def = projectDef("Zeta")
+		val projectId = ProjectId("uuid-zeta")
+		// Clean entity journal + a cached hash, but project-data diverges from its last-synced hash.
+		writeProjectSyncData(def, cleanProjectSyncData(hash = "zeta-hash"))
+		writeProjectData(
+			def,
+			StoredProjectData(
+				data = ProjectData(authorName = "Edited"),
+				lastSyncedHash = ProjectDataHasher.hash(ProjectData()),
+			),
+		)
+
+		val result = createSynchronizer()
+			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))
+
+		assertTrue(result.isEmpty(), "a project-data-only edit must not be probe-skipped")
+		coVerify(exactly = 0) { serverProjectsApi.probeProjectChanges(any()) }
+	}
+
+	@Test
+	fun `probe treats an unreadable journal as ineligible without throwing`() = runTest {
+		val def = projectDef("Eta")
+		val projectId = ProjectId("uuid-eta")
+		val path = def.path.toOkioPath() / "sync.json"
+		path.parent?.let { ffs.createDirectories(it) }
+		ffs.write(path) { writeUtf8("}{ not valid json") }
+
+		val result = createSynchronizer()
+			.probeUnchangedProjects(listOf(SyncedProjectDefinition(def, projectId)))
+
+		assertTrue(result.isEmpty())
+		coVerify(exactly = 0) { serverProjectsApi.probeProjectChanges(any()) }
 	}
 
 	@Test

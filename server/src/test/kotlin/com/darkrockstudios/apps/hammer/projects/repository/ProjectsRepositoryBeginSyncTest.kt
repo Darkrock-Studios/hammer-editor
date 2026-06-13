@@ -17,7 +17,8 @@ class ProjectsRepositoryBeginSyncTest : ProjectsRepositoryBaseTest() {
 
 	@Test
 	fun `Begin Sync, conflicting project sync session`() = runTest {
-		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns true
+		// Another claimant holds the slot, so the atomic claim returns null
+		coEvery { projectsSessionManager.claimSession(any(), any(), any()) } returns null
 		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
 
 		createProjectsRepository().apply {
@@ -28,10 +29,7 @@ class ProjectsRepositoryBeginSyncTest : ProjectsRepositoryBaseTest() {
 
 	@Test
 	fun `Begin Sync, existing session`() = runTest {
-		val newSyncId = "new-sync-id"
-
-		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns true
-		coEvery { projectsSessionManager.createNewSession(any(), any()) } returns newSyncId
+		coEvery { projectsSessionManager.claimSession(any(), any(), any()) } returns null
 
 		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
 
@@ -41,8 +39,6 @@ class ProjectsRepositoryBeginSyncTest : ProjectsRepositoryBaseTest() {
 				lastSync = Instant.DISTANT_PAST,
 				deletedProjects = emptySet()
 			)
-
-		mockCreateSession(newSyncId)
 
 		createProjectsRepository().apply {
 			val beginResult = beginProjectsSync(userId)
@@ -54,8 +50,7 @@ class ProjectsRepositoryBeginSyncTest : ProjectsRepositoryBaseTest() {
 	fun `Begin Sync, has projects`() = runTest {
 		val newSyncId = "new-sync-id"
 
-		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
-		coEvery { projectsSessionManager.createNewSession(any(), any()) } returns newSyncId
+		coEvery { projectsSessionManager.claimSession(any(), any(), any()) } returns newSyncId
 
 		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
 

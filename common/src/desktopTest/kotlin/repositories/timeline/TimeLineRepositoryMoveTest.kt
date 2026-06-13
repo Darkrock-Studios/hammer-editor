@@ -143,6 +143,28 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 	}
 
 	@Test
+	fun `Move uses order-sorted positions when disk order differs`() = runTest {
+		// Serialized/file order differs from the order field; the UI displays
+		// events sorted by order and sends move indices in that sorted space.
+		val onDisk = listOf(
+			TimeLineEvent(id = 2, order = 2, date = null, content = "Event 2"),
+			TimeLineEvent(id = 0, order = 0, date = null, content = "Event 0"),
+			TimeLineEvent(id = 1, order = 1, date = null, content = "Event 1"),
+		)
+		val repository = defaultRepository(getProject1Def(), onDisk)
+
+		// Sorted display is [0, 1, 2]; drag event 0 to the end (after index 2).
+		val eventZero = onDisk.first { it.id == 0 }
+		val moved = repository.moveEvent(eventZero, 2, true)
+		assertTrue("Move timeline event failed") { moved }
+
+		advanceUntilIdle()
+		val newEvents: List<TimeLineEvent> = repository.timelineFlow.first().events
+
+		verifyEventSequence(newEvents, 1, 2, 0)
+	}
+
+	@Test
 	fun `Move Fail 0-0`() = runTest {
 		val originalEvents = fakeEvents()
 		val repository = defaultRepository(getProject1Def(), originalEvents)

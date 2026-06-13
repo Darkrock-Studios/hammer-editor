@@ -1,10 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.slot.*
+import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.decompose.router.slot.SlotNavigation
+import com.arkivanov.decompose.router.slot.activate
+import com.arkivanov.decompose.router.slot.childSlot
+import com.arkivanov.decompose.router.slot.dismiss
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.validate.EmailValidator
 import com.darkrockstudios.apps.hammer.base.validate.PasswordValidationResult
 import com.darkrockstudios.apps.hammer.base.validate.PasswordValidator
@@ -24,6 +28,17 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.server_setup_error_invalid_email
+import com.darkrockstudios.apps.hammer.server_setup_error_invalid_url
+import com.darkrockstudios.apps.hammer.server_setup_error_password_no_lowercase
+import com.darkrockstudios.apps.hammer.server_setup_error_password_no_number
+import com.darkrockstudios.apps.hammer.server_setup_error_password_no_special
+import com.darkrockstudios.apps.hammer.server_setup_error_password_no_uppercase
+import com.darkrockstudios.apps.hammer.server_setup_error_password_too_long
+import com.darkrockstudios.apps.hammer.server_setup_error_password_too_short
+import com.darkrockstudios.apps.hammer.settings_server_setup_toast_failure
+import com.darkrockstudios.apps.hammer.settings_server_setup_toast_failure_unknown
+import com.darkrockstudios.apps.hammer.settings_server_setup_toast_success
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -187,6 +202,10 @@ class AccountSettingsComponent(
 
 	override fun removeServer() {
 		globalSettingsStore.deleteServerSettings()
+		clearAllProjectIds()
+	}
+
+	private fun clearAllProjectIds() {
 		projectsRepository.getProjects().forEach { projectDef ->
 			projectsRepository.removeProjectId(projectDef = projectDef)
 		}
@@ -315,6 +334,11 @@ class AccountSettingsComponent(
 			val result = accountUseCase.setupServer(ssl, cleanUrl, email.trim(), password, create)
 			withContext(mainDispatcher) {
 				if (isSuccess(result)) {
+					// A freshly created account holds no projects, so any serverProjectId from a
+					// previous server is stale and would make sync skip re-creating the project.
+					if (create) {
+						clearAllProjectIds()
+					}
 					cleanUpServerSetup()
 					_state.getAndUpdate {
 						it.copy(

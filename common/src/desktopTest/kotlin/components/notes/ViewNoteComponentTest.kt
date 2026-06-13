@@ -4,17 +4,26 @@ import com.darkrockstudios.apps.hammer.common.components.notes.ViewNoteComponent
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_MAIN
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.context.loadKoinModules
+import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import utils.ComponentTest
 import utils.TestComponentContext
+import java.util.concurrent.Executors
+import kotlin.coroutines.CoroutineContext
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -90,6 +99,40 @@ class ViewNoteComponentTest : ComponentTest() {
 			assertEquals("late", comp.noteText.value)
 			assertEquals(note(content = "late"), comp.state.value.note)
 		}
+
+	@Test
+	fun `deleteNote invokes dismissView on the main dispatcher`() {
+		// dismissView drives Decompose navigation, which must run on the main thread.
+		// Real, distinguishable dispatchers so the callback's thread is observable.
+		val mainExecutor = Executors.newSingleThreadExecutor { r -> Thread(r, "test-main") }
+		try {
+			loadKoinModules(module {
+				single<CoroutineContext>(named(DISPATCHER_MAIN)) { mainExecutor.asCoroutineDispatcher() }
+				single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { Dispatchers.Default }
+			})
+			every { notesRepository.findNoteForId(1) } returns note()
+
+			var dismissThread: String? = null
+			val comp = ViewNoteComponent(
+				componentContext = context,
+				projectDef = projectDef,
+				noteId = 1,
+				// The coroutine debug agent appends " @coroutine#N" to thread names
+				dismissView = { dismissThread = Thread.currentThread().name.substringBefore(" @") },
+				updateShouldClose = {},
+				addMenu = {},
+				removeMenu = {},
+				onShowGlobalSearchForTag = {},
+			)
+			context.resume()
+
+			runBlocking { comp.deleteNote(1) }
+
+			assertEquals("test-main", dismissThread)
+		} finally {
+			mainExecutor.shutdown()
+		}
+	}
 
 	@Test
 	fun `beginEdit enters edit mode`() = runTest(mainTestDispatcher) {

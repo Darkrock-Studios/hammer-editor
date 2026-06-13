@@ -31,6 +31,7 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsDatabaseDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
+import com.darkrockstudios.apps.hammer.review.ReviewRepository
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
@@ -92,6 +93,9 @@ fun mainModule(
 	singleOf(::ServerConfigDao)
 	singleOf(::ProjectAccessDao)
 	singleOf(::PasswordResetTokenDao)
+	singleOf(::ReviewRequestDao)
+	singleOf(::ReviewSceneDao)
+	singleOf(::ReviewSuggestionDao)
 	singleOf(::WritingActivityDao)
 	singleOf(::ProjectDataDao)
 	singleOf(::ApiMetricDao)
@@ -116,6 +120,7 @@ fun mainModule(
 	singleOf(::PenNameService)
 	singleOf(::BioService)
 	singleOf(::PasswordResetRepository)
+	singleOf(::ReviewRepository)
 
 	singleOf(::ServerSecretManager)
 	singleOf(::MarkdownService)

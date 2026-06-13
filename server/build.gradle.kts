@@ -39,7 +39,7 @@ sqldelight {
 			packageName.set("com.darkrockstudios.apps.hammer.database")
 			dialect(libs.sqldelight.postgresql.dialect.get().toString())
 			srcDirs("src/main/sqldelight")
-			version = 2
+			version = 3
 			schemaOutputDirectory.set(project.file("build/generated/sqldelight"))
 		}
 		// Read-only legacy database — used ONLY by the one-time SQLite-to-Postgres migrator.
@@ -167,6 +167,20 @@ dependencies {
 	testFixturesApi(libs.embedded.postgres)
 	testFixturesApi(platform(libs.embedded.postgres.binaries.bom))
 	testFixturesApi(libs.bundles.embedded.postgres.binaries)
+}
+
+// Runs the reviewer-editor JavaScript unit tests with Node's built-in test runner.
+// Kept separate from the Kotlin `test` task so contributors without Node can still
+// build; CI runs it as its own explicit gate (see .github/workflows/build.yml).
+val jsTest by tasks.registering(Exec::class) {
+	group = "verification"
+	description = "Runs the reviewer-editor JavaScript unit tests (requires Node)."
+	workingDir = projectDir
+	commandLine("node", "--test", "src/jsTest/**/*.test.js")
+	inputs.dir("src/main/resources/assets/js")
+	inputs.dir("src/jsTest")
+	// Node availability/version isn't tracked as an input, so don't cache as up-to-date.
+	outputs.upToDateWhen { false }
 }
 
 @OptIn(ExperimentalKotlinGradlePluginApi::class)

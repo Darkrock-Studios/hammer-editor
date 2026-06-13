@@ -2,10 +2,12 @@ package com.darkrockstudios.apps.hammer.projects.repository
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
+import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
@@ -13,6 +15,7 @@ import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.serialization.json.Json
@@ -33,11 +36,12 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 	protected lateinit var projectsRepository: ProjectsRepository
 	protected lateinit var projectsDatasource: ProjectsDatasource
 	protected lateinit var projectEntityDatasource: ProjectEntityDatasource
+	protected lateinit var serverProjectDataRepository: ServerProjectDataRepository
 
 	protected val projectDefinition = ProjectDefinition("Test Project 1", ProjectId("test-uuid-1"))
 
 	protected fun createProjectsRepository(): ProjectsRepository {
-		return ProjectsRepository(clock, projectsDatasource, projectEntityDatasource)
+		return ProjectsRepository(clock, projectsDatasource, projectEntityDatasource, serverProjectDataRepository)
 	}
 
 	protected fun mockCreateSession(syncId: String) {
@@ -63,11 +67,14 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 
 		projectsSessionManager = mockk()
 		projectSessionManager = mockk()
+		// Default: no in-flight project sync, so the probe gate lets projects through.
+		every { projectSessionManager.hasActiveSyncSession(any()) } returns false
 
 		projectsDatasource = mockk()
 		projectsRepository = mockk()
 
 		projectEntityDatasource = mockk()
+		serverProjectDataRepository = mockk()
 
 		val testModule = module {
 			single { Json } bind Json::class
@@ -79,6 +86,12 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 				)
 			) {
 				projectsSessionManager
+			}
+
+			single<SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession>>(
+				named(PROJECT_SYNC_MANAGER)
+			) {
+				projectSessionManager
 			}
 		}
 		setupKoin(testModule)

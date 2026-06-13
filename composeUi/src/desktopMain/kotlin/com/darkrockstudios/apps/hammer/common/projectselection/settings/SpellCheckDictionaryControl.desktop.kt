@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.projectselection.settings
 
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import io.fluidsonic.locale.Locale
+import com.darkrockstudios.apps.hammer.common.util.Locale
 
 @Composable
 internal actual fun SpellCheckDictionaryControl(

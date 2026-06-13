@@ -8,8 +8,8 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDropdown
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.spellcheck.displayName
+import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.apps.hammer.settings_spellcheck_dictionary
-import io.fluidsonic.locale.Locale
 
 /**
  * Spell check dictionary control. Platforms whose spell checker honors a

@@ -30,6 +30,7 @@ enum class HdStatus {
 	Syncing,
 	Complete,
 	Failed,
+	Warning,
 	Canceled,
 }
 
@@ -43,6 +44,7 @@ fun HdStatus.accentColor(): Color {
 		HdStatus.Syncing -> MaterialTheme.colorScheme.primary
 		HdStatus.Complete -> hammer.success
 		HdStatus.Failed -> hammer.danger
+		HdStatus.Warning -> hammer.warning
 		HdStatus.Canceled -> MaterialTheme.colorScheme.onSurfaceVariant
 	}
 }
@@ -69,6 +71,12 @@ fun HdStatusGlyph(
 		}
 		HdStatus.Complete -> Box(modifier = base.background(accent).drawCheck(ink))
 		HdStatus.Failed -> Box(modifier = base.background(accent).drawCross(ink))
+		HdStatus.Warning -> Box(
+			modifier = base.background(accent),
+			contentAlignment = Alignment.Center,
+		) {
+			BangMark(ink, size.value)
+		}
 		HdStatus.Canceled -> Box(
 			modifier = base
 				.border(width = Dp.Hairline, color = MaterialTheme.colorScheme.outlineVariant, shape = RectangleShape)
@@ -89,16 +97,22 @@ fun HdWarnGlyph(
 		modifier = modifier.size(size).background(amber),
 		contentAlignment = Alignment.Center,
 	) {
-		Text(
-			text = "!",
-			color = ink,
-			style = TextStyle(
-				fontFamily = MaterialTheme.typography.labelSmall.fontFamily,
-				fontWeight = FontWeight.SemiBold,
-				fontSize = (size.value * 0.6f).sp,
-			),
-		)
+		BangMark(ink, size.value)
 	}
+}
+
+/** Mono `!` sized relative to its containing glyph. */
+@Composable
+private fun BangMark(ink: Color, sizeValue: Float) {
+	Text(
+		text = "!",
+		color = ink,
+		style = TextStyle(
+			fontFamily = MaterialTheme.typography.labelSmall.fontFamily,
+			fontWeight = FontWeight.SemiBold,
+			fontSize = (sizeValue * 0.6f).sp,
+		),
+	)
 }
 
 private fun Modifier.drawCross(color: Color): Modifier = this

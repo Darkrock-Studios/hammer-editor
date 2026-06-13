@@ -36,6 +36,7 @@
 	<string name="account_sync_log_filter_all">All</string>
 	<string name="account_sync_dialog_status_pending">Pendente</string>
 	<string name="account_sync_dialog_status_error">Erro</string>
+	<string name="account_sync_dialog_status_conflict">Conflict</string>
 	<string name="account_sync_dialog_status_complete">Sincronização Concluída</string>
 	<string name="account_sync_dialog_status_canceled">Cancelado</string>
 	<string name="delete_project_title">Excluir Projeto</string>

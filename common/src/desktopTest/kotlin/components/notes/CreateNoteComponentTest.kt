@@ -6,16 +6,25 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.InvalidNote
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_MAIN
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.koin.core.context.loadKoinModules
+import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import utils.ComponentTest
 import utils.TestComponentContext
+import java.util.concurrent.Executors
+import kotlin.coroutines.CoroutineContext
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
@@ -81,6 +90,39 @@ class CreateNoteComponentTest : ComponentTest() {
 			assertEquals(0, dismissCreateCount)
 			verify(exactly = 0) { notesRepository.loadNotes() }
 		}
+
+	@Test
+	fun `createNote invokes dismissCreate on the main dispatcher`() {
+		// dismissCreate drives Decompose navigation, which must run on the main thread.
+		// Real, distinguishable dispatchers so the callback's thread is observable.
+		val mainExecutor = Executors.newSingleThreadExecutor { r -> Thread(r, "test-main") }
+		try {
+			loadKoinModules(module {
+				single<CoroutineContext>(named(DISPATCHER_MAIN)) { mainExecutor.asCoroutineDispatcher() }
+				single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { Dispatchers.Default }
+			})
+			coEvery { notesRepository.createNote("body", emptySet()) } returns
+				CResult.success(noteContent("body"))
+
+			var dismissThread: String? = null
+			val comp = CreateNoteComponent(
+				componentContext = context,
+				projectDef = projectDef,
+				// The coroutine debug agent appends " @coroutine#N" to thread names
+				dismissCreate = {
+					dismissThread = Thread.currentThread().name.substringBefore(" @")
+				},
+				updateShouldClose = {},
+			)
+			context.resume()
+
+			runBlocking { comp.createNote("body", emptySet()) }
+
+			assertEquals("test-main", dismissThread)
+		} finally {
+			mainExecutor.shutdown()
+		}
+	}
 
 	@Test
 	fun `onTextChanged updates the note text`() = runTest(mainTestDispatcher) {

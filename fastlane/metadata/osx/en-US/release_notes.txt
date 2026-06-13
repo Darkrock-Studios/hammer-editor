@@ -1,4 +1,8 @@
-- [Fix] several iOS crashes
-- [Fix] Sync error where scenes always conflicted with them selves
-- [Fix] Sync server now allows a client to reclaim it's token
-- [Improve] Desktop/iOS can now select their spell check language
+- [New/Web] New Feature: Request editor review
+- [New/Client] Added .docx export format
+- [New/Sync] Faster syncing with many projects
+- [Fix] Improved PDF export
+- [Fix] Many many iOS bugs
+- [Fix] Timeline drag-to-reorder
+- [New/Client] Removed Timeline sorting
+- [Fix] Rich text editor bugs

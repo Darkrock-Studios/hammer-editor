@@ -1,25 +1,25 @@
 package com.darkrockstudios.apps.hammer.common.util
 
 import kotlinx.datetime.LocalDateTime
-import platform.Foundation.NSCalendar
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.toInstant
 import platform.Foundation.NSDate
 import platform.Foundation.NSDateFormatter
+import platform.Foundation.dateWithTimeIntervalSince1970
 import kotlin.time.Instant
 
 actual fun Instant.formatLocal(format: String): String {
-	// TODO implement iOS version
-	return ""
+	val formatter = NSDateFormatter().apply { dateFormat = format }
+	return formatter.stringFromDate(toNSDate())
 }
 
 actual fun LocalDateTime.format(format: String): String {
-	val dateFormatter = NSDateFormatter()
-	dateFormatter.dateFormat = format
-	return dateFormatter.stringFromDate(
-		toNSDate(NSCalendar.currentCalendar)
-			?: throw IllegalStateException("Could not convert kotlin date to NSDate $this")
-	)
+	val instant = toInstant(TimeZone.currentSystemDefault())
+	val formatter = NSDateFormatter().apply { dateFormat = format }
+	return formatter.stringFromDate(instant.toNSDate())
 }
 
-fun toNSDate(currentCalendar: NSCalendar): NSDate? {
-	return NSDate.new()
+private fun Instant.toNSDate(): NSDate {
+	val seconds = epochSeconds.toDouble() + nanosecondsOfSecond / 1_000_000_000.0
+	return NSDate.dateWithTimeIntervalSince1970(seconds)
 }

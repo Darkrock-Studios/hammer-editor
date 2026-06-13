@@ -1,6 +1,6 @@
 [versions]
 # App Versions
-app = "3.2.1"
+app = "3.3.0"
 data_version = "1.0"
 
 # Kotlin
@@ -35,6 +35,8 @@ kotlinx_atomicfu = "0.33.0"
 markdown = "0.7.5"
 epub4kmp = "0.3.0"
 pdfkmp = "1.2.0"
+xmlutil = "1.0.0-rc3"
+poi = "5.5.1"
 kotlinx_html = "0.12.0"
 material = "1.14.0"
 orchestrator = "1.6.1"
@@ -85,16 +87,15 @@ embedded_postgres = "2.2.2"
 embedded_postgres_binaries = "18.4.0"
 testcontainers = "1.21.4"
 buildconfig = "6.0.10"
-fluidsonic_locale = "0.13.0"
 resources = "1.1.0"
 aboutlibraries = "14.2.1"
-logback_classic = "1.4.14"
+logback_classic = "1.5.34"
 multiplatform_settings = "1.3.0"
 korge-core = "6.0.0"
 bouncycastle = "1.84"
 kotlinx-io-okio = "0.9.0"
 
-compose-texteditor = "2.1.2"
+compose-texteditor = "2.2.2"
 kotlin-multiplatform-diff = "1.3.0"
 platform-spellcheckerkt = "1.3.0"
 nucleus = "1.15.7"
@@ -170,8 +171,9 @@ kotlinx_atomicfu_plugin = { group = "org.jetbrains.kotlinx", name = "atomicfu-gr
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
 kotlin-multiplatform-diff = { module = "io.github.petertrr:kotlin-multiplatform-diff", version.ref = "kotlin-multiplatform-diff" }
 epub4kmp_core = { module = "com.darkrockstudios:epub4kmp-core", version.ref = "epub4kmp" }
+xmlutil_core = { module = "io.github.pdvrieze.xmlutil:core", version.ref = "xmlutil" }
+poi_ooxml = { module = "org.apache.poi:poi-ooxml", version.ref = "poi" }
 pdfkmp = { module = "io.github.conamobiledev:pdfkmp", version.ref = "pdfkmp" }
-pdfkmp_markdown = { module = "io.github.conamobiledev:pdfkmp-markdown", version.ref = "pdfkmp" }
 kotlinx_html = { module = "org.jetbrains.kotlinx:kotlinx-html", version.ref = "kotlinx_html" }
 multiplatform_window_size = { group = "dev.chrisbanes.material3", name = "material3-window-size-class-multiplatform", version.ref = "multiplatform_window_size" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
@@ -288,7 +290,6 @@ testcontainers_bom = { group = "org.testcontainers", name = "testcontainers-bom"
 testcontainers_postgresql = { group = "org.testcontainers", name = "postgresql" }
 testcontainers_junit_jupiter = { group = "org.testcontainers", name = "junit-jupiter" }
 
-fluidsonic_locale = { group = "io.fluidsonic.locale", name = "fluid-locale", version.ref = "fluidsonic_locale" }
 resources = { group = "io.herrera.kevin", name = "resource", version.ref = "resources" }
 aboutlibraries_core = { group = "com.mikepenz", name = "aboutlibraries-core", version.ref = "aboutlibraries" }
 aboutlibraries_compose = { group = "com.mikepenz", name = "aboutlibraries-compose-m3", version.ref = "aboutlibraries" }

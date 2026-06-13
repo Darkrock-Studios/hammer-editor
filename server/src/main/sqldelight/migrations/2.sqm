@@ -1,0 +1,57 @@
+-- Migration 2 -> 3: add the editorial review tables.
+--
+-- Mirrors the CREATE TABLE statements in ReviewRequest.sq / ReviewScene.sq /
+-- ReviewSuggestion.sq for already-deployed v2 databases.
+
+CREATE TABLE review_request(
+    id BIGSERIAL PRIMARY KEY,
+    user_id BIGINT NOT NULL,
+    project_id BIGINT NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    reviewer_email TEXT NOT NULL,
+    label TEXT NOT NULL,
+    note TEXT,
+    status TEXT NOT NULL,
+    created TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    expires TIMESTAMPTZ,
+    opened_at TIMESTAMPTZ,
+    last_active_at TIMESTAMPTZ,
+    submitted_at TIMESTAMPTZ,
+    resolved_at TIMESTAMPTZ,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE
+);
+
+CREATE INDEX review_request_project_idx ON review_request (user_id, project_id);
+
+CREATE TABLE review_scene(
+    id BIGSERIAL PRIMARY KEY,
+    review_request_id BIGINT NOT NULL,
+    scene_id INTEGER NOT NULL,
+    draft_id INTEGER NOT NULL,
+    scene_name TEXT NOT NULL,
+    scene_order INTEGER NOT NULL,
+    snapshot_content TEXT NOT NULL,
+    reviewer_done BOOLEAN NOT NULL DEFAULT FALSE,
+    FOREIGN KEY(review_request_id) REFERENCES review_request(id) ON DELETE CASCADE
+);
+
+CREATE INDEX review_scene_request_idx ON review_scene (review_request_id);
+
+CREATE TABLE review_suggestion(
+    id BIGSERIAL PRIMARY KEY,
+    review_scene_id BIGINT NOT NULL,
+    type TEXT NOT NULL,
+    paragraph INTEGER NOT NULL,
+    start_offset INTEGER NOT NULL,
+    end_offset INTEGER NOT NULL,
+    original_text TEXT NOT NULL,
+    replacement_text TEXT,
+    reason TEXT,
+    status TEXT NOT NULL,
+    created TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY(review_scene_id) REFERENCES review_scene(id) ON DELETE CASCADE
+);
+
+CREATE INDEX review_suggestion_scene_idx ON review_suggestion (review_scene_id);

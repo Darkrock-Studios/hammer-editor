@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
 import com.darkrockstudios.apps.hammer.account.TokenValidationResult
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.publicBaseUrl
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.ktor.server.mustache.*
 import io.ktor.server.plugins.*
@@ -40,7 +41,7 @@ private fun Route.forgotPasswordPage(passwordResetRepository: PasswordResetRepos
 
 			// Request password reset (always returns success to prevent enumeration)
 			passwordResetRepository.requestPasswordReset(email) { token ->
-				"${call.request.origin.scheme}://${call.request.host()}:${call.request.port()}/reset-password?token=$token"
+				"${call.publicBaseUrl()}/reset-password?token=$token"
 			}
 
 			// Show success message

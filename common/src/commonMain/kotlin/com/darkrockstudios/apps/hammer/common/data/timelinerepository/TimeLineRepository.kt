@@ -194,7 +194,9 @@ class TimeLineRepository(
 	suspend fun moveEvent(event: TimeLineEvent, toIndex: Int, after: Boolean): Boolean {
 		val originalTimeline = timelineFlow.first()
 
-		val events = originalTimeline.events.toMutableList()
+		// Indices come from the order-sorted view the UI displays, which can differ
+		// from the serialized file order, so move within that same sorted sequence.
+		val events = originalTimeline.events.sortedBy { it.order }.toMutableList()
 		val fromIndex = events.indexOfFirst { it.id == event.id }
 
 		return if (fromIndex <= -1) {
