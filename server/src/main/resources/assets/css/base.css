@@ -138,8 +138,6 @@ a:focus-visible {
 	position: sticky;
 	top: 0;
 	z-index: 100;
-	backdrop-filter: blur(8px);
-	background: rgba(255, 255, 255, 0.95);
 	box-shadow: var(--shadow-sm);
 }
 
@@ -564,7 +562,7 @@ a:focus-visible {
 		background: var(--surface);
 		flex-direction: column;
 		align-items: stretch;
-		gap: 0;
+		gap: 0.5rem;
 		padding: 5rem 1.5rem 2rem;
 		box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
 		transition: right 0.3s ease;
@@ -588,8 +586,7 @@ a:focus-visible {
 	}
 
 	.header-nav__link--primary {
-		margin-top: auto;
-		justify-content: center;
+		justify-content: flex-start;
 	}
 
 	/* Overlay when menu is open */
@@ -1016,7 +1013,6 @@ a:focus-visible {
 	justify-content: center;
 	z-index: 1000;
 	animation: fadeIn 0.2s ease-out;
-	backdrop-filter: blur(2px);
 }
 
 .dialog-overlay.closing {
