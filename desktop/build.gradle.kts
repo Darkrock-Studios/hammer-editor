@@ -25,8 +25,8 @@ val macBuildNumber: String =
 // Keep JNA classes and the pre-bundled libjnidispatch.jnilib at one version.
 configurations.all {
 	resolutionStrategy {
-		force("net.java.dev.jna:jna:5.19.0")
-		force("net.java.dev.jna:jna-platform:5.19.0")
+		force("net.java.dev.jna:jna:5.19.1")
+		force("net.java.dev.jna:jna-platform:5.19.1")
 	}
 }
 
