@@ -2,8 +2,8 @@ package com.darkrockstudios.apps.hammer.monitoring
 
 import com.darkrockstudios.apps.hammer.Api_metric_bucket
 import com.darkrockstudios.apps.hammer.database.ApiMetricDao
-import kotlin.time.Instant
 import org.koin.core.component.KoinComponent
+import kotlin.time.Instant
 
 /**
  * Read/write access to rolled-up API metrics. The in-memory collector (Phase 2)
@@ -86,9 +86,20 @@ class MetricsRepository(
 		)
 	}
 
+	/**
+	 * Time series since [since]. The hourly view reads HOUR buckets directly; the
+	 * daily view merges HOUR and DAY buckets and folds each onto its UTC day, so
+	 * recent data still living at hour resolution (younger than the rollup window)
+	 * shows up in the 7d/30d ranges instead of waiting to age into DAY buckets.
+	 */
 	suspend fun getTimeSeries(since: Instant, hourly: Boolean): List<TimeSeriesPoint> {
-		val raw = if (hourly) getHourBucketsSince(since) else getDayBucketsSince(since)
-		return raw.groupBy { it.bucket_start }.entries
+		val raw = if (hourly) {
+			getHourBucketsSince(since)
+		} else {
+			getHourBucketsSince(since) + getDayBucketsSince(since)
+		}
+		val bucketKey: (Instant) -> Instant = if (hourly) { ts -> ts } else ::truncateToUtcDay
+		return raw.groupBy { bucketKey(it.bucket_start) }.entries
 			.sortedBy { it.key }
 			.map { (ts, rows) ->
 				val requests = rows.sumOf { it.request_count }
@@ -129,6 +140,12 @@ data class MetricTotals(
 	val errorRate: Double,
 	val p95Ms: Long,
 )
+
+private const val MILLIS_PER_DAY = 24L * 60 * 60 * 1000
+
+/** Floor an instant to its UTC day start, matching the rollup SQL's `date_trunc('day', ..., 'UTC')`. */
+private fun truncateToUtcDay(instant: Instant): Instant =
+	Instant.fromEpochMilliseconds(instant.toEpochMilliseconds() / MILLIS_PER_DAY * MILLIS_PER_DAY)
 
 /** Upper bounds (ms) for each latency bin; the final bin (leInf) is everything above the last bound. */
 private val LATENCY_BIN_BOUNDS = longArrayOf(50, 100, 250, 500, 1000, 2500, Long.MAX_VALUE)
