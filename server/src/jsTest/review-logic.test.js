@@ -133,6 +133,31 @@ test('parseInlineMarkdown supports nesting and leaves unmatched or intraword mar
 	assert.equal(unclosed.map((r) => r.text).join(''), 'an *unclosed marker');
 });
 
+test('parseInlineMarkdown unescapes backslash-escaped punctuation, keeping source offsets', () => {
+	const text = 'Down the Rabbit\\-Hole \\(here\\) What\\!';
+	const runs = logic.parseInlineMarkdown(text);
+	assert.equal(runs.map((r) => r.text).join(''), 'Down the Rabbit-Hole (here) What!');
+	// every run's text is literally present at its claimed source position
+	for (const r of runs) {
+		assert.equal(text.slice(r.srcStart, r.srcStart + r.text.length), r.text);
+	}
+});
+
+test('parseInlineMarkdown treats an escaped emphasis marker as literal', () => {
+	const runs = logic.parseInlineMarkdown('not \\*bold\\* here');
+	assert.equal(runs.map((r) => r.text).join(''), 'not *bold* here');
+	assert.equal(runs.some((r) => r.bold || r.italic), false);
+});
+
+test('parseInlineMarkdown keeps a lone backslash literal but collapses an escaped backslash', () => {
+	const text = 'a\\b and back\\\\slash';
+	const runs = logic.parseInlineMarkdown(text);
+	assert.equal(runs.map((r) => r.text).join(''), 'a\\b and back\\slash');
+	for (const r of runs) {
+		assert.equal(text.slice(r.srcStart, r.srcStart + r.text.length), r.text);
+	}
+});
+
 test('runsForRange clips runs to a source range and skips marker gaps', () => {
 	const text = 'plain **bold** end';
 	const runs = logic.parseInlineMarkdown(text);
