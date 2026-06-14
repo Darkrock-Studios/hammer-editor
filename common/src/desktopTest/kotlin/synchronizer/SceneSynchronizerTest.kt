@@ -10,6 +10,8 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRe
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.findById
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
@@ -29,8 +31,10 @@ import org.junit.jupiter.api.Test
 import utils.BaseTest
 import utils.fromApiEntity
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 class SceneSynchronizerTest : BaseTest() {
 
@@ -524,5 +528,255 @@ class SceneSynchronizerTest : BaseTest() {
 		////////////////////
 		// Verify
 		kotlin.test.assertFalse(owns, "Should not own unknown scene")
+	}
+
+	@Test
+	fun `createEntityForId - builds entity from an active scene`() = runTest {
+		val sceneId = 100
+		val sceneItem = SceneItem(
+			projectDef = def,
+			type = SceneItem.Type.Scene,
+			id = sceneId,
+			name = "Chapter One",
+			order = 3,
+		)
+		val filePath = HPath("/scene.md", "scene.md", false)
+
+		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns sceneItem
+		every { sceneEditorRepository.getPathSegments(sceneItem) } returns listOf(0)
+		every {
+			sceneEditorRepository.resolveScenePathFromFilesystemIncludingArchived(sceneId)
+		} returns filePath
+		every { sceneEditorRepository.loadSceneMarkdownRaw(sceneItem, filePath) } returns "Body text"
+		coEvery { sceneEditorService.loadSceneMetadata(sceneId) } returns
+			SceneMetadata(outline = "The outline", notes = "The notes")
+
+		val sync = defaultSceneSynchronizer()
+		val entity = sync.createEntityForId(sceneId)
+
+		assertEquals(sceneId, entity.id)
+		assertEquals("Chapter One", entity.name)
+		assertEquals(3, entity.order)
+		assertEquals(ApiSceneType.Scene, entity.sceneType)
+		assertEquals("Body text", entity.content)
+		assertEquals(listOf(0), entity.path)
+		assertEquals("The outline", entity.outline)
+		assertEquals("The notes", entity.notes)
+		assertFalse(entity.archived)
+	}
+
+	@Test
+	fun `createEntityForId - a group carries no content`() = runTest {
+		val groupId = 200
+		val groupItem = SceneItem(
+			projectDef = def,
+			type = SceneItem.Type.Group,
+			id = groupId,
+			name = "Act I",
+			order = 0,
+		)
+
+		every { sceneEditorRepository.getSceneItemFromId(groupId) } returns groupItem
+		every { sceneEditorRepository.getPathSegments(groupItem) } returns listOf(0)
+		coEvery { sceneEditorService.loadSceneMetadata(groupId) } returns SceneMetadata()
+
+		val sync = defaultSceneSynchronizer()
+		val entity = sync.createEntityForId(groupId)
+
+		assertEquals(ApiSceneType.Group, entity.sceneType)
+		assertEquals("", entity.content)
+	}
+
+	@Test
+	fun `storeEntity - returns false when content fails to store`() = runTest {
+		val sceneId = 1
+		val serverEntity = ApiProjectEntity.SceneEntity(
+			id = sceneId,
+			sceneType = ApiSceneType.Scene,
+			order = 0,
+			name = "Test Scene",
+			path = listOf(0),
+			content = "Scene Content",
+			outline = "",
+			notes = "",
+		)
+		val clientEntity = SceneItem.fromApiEntity(serverEntity, def)
+		val filePath = HPath("/", "", true)
+		val content = SceneContent(clientEntity, serverEntity.content)
+
+		every { sceneEditorRepository.getSceneItemFromId(ROOT_ID) } returns rootSceneNode(def)
+		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns clientEntity
+		every { sceneEditorRepository.rawTree } returns tree
+		every { sceneEditorRepository.resolveScenePathFromFilesystem(clientEntity.id) } returns filePath
+		coEvery { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) } returns false
+
+		rootNode.addChild(TreeNode(clientEntity))
+
+		val sync = defaultSceneSynchronizer()
+		val stored = sync.storeEntity(serverEntity, syncId = "syncId", onLog = {})
+
+		assertFalse(stored)
+		coVerify(exactly = 0) { sceneEditorService.onContentChanged(any(), any()) }
+	}
+
+	@Test
+	fun `storeEntity - archived server scene that is absent locally is created in the archive`() =
+		runTest {
+			val sceneId = 5
+			val serverEntity = ApiProjectEntity.SceneEntity(
+				id = sceneId,
+				sceneType = ApiSceneType.Scene,
+				order = 2,
+				name = "Old Chapter",
+				path = emptyList(),
+				content = "Archived content",
+				outline = "",
+				notes = "",
+				archived = true,
+			)
+
+			every { sceneEditorRepository.rawTree } returns tree
+			every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns null
+			every {
+				sceneEditorRepository.resolveScenePathFromFilesystemIncludingArchived(sceneId)
+			} returns null
+			coEvery {
+				sceneEditorRepository.createArchivedScene(
+					id = sceneId,
+					name = any(),
+					order = any(),
+					type = any(),
+					content = any(),
+					metadata = any(),
+				)
+			} returns SceneItem(
+				projectDef = def,
+				type = SceneItem.Type.Scene,
+				id = sceneId,
+				name = "Old Chapter",
+				order = 2,
+				archived = true,
+			)
+
+			val sync = defaultSceneSynchronizer()
+			val stored = sync.storeEntity(serverEntity, syncId = "syncId", onLog = {})
+
+			assertTrue(stored)
+			coVerify(exactly = 1) {
+				sceneEditorRepository.createArchivedScene(
+					id = sceneId,
+					name = "Old Chapter",
+					order = 2,
+					type = SceneItem.Type.Scene,
+					content = "Archived content",
+					metadata = any(),
+				)
+			}
+		}
+
+	@Test
+	fun `storeEntity - archived server scene archives the active local copy`() = runTest {
+		val sceneId = 6
+		val serverEntity = ApiProjectEntity.SceneEntity(
+			id = sceneId,
+			sceneType = ApiSceneType.Scene,
+			order = 0,
+			name = "Now Archived",
+			path = emptyList(),
+			content = "content",
+			outline = "",
+			notes = "",
+			archived = true,
+		)
+		val activeItem = SceneItem(
+			projectDef = def,
+			type = SceneItem.Type.Scene,
+			id = sceneId,
+			name = "Now Archived",
+			order = 0,
+		)
+		val archivedItem = activeItem.copy(archived = true)
+		val filePath = HPath("/archived.md", "archived.md", false)
+
+		every { sceneEditorRepository.rawTree } returns tree
+		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns activeItem
+		coEvery { sceneEditorService.archiveScene(activeItem) } returns true
+		every {
+			sceneEditorRepository.resolveScenePathFromFilesystemIncludingArchived(sceneId)
+		} returns filePath
+		every { sceneEditorRepository.getArchivedSceneFromId(sceneId) } returns archivedItem
+		coEvery { sceneEditorRepository.storeSceneMarkdownRaw(any(), filePath) } returns true
+
+		val sync = defaultSceneSynchronizer()
+		val stored = sync.storeEntity(serverEntity, syncId = "syncId", onLog = {})
+
+		assertTrue(stored)
+		coVerify(exactly = 1) { sceneEditorService.archiveScene(activeItem) }
+	}
+
+	@Test
+	fun `deleteEntityLocal - deletes an active scene`() = runTest {
+		val sceneId = 1
+		val sceneItem = SceneItem(
+			projectDef = def,
+			type = SceneItem.Type.Scene,
+			id = sceneId,
+			name = "Doomed",
+			order = 0,
+		)
+
+		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns sceneItem
+		coEvery { sceneEditorService.deleteScene(sceneItem) } returns true
+
+		val sync = defaultSceneSynchronizer()
+		sync.deleteEntityLocal(sceneId, onLog = {})
+
+		coVerify(exactly = 1) { sceneEditorService.deleteScene(sceneItem) }
+	}
+
+	@Test
+	fun `deleteEntityLocal - falls back to deleting an archived scene`() = runTest {
+		val sceneId = 2
+		val archivedItem = SceneItem(
+			projectDef = def,
+			type = SceneItem.Type.Scene,
+			id = sceneId,
+			name = "Archived Doomed",
+			order = 0,
+			archived = true,
+		)
+
+		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns null
+		every { sceneEditorRepository.getArchivedSceneFromId(sceneId) } returns archivedItem
+		coEvery { sceneEditorService.deleteScene(archivedItem) } returns true
+
+		val sync = defaultSceneSynchronizer()
+		sync.deleteEntityLocal(sceneId, onLog = {})
+
+		coVerify(exactly = 1) { sceneEditorService.deleteScene(archivedItem) }
+	}
+
+	@Test
+	fun `deleteEntityLocal - logs an error when the scene is not found`() = runTest {
+		val sceneId = 404
+		val logs = mutableListOf<SyncLogMessage>()
+
+		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns null
+		every { sceneEditorRepository.getArchivedSceneFromId(sceneId) } returns null
+
+		val sync = defaultSceneSynchronizer()
+		sync.deleteEntityLocal(sceneId, onLog = { logs.add(it) })
+
+		coVerify(exactly = 0) { sceneEditorService.deleteScene(any()) }
+		assertEquals(SyncLogLevel.ERROR, logs.single().level)
+	}
+
+	@Test
+	fun `reIdEntity - re-ids the scene and its drafts`() = runTest {
+		val sync = defaultSceneSynchronizer()
+		sync.reIdEntity(oldId = 4, newId = 9)
+
+		coVerify(exactly = 1) { sceneEditorRepository.reIdScene(4, 9) }
+		coVerify(exactly = 1) { draftRepository.reIdScene(oldId = 4, newId = 9) }
 	}
 }
