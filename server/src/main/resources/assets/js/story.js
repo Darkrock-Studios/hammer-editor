@@ -6,7 +6,7 @@
 // Top-level functions in this file are wired to HTML elements from mustache
 // templates (onclick=..., hx-* attributes) — ESLint can't see those references.
 /* eslint-disable no-unused-vars */
-/* global htmx */
+/* global htmx, nextToggleState, allSelected, reviewCountLabel, canSendReview */
 
 document.addEventListener('DOMContentLoaded', function () {
 	initSettingsPanel();
@@ -360,8 +360,9 @@ document.addEventListener('click', function (e) {
  * @param {HTMLInputElement[]} boxes - Checkbox inputs to toggle together
  */
 function toggleBoxes(boxes) {
-	const anyUnchecked = boxes.some(function (b) { return b && !b.checked; });
-	boxes.forEach(function (b) { if (b) b.checked = anyUnchecked; });
+	const present = boxes.filter(function (b) { return b; });
+	const next = nextToggleState(present.map(function (b) { return b.checked; }));
+	present.forEach(function (b) { b.checked = next; });
 }
 
 /**
@@ -376,28 +377,24 @@ function updateReviewFormState(form) {
 	const counter = document.getElementById('review-scene-count');
 
 	if (counter) {
-		const total = counter.dataset.total;
-		counter.textContent = checked === 0
-			? counter.dataset.noneLabel || 'none selected'
-			: checked + ' of ' + total + ' selected';
+		counter.textContent = reviewCountLabel(checked, counter.dataset.total, counter.dataset.noneLabel || 'none selected');
 	}
 
 	// Master toggle reads "Clear all" once everything is selected
 	const master = document.getElementById('review-select-all');
 	if (master) {
-		const allChecked = allBoxes.length > 0 && checked === allBoxes.length;
+		const allChecked = allSelected(allBoxes.map(function (b) { return b.checked; }));
 		master.textContent = allChecked ? master.dataset.clearLabel : master.dataset.selectLabel;
 	}
 
 	// Each group toggle likewise flips to "Clear" once its whole subtree is checked,
 	// so it never silently clears scenes while still labelled "Select all".
 	form.querySelectorAll('.review-scene-group__toggle').forEach(function (toggle) {
-		const boxes = groupToggleBoxes(toggle);
-		const allChecked = boxes.length > 0 && boxes.every(function (b) { return b && b.checked; });
+		const allChecked = allSelected(groupToggleBoxes(toggle).map(function (b) { return !!(b && b.checked); }));
 		toggle.textContent = allChecked ? toggle.dataset.clearLabel : toggle.dataset.selectLabel;
 	});
 
 	if (sendBtn) {
-		sendBtn.disabled = checked === 0 || !email || !email.value.includes('@');
+		sendBtn.disabled = !canSendReview(checked, email ? email.value : '');
 	}
 }

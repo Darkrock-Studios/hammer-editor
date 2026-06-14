@@ -2,19 +2,35 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.base.ProjectId
-import com.darkrockstudios.apps.hammer.frontend.utils.*
+import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.Toast
+import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
+import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
+import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
+import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.story.*
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.htmx.*
-import io.ktor.server.mustache.*
-import io.ktor.server.plugins.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import io.ktor.server.sessions.*
+import com.darkrockstudios.apps.hammer.story.SceneHierarchyResult
+import com.darkrockstudios.apps.hammer.story.SingleSceneExportResult
+import com.darkrockstudios.apps.hammer.story.StoryExportResult
+import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.story.WordCountUtils
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationCall
+import io.ktor.server.htmx.hx
+import io.ktor.server.mustache.MustacheContent
+import io.ktor.server.plugins.origin
+import io.ktor.server.request.host
+import io.ktor.server.request.port
+import io.ktor.server.request.receiveParameters
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.route
+import io.ktor.server.sessions.sessions
 
 fun Route.storyPage(
 	storyExportService: StoryExportService,
@@ -104,6 +120,7 @@ fun Route.storyPage(
 							mapOf(
 								"page_stylesheet" to "/assets/css/story.css",
 								"page_script" to "/assets/js/story.js",
+								"page_pre_script" to "/assets/js/review-form-logic.js",
 								"reviews" to reviewModels,
 								"hasReviews" to reviewModels.isNotEmpty(),
 								"projectName" to result.projectName,
