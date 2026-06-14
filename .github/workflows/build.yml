@@ -85,7 +85,7 @@ jobs:
       # boot. Keyed on every parameter that defines the AVD - bump the key if any `with:` value
       # below changes, or the cached snapshot won't match.
       - name: AVD cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         id: avd-cache
         with:
           path: |
