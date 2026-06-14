@@ -57,6 +57,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.findShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownFormatBar
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.markdownFormatShortcuts
 import com.darkrockstudios.apps.hammer.common.compose.saveShortcutModifier
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneDeleteDialog
@@ -155,6 +156,7 @@ fun SceneEditorUi(
 					.fillMaxHeight()
 					.findShortcutModifier { showFindBar = true }
 					.saveShortcutModifier { scope.launch { component.storeSceneContent() } }
+					.markdownFormatShortcuts(markdownExtension)
 			) {
 				EditorTopBar(
 					component = component,

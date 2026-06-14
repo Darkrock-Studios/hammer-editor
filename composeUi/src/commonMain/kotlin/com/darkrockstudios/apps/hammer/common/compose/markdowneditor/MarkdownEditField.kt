@@ -71,7 +71,13 @@ fun MarkdownEditField(
 		markdownExtension.updateMarkdownConfiguration(markdownConfig)
 	}
 
-	Column(modifier = modifier) {
+	Column(
+		modifier = if (enabled) {
+			modifier.markdownFormatShortcuts(markdownExtension)
+		} else {
+			modifier
+		}
+	) {
 		if (enabled && showFormatBar) {
 			MarkdownFormatBar(markdownState = markdownExtension)
 		}
