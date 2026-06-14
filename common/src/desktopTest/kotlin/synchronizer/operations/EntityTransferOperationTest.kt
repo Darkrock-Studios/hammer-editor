@@ -347,6 +347,106 @@ class EntityTransferOperationTest : BaseTest() {
 	}
 
 	@Test
+	fun `download - entity missing from server but present locally is not resolved and fails`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		// Owned locally, but not dirty/new and not newer than the server, so it takes the
+		// download branch — then the server reports it gone while we still hold a copy.
+		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(4) } returns true
+		coEvery {
+			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+		} returns Result.failure(EntityNotFoundException(4))
+
+		val result = op.run(singleDownloadState(4))
+
+		assertTrue(isSuccess(result))
+		assertFalse(assertIs<EntityTransferState>(result.data).allSuccess)
+		coVerify(exactly = 0) { serverProjectApi.deleteId(any(), any(), 4, any()) }
+	}
+
+	@Test
+	fun `download - a generic server failure marks the transfer unsuccessful`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		coEvery {
+			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+		} returns Result.failure(RuntimeException("network down"))
+
+		val result = op.run(singleDownloadState(4))
+
+		assertTrue(isSuccess(result))
+		assertFalse(assertIs<EntityTransferState>(result.data).allSuccess)
+	}
+
+	@Test
+	fun `download - a failed stale-hash heal marks the transfer unsuccessful`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(4) } returns true
+		coEvery {
+			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+		} returns Result.failure(StaleServerHashException(4, "cached", "computed"))
+		coEvery {
+			mockSynchronizers.sceneSynchronizer.uploadEntity(4, any(), any(), any(), any(), true, any())
+		} returns false
+
+		val result = op.run(singleDownloadState(4))
+
+		assertTrue(isSuccess(result))
+		assertFalse(assertIs<EntityTransferState>(result.data).allSuccess)
+	}
+
+	@Test
+	fun `upload - a failed entity upload marks the transfer unsuccessful`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		// Owned and newly created, so it takes the upload branch — which then fails.
+		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(4) } returns true
+		coEvery {
+			mockSynchronizers.sceneSynchronizer.uploadEntity(4, any(), any(), any(), any(), any(), any())
+		} returns false
+
+		val result = op.run(singleDownloadState(4, newClientIds = listOf(4)))
+
+		assertTrue(isSuccess(result))
+		assertFalse(assertIs<EntityTransferState>(result.data).allSuccess)
+	}
+
+	@Test
+	fun `onlyNew - an unowned new id is skipped as a successful no-op`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		// No synchronizer owns 99, so the upload helper logs a warning and skips it.
+
+		val result = op.run(singleDownloadState(99, onlyNew = true, newClientIds = listOf(99)))
+
+		assertTrue(isSuccess(result))
+		assertTrue(assertIs<EntityTransferState>(result.data).allSuccess)
+		coVerify(exactly = 0) {
+			mockSynchronizers.sceneSynchronizer.uploadEntity(99, any(), any(), any(), any(), any(), any())
+		}
+	}
+
+	@Test
+	fun `download - a failed remote delete during cleanup still completes the transfer`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		// Missing from both server and client, so it's cleaned up remotely — but the delete fails.
+		coEvery {
+			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+		} returns Result.failure(EntityNotFoundException(4))
+		coEvery { serverProjectApi.deleteId(any(), any(), 4, any()) } returns
+			Result.failure(RuntimeException("delete rejected"))
+
+		val logs = mutableListOf<SyncLogMessage>()
+		val result = op.execute(
+			state = singleDownloadState(4),
+			onProgress = { _, _ -> },
+			onLog = { logs.add(it) },
+			onConflict = {},
+			onComplete = {},
+		)
+
+		assertTrue(isSuccess(result))
+		assertTrue(assertIs<EntityTransferState>(result.data).allSuccess)
+		assertTrue(logs.any { it.level == SyncLogLevel.ERROR })
+	}
+
+	@Test
 	fun `onlyNew - uploads each new client entity`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(20) } returns true

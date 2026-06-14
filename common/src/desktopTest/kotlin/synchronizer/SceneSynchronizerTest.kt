@@ -772,6 +772,86 @@ class SceneSynchronizerTest : BaseTest() {
 	}
 
 	@Test
+	fun `Download Group - moves to a new parent`() = runTest {
+		val groupId = 1
+		val syncId = "syncId"
+		val serverEntity = ApiProjectEntity.SceneEntity(
+			id = groupId,
+			sceneType = ApiSceneType.Group,
+			order = 0,
+			name = "Roaming Group",
+			path = listOf(0),
+			content = "",
+			outline = "",
+			notes = "",
+		)
+		val clientGroupEntity = SceneItem(
+			projectDef = def,
+			type = SceneItem.Type.Group,
+			id = groupId,
+			name = "Roaming Group",
+			order = 0,
+		)
+
+		every { sceneEditorRepository.getSceneItemFromId(ROOT_ID) } returns rootSceneNode(def)
+		every { sceneEditorRepository.getSceneItemFromId(groupId) } returns clientGroupEntity
+		every { sceneEditorRepository.rawTree } returns tree
+
+		val parentGroupEntity = SceneItem(
+			projectDef = def,
+			type = SceneItem.Type.Group,
+			id = 2,
+			name = "Old Parent",
+			order = 0,
+		)
+		val parentGroupNode = TreeNode(parentGroupEntity)
+		rootNode.addChild(parentGroupNode)
+		val groupNode = TreeNode(clientGroupEntity)
+		parentGroupNode.addChild(groupNode)
+
+		val sync = defaultSceneSynchronizer()
+		sync.storeEntity(serverEntity, syncId = syncId, onLog = {})
+
+		assertEquals(0, groupNode.parent?.value?.id)
+	}
+
+	@Test
+	fun `storeEntity - unarchives a locally-archived scene the server now reports active`() = runTest {
+		val sceneId = 7
+		val syncId = "syncId"
+		val serverEntity = ApiProjectEntity.SceneEntity(
+			id = sceneId,
+			sceneType = ApiSceneType.Scene,
+			order = 0,
+			name = "Back In Play",
+			path = listOf(0),
+			content = "Scene Content",
+			outline = "",
+			notes = "",
+		)
+		val activeItem = SceneItem.fromApiEntity(serverEntity, def)
+		val archivedItem = activeItem.copy(archived = true)
+		val filePath = HPath("/", "", true)
+		val content = SceneContent(activeItem, serverEntity.content)
+
+		every { sceneEditorRepository.getSceneItemFromId(ROOT_ID) } returns rootSceneNode(def)
+		every { sceneEditorRepository.getSceneItemFromId(sceneId) } returns activeItem
+		every { sceneEditorRepository.getArchivedSceneFromId(sceneId) } returns archivedItem
+		coEvery { sceneEditorService.unarchiveScene(archivedItem) } returns activeItem
+		every { sceneEditorRepository.rawTree } returns tree
+		every { sceneEditorRepository.resolveScenePathFromFilesystem(sceneId) } returns filePath
+		coEvery { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) } returns true
+
+		rootNode.addChild(TreeNode(activeItem))
+
+		val sync = defaultSceneSynchronizer()
+		val stored = sync.storeEntity(serverEntity, syncId = syncId, onLog = {})
+
+		assertTrue(stored)
+		coVerify(exactly = 1) { sceneEditorService.unarchiveScene(archivedItem) }
+	}
+
+	@Test
 	fun `reIdEntity - re-ids the scene and its drafts`() = runTest {
 		val sync = defaultSceneSynchronizer()
 		sync.reIdEntity(oldId = 4, newId = 9)

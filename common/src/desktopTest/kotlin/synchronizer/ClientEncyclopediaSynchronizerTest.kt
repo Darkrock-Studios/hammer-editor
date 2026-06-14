@@ -1,6 +1,9 @@
 package synchronizer
 
 import ENCYCLOPEDIA_ONLY_PROJECT_NAME
+import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.SaveEntityResponse
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -24,8 +27,11 @@ import com.darkrockstudios.apps.hammer.common.util.StrRes
 import createProject
 import getProjectDef
 import io.mockk.MockKAnnotations
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
+import kotlinx.coroutines.launch
 import korlibs.crypto.encoding.Base64
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
@@ -99,6 +105,7 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		MockKAnnotations.init(this, relaxUnitFun = true)
 
 		every { syncJournal.isServerSynchronized() } returns false
+		every { projectMetadataDatasource.requireProjectId(projectDef) } returns ProjectId("server-project")
 
 		fileSystem = FakeFileSystem()
 		toml = createTomlSerializer()
@@ -297,5 +304,136 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		val newPath = datasource.getEntryPath(entry2().copy(id = 7).toDef(projectDef)).toOkioPath()
 		assertTrue(fileSystem.exists(newPath))
 		assertEquals(listOf(entry2().id to 7), remapper.remaps)
+	}
+
+	@Test
+	fun `uploadEntity sends the entity and reports the synced hash on success`() = runTest {
+		val sync = newSynchronizer()
+		coEvery {
+			serverProjectApi.uploadEntity(any(), any(), any(), any(), any(), any())
+		} returns Result.success(SaveEntityResponse(saved = true))
+
+		val synced = mutableListOf<Pair<Int, String>>()
+		val logs = mutableListOf<SyncLogMessage>()
+
+		val result = sync.uploadEntity(
+			id = entry1().id,
+			syncId = "sync",
+			originalHash = "old-hash",
+			onConflict = { error("no conflict expected") },
+			onLog = { logs.add(it) },
+			onSynced = { id, hash -> synced.add(id to hash) },
+		)
+
+		assertTrue(result)
+		assertEquals(listOf(entry1().id to sync.getEntityHash(entry1().id)), synced)
+		coVerify {
+			serverProjectApi.uploadEntity(
+				projectDef.name,
+				ProjectId("server-project"),
+				match { it.id == entry1().id },
+				"old-hash",
+				"sync",
+				false,
+			)
+		}
+	}
+
+	@Test
+	fun `uploadEntity passes the force flag through to the server`() = runTest {
+		val sync = newSynchronizer()
+		coEvery {
+			serverProjectApi.uploadEntity(any(), any(), any(), any(), any(), any())
+		} returns Result.success(SaveEntityResponse(saved = true))
+
+		sync.uploadEntity(
+			id = entry1().id,
+			syncId = "sync",
+			originalHash = null,
+			onConflict = { error("no conflict expected") },
+			onLog = {},
+			force = true,
+		)
+
+		coVerify { serverProjectApi.uploadEntity(any(), any(), any(), any(), any(), true) }
+	}
+
+	@Test
+	fun `uploadEntity returns false and does not report synced on a non-conflict failure`() = runTest {
+		val sync = newSynchronizer()
+		coEvery {
+			serverProjectApi.uploadEntity(any(), any(), any(), any(), any(), any())
+		} returns Result.failure(RuntimeException("server exploded"))
+
+		val synced = mutableListOf<Pair<Int, String>>()
+
+		val result = sync.uploadEntity(
+			id = entry1().id,
+			syncId = "sync",
+			originalHash = null,
+			onConflict = { error("no conflict expected") },
+			onLog = {},
+			onSynced = { id, hash -> synced.add(id to hash) },
+		)
+
+		assertFalse(result)
+		assertTrue(synced.isEmpty())
+	}
+
+	@Test
+	fun `uploadEntity resolves a conflict by re-uploading and storing the resolved entity`() = runTest {
+		val sync = newSynchronizer()
+		val serverVersion = sync.createEntityForId(entry1().id).copy(text = "server's version")
+		val resolved = sync.createEntityForId(entry1().id).copy(text = "merged resolution")
+
+		coEvery {
+			serverProjectApi.uploadEntity(any(), any(), any(), "old-hash", any(), false)
+		} returns Result.failure(EntityConflictException.EncyclopediaEntryConflictException(serverVersion))
+		coEvery {
+			serverProjectApi.uploadEntity(any(), any(), any(), null, any(), true)
+		} returns Result.success(SaveEntityResponse(saved = true))
+
+		val conflicted = mutableListOf<Int>()
+		val synced = mutableListOf<Pair<Int, String>>()
+
+		launch { sync.conflictResolution.send(resolved) }
+		val result = sync.uploadEntity(
+			id = entry1().id,
+			syncId = "sync",
+			originalHash = "old-hash",
+			onConflict = { conflicted.add(it.id) },
+			onLog = {},
+			onSynced = { id, hash -> synced.add(id to hash) },
+		)
+
+		assertTrue(result)
+		assertEquals(listOf(entry1().id), conflicted)
+		assertEquals(listOf(entry1().id to resolved.hash()), synced)
+		assertEquals("merged resolution", repository.loadEntry(entry1().id).entry.text)
+	}
+
+	@Test
+	fun `uploadEntity returns false when conflict resolution upload fails`() = runTest {
+		val sync = newSynchronizer()
+		val serverVersion = sync.createEntityForId(entry1().id).copy(text = "server's version")
+		val resolved = sync.createEntityForId(entry1().id).copy(text = "merged resolution")
+
+		coEvery {
+			serverProjectApi.uploadEntity(any(), any(), any(), "old-hash", any(), false)
+		} returns Result.failure(EntityConflictException.EncyclopediaEntryConflictException(serverVersion))
+		coEvery {
+			serverProjectApi.uploadEntity(any(), any(), any(), null, any(), true)
+		} returns Result.failure(RuntimeException("resolution rejected"))
+
+		launch { sync.conflictResolution.send(resolved) }
+		val result = sync.uploadEntity(
+			id = entry1().id,
+			syncId = "sync",
+			originalHash = "old-hash",
+			onConflict = {},
+			onLog = {},
+		)
+
+		assertFalse(result)
 	}
 }
