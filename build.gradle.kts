@@ -88,6 +88,26 @@ dependencies {
 
 kover {
 	reports {
+		filters {
+			excludes {
+				// Generated Compose Multiplatform resource accessors.
+				classes(
+					"com.darkrockstudios.apps.hammer.String*",
+					"com.darkrockstudios.apps.hammer.Drawable*",
+					"com.darkrockstudios.apps.hammer.Font*",
+					"com.darkrockstudios.apps.hammer.Res",
+					"*ResourceCollectorsKt",
+				)
+				// Generated SQLDelight code: query wrappers and DB impls.
+				packages("com.darkrockstudios.apps.hammer.legacy")
+				classes(
+					"*Queries",
+					"*.ServerDatabaseImpl",
+					"*.LegacySqliteDatabaseImpl",
+					"*.LegacySqliteDatabaseImplKt",
+				)
+			}
+		}
 		total {
 
 		}
