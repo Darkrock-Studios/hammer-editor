@@ -276,6 +276,7 @@ class EntityTransferOperation(
 						projectDef
 					)
 				)
+				CResult.success()
 			} else {
 				onLog(
 					syncLogE(
@@ -283,9 +284,8 @@ class EntityTransferOperation(
 						projectDef
 					)
 				)
+				CResult.failure(IllegalStateException("Failed to store downloaded entity $id"))
 			}
-
-			CResult.success()
 		} else {
 			when (val exception = entityResponse.exceptionOrNull()) {
 				is EntityNotModifiedException -> {

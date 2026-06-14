@@ -28,6 +28,7 @@ import synchronizer.addSynchronizers
 import utils.BaseTest
 import utils.TestClock
 import utils.TestStrRes
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Clock
@@ -319,6 +320,30 @@ class EntityTransferOperationTest : BaseTest() {
 		// A failed store is logged but never recorded as the conflict baseline.
 		coVerify(exactly = 0) { syncJournal.recordSyncedHash(4, any()) }
 		assertTrue(logs.any { it.level == SyncLogLevel.ERROR })
+	}
+
+	@Test
+	fun `download - a failed store marks the transfer unsuccessful`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		coEvery {
+			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+		} returns Result.success(
+			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
+				every { id } returns 4
+				every { hash() } returns "h-4"
+			})
+		)
+		coEvery {
+			mockSynchronizers.sceneSynchronizer.storeEntity(any(), any(), any())
+		} returns false
+
+		val result = op.run(singleDownloadState(4))
+
+		assertTrue(isSuccess(result))
+		assertFalse(
+			assertIs<EntityTransferState>(result.data).allSuccess,
+			"A download whose store failed must not report the transfer as fully successful",
+		)
 	}
 
 	@Test
