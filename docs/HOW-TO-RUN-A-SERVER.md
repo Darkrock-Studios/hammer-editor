@@ -339,55 +339,73 @@ Make sure to update your DNS with your desired URL to be able to use LetsEncrypt
 
 ### Base Nginx Config
 
-Create your base file.
+Create your base file. Make sure to change `hammer.example.com` to your domain!
 
 `nano /etc/nginx/sites-available/hammer`
 
 ```nginx
 server {
-        listen 80;
-        server_name hammer.example.com;
+	listen 80;
+	server_name hammer.example.com;
 
-        location / {
-                proxy_set_header Host $host;
-                proxy_set_header X-Real-IP $remote_addr;
-                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-                proxy_set_header X-Forwarded-Proto $scheme;
+    location / {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
 
-                proxy_pass http://localhost:8200;
-        }
+        proxy_pass http://localhost:8200;
+    }
 }
 ```
 
 ### HTTPS
 
-See LetsEncrypt or your favorite SSL provider for an SSL certificate. Once that is completed, install said new cert into your Nginx file. Be sure to set the proper path for your certificate fullchain and private key.
+See LetsEncrypt or your favorite SSL provider for an SSL certificate. Once that is completed, install said new cert into your Nginx file. Be sure to set the proper path for your certificate fullchain and private key. Once again, make sure to change `hammer.example.com` to your domain in the `server_name` lines and the `ssl_certificate*` lines. If LetsEncrypt installs the HTTP to HTTPS redirect itself, make sure your file roughly reflects this example below.
 
 ```nginx
 server {
+	listen 80;
+	server_name hammer.example.com;
+	return 301 https://$host$request_uri;
+}
+
+server {
 	listen 443 ssl http2;
 	ssl_protocols TLSv1.2 TLSv1.3;
-	ssl_dhparam /etc/nginx/dhparams.pem;
 	ssl_ciphers TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
 	ssl_session_cache shared:SSL:10m;
 	ssl_session_timeout 1d;
 	add_header X-Frame-Options "SAMEORIGIN" always;
 	add_header X-Content-Type-Options "nosniff" always;
 	add_header 'Referrer-Policy' 'same-origin';
-	ssl_certificate /etc/letsencrypt/live/hammer.example.com/fullchain;
-	ssl_certificate_key /etc/letsencrypt/live/hammer.example.com/key;
+	ssl_certificate /etc/letsencrypt/live/hammer.example.com/fullchain.pem;
+	ssl_certificate_key /etc/letsencrypt/live/hammer.example.com/privkey.pem;
 
 	server_name hammer.example.com;
 
-	[...]
+	location / {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_pass http://localhost:8200;
+    }
 }
 ```
 
-### Test and Reload
+### Link, Test, Reload
+
+Link the file to the `sites-enabled` folder.
+
+```sh
+ln -s /etc/nginx/sites-available/hammer /etc/nginx/sites-enabled
+```
 
 Make sure to test your configuration!
 
-```
+```sh
 sudo nginx -t
 ```
 
