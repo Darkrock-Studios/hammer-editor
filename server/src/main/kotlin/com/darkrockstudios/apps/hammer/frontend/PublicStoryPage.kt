@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.project.access.PublicProjectResult
 import com.darkrockstudios.apps.hammer.story.PaginatedExportResult
@@ -9,6 +11,7 @@ import com.darkrockstudios.apps.hammer.story.WordCountUtils
 import io.ktor.http.*
 import io.ktor.server.htmx.*
 import io.ktor.server.mustache.*
+import io.ktor.server.plugins.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -17,7 +20,9 @@ import java.nio.charset.StandardCharsets
 
 fun Route.publicStoryPage(
 	storyExportService: StoryExportService,
-	projectAccessRepository: ProjectAccessRepository
+	projectAccessRepository: ProjectAccessRepository,
+	projectDao: ProjectDao,
+	storyReaderCollector: StoryReaderCollector,
 ) {
 	route("/a/{penName}/{projectName}") {
 		get {
@@ -56,6 +61,15 @@ fun Route.publicStoryPage(
 				}
 
 				is PublicProjectResult.Success -> {
+					// Best-effort unique-reader count. The collector hashes the IP in place; it's never stored.
+					projectDao.getProjectIdOrNull(result.userId, result.projectUuid)?.let { projectId ->
+						storyReaderCollector.record(
+							projectId = projectId,
+							clientIp = call.request.origin.remoteAddress,
+							userAgent = call.request.userAgent(),
+						)
+					}
+
 					val exportResult = storyExportService.exportStoryAsHtmlPaginated(
 						userId = result.userId,
 						projectId = result.projectUuid,

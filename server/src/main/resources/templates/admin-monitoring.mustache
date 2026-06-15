@@ -107,6 +107,33 @@
 				{{/hasActiveUsers}}
 			</section>
 
+			<!-- Story readers: best-effort unique readers of published / shared stories -->
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_mon_readers_title}}</h2>
+				</div>
+				<p class="section-description">{{msg.admin_mon_readers_subtitle}}</p>
+				{{#hasReaders}}
+					<div class="mon-users-windows">
+						<div class="mon-users-window">
+							<span class="mon-users-window__label">{{msg.admin_mon_window_24h}}</span>
+							<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_readers_unique}}</span><span class="mon-users-window__value">{{readers24h}}</span></div>
+						</div>
+						<div class="mon-users-window">
+							<span class="mon-users-window__label">{{msg.admin_mon_window_7d}}</span>
+							<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_readers_unique}}</span><span class="mon-users-window__value">{{readers7d}}</span></div>
+						</div>
+						<div class="mon-users-window">
+							<span class="mon-users-window__label">{{msg.admin_mon_window_30d}}</span>
+							<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_readers_unique}}</span><span class="mon-users-window__value">{{readers30d}}</span></div>
+						</div>
+					</div>
+				{{/hasReaders}}
+				{{^hasReaders}}
+					<div class="empty-state"><p>{{msg.admin_mon_no_data}}</p></div>
+				{{/hasReaders}}
+			</section>
+
 			<!-- Traffic chart -->
 			<section class="paper-section">
 				<div class="section-header">

@@ -1,0 +1,70 @@
+import kotlinx.datetime.Instant;
+
+-- Deduplicated record of anonymous reads of published / privately-shared stories,
+-- backing the best-effort "unique readers" counter. There is no reader account, so
+-- the dedup dimension is a cookieless visitor hash: sha256(rotating daily salt + IP
+-- + user-agent + project id). The salt lives only in memory and rotates each UTC
+-- day, so the hash can't be reversed to an IP nor linked across days — no cookie,
+-- no stored PII. One row per (project, day, visitor) caps growth; counts are
+-- best-effort unique-per-day. Purged on the metrics retention window.
+--
+-- Because the project id is part of the hash, the same person reading two different
+-- stories the same day yields two hashes — so an aggregate COUNT(DISTINCT visitor_hash)
+-- across stories is "unique reader-sessions", the honest best-effort number.
+CREATE TABLE published_story_reader (
+    project_id BIGINT NOT NULL,
+    day_bucket TIMESTAMPTZ AS Instant NOT NULL,
+    visitor_hash TEXT NOT NULL,
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+    PRIMARY KEY (project_id, day_bucket, visitor_hash)
+);
+
+CREATE INDEX published_story_reader_project_day ON published_story_reader(project_id, day_bucket);
+
+-- Lifetime accumulator of per-day unique reader counts per story. The detail rows
+-- above are purged on the retention window; before they're deleted their counts are
+-- rolled into here, so the all-time total survives the purge. All-time total for a
+-- story = this total + the count of detail rows still within the retention window.
+CREATE TABLE published_story_reader_total (
+    project_id BIGINT NOT NULL PRIMARY KEY,
+    total BIGINT NOT NULL
+);
+
+recordReader:
+INSERT INTO published_story_reader(project_id, day_bucket, visitor_hash)
+VALUES (?, ?, ?)
+ON CONFLICT (project_id, day_bucket, visitor_hash) DO NOTHING;
+
+countReadersForProjectSince:
+SELECT count(DISTINCT visitor_hash) FROM published_story_reader
+WHERE project_id = ? AND day_bucket >= ?;
+
+countReadersSince:
+SELECT count(DISTINCT visitor_hash) FROM published_story_reader
+WHERE day_bucket >= ?;
+
+-- All-time readers for one story: rolled-up (purged) total + current detail rows.
+totalReadersForProject:
+SELECT
+    COALESCE((SELECT total FROM published_story_reader_total WHERE project_id = :projectId), 0)
+    + (SELECT count(*) FROM published_story_reader WHERE project_id = :projectId) AS total;
+
+-- Per-day reader counts for the trend graph.
+dailyReadersForProject:
+SELECT day_bucket, count(*) AS readers
+FROM published_story_reader
+WHERE project_id = :projectId AND day_bucket >= :since
+GROUP BY day_bucket
+ORDER BY day_bucket;
+
+-- Fold counts for days about to be purged into the lifetime total.
+rollupReadersBefore:
+INSERT INTO published_story_reader_total(project_id, total)
+SELECT project_id, count(*)
+FROM published_story_reader
+WHERE day_bucket < ?
+GROUP BY project_id
+ON CONFLICT (project_id) DO UPDATE SET total = published_story_reader_total.total + excluded.total;
+
+deleteReadersBefore:
+DELETE FROM published_story_reader WHERE day_bucket < ?;

@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.ApiMetricDao
 import com.darkrockstudios.apps.hammer.database.ErrorLogDao
 import com.darkrockstudios.apps.hammer.database.LoginAttemptDao
+import com.darkrockstudios.apps.hammer.database.PublishedStoryReaderDao
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
 import com.darkrockstudios.apps.hammer.database.UserActivityDao
 import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
@@ -162,6 +163,8 @@ class UserActivityTest : BaseTest() {
 			collector = MetricsCollector(clock),
 			userActivityCollector = collector,
 			userActivityRepository = repository,
+			storyReaderCollector = StoryReaderCollector(clock),
+			storyReaderRepository = StoryReaderRepository(PublishedStoryReaderDao(db)),
 			monitoringState = MonitoringState(),
 			emailService = NoopEmailService,
 			clock = clock,

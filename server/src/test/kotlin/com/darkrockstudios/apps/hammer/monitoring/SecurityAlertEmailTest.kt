@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.monitoring
 import com.darkrockstudios.apps.hammer.database.ApiMetricDao
 import com.darkrockstudios.apps.hammer.database.ErrorLogDao
 import com.darkrockstudios.apps.hammer.database.LoginAttemptDao
+import com.darkrockstudios.apps.hammer.database.PublishedStoryReaderDao
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
 import com.darkrockstudios.apps.hammer.database.UserActivityDao
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
@@ -56,6 +57,8 @@ class SecurityAlertEmailTest : BaseTest() {
 			collector = MetricsCollector(clock),
 			userActivityCollector = UserActivityCollector(clock),
 			userActivityRepository = UserActivityRepository(UserActivityDao(db)),
+			storyReaderCollector = StoryReaderCollector(clock),
+			storyReaderRepository = StoryReaderRepository(PublishedStoryReaderDao(db)),
 			monitoringState = MonitoringState(),
 			emailService = email,
 			clock = clock,

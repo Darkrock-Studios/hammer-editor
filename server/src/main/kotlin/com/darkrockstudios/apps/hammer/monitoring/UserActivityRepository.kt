@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.monitoring
 
 import com.darkrockstudios.apps.hammer.database.UserActivityDao
+import com.darkrockstudios.apps.hammer.utilities.truncateToUtcDay
 import org.koin.core.component.KoinComponent
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
@@ -38,7 +39,7 @@ class UserActivityRepository(
 		val window30 = now - 30.days
 		val window7 = now - 7.days
 		val window24 = now - 24.hours
-		val rows = userActivityDao.getActivitySince(truncateToUtcDay(window30))
+		val rows = userActivityDao.getActivitySince(window30.truncateToUtcDay())
 
 		val sync = WindowAccumulator()
 		val web = WindowAccumulator()
@@ -50,13 +51,13 @@ class UserActivityRepository(
 				ActivityType.WEB.dbValue -> web to webByDay
 				else -> continue
 			}
-			byDay.getOrPut(truncateToUtcDay(row.hour_bucket)) { HashSet() }.add(row.user_id)
+			byDay.getOrPut(row.hour_bucket.truncateToUtcDay()) { HashSet() }.add(row.user_id)
 			windows.add(row.user_id, row.hour_bucket, window24, window7, window30)
 		}
 
 		val daily = ArrayList<DailyActiveUsers>()
-		var day = truncateToUtcDay(window30)
-		val lastDay = truncateToUtcDay(now)
+		var day = window30.truncateToUtcDay()
+		val lastDay = now.truncateToUtcDay()
 		while (day <= lastDay) {
 			daily += DailyActiveUsers(
 				day = day,
@@ -108,8 +109,3 @@ data class DailyActiveUsers(
 	val web: Long,
 )
 
-private const val MILLIS_PER_DAY = 24L * 60 * 60 * 1000
-
-/** Floor an instant to its UTC day start, matching the dashboard's daily bucketing. */
-private fun truncateToUtcDay(instant: Instant): Instant =
-	Instant.fromEpochMilliseconds(instant.toEpochMilliseconds() / MILLIS_PER_DAY * MILLIS_PER_DAY)

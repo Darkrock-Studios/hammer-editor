@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
 import com.darkrockstudios.apps.hammer.monitoring.SecurityAlert
 import com.darkrockstudios.apps.hammer.monitoring.SecurityAlerts
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
+import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.monitoring.TimeSeriesPoint
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
@@ -50,6 +51,7 @@ fun Route.adminMonitoringPages(
 	errorRepository: ErrorRepository,
 	securityRepository: SecurityRepository,
 	userActivityRepository: UserActivityRepository,
+	storyReaderRepository: StoryReaderRepository,
 	projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession>,
 	projectSyncManager: SyncSessionManager<*, ProjectSynchronizationSession>,
 	clock: Clock,
@@ -81,6 +83,9 @@ fun Route.adminMonitoringPages(
 				listOf(sync.h24, sync.d7, sync.d30, web.h24, web.d7, web.d30).any { it > 0 }
 			}
 
+			val readers = storyReaderRepository.readerCounts(now)
+			val hasReaders = listOf(readers.h24, readers.d7, readers.d30).any { it > 0 }
+
 			val model = mutableMapOf<String, Any>(
 				"page_stylesheet" to "/assets/css/admin.css",
 				"activeMonitoring" to true,
@@ -105,6 +110,10 @@ fun Route.adminMonitoringPages(
 				"usersWeb7d" to formatCount(activeUsers.web.d7),
 				"usersWeb30d" to formatCount(activeUsers.web.d30),
 				"activeUsersChartJson" to buildActiveUsersChart(activeUsers.daily),
+				"hasReaders" to hasReaders,
+				"readers24h" to formatCount(readers.h24),
+				"readers7d" to formatCount(readers.d7),
+				"readers30d" to formatCount(readers.d30),
 			)
 
 			call.respond(MustacheContent("admin-monitoring.mustache", call.withDefaults(model)))

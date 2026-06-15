@@ -55,6 +55,7 @@ class MonitoringExportRouteTest {
 				errorRepository = errorRepo,
 				securityRepository = mockk(relaxed = true),
 				userActivityRepository = mockk(relaxed = true),
+				storyReaderRepository = mockk(relaxed = true),
 				projectsSyncManager = mockk<SyncSessionManager<Long, ProjectsSynchronizationSession>>(relaxed = true),
 				projectSyncManager = mockk<SyncSessionManager<Long, ProjectSynchronizationSession>>(relaxed = true),
 				clock = clock,

@@ -36,6 +36,8 @@ class MonitoringMaintenanceJob(
 	private val collector: MetricsCollector,
 	private val userActivityCollector: UserActivityCollector,
 	private val userActivityRepository: UserActivityRepository,
+	private val storyReaderCollector: StoryReaderCollector,
+	private val storyReaderRepository: StoryReaderRepository,
 	private val monitoringState: MonitoringState,
 	private val emailService: EmailService,
 	private val clock: Clock,
@@ -85,11 +87,13 @@ class MonitoringMaintenanceJob(
 		val config = configRepository.get(AdminServerConfig.MONITORING_CONFIG)
 		collector.setCollecting(config.enabled && config.trackApiMetrics)
 		userActivityCollector.setCollecting(config.enabled)
+		storyReaderCollector.setCollecting(config.enabled && config.trackStoryReaders)
 		monitoringState.update(config)
 		if (!config.enabled) return
 
 		if (config.trackApiMetrics) flush()
 		userActivityRepository.recordKeys(userActivityCollector.drainToKeys())
+		storyReaderRepository.recordKeys(storyReaderCollector.drainToKeys())
 
 		if (config.trackErrors && config.alertEmailEnabled && config.alertEmail.isNotBlank()) {
 			evaluateErrorAlerts(config)
@@ -215,6 +219,7 @@ class MonitoringMaintenanceJob(
 			securityRepository.purgeBefore(now - config.loginAttemptRetentionDays.days)
 		}
 		userActivityRepository.purgeBefore(now - config.metricsRetentionDays.days)
+		storyReaderRepository.purgeBefore(now - config.metricsRetentionDays.days)
 	}
 
 	companion object {

@@ -1,7 +1,8 @@
--- Migration 3 -> 4: add the unique-user activity table.
+-- Migration 3 -> 4: add the unique-user activity table and the published-story
+-- reader table.
 --
--- Mirrors the CREATE TABLE + index in UserActivity.sq for already-deployed v3
--- databases. Fresh installs get it from Schema.create.
+-- Mirrors the CREATE TABLE + index in UserActivity.sq and PublishedStoryReader.sq
+-- for already-deployed v3 databases. Fresh installs get them from Schema.create.
 
 CREATE TABLE user_activity (
     user_id BIGINT NOT NULL,
@@ -12,3 +13,18 @@ CREATE TABLE user_activity (
 );
 
 CREATE INDEX user_activity_time ON user_activity(hour_bucket, activity_type);
+
+CREATE TABLE published_story_reader (
+    project_id BIGINT NOT NULL,
+    day_bucket TIMESTAMPTZ NOT NULL,
+    visitor_hash TEXT NOT NULL,
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+    PRIMARY KEY (project_id, day_bucket, visitor_hash)
+);
+
+CREATE INDEX published_story_reader_project_day ON published_story_reader(project_id, day_bucket);
+
+CREATE TABLE published_story_reader_total (
+    project_id BIGINT NOT NULL PRIMARY KEY,
+    total BIGINT NOT NULL
+);

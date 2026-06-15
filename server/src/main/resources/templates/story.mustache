@@ -93,6 +93,30 @@
 					</div>
 				{{/hasPenName}}
 
+				{{#hasAnyAccess}}
+					<!-- Readers Panel: all-time total + 30-day trend -->
+					<div class="story-info-panel story-info-panel--readers">
+						<div class="info-panel-header">
+							<span class="info-panel-icon"><i class="fas fa-book-open-reader"></i></span>
+							<span class="info-panel-title">{{msg.story_readers_title}}</span>
+						</div>
+						<div class="info-panel-content">
+							<div class="reader-total">
+								<span class="reader-total__value">{{totalReaders}}</span>
+								<span class="reader-total__label">{{msg.story_readers_total_label}}</span>
+							</div>
+							{{#hasReaderBars}}
+								<div class="reader-graph" role="img" aria-label="{{msg.story_readers_graph_caption}}">
+									{{#readerBars}}
+										<span class="reader-graph__bar" style="height: {{height}}%" data-label="{{label}}"></span>
+									{{/readerBars}}
+								</div>
+								<span class="reader-graph__caption">{{msg.story_readers_graph_caption}}</span>
+							{{/hasReaderBars}}
+						</div>
+					</div>
+				{{/hasAnyAccess}}
+
 				<!-- Editorial Reviews Panel -->
 				<div class="story-info-panel review-panel">
 					<div class="info-panel-header">
