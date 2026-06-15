@@ -20,7 +20,7 @@ import kotlin.time.Clock
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
-private fun ViewNoteUiPreview() {
+fun ViewNoteUiPreview() {
 	val component = object : ViewNote {
 		override val state: Value<ViewNote.State>
 			get() = MutableValue(

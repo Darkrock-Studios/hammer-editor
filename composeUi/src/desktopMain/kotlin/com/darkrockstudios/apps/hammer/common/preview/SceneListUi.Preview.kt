@@ -53,7 +53,8 @@ private fun fakeSceneSummary(): SceneSummary {
 @OptIn(ExperimentalFoundationApi::class)
 @Preview
 @Composable
-private fun SceneItemPreview() {
+fun SceneItemPreview() {
+	KoinApplicationPreview {
 	Column(modifier = Modifier.padding(Ui.Padding.L)) {
 		SceneItem(
 			scene = fakeScene(0, 0),
@@ -91,6 +92,7 @@ private fun SceneItemPreview() {
 			onSceneRenameRequest = {},
 			onSceneArchiveRequest = {},
 		)
+	}
 	}
 }
 

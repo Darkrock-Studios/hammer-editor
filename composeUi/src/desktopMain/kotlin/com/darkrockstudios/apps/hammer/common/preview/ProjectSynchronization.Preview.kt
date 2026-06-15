@@ -41,7 +41,7 @@ private fun compactSize(): WindowSizeClass = WindowSizeClass.calculateFromSize(
 
 @Preview
 @Composable
-private fun SceneConflictPreview() {
+fun SceneConflictPreview() {
 	val serverScene = ApiProjectEntity.SceneEntity(
 		id = 1,
 		sceneType = ApiSceneType.Scene,
@@ -72,7 +72,7 @@ private fun SceneConflictPreview() {
 
 @Preview
 @Composable
-private fun SceneConflictCompactPreview() {
+fun SceneConflictCompactPreview() {
 	val serverScene = ApiProjectEntity.SceneEntity(
 		id = 1,
 		sceneType = ApiSceneType.Scene,
@@ -100,7 +100,7 @@ private fun SceneConflictCompactPreview() {
 
 @Preview
 @Composable
-private fun NoteConflictPreview() {
+fun NoteConflictPreview() {
 	val serverEntity = ApiProjectEntity.NoteEntity(
 		id = 1,
 		content = "The watch in the Rabbit's waistcoat is the first hint that this world runs on its own clock — flag for callback in chapter 7.",
@@ -122,7 +122,7 @@ private fun NoteConflictPreview() {
 
 @Preview
 @Composable
-private fun TimelineConflictPreview() {
+fun TimelineConflictPreview() {
 	val serverEntity = ApiProjectEntity.TimelineEventEntity(
 		id = 1,
 		content = "Alice follows the White Rabbit down the hole and lands in the long hallway of doors.",
@@ -146,7 +146,7 @@ private fun TimelineConflictPreview() {
 
 @Preview
 @Composable
-private fun EncyclopediaEntryConflictCompactPreview() {
+fun EncyclopediaEntryConflictCompactPreview() {
 	val serverEntity = ApiProjectEntity.EncyclopediaEntryEntity(
 		id = 1,
 		name = "White Rabbit",
@@ -173,7 +173,7 @@ private fun EncyclopediaEntryConflictCompactPreview() {
 
 @Preview
 @Composable
-private fun EncyclopediaEntryConflictPreview() {
+fun EncyclopediaEntryConflictPreview() {
 	val serverEntity = ApiProjectEntity.EncyclopediaEntryEntity(
 		id = 1,
 		name = "White Rabbit",
@@ -204,7 +204,7 @@ private fun EncyclopediaEntryConflictPreview() {
 
 @Preview
 @Composable
-private fun SceneDraftConflictPreview() {
+fun SceneDraftConflictPreview() {
 	val serverEntity = ApiProjectEntity.SceneDraftEntity(
 		id = 1,
 		sceneId = 42,
@@ -227,7 +227,7 @@ private fun SceneDraftConflictPreview() {
 
 @Preview
 @Composable
-private fun ProjectDataConflictPreview() {
+fun ProjectDataConflictPreview() {
 	val local = ProjectData(
 		authorName = "Lewis Carroll",
 		theme = ProjectTheme(primary = "#3F51B5", secondary = "#FFC107"),
@@ -250,7 +250,7 @@ private fun ProjectDataConflictPreview() {
 
 @Preview
 @Composable
-private fun SyncInProgressPreview() {
+fun SyncInProgressPreview() {
 	StatePreview(
 		state = ProjectSynchronization.State(
 			isSyncing = true,
@@ -262,7 +262,7 @@ private fun SyncInProgressPreview() {
 
 @Preview
 @Composable
-private fun SyncSuccessPreview() {
+fun SyncSuccessPreview() {
 	StatePreview(
 		state = ProjectSynchronization.State(
 			isSyncing = false,
@@ -275,7 +275,7 @@ private fun SyncSuccessPreview() {
 
 @Preview
 @Composable
-private fun SyncFailedPreview() {
+fun SyncFailedPreview() {
 	StatePreview(
 		state = ProjectSynchronization.State(
 			isSyncing = false,
@@ -288,7 +288,7 @@ private fun SyncFailedPreview() {
 
 @Preview
 @Composable
-private fun SyncLogPreview() {
+fun SyncLogPreview() {
 	val now = Clock.System.now()
 	StatePreview(
 		state = ProjectSynchronization.State(
@@ -333,7 +333,7 @@ private fun SyncLogPreview() {
 }
 
 @Composable
-private fun ProjectSynchronizationPreview(
+fun ProjectSynchronizationPreview(
 	conflict: ProjectSynchronization.EntityConflict<*>,
 	conflictTitle: StringResource,
 	screenCharacteristics: WindowSizeClass,
@@ -349,7 +349,7 @@ private fun ProjectSynchronizationPreview(
 }
 
 @Composable
-private fun ProjectDataSynchronizationPreview(
+fun ProjectDataSynchronizationPreview(
 	conflictState: ProjectSynchronization.ProjectDataConflictState,
 	screenCharacteristics: WindowSizeClass,
 ) {
@@ -364,7 +364,7 @@ private fun ProjectDataSynchronizationPreview(
 }
 
 @Composable
-private fun StatePreview(
+fun StatePreview(
 	state: ProjectSynchronization.State,
 	screenCharacteristics: WindowSizeClass,
 ) {

@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.common.projectselection.settings.ServerSe
 
 @Preview
 @Composable
-private fun ServerSetupDialogPreview() {
+fun ServerSetupDialogPreview() {
 	val scope = rememberCoroutineScope()
 
 	ServerSetupDialog(

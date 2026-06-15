@@ -18,7 +18,7 @@ import kotlin.time.Clock
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
-private fun BrowseNotesUiPreview() {
+fun BrowseNotesUiPreview() {
 	val component: BrowseNotes = fakeComponent()
 	SharedTransitionLayout {
 		AnimatedVisibility(visible = true) {

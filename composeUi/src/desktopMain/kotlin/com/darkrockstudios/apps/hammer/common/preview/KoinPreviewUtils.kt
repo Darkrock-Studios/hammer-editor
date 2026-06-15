@@ -28,6 +28,7 @@ fun KoinApplicationPreview(
 			single(named(DISPATCHER_IO)) { platformIoDispatcher }
 			single { PreviewStrRes() } bind StrRes::class
 			single { fakeSpellCheckRepository() }
+			single { previewImageLoader() }
 
 			if (application != null) application()
 		}))

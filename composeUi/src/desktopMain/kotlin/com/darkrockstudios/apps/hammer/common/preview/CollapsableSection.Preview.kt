@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.compose.SpacerL
 
 @Preview
 @Composable
-private fun CollapsableSectionPreview() {
+fun CollapsableSectionPreview() {
 	Column {
 		CollapsableSection(
 			false,

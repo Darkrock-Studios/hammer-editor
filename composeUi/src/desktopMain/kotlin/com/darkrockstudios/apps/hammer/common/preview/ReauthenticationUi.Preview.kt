@@ -66,25 +66,25 @@ private fun ReauthPreviewScaffold(
 
 @Preview
 @Composable
-private fun ReauthenticationPreview() {
+fun ReauthenticationPreview() {
 	ReauthPreviewScaffold(previewState(), darkTheme = false)
 }
 
 @Preview
 @Composable
-private fun ReauthenticationDarkPreview() {
+fun ReauthenticationDarkPreview() {
 	ReauthPreviewScaffold(previewState(password = "hunter2"), darkTheme = true)
 }
 
 @Preview
 @Composable
-private fun ReauthenticationWorkingPreview() {
+fun ReauthenticationWorkingPreview() {
 	ReauthPreviewScaffold(previewState(password = "hunter2", working = true), darkTheme = false)
 }
 
 @Preview
 @Composable
-private fun ReauthenticationErrorPreview() {
+fun ReauthenticationErrorPreview() {
 	ReauthPreviewScaffold(
 		previewState(error = "Invalid email or password."),
 		darkTheme = false,

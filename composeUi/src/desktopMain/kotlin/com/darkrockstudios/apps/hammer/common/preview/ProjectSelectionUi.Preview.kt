@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.common.projectselection.ProjectIndexRow
 
 @Preview
 @Composable
-private fun ProjectCardPreview() {
+fun ProjectCardPreview() {
 	val data = fakeProjectData()
 	Column {
 		Spacer(modifier = Modifier.size(32.dp))
@@ -33,7 +33,7 @@ private fun ProjectCardPreview() {
 
 @Preview
 @Composable
-private fun ProjectCardCompactPreview() {
+fun ProjectCardCompactPreview() {
 	val data = fakeProjectData()
 	Column(modifier = Modifier.width(360.dp)) {
 		Spacer(modifier = Modifier.size(32.dp))
