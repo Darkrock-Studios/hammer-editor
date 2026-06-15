@@ -11,6 +11,8 @@ import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
 import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
 import com.darkrockstudios.apps.hammer.project.InvalidProjectName
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
+import com.darkrockstudios.apps.hammer.monitoring.ActivityType
+import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
 import com.darkrockstudios.apps.hammer.utilities.*
 import com.github.aymanizz.ktori18n.R
@@ -83,6 +85,8 @@ private fun Route.beginProjectsSync() {
 			call.respond(HttpStatusCode.Unauthorized)
 			return@get
 		}
+
+		call.application.get<UserActivityCollector>().record(principal.id, ActivityType.SYNC)
 
 		val result = projectsRepository.beginProjectsSync(principal.id)
 		if (isSuccess(result)) {

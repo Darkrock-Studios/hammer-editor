@@ -34,6 +34,8 @@ class MonitoringMaintenanceJob(
 	private val errorRepository: ErrorRepository,
 	private val securityRepository: SecurityRepository,
 	private val collector: MetricsCollector,
+	private val userActivityCollector: UserActivityCollector,
+	private val userActivityRepository: UserActivityRepository,
 	private val monitoringState: MonitoringState,
 	private val emailService: EmailService,
 	private val clock: Clock,
@@ -82,10 +84,12 @@ class MonitoringMaintenanceJob(
 	suspend fun tick() {
 		val config = configRepository.get(AdminServerConfig.MONITORING_CONFIG)
 		collector.setCollecting(config.enabled && config.trackApiMetrics)
+		userActivityCollector.setCollecting(config.enabled)
 		monitoringState.update(config)
 		if (!config.enabled) return
 
 		if (config.trackApiMetrics) flush()
+		userActivityRepository.recordKeys(userActivityCollector.drainToKeys())
 
 		if (config.trackErrors && config.alertEmailEnabled && config.alertEmail.isNotBlank()) {
 			evaluateErrorAlerts(config)
@@ -210,6 +214,7 @@ class MonitoringMaintenanceJob(
 		if (config.trackLoginAttempts) {
 			securityRepository.purgeBefore(now - config.loginAttemptRetentionDays.days)
 		}
+		userActivityRepository.purgeBefore(now - config.metricsRetentionDays.days)
 	}
 
 	companion object {

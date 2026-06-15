@@ -13,7 +13,10 @@ import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
 import com.darkrockstudios.apps.hammer.monitoring.SecurityAlert
 import com.darkrockstudios.apps.hammer.monitoring.SecurityAlerts
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
+import com.darkrockstudios.apps.hammer.monitoring.ActivityType
+import com.darkrockstudios.apps.hammer.monitoring.DailyActiveUsers
 import com.darkrockstudios.apps.hammer.monitoring.TimeSeriesPoint
+import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
@@ -46,6 +49,7 @@ fun Route.adminMonitoringPages(
 	configRepository: ConfigRepository,
 	errorRepository: ErrorRepository,
 	securityRepository: SecurityRepository,
+	userActivityRepository: UserActivityRepository,
 	projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession>,
 	projectSyncManager: SyncSessionManager<*, ProjectSynchronizationSession>,
 	clock: Clock,
@@ -71,6 +75,14 @@ fun Route.adminMonitoringPages(
 			val alerts = securityAlerts + deriveAlerts(stats)
 			val chart = buildHourlyChart(metricsRepository.getHourBucketsSince(since))
 
+			val now = clock.now()
+			val usersSync = listOf(24.hours, 7.days, 30.days)
+				.map { userActivityRepository.uniqueUsers(ActivityType.SYNC, now - it) }
+			val usersWeb = listOf(24.hours, 7.days, 30.days)
+				.map { userActivityRepository.uniqueUsers(ActivityType.WEB, now - it) }
+			val dailyUsers = userActivityRepository.dailyActiveUsers(now - 30.days, now)
+			val hasActiveUsers = (usersSync + usersWeb).any { it > 0 }
+
 			val model = mutableMapOf<String, Any>(
 				"page_stylesheet" to "/assets/css/admin.css",
 				"activeMonitoring" to true,
@@ -87,6 +99,14 @@ fun Route.adminMonitoringPages(
 				"topSlow" to topSlow,
 				"hasTopSlow" to topSlow.isNotEmpty(),
 				"chartJson" to chart,
+				"hasActiveUsers" to hasActiveUsers,
+				"usersSync24h" to formatCount(usersSync[0]),
+				"usersSync7d" to formatCount(usersSync[1]),
+				"usersSync30d" to formatCount(usersSync[2]),
+				"usersWeb24h" to formatCount(usersWeb[0]),
+				"usersWeb7d" to formatCount(usersWeb[1]),
+				"usersWeb30d" to formatCount(usersWeb[2]),
+				"activeUsersChartJson" to buildActiveUsersChart(dailyUsers),
 			)
 
 			call.respond(MustacheContent("admin-monitoring.mustache", call.withDefaults(model)))
@@ -329,6 +349,15 @@ private fun buildLatencyChart(points: List<TimeSeriesPoint>, labelFormat: String
 	return Json.encodeToString(LatencyChartPayload.serializer(), payload)
 }
 
+private fun buildActiveUsersChart(daily: List<DailyActiveUsers>): String {
+	val payload = ActiveUsersChartPayload(
+		labels = daily.map { formatInstant(it.day, "MMM dd") },
+		sync = daily.map { it.sync },
+		web = daily.map { it.web },
+	)
+	return Json.encodeToString(ActiveUsersChartPayload.serializer(), payload)
+}
+
 private fun buildHourlyChart(buckets: List<com.darkrockstudios.apps.hammer.Api_metric_bucket>): String {
 	val byHour = buckets.groupBy { it.bucket_start }.toSortedMap()
 	val payload = ChartPayload(
@@ -360,6 +389,13 @@ private data class ChartPayload(
 	val labels: List<String>,
 	val requests: List<Long>,
 	val errors: List<Long>,
+)
+
+@Serializable
+private data class ActiveUsersChartPayload(
+	val labels: List<String>,
+	val sync: List<Long>,
+	val web: List<Long>,
 )
 
 private val errorExportJson = Json { prettyPrint = true }

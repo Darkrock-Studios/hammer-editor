@@ -132,6 +132,58 @@
 
 .mon-stat-card__note { font-family: 'Lora', Georgia, serif; font-size: 0.78rem; color: var(--neutral-400); }
 
+/* --- Active-users window rollups (DAU / WAU / MAU) --- */
+.mon-users-windows {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+	gap: 1rem;
+	margin-bottom: 1.5rem;
+}
+
+.mon-users-window {
+	display: flex;
+	flex-direction: column;
+	gap: 0.4rem;
+	padding: 0.9rem 1rem;
+	background: var(--paper-white);
+	border: 1px solid var(--neutral-200);
+	border-top: 4px solid var(--accent);
+	border-radius: 4px;
+	box-shadow: var(--shadow-sm);
+}
+
+.mon-users-window__label {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.78rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--neutral-500);
+}
+
+.mon-users-window__row {
+	display: flex;
+	align-items: baseline;
+	justify-content: space-between;
+	gap: 1rem;
+}
+
+.mon-users-window__name { font-family: 'Lora', Georgia, serif; font-size: 0.9rem; color: var(--neutral-500); }
+
+.mon-users-window__value {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.5rem;
+	line-height: 1.1;
+	color: var(--ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.mon-users-trend-title {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.95rem;
+	color: var(--neutral-500);
+	margin: 0 0 0.5rem;
+}
+
 .mon-live-dot { color: var(--success); font-size: 0.5rem; vertical-align: middle; animation: monPulse 2s ease-in-out infinite; }
 
 @keyframes monPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }

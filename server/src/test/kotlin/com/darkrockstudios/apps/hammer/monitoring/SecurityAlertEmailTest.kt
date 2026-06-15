@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.database.ApiMetricDao
 import com.darkrockstudios.apps.hammer.database.ErrorLogDao
 import com.darkrockstudios.apps.hammer.database.LoginAttemptDao
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
+import com.darkrockstudios.apps.hammer.database.UserActivityDao
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
 import com.darkrockstudios.apps.hammer.email.EmailResult
@@ -53,6 +54,8 @@ class SecurityAlertEmailTest : BaseTest() {
 			errorRepository = ErrorRepository(ErrorLogDao(db), clock),
 			securityRepository = securityRepository,
 			collector = MetricsCollector(clock),
+			userActivityCollector = UserActivityCollector(clock),
+			userActivityRepository = UserActivityRepository(UserActivityDao(db)),
 			monitoringState = MonitoringState(),
 			emailService = email,
 			clock = clock,

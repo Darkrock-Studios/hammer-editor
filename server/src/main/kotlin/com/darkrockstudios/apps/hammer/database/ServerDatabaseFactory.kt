@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.Project_access
 import com.darkrockstudios.apps.hammer.Project_data
 import com.darkrockstudios.apps.hammer.Review_request
 import com.darkrockstudios.apps.hammer.Review_suggestion
+import com.darkrockstudios.apps.hammer.User_activity
 import com.darkrockstudios.apps.hammer.White_list
 
 /**
@@ -79,6 +80,9 @@ fun buildServerDatabase(driver: SqlDriver): ServerDatabase {
 		review_suggestionAdapter = Review_suggestion.Adapter(
 			createdAdapter = instant,
 			updatedAdapter = instant,
+		),
+		user_activityAdapter = User_activity.Adapter(
+			hour_bucketAdapter = instant,
 		),
 	)
 }

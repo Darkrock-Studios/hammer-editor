@@ -16,10 +16,13 @@ import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
+import com.darkrockstudios.apps.hammer.monitoring.ActivityType
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
+import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
+import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
 import com.darkrockstudios.apps.hammer.monitoring.recordMonitoredError
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
@@ -74,6 +77,7 @@ fun Route.frontend() {
 	val metricsRepository: MetricsRepository by inject()
 	val errorRepository: ErrorRepository by inject()
 	val securityRepository: SecurityRepository by inject()
+	val userActivityRepository: UserActivityRepository by inject()
 	val clock: kotlin.time.Clock by inject()
 	val projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(named(PROJECTS_SYNC_MANAGER))
 	val projectSyncManager: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession> by inject(named(PROJECT_SYNC_MANAGER))
@@ -128,6 +132,7 @@ fun Route.frontend() {
 		metricsRepository,
 		errorRepository,
 		securityRepository,
+		userActivityRepository,
 		projectsSyncManager,
 		projectSyncManager,
 		clock,
@@ -216,6 +221,7 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	if (session != null) {
 		model["isLoggedIn"] = true
 		model["sessionUsername"] = session.username
+		get<UserActivityCollector>().record(session.userId, ActivityType.WEB)
 	} else {
 		model["isLoggedIn"] = false
 	}

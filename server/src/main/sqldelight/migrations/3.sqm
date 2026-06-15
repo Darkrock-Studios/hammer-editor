@@ -1,0 +1,14 @@
+-- Migration 3 -> 4: add the unique-user activity table.
+--
+-- Mirrors the CREATE TABLE + index in UserActivity.sq for already-deployed v3
+-- databases. Fresh installs get it from Schema.create.
+
+CREATE TABLE user_activity (
+    user_id BIGINT NOT NULL,
+    activity_type TEXT NOT NULL,
+    hour_bucket TIMESTAMPTZ NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, activity_type, hour_bucket)
+);
+
+CREATE INDEX user_activity_type_time ON user_activity(activity_type, hour_bucket);
