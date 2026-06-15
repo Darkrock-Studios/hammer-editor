@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.Error_log
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
+import com.darkrockstudios.apps.hammer.monitoring.DailyActiveUsers
 import com.darkrockstudios.apps.hammer.monitoring.EndpointStat
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.LATENCY_OVERFLOW_MS
@@ -13,18 +14,17 @@ import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
 import com.darkrockstudios.apps.hammer.monitoring.SecurityAlert
 import com.darkrockstudios.apps.hammer.monitoring.SecurityAlerts
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
-import com.darkrockstudios.apps.hammer.monitoring.ActivityType
-import com.darkrockstudios.apps.hammer.monitoring.DailyActiveUsers
 import com.darkrockstudios.apps.hammer.monitoring.TimeSeriesPoint
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
-import io.ktor.server.application.*
-import io.ktor.server.mustache.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.server.mustache.MustacheContent
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.route
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -76,12 +76,10 @@ fun Route.adminMonitoringPages(
 			val chart = buildHourlyChart(metricsRepository.getHourBucketsSince(since))
 
 			val now = clock.now()
-			val usersSync = listOf(24.hours, 7.days, 30.days)
-				.map { userActivityRepository.uniqueUsers(ActivityType.SYNC, now - it) }
-			val usersWeb = listOf(24.hours, 7.days, 30.days)
-				.map { userActivityRepository.uniqueUsers(ActivityType.WEB, now - it) }
-			val dailyUsers = userActivityRepository.dailyActiveUsers(now - 30.days, now)
-			val hasActiveUsers = (usersSync + usersWeb).any { it > 0 }
+			val activeUsers = userActivityRepository.activeUsersOverview(now)
+			val hasActiveUsers = with(activeUsers) {
+				listOf(sync.h24, sync.d7, sync.d30, web.h24, web.d7, web.d30).any { it > 0 }
+			}
 
 			val model = mutableMapOf<String, Any>(
 				"page_stylesheet" to "/assets/css/admin.css",
@@ -100,13 +98,13 @@ fun Route.adminMonitoringPages(
 				"hasTopSlow" to topSlow.isNotEmpty(),
 				"chartJson" to chart,
 				"hasActiveUsers" to hasActiveUsers,
-				"usersSync24h" to formatCount(usersSync[0]),
-				"usersSync7d" to formatCount(usersSync[1]),
-				"usersSync30d" to formatCount(usersSync[2]),
-				"usersWeb24h" to formatCount(usersWeb[0]),
-				"usersWeb7d" to formatCount(usersWeb[1]),
-				"usersWeb30d" to formatCount(usersWeb[2]),
-				"activeUsersChartJson" to buildActiveUsersChart(dailyUsers),
+				"usersSync24h" to formatCount(activeUsers.sync.h24),
+				"usersSync7d" to formatCount(activeUsers.sync.d7),
+				"usersSync30d" to formatCount(activeUsers.sync.d30),
+				"usersWeb24h" to formatCount(activeUsers.web.h24),
+				"usersWeb7d" to formatCount(activeUsers.web.d7),
+				"usersWeb30d" to formatCount(activeUsers.web.d30),
+				"activeUsersChartJson" to buildActiveUsersChart(activeUsers.daily),
 			)
 
 			call.respond(MustacheContent("admin-monitoring.mustache", call.withDefaults(model)))

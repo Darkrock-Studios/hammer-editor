@@ -82,6 +82,44 @@ class UserActivityTest : BaseTest() {
 	}
 
 	@Test
+	fun `overview derives window rollups and a complete leftmost trend day from one fetch`() =
+		runTest {
+			val repo = UserActivityRepository(UserActivityDao(db))
+			val dao = UserActivityDao(db)
+			val a = createAccount("a@x.com")
+			val b = createAccount("b@x.com")
+			val c = createAccount("c@x.com")
+			val d = createAccount("d@x.com")
+
+			dao.recordActivity(a, ActivityType.SYNC.dbValue, now - 2.hours)   // 24h / 7d / 30d
+			dao.recordActivity(b, ActivityType.SYNC.dbValue, now - 3.days)    // 7d / 30d
+			dao.recordActivity(c, ActivityType.SYNC.dbValue, now - 15.days)   // 30d
+			dao.recordActivity(a, ActivityType.WEB.dbValue, now - 1.hours)    // web isolated
+
+			// On the first calendar day of the window but BEFORE the precise now-30d
+			// cutoff (window start is mid-day): shown on the trend, excluded from 30d.
+			val firstDay = truncateToUtcDay(now - 30.days)
+			dao.recordActivity(d, ActivityType.SYNC.dbValue, firstDay + 1.hours)
+
+			val overview = repo.activeUsersOverview(now)
+
+			assertEquals(1L, overview.sync.h24)
+			assertEquals(2L, overview.sync.d7)
+			assertEquals(3L, overview.sync.d30)   // d excluded — before the precise cutoff
+			assertEquals(1L, overview.web.h24)
+
+			// The leftmost trend day is the window's UTC-day start and includes d's row.
+			assertEquals(firstDay, overview.daily.first().day)
+			assertEquals(1L, overview.daily.first().sync)
+			assertEquals(truncateToUtcDay(now), overview.daily.last().day)
+		}
+
+	private fun truncateToUtcDay(instant: Instant): Instant {
+		val dayMillis = 24L * 60 * 60 * 1000
+		return Instant.fromEpochMilliseconds(instant.toEpochMilliseconds() / dayMillis * dayMillis)
+	}
+
+	@Test
 	fun `maintenance tick flushes collected keys into the table`() = runTest {
 		val collector = UserActivityCollector(clock)
 		val repository = UserActivityRepository(UserActivityDao(db))

@@ -14,7 +14,9 @@ CREATE TABLE user_activity (
     PRIMARY KEY (user_id, activity_type, hour_bucket)
 );
 
-CREATE INDEX user_activity_type_time ON user_activity(activity_type, hour_bucket);
+-- Reads (the daily-trend fetch and the retention purge) filter on hour_bucket,
+-- so the index leads with it; activity_type follows for the distinct-count query.
+CREATE INDEX user_activity_time ON user_activity(hour_bucket, activity_type);
 
 recordActivity:
 INSERT INTO user_activity(user_id, activity_type, hour_bucket)
