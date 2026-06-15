@@ -25,6 +25,9 @@ import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDe
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
+import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.dummyBackHandler
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
@@ -35,7 +38,7 @@ import org.jetbrains.compose.resources.StringResource
 
 @Preview
 @Composable
-fun ProjectStatsUiPreview() {
+fun ScreenProjectStatsUiPreview() {
 	val scope = rememberCoroutineScope()
 
 	KoinApplicationPreview {
@@ -51,6 +54,22 @@ fun ProjectStatsUiPreview() {
 					scope = scope,
 				)
 			}
+		}
+	}
+}
+
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenProjectStatsUiTabletPreview() {
+	val scope = rememberCoroutineScope()
+
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			ProjectStatsUi(
+				modifier = Modifier,
+				component = component,
+				scope = scope,
+			)
 		}
 	}
 }

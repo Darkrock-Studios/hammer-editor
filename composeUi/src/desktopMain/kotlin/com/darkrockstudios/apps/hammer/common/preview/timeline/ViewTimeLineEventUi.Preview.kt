@@ -18,7 +18,7 @@ import com.darkrockstudios.apps.hammer.common.timeline.ViewTimeLineEventUi
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
-fun ViewTimeLineEventUiPreview() {
+fun ScreenViewTimeLineEventUiPreview() {
 	val scope = rememberCoroutineScope()
 
 	KoinApplicationPreview {

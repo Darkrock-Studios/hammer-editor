@@ -16,13 +16,16 @@ import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSett
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
+import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import com.darkrockstudios.apps.hammer.common.projecthome.ProjectSettingsUi
 import com.darkrockstudios.apps.hammer.common.util.Locale
 
 @Preview
 @Composable
-fun ProjectSettingsUiPreview() {
+fun ScreenProjectSettingsUiPreview() {
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview) {
 			Box(
@@ -36,6 +39,20 @@ fun ProjectSettingsUiPreview() {
 					onClose = {},
 				)
 			}
+		}
+	}
+}
+
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenProjectSettingsUiTabletPreview() {
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			ProjectSettingsUi(
+				modifier = Modifier,
+				component = component,
+				onClose = {},
+			)
 		}
 	}
 }

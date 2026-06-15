@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.common.preview
 /*
 @Preview
 @Composable
-fun DraftCompareUiPreview() = koinForPreview {
+fun ScreenDraftCompareUiPreview() = koinForPreview {
 	val draftDef = DraftDef(
 		id = 2,
 		sceneId = 1,

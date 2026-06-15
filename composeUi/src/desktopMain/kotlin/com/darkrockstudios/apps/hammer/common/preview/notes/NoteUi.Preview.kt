@@ -13,12 +13,15 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteCont
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.notes.BrowseNotesUi
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
+import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import kotlin.time.Clock
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
-fun BrowseNotesUiPreview() {
+fun ScreenBrowseNotesUiPreview() {
 	val component: BrowseNotes = fakeComponent()
 	SharedTransitionLayout {
 		AnimatedVisibility(visible = true) {
@@ -27,6 +30,24 @@ fun BrowseNotesUiPreview() {
 				sharedTransitionScope = this@SharedTransitionLayout,
 				animatedVisibilityScope = this@AnimatedVisibility,
 			)
+		}
+	}
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenBrowseNotesUiTabletPreview() {
+	val component: BrowseNotes = fakeComponent()
+	TabletPreviewSurface {
+		SharedTransitionLayout {
+			AnimatedVisibility(visible = true) {
+				BrowseNotesUi(
+					component = component,
+					sharedTransitionScope = this@SharedTransitionLayout,
+					animatedVisibilityScope = this@AnimatedVisibility,
+				)
+			}
 		}
 	}
 }

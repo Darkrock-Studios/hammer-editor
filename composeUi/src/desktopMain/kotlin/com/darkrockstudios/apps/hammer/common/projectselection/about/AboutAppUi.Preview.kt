@@ -9,7 +9,7 @@ import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 
 @Preview
 @Composable
-fun AboutAppUiPreview() {
+fun ScreenAboutAppUiPreview() {
 	AppTheme(globalSettingsPreview) {
 		AboutAppUi(previewComponent)
 	}

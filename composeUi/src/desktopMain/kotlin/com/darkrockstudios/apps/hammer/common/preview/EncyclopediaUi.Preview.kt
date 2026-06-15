@@ -93,7 +93,7 @@ private val browseEntriesComponent: BrowseEntries = object : BrowseEntries {
 
 @Preview
 @Composable
-fun EncyclopediaUiPreview() {
+fun ScreenEncyclopediaUiPreview() {
 	val component: Encyclopedia = object : Encyclopedia {
 		override val backHandler = dummyBackHandler
 		override fun onBack() {}
@@ -141,7 +141,7 @@ private val fakeCreateEntryComponent: CreateEntry = object : CreateEntry {
 
 @Preview
 @Composable
-fun CreateEntryPreview() {
+fun ScreenCreateEntryPreview() {
 	val scope = rememberCoroutineScope()
 	val rootSnackbar = rememberRootSnackbarHostState()
 
@@ -165,7 +165,7 @@ fun CreateEntryPreview() {
 
 @Preview
 @Composable
-fun CreateEntryNarrowPreview() {
+fun ScreenCreateEntryNarrowPreview() {
 	val scope = rememberCoroutineScope()
 	val rootSnackbar = rememberRootSnackbarHostState()
 
@@ -190,7 +190,7 @@ fun CreateEntryNarrowPreview() {
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
-fun ViewEntryPreview() {
+fun ScreenViewEntryPreview() {
 
 	val scope = rememberCoroutineScope()
 	val rootSnackbar = rememberRootSnackbarHostState()

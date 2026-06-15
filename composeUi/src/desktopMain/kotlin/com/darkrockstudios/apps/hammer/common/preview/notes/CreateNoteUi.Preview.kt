@@ -21,7 +21,7 @@ import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 
 @Preview
 @Composable
-fun CreateNoteUiPreview() {
+fun ScreenCreateNoteUiPreview() {
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview) {
 			Box(
@@ -41,7 +41,7 @@ fun CreateNoteUiPreview() {
 
 @Preview
 @Composable
-fun CreateNoteUiNarrowPreview() {
+fun ScreenCreateNoteUiNarrowPreview() {
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview) {
 			Box(

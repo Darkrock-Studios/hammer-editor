@@ -23,7 +23,7 @@ import com.darkrockstudios.apps.hammer.common.timeline.CreateTimeLineEventUi
 
 @Preview
 @Composable
-fun CreateTimeLineEventUiPreview() {
+fun ScreenCreateTimeLineEventUiPreview() {
 	val scope = rememberCoroutineScope()
 
 	KoinApplicationPreview {
@@ -46,7 +46,7 @@ fun CreateTimeLineEventUiPreview() {
 
 @Preview
 @Composable
-fun CreateTimeLineEventUiNarrowPreview() {
+fun ScreenCreateTimeLineEventUiNarrowPreview() {
 	val scope = rememberCoroutineScope()
 
 	KoinApplicationPreview {

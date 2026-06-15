@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.focusmode.FocusModeUi
 
 @Preview
 @Composable
-fun FocusModeUiPreview() {
+fun ScreenFocusModeUiPreview() {
 	FocusModeUi(focusMode)
 }
 

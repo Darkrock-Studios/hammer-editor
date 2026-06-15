@@ -14,7 +14,7 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.OutlineOverviewUi
 
 @Preview
 @Composable
-fun OutlineOverviewUiPreview() {
+fun ScreenOutlineOverviewUiPreview() {
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview) {
 			OutlineOverviewUi(component)

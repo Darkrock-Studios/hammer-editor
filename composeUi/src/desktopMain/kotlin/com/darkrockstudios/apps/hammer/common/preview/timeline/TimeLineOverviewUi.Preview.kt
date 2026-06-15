@@ -13,12 +13,15 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
+import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineOverviewUi
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
-fun TimeLineOverviewUiPreview() {
+fun ScreenTimeLineOverviewUiPreview() {
 	val scope = rememberCoroutineScope()
 
 	KoinApplicationPreview {
@@ -32,6 +35,30 @@ fun TimeLineOverviewUiPreview() {
 					sharedTransitionScope = this@SharedTransitionLayout,
 					animatedVisibilityScope = this@AnimatedVisibility,
 				)
+			}
+		}
+	}
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenTimeLineOverviewUiTabletPreview() {
+	val scope = rememberCoroutineScope()
+
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			SharedTransitionLayout {
+				AnimatedVisibility(visible = true) {
+					TimeLineOverviewUi(
+						component = component,
+						scope = scope,
+						showCreate = {},
+						viewEvent = {},
+						sharedTransitionScope = this@SharedTransitionLayout,
+						animatedVisibilityScope = this@AnimatedVisibility,
+					)
+				}
 			}
 		}
 	}
