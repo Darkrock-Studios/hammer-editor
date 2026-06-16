@@ -50,7 +50,6 @@ nothing on here is a guaranteed, and I can't be sure when any of it will actuall
 
 ## Further Future
 
-- **Editor Requests:** Create a request for someone to edit a scene. A link will be generated, and
-  they can read and suggest
-  edits to the scene from a webpage. Then in-app, you can receive the edits and choose what to take.
+- ~~**Editor Requests:** Create a request for someone to edit a scene. A link will be generated, and
+  they can read and suggest edits to the scene from a webpage. Then in-app, you can receive the edits and choose what to take.~~
 - ~~**Publish on Web:** Publish a story as a simple webview you can link people to.~~
