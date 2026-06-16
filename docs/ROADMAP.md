@@ -43,7 +43,7 @@ nothing on here is a guaranteed, and I can't be sure when any of it will actuall
 - ~~**Hemingway Mode:** Provide a distraction free writing experience. Very little UI, no spell check, ect.~~
 - **Scene/Encyclopedia Integration:**
 	- ~~When you type the name of an entry in your encyclopedia, it will be hyper linked in-line to the entry.~~
-    - See a summary of which characters or locations appear in the scene
+    - ~~See a summary of which characters or locations appear in the scene~~
 - **Story Insights**: Which scene two characters first appeared in together, possibly other stuff pulling from
   encyclopedia and scenes
 - **Encyclopedia 2.0:** Type specific templates, different fields for characters, locations, and more
