@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ReaderDay
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlName
 import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.frontend.utils.Toast
 import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
@@ -61,8 +62,7 @@ fun Route.storyPage(
 					return@get
 				}
 
-				val projectName = ProjectName.decodeFromUrl(projectNameParam)
-				val project = projectsRepository.getProjectByName(session.userId, projectName)
+				val project = projectsRepository.findProjectByUrlName(session.userId, projectNameParam)
 				if (project == null) {
 					call.respond(HttpStatusCode.NotFound)
 					return@get
@@ -196,8 +196,7 @@ fun Route.storyPage(
 					return@get
 				}
 
-				val projectName = ProjectName.decodeFromUrl(projectNameParam)
-				val project = projectsRepository.getProjectByName(session.userId, projectName)
+				val project = projectsRepository.findProjectByUrlName(session.userId, projectNameParam)
 				if (project == null) {
 					call.respond(HttpStatusCode.NotFound)
 					return@get
@@ -281,8 +280,7 @@ fun Route.storyPage(
 					return@post
 				}
 
-				val projectName = ProjectName.decodeFromUrl(projectNameParam)
-				val project = projectsRepository.getProjectByName(session.userId, projectName)
+				val project = projectsRepository.findProjectByUrlName(session.userId, projectNameParam)
 				if (project == null) {
 					call.respond(HttpStatusCode.NotFound)
 					return@post
@@ -395,8 +393,7 @@ fun Route.storyPage(
 					return@post
 				}
 
-				val projectName = ProjectName.decodeFromUrl(projectNameParam)
-				val project = projectsRepository.getProjectByName(session.userId, projectName)
+				val project = projectsRepository.findProjectByUrlName(session.userId, projectNameParam)
 				if (project == null) {
 					call.respond(HttpStatusCode.NotFound)
 					return@post
@@ -458,8 +455,7 @@ fun Route.storyPage(
 					return@delete
 				}
 
-				val projectName = ProjectName.decodeFromUrl(projectNameParam)
-				val project = projectsRepository.getProjectByName(session.userId, projectName)
+				val project = projectsRepository.findProjectByUrlName(session.userId, projectNameParam)
 				if (project == null) {
 					call.respond(HttpStatusCode.NotFound)
 					return@delete

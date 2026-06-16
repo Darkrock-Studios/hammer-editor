@@ -776,8 +776,7 @@ private suspend fun ApplicationCall.resolveProject(
 		respond(HttpStatusCode.BadRequest)
 		return null
 	}
-	val projectName = ProjectName.decodeFromUrl(projectNameParam)
-	val project = projectsRepository.getProjectByName(userId, projectName)
+	val project = projectsRepository.findProjectByUrlName(userId, projectNameParam)
 	if (project == null) {
 		respond(HttpStatusCode.NotFound)
 	}
@@ -793,9 +792,9 @@ private suspend fun ApplicationCall.reviewMatchesUrlProject(
 	projectDao: ProjectDao,
 	review: ReviewRequest,
 ): Boolean {
-	val urlName = parameters["projectName"]?.let { ProjectName.decodeFromUrl(it) } ?: return false
+	val urlName = parameters["projectName"] ?: return false
 	val reviewProject = projectDao.getProjectByRowId(review.projectId) ?: return false
-	return reviewProject.name == urlName
+	return ProjectName.formatForUrl(reviewProject.name) == urlName
 }
 
 /** As [reviewMatchesUrlProject] but for routes that only have the review id. */
