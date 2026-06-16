@@ -6,7 +6,9 @@ import kotlinx.datetime.Instant;
 -- identical sync failures collapses into one growing row.
 --
 -- `user_id` is nullable and carried so the dashboard can answer "is sync failing
--- for one user or everyone". `notified_at` dedupes alert emails.
+-- for one user or everyone". `notified_at` dedupes alert emails. `status` is the
+-- HTTP status the error resolved to, letting the dashboard separate client-fault
+-- 4xx noise from server-fault 5xx errors.
 CREATE TABLE error_log (
     id BIGSERIAL PRIMARY KEY,
     fingerprint TEXT NOT NULL UNIQUE,
@@ -18,21 +20,23 @@ CREATE TABLE error_log (
     occurrence_count BIGINT NOT NULL DEFAULT 1,
     first_seen TIMESTAMPTZ AS Instant NOT NULL,
     last_seen TIMESTAMPTZ AS Instant NOT NULL,
-    notified_at TIMESTAMPTZ AS Instant
+    notified_at TIMESTAMPTZ AS Instant,
+    status INTEGER NOT NULL DEFAULT 500
 );
 
 CREATE INDEX error_log_last_seen ON error_log(last_seen);
 
 recordError:
 INSERT INTO error_log(
-    fingerprint, exception_type, route, user_id, message, stack_trace,
+    fingerprint, exception_type, route, user_id, message, stack_trace, status,
     occurrence_count, first_seen, last_seen
-) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
 ON CONFLICT (fingerprint) DO UPDATE SET
     occurrence_count = error_log.occurrence_count + 1,
     last_seen = EXCLUDED.last_seen,
     message = EXCLUDED.message,
-    stack_trace = EXCLUDED.stack_trace;
+    stack_trace = EXCLUDED.stack_trace,
+    status = EXCLUDED.status;
 
 getRecentErrors:
 SELECT * FROM error_log

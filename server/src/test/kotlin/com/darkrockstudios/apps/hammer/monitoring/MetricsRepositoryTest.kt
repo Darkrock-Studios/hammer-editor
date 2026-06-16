@@ -10,6 +10,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.hours
+import kotlin.time.Instant
 
 class MetricsRepositoryTest : BaseTest() {
 
@@ -61,5 +63,66 @@ class MetricsRepositoryTest : BaseTest() {
 		val totals = repo.getTotals(since)
 		assertTrue(totals.requestCount >= 16L)
 		assertTrue(totals.errorCount >= 1L)
+	}
+
+	@Test
+	fun `daily time series folds recent hour buckets onto day boundaries`() = runTest {
+		val dao = ApiMetricDao(db)
+		val repo = MetricsRepository(dao)
+
+		// All data is still hour-resolution (younger than the 7-day rollup window),
+		// which is exactly the state a server is in for its first week.
+		val dayStart = truncateToUtcDay(now)
+		val prevDayStart = dayStart - 1.days
+		dao.upsertBucket(
+			dayStart + 1.hours,
+			"HOUR",
+			routeA,
+			"GET",
+			10,
+			1,
+			1000,
+			9,
+			1,
+			0,
+			0,
+			0,
+			0,
+			0
+		)
+		dao.upsertBucket(dayStart + 2.hours, "HOUR", routeA, "GET", 5, 0, 250, 5, 0, 0, 0, 0, 0, 0)
+		dao.upsertBucket(
+			prevDayStart + 5.hours,
+			"HOUR",
+			routeA,
+			"GET",
+			3,
+			0,
+			90,
+			3,
+			0,
+			0,
+			0,
+			0,
+			0,
+			0
+		)
+
+		val series = repo.getTimeSeries(now - 30.days, hourly = false)
+		assertEquals(2, series.size)
+
+		val (older, newer) = series
+		assertEquals(prevDayStart, older.bucketStart)
+		assertEquals(3L, older.requests)
+
+		assertEquals(dayStart, newer.bucketStart)
+		assertEquals(15L, newer.requests)        // two hour buckets folded into one day
+		assertEquals(1L, newer.errors)
+		assertEquals(100L, newer.p95Ms)          // combined histogram: 14 <=50ms, 1 <=100ms
+	}
+
+	private fun truncateToUtcDay(instant: Instant): Instant {
+		val dayMillis = 24 * 60 * 60 * 1000L
+		return Instant.fromEpochMilliseconds(instant.toEpochMilliseconds() / dayMillis * dayMillis)
 	}
 }

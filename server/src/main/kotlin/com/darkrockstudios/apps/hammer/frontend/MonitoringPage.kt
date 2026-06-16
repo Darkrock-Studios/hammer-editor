@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.Error_log
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
+import com.darkrockstudios.apps.hammer.monitoring.DailyActiveUsers
 import com.darkrockstudios.apps.hammer.monitoring.EndpointStat
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.LATENCY_OVERFLOW_MS
@@ -13,15 +14,18 @@ import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
 import com.darkrockstudios.apps.hammer.monitoring.SecurityAlert
 import com.darkrockstudios.apps.hammer.monitoring.SecurityAlerts
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
+import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.monitoring.TimeSeriesPoint
+import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
-import io.ktor.server.application.*
-import io.ktor.server.mustache.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.server.mustache.MustacheContent
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.route
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -46,6 +50,8 @@ fun Route.adminMonitoringPages(
 	configRepository: ConfigRepository,
 	errorRepository: ErrorRepository,
 	securityRepository: SecurityRepository,
+	userActivityRepository: UserActivityRepository,
+	storyReaderRepository: StoryReaderRepository,
 	projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession>,
 	projectSyncManager: SyncSessionManager<*, ProjectSynchronizationSession>,
 	clock: Clock,
@@ -71,6 +77,15 @@ fun Route.adminMonitoringPages(
 			val alerts = securityAlerts + deriveAlerts(stats)
 			val chart = buildHourlyChart(metricsRepository.getHourBucketsSince(since))
 
+			val now = clock.now()
+			val activeUsers = userActivityRepository.activeUsersOverview(now)
+			val hasActiveUsers = with(activeUsers) {
+				listOf(sync.h24, sync.d7, sync.d30, web.h24, web.d7, web.d30).any { it > 0 }
+			}
+
+			val readers = storyReaderRepository.readerCounts(now)
+			val hasReaders = listOf(readers.h24, readers.d7, readers.d30).any { it > 0 }
+
 			val model = mutableMapOf<String, Any>(
 				"page_stylesheet" to "/assets/css/admin.css",
 				"activeMonitoring" to true,
@@ -87,6 +102,18 @@ fun Route.adminMonitoringPages(
 				"topSlow" to topSlow,
 				"hasTopSlow" to topSlow.isNotEmpty(),
 				"chartJson" to chart,
+				"hasActiveUsers" to hasActiveUsers,
+				"usersSync24h" to formatCount(activeUsers.sync.h24),
+				"usersSync7d" to formatCount(activeUsers.sync.d7),
+				"usersSync30d" to formatCount(activeUsers.sync.d30),
+				"usersWeb24h" to formatCount(activeUsers.web.h24),
+				"usersWeb7d" to formatCount(activeUsers.web.d7),
+				"usersWeb30d" to formatCount(activeUsers.web.d30),
+				"activeUsersChartJson" to buildActiveUsersChart(activeUsers.daily),
+				"hasReaders" to hasReaders,
+				"readers24h" to formatCount(readers.h24),
+				"readers7d" to formatCount(readers.d7),
+				"readers30d" to formatCount(readers.d30),
 			)
 
 			call.respond(MustacheContent("admin-monitoring.mustache", call.withDefaults(model)))
@@ -170,6 +197,7 @@ fun Route.adminMonitoringPages(
 					exceptionType = e.exception_type,
 					route = e.route,
 					userId = e.user_id,
+					status = e.status,
 					occurrences = e.occurrence_count,
 					firstSeen = e.first_seen.toString(),
 					lastSeen = e.last_seen.toString(),
@@ -257,18 +285,27 @@ private fun logLineModel(line: LogLine): Map<String, Any> = mapOf(
 	"message" to line.message,
 )
 
-private fun errorRowModel(e: Error_log): Map<String, Any> = mapOf(
-	"type" to e.exception_type,
-	"route" to (e.route ?: "—"),
-	"user" to (e.user_id?.toString() ?: "all"),
-	"hasUser" to (e.user_id != null),
-	"count" to e.occurrence_count,
-	"lastSeen" to formatInstant(e.last_seen, "MMM dd, HH:mm"),
-	"message" to (e.message ?: ""),
-	"hasMessage" to (e.message != null),
-	"stackTrace" to (e.stack_trace ?: ""),
-	"hasStack" to (e.stack_trace != null),
-)
+private fun errorRowModel(e: Error_log): Map<String, Any> {
+	val severity = severityFor(e.status)
+	return mapOf(
+		"type" to e.exception_type,
+		"route" to (e.route ?: "—"),
+		"user" to (e.user_id?.toString() ?: "all"),
+		"hasUser" to (e.user_id != null),
+		"count" to e.occurrence_count,
+		"status" to e.status,
+		"severity" to severity,
+		"severityIcon" to if (severity == "warning") "fa-triangle-exclamation" else "fa-circle-exclamation",
+		"lastSeen" to formatInstant(e.last_seen, "MMM dd, HH:mm"),
+		"message" to (e.message ?: ""),
+		"hasMessage" to (e.message != null),
+		"stackTrace" to (e.stack_trace ?: ""),
+		"hasStack" to (e.stack_trace != null),
+	)
+}
+
+/** Server-fault 5xx errors are loud; client-fault 4xx errors are quieter warnings. */
+private fun severityFor(status: Int): String = if (status in 400..499) "warning" else "error"
 
 // --- model helpers ---
 
@@ -329,6 +366,15 @@ private fun buildLatencyChart(points: List<TimeSeriesPoint>, labelFormat: String
 	return Json.encodeToString(LatencyChartPayload.serializer(), payload)
 }
 
+private fun buildActiveUsersChart(daily: List<DailyActiveUsers>): String {
+	val payload = ActiveUsersChartPayload(
+		labels = daily.map { formatInstant(it.day, "MMM dd") },
+		sync = daily.map { it.sync },
+		web = daily.map { it.web },
+	)
+	return Json.encodeToString(ActiveUsersChartPayload.serializer(), payload)
+}
+
 private fun buildHourlyChart(buckets: List<com.darkrockstudios.apps.hammer.Api_metric_bucket>): String {
 	val byHour = buckets.groupBy { it.bucket_start }.toSortedMap()
 	val payload = ChartPayload(
@@ -362,6 +408,13 @@ private data class ChartPayload(
 	val errors: List<Long>,
 )
 
+@Serializable
+private data class ActiveUsersChartPayload(
+	val labels: List<String>,
+	val sync: List<Long>,
+	val web: List<Long>,
+)
+
 private val errorExportJson = Json { prettyPrint = true }
 
 @Serializable
@@ -369,6 +422,7 @@ private data class ErrorExport(
 	val exceptionType: String,
 	val route: String?,
 	val userId: Long?,
+	val status: Int,
 	val occurrences: Long,
 	val firstSeen: String,
 	val lastSeen: String,

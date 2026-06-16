@@ -76,6 +76,64 @@
 				</div>
 			</div>
 
+			<!-- Active users: window rollups (DAU/WAU/MAU) + daily trend -->
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_mon_active_users_title}}</h2>
+				</div>
+				<div class="mon-users-windows">
+					<div class="mon-users-window">
+						<span class="mon-users-window__label">{{msg.admin_mon_window_24h}}</span>
+						<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_active_users_sync}}</span><span class="mon-users-window__value">{{usersSync24h}}</span></div>
+						<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_active_users_web}}</span><span class="mon-users-window__value">{{usersWeb24h}}</span></div>
+					</div>
+					<div class="mon-users-window">
+						<span class="mon-users-window__label">{{msg.admin_mon_window_7d}}</span>
+						<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_active_users_sync}}</span><span class="mon-users-window__value">{{usersSync7d}}</span></div>
+						<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_active_users_web}}</span><span class="mon-users-window__value">{{usersWeb7d}}</span></div>
+					</div>
+					<div class="mon-users-window">
+						<span class="mon-users-window__label">{{msg.admin_mon_window_30d}}</span>
+						<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_active_users_sync}}</span><span class="mon-users-window__value">{{usersSync30d}}</span></div>
+						<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_active_users_web}}</span><span class="mon-users-window__value">{{usersWeb30d}}</span></div>
+					</div>
+				</div>
+				{{#hasActiveUsers}}
+					<h3 class="mon-users-trend-title">{{msg.admin_mon_active_users_trend}}</h3>
+					<div class="mon-chart" id="mon-active-users-chart"></div>
+				{{/hasActiveUsers}}
+				{{^hasActiveUsers}}
+					<div class="empty-state"><p>{{msg.admin_mon_no_data}}</p></div>
+				{{/hasActiveUsers}}
+			</section>
+
+			<!-- Story readers: best-effort unique readers of published / shared stories -->
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_mon_readers_title}}</h2>
+				</div>
+				<p class="section-description">{{msg.admin_mon_readers_subtitle}}</p>
+				{{#hasReaders}}
+					<div class="mon-users-windows">
+						<div class="mon-users-window">
+							<span class="mon-users-window__label">{{msg.admin_mon_window_24h}}</span>
+							<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_readers_unique}}</span><span class="mon-users-window__value">{{readers24h}}</span></div>
+						</div>
+						<div class="mon-users-window">
+							<span class="mon-users-window__label">{{msg.admin_mon_window_7d}}</span>
+							<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_readers_unique}}</span><span class="mon-users-window__value">{{readers7d}}</span></div>
+						</div>
+						<div class="mon-users-window">
+							<span class="mon-users-window__label">{{msg.admin_mon_window_30d}}</span>
+							<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_readers_unique}}</span><span class="mon-users-window__value">{{readers30d}}</span></div>
+						</div>
+					</div>
+				{{/hasReaders}}
+				{{^hasReaders}}
+					<div class="empty-state"><p>{{msg.admin_mon_no_data}}</p></div>
+				{{/hasReaders}}
+			</section>
+
 			<!-- Traffic chart -->
 			<section class="paper-section">
 				<div class="section-header">
@@ -135,6 +193,29 @@
 			colors: ["#d97706", "#ef4444"],
 			axisOptions: { xAxisMode: "tick" },
 			lineOptions: { hideDots: 1, regionFill: 1 }
+		});
+	})();
+
+	(function () {
+		var el = document.getElementById("mon-active-users-chart");
+		if (!el) return;
+		var data = {{{activeUsersChartJson}}};
+		if (!data.labels || !data.labels.length) return;
+		var ChartCtor = (window.frappe && window.frappe.Chart) || window.Chart;
+		if (!ChartCtor) return;
+		new ChartCtor(el, {
+			data: {
+				labels: data.labels,
+				datasets: [
+					{ name: "{{msg.admin_mon_active_users_sync}}", values: data.sync },
+					{ name: "{{msg.admin_mon_active_users_web}}", values: data.web }
+				]
+			},
+			type: "line",
+			height: 240,
+			colors: ["#d97706", "#2563eb"],
+			axisOptions: { xAxisMode: "tick" },
+			lineOptions: { hideDots: 0, regionFill: 0 }
 		});
 	})();
 </script>

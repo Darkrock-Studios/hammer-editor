@@ -1,14 +1,11 @@
 // Top-level functions in this file are wired to HTML elements from mustache
 // templates (onclick=..., hx-* attributes) — ESLint can't see those references.
 /* eslint-disable no-unused-vars */
-/* global htmx */
+/* global htmx, PEN_NAME_MAX_LENGTH, validateClientSide */
 
-// Pen Name validation state
+// Pen Name validation state. Validation rules live in pen-name-logic.js,
+// loaded as a pre-script so its functions are globals here.
 const PenNameState = {
-	MIN_LENGTH: 4,
-	MAX_LENGTH: 32,
-	// Unicode letters, numbers, spaces, hyphens, underscores - must start with letter
-	PATTERN: /^[\p{L}][\p{L}\p{N} _-]*$/u,
 	checkTimeout: null,
 	isValid: false,
 	isAvailable: false,
@@ -40,30 +37,9 @@ function resetValidationState() {
 function updateCharCount(value) {
 	const count = value.length;
 	const countEl = document.getElementById('char-count');
-	countEl.textContent = `${count}/${PenNameState.MAX_LENGTH}`;
-	countEl.classList.toggle('at-limit', count >= PenNameState.MAX_LENGTH);
-	countEl.classList.toggle('near-limit', count >= PenNameState.MAX_LENGTH - 5 && count < PenNameState.MAX_LENGTH);
-}
-
-function validateClientSide(penName) {
-	const trimmed = penName.trim();
-
-	if (trimmed.length === 0) {
-		return {valid: false, message: ''};
-	}
-	if (trimmed.length < PenNameState.MIN_LENGTH) {
-		return {valid: false, message: `At least ${PenNameState.MIN_LENGTH} characters needed`};
-	}
-	if (trimmed.length > PenNameState.MAX_LENGTH) {
-		return {valid: false, message: `Maximum ${PenNameState.MAX_LENGTH} characters allowed`};
-	}
-	if (!PenNameState.PATTERN.test(trimmed)) {
-		return {
-			valid: false,
-			message: 'Must start with a letter. Only letters, numbers, spaces, hyphens, and underscores allowed.'
-		};
-	}
-	return {valid: true, message: ''};
+	countEl.textContent = `${count}/${PEN_NAME_MAX_LENGTH}`;
+	countEl.classList.toggle('at-limit', count >= PEN_NAME_MAX_LENGTH);
+	countEl.classList.toggle('near-limit', count >= PEN_NAME_MAX_LENGTH - 5 && count < PEN_NAME_MAX_LENGTH);
 }
 
 function showValidationFeedback(type, message) {

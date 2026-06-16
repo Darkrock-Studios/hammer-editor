@@ -2,7 +2,13 @@ package com.darkrockstudios.apps.hammer.common.compose.markdowneditor
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
@@ -10,17 +16,53 @@ import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.HorizontalRule
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.common.compose.icons.*
+import com.darkrockstudios.apps.hammer.common.compose.boldShortcutModifier
+import com.darkrockstudios.apps.hammer.common.compose.icons.EditorIcons
+import com.darkrockstudios.apps.hammer.common.compose.icons.IconBold
+import com.darkrockstudios.apps.hammer.common.compose.icons.IconItalic
+import com.darkrockstudios.apps.hammer.common.compose.icons.IconRedo
+import com.darkrockstudios.apps.hammer.common.compose.icons.IconStrikethrough
+import com.darkrockstudios.apps.hammer.common.compose.icons.IconTextDecrease
+import com.darkrockstudios.apps.hammer.common.compose.icons.IconTextIncrease
+import com.darkrockstudios.apps.hammer.common.compose.icons.IconTextReset
+import com.darkrockstudios.apps.hammer.common.compose.icons.IconUndo
+import com.darkrockstudios.apps.hammer.common.compose.italicShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.strikethroughShortcutModifier
+import com.darkrockstudios.apps.hammer.markdown_format_bar_blockquote
+import com.darkrockstudios.apps.hammer.markdown_format_bar_bold
+import com.darkrockstudios.apps.hammer.markdown_format_bar_bullet_list
 import com.darkrockstudios.apps.hammer.markdown_format_bar_decrease_text_size
+import com.darkrockstudios.apps.hammer.markdown_format_bar_heading
+import com.darkrockstudios.apps.hammer.markdown_format_bar_horizontal_rule
 import com.darkrockstudios.apps.hammer.markdown_format_bar_increase_text_size
+import com.darkrockstudios.apps.hammer.markdown_format_bar_italic
+import com.darkrockstudios.apps.hammer.markdown_format_bar_numbered_list
+import com.darkrockstudios.apps.hammer.markdown_format_bar_redo
 import com.darkrockstudios.apps.hammer.markdown_format_bar_reset_text_size
+import com.darkrockstudios.apps.hammer.markdown_format_bar_strikethrough
+import com.darkrockstudios.apps.hammer.markdown_format_bar_undo
+import com.darkrockstudios.apps.hammer.more_menu_button
 import com.darkrockstudios.texteditor.markdown.MarkdownExtension
 import com.darkrockstudios.texteditor.richstyle.OrderedListSpanStyle
 import com.darkrockstudios.texteditor.state.TextEditorState
@@ -124,53 +166,91 @@ private fun RowScope.FormatButtons(
 	isOrderedListActive: Boolean,
 	currentHeaderLevel: Int,
 ) {
-	EditorAction(
-		icon = EditorIcons.IconBold,
-		active = isBoldActive,
-	) {
-		toggleStyle(state, isBoldActive, markdownState.markdownStyles.BOLD)
+	EditorTooltip("${Res.string.markdown_format_bar_bold.get()} (${shortcutHint("B")})") {
+		EditorAction(
+			icon = EditorIcons.IconBold,
+			active = isBoldActive,
+		) {
+			toggleStyle(state, markdownState.markdownStyles.BOLD)
+		}
 	}
-	EditorAction(
-		icon = EditorIcons.IconItalic,
-		active = isItalicActive,
-	) {
-		toggleStyle(state, isItalicActive, markdownState.markdownStyles.ITALICS)
+	EditorTooltip("${Res.string.markdown_format_bar_italic.get()} (${shortcutHint("I")})") {
+		EditorAction(
+			icon = EditorIcons.IconItalic,
+			active = isItalicActive,
+		) {
+			toggleStyle(state, markdownState.markdownStyles.ITALICS)
+		}
 	}
-	EditorAction(
-		icon = EditorIcons.IconStrikethrough,
-		active = isStrikethroughActive,
+	EditorTooltip(
+		"${Res.string.markdown_format_bar_strikethrough.get()} (${
+			shortcutHint(
+				"X",
+				shift = true
+			)
+		})"
 	) {
-		toggleStyle(state, isStrikethroughActive, markdownState.markdownStyles.STRIKETHROUGH)
+		EditorAction(
+			icon = EditorIcons.IconStrikethrough,
+			active = isStrikethroughActive,
+		) {
+			toggleStyle(state, markdownState.markdownStyles.STRIKETHROUGH)
+		}
 	}
-	EditorTextAction(
-		label = if (currentHeaderLevel == 0) "H" else "H$currentHeaderLevel",
-		active = currentHeaderLevel != 0,
-	) {
-		cycleHeader(state, markdownState, currentHeaderLevel)
+	EditorTooltip(Res.string.markdown_format_bar_heading.get()) {
+		EditorTextAction(
+			label = if (currentHeaderLevel == 0) "H" else "H$currentHeaderLevel",
+			active = currentHeaderLevel != 0,
+		) {
+			cycleHeader(state, markdownState, currentHeaderLevel)
+		}
 	}
-	EditorAction(
-		icon = Icons.Default.FormatQuote,
-		active = isBlockquoteActive,
-	) {
-		toggleStyle(state, isBlockquoteActive, markdownState.markdownStyles.BLOCKQUOTE)
+	EditorTooltip(Res.string.markdown_format_bar_blockquote.get()) {
+		EditorAction(
+			icon = Icons.Default.FormatQuote,
+			active = isBlockquoteActive,
+		) {
+			toggleStyle(state, markdownState.markdownStyles.BLOCKQUOTE)
+		}
 	}
-	EditorAction(
-		icon = Icons.AutoMirrored.Filled.FormatListBulleted,
-		active = false,
-	) {
-		insertLineBullet(state)
+	EditorTooltip(Res.string.markdown_format_bar_bullet_list.get()) {
+		EditorAction(
+			icon = Icons.AutoMirrored.Filled.FormatListBulleted,
+			active = false,
+		) {
+			insertLineBullet(state)
+		}
 	}
-	EditorAction(
-		icon = Icons.Default.FormatListNumbered,
-		active = isOrderedListActive,
-	) {
-		toggleOrderedList(state, markdownState)
+	EditorTooltip(Res.string.markdown_format_bar_numbered_list.get()) {
+		EditorAction(
+			icon = Icons.Default.FormatListNumbered,
+			active = isOrderedListActive,
+		) {
+			toggleOrderedList(state, markdownState)
+		}
 	}
-	EditorAction(
-		icon = Icons.Default.HorizontalRule,
-		active = false,
+	EditorTooltip(Res.string.markdown_format_bar_horizontal_rule.get()) {
+		EditorAction(
+			icon = Icons.Default.HorizontalRule,
+			active = false,
+		) {
+			insertHorizontalRule(state)
+		}
+	}
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun EditorTooltip(
+	text: String,
+	content: @Composable () -> Unit,
+) {
+	TooltipBox(
+		positionProvider = TooltipDefaults.rememberTooltipPositionProvider(),
+		tooltip = { PlainTooltip { Text(text) } },
+		state = rememberTooltipState(),
 	) {
-		insertHorizontalRule(state)
+		content()
 	}
 }
 
@@ -182,28 +262,34 @@ private fun HistoryAndOverflow(
 	resetTextSize: (() -> Unit)?,
 	showOverflow: Boolean,
 ) {
-	EditorAction(
-		icon = EditorIcons.IconUndo,
-		active = state.canUndo
-	) {
-		state.undo()
+	EditorTooltip(Res.string.markdown_format_bar_undo.get()) {
+		EditorAction(
+			icon = EditorIcons.IconUndo,
+			active = state.canUndo
+		) {
+			state.undo()
+		}
 	}
-	EditorAction(
-		icon = EditorIcons.IconRedo,
-		active = state.canRedo
-	) {
-		state.redo()
+	EditorTooltip(Res.string.markdown_format_bar_redo.get()) {
+		EditorAction(
+			icon = EditorIcons.IconRedo,
+			active = state.canRedo
+		) {
+			state.redo()
+		}
 	}
 
 	if (!showOverflow) return
 
 	var menuExpanded by remember { mutableStateOf(false) }
 	Box {
-		EditorAction(
-			icon = Icons.Default.MoreVert,
-			active = false,
-		) {
-			menuExpanded = true
+		EditorTooltip(Res.string.more_menu_button.get()) {
+			EditorAction(
+				icon = Icons.Default.MoreVert,
+				active = false,
+			) {
+				menuExpanded = true
+			}
 		}
 		DropdownMenu(
 			expanded = menuExpanded,
@@ -258,19 +344,39 @@ private fun HistoryAndOverflow(
 	}
 }
 
+/**
+ * Hooks Ctrl/Cmd+B, Ctrl/Cmd+I and Ctrl/Cmd+Shift+X up to bold, italic and
+ * strikethrough so the inline styles in the format bar are also reachable from
+ * the keyboard. Apply to an ancestor of the editor (the events are caught in the
+ * preview phase, before the editor's own key handling sees them).
+ */
+fun Modifier.markdownFormatShortcuts(markdownExtension: MarkdownExtension): Modifier {
+	val state = markdownExtension.editorState
+	return this
+		.boldShortcutModifier { toggleStyle(state, markdownExtension.markdownStyles.BOLD) }
+		.italicShortcutModifier { toggleStyle(state, markdownExtension.markdownStyles.ITALICS) }
+		.strikethroughShortcutModifier { toggleStyle(state, markdownExtension.markdownStyles.STRIKETHROUGH) }
+}
+
+/**
+ * Toggles [spanStyle] over the current selection, or at the cursor when there is
+ * no selection. The active state is read synchronously from the editor so this is
+ * safe to call from a keyboard shortcut as well as a toolbar button.
+ */
 private fun toggleStyle(
 	state: TextEditorState,
-	isActive: Boolean,
-	spanStyle: SpanStyle
+	spanStyle: SpanStyle,
 ) {
 	val selection = state.selector.selection
 	if (selection != null) {
+		val isActive = state.getSpanStylesInRange(selection).contains(spanStyle)
 		if (isActive) {
 			state.removeStyleSpan(selection, spanStyle)
 		} else {
 			state.addStyleSpan(selection, spanStyle)
 		}
 	} else {
+		val isActive = state.cursor.styles.contains(spanStyle)
 		if (isActive) {
 			state.cursor.removeStyle(spanStyle)
 		} else {

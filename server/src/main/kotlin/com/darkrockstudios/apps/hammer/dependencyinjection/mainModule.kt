@@ -20,6 +20,10 @@ import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringMaintenanceJob
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
+import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
+import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
+import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
+import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
 import com.darkrockstudios.apps.hammer.patreon.PatreonApiClient
 import com.darkrockstudios.apps.hammer.patreon.PatreonPollingJob
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
@@ -101,6 +105,8 @@ fun mainModule(
 	singleOf(::ApiMetricDao)
 	singleOf(::ErrorLogDao)
 	singleOf(::LoginAttemptDao)
+	singleOf(::UserActivityDao)
+	singleOf(::PublishedStoryReaderDao)
 
 	singleOf(::AccountsRepository)
 	singleOf(::ProjectsRepository)
@@ -114,6 +120,10 @@ fun mainModule(
 	singleOf(::ErrorRepository)
 	singleOf(::SecurityRepository)
 	singleOf(::MetricsCollector)
+	singleOf(::UserActivityCollector)
+	singleOf(::UserActivityRepository)
+	singleOf(::StoryReaderCollector)
+	singleOf(::StoryReaderRepository)
 	single { MonitoringState() }
 	singleOf(::MonitoringMaintenanceJob)
 	singleOf(::StoryExportService)

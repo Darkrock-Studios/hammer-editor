@@ -1,6 +1,6 @@
 [versions]
 # App Versions
-app = "3.3.0"
+app = "3.3.1"
 data_version = "1.0"
 
 # Kotlin
@@ -55,9 +55,9 @@ moko_permissions = "0.20.1"
 decompose = "3.5.0"
 essenty = "2.5.0" # This should match whatever decompose is referncing internally
 
-filekit = "0.14.1"
+filekit = "0.14.2"
 koalaplot-core = "0.11.2"
-coil = "3.4.0"
+coil = "3.5.0"
 kmpalette = "3.1.0"
 
 koin_bom = "4.2.1"
@@ -95,7 +95,7 @@ korge-core = "6.0.0"
 bouncycastle = "1.84"
 kotlinx-io-okio = "0.9.0"
 
-compose-texteditor = "2.2.2"
+compose-texteditor = "2.2.3"
 kotlin-multiplatform-diff = "1.3.0"
 platform-spellcheckerkt = "1.3.0"
 nucleus = "1.15.7"

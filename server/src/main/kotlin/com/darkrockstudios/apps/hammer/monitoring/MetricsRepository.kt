@@ -2,8 +2,9 @@ package com.darkrockstudios.apps.hammer.monitoring
 
 import com.darkrockstudios.apps.hammer.Api_metric_bucket
 import com.darkrockstudios.apps.hammer.database.ApiMetricDao
-import kotlin.time.Instant
+import com.darkrockstudios.apps.hammer.utilities.truncateToUtcDay
 import org.koin.core.component.KoinComponent
+import kotlin.time.Instant
 
 /**
  * Read/write access to rolled-up API metrics. The in-memory collector (Phase 2)
@@ -86,9 +87,20 @@ class MetricsRepository(
 		)
 	}
 
+	/**
+	 * Time series since [since]. The hourly view reads HOUR buckets directly; the
+	 * daily view merges HOUR and DAY buckets and folds each onto its UTC day, so
+	 * recent data still living at hour resolution (younger than the rollup window)
+	 * shows up in the 7d/30d ranges instead of waiting to age into DAY buckets.
+	 */
 	suspend fun getTimeSeries(since: Instant, hourly: Boolean): List<TimeSeriesPoint> {
-		val raw = if (hourly) getHourBucketsSince(since) else getDayBucketsSince(since)
-		return raw.groupBy { it.bucket_start }.entries
+		val raw = if (hourly) {
+			getHourBucketsSince(since)
+		} else {
+			getHourBucketsSince(since) + getDayBucketsSince(since)
+		}
+		val bucketKey: (Instant) -> Instant = if (hourly) { ts -> ts } else Instant::truncateToUtcDay
+		return raw.groupBy { bucketKey(it.bucket_start) }.entries
 			.sortedBy { it.key }
 			.map { (ts, rows) ->
 				val requests = rows.sumOf { it.request_count }

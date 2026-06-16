@@ -36,7 +36,7 @@ import com.darkrockstudios.apps.hammer.common.encyclopedia.ViewEntryUi
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
-private fun EntryDefItemPreview() {
+fun EntryDefItemPreview() {
 	val scope = rememberCoroutineScope()
 
 	val entry = EntryDef(
@@ -46,17 +46,19 @@ private fun EntryDefItemPreview() {
 		projectDef = fakeProjectDef()
 	)
 
-	SharedTransitionLayout {
-		AnimatedVisibility(visible = true) {
-			EncyclopediaEntryItem(
-				entryDef = entry,
-				component = browseEntriesComponent,
-				viewEntry = {},
-				scope = scope,
-				sharedTransitionScope = this@SharedTransitionLayout,
-				animatedVisibilityScope = this@AnimatedVisibility,
-				filterByType = {}
-			)
+	KoinApplicationPreview {
+		SharedTransitionLayout {
+			AnimatedVisibility(visible = true) {
+				EncyclopediaEntryItem(
+					entryDef = entry,
+					component = browseEntriesComponent,
+					viewEntry = {},
+					scope = scope,
+					sharedTransitionScope = this@SharedTransitionLayout,
+					animatedVisibilityScope = this@AnimatedVisibility,
+					filterByType = {}
+				)
+			}
 		}
 	}
 }
@@ -91,7 +93,7 @@ private val browseEntriesComponent: BrowseEntries = object : BrowseEntries {
 
 @Preview
 @Composable
-private fun EncyclopediaUiPreview() {
+fun ScreenEncyclopediaUiPreview() {
 	val component: Encyclopedia = object : Encyclopedia {
 		override val backHandler = dummyBackHandler
 		override fun onBack() {}
@@ -115,7 +117,9 @@ private fun EncyclopediaUiPreview() {
 		override fun shouldConfirmClose() = emptySet<CloseConfirm>()
 	}
 	val rootSnackbar = rememberRootSnackbarHostState()
-	EncyclopediaUi(component, rootSnackbar)
+	KoinApplicationPreview {
+		EncyclopediaUi(component, rootSnackbar)
+	}
 }
 
 private val fakeCreateEntryComponent: CreateEntry = object : CreateEntry {
@@ -137,44 +141,48 @@ private val fakeCreateEntryComponent: CreateEntry = object : CreateEntry {
 
 @Preview
 @Composable
-private fun CreateEntryPreview() {
+fun ScreenCreateEntryPreview() {
 	val scope = rememberCoroutineScope()
 	val rootSnackbar = rememberRootSnackbarHostState()
 
-	AppTheme(globalSettingsPreview) {
-		Box(
-			modifier = Modifier
-				.background(MaterialTheme.colorScheme.background)
-				.size(width = 1280.dp, height = 900.dp),
-		) {
-			CreateEntryUi(
-				component = fakeCreateEntryComponent,
-				scope = scope,
-				rootSnackbar = rootSnackbar,
-				modifier = Modifier,
-			) {}
+	KoinApplicationPreview {
+		AppTheme(globalSettingsPreview) {
+			Box(
+				modifier = Modifier
+					.background(MaterialTheme.colorScheme.background)
+					.size(width = 1280.dp, height = 900.dp),
+			) {
+				CreateEntryUi(
+					component = fakeCreateEntryComponent,
+					scope = scope,
+					rootSnackbar = rootSnackbar,
+					modifier = Modifier,
+				) {}
+			}
 		}
 	}
 }
 
 @Preview
 @Composable
-private fun CreateEntryNarrowPreview() {
+fun ScreenCreateEntryNarrowPreview() {
 	val scope = rememberCoroutineScope()
 	val rootSnackbar = rememberRootSnackbarHostState()
 
-	AppTheme(globalSettingsPreview) {
-		Box(
-			modifier = Modifier
-				.background(MaterialTheme.colorScheme.background)
-				.size(width = 390.dp, height = 780.dp),
-		) {
-			CreateEntryUi(
-				component = fakeCreateEntryComponent,
-				scope = scope,
-				rootSnackbar = rootSnackbar,
-				modifier = Modifier,
-			) {}
+	KoinApplicationPreview {
+		AppTheme(globalSettingsPreview) {
+			Box(
+				modifier = Modifier
+					.background(MaterialTheme.colorScheme.background)
+					.size(width = 390.dp, height = 780.dp),
+			) {
+				CreateEntryUi(
+					component = fakeCreateEntryComponent,
+					scope = scope,
+					rootSnackbar = rootSnackbar,
+					modifier = Modifier,
+				) {}
+			}
 		}
 	}
 }
@@ -182,11 +190,12 @@ private fun CreateEntryNarrowPreview() {
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
-private fun ViewEntryPreview() {
+fun ScreenViewEntryPreview() {
 
 	val scope = rememberCoroutineScope()
 	val rootSnackbar = rememberRootSnackbarHostState()
 
+	KoinApplicationPreview {
 	Column {
 		AppTheme(globalSettingsPreview) {
 			Box(
@@ -233,6 +242,7 @@ private fun ViewEntryPreview() {
 				}
 			}
 		}
+	}
 	}
 }
 

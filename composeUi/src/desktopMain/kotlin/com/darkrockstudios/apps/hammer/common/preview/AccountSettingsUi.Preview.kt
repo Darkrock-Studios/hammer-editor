@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.projectselection.settings.AccountS
 
 @Preview
 @Composable
-internal fun AccountSettingsUiPreview() {
+internal fun ScreenAccountSettingsUiPreview() {
 	val component = accountSettingsComponent()
 	val rootSnackbar = rememberRootSnackbarHostState()
 
@@ -23,7 +23,7 @@ internal fun AccountSettingsUiPreview() {
 
 @Preview
 @Composable
-internal fun AccountSettingsUiNoServerSetupPreview() {
+internal fun ScreenAccountSettingsUiNoServerSetupPreview() {
 	val component = accountSettingsComponent(
 		defaultAccountSettingsComponentState.copy(serverSetup = false)
 	)
@@ -38,7 +38,7 @@ internal fun AccountSettingsUiNoServerSetupPreview() {
 
 @Preview
 @Composable
-internal fun AccountSettingsUiServerConfiguredPreview() {
+internal fun ScreenAccountSettingsUiServerConfiguredPreview() {
 	val component = accountSettingsComponent(
 		defaultAccountSettingsComponentState.copy(
 			serverSetup = false,

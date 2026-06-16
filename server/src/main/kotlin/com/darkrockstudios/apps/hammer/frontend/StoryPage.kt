@@ -2,19 +2,43 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.base.ProjectId
-import com.darkrockstudios.apps.hammer.frontend.utils.*
+import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.database.ReaderDay
+import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
+import com.darkrockstudios.apps.hammer.frontend.utils.Toast
+import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
+import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
+import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
+import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
+import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.story.*
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.htmx.*
-import io.ktor.server.mustache.*
-import io.ktor.server.plugins.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import io.ktor.server.sessions.*
+import com.darkrockstudios.apps.hammer.utilities.truncateToUtcDay
+import com.darkrockstudios.apps.hammer.story.SceneHierarchyResult
+import com.darkrockstudios.apps.hammer.story.SingleSceneExportResult
+import com.darkrockstudios.apps.hammer.story.StoryExportResult
+import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.story.WordCountUtils
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationCall
+import io.ktor.server.htmx.hx
+import io.ktor.server.mustache.MustacheContent
+import io.ktor.server.plugins.origin
+import io.ktor.server.request.host
+import io.ktor.server.request.port
+import io.ktor.server.request.receiveParameters
+import io.ktor.server.response.respond
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.route
+import io.ktor.server.sessions.sessions
+import java.time.ZoneOffset
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
 
 fun Route.storyPage(
 	storyExportService: StoryExportService,
@@ -22,6 +46,9 @@ fun Route.storyPage(
 	projectsRepository: ProjectsRepository,
 	accountsRepository: AccountsRepository,
 	reviewRepository: com.darkrockstudios.apps.hammer.review.ReviewRepository,
+	storyReaderRepository: StoryReaderRepository,
+	projectDao: ProjectDao,
+	clock: kotlin.time.Clock,
 ) {
 	authenticatedOnly {
 		route("/story/{projectName}") {
@@ -77,6 +104,14 @@ fun Route.storyPage(
 						val isPublished = projectAccessRepository.isPublished(session.userId, projectId)
 						val hasAnyAccess = projectAccessRepository.hasAnyAccess(session.userId, projectId)
 						val accessEntries = projectAccessRepository.getPrivateAccessEntries(session.userId, projectId)
+
+						val numericProjectId = projectDao.getProjectIdOrNull(session.userId, projectId)
+						val totalReaders = numericProjectId
+							?.let { storyReaderRepository.totalReadersForProject(it) } ?: 0L
+						val readerBars = numericProjectId
+							?.let { storyReaderRepository.dailyReadersForProject(it, clock.now() - 30.days) }
+							?.let { buildReaderBars(it, clock.now()) }
+							?: emptyList()
 						val publicUrl = if (hasAnyAccess && hasPenName) {
 							call.constructPublicUrl(account.pen_name, result.projectName)
 						} else {
@@ -104,6 +139,7 @@ fun Route.storyPage(
 							mapOf(
 								"page_stylesheet" to "/assets/css/story.css",
 								"page_script" to "/assets/js/story.js",
+								"page_pre_script" to "/assets/js/review-form-logic.js",
 								"reviews" to reviewModels,
 								"hasReviews" to reviewModels.isNotEmpty(),
 								"projectName" to result.projectName,
@@ -120,6 +156,10 @@ fun Route.storyPage(
 								"formattedWordCount" to WordCountUtils.formatWordCount(result.totalWordCount),
 								"accessEntries" to accessEntries,
 								"hasAccessEntries" to accessEntries.isNotEmpty(),
+								"hasReaderStats" to (numericProjectId != null),
+								"totalReaders" to "%,d".format(totalReaders),
+								"readerBars" to readerBars,
+								"hasReaderBars" to readerBars.any { (it["height"] as Int) > 0 },
 								"sceneHierarchy" to sceneHierarchy,
 								"hasScenes" to sceneHierarchy.isNotEmpty()
 							)
@@ -467,6 +507,27 @@ fun Route.storyPage(
 				)
 			}
 		}
+	}
+}
+
+/**
+ * Builds a fixed 30-slot (oldest→newest) per-day bar model for the reader trend
+ * graph: heights are scaled 0–100 against the busiest day, with zero-filled gaps so
+ * quiet days still render a baseline.
+ */
+private fun buildReaderBars(daily: List<ReaderDay>, now: Instant): List<Map<String, Any>> {
+	val byDay = daily.groupBy { it.day.truncateToUtcDay() }.mapValues { (_, rows) -> rows.sumOf { it.count } }
+	val today = now.truncateToUtcDay()
+	val days = (29 downTo 0).map { today - it.days }
+	val counts = days.map { byDay[it] ?: 0L }
+	val max = counts.maxOrNull() ?: 0L
+
+	return days.zip(counts).map { (day, count) ->
+		mapOf(
+			"height" to if (max > 0) ((count * 100) / max).toInt() else 0,
+			// Buckets are UTC-day floored, so label them in UTC too.
+			"label" to "${formatInstant(day, "MMM dd", ZoneOffset.UTC)}: $count",
+		)
 	}
 }
 

@@ -221,7 +221,7 @@ class ProjectsListComponent(
 	private fun loadStoredProjectData(projectDef: ProjectDef): StoredData {
 		val path = projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME
 		return fileSystem.readTomlOrNull<StoredProjectData>(path, toml) { e ->
-			Napier.d("Failed to read stored project data for ${projectDef.name}, using defaults", e)
+			//Napier.d("Failed to read stored project data for ${projectDef.name}, using defaults", e)
 		}?.data ?: StoredData()
 	}
 

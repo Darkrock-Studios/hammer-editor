@@ -14,11 +14,14 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesUi
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
+import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
-fun BrowseEntriesUiPreview() {
+fun ScreenBrowseEntriesUiPreview() {
 	val scope = rememberCoroutineScope()
 
 	KoinApplicationPreview {
@@ -31,6 +34,29 @@ fun BrowseEntriesUiPreview() {
 					sharedTransitionScope = this@SharedTransitionLayout,
 					animatedVisibilityScope = this@AnimatedVisibility,
 				)
+			}
+		}
+	}
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenBrowseEntriesUiTabletPreview() {
+	val scope = rememberCoroutineScope()
+
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			SharedTransitionLayout {
+				AnimatedVisibility(visible = true) {
+					BrowseEntriesUi(
+						component = component,
+						scope = scope,
+						viewEntry = {},
+						sharedTransitionScope = this@SharedTransitionLayout,
+						animatedVisibilityScope = this@AnimatedVisibility,
+					)
+				}
 			}
 		}
 	}

@@ -23,7 +23,7 @@ import com.darkrockstudios.apps.hammer.common.projectselection.SyncStatusRow
 
 @Preview
 @Composable
-private fun SyncLogRowsPreview() = Padded {
+fun SyncLogRowsPreview() = Padded {
 	Column(
 		modifier = Modifier.fillMaxWidth().padding(16.dp),
 		verticalArrangement = Arrangement.spacedBy(4.dp),
@@ -75,7 +75,7 @@ internal fun SyncStatusRowsPreview() = Padded {
 
 @Preview
 @Composable
-private fun StatusGlyphPreview() = Padded {
+fun StatusGlyphPreview() = Padded {
 	Column(
 		modifier = Modifier.padding(16.dp),
 		verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -86,7 +86,7 @@ private fun StatusGlyphPreview() = Padded {
 
 @Preview
 @Composable
-private fun HairlineProgressBarPreview() = Padded {
+fun HairlineProgressBarPreview() = Padded {
 	Column(
 		modifier = Modifier.fillMaxWidth().padding(16.dp),
 		verticalArrangement = Arrangement.spacedBy(8.dp),

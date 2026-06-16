@@ -357,6 +357,91 @@
 	padding: 1rem 1.25rem;
 }
 
+/* Let the per-bar hover tooltips escape the panel's rounded clip. */
+.story-info-panel--readers {
+	overflow: visible;
+}
+
+.reader-total {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	text-align: center;
+	padding: 0.25rem 0 0.5rem;
+}
+
+.reader-total__value {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 2.5rem;
+	line-height: 1;
+	color: var(--accent, #d97706);
+}
+
+.reader-total__label {
+	margin-top: 0.35rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.75rem;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--text-secondary);
+}
+
+.reader-graph {
+	display: flex;
+	align-items: flex-end;
+	gap: 2px;
+	height: 56px;
+	margin-top: 0.75rem;
+	padding-top: 0.25rem;
+	border-top: 1px dotted var(--neutral-200);
+}
+
+.reader-graph__bar {
+	position: relative;
+	flex: 1 1 0;
+	min-height: 2px;
+	background: var(--accent, #d97706);
+	opacity: 0.7;
+	border-radius: 1px 1px 0 0;
+	transition: opacity var(--transition-fast, 150ms ease);
+}
+
+.reader-graph__bar:hover {
+	opacity: 1;
+}
+
+.reader-graph__bar::after {
+	content: attr(data-label);
+	position: absolute;
+	bottom: calc(100% + 6px);
+	left: 50%;
+	transform: translateX(-50%);
+	white-space: nowrap;
+	background: var(--ink, #1c1917);
+	color: var(--paper-white, #fffef9);
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.7rem;
+	padding: 0.15rem 0.4rem;
+	border-radius: 3px;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity var(--transition-fast, 150ms ease);
+	z-index: 5;
+}
+
+.reader-graph__bar:hover::after {
+	opacity: 1;
+}
+
+.reader-graph__caption {
+	display: block;
+	margin-top: 0.35rem;
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.6875rem;
+	font-style: italic;
+	color: var(--text-secondary);
+}
+
 .info-item {
 	display: flex;
 	justify-content: space-between;

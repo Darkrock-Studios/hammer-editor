@@ -1,0 +1,38 @@
+import kotlinx.datetime.Instant;
+
+-- Deduplicated record of which logged-in users were active, used for the
+-- "Active Users" dashboard metric. One row per (user, activity type, hour) so
+-- distinct-user counts over any window are an exact COUNT(DISTINCT user_id) —
+-- the additive histogram used by api_metric_bucket can't answer distinct counts.
+-- Hourly dedup caps growth at <=24 rows/user/day/type. Purged on the metrics
+-- retention window.
+CREATE TABLE user_activity (
+    user_id BIGINT NOT NULL,
+    activity_type TEXT NOT NULL,            -- 'SYNC' or 'WEB'
+    hour_bucket TIMESTAMPTZ AS Instant NOT NULL,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
+    PRIMARY KEY (user_id, activity_type, hour_bucket)
+);
+
+-- Reads (the daily-trend fetch and the retention purge) filter on hour_bucket,
+-- so the index leads with it; activity_type follows for the distinct-count query.
+CREATE INDEX user_activity_time ON user_activity(hour_bucket, activity_type);
+
+recordActivity:
+INSERT INTO user_activity(user_id, activity_type, hour_bucket)
+VALUES (?, ?, ?)
+ON CONFLICT (user_id, activity_type, hour_bucket) DO NOTHING;
+
+countDistinctUsersSince:
+SELECT count(DISTINCT user_id) FROM user_activity
+WHERE activity_type = ? AND hour_bucket >= ?;
+
+-- Raw rows for the daily-active-users trend; per-day distinct counts are folded
+-- in Kotlin (mirrors how MetricsRepository buckets by UTC day) to avoid typing a
+-- date_trunc expression through SqlDelight's column adapters.
+getActivitySince:
+SELECT * FROM user_activity
+WHERE hour_bucket >= ?;
+
+deleteActivityBefore:
+DELETE FROM user_activity WHERE hour_bucket < ?;

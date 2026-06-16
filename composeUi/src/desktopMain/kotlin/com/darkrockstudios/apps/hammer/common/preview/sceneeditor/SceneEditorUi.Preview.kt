@@ -22,7 +22,7 @@ import org.jetbrains.compose.resources.StringResource
 
 @Preview
 @Composable
-fun SceneEditorUiPreview() {
+fun ScreenSceneEditorUiPreview() {
 	KoinApplicationPreview {
 		val component = fakeComponent()
 		val rootSnackbar = rememberRootSnackbarHostState()

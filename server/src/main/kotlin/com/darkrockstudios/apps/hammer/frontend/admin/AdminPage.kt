@@ -36,6 +36,8 @@ fun Route.adminPage(
 	metricsRepository: com.darkrockstudios.apps.hammer.monitoring.MetricsRepository,
 	errorRepository: com.darkrockstudios.apps.hammer.monitoring.ErrorRepository,
 	securityRepository: com.darkrockstudios.apps.hammer.monitoring.SecurityRepository,
+	userActivityRepository: com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository,
+	storyReaderRepository: com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository,
 	projectsSyncManager: com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager<Long, com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession>,
 	projectSyncManager: com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager<*, com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession>,
 	clock: kotlin.time.Clock,
@@ -48,7 +50,7 @@ fun Route.adminPage(
 			adminSettingsPage(configRepository, patreonFeatureEnabled, emailFeatureEnabled)
 			adminMonitoringPages(
 				metricsRepository, configRepository, errorRepository, securityRepository,
-				projectsSyncManager, projectSyncManager, clock,
+				userActivityRepository, storyReaderRepository, projectsSyncManager, projectSyncManager, clock,
 				patreonFeatureEnabled, emailFeatureEnabled,
 			)
 			adminWhitelistPage(
@@ -110,6 +112,7 @@ private fun Route.adminSettingsPage(
 			"monTrackErrors" to mon.trackErrors,
 			"monTrackLoginAttempts" to mon.trackLoginAttempts,
 			"monStoreLoginIp" to mon.storeLoginIp,
+				"monTrackStoryReaders" to mon.trackStoryReaders,
 "monMetricsRetention" to mon.metricsRetentionDays,
 			"monErrorRetention" to mon.errorRetentionDays,
 			"monLoginRetention" to mon.loginAttemptRetentionDays,
@@ -272,6 +275,7 @@ private fun Route.serverSettingsRoutes(configRepository: ConfigRepository) {
 				trackApiMetrics = params["monTrackApiMetrics"] != null,
 				trackErrors = params["monTrackErrors"] != null,
 				trackLoginAttempts = params["monTrackLoginAttempts"] != null,
+				trackStoryReaders = params["monTrackStoryReaders"] != null,
 				storeLoginIp = params["monStoreLoginIp"] != null,
 alertEmailEnabled = params["monAlertEmailEnabled"] != null,
 				alertEmail = params["monAlertEmail"]?.trim().orEmpty(),

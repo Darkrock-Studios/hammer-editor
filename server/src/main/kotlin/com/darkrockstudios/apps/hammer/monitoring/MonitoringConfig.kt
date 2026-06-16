@@ -21,6 +21,8 @@ data class MonitoringConfig(
 	val trackErrors: Boolean = true,
 	/** Record login attempts for brute-force visibility. */
 	val trackLoginAttempts: Boolean = true,
+	/** Count unique readers of published / shared stories (cookieless, no stored IP). */
+	val trackStoryReaders: Boolean = true,
 	/** Store the source IP with login attempts (the most PII-sensitive bit). */
 	val storeLoginIp: Boolean = true,
 	/** How long rolled-up API metrics are retained (days). */

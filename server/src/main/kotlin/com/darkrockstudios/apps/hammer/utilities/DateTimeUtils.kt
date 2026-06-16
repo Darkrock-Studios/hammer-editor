@@ -13,6 +13,12 @@ import kotlin.time.toKotlinInstant
 fun Instant.formatLocal(format: String): String =
 	toLocalDateTime(TimeZone.currentSystemDefault()).format(format)
 
+private const val MILLIS_PER_DAY = 24L * 60 * 60 * 1000
+
+/** Floor an instant to the start (00:00) of its UTC day. */
+fun Instant.truncateToUtcDay(): Instant =
+	Instant.fromEpochMilliseconds(toEpochMilliseconds() / MILLIS_PER_DAY * MILLIS_PER_DAY)
+
 fun LocalDateTime.format(format: String): String =
 	DateTimeFormatter.ofPattern(format).format(this.toJavaLocalDateTime())
 

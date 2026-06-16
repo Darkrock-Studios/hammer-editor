@@ -32,7 +32,7 @@ private val sampleAttribution
 
 @Preview
 @Composable
-private fun MonoLabelPreview() {
+fun MonoLabelPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdMonoLabel("Total Words")
@@ -44,7 +44,7 @@ private fun MonoLabelPreview() {
 
 @Preview
 @Composable
-private fun SectionHeaderPreview() {
+fun SectionHeaderPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdSectionHeader(
@@ -65,7 +65,7 @@ private fun SectionHeaderPreview() {
 
 @Preview
 @Composable
-private fun CategorySwatchAndChipPreview() {
+fun CategorySwatchAndChipPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -82,7 +82,7 @@ private fun CategorySwatchAndChipPreview() {
 
 @Preview
 @Composable
-private fun DeltaBadgePreview() {
+fun DeltaBadgePreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdDeltaBadge(percent = 22f, suffix = "vs last week")
@@ -94,7 +94,7 @@ private fun DeltaBadgePreview() {
 
 @Preview
 @Composable
-private fun EngravingPlaceholderPreview() {
+fun EngravingPlaceholderPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdEngravingPlaceholder(
@@ -109,7 +109,7 @@ private fun EngravingPlaceholderPreview() {
 
 @Preview
 @Composable
-private fun MetadataItemPreview() {
+fun MetadataItemPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
@@ -127,7 +127,7 @@ private fun MetadataItemPreview() {
 
 @Preview
 @Composable
-private fun StatBlockPreview() {
+fun StatBlockPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdStatBlock(
@@ -153,7 +153,7 @@ private fun StatBlockPreview() {
 
 @Preview
 @Composable
-private fun DailyGoalProgressPreview() {
+fun DailyGoalProgressPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdDailyGoalProgress(current = 847, goal = 1000, modifier = Modifier.fillMaxWidth())
@@ -165,7 +165,7 @@ private fun DailyGoalProgressPreview() {
 
 @Preview
 @Composable
-private fun AttributionBarPreview() {
+fun AttributionBarPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdMiniBarChart(items = sampleAttribution, modifier = Modifier.fillMaxWidth())
@@ -175,7 +175,7 @@ private fun AttributionBarPreview() {
 
 @Preview
 @Composable
-private fun HairlineSectionPreview() {
+fun HairlineSectionPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdPlainSection {
@@ -200,7 +200,7 @@ private fun HairlineSectionPreview() {
 
 @Preview
 @Composable
-private fun HairlineGridPreview() {
+fun HairlineGridPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdHairlineGrid(
@@ -224,7 +224,7 @@ private val navRailPreviewDestinations = listOf(
 
 @Preview
 @Composable
-private fun NavRailCollapsedPreview() {
+fun NavRailCollapsedPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		Row(modifier = Modifier.background(MaterialTheme.colorScheme.background).height(500.dp)) {
 			HdNavRail(
@@ -252,7 +252,7 @@ private fun NavRailCollapsedPreview() {
 
 @Preview
 @Composable
-private fun NavRailExpandedPreview() {
+fun NavRailExpandedPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		Row(modifier = Modifier.background(MaterialTheme.colorScheme.background).height(500.dp)) {
 			HdNavRail(
@@ -280,7 +280,7 @@ private fun NavRailExpandedPreview() {
 
 @Preview
 @Composable
-private fun LightThemePreview() {
+fun LightThemePreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = false) {
 		PreviewSurface {
 			HdSectionHeader(
@@ -302,7 +302,7 @@ private fun LightThemePreview() {
 
 @Preview
 @Composable
-private fun TypeStampPreview() {
+fun TypeStampPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -320,7 +320,7 @@ private fun TypeStampPreview() {
 
 @Preview
 @Composable
-private fun TypographicHeroPreview() {
+fun TypographicHeroPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdTypographicHero(
@@ -339,7 +339,7 @@ private fun TypographicHeroPreview() {
 
 @Preview
 @Composable
-private fun TagChipPreview() {
+fun TagChipPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -353,7 +353,7 @@ private fun TagChipPreview() {
 
 @Preview
 @Composable
-private fun EntryFilterBarPreview() {
+fun EntryFilterBarPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdEntryFilterBar(
@@ -372,7 +372,7 @@ private fun EntryFilterBarPreview() {
 
 @Preview
 @Composable
-private fun EntryCardPreview() {
+fun EntryCardPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdEntryCard(
@@ -428,7 +428,7 @@ private data class HdThemeTagPreview(
 
 @Preview
 @Composable
-private fun ThemesRankedRowPreview() {
+fun ThemesRankedRowPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			val hc = LocalHammerColors.current
@@ -495,7 +495,7 @@ private fun ThemesRankedRowPreview() {
 
 @Preview
 @Composable
-private fun BarChartPreview() {
+fun BarChartPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdBarChart(
@@ -521,7 +521,7 @@ private val bottomBarPreviewDestinations = listOf(
 
 @Preview
 @Composable
-private fun BottomBarPreview() {
+fun BottomBarPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		HdBottomBar(
 			destinations = bottomBarPreviewDestinations,
@@ -533,7 +533,7 @@ private fun BottomBarPreview() {
 
 @Preview
 @Composable
-private fun FabPreview() {
+fun FabPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdFab(
@@ -547,7 +547,7 @@ private fun FabPreview() {
 
 @Preview
 @Composable
-private fun FolioDividerPreview() {
+fun FolioDividerPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdFolioDivider(modifier = Modifier.fillMaxWidth())
@@ -557,7 +557,7 @@ private fun FolioDividerPreview() {
 
 @Preview
 @Composable
-private fun HairlineButtonPreview() {
+fun HairlineButtonPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -570,7 +570,7 @@ private fun HairlineButtonPreview() {
 
 @Preview
 @Composable
-private fun HairlineFieldPreview() {
+fun HairlineFieldPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdHairlineField(
@@ -596,7 +596,7 @@ private fun HairlineFieldPreview() {
 
 @Preview
 @Composable
-private fun HairlineImageDropPreview() {
+fun HairlineImageDropPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdHairlineImageDrop(
@@ -610,7 +610,7 @@ private fun HairlineImageDropPreview() {
 
 @Preview
 @Composable
-private fun HairlineTagFieldPreview() {
+fun HairlineTagFieldPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdHairlineTagField(
@@ -627,7 +627,7 @@ private fun HairlineTagFieldPreview() {
 
 @Preview
 @Composable
-private fun HairlineTypePickerPreview() {
+fun HairlineTypePickerPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdHairlineTypePicker(
@@ -641,7 +641,7 @@ private fun HairlineTypePickerPreview() {
 
 @Preview
 @Composable
-private fun ReferenceChipPreview() {
+fun ReferenceChipPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdReferenceChip(
@@ -666,7 +666,7 @@ private fun ReferenceChipPreview() {
 
 @Preview
 @Composable
-private fun ResponsiveStripPreview() {
+fun ResponsiveStripPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdMonoLabel("Wide — row layout")
@@ -686,7 +686,7 @@ private fun ResponsiveStripPreview() {
 
 @Preview
 @Composable
-private fun SearchFieldPreview() {
+fun SearchFieldPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			HdSearchField(
@@ -707,7 +707,7 @@ private fun SearchFieldPreview() {
 
 @Preview
 @Composable
-private fun UnsavedBadgePreview() {
+fun UnsavedBadgePreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		PreviewSurface {
 			Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -723,7 +723,7 @@ private fun UnsavedBadgePreview() {
 
 @Preview
 @Composable
-private fun DesignSystemGalleryPreview() {
+fun DesignSystemGalleryPreview() {
 	AppTheme(globalSettingsPreview, useDarkTheme = true) {
 		Column(
 			modifier = Modifier

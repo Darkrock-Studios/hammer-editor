@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.Padded
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
@@ -23,7 +24,7 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneListUi
 
 @Preview
 @Composable
-fun SceneListUiPreview() {
+fun ScreenSceneListUiPreview() {
 	val snackbarHostState = rememberRootSnackbarHostState()
 
 	KoinApplicationPreview {
@@ -53,7 +54,9 @@ private fun fakeSceneSummary(): SceneSummary {
 @OptIn(ExperimentalFoundationApi::class)
 @Preview
 @Composable
-private fun SceneItemPreview() {
+fun SceneItemPreview() {
+	KoinApplicationPreview {
+	Padded {
 	Column(modifier = Modifier.padding(Ui.Padding.L)) {
 		SceneItem(
 			scene = fakeScene(0, 0),
@@ -91,6 +94,8 @@ private fun SceneItemPreview() {
 			onSceneRenameRequest = {},
 			onSceneArchiveRequest = {},
 		)
+	}
+	}
 	}
 }
 

@@ -264,6 +264,42 @@ class AccountsRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `Refresh Token - Success`() = runTest {
+		coEvery { authTokenDao.getTokenByInstallId(userId, installId) } returns createAuthToken()
+		coEvery { authTokenDao.setToken(any(), any(), any(), any()) } just Runs
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val result = accountsRepository.refreshToken(userId, installId, refreshToken)
+
+		assertTrue(isSuccess(result))
+		assertTrue(result.data.isValid())
+	}
+
+	@Test
+	fun `Refresh Token - No existing token`() = runTest {
+		coEvery { authTokenDao.getTokenByInstallId(userId, installId) } returns null
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val result = accountsRepository.refreshToken(userId, installId, refreshToken)
+
+		assertTrue(result.isFailure)
+	}
+
+	@Test
+	fun `Refresh Token - Mismatched refresh token`() = runTest {
+		coEvery { authTokenDao.getTokenByInstallId(userId, installId) } returns
+			createAuthToken().copy(refresh = "some-other-hashed")
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val result = accountsRepository.refreshToken(userId, installId, refreshToken)
+
+		assertTrue(result.isFailure)
+	}
+
+	@Test
 	fun `Login fails with old SHA-256 hash`() = runTest {
 		// Create account with old-style SHA-256 hash (hex string)
 		val oldHash = "abc123def456789"

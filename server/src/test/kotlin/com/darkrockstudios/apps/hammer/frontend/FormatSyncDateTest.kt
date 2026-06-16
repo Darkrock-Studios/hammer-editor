@@ -3,12 +3,14 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.frontend.utils.formatPatreonDate
 import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
 import org.junit.jupiter.api.Test
+import java.time.OffsetDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 import kotlin.time.Instant
+import kotlin.time.toKotlinInstant
 
 class FormatSyncDateTest {
 
@@ -95,6 +97,17 @@ class FormatSyncDateTest {
 		val result = formatSyncDate(instant)
 
 		assertTrue(result.matches(Regex("""\w{3} \d{2}, \d{4} at \d{2}:\d{2}""")))
+	}
+
+	@Test
+	fun `returns empty string for the pgjdbc infinity sentinel`() {
+		// Postgres surfaces a `-infinity` TIMESTAMPTZ as OffsetDateTime.MIN, which is
+		// outside the range java.time can render into a zoned date.
+		val infinitySentinel = OffsetDateTime.MIN.toInstant().toKotlinInstant()
+
+		val result = formatSyncDate(infinitySentinel)
+
+		assertEquals("", result)
 	}
 
 	@Test

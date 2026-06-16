@@ -9,12 +9,15 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.encyclopedia.ViewEntryUi
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
+import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.fakeViewEntryComponent
 
 @OptIn(ExperimentalSharedTransitionApi::class)
 @Preview
 @Composable
-fun ViewEntryUiPreview() {
+fun ScreenViewEntryUiPreview() {
 	val scope = rememberCoroutineScope()
 
 	KoinApplicationPreview {
@@ -28,6 +31,30 @@ fun ViewEntryUiPreview() {
 					sharedTransitionScope = this@SharedTransitionLayout,
 					animatedVisibilityScope = this@AnimatedVisibility,
 				)
+			}
+		}
+	}
+}
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenViewEntryUiTabletPreview() {
+	val scope = rememberCoroutineScope()
+
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			SharedTransitionLayout {
+				AnimatedVisibility(visible = true) {
+					ViewEntryUi(
+						component = fakeViewEntryComponent,
+						scope = scope,
+						rootSnackbar = rememberRootSnackbarHostState(),
+						closeEntry = {},
+						sharedTransitionScope = this@SharedTransitionLayout,
+						animatedVisibilityScope = this@AnimatedVisibility,
+					)
+				}
 			}
 		}
 	}

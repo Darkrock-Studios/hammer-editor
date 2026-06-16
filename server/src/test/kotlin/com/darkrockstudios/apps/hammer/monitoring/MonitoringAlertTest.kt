@@ -1,11 +1,12 @@
 package com.darkrockstudios.apps.hammer.monitoring
 
-import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.database.ApiMetricDao
 import com.darkrockstudios.apps.hammer.database.ErrorLogDao
 import com.darkrockstudios.apps.hammer.database.LoginAttemptDao
+import com.darkrockstudios.apps.hammer.database.PublishedStoryReaderDao
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
+import com.darkrockstudios.apps.hammer.database.UserActivityDao
 import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
 import com.darkrockstudios.apps.hammer.email.EmailResult
 import com.darkrockstudios.apps.hammer.email.EmailService
@@ -14,9 +15,9 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
+import kotlin.test.assertEquals
 import kotlin.time.Clock
 import kotlin.time.Instant
-import kotlin.test.assertEquals
 
 class MonitoringAlertTest : BaseTest() {
 
@@ -53,6 +54,10 @@ class MonitoringAlertTest : BaseTest() {
 			errorRepository = errorRepository,
 			securityRepository = SecurityRepository(LoginAttemptDao(db), clock),
 			collector = MetricsCollector(clock),
+			userActivityCollector = UserActivityCollector(clock),
+			userActivityRepository = UserActivityRepository(UserActivityDao(db)),
+			storyReaderCollector = StoryReaderCollector(clock),
+			storyReaderRepository = StoryReaderRepository(PublishedStoryReaderDao(db)),
 			monitoringState = MonitoringState(),
 			emailService = email,
 			clock = clock,
@@ -75,7 +80,16 @@ class MonitoringAlertTest : BaseTest() {
 		val (maintenance, errorRepository) = job(email)
 
 		// Cross the threshold (3) for one fingerprint.
-		repeat(3) { errorRepository.record("RuntimeException", "/api/sync", 7L, "boom", "stack") }
+		repeat(3) {
+			errorRepository.record(
+				"RuntimeException",
+				"/api/sync",
+				7L,
+				"boom",
+				"stack",
+				500
+			)
+		}
 
 		maintenance.evaluateErrorAlerts(alertingConfig)
 		assertEquals(1, email.sentSubjects.size)
@@ -89,7 +103,16 @@ class MonitoringAlertTest : BaseTest() {
 	fun `does not email when the provider is not configured`() = runTest {
 		val email = FakeEmailService(configured = false)
 		val (maintenance, errorRepository) = job(email)
-		repeat(5) { errorRepository.record("RuntimeException", "/api/sync", null, "boom", "stack") }
+		repeat(5) {
+			errorRepository.record(
+				"RuntimeException",
+				"/api/sync",
+				null,
+				"boom",
+				"stack",
+				500
+			)
+		}
 
 		maintenance.evaluateErrorAlerts(alertingConfig)
 		assertEquals(0, email.sentSubjects.size)

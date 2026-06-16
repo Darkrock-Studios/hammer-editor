@@ -19,7 +19,7 @@ import kotlin.time.Clock
 
 @Preview
 @Composable
-fun DraftsListUiPreview() {
+fun ScreenDraftsListUiPreview() {
 	val component = object : DraftsList {
 		override val state = MutableValue(
 			DraftsList.State(

@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.3.1] - 2026-6-16
+
+[New/Client] Added more text editor keyboard shortcuts (bold, italic and strikethrough, and more)
+[New/Server] Active Users metric on the monitoring dashboard
+[New/Server] Per-story reader counter and unique active-users metrics
+[Improve/Server] Monitoring dashboard distinguishes client-fault from server-fault errors
+[Fix/Server] Error-rate metric now includes exception-driven errors
+[Fix/Server] Dashboard time buckets now roll over correctly
+[Fix/Web] Editorial review character escaping
+[Fix/Web] Mobile nav drawer rendering beneath page content
+
+
 ## [3.3.0] - 2026-6-13
 
 - [New/Web] New Feature: Request editor review

@@ -102,9 +102,15 @@ function applyAccepted(text, suggestions) {
  * and only closes after non-whitespace (so intraword snake_case and stray
  * asterisks render literally).
  *
+ * CommonMark backslash escapes are honoured: a backslash before ASCII
+ * punctuation is dropped and the punctuation emitted as its own run (anchored
+ * at the punctuation's source offset, so the per-run source-slice invariant
+ * holds), and an escaped marker can neither open nor close emphasis.
+ *
  * @returns {Array<{text:string, srcStart:number, bold:boolean, italic:boolean}>}
  */
 function parseInlineMarkdown(text) {
+	const ESCAPABLE = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~';
 	const runs = [];
 
 	function emit(str, srcStart, bold, italic) {
@@ -121,8 +127,9 @@ function parseInlineMarkdown(text) {
 			if (i === -1 || i >= end) return -1;
 			const prev = text[i - 1];
 			const after = text[i + marker.length];
-			// closes after non-space; for single _ require not intraword
-			if (prev && !/\s/.test(prev) && prev !== marker[0] &&
+			// closes after non-space; for single _ require not intraword; an
+			// escaped marker (\*) is literal, never a close
+			if (prev && !/\s/.test(prev) && prev !== marker[0] && prev !== '\\' &&
 				(marker !== '_' || !after || !/\w/.test(after))) {
 				return i;
 			}
@@ -136,6 +143,13 @@ function parseInlineMarkdown(text) {
 		let i = start;
 		while (i < end) {
 			const ch = text[i];
+			if (ch === '\\' && i + 1 < end && ESCAPABLE.indexOf(text[i + 1]) !== -1) {
+				emit(text.slice(plainFrom, i), plainFrom, bold, italic);
+				emit(text[i + 1], i + 1, bold, italic);
+				i += 2;
+				plainFrom = i;
+				continue;
+			}
 			if (ch !== '*' && ch !== '_') { i++; continue; }
 			const double = text[i + 1] === ch;
 			const marker = double ? ch + ch : ch;

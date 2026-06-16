@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.SceneMetad
 
 @Preview
 @Composable
-private fun SceneMetadataPanelUiPreview() {
+fun SceneMetadataPanelUiPreview() {
 	SceneMetadataPanelUi(
 		component = object : SceneMetadataPanel {
 			override val state = MutableValue(

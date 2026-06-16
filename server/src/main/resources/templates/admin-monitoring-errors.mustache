@@ -56,9 +56,12 @@
 				{{#hasErrors}}
 					<div class="mon-error-list">
 						{{#errors}}
-							<details class="mon-error">
+							<details class="mon-error mon-error--{{severity}}">
 								<summary class="mon-error__summary">
 									<span class="mon-error__count">{{count}}&times;</span>
+									<i class="mon-error__icon fa-solid {{severityIcon}}"
+									   aria-hidden="true"></i>
+									<span class="mon-error__status">{{status}}</span>
 									<span class="mon-error__type">{{type}}</span>
 									<span class="mon-error__route">{{route}}</span>
 									<span class="mon-error__meta">

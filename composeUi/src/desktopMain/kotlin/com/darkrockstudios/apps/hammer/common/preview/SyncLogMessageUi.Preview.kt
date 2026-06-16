@@ -11,7 +11,7 @@ import kotlin.time.Clock
 
 @Preview
 @Composable
-private fun SyncLogMessageUiPreview() = Padded {
+fun SyncLogMessageUiPreview() = Padded {
 	val testMessage = SyncLogMessage(
 		message = "Preview message",
 		level = SyncLogLevel.INFO,

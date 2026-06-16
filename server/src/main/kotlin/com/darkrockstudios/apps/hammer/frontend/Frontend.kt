@@ -16,11 +16,17 @@ import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
+import com.darkrockstudios.apps.hammer.monitoring.ActivityType
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
+import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
+import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
+import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
+import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
 import com.darkrockstudios.apps.hammer.monitoring.recordMonitoredError
+import com.darkrockstudios.apps.hammer.monitoring.toMonitoredStatus
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
@@ -74,6 +80,9 @@ fun Route.frontend() {
 	val metricsRepository: MetricsRepository by inject()
 	val errorRepository: ErrorRepository by inject()
 	val securityRepository: SecurityRepository by inject()
+	val userActivityRepository: UserActivityRepository by inject()
+	val storyReaderRepository: StoryReaderRepository by inject()
+	val storyReaderCollector: StoryReaderCollector by inject()
 	val clock: kotlin.time.Clock by inject()
 	val projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(named(PROJECTS_SYNC_MANAGER))
 	val projectSyncManager: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession> by inject(named(PROJECT_SYNC_MANAGER))
@@ -103,7 +112,10 @@ fun Route.frontend() {
 	authRoutes(accountsRepository, whiteListRepository, configRepository, serverConfig)
 	passwordResetRoutes(passwordResetRepository)
 	dashboardPage(projectsRepository, accountsRepository, penNameService, bioService, serverConfig, markdownService)
-	storyPage(storyExportService, projectAccessRepository, projectsRepository, accountsRepository, reviewRepository)
+	storyPage(
+		storyExportService, projectAccessRepository, projectsRepository, accountsRepository, reviewRepository,
+		storyReaderRepository, projectDao, clock,
+	)
 	reviewFrontend(
 		reviewRepository = reviewRepository,
 		projectsRepository = projectsRepository,
@@ -116,7 +128,7 @@ fun Route.frontend() {
 		clock = clock,
 	)
 	authorPage(accountsRepository, projectAccessRepository, markdownService)
-	publicStoryPage(storyExportService, projectAccessRepository)
+	publicStoryPage(storyExportService, projectAccessRepository, projectDao, storyReaderCollector)
 	adminPage(
 		whiteListRepository,
 		configRepository,
@@ -128,6 +140,8 @@ fun Route.frontend() {
 		metricsRepository,
 		errorRepository,
 		securityRepository,
+		userActivityRepository,
+		storyReaderRepository,
 		projectsSyncManager,
 		projectSyncManager,
 		clock,
@@ -173,10 +187,18 @@ fun Application.configureFrontEnd() {
 				"Unhandled exception on ${call.request.httpMethod.value} ${call.request.path()}",
 				cause
 			)
-			recordMonitoredError(call, cause, errorRepository, monitoringState)
 			if (call.request.isApiCall()) {
-				call.respond(HttpStatusCode.InternalServerError)
+				val status = HttpStatusCode.fromValue(cause.toMonitoredStatus())
+				recordMonitoredError(call, cause, status.value, errorRepository, monitoringState)
+				call.respond(status)
 			} else {
+				recordMonitoredError(
+					call,
+					cause,
+					HttpStatusCode.InternalServerError.value,
+					errorRepository,
+					monitoringState
+				)
 				call.respond(
 					HttpStatusCode.InternalServerError,
 					MustacheContent("servererror.mustache", call.withDefaults())
@@ -216,6 +238,7 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	if (session != null) {
 		model["isLoggedIn"] = true
 		model["sessionUsername"] = session.username
+		get<UserActivityCollector>().record(session.userId, ActivityType.WEB)
 	} else {
 		model["isLoggedIn"] = false
 	}

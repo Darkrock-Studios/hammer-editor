@@ -8,7 +8,7 @@ plugins {
 	alias(libs.plugins.android.kotlin.multiplatform.library)
 	alias(libs.plugins.jetbrains.kover)
 	//alias(libs.plugins.compose.report.generator)
-	id("ee.schimke.composeai.preview") version "0.12.1"
+	id("ee.schimke.composeai.preview") version "0.15.2"
 }
 
 group = "com.darkrockstudios.apps.hammer.composeui"
@@ -128,6 +128,13 @@ kotlin {
 				implementation(libs.jetbrains.compose.ui.test.junit4)
 			}
 		}
+	}
+}
+
+composeCompiler {
+	if (providers.gradleProperty("composeCompilerReports").orNull == "true") {
+		reportsDestination = layout.buildDirectory.dir("compose_compiler/reports")
+		metricsDestination = layout.buildDirectory.dir("compose_compiler/metrics")
 	}
 }
 
