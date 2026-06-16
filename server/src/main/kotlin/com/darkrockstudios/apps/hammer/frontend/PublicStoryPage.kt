@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
@@ -15,6 +16,8 @@ import io.ktor.server.plugins.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import io.ktor.server.sessions.get
+import io.ktor.server.sessions.sessions
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
@@ -61,13 +64,16 @@ fun Route.publicStoryPage(
 				}
 
 				is PublicProjectResult.Success -> {
-					// Best-effort unique-reader count. The collector hashes the IP in place; it's never stored.
-					projectDao.getProjectIdOrNull(result.userId, result.projectUuid)?.let { projectId ->
-						storyReaderCollector.record(
-							projectId = projectId,
-							clientIp = call.request.origin.remoteAddress,
-							userAgent = call.request.userAgent(),
-						)
+					// Best-effort unique-reader count, skipping the author viewing their own story.
+					val viewerId = call.sessions.get<UserSession>()?.userId
+					if (viewerId != result.userId) {
+						projectDao.getProjectIdOrNull(result.userId, result.projectUuid)?.let { projectId ->
+							storyReaderCollector.record(
+								projectId = projectId,
+								clientIp = call.request.origin.remoteAddress,
+								userAgent = call.request.userAgent(),
+							)
+						}
 					}
 
 					val exportResult = storyExportService.exportStoryAsHtmlPaginated(
