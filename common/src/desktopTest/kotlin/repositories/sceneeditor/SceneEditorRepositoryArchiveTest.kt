@@ -24,6 +24,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkObject
+import io.mockk.unmockkObject
 import kotlinx.coroutines.test.runTest
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -98,6 +99,7 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 	@AfterEach
 	override fun tearDown() {
 		super.tearDown()
+		unmockkObject(ProjectsRepository.Companion)
 		sceneContentRepository.onScopeClose(mockk())
 		ffs.checkNoOpenFiles()
 	}

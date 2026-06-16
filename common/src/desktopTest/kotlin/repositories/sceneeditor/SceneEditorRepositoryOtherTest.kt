@@ -140,6 +140,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	@AfterEach
 	override fun tearDown() {
 		super.tearDown()
+		unmockkObject(ProjectsRepository.Companion)
 		sceneContentRepository.onScopeClose(mockk())
 
 		ffs.checkNoOpenFiles()

@@ -85,4 +85,27 @@ class EncodeFilenameTest {
 		// @ and # are not in the allowed set; trailing dot is trimmed.
 		assertEquals("foo bar baz", cleaned)
 	}
+
+	@Test
+	fun `toLocalSafeName leaves an already-valid name untouched`() {
+		val name = "Chapter 3 (Part II)"
+		assertEquals(name, ProjectsRepository.toLocalSafeName(name))
+	}
+
+	@Test
+	fun `toLocalSafeName sanitizes a server name with disallowed characters`() {
+		val mangled = "Alice In Wonderland (# Name clash 2026-06-07 fk6fycC #)"
+		val safe = ProjectsRepository.toLocalSafeName(mangled)
+
+		assertFalse(safe.contains('#'), "disallowed '#' should be gone; got: $safe")
+		assertTrue(ProjectsRepository.validateFileName(safe).isSuccess, "result must itself be valid")
+	}
+
+	@Test
+	fun `toLocalSafeName falls back to a default when nothing legal remains`() {
+		assertEquals(
+			ProjectsRepository.RECOVERED_PROJECT_NAME,
+			ProjectsRepository.toLocalSafeName("###"),
+		)
+	}
 }

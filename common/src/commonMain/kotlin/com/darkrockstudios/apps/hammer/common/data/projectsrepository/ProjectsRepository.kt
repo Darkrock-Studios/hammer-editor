@@ -290,6 +290,20 @@ class ProjectsRepository(
 				.take(MAX_FILENAME_LENGTH)
 		}
 
+		/**
+		 * Maps a (possibly server-supplied) display name to one this device can actually store. A name
+		 * that already passes [validateFileName] is returned unchanged; otherwise it is run through
+		 * [sanitizeFileName], falling back to [RECOVERED_PROJECT_NAME] when sanitizing leaves nothing
+		 * legal. The server's allowed-name set is looser than the client's, so a project synced down
+		 * from another device can carry characters (e.g. `#`) this device rejects.
+		 */
+		fun toLocalSafeName(name: String): String {
+			if (validateFileName(name).isSuccess) return name
+			return sanitizeFileName(name).ifBlank { RECOVERED_PROJECT_NAME }
+		}
+
+		const val RECOVERED_PROJECT_NAME = "Recovered Project"
+
 		private fun isWindowsReservedName(name: String): Boolean {
 			val basename = name.substringBeforeLast('.', name).uppercase()
 			return basename in windowsReservedNames
