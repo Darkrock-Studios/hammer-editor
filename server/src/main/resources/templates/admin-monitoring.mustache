@@ -81,29 +81,64 @@
 				<div class="section-header">
 					<h2 class="section-header__title">{{msg.admin_mon_active_users_title}}</h2>
 				</div>
-				<div class="mon-users-windows">
-					<div class="mon-users-window">
-						<span class="mon-users-window__label">{{msg.admin_mon_window_24h}}</span>
-						<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_active_users_sync}}</span><span class="mon-users-window__value">{{usersSync24h}}</span></div>
-						<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_active_users_web}}</span><span class="mon-users-window__value">{{usersWeb24h}}</span></div>
+                {{#hasActiveUsers}}
+					<div class="mon-au-grid">
+						<article class="mon-au-card">
+							<header
+								class="mon-au-card__window">{{msg.admin_mon_window_24h}}</header>
+							<div class="mon-au-card__stats">
+								<div class="mon-au-stat mon-au-stat--sync">
+									<span class="mon-au-stat__value">{{usersSync24h}}</span>
+									<span class="mon-au-stat__name"><i
+										class="fa-solid fa-rotate"></i> {{msg.admin_mon_active_users_sync}}</span>
+								</div>
+								<div class="mon-au-stat mon-au-stat--web">
+									<span class="mon-au-stat__value">{{usersWeb24h}}</span>
+									<span class="mon-au-stat__name"><i
+										class="fa-solid fa-globe"></i> {{msg.admin_mon_active_users_web}}</span>
+								</div>
+							</div>
+						</article>
+						<article class="mon-au-card">
+							<header class="mon-au-card__window">{{msg.admin_mon_window_7d}}</header>
+							<div class="mon-au-card__stats">
+								<div class="mon-au-stat mon-au-stat--sync">
+									<span class="mon-au-stat__value">{{usersSync7d}}</span>
+									<span class="mon-au-stat__name"><i
+										class="fa-solid fa-rotate"></i> {{msg.admin_mon_active_users_sync}}</span>
+								</div>
+								<div class="mon-au-stat mon-au-stat--web">
+									<span class="mon-au-stat__value">{{usersWeb7d}}</span>
+									<span class="mon-au-stat__name"><i
+										class="fa-solid fa-globe"></i> {{msg.admin_mon_active_users_web}}</span>
+								</div>
+							</div>
+						</article>
+						<article class="mon-au-card">
+							<header
+								class="mon-au-card__window">{{msg.admin_mon_window_30d}}</header>
+							<div class="mon-au-card__stats">
+								<div class="mon-au-stat mon-au-stat--sync">
+									<span class="mon-au-stat__value">{{usersSync30d}}</span>
+									<span class="mon-au-stat__name"><i
+										class="fa-solid fa-rotate"></i> {{msg.admin_mon_active_users_sync}}</span>
+								</div>
+								<div class="mon-au-stat mon-au-stat--web">
+									<span class="mon-au-stat__value">{{usersWeb30d}}</span>
+									<span class="mon-au-stat__name"><i
+										class="fa-solid fa-globe"></i> {{msg.admin_mon_active_users_web}}</span>
+								</div>
+							</div>
+						</article>
 					</div>
-					<div class="mon-users-window">
-						<span class="mon-users-window__label">{{msg.admin_mon_window_7d}}</span>
-						<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_active_users_sync}}</span><span class="mon-users-window__value">{{usersSync7d}}</span></div>
-						<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_active_users_web}}</span><span class="mon-users-window__value">{{usersWeb7d}}</span></div>
-					</div>
-					<div class="mon-users-window">
-						<span class="mon-users-window__label">{{msg.admin_mon_window_30d}}</span>
-						<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_active_users_sync}}</span><span class="mon-users-window__value">{{usersSync30d}}</span></div>
-						<div class="mon-users-window__row"><span class="mon-users-window__name">{{msg.admin_mon_active_users_web}}</span><span class="mon-users-window__value">{{usersWeb30d}}</span></div>
-					</div>
-				</div>
-				{{#hasActiveUsers}}
 					<h3 class="mon-users-trend-title">{{msg.admin_mon_active_users_trend}}</h3>
 					<div class="mon-chart" id="mon-active-users-chart"></div>
 				{{/hasActiveUsers}}
 				{{^hasActiveUsers}}
-					<div class="empty-state"><p>{{msg.admin_mon_no_data}}</p></div>
+					<div class="empty-state">
+						<div class="empty-state__icon">📈</div>
+						<p>{{msg.admin_mon_no_data}}</p>
+					</div>
 				{{/hasActiveUsers}}
 			</section>
 

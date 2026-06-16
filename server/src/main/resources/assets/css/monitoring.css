@@ -184,6 +184,77 @@
 	margin: 0 0 0.5rem;
 }
 
+/* --- Active-users split cards (Syncing vs Web per window) --- */
+.mon-au-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+	gap: 1rem;
+	margin-bottom: 1.5rem;
+}
+
+.mon-au-card {
+	background: var(--paper-white);
+	border: 1px solid var(--neutral-200);
+	border-radius: 6px;
+	box-shadow: var(--shadow-sm);
+	overflow: hidden;
+}
+
+.mon-au-card__window {
+	padding: 0.5rem 0.9rem;
+	background: var(--neutral-50);
+	border-bottom: 1px solid var(--neutral-200);
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.78rem;
+	text-transform: uppercase;
+	letter-spacing: 0.06em;
+	color: var(--neutral-600);
+}
+
+.mon-au-card__stats { display: grid; grid-template-columns: 1fr 1fr; }
+
+.mon-au-stat {
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.3rem;
+	padding: 1.1rem 0.5rem 0.9rem;
+	text-align: center;
+}
+
+.mon-au-stat + .mon-au-stat { border-left: 1px solid var(--neutral-200); }
+
+.mon-au-stat::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	height: 3px;
+}
+.mon-au-stat--sync::before { background: var(--accent); }
+.mon-au-stat--web::before { background: var(--primary); }
+
+.mon-au-stat__value {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 2rem;
+	line-height: 1;
+	color: var(--ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.mon-au-stat__name {
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.82rem;
+	color: var(--neutral-500);
+}
+.mon-au-stat--sync .mon-au-stat__name i { color: var(--accent); }
+.mon-au-stat--web .mon-au-stat__name i { color: var(--primary); }
+
 .mon-live-dot { color: var(--success); font-size: 0.5rem; vertical-align: middle; animation: monPulse 2s ease-in-out infinite; }
 
 @keyframes monPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
