@@ -49,6 +49,14 @@ SELECT
     COALESCE((SELECT total FROM published_story_reader_total WHERE project_id = :projectId), 0)
     + (SELECT count(*) FROM published_story_reader WHERE project_id = :projectId) AS total;
 
+-- Per-day unique reader-sessions across all stories, for the overview trend graph.
+dailyReaders:
+SELECT day_bucket, count(DISTINCT visitor_hash) AS readers
+FROM published_story_reader
+WHERE day_bucket >= ?
+GROUP BY day_bucket
+ORDER BY day_bucket;
+
 -- Per-day reader counts for the trend graph.
 dailyReadersForProject:
 SELECT day_bucket, count(*) AS readers

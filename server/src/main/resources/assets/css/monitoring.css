@@ -212,6 +212,7 @@
 }
 
 .mon-au-card__stats { display: grid; grid-template-columns: 1fr 1fr; }
+.mon-au-card__stats--single { grid-template-columns: 1fr; }
 
 .mon-au-stat {
 	position: relative;
@@ -235,6 +236,7 @@
 }
 .mon-au-stat--sync::before { background: var(--accent); }
 .mon-au-stat--web::before { background: var(--primary); }
+.mon-au-stat--readers::before { background: var(--accent); }
 
 .mon-au-stat__value {
 	font-family: 'Kingthings Typewriter', monospace;
@@ -254,6 +256,7 @@
 }
 .mon-au-stat--sync .mon-au-stat__name i { color: var(--accent); }
 .mon-au-stat--web .mon-au-stat__name i { color: var(--primary); }
+.mon-au-stat--readers .mon-au-stat__name i { color: var(--accent); }
 
 .mon-live-dot { color: var(--success); font-size: 0.5rem; vertical-align: middle; animation: monPulse 2s ease-in-out infinite; }
 

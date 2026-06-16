@@ -134,6 +134,30 @@ class StoryReaderTest : BaseTest() {
 	}
 
 	@Test
+	fun `aggregate daily readers is a gapless 30-day series across all stories`() = runTest {
+		val repo = StoryReaderRepository(PublishedStoryReaderDao(db))
+		val today = truncateToDay(baseNow)
+		val fiveDaysAgo = truncateToDay(baseNow - 5.days)
+
+		repo.recordKeys(
+			listOf(
+				ReaderKey(1L, today, "p1a"),
+				ReaderKey(2L, today, "p2a"),
+				ReaderKey(1L, fiveDaysAgo, "p1b"),
+			)
+		)
+
+		val daily = repo.dailyReaders(baseNow)
+
+		// 31 inclusive UTC days: the 30-day-ago boundary through today.
+		assertEquals(31, daily.size)
+		assertEquals(2L, daily.last().count)
+		assertEquals(1L, daily.first { it.day == fiveDaysAgo }.count)
+		// Days with no readers are zero-filled, so the only counts are the three recorded reads.
+		assertEquals(3L, daily.sumOf { it.count })
+	}
+
+	@Test
 	fun `windows exclude rows older than the cutoff and purge deletes them`() = runTest {
 		val dao = PublishedStoryReaderDao(db)
 		val recent = truncateToDay(baseNow)
