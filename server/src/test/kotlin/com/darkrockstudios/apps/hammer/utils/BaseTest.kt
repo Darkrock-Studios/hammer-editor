@@ -8,18 +8,20 @@ import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
-import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
-import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
+import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
+import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
+import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
+import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
 import com.darkrockstudios.apps.hammer.plugins.LoginRateLimitConfig
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
-import io.ktor.server.application.*
+import io.ktor.server.application.Application
+import io.ktor.server.application.install
 import io.mockk.mockk
-import kotlin.time.Clock
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
@@ -38,6 +40,7 @@ import org.koin.logger.slf4jLogger
 import org.koin.test.KoinTest
 import org.koin.test.get
 import kotlin.coroutines.CoroutineContext
+import kotlin.time.Clock
 
 @OptIn(ExperimentalCoroutinesApi::class)
 abstract class BaseTest : KoinTest {
@@ -144,6 +147,8 @@ fun Application.setupKtorTestKoin(baseTest: BaseTest, vararg modules: Module) {
 				single<SecurityRepository> { mockk(relaxed = true) }
 				single<UserActivityRepository> { mockk(relaxed = true) }
 				single<UserActivityCollector> { mockk(relaxed = true) }
+				single<StoryReaderRepository> { mockk(relaxed = true) }
+				single<StoryReaderCollector> { mockk(relaxed = true) }
 				single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
 					mockk(relaxed = true)
 				}

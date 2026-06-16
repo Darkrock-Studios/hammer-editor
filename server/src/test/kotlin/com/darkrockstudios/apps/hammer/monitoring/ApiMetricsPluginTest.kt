@@ -28,6 +28,7 @@ class ApiMetricsPluginTest {
 		val collector = collector()
 		application {
 			install(apiMetricsPlugin(collector))
+			configureRouteTemplateCapture()
 			routing {
 				route("api") {
 					route("/project/{userId}/{projectName}") {
