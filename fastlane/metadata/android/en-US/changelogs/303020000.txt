@@ -4,5 +4,4 @@
 [Improve/Server] Monitoring dashboard distinguishes client-fault from server-fault errors
 [Fix/Server] Error-rate metric now includes exception-driven errors
 [Fix/Server] Dashboard time buckets now roll over correctly
-[Fix/Web] Editorial review character escaping
-[Fix/Web] Mobile nav drawer rendering beneath page content
+[Fix/Web] Editorial review charac... and more

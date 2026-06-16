@@ -32,6 +32,18 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.3.1" date="2026-06-16">
+            <description>
+                <p>[New/Client] Added more text editor keyboard shortcuts (bold, italic and strikethrough, and more)</p>
+                <p>[New/Server] Active Users metric on the monitoring dashboard</p>
+                <p>[New/Server] Per-story reader counter and unique active-users metrics</p>
+                <p>[Improve/Server] Monitoring dashboard distinguishes client-fault from server-fault errors</p>
+                <p>[Fix/Server] Error-rate metric now includes exception-driven errors</p>
+                <p>[Fix/Server] Dashboard time buckets now roll over correctly</p>
+                <p>[Fix/Web] Editorial review character escaping</p>
+                <p>[Fix/Web] Mobile nav drawer rendering beneath page content</p>
+            </description>
+        </release>
         <release version="3.3.0" date="2026-06-13">
             <description>
                 <p>- [New/Web] New Feature: Request editor review</p>
