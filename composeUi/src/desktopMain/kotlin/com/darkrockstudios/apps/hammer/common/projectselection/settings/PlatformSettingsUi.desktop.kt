@@ -16,11 +16,14 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.accoun
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.retryingFileDialog
 import com.darkrockstudios.apps.hammer.settings_projects_directory
 import com.darkrockstudios.apps.hammer.settings_projects_directory_button
 import com.darkrockstudios.apps.hammer.settings_projects_directory_description
+import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.absolutePath
-import io.github.vinceglb.filekit.dialogs.compose.rememberDirectoryPickerLauncher
+import io.github.vinceglb.filekit.dialogs.openDirectoryPicker
+import kotlinx.coroutines.launch
 
 @Composable
 actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
@@ -29,12 +32,7 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 
 	var projectsPathText by remember { mutableStateOf(state.projectsDir.path) }
 
-	val directoryPickerLauncher = rememberDirectoryPickerLauncher { directory ->
-		if (directory != null) {
-			projectsPathText = directory.absolutePath()
-			component.setProjectsDir(projectsPathText)
-		}
-	}
+	val scope = rememberCoroutineScope()
 
 	Column(
 		modifier = Modifier.fillMaxWidth(),
@@ -55,7 +53,15 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 		}
 		HdHairlineButton(
 			label = Res.string.settings_projects_directory_button.get(),
-			onClick = { directoryPickerLauncher.launch() },
+			onClick = {
+				scope.launch {
+					val directory = retryingFileDialog { FileKit.openDirectoryPicker() }
+					if (directory != null) {
+						projectsPathText = directory.absolutePath()
+						component.setProjectsDir(projectsPathText)
+					}
+				}
+			},
 		)
 	}
 }
