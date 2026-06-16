@@ -13,12 +13,12 @@ import io.ktor.server.routing.routing
 import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.mockk
-import kotlin.time.Clock
-import kotlin.time.Instant
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
+import kotlin.time.Instant
 
 class MonitoringExportRouteTest {
 
@@ -32,6 +32,7 @@ class MonitoringExportRouteTest {
 		userId: Long? = null,
 		message: String? = "boom",
 		stackTrace: String? = null,
+		status: Int = 500,
 		occurrences: Long = 1L,
 	) = Error_log(
 		id = id,
@@ -41,6 +42,7 @@ class MonitoringExportRouteTest {
 		user_id = userId,
 		message = message,
 		stack_trace = stackTrace,
+		status = status,
 		occurrence_count = occurrences,
 		first_seen = fixedNow,
 		last_seen = fixedNow,
@@ -109,6 +111,7 @@ class MonitoringExportRouteTest {
 		assertTrue(body.contains("NullPointerException"))
 		assertTrue(body.contains("\"/api/project/{id}\""))
 		assertTrue(body.contains("\"userId\""))
+		assertTrue(body.contains("\"status\""))
 		assertTrue(body.contains("\"occurrences\""))
 		assertTrue(body.contains("\"message\""))
 		assertTrue(body.contains("\"null ref\""))

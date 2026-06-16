@@ -197,6 +197,7 @@ fun Route.adminMonitoringPages(
 					exceptionType = e.exception_type,
 					route = e.route,
 					userId = e.user_id,
+					status = e.status,
 					occurrences = e.occurrence_count,
 					firstSeen = e.first_seen.toString(),
 					lastSeen = e.last_seen.toString(),
@@ -284,18 +285,27 @@ private fun logLineModel(line: LogLine): Map<String, Any> = mapOf(
 	"message" to line.message,
 )
 
-private fun errorRowModel(e: Error_log): Map<String, Any> = mapOf(
-	"type" to e.exception_type,
-	"route" to (e.route ?: "—"),
-	"user" to (e.user_id?.toString() ?: "all"),
-	"hasUser" to (e.user_id != null),
-	"count" to e.occurrence_count,
-	"lastSeen" to formatInstant(e.last_seen, "MMM dd, HH:mm"),
-	"message" to (e.message ?: ""),
-	"hasMessage" to (e.message != null),
-	"stackTrace" to (e.stack_trace ?: ""),
-	"hasStack" to (e.stack_trace != null),
-)
+private fun errorRowModel(e: Error_log): Map<String, Any> {
+	val severity = severityFor(e.status)
+	return mapOf(
+		"type" to e.exception_type,
+		"route" to (e.route ?: "—"),
+		"user" to (e.user_id?.toString() ?: "all"),
+		"hasUser" to (e.user_id != null),
+		"count" to e.occurrence_count,
+		"status" to e.status,
+		"severity" to severity,
+		"severityIcon" to if (severity == "warning") "fa-triangle-exclamation" else "fa-circle-exclamation",
+		"lastSeen" to formatInstant(e.last_seen, "MMM dd, HH:mm"),
+		"message" to (e.message ?: ""),
+		"hasMessage" to (e.message != null),
+		"stackTrace" to (e.stack_trace ?: ""),
+		"hasStack" to (e.stack_trace != null),
+	)
+}
+
+/** Server-fault 5xx errors are loud; client-fault 4xx errors are quieter warnings. */
+private fun severityFor(status: Int): String = if (status in 400..499) "warning" else "error"
 
 // --- model helpers ---
 
@@ -412,6 +422,7 @@ private data class ErrorExport(
 	val exceptionType: String,
 	val route: String?,
 	val userId: Long?,
+	val status: Int,
 	val occurrences: Long,
 	val firstSeen: String,
 	val lastSeen: String,

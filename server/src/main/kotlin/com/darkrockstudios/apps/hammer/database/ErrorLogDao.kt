@@ -3,8 +3,8 @@ package com.darkrockstudios.apps.hammer.database
 import com.darkrockstudios.apps.hammer.Error_log
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
-import kotlin.time.Instant
 import org.koin.core.component.KoinComponent
+import kotlin.time.Instant
 
 open class ErrorLogDao(
 	database: Database,
@@ -20,9 +20,20 @@ open class ErrorLogDao(
 		userId: Long?,
 		message: String?,
 		stackTrace: String?,
+		status: Int,
 		now: Instant,
 	): Unit = withContext(ioDispatcher) {
-		queries.recordError(fingerprint, exceptionType, route, userId, message, stackTrace, now, now)
+		queries.recordError(
+			fingerprint,
+			exceptionType,
+			route,
+			userId,
+			message,
+			stackTrace,
+			status,
+			now,
+			now
+		)
 	}
 
 	open suspend fun getRecentErrors(limit: Long, offset: Long): List<Error_log> = withContext(ioDispatcher) {

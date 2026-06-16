@@ -1,8 +1,9 @@
--- Migration 3 -> 4: add the unique-user activity table and the published-story
--- reader table.
+-- Migration 3 -> 4: add the unique-user activity table, the published-story
+-- reader table, and the error_log.status column.
 --
 -- Mirrors the CREATE TABLE + index in UserActivity.sq and PublishedStoryReader.sq
--- for already-deployed v3 databases. Fresh installs get them from Schema.create.
+-- and the status column in ErrorLog.sq for already-deployed v3 databases. Fresh
+-- installs get them from Schema.create.
 
 CREATE TABLE user_activity (
     user_id BIGINT NOT NULL,
@@ -28,3 +29,5 @@ CREATE TABLE published_story_reader_total (
     project_id BIGINT NOT NULL PRIMARY KEY,
     total BIGINT NOT NULL
 );
+
+ALTER TABLE error_log ADD COLUMN IF NOT EXISTS status INTEGER NOT NULL DEFAULT 500;

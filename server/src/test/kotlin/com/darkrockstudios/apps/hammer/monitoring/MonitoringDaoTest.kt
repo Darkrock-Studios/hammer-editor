@@ -86,21 +86,31 @@ class MonitoringDaoTest : BaseTest() {
 	@Test
 	fun `errors dedupe by fingerprint and bump occurrence count`() = runTest {
 		val dao = ErrorLogDao(db)
-		dao.recordError("fp1", "RuntimeException", "/api/sync", 7, "boom", "stack", base)
-		dao.recordError("fp1", "RuntimeException", "/api/sync", 7, "boom again", "stack2", base + 1.hours)
+		dao.recordError("fp1", "RuntimeException", "/api/sync", 7, "boom", "stack", 500, base)
+		dao.recordError(
+			"fp1",
+			"RuntimeException",
+			"/api/sync",
+			7,
+			"boom again",
+			"stack2",
+			500,
+			base + 1.hours
+		)
 
 		val rows = dao.getRecentErrors(10, 0)
 		assertEquals(1, rows.size)
 		assertEquals(2L, rows.first().occurrence_count)
 		assertEquals("boom again", rows.first().message)
+		assertEquals(500, rows.first().status)
 		assertEquals(1L, dao.getErrorCount())
 	}
 
 	@Test
 	fun `errors purge by last seen`() = runTest {
 		val dao = ErrorLogDao(db)
-		dao.recordError("old", "E", null, null, null, null, base - 10.days)
-		dao.recordError("new", "E", null, null, null, null, base)
+		dao.recordError("old", "E", null, null, null, null, 500, base - 10.days)
+		dao.recordError("new", "E", null, null, null, null, 500, base)
 
 		dao.deleteErrorsBefore(base - 1.days)
 
@@ -121,9 +131,40 @@ class MonitoringDaoTest : BaseTest() {
 	@Test
 	fun `errors to alert respects threshold, recency and notified flag`() = runTest {
 		val dao = ErrorLogDao(db)
-		repeat(3) { dao.recordError("fp1", "E", "/r", null, "m", "s", base) }   // 3 occurrences, recent
-		dao.recordError("fp2", "E", "/r2", null, "m", "s", base)               // below threshold
-		repeat(5) { dao.recordError("fpOld", "E", "/old", null, "m", "s", base - 10.days) } // outside window
+		repeat(3) {
+			dao.recordError(
+				"fp1",
+				"E",
+				"/r",
+				null,
+				"m",
+				"s",
+				500,
+				base
+			)
+		}   // 3 occurrences, recent
+		dao.recordError(
+			"fp2",
+			"E",
+			"/r2",
+			null,
+			"m",
+			"s",
+			500,
+			base
+		)               // below threshold
+		repeat(5) {
+			dao.recordError(
+				"fpOld",
+				"E",
+				"/old",
+				null,
+				"m",
+				"s",
+				500,
+				base - 10.days
+			)
+		} // outside window
 
 		val toAlert = dao.getErrorsToAlert(minOccurrences = 3, since = base - 1.days)
 		assertEquals(1, toAlert.size)

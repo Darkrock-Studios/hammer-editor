@@ -2,9 +2,9 @@ package com.darkrockstudios.apps.hammer.monitoring
 
 import com.darkrockstudios.apps.hammer.Error_log
 import com.darkrockstudios.apps.hammer.database.ErrorLogDao
+import org.koin.core.component.KoinComponent
 import kotlin.time.Clock
 import kotlin.time.Instant
-import org.koin.core.component.KoinComponent
 
 /**
  * Stores deduplicated server-side errors. Recording the same fingerprint again
@@ -21,6 +21,7 @@ class ErrorRepository(
 		userId: Long?,
 		message: String?,
 		stackTrace: String?,
+		status: Int,
 	) {
 		val fingerprint = fingerprint(exceptionType, route, userId)
 		errorLogDao.recordError(
@@ -30,6 +31,7 @@ class ErrorRepository(
 			userId = userId,
 			message = message,
 			stackTrace = stackTrace,
+			status = status,
 			now = clock.now(),
 		)
 	}

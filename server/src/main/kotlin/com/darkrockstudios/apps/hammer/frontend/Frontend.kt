@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
 import com.darkrockstudios.apps.hammer.monitoring.recordMonitoredError
+import com.darkrockstudios.apps.hammer.monitoring.toMonitoredStatus
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
@@ -186,10 +187,18 @@ fun Application.configureFrontEnd() {
 				"Unhandled exception on ${call.request.httpMethod.value} ${call.request.path()}",
 				cause
 			)
-			recordMonitoredError(call, cause, errorRepository, monitoringState)
 			if (call.request.isApiCall()) {
-				call.respond(HttpStatusCode.InternalServerError)
+				val status = HttpStatusCode.fromValue(cause.toMonitoredStatus())
+				recordMonitoredError(call, cause, status.value, errorRepository, monitoringState)
+				call.respond(status)
 			} else {
+				recordMonitoredError(
+					call,
+					cause,
+					HttpStatusCode.InternalServerError.value,
+					errorRepository,
+					monitoringState
+				)
 				call.respond(
 					HttpStatusCode.InternalServerError,
 					MustacheContent("servererror.mustache", call.withDefaults())

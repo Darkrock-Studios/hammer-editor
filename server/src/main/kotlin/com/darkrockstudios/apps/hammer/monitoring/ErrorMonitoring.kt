@@ -1,12 +1,24 @@
 package com.darkrockstudios.apps.hammer.monitoring
 
+import com.darkrockstudios.apps.hammer.plugins.HttpStatusException
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.request.*
-import io.ktor.util.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationCall
+import io.ktor.server.auth.principal
+import io.ktor.server.request.path
 
 private const val MAX_STACK_CHARS = 8000
+
+/**
+ * The HTTP status an unhandled throwable should resolve to. Only exceptions that
+ * deliberately carry a status ([HttpStatusException] — e.g. the protocol-version
+ * rejection scanners trigger) map to 4xx; anything else is a genuine server
+ * fault and stays 500 so real bugs aren't hidden as client errors.
+ */
+fun Throwable.toMonitoredStatus(): Int = when (this) {
+	is HttpStatusException -> status.value
+	else -> HttpStatusCode.InternalServerError.value
+}
 
 /**
  * Record an unhandled error into the monitoring error log, keyed by the matched
@@ -17,6 +29,7 @@ private const val MAX_STACK_CHARS = 8000
 suspend fun recordMonitoredError(
 	call: ApplicationCall,
 	cause: Throwable,
+	status: Int,
 	errorRepository: ErrorRepository,
 	monitoringState: MonitoringState,
 ) {
@@ -29,5 +42,6 @@ suspend fun recordMonitoredError(
 		userId = call.principal<ServerUserIdPrincipal>()?.id,
 		message = cause.message,
 		stackTrace = cause.stackTraceToString().take(MAX_STACK_CHARS),
+		status = status,
 	)
 }
