@@ -1,11 +1,10 @@
 package com.darkrockstudios.apps.hammer.encryption
 
-import com.darkrockstudios.apps.hammer.EncryptionMode
 import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import kotlin.test.assertFailsWith
+import kotlin.test.assertEquals
 
 class EncryptionModeGuardTest : BaseTest() {
 
@@ -35,37 +34,20 @@ class EncryptionModeGuardTest : BaseTest() {
 	}
 
 	@Test
-	fun `mode none with an encrypted entity refuses to boot`() {
-		insertEntity(1, "AES/GCM/NoPadding")
-		assertFailsWith<EncryptionModeMismatchException> {
-			EncryptionModeGuard.verifyOnBoot(EncryptionMode.NONE, db())
-		}
+	fun `counts only encrypted rows across both tables`() {
+		insertEntity(1, "aesgcm:v1")
+		insertEntity(2, "none")
+		insertEntity(3, null)
+		insertEntity(4, "AES/GCM/NoPadding")
+		insertScene(1, "aesgcm:v1")
+		insertScene(2, "none")
+
+		// Encrypted: entities 1 & 4, scene 1 -> 3. Plaintext (none/NULL) excluded.
+		assertEquals(3, EncryptionModeGuard.encryptedRowCount(db()))
 	}
 
 	@Test
-	fun `mode none with an encrypted review scene refuses to boot`() {
-		insertScene(1, "AES/GCM/NoPadding")
-		assertFailsWith<EncryptionModeMismatchException> {
-			EncryptionModeGuard.verifyOnBoot(EncryptionMode.NONE, db())
-		}
-	}
-
-	@Test
-	fun `mode none with only plaintext rows boots`() {
-		insertEntity(1, "none")
-		insertEntity(2, null)
-		insertScene(1, "none")
-		EncryptionModeGuard.verifyOnBoot(EncryptionMode.NONE, db())
-	}
-
-	@Test
-	fun `mode none on an empty database boots`() {
-		EncryptionModeGuard.verifyOnBoot(EncryptionMode.NONE, db())
-	}
-
-	@Test
-	fun `mode aes with encrypted rows boots`() {
-		insertEntity(1, "AES/GCM/NoPadding")
-		EncryptionModeGuard.verifyOnBoot(EncryptionMode.AES, db())
+	fun `empty database has no encrypted rows`() {
+		assertEquals(0, EncryptionModeGuard.encryptedRowCount(db()))
 	}
 }

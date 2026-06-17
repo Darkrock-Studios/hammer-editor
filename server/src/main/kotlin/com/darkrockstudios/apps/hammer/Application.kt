@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.base.http.readToml
-import com.darkrockstudios.apps.hammer.encryption.EncryptionModeGuard
+import com.darkrockstudios.apps.hammer.encryption.EncryptionBootstrap
 import com.darkrockstudios.apps.hammer.frontend.configureFrontEnd
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
@@ -189,12 +189,8 @@ fun Application.appMain(
 	logLevel: Level? = null
 ) {
 	configureDependencyInjection(config, addInModule)
-	val database: com.darkrockstudios.apps.hammer.database.Database by inject()
-	EncryptionModeGuard.verifyOnBoot(config.encryption.mode, database.serverDatabase)
-	if (config.encryption.mode == EncryptionMode.AES) {
-		val keyringManager: com.darkrockstudios.apps.hammer.secret.KeyringManager by inject()
-		keyringManager.requireContentKey()
-	}
+	val encryptionBootstrap: EncryptionBootstrap by inject()
+	runBlocking { encryptionBootstrap.run(config.encryption.mode) }
 	configureSerialization()
 	configureMonitoring(logLevel)
 	configureApiMetrics()

@@ -28,6 +28,22 @@ SELECT * FROM review_scene WHERE id = :id;
 countEncrypted:
 SELECT COUNT(*) FROM review_scene WHERE cipher != 'none';
 
+-- Convergence: same normalization as story_entity. review_scene.cipher is
+-- NOT NULL, but the legacy 'AES/GCM/NoPadding' backfill maps to the v1 key.
+countForConvergence:
+SELECT COUNT(*) FROM review_scene
+WHERE (CASE WHEN cipher = 'AES/GCM/NoPadding' THEN 'aesgcm:v1' ELSE cipher END) != :target;
+
+selectForConvergence:
+SELECT rs.id, rs.snapshot_content, rs.cipher, rr.user_id
+FROM review_scene rs
+JOIN review_request rr ON rr.id = rs.review_request_id
+WHERE (CASE WHEN rs.cipher = 'AES/GCM/NoPadding' THEN 'aesgcm:v1' ELSE rs.cipher END) != :target
+LIMIT :batchLimit;
+
+updateContentCipher:
+UPDATE review_scene SET snapshot_content = :content, cipher = :cipher WHERE id = :id;
+
 setReviewerDone:
 UPDATE review_scene SET reviewer_done = :done WHERE id = :id;
 

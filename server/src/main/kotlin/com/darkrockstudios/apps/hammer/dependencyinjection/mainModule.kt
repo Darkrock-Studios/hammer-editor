@@ -17,6 +17,8 @@ import com.darkrockstudios.apps.hammer.encryption.AesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptors
+import com.darkrockstudios.apps.hammer.encryption.EncryptionBootstrap
+import com.darkrockstudios.apps.hammer.encryption.EncryptionConvergence
 import com.darkrockstudios.apps.hammer.encryption.PlaintextContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
@@ -172,7 +174,7 @@ fun mainModule(
 	single { ContentEncryptorRegistry(get<ContentEncryptors>().all()) }
 	single<ContentEncryptor> {
 		val encryptors = get<ContentEncryptors>()
-		when (get<ServerConfig>().encryption.mode) {
+		when (get<ServerConfig>().encryption.effectiveWriteMode()) {
 			EncryptionMode.NONE -> encryptors.plaintext
 			EncryptionMode.AES -> {
 				val activeId = get<KeyringManager>().activeContentKeyId()
@@ -180,6 +182,8 @@ fun mainModule(
 			}
 		}
 	}
+	single { EncryptionConvergence(get(), get(), get()) }
+	single { EncryptionBootstrap(get(), get(), get(), get()) }
 	singleOf(::TokenHasher)
 
 	single<EmailService> {

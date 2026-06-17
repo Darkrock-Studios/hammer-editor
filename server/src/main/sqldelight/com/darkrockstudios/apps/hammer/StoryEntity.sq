@@ -60,6 +60,27 @@ WHERE user_id = :userId AND project_id = :projectId;
 countEncrypted:
 SELECT COUNT(*) FROM story_entity WHERE cipher IS NOT NULL AND cipher != 'none';
 
+-- Convergence: a row needs re-crypting when its normalized tag differs from the
+-- target. NULL means plaintext ('none'); the legacy 'AES/GCM/NoPadding' tag is
+-- the v1 key, so it is already at target when the target is aesgcm:v1 (no churn
+-- for servers upgrading from before key ids).
+countForConvergence:
+SELECT COUNT(*) FROM story_entity
+WHERE (CASE WHEN cipher IS NULL THEN 'none'
+            WHEN cipher = 'AES/GCM/NoPadding' THEN 'aesgcm:v1'
+            ELSE cipher END) != :target;
+
+selectForConvergence:
+SELECT user_id, project_id, id, content, cipher FROM story_entity
+WHERE (CASE WHEN cipher IS NULL THEN 'none'
+            WHEN cipher = 'AES/GCM/NoPadding' THEN 'aesgcm:v1'
+            ELSE cipher END) != :target
+LIMIT :batchLimit;
+
+updateContentCipher:
+UPDATE story_entity SET content = :content, cipher = :cipher
+WHERE user_id = :userId AND project_id = :projectId AND id = :id;
+
 checkExists:
 SELECT EXISTS(
     SELECT 1 FROM story_entity

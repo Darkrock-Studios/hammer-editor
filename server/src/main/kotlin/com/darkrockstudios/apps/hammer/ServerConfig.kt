@@ -116,13 +116,21 @@ enum class EncryptionMode(val serial: String) {
 
 /**
  * Selects the cipher used for newly written content. Reads dispatch per-row
- * regardless of this. Defaults to no encryption: a zero-config server stores
- * plaintext and needs no key material. Enabling AES requires a keyring.
+ * regardless of this.
+ *
+ * `mode` is **unspecified** (null) by default — distinct from an explicit
+ * `none`. Unspecified resolves to plaintext on a fresh server, but the boot
+ * gate hard-stops a server that already holds encrypted data, forcing the
+ * admin to choose `aes` or `none` deliberately. An explicit `none` is a
+ * request to converge existing data to plaintext.
  */
 @Serializable
 data class EncryptionConfig(
-	val mode: EncryptionMode = EncryptionMode.NONE,
-)
+	val mode: EncryptionMode? = null,
+) {
+	/** What new writes use; unspecified behaves as plaintext. */
+	fun effectiveWriteMode(): EncryptionMode = mode ?: EncryptionMode.NONE
+}
 
 @Serializable(with = SecretProviderType.Serializer::class)
 enum class SecretProviderType(val serial: String) {

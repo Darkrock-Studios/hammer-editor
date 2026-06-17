@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.ServerConfig
 import net.peanuuutz.tomlkt.Toml
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class EncryptionConfigTest {
 
@@ -14,14 +15,15 @@ class EncryptionConfigTest {
 		toml.decodeFromString(ServerConfig.serializer(), tomlString)
 
 	@Test
-	fun `Omitted encryption section defaults to none`() {
+	fun `Omitted encryption section is unspecified and writes plaintext`() {
 		val config = parse(
 			"""
 			host = "localhost"
 			port = 8080
 			""".trimIndent()
 		)
-		assertEquals(EncryptionMode.NONE, config.encryption.mode)
+		assertNull(config.encryption.mode)
+		assertEquals(EncryptionMode.NONE, config.encryption.effectiveWriteMode())
 	}
 
 	@Test
