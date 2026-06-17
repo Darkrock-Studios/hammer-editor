@@ -1,295 +1,180 @@
-# Server Secret Storage & Key Management — Living Design Doc
+# Encryption at rest & key management (server admin guide)
 
-> ⚠️ **TEMPORARY DOC.** Working design reference for the server-secret-storage /
-> key-management feature. **When the feature ships, this file is replaced by a
-> user-facing admin tutorial/explainer** (provider setup, `generate-keyring` /
-> `rotate-key`, enabling/disabling encryption, dashboard status, deleting old
-> keys), linked from `docs/HOW-TO-RUN-A-SERVER.md`. The sequenced build plan lives
-> in [`SERVER-SECRET-STORAGE-PLAN.md`](SERVER-SECRET-STORAGE-PLAN.md).
+Hammer is offline-first and stores everything in PostgreSQL. **Content
+encryption at rest is optional.** This guide explains the keyring, how to turn
+encryption on or off, how to rotate keys, and how to safely delete an old key.
 
-## Goal
+CLI examples assume the packaged server (`./server` / `server.bat`); pass
+arguments through `--args`, e.g. `./server --args="generate-keyring"`.
 
-Stop treating the server secret as an auto-generated file living next to the
-data it protects, and give the server a proper key-management story that
-supports:
+## The short version
 
-1. **Pluggable secret storage** — file, environment variable, and (later)
-   external secrets managers — without forcing heavy dependencies on casual
-   self-hosters.
-2. **Per-row encryption modes**, including **no encryption at all**, for
-   resource-constrained self-hosters (the Raspberry Pi case).
-3. **Offline key rotation** as a deliberate maintenance step (no live/online
-   rotation — see Decision 6).
-4. A **provable "this key is no longer used"** signal so an operator can safely
-   delete an old key (or migrate fully to plaintext), surfaced in the admin
-   dashboard.
+- A brand-new server with no encryption config stores **plaintext**. It just
+  works — no keys to manage.
+- To encrypt content at rest you create a **keyring**, point the server at it,
+  and set `mode = "aes"`. On the next start the server re-encrypts existing data
+  before serving (a one-time maintenance window).
+- Turning encryption off, or rotating a key, is the same shape: change config /
+  keyring, restart, the server converges the data before serving.
+- All key generation and rotation is **offline** (CLI subcommands). The running
+  server never creates or changes key material on its own.
 
-## Background — what exists today
+## The keyring
 
-The server secret is 32 random bytes, generated on first boot and written to
-`~/hammer_data/server.secret`, cached in memory.
-(`ServerSecretManager`, `getRootDataDirectory`.)
+Key material lives in a single JSON document, the **keyring**. It holds two
+independent roles:
 
-It has **two consumers**, both deriving from the *same* raw value:
+- **`content`** — derives the per-user keys that encrypt entity content and
+  review snapshots.
+- **`tokenHmac`** — hashes authentication tokens.
 
-- **`SimpleFileBasedAesGcmKeyProvider`** — PBKDF2 password mixed with each user's
-  `cipher_secret` (client secret) to derive their per-user AES key.
-- **`TokenHasher`** — HMAC-SHA256 key for hashing auth tokens.
+Each role has versioned keys (`v1`, `v2`, …) and an `active` key used for new
+writes. Splitting the roles means you can retire the content key (after
+decrypting everything) without forcing every user to log in again.
 
-`story_entity` has a nullable **`cipher TEXT`** column. On **store** it records
-`encryptor.cipherName()` (e.g. `"AES/GCM/NoPadding"`). **But on load the column
-is ignored** — `ProjectEntityDatabaseDatasource.loadEntity` decrypts with the
-single DI-injected `ContentEncryptor` regardless of what the row says. There is
-exactly one `ContentEncryptor` bound in the graph. So the column is currently
-decorative on the read side.
+> **Keep the keyring separate from the database.** The point of encryption is
+> that a stolen database backup is useless without the key. If the keyring sits
+> in the same backup as `pgdata/`, you get no protection. Store it somewhere the
+> data backups don't reach (a secrets manager, a separate mount, etc.).
+>
+> **Losing a key is not symmetric.** Lose the **content** key and the encrypted
+> data is unrecoverable. Lose the **tokenHmac** key and users simply have to log
+> in again. Back up the content key accordingly.
 
-### Problems with the status quo
+## Configuration
 
-- **Co-location defeats the purpose.** The secret sits in `hammer_data/` right
-  next to `pgdata/`. The whole point of the secret is "a stolen DB/backup/volume
-  snapshot is useless without the key" — but one `docker cp` / leaked snapshot /
-  backup tarball grabs both. The secret provides ~zero marginal protection
-  against the most likely leak vector. **The real win is separating the secret
-  from the data it protects.**
-- **Latent entropy bug.** `generateSecret()` does `secureRandom.nextBytes(32)`
-  then `commonToUtf8String()`. Arbitrary bytes are **not** valid UTF-8 — invalid
-  sequences collapse to U+FFFD, so the stored secret has materially less than
-  256 bits of entropy and isn't a clean, round-trippable byte string.
-- **Silent auto-generation is a footgun.** If a deploy's volume isn't actually
-  persisted, a restart silently mints a *new* secret and bricks all existing
-  encrypted data + invalidates all tokens, with no error.
-- **Un-rotatable by construction.** The raw secret is fed directly into PBKDF2
-  for every user and used as the HMAC key. There is no version tag anywhere, so
-  it cannot be rotated without re-deriving every user's key.
+Two optional config blocks in `serverConfig.toml`:
 
-## Locked design decisions
+```toml
+# What new writes use. Omit the block entirely on a fresh server to store plaintext.
+[encryption]
+mode = "aes"   # "aes" to encrypt, "none" to store plaintext
 
-### 1. The secret's two roles get split
-
-The content-encryption key and the token-HMAC key become **separate keys** in
-the keyring, because they have different deletion stories:
-
-- **Content key** — re-keyed by transparently re-encrypting rows (decrypt old →
-  encrypt new). Once content is converged off a key, that key is deletable with
-  **zero auth impact**.
-- **Token-HMAC key** — HMAC is one-way; a stored hash cannot be re-encrypted.
-  Rotating it means old hashes stop verifying → all sessions invalidated →
-  global re-login. No special machinery; it's automatic on boot.
-
-Keeping them separate is what lets you "migrate content to plaintext, then delete
-the content key" without forcing every user to log in again.
-
-### 2. Pluggable `ServerSecretProvider`, explicit selection
-
-A provider interface selected **explicitly via `ServerConfig`** (`secret.provider
-= file | env`, default `file`), mirroring the existing `emailProvider` /
-`analyticsProvider` / `storage.type` patterns. No resolution chain — one
-configured answer for "where is the keyring read from." New backends are additive.
-
-### 3. Versioned keyring as a single JSON document
-
-`ServerSecretManager` becomes a **keyring**: a single JSON document, modeled as
-kotlinx-serialization data classes, returned as an opaque string by *every*
-provider and parsed once. **Roles are in the document from the start.** Key bytes
-are **standard Base64** (matches existing `kotlin.io.encoding.Base64` usage).
-
-```json
-{ "schema": 1,
-  "content":   { "active": "v1", "keys": { "v1": "<base64 32 bytes>" } },
-  "tokenHmac": { "active": "v1", "keys": { "v1": "<base64 32 bytes>" } } }
+# Where the keyring is read from. Defaults to the file provider.
+[secret]
+provider = "file"                          # "file" or "env"
+file = "/etc/hammer/server.keyring.json"   # file provider; default: ~/hammer_data/server.keyring.json
+envVar = "HAMMER_KEYRING"                   # env provider; the variable holds the keyring JSON
 ```
 
-```kotlin
-@Serializable data class Keyring(val schema: Int = 1, val content: RoleKeys, val tokenHmac: RoleKeys)
-@Serializable data class RoleKeys(val active: String, val keys: Map<String, String>) // value = base64 bytes
-```
+`mode` has three states:
 
-The keyring holds **key material + which key is active**. It does **not** hold the
-encryption *mode* (aes vs none) — that's a separate `ServerConfig` setting
-(Decision 5). `active` only selects which AES key new writes use; in `none` mode
-no key is used for new writes.
-
-Decoupling the format from the location means the provider writes/serialization
-logic exists once. The one accepted tradeoff: a secrets manager's *native*
-per-secret versioning is bypassed (we treat it as a plain KV store holding one
-document); its versioning becomes a free audit/rollback nicety, not our source of
-truth.
-
-### 4. Per-row tag carries `(algorithm, key-id)`
-
-The per-row `cipher` tag encodes **algorithm AND key generation**, not just the
-algorithm. Tag format e.g. `"aesgcm:v1"`, `"none"`.
-
-### 5. Polymorphic reads (the keystone) + plaintext mode
-
-**Reads dispatch on the row's tag** via a registry of encryptors keyed by tag;
-writes use the config-declared active encryptor/mode. This is the prerequisite
-for everything else — once reads are polymorphic, **mixed-state data is correct
-by construction.** A DB with some AES rows and some plaintext rows (or v1 + v2
-rows) just works, forever. Convergence becomes a *hygiene* concern, never a
-correctness gate.
-
-Registry:
-- `AesGcmContentEncryptor` → tag `aesgcm:<keyId>`
-- **new** `PlaintextContentEncryptor` (identity) → tag `none`
-
-**NULL `cipher` = plaintext.** Confirmed from history: `cipher` only began being
-written in commit `b28ecb60` "At rest encryption (#367)" — before that, content
-was stored plaintext with NULL `cipher`. So NULL rows are pre-#367 plaintext;
-the reader hands them to the plaintext encryptor. A wrong guess fails *loud*
-(bytes won't deserialize as JSON), not silently. Convergence normalizes NULL →
-`none`. (Note: today's load path AES-decrypts everything, so any surviving
-NULL/plaintext row is currently a latent read failure that the polymorphic reader
-fixes.)
-
-The encryption mode (`aes` | `none`) is an explicit `ServerConfig` setting
-(`[encryption] mode`) that selects the **active write** encryptor. **Default =
-`none` (plaintext).** A zero-config server stores plaintext and needs no key
-material — the simplest, hardest-to-misconfigure path for a casual self-hoster.
-Enabling AES is a deliberate opt-in that requires a keyring.
-
-> ⚠️ Upgrade note: pre-feature servers always encrypted (auto-generated secret).
-> After this ships, an existing deployment defaults to `none`. To stop a silent
-> downgrade, **the server hard-stops on boot** (`EncryptionModeGuard`) when
-> `mode=none` but AES-tagged rows exist — the admin must explicitly set
-> `mode=aes`. (Today the hard-stop is unconditional; PR5 refines it so an
-> *explicit* `mode=none` instead triggers convergence-to-plaintext, and adds a
-> second trigger on a keyring content-key being present.)
-
-**Reviews are polymorphic too.** `review_scene.snapshot_content` carries the same
-per-row `cipher` tag and decrypts through the same registry. Unlike `story_entity`,
-review rows have **no plaintext history** (the table postdates at-rest encryption),
-so the schema-v5 migration backfills existing rows with the AES tag — NULL would
-wrongly mean plaintext there. The column is `NOT NULL`; every write states its
-cipher.
-
-### 6. All convergence is an offline, blocking pre-launch step
-
-Enable (plaintext → AES), disable (AES → plaintext), and rotate (v1 → v2) are
-**all** handled by one blocking pre-launch convergence step — the server
-re-crypts every affected row *before* it accepts traffic. Run in the spirit of a
-data migration: idempotent, resumable (the tag column is the progress ledger —
-re-scan `WHERE tag != target`), deterministic.
-
-**There is no background/online sweep.** It was considered and dropped: its main
-justification was an admin-triggered "rotate now" button, but read-only keyring
-backends (env/file/secrets-manager) can't mutate the active pointer at runtime,
-so it would have forced DB-backed active state + a throttled online sweeper +
-lazy token rehash — a lot of machinery for zero-downtime rotation that a
-self-hosted writing app doesn't need. Rotation as offline maintenance is simpler
-and consistent with the rest of the design.
-
-| Operation | Strategy |
+| `mode` | Meaning |
 |---|---|
-| Enable encryption (plaintext → AES) | Blocking pre-launch step |
-| Disable encryption (AES → plaintext) | Blocking pre-launch step |
-| Content key rotation (v1 → v2) | Blocking pre-launch step |
-| Token-HMAC key rotation | Automatic on boot (old hashes stop verifying → re-login) |
+| omitted (unspecified) | Plaintext on a fresh server. **If the database already holds encrypted rows, the server refuses to start** until you choose `aes` or `none` — so an upgrade can't silently downgrade your data. |
+| `"aes"` | Encrypt new writes; converge existing data to the active content key. Requires a keyring. |
+| `"none"` | Store plaintext; converge existing encrypted data to plaintext. |
 
-**Accepted tradeoff:** enabling/rotating on a large DB means boot downtime
-proportional to data size (a maintenance window). Acceptable for offline
-maintenance.
+Reads always work regardless of `mode`: every row records which cipher (and key
+generation) it was written with, so mixed data decrypts correctly during a
+convergence.
 
-**Completion signal:** rows still tagged with the old key/cipher == 0 → old key
-is provably unreferenced and safe to delete. Surfaced in the admin dashboard
-(below). With the blocking gate, this is always true at runtime for the active
-target — the dashboard tally confirms it and flags when an old key can be dropped.
+## Generating a keyring
 
-### 7. No auto-generation; generation via explicit CLI subcommands
+```bash
+# Print a fresh keyring to stdout…
+./server --args="generate-keyring"
 
-There is **no auto-generation of content keys** — providers are read-only at
-runtime; nothing mints a *content* key as a side effect of booting (the
-silent-regeneration footgun, which bricks data, is gone by construction). A
-server with `mode=aes` and no keyring **fails fast with guidance** naming the
-generate command and where to put its output.
+# …or write it straight to the default location.
+./server --args="generate-keyring --out ~/hammer_data/server.keyring.json"
+```
 
-The **token-HMAC key is the one exception**: with no keyring at all (a zero-config
-plaintext server), `TokenHasher` falls back to an auto-managed `server.secret`, so
-the server can still authenticate with zero setup. This is safe because losing the
-token key only forces a re-login, never data loss — unlike a content key. Any
-keyring present (explicit or grandfathered) takes precedence over the fallback.
+This mints random keys for both roles (`v1`, active `v1`). Put the file where
+your configured provider reads it (default `~/hammer_data/server.keyring.json`),
+or for the env provider, set the variable to the JSON contents:
 
-Generation is explicit CLI subcommands on the server:
-- `generate-keyring` — emit a fresh keyring (both roles, each `v1`, `active: v1`).
-  stdout by default; `--out <path>` to write a file; canonical Base64-of-32-bytes
-  via our `SecureRandom`.
-- `rotate-key --role content` — read an existing keyring, add `vN+1`, set active,
-  emit the updated document. (Offline rotation: place updated keyring → restart →
-  blocking gate re-encrypts.)
-- `inspect-keyring` — show key ids / active without revealing bytes.
+```toml
+[secret]
+provider = "env"
+envVar = "HAMMER_KEYRING"
+```
 
-## Admin dashboard: encryption status (read-only)
+Inspect a keyring without revealing key bytes:
 
-Surfaced in the existing `/admin` Monitoring area (`AdminServerConfig` /
-`ConfigRepository` pattern). Informational only — no trigger button, since
-rotation is offline.
+```bash
+./server --args="inspect-keyring"            # default path
+./server --args="inspect-keyring --in /etc/hammer/server.keyring.json"
+```
 
-- **Current mode + active key id** — e.g. `Encryption: AES (content v1)` or
-  `Encryption: none (plaintext)`, from config / the last-applied marker.
-- **Live per-cipher tally** — count of rows per tag, e.g.
-  `1,203 aesgcm:v1 · 0 plaintext`. Doubles as convergence verification and the
-  **"safe to delete old key"** signal: when an old tag's count hits 0, the
-  operator knows that key is unreferenced.
+## Enabling encryption (plaintext → AES)
 
-## Storing & retrieving the keyring
+1. Generate a keyring and place it for your provider (above).
+2. Set `mode = "aes"` in `serverConfig.toml`.
+3. (Optional but recommended) Dry-run first — see [Previewing](#previewing-a-convergence).
+4. Restart the server. Before accepting traffic it re-encrypts every content row
+   to the active key, logging progress. On a large database this is a
+   maintenance window proportional to data size.
 
-All behind `ServerSecretProvider`, explicitly selected via `ServerConfig`. Every
-provider returns the **same JSON keyring string** (Decision 3); only the location
-differs. **v1 ships File + Env**; managers/KMS are deferred opt-in plugins.
+Subsequent restarts skip the scan (a marker records the last-applied target), so
+normal boots are fast.
 
-| Backend | Ships | How it gets there | Server reads via | Notes |
-|---|---|---|---|---|
-| **File** (configurable path) | **v1** | operator writes the keyring JSON to a path | read file at config path | Default path grandfathers `~/hammer_data/server.secret` → keyring v1. Also covers Docker/k8s secret mounts (`/run/secrets/…`), **systemd-creds** (`$CREDENTIALS_DIRECTORY`), and SOPS-decrypt-to-file — all "for free". |
-| **Env var** | **v1** | one var holds the keyring JSON string | `System.getenv` | 12-factor; native fit for compose/k8s secret injection. Leak surface = the box (`/proc/<pid>/environ`, `docker inspect`). |
-| **Secrets manager** (Vault, AWS/GCP/Azure, Infisical, Doppler) | later | `vault kv put …` once | fetch over API at boot, cache in memory | Audit logs, access control, durable/replicated. Opt-in plugin; the grown-up option for hammer.ink. |
-| **KMS / envelope** (AWS/GCP KMS; **SOPS+age**) | later | wrap the keyring; store ciphertext | call KMS at boot to unwrap | On-disk artifact safe without the master key. SOPS+age is a tidy GitOps-y self-host flavor. |
+## Disabling encryption (AES → plaintext)
 
-Generation and storage stay **decoupled**: `generate-keyring` makes the document;
-you place it via `--out` / `export` / `vault kv put` / `sops`. Offline rotation =
-`rotate-key` → place updated keyring → restart.
+1. Set `mode = "none"`.
+2. Restart. The server decrypts every row to plaintext before serving.
+3. Once convergence completes, the content key is **provably unused** and can be
+   deleted from the keyring (see [Deleting an old key](#deleting-an-old-key)).
 
-## Implementation notes & invariants
+## Rotating a key
 
-- **Cipher is orthogonal to `hash`.** `hash = entity.hash()` is over the
-  *plaintext* entity, not the ciphertext. Re-crypting a row does **not** change
-  its hash → no spurious sync conflicts. Lock with a test; it's what makes
-  convergence safe.
-- **Keep the hot read path read-only.** Convergence is owned by the write path +
-  the pre-launch gate. Never sneak write-back into `loadEntity`.
-- **Per-row (or small-batch) transactions** in the gate — decrypt-then-write as
-  one unit so a `kill -9` leaves a consistent mixed state the next run resumes
-  from. Never one giant transaction.
-- **Cheap normal boots.** Track a "last-applied mode/key" marker (DB via
-  `ServerConfigDao`); run the blocking convergence only when configured target ≠
-  last-applied. Otherwise boot without scanning.
-- **Long boots must survive orchestration.** Use a **startup probe** (not a
-  liveness probe) + progress logging so a multi-minute convergence isn't killed
-  mid-run (safe to kill — resumable — but it'd never finish if repeatedly killed).
-- **No auto-heal of the secret.** An intentionally-deleted key is never silently
-  regenerated. Demand-load only; absence is intentional → fail fast.
+Rotation is offline: add a new key generation, restart, let convergence move the
+data onto it.
 
-## Resolved decisions (the four we walked through)
+```bash
+# Add v2 to the content role and make it active; keeps v1 so existing rows still read.
+./server --args="rotate-key --role content --in ~/hammer_data/server.keyring.json --out ~/hammer_data/server.keyring.json"
+```
 
-1. **NULL `cipher` = plaintext** (read with identity encryptor; normalize NULL →
-   `none` on convergence). Grounded in commit `b28ecb60`.
-2. **Keyring format** = single schema-versioned JSON document, roles in from the
-   start, base64 key bytes, kotlinx-serialization data classes.
-3. **Providers** = File + Env in v1; explicit single-provider selection via
-   `ServerConfig` (default file); **no auto-generation** — generate via CLI
-   subcommands.
-4. **Convergence** = blocking pre-launch step for enable/disable/rotate; **no
-   background sweep**; token-HMAC rotation = automatic re-login on boot.
+Then restart with `mode = "aes"`. Convergence re-encrypts every content row from
+the old generation onto `v2`. When done, the old generation is unused and can be
+removed.
 
-## Open questions / TODO
+Rotating the **`tokenHmac`** role (`--role tokenHmac`) instead invalidates all
+existing sessions — every user re-logs in on the next start. Content is
+untouched. There's no data convergence for token rotation.
 
-- [x] PR3/PR4 sequencing: `TokenHasher` stays on the legacy `server.secret` until
-      PR4; PR3 migrates only the **content** key to the keyring. (Generator emits
-      both roles; the grandfathered `tokenHmac.v1` == `content.v1` so PR4's flip
-      preserves token continuity.)
-- [x] Migration of the existing single `server.secret` → keyring `content.v1`:
-      done in PR3 via `KeyringManager` grandfathering the file **verbatim** (key
-      model = opaque string used as-is, so no re-encoding). Guarded by the
-      golden-corpus test.
-- [x] Encryption-mode setting: dedicated `[encryption] mode` block (`aes` |
-      `none`, default `none`). Shipped in PR2. `secret.provider` shape still TBD
-      (PR3).
+## Previewing a convergence
+
+Before a real run, see exactly what would happen — without writing anything or
+binding a port:
+
+```bash
+./server --args="--converge-dry-run"
+```
+
+It reports how many rows are off the configured target and flags any entity that
+would exceed the size cap once encrypted (those would block convergence; shrink
+or split them first). Exit code `0` means convergence would complete; `1` means
+there are over-cap rows to deal with.
+
+## Deleting an old key
+
+After a disable (→ plaintext) or a rotation (→ new generation), the previous
+content key is no longer referenced by any row. Convergence runs to completion
+before the server serves, so once a converged boot has finished, **no row is
+left on the old key**. At that point it's safe to remove that key generation
+from the keyring's `content.keys` and keep a backup elsewhere if you might need
+to read an old database snapshot.
+
+Use `inspect-keyring` to see which generations exist before pruning.
+
+## Upgrading an existing (already-encrypted) server
+
+Older releases always encrypted, using an auto-generated
+`~/hammer_data/server.secret`. After upgrading:
+
+- That `server.secret` is read automatically as the keyring's `content.v1` and
+  `tokenHmac.v1` — **existing data keeps decrypting and existing logins keep
+  working**, no action required for the keys themselves.
+- But because the default `mode` is now unspecified, a server that holds
+  encrypted data **will refuse to start until you set `mode` explicitly**. Set
+  `mode = "aes"` to keep encrypting (recommended for an existing encrypted
+  server), or `mode = "none"` to deliberately decrypt everything to plaintext.
+
+If you'd rather manage an explicit keyring file than rely on the legacy
+`server.secret`, copy its **exact** contents into the `content.v1` and
+`tokenHmac.v1` values of a keyring document and place that for your provider,
+then remove `server.secret`. Do **not** run `generate-keyring` for this — that
+mints new keys and would leave the existing data unreadable. (Alternatively,
+keep the grandfathered keyring and rotate to a fresh generation once; let
+convergence move the data onto it.)

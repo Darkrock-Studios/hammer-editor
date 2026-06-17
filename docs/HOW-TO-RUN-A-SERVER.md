@@ -64,6 +64,18 @@ Older releases used SQLite (`~/hammer_data/server.db`). The first run after upgr
 
 To rehearse the migration against a copy of production before flipping the live config, run with `--migrate-dry-run`: it does everything except commit and rename.
 
+## Encryption at rest
+
+Content encryption at rest is **optional** — a fresh server stores plaintext and
+needs no key material. To encrypt content you create a keyring, point the server
+at it, and set `[encryption] mode = "aes"`; the server re-encrypts existing data
+on the next start. Turning it off, rotating keys, and safely deleting an old key
+follow the same offline pattern.
+
+See **[Encryption at rest & key management](SERVER-SECRET-STORAGE.md)** for the
+full walkthrough (generating a keyring, enabling/disabling encryption, rotation,
+dry-runs, and upgrading an already-encrypted server).
+
 ## Platform-Specific Instructions
 
 ### Linux
