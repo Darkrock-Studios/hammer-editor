@@ -43,25 +43,25 @@ Full rationale in [`SERVER-SECRET-STORAGE.md`](SERVER-SECRET-STORAGE.md).
 DI-injected encryptor. **No behavior change** — AES is still the only cipher.
 This unblocks everything else.
 
-- [ ] Introduce a `ContentEncryptorRegistry` (tag → `ContentEncryptor`).
-- [ ] `PlaintextContentEncryptor` (identity), tag `none` — needed on the **read**
+- [x] Introduce a `ContentEncryptorRegistry` (tag → `ContentEncryptor`).
+- [x] `PlaintextContentEncryptor` (identity), tag `none` — needed on the **read**
       side now so NULL/plaintext rows are readable (the latent-bug fix). The
       config to *write* plaintext is PR2.
-- [ ] `ProjectEntityDatabaseDatasource.loadEntity` resolves the encryptor from
+- [x] `ProjectEntityDatabaseDatasource.loadEntity` resolves the encryptor from
       `dbEntity.cipher` via the registry (currently ignores it — uses the single
       injected `encryptor`). Store path unchanged (still tags with the active
       encryptor's `cipherName()`).
-- [ ] NULL `cipher` → resolve to the plaintext encryptor (Decision 1); unknown
+- [x] NULL `cipher` → resolve to the plaintext encryptor (Decision 1); unknown
       non-null tag → loud failure, not a silent fallback.
-- [ ] DI: bind the registry; register `AesGcmContentEncryptor` + plaintext under
+- [x] DI: bind the registry; register `AesGcmContentEncryptor` + plaintext under
       their tags. Resolve the `ContentEncryptor bind` in `mainModule.kt`.
 
 **Acceptance:**
-- [ ] Existing data round-trips unchanged (load/store tests green).
-- [ ] **Keystone mixed-state read** (Layer 1): one DB with `aesgcm`, `none`, and
+- [x] Existing data round-trips unchanged (load/store tests green).
+- [x] **Keystone mixed-state read** (Layer 1): one DB with `aesgcm`, `none`, and
       `NULL` rows — each decrypts via the right encryptor; NULL reads as plaintext.
-- [ ] Unknown non-null tag → loud failure, never silent garbage.
-- [ ] **Invariant test: cipher ⊥ hash.** Re-encrypting a row with a different
+- [x] Unknown non-null tag → loud failure, never silent garbage.
+- [x] **Invariant test: cipher ⊥ hash.** Re-encrypting a row with a different
       cipher must NOT change `entity.hash()` (it's computed over plaintext). Lock
       this — it's what makes convergence safe.
 

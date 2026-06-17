@@ -13,6 +13,8 @@ import com.darkrockstudios.apps.hammer.email.*
 import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.AesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
+import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
+import com.darkrockstudios.apps.hammer.encryption.PlaintextContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MetricsCollector
@@ -136,6 +138,12 @@ fun mainModule(
 	singleOf(::MarkdownService)
 	singleOf(::SimpleFileBasedAesGcmKeyProvider) bind AesGcmKeyProvider::class
 	singleOf(::AesGcmContentEncryptor) bind ContentEncryptor::class
+	singleOf(::PlaintextContentEncryptor)
+	single {
+		ContentEncryptorRegistry(
+			listOf(get<AesGcmContentEncryptor>(), get<PlaintextContentEncryptor>())
+		)
+	}
 	singleOf(::TokenHasher)
 
 	single<EmailService> {
@@ -151,7 +159,7 @@ fun mainModule(
 
 	factoryOf(::ProjectsDatabaseDatasource) bind ProjectsDatasource::class
 	factory<ProjectEntityDatasource> {
-		ProjectEntityDatabaseDatasource(get(), get(), get(), get(), get(), get(), get())
+		ProjectEntityDatabaseDatasource(get(), get(), get(), get(), get(), get(), get(), get())
 	}
 
 	singleOf(::AdminComponent)
