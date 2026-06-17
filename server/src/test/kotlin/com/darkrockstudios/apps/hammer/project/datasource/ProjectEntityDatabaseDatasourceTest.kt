@@ -453,6 +453,25 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 	}
 
 	@Test
+	fun `Load Entity - AES Tag But Non-Ciphertext Content - Clean Failure`() = runTest {
+		setupAccount(testDatabase)
+		testDatabase.serverDatabase.projectQueries
+			.createProject(userId, projectDef.name, projectDef.uuid.id)
+
+		// Content stored as plaintext JSON but tagged as AES: decrypting it must fail
+		// cleanly (not throw an uncaught crypto/Base64 exception).
+		insertSceneEntityRaw(1, "content", plaintextEncryptor, cipherTag = contentEncryptor.cipherName())
+
+		val result = createDatasource().loadEntity(
+			userId, projectDef, 1,
+			ApiProjectEntity.Type.SCENE,
+			ApiProjectEntity.SceneEntity.serializer(),
+		)
+
+		assertTrue(isFailure(result))
+	}
+
+	@Test
 	fun `Store Entity - Cipher Is Orthogonal To Hash`() = runTest {
 		val entity = ApiProjectEntity.SceneEntity(
 			id = 1,

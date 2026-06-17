@@ -12,14 +12,14 @@ interface ServerSecretProvider {
 	fun loadKeyring(): String?
 }
 
-/** Reads the keyring JSON from a file. */
+/** Reads the keyring JSON from a file. An empty/whitespace-only file reads as absent. */
 class FileSecretProvider(
 	private val fileSystem: FileSystem,
 	private val keyringPath: Path,
 ) : ServerSecretProvider {
 	override fun loadKeyring(): String? =
 		if (fileSystem.exists(keyringPath)) {
-			fileSystem.read(keyringPath) { readUtf8() }
+			fileSystem.read(keyringPath) { readUtf8() }.ifBlank { null }
 		} else {
 			null
 		}

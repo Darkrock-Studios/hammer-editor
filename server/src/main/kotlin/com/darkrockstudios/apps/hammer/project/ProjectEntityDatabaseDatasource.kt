@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.database.*
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
 import com.darkrockstudios.apps.hammer.utilities.SResult
+import java.security.GeneralSecurityException
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -231,6 +232,12 @@ class ProjectEntityDatabaseDatasource(
 				val entity = json.decodeFromString(serializer, decrypted)
 				SResult.success(entity)
 			} catch (e: SerializationException) {
+				SResult.failure(e)
+			} catch (e: GeneralSecurityException) {
+				// Wrong key or corrupt ciphertext for the row's cipher tag.
+				SResult.failure(e)
+			} catch (e: IllegalArgumentException) {
+				// Ciphertext that isn't valid Base64.
 				SResult.failure(e)
 			}
 		}

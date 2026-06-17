@@ -6,7 +6,12 @@ class ContentEncryptorRegistry(
 	encryptors: List<ContentEncryptor>,
 ) {
 	private val byTag: Map<String, ContentEncryptor> = buildMap {
-		encryptors.forEach { put(it.cipherName(), it) }
+		encryptors.forEach { encryptor ->
+			require(encryptor.cipherName() !in this) {
+				"Duplicate cipher tag '${encryptor.cipherName()}' registered"
+			}
+			put(encryptor.cipherName(), encryptor)
+		}
 		// Rows written before key ids carry the legacy tag; they used the v1 content key.
 		get("${AesGcmContentEncryptor.ALGORITHM}:${KeyringCodec.FIRST_KEY_ID}")?.let {
 			put(AesGcmContentEncryptor.LEGACY_CIPHER_NAME, it)

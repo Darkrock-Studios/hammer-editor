@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.dependencyinjection
 
-import com.darkrockstudios.apps.hammer.EncryptionMode
 import com.darkrockstudios.apps.hammer.SecretProviderType
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.StorageMode
@@ -153,13 +152,13 @@ fun mainModule(
 		when (secret.provider) {
 			SecretProviderType.FILE -> FileSecretProvider(
 				get(),
-				secret.file?.toPath() ?: KeyringManager.defaultKeyringPath(get()),
+				secret.file?.toPath() ?: KeyringManager.defaultKeyringPath(),
 			)
 			SecretProviderType.ENV -> EnvSecretProvider(secret.envVar)
 		}
 	}
 	single {
-		KeyringManager(get(), get(), get(), KeyringManager.legacySecretPath(get()))
+		KeyringManager(get(), get(), get(), KeyringManager.legacySecretPath())
 	}
 	singleOf(::SimpleFileBasedAesGcmKeyProvider) bind AesGcmKeyProvider::class
 	singleOf(::PlaintextContentEncryptor)
@@ -173,17 +172,10 @@ fun mainModule(
 	}
 	single { ContentEncryptorRegistry(get<ContentEncryptors>().all()) }
 	single<ContentEncryptor> {
-		val encryptors = get<ContentEncryptors>()
-		when (get<ServerConfig>().encryption.effectiveWriteMode()) {
-			EncryptionMode.NONE -> encryptors.plaintext
-			EncryptionMode.AES -> {
-				val activeId = get<KeyringManager>().activeContentKeyId()
-				encryptors.aesByKeyId[activeId] ?: error("No content encryptor for active key '$activeId'")
-			}
-		}
+		get<ContentEncryptors>().active(get<ServerConfig>().encryption.effectiveWriteMode(), get())
 	}
 	single { EncryptionConvergence(get(), get(), get()) }
-	single { EncryptionBootstrap(get(), get(), get(), get()) }
+	single { EncryptionBootstrap(get(), get(), get(), get(), get(), get()) }
 	singleOf(::TokenHasher)
 
 	single<EmailService> {

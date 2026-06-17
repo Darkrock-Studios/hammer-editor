@@ -1,8 +1,9 @@
 package com.darkrockstudios.apps.hammer.encryption
 
-import com.darkrockstudios.apps.hammer.EncryptionMode
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
+import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import org.slf4j.LoggerFactory
 
 class UnspecifiedEncryptionModeException(encryptedRowCount: Long) : IllegalStateException(
@@ -18,24 +19,32 @@ class UnspecifiedEncryptionModeException(encryptedRowCount: Long) : IllegalState
  *
  * An unspecified mode on a server that already holds encrypted data is a hard
  * stop — the admin must choose `aes` or `none` rather than silently downgrade.
+ *
+ * The active encryptor is resolved via [ContentEncryptors.active] — the same path
+ * the DI write binding uses — so the convergence target can't drift from what
+ * new writes actually produce.
  */
 class EncryptionBootstrap(
-	private val activeEncryptor: ContentEncryptor,
+	private val contentEncryptors: ContentEncryptors,
+	private val keyringManager: KeyringManager,
+	private val serverConfig: ServerConfig,
 	private val convergence: EncryptionConvergence,
 	private val configDao: ServerConfigDao,
 	private val database: Database,
 ) {
 	private val log = LoggerFactory.getLogger(EncryptionBootstrap::class.java)
 
-	suspend fun run(mode: EncryptionMode?) {
+	suspend fun run() {
+		val mode = serverConfig.encryption.mode
 		if (mode == null) {
 			val encrypted = EncryptionModeGuard.encryptedRowCount(database.serverDatabase)
 			if (encrypted > 0) throw UnspecifiedEncryptionModeException(encrypted)
 		}
 
-		// Resolving the active encryptor's tag requires the keyring under mode=aes,
+		// Resolving the active encryptor requires the keyring under mode=aes,
 		// so a missing keyring fails fast here.
-		val targetTag = activeEncryptor.cipherName()
+		val target = activeEncryptor()
+		val targetTag = target.cipherName()
 
 		val lastApplied = configDao.getConfig(LAST_APPLIED_KEY)
 		if (lastApplied == targetTag) {
@@ -44,7 +53,7 @@ class EncryptionBootstrap(
 		}
 
 		log.info("Converging content encryption to '$targetTag' (this may take a while on a large database)...")
-		val report = convergence.converge(activeEncryptor)
+		val report = convergence.converge(target)
 		configDao.upsertConfig(LAST_APPLIED_KEY, targetTag)
 		log.info(
 			"Converged ${report.total} row(s) to '$targetTag' " +
@@ -53,7 +62,10 @@ class EncryptionBootstrap(
 	}
 
 	/** Reports what convergence to the configured target would do, writing nothing. */
-	suspend fun dryRun(): ConvergenceDryRun = convergence.dryRun(activeEncryptor)
+	suspend fun dryRun(): ConvergenceDryRun = convergence.dryRun(activeEncryptor())
+
+	private fun activeEncryptor(): ContentEncryptor =
+		contentEncryptors.active(serverConfig.encryption.effectiveWriteMode(), keyringManager)
 
 	companion object {
 		const val LAST_APPLIED_KEY = "encryption.lastAppliedTarget"

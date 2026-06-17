@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.ServerConfig
 import net.peanuuutz.tomlkt.Toml
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNull
 
 class EncryptionConfigTest {
@@ -35,6 +36,18 @@ class EncryptionConfigTest {
 			""".trimIndent()
 		)
 		assertEquals(EncryptionMode.AES, config.encryption.mode)
+	}
+
+	@Test
+	fun `An unrecognized mode is rejected`() {
+		assertFailsWith<Exception> {
+			parse(
+				"""
+				[encryption]
+				mode = "rot13"
+				""".trimIndent()
+			)
+		}
 	}
 
 	@Test

@@ -60,12 +60,12 @@ abstract class EndToEndTest {
 		// Write a keyring the booted server reads (file provider, default path, same fake FS),
 		// so this test's encryptor/token hasher and the server share key material.
 		val codec = KeyringCodec(secureRandom, base64)
-		val keyringPath = KeyringManager.defaultKeyringPath(fileSystem)
+		val keyringPath = KeyringManager.defaultKeyringPath()
 		fileSystem.createDirectories(keyringPath.parent!!)
 		fileSystem.write(keyringPath) { writeUtf8(codec.serialize(codec.generate())) }
 		val keyringManager = KeyringManager(
 			FileSecretProvider(fileSystem, keyringPath),
-			codec, fileSystem, KeyringManager.legacySecretPath(fileSystem),
+			codec, fileSystem, KeyringManager.legacySecretPath(),
 		)
 		tokenHasher = TokenHasher(keyringManager, serverSecretManager, base64)
 		contentEncryptor = AesGcmContentEncryptor(

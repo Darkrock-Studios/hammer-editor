@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.secret
 
 import com.darkrockstudios.apps.hammer.utilities.DATA_DIR
+import kotlinx.serialization.SerializationException
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
@@ -8,6 +9,12 @@ import okio.Path.Companion.toPath
 class MissingKeyringException(detail: String) : IllegalStateException(
 	"No server keyring is available, but encryption is enabled. $detail Generate one with the " +
 		"'generate-keyring' subcommand and make it available to the configured secret provider."
+)
+
+class MalformedKeyringException(cause: Throwable) : IllegalStateException(
+	"The configured server keyring could not be parsed: ${cause.message}. Check the secret " +
+		"provider's contents, or regenerate it with 'generate-keyring'.",
+	cause,
 )
 
 /**
@@ -24,7 +31,15 @@ class KeyringManager(
 	private val keyring: Keyring? by lazy { load() }
 
 	private fun load(): Keyring? {
-		provider.loadKeyring()?.let { return codec.parse(it) }
+		provider.loadKeyring()?.let { json ->
+			return try {
+				codec.parse(json)
+			} catch (e: SerializationException) {
+				throw MalformedKeyringException(e)
+			} catch (e: IllegalArgumentException) {
+				throw MalformedKeyringException(e)
+			}
+		}
 
 		// A pre-existing single secret from before keyrings: wrap it verbatim so
 		// existing content still decrypts. Absence here is intentional, not an error.
@@ -57,10 +72,10 @@ class KeyringManager(
 		keyring ?: throw MissingKeyringException("The configured provider returned nothing and no legacy server.secret was found.")
 
 	companion object {
-		fun defaultKeyringPath(fileSystem: FileSystem): Path =
-			(System.getProperty("user.home").toPath() / DATA_DIR / "server.keyring.json")
+		fun defaultKeyringPath(): Path =
+			System.getProperty("user.home").toPath() / DATA_DIR / "server.keyring.json"
 
-		fun legacySecretPath(fileSystem: FileSystem): Path =
-			(System.getProperty("user.home").toPath() / DATA_DIR / "server.secret")
+		fun legacySecretPath(): Path =
+			System.getProperty("user.home").toPath() / DATA_DIR / "server.secret"
 	}
 }

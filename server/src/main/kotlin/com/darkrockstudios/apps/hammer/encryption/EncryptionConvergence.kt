@@ -29,7 +29,8 @@ data class ConvergenceDryRun(
  *
  * Resumable by construction: each row's tag is its own progress marker, so a
  * crashed run is finished by simply re-running (the predicate re-selects only
- * rows not yet on target). Each row update is atomic.
+ * rows not yet on target). Each row update is its own autocommit statement —
+ * no enclosing transaction, by design, so a crash leaves a consistent mixed state.
  */
 class EncryptionConvergence(
 	database: Database,
@@ -52,54 +53,52 @@ class EncryptionConvergence(
 	/**
 	 * Reports what a convergence to [target] would do without writing anything:
 	 * how many rows are off-target, and which entities would exceed the size cap
-	 * once encrypted (the rows that would make a real run fail).
+	 * once encrypted (the rows that would make a real run fail). Only story
+	 * entities have a size cap, so only they are scanned for over-cap.
 	 */
 	suspend fun dryRun(target: ContentEncryptor): ConvergenceDryRun = withContext(ioDispatcher) {
 		val targetTag = target.cipherName()
 		val secrets = HashMap<Long, String>()
 
-		suspend fun secretFor(userId: Long): String {
-			secrets[userId]?.let { return it }
-			val secret = accountDao.getAccount(userId)?.cipher_secret
-				?: error("User $userId not found during dry run")
-			secrets[userId] = secret
-			return secret
-		}
-
 		val storyRemaining = story.countForConvergence(targetTag).executeAsOne()
 		val reviewRemaining = review.countForConvergence(targetTag).executeAsOne()
 
 		val overCap = mutableListOf<String>()
-		val rows = story.selectForConvergence(targetTag, Long.MAX_VALUE).executeAsList()
-		for (row in rows) {
-			val secret = secretFor(row.user_id)
-			val plain = registry.resolve(row.cipher).decrypt(row.content, secret)
-			if (target.encrypt(plain, secret).length > maxContentLength) {
-				overCap += "entity ${row.id} (user ${row.user_id}, project ${row.project_id})"
+		var offset = 0L
+		while (true) {
+			val batch = story.selectForConvergencePaged(targetTag, batchSize, offset).executeAsList()
+			if (batch.isEmpty()) break
+			for (row in batch) {
+				val secret = secretFor(secrets, row.user_id)
+				val plain = registry.resolve(row.cipher).decrypt(row.content, secret)
+				if (target.encrypt(plain, secret).length > maxContentLength) {
+					overCap += "entity ${row.id} (user ${row.user_id}, project ${row.project_id})"
+				}
 			}
+			offset += batch.size
 		}
 
 		ConvergenceDryRun(storyRemaining, reviewRemaining, overCap)
+	}
+
+	private suspend fun secretFor(cache: MutableMap<Long, String>, userId: Long): String {
+		cache[userId]?.let { return it }
+		val secret = accountDao.getAccount(userId)?.cipher_secret
+			?: error("User $userId not found during convergence")
+		cache[userId] = secret
+		return secret
 	}
 
 	suspend fun converge(target: ContentEncryptor): ConvergenceReport = withContext(ioDispatcher) {
 		val targetTag = target.cipherName()
 		val secrets = HashMap<Long, String>()
 
-		suspend fun secretFor(userId: Long): String {
-			secrets[userId]?.let { return it }
-			val secret = accountDao.getAccount(userId)?.cipher_secret
-				?: error("User $userId not found during convergence")
-			secrets[userId] = secret
-			return secret
-		}
-
 		var storyCount = 0
 		while (true) {
 			val batch = story.selectForConvergence(targetTag, batchSize).executeAsList()
 			if (batch.isEmpty()) break
 			for (row in batch) {
-				val secret = secretFor(row.user_id)
+				val secret = secretFor(secrets, row.user_id)
 				val plain = registry.resolve(row.cipher).decrypt(row.content, secret)
 				val reEncrypted = target.encrypt(plain, secret)
 				if (reEncrypted.length > maxContentLength) {
@@ -119,7 +118,7 @@ class EncryptionConvergence(
 			val batch = review.selectForConvergence(targetTag, batchSize).executeAsList()
 			if (batch.isEmpty()) break
 			for (row in batch) {
-				val secret = secretFor(row.user_id)
+				val secret = secretFor(secrets, row.user_id)
 				val plain = registry.resolve(row.cipher).decrypt(row.snapshot_content, secret)
 				val reEncrypted = target.encrypt(plain, secret)
 				review.updateContentCipher(reEncrypted, targetTag, row.id)

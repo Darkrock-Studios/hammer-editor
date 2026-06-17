@@ -26,7 +26,7 @@ class KeyringManagerTest : BaseTest() {
 		fileSystem = FakeFileSystem()
 		secureRandom = SecureRandom()
 		codec = KeyringCodec(secureRandom, Base64.Default)
-		legacyPath = KeyringManager.legacySecretPath(fileSystem)
+		legacyPath = KeyringManager.legacySecretPath()
 	}
 
 	private fun manager(provider: ServerSecretProvider) =
@@ -93,5 +93,22 @@ class KeyringManagerTest : BaseTest() {
 			override fun loadKeyring(): String? = null
 		}
 		assertFailsWith<MissingKeyringException> { manager(provider).requireContentKey() }
+	}
+
+	@Test
+	fun `a malformed keyring fails with a clear error, not a raw parse exception`() {
+		val provider = object : ServerSecretProvider {
+			override fun loadKeyring(): String = "{ this is not valid json"
+		}
+		assertFailsWith<MalformedKeyringException> { manager(provider).keyringOrNull() }
+	}
+
+	@Test
+	fun `an invalid keyring (active id missing) fails with a clear error`() {
+		val provider = object : ServerSecretProvider {
+			override fun loadKeyring(): String =
+				"""{"schema":1,"content":{"active":"v9","keys":{"v1":"a"}},"tokenHmac":{"active":"v1","keys":{"v1":"a"}}}"""
+		}
+		assertFailsWith<MalformedKeyringException> { manager(provider).keyringOrNull() }
 	}
 }

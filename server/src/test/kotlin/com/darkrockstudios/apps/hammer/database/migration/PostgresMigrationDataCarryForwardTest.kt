@@ -41,6 +41,25 @@ class PostgresMigrationDataCarryForwardTest {
 		assertMigrationAddedColumnDefault(db)
 	}
 
+	@Test
+	fun `review_scene rows are backfilled with the AES tag when the cipher column is added`() {
+		val db = PostgresUpgradeTestSupport.freshDatabase()
+		PostgresUpgradeTestSupport.applyScript(db.driver, PostgresUpgradeTestSupport.loadBaseline(1))
+		PostgresUpgradeTestSupport.applyScript(db.driver, SEED_V1_DATA)
+
+		// Migrate to v4 — review_scene exists (added at 2->3) but has no cipher column yet.
+		ServerDatabase.Schema.migrate(db.driver, 1L, 4L)
+		PostgresUpgradeTestSupport.applyScript(db.driver, SEED_REVIEW_V4)
+
+		// Migration 4->5 adds review_scene.cipher and backfills existing rows.
+		ServerDatabase.Schema.migrate(db.driver, 4L, latest)
+
+		val sd = buildServerDatabase(db.driver)
+		val scene = sd.reviewSceneQueries.getScenesForRequest(1).executeAsOne()
+		assertEquals("AES/GCM/NoPadding", scene.cipher, "pre-cipher review scene should backfill to the AES tag")
+		assertEquals("encrypted-snapshot-blob", scene.snapshot_content)
+	}
+
 	private fun assertAccounts(sd: ServerDatabase) {
 		val author = sd.accountQueries.findAccount("author@example.com").executeAsOne()
 		assertEquals(2L, author.id)
@@ -146,6 +165,14 @@ class PostgresMigrationDataCarryForwardTest {
 	}
 
 	private companion object {
+		val SEED_REVIEW_V4 = """
+			INSERT INTO review_request (id, user_id, project_id, token, reviewer_email, label, status)
+			VALUES (1, 2, 1, 'rtok', 'reviewer@example.com', 'My agent', 'sent');
+
+			INSERT INTO review_scene (review_request_id, scene_id, draft_id, scene_name, scene_order, snapshot_content)
+			VALUES (1, 1, 6, 'Scene 1', 0, 'encrypted-snapshot-blob');
+		""".trimIndent()
+
 		val SEED_V1_DATA = """
 			INSERT INTO account (id, email, password_hash, cipher_secret, is_admin, created, last_sync)
 			VALUES (1, 'admin@example.com', 'hash-admin', 'secret-admin', TRUE, '2024-01-01 00:00:00Z', '2024-06-01 12:30:00Z');

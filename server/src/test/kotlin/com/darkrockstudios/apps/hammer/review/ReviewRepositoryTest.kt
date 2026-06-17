@@ -56,7 +56,7 @@ class ReviewRepositoryTest : BaseTest() {
 	private val projectDef = ProjectDefinition("Test Project", projectId)
 	private val syncKey = ProjectSyncKey(userId, projectDef)
 	private val cipherSecret = "cipher-secret"
-	private val TEST_CIPHER = "AES/GCM/NoPadding"
+	private val testCipher = "AES/GCM/NoPadding"
 
 	private lateinit var accountDao: AccountDao
 	private lateinit var projectDao: ProjectDao
@@ -109,7 +109,7 @@ class ReviewRepositoryTest : BaseTest() {
 		coEvery { contentEncryptor.decrypt(any(), any()) } answers {
 			firstArg<String>().removePrefix("enc:")
 		}
-		every { contentEncryptor.cipherName() } returns TEST_CIPHER
+		every { contentEncryptor.cipherName() } returns testCipher
 		encryptorRegistry = ContentEncryptorRegistry(listOf(contentEncryptor))
 		coEvery { tokenHasher.hashToken(any()) } answers { "hash:" + firstArg<String>() }
 	}
@@ -454,7 +454,7 @@ class ReviewRepositoryTest : BaseTest() {
 				scene_name = "Scene 1",
 				scene_order = 0,
 				snapshot_content = "enc:content 1",
-				cipher = TEST_CIPHER,
+				cipher = testCipher,
 				reviewer_done = false,
 			)
 		)
@@ -480,7 +480,7 @@ class ReviewRepositoryTest : BaseTest() {
 		scene_name = "Scene $sceneId",
 		scene_order = 0,
 		snapshot_content = "enc:$snapshot",
-		cipher = TEST_CIPHER,
+		cipher = testCipher,
 		reviewer_done = false,
 	)
 

@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.base.http.readToml
+import com.darkrockstudios.apps.hammer.database.Database
+import com.darkrockstudios.apps.hammer.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.encryption.EncryptionBootstrap
 import com.darkrockstudios.apps.hammer.frontend.configureFrontEnd
 import com.darkrockstudios.apps.hammer.secret.KeyRole
@@ -22,13 +24,18 @@ import kotlinx.cli.ArgType
 import kotlinx.cli.Subcommand
 import kotlinx.cli.default
 import kotlinx.coroutines.runBlocking
+import io.ktor.util.logging.KtorSimpleLogger
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import org.koin.core.module.Module
+import org.koin.dsl.koinApplication
+import org.koin.dsl.module
 import org.koin.ktor.ext.inject
 import org.slf4j.event.Level
+import java.security.SecureRandom
 import java.io.File
+import kotlin.system.exitProcess
 import java.security.KeyStore
 
 fun main(args: Array<String>) {
@@ -77,18 +84,55 @@ fun main(args: Array<String>) {
 	config.storage.validate()
 	config.analytics.validate()
 
-	// Dry-run path exits before the server starts.
+	// Dry-run paths exit before the server starts (and never bind a port).
 	if (migrateDryRunArg == true) {
 		val exit = com.darkrockstudios.apps.hammer.database.migration.SqliteToPostgresMigrator
 			.runDryRun(config.storage, FileSystem.SYSTEM)
-		kotlin.system.exitProcess(exit)
+		exitProcess(exit)
+	}
+	if (convergeDryRunArg == true) {
+		exitProcess(runConvergeDryRun(config))
 	}
 
 	// Auto-run the one-time SQLite → Postgres migration if a legacy server.db is
 	// found alongside the Postgres config. NoOp on fresh installs.
 	runOneTimeSqliteToPostgresMigration(config)
 
-	startServer(config, devModeArg ?: false, logLevel, convergeDryRunArg ?: false)
+	startServer(config, devModeArg ?: false, logLevel)
+}
+
+/**
+ * Builds a standalone Koin graph (no HTTP engine), reports what encryption
+ * convergence would do, and returns an exit code: 0 = would complete, 1 = some
+ * entity would exceed the size cap and block convergence.
+ */
+private fun runConvergeDryRun(config: ServerConfig): Int {
+	val koinApp = koinApplication {
+		modules(
+			mainModule(KtorSimpleLogger("ConvergeDryRun")),
+			module { single { config } },
+		)
+	}
+	val database: Database = koinApp.koin.get()
+	database.initialize()
+	return try {
+		val report = runBlocking { koinApp.koin.get<EncryptionBootstrap>().dryRun() }
+		println(
+			"Convergence dry run: ${report.total} row(s) off target " +
+				"(${report.storyEntities} entities, ${report.reviewScenes} review scenes)."
+		)
+		if (report.overCapEntities.isEmpty()) {
+			println("No over-cap entities; convergence would complete.")
+			0
+		} else {
+			println("${report.overCapEntities.size} entity(ies) would exceed the size cap and block convergence:")
+			report.overCapEntities.forEach { println("  - $it") }
+			1
+		}
+	} finally {
+		database.close()
+		koinApp.close()
+	}
 }
 
 private fun runOneTimeSqliteToPostgresMigration(config: ServerConfig) {
@@ -103,7 +147,7 @@ private fun runOneTimeSqliteToPostgresMigration(config: ServerConfig) {
 		}
 		is com.darkrockstudios.apps.hammer.database.migration.SqliteToPostgresMigrator.Result.Aborted -> {
 			System.err.println("SQLite → Postgres migration aborted: ${result.reason}")
-			kotlin.system.exitProcess(1)
+			exitProcess(1)
 		}
 	}
 }
@@ -120,7 +164,7 @@ private fun loadConfig(path: String): ServerConfig {
 	return FileSystem.SYSTEM.readToml(path.toPath(), Toml { ignoreUnknownKeys = true }, ServerConfig::class)
 }
 
-private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?, convergeDryRun: Boolean = false) {
+private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?) {
 	System.setProperty("io.ktor.development", devMode.toString())
 
 	// This is overkill most of the time
@@ -137,7 +181,7 @@ private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?
 			configureServer(config, bindHost)
 		},
 		module = {
-			appMain(config, logLevel = logLevel, convergeDryRun = convergeDryRun)
+			appMain(config, logLevel = logLevel)
 		}
 	).start(wait = true)
 }
@@ -194,22 +238,10 @@ fun Application.appMain(
 	config: ServerConfig,
 	addInModule: Module? = null,
 	logLevel: Level? = null,
-	convergeDryRun: Boolean = false,
 ) {
 	configureDependencyInjection(config, addInModule)
 	val encryptionBootstrap: EncryptionBootstrap by inject()
-	if (convergeDryRun) {
-		val report = runBlocking { encryptionBootstrap.dryRun() }
-		println("Convergence dry run: ${report.total} row(s) off target (${report.storyEntities} entities, ${report.reviewScenes} review scenes).")
-		if (report.overCapEntities.isEmpty()) {
-			println("No over-cap entities; convergence would complete.")
-		} else {
-			println("${report.overCapEntities.size} entity(ies) would exceed the size cap and fail convergence:")
-			report.overCapEntities.forEach { println("  - $it") }
-		}
-		kotlin.system.exitProcess(if (report.overCapEntities.isEmpty()) 0 else 1)
-	}
-	runBlocking { encryptionBootstrap.run(config.encryption.mode) }
+	runBlocking { encryptionBootstrap.run() }
 	configureSerialization()
 	configureMonitoring(logLevel)
 	configureApiMetrics()
@@ -225,7 +257,7 @@ fun Application.appMain(
 }
 
 private fun cliKeyringCodec(): KeyringCodec =
-	KeyringCodec(java.security.SecureRandom.getInstanceStrong(), createTokenBase64())
+	KeyringCodec(SecureRandom.getInstanceStrong(), createTokenBase64())
 
 private class GenerateKeyringCommand : Subcommand(
 	"generate-keyring",
@@ -248,7 +280,7 @@ private class GenerateKeyringCommand : Subcommand(
 		} else {
 			println(json)
 		}
-		kotlin.system.exitProcess(0)
+		exitProcess(0)
 	}
 }
 
@@ -259,18 +291,18 @@ private class InspectKeyringCommand : Subcommand(
 	private val inPath by option(
 		ArgType.String, shortName = "i", fullName = "in",
 		description = "Keyring file to inspect",
-	).default(KeyringManager.defaultKeyringPath(FileSystem.SYSTEM).toString())
+	).default(KeyringManager.defaultKeyringPath().toString())
 
 	override fun execute() {
 		val path = inPath.toPath()
 		if (!FileSystem.SYSTEM.exists(path)) {
 			System.err.println("No keyring file at $inPath")
-			kotlin.system.exitProcess(1)
+			exitProcess(1)
 		}
 		val json = FileSystem.SYSTEM.read(path) { readUtf8() }
 		val keyring = cliKeyringCodec().parse(json)
 		println(keyringSummary(keyring))
-		kotlin.system.exitProcess(0)
+		exitProcess(0)
 	}
 }
 
@@ -287,7 +319,7 @@ private class RotateKeyCommand : Subcommand(
 	private val inPath by option(
 		ArgType.String, shortName = "i", fullName = "in",
 		description = "Keyring file to rotate",
-	).default(KeyringManager.defaultKeyringPath(FileSystem.SYSTEM).toString())
+	).default(KeyringManager.defaultKeyringPath().toString())
 
 	private val out by option(
 		ArgType.String, shortName = "o", fullName = "out",
@@ -298,7 +330,7 @@ private class RotateKeyCommand : Subcommand(
 		val source = inPath.toPath()
 		if (!FileSystem.SYSTEM.exists(source)) {
 			System.err.println("No keyring file at $inPath")
-			kotlin.system.exitProcess(1)
+			exitProcess(1)
 		}
 		val role = if (roleArg == "tokenHmac") KeyRole.TOKEN_HMAC else KeyRole.CONTENT
 		val codec = cliKeyringCodec()
@@ -313,6 +345,6 @@ private class RotateKeyCommand : Subcommand(
 		} else {
 			println(json)
 		}
-		kotlin.system.exitProcess(0)
+		exitProcess(0)
 	}
 }

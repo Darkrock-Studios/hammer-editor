@@ -17,7 +17,9 @@ class SimpleFileBasedAesGcmKeyProvider(
 	private val base64: Base64,
 ) : AesGcmKeyProvider {
 	private val factory: SecretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
-	private val cache = InMemoryKache<String, SecretKey>(maxSize = 10) {
+	// Keyed by (content key, client secret); convergence/rotation makes a user touch
+	// one entry per key generation, so keep enough headroom to avoid re-deriving.
+	private val cache = InMemoryKache<String, SecretKey>(maxSize = 100) {
 		strategy = KacheStrategy.LRU
 	}
 

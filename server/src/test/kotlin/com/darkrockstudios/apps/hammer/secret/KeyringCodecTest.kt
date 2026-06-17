@@ -64,6 +64,18 @@ class KeyringCodecTest {
 	}
 
 	@Test
+	fun `rotate ignores non-version key ids when picking the next version`() {
+		val keyring = Keyring(
+			content = RoleKeys("v1", mapOf("v1" to "k1", "legacy" to "k0")),
+			tokenHmac = RoleKeys("v1", mapOf("v1" to "t1")),
+		)
+		val rotated = codec.rotate(keyring, KeyRole.CONTENT)
+
+		assertEquals("v2", rotated.content.active)
+		assertEquals(setOf("v1", "legacy", "v2"), rotated.content.keys.keys)
+	}
+
+	@Test
 	fun `rotate can target the token-hmac role independently`() {
 		val original = codec.generate()
 		val rotated = codec.rotate(original, KeyRole.TOKEN_HMAC)

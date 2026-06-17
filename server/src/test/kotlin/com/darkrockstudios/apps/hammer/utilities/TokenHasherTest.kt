@@ -70,7 +70,7 @@ class TokenHasherTest : BaseTest() {
 	fun `grandfathered keyring hashes identically to the legacy secret fallback`() = runTest {
 		// Existing deployment: a server.secret on disk. Grandfathered tokenHmac == that
 		// secret, so it must hash exactly as the legacy fallback would for the same secret.
-		val legacyPath = KeyringManager.legacySecretPath(fileSystem)
+		val legacyPath = KeyringManager.legacySecretPath()
 		fileSystem.createDirectories(legacyPath.parent!!)
 		val secret = "legacy-server-secret"
 		fileSystem.write(legacyPath) { writeUtf8(secret) }
