@@ -149,10 +149,12 @@ material — the simplest, hardest-to-misconfigure path for a casual self-hoster
 Enabling AES is a deliberate opt-in that requires a keyring.
 
 > ⚠️ Upgrade note: pre-feature servers always encrypted (auto-generated secret).
-> After this ships, an existing deployment with no `[encryption]` block defaults
-> to `none`, so **new** writes become plaintext (old AES rows still read via the
-> registry). Call this out in release notes; consider a boot-time log when a
-> content keyring is present but mode resolves to `none`.
+> After this ships, an existing deployment defaults to `none`. To stop a silent
+> downgrade, **the server hard-stops on boot** (`EncryptionModeGuard`) when
+> `mode=none` but AES-tagged rows exist — the admin must explicitly set
+> `mode=aes`. (Today the hard-stop is unconditional; PR5 refines it so an
+> *explicit* `mode=none` instead triggers convergence-to-plaintext, and adds a
+> second trigger on a keyring content-key being present.)
 
 **Reviews are polymorphic too.** `review_scene.snapshot_content` carries the same
 per-row `cipher` tag and decrypts through the same registry. Unlike `story_entity`,

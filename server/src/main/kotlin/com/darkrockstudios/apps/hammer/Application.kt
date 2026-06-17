@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.base.http.readToml
+import com.darkrockstudios.apps.hammer.encryption.EncryptionModeGuard
 import com.darkrockstudios.apps.hammer.frontend.configureFrontEnd
 import com.darkrockstudios.apps.hammer.monitoring.configureApiMetrics
 import com.darkrockstudios.apps.hammer.monitoring.configureRouteTemplateCapture
@@ -18,6 +19,7 @@ import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import org.koin.core.module.Module
+import org.koin.ktor.ext.inject
 import org.slf4j.event.Level
 import java.io.File
 import java.security.KeyStore
@@ -179,6 +181,8 @@ fun Application.appMain(
 	logLevel: Level? = null
 ) {
 	configureDependencyInjection(config, addInModule)
+	val database: com.darkrockstudios.apps.hammer.database.Database by inject()
+	EncryptionModeGuard.verifyOnBoot(config.encryption.mode, database.serverDatabase)
 	configureSerialization()
 	configureMonitoring(logLevel)
 	configureApiMetrics()

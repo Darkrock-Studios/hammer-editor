@@ -25,6 +25,9 @@ ORDER BY scene_order;
 getScene:
 SELECT * FROM review_scene WHERE id = :id;
 
+countEncrypted:
+SELECT COUNT(*) FROM review_scene WHERE cipher != 'none';
+
 setReviewerDone:
 UPDATE review_scene SET reviewer_done = :done WHERE id = :id;
 

@@ -81,6 +81,9 @@ already exists from PR1; reads are already polymorphic). No migration yet.
       column (schema v5, migration `4.sqm` backfills existing rows with the AES tag
       — no plaintext history there). `ReviewRepository` tags on write and resolves
       on read via the registry, mirroring `story_entity`.
+- [x] **Downgrade guard.** `EncryptionModeGuard.verifyOnBoot` hard-stops the server
+      when `mode=none` but AES-tagged rows exist (`story_entity`/`review_scene`),
+      forcing an explicit `mode=aes`. Unconditional for now; PR5 refines it (see below).
 
 **Acceptance:**
 - [x] With mode=none, new writes are plaintext-tagged; existing AES rows still
@@ -176,6 +179,11 @@ provable "old key unused" line. Adds the `rotate-key` CLI subcommand.
       maintenance boot isn't killed mid-run.
 - [ ] `rotate-key --role content` CLI: read keyring, add `vN+1`, set active, emit.
       (Offline flow: rotate-key → place keyring → restart → gate re-encrypts.)
+- [ ] **Refine the downgrade guard** (`EncryptionModeGuard`): distinguish an
+      *explicit* `mode=none` (→ converge AES→plaintext) from an unspecified/default
+      `none` with encrypted data present (→ hard stop). Needs the mode setting to
+      become unspecified-aware (nullable). Also add the second trigger: keyring has a
+      content key + `mode=none` → hard stop.
 - [ ] **Over-cap handling.** Enabling encryption can push a near-`MAX_ENTITY_CONTENT_LENGTH`
       plaintext row over the cap once AES+base64+IV+tag. Decide behavior
       (skip-and-report vs. fail the migration) — must not silently drop or crash.

@@ -57,6 +57,9 @@ SELECT MAX(id)
 FROM story_entity
 WHERE user_id = :userId AND project_id = :projectId;
 
+countEncrypted:
+SELECT COUNT(*) FROM story_entity WHERE cipher IS NOT NULL AND cipher != 'none';
+
 checkExists:
 SELECT EXISTS(
     SELECT 1 FROM story_entity
