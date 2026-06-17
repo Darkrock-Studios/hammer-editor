@@ -14,21 +14,26 @@ Acceptance criteria are the bar for "this PR is done."
 **Branch:** `claude/server-secret-storage-4yzeyf` (design doc lives here; cut
 feature branches per PR off `develop`).
 
-## ⛔ Blocking decision before any code
+## ✅ Resolved decisions
 
-PR1 depends on this — resolve first:
+Full rationale in [`SERVER-SECRET-STORAGE.md`](SERVER-SECRET-STORAGE.md).
 
-- [ ] **NULL-`cipher` semantics.** The `story_entity.cipher` column is nullable
-      and legacy rows may be NULL. Confirm against prod data: do any rows have
-      NULL `cipher`, and what cipher were they actually written with? This sets
-      the read-dispatch fallback rule (proposed: NULL → `aesgcm:v1`) and the v1
-      backfill. **Action:** query a prod/representative DB:
-      `SELECT cipher, COUNT(*) FROM story_entity GROUP BY cipher;`
-
-Decisions still open but **not** blocking PR1 (decide before the noted phase):
-- [ ] Optional **blocking mode for enabling encryption** (plaintext → AES) — decide before PR5.
-- [ ] Keyring **serialization format** (env multi-var vs. single encoded var; file JSON/YAML schema) — decide before PR3.
-- [ ] Which providers ship in v1 (proposed: File + Env) — decide before PR3.
+1. **NULL `cipher` = plaintext.** Grounded in commit `b28ecb60` ("At rest
+   encryption #367") — `cipher` only began being written there; pre-#367 content
+   was plaintext with NULL `cipher`. Read NULL rows with the plaintext encryptor;
+   convergence normalizes NULL → `none`. (Today's load path AES-decrypts
+   everything, so any surviving NULL row is a latent read bug the registry fixes.)
+2. **Keyring format = single JSON document**, schema-versioned, **roles in from
+   the start**, base64 key bytes, kotlinx-serialization data classes. Every
+   provider returns the same string; one parser.
+3. **Providers = File + Env in v1**; explicit single-provider selection via
+   `ServerConfig` (default `file`). **No auto-generation anywhere** — both
+   providers are read-only at runtime; generate via explicit CLI subcommands.
+4. **Convergence = blocking pre-launch step** for enable / disable / rotate.
+   **No background/online sweep** (dropped — read-only keyrings can't power a
+   runtime admin trigger; offline maintenance is simpler). Token-HMAC rotation =
+   automatic re-login on boot (old hashes stop verifying). Rotation on a large DB
+   = a maintenance window; accepted.
 
 ---
 
@@ -43,7 +48,8 @@ This unblocks everything else.
       `dbEntity.cipher` via the registry (currently ignores it — uses the single
       injected `encryptor`). Store path unchanged (still tags with the active
       encryptor's `cipherName()`).
-- [ ] NULL/unknown `cipher` → fallback per the blocking decision above.
+- [ ] NULL `cipher` → resolve to the plaintext encryptor (Decision 1); unknown
+      non-null tag → loud failure, not a silent fallback.
 - [ ] DI: bind the registry; keep `AesGcmContentEncryptor` registered under its
       tag. Resolve the `ContentEncryptor bind` in `mainModule.kt`.
 
@@ -81,96 +87,102 @@ rows are correct (reads already polymorphic from PR1). No migration yet.
 **Goal:** replace the single cached secret with a versioned keyring behind a
 pluggable provider; fix encoding; make generation explicit.
 
-- [ ] `ServerSecretProvider` interface (selected via `ServerConfig`), mirroring
-      `emailProvider`/`analyticsProvider` patterns.
-- [ ] Providers: **File** (default) and **Env**. File provider **grandfathers**
-      the existing `~/hammer_data/server.secret` as key `v1` (read its exact
-      current value — do NOT re-encode it, or existing data won't decrypt).
-- [ ] `ServerSecretManager` → keyring: map of `keyId → secret`, plus an `active`
-      key id. New keys use canonical **Base64-of-32-bytes** encoding.
-- [ ] Extend the tag to `(algorithm, keyId)` → `aesgcm:v1`. Update store to tag
-      with the active key id; update the registry/resolver to pick `(algo, key)`.
-- [ ] **`gen-secret` CLI subcommand** in the server jar (uses our `SecureRandom`
-      + canonical encoding; emits a keyring-ready value).
-- [ ] **Remove silent auto-gen from the serving path.** Missing secret →
-      fail-fast with guidance (how to generate + where to put it + docs link).
-- [ ] Opt-in `HAMMER_AUTO_GENERATE_SECRET=true` escape hatch for toy instances.
-- [ ] **No auto-heal:** an intentionally-deleted key is never silently regenerated.
+- [ ] `Keyring` / `RoleKeys` kotlinx-serialization data classes (Decision 2):
+      single JSON document, `schema` field, `content` + `tokenHmac` roles each
+      with `active` + `keys{ id → base64 }`. One parser.
+- [ ] `ServerSecretProvider` interface returning the keyring **string**; explicit
+      selection via `ServerConfig` (`secret.provider = file | env`, default file),
+      mirroring `emailProvider`/`storage.type`.
+- [ ] **File** provider (configurable path; default grandfathers
+      `~/hammer_data/server.secret` → `content.v1`, reading its **exact** current
+      bytes — do NOT re-encode) and **Env** provider (one var = keyring JSON).
+- [ ] `ServerSecretManager` parses the keyring; new keys use canonical
+      **Base64-of-32-bytes**.
+- [ ] Extend the tag to `(algorithm, keyId)` → `aesgcm:v1`. Store tags with the
+      active key id; registry/resolver picks `(algo, key)`.
+- [ ] **CLI subcommands** on the server: `generate-keyring` (both roles, `v1`,
+      `active: v1`; stdout default, `--out <path>`), `inspect-keyring`
+      (ids/active, no bytes). `rotate-key` lands with PR5.
+- [ ] **No auto-generation, no auto-heal.** Missing keyring → fail fast with
+      guidance (the generate command + where to put it for the provider). Nothing
+      mints a key on boot.
 
 **Acceptance:**
-- [ ] Existing single-`server.secret` deployment boots unchanged, its data still
-      decrypts (grandfathered as v1).
-- [ ] Fresh deployment with no secret fails fast with a helpful message; with the
-      opt-in flag, generates v1.
+- [ ] Existing single-`server.secret` deployment boots unchanged, data still
+      decrypts (grandfathered as `content.v1`).
+- [ ] Fresh deployment with no keyring fails fast with a helpful message naming
+      the generate command + target location.
 - [ ] Env provider works end-to-end (set var → boot → decrypt).
-- [ ] `gen-secret` output is valid Base64/32 bytes and usable by both providers.
+- [ ] `generate-keyring` output parses, has both roles, valid base64/32-byte keys,
+      and is usable by both providers.
 
 ---
 
 ## PR4 — Split content key from token-HMAC key
 
-**Goal:** the two roles become separate keys so content can be retired without a
-forced global re-login.
+**Goal:** the two roles become separate keys so the content key can be retired
+without a forced global re-login. Lightweight — no rotation machinery (token
+rotation is just automatic re-login on boot).
 
-- [ ] Two key roles in the keyring (content, token-HMAC). Grandfather the
-      existing v1 secret as **both** initially (same value) so nothing breaks.
-- [ ] `SimpleFileBasedAesGcmKeyProvider` uses the content key; `TokenHasher` uses
-      the token-HMAC key.
-- [ ] Token hashes record the key id used (needed for PR6 lazy rotation).
+- [ ] `SimpleFileBasedAesGcmKeyProvider` uses `keyring.content`; `TokenHasher`
+      uses `keyring.tokenHmac`. (Generator already emits both roles from PR3;
+      grandfathered v1 is the same bytes for both initially.)
+- [ ] Resolve the open PR3/PR4 sequencing: whether `TokenHasher` reads
+      `keyring.tokenHmac` in PR3 already or flips here.
 
 **Acceptance:**
 - [ ] Existing tokens still verify; existing content still decrypts.
-- [ ] Rotating/deleting one role's key does not require touching the other
-      (covered concretely in PR5/PR6).
+- [ ] Deleting the content key (after content convergence) leaves auth working;
+      rotating the token-HMAC key invalidates sessions → re-login, content
+      untouched.
 
 ---
 
-## PR5 — Convergence engine: blocking startup gate
+## PR5 — Blocking pre-launch convergence (enable / disable / rotate)
 
-**Goal:** deterministic convergence for the plaintext-migration / key-retirement
-path, with a provable "old key unused" line.
+**Goal:** one offline convergence engine for all three operations, with a
+provable "old key unused" line. Adds the `rotate-key` CLI subcommand.
 
-- [ ] Convergence engine: walk rows where `tag != active target`, re-crypt in
-      **per-row (or small-batch) transactions** (decrypt-then-write as one unit).
+- [ ] Convergence engine: walk rows where `tag != target`, re-crypt in **per-row
+      (or small-batch) transactions** (decrypt-then-write as one unit). Targets:
+      `aesgcm:vN` (enable/rotate) or `none` (disable). Normalize NULL → `none`.
 - [ ] **Resumable by construction** — the tag column is the progress ledger;
       restart re-scans.
 - [ ] **last-applied marker** in `ServerConfigDao`: skip the scan entirely when
-      configured target == last-applied (instant normal boots). Run the gate only
-      on an actual mode/key change, then update the marker.
+      configured target == last-applied (instant normal boots). Run only on an
+      actual mode/key change, then update the marker.
 - [ ] Gate **blocks serving** until convergence completes.
-- [ ] Progress logging; ensure a long boot survives orchestration (document
-      **startup probe**, not liveness probe).
-- [ ] Surface the completion signal: count of rows still on the old tag → when 0,
-      old key is provably unreferenced.
+- [ ] Progress logging; document **startup probe** (not liveness) so a long
+      maintenance boot isn't killed mid-run.
+- [ ] `rotate-key --role content` CLI: read keyring, add `vN+1`, set active, emit.
+      (Offline flow: rotate-key → place keyring → restart → gate re-encrypts.)
 
 **Acceptance:**
-- [ ] Configure mode=none on an AES DB → restart → after boot every row is
-      plaintext; the content key is provably unused (and, post-PR4, deletable
-      with zero auth impact).
-- [ ] `kill -9` mid-gate leaves consistent mixed state; next boot resumes and
-      finishes.
-- [ ] Normal boot (no mode change) does not scan the table.
+- [ ] Enable: mode=aes on a plaintext DB → restart → every row `aesgcm:v1`.
+- [ ] Disable: mode=none on an AES DB → restart → every row plaintext; content
+      key provably unused → deletable with zero auth impact (PR4).
+- [ ] Rotate: `rotate-key` → restart → every content row on the new key; old key
+      count 0 → removable.
+- [ ] `kill -9` mid-gate leaves consistent mixed state; next boot resumes/finishes.
+- [ ] Normal boot (no change) does not scan the table.
 
 ---
 
-## PR6 — Online rotation: background sweep + lazy token rehash
+## PR6 — Admin dashboard: encryption status (read-only)
 
-**Goal:** zero-downtime key rotation on a live server.
+**Goal:** surface current encryption posture + the "safe to delete old key"
+signal in `/admin`. Informational only (rotation is offline — no trigger button).
 
-- [ ] Keyring holds v1 + v2; writes use v2; hot data converges on write for free.
-- [ ] **Throttled background sweeper** re-encrypts old-key rows → active, online,
-      resumable. Rate-limit configurable (Pi-friendly).
-- [ ] v1 stays loaded until the **global** count of v1-tagged rows hits zero;
-      surface that signal for safe retirement.
-- [ ] **Token-HMAC lazy rotation:** on auth, verify against the token row's key
-      id; on success with an old key id, rehash with the active key and update.
-      Stragglers expire naturally.
+- [ ] **Current mode + active key id** (e.g. `AES (content v1)` / `none`), from
+      config + the last-applied marker.
+- [ ] **Live per-cipher tally** — rows per tag (e.g. `1,203 aesgcm:v1 · 0
+      plaintext`); doubles as convergence verification + safe-to-delete signal.
+- [ ] Slot into the existing Monitoring nav group (`AdminServerConfig` /
+      `ConfigRepository`), "Writer's Desk" web design system.
 
 **Acceptance:**
-- [ ] Add v2, mark active, server keeps serving throughout; sweeper migrates all
-      content v1 → v2 without downtime.
-- [ ] After sweep, v1-tagged content count is 0 and v1 can be removed.
-- [ ] Tokens transparently rehash on use; no forced global re-login on rotation.
+- [ ] Dashboard shows correct mode/active key and an accurate per-tag tally on a
+      mixed-state and a converged DB.
 
 ---
 
@@ -192,13 +204,22 @@ PR3 interface.
 
 ## Cross-cutting invariants (apply to every PR)
 
-- Reads stay **read-only** — convergence is owned by the write path + sweeper/gate.
+- Reads stay **read-only** — convergence is owned by the write path + pre-launch gate.
 - Re-crypting never changes `entity.hash()` (cipher ⊥ hash).
 - No existing deployment is bricked: every phase grandfathers current state.
 - Canonical secret encoding = Base64 of 32 raw bytes.
 - Tests follow the project's classical style (real collaborators + fakes; fake
   filesystem / in-memory DAOs; assert observable outcomes). Tests in `desktopTest`
   / `server:test`.
+
+## Final cleanup (after the feature ships)
+
+- [ ] **Replace [`SERVER-SECRET-STORAGE.md`](SERVER-SECRET-STORAGE.md)** (the
+      temporary design doc) with a **user-facing admin tutorial/explainer**:
+      what the keyring is, choosing a provider, `generate-keyring` / `rotate-key`
+      walkthroughs, enabling/disabling encryption, reading the dashboard status,
+      and safely deleting an old key. Link it from `HOW-TO-RUN-A-SERVER.md`.
+- [ ] Delete this plan doc.
 
 ## Key code touchpoints (for navigation)
 
