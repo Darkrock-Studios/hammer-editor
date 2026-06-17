@@ -40,6 +40,9 @@ class KeyringManager(
 	/** The active content key, or throws if no keyring is available. */
 	fun activeContentKey(): String = requireKeyring().content.activeKey()
 
+	/** The active content key id, or throws if no keyring is available. */
+	fun activeContentKeyId(): String = requireKeyring().content.active
+
 	fun contentKey(keyId: String): String = requireKeyring().content.key(keyId)
 
 	/** The active token-HMAC key, or null when no keyring is available. */

@@ -67,8 +67,10 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 			codec, fileSystem, "/nonexistent".toPath(),
 		)
 		contentEncryptor = AesGcmContentEncryptor(
-			SimpleFileBasedAesGcmKeyProvider(keyringManager, base64),
-			secureRandom
+			keyringManager.activeContentKey(),
+			keyringManager.activeContentKeyId(),
+			SimpleFileBasedAesGcmKeyProvider(base64),
+			secureRandom,
 		)
 		plaintextEncryptor = PlaintextContentEncryptor()
 		encryptorRegistry = ContentEncryptorRegistry(listOf(contentEncryptor, plaintextEncryptor))

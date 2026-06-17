@@ -69,8 +69,10 @@ abstract class EndToEndTest {
 		)
 		tokenHasher = TokenHasher(keyringManager, serverSecretManager, base64)
 		contentEncryptor = AesGcmContentEncryptor(
-			SimpleFileBasedAesGcmKeyProvider(keyringManager, base64),
-			secureRandom
+			keyringManager.activeContentKey(),
+			keyringManager.activeContentKeyId(),
+			SimpleFileBasedAesGcmKeyProvider(base64),
+			secureRandom,
 		)
 		testDatabase = SqliteTestDatabase()
 		testDatabase.initialize()

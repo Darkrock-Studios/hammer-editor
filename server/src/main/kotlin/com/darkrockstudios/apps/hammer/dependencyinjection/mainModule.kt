@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.AesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
+import com.darkrockstudios.apps.hammer.encryption.ContentEncryptors
 import com.darkrockstudios.apps.hammer.encryption.PlaintextContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
@@ -159,18 +160,25 @@ fun mainModule(
 		KeyringManager(get(), get(), get(), KeyringManager.legacySecretPath(get()))
 	}
 	singleOf(::SimpleFileBasedAesGcmKeyProvider) bind AesGcmKeyProvider::class
-	singleOf(::AesGcmContentEncryptor)
 	singleOf(::PlaintextContentEncryptor)
-	single<ContentEncryptor> {
-		when (get<ServerConfig>().encryption.mode) {
-			EncryptionMode.AES -> get<AesGcmContentEncryptor>()
-			EncryptionMode.NONE -> get<PlaintextContentEncryptor>()
-		}
-	}
 	single {
-		ContentEncryptorRegistry(
-			listOf(get<AesGcmContentEncryptor>(), get<PlaintextContentEncryptor>())
-		)
+		val keyProvider = get<AesGcmKeyProvider>()
+		val random = get<SecureRandom>()
+		val aes = get<KeyringManager>().keyringOrNull()?.content?.keys
+			?.mapValues { (keyId, contentKey) -> AesGcmContentEncryptor(contentKey, keyId, keyProvider, random) }
+			?: emptyMap()
+		ContentEncryptors(get<PlaintextContentEncryptor>(), aes)
+	}
+	single { ContentEncryptorRegistry(get<ContentEncryptors>().all()) }
+	single<ContentEncryptor> {
+		val encryptors = get<ContentEncryptors>()
+		when (get<ServerConfig>().encryption.mode) {
+			EncryptionMode.NONE -> encryptors.plaintext
+			EncryptionMode.AES -> {
+				val activeId = get<KeyringManager>().activeContentKeyId()
+				encryptors.aesByKeyId[activeId] ?: error("No content encryptor for active key '$activeId'")
+			}
+		}
 	}
 	singleOf(::TokenHasher)
 

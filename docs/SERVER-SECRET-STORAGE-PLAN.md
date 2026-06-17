@@ -177,6 +177,14 @@ rotation is just automatic re-login on boot).
 **Goal:** one offline convergence engine for all three operations, with a
 provable "old key unused" line. Adds the `rotate-key` CLI subcommand.
 
+Sub-commit order: (a) **key-id tag refactor** — done; (b) convergence engine +
+mode refinement + boot gate; (c) `rotate-key` CLI + dry-run + over-cap.
+
+- [x] **Key-id-aware ciphers** (foundational, deferred from PR3): AES tag is now
+      `aesgcm:<keyId>`; the registry holds one AES encryptor per content key
+      generation; legacy `"AES/GCM/NoPadding"` aliases to `aesgcm:v1`. Key
+      derivation takes the content-key value, cached per (content key, client
+      secret). `KeyringManager.activeContentKeyId()` drives the active write tag.
 - [ ] Convergence engine: walk rows where `tag != target`, re-crypt in **per-row
       (or small-batch) transactions** (decrypt-then-write as one unit). Targets:
       `aesgcm:vN` (enable/rotate) or `none` (disable). Normalize NULL → `none`.
