@@ -13,6 +13,15 @@ data class ConvergenceReport(val storyEntities: Int, val reviewScenes: Int) {
 	val total: Int get() = storyEntities + reviewScenes
 }
 
+data class ConvergenceDryRun(
+	val storyEntities: Long,
+	val reviewScenes: Long,
+	/** Entities that would exceed the size cap once encrypted; convergence would fail on these. */
+	val overCapEntities: List<String>,
+) {
+	val total: Long get() = storyEntities + reviewScenes
+}
+
 /**
  * Re-crypts every content row onto a target cipher (the active encryptor's tag).
  * Works on the raw stored blobs — no JSON deserialization — re-encrypting with
@@ -38,6 +47,39 @@ class EncryptionConvergence(
 	suspend fun remaining(targetTag: String): Long = withContext(ioDispatcher) {
 		story.countForConvergence(targetTag).executeAsOne() +
 			review.countForConvergence(targetTag).executeAsOne()
+	}
+
+	/**
+	 * Reports what a convergence to [target] would do without writing anything:
+	 * how many rows are off-target, and which entities would exceed the size cap
+	 * once encrypted (the rows that would make a real run fail).
+	 */
+	suspend fun dryRun(target: ContentEncryptor): ConvergenceDryRun = withContext(ioDispatcher) {
+		val targetTag = target.cipherName()
+		val secrets = HashMap<Long, String>()
+
+		suspend fun secretFor(userId: Long): String {
+			secrets[userId]?.let { return it }
+			val secret = accountDao.getAccount(userId)?.cipher_secret
+				?: error("User $userId not found during dry run")
+			secrets[userId] = secret
+			return secret
+		}
+
+		val storyRemaining = story.countForConvergence(targetTag).executeAsOne()
+		val reviewRemaining = review.countForConvergence(targetTag).executeAsOne()
+
+		val overCap = mutableListOf<String>()
+		val rows = story.selectForConvergence(targetTag, Long.MAX_VALUE).executeAsList()
+		for (row in rows) {
+			val secret = secretFor(row.user_id)
+			val plain = registry.resolve(row.cipher).decrypt(row.content, secret)
+			if (target.encrypt(plain, secret).length > maxContentLength) {
+				overCap += "entity ${row.id} (user ${row.user_id}, project ${row.project_id})"
+			}
+		}
+
+		ConvergenceDryRun(storyRemaining, reviewRemaining, overCap)
 	}
 
 	suspend fun converge(target: ContentEncryptor): ConvergenceReport = withContext(ioDispatcher) {

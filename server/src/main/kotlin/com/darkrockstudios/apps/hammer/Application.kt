@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.encryption.EncryptionBootstrap
 import com.darkrockstudios.apps.hammer.frontend.configureFrontEnd
+import com.darkrockstudios.apps.hammer.secret.KeyRole
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import com.darkrockstudios.apps.hammer.secret.keyringSummary
@@ -57,7 +58,13 @@ fun main(args: Array<String>) {
 		description = "Run the SQLite-to-Postgres migration in verify-only mode (rolls back, never renames server.db)"
 	)
 
-	parser.subcommands(GenerateKeyringCommand(), InspectKeyringCommand())
+	val convergeDryRunArg by parser.option(
+		ArgType.Boolean,
+		fullName = "converge-dry-run",
+		description = "Report what encryption convergence would do (rows off-target, over-cap entities) and exit, writing nothing"
+	)
+
+	parser.subcommands(GenerateKeyringCommand(), InspectKeyringCommand(), RotateKeyCommand())
 
 	parser.parse(args)
 
@@ -81,7 +88,7 @@ fun main(args: Array<String>) {
 	// found alongside the Postgres config. NoOp on fresh installs.
 	runOneTimeSqliteToPostgresMigration(config)
 
-	startServer(config, devModeArg ?: false, logLevel)
+	startServer(config, devModeArg ?: false, logLevel, convergeDryRunArg ?: false)
 }
 
 private fun runOneTimeSqliteToPostgresMigration(config: ServerConfig) {
@@ -113,7 +120,7 @@ private fun loadConfig(path: String): ServerConfig {
 	return FileSystem.SYSTEM.readToml(path.toPath(), Toml { ignoreUnknownKeys = true }, ServerConfig::class)
 }
 
-private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?) {
+private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?, convergeDryRun: Boolean = false) {
 	System.setProperty("io.ktor.development", devMode.toString())
 
 	// This is overkill most of the time
@@ -130,7 +137,7 @@ private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?
 			configureServer(config, bindHost)
 		},
 		module = {
-			appMain(config, logLevel = logLevel)
+			appMain(config, logLevel = logLevel, convergeDryRun = convergeDryRun)
 		}
 	).start(wait = true)
 }
@@ -186,10 +193,22 @@ private fun getKeyStore(sslConfig: SslCertConfig): KeyStore {
 fun Application.appMain(
 	config: ServerConfig,
 	addInModule: Module? = null,
-	logLevel: Level? = null
+	logLevel: Level? = null,
+	convergeDryRun: Boolean = false,
 ) {
 	configureDependencyInjection(config, addInModule)
 	val encryptionBootstrap: EncryptionBootstrap by inject()
+	if (convergeDryRun) {
+		val report = runBlocking { encryptionBootstrap.dryRun() }
+		println("Convergence dry run: ${report.total} row(s) off target (${report.storyEntities} entities, ${report.reviewScenes} review scenes).")
+		if (report.overCapEntities.isEmpty()) {
+			println("No over-cap entities; convergence would complete.")
+		} else {
+			println("${report.overCapEntities.size} entity(ies) would exceed the size cap and fail convergence:")
+			report.overCapEntities.forEach { println("  - $it") }
+		}
+		kotlin.system.exitProcess(if (report.overCapEntities.isEmpty()) 0 else 1)
+	}
 	runBlocking { encryptionBootstrap.run(config.encryption.mode) }
 	configureSerialization()
 	configureMonitoring(logLevel)
@@ -251,6 +270,49 @@ private class InspectKeyringCommand : Subcommand(
 		val json = FileSystem.SYSTEM.read(path) { readUtf8() }
 		val keyring = cliKeyringCodec().parse(json)
 		println(keyringSummary(keyring))
+		kotlin.system.exitProcess(0)
+	}
+}
+
+private class RotateKeyCommand : Subcommand(
+	"rotate-key",
+	"Add a new key generation to a role and make it active (offline rotation)",
+) {
+	private val roleArg by option(
+		ArgType.Choice(listOf("content", "tokenHmac"), { it }),
+		shortName = "r", fullName = "role",
+		description = "Which role to rotate",
+	).default("content")
+
+	private val inPath by option(
+		ArgType.String, shortName = "i", fullName = "in",
+		description = "Keyring file to rotate",
+	).default(KeyringManager.defaultKeyringPath(FileSystem.SYSTEM).toString())
+
+	private val out by option(
+		ArgType.String, shortName = "o", fullName = "out",
+		description = "Write the rotated keyring here instead of stdout",
+	)
+
+	override fun execute() {
+		val source = inPath.toPath()
+		if (!FileSystem.SYSTEM.exists(source)) {
+			System.err.println("No keyring file at $inPath")
+			kotlin.system.exitProcess(1)
+		}
+		val role = if (roleArg == "tokenHmac") KeyRole.TOKEN_HMAC else KeyRole.CONTENT
+		val codec = cliKeyringCodec()
+		val rotated = codec.rotate(codec.parse(FileSystem.SYSTEM.read(source) { readUtf8() }), role)
+		val json = codec.serialize(rotated)
+		val target = out
+		if (target != null) {
+			val path = target.toPath()
+			path.parent?.let { FileSystem.SYSTEM.createDirectories(it) }
+			FileSystem.SYSTEM.write(path) { writeUtf8(json) }
+			println("Wrote rotated keyring to $target")
+		} else {
+			println(json)
+		}
 		kotlin.system.exitProcess(0)
 	}
 }

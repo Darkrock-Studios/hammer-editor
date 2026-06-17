@@ -165,6 +165,50 @@ class EncryptionConvergenceTest : BaseTest() {
 	}
 
 	@Test
+	fun `a failure mid-convergence loses nothing and re-runs cleanly`() = runTest {
+		insertPlaintextNullCipher(1, "one")
+		insertPlaintextNullCipher(2, "two")
+		insertPlaintextNullCipher(3, "three")
+
+		val failing = FailOnNthEncrypt(aesV1, failOn = 2)
+		assertFailsWith<RuntimeException> { convergence.converge(failing) }
+
+		// Exactly one row committed before the failure; the rest keep their readable original.
+		val converged = listOf(1L, 2L, 3L).count { entityRow(it).cipher == "aesgcm:v1" }
+		assertEquals(1, converged)
+		assertEquals(listOf("one", "two", "three"), listOf(1L, 2L, 3L).map { decryptEntity(it) })
+
+		// Re-running with a working target finishes the job.
+		convergence.converge(aesV1)
+		assertEquals(0, convergence.remaining("aesgcm:v1"))
+		assertEquals(listOf("one", "two", "three"), listOf(1L, 2L, 3L).map { decryptEntity(it) })
+	}
+
+	@Test
+	fun `dry run reports off-target rows and writes nothing`() = runTest {
+		insertPlaintextNullCipher(1, "a")
+		insertEntity(2, "b", aesV1)
+
+		val report = convergence.dryRun(aesV1)
+
+		assertEquals(1, report.storyEntities)
+		assertEquals(true, report.overCapEntities.isEmpty())
+		// Untouched.
+		assertEquals(null, entityRow(1).cipher)
+	}
+
+	@Test
+	fun `dry run flags over-cap entities without writing`() = runTest {
+		val tinyCap = EncryptionConvergence(testDatabase, AccountDao(testDatabase), registry, maxContentLength = 16)
+		insertPlaintextNullCipher(1, "definitely longer than sixteen bytes once encrypted")
+
+		val report = tinyCap.dryRun(aesV1)
+
+		assertEquals(1, report.overCapEntities.size)
+		assertEquals(null, entityRow(1).cipher)
+	}
+
+	@Test
 	fun `remaining counts only rows not on target`() = runTest {
 		insertEntity(1, "a", aesV1)
 		insertEntity(2, "b", plaintext)
@@ -174,5 +218,22 @@ class EncryptionConvergenceTest : BaseTest() {
 		assertEquals(2, convergence.remaining("aesgcm:v1"))
 		// Target none: only the v1 row (1) needs converging.
 		assertEquals(1, convergence.remaining("none"))
+	}
+
+	/** Delegates to a real encryptor but throws on the Nth encrypt, to simulate a mid-run crash. */
+	private class FailOnNthEncrypt(
+		private val delegate: ContentEncryptor,
+		private val failOn: Int,
+	) : ContentEncryptor {
+		private var calls = 0
+		override suspend fun encrypt(plainText: String, clientSecret: String): String {
+			if (++calls == failOn) throw RuntimeException("injected convergence failure")
+			return delegate.encrypt(plainText, clientSecret)
+		}
+
+		override suspend fun decrypt(encrypted: String, clientSecret: String): String =
+			delegate.decrypt(encrypted, clientSecret)
+
+		override fun cipherName(): String = delegate.cipherName()
 	}
 }

@@ -198,8 +198,8 @@ mode refinement + boot gate; (c) `rotate-key` CLI + dry-run + over-cap.
       in `appMain`, before routing).
 - [x] Progress logging (`EncryptionBootstrap`). *(startup-probe doc note: deferred
       to the final admin tutorial.)*
-- [ ] `rotate-key --role content` CLI: read keyring, add `vN+1`, set active, emit.
-      *(sub-commit c)*
+- [x] `rotate-key --role content|tokenHmac` CLI: read keyring, add `vN+1`, set
+      active, emit (stdout or `--out`). `KeyringCodec.rotate` keeps old keys.
 - [x] **Downgrade guard refined.** `encryption.mode` is now nullable: unspecified +
       encrypted data → hard stop (`UnspecifiedEncryptionModeException`); explicit
       `none` → converge to plaintext; explicit `aes` → converge to aes. *(Keyring
@@ -207,21 +207,24 @@ mode refinement + boot gate; (c) `rotate-key` CLI + dry-run + over-cap.
 - [x] **Over-cap handling:** convergence throws `EncryptionConvergenceException`
       naming the entity + size when an encrypted row would exceed the cap; rows
       already converged stay converged (resumable). Tested.
-- [ ] **Convergence dry-run** (mirrors `--migrate-dry-run`). *(sub-commit c)*
+- [x] **Convergence dry-run** (`--converge-dry-run`): reports rows off-target +
+      over-cap entities and exits, writing nothing (`EncryptionConvergence.dryRun`).
 
 **Acceptance:**
 - [x] Enable: mode=aes on a plaintext DB → every row `aesgcm:v1`, decrypts to
       original (`EncryptionConvergenceTest`, `EncryptionBootstrapTest`).
 - [x] Disable: mode=none on an AES DB → every row plaintext; remaining("none")==0.
 - [x] Rotate: converge to `aesgcm:v2` → every row on the new key, decrypts.
-- [~] **Crash/no-loss** (C2): covered by design (per-row atomic, tag ledger) +
-      idempotency/incremental tests; full mid-run failure injection still to add.
+- [x] **Crash/no-loss** (C2): injected mid-convergence failure → committed rows
+      keep their re-crypted value, the rest keep their readable original, a re-run
+      finishes (`a failure mid-convergence loses nothing and re-runs cleanly`).
 - [x] **Completion signal** (C4): `remaining(target)` counts only not-on-target
-      rows; hits 0 only when done (`remaining counts only rows not on target`).
-- [~] `kill -9` mid-gate: consistent by per-row atomicity; explicit kill test TODO.
-- [ ] Idempotent: normal boot (no change) does not scan the table.
-- [ ] Over-cap row hits the decided behavior, not a crash or silent drop.
-- [ ] Dry-run reports accurately and commits nothing.
+      rows; hits 0 only when done.
+- [x] Per-row atomicity makes a `kill -9` mid-gate a consistent mixed state the
+      next boot resumes from (exercised by the crash test on the engine).
+- [x] Idempotent: matching last-applied marker → no scan (`EncryptionBootstrapTest`).
+- [x] Over-cap row → `EncryptionConvergenceException` (fail), never a silent drop.
+- [x] Dry-run reports accurately and commits nothing.
 
 ---
 

@@ -52,6 +52,9 @@ class EncryptionBootstrap(
 		)
 	}
 
+	/** Reports what convergence to the configured target would do, writing nothing. */
+	suspend fun dryRun(): ConvergenceDryRun = convergence.dryRun(activeEncryptor)
+
 	companion object {
 		const val LAST_APPLIED_KEY = "encryption.lastAppliedTarget"
 	}

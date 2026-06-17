@@ -43,6 +43,36 @@ class KeyringCodecTest {
 	}
 
 	@Test
+	fun `rotate adds a new active content key and keeps the old ones`() {
+		val original = codec.generate()
+
+		val rotated = codec.rotate(original, KeyRole.CONTENT)
+
+		assertEquals("v2", rotated.content.active)
+		assertEquals(setOf("v1", "v2"), rotated.content.keys.keys)
+		// Old key value preserved so existing rows still decrypt until converged.
+		assertEquals(original.content.key("v1"), rotated.content.key("v1"))
+		// The other role is untouched.
+		assertEquals(original.tokenHmac, rotated.tokenHmac)
+	}
+
+	@Test
+	fun `rotate increments the version each time`() {
+		val twice = codec.rotate(codec.rotate(codec.generate(), KeyRole.CONTENT), KeyRole.CONTENT)
+		assertEquals("v3", twice.content.active)
+		assertEquals(setOf("v1", "v2", "v3"), twice.content.keys.keys)
+	}
+
+	@Test
+	fun `rotate can target the token-hmac role independently`() {
+		val original = codec.generate()
+		val rotated = codec.rotate(original, KeyRole.TOKEN_HMAC)
+
+		assertEquals("v2", rotated.tokenHmac.active)
+		assertEquals(original.content, rotated.content)
+	}
+
+	@Test
 	fun `parse rejects an unknown schema`() {
 		val json = """{"schema":99,"content":{"active":"v1","keys":{"v1":"a"}},"tokenHmac":{"active":"v1","keys":{"v1":"a"}}}"""
 		assertThrows<IllegalArgumentException> { codec.parse(json) }
