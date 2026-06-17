@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.e2e.util
 
+import com.darkrockstudios.apps.hammer.EncryptionConfig
+import com.darkrockstudios.apps.hammer.EncryptionMode
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.appMain
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
@@ -88,7 +90,9 @@ abstract class EndToEndTest {
 			single { fileSystem } bind FileSystem::class
 		}
 
-		val config = ServerConfig()
+		// These tests exercise the AES-at-rest path with a known secret, so pin it
+		// explicitly rather than riding the plaintext default.
+		val config = ServerConfig(encryption = EncryptionConfig(EncryptionMode.AES))
 
 		val server = embeddedServer(
 			Jetty,

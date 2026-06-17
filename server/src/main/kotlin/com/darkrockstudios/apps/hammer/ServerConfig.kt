@@ -113,10 +113,14 @@ enum class EncryptionMode(val serial: String) {
 	)
 }
 
-/** Selects the cipher used for newly written content. Reads dispatch per-row regardless of this. */
+/**
+ * Selects the cipher used for newly written content. Reads dispatch per-row
+ * regardless of this. Defaults to no encryption: a zero-config server stores
+ * plaintext and needs no key material. Enabling AES requires a keyring.
+ */
 @Serializable
 data class EncryptionConfig(
-	val mode: EncryptionMode = EncryptionMode.AES,
+	val mode: EncryptionMode = EncryptionMode.NONE,
 )
 
 @Serializable(with = StorageMode.Serializer::class)

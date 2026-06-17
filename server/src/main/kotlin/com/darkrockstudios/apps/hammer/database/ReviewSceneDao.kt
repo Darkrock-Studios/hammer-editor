@@ -18,6 +18,7 @@ class ReviewSceneDao(
 		sceneName: String,
 		sceneOrder: Int,
 		snapshotContent: String,
+		cipher: String,
 	) {
 		withContext(ioDispatcher) {
 			queries.createScene(
@@ -27,6 +28,7 @@ class ReviewSceneDao(
 				sceneName = sceneName,
 				sceneOrder = sceneOrder,
 				snapshotContent = snapshotContent,
+				cipher = cipher,
 			)
 		}
 	}

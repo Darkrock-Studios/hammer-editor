@@ -56,6 +56,7 @@ class ReviewPageTest : EndToEndTest() {
 				"Weary valves clunked shut after an *extended* burn.",
 				cipherSecret,
 			),
+			cipher = encryptor().cipherName(),
 		)
 		requestId
 	}

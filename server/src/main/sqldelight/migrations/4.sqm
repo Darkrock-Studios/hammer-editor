@@ -1,0 +1,11 @@
+-- Migration 4 -> 5: tag each review_scene snapshot with the cipher it was
+-- written under, mirroring story_entity.cipher so review snapshots decrypt
+-- polymorphically and survive an encryption-mode change.
+--
+-- review_scene was introduced after at-rest encryption shipped, so every
+-- existing row is AES-encrypted: backfill them with the AES tag (not NULL,
+-- which would mean plaintext). The default exists only to fill existing rows;
+-- it is dropped so future inserts must state their cipher explicitly.
+
+ALTER TABLE review_scene ADD COLUMN IF NOT EXISTS cipher TEXT NOT NULL DEFAULT 'AES/GCM/NoPadding';
+ALTER TABLE review_scene ALTER COLUMN cipher DROP DEFAULT;

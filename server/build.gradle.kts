@@ -39,7 +39,7 @@ sqldelight {
 			packageName.set("com.darkrockstudios.apps.hammer.database")
 			dialect(libs.sqldelight.postgresql.dialect.get().toString())
 			srcDirs("src/main/sqldelight")
-			version = 4
+			version = 5
 			schemaOutputDirectory.set(project.file("build/generated/sqldelight"))
 		}
 		// Read-only legacy database — used ONLY by the one-time SQLite-to-Postgres migrator.

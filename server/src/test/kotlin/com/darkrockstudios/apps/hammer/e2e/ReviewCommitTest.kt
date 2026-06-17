@@ -74,6 +74,7 @@ class ReviewCommitTest : EndToEndTest() {
 			sceneName = "Ship Arrival",
 			sceneOrder = 0,
 			snapshotContent = encryptor().encrypt(snapshot, cipherSecret),
+			cipher = encryptor().cipherName(),
 		)
 		val sceneRowId = db.reviewSceneQueries.getScenesForRequest(requestId).executeAsOne().id
 

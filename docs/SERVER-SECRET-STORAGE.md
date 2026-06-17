@@ -142,8 +142,24 @@ the reader hands them to the plaintext encryptor. A wrong guess fails *loud*
 NULL/plaintext row is currently a latent read failure that the polymorphic reader
 fixes.)
 
-The encryption mode (`aes` | `none`) is an explicit `ServerConfig` setting that
-selects the **active write** encryptor.
+The encryption mode (`aes` | `none`) is an explicit `ServerConfig` setting
+(`[encryption] mode`) that selects the **active write** encryptor. **Default =
+`none` (plaintext).** A zero-config server stores plaintext and needs no key
+material — the simplest, hardest-to-misconfigure path for a casual self-hoster.
+Enabling AES is a deliberate opt-in that requires a keyring.
+
+> ⚠️ Upgrade note: pre-feature servers always encrypted (auto-generated secret).
+> After this ships, an existing deployment with no `[encryption]` block defaults
+> to `none`, so **new** writes become plaintext (old AES rows still read via the
+> registry). Call this out in release notes; consider a boot-time log when a
+> content keyring is present but mode resolves to `none`.
+
+**Reviews are polymorphic too.** `review_scene.snapshot_content` carries the same
+per-row `cipher` tag and decrypts through the same registry. Unlike `story_entity`,
+review rows have **no plaintext history** (the table postdates at-rest encryption),
+so the schema-v5 migration backfills existing rows with the AES tag — NULL would
+wrongly mean plaintext there. The column is `NOT NULL`; every write states its
+cipher.
 
 ### 6. All convergence is an offline, blocking pre-launch step
 
@@ -264,5 +280,6 @@ you place it via `--out` / `export` / `vault kv put` / `sops`. Offline rotation 
 - [ ] Migration of the existing single `server.secret` → keyring `content.v1`
       (grandfather its exact current bytes — do **not** re-encode — so existing
       data still decrypts) without bricking deployments.
-- [ ] Exact `ServerConfig` shape for `secret.provider` + the encryption-mode
-      setting (new block vs. fold into `storage`).
+- [x] Encryption-mode setting: dedicated `[encryption] mode` block (`aes` |
+      `none`, default `none`). Shipped in PR2. `secret.provider` shape still TBD
+      (PR3).

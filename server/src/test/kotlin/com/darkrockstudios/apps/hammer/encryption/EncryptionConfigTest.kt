@@ -14,25 +14,25 @@ class EncryptionConfigTest {
 		toml.decodeFromString(ServerConfig.serializer(), tomlString)
 
 	@Test
-	fun `Omitted encryption section defaults to AES`() {
+	fun `Omitted encryption section defaults to none`() {
 		val config = parse(
 			"""
 			host = "localhost"
 			port = 8080
 			""".trimIndent()
 		)
-		assertEquals(EncryptionMode.AES, config.encryption.mode)
+		assertEquals(EncryptionMode.NONE, config.encryption.mode)
 	}
 
 	@Test
-	fun `Mode none parses`() {
+	fun `Mode aes parses`() {
 		val config = parse(
 			"""
 			[encryption]
-			mode = "none"
+			mode = "aes"
 			""".trimIndent()
 		)
-		assertEquals(EncryptionMode.NONE, config.encryption.mode)
+		assertEquals(EncryptionMode.AES, config.encryption.mode)
 	}
 
 	@Test

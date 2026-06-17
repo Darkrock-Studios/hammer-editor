@@ -74,9 +74,13 @@ already exists from PR1; reads are already polymorphic). No migration yet.
 
 - [x] Config: encryption mode (`aes` | `none`) selecting the **active write**
       encryptor — dedicated `[encryption]` block in `ServerConfig` (`EncryptionMode`
-      enum + `EncryptionConfig`, default `aes`).
+      enum + `EncryptionConfig`, **default `none`** — zero-config = plaintext).
 - [x] Store path uses the config-selected active encryptor (DI binds
       `ContentEncryptor` by `encryption.mode`).
+- [x] **Reviews made polymorphic too.** `review_scene` gets a `cipher TEXT NOT NULL`
+      column (schema v5, migration `4.sqm` backfills existing rows with the AES tag
+      — no plaintext history there). `ReviewRepository` tags on write and resolves
+      on read via the registry, mirroring `story_entity`.
 
 **Acceptance:**
 - [x] With mode=none, new writes are plaintext-tagged; existing AES rows still

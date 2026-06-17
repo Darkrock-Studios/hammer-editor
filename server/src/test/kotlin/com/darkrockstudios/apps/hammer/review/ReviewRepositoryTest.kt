@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.database.ReviewSuggestionDao
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
+import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectSyncData
@@ -31,6 +32,7 @@ import com.darkrockstudios.apps.hammer.utils.TestClock
 import com.darkrockstudios.apps.hammer.database.ReviewRequest as ReviewRequestRow
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
@@ -54,6 +56,7 @@ class ReviewRepositoryTest : BaseTest() {
 	private val projectDef = ProjectDefinition("Test Project", projectId)
 	private val syncKey = ProjectSyncKey(userId, projectDef)
 	private val cipherSecret = "cipher-secret"
+	private val TEST_CIPHER = "AES/GCM/NoPadding"
 
 	private lateinit var accountDao: AccountDao
 	private lateinit var projectDao: ProjectDao
@@ -64,6 +67,7 @@ class ReviewRepositoryTest : BaseTest() {
 	private lateinit var sceneDraftSynchronizer: ServerSceneDraftSynchronizer
 	private lateinit var sceneSynchronizer: ServerSceneSynchronizer
 	private lateinit var contentEncryptor: ContentEncryptor
+	private lateinit var encryptorRegistry: ContentEncryptorRegistry
 	private lateinit var tokenHasher: TokenHasher
 	private lateinit var clock: TestClock
 
@@ -105,6 +109,8 @@ class ReviewRepositoryTest : BaseTest() {
 		coEvery { contentEncryptor.decrypt(any(), any()) } answers {
 			firstArg<String>().removePrefix("enc:")
 		}
+		every { contentEncryptor.cipherName() } returns TEST_CIPHER
+		encryptorRegistry = ContentEncryptorRegistry(listOf(contentEncryptor))
 		coEvery { tokenHasher.hashToken(any()) } answers { "hash:" + firstArg<String>() }
 	}
 
@@ -118,6 +124,7 @@ class ReviewRepositoryTest : BaseTest() {
 		sceneDraftSynchronizer = sceneDraftSynchronizer,
 		sceneSynchronizer = sceneSynchronizer,
 		contentEncryptor = contentEncryptor,
+		encryptorRegistry = encryptorRegistry,
 		tokenHasher = tokenHasher,
 		clock = clock,
 		base64 = createTokenBase64(),
@@ -204,7 +211,7 @@ class ReviewRepositoryTest : BaseTest() {
 
 		val snapshots = mutableListOf<String>()
 		coEvery {
-			reviewSceneDao.createScene(42L, any(), any(), any(), any(), capture(snapshots))
+			reviewSceneDao.createScene(42L, any(), any(), any(), any(), capture(snapshots), any())
 		} returns Unit
 
 		val result = createRepository().createReviewRequest(
@@ -447,6 +454,7 @@ class ReviewRepositoryTest : BaseTest() {
 				scene_name = "Scene 1",
 				scene_order = 0,
 				snapshot_content = "enc:content 1",
+				cipher = TEST_CIPHER,
 				reviewer_done = false,
 			)
 		)
@@ -472,6 +480,7 @@ class ReviewRepositoryTest : BaseTest() {
 		scene_name = "Scene $sceneId",
 		scene_order = 0,
 		snapshot_content = "enc:$snapshot",
+		cipher = TEST_CIPHER,
 		reviewer_done = false,
 	)
 

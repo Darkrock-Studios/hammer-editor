@@ -6,6 +6,7 @@ CREATE TABLE review_scene(
     scene_name TEXT NOT NULL,
     scene_order INTEGER NOT NULL,
     snapshot_content TEXT NOT NULL,
+    cipher TEXT NOT NULL,
     reviewer_done BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY(review_request_id) REFERENCES review_request(id) ON DELETE CASCADE
 );
@@ -13,8 +14,8 @@ CREATE TABLE review_scene(
 CREATE INDEX review_scene_request_idx ON review_scene (review_request_id);
 
 createScene:
-INSERT INTO review_scene(review_request_id, scene_id, draft_id, scene_name, scene_order, snapshot_content)
-VALUES (:reviewRequestId, :sceneId, :draftId, :sceneName, :sceneOrder, :snapshotContent);
+INSERT INTO review_scene(review_request_id, scene_id, draft_id, scene_name, scene_order, snapshot_content, cipher)
+VALUES (:reviewRequestId, :sceneId, :draftId, :sceneName, :sceneOrder, :snapshotContent, :cipher);
 
 getScenesForRequest:
 SELECT * FROM review_scene
