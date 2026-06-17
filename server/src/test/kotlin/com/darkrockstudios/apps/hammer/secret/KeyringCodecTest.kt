@@ -1,0 +1,68 @@
+package com.darkrockstudios.apps.hammer.secret
+
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
+import java.security.SecureRandom
+import kotlin.io.encoding.Base64
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+class KeyringCodecTest {
+
+	private val codec = KeyringCodec(SecureRandom(), Base64.Default)
+
+	@Test
+	fun `generate produces two roles each active at v1 with 32-byte base64 keys`() {
+		val keyring = codec.generate()
+		keyring.validate()
+
+		assertEquals("v1", keyring.content.active)
+		assertEquals("v1", keyring.tokenHmac.active)
+		assertEquals(32, Base64.Default.decode(keyring.content.activeKey()).size)
+		assertEquals(32, Base64.Default.decode(keyring.tokenHmac.activeKey()).size)
+		// Roles get independent key material.
+		assertTrue(keyring.content.activeKey() != keyring.tokenHmac.activeKey())
+	}
+
+	@Test
+	fun `serialize then parse round-trips`() {
+		val keyring = codec.generate()
+		val parsed = codec.parse(codec.serialize(keyring))
+		assertEquals(keyring, parsed)
+	}
+
+	@Test
+	fun `grandfather wraps the legacy secret verbatim in both roles`() {
+		val legacy = "legacy-secret-value"
+		val keyring = codec.grandfather(legacy)
+
+		assertEquals(legacy, keyring.content.activeKey())
+		assertEquals(legacy, keyring.tokenHmac.activeKey())
+		assertEquals("v1", keyring.content.active)
+		assertEquals("v1", keyring.tokenHmac.active)
+	}
+
+	@Test
+	fun `parse rejects an unknown schema`() {
+		val json = """{"schema":99,"content":{"active":"v1","keys":{"v1":"a"}},"tokenHmac":{"active":"v1","keys":{"v1":"a"}}}"""
+		assertThrows<IllegalArgumentException> { codec.parse(json) }
+	}
+
+	@Test
+	fun `parse rejects an active id missing from keys`() {
+		val json = """{"schema":1,"content":{"active":"v2","keys":{"v1":"a"}},"tokenHmac":{"active":"v1","keys":{"v1":"a"}}}"""
+		assertThrows<IllegalArgumentException> { codec.parse(json) }
+	}
+
+	@Test
+	fun `parse rejects an empty key set`() {
+		val json = """{"schema":1,"content":{"active":"v1","keys":{}},"tokenHmac":{"active":"v1","keys":{"v1":"a"}}}"""
+		assertThrows<IllegalArgumentException> { codec.parse(json) }
+	}
+
+	@Test
+	fun `parse rejects a blank key value`() {
+		val json = """{"schema":1,"content":{"active":"v1","keys":{"v1":""}},"tokenHmac":{"active":"v1","keys":{"v1":"a"}}}"""
+		assertThrows<IllegalArgumentException> { codec.parse(json) }
+	}
+}

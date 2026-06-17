@@ -103,41 +103,47 @@ already exists from PR1; reads are already polymorphic). No migration yet.
 **Goal:** replace the single cached secret with a versioned keyring behind a
 pluggable provider; fix encoding; make generation explicit.
 
-- [ ] `Keyring` / `RoleKeys` kotlinx-serialization data classes (Decision 2):
-      single JSON document, `schema` field, `content` + `tokenHmac` roles each
-      with `active` + `keys{ id → base64 }`. One parser.
-- [ ] `ServerSecretProvider` interface returning the keyring **string**; explicit
-      selection via `ServerConfig` (`secret.provider = file | env`, default file),
-      mirroring `emailProvider`/`storage.type`.
-- [ ] **File** provider (configurable path; default grandfathers
-      `~/hammer_data/server.secret` → `content.v1`, reading its **exact** current
-      bytes — do NOT re-encode) and **Env** provider (one var = keyring JSON).
-- [ ] `ServerSecretManager` parses the keyring; new keys use canonical
-      **Base64-of-32-bytes**.
-- [ ] Extend the tag to `(algorithm, keyId)` → `aesgcm:v1`. Store tags with the
-      active key id; registry/resolver picks `(algo, key)`.
-- [ ] **CLI subcommands** via the existing **kotlinx-cli** `ArgParser` in
-      `Application.kt` (add `Subcommand`s alongside `--config`/`--dev`/
-      `--migrate-dry-run`) — **no new dependency**: `generate-keyring` (both roles,
-      `v1`, `active: v1`; stdout default, `--out <path>`), `inspect-keyring`
-      (ids/active, no bytes). `rotate-key` lands with PR5. Progress/feedback is
-      plain log lines (works in non-TTY Docker/systemd), not an animated UI.
-- [ ] **No auto-generation, no auto-heal.** Missing keyring → fail fast with
-      guidance (the generate command + where to put it for the provider). Nothing
-      mints a key on boot.
+- [x] `Keyring` / `RoleKeys` kotlinx-serialization data classes (Decision 2):
+      single JSON document, `schema` field, `content` + `tokenHmac` roles each with
+      `active` + `keys{ id → value }`. One parser (`KeyringCodec`).
+- [x] `ServerSecretProvider` interface returning the keyring **string**; explicit
+      selection via `ServerConfig` (`[secret] provider = file | env`, default file).
+- [x] **File** provider (configurable path; default grandfathers
+      `~/hammer_data/server.secret` → `content.v1`, **verbatim** — see key-model
+      note) and **Env** provider (one var = keyring JSON).
+- [x] `KeyringManager` resolves/parses the keyring; new keys = `base64(32 bytes)`.
+      `AesGcmKeyProvider` now reads the active content key.
+- [x] **CLI subcommands** via existing **kotlinx-cli** (`Subcommand`s in
+      `Application.kt`): `generate-keyring` (both roles, `v1`; stdout or `--out`),
+      `inspect-keyring` (ids/active, no bytes; `--in`). `rotate-key` lands with PR5.
+- [x] **No auto-generation of content keys.** Missing keyring + `mode=aes` → fail
+      fast (`MissingKeyringException`) naming the generate command.
+
+> **Key model (settled):** keyring values are opaque key **strings used directly**
+> (PBKDF2 password chars + UTF-8 HMAC bytes), never decoded to raw bytes. New keys
+> are `base64(32 random bytes)` (fixes the lossy-entropy bug); a grandfathered key
+> is the legacy `server.secret` string verbatim (existing data stays readable).
+>
+> **Deviations from original plan (deliberate):**
+> - Tag stays `"AES/GCM/NoPadding"` — the `aesgcm:vN` format moves to **PR5** with
+>   rotation/multiple keys (one active content key in PR3).
+> - `TokenHasher` stays on the legacy auto-managed `server.secret` until **PR4**;
+>   PR3 only migrates **content** keys to the keyring. (`ServerSecretManager` kept
+>   for tokens for now rather than being replaced outright.)
+> - Golden-corpus test uses a synthesized legacy secret (incl. non-UTF-8-clean
+>   bytes) cross-checked against the legacy reader, rather than a checked-in DB.
 
 **Acceptance:**
-- [ ] Existing single-`server.secret` deployment boots unchanged, data still
-      decrypts (grandfathered as `content.v1`).
-- [ ] Fresh deployment with no keyring fails fast with a helpful message naming
-      the generate command + target location.
-- [ ] Env provider works end-to-end (set var → boot → decrypt).
-- [ ] `generate-keyring` output parses, has both roles, valid base64/32-byte keys,
-      and is usable by both providers.
-- [ ] **Grandfather golden-corpus test** (Layer 2): a checked-in DB + `server.secret`
-      from the current released server still decrypts under new code — **including
-      a secret with non-UTF-8-clean bytes** (lossy-secret trap) and **token
-      continuity**. Build this first; it's the C1/C5 guard.
+- [x] Existing single-`server.secret` deployment boots unchanged, content still
+      decrypts (grandfathered as `content.v1`, verbatim).
+- [x] Fresh `mode=aes` deployment with no keyring fails fast with guidance.
+- [x] Env provider selectable via config (`SecretConfigTest`); File provider serves
+      the booted e2e server.
+- [x] `generate-keyring` output parses, has both roles, valid base64/32-byte keys
+      (`KeyringCodecTest`); verified end-to-end via the CLI.
+- [x] **Grandfather golden-corpus test** (Layer 2): grandfather preserves a
+      non-UTF-8-clean secret **byte-for-byte**, matching the legacy reader
+      (`KeyringManagerTest`). The C1/C5 guard.
 
 ---
 

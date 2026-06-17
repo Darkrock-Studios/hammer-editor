@@ -14,6 +14,9 @@ import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
 import com.darkrockstudios.apps.hammer.encryption.PlaintextContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.project.*
+import com.darkrockstudios.apps.hammer.secret.KeyringCodec
+import com.darkrockstudios.apps.hammer.secret.KeyringManager
+import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
 import com.darkrockstudios.apps.hammer.utilities.*
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
@@ -23,6 +26,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
@@ -56,12 +60,15 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		fileSystem = FakeFileSystem()
 		base64 = createTokenBase64()
 		val secureRandom = SecureRandom()
-		val serverSecretManager = ServerSecretManager(fileSystem, secureRandom)
+		val codec = KeyringCodec(secureRandom, base64)
+		val keyringJson = codec.serialize(codec.generate())
+		val keyringManager = KeyringManager(
+			object : ServerSecretProvider { override fun loadKeyring() = keyringJson },
+			codec, fileSystem, "/nonexistent".toPath(),
+		)
 		contentEncryptor = AesGcmContentEncryptor(
-			SimpleFileBasedAesGcmKeyProvider(
-				serverSecretManager,
-				base64
-			), secureRandom
+			SimpleFileBasedAesGcmKeyProvider(keyringManager, base64),
+			secureRandom
 		)
 		plaintextEncryptor = PlaintextContentEncryptor()
 		encryptorRegistry = ContentEncryptorRegistry(listOf(contentEncryptor, plaintextEncryptor))

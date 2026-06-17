@@ -8,6 +8,9 @@ import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
+import com.darkrockstudios.apps.hammer.secret.FileSecretProvider
+import com.darkrockstudios.apps.hammer.secret.KeyringCodec
+import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import io.ktor.client.*
@@ -54,8 +57,19 @@ abstract class EndToEndTest {
 		val secureRandom = SecureRandom()
 		val serverSecretManager = ServerSecretManager(fileSystem, secureRandom)
 		tokenHasher = TokenHasher(serverSecretManager, base64)
+
+		// Write a keyring the booted server reads (file provider, default path, same fake FS),
+		// so this test's encryptor and the server share content key material.
+		val codec = KeyringCodec(secureRandom, base64)
+		val keyringPath = KeyringManager.defaultKeyringPath(fileSystem)
+		fileSystem.createDirectories(keyringPath.parent!!)
+		fileSystem.write(keyringPath) { writeUtf8(codec.serialize(codec.generate())) }
+		val keyringManager = KeyringManager(
+			FileSecretProvider(fileSystem, keyringPath),
+			codec, fileSystem, KeyringManager.legacySecretPath(fileSystem),
+		)
 		contentEncryptor = AesGcmContentEncryptor(
-			SimpleFileBasedAesGcmKeyProvider(serverSecretManager, base64),
+			SimpleFileBasedAesGcmKeyProvider(keyringManager, base64),
 			secureRandom
 		)
 		testDatabase = SqliteTestDatabase()

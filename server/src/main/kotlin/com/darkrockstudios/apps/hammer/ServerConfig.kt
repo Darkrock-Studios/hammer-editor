@@ -26,6 +26,7 @@ data class ServerConfig(
 	val storage: StorageConfig = StorageConfig(),
 	val analytics: AnalyticsConfig = AnalyticsConfig(),
 	val encryption: EncryptionConfig = EncryptionConfig(),
+	val secret: SecretConfig = SecretConfig(),
 ) {
 	@Transient
 	val emailProviderType: EmailProvider? = emailProvider?.let { provider ->
@@ -121,6 +122,26 @@ enum class EncryptionMode(val serial: String) {
 @Serializable
 data class EncryptionConfig(
 	val mode: EncryptionMode = EncryptionMode.NONE,
+)
+
+@Serializable(with = SecretProviderType.Serializer::class)
+enum class SecretProviderType(val serial: String) {
+	FILE("file"),
+	ENV("env");
+
+	object Serializer : CaseInsensitiveEnumSerializer<SecretProviderType>(
+		"SecretProviderType", entries.toTypedArray(), { it.serial }
+	)
+}
+
+/** Where the keyring document is read from. The keyring is never written at runtime. */
+@Serializable
+data class SecretConfig(
+	val provider: SecretProviderType = SecretProviderType.FILE,
+	/** Keyring JSON file path for the `file` provider. Defaults to hammer_data/server.keyring.json. */
+	val file: String? = null,
+	/** Environment variable holding the keyring JSON for the `env` provider. */
+	val envVar: String = "HAMMER_KEYRING",
 )
 
 @Serializable(with = StorageMode.Serializer::class)

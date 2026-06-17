@@ -276,12 +276,14 @@ you place it via `--out` / `export` / `vault kv put` / `sops`. Offline rotation 
 
 ## Open questions / TODO
 
-- [ ] PR3/PR4 sequencing: pre-PR4, does `TokenHasher` already read
-      `keyring.tokenHmac`, or stay on the legacy path until PR4? (Generator emits
-      both roles either way.)
-- [ ] Migration of the existing single `server.secret` → keyring `content.v1`
-      (grandfather its exact current bytes — do **not** re-encode — so existing
-      data still decrypts) without bricking deployments.
+- [x] PR3/PR4 sequencing: `TokenHasher` stays on the legacy `server.secret` until
+      PR4; PR3 migrates only the **content** key to the keyring. (Generator emits
+      both roles; the grandfathered `tokenHmac.v1` == `content.v1` so PR4's flip
+      preserves token continuity.)
+- [x] Migration of the existing single `server.secret` → keyring `content.v1`:
+      done in PR3 via `KeyringManager` grandfathering the file **verbatim** (key
+      model = opaque string used as-is, so no re-encoding). Guarded by the
+      golden-corpus test.
 - [x] Encryption-mode setting: dedicated `[encryption] mode` block (`aes` |
       `none`, default `none`). Shipped in PR2. `secret.provider` shape still TBD
       (PR3).

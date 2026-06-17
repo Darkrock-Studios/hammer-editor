@@ -1,8 +1,12 @@
 package com.darkrockstudios.apps.hammer
 
+import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.encryption.EncryptionModeGuard
 import com.darkrockstudios.apps.hammer.frontend.configureFrontEnd
+import com.darkrockstudios.apps.hammer.secret.KeyringCodec
+import com.darkrockstudios.apps.hammer.secret.KeyringManager
+import com.darkrockstudios.apps.hammer.secret.keyringSummary
 import com.darkrockstudios.apps.hammer.monitoring.configureApiMetrics
 import com.darkrockstudios.apps.hammer.monitoring.configureRouteTemplateCapture
 import com.darkrockstudios.apps.hammer.monitoring.configureMonitoringJob
@@ -14,6 +18,8 @@ import io.ktor.server.engine.*
 import io.ktor.server.jetty.jakarta.*
 import kotlinx.cli.ArgParser
 import kotlinx.cli.ArgType
+import kotlinx.cli.Subcommand
+import kotlinx.cli.default
 import kotlinx.coroutines.runBlocking
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
@@ -50,6 +56,8 @@ fun main(args: Array<String>) {
 		fullName = "migrate-dry-run",
 		description = "Run the SQLite-to-Postgres migration in verify-only mode (rolls back, never renames server.db)"
 	)
+
+	parser.subcommands(GenerateKeyringCommand(), InspectKeyringCommand())
 
 	parser.parse(args)
 
@@ -183,6 +191,10 @@ fun Application.appMain(
 	configureDependencyInjection(config, addInModule)
 	val database: com.darkrockstudios.apps.hammer.database.Database by inject()
 	EncryptionModeGuard.verifyOnBoot(config.encryption.mode, database.serverDatabase)
+	if (config.encryption.mode == EncryptionMode.AES) {
+		val keyringManager: com.darkrockstudios.apps.hammer.secret.KeyringManager by inject()
+		keyringManager.requireContentKey()
+	}
 	configureSerialization()
 	configureMonitoring(logLevel)
 	configureApiMetrics()
@@ -195,4 +207,54 @@ fun Application.appMain(
 	configureFrontEnd()
 	configurePatreonPolling(config)
 	configureMonitoringJob()
+}
+
+private fun cliKeyringCodec(): KeyringCodec =
+	KeyringCodec(java.security.SecureRandom.getInstanceStrong(), createTokenBase64())
+
+private class GenerateKeyringCommand : Subcommand(
+	"generate-keyring",
+	"Generate a fresh server keyring (both roles, active v1)",
+) {
+	private val out by option(
+		ArgType.String, shortName = "o", fullName = "out",
+		description = "Write the keyring to this file instead of stdout",
+	)
+
+	override fun execute() {
+		val codec = cliKeyringCodec()
+		val json = codec.serialize(codec.generate())
+		val target = out
+		if (target != null) {
+			val path = target.toPath()
+			path.parent?.let { FileSystem.SYSTEM.createDirectories(it) }
+			FileSystem.SYSTEM.write(path) { writeUtf8(json) }
+			println("Wrote keyring to $target")
+		} else {
+			println(json)
+		}
+		kotlin.system.exitProcess(0)
+	}
+}
+
+private class InspectKeyringCommand : Subcommand(
+	"inspect-keyring",
+	"Show keyring key ids and active selections (never key bytes)",
+) {
+	private val inPath by option(
+		ArgType.String, shortName = "i", fullName = "in",
+		description = "Keyring file to inspect",
+	).default(KeyringManager.defaultKeyringPath(FileSystem.SYSTEM).toString())
+
+	override fun execute() {
+		val path = inPath.toPath()
+		if (!FileSystem.SYSTEM.exists(path)) {
+			System.err.println("No keyring file at $inPath")
+			kotlin.system.exitProcess(1)
+		}
+		val json = FileSystem.SYSTEM.read(path) { readUtf8() }
+		val keyring = cliKeyringCodec().parse(json)
+		println(keyringSummary(keyring))
+		kotlin.system.exitProcess(0)
+	}
 }

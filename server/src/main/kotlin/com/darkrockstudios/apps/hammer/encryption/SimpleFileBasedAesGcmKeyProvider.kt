@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.encryption
 
-import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
+import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import com.mayakapps.kache.InMemoryKache
 import com.mayakapps.kache.KacheStrategy
 import javax.crypto.SecretKey
@@ -13,7 +13,7 @@ import kotlin.io.encoding.Base64
  * This generates an AES key for each account as requested.
  */
 class SimpleFileBasedAesGcmKeyProvider(
-	private val serverSecretManager: ServerSecretManager,
+	private val keyringManager: KeyringManager,
 	private val base64: Base64,
 ) : AesGcmKeyProvider {
 	private val factory: SecretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256")
@@ -38,7 +38,7 @@ class SimpleFileBasedAesGcmKeyProvider(
 			return cachedKey
 		}
 
-		val serverSecret = serverSecretManager.getServerSecret()
+		val serverSecret = keyringManager.activeContentKey()
 
 		val derivedKey = deriveAesKey(serverSecret, clientSecret, PBKDF2_ITERATIONS, PBKDF2_KEY_LENGTH)
 		cache.put(clientSecret, derivedKey)
