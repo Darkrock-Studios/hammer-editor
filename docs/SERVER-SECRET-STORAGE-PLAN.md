@@ -44,19 +44,23 @@ DI-injected encryptor. **No behavior change** — AES is still the only cipher.
 This unblocks everything else.
 
 - [ ] Introduce a `ContentEncryptorRegistry` (tag → `ContentEncryptor`).
+- [ ] `PlaintextContentEncryptor` (identity), tag `none` — needed on the **read**
+      side now so NULL/plaintext rows are readable (the latent-bug fix). The
+      config to *write* plaintext is PR2.
 - [ ] `ProjectEntityDatabaseDatasource.loadEntity` resolves the encryptor from
       `dbEntity.cipher` via the registry (currently ignores it — uses the single
       injected `encryptor`). Store path unchanged (still tags with the active
       encryptor's `cipherName()`).
 - [ ] NULL `cipher` → resolve to the plaintext encryptor (Decision 1); unknown
       non-null tag → loud failure, not a silent fallback.
-- [ ] DI: bind the registry; keep `AesGcmContentEncryptor` registered under its
-      tag. Resolve the `ContentEncryptor bind` in `mainModule.kt`.
+- [ ] DI: bind the registry; register `AesGcmContentEncryptor` + plaintext under
+      their tags. Resolve the `ContentEncryptor bind` in `mainModule.kt`.
 
 **Acceptance:**
 - [ ] Existing data round-trips unchanged (load/store tests green).
-- [ ] Mixed-state read works: a row tagged AES and a row tagged with a fake
-      registered cipher both decrypt via the right encryptor (test with a stub).
+- [ ] **Keystone mixed-state read** (Layer 1): one DB with `aesgcm`, `none`, and
+      `NULL` rows — each decrypts via the right encryptor; NULL reads as plaintext.
+- [ ] Unknown non-null tag → loud failure, never silent garbage.
 - [ ] **Invariant test: cipher ⊥ hash.** Re-encrypting a row with a different
       cipher must NOT change `entity.hash()` (it's computed over plaintext). Lock
       this — it's what makes convergence safe.
@@ -65,12 +69,12 @@ This unblocks everything else.
 
 ## PR2 — Plaintext encryptor + write-mode config
 
-**Goal:** a server can be configured to write plaintext; mixed AES+plaintext
-rows are correct (reads already polymorphic from PR1). No migration yet.
+**Goal:** a server can be *configured* to write plaintext (the identity encryptor
+already exists from PR1; reads are already polymorphic). No migration yet.
 
-- [ ] `PlaintextContentEncryptor` (identity), tag `none`. Register it.
-- [ ] Config: encryption mode selecting the **active write** encryptor (new
-      `encryption` block in `ServerConfig`, or fold into `StorageConfig` — decide).
+- [ ] Config: encryption mode (`aes` | `none`) selecting the **active write**
+      encryptor (new `encryption` block in `ServerConfig`, or fold into
+      `StorageConfig` — decide).
 - [ ] Store path uses the config-selected active encryptor.
 
 **Acceptance:**
@@ -118,6 +122,10 @@ pluggable provider; fix encoding; make generation explicit.
 - [ ] Env provider works end-to-end (set var → boot → decrypt).
 - [ ] `generate-keyring` output parses, has both roles, valid base64/32-byte keys,
       and is usable by both providers.
+- [ ] **Grandfather golden-corpus test** (Layer 2): a checked-in DB + `server.secret`
+      from the current released server still decrypts under new code — **including
+      a secret with non-UTF-8-clean bytes** (lossy-secret trap) and **token
+      continuity**. Build this first; it's the C1/C5 guard.
 
 ---
 
@@ -159,15 +167,28 @@ provable "old key unused" line. Adds the `rotate-key` CLI subcommand.
       maintenance boot isn't killed mid-run.
 - [ ] `rotate-key --role content` CLI: read keyring, add `vN+1`, set active, emit.
       (Offline flow: rotate-key → place keyring → restart → gate re-encrypts.)
+- [ ] **Over-cap handling.** Enabling encryption can push a near-`MAX_ENTITY_CONTENT_LENGTH`
+      plaintext row over the cap once AES+base64+IV+tag. Decide behavior
+      (skip-and-report vs. fail the migration) — must not silently drop or crash.
+- [ ] **Convergence dry-run** (mirrors `--migrate-dry-run`): decrypt+re-encrypt in
+      a rolled-back transaction, report per-tag counts + any over-cap rows, commit
+      nothing. Operator confidence tool + clean test surface.
 
 **Acceptance:**
-- [ ] Enable: mode=aes on a plaintext DB → restart → every row `aesgcm:v1`.
+- [ ] Enable: mode=aes on a plaintext DB → restart → every row `aesgcm:v1`,
+      decrypts to original.
 - [ ] Disable: mode=none on an AES DB → restart → every row plaintext; content
       key provably unused → deletable with zero auth impact (PR4).
 - [ ] Rotate: `rotate-key` → restart → every content row on the new key; old key
       count 0 → removable.
+- [ ] **Crash/no-loss** (C2): failure after N of M rows → re-run finishes, nothing
+      lost; failure between decrypt and write → that row keeps its readable original.
+- [ ] **Completion signal never false-positives** (C4): per-tag tally is accurate
+      mid-run, hits 0 only when truly done.
 - [ ] `kill -9` mid-gate leaves consistent mixed state; next boot resumes/finishes.
-- [ ] Normal boot (no change) does not scan the table.
+- [ ] Idempotent: normal boot (no change) does not scan the table.
+- [ ] Over-cap row hits the decided behavior, not a crash or silent drop.
+- [ ] Dry-run reports accurately and commits nothing.
 
 ---
 
@@ -214,6 +235,59 @@ PR3 interface.
 - Tests follow the project's classical style (real collaborators + fakes; fake
   filesystem / in-memory DAOs; assert observable outcomes). Tests in `desktopTest`
   / `server:test`.
+
+## Testing strategy
+
+Framed around the **catastrophes**, not coverage. A bug here doesn't throw in CI —
+it silently makes a user's data unreadable. Each test earns its place by guarding
+one failure mode:
+
+- **C1 existing data unreadable** (grandfather changes the effective key / wrong
+  encryptor picked)
+- **C2 data loss mid-convergence** (crash between decrypt and write)
+- **C3 silent corruption** (reads back as garbage without erroring)
+- **C4 the "safe to delete old key" signal lies** (reports 0 old-key rows while
+  some remain → operator deletes a live key)
+- **C5 auth breakage** (token hashing changes; unexpected global logout)
+
+Reuse existing infra: `MigrationFixtureBuilder`, `MigrationFullTableParityTest`,
+`MigrationFailureModesTest`, the `OldSchemas/` fixtures, embedded Postgres
+(Zonky), `RoundTripTestBase` (integrationTests), `E2eTestData`, and the
+classical-style fakes already used in `server:test`.
+
+**Layer 1 — registry & keyring behavior (PR1–PR3).** Keystone test: one DB with
+mixed tags (`aesgcm:v1` + `none` + `NULL`), assert each row reads back via the
+right encryptor. NULL → plaintext; unknown non-null tag → **loud failure** (C3).
+`cipher ⊥ hash`. Keyring JSON round-trip; malformed/short keys rejected.
+
+**Layer 2 — grandfather golden corpus (PR3, build first; C1+C5).** Check in a DB
+produced by the *current released* server + its `server.secret`; run new code,
+assert every entity decrypts to expected plaintext. Must cover:
+- **Lossy-secret trap** — the fixture's `server.secret` deliberately contains
+  non-UTF-8-clean bytes; grandfather-to-`content.v1` must preserve **exact bytes**
+  (re-encoding shifts the derived key → all data unreadable).
+- **Token continuity** — pre-existing tokens still verify after the keyring swap.
+
+**Layer 3 — convergence engine (PR5; C2+C4).** Embedded Postgres, real DB. Per
+op (enable/disable/rotate): every affected row ends on target tag AND decrypts to
+original. The bug-catchers:
+- **Crash resumability / no-loss** — inject failure after N of M rows → re-run
+  finishes, nothing lost; inject failure *between decrypt and write* on one row →
+  that row still holds its readable original (extends `MigrationFailureModesTest`).
+- **Completion signal never false-positives** — per-tag tally reports the true
+  remaining count mid-run, hits 0 only when genuinely done.
+- **Idempotency** — second run is a no-op; matching last-applied marker → table
+  not scanned.
+
+**Layer 4 — end-to-end through real sync (PR5/PR6; C1+C3).** Extend
+`RoundTripTestBase`: client syncs → toggle mode + restart (converge) → client
+syncs again → data intact **and no spurious conflicts** (proves `cipher ⊥ hash`
+through the actual sync/conflict path). Plus: File and Env providers both serve
+the same data; fresh-deploy with no keyring **fails fast, does not auto-generate**.
+
+**Layer 5 — property tests (PR1/PR5).** Round-trip a generated corpus (empty,
+heavy unicode, near-max-size, binary-ish) through each cipher — UTF-8/base64
+boundaries are where crypto bugs live.
 
 ## Final cleanup (after the feature ships)
 
