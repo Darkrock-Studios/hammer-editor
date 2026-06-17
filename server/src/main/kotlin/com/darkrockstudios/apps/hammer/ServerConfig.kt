@@ -25,6 +25,7 @@ data class ServerConfig(
 	val communityEnabled: Boolean = false,
 	val storage: StorageConfig = StorageConfig(),
 	val analytics: AnalyticsConfig = AnalyticsConfig(),
+	val encryption: EncryptionConfig = EncryptionConfig(),
 ) {
 	@Transient
 	val emailProviderType: EmailProvider? = emailProvider?.let { provider ->
@@ -101,6 +102,22 @@ data class UmamiConfig(
 		}
 	}
 }
+
+@Serializable(with = EncryptionMode.Serializer::class)
+enum class EncryptionMode(val serial: String) {
+	AES("aes"),
+	NONE("none");
+
+	object Serializer : CaseInsensitiveEnumSerializer<EncryptionMode>(
+		"EncryptionMode", entries.toTypedArray(), { it.serial }
+	)
+}
+
+/** Selects the cipher used for newly written content. Reads dispatch per-row regardless of this. */
+@Serializable
+data class EncryptionConfig(
+	val mode: EncryptionMode = EncryptionMode.AES,
+)
 
 @Serializable(with = StorageMode.Serializer::class)
 enum class StorageMode(val serial: String) {

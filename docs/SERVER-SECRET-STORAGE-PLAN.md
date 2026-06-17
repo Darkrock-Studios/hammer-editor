@@ -72,17 +72,22 @@ This unblocks everything else.
 **Goal:** a server can be *configured* to write plaintext (the identity encryptor
 already exists from PR1; reads are already polymorphic). No migration yet.
 
-- [ ] Config: encryption mode (`aes` | `none`) selecting the **active write**
-      encryptor (new `encryption` block in `ServerConfig`, or fold into
-      `StorageConfig` — decide).
-- [ ] Store path uses the config-selected active encryptor.
+- [x] Config: encryption mode (`aes` | `none`) selecting the **active write**
+      encryptor — dedicated `[encryption]` block in `ServerConfig` (`EncryptionMode`
+      enum + `EncryptionConfig`, default `aes`).
+- [x] Store path uses the config-selected active encryptor (DI binds
+      `ContentEncryptor` by `encryption.mode`).
 
 **Acceptance:**
-- [ ] With mode=none, new writes are plaintext-tagged; existing AES rows still
-      read correctly.
-- [ ] With mode=aes (default), behavior identical to today.
-- [ ] Switching the config and restarting does not break reads of pre-existing
+- [x] With mode=none, new writes are plaintext-tagged; existing AES rows still
+      read correctly (proven by PR1's mixed-tag read + cipher⊥hash tests).
+- [x] With mode=aes (default), behavior identical to today.
+- [x] Switching the config and restarting does not break reads of pre-existing
       rows (proves the keystone).
+
+> User-facing config docs (`HOW-TO-RUN-A-SERVER.md`) deferred to the final-cleanup
+> admin tutorial — `mode=none` only affects new writes until convergence (PR5),
+> so documenting it now would describe a half-feature.
 
 ---
 

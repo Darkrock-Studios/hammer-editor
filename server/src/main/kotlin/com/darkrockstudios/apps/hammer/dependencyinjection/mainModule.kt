@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.dependencyinjection
 
+import com.darkrockstudios.apps.hammer.EncryptionMode
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.StorageMode
 import com.darkrockstudios.apps.hammer.account.*
@@ -137,8 +138,14 @@ fun mainModule(
 	singleOf(::ServerSecretManager)
 	singleOf(::MarkdownService)
 	singleOf(::SimpleFileBasedAesGcmKeyProvider) bind AesGcmKeyProvider::class
-	singleOf(::AesGcmContentEncryptor) bind ContentEncryptor::class
+	singleOf(::AesGcmContentEncryptor)
 	singleOf(::PlaintextContentEncryptor)
+	single<ContentEncryptor> {
+		when (get<ServerConfig>().encryption.mode) {
+			EncryptionMode.AES -> get<AesGcmContentEncryptor>()
+			EncryptionMode.NONE -> get<PlaintextContentEncryptor>()
+		}
+	}
 	single {
 		ContentEncryptorRegistry(
 			listOf(get<AesGcmContentEncryptor>(), get<PlaintextContentEncryptor>())
