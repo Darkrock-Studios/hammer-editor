@@ -100,9 +100,12 @@ pluggable provider; fix encoding; make generation explicit.
       **Base64-of-32-bytes**.
 - [ ] Extend the tag to `(algorithm, keyId)` → `aesgcm:v1`. Store tags with the
       active key id; registry/resolver picks `(algo, key)`.
-- [ ] **CLI subcommands** on the server: `generate-keyring` (both roles, `v1`,
-      `active: v1`; stdout default, `--out <path>`), `inspect-keyring`
-      (ids/active, no bytes). `rotate-key` lands with PR5.
+- [ ] **CLI subcommands** via the existing **kotlinx-cli** `ArgParser` in
+      `Application.kt` (add `Subcommand`s alongside `--config`/`--dev`/
+      `--migrate-dry-run`) — **no new dependency**: `generate-keyring` (both roles,
+      `v1`, `active: v1`; stdout default, `--out <path>`), `inspect-keyring`
+      (ids/active, no bytes). `rotate-key` lands with PR5. Progress/feedback is
+      plain log lines (works in non-TTY Docker/systemd), not an animated UI.
 - [ ] **No auto-generation, no auto-heal.** Missing keyring → fail fast with
       guidance (the generate command + where to put it for the provider). Nothing
       mints a key on boot.
@@ -232,3 +235,4 @@ PR3 interface.
 - `server/.../database/ServerConfigDao.kt` — last-applied marker
 - `server/.../dependencyinjection/mainModule.kt` — DI bindings
 - `server/.../sqldelight/.../StoryEntity.sq` — `cipher` column
+- `server/.../Application.kt` — kotlinx-cli `ArgParser`; add keyring `Subcommand`s
