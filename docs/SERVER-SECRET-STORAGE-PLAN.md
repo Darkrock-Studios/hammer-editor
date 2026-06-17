@@ -153,17 +153,22 @@ pluggable provider; fix encoding; make generation explicit.
 without a forced global re-login. Lightweight — no rotation machinery (token
 rotation is just automatic re-login on boot).
 
-- [ ] `SimpleFileBasedAesGcmKeyProvider` uses `keyring.content`; `TokenHasher`
-      uses `keyring.tokenHmac`. (Generator already emits both roles from PR3;
-      grandfathered v1 is the same bytes for both initially.)
-- [ ] Resolve the open PR3/PR4 sequencing: whether `TokenHasher` reads
-      `keyring.tokenHmac` in PR3 already or flips here.
+- [x] `SimpleFileBasedAesGcmKeyProvider` uses `keyring.content` (PR3); `TokenHasher`
+      now uses `keyring.tokenHmac`.
+- [x] PR3/PR4 sequencing resolved: `TokenHasher` flips here.
+- [x] **Token key, zero-config decision:** `TokenHasher` prefers
+      `keyring.tokenHmac`; with **no keyring at all** it falls back to the
+      auto-managed `server.secret`. So a zero-config plaintext server still
+      authenticates with no key setup. "No auto-generation" applies to **content**
+      keys (loss = data loss); the token key stays auto-managed (loss = re-login).
 
 **Acceptance:**
-- [ ] Existing tokens still verify; existing content still decrypts.
-- [ ] Deleting the content key (after content convergence) leaves auth working;
+- [x] Existing tokens still verify (grandfathered `tokenHmac.v1` == legacy secret →
+      identical hashes; `TokenHasherTest`); existing content still decrypts.
+- [x] No-keyring server still hashes tokens via the fallback.
+- [ ] Deleting the content key after content convergence leaves auth working;
       rotating the token-HMAC key invalidates sessions → re-login, content
-      untouched.
+      untouched. *(Full deletion/rotation flow exercised in PR5.)*
 
 ---
 

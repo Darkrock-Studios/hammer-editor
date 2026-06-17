@@ -197,11 +197,17 @@ target — the dashboard tally confirms it and flags when an old key can be drop
 
 ### 7. No auto-generation; generation via explicit CLI subcommands
 
-There is **no auto-generation anywhere** — both providers are read-only at
-runtime; nothing mints a key as a side effect of booting (the
-silent-regeneration footgun is gone by construction). A fresh server with no
-keyring **fails fast with guidance** naming the generate command and where to put
-its output for the configured provider.
+There is **no auto-generation of content keys** — providers are read-only at
+runtime; nothing mints a *content* key as a side effect of booting (the
+silent-regeneration footgun, which bricks data, is gone by construction). A
+server with `mode=aes` and no keyring **fails fast with guidance** naming the
+generate command and where to put its output.
+
+The **token-HMAC key is the one exception**: with no keyring at all (a zero-config
+plaintext server), `TokenHasher` falls back to an auto-managed `server.secret`, so
+the server can still authenticate with zero setup. This is safe because losing the
+token key only forces a re-login, never data loss — unlike a content key. Any
+keyring present (explicit or grandfathered) takes precedence over the fallback.
 
 Generation is explicit CLI subcommands on the server:
 - `generate-keyring` — emit a fresh keyring (both roles, each `v1`, `active: v1`).

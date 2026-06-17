@@ -56,10 +56,9 @@ abstract class EndToEndTest {
 		base64 = createTokenBase64()
 		val secureRandom = SecureRandom()
 		val serverSecretManager = ServerSecretManager(fileSystem, secureRandom)
-		tokenHasher = TokenHasher(serverSecretManager, base64)
 
 		// Write a keyring the booted server reads (file provider, default path, same fake FS),
-		// so this test's encryptor and the server share content key material.
+		// so this test's encryptor/token hasher and the server share key material.
 		val codec = KeyringCodec(secureRandom, base64)
 		val keyringPath = KeyringManager.defaultKeyringPath(fileSystem)
 		fileSystem.createDirectories(keyringPath.parent!!)
@@ -68,6 +67,7 @@ abstract class EndToEndTest {
 			FileSecretProvider(fileSystem, keyringPath),
 			codec, fileSystem, KeyringManager.legacySecretPath(fileSystem),
 		)
+		tokenHasher = TokenHasher(keyringManager, serverSecretManager, base64)
 		contentEncryptor = AesGcmContentEncryptor(
 			SimpleFileBasedAesGcmKeyProvider(keyringManager, base64),
 			secureRandom
