@@ -1,7 +1,10 @@
 package com.darkrockstudios.apps.hammer.secret
 
+import com.darkrockstudios.apps.hammer.SecretConfig
+import com.darkrockstudios.apps.hammer.SecretProviderType
 import okio.FileSystem
 import okio.Path
+import okio.Path.Companion.toPath
 
 /**
  * Reads the keyring document from some backend. Read-only at runtime — nothing
@@ -11,6 +14,16 @@ import okio.Path
 interface ServerSecretProvider {
 	fun loadKeyring(): String?
 }
+
+/** Builds the provider for a [SecretConfig]. Shared by DI and the keyring CLI so they can't drift. */
+fun buildSecretProvider(config: SecretConfig, fileSystem: FileSystem): ServerSecretProvider =
+	when (config.provider) {
+		SecretProviderType.FILE -> FileSecretProvider(
+			fileSystem,
+			config.file?.toPath() ?: KeyringManager.defaultKeyringPath(),
+		)
+		SecretProviderType.ENV -> EnvSecretProvider(config.envVar)
+	}
 
 /** Reads the keyring JSON from a file. An empty/whitespace-only file reads as absent. */
 class FileSecretProvider(

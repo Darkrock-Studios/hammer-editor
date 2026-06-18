@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.dependencyinjection
 
-import com.darkrockstudios.apps.hammer.SecretProviderType
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.StorageMode
 import com.darkrockstudios.apps.hammer.account.*
@@ -42,11 +41,10 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.review.ReviewRepository
-import com.darkrockstudios.apps.hammer.secret.EnvSecretProvider
-import com.darkrockstudios.apps.hammer.secret.FileSecretProvider
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
+import com.darkrockstudios.apps.hammer.secret.buildSecretProvider
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
@@ -57,7 +55,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
-import okio.Path.Companion.toPath
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
@@ -147,16 +144,7 @@ fun mainModule(
 	singleOf(::ServerSecretManager)
 	singleOf(::MarkdownService)
 	single { KeyringCodec(get(), get()) }
-	single<ServerSecretProvider> {
-		val secret = get<ServerConfig>().secret
-		when (secret.provider) {
-			SecretProviderType.FILE -> FileSecretProvider(
-				get(),
-				secret.file?.toPath() ?: KeyringManager.defaultKeyringPath(),
-			)
-			SecretProviderType.ENV -> EnvSecretProvider(secret.envVar)
-		}
-	}
+	single<ServerSecretProvider> { buildSecretProvider(get<ServerConfig>().secret, get()) }
 	single {
 		KeyringManager(get(), get(), get(), KeyringManager.legacySecretPath())
 	}

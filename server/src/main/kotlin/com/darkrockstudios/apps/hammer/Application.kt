@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.frontend.configureFrontEnd
 import com.darkrockstudios.apps.hammer.secret.KeyRole
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
+import com.darkrockstudios.apps.hammer.secret.buildSecretProvider
 import com.darkrockstudios.apps.hammer.secret.keyringSummary
 import com.darkrockstudios.apps.hammer.monitoring.configureApiMetrics
 import com.darkrockstudios.apps.hammer.monitoring.configureRouteTemplateCapture
@@ -290,17 +291,38 @@ private class InspectKeyringCommand : Subcommand(
 ) {
 	private val inPath by option(
 		ArgType.String, shortName = "i", fullName = "in",
-		description = "Keyring file to inspect",
-	).default(KeyringManager.defaultKeyringPath().toString())
+		description = "Keyring file to inspect; overrides the configured provider",
+	)
+
+	private val configPath by option(
+		ArgType.String, shortName = "c", fullName = "config",
+		description = "Server config; with no --in, the keyring is read from its [secret] provider",
+	)
 
 	override fun execute() {
-		val path = inPath.toPath()
-		if (!FileSystem.SYSTEM.exists(path)) {
-			System.err.println("No keyring file at $inPath")
-			exitProcess(1)
+		val keyring = if (inPath != null) {
+			val path = inPath!!.toPath()
+			if (!FileSystem.SYSTEM.exists(path)) {
+				System.err.println("No keyring file at $inPath")
+				exitProcess(1)
+			}
+			cliKeyringCodec().parse(FileSystem.SYSTEM.read(path) { readUtf8() })
+		} else {
+			val config = configPath?.let { loadConfig(it) } ?: ServerConfig()
+			val manager = KeyringManager(
+				buildSecretProvider(config.secret, FileSystem.SYSTEM),
+				cliKeyringCodec(),
+				FileSystem.SYSTEM,
+				KeyringManager.legacySecretPath(),
+			)
+			manager.keyringOrNull() ?: run {
+				System.err.println(
+					"No keyring found via the configured ${config.secret.provider} provider " +
+						"(and no legacy server.secret to grandfather)."
+				)
+				exitProcess(1)
+			}
 		}
-		val json = FileSystem.SYSTEM.read(path) { readUtf8() }
-		val keyring = cliKeyringCodec().parse(json)
 		println(keyringSummary(keyring))
 		exitProcess(0)
 	}
@@ -318,8 +340,13 @@ private class RotateKeyCommand : Subcommand(
 
 	private val inPath by option(
 		ArgType.String, shortName = "i", fullName = "in",
-		description = "Keyring file to rotate",
-	).default(KeyringManager.defaultKeyringPath().toString())
+		description = "Keyring file to rotate; overrides the configured provider",
+	)
+
+	private val configPath by option(
+		ArgType.String, shortName = "c", fullName = "config",
+		description = "Server config; with no --in, the current keyring is read from its [secret] provider",
+	)
 
 	private val out by option(
 		ArgType.String, shortName = "o", fullName = "out",
@@ -327,15 +354,32 @@ private class RotateKeyCommand : Subcommand(
 	)
 
 	override fun execute() {
-		val source = inPath.toPath()
-		if (!FileSystem.SYSTEM.exists(source)) {
-			System.err.println("No keyring file at $inPath")
-			exitProcess(1)
-		}
 		val role = if (roleArg == "tokenHmac") KeyRole.TOKEN_HMAC else KeyRole.CONTENT
 		val codec = cliKeyringCodec()
-		val rotated = codec.rotate(codec.parse(FileSystem.SYSTEM.read(source) { readUtf8() }), role)
-		val json = codec.serialize(rotated)
+		val current = if (inPath != null) {
+			val source = inPath!!.toPath()
+			if (!FileSystem.SYSTEM.exists(source)) {
+				System.err.println("No keyring file at $inPath")
+				exitProcess(1)
+			}
+			codec.parse(FileSystem.SYSTEM.read(source) { readUtf8() })
+		} else {
+			val config = configPath?.let { loadConfig(it) } ?: ServerConfig()
+			val manager = KeyringManager(
+				buildSecretProvider(config.secret, FileSystem.SYSTEM),
+				codec,
+				FileSystem.SYSTEM,
+				KeyringManager.legacySecretPath(),
+			)
+			manager.keyringOrNull() ?: run {
+				System.err.println(
+					"No keyring found via the configured ${config.secret.provider} provider " +
+						"(and no legacy server.secret to grandfather)."
+				)
+				exitProcess(1)
+			}
+		}
+		val json = codec.serialize(codec.rotate(current, role))
 		val target = out
 		if (target != null) {
 			val path = target.toPath()
