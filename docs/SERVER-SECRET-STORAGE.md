@@ -147,13 +147,19 @@ This mints random keys for both roles. Now copy them, into your chosen key provi
 
 ### Inspect a keyring without revealing key bytes:
 
+By default, it reads the keyring from your config's `[secret]` provider —
+env or file, exactly as the server would (including a grandfathered legacy
+`server.secret`):
+
 ```bash
-./server --args="D"            # default path
-./server --args="inspect-keyring --in /etc/hammer/server.keyring.json"
+./server --args="inspect-keyring --config /path/to/serverConfig.toml"
 ```
 
-_If you're using env storage, and you want to inspect your keyring, you'll need to copy it to
-a file first, and then point this at it._
+Or point it straight at a file, which overrides the provider:
+
+```bash
+./server --args="inspect-keyring --in /etc/hammer/server.keyring.json"
+```
 
 ## Enabling encryption (plaintext → AES)
 
@@ -182,15 +188,18 @@ Rotation is offline: add a new key generation, restart, let convergence move the
 data onto it.
 
 1. Shutdown the sync server.
-2. ```bash
-   # Add v2 to the content role and make it active; keeps v1 so existing rows still read.
-   ./server --args="rotate-key --role content --in ~/hammer_data/server.keyring.json --out ~/hammer_data/server.keyring.json"
+2. Read the current keyring from your config's provider, add `v2` to the content
+   role, make it active (keeps `v1` so existing rows still read), and write the
+   result out:
+   ```bash
+   ./server --args="rotate-key --role content --config /path/to/serverConfig.toml --out ./server.keyring.json"
    ```
-3. Start the server.
-
-Then restart with `mode = "aes"`. Convergence re-encrypts every content row from
-the old generation onto `v2`. When done, the old generation is unused and can be
-removed.
+   (Use `--in <file>` instead of `--config` to rotate a specific keyring file.)
+3. Place the rotated keyring for your provider (write the file, or update the env
+   var to its contents).
+4. Start the server with `mode = "aes"`. Convergence re-encrypts every content
+   row from the old generation onto `v2`. When done, the old generation is unused
+   and can be removed.
 
 Rotating the **`tokenHmac`** role (`--role tokenHmac`) instead invalidates all
 existing sessions — every user re-logs in on the next start. Content is
