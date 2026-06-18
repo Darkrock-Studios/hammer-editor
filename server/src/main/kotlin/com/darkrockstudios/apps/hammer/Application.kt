@@ -79,7 +79,7 @@ fun main(args: Array<String>) {
 		description = "Report what encryption convergence would do (rows off-target, over-cap entities) and exit, writing nothing"
 	)
 
-	parser.subcommands(GenerateKeyringCommand(), InspectKeyringCommand(), RotateKeyCommand())
+	parser.subcommands(GenerateKeyringCommand(), InspectKeyringCommand(), RotateKeyCommand(), PruneKeyCommand())
 
 	parser.parse(args)
 

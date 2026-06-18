@@ -63,16 +63,21 @@ class KeyringCodec(
 	}
 }
 
-enum class KeyRole {
-	CONTENT {
+enum class KeyRole(val configName: String) {
+	CONTENT("content") {
 		override fun select(keyring: Keyring) = keyring.content
 		override fun replace(keyring: Keyring, keys: RoleKeys) = keyring.copy(content = keys)
 	},
-	TOKEN_HMAC {
+	TOKEN_HMAC("tokenHmac") {
 		override fun select(keyring: Keyring) = keyring.tokenHmac
 		override fun replace(keyring: Keyring, keys: RoleKeys) = keyring.copy(tokenHmac = keys)
 	};
 
 	abstract fun select(keyring: Keyring): RoleKeys
 	abstract fun replace(keyring: Keyring, keys: RoleKeys): Keyring
+
+	companion object {
+		fun fromConfigName(name: String): KeyRole =
+			entries.firstOrNull { it.configName == name } ?: error("Unknown key role '$name'")
+	}
 }

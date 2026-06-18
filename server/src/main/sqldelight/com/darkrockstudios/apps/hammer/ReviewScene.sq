@@ -37,6 +37,11 @@ SELECT COUNT(*) FROM review_scene rs
 JOIN review_request rr ON rr.id = rs.review_request_id
 WHERE (CASE WHEN rs.cipher = 'AES/GCM/NoPadding' THEN 'aesgcm:v1' ELSE rs.cipher END) != :target;
 
+-- Distinct normalized cipher tags present, for key pruning. No join: every scene
+-- counts (cipher lives on review_scene), so a key in use is never overlooked.
+distinctCiphers:
+SELECT DISTINCT (CASE WHEN cipher = 'AES/GCM/NoPadding' THEN 'aesgcm:v1' ELSE cipher END) AS cipher FROM review_scene;
+
 selectForConvergence:
 SELECT rs.id, rs.snapshot_content, rs.cipher, rr.user_id
 FROM review_scene rs

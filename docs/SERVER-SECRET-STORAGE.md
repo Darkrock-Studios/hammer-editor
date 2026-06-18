@@ -221,14 +221,42 @@ there are over-cap rows to deal with.
 
 ## Deleting an old key
 
-After a disable (→ plaintext) or a rotation (→ new generation), the previous
-content key is no longer referenced by any row. Convergence runs to completion
-before the server serves, so once a converged boot has finished, **no row is
-left on the old key**. At that point it's safe to remove that key generation
-from the keyring's `content.keys` and keep a backup elsewhere if you might need
-to read an old database snapshot.
+After a rotation, the old content generation lingers in the keyring so existing
+rows still decrypt. Once convergence has moved every row onto the new key, that
+old generation is dead weight — but deleting the *wrong* generation by hand
+destroys data. `prune-key` removes the right ones for you.
 
-Use `inspect-keyring` to see which generations exist before pruning.
+It reads the keyring (from your config's provider, or `--in <file>`), checks the
+database to see which content generations still protect rows, and drops every
+**non-active** generation that has **zero** rows left on it. The active
+generation is never removed.
+
+```bash
+# Preview first — reports what it would drop and keep, writes nothing.
+./server --args="prune-key --role content --config /path/to/serverConfig.toml --dry-run"
+
+# Prune unused content generations and write the result out.
+./server --args="prune-key --role content --config /path/to/serverConfig.toml --out ./server.keyring.json"
+```
+
+Then place the pruned keyring for your provider (write the file, or update the
+env var) and restart.
+
+- **A generation still has rows on it?** It's kept and reported (e.g.
+  `Kept (rows still encrypted with them — run convergence first): v1`). Run a
+  converged boot first, then prune again — pruning never half-strands data.
+- **Target one generation** with `--key v1`. Unlike the sweep, this *fails* (exit
+  `1`, writes nothing) if `v1` is the active generation or still has rows, so an
+  explicit request can't silently no-op.
+- **`--in <file>`** prunes a specific keyring file instead of the provider's, but
+  `--config` is still required for the content role — that's where the database
+  connection comes from.
+
+Pruning the **`tokenHmac`** role (`--role tokenHmac`) needs no database: only the
+active token key ever verifies tokens, so every non-active token generation is
+already dead and is dropped immediately.
+
+Use `inspect-keyring` to see which generations exist before and after pruning.
 
 ## Upgrading an existing (already-encrypted) server
 

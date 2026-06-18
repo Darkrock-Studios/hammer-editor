@@ -48,6 +48,14 @@ class AesGcmContentEncryptor(
 		const val ALGORITHM: String = "aesgcm"
 		/** The cipher tag written before key ids existed; equivalent to `aesgcm:v1`. */
 		const val LEGACY_CIPHER_NAME: String = "AES/GCM/NoPadding"
+
+		/** The content key id a cipher tag references, or null for non-AES tags (e.g. `none`). */
+		fun keyIdForTag(tag: String): String? = when {
+			tag == LEGACY_CIPHER_NAME -> "v1"
+			tag.startsWith("$ALGORITHM:") -> tag.removePrefix("$ALGORITHM:")
+			else -> null
+		}
+
 		const val TAG_LENGTH: Int = 128
 		const val IV_LENGTH: Int = 12
 		private const val TRANSFORMATION: String = "AES/GCM/NoPadding"

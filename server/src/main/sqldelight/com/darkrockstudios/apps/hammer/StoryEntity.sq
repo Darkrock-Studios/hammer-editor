@@ -70,6 +70,13 @@ WHERE (CASE WHEN cipher IS NULL THEN 'none'
             WHEN cipher = 'AES/GCM/NoPadding' THEN 'aesgcm:v1'
             ELSE cipher END) != :target;
 
+-- Distinct normalized cipher tags present, so key pruning can tell which key
+-- generations still protect rows. Same normalization as convergence.
+distinctCiphers:
+SELECT DISTINCT (CASE WHEN cipher IS NULL THEN 'none'
+            WHEN cipher = 'AES/GCM/NoPadding' THEN 'aesgcm:v1'
+            ELSE cipher END) AS cipher FROM story_entity;
+
 selectForConvergence:
 SELECT user_id, project_id, id, content, cipher FROM story_entity
 WHERE (CASE WHEN cipher IS NULL THEN 'none'

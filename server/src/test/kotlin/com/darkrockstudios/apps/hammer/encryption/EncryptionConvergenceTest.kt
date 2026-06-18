@@ -220,6 +220,52 @@ class EncryptionConvergenceTest : BaseTest() {
 		assertEquals(1, convergence.remaining("none"))
 	}
 
+	@Test
+	fun `every convergence query folds the legacy tag to aesgcm v1 identically`() = runTest {
+		insertEntity(1, "legacy", aesV1, tag = "AES/GCM/NoPadding")
+		val story = db().storyEntityQueries
+
+		// All four story queries that normalize the cipher must agree the legacy
+		// row is aesgcm:v1 — if any one drifts, prune could drop a key in use.
+		assertEquals(listOf("aesgcm:v1"), story.distinctCiphers().executeAsList().filterNotNull())
+		assertEquals(0, story.countForConvergence("aesgcm:v1").executeAsOne())
+		assertEquals(0, story.selectForConvergence("aesgcm:v1", 100).executeAsList().size)
+		assertEquals(0, story.selectForConvergencePaged("aesgcm:v1", 100, 0).executeAsList().size)
+		assertEquals(1, story.countForConvergence("none").executeAsOne())
+
+		db().reviewRequestQueries.createRequest(
+			userId = userId, projectId = 1, token = "tok-legacy", reviewerEmail = "r@r.com",
+			label = "l", note = null, status = "sent", expires = null,
+		)
+		val reqId = db().reviewRequestQueries.getRequestByToken("tok-legacy").executeAsOne().id
+		db().reviewSceneQueries.createScene(
+			reviewRequestId = reqId, sceneId = 1, draftId = 1, sceneName = "s", sceneOrder = 0,
+			snapshotContent = aesV1.encrypt("legacy", cipherSecret), cipher = "AES/GCM/NoPadding",
+		)
+		val review = db().reviewSceneQueries
+
+		assertEquals(listOf("aesgcm:v1"), review.distinctCiphers().executeAsList().filterNotNull())
+		assertEquals(0, review.countForConvergence("aesgcm:v1").executeAsOne())
+		assertEquals(0, review.selectForConvergence("aesgcm:v1", 100).executeAsList().size)
+		assertEquals(1, review.countForConvergence("none").executeAsOne())
+	}
+
+	@Test
+	fun `distinctCiphers normalizes legacy tags and resolves the in-use content key ids`() = runTest {
+		insertEntity(1, "a", aesV1)
+		insertEntity(2, "b", aesV2)
+		insertEntity(3, "c", aesV1, tag = "AES/GCM/NoPadding")
+		insertPlaintextNullCipher(4, "d")
+		insertReviewScene("e", aesV2)
+
+		val tags = db().storyEntityQueries.distinctCiphers().executeAsList() +
+			db().reviewSceneQueries.distinctCiphers().executeAsList()
+		val inUseKeyIds = tags.filterNotNull().mapNotNull { AesGcmContentEncryptor.keyIdForTag(it) }.toSet()
+
+		// Legacy 'AES/GCM/NoPadding' folds into v1; plaintext (none) maps to no key id.
+		assertEquals(setOf("v1", "v2"), inUseKeyIds)
+	}
+
 	/** Delegates to a real encryptor but throws on the Nth encrypt, to simulate a mid-run crash. */
 	private class FailOnNthEncrypt(
 		private val delegate: ContentEncryptor,
