@@ -1,23 +1,58 @@
 # Encryption at rest & key management (server admin guide)
 
-Hammer is offline-first and stores everything in PostgreSQL. **Content
-encryption at rest is optional.** This guide explains the keyring, how to turn
-encryption on or off, how to rotate keys, and how to safely delete an old key.
+The Hammer sync server stores user data in PostgreSQL. **Encrypting the User content
+what at rest in the database is optional.** _Self-hosted single user instances are advised to not
+use encryption._ Encryption makes syncing slower, and has the potential for total user
+data loss if the key materials are mishandled. If you do choose to use encryption, then read on.
 
-CLI examples assume the packaged server (`./server` / `server.bat`); pass
-arguments through `--args`, e.g. `./server --args="generate-keyring"`.
+# ⚠️⚠️🚨🚨 **EXISTING SERVERS _MUST READ_
+** [Upgrading existing server](#upgrading-an-existing-already-encrypted-server) 🚨🚨⚠️⚠️
+
+## Why encrypt
+
+Hammer is not designed to be a high security application, but it is designed to provide basic
+privacy
+for user data. A properly configured multi-user sync server should have two things configured:
+
+- SSL for transport encryption
+- AES encryption for user's story content at rest
+
+This prevents the two major threat vectors to user data being compromised:
+
+- Capture in transit from client to server
+- Database Capture in case of server compromise
+
+If an attacker sniffs your connection, or steals the server database, user's stories will still be
+protected.
+
+This is explicitly _not_ trying to provide end-to-end encryption or anything like it. Again, it's
+all about basic user data protection.
 
 ## The short version
 
-- A brand-new server with no encryption config stores **plaintext**. It just
-  works — no keys to manage.
-- To encrypt content at rest you create a **keyring**, point the server at it,
+A brand-new server with no encryption confined stores user content in **plaintext**. It just
+works, no keys to manage, and no possibility of losing key material, resulting in total user data
+loss.
+
+- To manage the server's encryption, always shut down the running server and
+  perform maintained with it offline.
+- To enable encryption, create a **keyring**, point the server at it,
   and set `mode = "aes"`. On the next start the server re-encrypts existing data
-  before serving (a one-time maintenance window).
+  before serving (_a one-time maintenance window_).
 - Turning encryption off, or rotating a key, is the same shape: change config /
   keyring, restart, the server converges the data before serving.
 - All key generation and rotation is **offline** (CLI subcommands). The running
   server never creates or changes key material on its own.
+
+The rest of this doc goes into detail on how to do all of that.
+
+## A note on this doc
+
+This guide explains the keyring, how to turn encryption on or off, how to rotate keys,
+and how to safely delete an old key.
+
+CLI examples assume the packaged server (`./server` / `server.bat`); pass
+arguments through `--args`, e.g. `./server --args="generate-keyring"`.
 
 ## The keyring
 
@@ -28,14 +63,10 @@ independent roles:
   review snapshots.
 - **`tokenHmac`** — hashes authentication tokens.
 
-Each role has versioned keys (`v1`, `v2`, …) and an `active` key used for new
-writes. Splitting the roles means you can retire the content key (after
-decrypting everything) without forcing every user to log in again.
-
 > **Keep the keyring separate from the database.** The point of encryption is
 > that a stolen database backup is useless without the key. If the keyring sits
 > in the same backup as `pgdata/`, you get no protection. Store it somewhere the
-> data backups don't reach (a secrets manager, a separate mount, etc.).
+> data backups don't reach (a env var, a separate mount, etc.).
 >
 > **Losing a key is not symmetric.** Lose the **content** key and the encrypted
 > data is unrecoverable. Lose the **tokenHmac** key and users simply have to log
@@ -43,31 +74,39 @@ decrypting everything) without forcing every user to log in again.
 
 ## Configuration
 
-Two optional config blocks in `serverConfig.toml`:
+There are two optional config blocks in `serverConfig.toml`:
 
 ```toml
-# What new writes use. Omit the block entirely on a fresh server to store plaintext.
+# Omit the block entirely on a fresh server to store plaintext.
 [encryption]
 mode = "aes"   # "aes" to encrypt, "none" to store plaintext
 
-# Where the keyring is read from. Defaults to the file provider.
+# Where the keyring is read from. There are two options
+
+# "env" is recomended for most self hosters
+[secret]
+provider = "env"
+envVar = "HAMMER_KEYRING"                   # the variable holds the keyring JSON
+
+# "file" is useful in docker, allowing you to point to a mount
 [secret]
 provider = "file"                          # "file" or "env"
-file = "/etc/hammer/server.keyring.json"   # file provider; default: ~/hammer_data/server.keyring.json
-envVar = "HAMMER_KEYRING"                   # env provider; the variable holds the keyring JSON
+# DO NOT USE THE DEFAULT!
+file = "/etc/hammer/server.keyring.json"   # default: ~/hammer_data/server.keyring.json
+# Store the keyring some where else, not next to the database!
 ```
 
 `mode` has three states:
 
-| `mode` | Meaning |
-|---|---|
-| omitted (unspecified) | Plaintext on a fresh server. **If the database already holds encrypted rows, the server refuses to start** until you choose `aes` or `none` — so an upgrade can't silently downgrade your data. |
-| `"aes"` | Encrypt new writes; converge existing data to the active content key. Requires a keyring. |
-| `"none"` | Store plaintext; converge existing encrypted data to plaintext. |
+| `mode`                  | Meaning                                                                                                                                                                                             |
+|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| omitted (_unspecified_) | Plaintext on a fresh server. **If the database already holds encrypted rows, the server will refuse to start** until you choose `aes` or `none` — so an upgrade can't silently downgrade your data. |
+| `"aes"`                 | Encrypt new writes; converge existing data to the active content key. Requires a keyring.                                                                                                           |
+| `"none"`                | Store plaintext; converge existing encrypted data to plaintext.                                                                                                                                     |
 
-Reads always work regardless of `mode`: every row records which cipher (and key
+_Note: Reads always work regardless of `mode`: every row records which cipher (and key
 generation) it was written with, so mixed data decrypts correctly during a
-convergence.
+convergence._
 
 ## Generating a keyring
 
@@ -79,29 +118,50 @@ convergence.
 ./server --args="generate-keyring --out ~/hammer_data/server.keyring.json"
 ```
 
-This mints random keys for both roles (`v1`, active `v1`). Put the file where
-your configured provider reads it (default `~/hammer_data/server.keyring.json`),
-or for the env provider, set the variable to the JSON contents:
+This mints random keys for both roles. Now copy them, into your chosen key provider:
 
-```toml
-[secret]
-provider = "env"
-envVar = "HAMMER_KEYRING"
-```
+- Env Var:
+	- For the env provider, set the variable to the JSON contents
+	- If hosting on linux, here are some options:
+		- _Do not_ put it in your **.bashrc**! `export HAMMER_KEYRING=… in ~/.bashrc/~/.profile`
+		  This will leak the key materials into every interactive session.
+		- **systemd (bare-metal/VM):** put it in a dedicated file referenced by `EnvironmentFile=`:
+	  ```
+	  # /etc/hammer/hammer.env  (root:root, chmod 600)`
+	  HAMMER_KEYRING={"schema":1,"content":{...},"tokenHmac":{...}}`
+	  # (No quotes needed — systemd takes the rest of the line literally, which is why the single-line JSON matters.)
+	  ```
+	  ```
+	  [Service]
+	  EnvironmentFile=/etc/hammer/hammer.env
+	  ``` 
+		- **Docker Compose:** use env_file: pointing at a 0600 file, or better, a Docker secret +
+		  the file provider (secrets mount as a file at `/run/secrets/…`, which avoids env
+		  entirely). Note docker inspect exposes plain environment: values.
+		- **Kubernetes:** a Secret injected via `env.valueFrom.secretKeyRef` is the natural durable
+		  fit — k8s persists it and re-injects on every pod restart.
 
-Inspect a keyring without revealing key bytes:
+- File:
+	- Put the file where your configured provider reads it (
+	  _default `~/hammer_data/server.keyring.json`_),
+
+### Inspect a keyring without revealing key bytes:
 
 ```bash
-./server --args="inspect-keyring"            # default path
+./server --args="D"            # default path
 ./server --args="inspect-keyring --in /etc/hammer/server.keyring.json"
 ```
 
+_If you're using env storage, and you want to inspect your keyring, you'll need to copy it to
+a file first, and then point this at it._
+
 ## Enabling encryption (plaintext → AES)
 
-1. Generate a keyring and place it for your provider (above).
-2. Set `mode = "aes"` in `serverConfig.toml`.
-3. (Optional but recommended) Dry-run first — see [Previewing](#previewing-a-convergence).
-4. Restart the server. Before accepting traffic it re-encrypts every content row
+1. Shutdown the sync server.
+2. Generate a keyring and place it for your provider (above).
+3. Set `mode = "aes"` in `serverConfig.toml`.
+4. (Optional but recommended) Dry-run first — see [Previewing](#previewing-a-convergence).
+5. Start the server. Before accepting traffic it re-encrypts every content row
    to the active key, logging progress. On a large database this is a
    maintenance window proportional to data size.
 
@@ -110,9 +170,10 @@ normal boots are fast.
 
 ## Disabling encryption (AES → plaintext)
 
-1. Set `mode = "none"`.
-2. Restart. The server decrypts every row to plaintext before serving.
-3. Once convergence completes, the content key is **provably unused** and can be
+1. Shutdown the sync server.
+2. Set `mode = "none"`.
+3. Start the server. The server decrypts every row to plaintext before serving.
+4. Once convergence completes, the content key is **provably unused** and can be
    deleted from the keyring (see [Deleting an old key](#deleting-an-old-key)).
 
 ## Rotating a key
@@ -120,10 +181,12 @@ normal boots are fast.
 Rotation is offline: add a new key generation, restart, let convergence move the
 data onto it.
 
-```bash
-# Add v2 to the content role and make it active; keeps v1 so existing rows still read.
-./server --args="rotate-key --role content --in ~/hammer_data/server.keyring.json --out ~/hammer_data/server.keyring.json"
-```
+1. Shutdown the sync server.
+2. ```bash
+   # Add v2 to the content role and make it active; keeps v1 so existing rows still read.
+   ./server --args="rotate-key --role content --in ~/hammer_data/server.keyring.json --out ~/hammer_data/server.keyring.json"
+   ```
+3. Start the server.
 
 Then restart with `mode = "aes"`. Convergence re-encrypts every content row from
 the old generation onto `v2`. When done, the old generation is unused and can be
@@ -143,8 +206,8 @@ binding a port:
 ```
 
 It reports how many rows are off the configured target and flags any entity that
-would exceed the size cap once encrypted (those would block convergence; shrink
-or split them first). Exit code `0` means convergence would complete; `1` means
+would exceed the size cap once encrypted (_those would block convergence; this should
+essentially never happen._). Exit code `0` means convergence would complete; `1` means
 there are over-cap rows to deal with.
 
 ## Deleting an old key
@@ -160,7 +223,7 @@ Use `inspect-keyring` to see which generations exist before pruning.
 
 ## Upgrading an existing (already-encrypted) server
 
-Older releases always encrypted, using an auto-generated
+Older releases always encrypted, (pre v3.3.1) using an auto-generated
 `~/hammer_data/server.secret`. After upgrading:
 
 - That `server.secret` is read automatically as the keyring's `content.v1` and
@@ -168,13 +231,13 @@ Older releases always encrypted, using an auto-generated
   working**, no action required for the keys themselves.
 - But because the default `mode` is now unspecified, a server that holds
   encrypted data **will refuse to start until you set `mode` explicitly**. Set
-  `mode = "aes"` to keep encrypting (recommended for an existing encrypted
-  server), or `mode = "none"` to deliberately decrypt everything to plaintext.
+  `mode = "aes"` to keep encrypting (_recommended for an existing encrypted
+  server_), or `mode = "none"` to deliberately decrypt everything to plaintext.
 
 If you'd rather manage an explicit keyring file than rely on the legacy
 `server.secret`, copy its **exact** contents into the `content.v1` and
 `tokenHmac.v1` values of a keyring document and place that for your provider,
 then remove `server.secret`. Do **not** run `generate-keyring` for this — that
-mints new keys and would leave the existing data unreadable. (Alternatively,
+mints new keys and would leave the existing data unreadable. (_Alternatively,
 keep the grandfathered keyring and rotate to a fresh generation once; let
-convergence move the data onto it.)
+convergence move the data onto it._)
