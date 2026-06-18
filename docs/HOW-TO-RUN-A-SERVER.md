@@ -1,10 +1,14 @@
-# How to run a Server
+# How to run a Sync Server
 
+## ⚠️ This is intended for advanced Users
+
+_Running a server is an inherently technical process, if you have never run a server accessible on
+the internet, this is probably not for you._
+
+## Getting Started
 So you want to run an Instance of the Hammer Server? Great!
 
 _Note: For now, the server is only available as a Java executable. Eventually we'll add Docker images._
-
-## Getting Started
 
 The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 
@@ -27,12 +31,16 @@ The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 
 ## Storage
 
-The server persists its data in PostgreSQL. Two modes:
+The server persists its data in a PostgreSQL database. It supports two modes:
 
-- **Embedded (default).** An in-process PostgreSQL server is started automatically. Data lives under `~/hammer_data/pgdata/`. No external services required — drop the JAR on a box and run it.
-- **Remote.** Point at an externally-managed PostgreSQL server. Use this when you outgrow embedded or want managed backups.
+- **Embedded (default):** An in-process PostgreSQL server is started automatically. Data lives under
+  `~/hammer_data/pgdata/`. No external services required — drop the JAR on a box and run it.
+- **Remote:** Point at an externally-managed PostgreSQL server. Use this when you outgrow embedded
+  or want managed backups.
 
-Embedded is the default; no config is needed for it. To override the embedded port, or to switch to remote, add a `[storage]` block to `serverConfig.toml`:
+Embedded is the default; no config is needed for it. This is the intended mode for self-hosters.
+To override the embedded port, or to switch to remote, add a `[storage]` block to
+`serverConfig.toml`:
 
 ```toml
 # Embedded (defaults shown). Omit this whole block to accept the defaults.
@@ -60,21 +68,23 @@ useSsl = true
 
 ### Upgrading from a pre-PostgreSQL version
 
-Older releases used SQLite (`~/hammer_data/server.db`). The first run after upgrading auto-detects the file and migrates its contents into PostgreSQL inside a single transaction, then renames the source to `server.db.migrated-<timestamp>.bak`. If migration fails for any reason, the SQLite file is left untouched and the server exits with an error — fix the cause and start again.
+Older releases (prior to v3.1.0) used SQLite (`~/hammer_data/server.db`). The first run after
+upgrading auto-detects the file and migrates its contents into PostgreSQL inside a single
+transaction, then renames the source to `server.db.migrated-<timestamp>.bak`. If migration fails for
+any reason, the SQLite file is left untouched and the server exits with an error — fix the cause and
+start again.
 
 To rehearse the migration against a copy of production before flipping the live config, run with `--migrate-dry-run`: it does everything except commit and rename.
 
 ## Encryption at rest
 
-Content encryption at rest is **optional** — a fresh server stores plaintext and
-needs no key material. To encrypt content you create a keyring, point the server
-at it, and set `[encryption] mode = "aes"`; the server re-encrypts existing data
-on the next start. Turning it off, rotating keys, and safely deleting an old key
-follow the same offline pattern.
+Content encryption at rest is **optional** — a fresh server stores in plaintext and
+needs no key material. This is recommended for most self-hosters. Encryption is
+slower, and carries the possibility of total data loss if key material is mishandled.
 
-See **[Encryption at rest & key management](SERVER-SECRET-STORAGE.md)** for the
-full walkthrough (generating a keyring, enabling/disabling encryption, rotation,
-dry-runs, and upgrading an already-encrypted server).
+If you want to enable at-rest encryption, see *
+*[Encryption at rest & key management](SERVER-SECRET-STORAGE.md)** for the
+full walkthrough.
 
 ## Platform-Specific Instructions
 

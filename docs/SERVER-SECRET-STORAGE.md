@@ -1,7 +1,7 @@
 # Encryption at rest & key management (server admin guide)
 
 The Hammer sync server stores user data in PostgreSQL. **Encrypting the User content
-what at rest in the database is optional.** _Self-hosted single user instances are advised to not
+at rest in the database is optional.** _Self-hosted single user instances are advised to not
 use encryption._ Encryption makes syncing slower, and has the potential for total user
 data loss if the key materials are mishandled. If you do choose to use encryption, then read on.
 
@@ -30,14 +30,14 @@ all about basic user data protection.
 
 ## The short version
 
-A brand-new server with no encryption confined stores user content in **plaintext**. It just
+A brand-new server with no encryption configured stores user content in **plaintext**. It just
 works, no keys to manage, and no possibility of losing key material, resulting in total user data
 loss.
 
-- To manage the server's encryption, always shut down the running server and
-  perform maintained with it offline.
+- To manage the server's encryption, always shut down the running server process and
+  perform maintenance with it offline.
 - To enable encryption, create a **keyring**, point the server at it,
-  and set `mode = "aes"`. On the next start the server re-encrypts existing data
+  and set `mode = "aes"`. On the next start the server will re-encrypt existing data
   before serving (_a one-time maintenance window_).
 - Turning encryption off, or rotating a key, is the same shape: change config /
   keyring, restart, the server converges the data before serving.
@@ -47,9 +47,6 @@ loss.
 The rest of this doc goes into detail on how to do all of that.
 
 ## A note on this doc
-
-This guide explains the keyring, how to turn encryption on or off, how to rotate keys,
-and how to safely delete an old key.
 
 CLI examples assume the packaged server (`./server` / `server.bat`); pass
 arguments through `--args`, e.g. `./server --args="generate-keyring"`.
@@ -131,19 +128,21 @@ This mints random keys for both roles. Now copy them, into your chosen key provi
 	  HAMMER_KEYRING={"schema":1,"content":{...},"tokenHmac":{...}}`
 	  # (No quotes needed — systemd takes the rest of the line literally, which is why the single-line JSON matters.)
 	  ```
+	  Then reference the new file in the systemd unit file:
 	  ```
+      # /etc/systemd/system/hammer.service
 	  [Service]
 	  EnvironmentFile=/etc/hammer/hammer.env
 	  ``` 
-		- **Docker Compose:** use env_file: pointing at a 0600 file, or better, a Docker secret +
+		- **Docker Compose:** use env_file: pointing at a `0600` file, or better, a Docker secret +
 		  the file provider (secrets mount as a file at `/run/secrets/…`, which avoids env
 		  entirely). Note docker inspect exposes plain environment: values.
 		- **Kubernetes:** a Secret injected via `env.valueFrom.secretKeyRef` is the natural durable
 		  fit — k8s persists it and re-injects on every pod restart.
 
 - File:
-	- Put the file where your configured provider reads it (
-	  _default `~/hammer_data/server.keyring.json`_),
+	- Put the file where your configured provider reads it (⚠️ _Don't put it next to the
+	  database!_),
 
 ### Inspect a keyring without revealing key bytes:
 
@@ -271,10 +270,71 @@ Older releases always encrypted, (pre v3.3.1) using an auto-generated
   `mode = "aes"` to keep encrypting (_recommended for an existing encrypted
   server_), or `mode = "none"` to deliberately decrypt everything to plaintext.
 
-If you'd rather manage an explicit keyring file than rely on the legacy
-`server.secret`, copy its **exact** contents into the `content.v1` and
-`tokenHmac.v1` values of a keyring document and place that for your provider,
-then remove `server.secret`. Do **not** run `generate-keyring` for this — that
-mints new keys and would leave the existing data unreadable. (_Alternatively,
-keep the grandfathered keyring and rotate to a fresh generation once; let
-convergence move the data onto it._)
+### Moving to an explicit keyring (*strongly recommended*)
+
+We recommend you migrate your `server.secret` to a keyring. Support for the
+grandfathered secret will eventually be removed. When migrating **do not hand-copy it!**
+`server.secret` is read verbatim (every byte, including any trailing newline) and
+may contain non-ASCII bytes, so a manual copy that trims or re-encodes it produces a
+different key and leaves your data unreadable. Use `migrate-secret`, which reads the file exactly
+as the server does and emits a matching keyring:
+
+_Do **not** run `generate-keyring` for this — that mints new random keys and
+would leave existing data unreadable._
+
+#### Secret migration and upgrade:
+1. Shut the server down
+2. Edit your `serverConfig.toml`
+
+```
+[encryption]
+mode = "aes"
+```
+
+3. Migrate the grandfathered `server.secret` to a keyring
+
+```bash
+# Reads ~/hammer_data/server.secret and writes a keyring whose content.v1 and
+# tokenHmac.v1 are that secret, byte-for-byte. (pass --in to override the path.)
+./server --args="migrate-secret --out ./server.keyring.json"
+```
+
+4. Edit your `serverConfig.toml` and select the file provider (NOT env var yet!)
+
+```toml
+provider = "file"
+file = "~/hammer_data/server.keyring.json" # Just during migration
+```
+
+5. Start the server again. The server will now read the keyring instead of grandfathering,
+   with identical results. Once it boots cleanly, remove `server.secret`.
+6. The servers crypto is now migrated to the keyring provider and everything is working!
+7. Shut down the server once again
+8. The legacy keys should be immediately rotated! The grandfathered `v1` values are the
+   old `server.secret` bytes — often non-ASCII and not safe to put in an env var. Rotate
+   both roles to fresh Base64-ASCII keys, writing back to the keyring file your provider reads:
+
+```bash
+# Reads the current keyring via the config's provider, adds a fresh active key,
+# and writes the whole keyring back out. Run content first, then tokenHmac.
+./server --args="rotate-key --role content   --config /path/to/serverConfig.toml --out ~/hammer_data/server.keyring.json"
+./server --args="rotate-key --role tokenHmac --config /path/to/serverConfig.toml --out ~/hammer_data/server.keyring.json"
+```
+
+_Rotating `tokenHmac` invalidates active sessions, every user must re-log in on the next start._
+
+9. Start the server to trigger a convergence, all data will be re-encrypted
+10. Once the server data converges and finishes booting, shut it down one last time
+11. Now prune the grandfathered keys. Convergence (step 8) moved every content row onto
+    the new key, so the old `content` generation is unused and safe to drop; the old
+    `tokenHmac` generation needs no database check. Prune both, writing the result back:
+
+```bash
+./server --args="prune-key --role content   --config /path/to/serverConfig.toml --out ~/hammer_data/server.keyring.json"
+./server --args="prune-key --role tokenHmac --config /path/to/serverConfig.toml --out ~/hammer_data/server.keyring.json"
+```
+
+12. Everything is set for you to now select a more secure secret storage method. Either
+    move the file to a different directory not captured in backups, or switch to "env"
+    storage.
+13. Once your new secret storage is configured, start the server one last time. You're all set! 🥳

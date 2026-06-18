@@ -53,7 +53,8 @@ fun main(args: Array<String>) = HammerServerCommand()
 		GenerateKeyringCommand(),
 		InspectKeyringCommand(),
 		RotateKeyCommand(),
-		PruneKeyCommand()
+		PruneKeyCommand(),
+		MigrateSecretCommand()
 	)
 	.main(args)
 
