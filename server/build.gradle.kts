@@ -75,7 +75,7 @@ dependencies {
 	implementation(libs.coroutines.jdk8)
 	implementation(libs.serialization.jvm)
 	implementation(libs.kotlinx.datetime)
-	implementation(libs.kotlinx.cli)
+	implementation(libs.clikt)
 
 	implementation(libs.bundles.ktor.server)
 	implementation(libs.ktor.network.tlscertificates)

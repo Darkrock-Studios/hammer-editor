@@ -58,7 +58,7 @@ kotlin {
 				implementation(project(":composeUi"))
 				implementation(libs.jetbrains.compose.components.ui.tooling.preview)
 				implementation(compose.desktop.currentOs)
-				implementation(libs.kotlinx.cli)
+				implementation(libs.clikt)
 				implementation(libs.nucleus.darkmode.detector)
 				implementation(libs.nucleus.decorated.window.jbr)
 				implementation(libs.nucleus.decorated.window.material3)

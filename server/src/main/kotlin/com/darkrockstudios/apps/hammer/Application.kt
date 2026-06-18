@@ -20,6 +20,12 @@ import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.utilities.loadPemAsKeyStore
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.main
+import com.github.ajalt.clikt.core.subcommands
+import com.github.ajalt.clikt.parameters.options.flag
+import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.types.choice
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.engine.connector
@@ -28,9 +34,6 @@ import io.ktor.server.engine.sslConnector
 import io.ktor.server.jetty.jakarta.Jetty
 import io.ktor.server.jetty.jakarta.JettyApplicationEngineBase
 import io.ktor.util.logging.KtorSimpleLogger
-import kotlinx.cli.ArgParser
-import kotlinx.cli.ArgType
-import kotlinx.cli.ExperimentalCli
 import kotlinx.coroutines.runBlocking
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
@@ -45,68 +48,56 @@ import java.security.KeyStore
 import java.security.SecureRandom
 import kotlin.system.exitProcess
 
-@OptIn(ExperimentalCli::class)
-fun main(args: Array<String>) {
-	val parser = ArgParser("Hammer Server")
-	val configPathArg by parser.option(
-		ArgType.String,
-		shortName = "c",
-		fullName = "config",
-		description = "Server Config Path"
+fun main(args: Array<String>) = HammerServerCommand()
+	.subcommands(
+		GenerateKeyringCommand(),
+		InspectKeyringCommand(),
+		RotateKeyCommand(),
+		PruneKeyCommand()
 	)
-	val devModeArg by parser.option(
-		ArgType.Boolean,
-		shortName = "d",
-		fullName = "dev",
-		description = "Run in development mode"
-	)
-	val logLevelArg by parser.option(
-		ArgType.Choice(listOf("TRACE", "DEBUG", "INFO", "WARN", "ERROR"), { it }),
-		shortName = "l",
-		fullName = "logLevel",
-		description = "Log Level"
-	)
+	.main(args)
 
-	val migrateDryRunArg by parser.option(
-		ArgType.Boolean,
-		fullName = "migrate-dry-run",
-		description = "Run the SQLite-to-Postgres migration in verify-only mode (rolls back, never renames server.db)"
-	)
+class HammerServerCommand : CliktCommand(name = "Hammer Server") {
+	override val invokeWithoutSubcommand = true
 
-	val convergeDryRunArg by parser.option(
-		ArgType.Boolean,
-		fullName = "converge-dry-run",
-		description = "Report what encryption convergence would do (rows off-target, over-cap entities) and exit, writing nothing"
-	)
+	private val configPath by option("-c", "--config", help = "Server Config Path")
+	private val devMode by option("-d", "--dev", help = "Run in development mode").flag()
+	private val logLevelArg by option("-l", "--logLevel", help = "Log Level")
+		.choice("TRACE", "DEBUG", "INFO", "WARN", "ERROR")
+	private val migrateDryRun by option(
+		"--migrate-dry-run",
+		help = "Run the SQLite-to-Postgres migration in verify-only mode (rolls back, never renames server.db)",
+	).flag()
+	private val convergeDryRun by option(
+		"--converge-dry-run",
+		help = "Report what encryption convergence would do (rows off-target, over-cap entities) and exit, writing nothing",
+	).flag()
 
-	parser.subcommands(GenerateKeyringCommand(), InspectKeyringCommand(), RotateKeyCommand(), PruneKeyCommand())
+	override fun run() {
+		if (currentContext.invokedSubcommand != null) return
 
-	parser.parse(args)
+		val logLevel = parseLogLevel(logLevelArg)
+		val config: ServerConfig = configPath?.let { loadConfig(it) } ?: ServerConfig()
 
-	val logLevel = parseLogLevel(logLevelArg)
+		config.storage.validate()
+		config.analytics.validate()
 
-	val config: ServerConfig = configPathArg?.let {
-		loadConfig(it)
-	} ?: ServerConfig()
+		// Dry-run paths exit before the server starts (and never bind a port).
+		if (migrateDryRun) {
+			val exit = com.darkrockstudios.apps.hammer.database.migration.SqliteToPostgresMigrator
+				.runDryRun(config.storage, FileSystem.SYSTEM)
+			exitProcess(exit)
+		}
+		if (convergeDryRun) {
+			exitProcess(runConvergeDryRun(config))
+		}
 
-	config.storage.validate()
-	config.analytics.validate()
+		// Auto-run the one-time SQLite → Postgres migration if a legacy server.db is
+		// found alongside the Postgres config. NoOp on fresh installs.
+		runOneTimeSqliteToPostgresMigration(config)
 
-	// Dry-run paths exit before the server starts (and never bind a port).
-	if (migrateDryRunArg == true) {
-		val exit = com.darkrockstudios.apps.hammer.database.migration.SqliteToPostgresMigrator
-			.runDryRun(config.storage, FileSystem.SYSTEM)
-		exitProcess(exit)
+		startServer(config, devMode, logLevel)
 	}
-	if (convergeDryRunArg == true) {
-		exitProcess(runConvergeDryRun(config))
-	}
-
-	// Auto-run the one-time SQLite → Postgres migration if a legacy server.db is
-	// found alongside the Postgres config. NoOp on fresh installs.
-	runOneTimeSqliteToPostgresMigration(config)
-
-	startServer(config, devModeArg ?: false, logLevel)
 }
 
 /**

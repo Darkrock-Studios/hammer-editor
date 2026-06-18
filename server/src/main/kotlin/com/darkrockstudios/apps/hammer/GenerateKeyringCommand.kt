@@ -1,23 +1,20 @@
 package com.darkrockstudios.apps.hammer
 
-import kotlinx.cli.ArgType
-import kotlinx.cli.ExperimentalCli
-import kotlinx.cli.Subcommand
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.Context
+import com.github.ajalt.clikt.parameters.options.option
 import okio.FileSystem
 import okio.Path.Companion.toPath
-import kotlin.system.exitProcess
 
-@OptIn(ExperimentalCli::class)
-class GenerateKeyringCommand : Subcommand(
-	"generate-keyring",
-	"Generate a fresh server keyring (both roles, active v1)",
-) {
+class GenerateKeyringCommand : CliktCommand(name = "generate-keyring") {
+	override fun help(context: Context) = "Generate a fresh server keyring (both roles, active v1)"
+
 	private val out by option(
-		ArgType.String, shortName = "o", fullName = "out",
-		description = "Write the keyring to this file instead of stdout",
+		"-o", "--out",
+		help = "Write the keyring to this file instead of stdout",
 	)
 
-	override fun execute() {
+	override fun run() {
 		val codec = cliKeyringCodec()
 		val json = codec.serialize(codec.generate())
 		val target = out
@@ -25,10 +22,9 @@ class GenerateKeyringCommand : Subcommand(
 			val path = target.toPath()
 			path.parent?.let { FileSystem.SYSTEM.createDirectories(it) }
 			FileSystem.SYSTEM.write(path) { writeUtf8(json) }
-			println("Wrote keyring to $target")
+			echo("Wrote keyring to $target")
 		} else {
-			println(json)
+			echo(json)
 		}
-		exitProcess(0)
 	}
 }

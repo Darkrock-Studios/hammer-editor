@@ -1,9 +1,17 @@
 package com.darkrockstudios.apps.hammer.desktop
 
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
-import kotlinx.cli.ArgParser
-import kotlinx.cli.ArgType
-import kotlinx.cli.default
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.PrintHelpMessage
+import com.github.ajalt.clikt.core.UsageError
+import com.github.ajalt.clikt.core.parse
+import com.github.ajalt.clikt.parameters.groups.mutuallyExclusiveOptions
+import com.github.ajalt.clikt.parameters.groups.single
+import com.github.ajalt.clikt.parameters.options.convert
+import com.github.ajalt.clikt.parameters.options.flag
+import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.types.int
+import kotlin.system.exitProcess
 
 const val PROJECT_FLAG = "project"
 
@@ -13,66 +21,49 @@ data class DesktopLaunchArgs(
 	val deepLink: ProjectDeepLink?,
 )
 
+private class DesktopArgsCommand : CliktCommand(name = "hammer") {
+	val devMode by option("-d", "--dev", help = "Development Mode").flag()
+
+	val projectName by option(
+		"-p", "--$PROJECT_FLAG",
+		help = "Open the named project directly, bypassing the project selection screen.",
+	)
+
+	val deepLink: ProjectDeepLink? by mutuallyExclusiveOptions(
+		option("--scene", help = "After opening the project, jump to the scene with this id.")
+			.int().convert { ProjectDeepLink.Scene(it) },
+		option("--note", help = "After opening the project, jump to the note with this id.")
+			.int().convert { ProjectDeepLink.Note(it) },
+		option(
+			"--entry",
+			help = "After opening the project, jump to the encyclopedia entry with this id."
+		)
+			.int().convert { ProjectDeepLink.EncyclopediaEntry(it) },
+		option(
+			"--timeline-event",
+			help = "After opening the project, jump to the timeline event with this id."
+		)
+			.int().convert { ProjectDeepLink.TimelineEvent(it) },
+	).single()
+
+	override fun run() {
+		if (deepLink != null && projectName == null) {
+			throw UsageError("--scene/--note/--entry/--timeline-event require --project")
+		}
+	}
+}
+
 fun parseDesktopLaunchArgs(args: Array<String>): DesktopLaunchArgs {
-	val parser = ArgParser("hammer")
-
-	val devMode by parser.option(
-		ArgType.Boolean,
-		shortName = "d",
-		fullName = "dev",
-		description = "Development Mode",
-	).default(false)
-
-	val projectName by parser.option(
-		ArgType.String,
-		shortName = "p",
-		fullName = PROJECT_FLAG,
-		description = "Open the named project directly, bypassing the project selection screen.",
-	)
-
-	val sceneId by parser.option(
-		ArgType.Int,
-		fullName = "scene",
-		description = "After opening the project, jump to the scene with this id.",
-	)
-
-	val noteId by parser.option(
-		ArgType.Int,
-		fullName = "note",
-		description = "After opening the project, jump to the note with this id.",
-	)
-
-	val entryId by parser.option(
-		ArgType.Int,
-		fullName = "entry",
-		description = "After opening the project, jump to the encyclopedia entry with this id.",
-	)
-
-	val timelineEventId by parser.option(
-		ArgType.Int,
-		fullName = "timeline-event",
-		description = "After opening the project, jump to the timeline event with this id.",
-	)
-
-	parser.parse(args)
-
-	val targets = listOfNotNull(
-		sceneId?.let { ProjectDeepLink.Scene(it) },
-		noteId?.let { ProjectDeepLink.Note(it) },
-		entryId?.let { ProjectDeepLink.EncyclopediaEntry(it) },
-		timelineEventId?.let { ProjectDeepLink.TimelineEvent(it) },
-	)
-	require(targets.size <= 1) {
-		"Only one of --scene, --note, --entry, --timeline-event may be set"
+	val command = DesktopArgsCommand()
+	try {
+		command.parse(args)
+	} catch (e: PrintHelpMessage) {
+		command.echoFormattedHelp(e)
+		exitProcess(e.statusCode)
 	}
-	val deepLink = targets.firstOrNull()
-	require(deepLink == null || projectName != null) {
-		"--scene/--note/--entry/--timeline-event require --project"
-	}
-
 	return DesktopLaunchArgs(
-		devMode = devMode,
-		projectName = projectName,
-		deepLink = deepLink,
+		devMode = command.devMode,
+		projectName = command.projectName,
+		deepLink = command.deepLink,
 	)
 }

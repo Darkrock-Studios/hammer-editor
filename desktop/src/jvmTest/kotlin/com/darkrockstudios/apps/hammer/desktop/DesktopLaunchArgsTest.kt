@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.desktop
 
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
+import com.github.ajalt.clikt.core.CliktError
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Test
@@ -55,14 +56,14 @@ class DesktopLaunchArgsTest {
 
 	@Test
 	fun `multiple targets are rejected`() {
-		assertThrows<IllegalArgumentException> {
+		assertThrows<CliktError> {
 			parseDesktopLaunchArgs(arrayOf("--project", "Novel", "--scene", "1", "--note", "2"))
 		}
 	}
 
 	@Test
 	fun `target without project is rejected`() {
-		assertThrows<IllegalArgumentException> {
+		assertThrows<CliktError> {
 			parseDesktopLaunchArgs(arrayOf("--scene", "1"))
 		}
 	}

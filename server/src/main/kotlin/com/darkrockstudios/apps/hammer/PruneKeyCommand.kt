@@ -10,67 +10,62 @@ import com.darkrockstudios.apps.hammer.secret.Keyring
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import com.darkrockstudios.apps.hammer.secret.buildSecretProvider
+import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.CliktError
+import com.github.ajalt.clikt.core.Context
+import com.github.ajalt.clikt.parameters.options.default
+import com.github.ajalt.clikt.parameters.options.flag
+import com.github.ajalt.clikt.parameters.options.option
+import com.github.ajalt.clikt.parameters.types.choice
 import io.ktor.util.logging.KtorSimpleLogger
-import kotlinx.cli.ArgType
-import kotlinx.cli.ExperimentalCli
-import kotlinx.cli.Subcommand
-import kotlinx.cli.default
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import org.koin.dsl.koinApplication
 import org.koin.dsl.module
-import kotlin.system.exitProcess
 
-@OptIn(ExperimentalCli::class)
-class PruneKeyCommand : Subcommand(
-	"prune-key",
-	"Remove unused, non-active key generations from a role (offline cleanup after convergence)",
-) {
-	private val roleArg by option(
-		ArgType.Choice(listOf("content", "tokenHmac"), { it }),
-		shortName = "r", fullName = "role",
-		description = "Which role to prune",
-	).default("content")
+class PruneKeyCommand : CliktCommand(name = "prune-key") {
+	override fun help(context: Context) =
+		"Remove unused, non-active key generations from a role (offline cleanup after convergence)"
+
+	private val roleArg by option("-r", "--role", help = "Which role to prune")
+		.choice("content", "tokenHmac").default("content")
 
 	private val inPath by option(
-		ArgType.String, shortName = "i", fullName = "in",
-		description = "Keyring file to prune; overrides the configured provider",
+		"-i", "--in",
+		help = "Keyring file to prune; overrides the configured provider",
 	)
 
 	private val configPath by option(
-		ArgType.String, shortName = "c", fullName = "config",
-		description = "Server config; supplies the keyring provider and the database to verify content keys against",
+		"-c", "--config",
+		help = "Server config; supplies the keyring provider and the database to verify content keys against",
 	)
 
 	private val keyArg by option(
-		ArgType.String, shortName = "k", fullName = "key",
-		description = "Prune only this generation; fails if it is active or still has rows",
+		"-k", "--key",
+		help = "Prune only this generation; fails if it is active or still has rows",
 	)
 
 	private val out by option(
-		ArgType.String, shortName = "o", fullName = "out",
-		description = "Write the pruned keyring here instead of stdout",
+		"-o", "--out",
+		help = "Write the pruned keyring here instead of stdout",
 	)
 
 	private val dryRun by option(
-		ArgType.Boolean, fullName = "dry-run",
-		description = "Report what would be pruned and write nothing",
-	).default(false)
+		"--dry-run",
+		help = "Report what would be pruned and write nothing",
+	).flag()
 
-	override fun execute() {
+	override fun run() {
 		val role = KeyRole.fromConfigName(roleArg)
 		val codec = cliKeyringCodec()
 		val config = configPath?.let { loadConfig(it) }
 		val keyring = loadKeyring(codec, config)
 
 		val inUseContentKeyIds = if (role == KeyRole.CONTENT) {
-			val cfg = config ?: run {
-				System.err.println(
-					"Pruning content keys needs database access to confirm which generations are unused. " +
-						"Pass --config <serverConfig.toml>."
-				)
-				exitProcess(1)
-			}
+			val cfg = config ?: throw CliktError(
+				"Pruning content keys needs database access to confirm which generations are unused. " +
+					"Pass --config <serverConfig.toml>."
+			)
 			scanInUseContentKeyIds(cfg)
 		} else {
 			emptySet()
@@ -79,25 +74,24 @@ class PruneKeyCommand : Subcommand(
 		val result = try {
 			KeyPruner().prune(keyring, role, inUseContentKeyIds, keyArg)
 		} catch (e: KeyPruneException) {
-			System.err.println(e.message)
-			exitProcess(1)
+			throw CliktError(e.message)
 		}
 
 		if (result.pruned.isEmpty()) {
-			println("Nothing to prune: no unused non-active ${role.configName} generations.")
+			echo("Nothing to prune: no unused non-active ${role.configName} generations.")
 		} else {
-			println("Pruned ${role.configName} generations: ${result.pruned.joinToString()}")
+			echo("Pruned ${role.configName} generations: ${result.pruned.joinToString()}")
 		}
 		if (result.keptReferenced.isNotEmpty()) {
-			println(
+			echo(
 				"Kept (rows still encrypted with them — run convergence first): " +
 					result.keptReferenced.joinToString()
 			)
 		}
 
 		if (dryRun) {
-			println("Dry run: keyring not written.")
-			exitProcess(0)
+			echo("Dry run: keyring not written.")
+			return
 		}
 
 		val json = codec.serialize(result.keyring)
@@ -106,19 +100,17 @@ class PruneKeyCommand : Subcommand(
 			val path = target.toPath()
 			path.parent?.let { FileSystem.SYSTEM.createDirectories(it) }
 			FileSystem.SYSTEM.write(path) { writeUtf8(json) }
-			println("Wrote pruned keyring to $target")
+			echo("Wrote pruned keyring to $target")
 		} else {
-			println(json)
+			echo(json)
 		}
-		exitProcess(0)
 	}
 
 	private fun loadKeyring(codec: KeyringCodec, config: ServerConfig?): Keyring {
 		inPath?.let { path ->
 			val source = path.toPath()
 			if (!FileSystem.SYSTEM.exists(source)) {
-				System.err.println("No keyring file at $path")
-				exitProcess(1)
+				throw CliktError("No keyring file at $path")
 			}
 			return codec.parse(FileSystem.SYSTEM.read(source) { readUtf8() })
 		}
@@ -130,13 +122,10 @@ class PruneKeyCommand : Subcommand(
 			FileSystem.SYSTEM,
 			KeyringManager.legacySecretPath(),
 		)
-		return manager.keyringOrNull() ?: run {
-			System.err.println(
-				"No keyring found via the configured ${cfg.secret.provider} provider " +
-					"(and no legacy server.secret to grandfather)."
-			)
-			exitProcess(1)
-		}
+		return manager.keyringOrNull() ?: throw CliktError(
+			"No keyring found via the configured ${cfg.secret.provider} provider " +
+				"(and no legacy server.secret to grandfather)."
+		)
 	}
 
 	private fun scanInUseContentKeyIds(config: ServerConfig): Set<String> {
@@ -153,8 +142,7 @@ class PruneKeyCommand : Subcommand(
 				database.serverDatabase.reviewSceneQueries.distinctCiphers().executeAsList()
 			tags.filterNotNull().mapNotNull { AesGcmContentEncryptor.keyIdForTag(it) }.toSet()
 		} catch (e: Exception) {
-			System.err.println("Could not read the database to verify which content keys are in use: ${e.message}")
-			exitProcess(1)
+			throw CliktError("Could not read the database to verify which content keys are in use: ${e.message}")
 		} finally {
 			database.close()
 			koinApp.close()
