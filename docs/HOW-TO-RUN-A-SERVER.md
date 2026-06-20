@@ -207,10 +207,6 @@ forceHttps = true # Optional, defualts to true
 
 ### Getting an SSL Certificate
 
-#### Self-Signed
-
-_TODO: Add instructions for self-signed certs_
-
 #### Let's Encrypt
 
 The most common way to get a properly signed certificate is from **Lets Encrypt!** It's free
