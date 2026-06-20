@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -23,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.compose.AnimatedFullScreenDialog
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SetScreenCharacteristics
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.saveAllShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.syncShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBarDestination
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailDestination
@@ -39,6 +41,7 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.StoryEditorUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.focusmode.FocusModeUi
 import com.darkrockstudios.apps.hammer.common.timeline.TimeLineUi
 import com.darkrockstudios.apps.hammer.common.timeline.TimelineFab
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.vectorResource
 
 private val WIDE_SCREEN_THRESHOLD = 650.dp
@@ -79,10 +82,13 @@ fun ProjectRootUi(
 	navWidth: Dp = Dp.Unspecified,
 	modifier: Modifier = Modifier,
 ) {
+	val scope = rememberCoroutineScope()
+
 	SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
 		FeatureContent(
 			modifier
 				.fillMaxSize()
+				.saveAllShortcutModifier { scope.launch { component.storeDirtyBuffers() } }
 				.syncShortcutModifier { component.showProjectSync() },
 			component,
 			rootSnackbar,
