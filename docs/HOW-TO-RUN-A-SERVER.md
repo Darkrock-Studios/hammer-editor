@@ -16,7 +16,7 @@ The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 	- [ZIP](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.zip)
 	- [TAR](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.tar)
 2. Extract the archive to your desired location
-3. Create your config file: `serverConfig.toml` in a location of your choice
+3. Create your config file: `serverConfig.toml` in a location of your choice. Strongly advise using a port other than `80`, unless this is the only web-based program running on the system.
 
    ```toml
    host = "example.com"
@@ -90,11 +90,10 @@ full walkthrough.
 
 ### Linux
 
-Create a script to run the server: `run.sh`
+Create a script to run the server in the top level of the installation directory (e.g. `hammer/`): `run.sh`
 ```bash
 #!/bin/bash
-cd server
-./server --args="--config /some/path/serverConfig.toml"
+./bin/server --config serverConfig.toml
 ```
 
 Make the script executable:
@@ -188,6 +187,10 @@ Run the server:
 ## Setting up SSL (optional)
 
 _This step is optional but strongly recommended._
+
+There are two methods this can be done by.
+ * One: Java SSL
+ * Two: Reverse Proxy (do NOT follow the steps in this section; see Reverse Proxy Documentation)
 
 If you want to enable SSL (`https`), you'll first need to edit your server config file and add these lines:
 
@@ -371,3 +374,91 @@ connectSrc = ["https://gateway.umami.is"]
 The configuration is designed to grow: support for additional providers can be
 added under the `[analytics]` section in the future by selecting a different
 `type`.
+
+## Reverse Proxy using Nginx
+
+Instead of directly exposing Hammer's server to the network, it is good practice to put it behind a reverse proxy. This editor uses Nginx and therefore can document it for Nginx.
+
+### Changes to serverConfig
+
+Example port used. (If you're running multiple services on a webserver, you've probably already used 8080.)
+
+```toml
+port = 8200
+```
+
+Make sure to update your DNS with your desired URL to be able to use LetsEncrypt and the like.
+
+### Base Nginx Config
+
+Create your base file. Make sure to change `hammer.example.com` to your domain!
+
+`nano /etc/nginx/sites-available/hammer`
+
+```nginx
+server {
+	listen 80;
+	server_name hammer.example.com;
+
+    location / {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_pass http://localhost:8200;
+    }
+}
+```
+
+### HTTPS
+
+See LetsEncrypt or your favorite SSL provider for an SSL certificate. Once that is completed, install said new cert into your Nginx file. Be sure to set the proper path for your certificate fullchain and private key. Once again, make sure to change `hammer.example.com` to your domain in the `server_name` lines and the `ssl_certificate*` lines. If LetsEncrypt installs the HTTP to HTTPS redirect itself, make sure your file roughly reflects this example below.
+
+```nginx
+server {
+	listen 80;
+	server_name hammer.example.com;
+	return 301 https://$host$request_uri;
+}
+
+server {
+	listen 443 ssl http2;
+	ssl_protocols TLSv1.2 TLSv1.3;
+	ssl_ciphers TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+	ssl_session_cache shared:SSL:10m;
+	ssl_session_timeout 1d;
+	add_header X-Frame-Options "SAMEORIGIN" always;
+	add_header X-Content-Type-Options "nosniff" always;
+	add_header 'Referrer-Policy' 'same-origin';
+	ssl_certificate /etc/letsencrypt/live/hammer.example.com/fullchain.pem;
+	ssl_certificate_key /etc/letsencrypt/live/hammer.example.com/privkey.pem;
+
+	server_name hammer.example.com;
+
+	location / {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_pass http://localhost:8200;
+    }
+}
+```
+
+### Link, Test, Reload
+
+Link the file to the `sites-enabled` folder.
+
+```sh
+ln -s /etc/nginx/sites-available/hammer /etc/nginx/sites-enabled
+```
+
+Make sure to test your configuration!
+
+```sh
+sudo nginx -t
+```
+
+As long as that doesn't throw any errors, you can restart nginx. You should now be able to access your Hammer server web page at your URL!
