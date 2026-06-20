@@ -133,16 +133,16 @@ class SceneListComponent(
 	}
 
 	override fun onSceneBufferUpdate(sceneBuffer: SceneBuffer) {
-		val oldSummary = _state.value.sceneSummary ?: return
 		_state.getAndUpdate { oldState ->
+			val summary = oldState.sceneSummary ?: return@getAndUpdate oldState
 			val updated = if (sceneBuffer.dirty) {
-				oldSummary.hasDirtyBuffer.add(sceneBuffer.content.scene.id)
+				summary.hasDirtyBuffer.add(sceneBuffer.content.scene.id)
 			} else {
-				oldSummary.hasDirtyBuffer.remove(sceneBuffer.content.scene.id)
+				summary.hasDirtyBuffer.remove(sceneBuffer.content.scene.id)
 			}
 
 			oldState.copy(
-				sceneSummary = oldSummary.copy(
+				sceneSummary = summary.copy(
 					hasDirtyBuffer = updated
 				)
 			)
