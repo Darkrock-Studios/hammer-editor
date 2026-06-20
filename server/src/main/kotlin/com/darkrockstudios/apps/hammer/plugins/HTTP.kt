@@ -5,12 +5,17 @@ import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SERVER_VERSION
-import io.ktor.server.application.*
-import io.ktor.server.plugins.compression.*
-import io.ktor.server.plugins.conditionalheaders.*
-import io.ktor.server.plugins.defaultheaders.*
-import io.ktor.server.plugins.httpsredirect.*
-import io.ktor.server.routing.*
+import io.ktor.server.application.Application
+import io.ktor.server.application.install
+import io.ktor.server.plugins.compression.Compression
+import io.ktor.server.plugins.compression.deflate
+import io.ktor.server.plugins.compression.gzip
+import io.ktor.server.plugins.compression.minimumSize
+import io.ktor.server.plugins.conditionalheaders.ConditionalHeaders
+import io.ktor.server.plugins.defaultheaders.DefaultHeaders
+import io.ktor.server.plugins.hsts.HSTS
+import io.ktor.server.plugins.httpsredirect.HttpsRedirect
+import io.ktor.server.routing.IgnoreTrailingSlash
 
 fun Application.configureHTTP(config: ServerConfig) {
 	val analyticsProvider = config.analytics.provider
@@ -45,11 +50,6 @@ fun Application.configureHTTP(config: ServerConfig) {
 			"frame-ancestors 'self'" // Additional clickjacking protection
 		).joinToString("; ")
 		header("Content-Security-Policy", cspDirectives)
-
-		// Enforce HTTPS when SSL is configured
-		if (config.sslCert != null) {
-			header("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-		}
 	}
 	install(ConditionalHeaders)
 	install(IgnoreTrailingSlash)
@@ -68,6 +68,10 @@ fun Application.configureHTTP(config: ServerConfig) {
 	if (config.sslCert?.forceHttps == true) {
 		install(HttpsRedirect) {
 			sslPort = config.sslPort
+		}
+		install(HSTS) {
+			maxAgeInSeconds = 31536000
+			includeSubDomains = true
 		}
 	}
 }

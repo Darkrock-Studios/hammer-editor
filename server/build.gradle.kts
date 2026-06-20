@@ -78,6 +78,7 @@ dependencies {
 	implementation(libs.clikt)
 
 	implementation(libs.bundles.ktor.server)
+	implementation(libs.ktor.server.hsts)
 	implementation(libs.ktor.network.tlscertificates)
 	implementation(libs.bouncycastle.bcpkix)
 	implementation(libs.jakarta.mail)
