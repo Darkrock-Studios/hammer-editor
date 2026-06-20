@@ -207,6 +207,14 @@ forceHttps = true # Optional, defualts to true
 
 ### Getting an SSL Certificate
 
+#### Self-signed certs are not supported
+
+Don't use a self-signed certificate. The mobile clients trust only the system CA store — Android
+won't trust user-added or self-signed CAs by default, and iOS rejects them too — so they'll fail the
+TLS handshake with no way to override it. Use a real certificate from **Let's Encrypt** below (or
+put
+Hammer behind a reverse proxy that holds one).
+
 #### Let's Encrypt
 
 The most common way to get a properly signed certificate is from **Lets Encrypt!** It's free
