@@ -80,6 +80,11 @@
 -keep class org.koin.** { *; }
 
 ################################################################################
+# SLF4J (provider is wired via META-INF/services only, so the shrinker drops it)
+################################################################################
+-keep class * implements org.slf4j.spi.SLF4JServiceProvider { *; }
+
+################################################################################
 # CLEANUP & WARNING SUPPRESSION
 ################################################################################
 -dontwarn okio.**
