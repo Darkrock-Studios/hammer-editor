@@ -22,11 +22,17 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 class ProjectBackupRepositoryTest {
 
-	private val fileSystem = FakeFileSystem()
+	private class MutableClock(var instant: Instant) : Clock {
+		override fun now(): Instant = instant
+	}
+
+	private val fsClock = MutableClock(Instant.parse("2020-01-01T00:00:00Z"))
+	private val fileSystem = FakeFileSystem(fsClock)
 	private val projectsRepository = mockk<ProjectsRepository>()
 	private val globalSettingsStore = mockk<GlobalSettingsStore>()
 	private val clock = mockk<Clock>()
@@ -61,11 +67,9 @@ class ProjectBackupRepositoryTest {
 
 	@Test
 	fun `test parsing backup def`() {
-		val filename = "Test_Project-2025-12-28T162900Z.zip"
-		val dir = "/projects/.backups".toPath()
-		val path = dir / filename
-		fileSystem.createDirectories(dir)
-		fileSystem.write(path) { writeUtf8("fake content") }
+		val modified = Instant.parse("2025-12-28T16:29:00Z")
+		val path = "/projects/.backups/Test_Project-2025-12-28T162900Z.zip".toPath()
+		writeBackupFileNamed(path, modified)
 
 		val projectDef = ProjectDef("Test Project", "/projects/Test Project".toPath().toHPath())
 		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
@@ -78,7 +82,22 @@ class ProjectBackupRepositoryTest {
 		assertEquals(1, backups.size)
 		val backupDef = backups[0]
 		assertEquals("Test Project", backupDef.projectDef.name)
-		assertEquals(Instant.parse("2025-12-28T16:29:00Z"), backupDef.date)
+		assertEquals(modified, backupDef.date)
+	}
+
+	@Test
+	fun `getBackups recognizes project names with punctuation`() {
+		val name = "Tom's Story-Notes"
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory(name) } returns
+			"/projects/$name".toPath().toHPath()
+
+		writeBackupFile(name, Instant.parse("2026-06-20T08:00:00Z"))
+
+		val backups = realRepo().getBackups(ProjectDef(name, "/projects/$name".toPath().toHPath()))
+
+		assertEquals(1, backups.size)
+		assertEquals(name, backups.first().projectDef.name)
 	}
 
 	private fun realRepo() =
@@ -88,7 +107,13 @@ class ProjectBackupRepositoryTest {
 		val backupName = projectName.replace(" ", "_")
 		val dir = "/projects/.backups".toPath()
 		val path = dir / "$backupName-${backupDateString(instant)}.zip"
-		fileSystem.createDirectories(dir)
+		return writeBackupFileNamed(path, instant)
+	}
+
+	// Sets the file's modification time to [modified] so backup ordering is deterministic.
+	private fun writeBackupFileNamed(path: Path, modified: Instant): Path {
+		fileSystem.createDirectories(path.parent!!)
+		fsClock.instant = modified
 		fileSystem.write(path) { writeUtf8("backup content") }
 		return path
 	}
@@ -179,6 +204,64 @@ class ProjectBackupRepositoryTest {
 
 		assertFalse(fileSystem.exists(oldest))
 		assertTrue(fileSystem.exists(middle))
+		assertTrue(fileSystem.exists(newest))
+	}
+
+	@Test
+	fun `repeated createBackup keeps the newest backups`() = runTest {
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory("Test Project") } returns
+			"/projects/Test Project".toPath().toHPath()
+		every { globalSettingsStore.globalSettings } returns
+			GlobalSettings(projectsDirectory = "/projects", maxBackups = 3)
+
+		val projectDir = "/projects/Test Project".toPath()
+		fileSystem.createDirectories(projectDir)
+		fileSystem.write(projectDir / "scene.txt") { writeUtf8("once upon a time") }
+
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val repo = realRepo()
+
+		// Simulate several syncs, each creating a backup a minute apart.
+		val base = Instant.parse("2026-06-20T09:00:00Z")
+		val created = mutableListOf<ProjectBackupDef>()
+		for (i in 0 until 6) {
+			val now = base.plus(i.minutes)
+			fsClock.instant = now
+			every { clock.now() } returns now
+			repo.createBackup(projectDef)?.let { created.add(it) }
+		}
+
+		val remaining = repo.getBackups(projectDef).map { it.path.name }.toSet()
+		val newestThree = created.takeLast(3).map { it.path.name }.toSet()
+
+		assertEquals(3, remaining.size)
+		assertEquals(newestThree, remaining)
+	}
+
+	@Test
+	fun `cullBackups deletes oldest by file time even when filename dates are corrupt`() {
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory("Alice In Wonderland") } returns
+			"/projects/Alice In Wonderland".toPath().toHPath()
+		every { globalSettingsStore.globalSettings } returns
+			GlobalSettings(projectsDirectory = "/projects", maxBackups = 2)
+
+		// A legacy backup whose filename encodes a future date (the old YYYY/hh format bug)
+		// but whose file was actually written months before the others.
+		val legacy = writeBackupFileNamed(
+			"/projects/.backups/Alice_In_Wonderland-2026-12-29T122658Z.zip".toPath(),
+			Instant.parse("2025-12-28T16:26:00Z"),
+		)
+		val older = writeBackupFile("Alice In Wonderland", Instant.parse("2026-06-20T08:00:11Z"))
+		val newer = writeBackupFile("Alice In Wonderland", Instant.parse("2026-06-20T08:01:56Z"))
+		val newest = writeBackupFile("Alice In Wonderland", Instant.parse("2026-06-20T08:02:53Z"))
+
+		realRepo().cullBackups(ProjectDef("Alice In Wonderland", "/projects/Alice In Wonderland".toPath().toHPath()))
+
+		assertFalse(fileSystem.exists(legacy))
+		assertFalse(fileSystem.exists(older))
+		assertTrue(fileSystem.exists(newer))
 		assertTrue(fileSystem.exists(newest))
 	}
 
