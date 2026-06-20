@@ -70,7 +70,23 @@ class MarkdownStoryImporterTest {
 	}
 
 	@Test
-	fun `H2 mode treats H1 lines as body content`() {
+	fun `H2 mode treats a shallower H1 as a group wrapping its scenes`() {
+		val md = """
+			# Outer Title
+			## Real Chapter
+			Chapter body.
+		""".trimIndent()
+		val result = preview(md, level = ChapterHeadingLevel.H2)
+		assertEquals(1, result.items.size)
+		val group = result.items[0] as PreviewItem.Group
+		assertEquals("Outer Title", group.name)
+		assertEquals(1, group.scenes.size)
+		assertEquals("Real Chapter", group.scenes[0].name)
+		assertEquals("Chapter body.", group.scenes[0].markdown)
+	}
+
+	@Test
+	fun `H2 mode keeps group-intro prose as a leading Untitled scene inside the group`() {
 		val md = """
 			# Outer Title
 			Intro text.
@@ -78,14 +94,102 @@ class MarkdownStoryImporterTest {
 			Chapter body.
 		""".trimIndent()
 		val result = preview(md, level = ChapterHeadingLevel.H2)
-		// The leading H1 is body content, so it goes into the leading "Untitled" scene
+		assertEquals(1, result.items.size)
+		val group = result.items[0] as PreviewItem.Group
+		assertEquals("Outer Title", group.name)
+		assertEquals(2, group.scenes.size)
+		assertEquals("Untitled", group.scenes[0].name)
+		assertEquals("Intro text.", group.scenes[0].markdown)
+		assertEquals("Real Chapter", group.scenes[1].name)
+		assertEquals("Chapter body.", group.scenes[1].markdown)
+	}
+
+	@Test
+	fun `Headings deeper than the chosen level stay as scene body`() {
+		val md = """
+			## Chapter One
+			Intro.
+			### A subsection
+			More text.
+		""".trimIndent()
+		val result = preview(md, level = ChapterHeadingLevel.H2)
+		assertEquals(1, result.items.size)
+		val scene = result.items[0] as PreviewItem.Scene
+		assertEquals("Chapter One", scene.name)
+		assertTrue(scene.markdown.contains("### A subsection"))
+		assertTrue(scene.markdown.contains("More text."))
+	}
+
+	@Test
+	fun `Multiple H1 groups each keep their H2 scenes`() {
+		val md = """
+			# Part One
+			## Chapter A
+			a body
+			## Chapter B
+			b body
+			# Part Two
+			## Chapter C
+			c body
+		""".trimIndent()
+		val result = preview(md, level = ChapterHeadingLevel.H2)
 		assertEquals(2, result.items.size)
-		val leading = result.items[0] as PreviewItem.Scene
-		assertEquals("Untitled", leading.name)
-		assertTrue(leading.markdown.contains("# Outer Title"))
-		val real = result.items[1] as PreviewItem.Scene
-		assertEquals("Real Chapter", real.name)
-		assertEquals("Chapter body.", real.markdown)
+		val partOne = result.items[0] as PreviewItem.Group
+		assertEquals("Part One", partOne.name)
+		assertEquals(listOf("Chapter A", "Chapter B"), partOne.scenes.map { it.name })
+		val partTwo = result.items[1] as PreviewItem.Group
+		assertEquals("Part Two", partTwo.name)
+		assertEquals(listOf("Chapter C"), partTwo.scenes.map { it.name })
+	}
+
+	@Test
+	fun `H2 scenes before the first group heading stay top-level`() {
+		val md = """
+			## Chapter A
+			a body
+			# Part Two
+			## Chapter B
+			b body
+		""".trimIndent()
+		val result = preview(md, level = ChapterHeadingLevel.H2)
+		assertEquals(2, result.items.size)
+		val sceneA = result.items[0] as PreviewItem.Scene
+		assertEquals("Chapter A", sceneA.name)
+		val partTwo = result.items[1] as PreviewItem.Group
+		assertEquals("Part Two", partTwo.name)
+		assertEquals(listOf("Chapter B"), partTwo.scenes.map { it.name })
+	}
+
+	@Test
+	fun `H1 selection with no shallower headings produces flat scenes`() {
+		val md = """
+			# Chapter One
+			a
+			# Chapter Two
+			b
+		""".trimIndent()
+		val result = preview(md, level = ChapterHeadingLevel.H1)
+		assertEquals(2, result.items.size)
+		assertTrue(result.items.all { it is PreviewItem.Scene })
+		assertEquals(listOf("Chapter One", "Chapter Two"), result.items.map { it.name })
+	}
+
+	@Test
+	fun `Leading BOM does not hide the first heading`() {
+		val md = "﻿# Chapter One\nbody"
+		val result = preview(md)
+		assertEquals(1, result.items.size)
+		val scene = result.items[0] as PreviewItem.Scene
+		assertEquals("Chapter One", scene.name)
+		assertEquals("body", scene.markdown)
+	}
+
+	@Test
+	fun `Indented heading up to three spaces is still recognized`() {
+		val md = "   # Chapter One\nbody"
+		val result = preview(md)
+		assertEquals(1, result.items.size)
+		assertEquals("Chapter One", result.items[0].name)
 	}
 
 	@Test
@@ -192,6 +296,30 @@ class MarkdownStoryImporterTest {
 		val result = preview(md)
 		assertEquals(1, result.items.size)
 		assertEquals("Untitled", result.items[0].name)
+	}
+
+	@Test
+	fun `Hammer export round-trips H1 title to group and H2 chapters to scenes`() {
+		val md = """
+			# My Novel
+
+			## 1. Chapter One
+
+			Chapter one body.
+
+			## 2. Chapter Two
+
+			Chapter two body.
+		""".trimIndent()
+		val result = preview(md, level = ChapterHeadingLevel.H2)
+		assertEquals(1, result.items.size)
+		val group = result.items[0] as PreviewItem.Group
+		assertEquals("My Novel", group.name)
+		assertEquals(2, group.scenes.size)
+		assertEquals("1. Chapter One", group.scenes[0].name)
+		assertEquals("Chapter one body.", group.scenes[0].markdown)
+		assertEquals("2. Chapter Two", group.scenes[1].name)
+		assertEquals("Chapter two body.", group.scenes[1].markdown)
 	}
 
 	@Test
