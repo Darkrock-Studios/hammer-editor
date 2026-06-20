@@ -82,8 +82,8 @@ Content encryption at rest is **optional** — a fresh server stores in plaintex
 needs no key material. This is recommended for most self-hosters. Encryption is
 slower, and carries the possibility of total data loss if key material is mishandled.
 
-If you want to enable at-rest encryption, see *
-*[Encryption at rest & key management](SERVER-SECRET-STORAGE.md)** for the
+If you want to enable at-rest encryption, see
+[Encryption at rest & key management](SERVER-SECRET-STORAGE.md) for the
 full walkthrough.
 
 ## Platform-Specific Instructions
@@ -209,18 +209,27 @@ and [relatively easy to setup](https://letsencrypt.org/getting-started/).
 
 Hammer can accept certificates in two formats:
 
-- JKS - _Java Key Store_
-- PEM - _Privacy Enhanced Mail_
+- PEM - _Privacy Enhanced Mail_ (recommended — what certbot/Let's Encrypt produces directly)
+- JKS - _Java Key Store_ (legacy)
 
-PEM support is brand new, JKS is well-tested.
+#### PEM (recommended)
 
-#### JKS
-Once you've set it up, Lets Encrypt will give you a bunch of PEM files in a directory such as:
-`/etc/letsencrypt/live/example.com`
+Once you've set it up, Let's Encrypt will give you a directory of PEM files such as
+`/etc/letsencrypt/live/example.com`. The two files we care about are `fullchain.pem` and
+`privkey.pem`.
 
-The two files we really care about are `fullchain.pem` and `privkey.pem`.
+Point **Hammer** straight at them in your `serverConfig.toml` — no conversion needed:
 
-We can use these two to produce a JKS file, here is a script that will help you do it:
+```toml
+[sslCert]
+certChainPath = "/etc/letsencrypt/live/example.com/fullchain.pem"
+privateKeyPath = "/etc/letsencrypt/live/example.com/privkey.pem"
+```
+
+#### JKS (legacy)
+
+Hammer also accepts a Java Key Store. You can convert the PEM files above into a `cert.jks` with
+this script:
 
 `convert.sh`
 ```shell
@@ -229,10 +238,7 @@ openssl pkcs12 -export -in fullchain.pem -inkey privkey.pem -out certificate.p12
 keytool -importkeystore -srckeystore certificate.p12 -srcstoretype pkcs12 -destkeystore cert.jks
 ```
 
-Once you provide a password it will produce `cert.jks`, this is the file you need to point **Hammer** to in your
-`serverConfig.toml`.
-
-Finally, you will add these lines to your config file:
+Once you provide a password it will produce `cert.jks`. Point **Hammer** at it:
 
 ```toml
 [sslCert]
@@ -242,25 +248,49 @@ keyPassword = "1234567890"
 keyAlias = "certificate"
 ```
 
-#### PEM
-
-PEM support is brand new but should shortcut the process described above.
-
-Now you can simply give the PEM files directly to **Hammer** in your `serverConfig.toml`:
-
-```toml
-[sslCert]
-certChainPath = "/etc/letsencrypt/live/example.com/fullchain.pem"
-privateKeyPath = "/etc/letsencrypt/live/example.com/privkey.pem"
-```
-
 ### Renewing your SSL cert
 
-You can run `sudo certbot renew` which should automatically renew your certificate. `cerbot` needs to bind to port 80 to
-do it, so you may need to shut down the **Hammer** server while it runs.
+`certbot renew` renews the certificate in place, rewriting `fullchain.pem` and `privkey.pem`. Two
+things to know:
 
-Once it completes successfully, re-run `convert.sh` to convert the new PEM to JKS, then restart the Hammer server, and
-you should be good to go.
+- Because **Hammer** holds the HTTP port, certbot's standalone challenge needs that port free, so
+  Hammer must be
+  stopped while certbot runs.
+- A running server reads its certificate only at startup, so it won't pick up a renewed cert until
+  it restarts.
+
+Configure both as certbot renewal hooks so the renewal that runs automatically handles everything.
+Add them to the
+cert's renewal config, `/etc/letsencrypt/renewal/<your-domain>.conf`, under the `[renewalparams]`
+section:
+
+```ini
+pre_hook = systemctl stop hammer
+post_hook = systemctl start hammer
+```
+
+These hooks run **only** when a renewal actually happens, not on the routine no-op checks, so Hammer
+is stopped only
+when a new cert is genuinely being issued.
+
+> **Note:** You can also pass `--pre-hook`/`--post-hook` on the command line, but certbot only
+> persists them into the
+> config when a renewal actually occurs — so setting them while no renewal is due (the common case)
+> silently does
+> nothing. Editing the config directly, as above, always works.
+
+When Hammer points at the PEM files directly (recommended), the `post_hook` restart is all that's
+needed to pick up
+the new cert — there's no conversion step.
+
+Renewals fire automatically on a timer that certbot installs. Confirm it's active:
+
+```shell
+systemctl list-timers | grep certbot
+```
+
+The timer's unit name depends on how certbot was installed — `certbot.timer` (apt/dnf) or
+`snap.certbot.renew.timer` (snap) — which is why grepping `list-timers` is the reliable check.
 
 ## Whitelisting Users
 

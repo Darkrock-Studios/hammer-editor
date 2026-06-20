@@ -218,7 +218,7 @@ private fun JettyApplicationEngineBase.Configuration.configureServer(
 	}
 }
 
-private fun getKeyStore(sslConfig: SslCertConfig): KeyStore {
+internal fun getKeyStore(sslConfig: SslCertConfig): KeyStore {
 	return if (sslConfig.usePem()) {
 		loadPemAsKeyStore(
 			certChainPath = sslConfig.certChainPath ?: error("PEM cert chain path not set"),
