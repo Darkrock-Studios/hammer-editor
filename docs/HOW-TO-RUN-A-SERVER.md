@@ -148,12 +148,12 @@ WantedBy=multi-user.target
 
 ### Windows
 
-Create a script to run the server: `run.bat`
+Create a script to run the server in the top level of the installation directory (e.g. `hammer\`):
+`run.bat`
 
 ```batch
 @echo off
-cd server
-server.bat --args="--config C:\path\to\serverConfig.toml"
+bin\server.bat --config serverConfig.toml
 ```
 
 Run the server:
@@ -164,12 +164,12 @@ run.bat
 
 ### macOS
 
-Create a script to run the server: `run.sh`
+Create a script to run the server in the top level of the installation directory (e.g. `hammer/`):
+`run.sh`
 
 ```bash
 #!/bin/bash
-cd server
-./server --args="--config /path/to/serverConfig.toml"
+./bin/server --config serverConfig.toml
 ```
 
 Make the script executable:
@@ -188,15 +188,21 @@ Run the server:
 
 _This step is optional but strongly recommended._
 
-There are two methods this can be done by.
- * One: Java SSL
- * Two: Reverse Proxy (do NOT follow the steps in this section; see Reverse Proxy Documentation)
+There are two ways to serve Hammer over `https`. Pick **one**:
 
-If you want to enable SSL (`https`), you'll first need to edit your server config file and add these lines:
+- **Java SSL (this section):** Hammer terminates TLS itself, reading your certificate
+  directly. Simplest if Hammer is the only thing on the box.
+- **Reverse proxy:** A proxy such as Nginx terminates TLS and forwards plain HTTP to
+  Hammer. Preferred if you run other services on the same host. If you go this route,
+  **skip the rest of this section** and follow
+  [Reverse Proxy using Nginx](#reverse-proxy-using-nginx) instead.
+
+If you want Hammer to terminate SSL itself, you'll first need to edit your server config file and
+add these lines:
 
 ```toml
 sslPort = 443
-forceHttps = false # Optional, defualts to true
+forceHttps = true # Optional, defualts to true
 ```
 
 ### Getting an SSL Certificate
@@ -253,6 +259,10 @@ keyAlias = "certificate"
 
 ### Renewing your SSL cert
 
+This applies to the **Java SSL** method, where Hammer terminates TLS and holds the HTTP port. If
+you run behind a reverse proxy, the proxy owns ports 80/443 and renews its certificate without ever
+touching Hammer, so none of the stop/start dance below is needed.
+
 `certbot renew` renews the certificate in place, rewriting `fullchain.pem` and `privkey.pem`. Two
 things to know:
 
@@ -295,89 +305,12 @@ systemctl list-timers | grep certbot
 The timer's unit name depends on how certbot was installed — `certbot.timer` (apt/dnf) or
 `snap.certbot.renew.timer` (snap) — which is why grepping `list-timers` is the reliable check.
 
-## Whitelisting Users
-
-By default, the server is closed to account creation after the first account.
-
-You can open it by going to `/admin` on the website, logging in as your admin account, and clicking
-"**Disable Whitelist**".
-Otherwise, you can add individual users to the whitelist using the admin page.
-
-_**Note:** Disabling the whitelist is **strongly discouraged**. There are currently no moderation tools or even account
-verification. I expect any fully open server would become filled with spam very quickly._
-
-## Enable Community
-
-By default this is disabled. To enable it, add this line to your server config:
-
-```toml
-communityEnabled = true
-```
-
-This will enable several new pages on the website found at: `/community`
-
-Users will now be able to opt-in to the community if they have already selected a **Pen Name**.
-
-## Setup Email Sending (_Optional_)
-
-Currently, we mainly use Email for password reset. Eventually we maybe have account verification, and potentially other
-things we send emails for.
-
-There are several supported ways to send emails:
-
-- SMTP - Standard Email
-- Mailgun - https://www.mailgun.com/
-- Sendgrid - https://sendgrid.com
-- Postmark - https://postmarkapp.com/
-
-You can configure the email provider by first selecting which you want to use in your `serverConfig.toml` file:
-
-```toml
-emailProvider = "SMTP" 
-```
-
-Then restart your server and navigate to the admin page to configure your email settings.
-
-Only SMTP has been thoroughly tested so far.
-
-## Web Analytics (_Optional_)
-
-You can opt into a web analytics provider to measure traffic to your server's
-public web pages.
-
-Analytics is only served on **public (logged-out) pages**. It is never injected
-into the dashboard, story, or admin pages of signed-in users.
-
-By default analytics is disabled (`type = "none"`). Currently, the only supported
-provider is [Umami](https://umami.is).
-
-### Umami
-
-Create a website in your Umami dashboard, copy its **Website ID**, and add:
-
-```toml
-[analytics]
-type = "umami"
-
-[analytics.umami]
-websiteId = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-# scriptUrl defaults to Umami Cloud. To use a self-hosted Umami instance,
-# point it at your own script, e.g.:
-scriptUrl = "https://umami.example.com/script.js"
-# connectSrc overrides the CSP connect-src event hosts. Umami Cloud's script
-# POSTs events to a gateway origin that has moved several times; if tracking
-# is blocked by CSP after a host change, set the current host(s) here to fix
-# it without a code release, e.g.:
-connectSrc = ["https://gateway.umami.is"]
-```
-
-The configuration is designed to grow: support for additional providers can be
-added under the `[analytics]` section in the future by selecting a different
-`type`.
-
 ## Reverse Proxy using Nginx
 
-Instead of directly exposing Hammer's server to the network, it is good practice to put it behind a reverse proxy. This editor uses Nginx and therefore can document it for Nginx.
+Instead of having Hammer terminate TLS itself (the [Setting up SSL](#setting-up-ssl-optional)
+section above), you can put it behind a reverse proxy that terminates TLS and forwards plain HTTP to
+Hammer. This is good practice — especially when other services share the host — and is documented
+here for Nginx. Use **either** this approach **or** Java SSL, not both.
 
 ### Changes to serverConfig
 
@@ -462,3 +395,86 @@ sudo nginx -t
 ```
 
 As long as that doesn't throw any errors, you can restart nginx. You should now be able to access your Hammer server web page at your URL!
+
+## Whitelisting Users
+
+By default, the server is closed to account creation after the first account.
+
+You can open it by going to `/admin` on the website, logging in as your admin account, and clicking
+"**Disable Whitelist**".
+Otherwise, you can add individual users to the whitelist using the admin page.
+
+_**Note:** Disabling the whitelist is **strongly discouraged**. There are currently no moderation
+tools or even account
+verification. I expect any fully open server would become filled with spam very quickly._
+
+## Enable Community
+
+By default this is disabled. To enable it, add this line to your server config:
+
+```toml
+communityEnabled = true
+```
+
+This will enable several new pages on the website found at: `/community`
+
+Users will now be able to opt-in to the community if they have already selected a **Pen Name**.
+
+## Setup Email Sending (_Optional_)
+
+Currently, we mainly use Email for password reset. Eventually we maybe have account verification,
+and potentially other
+things we send emails for.
+
+There are several supported ways to send emails:
+
+- SMTP - Standard Email
+- Mailgun - https://www.mailgun.com/
+- Sendgrid - https://sendgrid.com
+- Postmark - https://postmarkapp.com/
+
+You can configure the email provider by first selecting which you want to use in your
+`serverConfig.toml` file:
+
+```toml
+emailProvider = "SMTP" 
+```
+
+Then restart your server and navigate to the admin page to configure your email settings.
+
+Only SMTP has been thoroughly tested so far.
+
+## Web Analytics (_Optional_)
+
+You can opt into a web analytics provider to measure traffic to your server's
+public web pages.
+
+Analytics is only served on **public (logged-out) pages**. It is never injected
+into the dashboard, story, or admin pages of signed-in users.
+
+By default analytics is disabled (`type = "none"`). Currently, the only supported
+provider is [Umami](https://umami.is).
+
+### Umami
+
+Create a website in your Umami dashboard, copy its **Website ID**, and add:
+
+```toml
+[analytics]
+type = "umami"
+
+[analytics.umami]
+websiteId = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+# scriptUrl defaults to Umami Cloud. To use a self-hosted Umami instance,
+# point it at your own script, e.g.:
+scriptUrl = "https://umami.example.com/script.js"
+# connectSrc overrides the CSP connect-src event hosts. Umami Cloud's script
+# POSTs events to a gateway origin that has moved several times; if tracking
+# is blocked by CSP after a host change, set the current host(s) here to fix
+# it without a code release, e.g.:
+connectSrc = ["https://gateway.umami.is"]
+```
+
+The configuration is designed to grow: support for additional providers can be
+added under the `[analytics]` section in the future by selecting a different
+`type`.
