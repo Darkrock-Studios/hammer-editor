@@ -70,6 +70,7 @@ kotlin {
 				api(libs.serialization.core)
 				api(libs.serialization.json)
 				api(libs.kotlinx.datetime)
+				api(libs.kotlinx.collections.immutable)
 				implementation(libs.tomlkt)
 				api(libs.bundles.essenty)
 				implementation(libs.cache4k)

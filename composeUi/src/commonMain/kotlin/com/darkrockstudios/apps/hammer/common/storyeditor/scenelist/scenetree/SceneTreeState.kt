@@ -49,6 +49,7 @@ fun rememberReorderableLazyListState(
 	}
 }
 
+@Stable
 class SceneTreeState(
 	sceneSummary: SceneSummary,
 	val moveItem: (moveRequest: MoveRequest) -> Unit,

@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.mockk.*
+import kotlinx.collections.immutable.persistentListOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -52,7 +53,7 @@ class StatisticsServiceTest : BaseTest() {
 	private fun rootOnlyTree(): ImmutableTree<SceneItem> {
 		val root = TreeValue(
 			value = sceneItem(0, SceneItem.Type.Root),
-			index = 0, parent = -1, children = emptyList(), depth = 0, totalChildren = 0,
+			index = 0, parent = -1, children = persistentListOf(), depth = 0, totalChildren = 0,
 		)
 		return ImmutableTree(root = root, totalChildren = 0)
 	}
@@ -153,19 +154,19 @@ class StatisticsServiceTest : BaseTest() {
 			// root -> chapter -> [sceneA(3 words), sceneB(2 words)]
 			val sceneA = TreeValue(
 				value = sceneItem(2, SceneItem.Type.Scene),
-				index = 2, parent = 1, children = emptyList(), depth = 2, totalChildren = 0,
+				index = 2, parent = 1, children = persistentListOf(), depth = 2, totalChildren = 0,
 			)
 			val sceneB = TreeValue(
 				value = sceneItem(3, SceneItem.Type.Scene),
-				index = 3, parent = 1, children = emptyList(), depth = 2, totalChildren = 0,
+				index = 3, parent = 1, children = persistentListOf(), depth = 2, totalChildren = 0,
 			)
 			val chapter = TreeValue(
 				value = sceneItem(1, SceneItem.Type.Group),
-				index = 1, parent = 0, children = listOf(sceneA, sceneB), depth = 1, totalChildren = 2,
+				index = 1, parent = 0, children = persistentListOf(sceneA, sceneB), depth = 1, totalChildren = 2,
 			)
 			val root = TreeValue(
 				value = sceneItem(0, SceneItem.Type.Root),
-				index = 0, parent = -1, children = listOf(chapter), depth = 0, totalChildren = 3,
+				index = 0, parent = -1, children = persistentListOf(chapter), depth = 0, totalChildren = 3,
 			)
 			every { sceneEditorRepository.sceneTreeUpdates } returns
 				MutableStateFlow(ImmutableTree(root = root, totalChildren = 3))

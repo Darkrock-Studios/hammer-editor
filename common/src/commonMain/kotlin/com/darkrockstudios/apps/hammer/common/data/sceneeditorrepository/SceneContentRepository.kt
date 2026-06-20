@@ -9,6 +9,9 @@ import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescentBy
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
+import kotlinx.collections.immutable.PersistentSet
+import kotlinx.collections.immutable.persistentSetOf
+import kotlinx.collections.immutable.toPersistentSet
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -68,10 +71,10 @@ class SceneContentRepository(
 	)
 	val bufferPersistedFlow: SharedFlow<BufferPersistedEvent> = _bufferPersistedFlow
 
-	private val _dirtyBufferIds = MutableStateFlow<Set<Int>>(emptySet())
+	private val _dirtyBufferIds = MutableStateFlow<PersistentSet<Int>>(persistentSetOf())
 
 	/** The set of scene ids with unsaved buffers; re-emits on every dirty/clean transition. */
-	val dirtyBufferIds: StateFlow<Set<Int>> = _dirtyBufferIds
+	val dirtyBufferIds: StateFlow<PersistentSet<Int>> = _dirtyBufferIds
 
 	private val sceneBuffersLock = reentrantLock()
 	private val sceneBuffers = mutableMapOf<Int, SceneBuffer>()
@@ -155,11 +158,11 @@ class SceneContentRepository(
 		sceneBuffers.any { it.value.dirty }
 	}
 
-	fun getDirtyBufferIds(): Set<Int> = sceneBuffersLock.withLock {
+	fun getDirtyBufferIds(): PersistentSet<Int> = sceneBuffersLock.withLock {
 		sceneBuffers
 			.filter { it.value.dirty }
 			.map { it.key }
-			.toSet()
+			.toPersistentSet()
 	}
 
 	private fun getDirtyBufferScenes(): List<SceneItem> = sceneBuffersLock.withLock {
