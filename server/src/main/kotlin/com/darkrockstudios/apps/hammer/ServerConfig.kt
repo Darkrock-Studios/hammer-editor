@@ -11,6 +11,13 @@ import java.net.URISyntaxException
 @Serializable
 data class ServerConfig(
 	val host: String = "localhost",
+	/**
+	 * Network interfaces the server binds to. Defaults to all IPv4 interfaces.
+	 * Set to `["127.0.0.1", "::1"]` to accept loopback connections only, e.g.
+	 * when running behind a reverse proxy on the same host. Distinct from [host],
+	 * which is the public name shown to users.
+	 */
+	val bindHosts: List<String> = listOf("0.0.0.0"),
 	val port: Int = 8080,
 	val sslPort: Int = 443,
 	/**

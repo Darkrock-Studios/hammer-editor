@@ -29,6 +29,21 @@ The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 6. **IMPORTANT!** You must now download one of the clients and create an account on the server. The first account
    created will be the admin account.
 
+## Network binding
+
+By default the server binds to all IPv4 interfaces (`0.0.0.0`), so it accepts connections from the
+network. To isolate it — for example when a reverse proxy on the same host is the only thing that
+should reach it — restrict the bind to loopback with `bindHosts`:
+
+```toml
+# Accept loopback connections only (IPv4 and IPv6). Default is ["0.0.0.0"].
+bindHosts = ["127.0.0.1", "::1"]
+```
+
+`bindHosts` is the network interface(s) to listen on, and is distinct from `host`, which is the
+public name shown to users. Each address gets its own listener (and its own HTTPS listener when an
+SSL cert is configured).
+
 ## Storage
 
 The server persists its data in a PostgreSQL database. It supports two modes:
