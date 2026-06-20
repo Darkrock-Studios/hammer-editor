@@ -173,12 +173,10 @@ private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?
 	//		System.setProperty("org.slf4j.simpleLogger.defaultLogLevel", "DEBUG");
 	//	}
 
-	val bindHost = "0.0.0.0"
-
 	embeddedServer(
 		Jetty,
 		configure = {
-			configureServer(config, bindHost)
+			configureServer(config)
 		},
 		module = {
 			appMain(config, logLevel = logLevel)
@@ -187,12 +185,15 @@ private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?
 }
 
 private fun JettyApplicationEngineBase.Configuration.configureServer(
-	config: ServerConfig,
-	bindHost: String
+	config: ServerConfig
 ) {
-	connector {
-		port = config.port
-		host = bindHost
+	require(config.bindHosts.isNotEmpty()) { "bindHosts must list at least one address" }
+
+	config.bindHosts.forEach { bindHost ->
+		connector {
+			port = config.port
+			host = bindHost
+		}
 	}
 
 	config.sslCert?.apply {
@@ -203,17 +204,19 @@ private fun JettyApplicationEngineBase.Configuration.configureServer(
 		val storePass = if (usePem()) "" else (storePassword ?: "")
 		val keyPass = if (usePem()) "" else (keyPassword ?: "")
 
-		sslConnector(
-			keyStore = keyStore,
-			keyAlias = alias,
-			keyStorePassword = { storePass.toCharArray() },
-			privateKeyPassword = { keyPass.toCharArray() }
-		) {
-			if (!usePem() && path != null) {
-				this.keyStorePath = File(path)
+		config.bindHosts.forEach { bindHost ->
+			sslConnector(
+				keyStore = keyStore,
+				keyAlias = alias,
+				keyStorePassword = { storePass.toCharArray() },
+				privateKeyPassword = { keyPass.toCharArray() }
+			) {
+				if (!usePem() && path != null) {
+					this.keyStorePath = File(path)
+				}
+				host = bindHost
+				port = config.sslPort
 			}
-			host = bindHost
-			port = config.sslPort
 		}
 	}
 }
