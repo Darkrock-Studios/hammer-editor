@@ -794,7 +794,9 @@ private suspend fun ApplicationCall.reviewMatchesUrlProject(
 ): Boolean {
 	val urlName = parameters["projectName"] ?: return false
 	val reviewProject = projectDao.getProjectByRowId(review.projectId) ?: return false
-	return ProjectName.formatForUrl(reviewProject.name) == urlName
+	// urlName arrives percent-decoded; match the exact name, then the legacy dash-slug form.
+	return reviewProject.name == urlName ||
+		reviewProject.name == ProjectName.legacyUrlNameToName(urlName)
 }
 
 /** As [reviewMatchesUrlProject] but for routes that only have the review id. */

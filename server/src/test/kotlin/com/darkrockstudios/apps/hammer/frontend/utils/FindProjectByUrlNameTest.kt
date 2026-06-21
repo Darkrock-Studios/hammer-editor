@@ -19,36 +19,45 @@ class FindProjectByUrlNameTest {
 		ProjectWithSyncDate(name = name, uuid = "uuid-$name", lastSync = Instant.DISTANT_PAST)
 
 	@Test
-	fun `resolves a name with a literal dash the slug round-trip cannot reverse`() = runTest {
+	fun `resolves the exact name the lossless encoding round-trips`() = runTest {
 		val repo = mockk<ProjectsRepository>()
-		val mangled = "Alice In Wonderland (# Name clash 2026-06-07 fk6fycC #)"
-		val stored = project(mangled)
-		val urlName = ProjectName.formatForUrl(mangled)
+		// The router percent-decodes the segment, so a literal-dash name arrives intact and the
+		// exact lookup succeeds — the case the old dash-for-space slug used to 404 on.
+		val name = "Draft 2026-06-07 (clash)"
+		val stored = project(name)
+		coEvery { repo.getProjectByName(userId, name) } returns stored
 
-		// The exact decoded lookup misses: decodeFromUrl turns the date's dashes into spaces.
-		coEvery { repo.getProjectByName(userId, any()) } returns null
-		coEvery { repo.getProjectsWithSyncDate(userId) } returns listOf(project("Other"), stored)
-
-		assertEquals(stored, repo.findProjectByUrlName(userId, urlName))
+		assertEquals(stored, repo.findProjectByUrlName(userId, name))
+		coVerify(exactly = 1) { repo.getProjectByName(userId, name) }
 	}
 
 	@Test
-	fun `uses the exact decoded match without enumerating when one exists`() = runTest {
+	fun `uses the exact match without trying the legacy slug when one exists`() = runTest {
 		val repo = mockk<ProjectsRepository>()
 		val stored = project("My Story")
 		coEvery { repo.getProjectByName(userId, "My Story") } returns stored
 
-		val result = repo.findProjectByUrlName(userId, ProjectName.formatForUrl("My Story"))
-
-		assertEquals(stored, result)
-		coVerify(exactly = 0) { repo.getProjectsWithSyncDate(userId) }
+		assertEquals(stored, repo.findProjectByUrlName(userId, "My Story"))
+		// "My Story" has no dash, so there is no distinct legacy form to look up.
+		coVerify(exactly = 1) { repo.getProjectByName(userId, "My Story") }
 	}
 
 	@Test
-	fun `returns null when no project matches the url segment`() = runTest {
+	fun `falls back to the legacy dash-for-space slug for old links`() = runTest {
+		val repo = mockk<ProjectsRepository>()
+		val stored = project("My Story")
+		// An old bookmark hits "/story/My-Story"; the exact name has no match, the legacy form does.
+		coEvery { repo.getProjectByName(userId, "My-Story") } returns null
+		coEvery { repo.getProjectByName(userId, "My Story") } returns stored
+
+		assertEquals(stored, repo.findProjectByUrlName(userId, "My-Story"))
+		coVerify(exactly = 1) { repo.getProjectByName(userId, "My Story") }
+	}
+
+	@Test
+	fun `returns null when neither the exact nor legacy name matches`() = runTest {
 		val repo = mockk<ProjectsRepository>()
 		coEvery { repo.getProjectByName(userId, any()) } returns null
-		coEvery { repo.getProjectsWithSyncDate(userId) } returns listOf(project("Other"))
 
 		assertNull(repo.findProjectByUrlName(userId, "Nonexistent"))
 	}

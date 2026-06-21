@@ -350,7 +350,7 @@ fun Route.storyPage(
 
 				val model = call.withDefaults(
 					mapOf(
-						"projectNameForUrl" to projectNameParam,
+						"projectNameForUrl" to ProjectName.formatForUrl(projectNameParam),
 						"minDate" to minDate
 					)
 				)
@@ -368,7 +368,7 @@ fun Route.storyPage(
 
 				val model = call.withDefaults(
 					mapOf(
-						"projectNameForUrl" to projectNameParam
+						"projectNameForUrl" to ProjectName.formatForUrl(projectNameParam)
 					)
 				)
 

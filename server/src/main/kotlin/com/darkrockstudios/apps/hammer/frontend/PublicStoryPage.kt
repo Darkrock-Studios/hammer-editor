@@ -37,15 +37,32 @@ fun Route.publicStoryPage(
 				return@get
 			}
 
-			// Decode URL: URL decode then replace dashes with spaces
-			val penName = ProjectName.decodeFromUrl(penNameParam)
-			val projectName = ProjectName.decodeFromUrl(projectNameParam)
-
 			// Check for password and page in query parameters
 			val password = call.request.queryParameters["p"]
 			val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
 
-			when (val result = projectAccessRepository.findAccessibleProject(penName, projectName, password)) {
+			// The router has already percent-decoded the segments, so they are the exact names.
+			// Fall back to the legacy dash-for-space slug so links made before the fix still resolve.
+			var penName = penNameParam
+			var projectName = projectNameParam
+			var result = projectAccessRepository.findAccessibleProject(penName, projectName, password)
+			if (result is PublicProjectResult.NotFound) {
+				val legacyPenName = ProjectName.legacyUrlNameToName(penNameParam)
+				val legacyProjectName = ProjectName.legacyUrlNameToName(projectNameParam)
+				if (legacyPenName != penName || legacyProjectName != projectName) {
+					val legacyResult =
+						projectAccessRepository.findAccessibleProject(legacyPenName, legacyProjectName, password)
+					if (legacyResult !is PublicProjectResult.NotFound) {
+						penName = legacyPenName
+						projectName = legacyProjectName
+						result = legacyResult
+					}
+				}
+			}
+			val penNameForUrl = ProjectName.formatForUrl(penName)
+			val projectNameForUrl = ProjectName.formatForUrl(projectName)
+
+			when (val resolved = result) {
 				is PublicProjectResult.NotFound -> {
 					call.respond(HttpStatusCode.NotFound)
 				}
@@ -55,8 +72,8 @@ fun Route.publicStoryPage(
 					val model = call.withDefaults(
 						mapOf(
 							"page_stylesheet" to "/assets/css/story.css",
-							"penName" to penNameParam,
-							"projectName" to projectNameParam,
+							"penName" to penNameForUrl,
+							"projectName" to projectNameForUrl,
 							"error" to (password != null) // Show error if password was provided but invalid
 						)
 					)
@@ -66,8 +83,8 @@ fun Route.publicStoryPage(
 				is PublicProjectResult.Success -> {
 					// Best-effort unique-reader count, skipping the author viewing their own story.
 					val viewerId = call.sessions.get<UserSession>()?.userId
-					if (viewerId != result.userId) {
-						projectDao.getProjectIdOrNull(result.userId, result.projectUuid)?.let { projectId ->
+					if (viewerId != resolved.userId) {
+						projectDao.getProjectIdOrNull(resolved.userId, resolved.projectUuid)?.let { projectId ->
 							storyReaderCollector.record(
 								projectId = projectId,
 								clientIp = call.request.origin.remoteAddress,
@@ -77,8 +94,8 @@ fun Route.publicStoryPage(
 					}
 
 					val exportResult = storyExportService.exportStoryAsHtmlPaginated(
-						userId = result.userId,
-						projectId = result.projectUuid,
+						userId = resolved.userId,
+						projectId = resolved.projectUuid,
 						page = page
 					)
 
@@ -96,8 +113,8 @@ fun Route.publicStoryPage(
 								mapOf(
 									"page_stylesheet" to "/assets/css/story.css",
 									"projectName" to data.projectName,
-									"authorPenName" to result.penName,
-									"authorPenNameUrl" to ProjectName.formatForUrl(result.penName),
+									"authorPenName" to resolved.penName,
+									"authorPenNameUrl" to ProjectName.formatForUrl(resolved.penName),
 									"storyHtml" to data.pageHtml,
 									"hasContent" to data.hasContent,
 									"sceneCount" to data.sceneCount,
@@ -109,8 +126,8 @@ fun Route.publicStoryPage(
 									"hasPagination" to (data.totalPages > 1),
 									"hasNextPage" to data.hasNextPage,
 									"hasPrevPage" to data.hasPrevPage,
-									"nextPageUrl" to "/a/$penNameParam/$projectNameParam?page=${data.nextPage}$passwordParam",
-									"prevPageUrl" to "/a/$penNameParam/$projectNameParam?page=${data.prevPage}$passwordParam"
+									"nextPageUrl" to "/a/$penNameForUrl/$projectNameForUrl?page=${data.nextPage}$passwordParam",
+									"prevPageUrl" to "/a/$penNameForUrl/$projectNameForUrl?page=${data.prevPage}$passwordParam"
 								)
 							)
 							call.respond(MustacheContent("publicstory.mustache", model))
@@ -149,10 +166,14 @@ fun Route.publicStoryPage(
 			val formParams = call.receiveParameters()
 			val password = formParams["password"]
 
+			// Re-encode the segments: they arrive percent-decoded but go back into a URL path.
+			val penNameForUrl = ProjectName.formatForUrl(penNameParam)
+			val projectNameForUrl = ProjectName.formatForUrl(projectNameParam)
+
 			// Redirect to GET with password in query param (URL encoded for safety)
 			if (!password.isNullOrBlank()) {
 				call.respondRedirect(
-					"/a/$penNameParam/$projectNameParam?p=${
+					"/a/$penNameForUrl/$projectNameForUrl?p=${
 						URLEncoder.encode(
 							password,
 							StandardCharsets.UTF_8
@@ -160,7 +181,7 @@ fun Route.publicStoryPage(
 					}"
 				)
 			} else {
-				call.respondRedirect("/a/$penNameParam/$projectNameParam")
+				call.respondRedirect("/a/$penNameForUrl/$projectNameForUrl")
 			}
 		}
 	}
