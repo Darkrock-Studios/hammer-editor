@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidationResult
+import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidator
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
@@ -207,36 +209,13 @@ class ProjectsRepository(
 		}
 	}
 
-	private data class Validator(
-		val name: String,
-		val errorMessage: StringResource,
-		val condition: (String) -> Boolean,
-	)
-
 	companion object {
-		const val MAX_FILENAME_LENGTH = 128
+		const val MAX_FILENAME_LENGTH = ProjectNameValidator.MAX_LENGTH
 
 		/** Delimiter used in scene filenames (e.g. `order~name~id.md`). Reserved — disallowed in user input. */
-		const val FILENAME_DELIMITER = '~'
+		const val FILENAME_DELIMITER = ProjectNameValidator.FILENAME_DELIMITER
 
-		// Allowed characters in user-entered project/scene names. Includes:
-		//   - letters (\p{L}), digits, space, _, ', +
-		//   - newly allowed natively-OS-safe: -.,!?:()&"
-		//   - encoded-on-disk via lookalike map: /\*|<>
-		//   - typographic quotes: ’ “ ” (U+2019, U+201C, U+201D)
-		// Disallowed: ~ (reserved delimiter), control chars, leading dot, Windows reserved names.
-		private val fileNameAllowedCharsRegex =
-			Regex("""[\d\p{L}+ _'\-.,!?:()&"/\\*|<>’“”]""")
-		private val fileNameAllowedRegex =
-			Regex("""[\d\p{L}+ _'\-.,!?:()&"/\\*|<>’“”]+""")
 		private val whitespaceCollapseRegex = Regex("""\s+""")
-
-		// Windows reserved basenames (case-insensitive, with or without extension).
-		private val windowsReservedNames = setOf(
-			"CON", "PRN", "AUX", "NUL",
-			"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-			"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
-		)
 
 		// Bidirectional map: user-typed OS-forbidden char -> visually similar safe Unicode.
 		// Filenames produced by encodeForFilename are safe on Windows/macOS/Linux/iOS.
@@ -280,7 +259,7 @@ class ProjectsRepository(
 		fun sanitizeFileName(name: String): String {
 			val mapped = buildString(name.length) {
 				for (ch in name) {
-					if (fileNameAllowedCharsRegex.matches(ch.toString())) append(ch) else append(' ')
+					if (ProjectNameValidator.isCharacterAllowed(ch)) append(ch) else append(' ')
 				}
 			}
 			return mapped
@@ -294,8 +273,8 @@ class ProjectsRepository(
 		 * Maps a (possibly server-supplied) display name to one this device can actually store. A name
 		 * that already passes [validateFileName] is returned unchanged; otherwise it is run through
 		 * [sanitizeFileName], falling back to [RECOVERED_PROJECT_NAME] when sanitizing leaves nothing
-		 * legal. The server's allowed-name set is looser than the client's, so a project synced down
-		 * from another device can carry characters (e.g. `#`) this device rejects.
+		 * legal. A project synced down from the server may predate shared validation (or have been
+		 * created by an older client) and carry characters (e.g. `#`) this device rejects.
 		 */
 		fun toLocalSafeName(name: String): String {
 			if (validateFileName(name).isSuccess) return name
@@ -304,56 +283,38 @@ class ProjectsRepository(
 
 		const val RECOVERED_PROJECT_NAME = "Recovered Project"
 
-		private fun isWindowsReservedName(name: String): Boolean {
-			val basename = name.substringBeforeLast('.', name).uppercase()
-			return basename in windowsReservedNames
-		}
-
-		private val fileNameValidations = listOf(
-			Validator(
-				"Was Blank",
-				Res.string.create_project_error_blank
-			) { it.isNotBlank() },
-			Validator(
-				"Invalid Characters",
-				Res.string.create_project_error_invalid_characters
-			) {
-				fileNameAllowedRegex.matches(it) &&
-					!it.startsWith('.') &&
-					!it.endsWith('.') &&
-					!it.endsWith(' ') &&
-					!isWindowsReservedName(it)
-			},
-			Validator(
-				"Too Long",
-				Res.string.create_project_error_too_long
-			) { it.length <= MAX_FILENAME_LENGTH },
-		)
-
+		/**
+		 * Validates a project/scene name using the shared [ProjectNameValidator] and maps the
+		 * result to a localized [CResult] for the UI. The rules live in `:base` so the server
+		 * enforces the same ones; this only translates them into display messages.
+		 */
 		fun validateFileName(fileName: String?): CResult<Unit> {
-			return if (fileName != null) {
-				var error: StringResource? = null
-				for (validator in fileNameValidations) {
-					if (validator.condition(fileName).not()) {
-						error = validator.errorMessage
-						break
-					}
-				}
-
-				if (error == null) {
+			return when (ProjectNameValidator.validate(fileName)) {
+				ProjectNameValidationResult.VALID -> {
 					Napier.i("$fileName was valid")
 					CResult.success()
-				} else {
-					Napier.i("$fileName was invalid: $error")
-					CResult.failure(ValidationFailedException(error))
 				}
-			} else {
-				CResult.failure(
+
+				ProjectNameValidationResult.NULL -> CResult.failure(
 					error = "",
 					displayMessage = Res.string.create_project_error_null_filename.toMsg(),
 					exception = ValidationFailedException(Res.string.create_project_error_null_filename)
 				)
+
+				ProjectNameValidationResult.BLANK ->
+					invalidFileName(fileName, Res.string.create_project_error_blank)
+
+				ProjectNameValidationResult.INVALID_CHARACTERS ->
+					invalidFileName(fileName, Res.string.create_project_error_invalid_characters)
+
+				ProjectNameValidationResult.TOO_LONG ->
+					invalidFileName(fileName, Res.string.create_project_error_too_long)
 			}
+		}
+
+		private fun invalidFileName(fileName: String?, message: StringResource): CResult<Unit> {
+			Napier.i("$fileName was invalid: $message")
+			return CResult.failure(ValidationFailedException(message))
 		}
 	}
 }
