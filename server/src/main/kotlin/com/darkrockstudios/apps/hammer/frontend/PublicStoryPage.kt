@@ -1,10 +1,13 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
+import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.project.access.PublicProjectResult
 import com.darkrockstudios.apps.hammer.story.PaginatedExportResult
 import com.darkrockstudios.apps.hammer.story.StoryExportService
@@ -26,6 +29,8 @@ fun Route.publicStoryPage(
 	projectAccessRepository: ProjectAccessRepository,
 	projectDao: ProjectDao,
 	storyReaderCollector: StoryReaderCollector,
+	accountsRepository: AccountsRepository,
+	projectsRepository: ProjectsRepository,
 ) {
 	route("/a/{penName}/{projectName}") {
 		get {
@@ -41,26 +46,29 @@ fun Route.publicStoryPage(
 			val password = call.request.queryParameters["p"]
 			val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
 
-			// The router has already percent-decoded the segments, so they are the exact names.
-			// Fall back to the legacy dash-for-space slug so links made before the fix still resolve.
-			var penName = penNameParam
-			var projectName = projectNameParam
-			var result = projectAccessRepository.findAccessibleProject(penName, projectName, password)
-			if (result is PublicProjectResult.NotFound) {
-				val legacyPenName = ProjectName.legacyUrlNameToName(penNameParam)
-				val legacyProjectName = ProjectName.legacyUrlNameToName(projectNameParam)
-				if (legacyPenName != penName || legacyProjectName != projectName) {
-					val legacyResult =
-						projectAccessRepository.findAccessibleProject(legacyPenName, legacyProjectName, password)
-					if (legacyResult !is PublicProjectResult.NotFound) {
-						penName = legacyPenName
-						projectName = legacyProjectName
-						result = legacyResult
-					}
-				}
+			// Resolve the author by pen name (verbatim, then dashes as spaces).
+			val account = resolveByPenName(penNameParam) { accountsRepository.findAccountByPenName(it) }
+			val penName = account?.pen_name
+			if (account == null || penName == null) {
+				call.respond(HttpStatusCode.NotFound)
+				return@get
 			}
-			val penNameForUrl = ProjectName.formatForUrl(penName)
-			val projectNameForUrl = ProjectName.formatForUrl(projectName)
+
+			// Resolve the project by the id embedded in its URL segment, scoped to this author's
+			// projects; the slug beside the id is decorative and ignored.
+			val projectId = ProjectName.idFromSegment(projectNameParam)
+			val projectName = projectsRepository.getProjectsWithSyncDate(account.id)
+				.find { ProjectName.shortId(it.uuid) == projectId }?.name
+			if (projectName == null) {
+				call.respond(HttpStatusCode.NotFound)
+				return@get
+			}
+
+			val result = projectAccessRepository.findAccessibleProject(penName, projectName, password)
+
+			// Self-referential links reuse the incoming, already URL-safe segments.
+			val penNameForUrl = penNameParam
+			val projectNameForUrl = projectNameParam
 
 			when (val resolved = result) {
 				is PublicProjectResult.NotFound -> {
@@ -114,7 +122,7 @@ fun Route.publicStoryPage(
 									"page_stylesheet" to "/assets/css/story.css",
 									"projectName" to data.projectName,
 									"authorPenName" to resolved.penName,
-									"authorPenNameUrl" to ProjectName.formatForUrl(resolved.penName),
+									"authorPenNameUrl" to ProjectName.penNameForUrl(resolved.penName),
 									"storyHtml" to data.pageHtml,
 									"hasContent" to data.hasContent,
 									"sceneCount" to data.sceneCount,
@@ -166,14 +174,10 @@ fun Route.publicStoryPage(
 			val formParams = call.receiveParameters()
 			val password = formParams["password"]
 
-			// Re-encode the segments: they arrive percent-decoded but go back into a URL path.
-			val penNameForUrl = ProjectName.formatForUrl(penNameParam)
-			val projectNameForUrl = ProjectName.formatForUrl(projectNameParam)
-
-			// Redirect to GET with password in query param (URL encoded for safety)
+			// Redirect back to GET, reusing the (already URL-safe) incoming segments.
 			if (!password.isNullOrBlank()) {
 				call.respondRedirect(
-					"/a/$penNameForUrl/$projectNameForUrl?p=${
+					"/a/$penNameParam/$projectNameParam?p=${
 						URLEncoder.encode(
 							password,
 							StandardCharsets.UTF_8
@@ -181,7 +185,7 @@ fun Route.publicStoryPage(
 					}"
 				)
 			} else {
-				call.respondRedirect("/a/$penNameForUrl/$projectNameForUrl")
+				call.respondRedirect("/a/$penNameParam/$projectNameParam")
 			}
 		}
 	}

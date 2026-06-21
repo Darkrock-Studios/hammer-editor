@@ -52,7 +52,7 @@ fun Route.dashboardPage(
 				val projectsModel = getProjectsModel(call, projectsRepository, session.userId)
 				val projects = projectsModel["projects"] ?: error("Projects model not found")
 
-				val penNameUrl = account.pen_name?.let { ProjectName.formatForUrl(it) }
+				val penNameUrl = account.pen_name?.let { ProjectName.penNameForUrl(it) }
 
 				// Parse bio markdown to sanitized HTML
 				val bioHtml = account.bio?.let { markdownService.markdownToSafeHtml(it) }
@@ -348,7 +348,7 @@ private suspend fun getProjectsModel(
 		mapOf(
 			"name" to project.name,
 			"uuid" to project.uuid,
-			"nameForUrl" to ProjectName.formatForUrl(project.name),
+			"nameForUrl" to ProjectName.projectSegment(project.name, project.uuid),
 			"lastSync" to formatSyncDate(project.lastSync)
 		)
 	}

@@ -128,7 +128,14 @@ fun Route.frontend() {
 		clock = clock,
 	)
 	authorPage(accountsRepository, projectAccessRepository, markdownService)
-	publicStoryPage(storyExportService, projectAccessRepository, projectDao, storyReaderCollector)
+	publicStoryPage(
+		storyExportService,
+		projectAccessRepository,
+		projectDao,
+		storyReaderCollector,
+		accountsRepository,
+		projectsRepository,
+	)
 	adminPage(
 		whiteListRepository,
 		configRepository,

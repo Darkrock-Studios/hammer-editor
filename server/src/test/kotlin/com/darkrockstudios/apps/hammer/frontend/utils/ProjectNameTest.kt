@@ -3,53 +3,62 @@ package com.darkrockstudios.apps.hammer.frontend.utils
 import org.junit.jupiter.api.Test
 import java.net.URLDecoder
 import kotlin.test.assertEquals
+import kotlin.test.assertNotEquals
+import kotlin.test.assertTrue
 
 class ProjectNameTest {
 
-	// The routing engine percent-decodes the path segment before a handler sees it. URLDecoder
-	// reproduces that decode, so encode-then-decode proves the slug round-trips losslessly.
-	private fun roundTrip(name: String): String =
-		URLDecoder.decode(ProjectName.formatForUrl(name), "UTF-8")
-
 	@Test
-	fun `round-trips a plain name`() {
-		assertEquals("My Story Name", roundTrip("My Story Name"))
+	fun `shortId is six base62 characters`() {
+		val id = ProjectName.shortId("550e8400-e29b-41d4-a716-446655440000")
+		assertEquals(6, id.length)
+		assertTrue(id.all { it.isLetterOrDigit() }, "expected base62, got '$id'")
 	}
 
 	@Test
-	fun `round-trips a name containing a literal dash`() {
-		// The old slug turned every dash into a space; this is the case that used to 404.
-		assertEquals("Draft 2026-06-07", roundTrip("Draft 2026-06-07"))
+	fun `shortId is stable for the same uuid`() {
+		val uuid = "550e8400-e29b-41d4-a716-446655440000"
+		assertEquals(ProjectName.shortId(uuid), ProjectName.shortId(uuid))
 	}
 
 	@Test
-	fun `round-trips names that are distinct only in dash vs space`() {
-		assertEquals("My-Project", roundTrip("My-Project"))
-		assertEquals("My Project", roundTrip("My Project"))
-		// And the two produce different slugs, so they can no longer collide.
-		assertNotEquals(ProjectName.formatForUrl("My-Project"), ProjectName.formatForUrl("My Project"))
+	fun `shortId differs for different uuids`() {
+		assertNotEquals(ProjectName.shortId("uuid-a"), ProjectName.shortId("uuid-b"))
 	}
 
 	@Test
-	fun `round-trips punctuation and symbols`() {
-		assertEquals("Alice In Wonderland (# 2 & \"more\")", roundTrip("Alice In Wonderland (# 2 & \"more\")"))
+	fun `slug is a pretty dash-joined form with punctuation stripped`() {
+		assertEquals("My-Story", ProjectName.slug("My Story"))
+		assertEquals("Draft-2026-06-21", ProjectName.slug("Draft 2026-06-21"))
+		assertEquals("Alice-In-Wonderland-Name-clash", ProjectName.slug("Alice In Wonderland (# Name clash)"))
 	}
 
 	@Test
-	fun `round-trips percent and plus signs`() {
-		assertEquals("100% done + extra", roundTrip("100% done + extra"))
+	fun `slug falls back to a default when nothing usable remains`() {
+		assertEquals("project", ProjectName.slug("###"))
 	}
 
 	@Test
-	fun `round-trips unicode`() {
-		assertEquals("Élodie's 夏目漱石", roundTrip("Élodie's 夏目漱石"))
+	fun `the id round-trips out of a generated segment after the router decodes it`() {
+		val uuid = "abc-123-def"
+		// The router percent-decodes the path segment; URLDecoder reproduces that.
+		val segment = URLDecoder.decode(ProjectName.projectSegment("Draft 2026-06-21", uuid), "UTF-8")
+		assertEquals(ProjectName.shortId(uuid), ProjectName.idFromSegment(segment))
 	}
 
 	@Test
-	fun `encodes spaces as percent-20 not plus`() {
-		assertEquals("My%20Story", ProjectName.formatForUrl("My Story"))
+	fun `idFromSegment returns the trailing id and ignores the slug`() {
+		assertEquals("7f3k2a", ProjectName.idFromSegment("Draft-2026-06-21-7f3k2a"))
 	}
 
-	private fun assertNotEquals(a: String, b: String) =
-		kotlin.test.assertTrue(a != b, "expected '$a' != '$b'")
+	@Test
+	fun `idFromSegment treats a bare id with no slug as the id`() {
+		assertEquals("7f3k2a", ProjectName.idFromSegment("7f3k2a"))
+	}
+
+	@Test
+	fun `penName handle round-trips spaces through dashes`() {
+		assertEquals("Jane-Doe", ProjectName.penNameForUrl("Jane Doe"))
+		assertEquals("Jane Doe", ProjectName.penNameFromUrl("Jane-Doe"))
+	}
 }

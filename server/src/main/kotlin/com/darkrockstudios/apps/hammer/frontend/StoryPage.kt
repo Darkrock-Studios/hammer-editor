@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ReaderDay
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
-import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlName
+import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
 import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.frontend.utils.Toast
 import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
@@ -62,14 +62,14 @@ fun Route.storyPage(
 					return@get
 				}
 
-				val project = projectsRepository.findProjectByUrlName(session.userId, projectNameParam)
+				val project = projectsRepository.findProjectByUrlSegment(session.userId, projectNameParam)
 				if (project == null) {
 					call.respond(HttpStatusCode.NotFound)
 					return@get
 				}
 
 				val projectId = ProjectId(project.uuid)
-				val projectNameForUrl = ProjectName.formatForUrl(project.name)
+				val projectNameForUrl = ProjectName.projectSegment(project.name, project.uuid)
 
 				// Get scene hierarchy first to determine what to show
 				val hierarchyResult = storyExportService.getSceneHierarchy(session.userId, projectId)
@@ -113,7 +113,7 @@ fun Route.storyPage(
 							?.let { buildReaderBars(it, clock.now()) }
 							?: emptyList()
 						val publicUrl = if (hasAnyAccess && hasPenName) {
-							call.constructPublicUrl(account.pen_name, result.projectName)
+							call.constructPublicUrl(account.pen_name, result.projectName, project.uuid)
 						} else {
 							""
 						}
@@ -196,7 +196,7 @@ fun Route.storyPage(
 					return@get
 				}
 
-				val project = projectsRepository.findProjectByUrlName(session.userId, projectNameParam)
+				val project = projectsRepository.findProjectByUrlSegment(session.userId, projectNameParam)
 				if (project == null) {
 					call.respond(HttpStatusCode.NotFound)
 					return@get
@@ -280,14 +280,14 @@ fun Route.storyPage(
 					return@post
 				}
 
-				val project = projectsRepository.findProjectByUrlName(session.userId, projectNameParam)
+				val project = projectsRepository.findProjectByUrlSegment(session.userId, projectNameParam)
 				if (project == null) {
 					call.respond(HttpStatusCode.NotFound)
 					return@post
 				}
 
 				val projectId = ProjectId(project.uuid)
-				val projectNameForUrl = ProjectName.formatForUrl(project.name)
+				val projectNameForUrl = ProjectName.projectSegment(project.name, project.uuid)
 				val isCurrentlyPublished = projectAccessRepository.isPublished(session.userId, projectId)
 
 				val (newIsPublished, toastMessage, toastType) = if (isCurrentlyPublished) {
@@ -308,7 +308,7 @@ fun Route.storyPage(
 				val publicUrl = if (hasAnyAccess) {
 					val account = accountsRepository.getAccount(session.userId)
 					if (account.pen_name != null) {
-						call.constructPublicUrl(account.pen_name, project.name)
+						call.constructPublicUrl(account.pen_name, project.name, project.uuid)
 					} else {
 						""
 					}
@@ -350,7 +350,7 @@ fun Route.storyPage(
 
 				val model = call.withDefaults(
 					mapOf(
-						"projectNameForUrl" to ProjectName.formatForUrl(projectNameParam),
+						"projectNameForUrl" to projectNameParam,
 						"minDate" to minDate
 					)
 				)
@@ -368,7 +368,7 @@ fun Route.storyPage(
 
 				val model = call.withDefaults(
 					mapOf(
-						"projectNameForUrl" to ProjectName.formatForUrl(projectNameParam)
+						"projectNameForUrl" to projectNameParam
 					)
 				)
 
@@ -393,14 +393,14 @@ fun Route.storyPage(
 					return@post
 				}
 
-				val project = projectsRepository.findProjectByUrlName(session.userId, projectNameParam)
+				val project = projectsRepository.findProjectByUrlSegment(session.userId, projectNameParam)
 				if (project == null) {
 					call.respond(HttpStatusCode.NotFound)
 					return@post
 				}
 
 				val projectId = ProjectId(project.uuid)
-				val projectNameForUrl = ProjectName.formatForUrl(project.name)
+				val projectNameForUrl = ProjectName.projectSegment(project.name, project.uuid)
 
 				// Form expiresAt is a date (YYYY-MM-DD); treat the boundary as end-of-day UTC.
 				val expiresAtInstant = expiresAt?.let {
@@ -422,7 +422,7 @@ fun Route.storyPage(
 				val publicUrl = if (hasAnyAccess) {
 					val account = accountsRepository.getAccount(session.userId)
 					if (account.pen_name != null) {
-						call.constructPublicUrl(account.pen_name, project.name)
+						call.constructPublicUrl(account.pen_name, project.name, project.uuid)
 					} else ""
 				} else ""
 
@@ -455,14 +455,14 @@ fun Route.storyPage(
 					return@delete
 				}
 
-				val project = projectsRepository.findProjectByUrlName(session.userId, projectNameParam)
+				val project = projectsRepository.findProjectByUrlSegment(session.userId, projectNameParam)
 				if (project == null) {
 					call.respond(HttpStatusCode.NotFound)
 					return@delete
 				}
 
 				val projectId = ProjectId(project.uuid)
-				val projectNameForUrl = ProjectName.formatForUrl(project.name)
+				val projectNameForUrl = ProjectName.projectSegment(project.name, project.uuid)
 				val accessId = accessIdStr.toLongOrNull()
 
 				if (accessId == null) {
@@ -480,7 +480,7 @@ fun Route.storyPage(
 				val publicUrl = if (hasAnyAccess) {
 					val account = accountsRepository.getAccount(session.userId)
 					if (account.pen_name != null) {
-						call.constructPublicUrl(account.pen_name, project.name)
+						call.constructPublicUrl(account.pen_name, project.name, project.uuid)
 					} else ""
 				} else ""
 
@@ -527,13 +527,14 @@ private fun buildReaderBars(daily: List<ReaderDay>, now: Instant): List<Map<Stri
 	}
 }
 
-fun ApplicationCall.constructPublicUrl(penName: String, projectName: String): String {
+fun ApplicationCall.constructPublicUrl(penName: String, projectName: String, projectUuid: String): String {
 	return buildPublicUrl(
 		scheme = request.origin.scheme,
 		host = request.host(),
 		port = request.port(),
 		penName = penName,
-		projectName = projectName
+		projectName = projectName,
+		projectUuid = projectUuid
 	)
 }
 
@@ -542,10 +543,11 @@ fun buildPublicUrl(
 	host: String,
 	port: Int,
 	penName: String,
-	projectName: String
+	projectName: String,
+	projectUuid: String
 ): String {
-	val penNameForUrl = ProjectName.formatForUrl(penName)
-	val projectNameForUrl = ProjectName.formatForUrl(projectName)
+	val penNameForUrl = ProjectName.penNameForUrl(penName)
+	val projectNameForUrl = ProjectName.projectSegment(projectName, projectUuid)
 	return if (port == 80 || port == 443) {
 		"$scheme://$host/a/$penNameForUrl/$projectNameForUrl"
 	} else {
