@@ -16,7 +16,7 @@ The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 	- [ZIP](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.zip)
 	- [TAR](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.tar)
 2. Extract the archive to your desired location
-3. Create your config file: `serverConfig.toml` in a location of your choice. Strongly advise using a port other than `80`, unless this is the only web-based program running on the system.
+3. Create your config file: `serverConfig.toml` in a location of your choice. It is strongly advise using a port other than `80`, unless this is the only web-based program running on the system. If you intend to access the server by the host FQDN (e.g. `hammer.example.com`), make sure to set this in your DNS records; otherwise this will only be accessible via IP (e.g. `10.1.1.1`, `192.0.2.1`).
 
    ```toml
    host = "example.com"
@@ -24,7 +24,7 @@ The Hammer server is a Java application that runs on Windows, Linux, and macOS.
    ```
 
 4. Run the server (_see platform-specific instructions below_)
-5. If everything worked, you should be able to access your server at the host name you set in your config, such as:
+5. If everything worked, you should be able to access your server at your server's IP or at the host name you set in your config file and DNS configuration, such as:
    `http://example.com`
 6. **IMPORTANT!** You must now download one of the clients and create an account on the server. The first account
    created will be the admin account.
@@ -333,10 +333,11 @@ here for Nginx. Use **either** this approach **or** Java SSL, not both.
 
 ### Changes to serverConfig
 
-Example port used. (If you're running multiple services on a webserver, you've probably already used 8080.)
+Example port used. (If you're running multiple services on a webserver, you've probably already used 8080.) For security purposes, make sure to set `bindHosts` as below (V => 3.4.0).
 
 ```toml
 port = 8200
+bindHosts = ["127.0.0.1", "::1"]
 ```
 
 Make sure to update your DNS with your desired URL to be able to use LetsEncrypt and the like.
