@@ -83,7 +83,7 @@ owasp_html_sanitizer = "20260313.1"
 
 sqldelight = "2.3.2"
 postgresql_jdbc = "42.7.11"
-hikaricp = "7.0.2"
+hikaricp = "7.1.0"
 embedded_postgres = "2.2.2"
 embedded_postgres_binaries = "18.4.0"
 testcontainers = "1.21.4"
