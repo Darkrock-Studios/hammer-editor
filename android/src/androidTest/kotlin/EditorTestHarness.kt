@@ -1,6 +1,8 @@
 import android.content.Context
+import android.os.SystemClock
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -66,13 +68,33 @@ fun ComposeTestRule.navigateTo(navTag: String) {
 }
 
 /**
- * Type into the tagged markdown/scene editor. It consumes hardware key events rather than
- * exposing Compose SetText semantics, so performTextInput can't drive it - focus it, then
- * inject real keystrokes via the instrumentation.
+ * Type into the tagged markdown/scene editor and wait for the edit to land.
+ *
+ * The editor consumes hardware key events rather than exposing Compose SetText semantics, so
+ * performTextInput can't drive it. Focus and the async edit flow can each still be unready when
+ * the keystrokes fire, silently dropping them; re-focus and re-inject until [propagated] confirms
+ * the change rather than trusting a single injection.
  */
-fun ComposeTestRule.typeIntoEditor(tag: String, text: String) {
-	onNodeWithTag(tag).performClick()
-	waitForIdle()
-	InstrumentationRegistry.getInstrumentation().sendStringSync(text)
-	waitForIdle()
+fun ComposeTestRule.typeIntoEditor(
+	tag: String,
+	text: String,
+	timeoutMillis: Long = 10_000L,
+	propagated: () -> Boolean,
+) {
+	val instrumentation = InstrumentationRegistry.getInstrumentation()
+	val deadline = SystemClock.uptimeMillis() + timeoutMillis
+	while (true) {
+		onNodeWithTag(tag).performClick()
+		waitForIdle()
+		instrumentation.sendStringSync(text)
+		waitForIdle()
+		try {
+			waitUntil(timeoutMillis = 1_000L) { propagated() }
+			return
+		} catch (e: ComposeTimeoutException) {
+			if (SystemClock.uptimeMillis() >= deadline) {
+				throw AssertionError("Editor input for '$tag' never propagated within ${timeoutMillis}ms", e)
+			}
+		}
+	}
 }
