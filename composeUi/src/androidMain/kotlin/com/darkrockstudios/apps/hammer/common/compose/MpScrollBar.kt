@@ -22,6 +22,7 @@ actual fun MpScrollBarList(
 	state: LazyListState
 ) {
 	AndroidScrollbar(
+		modifier = modifier,
 		state = state,
 		horizontal = false,
 		fixedKnobRatio = 0.1f
@@ -68,6 +69,7 @@ actual fun MpScrollBarList(
  */
 @Composable
 fun AndroidScrollbar(
+	modifier: Modifier = Modifier,
 	state: LazyListState,
 	horizontal: Boolean,
 	alignEnd: Boolean = true,
@@ -128,7 +130,7 @@ fun AndroidScrollbar(
 	)
 
 	return Canvas(
-		modifier = Modifier
+		modifier = modifier
 			.width(thickness)
 			.fillMaxHeight()
 	) {
