@@ -62,7 +62,7 @@ class ProjectBackupRepositoryTest {
 		val backupDef = repo.testCreateNewProjectBackupDef(projectDef)
 
 		val filename = backupDef.path.name
-		assertEquals("Test_Project-2025-12-28T162900Z.zip", filename)
+		assertEquals("Test Project-2025-12-28T162900Z.zip", filename)
 	}
 
 	@Test
@@ -83,6 +83,49 @@ class ProjectBackupRepositoryTest {
 		val backupDef = backups[0]
 		assertEquals("Test Project", backupDef.projectDef.name)
 		assertEquals(modified, backupDef.date)
+	}
+
+	@Test
+	fun `getBackups finds legacy backups for project names containing underscores`() {
+		val name = "My_Project"
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory(name) } returns
+			"/projects/$name".toPath().toHPath()
+
+		// Older clients named the file <projectName with spaces->underscores>-<date>.zip.
+		writeBackupFileNamed(
+			"/projects/.backups/My_Project-2026-06-20T080000Z.zip".toPath(),
+			Instant.parse("2026-06-20T08:00:00Z"),
+		)
+
+		val backups = realRepo().getBackups(ProjectDef(name, "/projects/$name".toPath().toHPath()))
+
+		assertEquals(1, backups.size)
+		assertEquals(name, backups.first().projectDef.name)
+	}
+
+	@Test
+	fun `createBackup names the file with a filesystem-safe encoding`() = runTest {
+		val name = "Book: One"
+		val encodedDir = ProjectsRepository.encodeForFilename(name)
+		every { clock.now() } returns Instant.parse("2026-06-20T08:00:00Z")
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory(name) } returns
+			"/projects/$encodedDir".toPath().toHPath()
+		every { globalSettingsStore.globalSettings } returns
+			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
+
+		val projectDir = "/projects/$encodedDir".toPath()
+		fileSystem.createDirectories(projectDir)
+		fileSystem.write(projectDir / "scene.txt") { writeUtf8("once upon a time") }
+
+		val projectDef = ProjectDef(name, projectDir.toHPath())
+		val backupDef = realRepo().createBackup(projectDef)
+
+		assertNotNull(backupDef)
+		val filename = backupDef.path.name
+		assertFalse(filename.contains(':'), "Backup filename must not contain OS-forbidden chars: $filename")
+		assertEquals(1, realRepo().getBackups(projectDef).size)
 	}
 
 	@Test

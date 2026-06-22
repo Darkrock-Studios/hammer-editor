@@ -38,6 +38,7 @@ open class ProjectBackupRepository(
 
 	fun getBackups(projectDef: ProjectDef): List<ProjectBackupDef> {
 		val dir = getBackupsDirectory().toOkioPath()
+		val keys = backupKeysForProject(projectDef.name)
 		return fileSystem.list(dir)
 			.filter {
 				try {
@@ -46,22 +47,20 @@ open class ProjectBackupRepository(
 					false
 				}
 			}
-			.mapNotNull { path -> getProjectBackupDef(path) }
-			.filter { it.projectDef == projectDef }
+			.mapNotNull { path -> matchBackup(path, projectDef, keys) }
 			.sortedBy { it.date }
 	}
 
-	fun getBackupsForProject(projectDef: ProjectDef): List<ProjectBackupDef> {
-		return getBackups(projectDef).filter { backup -> backup.projectDef == projectDef }
-	}
+	fun getBackupsForProject(projectDef: ProjectDef): List<ProjectBackupDef> = getBackups(projectDef)
 
-	private fun backupNameToProjectName(backupName: String): String {
-		return backupName.replace("_", " ")
-	}
+	// The directory-safe encoding plus the legacy `spaces -> underscores` name, so backups written
+	// by older clients are still matched to their project.
+	private fun backupKeysForProject(projectName: String): Set<String> = setOf(
+		ProjectsRepository.encodeForFilename(projectName),
+		legacyBackupName(projectName),
+	)
 
-	protected fun projectNameToBackupName(projectName: String): String {
-		return projectName.replace(" ", "_")
-	}
+	private fun legacyBackupName(projectName: String): String = projectName.replace(" ", "_")
 
 	protected fun createNewProjectBackupDef(projectDef: ProjectDef): ProjectBackupDef {
 		val path = pathForBackup(projectDef.name, clock.now())
@@ -80,7 +79,7 @@ open class ProjectBackupRepository(
 	}
 
 	private fun filenameForBackup(projectName: String, date: Instant): String {
-		val backupName = projectNameToBackupName(projectName)
+		val backupName = ProjectsRepository.encodeForFilename(projectName)
 		val dateStr = date.toBackupDate()
 		return "$backupName-$dateStr.zip"
 	}
@@ -120,16 +119,14 @@ open class ProjectBackupRepository(
 		}
 	}
 
-	private fun getProjectBackupDef(path: Path): ProjectBackupDef? {
+	private fun matchBackup(path: Path, projectDef: ProjectDef, keys: Set<String>): ProjectBackupDef? {
 		val match = FILE_NAME_PATTERN.matchEntire(path.name) ?: return null
-		val backupName = match.groups[1]?.value ?: return null
-
-		val projectName = backupNameToProjectName(backupName)
-		val projectDir = projectsRepository.getProjectDirectory(projectName)
+		val fileKey = match.groups[1]?.value ?: return null
+		if (fileKey !in keys) return null
 
 		return ProjectBackupDef(
 			path = path.toHPath(),
-			projectDef = ProjectDef(name = projectName, path = projectDir),
+			projectDef = projectDef,
 			date = backupDate(path, match.groups[2]?.value)
 		)
 	}
