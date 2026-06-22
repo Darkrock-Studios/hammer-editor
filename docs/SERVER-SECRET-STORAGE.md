@@ -5,8 +5,7 @@ at rest in the database is optional.** _Self-hosted single user instances are ad
 use encryption._ Encryption makes syncing slower, and has the potential for total user
 data loss if the key materials are mishandled. If you do choose to use encryption, then read on.
 
-# ⚠️⚠️🚨🚨 **EXISTING SERVERS _MUST READ_
-** [Upgrading existing server](#upgrading-an-existing-already-encrypted-server) 🚨🚨⚠️⚠️
+# ⚠️⚠️🚨🚨 **EXISTING SERVERS _MUST READ_** [Upgrading existing server](#upgrading-an-existing-already-encrypted-server) 🚨🚨⚠️⚠️
 
 ## Why encrypt
 
