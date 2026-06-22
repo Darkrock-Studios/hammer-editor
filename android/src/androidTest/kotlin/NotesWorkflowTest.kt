@@ -50,13 +50,10 @@ class NotesWorkflowTest {
 		composeRule.waitUntil(10_000) {
 			composeRule.onAllNodesWithTag(NOTES_CREATE_BODY_TAG).fetchSemanticsNodes().isNotEmpty()
 		}
+		// Creating an empty note silently no-ops, so confirm the word/char counter moved off
+		// its empty value before pressing create.
 		val emptyMeta = composeRule.textOf(NOTES_CREATE_META_TAG)
-		composeRule.typeIntoEditor(NOTES_CREATE_BODY_TAG, "E2E smoke note body")
-
-		// The editor reports text changes through an async flow, so the body can still be
-		// empty right after typing. Creating an empty note silently no-ops (stays on this
-		// screen), so wait for the word/char counter to change before confirming.
-		composeRule.waitUntil(10_000) {
+		composeRule.typeIntoEditor(NOTES_CREATE_BODY_TAG, "E2E smoke note body") {
 			composeRule.textOf(NOTES_CREATE_META_TAG) != emptyMeta
 		}
 		composeRule.onNodeWithTag(NOTES_CREATE_CONFIRM_TAG).performClick()
