@@ -118,6 +118,19 @@ internal fun ApplicationScope.ProjectEditorWindow(
 					component.showGlobalSearch()
 					true
 				}
+				event.type == KeyEventType.KeyDown &&
+					event.key == Key.W &&
+					(event.isCtrlPressed || event.isMetaPressed) -> {
+					onRequestClose(component, app, ApplicationState.CloseType.Project)
+					true
+				}
+
+				event.type == KeyEventType.KeyDown &&
+					event.key == Key.Q &&
+					(event.isCtrlPressed || event.isMetaPressed) -> {
+					onRequestClose(component, app, ApplicationState.CloseType.Application)
+					true
+				}
 				else -> false
 			}
 		}
