@@ -76,7 +76,7 @@ fun Route.reviewFrontend(
 
 				val model = call.withDefaults(
 					mapOf(
-						"projectNameForUrl" to ProjectName.formatForUrl(project.name),
+						"projectNameForUrl" to ProjectName.projectSegment(project.name, project.uuid),
 						"sceneTree" to sceneTree,
 						"sceneCount" to sceneCount,
 					)
@@ -245,7 +245,7 @@ fun Route.reviewFrontend(
 					locked = true,
 					mode = "author",
 					canDecide = !resolved,
-					basePath = "/story/${ProjectName.formatForUrl(project.name)}/reviews/${review.id}",
+					basePath = "/story/${ProjectName.projectSegment(project.name, project.uuid)}/reviews/${review.id}",
 					scenes = buildSceneDtos(scenes, suggestionsByScene),
 				)
 
@@ -255,7 +255,7 @@ fun Route.reviewFrontend(
 						"page_script" to "/assets/js/review.js",
 						"page_pre_script" to "/assets/js/review-logic.js",
 						"projectName" to project.name,
-						"projectNameForUrl" to ProjectName.formatForUrl(project.name),
+						"projectNameForUrl" to ProjectName.projectSegment(project.name, project.uuid),
 						"reviewerLine" to call.msg("review_author_suggestions_from", review.label),
 						"reviewerEmail" to review.reviewerEmail,
 						"submittedLine" to call.msg(
@@ -365,7 +365,7 @@ fun Route.reviewFrontend(
 			if (session != null && found != null && found.userId == session.userId) {
 				val project = projectDao.getProjectByRowId(found.projectId)
 				if (project != null) {
-					val projectUrl = ProjectName.formatForUrl(project.name)
+					val projectUrl = ProjectName.projectSegment(project.name, project.uuid)
 					val submitted = found.status == ReviewStatus.SUBMITTED ||
 						found.status == ReviewStatus.RESOLVED
 					call.respondRedirect(
@@ -658,7 +658,7 @@ private suspend fun notifyAuthorOfSubmission(
 		val account = accountsRepository.getAccount(review.userId)
 		val project = projectDao.getProjectByRowId(review.projectId) ?: return
 		val reviewUrl = call.constructBaseUrl() +
-			"/story/${ProjectName.formatForUrl(project.name)}/reviews/${review.id}"
+			"/story/${ProjectName.projectSegment(project.name, project.uuid)}/reviews/${review.id}"
 		mailer.sendSubmittedNotice(
 			toEmail = account.email,
 			reviewerLabel = review.label,
@@ -776,7 +776,7 @@ private suspend fun ApplicationCall.resolveProject(
 		respond(HttpStatusCode.BadRequest)
 		return null
 	}
-	val project = projectsRepository.findProjectByUrlName(userId, projectNameParam)
+	val project = projectsRepository.findProjectByUrlSegment(userId, projectNameParam)
 	if (project == null) {
 		respond(HttpStatusCode.NotFound)
 	}
@@ -792,9 +792,10 @@ private suspend fun ApplicationCall.reviewMatchesUrlProject(
 	projectDao: ProjectDao,
 	review: ReviewRequest,
 ): Boolean {
-	val urlName = parameters["projectName"] ?: return false
+	val segment = parameters["projectName"] ?: return false
 	val reviewProject = projectDao.getProjectByRowId(review.projectId) ?: return false
-	return ProjectName.formatForUrl(reviewProject.name) == urlName
+	// The URL identifies the project by the id embedded in its segment, not by name.
+	return ProjectName.idFromSegment(segment) == ProjectName.shortId(reviewProject.uuid)
 }
 
 /** As [reviewMatchesUrlProject] but for routes that only have the review id. */
@@ -894,7 +895,7 @@ suspend fun ApplicationCall.reviewPanelModel(
 	val reviewModels = reviewCards(reviewRepository, userId, projectId)
 	return withDefaults(
 		mapOf(
-			"projectNameForUrl" to ProjectName.formatForUrl(projectName),
+			"projectNameForUrl" to ProjectName.projectSegment(projectName, projectId.id),
 			"reviews" to reviewModels,
 			"hasReviews" to reviewModels.isNotEmpty(),
 		)

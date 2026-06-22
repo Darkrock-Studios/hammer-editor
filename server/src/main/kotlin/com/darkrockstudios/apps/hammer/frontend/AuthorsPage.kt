@@ -33,7 +33,7 @@ fun Route.authorsPage(
 			val authorsForTemplate = authors.map { author ->
 				mapOf(
 					"penName" to author.penName,
-					"penNameUrl" to ProjectName.formatForUrl(author.penName),
+					"penNameUrl" to ProjectName.penNameForUrl(author.penName),
 					"hasBio" to !author.bio.isNullOrBlank(),
 					"bioPreview" to author.bio?.take(150)?.let { if (author.bio.length > 150) "$it..." else it }
 				)

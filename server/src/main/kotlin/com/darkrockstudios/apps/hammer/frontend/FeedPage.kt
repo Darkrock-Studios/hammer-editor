@@ -43,9 +43,9 @@ fun Route.feedPage(
 
 				mapOf(
 					"projectName" to story.projectName,
-					"projectNameUrl" to ProjectName.formatForUrl(story.projectName),
+					"projectNameUrl" to ProjectName.projectSegment(story.projectName, story.projectUuid),
 					"penName" to story.penName,
-					"penNameUrl" to ProjectName.formatForUrl(story.penName),
+					"penNameUrl" to ProjectName.penNameForUrl(story.penName),
 					"publishedAt" to formattedDate
 				)
 			}
