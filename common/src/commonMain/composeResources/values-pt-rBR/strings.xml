@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="app_name">Hammer</string>
+	<string name="save_all_toast">Saved all Scenes</string>
 	<string name="unsaved_scenes_dialog_title">Cenas não salvas</string>
 	<string name="unsaved_scenes_dialog_message">O que deve ser feito com cenas não salvas?</string>
 	<string name="unsaved_encyclopedia_dialog_title">Verbete da Enciclopédia Não Salvo</string>
 	<string name="unsaved_encyclopedia_dialog_message">Descartar verbete?</string>
 	<string name="unsaved_notes_dialog_title">Anotação não salva</string>
 	<string name="unsaved_notes_dialog_message">Descartar anotação?</string>
+	<string name="unsaved_timeline_dialog_title">Unsaved Timeline Event</string>
+	<string name="unsaved_timeline_dialog_message">Discard event?</string>
 	<string name="unsaved_dialog_negative_button">Cancelar</string>
 	<string name="unsaved_dialog_positive_button">Descartar e fechar</string>
 	<string name="unsaved_entity_dialog_negative_button">Descartar</string>
