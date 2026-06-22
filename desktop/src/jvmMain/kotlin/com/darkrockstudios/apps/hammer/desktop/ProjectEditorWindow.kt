@@ -10,10 +10,21 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.*
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
+import androidx.compose.ui.input.key.isShiftPressed
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.ApplicationScope
@@ -25,7 +36,7 @@ import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
@@ -42,6 +53,10 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.toHdNavRailDestination
+import com.darkrockstudios.apps.hammer.project_window_menu_file
+import com.darkrockstudios.apps.hammer.project_window_menu_item_close
+import com.darkrockstudios.apps.hammer.project_window_menu_item_exit
+import com.darkrockstudios.apps.hammer.project_window_title
 import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedWindow
 import io.github.kdroidfilter.nucleus.window.material.MaterialTitleBar
 import kotlinx.coroutines.launch
@@ -168,6 +183,18 @@ internal fun ApplicationScope.ProjectEditorWindow(
 						when (result) {
 							ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
 							ConfirmCloseResult.Discard -> component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+							ConfirmCloseResult.Cancel -> cancelClose()
+						}
+					}
+				}
+
+				CloseConfirm.Timeline -> {
+					confirmCloseUnsavedTimelineDialog(closeRequest) { result, closeType ->
+						when (result) {
+							ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
+							ConfirmCloseResult.Discard -> component.closeRequestDealtWith(
+								CloseConfirm.Timeline
+							)
 							ConfirmCloseResult.Cancel -> cancelClose()
 						}
 					}

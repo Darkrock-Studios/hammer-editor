@@ -4,6 +4,7 @@ enum class CloseConfirm {
 	Scenes,
 	Notes,
 	Encyclopedia,
+	Timeline,
 	Sync,
 	Complete
 }

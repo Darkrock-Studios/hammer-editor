@@ -9,7 +9,12 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
@@ -18,10 +23,14 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.defaultScaffold
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
+import com.darkrockstudios.apps.hammer.common.compose.fab
+import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.rootElement
 import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
 
@@ -56,6 +65,7 @@ fun ProjectRootScaffold(
 				CloseConfirm.Scenes -> ConfirmUnsavedScenesDialog(component, coroutineScope)
 				CloseConfirm.Notes -> ConfirmCloseUnsavedNotesDialog(component)
 				CloseConfirm.Encyclopedia -> ConfirmCloseUnsavedEncyclopediaDialog(component)
+				CloseConfirm.Timeline -> ConfirmCloseUnsavedTimelineDialog(component)
 				CloseConfirm.Sync -> component.showProjectSync()
 				CloseConfirm.Complete -> onCloseRequest()
 			}

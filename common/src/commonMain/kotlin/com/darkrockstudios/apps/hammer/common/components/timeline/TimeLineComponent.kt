@@ -1,7 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.components.timeline
 
 import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.decompose.router.stack.*
+import com.arkivanov.decompose.router.stack.ChildStack
+import com.arkivanov.decompose.router.stack.StackNavigation
+import com.arkivanov.decompose.router.stack.childStack
+import com.arkivanov.decompose.router.stack.pop
+import com.arkivanov.decompose.router.stack.popWhile
+import com.arkivanov.decompose.router.stack.push
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.subscribe
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
@@ -109,7 +114,22 @@ class TimeLineComponent(
 		}
 	}
 
-	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
+	override fun shouldConfirmClose(): Set<CloseConfirm> {
+		val unsaved = when (val destination = stack.value.active.instance) {
+			is TimeLine.Destination.CreateEventDestination -> true
+			is TimeLine.Destination.ViewEventDestination -> {
+				destination.component.isEditingAndDirty()
+			}
+
+			else -> false
+		}
+
+		return if (unsaved) {
+			setOf(CloseConfirm.Timeline)
+		} else {
+			emptySet()
+		}
+	}
 
 	init {
 		stack.subscribe(lifecycle) {
