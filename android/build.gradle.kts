@@ -73,6 +73,12 @@ android {
 	if (isFDroidBuild) {
 		// Swap in the manifest that also declares the public-storage permissions.
 		sourceSets.getByName("main").manifest.srcFile("src/fdroid/AndroidManifest.xml")
+		// The dependency metadata blob is encrypted with a Google-only key, so it
+		// can't be verified by F-Droid/IzzyOnDroid. Strip it from F-Droid outputs.
+		dependenciesInfo {
+			includeInApk = false
+			includeInBundle = false
+		}
 	}
 	buildFeatures {
 		compose = true
