@@ -9,6 +9,27 @@ import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 
+/**
+ * The nodes the tree should actually render, in display order: every node except the root scene
+ * and any node hidden beneath a collapsed ancestor. Collapsed subtrees are omitted entirely rather
+ * than rendered as zero-height rows, which keeps the LazyColumn from composing the whole tree to
+ * fill its viewport (the source of the bottom-row flicker on large, mostly-collapsed trees).
+ */
+internal fun visibleSceneNodes(
+	tree: ImmutableTree<SceneItem>,
+	collapsedNodes: Map<Int, Boolean>,
+): List<TreeValue<SceneItem>> {
+	val visible = ArrayList<TreeValue<SceneItem>>(tree.totalNodes)
+	for (index in 0 until tree.totalNodes) {
+		val node = tree[index]
+		if (node.value.isRootScene) continue
+
+		val hiddenByCollapsedAncestor = tree.getBranch(index, true)
+			.any { collapsedNodes[it.value.id] == true }
+		if (!hiddenByCollapsedAncestor) visible.add(node)
+	}
+	return visible
+}
 
 internal fun findInsertPosition(
 	dragOffset: Offset,
