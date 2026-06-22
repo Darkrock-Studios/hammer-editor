@@ -288,7 +288,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	fun `Create Scene, Invalid Scene Name`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { ProjectsRepository.validateFileName(any()) } returns CResult.failure(errorException)
+		every { ProjectsRepository.validateFileName(any(), any()) } returns CResult.failure(errorException)
 
 		repo.initializeSceneEditor()
 
@@ -301,7 +301,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	fun `Create Scene, Under Root`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
+		every { ProjectsRepository.validateFileName(any(), any()) } returns CResult.success()
 
 		repo.initializeSceneEditor()
 
@@ -322,7 +322,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	fun `Create Scene, In Group`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
+		every { ProjectsRepository.validateFileName(any(), any()) } returns CResult.success()
 
 		repo.initializeSceneEditor()
 
@@ -347,7 +347,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	fun `Create Group, In Root`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
+		every { ProjectsRepository.validateFileName(any(), any()) } returns CResult.success()
 
 		repo.initializeSceneEditor()
 		verifyTreeAndFilesystem()
@@ -366,7 +366,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	fun `Create Group, In Group`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
+		every { ProjectsRepository.validateFileName(any(), any()) } returns CResult.success()
 
 		repo.initializeSceneEditor()
 
@@ -396,7 +396,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	fun `Create Scene, Name With Path-Separator Char Does Not Crash`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
+		every { ProjectsRepository.validateFileName(any(), any()) } returns CResult.success()
 
 		repo.initializeSceneEditor()
 
@@ -422,7 +422,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	fun `Create Group, Name With Path-Separator Char Does Not Crash`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
+		every { ProjectsRepository.validateFileName(any(), any()) } returns CResult.success()
 
 		repo.initializeSceneEditor()
 
@@ -559,7 +559,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	fun `Rename Scene`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
+		every { ProjectsRepository.validateFileName(any(), any()) } returns CResult.success()
 
 		repo.initializeSceneEditor()
 
@@ -588,7 +588,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	fun `Rename Scene with invalid name`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { ProjectsRepository.validateFileName(any()) } returns CResult.failure(
+		every { ProjectsRepository.validateFileName(any(), any()) } returns CResult.failure(
 			ValidationFailedException(Res.string.create_project_error_blank)
 		)
 
@@ -614,7 +614,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	fun `ReId Scene`() = runTest {
 		configure(PROJECT_1_NAME)
 
-		every { ProjectsRepository.validateFileName(any()) } returns CResult.success()
+		every { ProjectsRepository.validateFileName(any(), any()) } returns CResult.success()
 
 		repo.initializeSceneEditor()
 

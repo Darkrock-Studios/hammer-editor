@@ -71,10 +71,20 @@ class EncodeFilenameTest {
 
 	@Test
 	fun `validateFileName rejects Windows reserved basenames`() {
-		listOf("CON", "con", "PRN", "AUX", "NUL", "COM1", "LPT9", "CON.txt").forEach {
+		listOf("CON", "con", "PRN", "AUX", "NUL", "COM0", "COM1", "LPT0", "LPT9", "CON.txt").forEach {
 			assertTrue(
 				ProjectsRepository.validateFileName(it).isFailure,
 				"expected '$it' to be rejected as reserved",
+			)
+		}
+	}
+
+	@Test
+	fun `validateFileName allows reserved names and leading dot for wrapped names`() {
+		listOf("CON", "con", "COM0", "LPT0", ".prologue").forEach {
+			assertTrue(
+				ProjectsRepository.validateFileName(it, usedAsRawFilename = false).isSuccess,
+				"expected '$it' to validate as a scene/group name",
 			)
 		}
 	}

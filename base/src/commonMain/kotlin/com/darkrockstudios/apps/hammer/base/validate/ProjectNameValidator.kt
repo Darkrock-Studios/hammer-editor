@@ -38,12 +38,15 @@ object ProjectNameValidator {
 	private val allowedCharRegex = Regex("""[\d\p{L}+ _'\-.,!?:()&"/\\*|<>’“”]""")
 	private val allowedNameRegex = Regex("""[\d\p{L}+ _'\-.,!?:()&"/\\*|<>’“”]+""")
 
-	// Windows reserved basenames (case-insensitive, with or without extension).
-	private val windowsReservedNames = setOf(
-		"CON", "PRN", "AUX", "NUL",
-		"COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
-		"LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
-	)
+	// Windows reserved basenames (case-insensitive, with or without extension). The superscript
+	// COM¹/LPT¹ variants Windows also reserves are already excluded by the allowed-character set.
+	private val windowsReservedNames: Set<String> = buildSet {
+		addAll(listOf("CON", "PRN", "AUX", "NUL"))
+		for (i in 0..9) {
+			add("COM$i")
+			add("LPT$i")
+		}
+	}
 
 	/** True if [ch] may appear in a project/scene name. Used by the client when sanitizing names. */
 	fun isCharacterAllowed(ch: Char): Boolean = allowedCharRegex.matches(ch.toString())
@@ -57,17 +60,23 @@ object ProjectNameValidator {
 	 * Validates a project/file name, returning the first failure found or
 	 * [ProjectNameValidationResult.VALID]. The checks run in the order the UI relies on:
 	 * null, then blank, then invalid characters, then length.
+	 *
+	 * [usedAsRawFilename] is true when the name becomes a filesystem basename verbatim (a project
+	 * directory). Scene/group titles are stored wrapped as `order~name~id`, so for them a leading
+	 * dot or a Windows reserved word can never collide on disk; pass false to allow those. A
+	 * trailing `.`/` ` is rejected either way — the on-disk encoder strips it, so it could never
+	 * survive in the stored name.
 	 */
-	fun validate(name: String?): ProjectNameValidationResult {
+	fun validate(name: String?, usedAsRawFilename: Boolean = true): ProjectNameValidationResult {
 		if (name == null) return ProjectNameValidationResult.NULL
 		if (name.isBlank()) return ProjectNameValidationResult.BLANK
 
 		val charactersValid = allowedNameRegex.matches(name) &&
-			!name.startsWith('.') &&
 			!name.endsWith('.') &&
-			!name.endsWith(' ') &&
-			!isWindowsReservedName(name)
-		if (!charactersValid) return ProjectNameValidationResult.INVALID_CHARACTERS
+			!name.endsWith(' ')
+		val rawFilenameValid = !usedAsRawFilename ||
+			(!name.startsWith('.') && !isWindowsReservedName(name))
+		if (!charactersValid || !rawFilenameValid) return ProjectNameValidationResult.INVALID_CHARACTERS
 
 		if (name.length > MAX_LENGTH) return ProjectNameValidationResult.TOO_LONG
 

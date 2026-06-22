@@ -288,8 +288,8 @@ class ProjectsRepository(
 		 * result to a localized [CResult] for the UI. The rules live in `:base` so the server
 		 * enforces the same ones; this only translates them into display messages.
 		 */
-		fun validateFileName(fileName: String?): CResult<Unit> {
-			return when (ProjectNameValidator.validate(fileName)) {
+		fun validateFileName(fileName: String?, usedAsRawFilename: Boolean = true): CResult<Unit> {
+			return when (ProjectNameValidator.validate(fileName, usedAsRawFilename)) {
 				ProjectNameValidationResult.VALID -> {
 					Napier.i("$fileName was valid")
 					CResult.success()

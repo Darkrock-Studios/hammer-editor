@@ -65,11 +65,54 @@ class ProjectNameValidatorTest {
 
 	@Test
 	fun windowsReservedNamesAreRejected() {
-		for (name in listOf("CON", "con", "PRN", "nul", "COM1", "LPT9", "AUX.txt")) {
+		for (name in listOf("CON", "con", "PRN", "nul", "COM0", "COM1", "LPT0", "LPT9", "AUX.txt")) {
 			assertEquals(
 				ProjectNameValidationResult.INVALID_CHARACTERS,
 				ProjectNameValidator.validate(name),
 				"expected reserved name '$name' to be rejected",
+			)
+		}
+	}
+
+	@Test
+	fun reservedNamesAllowedWhenNotRawFilename() {
+		for (name in listOf("CON", "con", "PRN", "nul", "COM0", "COM1", "LPT0", "LPT9", "AUX.txt")) {
+			assertEquals(
+				ProjectNameValidationResult.VALID,
+				ProjectNameValidator.validate(name, usedAsRawFilename = false),
+				"expected reserved name '$name' to be allowed for a wrapped (non-raw) name",
+			)
+		}
+	}
+
+	@Test
+	fun leadingDotAllowedWhenNotRawFilename() {
+		assertEquals(
+			ProjectNameValidationResult.VALID,
+			ProjectNameValidator.validate(".prologue", usedAsRawFilename = false),
+		)
+	}
+
+	@Test
+	fun trailingDotAndSpaceStillRejectedWhenNotRawFilename() {
+		// The on-disk encoder strips a trailing '.'/' ', so the title could never keep them.
+		assertEquals(
+			ProjectNameValidationResult.INVALID_CHARACTERS,
+			ProjectNameValidator.validate("Chapter 1.", usedAsRawFilename = false),
+		)
+		assertEquals(
+			ProjectNameValidationResult.INVALID_CHARACTERS,
+			ProjectNameValidator.validate("Chapter 1 ", usedAsRawFilename = false),
+		)
+	}
+
+	@Test
+	fun disallowedCharactersStillRejectedWhenNotRawFilename() {
+		for (name in listOf("Bad#Name", "a~b")) {
+			assertEquals(
+				ProjectNameValidationResult.INVALID_CHARACTERS,
+				ProjectNameValidator.validate(name, usedAsRawFilename = false),
+				"expected '$name' to be rejected",
 			)
 		}
 	}

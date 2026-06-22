@@ -195,7 +195,7 @@ class SceneRepository(
 	}
 
 	fun validateSceneName(sceneName: String): CResult<Unit> =
-		ProjectsRepository.validateFileName(sceneName)
+		ProjectsRepository.validateFileName(sceneName, usedAsRawFilename = false)
 
 	fun getPathSegments(sceneItem: SceneItem): List<Int> {
 		// Archived scenes have no hierarchy - they're flattened in .archived/

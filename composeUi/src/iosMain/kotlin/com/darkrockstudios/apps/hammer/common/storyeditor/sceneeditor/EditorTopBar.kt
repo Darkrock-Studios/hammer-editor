@@ -16,9 +16,6 @@ import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdUnsavedBadge
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.isFailure
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
-import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ValidationFailedException
 import kotlinx.coroutines.launch
 
 @Composable
@@ -96,25 +93,12 @@ private fun RenameSceneDialog(
 	state: SceneEditor.State,
 	component: SceneEditor,
 ) {
-	val strRes = rememberStrRes()
 	val dialogScope = rememberCoroutineScope()
 	var editSceneNameValue by rememberSaveable(state.isEditingName, state.sceneItem.id) {
 		mutableStateOf(state.sceneItem.name)
 	}
 
-	val validationResult = remember(editSceneNameValue) {
-		ProjectsRepository.validateFileName(editSceneNameValue.trim().ifEmpty { null })
-	}
-	val isValid = validationResult.isSuccess
-
-	val errorMessage by produceState<String?>(null, validationResult) {
-		value = if (isFailure(validationResult)) {
-			when (val exception = validationResult.exception) {
-				is ValidationFailedException -> strRes.get(exception.errorMessage)
-				else -> validationResult.displayMessage?.text(strRes)
-			}
-		} else null
-	}
+	val validation = rememberNameValidation(editSceneNameValue, NameKind.SceneItem)
 
 	val meta = when (state.sceneItem.type) {
 		SceneItem.Type.Scene -> "SCENE"
@@ -123,7 +107,7 @@ private fun RenameSceneDialog(
 	}
 
 	fun submit() {
-		if (isValid) dialogScope.launch { component.changeSceneName(editSceneNameValue) }
+		if (validation.isValid) dialogScope.launch { component.changeSceneName(editSceneNameValue) }
 	}
 
 	FormDialog(
@@ -136,14 +120,14 @@ private fun RenameSceneDialog(
 		onConfirm = ::submit,
 		onCancel = component::endSceneNameEdit,
 		onDismiss = component::endSceneNameEdit,
-		confirmEnabled = isValid,
+		confirmEnabled = validation.isValid,
 	) {
 		FormField(
 			value = editSceneNameValue,
 			onValueChange = { editSceneNameValue = it },
 			label = Res.string.scene_editor_name_hint.get(),
 			autoFocus = true,
-			error = if (editSceneNameValue.isNotEmpty() && !isValid) errorMessage else null,
+			error = validation.fieldError(editSceneNameValue),
 			onImeAction = ::submit,
 		)
 	}
