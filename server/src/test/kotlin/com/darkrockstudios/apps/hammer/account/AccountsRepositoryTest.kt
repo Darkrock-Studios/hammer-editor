@@ -319,6 +319,31 @@ class AccountsRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `Refresh Token - succeeds within the refresh window after the access token expired`() = runTest {
+		coEvery { authTokenDao.getTokenByInstallId(userId, installId) } returns
+			createAuthToken().copy(expires = clock.now() - 30.days)
+		coEvery { authTokenDao.setToken(any(), any(), any(), any()) } just Runs
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val result = accountsRepository.refreshToken(userId, installId, refreshToken)
+
+		assertTrue(isSuccess(result))
+	}
+
+	@Test
+	fun `Refresh Token - fails once expired beyond the refresh window`() = runTest {
+		coEvery { authTokenDao.getTokenByInstallId(userId, installId) } returns
+			createAuthToken().copy(expires = clock.now() - 200.days)
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val result = accountsRepository.refreshToken(userId, installId, refreshToken)
+
+		assertTrue(result.isFailure)
+	}
+
+	@Test
 	fun `Login fails with old SHA-256 hash`() = runTest {
 		// Create account with old-style SHA-256 hash (hex string)
 		val oldHash = "abc123def456789"

@@ -47,6 +47,11 @@ class AccountsRepository(
 ) {
 	private val tokenLifetime = 30.days
 
+	// How long a refresh token outlives its access token. The refresh deadline is
+	// expires + this, and since expires slides forward on each issue, an active
+	// session never lapses; an idle one must re-login this long after access expiry.
+	private val refreshWindow = 180.days
+
 	private val authTokenGenerator = SecureTokenGenerator(Token.LENGTH, base64)
 	private val cipherSaltGenerator = SecureTokenGenerator(CIPHER_SALT_LENGTH, base64)
 
@@ -196,7 +201,10 @@ class AccountsRepository(
 		val hashedRefreshToken = tokenHasher.hashToken(refreshToken)
 		val authToken = authTokenDao.getTokenByInstallId(userId, installId)
 
-		return if (authToken != null && authToken.refresh == hashedRefreshToken) {
+		return if (authToken != null &&
+			authToken.refresh == hashedRefreshToken &&
+			!authToken.isRefreshExpired(clock, refreshWindow)
+		) {
 			val newToken = createToken(userId, installId)
 			SResult.success(newToken)
 		} else {
