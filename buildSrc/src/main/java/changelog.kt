@@ -13,6 +13,9 @@ import javax.swing.*
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
+/** Publish scope chosen in the prepare-release dialog. */
+private enum class ReleaseScope { ALL, TARGETED, SERVER_ONLY }
+
 fun writeSemvar(oldSemVar: String, newSemVar: SemVar, versionFile: File) {
 	val versions = versionFile.readText()
 	val updated = versions.replace("app = \"$oldSemVar\"", "app = \"$newSemVar\"")
@@ -74,7 +77,7 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 	val curSemVar = parseSemVar(currentSemVarStr)
 	val windowClosedSignal = CountDownLatch(1)
 	var newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.MINOR)
-	var targeted = false
+	var scope = ReleaseScope.ALL
 	val selectedPlatforms: MutableSet<Platform> = mutableSetOf()
 
 	System.setProperty("java.awt.headless", "false")
@@ -119,14 +122,20 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 
 		fun refreshTagPreview() {
 			when {
-				!targeted -> {
+				scope == ReleaseScope.ALL -> {
 					tagLabel.text = "v$newSemVar"
 					tagLabel.font = tagFontBig
 					tagLabel.foreground = normalColor
 					commitButton.isEnabled = true
 				}
+				scope == ReleaseScope.SERVER_ONLY -> {
+					tagLabel.text = "v$newSemVar${tagSuffix(setOf(Platform.SERVER))}"
+					tagLabel.font = tagFontBig
+					tagLabel.foreground = normalColor
+					commitButton.isEnabled = true
+				}
 				selectedPlatforms.isEmpty() -> {
-					tagLabel.text = "(select at least one platform)"
+					tagLabel.text = "(select at least one store)"
 					tagLabel.font = tagFontWarn
 					tagLabel.foreground = warningColor
 					commitButton.isEnabled = false
@@ -175,17 +184,20 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 
 		val scopeAll = JRadioButton("All").apply { isSelected = true }
 		val scopeTargeted = JRadioButton("Targeted")
-		ButtonGroup().apply { add(scopeAll); add(scopeTargeted) }
+		val scopeServer = JRadioButton("Server only")
+		ButtonGroup().apply { add(scopeAll); add(scopeTargeted); add(scopeServer) }
 		val scopeRow = JPanel(FlowLayout(FlowLayout.LEFT, 12, 0)).apply {
 			alignmentX = Component.LEFT_ALIGNMENT
-			add(scopeAll); add(scopeTargeted)
+			add(scopeAll); add(scopeTargeted); add(scopeServer)
 		}
 		scopeSection.add(scopeRow)
 		scopeSection.add(Box.createRigidArea(Dimension(0, 6)))
 
-		// Platform checkboxes — built once, enabled/disabled by mode. 2 rows × 3 cols
-		// keeps longer labels (Mac App Store, iOS App Store) from crowding.
-		val checkboxesByPlatform: Map<Platform, JCheckBox> = Platform.values().associateWith { platform ->
+		// Per-store checkboxes — built once, enabled only in Targeted mode. 2 rows × 3
+		// cols keeps longer labels (Mac App Store, iOS App Store) from crowding. The
+		// server is a whole scope of its own (Server only), so it isn't a checkbox here.
+		val clientStores = Platform.values().filter { it in Platform.CLIENT_STORES }
+		val checkboxesByPlatform: Map<Platform, JCheckBox> = clientStores.associateWith { platform ->
 			JCheckBox(platform.displayName).apply {
 				isEnabled = false  // All mode is the default → checkboxes start disabled
 				addActionListener {
@@ -197,21 +209,22 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 		}
 		val checkboxGrid = JPanel(GridLayout(2, 3, 12, 4)).apply {
 			alignmentX = Component.LEFT_ALIGNMENT
-			Platform.values().forEach { add(checkboxesByPlatform[it]) }
+			clientStores.forEach { add(checkboxesByPlatform[it]) }
 		}
 		scopeSection.add(checkboxGrid)
 
-		fun setMode(toTargeted: Boolean) {
-			targeted = toTargeted
+		fun setMode(newScope: ReleaseScope) {
+			scope = newScope
 			selectedPlatforms.clear()
 			checkboxesByPlatform.values.forEach { cb ->
 				cb.isSelected = false
-				cb.isEnabled = toTargeted
+				cb.isEnabled = newScope == ReleaseScope.TARGETED
 			}
 			refreshTagPreview()
 		}
-		scopeAll.addActionListener { setMode(false) }
-		scopeTargeted.addActionListener { setMode(true) }
+		scopeAll.addActionListener { setMode(ReleaseScope.ALL) }
+		scopeTargeted.addActionListener { setMode(ReleaseScope.TARGETED) }
+		scopeServer.addActionListener { setMode(ReleaseScope.SERVER_ONLY) }
 
 		// ============= Section: Will push tag =============
 		val tagSection = section("Will push tag").apply { add(tagLabel) }
@@ -272,7 +285,11 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 
 		// ============= Commit handler =============
 		commitButton.addActionListener {
-			val platforms = if (targeted) selectedPlatforms.toSet() else Platform.ALL
+			val platforms = when (scope) {
+				ReleaseScope.ALL -> Platform.ALL
+				ReleaseScope.TARGETED -> selectedPlatforms.toSet()
+				ReleaseScope.SERVER_ONLY -> setOf(Platform.SERVER)
+			}
 			result = ReleaseInfo(
 				semVar = newSemVar,
 				changeLog = changeLog.text,

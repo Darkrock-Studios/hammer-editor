@@ -29,6 +29,11 @@ Use this when one store needs a hotfix and you don't want to ship the whole matr
 	- Full release: `v1.2.4`
 	- Single store: `v1.2.4+google-play`
 	- Subset: `v1.2.4+google-play+fdroid`
+	- Server only: `v1.2.4+server`
+- **Server only** ships no client store at all. The server distribution is built and
+  attached to the release like always (and deployed to [hammer.ink](https://hammer.ink)
+  out of band); the `+server` tag simply matches none of the per-store publish jobs, so
+  no app store upload runs.
 - The global version in `libs.versions.toml` is still bumped every time, so stores not
   included this cycle catch up on the next full release (their patch number will skip
   forward, which Apple/Google both accept since each store sees a monotonically increasing

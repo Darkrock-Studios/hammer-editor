@@ -47,8 +47,14 @@ The rest of this doc goes into detail on how to do all of that.
 
 ## A note on this doc
 
-CLI examples assume the packaged server (`./server` / `server.bat`); pass
-arguments through `--args`, e.g. `./server --args="generate-keyring"`.
+CLI examples use the packaged server's start script (`./server/bin/server`, or
+`server\bin\server.bat` on Windows). It passes its arguments straight through,
+so the subcommand and its options follow the script name directly, e.g.
+`./server/bin/server generate-keyring`.
+
+(If you instead run the server through Gradle, that's where `--args` belongs:
+`./gradlew :server:run --args="generate-keyring"`. Don't pass `--args` to the
+packaged start script — it isn't a server option and the command will fail.)
 
 ## The keyring
 
@@ -92,6 +98,13 @@ file = "/etc/hammer/server.keyring.json"   # default: ~/hammer_data/server.keyri
 # Store the keyring some where else, not next to the database!
 ```
 
+> ⚠️ **`file` must be an absolute path.** The server reads this value verbatim and
+> does **not** expand `~` — that is your shell's job, and the shell never touches a
+> value quoted inside a TOML file. `file = "~/hammer_data/server.keyring.json"`
+> resolves to a literal `./~/hammer_data/...` directory that does not exist, the
+> provider finds no keyring, and the server **silently falls back to a legacy
+> `server.secret`** if one is present. Always write `file = "/home/you/.../server.keyring.json"`.
+
 `mode` has three states:
 
 | `mode`                  | Meaning                                                                                                                                                                                             |
@@ -108,10 +121,10 @@ convergence._
 
 ```bash
 # Print a fresh keyring to stdout…
-./server --args="generate-keyring"
+./server/bin/server generate-keyring
 
 # …or write it straight to the default location.
-./server --args="generate-keyring --out ~/hammer_data/server.keyring.json"
+./server/bin/server generate-keyring --out ~/hammer_data/server.keyring.json
 ```
 
 This mints random keys for both roles. Now copy them, into your chosen key provider:
@@ -150,13 +163,13 @@ env or file, exactly as the server would (including a grandfathered legacy
 `server.secret`):
 
 ```bash
-./server --args="inspect-keyring --config /path/to/serverConfig.toml"
+./server/bin/server inspect-keyring --config /path/to/serverConfig.toml
 ```
 
 Or point it straight at a file, which overrides the provider:
 
 ```bash
-./server --args="inspect-keyring --in /etc/hammer/server.keyring.json"
+./server/bin/server inspect-keyring --in /etc/hammer/server.keyring.json
 ```
 
 ## Enabling encryption (plaintext → AES)
@@ -190,7 +203,7 @@ data onto it.
    role, make it active (keeps `v1` so existing rows still read), and write the
    result out:
    ```bash
-   ./server --args="rotate-key --role content --config /path/to/serverConfig.toml --out ./server.keyring.json"
+   ./server/bin/server rotate-key --role content --config /path/to/serverConfig.toml --out ./server.keyring.json
    ```
    (Use `--in <file>` instead of `--config` to rotate a specific keyring file.)
 3. Place the rotated keyring for your provider (write the file, or update the env
@@ -209,7 +222,7 @@ Before a real run, see exactly what would happen — without writing anything or
 binding a port:
 
 ```bash
-./server --args="--converge-dry-run"
+./server/bin/server --converge-dry-run
 ```
 
 It reports how many rows are off the configured target and flags any entity that
@@ -231,10 +244,10 @@ generation is never removed.
 
 ```bash
 # Preview first — reports what it would drop and keep, writes nothing.
-./server --args="prune-key --role content --config /path/to/serverConfig.toml --dry-run"
+./server/bin/server prune-key --role content --config /path/to/serverConfig.toml --dry-run
 
 # Prune unused content generations and write the result out.
-./server --args="prune-key --role content --config /path/to/serverConfig.toml --out ./server.keyring.json"
+./server/bin/server prune-key --role content --config /path/to/serverConfig.toml --out ./server.keyring.json
 ```
 
 Then place the pruned keyring for your provider (write the file, or update the
@@ -282,6 +295,15 @@ _Do **not** run `generate-keyring` for this — that mints new random keys and
 would leave existing data unreadable._
 
 #### Secret migration and upgrade:
+
+> ⚠️ **Use absolute paths throughout, and keep them consistent.** The `[secret]
+> file` value is not `~`-expanded by the server (see the warning under
+> [Configuration](#configuration)), and every `--out`/`--config` below must point
+> at that **same** file. If a `rotate-key`/`prune-key` reads from a different file
+> than it writes to, the rotation lands in an orphan file and never takes effect.
+> The examples use `/var/lib/hammer/server.keyring.json` — substitute your own
+> absolute path.
+
 1. Shut the server down
 2. Edit your `serverConfig.toml`
 
@@ -295,14 +317,15 @@ mode = "aes"
 ```bash
 # Reads ~/hammer_data/server.secret and writes a keyring whose content.v1 and
 # tokenHmac.v1 are that secret, byte-for-byte. (pass --in to override the path.)
-./server --args="migrate-secret --out ./server.keyring.json"
+# Write it to the same absolute path the file provider reads in the next step.
+./server/bin/server migrate-secret --out /var/lib/hammer/server.keyring.json
 ```
 
 4. Edit your `serverConfig.toml` and select the file provider (NOT env var yet!)
 
 ```toml
 provider = "file"
-file = "~/hammer_data/server.keyring.json" # Just during migration
+file = "/var/lib/hammer/server.keyring.json" # absolute path; ~ is NOT expanded. Just during migration
 ```
 
 5. Start the server again. The server will now read the keyring instead of grandfathering,
@@ -316,8 +339,8 @@ file = "~/hammer_data/server.keyring.json" # Just during migration
 ```bash
 # Reads the current keyring via the config's provider, adds a fresh active key,
 # and writes the whole keyring back out. Run content first, then tokenHmac.
-./server --args="rotate-key --role content   --config /path/to/serverConfig.toml --out ~/hammer_data/server.keyring.json"
-./server --args="rotate-key --role tokenHmac --config /path/to/serverConfig.toml --out ~/hammer_data/server.keyring.json"
+./server/bin/server rotate-key --role content   --config /path/to/serverConfig.toml --out /var/lib/hammer/server.keyring.json
+./server/bin/server rotate-key --role tokenHmac --config /path/to/serverConfig.toml --out /var/lib/hammer/server.keyring.json
 ```
 
 _Rotating `tokenHmac` invalidates active sessions, every user must re-log in on the next start._
@@ -329,11 +352,25 @@ _Rotating `tokenHmac` invalidates active sessions, every user must re-log in on 
     `tokenHmac` generation needs no database check. Prune both, writing the result back:
 
 ```bash
-./server --args="prune-key --role content   --config /path/to/serverConfig.toml --out ~/hammer_data/server.keyring.json"
-./server --args="prune-key --role tokenHmac --config /path/to/serverConfig.toml --out ~/hammer_data/server.keyring.json"
+./server/bin/server prune-key --role content   --config /path/to/serverConfig.toml --out /var/lib/hammer/server.keyring.json
+./server/bin/server prune-key --role tokenHmac --config /path/to/serverConfig.toml --out /var/lib/hammer/server.keyring.json
 ```
 
 12. Everything is set for you to now select a more secure secret storage method. Either
     move the file to a different directory not captured in backups, or switch to "env"
     storage.
 13. Once your new secret storage is configured, start the server one last time. You're all set! 🥳
+
+> **Verifying after a switch to `env`.** `EnvironmentFile=` is loaded by **systemd**,
+> not by an interactive shell — so a manual `./server/bin/server …` run won't see
+> `HAMMER_KEYRING` and the env provider will read nothing. To verify by hand, source
+> the env file into your shell first:
+>
+> ```bash
+> set -a; . /etc/hammer/hammer.env; set +a
+> ./server/bin/server inspect-keyring --config /path/to/serverConfig.toml
+> ```
+>
+> When run under systemd it Just Works; only manual invocations need the `set -a` step.
+> (Tip: once `server.secret` is deleted, a misconfigured `env` provider fails the boot
+> loudly instead of silently grandfathering — keep it that way.)

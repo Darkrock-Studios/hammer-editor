@@ -78,6 +78,7 @@ jobs:
               ms-store)      echo "MS Store" ;;
               mac-app-store) echo "Mac App Store" ;;
               ios-app-store) echo "iOS App Store" ;;
+              server)        echo "Server" ;;
               *)             echo "$1" ;;
             esac
           }

@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.4.1] - 2026-6-23
+
+- [Fix] Server session token hmac fix
+
+
 ## [3.4.0] - 2026-6-22
 
 - [New] Shortcuts: Ctrl+W (close project), Ctrl+Q (quit), Ctrl+Alt+S (save all)
