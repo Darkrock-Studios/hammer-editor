@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
 import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -134,6 +135,25 @@ class AccountsRepositoryTest : BaseTest() {
 			password = "power1234"
 		)
 		assertTrue(result.isFailure)
+	}
+
+	@Test
+	fun `Login - unknown account and wrong password are indistinguishable`() = runTest {
+		coEvery { accountDao.findAccount(email) } returns account
+		coEvery { accountDao.findAccount("no@account.com") } returns null
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val wrongPassword = accountsRepository.login(email, password + "x", installId)
+		val unknownAccount = accountsRepository.login("no@account.com", password, installId)
+
+		assertTrue(isFailure(wrongPassword))
+		assertTrue(isFailure(unknownAccount))
+		assertEquals(
+			wrongPassword.displayMessage?.r?.joinToString("|"),
+			unknownAccount.displayMessage?.r?.joinToString("|"),
+			"Login must not reveal whether the account exists",
+		)
 	}
 
 	@Test
@@ -297,6 +317,43 @@ class AccountsRepositoryTest : BaseTest() {
 		val result = accountsRepository.refreshToken(userId, installId, refreshToken)
 
 		assertTrue(result.isFailure)
+	}
+
+	@Test
+	fun `Refresh Token - succeeds within the refresh window after the access token expired`() = runTest {
+		coEvery { authTokenDao.getTokenByInstallId(userId, installId) } returns
+			createAuthToken().copy(expires = clock.now() - 30.days)
+		coEvery { authTokenDao.setToken(any(), any(), any(), any()) } just Runs
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val result = accountsRepository.refreshToken(userId, installId, refreshToken)
+
+		assertTrue(isSuccess(result))
+	}
+
+	@Test
+	fun `Refresh Token - fails once expired beyond the refresh window`() = runTest {
+		coEvery { authTokenDao.getTokenByInstallId(userId, installId) } returns
+			createAuthToken().copy(expires = clock.now() - 200.days)
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val result = accountsRepository.refreshToken(userId, installId, refreshToken)
+
+		assertTrue(result.isFailure)
+	}
+
+	@Test
+	fun `purgeExpiredTokens deletes only tokens past the refresh window`() = runTest {
+		val now = clock.now()
+		coEvery { authTokenDao.deleteExpiredBefore(any()) } just Runs
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		accountsRepository.purgeExpiredTokens(now)
+
+		coVerify { authTokenDao.deleteExpiredBefore(now - AccountsRepository.REFRESH_TOKEN_WINDOW) }
 	}
 
 	@Test

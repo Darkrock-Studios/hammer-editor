@@ -11,6 +11,7 @@ import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.slf4j.Logger
+import java.security.MessageDigest
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
@@ -170,7 +171,12 @@ class PatreonApiClient(
 			mac.init(secretKey)
 			val hash = mac.doFinal(payload.toByteArray())
 			val computedSignature = hash.joinToString("") { "%02x".format(it) }
-			computedSignature.equals(signature, ignoreCase = true)
+			// Constant-time compare: a byte-by-byte String.equals leaks, via timing,
+			// how long a prefix of the expected signature an attacker guessed right.
+			MessageDigest.isEqual(
+				computedSignature.toByteArray(Charsets.UTF_8),
+				signature.lowercase().toByteArray(Charsets.UTF_8),
+			)
 		} catch (e: Exception) {
 			logger.error("Failed to verify webhook signature", e)
 			false

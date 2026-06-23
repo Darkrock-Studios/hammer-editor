@@ -52,7 +52,11 @@ class AccountsComponent(
 		installId: String,
 		refreshToken: String
 	): SResult<Token> {
-		if (checkIfWhiteListRejected(userId)) {
+		// An unknown userId falls through to refreshToken, which fails the same way
+		// a bad token does — never surface AccountNotFound as a 500, since the status
+		// difference would reveal whether the account exists.
+		val account = accountsRepository.getAccountOrNull(userId)
+		if (account != null && checkIfWhiteListRejected(account)) {
 			return whiteListRejectedFailure()
 		}
 
@@ -66,11 +70,6 @@ class AccountsComponent(
 		} else {
 			whiteListRepository.useWhiteList() && whiteListRepository.isOnWhiteList(email).not()
 		}
-	}
-
-	private suspend fun checkIfWhiteListRejected(userId: Long): Boolean {
-		val account = accountsRepository.getAccount(userId)
-		return checkIfWhiteListRejected(account)
 	}
 
 	private suspend fun checkIfWhiteListRejected(account: Account): Boolean {

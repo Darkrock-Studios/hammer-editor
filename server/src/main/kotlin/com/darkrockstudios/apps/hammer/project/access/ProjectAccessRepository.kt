@@ -59,10 +59,8 @@ class ProjectAccessRepository(
 	}
 
 	suspend fun deleteAccessById(userId: Long, projectUuid: ProjectId, accessId: Long): Boolean {
-		// Verify the user owns this project first
-		projectDao.getProjectId(userId, projectUuid)
-		projectAccessDao.deleteAccessById(accessId)
-		return true
+		val projectId = projectDao.getProjectId(userId, projectUuid)
+		return projectAccessDao.deleteAccessById(accessId, projectId)
 	}
 
 	suspend fun isPublished(userId: Long, projectUuid: ProjectId): Boolean {

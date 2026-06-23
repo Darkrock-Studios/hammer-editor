@@ -1,24 +1,28 @@
 package com.darkrockstudios.apps.hammer.frontend.utils
 
+import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
-import io.ktor.htmx.*
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.auth.*
-import io.ktor.server.html.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import io.ktor.server.sessions.*
+import io.ktor.htmx.HxRequestHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.createRouteScopedPlugin
+import io.ktor.server.auth.authenticate
+import io.ktor.server.html.respondHtml
+import io.ktor.server.response.respondRedirect
+import io.ktor.server.routing.Route
+import io.ktor.server.sessions.get
+import io.ktor.server.sessions.sessions
 import kotlinx.html.div
 import kotlinx.html.stream.createHTML
+import org.koin.ktor.ext.get
 
 val AdminOnlyPlugin = createRouteScopedPlugin(
 	name = "AdminOnlyPlugin"
 ) {
+	val accountsRepository = application.get<AccountsRepository>()
 	onCall { call ->
 		val session = call.sessions.get<UserSession>()
 
-		if (session == null || !session.isAdmin) {
+		if (session == null || !accountsRepository.isAdmin(session.userId)) {
 			if (call.request.headers[HxRequestHeaders.Request] == "true") {
 				val message = call.msg("security_access_denied")
 				call.respondHtml(HttpStatusCode.Forbidden) {

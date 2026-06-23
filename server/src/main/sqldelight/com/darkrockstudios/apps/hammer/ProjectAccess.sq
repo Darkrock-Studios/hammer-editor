@@ -50,7 +50,8 @@ WHERE project_id = :projectId;
 
 deleteAccessById:
 DELETE FROM project_access
-WHERE id = :accessId;
+WHERE id = :accessId AND project_id = :projectId
+RETURNING id;
 
 deletePublicAccessForProject:
 DELETE FROM project_access

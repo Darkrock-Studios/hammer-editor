@@ -22,6 +22,7 @@ import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvid
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MetricsCollector
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
+import com.darkrockstudios.apps.hammer.account.TokenMaintenanceJob
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringMaintenanceJob
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
@@ -135,6 +136,7 @@ fun mainModule(
 	singleOf(::StoryReaderRepository)
 	single { MonitoringState() }
 	singleOf(::MonitoringMaintenanceJob)
+	singleOf(::TokenMaintenanceJob)
 	singleOf(::StoryExportService)
 	singleOf(::PenNameService)
 	singleOf(::BioService)

@@ -10,7 +10,7 @@ class KeyringCodec(
 	private val base64: Base64,
 ) {
 	private val parser = Json { ignoreUnknownKeys = true }
-	private val writer = Json { prettyPrint = true }
+	private val writer = Json
 
 	fun parse(json: String): Keyring = parser.decodeFromString(Keyring.serializer(), json).also { it.validate() }
 
