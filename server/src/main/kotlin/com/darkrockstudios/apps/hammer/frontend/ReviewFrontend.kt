@@ -125,12 +125,13 @@ fun Route.reviewFrontend(
 					}
 
 					is ServerResult.Success -> {
-						val reviewUrl = call.constructReviewUrl(result.data.token)
+						val token = result.data.token
+						val trustedReviewUrl = call.constructReviewUrl(token)
 						val review = (reviewRepository.getReview(session.userId, result.data.reviewRequestId)
 							as? ServerResult.Success)?.data
 
 						var emailSent = false
-						if (reviewInviteMailer != null) {
+						if (reviewInviteMailer != null && trustedReviewUrl != null) {
 							val account = accountsRepository.getAccount(session.userId)
 							val authorName = account.pen_name?.ifBlank { null } ?: "A writer"
 							val emailResult = reviewInviteMailer.sendInvite(
@@ -138,7 +139,7 @@ fun Route.reviewFrontend(
 								authorName = authorName,
 								projectName = project.name,
 								note = note,
-								reviewUrl = reviewUrl,
+								reviewUrl = trustedReviewUrl,
 								expiresFormatted = review?.expires?.let { formatReviewDate(it) },
 								locale = call.getLocale(),
 							)
@@ -156,8 +157,11 @@ fun Route.reviewFrontend(
 							)
 						} else {
 							// No email configured (or send failed): hand the author the link directly.
+							// The author is on the trusted host in their own session, so a
+							// request-derived link is safe to show when publicUrl isn't set.
+							val shareUrl = trustedReviewUrl ?: call.requestReviewUrl(token)
 							val panelHtml = renderTemplate("partials/review-panel.mustache", model)
-							val linkModel = call.withDefaults(mapOf("reviewUrl" to reviewUrl))
+							val linkModel = call.withDefaults(mapOf("reviewUrl" to shareUrl))
 							val linkDialogHtml = buildString {
 								append("""<div id="review-dialog-container" hx-swap-oob="innerHTML">""")
 								append(renderTemplate("partials/review-link-dialog.mustache", linkModel))
@@ -657,7 +661,8 @@ private suspend fun notifyAuthorOfSubmission(
 	runCatching {
 		val account = accountsRepository.getAccount(review.userId)
 		val project = projectDao.getProjectByRowId(review.projectId) ?: return
-		val reviewUrl = call.constructBaseUrl() +
+		val baseUrl = call.constructBaseUrl() ?: return
+		val reviewUrl = baseUrl +
 			"/story/${ProjectName.projectSegment(project.name, project.uuid)}/reviews/${review.id}"
 		mailer.sendSubmittedNotice(
 			toEmail = account.email,
@@ -857,10 +862,14 @@ private suspend fun ApplicationCall.respondReviewErrorModel(title: String, body:
 	respond(HttpStatusCode.Gone, MustacheContent("review-error.mustache", model))
 }
 
-private fun ApplicationCall.constructBaseUrl(): String = publicBaseUrl()
+private fun ApplicationCall.constructBaseUrl(): String? = publicBaseUrl()
 
-private fun ApplicationCall.constructReviewUrl(token: String): String =
-	"${constructBaseUrl()}/review/$token"
+private fun ApplicationCall.constructReviewUrl(token: String): String? =
+	constructBaseUrl()?.let { "$it/review/$token" }
+
+/** A review link built from the request host, for display to the signed-in author only. */
+private fun ApplicationCall.requestReviewUrl(token: String): String =
+	"${requestBaseUrl()}/review/$token"
 
 internal fun formatReviewDate(instant: Instant): String =
 	DateTimeFormatter.ofPattern("MMM d, yyyy", java.util.Locale.ENGLISH)

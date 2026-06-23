@@ -38,7 +38,7 @@ class PasswordResetRepository(
 	 * Request a password reset. Sends email if account exists.
 	 * Always returns success to avoid email enumeration.
 	 */
-	suspend fun requestPasswordReset(email: String, resetUrl: (String) -> String): PasswordResetResult {
+	suspend fun requestPasswordReset(email: String, resetUrl: (String) -> String?): PasswordResetResult {
 		// Always perform timing-safe operations to prevent enumeration
 		val account = accountDao.findAccount(email)
 
@@ -64,8 +64,10 @@ class PasswordResetRepository(
 		val expires = clock.now() + tokenLifetime
 		passwordResetTokenDao.createToken(account.id, token, expires)
 
-		// Send email
-		val resetLink = resetUrl(token)
+		// Without a trusted (config-derived) base URL we cannot build a link whose
+		// host isn't attacker-influenced; skip the email rather than email a
+		// poisoned link. Still return Success so the response stays enumeration-safe.
+		val resetLink = resetUrl(token) ?: return PasswordResetResult.Success
 		val emailResult = emailService.sendEmail(
 			to = email,
 			subject = "Reset Your Hammer Password",

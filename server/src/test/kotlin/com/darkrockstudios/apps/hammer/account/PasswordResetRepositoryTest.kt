@@ -114,6 +114,17 @@ class PasswordResetRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `requestPasswordReset sends no email when no trusted base url is available`() = runTest {
+		coEvery { accountDao.findAccount(email) } returns account()
+		coEvery { passwordResetTokenDao.getRecentTokenCount(userId, any()) } returns 0
+
+		val result = repository().requestPasswordReset(email) { null }
+
+		assertIs<PasswordResetResult.Success>(result)
+		coVerify(exactly = 0) { emailService.sendEmail(any(), any(), any(), any()) }
+	}
+
+	@Test
 	fun `requestPasswordReset past the rate limit succeeds silently without sending`() = runTest {
 		coEvery { accountDao.findAccount(email) } returns account()
 		coEvery { passwordResetTokenDao.getRecentTokenCount(userId, any()) } returns 3

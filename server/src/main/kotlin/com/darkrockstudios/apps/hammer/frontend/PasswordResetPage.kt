@@ -41,7 +41,7 @@ private fun Route.forgotPasswordPage(passwordResetRepository: PasswordResetRepos
 
 			// Request password reset (always returns success to prevent enumeration)
 			passwordResetRepository.requestPasswordReset(email) { token ->
-				"${call.publicBaseUrl()}/reset-password?token=$token"
+				call.publicBaseUrl()?.let { base -> "$base/reset-password?token=$token" }
 			}
 
 			// Show success message
