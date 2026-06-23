@@ -1,8 +1,9 @@
-[New/Client] Added more text editor keyboard shortcuts (bold, italic and strikethrough, and more)
-[New/Server] Active Users metric on the monitoring dashboard
-[New/Server] Per-story reader counter and unique active-users metrics
-[Improve/Server] Monitoring dashboard distinguishes client-fault from server-fault errors
-[Fix/Server] Error-rate metric now includes exception-driven errors
-[Fix/Server] Dashboard time buckets now roll over correctly
-[Fix/Web] Editorial review character escaping
-[Fix/Web] Mobile nav drawer rendering beneath page content
+- [New] Shortcuts: Ctrl+W (close project), Ctrl+Q (quit), Ctrl+Alt+S (save all)
+- [Fix] Markdown import maps heading levels to scene/group hierarchy
+- [Fix] Warn before discarding unsaved timeline edits on close
+- [Fix] Backups missing from Manage Backups
+- [Fix] Spell-check crash
+- [Fix] scene-tree flicker and performance
+- [Fix] Allow Windows reserved names in scene/group titles
+- [New] Server: Improved cryptography key management
+- [Fix] Server: Reworked project URLs to fix 404s
