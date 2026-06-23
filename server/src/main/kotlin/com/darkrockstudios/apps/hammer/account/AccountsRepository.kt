@@ -85,11 +85,16 @@ class AccountsRepository(
 		val existingAccount = accountDao.findAccount(email)
 		val passwordResult = PasswordValidator.validate(password)
 		return when {
-			existingAccount != null -> SResult.failure(
-				"account already exists",
-				Msg.r("api_accounts_create_error_accountexists"),
-				CreateFailed("Account already exists")
-			)
+			existingAccount != null -> {
+				// Hash anyway so the existing-account path costs the same Argon2 time as
+				// creating a new account — no timing oracle for account enumeration.
+				hashPassword(password)
+				SResult.failure(
+					"account already exists",
+					Msg.r("api_accounts_create_error_accountexists"),
+					CreateFailed("Account already exists")
+				)
+			}
 
 			!EmailValidator.validate(email) -> SResult.failure(
 				"invalid email",
@@ -209,6 +214,10 @@ class AccountsRepository(
 
 	suspend fun getAccount(userId: Long): Account {
 		return accountDao.getAccount(userId) ?: throw AccountNotFound(userId)
+	}
+
+	suspend fun getAccountOrNull(userId: Long): Account? {
+		return accountDao.getAccount(userId)
 	}
 
 	suspend fun updatePenName(userId: Long, penName: String?) {

@@ -21,8 +21,8 @@ import org.koin.ktor.ext.get
 
 fun Route.accountRoutes() {
 	route("/account") {
-		createAccount()
 		rateLimit(RateLimitName(LOGIN_RATE_LIMIT)) {
+			createAccount()
 			login()
 		}
 		refreshToken()

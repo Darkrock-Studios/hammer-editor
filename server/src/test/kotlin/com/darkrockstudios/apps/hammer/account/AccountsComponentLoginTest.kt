@@ -163,6 +163,26 @@ class AccountsComponentLoginTest {
 	}
 
 	@Test
+	fun `Refresh - unknown user id fails as a normal failure instead of throwing`() = runTest {
+		val unknownUserId = 4242L
+		coEvery { accountsRepository.getAccountOrNull(unknownUserId) } returns null
+		coEvery { accountsRepository.refreshToken(unknownUserId, installId, "bad-refresh") } returns
+			SResult.failure("No valid token")
+
+		val comp = AccountsComponent(
+			accountsRepository,
+			whiteListRepository,
+			projectsRepository,
+			configRepository,
+			serverConfig
+		)
+
+		val result = comp.refreshToken(unknownUserId, installId, "bad-refresh")
+
+		assertTrue(isFailure(result))
+	}
+
+	@Test
 	fun `Login - Failure - Bad Login`() = runTest {
 		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery { accountsRepository.findAccount(validEmail) } returns account
