@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.analytics
 
 import com.darkrockstudios.apps.hammer.AnalyticsConfig
 import com.darkrockstudios.apps.hammer.AnalyticsProviderType
+import com.darkrockstudios.apps.hammer.GoogleConfig
 import com.darkrockstudios.apps.hammer.UmamiConfig
 import org.junit.jupiter.api.Test
 import kotlin.test.assertContains
@@ -85,6 +86,43 @@ class AnalyticsProviderTest {
 	@Test
 	fun `originOf keeps an explicit port and strips the path`() {
 		assertEquals("https://umami.example.com:3000", originOf("https://umami.example.com:3000/script.js"))
+	}
+
+	@Test
+	fun `google head snippet loads gtag and configures the measurement id`() {
+		val provider = GoogleAnalyticsProvider(GoogleConfig(measurementId = "G-ABC123"))
+		val snippet = provider.headSnippet()
+		assertContains(snippet, """src="https://www.googletagmanager.com/gtag/js?id=G-ABC123"""")
+		assertContains(snippet, "gtag('config','G-ABC123')")
+	}
+
+	@Test
+	fun `google event bridge forwards hammerTrack calls to gtag`() {
+		val provider = GoogleAnalyticsProvider(GoogleConfig(measurementId = "G-ABC123"))
+		val bridge = provider.eventBridge()
+		assertContains(bridge, "window.hammerTrack")
+		assertContains(bridge, "gtag('event',n,d)")
+	}
+
+	@Test
+	fun `google declares google CSP hosts across script, connect, and img`() {
+		val provider = GoogleAnalyticsProvider(GoogleConfig(measurementId = "G-ABC123"))
+		assertEquals(listOf("https://*.googletagmanager.com"), provider.scriptSrcHosts())
+		assertContains(provider.connectSrcHosts(), "https://*.google-analytics.com")
+		assertContains(provider.imgSrcHosts(), "https://*.google-analytics.com")
+	}
+
+	@Test
+	fun `factory returns a google provider when configured`() {
+		val provider = AnalyticsProviderFactory.create(
+			AnalyticsConfig(type = AnalyticsProviderType.GOOGLE, google = GoogleConfig(measurementId = "G-ABC123"))
+		)
+		assertIs<GoogleAnalyticsProvider>(provider)
+	}
+
+	@Test
+	fun `factory returns null for google type with no config block`() {
+		assertNull(AnalyticsProviderFactory.create(AnalyticsConfig(type = AnalyticsProviderType.GOOGLE, google = null)))
 	}
 
 	@Test

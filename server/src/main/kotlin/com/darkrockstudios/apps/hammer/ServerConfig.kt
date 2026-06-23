@@ -44,7 +44,8 @@ data class ServerConfig(
 @Serializable(with = AnalyticsProviderType.Serializer::class)
 enum class AnalyticsProviderType(val serial: String) {
 	NONE("none"),
-	UMAMI("umami");
+	UMAMI("umami"),
+	GOOGLE("google");
 
 	object Serializer : CaseInsensitiveEnumSerializer<AnalyticsProviderType>(
 		"AnalyticsProviderType", entries.toTypedArray(), { it.serial }
@@ -55,6 +56,7 @@ enum class AnalyticsProviderType(val serial: String) {
 data class AnalyticsConfig(
 	val type: AnalyticsProviderType = AnalyticsProviderType.NONE,
 	val umami: UmamiConfig? = null,
+	val google: GoogleConfig? = null,
 ) {
 	/** The active provider, resolved once when the config is loaded. Null when analytics is off. */
 	@Transient
@@ -66,6 +68,10 @@ data class AnalyticsConfig(
 			AnalyticsProviderType.UMAMI -> {
 				requireNotNull(umami) { "analytics.type=umami requires an [analytics.umami] config block" }
 				umami.validate()
+			}
+			AnalyticsProviderType.GOOGLE -> {
+				requireNotNull(google) { "analytics.type=google requires an [analytics.google] config block" }
+				google.validate()
 			}
 		}
 	}
@@ -108,6 +114,24 @@ data class UmamiConfig(
 				"$label must be a bare origin (scheme://host[:port], no path): $value"
 			}
 		}
+	}
+}
+
+@Serializable
+data class GoogleConfig(
+	/** The GA4 Measurement ID, e.g. "G-XXXXXXXXXX", from the Google Analytics data stream. */
+	val measurementId: String,
+) {
+	fun validate() {
+		require(measurementId.isNotBlank()) { "analytics.google.measurementId must not be blank" }
+		// Strict format keeps the id safe to interpolate verbatim into the inline gtag init script.
+		require(MEASUREMENT_ID_REGEX.matches(measurementId)) {
+			"analytics.google.measurementId must look like a GA4 id (G-XXXXXXXXXX): $measurementId"
+		}
+	}
+
+	private companion object {
+		val MEASUREMENT_ID_REGEX = Regex("^G-[A-Za-z0-9]+$")
 	}
 }
 
