@@ -28,6 +28,14 @@ class AnalyticsProviderTest {
 	}
 
 	@Test
+	fun `umami event bridge forwards hammerTrack calls to umami track`() {
+		val provider = UmamiAnalyticsProvider(UmamiConfig(websiteId = "x"))
+		val bridge = provider.eventBridge()
+		assertContains(bridge, "window.hammerTrack")
+		assertContains(bridge, "umami.track(n,d)")
+	}
+
+	@Test
 	fun `umami cloud posts events to the gateway host, not the script host`() {
 		// Umami Cloud serves the script from cloud.umami.is but POSTs events to a separate
 		// gateway origin (baked into cloud.umami.is/script.js). connect-src must allow it.

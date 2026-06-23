@@ -18,6 +18,15 @@ interface AnalyticsProvider {
 	/** Raw HTML injected into `<head>`, rendered via Mustache triple-braces. */
 	fun headSnippet(): String
 
+	/**
+	 * JS body defining `window.hammerTrack(name, data)` in this provider's terms.
+	 *
+	 * The shared binder (`assets/js/analytics.js`) reads `data-track-*` attributes off clicked
+	 * elements and calls `window.hammerTrack`; this snippet forwards that to the vendor's API.
+	 * Empty when the provider has no event API.
+	 */
+	fun eventBridge(): String
+
 	/** Origins (scheme://host[:port], no path) to add to the CSP `script-src`. */
 	fun scriptSrcHosts(): List<String>
 
@@ -33,6 +42,9 @@ internal class UmamiAnalyticsProvider(config: UmamiConfig) : AnalyticsProvider {
 		"""<script defer src="${escapeAttr(config.scriptUrl)}" data-website-id="${escapeAttr(config.websiteId)}"></script>"""
 
 	override fun headSnippet(): String = snippet
+
+	override fun eventBridge(): String =
+		"window.hammerTrack=function(n,d){window.umami&&window.umami.track(n,d)};"
 
 	override fun scriptSrcHosts(): List<String> = listOf(origin)
 
