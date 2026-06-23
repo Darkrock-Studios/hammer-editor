@@ -256,17 +256,30 @@ const val SESSION_AUTH = "auth-session"
 fun AuthenticationConfig.frontendAuthentication(accountRepo: AccountsRepository, whitelistRepo: WhiteListRepository) {
 	session<UserSession>(SESSION_AUTH) {
 		validate { session ->
-			val account = runCatching { accountRepo.getAccount(session.userId) }.getOrNull()
-			val allowed = when {
-				account == null -> false
-				whitelistRepo.useWhiteList() -> whitelistRepo.isOnWhiteList(account.email)
-				else -> true
-			}
-			if (allowed) session else null
+			if (sessionIsAuthorized(session, accountRepo, whitelistRepo)) session else null
 		}
 		challenge {
 			call.respondRedirect("/login")
 		}
+	}
+}
+
+/**
+ * Whether [session] should reach whitelist-protected pages: the account must exist
+ * and, when the whitelist is active, be on it. Must match the redirect gate in the
+ * login page — if the two disagree, a logged-in but unauthorized user loops between
+ * /login and /dashboard.
+ */
+suspend fun sessionIsAuthorized(
+	session: UserSession,
+	accountRepo: AccountsRepository,
+	whitelistRepo: WhiteListRepository,
+): Boolean {
+	val account = runCatching { accountRepo.getAccount(session.userId) }.getOrNull()
+	return when {
+		account == null -> false
+		whitelistRepo.useWhiteList() -> whitelistRepo.isOnWhiteList(account.email)
+		else -> true
 	}
 }
 

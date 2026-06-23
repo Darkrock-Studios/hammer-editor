@@ -27,8 +27,11 @@ import io.ktor.server.testing.ApplicationTestBuilder
 import io.ktor.server.testing.testApplication
 import io.mockk.coEvery
 import io.mockk.mockk
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 
 class FrontendAuthenticationTest {
@@ -127,5 +130,36 @@ class FrontendAuthenticationTest {
 
 		assertEquals(HttpStatusCode.Found, response.status)
 		assertEquals("/login", response.headers["Location"])
+	}
+
+	// The login page and the dashboard auth gate must agree on this predicate;
+	// if they diverge, an unauthorized-but-logged-in user loops /login <-> /dashboard.
+	@Test
+	fun `session is unauthorized when not whitelisted`() = runBlocking {
+		coEvery { accountRepo.getAccount(7) } returns account(7, "user@example.com")
+		coEvery { whitelistRepo.useWhiteList() } returns true
+		coEvery { whitelistRepo.isOnWhiteList("user@example.com") } returns false
+
+		val session = UserSession(userId = 7, username = "user@example.com", isAdmin = false)
+		assertFalse(sessionIsAuthorized(session, accountRepo, whitelistRepo))
+	}
+
+	@Test
+	fun `session is unauthorized when account is missing`() = runBlocking {
+		coEvery { accountRepo.getAccount(7) } throws AccountNotFound(7)
+		coEvery { whitelistRepo.useWhiteList() } returns true
+
+		val session = UserSession(userId = 7, username = "user@example.com", isAdmin = false)
+		assertFalse(sessionIsAuthorized(session, accountRepo, whitelistRepo))
+	}
+
+	@Test
+	fun `session is authorized when whitelisted`() = runBlocking {
+		coEvery { accountRepo.getAccount(7) } returns account(7, "user@example.com")
+		coEvery { whitelistRepo.useWhiteList() } returns true
+		coEvery { whitelistRepo.isOnWhiteList("user@example.com") } returns true
+
+		val session = UserSession(userId = 7, username = "user@example.com", isAdmin = false)
+		assertTrue(sessionIsAuthorized(session, accountRepo, whitelistRepo))
 	}
 }

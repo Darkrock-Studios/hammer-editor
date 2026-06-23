@@ -35,9 +35,12 @@ private fun Route.loginPage(
 	route("/login") {
 		get {
 			val session: UserSession? = call.sessions.get<UserSession>()
-			if (session != null) {
+			if (session != null && sessionIsAuthorized(session, accountsRepository, whiteListRepository)) {
 				call.respondRedirect("/dashboard")
 			} else {
+				// Drop a present-but-unauthorized cookie so the user isn't bounced
+				// straight back to /dashboard and into a redirect loop.
+				if (session != null) call.sessions.clear<UserSession>()
 				val model = buildLoginModel(call, whiteListRepository, configRepository, serverConfig)
 				call.respond(MustacheContent("login.mustache", call.withDefaults(model)))
 			}
@@ -56,14 +59,22 @@ private fun Route.loginPage(
 			if (isSuccess(result)) {
 				val token = result.data
 				val isAdmin = accountsRepository.isAdmin(token.userId)
-				call.sessions.set(
-					UserSession(
-						userId = token.userId,
-						username = email,
-						isAdmin = isAdmin
-					)
+				val session = UserSession(
+					userId = token.userId,
+					username = email,
+					isAdmin = isAdmin
 				)
-				call.respondRedirect("/dashboard")
+				if (sessionIsAuthorized(session, accountsRepository, whiteListRepository)) {
+					call.sessions.set(session)
+					call.respondRedirect("/dashboard")
+				} else {
+					// Credentials are valid but the user isn't whitelisted; don't set a
+					// session that /dashboard would reject (which would loop back here).
+					val model = buildLoginModel(call, whiteListRepository, configRepository, serverConfig)
+						.toMutableMap()
+					model["message"] = call.t(R("api_whitelist_rejected"))
+					call.respond(MustacheContent("login.mustache", call.withDefaults(model)))
+				}
 			} else {
 				val message = result.displayMessageText(call) ?: "Login failed"
 				val model = buildLoginModel(call, whiteListRepository, configRepository, serverConfig).toMutableMap()
