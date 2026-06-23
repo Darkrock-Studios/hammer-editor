@@ -14,6 +14,7 @@ import de.mkammerer.argon2.Argon2Factory
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
 
 enum class UserSortField(val value: String) {
 	CREATED("created"),
@@ -50,7 +51,7 @@ class AccountsRepository(
 	// How long a refresh token outlives its access token. The refresh deadline is
 	// expires + this, and since expires slides forward on each issue, an active
 	// session never lapses; an idle one must re-login this long after access expiry.
-	private val refreshWindow = 180.days
+	private val refreshWindow = REFRESH_TOKEN_WINDOW
 
 	private val authTokenGenerator = SecureTokenGenerator(Token.LENGTH, base64)
 	private val cipherSaltGenerator = SecureTokenGenerator(CIPHER_SALT_LENGTH, base64)
@@ -212,6 +213,15 @@ class AccountsRepository(
 		}
 	}
 
+	/**
+	 * Delete auth tokens whose refresh window has fully elapsed, i.e. they can no
+	 * longer be used to authenticate or to refresh. A still-refreshable row (within
+	 * [REFRESH_TOKEN_WINDOW] of its access expiry) is never touched.
+	 */
+	suspend fun purgeExpiredTokens(now: Instant = clock.now()) {
+		authTokenDao.deleteExpiredBefore(now - REFRESH_TOKEN_WINDOW)
+	}
+
 	suspend fun isAdmin(userId: Long): Boolean {
 		return accountDao.getAccount(userId)?.is_admin == true
 	}
@@ -279,6 +289,11 @@ class AccountsRepository(
 
 	companion object {
 		const val CIPHER_SALT_LENGTH = 16
+
+		// A refresh token stays valid until this long past its access token's expiry.
+		// The token-maintenance purge uses the same window so it never deletes a row
+		// that could still refresh.
+		val REFRESH_TOKEN_WINDOW = 180.days
 
 		// Fixed input used only to mint the decoy hash for the login timing defense.
 		private const val DECOY_PASSWORD = "hammer-decoy-password"

@@ -34,4 +34,8 @@ class AuthTokenDao(database: Database) {
 	suspend fun deleteTokensByUserId(userId: Long) {
 		queries.deleteByUserId(userId)
 	}
+
+	suspend fun deleteExpiredBefore(cutoff: Instant) {
+		queries.deleteExpiredBefore(cutoff)
+	}
 }

@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
 import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -341,6 +342,18 @@ class AccountsRepositoryTest : BaseTest() {
 		val result = accountsRepository.refreshToken(userId, installId, refreshToken)
 
 		assertTrue(result.isFailure)
+	}
+
+	@Test
+	fun `purgeExpiredTokens deletes only tokens past the refresh window`() = runTest {
+		val now = clock.now()
+		coEvery { authTokenDao.deleteExpiredBefore(any()) } just Runs
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		accountsRepository.purgeExpiredTokens(now)
+
+		coVerify { authTokenDao.deleteExpiredBefore(now - AccountsRepository.REFRESH_TOKEN_WINDOW) }
 	}
 
 	@Test

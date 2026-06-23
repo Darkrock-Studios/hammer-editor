@@ -48,3 +48,6 @@ ON CONFLICT (user_id, install_id) DO UPDATE SET
 
 deleteByUserId:
 DELETE FROM auth_token WHERE user_id = ?;
+
+deleteExpiredBefore:
+DELETE FROM auth_token WHERE expires < :cutoff;
