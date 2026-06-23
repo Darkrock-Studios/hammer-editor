@@ -1,18 +1,22 @@
 package com.darkrockstudios.build
 
 /**
- * Stores Hammer publishes to. A "full" release publishes to all of them; a
- * "single-store" release publishes to a subset.
+ * Targets Hammer publishes to. A "full" release publishes to every client app
+ * store; a "single-store" release publishes to a subset; a "server only"
+ * release publishes to none of them and instead tags the hammer.ink backend.
  *
  * The subset is encoded as a `+token+token` suffix on the git release tag
  * (semver build-metadata syntax). Example:
  *   - All stores:           v1.2.3
  *   - Google Play only:     v1.2.3+google-play
  *   - Play + F-Droid:       v1.2.3+fdroid+google-play
+ *   - Server only:          v1.2.3+server
  *
  * `publish-release.yml` reads the suffix to decide which per-store reusable
- * workflows to call. The order in `tagSuffix` is enum-declaration order so
- * tag names are deterministic regardless of UI selection order.
+ * workflows to call. [SERVER] has no per-store job, so a `+server` tag matches
+ * none of them — the server distribution is built on every release and deployed
+ * out of band. The order in `tagSuffix` is enum-declaration order so tag names
+ * are deterministic regardless of UI selection order.
  */
 enum class Platform(val tagToken: String, val displayName: String) {
 	GOOGLE_PLAY("google-play", "Google Play"),
@@ -21,10 +25,14 @@ enum class Platform(val tagToken: String, val displayName: String) {
 	MS_STORE("ms-store", "MS Store"),
 	MAC_APP_STORE("mac-app-store", "Mac App Store"),
 	IOS_APP_STORE("ios-app-store", "iOS App Store"),
+	SERVER("server", "Server"),
 	;
 
 	companion object {
 		val ALL: Set<Platform> = values().toSet()
+
+		/** Client app stores — the per-store options offered in "Targeted" mode. */
+		val CLIENT_STORES: Set<Platform> = ALL - SERVER
 	}
 }
 

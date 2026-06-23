@@ -27,6 +27,17 @@ class PlatformsTest {
 	}
 
 	@Test
+	fun `Server only produces the server suffix`() {
+		assertEquals("+server", tagSuffix(setOf(Platform.SERVER)))
+	}
+
+	@Test
+	fun `Server is not a client store`() {
+		assertEquals(false, Platform.SERVER in Platform.CLIENT_STORES)
+		assertEquals(Platform.values().size - 1, Platform.CLIENT_STORES.size)
+	}
+
+	@Test
 	fun `Empty platform set is rejected`() {
 		assertFailsWith<IllegalArgumentException> { tagSuffix(emptySet()) }
 	}
@@ -52,6 +63,11 @@ class PlatformsTest {
 	fun `isPlatformReleaseTag matches multi-platform tags`() {
 		assertEquals(true, isPlatformReleaseTag("v1.2.4+google-play+fdroid", "v1.2.4"))
 		assertEquals(true, isPlatformReleaseTag("v1.2.4+ms-store+mac-app-store+ios-app-store", "v1.2.4"))
+	}
+
+	@Test
+	fun `isPlatformReleaseTag matches the server-only tag`() {
+		assertEquals(true, isPlatformReleaseTag("v1.2.4+server", "v1.2.4"))
 	}
 
 	@Test
