@@ -125,14 +125,17 @@ class AccountsRepository(
 		}
 	}
 
+	private fun checkPassword(account: Account, plainTextPassword: String): Boolean =
+		checkPassword(plainTextPassword, account.password_hash)
+
 	// Any verify failure (invalid/old hash format) is treated as a wrong password.
 	@Suppress("TooGenericExceptionCaught", "SwallowedException")
-	private fun checkPassword(account: Account, plainTextPassword: String): Boolean {
+	private fun checkPassword(plainTextPassword: String, passwordHash: String): Boolean {
 		val argon2 = Argon2Factory.create()
 		val passwordChars = plainTextPassword.toCharArray()
 
 		return try {
-			argon2.verify(account.password_hash, passwordChars)
+			argon2.verify(passwordHash, passwordChars)
 		} catch (_: Exception) {
 			// If verification fails (e.g., invalid format, old hash), return false
 			false
@@ -141,16 +144,29 @@ class AccountsRepository(
 		}
 	}
 
+	// A real Argon2 hash (server-startup params) verified on the unknown-account
+	// path so login spends comparable time whether or not the account exists.
+	private val decoyPasswordHash: String by lazy { hashPassword(DECOY_PASSWORD) }
+
 	suspend fun login(email: String, password: String, installId: String): SResult<Token> {
 		val account = accountDao.findAccount(email)
 
-		return if (account == null) {
-			SResult.failure("Account not found", Msg.r("api_accounts_login_error_notfound"))
-		} else if (!checkPassword(account, password)) {
-			SResult.failure("Incorrect password", Msg.r("api_accounts_login_error_badpassword"))
+		val passwordValid = if (account != null) {
+			checkPassword(account, password)
 		} else {
+			// Verify against a decoy hash so a missing account costs the same Argon2
+			// time as a wrong password — no timing oracle for account enumeration.
+			checkPassword(password, decoyPasswordHash)
+			false
+		}
+
+		return if (account != null && passwordValid) {
 			val token = createToken(account.id, installId)
 			SResult.success(token)
+		} else {
+			// One message for both unknown-account and wrong-password so the
+			// response body doesn't reveal whether the account exists.
+			SResult.failure("Invalid credentials", Msg.r("api_accounts_login_error_invalid"))
 		}
 	}
 
@@ -246,6 +262,9 @@ class AccountsRepository(
 
 	companion object {
 		const val CIPHER_SALT_LENGTH = 16
+
+		// Fixed input used only to mint the decoy hash for the login timing defense.
+		private const val DECOY_PASSWORD = "hammer-decoy-password"
 
 		// Argon2 parameters
 		const val ARGON2_MEMORY_COST_KIB = 65536  // 64 MiB

@@ -137,6 +137,25 @@ class AccountsRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `Login - unknown account and wrong password are indistinguishable`() = runTest {
+		coEvery { accountDao.findAccount(email) } returns account
+		coEvery { accountDao.findAccount("no@account.com") } returns null
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val wrongPassword = accountsRepository.login(email, password + "x", installId)
+		val unknownAccount = accountsRepository.login("no@account.com", password, installId)
+
+		assertTrue(isFailure(wrongPassword))
+		assertTrue(isFailure(unknownAccount))
+		assertEquals(
+			wrongPassword.displayMessage?.r?.joinToString("|"),
+			unknownAccount.displayMessage?.r?.joinToString("|"),
+			"Login must not reveal whether the account exists",
+		)
+	}
+
+	@Test
 	fun `Create Account - Success`() = runTest {
 		coEvery { accountDao.numAccounts() } returns 1
 		coEvery { accountDao.findAccount(any()) } returns null
