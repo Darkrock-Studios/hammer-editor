@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.4.2] - 2026-6-23
+
+- [Fix] Server security hardening
+
+
 ## [3.4.1] - 2026-6-23
 
 - [Fix] Server session token hmac fix

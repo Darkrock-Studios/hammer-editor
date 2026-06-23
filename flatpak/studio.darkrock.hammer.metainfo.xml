@@ -32,6 +32,11 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.4.2" date="2026-06-23">
+            <description>
+                <p>- [Fix] Server security hardening</p>
+            </description>
+        </release>
         <release version="3.4.1" date="2026-06-23">
             <description>
                 <p>- [Fix] Server session token hmac fix</p>
