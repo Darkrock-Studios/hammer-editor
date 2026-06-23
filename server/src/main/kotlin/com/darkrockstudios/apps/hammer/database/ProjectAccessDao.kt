@@ -76,10 +76,8 @@ class ProjectAccessDao(
 		}
 	}
 
-	suspend fun deleteAccessById(accessId: Long) {
-		withContext(ioDispatcher) {
-			queries.deleteAccessById(accessId)
-		}
+	suspend fun deleteAccessById(accessId: Long, projectId: Long): Boolean = withContext(ioDispatcher) {
+		queries.deleteAccessById(accessId, projectId).executeAsOneOrNull() != null
 	}
 
 	suspend fun deletePublicAccessForProject(projectId: Long) {

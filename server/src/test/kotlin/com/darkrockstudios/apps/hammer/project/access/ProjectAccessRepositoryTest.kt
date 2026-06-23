@@ -86,15 +86,27 @@ class ProjectAccessRepositoryTest {
 	}
 
 	@Test
-	fun `deleteAccessById - Success`() = runTest {
+	fun `deleteAccessById - scopes the delete to the resolved project`() = runTest {
 		val accessId = 5L
 		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectAccessDao.deleteAccessById(accessId, projectId) } returns true
 
 		val result = repository.deleteAccessById(userId, projectUuid, accessId)
 
 		assertTrue(result)
 		coVerify { projectDao.getProjectId(userId, projectUuid) }
-		coVerify { projectAccessDao.deleteAccessById(accessId) }
+		coVerify { projectAccessDao.deleteAccessById(accessId, projectId) }
+	}
+
+	@Test
+	fun `deleteAccessById - returns false when the access row is not in the caller's project`() = runTest {
+		val foreignAccessId = 5L
+		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectAccessDao.deleteAccessById(foreignAccessId, projectId) } returns false
+
+		val result = repository.deleteAccessById(userId, projectUuid, foreignAccessId)
+
+		assertFalse(result)
 	}
 
 	@Test

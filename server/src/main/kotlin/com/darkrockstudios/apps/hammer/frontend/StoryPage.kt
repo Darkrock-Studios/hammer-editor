@@ -470,7 +470,11 @@ fun Route.storyPage(
 					return@delete
 				}
 
-				projectAccessRepository.deleteAccessById(session.userId, projectId, accessId)
+				val deleted = projectAccessRepository.deleteAccessById(session.userId, projectId, accessId)
+				if (!deleted) {
+					call.respond(HttpStatusCode.NotFound)
+					return@delete
+				}
 
 				// Return updated publish section
 				val isPublished = projectAccessRepository.isPublished(session.userId, projectId)
