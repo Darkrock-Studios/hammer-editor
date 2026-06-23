@@ -34,9 +34,11 @@ import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
+import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationCall
@@ -54,13 +56,16 @@ import io.ktor.server.request.path
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondRedirect
 import io.ktor.server.routing.Route
+import io.ktor.server.sessions.SessionTransportTransformerEncrypt
 import io.ktor.server.sessions.Sessions
 import io.ktor.server.sessions.cookie
 import io.ktor.server.sessions.get
 import io.ktor.server.sessions.sessions
+import kotlinx.coroutines.runBlocking
 import org.koin.core.qualifier.named
 import org.koin.ktor.ext.get
 import org.koin.ktor.ext.inject
+import java.security.MessageDigest
 import kotlin.time.Duration.Companion.days
 
 fun Route.frontend() {
@@ -158,17 +163,48 @@ fun Route.frontend() {
 
 const val COOKIE_USER_SESSION = "user_session"
 
+/**
+ * Encrypts and authenticates the web session cookie so a client cannot forge or
+ * tamper with [UserSession]. Encrypt-then-MAC: a modified or fabricated cookie
+ * fails the MAC and is dropped, leaving the request unauthenticated.
+ *
+ * Two distinct AES and HMAC keys are derived from the same secret via SHA-256
+ * with domain separation. Rotating the underlying secret invalidates all existing
+ * web sessions, forcing a re-login.
+ */
+internal fun userSessionTransformer(keyMaterial: ByteArray): SessionTransportTransformerEncrypt {
+	// AES-128: the transformer generates an IV sized to the encryption key, and
+	// AES/CBC requires a 16-byte IV. The sign key has no length constraint.
+	val encryptionKey = deriveKey(keyMaterial, "hammer.web.session.encrypt").copyOf(16)
+	val signKey = deriveKey(keyMaterial, "hammer.web.session.sign")
+	return SessionTransportTransformerEncrypt(encryptionKey, signKey)
+}
+
+private fun deriveKey(keyMaterial: ByteArray, label: String): ByteArray {
+	val digest = MessageDigest.getInstance("SHA-256")
+	digest.update(keyMaterial)
+	digest.update(label.toByteArray(Charsets.UTF_8))
+	return digest.digest()
+}
+
 fun Application.configureFrontEnd() {
 	configureTemplating()
 
 	val errorRepository: ErrorRepository by inject()
 	val monitoringState: MonitoringState by inject()
+	val keyringManager: KeyringManager by inject()
+	val serverSecretManager: ServerSecretManager by inject()
+
+	val sessionKeyMaterial = runBlocking {
+		keyringManager.tokenHmacKeyOrNull() ?: serverSecretManager.getServerSecret()
+	}.toByteArray(Charsets.UTF_8)
 
 	install(plugin = Sessions) {
 		cookie<UserSession>(COOKIE_USER_SESSION) {
 			cookie.path = "/"
 			cookie.maxAgeInSeconds = 7.days.inWholeSeconds
 			cookie.extensions["SameSite"] = "lax"
+			transform(userSessionTransformer(sessionKeyMaterial))
 		}
 	}
 
