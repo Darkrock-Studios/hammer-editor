@@ -256,12 +256,13 @@ const val SESSION_AUTH = "auth-session"
 fun AuthenticationConfig.frontendAuthentication(accountRepo: AccountsRepository, whitelistRepo: WhiteListRepository) {
 	session<UserSession>(SESSION_AUTH) {
 		validate { session ->
-			val account = accountRepo.getAccount(session.userId)
-			if (whitelistRepo.useWhiteList()) {
-				whitelistRepo.isOnWhiteList(account.email)
-			} else {
-				true
+			val account = runCatching { accountRepo.getAccount(session.userId) }.getOrNull()
+			val allowed = when {
+				account == null -> false
+				whitelistRepo.useWhiteList() -> whitelistRepo.isOnWhiteList(account.email)
+				else -> true
 			}
+			if (allowed) session else null
 		}
 		challenge {
 			call.respondRedirect("/login")

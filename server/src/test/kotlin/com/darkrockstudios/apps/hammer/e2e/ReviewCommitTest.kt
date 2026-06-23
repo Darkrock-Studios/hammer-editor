@@ -8,11 +8,16 @@ import com.darkrockstudios.apps.hammer.e2e.util.TestAccount
 import com.darkrockstudios.apps.hammer.e2e.util.TestProject
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.review.ReviewStatus
-import io.ktor.client.*
-import io.ktor.client.plugins.cookies.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
+import io.ktor.client.HttpClient
+import io.ktor.client.plugins.cookies.HttpCookies
+import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import java.net.URLEncoder
@@ -20,6 +25,7 @@ import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 import kotlin.uuid.Uuid
 
 class ReviewCommitTest : EndToEndTest() {
@@ -42,6 +48,11 @@ class ReviewCommitTest : EndToEndTest() {
 		status: ReviewStatus = ReviewStatus.SUBMITTED,
 	): Seeded = runBlocking {
 		E2eTestData.createAccount(TestAccount(email, password), database())
+		database().serverDatabase.whiteListQueries.addToWhiteList(
+			email,
+			Clock.System.now(),
+			"Test author"
+		)
 		E2eTestData.createProject(TestProject("Insurgency", Uuid.random(), userId), database())
 		val db = database().serverDatabase
 		val insurgency = db.projectQueries.findProjectByName(userId, "Insurgency").executeAsOne()
