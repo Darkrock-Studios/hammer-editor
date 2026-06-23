@@ -1,10 +1,14 @@
-# How to run a Server
+# How to run a Sync Server
 
+## ⚠️ This is intended for advanced Users
+
+_Running a server is an inherently technical process, if you have never run a server accessible on
+the internet, this is probably not for you._
+
+## Getting Started
 So you want to run an Instance of the Hammer Server? Great!
 
 _Note: For now, the server is only available as a Java executable. Eventually we'll add Docker images._
-
-## Getting Started
 
 The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 
@@ -12,7 +16,7 @@ The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 	- [ZIP](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.zip)
 	- [TAR](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.tar)
 2. Extract the archive to your desired location
-3. Create your config file: `serverConfig.toml` in a location of your choice
+3. Create your config file: `serverConfig.toml` in a location of your choice. It is strongly advised to use a port other than `80`, unless this is the only web-based program running on the system. If you intend to access the server by the host FQDN (e.g. `hammer.example.com`), make sure to set this in your DNS records; otherwise this will only be accessible via IP (e.g. `10.1.1.1`, `192.0.2.1`).
 
    ```toml
    host = "example.com"
@@ -20,19 +24,38 @@ The Hammer server is a Java application that runs on Windows, Linux, and macOS.
    ```
 
 4. Run the server (_see platform-specific instructions below_)
-5. If everything worked, you should be able to access your server at the host name you set in your config, such as:
+5. If everything worked, you should be able to access your server at your server's IP or at the host name you set in your config file and DNS configuration, such as:
    `http://example.com`
 6. **IMPORTANT!** You must now download one of the clients and create an account on the server. The first account
    created will be the admin account.
 
+## Network binding
+
+By default the server binds to all IPv4 interfaces (`0.0.0.0`), so it accepts connections from the
+network. To isolate it — for example when a reverse proxy on the same host is the only thing that
+should reach it — restrict the bind to loopback with `bindHosts`:
+
+```toml
+# Accept loopback connections only (IPv4 and IPv6). Default is ["0.0.0.0"].
+bindHosts = ["127.0.0.1", "::1"]
+```
+
+`bindHosts` is the network interface(s) to listen on, and is distinct from `host`, which is the
+public name shown to users. Each address gets its own listener (and its own HTTPS listener when an
+SSL cert is configured).
+
 ## Storage
 
-The server persists its data in PostgreSQL. Two modes:
+The server persists its data in a PostgreSQL database. It supports two modes:
 
-- **Embedded (default).** An in-process PostgreSQL server is started automatically. Data lives under `~/hammer_data/pgdata/`. No external services required — drop the JAR on a box and run it.
-- **Remote.** Point at an externally-managed PostgreSQL server. Use this when you outgrow embedded or want managed backups.
+- **Embedded (default):** An in-process PostgreSQL server is started automatically. Data lives under
+  `~/hammer_data/pgdata/`. No external services required — drop the JAR on a box and run it.
+- **Remote:** Point at an externally-managed PostgreSQL server. Use this when you outgrow embedded
+  or want managed backups.
 
-Embedded is the default; no config is needed for it. To override the embedded port, or to switch to remote, add a `[storage]` block to `serverConfig.toml`:
+Embedded is the default; no config is needed for it. This is the intended mode for self-hosters.
+To override the embedded port, or to switch to remote, add a `[storage]` block to
+`serverConfig.toml`:
 
 ```toml
 # Embedded (defaults shown). Omit this whole block to accept the defaults.
@@ -60,19 +83,32 @@ useSsl = true
 
 ### Upgrading from a pre-PostgreSQL version
 
-Older releases used SQLite (`~/hammer_data/server.db`). The first run after upgrading auto-detects the file and migrates its contents into PostgreSQL inside a single transaction, then renames the source to `server.db.migrated-<timestamp>.bak`. If migration fails for any reason, the SQLite file is left untouched and the server exits with an error — fix the cause and start again.
+Older releases (prior to v3.1.0) used SQLite (`~/hammer_data/server.db`). The first run after
+upgrading auto-detects the file and migrates its contents into PostgreSQL inside a single
+transaction, then renames the source to `server.db.migrated-<timestamp>.bak`. If migration fails for
+any reason, the SQLite file is left untouched and the server exits with an error — fix the cause and
+start again.
 
 To rehearse the migration against a copy of production before flipping the live config, run with `--migrate-dry-run`: it does everything except commit and rename.
+
+## Encryption at rest
+
+Content encryption at rest is **optional** — a fresh server stores in plaintext and
+needs no key material. This is recommended for most self-hosters. Encryption is
+slower, and carries the possibility of total data loss if key material is mishandled.
+
+If you want to enable at-rest encryption, see
+[Encryption at rest & key management](SERVER-SECRET-STORAGE.md) for the
+full walkthrough.
 
 ## Platform-Specific Instructions
 
 ### Linux
 
-Create a script to run the server: `run.sh`
+Create a script to run the server in the top level of the installation directory (e.g. `hammer/`): `run.sh`
 ```bash
 #!/bin/bash
-cd server
-./server --args="--config /some/path/serverConfig.toml"
+./bin/server --config serverConfig.toml
 ```
 
 Make the script executable:
@@ -127,12 +163,12 @@ WantedBy=multi-user.target
 
 ### Windows
 
-Create a script to run the server: `run.bat`
+Create a script to run the server in the top level of the installation directory (e.g. `hammer\`):
+`run.bat`
 
 ```batch
 @echo off
-cd server
-server.bat --args="--config C:\path\to\serverConfig.toml"
+bin\server.bat --config serverConfig.toml
 ```
 
 Run the server:
@@ -143,12 +179,12 @@ run.bat
 
 ### macOS
 
-Create a script to run the server: `run.sh`
+Create a script to run the server in the top level of the installation directory (e.g. `hammer/`):
+`run.sh`
 
 ```bash
 #!/bin/bash
-cd server
-./server --args="--config /path/to/serverConfig.toml"
+./bin/server --config serverConfig.toml
 ```
 
 Make the script executable:
@@ -167,18 +203,32 @@ Run the server:
 
 _This step is optional but strongly recommended._
 
-If you want to enable SSL (`https`), you'll first need to edit your server config file and add these lines:
+There are two ways to serve Hammer over `https`. Pick **one**:
+
+- **Java SSL (this section):** Hammer terminates TLS itself, reading your certificate
+  directly. Simplest if Hammer is the only thing on the box.
+- **Reverse proxy:** A proxy such as Nginx terminates TLS and forwards plain HTTP to
+  Hammer. Preferred if you run other services on the same host. If you go this route,
+  **skip the rest of this section** and follow
+  [Reverse Proxy using Nginx](#reverse-proxy-using-nginx) instead.
+
+If you want Hammer to terminate SSL itself, you'll first need to edit your server config file and
+add these lines:
 
 ```toml
 sslPort = 443
-forceHttps = false # Optional, defualts to true
+forceHttps = true # Optional, defualts to true
 ```
 
 ### Getting an SSL Certificate
 
-#### Self-Signed
+#### Self-signed certs are not supported
 
-_TODO: Add instructions for self-signed certs_
+Don't use a self-signed certificate. The mobile clients trust only the system CA store — Android
+won't trust user-added or self-signed CAs by default, and iOS rejects them too — so they'll fail the
+TLS handshake with no way to override it. Use a real certificate from **Let's Encrypt** below (or
+put
+Hammer behind a reverse proxy that holds one).
 
 #### Let's Encrypt
 
@@ -187,18 +237,27 @@ and [relatively easy to setup](https://letsencrypt.org/getting-started/).
 
 Hammer can accept certificates in two formats:
 
-- JKS - _Java Key Store_
-- PEM - _Privacy Enhanced Mail_
+- PEM - _Privacy Enhanced Mail_ (recommended — what certbot/Let's Encrypt produces directly)
+- JKS - _Java Key Store_ (legacy)
 
-PEM support is brand new, JKS is well-tested.
+#### PEM (recommended)
 
-#### JKS
-Once you've set it up, Lets Encrypt will give you a bunch of PEM files in a directory such as:
-`/etc/letsencrypt/live/example.com`
+Once you've set it up, Let's Encrypt will give you a directory of PEM files such as
+`/etc/letsencrypt/live/example.com`. The two files we care about are `fullchain.pem` and
+`privkey.pem`.
 
-The two files we really care about are `fullchain.pem` and `privkey.pem`.
+Point **Hammer** straight at them in your `serverConfig.toml` — no conversion needed:
 
-We can use these two to produce a JKS file, here is a script that will help you do it:
+```toml
+[sslCert]
+certChainPath = "/etc/letsencrypt/live/example.com/fullchain.pem"
+privateKeyPath = "/etc/letsencrypt/live/example.com/privkey.pem"
+```
+
+#### JKS (legacy)
+
+Hammer also accepts a Java Key Store. You can convert the PEM files above into a `cert.jks` with
+this script:
 
 `convert.sh`
 ```shell
@@ -207,10 +266,7 @@ openssl pkcs12 -export -in fullchain.pem -inkey privkey.pem -out certificate.p12
 keytool -importkeystore -srckeystore certificate.p12 -srcstoretype pkcs12 -destkeystore cert.jks
 ```
 
-Once you provide a password it will produce `cert.jks`, this is the file you need to point **Hammer** to in your
-`serverConfig.toml`.
-
-Finally, you will add these lines to your config file:
+Once you provide a password it will produce `cert.jks`. Point **Hammer** at it:
 
 ```toml
 [sslCert]
@@ -220,25 +276,145 @@ keyPassword = "1234567890"
 keyAlias = "certificate"
 ```
 
-#### PEM
-
-PEM support is brand new but should shortcut the process described above.
-
-Now you can simply give the PEM files directly to **Hammer** in your `serverConfig.toml`:
-
-```toml
-[sslCert]
-certChainPath = "/etc/letsencrypt/live/example.com/fullchain.pem"
-privateKeyPath = "/etc/letsencrypt/live/example.com/privkey.pem"
-```
-
 ### Renewing your SSL cert
 
-You can run `sudo certbot renew` which should automatically renew your certificate. `cerbot` needs to bind to port 80 to
-do it, so you may need to shut down the **Hammer** server while it runs.
+This applies to the **Java SSL** method, where Hammer terminates TLS and holds the HTTP port. If
+you run behind a reverse proxy, the proxy owns ports 80/443 and renews its certificate without ever
+touching Hammer, so none of the stop/start dance below is needed.
 
-Once it completes successfully, re-run `convert.sh` to convert the new PEM to JKS, then restart the Hammer server, and
-you should be good to go.
+`certbot renew` renews the certificate in place, rewriting `fullchain.pem` and `privkey.pem`. Two
+things to know:
+
+- Because **Hammer** holds the HTTP port, certbot's standalone challenge needs that port free, so
+  Hammer must be
+  stopped while certbot runs.
+- A running server reads its certificate only at startup, so it won't pick up a renewed cert until
+  it restarts.
+
+Configure both as certbot renewal hooks so the renewal that runs automatically handles everything.
+Add them to the
+cert's renewal config, `/etc/letsencrypt/renewal/<your-domain>.conf`, under the `[renewalparams]`
+section:
+
+```ini
+pre_hook = systemctl stop hammer
+post_hook = systemctl start hammer
+```
+
+These hooks run **only** when a renewal actually happens, not on the routine no-op checks, so Hammer
+is stopped only
+when a new cert is genuinely being issued.
+
+> **Note:** You can also pass `--pre-hook`/`--post-hook` on the command line, but certbot only
+> persists them into the
+> config when a renewal actually occurs — so setting them while no renewal is due (the common case)
+> silently does
+> nothing. Editing the config directly, as above, always works.
+
+When Hammer points at the PEM files directly (recommended), the `post_hook` restart is all that's
+needed to pick up
+the new cert — there's no conversion step.
+
+Renewals fire automatically on a timer that certbot installs. Confirm it's active:
+
+```shell
+systemctl list-timers | grep certbot
+```
+
+The timer's unit name depends on how certbot was installed — `certbot.timer` (apt/dnf) or
+`snap.certbot.renew.timer` (snap) — which is why grepping `list-timers` is the reliable check.
+
+## Reverse Proxy using Nginx
+
+Instead of having Hammer terminate TLS itself (the [Setting up SSL](#setting-up-ssl-optional)
+section above), you can put it behind a reverse proxy that terminates TLS and forwards plain HTTP to
+Hammer. This is good practice — especially when other services share the host — and is documented
+here for Nginx. Use **either** this approach **or** Java SSL, not both.
+
+### Changes to serverConfig
+
+Example port used. (If you're running multiple services on a webserver, you've probably already used 8080.) For security purposes, make sure to set `bindHosts` as below (V => 3.4.0).
+
+```toml
+port = 8200
+bindHosts = ["127.0.0.1", "::1"]
+```
+
+Make sure to update your DNS with your desired URL to be able to use LetsEncrypt and the like.
+
+### Base Nginx Config
+
+Create your base file. Make sure to change `hammer.example.com` to your domain!
+
+`nano /etc/nginx/sites-available/hammer`
+
+```nginx
+server {
+	listen 80;
+	server_name hammer.example.com;
+
+    location / {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_pass http://localhost:8200;
+    }
+}
+```
+
+### HTTPS
+
+See LetsEncrypt or your favorite SSL provider for an SSL certificate. Once that is completed, install said new cert into your Nginx file. Be sure to set the proper path for your certificate fullchain and private key. Once again, make sure to change `hammer.example.com` to your domain in the `server_name` lines and the `ssl_certificate*` lines. If LetsEncrypt installs the HTTP to HTTPS redirect itself, make sure your file roughly reflects this example below.
+
+```nginx
+server {
+	listen 80;
+	server_name hammer.example.com;
+	return 301 https://$host$request_uri;
+}
+
+server {
+	listen 443 ssl http2;
+	ssl_protocols TLSv1.2 TLSv1.3;
+	ssl_ciphers TLS_AES_256_GCM_SHA384:TLS_AES_128_GCM_SHA256:TLS_CHACHA20_POLY1305_SHA256:ECDHE-ECDSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-GCM-SHA384:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-RSA-CHACHA20-POLY1305;
+	ssl_session_cache shared:SSL:10m;
+	ssl_session_timeout 1d;
+	add_header X-Frame-Options "SAMEORIGIN" always;
+	add_header X-Content-Type-Options "nosniff" always;
+	add_header 'Referrer-Policy' 'same-origin';
+	ssl_certificate /etc/letsencrypt/live/hammer.example.com/fullchain.pem;
+	ssl_certificate_key /etc/letsencrypt/live/hammer.example.com/privkey.pem;
+
+	server_name hammer.example.com;
+
+	location / {
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        proxy_pass http://localhost:8200;
+    }
+}
+```
+
+### Link, Test, Reload
+
+Link the file to the `sites-enabled` folder.
+
+```sh
+ln -s /etc/nginx/sites-available/hammer /etc/nginx/sites-enabled
+```
+
+Make sure to test your configuration!
+
+```sh
+sudo nginx -t
+```
+
+As long as that doesn't throw any errors, you can restart nginx. You should now be able to access your Hammer server web page at your URL!
 
 ## Whitelisting Users
 
@@ -248,7 +424,8 @@ You can open it by going to `/admin` on the website, logging in as your admin ac
 "**Disable Whitelist**".
 Otherwise, you can add individual users to the whitelist using the admin page.
 
-_**Note:** Disabling the whitelist is **strongly discouraged**. There are currently no moderation tools or even account
+_**Note:** Disabling the whitelist is **strongly discouraged**. There are currently no moderation
+tools or even account
 verification. I expect any fully open server would become filled with spam very quickly._
 
 ## Enable Community
@@ -265,7 +442,8 @@ Users will now be able to opt-in to the community if they have already selected 
 
 ## Setup Email Sending (_Optional_)
 
-Currently, we mainly use Email for password reset. Eventually we maybe have account verification, and potentially other
+Currently, we mainly use Email for password reset. Eventually we maybe have account verification,
+and potentially other
 things we send emails for.
 
 There are several supported ways to send emails:
@@ -275,7 +453,8 @@ There are several supported ways to send emails:
 - Sendgrid - https://sendgrid.com
 - Postmark - https://postmarkapp.com/
 
-You can configure the email provider by first selecting which you want to use in your `serverConfig.toml` file:
+You can configure the email provider by first selecting which you want to use in your
+`serverConfig.toml` file:
 
 ```toml
 emailProvider = "SMTP" 

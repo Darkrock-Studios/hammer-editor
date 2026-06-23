@@ -1,0 +1,7 @@
+-- Migration 4 -> 5: add review_scene.cipher.
+-- Existing rows are all AES (review_scene postdates at-rest encryption), so
+-- backfill the AES tag, NOT NULL/plaintext. The default only fills existing
+-- rows; it is dropped so future inserts must state their cipher.
+
+ALTER TABLE review_scene ADD COLUMN IF NOT EXISTS cipher TEXT NOT NULL DEFAULT 'AES/GCM/NoPadding';
+ALTER TABLE review_scene ALTER COLUMN cipher DROP DEFAULT;

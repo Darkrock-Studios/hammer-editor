@@ -11,6 +11,13 @@ import java.net.URISyntaxException
 @Serializable
 data class ServerConfig(
 	val host: String = "localhost",
+	/**
+	 * Network interfaces the server binds to. Defaults to all IPv4 interfaces.
+	 * Set to `["127.0.0.1", "::1"]` to accept loopback connections only, e.g.
+	 * when running behind a reverse proxy on the same host. Distinct from [host],
+	 * which is the public name shown to users.
+	 */
+	val bindHosts: List<String> = listOf("0.0.0.0"),
 	val port: Int = 8080,
 	val sslPort: Int = 443,
 	/**
@@ -25,6 +32,8 @@ data class ServerConfig(
 	val communityEnabled: Boolean = false,
 	val storage: StorageConfig = StorageConfig(),
 	val analytics: AnalyticsConfig = AnalyticsConfig(),
+	val encryption: EncryptionConfig = EncryptionConfig(),
+	val secret: SecretConfig = SecretConfig(),
 ) {
 	@Transient
 	val emailProviderType: EmailProvider? = emailProvider?.let { provider ->
@@ -101,6 +110,54 @@ data class UmamiConfig(
 		}
 	}
 }
+
+@Serializable(with = EncryptionMode.Serializer::class)
+enum class EncryptionMode(val serial: String) {
+	AES("aes"),
+	NONE("none");
+
+	object Serializer : CaseInsensitiveEnumSerializer<EncryptionMode>(
+		"EncryptionMode", entries.toTypedArray(), { it.serial }
+	)
+}
+
+/**
+ * Selects the cipher used for newly written content. Reads dispatch per-row
+ * regardless of this.
+ *
+ * `mode` is **unspecified** (null) by default — distinct from an explicit
+ * `none`. Unspecified resolves to plaintext on a fresh server, but the boot
+ * gate hard-stops a server that already holds encrypted data, forcing the
+ * admin to choose `aes` or `none` deliberately. An explicit `none` is a
+ * request to converge existing data to plaintext.
+ */
+@Serializable
+data class EncryptionConfig(
+	val mode: EncryptionMode? = null,
+) {
+	/** What new writes use; unspecified behaves as plaintext. */
+	fun effectiveWriteMode(): EncryptionMode = mode ?: EncryptionMode.NONE
+}
+
+@Serializable(with = SecretProviderType.Serializer::class)
+enum class SecretProviderType(val serial: String) {
+	FILE("file"),
+	ENV("env");
+
+	object Serializer : CaseInsensitiveEnumSerializer<SecretProviderType>(
+		"SecretProviderType", entries.toTypedArray(), { it.serial }
+	)
+}
+
+/** Where the keyring document is read from. The keyring is never written at runtime. */
+@Serializable
+data class SecretConfig(
+	val provider: SecretProviderType = SecretProviderType.FILE,
+	/** Keyring JSON file path for the `file` provider. Defaults to hammer_data/server.keyring.json. */
+	val file: String? = null,
+	/** Environment variable holding the keyring JSON for the `env` provider. */
+	val envVar: String = "HAMMER_KEYRING",
+)
 
 @Serializable(with = StorageMode.Serializer::class)
 enum class StorageMode(val serial: String) {

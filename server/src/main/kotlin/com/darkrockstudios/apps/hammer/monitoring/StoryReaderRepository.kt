@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.monitoring
 
 import com.darkrockstudios.apps.hammer.database.PublishedStoryReaderDao
 import com.darkrockstudios.apps.hammer.database.ReaderDay
+import com.darkrockstudios.apps.hammer.utilities.truncateToUtcDay
 import org.koin.core.component.KoinComponent
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.hours
@@ -36,6 +37,25 @@ class StoryReaderRepository(
 		d7 = publishedStoryReaderDao.countReadersSince(now - 7.days),
 		d30 = publishedStoryReaderDao.countReadersSince(now - 30.days),
 	)
+
+	/**
+	 * Gapless per-day unique reader-sessions across all stories over the last 30
+	 * days, oldest first, for the overview trend graph. Days with no readers are
+	 * filled with zero so the series matches the active-users trend.
+	 */
+	suspend fun dailyReaders(now: Instant): List<ReaderDay> {
+		val firstDay = (now - 30.days).truncateToUtcDay()
+		val byDay = publishedStoryReaderDao.dailyReaders(firstDay).associate { it.day to it.count }
+
+		val daily = ArrayList<ReaderDay>()
+		var day = firstDay
+		val lastDay = now.truncateToUtcDay()
+		while (day <= lastDay) {
+			daily += ReaderDay(day = day, count = byDay[day] ?: 0L)
+			day += 1.days
+		}
+		return daily
+	}
 
 	suspend fun purgeBefore(cutoff: Instant) {
 		// Preserve the all-time total: fold the soon-to-be-purged days in first.

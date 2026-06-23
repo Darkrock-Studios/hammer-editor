@@ -71,10 +71,20 @@ class EncodeFilenameTest {
 
 	@Test
 	fun `validateFileName rejects Windows reserved basenames`() {
-		listOf("CON", "con", "PRN", "AUX", "NUL", "COM1", "LPT9", "CON.txt").forEach {
+		listOf("CON", "con", "PRN", "AUX", "NUL", "COM0", "COM1", "LPT0", "LPT9", "CON.txt").forEach {
 			assertTrue(
 				ProjectsRepository.validateFileName(it).isFailure,
 				"expected '$it' to be rejected as reserved",
+			)
+		}
+	}
+
+	@Test
+	fun `validateFileName allows reserved names and leading dot for wrapped names`() {
+		listOf("CON", "con", "COM0", "LPT0", ".prologue").forEach {
+			assertTrue(
+				ProjectsRepository.validateFileName(it, usedAsRawFilename = false).isSuccess,
+				"expected '$it' to validate as a scene/group name",
 			)
 		}
 	}
@@ -84,5 +94,28 @@ class EncodeFilenameTest {
 		val cleaned = ProjectsRepository.sanitizeFileName("foo @ bar # baz.")
 		// @ and # are not in the allowed set; trailing dot is trimmed.
 		assertEquals("foo bar baz", cleaned)
+	}
+
+	@Test
+	fun `toLocalSafeName leaves an already-valid name untouched`() {
+		val name = "Chapter 3 (Part II)"
+		assertEquals(name, ProjectsRepository.toLocalSafeName(name))
+	}
+
+	@Test
+	fun `toLocalSafeName sanitizes a server name with disallowed characters`() {
+		val mangled = "Alice In Wonderland (# Name clash 2026-06-07 fk6fycC #)"
+		val safe = ProjectsRepository.toLocalSafeName(mangled)
+
+		assertFalse(safe.contains('#'), "disallowed '#' should be gone; got: $safe")
+		assertTrue(ProjectsRepository.validateFileName(safe).isSuccess, "result must itself be valid")
+	}
+
+	@Test
+	fun `toLocalSafeName falls back to a default when nothing legal remains`() {
+		assertEquals(
+			ProjectsRepository.RECOVERED_PROJECT_NAME,
+			ProjectsRepository.toLocalSafeName("###"),
+		)
 	}
 }

@@ -59,8 +59,8 @@ class SceneEditorWorkflowTest {
 		composeRule.waitUntil(10_000) {
 			composeRule.onAllNodesWithTag(SCENE_EDITOR_TEXT_TAG).fetchSemanticsNodes().isNotEmpty()
 		}
-		composeRule.typeIntoEditor(SCENE_EDITOR_TEXT_TAG, "Once upon a time")
-		composeRule.waitUntil(10_000) {
+		// The save action only appears once the typed edit dirties the buffer.
+		composeRule.typeIntoEditor(SCENE_EDITOR_TEXT_TAG, "Once upon a time") {
 			composeRule.onAllNodesWithTag(SCENE_EDITOR_SAVE_TAG).fetchSemanticsNodes().isNotEmpty()
 		}
 

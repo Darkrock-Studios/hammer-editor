@@ -416,19 +416,20 @@ class ClientAccountSynchronizer(
 		onLog: OnSyncLog
 	) {
 		newServerProjects.forEach { serverProject ->
-			val existingProject = projectsRepository.findProject(serverProject.name)
+			val localName = ProjectsRepository.toLocalSafeName(serverProject.name)
+			val existingProject = projectsRepository.findProject(localName)
 			if (existingProject != null) {
 				projectsRepository.setProjectId(existingProject, serverProject.uuid)
 				onLog(
 					syncAccLogI(
 						strRes.get(
 							Res.string.sync_log_account_project_create_client_local,
-							serverProject.name
+							localName
 						)
 					)
 				)
 			} else {
-				val createResult = projectsRepository.createProject(serverProject.name)
+				val createResult = projectsRepository.createProject(localName)
 				if (isSuccess(createResult)) {
 					val projectDef = createResult.data
 					projectsRepository.setProjectId(projectDef, serverProject.uuid)
@@ -436,13 +437,13 @@ class ClientAccountSynchronizer(
 						syncAccLogI(
 							strRes.get(
 								Res.string.sync_log_account_project_create_client,
-								serverProject.name
+								localName
 							)
 						)
 					)
 				} else {
 					onLog(
-						syncAccLogW(
+						syncAccLogE(
 							strRes.get(
 								Res.string.sync_log_account_project_create_client_failure,
 								serverProject.toString(),
@@ -543,14 +544,15 @@ class ClientAccountSynchronizer(
 
 		// Handle projects that have been renamed on the server, but not on this client
 		commonProjectsNotLocallyRenamed.forEach { (serverProject, localProject) ->
-			if (serverProject.name != localProject.name) {
-				val result = projectsRepository.renameProject(localProject, serverProject.name)
+			val targetName = ProjectsRepository.toLocalSafeName(serverProject.name)
+			if (targetName != localProject.name) {
+				val result = projectsRepository.renameProject(localProject, targetName)
 				if (isSuccess(result)) {
 					onLog(
 						syncAccLogI(
 							strRes.get(
 								Res.string.sync_log_account_project_rename_client_from_server_success,
-								serverProject.name
+								targetName
 							)
 						)
 					)

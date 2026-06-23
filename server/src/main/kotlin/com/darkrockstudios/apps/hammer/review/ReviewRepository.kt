@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.database.ReviewSceneDao
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
+import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
@@ -47,6 +48,7 @@ class ReviewRepository(
 	private val sceneDraftSynchronizer: ServerSceneDraftSynchronizer,
 	private val sceneSynchronizer: ServerSceneSynchronizer,
 	private val contentEncryptor: ContentEncryptor,
+	private val encryptorRegistry: ContentEncryptorRegistry,
 	private val tokenHasher: TokenHasher,
 	private val clock: Clock,
 	base64: Base64,
@@ -202,6 +204,7 @@ class ReviewRepository(
 					sceneName = scene.name,
 					sceneOrder = index,
 					snapshotContent = contentEncryptor.encrypt(scene.content, cipherSecret),
+					cipher = contentEncryptor.cipherName(),
 				)
 			}
 		} catch (e: Exception) {
@@ -339,7 +342,7 @@ class ReviewRepository(
 
 		val cipherSecret = accountDao.getAccount(request.userId)?.cipher_secret
 			?: return SResult.failure("Account missing", Msg.r("api_review_error_not_found"))
-		val snapshot = contentEncryptor.decrypt(scene.snapshot_content, cipherSecret)
+		val snapshot = encryptorRegistry.resolve(scene.cipher).decrypt(scene.snapshot_content, cipherSecret)
 		val paraText = ReviewParagraphs.paragraph(snapshot, paragraph)
 			?: return SResult.failure("Bad paragraph", Msg.r("api_review_suggestion_error_invalid"))
 
@@ -788,7 +791,7 @@ class ReviewRepository(
 		draftId = draft_id,
 		sceneName = scene_name,
 		sceneOrder = scene_order,
-		snapshotContent = contentEncryptor.decrypt(snapshot_content, cipherSecret),
+		snapshotContent = encryptorRegistry.resolve(cipher).decrypt(snapshot_content, cipherSecret),
 		reviewerDone = reviewer_done,
 	)
 

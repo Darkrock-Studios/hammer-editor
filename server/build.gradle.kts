@@ -39,7 +39,7 @@ sqldelight {
 			packageName.set("com.darkrockstudios.apps.hammer.database")
 			dialect(libs.sqldelight.postgresql.dialect.get().toString())
 			srcDirs("src/main/sqldelight")
-			version = 4
+			version = 5
 			schemaOutputDirectory.set(project.file("build/generated/sqldelight"))
 		}
 		// Read-only legacy database — used ONLY by the one-time SQLite-to-Postgres migrator.
@@ -75,9 +75,10 @@ dependencies {
 	implementation(libs.coroutines.jdk8)
 	implementation(libs.serialization.jvm)
 	implementation(libs.kotlinx.datetime)
-	implementation(libs.kotlinx.cli)
+	implementation(libs.clikt)
 
 	implementation(libs.bundles.ktor.server)
+	implementation(libs.ktor.server.hsts)
 	implementation(libs.ktor.network.tlscertificates)
 	implementation(libs.bouncycastle.bcpkix)
 	implementation(libs.jakarta.mail)

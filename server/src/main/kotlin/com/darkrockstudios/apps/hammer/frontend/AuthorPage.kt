@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import io.ktor.http.*
@@ -26,15 +27,14 @@ fun Route.authorPage(
 				return@get
 			}
 
-			// Decode URL: URL decode then replace dashes with spaces
-			val penName = ProjectName.decodeFromUrl(penNameParam)
-
-			// Check if the pen name exists
-			val account = accountsRepository.findAccountByPenName(penName)
-			if (account == null) {
+			// Resolve the account from the pen-name segment (verbatim, then dashes as spaces).
+			val account = resolveByPenName(penNameParam) { accountsRepository.findAccountByPenName(it) }
+			val penName = account?.pen_name
+			if (account == null || penName == null) {
 				call.respond(HttpStatusCode.NotFound)
 				return@get
 			}
+			val penNameForUrl = ProjectName.penNameForUrl(penName)
 
 			// Get published stories for this author
 			val stories = projectAccessRepository.getPublishedStoriesByPenName(penName)
@@ -53,8 +53,8 @@ fun Route.authorPage(
 
 				mapOf(
 					"name" to story.projectName,
-					"urlName" to ProjectName.formatForUrl(story.projectName),
-					"urlPenName" to penNameParam,
+					"urlName" to ProjectName.projectSegment(story.projectName, story.projectUuid),
+					"urlPenName" to penNameForUrl,
 					"publishedAt" to formattedDate
 				)
 			}
@@ -63,7 +63,7 @@ fun Route.authorPage(
 				mapOf(
 					"page_stylesheet" to "/assets/css/author.css",
 					"penName" to penName,
-					"urlPenName" to penNameParam,
+					"urlPenName" to penNameForUrl,
 					"bio" to (account.bio ?: ""),
 					"bioHtml" to (bioHtml ?: ""),
 					"stories" to formattedStories,

@@ -38,6 +38,7 @@ open class ProjectBackupRepository(
 
 	fun getBackups(projectDef: ProjectDef): List<ProjectBackupDef> {
 		val dir = getBackupsDirectory().toOkioPath()
+		val keys = backupKeysForProject(projectDef.name)
 		return fileSystem.list(dir)
 			.filter {
 				try {
@@ -46,22 +47,20 @@ open class ProjectBackupRepository(
 					false
 				}
 			}
-			.mapNotNull { path -> getProjectBackupDef(path) }
-			.filter { it.projectDef == projectDef }
+			.mapNotNull { path -> matchBackup(path, projectDef, keys) }
 			.sortedBy { it.date }
 	}
 
-	fun getBackupsForProject(projectDef: ProjectDef): List<ProjectBackupDef> {
-		return getBackups(projectDef).filter { backup -> backup.projectDef == projectDef }
-	}
+	fun getBackupsForProject(projectDef: ProjectDef): List<ProjectBackupDef> = getBackups(projectDef)
 
-	private fun backupNameToProjectName(backupName: String): String {
-		return backupName.replace("_", " ")
-	}
+	// The directory-safe encoding plus the legacy `spaces -> underscores` name, so backups written
+	// by older clients are still matched to their project.
+	private fun backupKeysForProject(projectName: String): Set<String> = setOf(
+		ProjectsRepository.encodeForFilename(projectName),
+		legacyBackupName(projectName),
+	)
 
-	protected fun projectNameToBackupName(projectName: String): String {
-		return projectName.replace(" ", "_")
-	}
+	private fun legacyBackupName(projectName: String): String = projectName.replace(" ", "_")
 
 	protected fun createNewProjectBackupDef(projectDef: ProjectDef): ProjectBackupDef {
 		val path = pathForBackup(projectDef.name, clock.now())
@@ -80,7 +79,7 @@ open class ProjectBackupRepository(
 	}
 
 	private fun filenameForBackup(projectName: String, date: Instant): String {
-		val backupName = projectNameToBackupName(projectName)
+		val backupName = ProjectsRepository.encodeForFilename(projectName)
 		val dateStr = date.toBackupDate()
 		return "$backupName-$dateStr.zip"
 	}
@@ -120,35 +119,38 @@ open class ProjectBackupRepository(
 		}
 	}
 
-	private fun getProjectBackupDef(path: Path): ProjectBackupDef? {
-		val match = FILE_NAME_PATTERN.matchEntire(path.name)
-		return if (match != null) {
-			val backupName = match.groups[1]?.value
-			val date = match.groups[2]?.value
+	private fun matchBackup(path: Path, projectDef: ProjectDef, keys: Set<String>): ProjectBackupDef? {
+		val match = FILE_NAME_PATTERN.matchEntire(path.name) ?: return null
+		val fileKey = match.groups[1]?.value ?: return null
+		if (fileKey !in keys) return null
 
-			if (backupName != null && date != null) {
-				val projectName = backupNameToProjectName(backupName)
+		return ProjectBackupDef(
+			path = path.toHPath(),
+			projectDef = projectDef,
+			date = backupDate(path, match.groups[2]?.value)
+		)
+	}
 
-				val dateInstant = localDateTime(date).toInstant(TimeZone.UTC)
-				val projectDir = projectsRepository.getProjectDirectory(projectName)
-
-				val projectDef = ProjectDef(
-					name = projectName,
-					path = projectDir
-				)
-
-				ProjectBackupDef(
-					path = path.toHPath(),
-					projectDef = projectDef,
-					date = dateInstant
-				)
-			} else {
-				null
-			}
-		} else {
+	// Order by file modification time, not the filename's encoded date: backups written
+	// before the date-format fix can encode a time months off and would otherwise cull
+	// the newest backups instead of the oldest.
+	private fun backupDate(path: Path, encodedDate: String?): Instant {
+		val modified = try {
+			fileSystem.metadata(path).lastModifiedAtMillis
+		} catch (_: IOException) {
 			null
 		}
+		if (modified != null) return Instant.fromEpochMilliseconds(modified)
+
+		return encodedDate?.let { parseBackupDate(it) } ?: Instant.fromEpochMilliseconds(0)
 	}
+
+	private fun parseBackupDate(dateTimeStr: String): Instant? =
+		try {
+			localDateTime(dateTimeStr).toInstant(TimeZone.UTC)
+		} catch (_: IllegalArgumentException) {
+			null
+		}
 
 	open fun supportsBackup(): Boolean = true
 
@@ -211,7 +213,7 @@ open class ProjectBackupRepository(
 
 	companion object {
 		const val BACKUP_DIRECTORY = ".backups"
-		val FILE_NAME_PATTERN = Regex("^([a-zA-Z0-9_]+)-(\\d{4}-\\d{2}-\\d{2}T\\d+Z)\\.zip$")
+		val FILE_NAME_PATTERN = Regex("^(.+)-(\\d{4}-\\d{2}-\\d{2}T\\d+Z)\\.zip$")
 		val DATE_PATTERN = Regex("^(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2})(\\d{2})(\\d{2})Z$")
 	}
 }

@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.tree
 
+import kotlinx.collections.immutable.toImmutableList
+
 /**
  * A depth first tree, indexable as such:
  *           1
@@ -204,7 +206,7 @@ data class TreeNode<T>(
 		}
 
 		return Pair(
-			TreeValue(value, yourIndex, parentIndex, childValues, depth, numChildren),
+			TreeValue(value, yourIndex, parentIndex, childValues.toImmutableList(), depth, numChildren),
 			nextIndex
 		)
 	}

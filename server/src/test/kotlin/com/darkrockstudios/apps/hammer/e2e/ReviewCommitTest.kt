@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.e2e.util.TestAccount
 import com.darkrockstudios.apps.hammer.e2e.util.TestProject
+import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.review.ReviewStatus
 import io.ktor.client.*
 import io.ktor.client.plugins.cookies.*
@@ -29,7 +30,12 @@ class ReviewCommitTest : EndToEndTest() {
 	private val snapshot = "It flagged the planet as non-viable and moved on."
 	private val plainToken = "commit-test-token-0123456789abcdef"
 
-	private data class Seeded(val projectRowId: Long, val requestId: Long, val suggestionId: Long)
+	private data class Seeded(
+		val projectRowId: Long,
+		val requestId: Long,
+		val suggestionId: Long,
+		val storySegment: String,
+	)
 
 	private fun seed(
 		currentSceneContent: String = snapshot,
@@ -38,7 +44,9 @@ class ReviewCommitTest : EndToEndTest() {
 		E2eTestData.createAccount(TestAccount(email, password), database())
 		E2eTestData.createProject(TestProject("Insurgency", Uuid.random(), userId), database())
 		val db = database().serverDatabase
-		val projectRowId = db.projectQueries.findProjectByName(userId, "Insurgency").executeAsOne().id
+		val insurgency = db.projectQueries.findProjectByName(userId, "Insurgency").executeAsOne()
+		val projectRowId = insurgency.id
+		val storySegment = ProjectName.projectSegment("Insurgency", insurgency.uuid)
 		val cipherSecret = db.accountQueries.getAccount(userId).executeAsOne().cipher_secret
 
 		E2eTestData.insertEntity(
@@ -74,6 +82,7 @@ class ReviewCommitTest : EndToEndTest() {
 			sceneName = "Ship Arrival",
 			sceneOrder = 0,
 			snapshotContent = encryptor().encrypt(snapshot, cipherSecret),
+			cipher = encryptor().cipherName(),
 		)
 		val sceneRowId = db.reviewSceneQueries.getScenesForRequest(requestId).executeAsOne().id
 
@@ -89,7 +98,7 @@ class ReviewCommitTest : EndToEndTest() {
 			status = "pending",
 		).executeAsOne()
 
-		Seeded(projectRowId, requestId, suggestionId)
+		Seeded(projectRowId, requestId, suggestionId, storySegment)
 	}
 
 	private suspend fun login(followRedirects: Boolean = true): HttpClient {
@@ -123,7 +132,7 @@ class ReviewCommitTest : EndToEndTest() {
 		val seeded = seed()
 
 		login().use { authed ->
-			val page = authed.get(route("story/Insurgency/reviews/${seeded.requestId}"))
+			val page = authed.get(route("story/${seeded.storySegment}/reviews/${seeded.requestId}"))
 			assertEquals(HttpStatusCode.OK, page.status)
 			val body = page.bodyAsText()
 			assertContains(body, "review-data")
@@ -138,16 +147,19 @@ class ReviewCommitTest : EndToEndTest() {
 		val seeded = seed()
 		// A second project owned by the same user; the review belongs to Insurgency.
 		E2eTestData.createProject(TestProject("Decoy", Uuid.random(), userId), database())
+		val decoy = database().serverDatabase.projectQueries
+			.findProjectByName(userId, "Decoy").executeAsOne()
+		val decoySegment = ProjectName.projectSegment("Decoy", decoy.uuid)
 
 		login().use { authed ->
-			val page = authed.get(route("story/Decoy/reviews/${seeded.requestId}"))
+			val page = authed.get(route("story/$decoySegment/reviews/${seeded.requestId}"))
 			assertEquals(HttpStatusCode.Gone, page.status)
 
-			val commit = authed.post(route("story/Decoy/reviews/${seeded.requestId}/commit"))
+			val commit = authed.post(route("story/$decoySegment/reviews/${seeded.requestId}/commit"))
 			assertEquals(HttpStatusCode.NotFound, commit.status)
 
 			// Still reachable under its real project
-			val real = authed.get(route("story/Insurgency/reviews/${seeded.requestId}"))
+			val real = authed.get(route("story/${seeded.storySegment}/reviews/${seeded.requestId}"))
 			assertEquals(HttpStatusCode.OK, real.status)
 		}
 	}
@@ -159,7 +171,7 @@ class ReviewCommitTest : EndToEndTest() {
 
 		login().use { authed ->
 			val statusResponse = authed.post(
-				route("story/Insurgency/reviews/${seeded.requestId}/suggestions/${seeded.suggestionId}/status")
+				route("story/${seeded.storySegment}/reviews/${seeded.requestId}/suggestions/${seeded.suggestionId}/status")
 			) {
 				contentType(ContentType.Application.FormUrlEncoded)
 				setBody("status=accepted")
@@ -167,7 +179,7 @@ class ReviewCommitTest : EndToEndTest() {
 			assertEquals(HttpStatusCode.OK, statusResponse.status)
 			assertContains(statusResponse.bodyAsText(), "\"status\":\"accepted\"")
 
-			val commitResponse = authed.post(route("story/Insurgency/reviews/${seeded.requestId}/commit"))
+			val commitResponse = authed.post(route("story/${seeded.storySegment}/reviews/${seeded.requestId}/commit"))
 			assertEquals(HttpStatusCode.OK, commitResponse.status)
 			val commitBody = commitResponse.bodyAsText()
 			assertContains(commitBody, "\"outcome\":\"applied\"")
@@ -193,7 +205,7 @@ class ReviewCommitTest : EndToEndTest() {
 
 		// A second commit must fail: the review is already resolved
 		login().use { authed ->
-			val again = authed.post(route("story/Insurgency/reviews/${seeded.requestId}/commit"))
+			val again = authed.post(route("story/${seeded.storySegment}/reviews/${seeded.requestId}/commit"))
 			assertEquals(HttpStatusCode.Conflict, again.status)
 		}
 	}
@@ -206,14 +218,14 @@ class ReviewCommitTest : EndToEndTest() {
 
 		login().use { authed ->
 			val statusResponse = authed.post(
-				route("story/Insurgency/reviews/${seeded.requestId}/suggestions/${seeded.suggestionId}/status")
+				route("story/${seeded.storySegment}/reviews/${seeded.requestId}/suggestions/${seeded.suggestionId}/status")
 			) {
 				contentType(ContentType.Application.FormUrlEncoded)
 				setBody("status=accepted")
 			}
 			assertEquals(HttpStatusCode.OK, statusResponse.status)
 
-			val commitResponse = authed.post(route("story/Insurgency/reviews/${seeded.requestId}/commit"))
+			val commitResponse = authed.post(route("story/${seeded.storySegment}/reviews/${seeded.requestId}/commit"))
 			assertEquals(HttpStatusCode.OK, commitResponse.status)
 			assertContains(commitResponse.bodyAsText(), "\"outcome\":\"diverged\"")
 		}
@@ -239,7 +251,7 @@ class ReviewCommitTest : EndToEndTest() {
 			val response = authed.get(route("review/$plainToken"))
 			assertEquals(HttpStatusCode.Found, response.status)
 			assertEquals(
-				"/story/Insurgency/reviews/${seeded.requestId}",
+				"/story/${seeded.storySegment}/reviews/${seeded.requestId}",
 				response.headers[HttpHeaders.Location],
 			)
 		}
@@ -253,7 +265,7 @@ class ReviewCommitTest : EndToEndTest() {
 		login(followRedirects = false).use { authed ->
 			val response = authed.get(route("review/$plainToken"))
 			assertEquals(HttpStatusCode.Found, response.status)
-			assertEquals("/story/Insurgency", response.headers[HttpHeaders.Location])
+			assertEquals("/story/${seeded.storySegment}", response.headers[HttpHeaders.Location])
 		}
 
 		// The author's own visit must not flip the request to opened
@@ -271,7 +283,7 @@ class ReviewCommitTest : EndToEndTest() {
 		db.reviewSceneQueries.setReviewerDone(true, sceneRowId)
 
 		login().use { authed ->
-			val page = authed.get(route("story/Insurgency"))
+			val page = authed.get(route("story/${seeded.storySegment}"))
 			assertEquals(HttpStatusCode.OK, page.status)
 			val body = page.bodyAsText()
 			assertContains(body, "1 of 1 scenes read")
@@ -285,10 +297,10 @@ class ReviewCommitTest : EndToEndTest() {
 		val seeded = seed()
 
 		HttpClient { followRedirects = false }.use { anon ->
-			val page = anon.get(route("story/Insurgency/reviews/${seeded.requestId}"))
+			val page = anon.get(route("story/${seeded.storySegment}/reviews/${seeded.requestId}"))
 			assertEquals(HttpStatusCode.Found, page.status)
 
-			val commit = anon.post(route("story/Insurgency/reviews/${seeded.requestId}/commit"))
+			val commit = anon.post(route("story/${seeded.storySegment}/reviews/${seeded.requestId}/commit"))
 			assertTrue(commit.status.value == 302 || commit.status.value == 401)
 		}
 

@@ -13,6 +13,11 @@ import com.darkrockstudios.apps.hammer.email.*
 import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.AesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
+import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
+import com.darkrockstudios.apps.hammer.encryption.ContentEncryptors
+import com.darkrockstudios.apps.hammer.encryption.EncryptionBootstrap
+import com.darkrockstudios.apps.hammer.encryption.EncryptionConvergence
+import com.darkrockstudios.apps.hammer.encryption.PlaintextContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MetricsCollector
@@ -36,6 +41,10 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.review.ReviewRepository
+import com.darkrockstudios.apps.hammer.secret.KeyringCodec
+import com.darkrockstudios.apps.hammer.secret.KeyringManager
+import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
+import com.darkrockstudios.apps.hammer.secret.buildSecretProvider
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
@@ -134,8 +143,27 @@ fun mainModule(
 
 	singleOf(::ServerSecretManager)
 	singleOf(::MarkdownService)
+	single { KeyringCodec(get(), get()) }
+	single<ServerSecretProvider> { buildSecretProvider(get<ServerConfig>().secret, get()) }
+	single {
+		KeyringManager(get(), get(), get(), KeyringManager.legacySecretPath())
+	}
 	singleOf(::SimpleFileBasedAesGcmKeyProvider) bind AesGcmKeyProvider::class
-	singleOf(::AesGcmContentEncryptor) bind ContentEncryptor::class
+	singleOf(::PlaintextContentEncryptor)
+	single {
+		val keyProvider = get<AesGcmKeyProvider>()
+		val random = get<SecureRandom>()
+		val aes = get<KeyringManager>().keyringOrNull()?.content?.keys
+			?.mapValues { (keyId, contentKey) -> AesGcmContentEncryptor(contentKey, keyId, keyProvider, random) }
+			?: emptyMap()
+		ContentEncryptors(get<PlaintextContentEncryptor>(), aes)
+	}
+	single { ContentEncryptorRegistry(get<ContentEncryptors>().all()) }
+	single<ContentEncryptor> {
+		get<ContentEncryptors>().active(get<ServerConfig>().encryption.effectiveWriteMode(), get())
+	}
+	single { EncryptionConvergence(get(), get(), get()) }
+	single { EncryptionBootstrap(get(), get(), get(), get(), get(), get()) }
 	singleOf(::TokenHasher)
 
 	single<EmailService> {
@@ -151,7 +179,7 @@ fun mainModule(
 
 	factoryOf(::ProjectsDatabaseDatasource) bind ProjectsDatasource::class
 	factory<ProjectEntityDatasource> {
-		ProjectEntityDatabaseDatasource(get(), get(), get(), get(), get(), get(), get())
+		ProjectEntityDatabaseDatasource(get(), get(), get(), get(), get(), get(), get(), get())
 	}
 
 	singleOf(::AdminComponent)

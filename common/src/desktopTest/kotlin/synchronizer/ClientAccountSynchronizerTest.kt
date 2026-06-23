@@ -495,4 +495,27 @@ class ClientAccountSynchronizerTest {
 		verify { projectsRepository.createProject("ServerNovel") }
 		verify { projectsRepository.setProjectId(createdDef, serverId) }
 	}
+
+	@Test
+	fun `syncProjects sanitizes an illegal server project name before creating it locally`() = runTest {
+		writeSyncData(emptySyncData())
+		val serverId = ProjectId.randomUUID()
+		val mangledName = "Alice In Wonderland (# Name clash 2026-06-07 fk6fycC #)"
+		val safeName = ProjectsRepository.toLocalSafeName(mangledName)
+		val serverProject = ApiProjectDefinition(name = mangledName, uuid = serverId)
+		val createdDef = projectDef(safeName)
+
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(projects = setOf(serverProject)))
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+		every { projectsRepository.findProject(safeName) } returns null
+		every { projectsRepository.createProject(safeName) } returns CResult.success(createdDef)
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		verify { projectsRepository.createProject(safeName) }
+		verify(exactly = 0) { projectsRepository.createProject(mangledName) }
+		verify { projectsRepository.setProjectId(createdDef, serverId) }
+	}
 }

@@ -1,5 +1,18 @@
 # Changelog
 
+## [3.4.0] - 2026-6-22
+
+- [New] Shortcuts: Ctrl+W (close project), Ctrl+Q (quit), Ctrl+Alt+S (save all)
+- [Fix] Markdown import maps heading levels to scene/group hierarchy
+- [Fix] Warn before discarding unsaved timeline edits on close
+- [Fix] Backups missing from Manage Backups
+- [Fix] Spell-check crash
+- [Fix] scene-tree flicker and performance
+- [Fix] Allow Windows reserved names in scene/group titles
+- [New] Server: Improved cryptography key management
+- [Fix] Server: Reworked project URLs to fix 404s
+
+
 ## [3.3.1] - 2026-6-16
 
 [New/Client] Added more text editor keyboard shortcuts (bold, italic and strikethrough, and more)

@@ -514,6 +514,12 @@ class SceneEditorServiceTest : BaseTest() {
 		assertTrue(service.validateSceneName("A good name").isSuccess)
 	}
 
+	@Test
+	fun `Validate scene name allows a Windows reserved word`() = runTest(mainTestDispatcher) {
+		val service = initializedService()
+		assertTrue(service.validateSceneName("Con").isSuccess)
+	}
+
 	// endregion
 
 	// region Risk Register

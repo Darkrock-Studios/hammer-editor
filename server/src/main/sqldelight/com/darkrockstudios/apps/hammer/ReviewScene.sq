@@ -6,6 +6,7 @@ CREATE TABLE review_scene(
     scene_name TEXT NOT NULL,
     scene_order INTEGER NOT NULL,
     snapshot_content TEXT NOT NULL,
+    cipher TEXT NOT NULL,
     reviewer_done BOOLEAN NOT NULL DEFAULT FALSE,
     FOREIGN KEY(review_request_id) REFERENCES review_request(id) ON DELETE CASCADE
 );
@@ -13,8 +14,8 @@ CREATE TABLE review_scene(
 CREATE INDEX review_scene_request_idx ON review_scene (review_request_id);
 
 createScene:
-INSERT INTO review_scene(review_request_id, scene_id, draft_id, scene_name, scene_order, snapshot_content)
-VALUES (:reviewRequestId, :sceneId, :draftId, :sceneName, :sceneOrder, :snapshotContent);
+INSERT INTO review_scene(review_request_id, scene_id, draft_id, scene_name, scene_order, snapshot_content, cipher)
+VALUES (:reviewRequestId, :sceneId, :draftId, :sceneName, :sceneOrder, :snapshotContent, :cipher);
 
 getScenesForRequest:
 SELECT * FROM review_scene
@@ -23,6 +24,33 @@ ORDER BY scene_order;
 
 getScene:
 SELECT * FROM review_scene WHERE id = :id;
+
+countEncrypted:
+SELECT COUNT(*) FROM review_scene WHERE cipher != 'none';
+
+-- Convergence: same normalization as story_entity. review_scene.cipher is
+-- NOT NULL, but the legacy 'AES/GCM/NoPadding' backfill maps to the v1 key.
+-- Same FROM/JOIN/WHERE shape as selectForConvergence so the count and the work
+-- set can't diverge: an orphan scene would otherwise inflate the count forever.
+countForConvergence:
+SELECT COUNT(*) FROM review_scene rs
+JOIN review_request rr ON rr.id = rs.review_request_id
+WHERE (CASE WHEN rs.cipher = 'AES/GCM/NoPadding' THEN 'aesgcm:v1' ELSE rs.cipher END) != :target;
+
+-- Distinct normalized cipher tags present, for key pruning. No join: every scene
+-- counts (cipher lives on review_scene), so a key in use is never overlooked.
+distinctCiphers:
+SELECT DISTINCT (CASE WHEN cipher = 'AES/GCM/NoPadding' THEN 'aesgcm:v1' ELSE cipher END) AS cipher FROM review_scene;
+
+selectForConvergence:
+SELECT rs.id, rs.snapshot_content, rs.cipher, rr.user_id
+FROM review_scene rs
+JOIN review_request rr ON rr.id = rs.review_request_id
+WHERE (CASE WHEN rs.cipher = 'AES/GCM/NoPadding' THEN 'aesgcm:v1' ELSE rs.cipher END) != :target
+LIMIT :batchLimit;
+
+updateContentCipher:
+UPDATE review_scene SET snapshot_content = :content, cipher = :cipher WHERE id = :id;
 
 setReviewerDone:
 UPDATE review_scene SET reviewer_done = :done WHERE id = :id;

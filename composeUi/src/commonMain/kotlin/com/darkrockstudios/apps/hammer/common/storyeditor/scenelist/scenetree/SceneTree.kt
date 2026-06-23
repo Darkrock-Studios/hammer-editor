@@ -6,10 +6,13 @@ import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListLayoutInfo
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -22,7 +25,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 
 /**
  * The root composable take takes a scene tree and handles rendering, reorder, collapsing
@@ -47,6 +49,9 @@ fun SceneTree(
 					color = MaterialTheme.colorScheme.onBackground
 				)
 			} else {
+				val visibleNodes by remember(state) {
+					derivedStateOf { visibleSceneNodes(state.summary.sceneTree, state.collapsedNodes) }
+				}
 				LazyColumn(
 					state = state.listState,
 					modifier = modifier.reorderableModifier(state)
@@ -54,32 +59,23 @@ fun SceneTree(
 					contentPadding = contentPadding
 				) {
 					items(
-						count = state.summary.sceneTree.totalNodes,
-						key = { state.summary.sceneTree[it].value.id },
-						contentType = { state.summary.sceneTree[it].value.type }
-					) { index ->
-						val childNode = state.summary.sceneTree[index]
-						val shouldCollapseSelf = shouldCollapseNode(
-							index,
-							state.summary,
-							state.collapsedNodes
-						)
+						items = visibleNodes,
+						key = { it.value.id },
+						contentType = { it.value.type }
+					) { node ->
 						val nodeCollapsesChildren =
-							state.collapsedNodes[childNode.value.id] ?: false
+							state.collapsedNodes[node.value.id] ?: false
 
-						if (!childNode.value.isRootScene) {
-							SceneTreeNode(
-								node = childNode,
-								collapsed = shouldCollapseSelf, // need to take parent into account
-								nodeCollapsesChildren = nodeCollapsesChildren,
-								selectedId = state.selectedId,
-								toggleExpanded = state::toggleExpanded,
-								modifier = Modifier.wrapContentHeight()
-									.fillMaxWidth()
-									.animateItem(),
-								itemUi = itemUi
-							)
-						}
+						SceneTreeNode(
+							node = node,
+							nodeCollapsesChildren = nodeCollapsesChildren,
+							selectedId = state.selectedId,
+							toggleExpanded = state::toggleExpanded,
+							modifier = Modifier.wrapContentHeight()
+								.fillMaxWidth()
+								.animateItem(),
+							itemUi = itemUi
+						)
 					}
 				}
 				MpScrollBarList(state = state.listState)
@@ -87,17 +83,6 @@ fun SceneTree(
 		}
 		drawInsertLine(state)
 	}
-}
-
-private fun shouldCollapseNode(
-	index: Int,
-	summary: SceneSummary,
-	collapsedNodes: SnapshotStateMap<Int, Boolean>
-): Boolean {
-	if (collapsedNodes.isEmpty()) return false
-
-	val branch = summary.sceneTree.getBranch(index, true)
-	return branch.any { collapsedNodes[it.value.id] == true }
 }
 
 @Composable

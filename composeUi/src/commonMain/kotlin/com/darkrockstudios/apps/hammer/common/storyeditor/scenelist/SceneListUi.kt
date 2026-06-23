@@ -86,16 +86,18 @@ fun SceneListUi(
 	// TODO implement a real NUX system
 	val shouldNux = remember { Random.nextInt(0, 9) == 0 }
 
-	var footerVisible by remember { mutableStateOf(true) }
+	var hiddenByScroll by remember { mutableStateOf(false) }
 	val scrollConnection = remember {
 		object : NestedScrollConnection {
 			override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-				if (available.y < -1f) footerVisible = false
-				else if (available.y > 1f) footerVisible = true
+				if (available.y < -1f) hiddenByScroll = true
+				else if (available.y > 1f) hiddenByScroll = false
 				return Offset.Zero
 			}
 		}
 	}
+	// Always reachable when the list can't scroll down to it (e.g. all groups collapsed).
+	val footerVisible = !treeState.listState.canScrollForward || !hiddenByScroll
 
 	Surface(
 		modifier = modifier,

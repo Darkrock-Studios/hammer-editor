@@ -5,7 +5,9 @@ import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.database.*
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
+import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
 import com.darkrockstudios.apps.hammer.utilities.SResult
+import java.security.GeneralSecurityException
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -17,6 +19,7 @@ class ProjectEntityDatabaseDatasource(
 	private val storyEntityDao: StoryEntityDao,
 	private val deletedEntityDao: DeletedEntityDao,
 	private val encryptor: ContentEncryptor,
+	private val encryptorRegistry: ContentEncryptorRegistry,
 	private val json: Json,
 	private val maxContentLength: Int = MAX_ENTITY_CONTENT_LENGTH,
 ) : ProjectEntityDatasource {
@@ -224,10 +227,17 @@ class ProjectEntityDatabaseDatasource(
 		} else {
 			try {
 				val account = accountDao.getAccount(userId) ?: error("User not found $userId")
-				val decrypted = encryptor.decrypt(dbEntity.content, account.cipher_secret)
+				val rowEncryptor = encryptorRegistry.resolve(dbEntity.cipher)
+				val decrypted = rowEncryptor.decrypt(dbEntity.content, account.cipher_secret)
 				val entity = json.decodeFromString(serializer, decrypted)
 				SResult.success(entity)
 			} catch (e: SerializationException) {
+				SResult.failure(e)
+			} catch (e: GeneralSecurityException) {
+				// Wrong key or corrupt ciphertext for the row's cipher tag.
+				SResult.failure(e)
+			} catch (e: IllegalArgumentException) {
+				// Ciphertext that isn't valid Base64.
 				SResult.failure(e)
 			}
 		}

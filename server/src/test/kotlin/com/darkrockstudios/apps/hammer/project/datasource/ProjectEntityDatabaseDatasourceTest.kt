@@ -10,8 +10,13 @@ import com.darkrockstudios.apps.hammer.database.*
 import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
 import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
+import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
+import com.darkrockstudios.apps.hammer.encryption.PlaintextContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.project.*
+import com.darkrockstudios.apps.hammer.secret.KeyringCodec
+import com.darkrockstudios.apps.hammer.secret.KeyringManager
+import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
 import com.darkrockstudios.apps.hammer.utilities.*
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
@@ -21,6 +26,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
@@ -38,6 +44,8 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 	private lateinit var json: Json
 	private lateinit var clock: TestClock
 	private lateinit var contentEncryptor: ContentEncryptor
+	private lateinit var plaintextEncryptor: PlaintextContentEncryptor
+	private lateinit var encryptorRegistry: ContentEncryptorRegistry
 	private lateinit var cipherSecretGenerator: SecureTokenGenerator
 	private lateinit var base64: Base64
 
@@ -52,13 +60,20 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		fileSystem = FakeFileSystem()
 		base64 = createTokenBase64()
 		val secureRandom = SecureRandom()
-		val serverSecretManager = ServerSecretManager(fileSystem, secureRandom)
-		contentEncryptor = AesGcmContentEncryptor(
-			SimpleFileBasedAesGcmKeyProvider(
-				serverSecretManager,
-				base64
-			), secureRandom
+		val codec = KeyringCodec(secureRandom, base64)
+		val keyringJson = codec.serialize(codec.generate())
+		val keyringManager = KeyringManager(
+			object : ServerSecretProvider { override fun loadKeyring() = keyringJson },
+			codec, fileSystem, "/nonexistent".toPath(),
 		)
+		contentEncryptor = AesGcmContentEncryptor(
+			keyringManager.activeContentKey(),
+			keyringManager.activeContentKeyId(),
+			SimpleFileBasedAesGcmKeyProvider(base64),
+			secureRandom,
+		)
+		plaintextEncryptor = PlaintextContentEncryptor()
+		encryptorRegistry = ContentEncryptorRegistry(listOf(contentEncryptor, plaintextEncryptor))
 		cipherSecretGenerator = SecureTokenGenerator(AccountsRepository.CIPHER_SALT_LENGTH, base64)
 
 		testDatabase = SqliteTestDatabase()
@@ -69,6 +84,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 
 	private fun createDatasource(
 		maxContentLength: Int = ProjectEntityDatabaseDatasource.MAX_ENTITY_CONTENT_LENGTH,
+		activeEncryptor: ContentEncryptor = contentEncryptor,
 	): ProjectEntityDatabaseDatasource {
 		return ProjectEntityDatabaseDatasource(
 			accountDao = AccountDao(testDatabase),
@@ -76,7 +92,8 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 			deletedProjectDao = DeletedProjectDao(testDatabase),
 			storyEntityDao = StoryEntityDao(testDatabase),
 			deletedEntityDao = DeletedEntityDao(testDatabase),
-			encryptor = contentEncryptor,
+			encryptor = activeEncryptor,
+			encryptorRegistry = encryptorRegistry,
 			json = json,
 			maxContentLength = maxContentLength,
 		)
@@ -397,6 +414,155 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		val datasource = createDatasource()
 		val success = datasource.renameProject(userId, projectDef.uuid, newProjectName)
 		assertTrue(success)
+	}
+
+	@Test
+	fun `Load Entity - Mixed Cipher Tags - Each Decrypts With Its Own Encryptor`() = runTest {
+		setupAccount(testDatabase)
+		testDatabase.serverDatabase.projectQueries
+			.createProject(userId, projectDef.name, projectDef.uuid.id)
+
+		val aesEntity = insertSceneEntityRaw(1, "aes content", contentEncryptor, contentEncryptor.cipherName())
+		val plainEntity = insertSceneEntityRaw(2, "plain content", plaintextEncryptor, plaintextEncryptor.cipherName())
+		val nullEntity = insertSceneEntityRaw(3, "null cipher content", plaintextEncryptor, cipherTag = null)
+
+		val datasource = createDatasource()
+
+		assertEquals(aesEntity, loadScene(datasource, 1))
+		assertEquals(plainEntity, loadScene(datasource, 2))
+		assertEquals(nullEntity, loadScene(datasource, 3))
+	}
+
+	@Test
+	fun `Load Entity - Unknown Cipher Tag - Loud Failure`() = runTest {
+		setupAccount(testDatabase)
+		testDatabase.serverDatabase.projectQueries
+			.createProject(userId, projectDef.name, projectDef.uuid.id)
+
+		insertSceneEntityRaw(1, "content", plaintextEncryptor, cipherTag = "bogus:v9")
+
+		val datasource = createDatasource()
+
+		assertFailsWith<IllegalStateException> {
+			datasource.loadEntity(
+				userId, projectDef, 1,
+				ApiProjectEntity.Type.SCENE,
+				ApiProjectEntity.SceneEntity.serializer(),
+			)
+		}
+	}
+
+	@Test
+	fun `Load Entity - AES Tag But Non-Ciphertext Content - Clean Failure`() = runTest {
+		setupAccount(testDatabase)
+		testDatabase.serverDatabase.projectQueries
+			.createProject(userId, projectDef.name, projectDef.uuid.id)
+
+		// Content stored as plaintext JSON but tagged as AES: decrypting it must fail
+		// cleanly (not throw an uncaught crypto/Base64 exception).
+		insertSceneEntityRaw(1, "content", plaintextEncryptor, cipherTag = contentEncryptor.cipherName())
+
+		val result = createDatasource().loadEntity(
+			userId, projectDef, 1,
+			ApiProjectEntity.Type.SCENE,
+			ApiProjectEntity.SceneEntity.serializer(),
+		)
+
+		assertTrue(isFailure(result))
+	}
+
+	@Test
+	fun `Store Entity - Cipher Is Orthogonal To Hash`() = runTest {
+		val entity = ApiProjectEntity.SceneEntity(
+			id = 1,
+			name = "test",
+			content = "test content",
+			order = 0,
+			path = listOf(0),
+			sceneType = ApiSceneType.Scene,
+			outline = "outline",
+			notes = "notes",
+		)
+
+		setupAccount(testDatabase)
+		testDatabase.serverDatabase.projectQueries
+			.createProject(userId, projectDef.name, projectDef.uuid.id)
+
+		val aesDatasource = createDatasource(activeEncryptor = contentEncryptor)
+		assertTrue(
+			aesDatasource.storeEntity(
+				userId, projectDef, entity,
+				ApiProjectEntity.Type.SCENE,
+				ApiProjectEntity.SceneEntity.serializer(),
+			).isSuccess
+		)
+		val afterAes = getRow(1)
+		assertEquals(contentEncryptor.cipherName(), afterAes.cipher)
+
+		val plainDatasource = createDatasource(activeEncryptor = plaintextEncryptor)
+		assertTrue(
+			plainDatasource.storeEntity(
+				userId, projectDef, entity,
+				ApiProjectEntity.Type.SCENE,
+				ApiProjectEntity.SceneEntity.serializer(),
+			).isSuccess
+		)
+		val afterPlain = getRow(1)
+		assertEquals(plaintextEncryptor.cipherName(), afterPlain.cipher)
+
+		assertEquals(afterAes.hash, afterPlain.hash)
+		assertNotEquals(afterAes.content, afterPlain.content)
+	}
+
+	private suspend fun loadScene(
+		datasource: ProjectEntityDatabaseDatasource,
+		entityId: Int,
+	): ApiProjectEntity.SceneEntity {
+		val result = datasource.loadEntity(
+			userId, projectDef, entityId,
+			ApiProjectEntity.Type.SCENE,
+			ApiProjectEntity.SceneEntity.serializer(),
+		)
+		assertTrue(isSuccess(result))
+		return result.data
+	}
+
+	private fun getRow(entityId: Long) =
+		testDatabase.serverDatabase.storyEntityQueries
+			.getEntity(userId, 1, entityId)
+			.executeAsOne()
+
+	private suspend fun insertSceneEntityRaw(
+		id: Int,
+		plaintextContent: String,
+		encryptor: ContentEncryptor,
+		cipherTag: String?,
+	): ApiProjectEntity.SceneEntity {
+		val entity = ApiProjectEntity.SceneEntity(
+			id = id,
+			name = "scene $id",
+			content = plaintextContent,
+			order = 0,
+			path = listOf(0),
+			sceneType = ApiSceneType.Scene,
+			outline = "",
+			notes = "",
+		)
+		val jsonString = json.encodeToString(ApiProjectEntity.SceneEntity.serializer(), entity)
+		val cipherSecret =
+			testDatabase.serverDatabase.accountQueries.getAccount(1).executeAsOne().cipher_secret
+		val content = encryptor.encrypt(jsonString, cipherSecret)
+
+		testDatabase.serverDatabase.storyEntityQueries.insertNew(
+			userId = 1,
+			projectId = 1,
+			id = id.toLong(),
+			type = ApiProjectEntity.Type.SCENE.toStringId(),
+			content = content,
+			cipher = cipherTag,
+			hash = entity.hash(),
+		)
+		return entity
 	}
 
 	private fun setupAccount(testDatabase: SqliteTestDatabase) {

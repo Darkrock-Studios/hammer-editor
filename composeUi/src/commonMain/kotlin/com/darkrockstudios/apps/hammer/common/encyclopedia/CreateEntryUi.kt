@@ -29,9 +29,10 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.dialogs.FileKitType
-import io.github.vinceglb.filekit.dialogs.compose.rememberFilePickerLauncher
+import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.path
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -58,10 +59,6 @@ internal fun CreateEntryUi(
 	var selectedType by rememberSaveable { mutableStateOf(EntryType.PERSON) }
 
 	var imagePath by remember { mutableStateOf<PlatformFile?>(null) }
-
-	val filePickerLauncher = rememberFilePickerLauncher(type = FileKitType.Image) { file ->
-		imagePath = file
-	}
 
 	BoxWithConstraints(
 		modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL),
@@ -138,7 +135,11 @@ internal fun CreateEntryUi(
 				val attachedImage = imagePath
 				HdHairlineImageDrop(
 					label = Res.string.encyclopedia_create_entry_cover_art_label.get(),
-					onClick = { filePickerLauncher.launch() },
+					onClick = {
+						scope.launch {
+							imagePath = retryingFileDialog { FileKit.openFilePicker(type = FileKitType.Image) }
+						}
+					},
 					dropHint = Res.string.encyclopedia_create_entry_image_drop_hint.get(),
 					browseLabel = Res.string.encyclopedia_create_entry_image_browse_button.get(),
 					attachedLabel = Res.string.encyclopedia_create_entry_image_attached.get(),

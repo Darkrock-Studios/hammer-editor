@@ -9,7 +9,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Select Xcode 26
         # macos-latest still defaults to Xcode 16.4 (iOS 18.5 SDK). App Store

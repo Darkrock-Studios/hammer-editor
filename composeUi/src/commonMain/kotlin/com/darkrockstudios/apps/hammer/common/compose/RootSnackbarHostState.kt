@@ -3,11 +3,13 @@ package com.darkrockstudios.apps.hammer.common.compose
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
+@Stable
 data class RootSnackbarHostState(
 	val snackbarHostState: SnackbarHostState,
 	val scope: CoroutineScope

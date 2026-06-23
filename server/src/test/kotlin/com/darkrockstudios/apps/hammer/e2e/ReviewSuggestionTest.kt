@@ -51,6 +51,7 @@ class ReviewSuggestionTest : EndToEndTest() {
 				"It flagged the planet as non-viable and moved on.",
 				cipherSecret,
 			),
+			cipher = encryptor().cipherName(),
 		)
 		db.reviewSceneQueries.getScenesForRequest(requestId).executeAsOne().id
 	}

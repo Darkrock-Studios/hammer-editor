@@ -32,6 +32,19 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.4.0" date="2026-06-22">
+            <description>
+                <p>- [New] Shortcuts: Ctrl+W (close project), Ctrl+Q (quit), Ctrl+Alt+S (save all)</p>
+                <p>- [Fix] Markdown import maps heading levels to scene/group hierarchy</p>
+                <p>- [Fix] Warn before discarding unsaved timeline edits on close</p>
+                <p>- [Fix] Backups missing from Manage Backups</p>
+                <p>- [Fix] Spell-check crash</p>
+                <p>- [Fix] scene-tree flicker and performance</p>
+                <p>- [Fix] Allow Windows reserved names in scene/group titles</p>
+                <p>- [New] Server: Improved cryptography key management</p>
+                <p>- [Fix] Server: Reworked project URLs to fix 404s</p>
+            </description>
+        </release>
         <release version="3.3.1" date="2026-06-16">
             <description>
                 <p>[New/Client] Added more text editor keyboard shortcuts (bold, italic and strikethrough, and more)</p>

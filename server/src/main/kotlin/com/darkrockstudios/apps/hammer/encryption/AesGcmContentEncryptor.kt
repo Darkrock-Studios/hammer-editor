@@ -6,28 +6,34 @@ import javax.crypto.Cipher
 import javax.crypto.spec.GCMParameterSpec
 import kotlin.io.encoding.Base64
 
+/**
+ * AES/GCM content encryptor bound to one content key generation. Its cipher tag
+ * (`aesgcm:<keyId>`) records which generation a row was written with, so reads
+ * dispatch to the right key.
+ */
 class AesGcmContentEncryptor(
+	private val contentKey: String,
+	private val keyId: String,
 	private val aesKeyProvider: AesGcmKeyProvider,
 	private val random: SecureRandom,
 ) : ContentEncryptor {
 
 	override suspend fun encrypt(plainText: String, clientSecret: String): String {
-		val secretKey = aesKeyProvider.getEncryptionKey(clientSecret)
-		val cipher = Cipher.getInstance(CIPHER_NAME)
-		val iv = ByteArray(IV_LENGTH) // Generate a 96-bit IV
+		val secretKey = aesKeyProvider.getEncryptionKey(clientSecret, contentKey)
+		val cipher = Cipher.getInstance(TRANSFORMATION)
+		val iv = ByteArray(IV_LENGTH)
 		random.nextBytes(iv)
 		val gcmParameterSpec = GCMParameterSpec(TAG_LENGTH, iv)
 		cipher.init(Cipher.ENCRYPT_MODE, secretKey, gcmParameterSpec)
 		val encryptedBytes = cipher.doFinal(plainText.toByteArray())
 		val combinedBytes = iv + encryptedBytes
-		val encryptedText = Base64.encode(combinedBytes)
-		return encryptedText
+		return Base64.encode(combinedBytes)
 	}
 
 	override suspend fun decrypt(encrypted: String, clientSecret: String): String {
 		val encryptedBytes = Base64.decode(encrypted.toByteArray())
-		val secretKey = aesKeyProvider.getEncryptionKey(clientSecret)
-		val cipher = Cipher.getInstance(CIPHER_NAME)
+		val secretKey = aesKeyProvider.getEncryptionKey(clientSecret, contentKey)
+		val cipher = Cipher.getInstance(TRANSFORMATION)
 		val iv = encryptedBytes.sliceArray(0..<IV_LENGTH)
 		val ciphertext = encryptedBytes.sliceArray(IV_LENGTH until encryptedBytes.size)
 		val gcmParameterSpec = GCMParameterSpec(TAG_LENGTH, iv)
@@ -36,11 +42,22 @@ class AesGcmContentEncryptor(
 		return plainTextBytes.toString(Charsets.UTF_8)
 	}
 
-	override fun cipherName() = CIPHER_NAME
+	override fun cipherName() = "$ALGORITHM:$keyId"
 
 	companion object {
-		const val CIPHER_NAME: String = "AES/GCM/NoPadding"
+		const val ALGORITHM: String = "aesgcm"
+		/** The cipher tag written before key ids existed; equivalent to `aesgcm:v1`. */
+		const val LEGACY_CIPHER_NAME: String = "AES/GCM/NoPadding"
+
+		/** The content key id a cipher tag references, or null for non-AES tags (e.g. `none`). */
+		fun keyIdForTag(tag: String): String? = when {
+			tag == LEGACY_CIPHER_NAME -> "v1"
+			tag.startsWith("$ALGORITHM:") -> tag.removePrefix("$ALGORITHM:")
+			else -> null
+		}
+
 		const val TAG_LENGTH: Int = 128
 		const val IV_LENGTH: Int = 12
+		private const val TRANSFORMATION: String = "AES/GCM/NoPadding"
 	}
 }

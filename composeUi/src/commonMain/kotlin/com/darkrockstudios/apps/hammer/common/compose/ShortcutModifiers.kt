@@ -7,13 +7,15 @@ internal fun Modifier.onKeyShortcut(
 	key: Key,
 	ctrl: Boolean = false,
 	shift: Boolean = false,
+	alt: Boolean = false,
 	action: () -> Unit,
 ): Modifier = onPreviewKeyEvent { event ->
 	val ctrlOrMeta = event.isCtrlPressed || event.isMetaPressed
 	if (event.type == KeyEventType.KeyDown &&
 		event.key == key &&
 		ctrlOrMeta == ctrl &&
-		event.isShiftPressed == shift
+		event.isShiftPressed == shift &&
+		event.isAltPressed == alt
 	) {
 		action()
 		true
@@ -27,6 +29,9 @@ fun Modifier.findShortcutModifier(showFindBar: () -> Unit): Modifier =
 
 fun Modifier.saveShortcutModifier(onSave: () -> Unit): Modifier =
 	onKeyShortcut(Key.S, ctrl = true, action = onSave)
+
+fun Modifier.saveAllShortcutModifier(onSaveAll: () -> Unit): Modifier =
+	onKeyShortcut(Key.S, ctrl = true, alt = true, action = onSaveAll)
 
 fun Modifier.syncShortcutModifier(onSync: () -> Unit): Modifier =
 	onKeyShortcut(Key.F3, action = onSync)

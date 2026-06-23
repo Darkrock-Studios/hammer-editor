@@ -1,7 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist
 
+import androidx.compose.runtime.Immutable
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.*
+import kotlinx.collections.immutable.ImmutableList
+import kotlinx.collections.immutable.persistentListOf
 
 interface SceneList {
 	val state: Value<State>
@@ -22,11 +25,12 @@ interface SceneList {
 	fun showArchivedScenes()
 	fun dismissArchivedDialog()
 
+	@Immutable
 	data class State(
 		val projectDef: ProjectDef,
 		val selectedSceneItem: SceneItem? = null,
 		val sceneSummary: SceneSummary? = null,
 		val showArchivedDialog: Boolean = false,
-		val archivedScenes: List<SceneItem> = emptyList()
+		val archivedScenes: ImmutableList<SceneItem> = persistentListOf()
 	)
 }

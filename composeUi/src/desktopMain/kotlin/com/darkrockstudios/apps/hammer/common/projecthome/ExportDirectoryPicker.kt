@@ -8,10 +8,11 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projecthome.fileExtension
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.retryingFileDialog
 import com.darkrockstudios.apps.hammer.project_home_action_export_toast_success
+import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.absolutePath
-import io.github.vinceglb.filekit.dialogs.FileKitDialogSettings
-import io.github.vinceglb.filekit.dialogs.compose.rememberFileSaverLauncher
+import io.github.vinceglb.filekit.dialogs.openFileSaver
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -25,29 +26,23 @@ actual fun ExportDirectoryPicker(
 	val state by component.state.subscribeAsState()
 	val format = state.exportOptions.format
 
-	val saverLauncher = rememberFileSaverLauncher(
-		dialogSettings = FileKitDialogSettings.createDefault(),
-	) { file ->
-		if (file != null) {
-			val options = state.exportOptions
-			scope.launch(defaultDispatcher) {
-				component.exportProjectToFile(file.absolutePath(), options)
-				component.showToast(Res.string.project_home_action_export_toast_success)
-			}
-		} else {
-			component.endProjectExport()
-		}
-	}
-
 	LaunchedEffect(show) {
 		if (show) {
 			val suggested = component.getExportStoryFileName(format)
 			val extension = format.fileExtension
 			val baseName = suggested.removeSuffix(".$extension")
-			saverLauncher.launch(
-				suggestedName = baseName,
-				defaultExtension = extension,
-			)
+			val file = retryingFileDialog {
+				FileKit.openFileSaver(suggestedName = baseName, extension = extension)
+			}
+			if (file != null) {
+				val options = state.exportOptions
+				scope.launch(defaultDispatcher) {
+					component.exportProjectToFile(file.absolutePath(), options)
+					component.showToast(Res.string.project_home_action_export_toast_success)
+				}
+			} else {
+				component.endProjectExport()
+			}
 		}
 	}
 }

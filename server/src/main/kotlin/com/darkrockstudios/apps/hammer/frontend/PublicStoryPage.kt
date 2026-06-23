@@ -1,10 +1,13 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
+import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.project.access.PublicProjectResult
 import com.darkrockstudios.apps.hammer.story.PaginatedExportResult
 import com.darkrockstudios.apps.hammer.story.StoryExportService
@@ -26,6 +29,8 @@ fun Route.publicStoryPage(
 	projectAccessRepository: ProjectAccessRepository,
 	projectDao: ProjectDao,
 	storyReaderCollector: StoryReaderCollector,
+	accountsRepository: AccountsRepository,
+	projectsRepository: ProjectsRepository,
 ) {
 	route("/a/{penName}/{projectName}") {
 		get {
@@ -37,15 +42,35 @@ fun Route.publicStoryPage(
 				return@get
 			}
 
-			// Decode URL: URL decode then replace dashes with spaces
-			val penName = ProjectName.decodeFromUrl(penNameParam)
-			val projectName = ProjectName.decodeFromUrl(projectNameParam)
-
 			// Check for password and page in query parameters
 			val password = call.request.queryParameters["p"]
 			val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
 
-			when (val result = projectAccessRepository.findAccessibleProject(penName, projectName, password)) {
+			// Resolve the author by pen name (verbatim, then dashes as spaces).
+			val account = resolveByPenName(penNameParam) { accountsRepository.findAccountByPenName(it) }
+			val penName = account?.pen_name
+			if (account == null || penName == null) {
+				call.respond(HttpStatusCode.NotFound)
+				return@get
+			}
+
+			// Resolve the project by the id embedded in its URL segment, scoped to this author's
+			// projects; the slug beside the id is decorative and ignored.
+			val projectId = ProjectName.idFromSegment(projectNameParam)
+			val projectName = projectsRepository.getProjectsWithSyncDate(account.id)
+				.find { ProjectName.shortId(it.uuid) == projectId }?.name
+			if (projectName == null) {
+				call.respond(HttpStatusCode.NotFound)
+				return@get
+			}
+
+			val result = projectAccessRepository.findAccessibleProject(penName, projectName, password)
+
+			// Self-referential links reuse the incoming, already URL-safe segments.
+			val penNameForUrl = penNameParam
+			val projectNameForUrl = projectNameParam
+
+			when (val resolved = result) {
 				is PublicProjectResult.NotFound -> {
 					call.respond(HttpStatusCode.NotFound)
 				}
@@ -55,8 +80,8 @@ fun Route.publicStoryPage(
 					val model = call.withDefaults(
 						mapOf(
 							"page_stylesheet" to "/assets/css/story.css",
-							"penName" to penNameParam,
-							"projectName" to projectNameParam,
+							"penName" to penNameForUrl,
+							"projectName" to projectNameForUrl,
 							"error" to (password != null) // Show error if password was provided but invalid
 						)
 					)
@@ -66,8 +91,8 @@ fun Route.publicStoryPage(
 				is PublicProjectResult.Success -> {
 					// Best-effort unique-reader count, skipping the author viewing their own story.
 					val viewerId = call.sessions.get<UserSession>()?.userId
-					if (viewerId != result.userId) {
-						projectDao.getProjectIdOrNull(result.userId, result.projectUuid)?.let { projectId ->
+					if (viewerId != resolved.userId) {
+						projectDao.getProjectIdOrNull(resolved.userId, resolved.projectUuid)?.let { projectId ->
 							storyReaderCollector.record(
 								projectId = projectId,
 								clientIp = call.request.origin.remoteAddress,
@@ -77,8 +102,8 @@ fun Route.publicStoryPage(
 					}
 
 					val exportResult = storyExportService.exportStoryAsHtmlPaginated(
-						userId = result.userId,
-						projectId = result.projectUuid,
+						userId = resolved.userId,
+						projectId = resolved.projectUuid,
 						page = page
 					)
 
@@ -96,8 +121,8 @@ fun Route.publicStoryPage(
 								mapOf(
 									"page_stylesheet" to "/assets/css/story.css",
 									"projectName" to data.projectName,
-									"authorPenName" to result.penName,
-									"authorPenNameUrl" to ProjectName.formatForUrl(result.penName),
+									"authorPenName" to resolved.penName,
+									"authorPenNameUrl" to ProjectName.penNameForUrl(resolved.penName),
 									"storyHtml" to data.pageHtml,
 									"hasContent" to data.hasContent,
 									"sceneCount" to data.sceneCount,
@@ -109,8 +134,8 @@ fun Route.publicStoryPage(
 									"hasPagination" to (data.totalPages > 1),
 									"hasNextPage" to data.hasNextPage,
 									"hasPrevPage" to data.hasPrevPage,
-									"nextPageUrl" to "/a/$penNameParam/$projectNameParam?page=${data.nextPage}$passwordParam",
-									"prevPageUrl" to "/a/$penNameParam/$projectNameParam?page=${data.prevPage}$passwordParam"
+									"nextPageUrl" to "/a/$penNameForUrl/$projectNameForUrl?page=${data.nextPage}$passwordParam",
+									"prevPageUrl" to "/a/$penNameForUrl/$projectNameForUrl?page=${data.prevPage}$passwordParam"
 								)
 							)
 							call.respond(MustacheContent("publicstory.mustache", model))
@@ -149,7 +174,7 @@ fun Route.publicStoryPage(
 			val formParams = call.receiveParameters()
 			val password = formParams["password"]
 
-			// Redirect to GET with password in query param (URL encoded for safety)
+			// Redirect back to GET, reusing the (already URL-safe) incoming segments.
 			if (!password.isNullOrBlank()) {
 				call.respondRedirect(
 					"/a/$penNameParam/$projectNameParam?p=${

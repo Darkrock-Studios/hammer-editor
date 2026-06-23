@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.Error_log
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
+import com.darkrockstudios.apps.hammer.database.ReaderDay
 import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.monitoring.DailyActiveUsers
 import com.darkrockstudios.apps.hammer.monitoring.EndpointStat
@@ -85,6 +86,7 @@ fun Route.adminMonitoringPages(
 
 			val readers = storyReaderRepository.readerCounts(now)
 			val hasReaders = listOf(readers.h24, readers.d7, readers.d30).any { it > 0 }
+			val readersDaily = storyReaderRepository.dailyReaders(now)
 
 			val model = mutableMapOf<String, Any>(
 				"page_stylesheet" to "/assets/css/admin.css",
@@ -114,6 +116,7 @@ fun Route.adminMonitoringPages(
 				"readers24h" to formatCount(readers.h24),
 				"readers7d" to formatCount(readers.d7),
 				"readers30d" to formatCount(readers.d30),
+				"readersChartJson" to buildReadersChart(readersDaily),
 			)
 
 			call.respond(MustacheContent("admin-monitoring.mustache", call.withDefaults(model)))
@@ -375,6 +378,14 @@ private fun buildActiveUsersChart(daily: List<DailyActiveUsers>): String {
 	return Json.encodeToString(ActiveUsersChartPayload.serializer(), payload)
 }
 
+private fun buildReadersChart(daily: List<ReaderDay>): String {
+	val payload = ReadersChartPayload(
+		labels = daily.map { formatInstant(it.day, "MMM dd") },
+		readers = daily.map { it.count },
+	)
+	return Json.encodeToString(ReadersChartPayload.serializer(), payload)
+}
+
 private fun buildHourlyChart(buckets: List<com.darkrockstudios.apps.hammer.Api_metric_bucket>): String {
 	val byHour = buckets.groupBy { it.bucket_start }.toSortedMap()
 	val payload = ChartPayload(
@@ -413,6 +424,12 @@ private data class ActiveUsersChartPayload(
 	val labels: List<String>,
 	val sync: List<Long>,
 	val web: List<Long>,
+)
+
+@Serializable
+private data class ReadersChartPayload(
+	val labels: List<String>,
+	val readers: List<Long>,
 )
 
 private val errorExportJson = Json { prettyPrint = true }

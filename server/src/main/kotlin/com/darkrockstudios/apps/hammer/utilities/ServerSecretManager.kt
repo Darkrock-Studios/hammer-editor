@@ -1,17 +1,15 @@
 package com.darkrockstudios.apps.hammer.utilities
 
 import okio.FileSystem
-import okio.internal.commonToUtf8String
 import java.security.SecureRandom
+import kotlin.io.encoding.Base64
+import kotlin.io.encoding.ExperimentalEncodingApi
 
 /**
- * Centralized manager for the server secret file.
- * The server secret is used for:
- * 1. HMAC key for hashing authentication tokens
- * 2. PBKDF2 password for deriving per-user encryption keys
- *
- * The secret is automatically created on first access if it doesn't exist.
+ * Manages the auto-generated `server.secret` file — the token-HMAC key fallback
+ * used when no keyring is configured. Created on first access, then cached.
  */
+@OptIn(ExperimentalEncodingApi::class)
 class ServerSecretManager(
 	private val fileSystem: FileSystem,
 	private val secureRandom: SecureRandom,
@@ -56,7 +54,7 @@ class ServerSecretManager(
 	private fun generateSecret(): String {
 		val secretBytes = ByteArray(SERVER_SECRET_ENTROPY_BYTES)
 		secureRandom.nextBytes(secretBytes)
-		return secretBytes.commonToUtf8String()
+		return Base64.encode(secretBytes)
 	}
 
 	private suspend fun loadFromDisk(): String? {

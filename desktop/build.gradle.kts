@@ -25,8 +25,8 @@ val macBuildNumber: String =
 // Keep JNA classes and the pre-bundled libjnidispatch.jnilib at one version.
 configurations.all {
 	resolutionStrategy {
-		force("net.java.dev.jna:jna:5.19.0")
-		force("net.java.dev.jna:jna-platform:5.19.0")
+		force("net.java.dev.jna:jna:5.19.1")
+		force("net.java.dev.jna:jna-platform:5.19.1")
 	}
 }
 
@@ -58,7 +58,7 @@ kotlin {
 				implementation(project(":composeUi"))
 				implementation(libs.jetbrains.compose.components.ui.tooling.preview)
 				implementation(compose.desktop.currentOs)
-				implementation(libs.kotlinx.cli)
+				implementation(libs.clikt)
 				implementation(libs.nucleus.darkmode.detector)
 				implementation(libs.nucleus.decorated.window.jbr)
 				implementation(libs.nucleus.decorated.window.material3)

@@ -35,6 +35,13 @@ open class PublishedStoryReaderDao(
 			queries.totalReadersForProject(projectId).executeAsOne() ?: 0L
 		}
 
+	open suspend fun dailyReaders(since: Instant): List<ReaderDay> =
+		withContext(ioDispatcher) {
+			queries.dailyReaders(since)
+				.executeAsList()
+				.map { ReaderDay(it.day_bucket, it.readers) }
+		}
+
 	open suspend fun dailyReadersForProject(projectId: Long, since: Instant): List<ReaderDay> =
 		withContext(ioDispatcher) {
 			queries.dailyReadersForProject(projectId, since)

@@ -2,6 +2,8 @@
 <resources>
 	<string name="app_name">Hammer</string>
 
+	<string name="save_all_toast">Saved all Scenes</string>
+
 	<string name="unsaved_scenes_dialog_title">Unsaved Scenes</string>
 	<string name="unsaved_scenes_dialog_message">What should be done with unsaved scenes?</string>
 
@@ -10,6 +12,9 @@
 
 	<string name="unsaved_notes_dialog_title">Unsaved Note</string>
 	<string name="unsaved_notes_dialog_message">Discard note?</string>
+
+	<string name="unsaved_timeline_dialog_title">Unsaved Timeline Event</string>
+	<string name="unsaved_timeline_dialog_message">Discard event?</string>
 
 	<string name="unsaved_dialog_negative_button">Cancel</string>
 	<string name="unsaved_dialog_positive_button">Discard and close</string>

@@ -1,11 +1,16 @@
 package com.darkrockstudios.apps.hammer.e2e.util
 
+import com.darkrockstudios.apps.hammer.EncryptionConfig
+import com.darkrockstudios.apps.hammer.EncryptionMode
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.appMain
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
+import com.darkrockstudios.apps.hammer.secret.FileSecretProvider
+import com.darkrockstudios.apps.hammer.secret.KeyringCodec
+import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import io.ktor.client.*
@@ -51,10 +56,23 @@ abstract class EndToEndTest {
 		base64 = createTokenBase64()
 		val secureRandom = SecureRandom()
 		val serverSecretManager = ServerSecretManager(fileSystem, secureRandom)
-		tokenHasher = TokenHasher(serverSecretManager, base64)
+
+		// Write a keyring the booted server reads (file provider, default path, same fake FS),
+		// so this test's encryptor/token hasher and the server share key material.
+		val codec = KeyringCodec(secureRandom, base64)
+		val keyringPath = KeyringManager.defaultKeyringPath()
+		fileSystem.createDirectories(keyringPath.parent!!)
+		fileSystem.write(keyringPath) { writeUtf8(codec.serialize(codec.generate())) }
+		val keyringManager = KeyringManager(
+			FileSecretProvider(fileSystem, keyringPath),
+			codec, fileSystem, KeyringManager.legacySecretPath(),
+		)
+		tokenHasher = TokenHasher(keyringManager, serverSecretManager, base64)
 		contentEncryptor = AesGcmContentEncryptor(
-			SimpleFileBasedAesGcmKeyProvider(serverSecretManager, base64),
-			secureRandom
+			keyringManager.activeContentKey(),
+			keyringManager.activeContentKeyId(),
+			SimpleFileBasedAesGcmKeyProvider(base64),
+			secureRandom,
 		)
 		testDatabase = SqliteTestDatabase()
 		testDatabase.initialize()
@@ -88,7 +106,9 @@ abstract class EndToEndTest {
 			single { fileSystem } bind FileSystem::class
 		}
 
-		val config = ServerConfig()
+		// These tests exercise the AES-at-rest path with a known secret, so pin it
+		// explicitly rather than riding the plaintext default.
+		val config = ServerConfig(encryption = EncryptionConfig(EncryptionMode.AES))
 
 		val server = embeddedServer(
 			Jetty,
