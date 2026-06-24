@@ -35,7 +35,9 @@ fun <T> DragDropList(
 	val scope = rememberCoroutineScope()
 
 	var overscrollJob by remember { mutableStateOf<Job?>(null) }
-	var currentExternalList = remember { items }
+	// Must be state-backed: it tracks the last external list so the guard below
+	// resets the drag preview only on a real external change, not every recompose.
+	var currentExternalList by remember { mutableStateOf(items) }
 
 	var data by remember {
 		mutableStateOf<List<T>>(
