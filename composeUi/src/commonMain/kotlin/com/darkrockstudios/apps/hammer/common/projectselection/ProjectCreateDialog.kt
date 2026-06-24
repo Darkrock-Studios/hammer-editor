@@ -34,13 +34,7 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectsList, close: () -> Uni
 		onCancel = close,
 		onDismiss = close,
 		confirmEnabled = validation.isValid,
-		mastheadAction = {
-			HdHairlineButton(
-				label = "↓  ${Res.string.create_project_import_button.get()}",
-				onClick = component::beginProjectImport,
-				emphasised = true,
-			)
-		},
+		mastheadAction = { ProjectCreateImportAction(component::beginProjectImport) },
 	) {
 		FormField(
 			value = projectName,
@@ -51,4 +45,14 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectsList, close: () -> Uni
 			onImeAction = ::submit,
 		)
 	}
+}
+
+/** The "Import" masthead action shared by the create dialog and its preview. */
+@Composable
+internal fun ProjectCreateImportAction(onClick: () -> Unit) {
+	HdHairlineButton(
+		label = "↓  ${Res.string.create_project_import_button.get()}",
+		onClick = onClick,
+		emphasised = true,
+	)
 }
