@@ -195,7 +195,7 @@ class ClientEncyclopediaSynchronizer(
 
 	companion object {
 		val ALLOWED_IMAGE_EXTENSIONS = setOf(
-			"jpg", "jpeg", "png", "gif", "webp", "bmp", "heic", "heif",
+			"jpg", "jpeg", "png", "gif", "webp",
 		)
 	}
 }
