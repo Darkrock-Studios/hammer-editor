@@ -52,6 +52,20 @@ class TimeLineDatasourceTest : BaseTest() {
 	}
 
 	@Test
+	fun `Malformed Timeline loads as empty`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		val file = TimeLineDatasource.getTimelineFilePath(projDef).toOkioPath()
+		ffs.createDirectories(file.parent!!)
+		ffs.write(file) {
+			writeUtf8("this is not valid timeline toml @@@")
+		}
+
+		val timeline = datasource.loadTimeline(projDef)
+
+		assertEquals(emptyList(), timeline.events)
+	}
+
+	@Test
 	fun `Store Timeline`() = runTest(mainTestDispatcher) {
 		val projDef = getProject1Def()
 		val events = fakeEvents()
