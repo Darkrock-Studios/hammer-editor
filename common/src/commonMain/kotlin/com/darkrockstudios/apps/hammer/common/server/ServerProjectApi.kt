@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.encodeUrlPathSegment
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -37,7 +38,7 @@ class ServerProjectApi(
 		}
 
 		return post(
-			path = "/api/project/$userId/$projectName/begin_sync",
+			path = "/api/project/$userId/${projectName.encodeUrlPathSegment()}/begin_sync",
 			parse = { it.body() }
 		) {
 			url {
@@ -61,7 +62,7 @@ class ServerProjectApi(
 		syncEnd: Instant?,
 	): Result<String> {
 		return post(
-			path = "/api/project/$userId/$projectName/end_sync",
+			path = "/api/project/$userId/${projectName.encodeUrlPathSegment()}/end_sync",
 			parse = { it.body() },
 			builder = {
 				headers {
@@ -91,7 +92,7 @@ class ServerProjectApi(
 		force: Boolean = false
 	): Result<SaveEntityResponse> {
 		return post(
-			path = "/api/project/$userId/$projectName/upload_entity/${entity.id}",
+			path = "/api/project/$userId/${projectName.encodeUrlPathSegment()}/upload_entity/${entity.id}",
 			parse = { it.body() },
 			builder = {
 				contentType(ContentType.Application.Json)
@@ -163,7 +164,7 @@ class ServerProjectApi(
 		syncId: String
 	): Result<LoadEntityResponse> {
 		return get(
-			path = "/api/project/$userId/$projectName/download_entity/$entityId",
+			path = "/api/project/$userId/${projectName.encodeUrlPathSegment()}/download_entity/$entityId",
 			parse = { response ->
 				if (response.status == HttpStatusCode.NotModified) {
 					throw EntityNotModifiedException(entityId)
@@ -216,7 +217,7 @@ class ServerProjectApi(
 		syncId: String
 	): Result<DeleteIdsResponse> {
 		return get(
-			path = "/api/project/$userId/$projectName/delete_entity/$id",
+			path = "/api/project/$userId/${projectName.encodeUrlPathSegment()}/delete_entity/$id",
 			parse = { it.body() },
 			builder = {
 				headers {
