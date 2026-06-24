@@ -127,6 +127,34 @@ class EncyclopediaRepositoryImageTest : BaseTest() {
 	}
 
 	@Test
+	fun `setEntryImage ignores an image over the size limit`() = runTest {
+		val bigSource = "/external/huge.png"
+		val tooBig = ByteArray((EncyclopediaDatasource.MAX_IMAGE_SIZE_BYTES + 1).toInt())
+		every { externalFileIo.readExternalFile(bigSource) } returns tooBig
+
+		val repo = repository()
+		val def = entry1().toDef(projDef)
+
+		repo.setEntryImage(def, bigSource)
+
+		assertNull(datasource.findEntryImagePath(def))
+	}
+
+	@Test
+	fun `setEntryImage over the size limit preserves an existing image`() = runTest {
+		val repo = repository()
+		val def = entry1().toDef(projDef)
+		repo.setEntryImage(def, sourcePath)
+
+		val bigSource = "/external/huge.png"
+		val tooBig = ByteArray((EncyclopediaDatasource.MAX_IMAGE_SIZE_BYTES + 1).toInt())
+		every { externalFileIo.readExternalFile(bigSource) } returns tooBig
+		repo.setEntryImage(def, bigSource)
+
+		assertTrue(datasource.findEntryImagePath(def)!!.name.endsWith(".jpg"))
+	}
+
+	@Test
 	fun `setEntryImage with a null path removes the existing image`() = runTest {
 		val repo = repository()
 		val def = entry1().toDef(projDef)
