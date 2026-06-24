@@ -143,6 +143,8 @@
 	<string name="sync_log_data_saved">Dados da sincronização salvos</string>
 	<string name="sync_log_data_save_failed">Dados de sincronização não salvos devido a erros</string>
 	<string name="sync_log_failed">Falha ao terminar a sincronização</string>
+	<string name="sync_draft_rejected_invalid_name">Rejected draft %1$d from server: unsafe draft name</string>
+	<string name="sync_encyclopedia_image_rejected_invalid_extension">Skipped image for encyclopedia entry %1$d from server: unsafe file extension</string>
 	<string name="sync_encyclopedia_deleted">ID de Enciclopédia %1$d excluído do cliente</string>
 	<string name="sync_note_deleted">Nota ID %1$d excluído do cliente</string>
 	<string name="sync_draft_deleted">Deleted draft %1$d from client</string>
