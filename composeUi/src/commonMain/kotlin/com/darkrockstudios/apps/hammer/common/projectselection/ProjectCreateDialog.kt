@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.projec
 import com.darkrockstudios.apps.hammer.common.compose.FormDialog
 import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.NameKind
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
@@ -35,9 +35,10 @@ fun ProjectCreateDialog(show: Boolean, component: ProjectsList, close: () -> Uni
 		onDismiss = close,
 		confirmEnabled = validation.isValid,
 		mastheadAction = {
-			HdMastheadAction(
-				label = Res.string.create_project_import_button.get(),
+			HdHairlineButton(
+				label = "↓  ${Res.string.create_project_import_button.get()}",
 				onClick = component::beginProjectImport,
+				emphasised = true,
 			)
 		},
 	) {
