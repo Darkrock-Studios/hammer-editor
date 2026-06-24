@@ -8,15 +8,18 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
+import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.sync_draft_deleted
+import com.darkrockstudios.apps.hammer.sync_draft_rejected_invalid_name
 import io.github.aakira.napier.Napier
 
 class ClientSceneDraftSynchronizer(
@@ -90,6 +93,17 @@ class ClientSceneDraftSynchronizer(
 		syncId: String,
 		onLog: OnSyncLog
 	): Boolean {
+		if (!SceneDraftsDatasource.validDraftName(serverEntity.name)) {
+			Napier.w("Rejected synced draft ${serverEntity.id}: invalid draft name")
+			onLog(
+				syncLogW(
+					strRes.get(Res.string.sync_draft_rejected_invalid_name, serverEntity.id),
+					projectDef
+				)
+			)
+			return false
+		}
+
 		sceneDraftRepository.insertSyncDraft(serverEntity)
 		return true
 	}

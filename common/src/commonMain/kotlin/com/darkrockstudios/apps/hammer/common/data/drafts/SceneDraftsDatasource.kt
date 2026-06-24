@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
@@ -91,6 +92,12 @@ class SceneDraftsDatasource(
 	fun insertSyncDraft(draftEntity: ApiProjectEntity.SceneDraftEntity): DraftDef {
 		val draftDef = draftEntity.toDraftDef()
 		val path = getDraftPath(draftDef).toOkioPath()
+
+		val draftsRoot = getSceneDraftsDirectory(draftDef.sceneId).toOkioPath()
+		if (!path.isWithin(draftsRoot)) {
+			error("Refusing to write draft outside its drafts directory: $path")
+		}
+
 		val parentPath = path.parent ?: error("Draft path didn't have parent: $path")
 		fileSystem.createDirectories(parentPath)
 
