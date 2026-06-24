@@ -112,6 +112,7 @@ kotlin {
 				implementation(libs.ktor.client.okhttp)
 				implementation(libs.moko.permissions)
 				implementation(libs.moko.permissions.storage)
+				implementation(libs.androidx.security.crypto)
 			}
 		}
 		val iosMain by getting {
