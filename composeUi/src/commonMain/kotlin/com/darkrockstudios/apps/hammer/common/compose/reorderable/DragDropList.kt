@@ -94,18 +94,20 @@ fun <T> DragDropList(
 	) {
 		itemsIndexed(data, key) { index, item ->
 			val isDragging = index == dragDropListState.currentIndexOfDraggedItem
+			val isReordering = dragDropListState.currentIndexOfDraggedItem != null
 			val zIndex = if (isDragging) {
 				1f
 			} else {
 				0f
 			}
-			// Only the displaced items animate into place.
-			val itemModifier = if (isDragging) {
-				Modifier.graphicsLayer {
+			// Animate placement only while reordering, so the displaced items
+			// slide into place; otherwise plain scrolling would animate them too.
+			val itemModifier = when {
+				isDragging -> Modifier.graphicsLayer {
 					translationY = dragDropListState.elementDisplacement ?: 0f
 				}
-			} else {
-				Modifier.animateItem()
+				isReordering -> Modifier.animateItem()
+				else -> Modifier
 			}
 			Box(
 				modifier = Modifier
