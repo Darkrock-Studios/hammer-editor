@@ -56,7 +56,7 @@
 		</activity>
 		<activity
 			android:name=".ProjectRootActivity"
-			android:exported="true"
+			android:exported="false"
 			android:windowSoftInputMode="adjustResize"/>
 		<activity
 			android:name=".widgets.AddNoteActivity"

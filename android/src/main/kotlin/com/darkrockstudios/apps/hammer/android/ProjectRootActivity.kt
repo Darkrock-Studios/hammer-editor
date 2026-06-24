@@ -26,8 +26,6 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.retainedComponent
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
-import com.arkivanov.essenty.statekeeper.getSerializable
-import com.arkivanov.essenty.statekeeper.putSerializable
 import com.darkrockstudios.apps.hammer.android.shortcuts.ProjectShortcutsManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
@@ -122,12 +120,13 @@ class ProjectRootActivity : AppCompatActivity() {
 		}
 	}
 
+	// Resolve the target project by name against on-disk projects only. We never trust a
+	// caller-supplied project path: an exported intent could otherwise root the editor at an
+	// attacker-controlled directory (confused deputy).
 	private fun resolveProjectDef(intent: Intent): ProjectDef? {
-		intent.extras?.getSerializable(EXTRA_PROJECT, ProjectDef.serializer())?.let { return it }
-
 		val name = intent.getStringExtra(EXTRA_PROJECT_NAME)?.takeIf { it.isNotBlank() } ?: return null
 		val match = projectsRepository.getProjects().firstOrNull { it.name == name }
-		if (match == null) Napier.w("Project shortcut for missing project: $name")
+		if (match == null) Napier.w("Project intent for missing project: $name")
 		return match
 	}
 
@@ -210,7 +209,6 @@ class ProjectRootActivity : AppCompatActivity() {
 	}
 
 	companion object {
-		const val EXTRA_PROJECT = "project"
 		const val EXTRA_PROJECT_NAME = "project_name"
 		const val EXTRA_DEEP_LINK_SCENE_ID = "deep_link_scene_id"
 		const val ACTION_OPEN_PROJECT = "com.darkrockstudios.apps.hammer.android.OPEN_PROJECT"
@@ -221,11 +219,8 @@ class ProjectRootActivity : AppCompatActivity() {
 			deepLinkSceneId: Int? = null,
 		): Intent {
 			val intent = Intent(context, ProjectRootActivity::class.java)
-			val extras = Bundle().apply {
-				putSerializable(EXTRA_PROJECT, projectDef, ProjectDef.serializer())
-				if (deepLinkSceneId != null) putInt(EXTRA_DEEP_LINK_SCENE_ID, deepLinkSceneId)
-			}
-			intent.putExtras(extras)
+				.putExtra(EXTRA_PROJECT_NAME, projectDef.name)
+			if (deepLinkSceneId != null) intent.putExtra(EXTRA_DEEP_LINK_SCENE_ID, deepLinkSceneId)
 			return intent
 		}
 

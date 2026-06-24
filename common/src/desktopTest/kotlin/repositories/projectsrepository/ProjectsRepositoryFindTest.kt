@@ -84,4 +84,21 @@ class ProjectsRepositoryFindTest : ProjectsRepositoryBaseTest() {
 
 		assertEquals(proj1Def, projectDef)
 	}
+
+	// Guards the name-only intent resolution used by ProjectRootActivity: a name that does not
+	// match an on-disk project must resolve to nothing, so a forged intent cannot open an
+	// arbitrary project.
+	@Test
+	fun `Resolve project by name against on-disk projects only`() = scope.runTest {
+		createProject(ffs, PROJECT_1_NAME)
+		createProject(ffs, PROJECT_2_NAME)
+
+		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+
+		val known = repo.getProjects().firstOrNull { it.name == PROJECT_1_NAME }
+		val forged = repo.getProjects().firstOrNull { it.name == "../../attacker/controlled" }
+
+		assertEquals(getProjectDef(PROJECT_1_NAME), known)
+		assertNull(forged)
+	}
 }
