@@ -172,11 +172,7 @@ class BrowseEntriesComponent(
 	}
 
 	override fun getImagePath(entryDef: EntryDef): String? {
-		return if (encyclopediaService.hasEntryImage(entryDef, "jpg")) {
-			encyclopediaService.getEntryImagePath(entryDef, "jpg").path
-		} else {
-			null
-		}
+		return encyclopediaService.findEntryImagePath(entryDef)?.path
 	}
 
 	override fun clearFilterText() {
