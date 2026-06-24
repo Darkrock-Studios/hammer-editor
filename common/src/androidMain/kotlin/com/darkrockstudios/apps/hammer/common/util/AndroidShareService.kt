@@ -69,6 +69,7 @@ class AndroidShareService(private val context: Context) {
 			"xml" -> "application/xml"
 			"png" -> "image/png"
 			"jpg", "jpeg" -> "image/jpeg"
+			"webp" -> "image/webp"
 			else -> "application/octet-stream"
 		}
 	}

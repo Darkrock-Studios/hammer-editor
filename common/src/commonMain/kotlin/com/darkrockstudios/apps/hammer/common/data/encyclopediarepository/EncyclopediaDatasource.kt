@@ -224,20 +224,28 @@ class EncyclopediaDatasource(
 	}
 
 	suspend fun setEntryImage(entryDef: EntryDef, imagePath: String?) {
+		if (imagePath == null) {
+			removeEntryImage(entryDef)
+			return
+		}
+
+		val extension = imageExtensionOf(imagePath)
+		if (extension == null) {
+			Napier.w("Ignoring entry image with unsupported extension: $imagePath")
+			return
+		}
+
 		removeEntryImage(entryDef)
-		if (imagePath != null) {
-			val extension = imageExtensionOf(imagePath)
-			val targetPath = getEntryImagePath(entryDef, extension).toOkioPath()
-			val pixelData = externalFileIo.readExternalFile(imagePath)
-			fileSystem.write(targetPath) {
-				write(pixelData)
-			}
+		val targetPath = getEntryImagePath(entryDef, extension).toOkioPath()
+		val pixelData = externalFileIo.readExternalFile(imagePath)
+		fileSystem.write(targetPath) {
+			write(pixelData)
 		}
 	}
 
-	private fun imageExtensionOf(sourcePath: String): String {
+	private fun imageExtensionOf(sourcePath: String): String? {
 		val extension = sourcePath.substringAfterLast('.', "").lowercase()
-		return if (extension in IMAGE_EXTENSIONS) extension else DEFAULT_IMAGE_EXT
+		return if (extension in IMAGE_EXTENSIONS) extension else null
 	}
 
 	/** Writes raw image bytes (e.g. an image pulled from the server during sync) to the entry's image path. */
@@ -367,8 +375,6 @@ class EncyclopediaDatasource(
 				throw InvalidEntryFilename(e.message ?: "Invalid filename argument", fileName, cause = e)
 			}
 		}
-
-		const val DEFAULT_IMAGE_EXT = "jpg"
 
 		// Raster formats Coil renders on every target (Android BitmapFactory + desktop/iOS Skia).
 		// Doubles as the allowlist for server-supplied sync image extensions.
