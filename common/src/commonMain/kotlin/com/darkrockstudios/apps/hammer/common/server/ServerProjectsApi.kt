@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.base.http.ProjectHashItem
 import com.darkrockstudios.apps.hammer.base.http.ProjectsSyncProbeRequest
 import com.darkrockstudios.apps.hammer.base.http.ProjectsSyncProbeResponse
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.encodeUrlPathSegment
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -85,7 +86,7 @@ class ServerProjectsApi(
 		syncId: String,
 	): Result<CreateProjectResponse> {
 		return get(
-			path = "/api/projects/$userId/$projectName/create",
+			path = "/api/projects/$userId/${projectName.encodeUrlPathSegment()}/create",
 			builder = {
 				headers {
 					append(HEADER_SYNC_ID, syncId)

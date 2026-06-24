@@ -148,6 +148,7 @@ kotlin {
 				implementation(libs.koin.test.junit5)
 				implementation(compose.desktop.currentOs)
 				implementation(libs.poi.ooxml)
+				implementation(libs.ktor.client.mock)
 			}
 		}
 	}
