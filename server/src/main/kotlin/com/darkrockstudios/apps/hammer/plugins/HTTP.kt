@@ -21,6 +21,7 @@ fun Application.configureHTTP(config: ServerConfig) {
 	val analyticsProvider = config.analytics.provider
 	val analyticsScriptHosts = analyticsProvider?.scriptSrcHosts().orEmpty()
 	val analyticsConnectHosts = analyticsProvider?.connectSrcHosts().orEmpty()
+	val analyticsImgHosts = analyticsProvider?.imgSrcHosts().orEmpty()
 
 	install(DefaultHeaders) {
 		header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
@@ -40,12 +41,14 @@ fun Application.configureHTTP(config: ServerConfig) {
 			.joinToString(" ") // HTMX + inline scripts + dynamic eval + analytics
 		val connectSrc = (listOf("'self'") + analyticsConnectHosts)
 			.joinToString(" ") // HTMX requests stay on same origin + analytics event endpoint
+		val imgSrc = (listOf("'self'", "data:") + analyticsImgHosts)
+			.joinToString(" ") // Local images + data URIs + analytics pixels
 		val cspDirectives = listOf(
 			"default-src 'self'",
 			"script-src $scriptSrc",
 			"style-src 'self' https://cdnjs.cloudflare.com https://fonts.googleapis.com 'unsafe-inline'", // Font Awesome + Google Fonts + inline styles
 			"font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com data:", // Custom fonts + Font Awesome + Google Fonts
-			"img-src 'self' data:", // Local images + data URIs
+			"img-src $imgSrc",
 			"connect-src $connectSrc",
 			"frame-ancestors 'self'" // Additional clickjacking protection
 		).joinToString("; ")

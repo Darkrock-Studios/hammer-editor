@@ -472,8 +472,11 @@ public web pages.
 Analytics is only served on **public (logged-out) pages**. It is never injected
 into the dashboard, story, or admin pages of signed-in users.
 
-By default analytics is disabled (`type = "none"`). Currently, the only supported
-provider is [Umami](https://umami.is).
+By default analytics is disabled (`type = "none"`). Supported providers are
+[Umami](https://umami.is) and [Google Analytics](https://analytics.google.com).
+
+Both providers report a `download` event, broken down by `platform` and `format`,
+when a visitor clicks a download button on the home page.
 
 ### Umami
 
@@ -494,6 +497,23 @@ scriptUrl = "https://umami.example.com/script.js"
 # it without a code release, e.g.:
 connectSrc = ["https://gateway.umami.is"]
 ```
+
+### Google Analytics
+
+Create a GA4 property, copy its **Measurement ID** (`G-XXXXXXXXXX`) from the data
+stream, and add:
+
+```toml
+[analytics]
+type = "google"
+
+[analytics.google]
+measurementId = "G-XXXXXXXXXX"
+```
+
+The `platform` and `format` event parameters are sent automatically, but GA4 only
+shows them in reports once you register them as **custom dimensions** in the GA
+admin console.
 
 The configuration is designed to grow: support for additional providers can be
 added under the `[analytics]` section in the future by selecting a different

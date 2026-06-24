@@ -61,6 +61,47 @@ class AnalyticsConfigTest {
 	}
 
 	@Test
+	fun `Google block parses the measurement id`() {
+		val config = parse(
+			"""
+			[analytics]
+			type = "google"
+
+			[analytics.google]
+			measurementId = "G-ABC123"
+			""".trimIndent()
+		)
+		assertEquals(AnalyticsProviderType.GOOGLE, config.analytics.type)
+		assertEquals("G-ABC123", config.analytics.google?.measurementId)
+		config.analytics.validate()
+	}
+
+	@Test
+	fun `validate throws when google selected without config block`() {
+		val config = parse(
+			"""
+			[analytics]
+			type = "google"
+			""".trimIndent()
+		)
+		assertThrows<IllegalArgumentException> { config.analytics.validate() }
+	}
+
+	@Test
+	fun `validate throws on a malformed measurement id`() {
+		val config = parse(
+			"""
+			[analytics]
+			type = "google"
+
+			[analytics.google]
+			measurementId = "UA-123-4"
+			""".trimIndent()
+		)
+		assertThrows<IllegalArgumentException> { config.analytics.validate() }
+	}
+
+	@Test
 	fun `validate succeeds for NONE`() {
 		parse("").analytics.validate()
 	}

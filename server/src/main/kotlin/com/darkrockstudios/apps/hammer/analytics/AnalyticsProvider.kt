@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.analytics
 
 import com.darkrockstudios.apps.hammer.AnalyticsConfig
 import com.darkrockstudios.apps.hammer.AnalyticsProviderType
+import com.darkrockstudios.apps.hammer.GoogleConfig
 import com.darkrockstudios.apps.hammer.UmamiConfig
 import java.net.URI
 import java.net.URISyntaxException
@@ -32,6 +33,9 @@ interface AnalyticsProvider {
 
 	/** Origins to add to the CSP `connect-src` (where the provider POSTs events). */
 	fun connectSrcHosts(): List<String>
+
+	/** Origins to add to the CSP `img-src` (where the provider loads tracking pixels). */
+	fun imgSrcHosts(): List<String>
 }
 
 internal class UmamiAnalyticsProvider(config: UmamiConfig) : AnalyticsProvider {
@@ -55,7 +59,43 @@ internal class UmamiAnalyticsProvider(config: UmamiConfig) : AnalyticsProvider {
 		configuredConnectSrc.ifEmpty {
 			if (origin == UMAMI_CLOUD_ORIGIN) UMAMI_CLOUD_EVENT_ORIGINS else listOf(origin)
 		}
+
+	override fun imgSrcHosts(): List<String> = emptyList()
 }
+
+internal class GoogleAnalyticsProvider(config: GoogleConfig) : AnalyticsProvider {
+	// Validated to ^G-[A-Za-z0-9]+$, so it is safe to interpolate into both the attribute and the inline script.
+	private val id = escapeAttr(config.measurementId)
+	private val snippet =
+		"""<script async src="https://www.googletagmanager.com/gtag/js?id=$id"></script>""" +
+			"<script>window.dataLayer=window.dataLayer||[];" +
+			"function gtag(){dataLayer.push(arguments);}" +
+			"gtag('js',new Date());gtag('config','$id');</script>"
+
+	override fun headSnippet(): String = snippet
+
+	override fun eventBridge(): String =
+		"window.hammerTrack=function(n,d){window.gtag&&window.gtag('event',n,d)};"
+
+	override fun scriptSrcHosts(): List<String> = GOOGLE_SCRIPT_HOSTS
+
+	override fun connectSrcHosts(): List<String> = GOOGLE_CONNECT_HOSTS
+
+	override fun imgSrcHosts(): List<String> = GOOGLE_IMG_HOSTS
+}
+
+// CSP origins for gtag.js, per Google's documented Content-Security-Policy guidance. GA4 beacons
+// to *.google-analytics.com / *.analytics.google.com and falls back to pixel loads on img-src.
+private val GOOGLE_SCRIPT_HOSTS = listOf("https://*.googletagmanager.com")
+private val GOOGLE_CONNECT_HOSTS = listOf(
+	"https://*.google-analytics.com",
+	"https://*.analytics.google.com",
+	"https://*.googletagmanager.com",
+)
+private val GOOGLE_IMG_HOSTS = listOf(
+	"https://*.google-analytics.com",
+	"https://*.googletagmanager.com",
+)
 
 private const val UMAMI_CLOUD_ORIGIN = "https://cloud.umami.is"
 
@@ -75,6 +115,7 @@ object AnalyticsProviderFactory {
 	fun create(config: AnalyticsConfig): AnalyticsProvider? = when (config.type) {
 		AnalyticsProviderType.NONE -> null
 		AnalyticsProviderType.UMAMI -> config.umami?.let { UmamiAnalyticsProvider(it) }
+		AnalyticsProviderType.GOOGLE -> config.google?.let { GoogleAnalyticsProvider(it) }
 	}
 }
 
