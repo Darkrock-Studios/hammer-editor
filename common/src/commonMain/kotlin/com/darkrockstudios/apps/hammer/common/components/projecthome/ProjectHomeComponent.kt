@@ -15,8 +15,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
-import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
@@ -61,8 +59,6 @@ class ProjectHomeComponent(
 	private val statisticsService: StatisticsService by projectInject()
 	private val tagIndexService: TagIndexService by projectInject()
 	private val referenceIndexService: ReferenceIndexService by projectInject()
-	private val importStoryUseCase: ImportStoryUseCase by projectInject()
-	private val markdownImporter: StoryImporter by inject()
 
 	private val contentRouter = ProjectHomeContentRouter(componentContext, projectDef)
 	override val contentRouterState: Value<ChildStack<ProjectHomeContentRouter.Config, ProjectHome.ContentDestination>> =
@@ -111,79 +107,6 @@ class ProjectHomeComponent(
 				showExportFilePicker = false,
 				isExporting = false,
 			)
-		}
-	}
-
-	override fun beginProjectImport() {
-		_state.getAndUpdate { it.copy(showImportFilePicker = true) }
-	}
-
-	override fun cancelImportFilePicker() {
-		_state.getAndUpdate { it.copy(showImportFilePicker = false) }
-	}
-
-	override fun selectImportFile(name: String, content: String) {
-		val sourceName = name.substringBeforeLast('.')
-		val initialOptions = ImportOptions()
-		val preview = markdownImporter.preview(sourceName, content, initialOptions)
-		_state.getAndUpdate {
-			it.copy(
-				showImportFilePicker = false,
-				showImportDialog = true,
-				importOptions = initialOptions,
-				importSourceName = sourceName,
-				importFileContent = content,
-				importPreview = preview,
-			)
-		}
-	}
-
-	override fun updateImportOptions(options: ImportOptions) {
-		val current = _state.value
-		val preview = markdownImporter.preview(
-			sourceName = current.importSourceName,
-			content = current.importFileContent,
-			options = options,
-		)
-		_state.getAndUpdate {
-			it.copy(importOptions = options, importPreview = preview)
-		}
-	}
-
-	override fun cancelImportDialog() {
-		_state.getAndUpdate {
-			it.copy(
-				showImportDialog = false,
-				importFileContent = "",
-				importSourceName = "",
-				importPreview = ImportPreview(emptyList()),
-			)
-		}
-	}
-
-	override suspend fun confirmImportDialog() {
-		val previewToImport = _state.value.importPreview
-		_state.getAndUpdate {
-			it.copy(
-				showImportDialog = false,
-				importFileContent = "",
-				importSourceName = "",
-				importPreview = ImportPreview(emptyList()),
-			)
-		}
-		try {
-			withContext(dispatcherDefault) {
-				importStoryUseCase.execute(previewToImport)
-			}
-			withContext(mainDispatcher) {
-				showToast(scope, ClientMessage.Resource(Res.string.project_home_action_import_toast_success))
-			}
-			// Import can fail many ways (parse, IO); report and show failure toast.
-		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			io.github.aakira.napier.Napier.e("Import failed", e)
-			withContext(mainDispatcher) {
-				showToast(scope, ClientMessage.Resource(Res.string.project_home_action_import_toast_failure))
-			}
 		}
 	}
 

@@ -18,7 +18,6 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfir
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
-import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
@@ -116,12 +115,6 @@ private val component = object : ProjectHome {
 	override fun cancelExportDialog() {}
 	override fun confirmExportDialog(options: ExportOptions) {}
 	override fun endProjectExport() {}
-	override fun beginProjectImport() {}
-	override fun cancelImportFilePicker() {}
-	override fun selectImportFile(name: String, content: String) {}
-	override fun updateImportOptions(options: ImportOptions) {}
-	override fun cancelImportDialog() {}
-	override suspend fun confirmImportDialog() {}
 	override fun startProjectSync() {}
 	override fun showGlobalSearch() {}
 	override fun showGlobalSearchForTag(tag: String) {}

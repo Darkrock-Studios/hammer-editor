@@ -1,8 +1,7 @@
-package com.darkrockstudios.apps.hammer.common.projecthome
+package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.retryingFileDialog
 import io.github.aakira.napier.Napier
@@ -18,8 +17,9 @@ import kotlinx.coroutines.withContext
 @Composable
 actual fun ImportFilePicker(
 	show: Boolean,
-	component: ProjectHome,
 	scope: CoroutineScope,
+	onFileSelected: (name: String, content: String) -> Unit,
+	onCancel: () -> Unit,
 ) {
 	val defaultDispatcher = rememberDefaultDispatcher()
 
@@ -39,13 +39,13 @@ actual fun ImportFilePicker(
 						}
 					}
 					if (content != null) {
-						component.selectImportFile(file.name, content)
+						onFileSelected(file.name, content)
 					} else {
-						component.cancelImportFilePicker()
+						onCancel()
 					}
 				}
 			} else {
-				component.cancelImportFilePicker()
+				onCancel()
 			}
 		}
 	}

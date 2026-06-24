@@ -66,6 +66,7 @@ fun FormDialog(
 	keyboardHint: String? = "ESC cancel",
 	implicitDismiss: Boolean = true,
 	onDismissed: () -> Unit = {},
+	mastheadAction: (@Composable () -> Unit)? = null,
 	body: @Composable ColumnScope.() -> Unit,
 ) {
 	AnimatedDialog(
@@ -113,6 +114,7 @@ fun FormDialog(
 							color = MaterialTheme.colorScheme.onSurfaceVariant,
 						)
 					}
+					mastheadAction?.invoke()
 				}
 				FolioDivider()
 

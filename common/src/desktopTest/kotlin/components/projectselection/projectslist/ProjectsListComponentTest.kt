@@ -12,6 +12,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSettings
+import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
+import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
@@ -37,6 +39,7 @@ import org.koin.dsl.module
 import utils.ComponentTest
 import utils.TestStrRes
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Clock
@@ -95,6 +98,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			single<Toml> { createTomlSerializer() }
 			single<StrRes> { TestStrRes() }
 			single<Clock> { Clock.System }
+			single<StoryImporter> { MarkdownStoryImporter() }
 		})
 
 		selectedProject = null
@@ -181,6 +185,72 @@ class ProjectsListComponentTest : ComponentTest() {
 			verify(exactly = 0) { synchronizer.createProject(any()) }
 			verify(exactly = 0) { projectsRepository.getProjects(any()) }
 			assertEquals("bad/name", comp.state.value.createDialogProjectName)
+		}
+
+	// --- import --------------------------------------------------------------
+
+	@Test
+	fun `beginProjectImport dismisses the create modal and opens the file picker`() =
+		runTest(mainTestDispatcher) {
+			val comp = newComponent()
+			comp.showCreate()
+
+			comp.beginProjectImport()
+
+			assertTrue(comp.state.value.showImportFilePicker)
+			assertEquals("", comp.state.value.createDialogProjectName)
+			assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+		}
+
+	@Test
+	fun `selectImportFile derives the project name from the file name and shows the import dialog`() =
+		runTest(mainTestDispatcher) {
+			val comp = newComponent()
+
+			comp.selectImportFile("The Wreck.md", "# Chapter One\n\nText\n\n# Chapter Two\n\nMore")
+
+			assertEquals("The Wreck", comp.state.value.importProjectName)
+			assertTrue(comp.state.value.showImportDialog)
+			assertFalse(comp.state.value.showImportFilePicker)
+			assertFalse(comp.state.value.importPreview.isEmpty)
+		}
+
+	@Test
+	fun `updateImportProjectName updates the import name`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+
+		comp.updateImportProjectName("Renamed")
+
+		assertEquals("Renamed", comp.state.value.importProjectName)
+	}
+
+	@Test
+	fun `cancelImportDialog clears the import state`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		comp.selectImportFile("Draft.md", "# One\n\nText")
+
+		comp.cancelImportDialog()
+
+		assertFalse(comp.state.value.showImportDialog)
+		assertEquals("", comp.state.value.importProjectName)
+		assertTrue(comp.state.value.importPreview.isEmpty)
+	}
+
+	@Test
+	fun `confirmImportDialog leaves the dialog open and does not sync when project creation fails`() =
+		runTest(mainTestDispatcher) {
+			every { synchronizer.isServerSynchronized() } returns true
+			every { projectsRepository.createProject("Draft") } returns
+				CResult.failure(error = "exists", displayMessage = "Project already exists".toMsg())
+			val comp = newComponent()
+			comp.selectImportFile("Draft.md", "# One\n\nText")
+
+			comp.confirmImportDialog()
+			advanceUntilIdle()
+
+			assertTrue(comp.state.value.showImportDialog)
+			verify(exactly = 0) { synchronizer.createProject(any()) }
+			verify(exactly = 0) { projectsRepository.getProjects(any()) }
 		}
 
 	// --- deleteProject -------------------------------------------------------
