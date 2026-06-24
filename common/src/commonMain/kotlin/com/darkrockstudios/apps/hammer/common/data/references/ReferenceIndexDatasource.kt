@@ -4,8 +4,10 @@ import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
+import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.withContext
@@ -37,6 +39,7 @@ class ReferenceIndexDatasource(
 	suspend fun saveIndex(index: ReferenceIndex) = withContext(dispatcherIo) {
 		ensureCacheDirectoryExists()
 		val file = getIndexPath()
+		requireWithinCacheRoot(file)
 		fileSystem.writeToml(file, toml, index)
 		Napier.d("Reference index saved to cache")
 	}
@@ -45,22 +48,31 @@ class ReferenceIndexDatasource(
 
 	suspend fun delete() = withContext(dispatcherIo) {
 		val file = getIndexPath()
+		requireWithinCacheRoot(file)
 		if (fileSystem.exists(file)) {
 			fileSystem.delete(file)
 			Napier.d("Reference index cache deleted")
 		}
 	}
 
-	private fun getProjectCacheDirectory(): Path {
-		return getCacheDirectory().toPath() / PROJECTS_DIRECTORY / projectDef.name
-	}
+	private fun getProjectsCacheRoot(): Path = getCacheDirectory().toPath() / PROJECTS_DIRECTORY
+
+	private fun getProjectCacheDirectory(): Path =
+		getProjectsCacheRoot() / ProjectsRepository.encodeForFilename(projectDef.name)
 
 	private fun getIndexPath(): Path = getProjectCacheDirectory() / FILENAME
 
 	private fun ensureCacheDirectoryExists() {
 		val cacheDir = getProjectCacheDirectory()
+		requireWithinCacheRoot(cacheDir)
 		if (!fileSystem.exists(cacheDir)) {
 			fileSystem.createDirectories(cacheDir)
+		}
+	}
+
+	private fun requireWithinCacheRoot(path: Path) {
+		if (!path.isWithin(getProjectsCacheRoot())) {
+			error("Refusing to access reference index cache outside the cache root: $path")
 		}
 	}
 
