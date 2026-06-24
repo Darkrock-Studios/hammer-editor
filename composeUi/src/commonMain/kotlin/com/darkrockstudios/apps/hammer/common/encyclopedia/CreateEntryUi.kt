@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -137,7 +138,9 @@ internal fun CreateEntryUi(
 					label = Res.string.encyclopedia_create_entry_cover_art_label.get(),
 					onClick = {
 						scope.launch {
-							imagePath = retryingFileDialog { FileKit.openFilePicker(type = FileKitType.Image) }
+							imagePath = retryingFileDialog {
+								FileKit.openFilePicker(type = FileKitType.File(EncyclopediaDatasource.IMAGE_EXTENSIONS))
+							}
 						}
 					},
 					dropHint = Res.string.encyclopedia_create_entry_image_drop_hint.get(),

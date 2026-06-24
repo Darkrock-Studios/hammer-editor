@@ -47,6 +47,7 @@ import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEdi
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
@@ -290,7 +291,9 @@ internal fun ViewEntryUi(
 
 	LaunchedEffect(state.showAddImageDialog) {
 		if (state.showAddImageDialog) {
-			val file = retryingFileDialog { FileKit.openFilePicker(type = FileKitType.Image) }
+			val file = retryingFileDialog {
+				FileKit.openFilePicker(type = FileKitType.File(EncyclopediaDatasource.IMAGE_EXTENSIONS))
+			}
 			if (file != null) {
 				scope.launch { component.setImage(file.path) }
 			}
