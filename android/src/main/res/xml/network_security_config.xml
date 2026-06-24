@@ -2,7 +2,13 @@
 	Self-hosted sync servers are configured by the user at runtime and may be plain HTTP
 	(ServerSettings.ssl = false), so cleartext must stay permitted. From Android 17 (API 37)
 	the usesCleartextTraffic manifest flag is ignored without this config.
+
+	First-party endpoints (the GitHub version check) are pinned to HTTPS so they can never be
+	downgraded; only the user's own server is allowed to fall back to cleartext.
 -->
 <network-security-config>
 	<base-config cleartextTrafficPermitted="true" />
+	<domain-config cleartextTrafficPermitted="false">
+		<domain includeSubdomains="false">api.github.com</domain>
+	</domain-config>
 </network-security-config>
