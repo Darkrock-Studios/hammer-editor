@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.exampleProjectModule
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
@@ -55,6 +56,9 @@ import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivi
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule
+import com.darkrockstudios.apps.hammer.common.fileio.okio.ContainedFileSystem
+import com.darkrockstudios.apps.hammer.common.getCacheDirectory
+import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
 import com.darkrockstudios.apps.hammer.common.platformDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
@@ -66,6 +70,8 @@ import io.ktor.client.*
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.Path
+import okio.Path.Companion.toPath
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.scopedOf
 import org.koin.core.module.dsl.singleOf
@@ -77,6 +83,13 @@ import kotlin.time.Clock
 const val DISPATCHER_MAIN = "main-dispatcher"
 const val DISPATCHER_DEFAULT = "default-dispatcher"
 const val DISPATCHER_IO = "io-dispatcher"
+
+/**
+ * Qualifier for the unguarded platform [FileSystem]. Only consumers that
+ * legitimately write outside the app's managed storage (user-chosen export
+ * targets) should request this; everything else uses the default guarded binding.
+ */
+const val RAW_FILESYSTEM = "raw-filesystem"
 
 /**
  * This is the main module containing most of the DI objects
@@ -115,7 +128,19 @@ val mainModule = module {
 	factory { AccountUseCase(get(), get(), get(), get()) }
 	factoryOf(::AccountReauthUseCase)
 
-	singleOf(::getPlatformFilesystem) bind FileSystem::class
+	// Raw, unguarded platform filesystem for user-chosen external write targets.
+	single(named(RAW_FILESYSTEM)) { getPlatformFilesystem() } bind FileSystem::class
+
+	// Guarded filesystem: every datasource write is checked against the app's
+	// managed storage roots. allowedRoots is re-evaluated per check because the
+	// projects directory is user-relocatable at runtime. The projects-dir lookup
+	// is best-effort to avoid a construction-time cycle (the settings store and
+	// its datasource write to the config root before they are fully built, and
+	// those config-root writes don't need the projects dir).
+	single<FileSystem> {
+		val koin = getKoin()
+		ContainedFileSystem(getPlatformFilesystem()) { managedStorageRoots(koin) }
+	}
 
 	singleOf(::ProjectsRepository)
 
@@ -147,7 +172,16 @@ val mainModule = module {
 		scopedOf(::SceneRepository)
 		scopedOf(::SceneEditorService)
 		scopedOf(::ImportStoryUseCase)
-		scopedOf(::ExportStoryUseCase)
+		// Export writes to a user-chosen path outside the app's managed storage, so it
+		// must use the raw, unguarded filesystem.
+		scoped {
+			ExportStoryUseCase(
+				sceneEditorRepository = get(),
+				projectDataDatasource = get(),
+				fileSystem = get(named(RAW_FILESYSTEM)),
+				localeResolver = get(),
+			)
+		}
 		scopedOf(::SceneDraftsDatasource)
 		scopedOf(::SceneDraftRepository)
 		scopedOf(::SceneMetadataDatasource)
@@ -222,4 +256,31 @@ val mainModule = module {
 
 		scopedOf(::EntitySynchronizers)
 	}
+}
+
+/**
+ * The app's managed storage roots: the cache and config directories plus the
+ * current projects directory. Writes outside these are rejected by
+ * [ContainedFileSystem].
+ *
+ * The projects directory is resolved per call (it is user-relocatable) and
+ * cycle-safe: the fully built [GlobalSettingsStore] is preferred, but during its
+ * own construction the store isn't resolvable yet, so we fall back to reading the
+ * persisted settings via the already-built [GlobalSettingsDatasource], then to the
+ * default location. The datasource read is unguarded (reads bypass the guard), so
+ * it can't recurse into this function.
+ */
+internal fun managedStorageRoots(koin: org.koin.core.Koin): List<Path> {
+	val cacheRoot = getCacheDirectory().toPath()
+	val configRoot = getConfigDirectory().toPath()
+
+	val projectsRoot = runCatching {
+		koin.get<GlobalSettingsStore>().globalSettings.projectsDirectory.toPath()
+	}.recoverCatching {
+		koin.get<GlobalSettingsDatasource>().loadSettings().projectsDirectory.toPath()
+	}.getOrElse {
+		GlobalSettingsStore.defaultProjectDir()
+	}
+
+	return listOf(cacheRoot, configRoot, projectsRoot)
 }
