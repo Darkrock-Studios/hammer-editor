@@ -55,6 +55,10 @@ class AddNoteActivity : ComponentActivity(), KoinComponent {
 		super.onCreate(savedInstanceState)
 		enableEdgeToEdge()
 
+		// Drop touches delivered while another app's window overlays this dialog, so a tapjacking
+		// overlay can't drive the note save into a chosen project.
+		window.decorView.filterTouchesWhenObscured = true
+
 		setFinishOnTouchOutside(false)
 		window.setBackgroundDrawableResource(android.R.color.transparent)
 

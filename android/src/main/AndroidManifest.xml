@@ -40,7 +40,7 @@
 		<activity
 			android:name=".widgets.AddNoteActivity"
 			android:excludeFromRecents="true"
-			android:exported="true"
+			android:exported="false"
 			android:label="@string/title_activity_add_note"
 			android:theme="@style/Theme.AppCompat.DayNight.Dialog"
 			android:windowSoftInputMode="adjustResize"/>
