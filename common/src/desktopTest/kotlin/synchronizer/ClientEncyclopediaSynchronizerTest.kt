@@ -308,6 +308,38 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		assertContentEquals(imageBytes, datasource.loadEntryImage(def, "png"))
 	}
 
+	@Test
+	fun `a non-jpg synced image round-trips with a stable hash and is cleared on server-clear`() = runTest {
+		val imageBytes = byteArrayOf(10, 20, 30, 40)
+		val sync = newSynchronizer()
+		val serverEntity = sync.createEntityForId(entry1().id).copy(
+			image = com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity.EncyclopediaEntryEntity.Image(
+				base64 = Base64.encode(imageBytes, url = true),
+				fileExtension = "png",
+			),
+		)
+
+		// Download: the png is stored under its real extension, no stray jpg.
+		sync.storeEntity(serverEntity, syncId = "sync", onLog = {})
+		val def = entry1().toDef(projectDef)
+		assertTrue(datasource.hasEntryImage(def, "png"))
+		assertFalse(datasource.hasEntryImage(def, "jpg"))
+
+		// The locally recomputed hash agrees with the server's, so the entry is not
+		// flagged dirty and re-synced on every run.
+		assertEquals(serverEntity.hash(), sync.getEntityHash(entry1().id))
+
+		// Re-upload reports the real extension and the original bytes.
+		val reuploaded = sync.createEntityForId(entry1().id)
+		assertEquals("png", reuploaded.image?.fileExtension)
+		assertContentEquals(imageBytes, Base64.decode(reuploaded.image!!.base64, url = true))
+
+		// Server-clear removes the stored file rather than orphaning it.
+		sync.storeEntity(serverEntity.copy(image = null), syncId = "sync", onLog = {})
+		assertNull(datasource.findEntryImagePath(def))
+		assertFalse(datasource.hasEntryImage(def, "png"))
+	}
+
 	private fun allRegularFiles(): Set<String> =
 		fileSystem.allPaths
 			.filter { fileSystem.metadataOrNull(it)?.isRegularFile == true }

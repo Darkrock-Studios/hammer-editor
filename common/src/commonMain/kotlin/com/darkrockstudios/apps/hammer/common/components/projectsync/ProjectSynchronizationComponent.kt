@@ -318,10 +318,11 @@ class ProjectSynchronizationComponent(
 	private suspend fun onEncyclopediaEntryConflict(serverEntity: ApiProjectEntity.EncyclopediaEntryEntity) {
 		val local = encyclopediaService.loadEntry(serverEntity.id).entry
 		val def = local.toDef(projectDef)
-		val image = if (encyclopediaService.hasEntryImage(def, "jpg")) {
-			val imageBytes = encyclopediaService.loadEntryImage(def, "jpg")
+		val imageExtension = encyclopediaService.findEntryImageExtension(def)
+		val image = if (imageExtension != null) {
+			val imageBytes = encyclopediaService.loadEntryImage(def, imageExtension)
 			val imageBase64 = Base64.encode(imageBytes, url = true)
-			ApiProjectEntity.EncyclopediaEntryEntity.Image(imageBase64, "jpg")
+			ApiProjectEntity.EncyclopediaEntryEntity.Image(imageBase64, imageExtension)
 		} else {
 			null
 		}

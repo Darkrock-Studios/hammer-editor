@@ -73,7 +73,8 @@ class ViewEntryComponentTest : BaseTest() {
 		val newEntry = oldEntry.copy(name = newName)
 		val newContainer = EntryContainer(newEntry)
 
-		every { encyclopediaService.hasEntryImage(any(), any()) } returns false
+		every { encyclopediaService.findEntryImagePath(any()) } returns null
+		every { encyclopediaService.findEntryImageExtension(any()) } returns null
 		coEvery { encyclopediaService.calculateEntryImageHash(any(), any()) } returns null
 		coEvery { encyclopediaService.loadEntry(entryDef = any()) } returns newContainer
 		coEvery {
@@ -114,7 +115,8 @@ class ViewEntryComponentTest : BaseTest() {
 		val newEntry = oldEntry.copy(name = newName)
 		val newContainer = EntryContainer(newEntry)
 
-		every { encyclopediaService.hasEntryImage(any(), any()) } returns false
+		every { encyclopediaService.findEntryImagePath(any()) } returns null
+		every { encyclopediaService.findEntryImageExtension(any()) } returns null
 		coEvery { encyclopediaService.loadEntry(entryDef = any()) } returns newContainer
 		coEvery {
 			encyclopediaService.updateEntry(
