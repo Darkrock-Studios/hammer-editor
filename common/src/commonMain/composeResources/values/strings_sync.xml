@@ -176,6 +176,7 @@
 	<string name="sync_log_entity_download_failed_general">Failed to download entity %1$d</string>
 	<string name="sync_log_entity_download_failed_not_found">Entity %1$d not found on server</string>
 	<string name="sync_log_entity_download_not_modified">Entity %1$d not modified</string>
+	<string name="sync_log_entity_download_rejected_mismatch">Rejected download for entity %1$d: server returned a mismatched id or type</string>
 	<string name="sync_log_entity_upload_entity_not_owned">Failed to upload entity %1$d: type not owned by anything,
 		probably deleted
 	</string>
