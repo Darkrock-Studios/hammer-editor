@@ -14,9 +14,8 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.exampleProjectModule
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenStore
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.FileAuthTokenStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.authTokenStoreModule
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
@@ -94,6 +93,7 @@ const val RAW_FILESYSTEM = "raw-filesystem"
  */
 val mainModule = module {
 	includes(externalFileIoModule)
+	includes(authTokenStoreModule)
 	includes(exampleProjectModule)
 
 	single(named(DISPATCHER_MAIN)) { platformMainDispatcher }
@@ -115,7 +115,6 @@ val mainModule = module {
 	singleOf(::ProjectDataApi)
 	singleOf(::ServerAdminApi)
 
-	singleOf(::FileAuthTokenStore) bind AuthTokenStore::class
 	singleOf(::ServerSettingsFilesystemDatasource) bind ServerSettingsDatasource::class
 	singleOf(::GlobalSettingsFilesystemDatasource)
 	singleOf(::GlobalSettingsStore) bind GlobalSettingsStore::class
