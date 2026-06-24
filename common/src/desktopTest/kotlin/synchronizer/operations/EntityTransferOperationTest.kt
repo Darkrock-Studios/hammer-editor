@@ -115,6 +115,7 @@ class EntityTransferOperationTest : BaseTest() {
 		} returns Result.success(
 			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
 				every { id } returns 4
+				every { type } returns ApiProjectEntity.Type.SCENE
 				every { hash() } returns "downloaded-hash-4"
 			})
 		)
@@ -129,6 +130,7 @@ class EntityTransferOperationTest : BaseTest() {
 		} returns Result.success(
 			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
 				every { id } returns 11
+				every { type } returns ApiProjectEntity.Type.SCENE
 				every { hash() } returns "downloaded-hash-11"
 			})
 		)
@@ -300,6 +302,7 @@ class EntityTransferOperationTest : BaseTest() {
 		} returns Result.success(
 			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
 				every { id } returns 4
+				every { type } returns ApiProjectEntity.Type.SCENE
 				every { hash() } returns "h-4"
 			})
 		)
@@ -330,6 +333,7 @@ class EntityTransferOperationTest : BaseTest() {
 		} returns Result.success(
 			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
 				every { id } returns 4
+				every { type } returns ApiProjectEntity.Type.SCENE
 				every { hash() } returns "h-4"
 			})
 		)
@@ -344,6 +348,123 @@ class EntityTransferOperationTest : BaseTest() {
 			assertIs<EntityTransferState>(result.data).allSuccess,
 			"A download whose store failed must not report the transfer as fully successful",
 		)
+	}
+
+	@Test
+	fun `download - server returns a different id than requested is rejected`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		// Requested id 4, but a hostile server answers with a forged entity carrying id 7.
+		coEvery {
+			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+		} returns Result.success(
+			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
+				every { id } returns 7
+				every { type } returns ApiProjectEntity.Type.SCENE
+				every { hash() } returns "forged-hash-7"
+			})
+		)
+
+		val logs = mutableListOf<SyncLogMessage>()
+		val result = op.execute(
+			state = singleDownloadState(4),
+			onProgress = { _, _ -> },
+			onLog = { logs.add(it) },
+			onConflict = {},
+			onComplete = {},
+		)
+
+		assertTrue(isSuccess(result))
+		assertFalse(assertIs<EntityTransferState>(result.data).allSuccess)
+		// The forged entity is never stored and never poisons the conflict baseline.
+		coVerify(exactly = 0) { mockSynchronizers.sceneSynchronizer.storeEntity(any(), any(), any()) }
+		coVerify(exactly = 0) { syncJournal.recordSyncedHash(7, any()) }
+		coVerify(exactly = 0) { syncJournal.recordSyncedHash(4, any()) }
+		assertTrue(logs.any { it.level == SyncLogLevel.ERROR })
+	}
+
+	@Test
+	fun `download - server returns a different type than the client owns is rejected`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		// The client already owns id 4 as a Scene...
+		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(4) } returns true
+		// ...but the server steers the same id into a Note, attempting a type confusion.
+		coEvery {
+			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+		} returns Result.success(
+			LoadEntityResponse(mockk<ApiProjectEntity.NoteEntity> {
+				every { id } returns 4
+				every { type } returns ApiProjectEntity.Type.NOTE
+				every { hash() } returns "wrong-type-hash-4"
+			})
+		)
+
+		val logs = mutableListOf<SyncLogMessage>()
+		val result = op.execute(
+			state = singleDownloadState(4),
+			onProgress = { _, _ -> },
+			onLog = { logs.add(it) },
+			onConflict = {},
+			onComplete = {},
+		)
+
+		assertTrue(isSuccess(result))
+		assertFalse(assertIs<EntityTransferState>(result.data).allSuccess)
+		// Neither repository is written, and no hash is recorded for the contested id.
+		coVerify(exactly = 0) { mockSynchronizers.noteSynchronizer.storeEntity(any(), any(), any()) }
+		coVerify(exactly = 0) { mockSynchronizers.sceneSynchronizer.storeEntity(any(), any(), any()) }
+		coVerify(exactly = 0) { syncJournal.recordSyncedHash(4, any()) }
+		assertTrue(logs.any { it.level == SyncLogLevel.ERROR })
+	}
+
+	@Test
+	fun `download - a new entity the client does not own is stored and its hash recorded`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		// No synchronizer owns id 4 (findEntityType == null), so the type check must allow it.
+		coEvery {
+			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+		} returns Result.success(
+			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
+				every { id } returns 4
+				every { type } returns ApiProjectEntity.Type.SCENE
+				every { hash() } returns "new-hash-4"
+			})
+		)
+		coEvery {
+			mockSynchronizers.sceneSynchronizer.storeEntity(any(), any(), any())
+		} returns true
+
+		val result = op.run(singleDownloadState(4))
+
+		assertTrue(isSuccess(result))
+		assertTrue(assertIs<EntityTransferState>(result.data).allSuccess)
+		coVerify(exactly = 1) { mockSynchronizers.sceneSynchronizer.storeEntity(any(), any(), any()) }
+		coVerify(exactly = 1) { syncJournal.recordSyncedHash(4, "new-hash-4") }
+	}
+
+	@Test
+	fun `download - matching id and owned type is stored and its hash recorded`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		// Client owns id 4 as a Scene and the server agrees on both id and type.
+		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(4) } returns true
+		coEvery {
+			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+		} returns Result.success(
+			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
+				every { id } returns 4
+				every { type } returns ApiProjectEntity.Type.SCENE
+				every { hash() } returns "matching-hash-4"
+			})
+		)
+		coEvery {
+			mockSynchronizers.sceneSynchronizer.storeEntity(any(), any(), any())
+		} returns true
+
+		val result = op.run(singleDownloadState(4))
+
+		assertTrue(isSuccess(result))
+		assertTrue(assertIs<EntityTransferState>(result.data).allSuccess)
+		coVerify(exactly = 1) { mockSynchronizers.sceneSynchronizer.storeEntity(any(), any(), any()) }
+		coVerify(exactly = 1) { syncJournal.recordSyncedHash(4, "matching-hash-4") }
 	}
 
 	@Test
