@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import net.peanuuutz.tomlkt.Toml
@@ -56,7 +57,7 @@ class TimeLineDatasource(
 			return (getTimelineDir(projectDef).toOkioPath() / TIMELINE_FILENAME).toHPath()
 		}
 
-		@Suppress("SwallowedException") // Missing file means an empty timeline
+		@Suppress("SwallowedException") // Missing or corrupt file means an empty timeline
 		fun loadTimeline(hpath: HPath, fileSystem: FileSystem, toml: Toml): TimeLineContainer {
 			val path = hpath.toOkioPath()
 			return if (fileSystem.exists(path)) {
@@ -70,9 +71,13 @@ class TimeLineDatasource(
 						}
 					}
 				} catch (e: FileNotFoundException) {
-					TimeLineContainer(
-						events = emptyList()
-					)
+					TimeLineContainer(emptyList())
+				} catch (e: SerializationException) {
+					TimeLineContainer(emptyList())
+				} catch (e: IllegalArgumentException) {
+					TimeLineContainer(emptyList())
+				} catch (e: IllegalStateException) {
+					TimeLineContainer(emptyList())
 				}
 			} else {
 				TimeLineContainer(
