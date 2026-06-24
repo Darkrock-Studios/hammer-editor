@@ -15,7 +15,8 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
-import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCreateImportAction
+import com.darkrockstudios.apps.hammer.common.projectselection.ImportHelpContent
+import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCreateMastheadActions
 import com.darkrockstudios.apps.hammer.create_project_button
 import com.darkrockstudios.apps.hammer.create_project_cancel_button
 import com.darkrockstudios.apps.hammer.create_project_heading
@@ -46,7 +47,7 @@ fun ProjectCreateDialogPreview() {
 					onConfirm = {},
 					onCancel = {},
 					confirmEnabled = true,
-					mastheadAction = { ProjectCreateImportAction {} },
+					mastheadAction = { ProjectCreateMastheadActions(onHelp = {}, onImport = {}) },
 					body = {
 						FormField(
 							value = "Alice in Wonderland",
@@ -55,6 +56,23 @@ fun ProjectCreateDialogPreview() {
 						)
 					},
 				)
+			}
+		}
+	}
+}
+
+@Preview(widthDp = 600, heightDp = 460)
+@Composable
+fun ImportHelpDialogPreview() {
+	KoinApplicationPreview {
+		AppTheme(globalSettingsPreview, true) {
+			Box(
+				modifier = Modifier
+					.fillMaxSize()
+					.background(MaterialTheme.colorScheme.background),
+				contentAlignment = Alignment.Center,
+			) {
+				ImportHelpContent(onDismiss = {})
 			}
 		}
 	}
