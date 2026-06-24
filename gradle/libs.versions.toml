@@ -228,6 +228,7 @@ ktor_client_encoding = { group = "io.ktor", name = "ktor-client-encoding", versi
 ktor_client_okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 ktor_client_darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }
 ktor_client_java = { group = "io.ktor", name = "ktor-client-java", version.ref = "ktor" }
+ktor_client_mock = { group = "io.ktor", name = "ktor-client-mock", version.ref = "ktor" }
 
 ktor_serialization_kotlinx_json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 
