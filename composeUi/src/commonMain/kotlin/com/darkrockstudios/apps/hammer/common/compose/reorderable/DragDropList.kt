@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -50,8 +51,12 @@ fun <T> DragDropList(
 		data = items
 	}
 
+	// rememberDragDropListState captures its callbacks once, so route the
+	// external one through rememberUpdatedState; otherwise it keeps invoking a
+	// stale closure and moves the wrong item once the list order has changed.
+	val currentOnMove by rememberUpdatedState(onMove)
 	val dragDropListState = rememberDragDropListState(
-		confirmReorder = onMove,
+		confirmReorder = { from, to -> currentOnMove(from, to) },
 		onMove = { from, to ->
 			data = data.toMutableList().apply {
 				add(to, removeAt(from))
