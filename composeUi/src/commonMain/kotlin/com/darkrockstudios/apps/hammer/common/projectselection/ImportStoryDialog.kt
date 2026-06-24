@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.projecthome
+package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -15,7 +15,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
+import com.darkrockstudios.apps.hammer.common.compose.FormField
+import com.darkrockstudios.apps.hammer.common.compose.NameKind
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.data.ChapterHeadingLevel
 import com.darkrockstudios.apps.hammer.common.data.ImportFormat
@@ -30,8 +33,10 @@ private val DialogMaxWidth = 560.dp
 @Composable
 fun ImportStoryDialog(
 	visible: Boolean,
+	projectName: String,
 	options: ImportOptions,
 	preview: ImportPreview,
+	onProjectNameChange: (String) -> Unit,
 	onCancel: () -> Unit,
 	onOptionsChange: (ImportOptions) -> Unit,
 	onConfirm: () -> Unit,
@@ -39,6 +44,8 @@ fun ImportStoryDialog(
 	var renderInternal by remember { mutableStateOf(visible) }
 	LaunchedEffect(visible) { if (visible) renderInternal = true }
 	if (!renderInternal) return
+
+	val nameValidation = rememberNameValidation(projectName, NameKind.Project)
 
 	AnimatedDialogContainer(
 		isOpen = visible,
@@ -87,6 +94,16 @@ fun ImportStoryDialog(
 						bottom = Ui.Padding.XL,
 					),
 				) {
+					FormField(
+						value = projectName,
+						onValueChange = onProjectNameChange,
+						label = stringResource(Res.string.create_project_heading),
+						autoFocus = true,
+						error = nameValidation.fieldError(projectName),
+					)
+
+					Spacer(modifier = Modifier.height(Ui.Padding.XL))
+
 					HdHairlineSegmentedPicker(
 						title = stringResource(Res.string.project_home_import_format_label),
 						options = AVAILABLE_IMPORT_FORMATS,
@@ -121,7 +138,7 @@ fun ImportStoryDialog(
 				ImportFooter(
 					onCancel = onCancel,
 					onConfirm = onConfirm,
-					confirmEnabled = !preview.isEmpty,
+					confirmEnabled = !preview.isEmpty && nameValidation.isValid,
 				)
 			}
 		}

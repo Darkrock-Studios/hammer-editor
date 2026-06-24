@@ -65,10 +65,3 @@ expect fun ExportDirectoryPicker(
 	component: ProjectHome,
 	scope: CoroutineScope,
 )
-
-@Composable
-expect fun ImportFilePicker(
-	show: Boolean,
-	component: ProjectHome,
-	scope: CoroutineScope,
-)
