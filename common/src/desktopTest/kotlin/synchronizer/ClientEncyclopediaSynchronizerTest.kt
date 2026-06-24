@@ -254,6 +254,67 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 	}
 
 	@Test
+	fun `storeEntity rejects a traversal file extension and writes no image but still stores the entry`() = runTest {
+		val imageBytes = byteArrayOf(4, 5, 6)
+		val sync = newSynchronizer()
+		val serverEntity = sync.createEntityForId(entry1().id).copy(
+			text = "Stored anyway",
+			image = com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity.EncyclopediaEntryEntity.Image(
+				base64 = Base64.encode(imageBytes, url = true),
+				fileExtension = "jpg/../../../../evil",
+			),
+		)
+
+		val before = allRegularFiles()
+
+		val stored = sync.storeEntity(serverEntity, syncId = "sync", onLog = {})
+
+		assertTrue(stored)
+		assertEquals("Stored anyway", repository.loadEntry(entry1().id).entry.text)
+		assertEquals(before, allRegularFiles())
+	}
+
+	@Test
+	fun `storeEntity rejects an unknown image extension`() = runTest {
+		val sync = newSynchronizer()
+		val serverEntity = sync.createEntityForId(entry1().id).copy(
+			image = com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity.EncyclopediaEntryEntity.Image(
+				base64 = Base64.encode(byteArrayOf(1), url = true),
+				fileExtension = "exe",
+			),
+		)
+
+		val before = allRegularFiles()
+		sync.storeEntity(serverEntity, syncId = "sync", onLog = {})
+
+		assertEquals(before, allRegularFiles())
+	}
+
+	@Test
+	fun `storeEntity writes a png image with an allowed extension`() = runTest {
+		val imageBytes = byteArrayOf(7, 7, 7)
+		val sync = newSynchronizer()
+		val serverEntity = sync.createEntityForId(entry1().id).copy(
+			image = com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity.EncyclopediaEntryEntity.Image(
+				base64 = Base64.encode(imageBytes, url = true),
+				fileExtension = "png",
+			),
+		)
+
+		sync.storeEntity(serverEntity, syncId = "sync", onLog = {})
+
+		val def = entry1().toDef(projectDef)
+		assertTrue(datasource.hasEntryImage(def, "png"))
+		assertContentEquals(imageBytes, datasource.loadEntryImage(def, "png"))
+	}
+
+	private fun allRegularFiles(): Set<String> =
+		fileSystem.allPaths
+			.filter { fileSystem.metadataOrNull(it)?.isRegularFile == true }
+			.map { it.toString() }
+			.toSet()
+
+	@Test
 	fun `storeEntity drops a local image when the server has none`() = runTest {
 		val def = entry1().toDef(projectDef)
 		datasource.writeEntryImage(def, byteArrayOf(1, 2, 3), "jpg")

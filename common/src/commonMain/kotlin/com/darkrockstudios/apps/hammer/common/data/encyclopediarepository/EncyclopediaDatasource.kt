@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.InvalidSceneFilename
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
@@ -219,6 +220,12 @@ class EncyclopediaDatasource(
 	/** Writes raw image bytes (e.g. an image pulled from the server during sync) to the entry's image path. */
 	suspend fun writeEntryImage(entryDef: EntryDef, imageBytes: ByteArray, fileExtension: String) {
 		val targetPath = getEntryImagePath(entryDef, fileExtension).toOkioPath()
+
+		val typeDir = getTypeDirectory(entryDef.type).toOkioPath()
+		if (!targetPath.isWithin(typeDir)) {
+			error("Refusing to write entry image outside its type directory: $targetPath")
+		}
+
 		fileSystem.write(targetPath) {
 			write(imageBytes)
 		}
