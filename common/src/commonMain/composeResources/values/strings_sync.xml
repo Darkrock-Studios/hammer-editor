@@ -177,9 +177,7 @@
 	<string name="sync_log_entity_download_failed_not_found">Entity %1$d not found on server</string>
 	<string name="sync_log_entity_download_not_modified">Entity %1$d not modified</string>
 	<string name="sync_log_entity_download_rejected_mismatch">Rejected download for entity %1$d: server returned a mismatched id or type</string>
-	<string name="sync_log_entity_upload_entity_not_owned">Failed to upload entity %1$d: type not owned by anything,
-		probably deleted
-	</string>
+	<string name="sync_log_entity_upload_entity_not_owned">Failed to upload entity %1$d: type not owned by anything, probably deleted</string>
 	<string name="sync_log_entity_delete_failed">Failed to delete ID %1$d on server: %2$s</string>
 	<string name="sync_log_entity_delete_success">Deleted ID %1$d on server</string>
 	<string
