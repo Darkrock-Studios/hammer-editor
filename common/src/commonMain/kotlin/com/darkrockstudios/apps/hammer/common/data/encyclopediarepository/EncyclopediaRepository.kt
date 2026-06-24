@@ -200,6 +200,12 @@ class EncyclopediaRepository(
 	fun hasEntryImage(entryDef: EntryDef, fileExension: String): Boolean =
 		datasource.hasEntryImage(entryDef, fileExension)
 
+	fun findEntryImagePath(entryDef: EntryDef): HPath? =
+		datasource.findEntryImagePath(entryDef)
+
+	fun findEntryImageExtension(entryDef: EntryDef): String? =
+		datasource.findEntryImageExtension(entryDef)
+
 	suspend fun calculateEntryImageHash(entryDef: EntryDef, fileExension: String): String? {
 		return datasource.hashEntryImage(entryDef, fileExension)
 	}

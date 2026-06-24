@@ -86,6 +86,34 @@ class EncyclopediaRepositoryImageTest : BaseTest() {
 	}
 
 	@Test
+	fun `setEntryImage preserves a supported source extension`() = runTest {
+		val pngSource = "/external/art.png"
+		every { externalFileIo.readExternalFile(pngSource) } returns imageBytes
+
+		val repo = repository()
+		val def = entry1().toDef(projDef)
+
+		repo.setEntryImage(def, pngSource)
+
+		assertTrue(repo.hasEntryImage(def, "png"))
+		assertFalse(repo.hasEntryImage(def, "jpg"))
+		assertTrue(datasource.findEntryImagePath(def)!!.name.endsWith(".png"))
+	}
+
+	@Test
+	fun `setEntryImage falls back to jpg for an unsupported source extension`() = runTest {
+		val heicSource = "/external/photo.heic"
+		every { externalFileIo.readExternalFile(heicSource) } returns imageBytes
+
+		val repo = repository()
+		val def = entry1().toDef(projDef)
+
+		repo.setEntryImage(def, heicSource)
+
+		assertTrue(datasource.findEntryImagePath(def)!!.name.endsWith(".jpg"))
+	}
+
+	@Test
 	fun `setEntryImage with a null path removes the existing image`() = runTest {
 		val repo = repository()
 		val def = entry1().toDef(projDef)

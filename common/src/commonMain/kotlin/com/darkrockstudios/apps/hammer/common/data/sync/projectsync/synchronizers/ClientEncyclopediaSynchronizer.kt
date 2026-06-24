@@ -76,14 +76,14 @@ class ClientEncyclopediaSynchronizer(
 		val entry = encyclopediaRepository.loadEntry(id).entry
 		val def = entry.toDef(projectDef)
 
-		val DEFAULT_EXTENSION = "jpg"
-		val image = if (encyclopediaDatasource.hasEntryImage(def, DEFAULT_EXTENSION)) {
-			val imageBytes = encyclopediaDatasource.loadEntryImage(def, DEFAULT_EXTENSION)
+		val imageExtension = encyclopediaDatasource.findEntryImageExtension(def)
+		val image = if (imageExtension != null) {
+			val imageBytes = encyclopediaDatasource.loadEntryImage(def, imageExtension)
 			val imageBase64 = Base64.encode(imageBytes, url = true)
 
 			ApiProjectEntity.EncyclopediaEntryEntity.Image(
 				base64 = imageBase64,
-				fileExtension = DEFAULT_EXTENSION,
+				fileExtension = imageExtension,
 			)
 		} else {
 			null
@@ -185,8 +185,10 @@ class ClientEncyclopediaSynchronizer(
 				return
 			}
 			val imageBytes = Base64.decode(image.base64, url = true)
+			// Clear any prior image first so a changed extension can't leave an orphan file.
+			encyclopediaDatasource.removeEntryImage(serverDef)
 			encyclopediaDatasource.writeEntryImage(serverDef, imageBytes, image.fileExtension)
-		} else if (oldDef != null && encyclopediaDatasource.hasEntryImage(oldDef, "jpg")) {
+		} else if (oldDef != null && encyclopediaDatasource.hasEntryImage(oldDef)) {
 			// Server reports no image; drop the local one. Raw datasource delete (no
 			// sync-marking) since we're applying server state, not making a local edit.
 			encyclopediaDatasource.removeEntryImage(oldDef)
@@ -194,8 +196,6 @@ class ClientEncyclopediaSynchronizer(
 	}
 
 	companion object {
-		val ALLOWED_IMAGE_EXTENSIONS = setOf(
-			"jpg", "jpeg", "png", "gif", "webp",
-		)
+		val ALLOWED_IMAGE_EXTENSIONS = EncyclopediaDatasource.IMAGE_EXTENSIONS
 	}
 }
