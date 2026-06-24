@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.exampleProjectModule
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
@@ -55,6 +56,9 @@ import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivi
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingSessionTracker
 import com.darkrockstudios.apps.hammer.common.fileio.externalFileIoModule
+import com.darkrockstudios.apps.hammer.common.fileio.okio.ContainedFileSystem
+import com.darkrockstudios.apps.hammer.common.getCacheDirectory
+import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
 import com.darkrockstudios.apps.hammer.common.platformDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
@@ -66,6 +70,8 @@ import io.ktor.client.*
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.Path
+import okio.Path.Companion.toPath
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.scopedOf
 import org.koin.core.module.dsl.singleOf
@@ -77,6 +83,9 @@ import kotlin.time.Clock
 const val DISPATCHER_MAIN = "main-dispatcher"
 const val DISPATCHER_DEFAULT = "default-dispatcher"
 const val DISPATCHER_IO = "io-dispatcher"
+
+/** Unguarded platform [FileSystem] for user-chosen external write targets (exports). */
+const val RAW_FILESYSTEM = "raw-filesystem"
 
 /**
  * This is the main module containing most of the DI objects
@@ -115,7 +124,13 @@ val mainModule = module {
 	factory { AccountUseCase(get(), get(), get(), get()) }
 	factoryOf(::AccountReauthUseCase)
 
-	singleOf(::getPlatformFilesystem) bind FileSystem::class
+	single(named(RAW_FILESYSTEM)) { getPlatformFilesystem() } bind FileSystem::class
+
+	// Default filesystem: guards every write against the app's managed storage roots.
+	single<FileSystem> {
+		val koin = getKoin()
+		ContainedFileSystem(getPlatformFilesystem()) { managedStorageRoots(koin) }
+	}
 
 	singleOf(::ProjectsRepository)
 
@@ -147,7 +162,15 @@ val mainModule = module {
 		scopedOf(::SceneRepository)
 		scopedOf(::SceneEditorService)
 		scopedOf(::ImportStoryUseCase)
-		scopedOf(::ExportStoryUseCase)
+		// Export writes to a user-chosen path, so it uses the unguarded filesystem.
+		scoped {
+			ExportStoryUseCase(
+				sceneEditorRepository = get(),
+				projectDataDatasource = get(),
+				fileSystem = get(named(RAW_FILESYSTEM)),
+				localeResolver = get(),
+			)
+		}
 		scopedOf(::SceneDraftsDatasource)
 		scopedOf(::SceneDraftRepository)
 		scopedOf(::SceneMetadataDatasource)
@@ -222,4 +245,25 @@ val mainModule = module {
 
 		scopedOf(::EntitySynchronizers)
 	}
+}
+
+/**
+ * Managed storage roots checked by [ContainedFileSystem]: cache, config, and the
+ * (user-relocatable, resolved per call) projects directory. Projects resolution is
+ * cycle-safe — store, then persisted settings, then default — so config-root writes
+ * during the store's own construction aren't blocked.
+ */
+internal fun managedStorageRoots(koin: org.koin.core.Koin): List<Path> {
+	val cacheRoot = getCacheDirectory().toPath()
+	val configRoot = getConfigDirectory().toPath()
+
+	val projectsRoot = runCatching {
+		koin.get<GlobalSettingsStore>().globalSettings.projectsDirectory.toPath()
+	}.recoverCatching {
+		koin.get<GlobalSettingsDatasource>().loadSettings().projectsDirectory.toPath()
+	}.getOrElse {
+		GlobalSettingsStore.defaultProjectDir()
+	}
+
+	return listOf(cacheRoot, configRoot, projectsRoot)
 }
