@@ -235,9 +235,14 @@ class EncyclopediaDatasource(
 			return
 		}
 
+		val pixelData = externalFileIo.readExternalFile(imagePath)
+		if (pixelData.size > MAX_IMAGE_SIZE_BYTES) {
+			Napier.w("Ignoring entry image over ${MAX_IMAGE_SIZE_MB}MB: $imagePath")
+			return
+		}
+
 		removeEntryImage(entryDef)
 		val targetPath = getEntryImagePath(entryDef, extension).toOkioPath()
-		val pixelData = externalFileIo.readExternalFile(imagePath)
 		fileSystem.write(targetPath) {
 			write(pixelData)
 		}
@@ -379,6 +384,9 @@ class EncyclopediaDatasource(
 		// Raster formats Coil renders on every target (Android BitmapFactory + desktop/iOS Skia).
 		// Doubles as the allowlist for server-supplied sync image extensions.
 		val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp")
+
+		const val MAX_IMAGE_SIZE_MB = 16
+		const val MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024L * 1024
 
 		fun getTypeDirectory(
 			projectDef: ProjectDef,

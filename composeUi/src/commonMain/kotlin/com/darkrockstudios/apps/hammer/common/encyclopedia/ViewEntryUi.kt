@@ -57,6 +57,7 @@ import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.path
+import io.github.vinceglb.filekit.size
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -295,7 +296,16 @@ internal fun ViewEntryUi(
 				FileKit.openFilePicker(type = FileKitType.File(EncyclopediaDatasource.IMAGE_EXTENSIONS))
 			}
 			if (file != null) {
-				scope.launch { component.setImage(file.path) }
+				if (file.size() > EncyclopediaDatasource.MAX_IMAGE_SIZE_BYTES) {
+					rootSnackbar.showSnackbar(
+						strRes.get(
+							Res.string.encyclopedia_create_entry_image_too_large,
+							EncyclopediaDatasource.MAX_IMAGE_SIZE_MB,
+						)
+					)
+				} else {
+					scope.launch { component.setImage(file.path) }
+				}
 			}
 			component.closeAddImageDialog()
 		}

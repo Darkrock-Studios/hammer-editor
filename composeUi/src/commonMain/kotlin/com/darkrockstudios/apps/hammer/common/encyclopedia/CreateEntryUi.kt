@@ -35,6 +35,7 @@ import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.path
+import io.github.vinceglb.filekit.size
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -138,8 +139,18 @@ internal fun CreateEntryUi(
 					label = Res.string.encyclopedia_create_entry_cover_art_label.get(),
 					onClick = {
 						scope.launch {
-							imagePath = retryingFileDialog {
+							val picked = retryingFileDialog {
 								FileKit.openFilePicker(type = FileKitType.File(EncyclopediaDatasource.IMAGE_EXTENSIONS))
+							}
+							if (picked != null && picked.size() > EncyclopediaDatasource.MAX_IMAGE_SIZE_BYTES) {
+								rootSnackbar.showSnackbar(
+									strRes.get(
+										Res.string.encyclopedia_create_entry_image_too_large,
+										EncyclopediaDatasource.MAX_IMAGE_SIZE_MB,
+									)
+								)
+							} else {
+								imagePath = picked
 							}
 						}
 					},
