@@ -102,29 +102,93 @@ object ProseDiff {
 		}
 
 		val merged = mergeSmallGaps(rawHunks, SMALL_GAP_THRESHOLD)
+		val movePlan = detectMovedParagraphs(merged, left.plain.plain, right.plain.plain)
 
 		val leftSpans = ArrayList<DiffSpan>(merged.size)
 		val rightSpans = ArrayList<DiffSpan>(merged.size)
 		val anchors = ArrayList<DiffAnchor>(merged.size * 2 + 2)
+		val emittedLeftMoves = HashSet<Int>()
+		val emittedRightMoves = HashSet<Int>()
 		anchors += DiffAnchor(0, 0)
 
-		for (h in merged) {
-			anchors += DiffAnchor(
-				leftSource = left.plain.plainOffsetToSource(h.leftPlainStart),
-				rightSource = right.plain.plainOffsetToSource(h.rightPlainStart),
-			)
+		for ((index, h) in merged.withIndex()) {
+			val hunkMoveId = movePlan.hunkMoveIds[index]
+			val skipAnchors = hunkMoveId != null || movePlan.isParagraphMoveArtifact(h)
+			if (!skipAnchors) {
+				anchors += DiffAnchor(
+					leftSource = left.plain.plainOffsetToSource(h.leftPlainStart),
+					rightSource = right.plain.plainOffsetToSource(h.rightPlainStart),
+				)
+			}
 			if (h.leftPlainEnd > h.leftPlainStart) {
-				val range = left.plain.plainRangeToSource(h.leftPlainStart, h.leftPlainEnd)
-				if (!range.isEmpty) leftSpans += DiffSpan(DiffKind.DELETED, range)
+				val moved = movePlan.leftMovedParagraph(h.leftPlainStart, h.leftPlainEnd)
+				when {
+					hunkMoveId != null -> {
+						val range = left.plain.plainRangeToSource(h.leftPlainStart, h.leftPlainEnd)
+						if (!range.isEmpty) {
+							leftSpans += DiffSpan(DiffKind.MOVED, range, moveId = hunkMoveId)
+						}
+					}
+
+					moved != null -> {
+						if (emittedLeftMoves.add(moved.moveId)) {
+							val range = left.plain.plainRangeToSource(moved.range.start, moved.range.endExclusive)
+							if (!range.isEmpty) {
+								leftSpans += DiffSpan(DiffKind.MOVED, range, moveId = moved.moveId)
+							}
+						}
+					}
+
+					!movePlan.isStableLeftParagraph(h.leftPlainStart, h.leftPlainEnd) -> {
+						val range = left.plain.plainRangeToSource(h.leftPlainStart, h.leftPlainEnd)
+						if (!range.isEmpty) leftSpans += DiffSpan(DiffKind.DELETED, range)
+					}
+				}
 			}
 			if (h.rightPlainEnd > h.rightPlainStart) {
-				val range = right.plain.plainRangeToSource(h.rightPlainStart, h.rightPlainEnd)
-				if (!range.isEmpty) rightSpans += DiffSpan(DiffKind.INSERTED, range)
+				val moved = movePlan.rightMovedParagraph(h.rightPlainStart, h.rightPlainEnd)
+				when {
+					hunkMoveId != null -> {
+						val range = right.plain.plainRangeToSource(h.rightPlainStart, h.rightPlainEnd)
+						if (!range.isEmpty) {
+							rightSpans += DiffSpan(DiffKind.MOVED, range, moveId = hunkMoveId)
+						}
+					}
+
+					moved != null -> {
+						if (emittedRightMoves.add(moved.moveId)) {
+							val range = right.plain.plainRangeToSource(moved.range.start, moved.range.endExclusive)
+							if (!range.isEmpty) {
+								rightSpans += DiffSpan(DiffKind.MOVED, range, moveId = moved.moveId)
+							}
+						}
+					}
+
+					!movePlan.isStableRightParagraph(h.rightPlainStart, h.rightPlainEnd) -> {
+						val range = right.plain.plainRangeToSource(h.rightPlainStart, h.rightPlainEnd)
+						if (!range.isEmpty) rightSpans += DiffSpan(DiffKind.INSERTED, range)
+					}
+				}
 			}
-			anchors += DiffAnchor(
-				leftSource = left.plain.plainOffsetToSource(h.leftPlainEnd, preferEnd = true),
-				rightSource = right.plain.plainOffsetToSource(h.rightPlainEnd, preferEnd = true),
-			)
+			if (!skipAnchors) {
+				anchors += DiffAnchor(
+					leftSource = left.plain.plainOffsetToSource(h.leftPlainEnd, preferEnd = true),
+					rightSource = right.plain.plainOffsetToSource(h.rightPlainEnd, preferEnd = true),
+				)
+			}
+		}
+
+		for (moved in movePlan.leftMovedParagraphs) {
+			if (emittedLeftMoves.add(moved.moveId)) {
+				val range = left.plain.plainRangeToSource(moved.range.start, moved.range.endExclusive)
+				if (!range.isEmpty) leftSpans += DiffSpan(DiffKind.MOVED, range, moveId = moved.moveId)
+			}
+		}
+		for (moved in movePlan.rightMovedParagraphs) {
+			if (emittedRightMoves.add(moved.moveId)) {
+				val range = right.plain.plainRangeToSource(moved.range.start, moved.range.endExclusive)
+				if (!range.isEmpty) rightSpans += DiffSpan(DiffKind.MOVED, range, moveId = moved.moveId)
+			}
 		}
 
 		anchors += DiffAnchor(left.sourceLength, right.sourceLength)
@@ -143,6 +207,214 @@ private data class Hunk(
 	val rightPlainStart: Int,
 	val rightPlainEnd: Int,
 )
+
+private data class MoveCandidate(
+	val hunkIndex: Int,
+	val key: String,
+)
+
+private data class Paragraph(
+	val range: SourceRange,
+	val key: String,
+	val index: Int,
+)
+
+private data class ParagraphMatch(
+	val left: Paragraph,
+	val right: Paragraph,
+)
+
+private data class MovedParagraph(
+	val range: SourceRange,
+	val moveId: Int,
+)
+
+private data class MovePlan(
+	val hunkMoveIds: Map<Int, Int> = emptyMap(),
+	val leftMovedParagraphs: List<MovedParagraph> = emptyList(),
+	val rightMovedParagraphs: List<MovedParagraph> = emptyList(),
+	val leftStableParagraphs: List<SourceRange> = emptyList(),
+	val rightStableParagraphs: List<SourceRange> = emptyList(),
+) {
+	private val hasParagraphMoves: Boolean get() = leftMovedParagraphs.isNotEmpty() || rightMovedParagraphs.isNotEmpty()
+
+	fun leftMovedParagraph(start: Int, end: Int): MovedParagraph? =
+		leftMovedParagraphs.firstOrNull { rangesOverlap(start, end, it.range) }
+
+	fun rightMovedParagraph(start: Int, end: Int): MovedParagraph? =
+		rightMovedParagraphs.firstOrNull { rangesOverlap(start, end, it.range) }
+
+	fun isStableLeftParagraph(start: Int, end: Int): Boolean =
+		hasParagraphMoves && leftStableParagraphs.any { rangesOverlap(start, end, it) }
+
+	fun isStableRightParagraph(start: Int, end: Int): Boolean =
+		hasParagraphMoves && rightStableParagraphs.any { rangesOverlap(start, end, it) }
+
+	fun isParagraphMoveArtifact(h: Hunk): Boolean =
+		hasParagraphMoves &&
+			(
+				leftMovedParagraph(h.leftPlainStart, h.leftPlainEnd) != null ||
+					rightMovedParagraph(h.rightPlainStart, h.rightPlainEnd) != null ||
+					isStableLeftParagraph(h.leftPlainStart, h.leftPlainEnd) ||
+					isStableRightParagraph(h.rightPlainStart, h.rightPlainEnd)
+				)
+}
+
+private fun detectMovedParagraphs(
+	hunks: List<Hunk>,
+	leftPlain: String,
+	rightPlain: String,
+): MovePlan {
+	val hunkMoveIds = detectPureMovedParagraphHunks(hunks, leftPlain, rightPlain)
+	if (hunkMoveIds.isNotEmpty()) return MovePlan(hunkMoveIds = hunkMoveIds)
+
+	return detectMovedParagraphsBySequence(leftPlain, rightPlain)
+}
+
+private fun detectPureMovedParagraphHunks(
+	hunks: List<Hunk>,
+	leftPlain: String,
+	rightPlain: String,
+): Map<Int, Int> {
+	val deletes = ArrayList<MoveCandidate>()
+	val inserts = ArrayList<MoveCandidate>()
+
+	for ((index, h) in hunks.withIndex()) {
+		if (isPureDeleteParagraphHunk(h, leftPlain)) {
+			val key = normalizeParagraph(leftPlain.substring(h.leftPlainStart, h.leftPlainEnd))
+			if (key.isNotEmpty()) deletes += MoveCandidate(index, key)
+		}
+		if (isPureInsertParagraphHunk(h, rightPlain)) {
+			val key = normalizeParagraph(rightPlain.substring(h.rightPlainStart, h.rightPlainEnd))
+			if (key.isNotEmpty()) inserts += MoveCandidate(index, key)
+		}
+	}
+
+	val deleteCounts = deletes.groupingBy { it.key }.eachCount()
+	val insertCounts = inserts.groupingBy { it.key }.eachCount()
+	val insertsByKey = inserts.associateBy { it.key }
+	val movedHunks = LinkedHashMap<Int, Int>()
+	var nextMoveId = 0
+
+	for (delete in deletes) {
+		if (deleteCounts[delete.key] == 1 && insertCounts[delete.key] == 1) {
+			val insert = insertsByKey.getValue(delete.key)
+			movedHunks[delete.hunkIndex] = nextMoveId
+			movedHunks[insert.hunkIndex] = nextMoveId
+			nextMoveId++
+		}
+	}
+
+	return movedHunks
+}
+
+private fun detectMovedParagraphsBySequence(leftPlain: String, rightPlain: String): MovePlan {
+	val leftParagraphs = paragraphs(leftPlain)
+	val rightParagraphs = paragraphs(rightPlain)
+	if (leftParagraphs.isEmpty() || rightParagraphs.isEmpty()) return MovePlan()
+
+	val leftCounts = leftParagraphs.groupingBy { it.key }.eachCount()
+	val rightCounts = rightParagraphs.groupingBy { it.key }.eachCount()
+	val rightByKey = rightParagraphs.associateBy { it.key }
+	val matches = leftParagraphs.mapNotNull { left ->
+		if (leftCounts[left.key] == 1 && rightCounts[left.key] == 1) {
+			ParagraphMatch(left, rightByKey.getValue(left.key))
+		} else {
+			null
+		}
+	}
+	if (matches.isEmpty()) return MovePlan()
+
+	val stableKeys = longestIncreasingParagraphKeys(matches)
+	val movedMatches = matches.filter { it.left.key !in stableKeys }
+	if (movedMatches.isEmpty()) return MovePlan()
+
+	val leftMoved = ArrayList<MovedParagraph>(movedMatches.size)
+	val rightMoved = ArrayList<MovedParagraph>(movedMatches.size)
+	for ((moveId, match) in movedMatches.withIndex()) {
+		leftMoved += MovedParagraph(match.left.range, moveId)
+		rightMoved += MovedParagraph(match.right.range, moveId)
+	}
+
+	return MovePlan(
+		leftMovedParagraphs = leftMoved,
+		rightMovedParagraphs = rightMoved,
+		leftStableParagraphs = matches.filter { it.left.key in stableKeys }.map { it.left.range },
+		rightStableParagraphs = matches.filter { it.left.key in stableKeys }.map { it.right.range },
+	)
+}
+
+private fun paragraphs(plain: String): List<Paragraph> {
+	val paragraphs = ArrayList<Paragraph>()
+	var start = 0
+	while (start <= plain.length) {
+		val newline = plain.indexOf('\n', start)
+		val end = if (newline == -1) plain.length else newline
+		val key = normalizeParagraph(plain.substring(start, end))
+		if (key.isNotEmpty()) {
+			paragraphs += Paragraph(SourceRange(start, end), key, paragraphs.size)
+		}
+		if (newline == -1) break
+		start = newline + 1
+	}
+	return paragraphs
+}
+
+private fun longestIncreasingParagraphKeys(matches: List<ParagraphMatch>): Set<String> {
+	if (matches.isEmpty()) return emptySet()
+
+	val tails = IntArray(matches.size)
+	val previous = IntArray(matches.size) { -1 }
+	var size = 0
+
+	for (i in matches.indices) {
+		val rightIndex = matches[i].right.index
+		var lo = 0
+		var hi = size
+		while (lo < hi) {
+			val mid = (lo + hi) ushr 1
+			if (matches[tails[mid]].right.index < rightIndex) {
+				lo = mid + 1
+			} else {
+				hi = mid
+			}
+		}
+		if (lo > 0) previous[i] = tails[lo - 1]
+		tails[lo] = i
+		if (lo == size) size++
+	}
+
+	val stableKeys = HashSet<String>()
+	var cursor = tails[size - 1]
+	while (cursor != -1) {
+		stableKeys += matches[cursor].left.key
+		cursor = previous[cursor]
+	}
+	return stableKeys
+}
+
+private fun isPureDeleteParagraphHunk(h: Hunk, leftPlain: String): Boolean =
+	h.leftPlainEnd > h.leftPlainStart &&
+		h.rightPlainEnd == h.rightPlainStart &&
+		isCompleteParagraph(leftPlain, h.leftPlainStart, h.leftPlainEnd)
+
+private fun isPureInsertParagraphHunk(h: Hunk, rightPlain: String): Boolean =
+	h.rightPlainEnd > h.rightPlainStart &&
+		h.leftPlainEnd == h.leftPlainStart &&
+		isCompleteParagraph(rightPlain, h.rightPlainStart, h.rightPlainEnd)
+
+private fun isCompleteParagraph(plain: String, start: Int, end: Int): Boolean {
+	if (start < 0 || end < start || end > plain.length) return false
+	val startsAtBoundary = start == 0 || plain[start - 1] == '\n'
+	val endsAtBoundary = end == plain.length || plain[end] == '\n'
+	return startsAtBoundary && endsAtBoundary
+}
+
+private fun normalizeParagraph(text: String): String =
+	text.replace(Regex("\\s+"), " ").trim()
+
+private fun rangesOverlap(start: Int, end: Int, range: SourceRange): Boolean =
+	start < range.endExclusive && end > range.start
 
 /**
  * Slide a pure insertion or deletion along its run of equivalent positions so the changed block

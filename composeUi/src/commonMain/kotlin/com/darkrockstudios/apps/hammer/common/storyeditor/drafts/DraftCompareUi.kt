@@ -9,11 +9,13 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.Dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.diff.DiffKind
 import com.darkrockstudios.apps.hammer.base.diff.DiffResult
 import com.darkrockstudios.apps.hammer.base.diff.DiffSpan
 import com.darkrockstudios.apps.hammer.base.diff.OffsetMap
@@ -177,20 +179,30 @@ private fun DraftPane(
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	val deletedHighlight = rememberDeletedHighlight()
+	val movedHighlight = rememberMovedHighlight()
 	var appliedStyle by remember(textEditorState) { mutableStateOf<HighlightSpanStyle?>(null) }
+	var appliedMovedStyle by remember(textEditorState) { mutableStateOf<HighlightSpanStyle?>(null) }
 
 	// The draft is read-only, so its rendered text never changes — submit it once for the diff.
 	LaunchedEffect(textEditorState) {
 		component.submitDraftText(textEditorState.getAllText().text)
 	}
-	LaunchedEffect(state.diffResult, state.showDiff, textEditorState, deletedHighlight) {
+	LaunchedEffect(state.diffResult, state.showDiff, textEditorState, deletedHighlight, movedHighlight) {
+		val spans = if (state.showDiff) state.diffResult?.leftSpans.orEmpty() else emptyList()
 		applyDiffHighlights(
 			editorState = textEditorState,
-			spans = if (state.showDiff) state.diffResult?.leftSpans.orEmpty() else emptyList(),
+			spans = spans.filter { it.kind != DiffKind.MOVED },
 			style = deletedHighlight,
 			previousStyle = appliedStyle,
 		)
+		applyDiffHighlights(
+			editorState = textEditorState,
+			spans = spans.filter { it.kind == DiffKind.MOVED },
+			style = movedHighlight,
+			previousStyle = appliedMovedStyle,
+		)
 		appliedStyle = deletedHighlight
+		appliedMovedStyle = movedHighlight
 	}
 
 	var title by remember { mutableStateOf("") }
@@ -251,7 +263,9 @@ private fun CurrentPane(
 	val state by component.state.subscribeAsState()
 	val markdownConfig = LocalMarkdownConfig.current
 	val insertedHighlight = rememberInsertedHighlight()
+	val movedHighlight = rememberMovedHighlight()
 	var appliedStyle by remember(textEditorState) { mutableStateOf<HighlightSpanStyle?>(null) }
+	var appliedMovedStyle by remember(textEditorState) { mutableStateOf<HighlightSpanStyle?>(null) }
 
 	val markdownExtension = remember(textEditorState) { textEditorState.withMarkdown(markdownConfig) }
 
@@ -274,14 +288,22 @@ private fun CurrentPane(
 		}
 	}
 
-	LaunchedEffect(state.diffResult, state.showDiff, textEditorState, insertedHighlight) {
+	LaunchedEffect(state.diffResult, state.showDiff, textEditorState, insertedHighlight, movedHighlight) {
+		val spans = if (state.showDiff) state.diffResult?.rightSpans.orEmpty() else emptyList()
 		applyDiffHighlights(
 			editorState = textEditorState,
-			spans = if (state.showDiff) state.diffResult?.rightSpans.orEmpty() else emptyList(),
+			spans = spans.filter { it.kind != DiffKind.MOVED },
 			style = insertedHighlight,
 			previousStyle = appliedStyle,
 		)
+		applyDiffHighlights(
+			editorState = textEditorState,
+			spans = spans.filter { it.kind == DiffKind.MOVED },
+			style = movedHighlight,
+			previousStyle = appliedMovedStyle,
+		)
 		appliedStyle = insertedHighlight
+		appliedMovedStyle = movedHighlight
 	}
 
 	Column(
@@ -337,6 +359,10 @@ private fun rememberInsertedHighlight(): HighlightSpanStyle {
 	val success = LocalHammerColors.current.success
 	return remember(success) { HighlightSpanStyle(success.copy(alpha = DIFF_HIGHLIGHT_ALPHA)) }
 }
+
+@Composable
+private fun rememberMovedHighlight(): HighlightSpanStyle =
+	remember { HighlightSpanStyle(Color(0xFF3A5FA0).copy(alpha = DIFF_HIGHLIGHT_ALPHA)) }
 
 /**
  * Replace the diff highlights drawn with [style] on this editor.
