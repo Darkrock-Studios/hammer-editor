@@ -52,6 +52,13 @@
 	<string name="create_project_heading">New Project Name</string>
 	<string name="create_project_button">Create Project</string>
 	<string name="create_project_cancel_button">Cancel</string>
+	<string name="create_project_import_button">Import</string>
+	<string name="create_project_import_help_title">Create from an Existing Story</string>
+	<string name="create_project_import_help_intro">Already have a manuscript? Import it to create a new project. Hammer names the project after your file and automatically splits the text into scenes.</string>
+	<string name="create_project_import_help_formats_header">Supported Formats</string>
+	<string name="create_project_import_help_format_markdown">Markdown (.md) — available now</string>
+	<string name="create_project_import_help_format_rtf">RTF — coming soon</string>
+	<string name="create_project_import_help_dismiss">Got it</string>
 	<string name="create_project_error_already_exists">Project already exists</string>
 	<string name="create_project_error_null_filename">Missing Project Name</string>
 	<string name="create_project_error_too_long">Project name too long</string>
