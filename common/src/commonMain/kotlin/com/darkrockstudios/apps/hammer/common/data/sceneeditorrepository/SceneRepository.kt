@@ -623,7 +623,15 @@ class SceneRepository(
 				sceneTree.addChild(newTreeNode)
 			}
 
-			val scenePath = getSceneFilePath(newSceneItem, true)
+			// Build from the parent's real on-disk path; tree-computed order-padding can differ from disk.
+			val leafFileName = getSceneFileName(newSceneItem, true)
+			val parentPath = if (parent != null) {
+				sceneDatasource.resolveScenePathFromFilesystem(parent.id)
+					?: error("Could not find parent on filesystem: ${parent.id}")
+			} else {
+				getSceneDirectory()
+			}
+			val scenePath = parentPath.toOkioPath().div(leafFileName).toHPath()
 			when (type) {
 				SceneItem.Type.Scene -> sceneDatasource.createNewGroup(scenePath)
 				SceneItem.Type.Group -> sceneDatasource.createNewScene(scenePath)
@@ -747,11 +755,10 @@ class SceneRepository(
 	}
 
 	private fun getLastOrderNumber(parentId: Int?): Int {
+		// Use the parent's real on-disk path; tree-computed order-padding can differ from disk.
 		val parentPath: HPath = if (parentId != null && parentId != 0) {
-			val parentItem =
-				getSceneItemFromId(parentId) ?: error("Parent not found")
-
-			getSceneFilePath(parentItem)
+			sceneDatasource.resolveScenePathFromFilesystem(parentId)
+				?: error("Could not find parent on filesystem: $parentId")
 		} else {
 			getSceneDirectory()
 		}
