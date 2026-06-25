@@ -130,16 +130,6 @@ internal fun ImportStoryContent(
 				Spacer(modifier = Modifier.height(Ui.Padding.XL))
 
 				HdHairlineSegmentedPicker(
-					title = stringResource(Res.string.project_home_import_format_label),
-					options = AVAILABLE_IMPORT_FORMATS,
-					selected = options.format,
-					onSelect = { onOptionsChange(options.copy(format = it)) },
-					label = { stringResource(it.labelRes()) },
-				)
-
-				Spacer(modifier = Modifier.height(Ui.Padding.XL))
-
-				HdHairlineSegmentedPicker(
 					title = stringResource(Res.string.project_home_import_heading_label),
 					options = ChapterHeadingLevel.entries,
 					selected = options.chapterHeadingLevel,
@@ -330,12 +320,6 @@ private fun PreviewSceneRow(name: String, indented: Boolean) {
 			color = MaterialTheme.colorScheme.onSurface,
 		)
 	}
-}
-
-private val AVAILABLE_IMPORT_FORMATS = listOf(ImportFormat.Markdown)
-
-private fun ImportFormat.labelRes(): StringResource = when (this) {
-	ImportFormat.Markdown -> Res.string.project_home_export_format_markdown
 }
 
 private fun ImportFormat.metaLabel(): String = when (this) {
