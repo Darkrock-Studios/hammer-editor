@@ -102,7 +102,7 @@ internal fun ImportHelpContent(onDismiss: () -> Unit) {
 					Text(
 						text = Res.string.create_project_import_help_format_rtf.get(),
 						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.onSurfaceVariant,
+						color = MaterialTheme.colorScheme.onSurface,
 					)
 				}
 			}

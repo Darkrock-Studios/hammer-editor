@@ -26,7 +26,7 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 	fun createProject(projectName: String)
 	fun beginProjectImport()
 	fun cancelImportFilePicker()
-	fun selectImportFile(name: String, content: String)
+	fun selectImportFile(name: String, content: ByteArray)
 	fun updateImportProjectName(name: String)
 	fun updateImportOptions(options: ImportOptions)
 	fun cancelImportDialog()
@@ -57,7 +57,7 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 		val importOptions: ImportOptions = ImportOptions(),
 		val importSourceName: String = "",
 		val importProjectName: String = "",
-		val importFileContent: String = "",
+		val importFileContent: ByteArray = ByteArray(0),
 		val importPreview: ImportPreview = ImportPreview(emptyList()),
 	)
 

@@ -7,6 +7,6 @@ import kotlinx.coroutines.CoroutineScope
 expect fun ImportFilePicker(
 	show: Boolean,
 	scope: CoroutineScope,
-	onFileSelected: (name: String, content: String) -> Unit,
+	onFileSelected: (name: String, content: ByteArray) -> Unit,
 	onCancel: () -> Unit,
 )

@@ -17,7 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
-import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
+import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
@@ -89,7 +89,7 @@ class ProjectsListComponent(
 	private val networkConnectivity: NetworkConnectivity by inject()
 	private val projectMetadataDatasource: ProjectMetadataDatasource by inject()
 	private val statisticsCacheReader: ProjectStatisticsCacheReader by inject()
-	private val markdownImporter: StoryImporter by inject()
+	private val importerRegistry: StoryImporterRegistry by inject()
 	private val fileSystem: FileSystem by inject()
 	private val toml: Toml by inject()
 	private val strRes: StrRes by inject()
@@ -328,17 +328,19 @@ class ProjectsListComponent(
 		_state.getAndUpdate { it.copy(showImportFilePicker = false) }
 	}
 
-	override fun selectImportFile(name: String, content: String) {
+	override fun selectImportFile(name: String, content: ByteArray) {
 		val sourceName = name.substringBeforeLast('.')
-		val initialOptions = ImportOptions()
-		val preview = markdownImporter.preview(sourceName, content, initialOptions)
+		val format = importerRegistry.formatForFileName(name)
+		val initialOptions = ImportOptions(format = format)
+		val preview = importerRegistry.forFormat(format).preview(sourceName, content, initialOptions)
+		val projectName = preview.title?.takeIf { it.isNotBlank() } ?: sourceName
 		_state.getAndUpdate {
 			it.copy(
 				showImportFilePicker = false,
 				showImportDialog = true,
 				importOptions = initialOptions,
 				importSourceName = sourceName,
-				importProjectName = sourceName,
+				importProjectName = projectName,
 				importFileContent = content,
 				importPreview = preview,
 			)
@@ -351,7 +353,7 @@ class ProjectsListComponent(
 
 	override fun updateImportOptions(options: ImportOptions) {
 		val current = _state.value
-		val preview = markdownImporter.preview(
+		val preview = importerRegistry.forFormat(options.format).preview(
 			sourceName = current.importSourceName,
 			content = current.importFileContent,
 			options = options,
@@ -365,7 +367,7 @@ class ProjectsListComponent(
 		_state.getAndUpdate {
 			it.copy(
 				showImportDialog = false,
-				importFileContent = "",
+				importFileContent = ByteArray(0),
 				importSourceName = "",
 				importProjectName = "",
 				importPreview = ImportPreview(emptyList()),
@@ -392,7 +394,7 @@ class ProjectsListComponent(
 		_state.getAndUpdate {
 			it.copy(
 				showImportDialog = false,
-				importFileContent = "",
+				importFileContent = ByteArray(0),
 				importSourceName = "",
 				importProjectName = "",
 				importPreview = ImportPreview(emptyList()),

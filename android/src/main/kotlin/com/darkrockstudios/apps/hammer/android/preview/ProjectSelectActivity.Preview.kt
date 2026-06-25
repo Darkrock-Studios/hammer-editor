@@ -43,7 +43,7 @@ val projectListComponent = object : ProjectsList {
 	override fun createProject(projectName: String) {}
 	override fun beginProjectImport() {}
 	override fun cancelImportFilePicker() {}
-	override fun selectImportFile(name: String, content: String) {}
+	override fun selectImportFile(name: String, content: ByteArray) {}
 	override fun updateImportProjectName(name: String) {}
 	override fun updateImportOptions(options: ImportOptions) {}
 	override fun cancelImportDialog() {}
