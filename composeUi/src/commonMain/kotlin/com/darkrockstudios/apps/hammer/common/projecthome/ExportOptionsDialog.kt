@@ -45,6 +45,7 @@ import com.darkrockstudios.apps.hammer.project_home_export_format_epub
 import com.darkrockstudios.apps.hammer.project_home_export_format_label
 import com.darkrockstudios.apps.hammer.project_home_export_format_markdown
 import com.darkrockstudios.apps.hammer.project_home_export_format_pdf
+import com.darkrockstudios.apps.hammer.project_home_export_format_rtf
 import com.darkrockstudios.apps.hammer.project_home_export_section
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -164,11 +165,18 @@ fun ExportOptionsDialog(
 }
 
 private val AVAILABLE_EXPORT_FORMATS =
-	listOf(ExportFormat.Markdown, ExportFormat.Epub, ExportFormat.Pdf, ExportFormat.Docx)
+	listOf(
+		ExportFormat.Markdown,
+		ExportFormat.Epub,
+		ExportFormat.Pdf,
+		ExportFormat.Docx,
+		ExportFormat.Rtf,
+	)
 
 private fun ExportFormat.labelRes(): StringResource = when (this) {
 	ExportFormat.Markdown -> Res.string.project_home_export_format_markdown
 	ExportFormat.Epub -> Res.string.project_home_export_format_epub
 	ExportFormat.Pdf -> Res.string.project_home_export_format_pdf
 	ExportFormat.Docx -> Res.string.project_home_export_format_docx
+	ExportFormat.Rtf -> Res.string.project_home_export_format_rtf
 }
