@@ -23,6 +23,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.data.ChapterHeadingLevel
 import com.darkrockstudios.apps.hammer.common.data.ImportFormat
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
+import com.darkrockstudios.apps.hammer.common.data.RtfSplitStrategy
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.PreviewItem
 import org.jetbrains.compose.resources.StringResource
@@ -129,13 +130,33 @@ internal fun ImportStoryContent(
 
 				Spacer(modifier = Modifier.height(Ui.Padding.XL))
 
-				HdHairlineSegmentedPicker(
-					title = stringResource(Res.string.project_home_import_heading_label),
-					options = ChapterHeadingLevel.entries,
-					selected = options.chapterHeadingLevel,
-					onSelect = { onOptionsChange(options.copy(chapterHeadingLevel = it)) },
-					label = { stringResource(it.labelRes()) },
-				)
+				when (options.format) {
+					ImportFormat.Markdown -> HdHairlineSegmentedPicker(
+						title = stringResource(Res.string.project_home_import_heading_label),
+						options = ChapterHeadingLevel.entries,
+						selected = options.chapterHeadingLevel,
+						onSelect = { onOptionsChange(options.copy(chapterHeadingLevel = it)) },
+						label = { stringResource(it.labelRes()) },
+					)
+
+					ImportFormat.Rtf -> {
+						HdHairlineSegmentedPicker(
+							title = stringResource(Res.string.project_home_import_split_label),
+							options = RtfSplitStrategy.entries,
+							selected = options.rtfSplitStrategy,
+							onSelect = { onOptionsChange(options.copy(rtfSplitStrategy = it)) },
+							label = { stringResource(it.labelRes()) },
+						)
+						if (options.rtfSplitStrategy == RtfSplitStrategy.Pattern) {
+							Spacer(modifier = Modifier.height(Ui.Padding.L))
+							FormField(
+								value = options.rtfChapterPattern,
+								onValueChange = { onOptionsChange(options.copy(rtfChapterPattern = it)) },
+								label = stringResource(Res.string.project_home_import_pattern_label),
+							)
+						}
+					}
+				}
 
 				Spacer(modifier = Modifier.height(Ui.Padding.XL))
 
@@ -168,7 +189,10 @@ private fun ImportMasthead(
 	val meta = remember(options, preview.totalScenes, preview.isEmpty) {
 		buildList {
 			add(options.format.metaLabel())
-			add(options.chapterHeadingLevel.name.uppercase())
+			when (options.format) {
+				ImportFormat.Markdown -> add(options.chapterHeadingLevel.name.uppercase())
+				ImportFormat.Rtf -> add(options.rtfSplitStrategy.name.uppercase())
+			}
 			if (!preview.isEmpty) {
 				add("${preview.totalScenes} SCENES")
 			}
@@ -324,9 +348,17 @@ private fun PreviewSceneRow(name: String, indented: Boolean) {
 
 private fun ImportFormat.metaLabel(): String = when (this) {
 	ImportFormat.Markdown -> "MARKDOWN"
+	ImportFormat.Rtf -> "RTF"
 }
 
 private fun ChapterHeadingLevel.labelRes(): StringResource = when (this) {
+	ChapterHeadingLevel.Auto -> Res.string.project_home_import_heading_auto
 	ChapterHeadingLevel.H1 -> Res.string.project_home_import_heading_h1
 	ChapterHeadingLevel.H2 -> Res.string.project_home_import_heading_h2
+}
+
+private fun RtfSplitStrategy.labelRes(): StringResource = when (this) {
+	RtfSplitStrategy.Formatting -> Res.string.project_home_import_split_formatting
+	RtfSplitStrategy.Pattern -> Res.string.project_home_import_split_pattern
+	RtfSplitStrategy.SingleScene -> Res.string.project_home_import_split_single
 }

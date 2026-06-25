@@ -105,9 +105,15 @@
 	<string name="project_home_action_import_toast_failure">Import failed</string>
 	<string name="project_home_import_dialog_title">Import Story</string>
 	<string name="project_home_import_format_label">Format</string>
-	<string name="project_home_import_heading_label">Treat heading as chapter</string>
+	<string name="project_home_import_heading_label">Chapter detection</string>
+	<string name="project_home_import_heading_auto">Auto</string>
 	<string name="project_home_import_heading_h1">H1 (#)</string>
 	<string name="project_home_import_heading_h2">H2 (##)</string>
+	<string name="project_home_import_split_label">Split into scenes</string>
+	<string name="project_home_import_split_formatting">Formatting</string>
+	<string name="project_home_import_split_pattern">Pattern</string>
+	<string name="project_home_import_split_single">Single scene</string>
+	<string name="project_home_import_pattern_label">Chapter pattern (regex)</string>
 	<string name="project_home_import_create_groups_label">Create chapter groups</string>
 	<string name="project_home_import_preview_label">Preview</string>
 	<string name="project_home_import_preview_empty">Nothing to import</string>

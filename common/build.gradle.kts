@@ -83,6 +83,7 @@ kotlin {
 				implementation(libs.kmp.zip)
 				implementation(libs.kmp.zip.okio)
 				implementation(libs.markdown)
+				implementation(libs.rtf.reader)
 				implementation(libs.xmlutil.core)
 				implementation(libs.epub4kmp.core)
 				implementation(libs.pdfkmp)

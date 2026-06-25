@@ -22,7 +22,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Ser
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
 import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
-import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
+import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
+import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
@@ -154,7 +155,7 @@ val mainModule = module {
 
 	singleOf(::SpellCheckRepository)
 
-	single<StoryImporter> { MarkdownStoryImporter() }
+	single { StoryImporterRegistry(listOf(MarkdownStoryImporter(), RtfStoryImporter())) }
 
 	scope<ProjectDefScope> {
 		scoped<ProjectDef> { get<ProjectDefScope>().projectDef }

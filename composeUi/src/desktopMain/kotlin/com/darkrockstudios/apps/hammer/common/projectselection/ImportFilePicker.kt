@@ -9,7 +9,7 @@ import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.name
-import io.github.vinceglb.filekit.readString
+import io.github.vinceglb.filekit.readBytes
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -18,7 +18,7 @@ import kotlinx.coroutines.withContext
 actual fun ImportFilePicker(
 	show: Boolean,
 	scope: CoroutineScope,
-	onFileSelected: (name: String, content: String) -> Unit,
+	onFileSelected: (name: String, content: ByteArray) -> Unit,
 	onCancel: () -> Unit,
 ) {
 	val defaultDispatcher = rememberDefaultDispatcher()
@@ -26,13 +26,13 @@ actual fun ImportFilePicker(
 	LaunchedEffect(show) {
 		if (show) {
 			val file = retryingFileDialog {
-				FileKit.openFilePicker(type = FileKitType.File(extensions = listOf("md", "markdown")))
+				FileKit.openFilePicker(type = FileKitType.File(extensions = listOf("md", "markdown", "rtf")))
 			}
 			if (file != null) {
 				scope.launch {
 					val content = withContext(defaultDispatcher) {
 						try {
-							file.readString()
+							file.readBytes()
 						} catch (@Suppress("TooGenericExceptionCaught") e: Exception) { // file read can fail many ways
 							Napier.e("Failed to read import file", e)
 							null

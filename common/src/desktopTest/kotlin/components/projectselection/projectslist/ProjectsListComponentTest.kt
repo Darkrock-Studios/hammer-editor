@@ -13,7 +13,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSettings
 import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
-import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
+import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
+import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
@@ -98,7 +99,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			single<Toml> { createTomlSerializer() }
 			single<StrRes> { TestStrRes() }
 			single<Clock> { Clock.System }
-			single<StoryImporter> { MarkdownStoryImporter() }
+			single { StoryImporterRegistry(listOf(MarkdownStoryImporter(), RtfStoryImporter())) }
 		})
 
 		selectedProject = null
@@ -207,12 +208,25 @@ class ProjectsListComponentTest : ComponentTest() {
 		runTest(mainTestDispatcher) {
 			val comp = newComponent()
 
-			comp.selectImportFile("The Wreck.md", "# Chapter One\n\nText\n\n# Chapter Two\n\nMore")
+			comp.selectImportFile("The Wreck.md", "# Chapter One\n\nText\n\n# Chapter Two\n\nMore".encodeToByteArray())
 
 			assertEquals("The Wreck", comp.state.value.importProjectName)
 			assertTrue(comp.state.value.showImportDialog)
 			assertFalse(comp.state.value.showImportFilePicker)
 			assertFalse(comp.state.value.importPreview.isEmpty)
+		}
+
+	@Test
+	fun `selectImportFile prefills the project name with a detected title`() =
+		runTest(mainTestDispatcher) {
+			val comp = newComponent()
+
+			comp.selectImportFile(
+				"alice.md",
+				"# Alice in Wonderland\n\n## Chapter One\n\nText".encodeToByteArray(),
+			)
+
+			assertEquals("Alice in Wonderland", comp.state.value.importProjectName)
 		}
 
 	@Test
@@ -227,7 +241,7 @@ class ProjectsListComponentTest : ComponentTest() {
 	@Test
 	fun `cancelImportDialog clears the import state`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
-		comp.selectImportFile("Draft.md", "# One\n\nText")
+		comp.selectImportFile("Draft.md", "# One\n\nText".encodeToByteArray())
 
 		comp.cancelImportDialog()
 
@@ -243,7 +257,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			every { projectsRepository.createProject("Draft") } returns
 				CResult.failure(error = "exists", displayMessage = "Project already exists".toMsg())
 			val comp = newComponent()
-			comp.selectImportFile("Draft.md", "# One\n\nText")
+			comp.selectImportFile("Draft.md", "# One\n\nText\n\n# Two\n\nMore".encodeToByteArray())
 
 			comp.confirmImportDialog()
 			advanceUntilIdle()
