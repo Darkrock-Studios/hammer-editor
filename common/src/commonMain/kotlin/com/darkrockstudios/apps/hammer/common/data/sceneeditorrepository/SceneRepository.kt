@@ -625,7 +625,7 @@ class SceneRepository(
 
 			// Build from the parent's real on-disk path; tree-computed order-padding can differ from disk.
 			val leafFileName = getSceneFileName(newSceneItem, true)
-			val parentPath = if (parent != null) {
+			val parentPath = if (parent != null && parent.id != SceneItem.ROOT_ID) {
 				sceneDatasource.resolveScenePathFromFilesystem(parent.id)
 					?: error("Could not find parent on filesystem: ${parent.id}")
 			} else {
