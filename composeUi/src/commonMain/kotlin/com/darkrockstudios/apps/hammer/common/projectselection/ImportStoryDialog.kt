@@ -29,6 +29,7 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 private val DialogMaxWidth = 560.dp
+private val DialogMaxHeight = 720.dp
 
 @Composable
 fun ImportStoryDialog(
@@ -45,102 +46,125 @@ fun ImportStoryDialog(
 	LaunchedEffect(visible) { if (visible) renderInternal = true }
 	if (!renderInternal) return
 
-	val nameValidation = rememberNameValidation(projectName, NameKind.Project)
-
 	AnimatedDialogContainer(
 		isOpen = visible,
 		onDismissRequest = onCancel,
 		onClosed = { renderInternal = false },
 		properties = DialogProperties(usePlatformDefaultWidth = false),
 	) {
-		Surface(
-			modifier = Modifier
-				.padding(Ui.Padding.M)
-				.widthIn(max = DialogMaxWidth)
-				.fillMaxWidth()
-				.predictiveBackTransform(),
-			shape = RectangleShape,
-			color = MaterialTheme.colorScheme.surface,
-			contentColor = MaterialTheme.colorScheme.onSurface,
-			border = BorderStroke(
-				width = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-			),
-		) {
-			Column {
-				ImportMasthead(
-					options = options,
-					preview = preview,
-					onClose = onCancel,
-				)
-				HdFolioDivider()
+		Box(modifier = Modifier.predictiveBackTransform()) {
+			ImportStoryContent(
+				projectName = projectName,
+				options = options,
+				preview = preview,
+				onProjectNameChange = onProjectNameChange,
+				onCancel = onCancel,
+				onOptionsChange = onOptionsChange,
+				onConfirm = onConfirm,
+			)
+		}
+	}
+}
 
+@Composable
+internal fun ImportStoryContent(
+	projectName: String,
+	options: ImportOptions,
+	preview: ImportPreview,
+	onProjectNameChange: (String) -> Unit,
+	onCancel: () -> Unit,
+	onOptionsChange: (ImportOptions) -> Unit,
+	onConfirm: () -> Unit,
+) {
+	val nameValidation = rememberNameValidation(projectName, NameKind.Project)
+
+	Surface(
+		modifier = Modifier
+			.padding(Ui.Padding.M)
+			.widthIn(max = DialogMaxWidth)
+			.heightIn(max = DialogMaxHeight)
+			.fillMaxWidth()
+			.fillMaxHeight(0.9f),
+		shape = RectangleShape,
+		color = MaterialTheme.colorScheme.surface,
+		contentColor = MaterialTheme.colorScheme.onSurface,
+		border = BorderStroke(
+			width = Dp.Hairline,
+			color = MaterialTheme.colorScheme.outlineVariant,
+		),
+	) {
+		Column {
+			ImportMasthead(
+				options = options,
+				preview = preview,
+				onClose = onCancel,
+			)
+			HdFolioDivider()
+
+			Column(
+				modifier = Modifier
+					.weight(1f)
+					.fillMaxWidth()
+					.padding(
+						start = Ui.Padding.XL,
+						end = Ui.Padding.XL,
+						top = Ui.Padding.XL,
+						bottom = Ui.Padding.XL,
+					),
+			) {
 				Text(
 					text = stringResource(Res.string.project_home_import_dialog_title),
 					style = MaterialTheme.typography.headlineSmall,
 					color = MaterialTheme.colorScheme.onSurface,
-					modifier = Modifier.padding(
-						start = Ui.Padding.XL,
-						end = Ui.Padding.XL,
-						top = Ui.Padding.XL,
-						bottom = Ui.Padding.L,
-					),
+					modifier = Modifier.padding(bottom = Ui.Padding.L),
 				)
 
-				Column(
-					modifier = Modifier.padding(
-						start = Ui.Padding.XL,
-						end = Ui.Padding.XL,
-						bottom = Ui.Padding.XL,
-					),
-				) {
-					FormField(
-						value = projectName,
-						onValueChange = onProjectNameChange,
-						label = stringResource(Res.string.create_project_heading),
-						autoFocus = true,
-						error = nameValidation.fieldError(projectName),
-					)
-
-					Spacer(modifier = Modifier.height(Ui.Padding.XL))
-
-					HdHairlineSegmentedPicker(
-						title = stringResource(Res.string.project_home_import_format_label),
-						options = AVAILABLE_IMPORT_FORMATS,
-						selected = options.format,
-						onSelect = { onOptionsChange(options.copy(format = it)) },
-						label = { stringResource(it.labelRes()) },
-					)
-
-					Spacer(modifier = Modifier.height(Ui.Padding.XL))
-
-					HdHairlineSegmentedPicker(
-						title = stringResource(Res.string.project_home_import_heading_label),
-						options = ChapterHeadingLevel.entries,
-						selected = options.chapterHeadingLevel,
-						onSelect = { onOptionsChange(options.copy(chapterHeadingLevel = it)) },
-						label = { stringResource(it.labelRes()) },
-					)
-
-					Spacer(modifier = Modifier.height(Ui.Padding.XL))
-
-					HdHairlineToggleRow(
-						checked = options.createChapterGroups,
-						onCheckedChange = { onOptionsChange(options.copy(createChapterGroups = it)) },
-						label = stringResource(Res.string.project_home_import_create_groups_label),
-					)
-
-					Spacer(modifier = Modifier.height(Ui.Padding.XL))
-
-					ImportPreviewPane(preview)
-				}
-
-				ImportFooter(
-					onCancel = onCancel,
-					onConfirm = onConfirm,
-					confirmEnabled = !preview.isEmpty && nameValidation.isValid,
+				FormField(
+					value = projectName,
+					onValueChange = onProjectNameChange,
+					label = stringResource(Res.string.create_project_heading),
+					autoFocus = true,
+					error = nameValidation.fieldError(projectName),
 				)
+
+				Spacer(modifier = Modifier.height(Ui.Padding.XL))
+
+				HdHairlineSegmentedPicker(
+					title = stringResource(Res.string.project_home_import_format_label),
+					options = AVAILABLE_IMPORT_FORMATS,
+					selected = options.format,
+					onSelect = { onOptionsChange(options.copy(format = it)) },
+					label = { stringResource(it.labelRes()) },
+				)
+
+				Spacer(modifier = Modifier.height(Ui.Padding.XL))
+
+				HdHairlineSegmentedPicker(
+					title = stringResource(Res.string.project_home_import_heading_label),
+					options = ChapterHeadingLevel.entries,
+					selected = options.chapterHeadingLevel,
+					onSelect = { onOptionsChange(options.copy(chapterHeadingLevel = it)) },
+					label = { stringResource(it.labelRes()) },
+				)
+
+				Spacer(modifier = Modifier.height(Ui.Padding.XL))
+
+				HdHairlineToggleRow(
+					checked = options.createChapterGroups,
+					onCheckedChange = { onOptionsChange(options.copy(createChapterGroups = it)) },
+					label = stringResource(Res.string.project_home_import_create_groups_label),
+				)
+
+				Spacer(modifier = Modifier.height(Ui.Padding.XL))
+
+				ImportPreviewPane(preview, Modifier.weight(1f))
 			}
+
+			ImportFooter(
+				onCancel = onCancel,
+				onConfirm = onConfirm,
+				confirmEnabled = !preview.isEmpty && nameValidation.isValid,
+			)
 		}
 	}
 }
@@ -204,8 +228,8 @@ private fun ImportFooter(
 }
 
 @Composable
-private fun ImportPreviewPane(preview: ImportPreview) {
-	Column {
+private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modifier) {
+	Column(modifier) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
@@ -225,12 +249,12 @@ private fun ImportPreviewPane(preview: ImportPreview) {
 		Box(
 			modifier = Modifier
 				.fillMaxWidth()
+				.weight(1f)
 				.border(
 					width = Dp.Hairline,
 					color = MaterialTheme.colorScheme.outlineVariant,
 					shape = RectangleShape,
-				)
-				.heightIn(max = 240.dp),
+				),
 		) {
 			if (preview.isEmpty) {
 				Box(
