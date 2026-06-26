@@ -99,9 +99,9 @@ class PdfProseMarkdownTest {
 		val list = assertIs<ProseBlock.Listing>(blocks.single())
 		assertTrue(!list.ordered)
 		assertEquals(2, list.items.size)
-		assertEquals("plain item", list.items[0].plain())
-		assertEquals("bold item", list.items[1].plain())
-		assertTrue(list.items[1].first { it.text == "bold" }.bold)
+		assertEquals("plain item", list.items[0].spans.plain())
+		assertEquals("bold item", list.items[1].spans.plain())
+		assertTrue(list.items[1].spans.first { it.text == "bold" }.bold)
 	}
 
 	@Test
@@ -110,7 +110,16 @@ class PdfProseMarkdownTest {
 
 		val list = assertIs<ProseBlock.Listing>(blocks.single())
 		assertTrue(list.ordered)
-		assertEquals(listOf("first", "second"), list.items.map { it.plain() })
+		assertEquals(listOf("first", "second"), list.items.map { it.spans.plain() })
+	}
+
+	@Test
+	fun `nested list items carry their nesting level in reading order`() {
+		val blocks = parseProseMarkdown("- parent\n    - child\n- sibling")
+
+		val list = assertIs<ProseBlock.Listing>(blocks.single())
+		assertEquals(listOf("parent", "child", "sibling"), list.items.map { it.spans.plain() })
+		assertEquals(listOf(0, 1, 0), list.items.map { it.level })
 	}
 
 	@Test

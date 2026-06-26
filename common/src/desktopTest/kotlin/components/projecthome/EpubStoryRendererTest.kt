@@ -75,6 +75,20 @@ class EpubStoryRendererTest {
 	}
 
 	@Test
+	fun `markdown strikethrough renders struck-through text`() {
+		val content = render(listOf(StoryChapter("Alpha", "This is ~~gone~~ now.")))
+
+		assertTrue(
+			"""<span class="user-del">gone</span>""" in content,
+			"GFM strikethrough should become a user-del span",
+		)
+		assertTrue(
+			".user-del { text-decoration: line-through; }" in content,
+			"The stylesheet must strike the user-del span through",
+		)
+	}
+
+	@Test
 	fun `theme accent color reaches the stylesheet`() {
 		val content = render(
 			listOf(StoryChapter("Alpha", "Body.")),

@@ -11,12 +11,6 @@ import nl.adaptivity.xmlutil.smartStartTag
 import no.synth.kmpzip.zip.ZipEntry
 import no.synth.kmpzip.zip.ZipOutputStream
 import okio.BufferedSink
-import org.intellij.markdown.MarkdownElementTypes
-import org.intellij.markdown.MarkdownTokenTypes
-import org.intellij.markdown.ast.ASTNode
-import org.intellij.markdown.ast.getTextInNode
-import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
-import org.intellij.markdown.parser.MarkdownParser
 import no.synth.kmpzip.okio.ZipOutputStream as OkioZipOutputStream
 
 private const val W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -503,214 +497,98 @@ private fun XmlWriter.writeChapter(ctx: DocxRenderContext, index: Int, chapter: 
 		w("bookmarkEnd") { wAttr("id", index.toString()) }
 	}
 	if (chapter.markdown.isNotBlank()) {
-		MarkdownDocxWriter(this, ctx, chapter.markdown).render()
+		MarkdownDocxWriter(this, ctx).render(chapter.markdown)
 	}
 }
 
 /**
- * Walks the markdown AST and streams WordprocessingML paragraphs and runs. Inline formatting
- * is carried as nesting state (bold/italic depth, hyperlink scope) so each emitted run's
- * properties reflect the state at its text's position; literal text accumulates in a buffer
- * that flushes as a single run whenever the state changes.
+ * Renders a chapter's markdown into WordprocessingML by consuming the shared [parseProseMarkdown]
+ * model and streaming `<w:p>` / `<w:r>` into [writer]. Block kinds map onto paragraph styles; inline
+ * spans become runs, with consecutive same-link spans wrapped in one `<w:hyperlink>` (its URL
+ * registered with [ctx] in document order) and `\n` hard breaks split into `<w:br/>`.
  */
 private class MarkdownDocxWriter(
 	private val writer: XmlWriter,
 	private val ctx: DocxRenderContext,
-	private val source: String,
 ) {
-	private var boldDepth = 0
-	private var italicDepth = 0
-	private var inHyperlink = false
-	private var listDepth = -1
-	private val textBuffer = StringBuilder()
-
-	private data class NumPr(val numId: Int, val ilvl: Int)
-	private data class BlockContext(val style: String? = null, val numbering: NumPr? = null)
-
-	fun render() {
-		val tree = MarkdownParser(CommonMarkFlavourDescriptor()).buildMarkdownTreeFromString(source)
-		renderBlocks(tree.children, BlockContext())
-	}
-
-	private fun renderBlocks(nodes: List<ASTNode>, blockCtx: BlockContext) {
-		// Only the first paragraph of a list item carries the number; trailing blocks flow under it.
-		var pendingNumbering = blockCtx.numbering
-		for (node in nodes) {
-			when (node.type) {
-				MarkdownElementTypes.PARAGRAPH -> {
-					paragraph(blockCtx.style, pendingNumbering) { renderInline(node.children) }
-					pendingNumbering = null
+	fun render(markdown: String) {
+		for (block in parseProseMarkdown(markdown)) {
+			when (block) {
+				is ProseBlock.Paragraph -> paragraph(style = null, numId = null) { runs(block.spans) }
+				is ProseBlock.Heading -> paragraph(style = "Heading${block.level}", numId = null) { runs(block.spans) }
+				is ProseBlock.Listing -> {
+					val numbering = DocxListNumbering(ctx)
+					block.items.forEach { item ->
+						val (numId, ilvl) = numbering.numbering(item)
+						paragraph(style = null, numId = numId, ilvl = ilvl) { runs(item.spans) }
+					}
 				}
 
-				MarkdownElementTypes.ATX_1 -> heading(node, MarkdownTokenTypes.ATX_CONTENT, 1)
-				MarkdownElementTypes.ATX_2 -> heading(node, MarkdownTokenTypes.ATX_CONTENT, 2)
-				MarkdownElementTypes.ATX_3 -> heading(node, MarkdownTokenTypes.ATX_CONTENT, 3)
-				MarkdownElementTypes.ATX_4 -> heading(node, MarkdownTokenTypes.ATX_CONTENT, 4)
-				MarkdownElementTypes.ATX_5 -> heading(node, MarkdownTokenTypes.ATX_CONTENT, 5)
-				MarkdownElementTypes.ATX_6 -> heading(node, MarkdownTokenTypes.ATX_CONTENT, 6)
-				MarkdownElementTypes.SETEXT_1 -> heading(node, MarkdownTokenTypes.SETEXT_CONTENT, 1)
-				MarkdownElementTypes.SETEXT_2 -> heading(node, MarkdownTokenTypes.SETEXT_CONTENT, 2)
+				is ProseBlock.Quote -> block.paragraphs.forEach { paragraph(style = "Quote", numId = null) { runs(it) } }
+				is ProseBlock.CodeBlock -> codeBlockLines(block.code).forEach { codeParagraph(it) }
+				ProseBlock.Rule -> horizontalRule()
+				is ProseBlock.Table -> tableFallback(block)
+			}
+		}
+	}
 
-				MarkdownElementTypes.BLOCK_QUOTE -> renderBlocks(
-					node.children,
-					blockCtx.copy(style = "Quote")
-				)
+	/** Emits runs for [spans], wrapping consecutive same-link spans in one `<w:hyperlink>`. */
+	private fun runs(spans: List<ProseSpan>) {
+		var i = 0
+		while (i < spans.size) {
+			val link = spans[i].link
+			if (link != null) {
+				val relId = ctx.addHyperlink(link)
+				writer.w("hyperlink") {
+					attribute(R_NS, "id", "r", relId)
+					while (i < spans.size && spans[i].link == link) {
+						emitSpan(spans[i], hyperlink = true)
+						i++
+					}
+				}
+			} else {
+				emitSpan(spans[i], hyperlink = false)
+				i++
+			}
+		}
+	}
 
-				MarkdownElementTypes.UNORDERED_LIST -> renderList(node, ordered = false, blockCtx)
-				MarkdownElementTypes.ORDERED_LIST -> renderList(node, ordered = true, blockCtx)
+	private fun emitSpan(span: ProseSpan, hyperlink: Boolean) {
+		// A hard break rides in span text as '\n'; emit a <w:br/> between the surrounding fragments.
+		span.text.split("\n").forEachIndexed { index, part ->
+			if (index > 0) writer.w("r") { w("br") }
+			if (part.isNotEmpty()) emitRun(part, span, hyperlink)
+		}
+	}
 
-				MarkdownElementTypes.CODE_FENCE -> codeFence(node)
-				MarkdownElementTypes.CODE_BLOCK -> codeBlock(node)
-				MarkdownElementTypes.LINK_DEFINITION -> Unit
-
-				MarkdownTokenTypes.HORIZONTAL_RULE -> horizontalRule()
-
-				MarkdownTokenTypes.EOL,
-				MarkdownTokenTypes.WHITE_SPACE,
-				MarkdownTokenTypes.BLOCK_QUOTE,
-				MarkdownTokenTypes.LIST_BULLET,
-				MarkdownTokenTypes.LIST_NUMBER,
-					-> Unit
-
-				else -> {
-					if (node.children.isNotEmpty()) {
-						renderBlocks(node.children, blockCtx)
-					} else {
-						val literal = node.getTextInNode(source).toString()
-						if (literal.isNotBlank()) {
-							paragraph(blockCtx.style, pendingNumbering) { appendText(literal) }
-							pendingNumbering = null
+	private fun emitRun(text: String, span: ProseSpan, hyperlink: Boolean) {
+		writer.w("r") {
+			val needsProps = span.code || hyperlink || span.bold || span.italic || span.strikethrough
+			if (needsProps) {
+				w("rPr") {
+					if (hyperlink) wVal("rStyle", "Hyperlink")
+					if (span.code) {
+						w("rFonts") {
+							wAttr("ascii", EXPORT_MONO_FONT)
+							wAttr("hAnsi", EXPORT_MONO_FONT)
+							wAttr("cs", EXPORT_MONO_FONT)
 						}
 					}
+					if (span.bold) w("b")
+					if (span.italic) w("i")
+					if (span.strikethrough) w("strike")
 				}
 			}
-		}
-	}
-
-	private fun renderList(node: ASTNode, ordered: Boolean, blockCtx: BlockContext) {
-		listDepth++
-		val numId = if (ordered) ctx.newOrderedList(listDepth) else BULLET_NUM_ID
-		node.children
-			.filter { it.type == MarkdownElementTypes.LIST_ITEM }
-			.forEach { item ->
-				renderBlocks(item.children, blockCtx.copy(numbering = NumPr(numId, listDepth)))
-			}
-		listDepth--
-	}
-
-	private fun heading(node: ASTNode, contentType: Any, level: Int) {
-		val content = node.children.firstOrNull { it.type == contentType }
-		paragraph(style = "Heading$level", numPr = null) {
-			val children = content?.children.orEmpty()
-				.dropWhile { it.type == MarkdownTokenTypes.WHITE_SPACE }
-				.dropLastWhile { it.type == MarkdownTokenTypes.WHITE_SPACE }
-			if (children.isNotEmpty()) {
-				renderInline(children)
-			} else {
-				content?.let { appendText(unescapeMarkdown(it.getTextInNode(source)).trim()) }
+			w("t") {
+				preserveSpace()
+				text(text)
 			}
 		}
-	}
-
-	private fun renderInline(nodes: List<ASTNode>) {
-		for (node in nodes) {
-			when (node.type) {
-				MarkdownElementTypes.STRONG -> formatted(bold = true) {
-					renderInline(node.children.stripDelimiters(MarkdownTokenTypes.EMPH))
-				}
-
-				MarkdownElementTypes.EMPH -> formatted(italic = true) {
-					renderInline(node.children.stripDelimiters(MarkdownTokenTypes.EMPH))
-				}
-
-				MarkdownElementTypes.CODE_SPAN -> {
-					flushRun()
-					val code = node.children
-						.filter { it.type != MarkdownTokenTypes.BACKTICK }
-						.joinToString("") { it.getTextInNode(source) }
-					emitRun(code.removeSurrounding(" "), code = true)
-				}
-
-				MarkdownElementTypes.INLINE_LINK -> inlineLink(node)
-				MarkdownElementTypes.AUTOLINK -> autoLink(node)
-
-				MarkdownTokenTypes.HARD_LINE_BREAK -> {
-					flushRun()
-					writer.w("r") { w("br") }
-				}
-
-				MarkdownTokenTypes.EOL -> appendText(" ")
-
-				else -> {
-					if (node.children.isEmpty()) {
-						appendText(unescapeMarkdown(node.getTextInNode(source)))
-					} else {
-						renderInline(node.children)
-					}
-				}
-			}
-		}
-	}
-
-	private fun formatted(bold: Boolean = false, italic: Boolean = false, body: () -> Unit) {
-		flushRun()
-		if (bold) boldDepth++
-		if (italic) italicDepth++
-		body()
-		flushRun()
-		if (bold) boldDepth--
-		if (italic) italicDepth--
-	}
-
-	private fun inlineLink(node: ASTNode) {
-		val destination =
-			node.children.firstOrNull { it.type == MarkdownElementTypes.LINK_DESTINATION }
-				?.getTextInNode(source)?.toString()?.removeSurrounding("<", ">")
-		val linkText = node.children.firstOrNull { it.type == MarkdownElementTypes.LINK_TEXT }
-		if (destination == null || linkText == null) {
-			appendText(node.getTextInNode(source))
-			return
-		}
-		hyperlink(destination) {
-			renderInline(
-				linkText.children.filter {
-					it.type != MarkdownTokenTypes.LBRACKET && it.type != MarkdownTokenTypes.RBRACKET
-				}
-			)
-		}
-	}
-
-	private fun autoLink(node: ASTNode) {
-		val url = node.getTextInNode(source).toString().removeSurrounding("<", ">")
-		hyperlink(url) { appendText(url) }
-	}
-
-	private fun hyperlink(url: String, body: () -> Unit) {
-		flushRun()
-		val relId = ctx.addHyperlink(url)
-		writer.w("hyperlink") {
-			attribute(R_NS, "id", "r", relId)
-			inHyperlink = true
-			body()
-			flushRun()
-			inHyperlink = false
-		}
-	}
-
-	private fun codeFence(node: ASTNode) {
-		val lines = collectCodeLines(node, source, MarkdownTokenTypes.CODE_FENCE_CONTENT)
-		lines.forEach { codeParagraph(it) }
-	}
-
-	private fun codeBlock(node: ASTNode) {
-		val lines = collectCodeLines(node, source, MarkdownTokenTypes.CODE_LINE)
-			.map { it.removePrefix("    ").removePrefix("\t") }
-		lines.forEach { codeParagraph(it) }
 	}
 
 	private fun codeParagraph(line: String) {
 		writer.w("p") {
-			this@MarkdownDocxWriter.emitRun(line, code = true)
+			this@MarkdownDocxWriter.emitRun(line, ProseSpan(text = line, code = true), hyperlink = false)
 		}
 	}
 
@@ -729,59 +607,60 @@ private class MarkdownDocxWriter(
 		}
 	}
 
-	private fun paragraph(style: String?, numPr: NumPr?, body: () -> Unit) {
+	/** Tab-separated text fallback for GFM pipe tables, which the export has no real table layout for yet. */
+	private fun tableFallback(block: ProseBlock.Table) {
+		(listOf(block.header) + block.rows).forEach { row ->
+			paragraph(style = null, numId = null) {
+				row.forEachIndexed { index, cell ->
+					if (index > 0) writer.w("r") { w("t") { text("\t") } }
+					runs(cell)
+				}
+			}
+		}
+	}
+
+	private fun paragraph(style: String?, numId: Int?, ilvl: Int = 0, body: () -> Unit) {
 		// Plain prose gets the first-line-indented body style; numbered paragraphs control their own indent.
-		val effectiveStyle = style ?: if (numPr == null) "BodyText" else null
+		val effectiveStyle = style ?: if (numId == null) "BodyText" else null
 		writer.w("p") {
-			if (effectiveStyle != null || numPr != null) {
+			if (effectiveStyle != null || numId != null) {
 				w("pPr") {
 					effectiveStyle?.let { wVal("pStyle", it) }
-					numPr?.let {
+					if (numId != null) {
 						w("numPr") {
-							wVal("ilvl", it.ilvl.toString())
-							wVal("numId", it.numId.toString())
+							wVal("ilvl", ilvl.toString())
+							wVal("numId", numId.toString())
 						}
 					}
 				}
 			}
 			body()
-			this@MarkdownDocxWriter.flushRun()
 		}
 	}
+}
 
-	private fun appendText(text: CharSequence) {
-		textBuffer.append(text)
-	}
+/**
+ * Allocates Word numbering for a single [ProseBlock.Listing]. Bullet items share [BULLET_NUM_ID];
+ * each ordered sublist gets its own `numId` (via [DocxRenderContext.newOrderedList]) so its numbering
+ * restarts. Items arrive flattened in reading order, so descending into a level allocates a fresh
+ * ordered instance and ascending drops the deeper ones.
+ */
+private class DocxListNumbering(private val ctx: DocxRenderContext) {
+	private val orderedNumIdByLevel = mutableMapOf<Int, Int>()
+	private var lastLevel = -1
 
-	private fun flushRun() {
-		if (textBuffer.isEmpty()) return
-		val text = textBuffer.toString()
-		textBuffer.clear()
-		emitRun(text)
-	}
-
-	private fun emitRun(text: String, code: Boolean = false) {
-		writer.w("r") {
-			val needsProps = code || inHyperlink || boldDepth > 0 || italicDepth > 0
-			if (needsProps) {
-				w("rPr") {
-					if (inHyperlink) wVal("rStyle", "Hyperlink")
-					if (code) {
-						w("rFonts") {
-							wAttr("ascii", EXPORT_MONO_FONT)
-							wAttr("hAnsi", EXPORT_MONO_FONT)
-							wAttr("cs", EXPORT_MONO_FONT)
-						}
-					}
-					if (boldDepth > 0) w("b")
-					if (italicDepth > 0) w("i")
-				}
-			}
-			w("t") {
-				preserveSpace()
-				text(text)
-			}
+	/** Returns the `(numId, ilvl)` for [item]. */
+	fun numbering(item: ProseListItem): Pair<Int, Int> {
+		val level = item.level
+		if (level < lastLevel) {
+			orderedNumIdByLevel.keys.filter { it > level }.toList().forEach(orderedNumIdByLevel::remove)
 		}
+		val numId = if (item.ordered) {
+			orderedNumIdByLevel.getOrPut(level) { ctx.newOrderedList(level) }
+		} else {
+			BULLET_NUM_ID
+		}
+		lastLevel = level
+		return numId to level
 	}
-
 }

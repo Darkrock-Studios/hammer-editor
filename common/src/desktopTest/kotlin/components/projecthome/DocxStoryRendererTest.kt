@@ -136,6 +136,18 @@ class DocxStoryRendererTest {
 	}
 
 	@Test
+	fun `markdown strikethrough becomes a struck-through run`() {
+		val doc = render(listOf(StoryChapter("Alpha", "This is ~~gone~~ now.")))
+
+		val runs = doc.bodyParagraphs().flatMap { it.runs }
+		val struck = runs.first { it.text() == "gone" }
+		assertTrue(struck.isStrikeThrough, "GFM strikethrough should set the run's strike property")
+
+		val plain = runs.first { it.text().contains("now") }
+		assertTrue(!plain.isStrikeThrough)
+	}
+
+	@Test
 	fun `markdown headings map to heading styles`() {
 		val doc =
 			render(listOf(StoryChapter("Alpha", "## Section\n\nBody text.\n\n### Subsection")))
