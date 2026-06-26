@@ -26,8 +26,10 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
 import com.darkrockstudios.texteditor.CharLineOffset
 import com.darkrockstudios.texteditor.TextEditor
+import com.darkrockstudios.texteditor.TextEditorRange
 import com.darkrockstudios.texteditor.markdown.withMarkdown
 import com.darkrockstudios.texteditor.richstyle.HighlightSpanStyle
+import com.darkrockstudios.texteditor.richstyle.RichSpan
 import com.darkrockstudios.texteditor.state.TextEditorState
 import com.darkrockstudios.texteditor.state.rememberTextEditorState
 import kotlinx.coroutines.delay
@@ -359,23 +361,32 @@ private fun applyDiffHighlights(
 	style: HighlightSpanStyle,
 	previousStyle: HighlightSpanStyle?,
 ) {
-	editorState.richSpanManager.getAllRichSpans()
+	val toRemove = editorState.richSpanManager.getAllRichSpans()
 		.filter { it.style === style || it.style === previousStyle }
-		.forEach { editorState.removeRichSpan(it) }
 
 	val text = editorState.getAllText().text
 	val length = text.length
-	if (length == 0) return
-	for (span in spans) {
-		val start = span.range.start.coerceIn(0, length)
-		val end = span.range.endExclusive.coerceIn(start, length)
-		if (end <= start) continue
-		editorState.addRichSpan(
-			start = offsetToCharLine(text, start),
-			end = offsetToCharLine(text, end),
-			style = style,
-		)
+	val toAdd = if (length == 0) {
+		emptyList()
+	} else {
+		spans.mapNotNull { span ->
+			val start = span.range.start.coerceIn(0, length)
+			val end = span.range.endExclusive.coerceIn(start, length)
+			if (end <= start) return@mapNotNull null
+			RichSpan(
+				range = TextEditorRange(
+					start = offsetToCharLine(text, start),
+					end = offsetToCharLine(text, end),
+				),
+				style = style,
+			)
+		}
 	}
+
+	// Diff highlights are ephemeral overlays: route them through the batch
+	// overlay API so they stay out of undo history and the edit stream and
+	// relayout once instead of per span.
+	editorState.updateRichSpans(remove = toRemove, add = toAdd)
 }
 
 private fun offsetToCharLine(text: String, offset: Int): CharLineOffset {
