@@ -4,6 +4,8 @@ import io.ktor.server.application.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.runBlocking
 import org.koin.ktor.ext.inject
 
 /**
@@ -18,7 +20,10 @@ fun Application.configureMonitoringJob() {
 	job.start(scope)
 	log.info("Monitoring maintenance job started")
 
+	// Block until the loop's in-flight tick finishes so a flush or maintenance
+	// pass can't outlive the application and mutate state after shutdown.
 	environment.monitor.subscribe(ApplicationStopped) {
-		job.stop()
+		runBlocking { job.stopAndJoin() }
+		scope.cancel()
 	}
 }

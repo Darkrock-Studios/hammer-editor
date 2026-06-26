@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.email.EmailService
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -60,8 +61,9 @@ class MonitoringMaintenanceJob(
 		}
 	}
 
-	fun stop() {
-		job?.cancel()
+	/** Cancels the loop and waits for any in-flight tick to finish, so no tick outlives the caller. */
+	suspend fun stopAndJoin() {
+		job?.cancelAndJoin()
 		job = null
 		logger.info("Monitoring maintenance job stopped")
 	}
