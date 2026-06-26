@@ -50,6 +50,18 @@ class DocxStoryRendererTest {
 	}
 
 	@Test
+	fun `extended metadata identifies Hammer as the generating application`() {
+		val doc = render(listOf(StoryChapter("Alpha", "Some text.")))
+
+		val extended = doc.properties.extendedProperties.underlyingProperties
+		assertEquals("Hammer", extended.application)
+		assertTrue(
+			extended.appVersion.isNotBlank(),
+			"App version metadata should be present",
+		)
+	}
+
+	@Test
 	fun `title page shows project name with Title style and author byline`() {
 		val doc = render(listOf(StoryChapter("Alpha", "Some text.")))
 

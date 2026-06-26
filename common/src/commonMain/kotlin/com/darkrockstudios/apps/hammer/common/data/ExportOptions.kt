@@ -8,5 +8,5 @@ enum class ExportFormat { Markdown, Epub, Pdf, Docx, Rtf }
 @Serializable
 data class ExportOptions(
 	val treatTopLevelAsChapters: Boolean = true,
-	val format: ExportFormat = ExportFormat.Markdown,
+	val format: ExportFormat = ExportFormat.Epub,
 )
