@@ -87,8 +87,13 @@ fun SceneEditorUi(
 	val markdownConfig = LocalMarkdownConfig.current
 	val scope = rememberCoroutineScope()
 
+	// Stable per dictionary: a fresh instance each recomposition would re-key
+	// rememberSpellCheckState's full-rescan effect, wiping spans on every edit.
+	val editorSpellChecker = remember(state.spellChecker) {
+		state.spellChecker.toEditorSpellChecker()
+	}
 	val textEditorState = rememberSpellCheckState(
-		spellChecker = state.spellChecker.toEditorSpellChecker(),
+		spellChecker = editorSpellChecker,
 		initialText = getInitialEditorContent(state.sceneBuffer?.content, markdownConfig),
 		enableSpellChecking = state.spellCheckingEnabled,
 		spellCheckMode = SpellCheckMode.Word,
