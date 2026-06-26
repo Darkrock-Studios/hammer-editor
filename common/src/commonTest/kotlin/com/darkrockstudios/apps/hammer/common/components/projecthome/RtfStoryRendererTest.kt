@@ -68,6 +68,16 @@ class RtfStoryRendererTest {
 	}
 
 	@Test
+	fun `generator metadata identifies Hammer`() {
+		val rtf = render(listOf(StoryChapter("Alpha", "Body.")))
+
+		assertTrue(
+			rtf.contains("{\\*\\generator Hammer "),
+			"Generator metadata should mark Hammer as the source application",
+		)
+	}
+
+	@Test
 	fun `chapters are numbered and bookmarked for the contents links`() {
 		val rtf = render(
 			listOf(
@@ -100,8 +110,9 @@ class RtfStoryRendererTest {
 
 	@Test
 	fun `theme accent colors populate the color table`() {
+		// The primary accent colors chapter headings; a level-2 markdown heading exercises the secondary.
 		val rtf = render(
-			listOf(StoryChapter("Alpha", "Body.")),
+			listOf(StoryChapter("Alpha", "## Section\n\nBody.")),
 			projectData = ProjectData(
 				authorName = "Jane",
 				theme = ProjectTheme(primary = "#FF112233", secondary = "#FFAABBCC"),

@@ -1,7 +1,26 @@
 package com.darkrockstudios.apps.hammer.common.components.projecthome
 
+import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
-import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfAlignment
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfBlock
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfBookmark
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfBorder
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfColor
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfDocument
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfDocumentWriter
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfFont
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfFontFamily
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfHyperlink
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfHyperlinkKind
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfInfo
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfInline
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfLineBreak
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfPageBreak
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfParagraph
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfParagraphStyle
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfSpanStyle
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfTextRun
 import okio.BufferedSink
 import org.intellij.markdown.MarkdownElementTypes
 import org.intellij.markdown.MarkdownTokenTypes
@@ -12,20 +31,13 @@ import org.intellij.markdown.parser.MarkdownParser
 
 private const val TOC_TITLE = "Contents"
 
-private const val BODY_FONT = "Georgia"
-private const val MONOSPACE_FONT = "Consolas"
+private val BODY_FONT = RtfFont("Georgia", RtfFontFamily.Roman)
+private val MONO_FONT = RtfFont("Consolas", RtfFontFamily.Modern)
 
-// Font indices in the RTF font table.
-private const val FONT_BODY = 0
-private const val FONT_MONO = 1
-
-// Color indices in the RTF color table; index 0 is the document default ("auto").
-private const val COLOR_PRIMARY = 1
-private const val COLOR_SECONDARY = 2
-
-// RTF font sizes are expressed in half-points; the body is 12pt to match the other exporters.
+// Font sizes in half-points; the body is 12pt to match the other exporters.
 private const val BODY_HALF_POINTS = 24
 private const val TITLE_HALF_POINTS = 72
+private const val AUTHOR_HALF_POINTS = 32
 private const val TOC_TITLE_HALF_POINTS = 48
 
 /** Heading 1..6 sizes in half-points, mirroring the DOCX renderer's scale. */
@@ -35,6 +47,8 @@ private val HEADING_HALF_POINTS = listOf(48, 36, 32, 28, 26, 24)
 private const val BODY_FIRST_LINE_INDENT = 360
 private const val PARAGRAPH_SPACE_AFTER = 160
 private const val HEADING_SPACE_BEFORE = 360
+private const val TITLE_SPACE_BEFORE = 3600
+private const val SECTION_SPACE = 240
 private const val QUOTE_INDENT = 720
 private const val LIST_INDENT_PER_LEVEL = 360
 
@@ -46,8 +60,8 @@ private fun chapterBookmark(index: Int): String = "chapter${index + 1}"
  * on a fresh page. Chapter bodies are rendered from markdown into formatted RTF runs. Heading and
  * link colors pick up the project theme's accent colors.
  *
- * RTF is plain ASCII text built from control words; non-ASCII characters are emitted as `\uN`
- * escapes so the output stays portable regardless of the reader's code page.
+ * The document is assembled as a strongly-typed [RtfDocument] and serialized by [RtfDocumentWriter],
+ * which keeps the output 7-bit ASCII (non-ASCII as `\uN` escapes) and portable across readers.
  */
 fun writeStoryAsRtf(
 	sink: BufferedSink,
@@ -57,136 +71,145 @@ fun writeStoryAsRtf(
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
+	val primary = themeColor(projectData.theme?.primary)
+	val secondary = themeColor(projectData.theme?.secondary)
 
-	val rtf = RtfBuilder(projectData.theme)
-	rtf.writeHeader(projectName, authorName)
-	rtf.writeTitlePage(projectName, authorName)
-	rtf.writeContentsPage(effective)
-	effective.forEachIndexed { index, chapter -> rtf.writeChapter(index, chapter) }
-	rtf.writeFooter()
+	val blocks = buildList {
+		addAll(titlePage(projectName, authorName, primary))
+		addAll(contentsPage(effective, primary))
+		effective.forEachIndexed { index, chapter -> addAll(chapterBlocks(index, chapter, primary, secondary)) }
+	}
 
-	sink.writeUtf8(rtf.toString())
+	val document = RtfDocument(
+		blocks = blocks,
+		defaultFont = BODY_FONT,
+		defaultFontSizeHalfPoints = BODY_HALF_POINTS,
+		info = RtfInfo(title = projectName, author = authorName),
+		generator = "Hammer ${BuildMetadata.APP_VERSION}",
+	)
+
+	sink.writeUtf8(RtfDocumentWriter().write(document))
 }
 
-private class RtfBuilder(theme: ProjectTheme?) {
-	private val out = StringBuilder()
-
-	private val primary = theme?.primary?.let(::argbHexToRtfColor)
-	private val secondary = theme?.secondary?.let(::argbHexToRtfColor)
-
-	override fun toString(): String = out.toString()
-
-	fun writeHeader(projectName: String, authorName: String?) {
-		out.append("{\\rtf1\\ansi\\ansicpg1252\\deff0\\deflang1033")
-
-		// Font table: \f0 is the prose font, \f1 the monospace font for code.
-		out.append("{\\fonttbl")
-		out.append("{\\f$FONT_BODY\\froman\\fcharset0 ").append(BODY_FONT).append(";}")
-		out.append("{\\f$FONT_MONO\\fmodern\\fcharset0 ").append(MONOSPACE_FONT).append(";}")
-		out.append("}")
-
-		// Color table: index 0 is "auto"; accent colors keep stable indices even when absent
-		// (a null accent falls back to black, which simply renders as the default text color).
-		out.append("{\\colortbl;")
-		out.append(primary ?: "\\red0\\green0\\blue0;")
-		out.append(secondary ?: "\\red0\\green0\\blue0;")
-		out.append("}")
-
-		// Document metadata so the title/author surface in the reader's properties panel.
-		out.append("{\\info{\\title ").append(escapeRtf(projectName)).append("}")
-		if (authorName != null) out.append("{\\author ").append(escapeRtf(authorName)).append("}")
-		out.append("}")
-
-		out.append("\\fs$BODY_HALF_POINTS\n")
+private fun titlePage(projectName: String, authorName: String?, primary: RtfColor?): List<RtfBlock> = buildList {
+	add(
+		RtfParagraph(
+			content = listOf(
+				RtfTextRun(
+					projectName,
+					RtfSpanStyle(bold = true, fontSizeHalfPoints = TITLE_HALF_POINTS, color = primary),
+				),
+			),
+			style = RtfParagraphStyle(
+				alignment = RtfAlignment.Center,
+				spaceBeforeTwips = TITLE_SPACE_BEFORE,
+				spaceAfterTwips = SECTION_SPACE,
+			),
+		),
+	)
+	if (authorName != null) {
+		add(
+			RtfParagraph(
+				content = listOf(
+					RtfTextRun("by $authorName", RtfSpanStyle(italic = true, fontSizeHalfPoints = AUTHOR_HALF_POINTS)),
+				),
+				style = RtfParagraphStyle(alignment = RtfAlignment.Center, spaceAfterTwips = SECTION_SPACE),
+			),
+		)
 	}
+}
 
-	fun writeFooter() {
-		out.append("}")
+private fun contentsPage(chapters: List<StoryChapter>, primary: RtfColor?): List<RtfBlock> = buildList {
+	add(RtfPageBreak)
+	add(
+		RtfParagraph(
+			content = listOf(RtfTextRun(TOC_TITLE, RtfSpanStyle(bold = true, fontSizeHalfPoints = TOC_TITLE_HALF_POINTS))),
+			style = RtfParagraphStyle(
+				alignment = RtfAlignment.Center,
+				spaceBeforeTwips = SECTION_SPACE,
+				spaceAfterTwips = SECTION_SPACE,
+			),
+		),
+	)
+	chapters.forEachIndexed { index, chapter ->
+		val label = "${index + 1}. ${chapter.name}"
+		add(
+			RtfParagraph(
+				content = listOf(
+					RtfHyperlink(
+						target = chapterBookmark(index),
+						kind = RtfHyperlinkKind.Bookmark,
+						content = listOf(RtfTextRun(label, RtfSpanStyle(underline = true, color = primary))),
+					),
+				),
+				style = RtfParagraphStyle(spaceAfterTwips = PARAGRAPH_SPACE_AFTER),
+			),
+		)
 	}
+}
 
-	fun writeTitlePage(projectName: String, authorName: String?) {
-		out.append("\\pard\\qc\\sb3600\\sa240")
-		out.append("{\\b\\fs$TITLE_HALF_POINTS")
-		if (primary != null) out.append("\\cf$COLOR_PRIMARY")
-		out.append(' ').append(escapeRtf(projectName)).append("}\\par\n")
-
-		if (authorName != null) {
-			out.append("\\pard\\qc\\sa240")
-			out.append("{\\i\\fs32 ").append(escapeRtf("by $authorName")).append("}\\par\n")
-		}
+private fun chapterBlocks(
+	index: Int,
+	chapter: StoryChapter,
+	primary: RtfColor?,
+	secondary: RtfColor?,
+): List<RtfBlock> = buildList {
+	add(RtfPageBreak)
+	add(
+		RtfParagraph(
+			content = listOf(
+				RtfBookmark(
+					name = chapterBookmark(index),
+					content = listOf(
+						RtfTextRun(
+							"${index + 1}. ${chapter.name}",
+							RtfSpanStyle(bold = true, fontSizeHalfPoints = HEADING_HALF_POINTS[0], color = primary),
+						),
+					),
+				),
+			),
+			style = RtfParagraphStyle(
+				spaceBeforeTwips = HEADING_SPACE_BEFORE,
+				spaceAfterTwips = PARAGRAPH_SPACE_AFTER,
+				keepWithNext = true,
+			),
+		),
+	)
+	if (chapter.markdown.isNotBlank()) {
+		addAll(MarkdownRtfRenderer(chapter.markdown, primary, secondary).render())
 	}
+}
 
-	fun writeContentsPage(chapters: List<StoryChapter>) {
-		out.append("\\page\n")
-		out.append("\\pard\\qc\\sb240\\sa240")
-		out.append("{\\b\\fs$TOC_TITLE_HALF_POINTS ").append(escapeRtf(TOC_TITLE)).append("}\\par\n")
-
-		chapters.forEachIndexed { index, chapter ->
-			out.append("\\pard\\sa$PARAGRAPH_SPACE_AFTER ")
-			val label = "${index + 1}. ${chapter.name}"
-			// A HYPERLINK field jumping to the chapter's bookmark; the \fldrslt holds the visible text.
-			out.append("{\\field{\\*\\fldinst HYPERLINK \\\\l ")
-			out.append('"').append(escapeRtf(chapterBookmark(index))).append('"')
-			out.append("}{\\fldrslt ")
-			if (primary != null) out.append("{\\cf$COLOR_PRIMARY\\ul ").append(escapeRtf(label)).append("}")
-			else out.append("{\\ul ").append(escapeRtf(label)).append("}")
-			out.append("}}\\par\n")
-		}
-	}
-
-	fun writeChapter(index: Int, chapter: StoryChapter) {
-		out.append("\\page\n")
-		out.append("\\pard\\sb$HEADING_SPACE_BEFORE\\sa$PARAGRAPH_SPACE_AFTER\\keepn")
-		out.append("{\\b\\fs${HEADING_HALF_POINTS[0]}")
-		if (primary != null) out.append("\\cf$COLOR_PRIMARY")
-		out.append(' ')
-		// Bookmark target for the contents links, wrapping the heading text.
-		out.append("{\\*\\bkmkstart ").append(escapeRtf(chapterBookmark(index))).append("}")
-		out.append(escapeRtf("${index + 1}. ${chapter.name}"))
-		out.append("{\\*\\bkmkend ").append(escapeRtf(chapterBookmark(index))).append("}")
-		out.append("}\\par\n")
-
-		if (chapter.markdown.isNotBlank()) {
-			MarkdownRtfWriter(out, chapter.markdown, primary != null, secondary != null).render()
-		}
-	}
-
-	/** Project themes store colors as ARGB hex (`#FFRRGGBB`); RTF wants `\redN\greenN\blueN;`. */
-	private fun argbHexToRtfColor(argb: String): String? {
-		val css = argbHexToCssHex(argb)?.removePrefix("#") ?: return null
-		val value = css.toIntOrNull(16) ?: return null
-		val r = (value shr 16) and 0xFF
-		val g = (value shr 8) and 0xFF
-		val b = value and 0xFF
-		return "\\red$r\\green$g\\blue$b;"
-	}
+/** Project themes store colors as ARGB hex (`#FFRRGGBB`); convert to an [RtfColor]. */
+private fun themeColor(argb: String?): RtfColor? {
+	val css = argb?.let(::argbHexToCssHex)?.removePrefix("#") ?: return null
+	val value = css.toIntOrNull(16) ?: return null
+	return RtfColor.fromRgb(value)
 }
 
 /**
- * Walks the markdown AST and streams RTF paragraphs and runs. Inline formatting is emitted as
- * nested RTF groups (`{\b ...}`, `{\i ...}`) so character formatting is scoped and never leaks past
- * the run it applies to. Block structure (headings, lists, quotes, code) maps onto RTF paragraph
- * properties.
+ * Walks the markdown AST and produces [RtfBlock]s. Inline formatting is flattened into [RtfTextRun]s
+ * carrying a cumulative [RtfSpanStyle], so nested emphasis (`**bold _italic_**`) becomes runs with the
+ * combined style. Block structure (headings, lists, quotes, code) maps onto paragraph properties.
  */
-private class MarkdownRtfWriter(
-	private val out: StringBuilder,
+private class MarkdownRtfRenderer(
 	private val source: String,
-	private val hasPrimary: Boolean,
-	private val hasSecondary: Boolean,
+	private val primary: RtfColor?,
+	private val secondary: RtfColor?,
 ) {
+	private val blocks = mutableListOf<RtfBlock>()
 	private var listDepth = -1
 
 	private data class BlockContext(
-		val style: ParagraphStyle = ParagraphStyle.Body,
+		val quote: Boolean = false,
 		val listMarker: String? = null,
 		val indentLevel: Int = 0,
 	)
 
-	private enum class ParagraphStyle { Body, Quote }
-
-	fun render() {
+	fun render(): List<RtfBlock> {
 		val tree = MarkdownParser(CommonMarkFlavourDescriptor()).buildMarkdownTreeFromString(source)
 		renderBlocks(tree.children, BlockContext())
+		return blocks
 	}
 
 	private fun renderBlocks(nodes: List<ASTNode>, blockCtx: BlockContext) {
@@ -195,7 +218,7 @@ private class MarkdownRtfWriter(
 		for (node in nodes) {
 			when (node.type) {
 				MarkdownElementTypes.PARAGRAPH -> {
-					paragraph(blockCtx, pendingMarker) { renderInline(node.children) }
+					addParagraph(blockCtx, pendingMarker, inlineRuns(node.children, baseStyle(blockCtx)))
 					pendingMarker = null
 				}
 
@@ -210,7 +233,7 @@ private class MarkdownRtfWriter(
 
 				MarkdownElementTypes.BLOCK_QUOTE -> renderBlocks(
 					node.children,
-					blockCtx.copy(style = ParagraphStyle.Quote),
+					blockCtx.copy(quote = true),
 				)
 
 				MarkdownElementTypes.UNORDERED_LIST -> renderList(node, ordered = false, blockCtx)
@@ -235,7 +258,7 @@ private class MarkdownRtfWriter(
 					} else {
 						val literal = node.getTextInNode(source).toString()
 						if (literal.isNotBlank()) {
-							paragraph(blockCtx, pendingMarker) { out.append(escapeRtf(literal)) }
+							addParagraph(blockCtx, pendingMarker, listOf(RtfTextRun(unescape(literal), baseStyle(blockCtx))))
 							pendingMarker = null
 						}
 					}
@@ -262,117 +285,125 @@ private class MarkdownRtfWriter(
 	private fun heading(node: ASTNode, contentType: Any, level: Int) {
 		val content = node.children.firstOrNull { it.type == contentType }
 		val halfPoints = HEADING_HALF_POINTS[(level - 1).coerceIn(0, HEADING_HALF_POINTS.lastIndex)]
-		out.append("\\pard\\sb$HEADING_SPACE_BEFORE\\sa$PARAGRAPH_SPACE_AFTER\\keepn")
-		out.append("{\\b\\fs$halfPoints")
-		when {
-			level == 1 && hasPrimary -> out.append("\\cf$COLOR_PRIMARY")
-			level == 2 && hasSecondary -> out.append("\\cf$COLOR_SECONDARY")
+		val color = when (level) {
+			1 -> primary
+			2 -> secondary
+			else -> null
 		}
-		out.append(' ')
+		val style = RtfSpanStyle(bold = true, fontSizeHalfPoints = halfPoints, color = color)
 		val children = content?.children.orEmpty()
 			.dropWhile { it.type == MarkdownTokenTypes.WHITE_SPACE }
 			.dropLastWhile { it.type == MarkdownTokenTypes.WHITE_SPACE }
-		if (children.isNotEmpty()) {
-			renderInline(children)
-		} else {
-			content?.let { out.append(escapeRtf(unescape(it.getTextInNode(source).toString()).trim())) }
+		val runs = when {
+			children.isNotEmpty() -> inlineRuns(children, style)
+			content != null -> listOf(RtfTextRun(unescape(content.getTextInNode(source).toString()).trim(), style))
+			else -> emptyList()
 		}
-		out.append("}\\par\n")
+		blocks.add(
+			RtfParagraph(
+				content = coalesce(runs),
+				style = RtfParagraphStyle(
+					spaceBeforeTwips = HEADING_SPACE_BEFORE,
+					spaceAfterTwips = PARAGRAPH_SPACE_AFTER,
+					keepWithNext = true,
+				),
+			),
+		)
 	}
 
-	private fun paragraph(blockCtx: BlockContext, listMarker: String?, body: () -> Unit) {
-		out.append("\\pard\\sa$PARAGRAPH_SPACE_AFTER")
-		when {
-			listMarker != null -> {
-				val indent = LIST_INDENT_PER_LEVEL * blockCtx.indentLevel
-				out.append("\\li$indent\\fi-$LIST_INDENT_PER_LEVEL")
-			}
+	private fun addParagraph(blockCtx: BlockContext, listMarker: String?, content: List<RtfInline>) {
+		val style = when {
+			listMarker != null -> RtfParagraphStyle(
+				leftIndentTwips = LIST_INDENT_PER_LEVEL * blockCtx.indentLevel,
+				firstLineIndentTwips = -LIST_INDENT_PER_LEVEL,
+				spaceAfterTwips = PARAGRAPH_SPACE_AFTER,
+			)
 
-			blockCtx.style == ParagraphStyle.Quote -> out.append("\\li$QUOTE_INDENT")
-			else -> out.append("\\fi$BODY_FIRST_LINE_INDENT")
+			blockCtx.quote -> RtfParagraphStyle(
+				leftIndentTwips = QUOTE_INDENT,
+				spaceAfterTwips = PARAGRAPH_SPACE_AFTER,
+			)
+
+			else -> RtfParagraphStyle(
+				firstLineIndentTwips = BODY_FIRST_LINE_INDENT,
+				spaceAfterTwips = PARAGRAPH_SPACE_AFTER,
+			)
 		}
-		out.append(' ')
-
-		// Scope the quote italic in a group so the character formatting can't leak past this paragraph
-		// (\pard resets paragraph properties but not run properties like \i).
-		val italicQuote = blockCtx.style == ParagraphStyle.Quote
-		if (italicQuote) out.append("{\\i ")
-		if (listMarker != null) out.append(escapeRtf(listMarker))
-		body()
-		if (italicQuote) out.append("}")
-		out.append("\\par\n")
+		val full = buildList {
+			if (listMarker != null) add(RtfTextRun(listMarker, baseStyle(blockCtx)))
+			addAll(content)
+		}
+		blocks.add(RtfParagraph(coalesce(full), style))
 	}
 
-	private fun renderInline(nodes: List<ASTNode>) {
+	private fun baseStyle(blockCtx: BlockContext): RtfSpanStyle =
+		if (blockCtx.quote) RtfSpanStyle(italic = true) else RtfSpanStyle.Default
+
+	private fun inlineRuns(nodes: List<ASTNode>, style: RtfSpanStyle): List<RtfInline> {
+		val out = mutableListOf<RtfInline>()
+		appendInline(out, nodes, style)
+		return out
+	}
+
+	private fun appendInline(out: MutableList<RtfInline>, nodes: List<ASTNode>, style: RtfSpanStyle) {
 		for (node in nodes) {
 			when (node.type) {
-				MarkdownElementTypes.STRONG -> {
-					out.append("{\\b ")
-					renderInline(node.children.stripDelimiters(MarkdownTokenTypes.EMPH))
-					out.append("}")
-				}
+				MarkdownElementTypes.STRONG ->
+					appendInline(out, node.children.stripDelimiters(MarkdownTokenTypes.EMPH), style.copy(bold = true))
 
-				MarkdownElementTypes.EMPH -> {
-					out.append("{\\i ")
-					renderInline(node.children.stripDelimiters(MarkdownTokenTypes.EMPH))
-					out.append("}")
-				}
+				MarkdownElementTypes.EMPH ->
+					appendInline(out, node.children.stripDelimiters(MarkdownTokenTypes.EMPH), style.copy(italic = true))
 
 				MarkdownElementTypes.CODE_SPAN -> {
 					val code = node.children
 						.filter { it.type != MarkdownTokenTypes.BACKTICK }
 						.joinToString("") { it.getTextInNode(source).toString() }
-					out.append("{\\f$FONT_MONO ").append(escapeRtf(code.removeSurrounding(" "))).append("}")
+					out.add(RtfTextRun(code.removeSurrounding(" "), style.copy(font = MONO_FONT)))
 				}
 
-				MarkdownElementTypes.INLINE_LINK -> inlineLink(node)
-				MarkdownElementTypes.AUTOLINK -> autoLink(node)
+				MarkdownElementTypes.INLINE_LINK -> inlineLink(out, node, style)
+				MarkdownElementTypes.AUTOLINK -> autoLink(out, node, style)
 
-				MarkdownTokenTypes.HARD_LINE_BREAK -> out.append("\\line ")
-				MarkdownTokenTypes.EOL -> out.append(' ')
+				MarkdownTokenTypes.HARD_LINE_BREAK -> out.add(RtfLineBreak)
+				MarkdownTokenTypes.EOL -> out.add(RtfTextRun(" ", style))
 
 				else -> {
 					if (node.children.isEmpty()) {
-						out.append(escapeRtf(unescape(node.getTextInNode(source).toString())))
+						out.add(RtfTextRun(unescape(node.getTextInNode(source).toString()), style))
 					} else {
-						renderInline(node.children)
+						appendInline(out, node.children, style)
 					}
 				}
 			}
 		}
 	}
 
-	private fun inlineLink(node: ASTNode) {
+	private fun inlineLink(out: MutableList<RtfInline>, node: ASTNode, style: RtfSpanStyle) {
 		val destination =
 			node.children.firstOrNull { it.type == MarkdownElementTypes.LINK_DESTINATION }
 				?.getTextInNode(source)?.toString()?.removeSurrounding("<", ">")
 		val linkText = node.children.firstOrNull { it.type == MarkdownElementTypes.LINK_TEXT }
 		if (destination == null || linkText == null) {
-			out.append(escapeRtf(unescape(node.getTextInNode(source).toString())))
+			out.add(RtfTextRun(unescape(node.getTextInNode(source).toString()), style))
 			return
 		}
-		hyperlink(destination) {
-			renderInline(
-				linkText.children.filter {
-					it.type != MarkdownTokenTypes.LBRACKET && it.type != MarkdownTokenTypes.RBRACKET
-				}
-			)
-		}
+		val content = inlineRuns(
+			linkText.children.filter {
+				it.type != MarkdownTokenTypes.LBRACKET && it.type != MarkdownTokenTypes.RBRACKET
+			},
+			style.copy(underline = true, color = primary),
+		)
+		out.add(RtfHyperlink(target = destination, content = content))
 	}
 
-	private fun autoLink(node: ASTNode) {
+	private fun autoLink(out: MutableList<RtfInline>, node: ASTNode, style: RtfSpanStyle) {
 		val url = node.getTextInNode(source).toString().removeSurrounding("<", ">")
-		hyperlink(url) { out.append(escapeRtf(url)) }
-	}
-
-	private fun hyperlink(url: String, body: () -> Unit) {
-		out.append("{\\field{\\*\\fldinst HYPERLINK ")
-		out.append('"').append(escapeRtf(url)).append('"')
-		out.append("}{\\fldrslt {")
-		if (hasPrimary) out.append("\\cf$COLOR_PRIMARY")
-		out.append("\\ul ")
-		body()
-		out.append("}}}")
+		out.add(
+			RtfHyperlink(
+				target = url,
+				content = listOf(RtfTextRun(url, style.copy(underline = true, color = primary))),
+			),
+		)
 	}
 
 	private fun codeFence(node: ASTNode) {
@@ -402,18 +433,41 @@ private class MarkdownRtfWriter(
 	}
 
 	private fun codeParagraph(line: String) {
-		out.append("\\pard\\sa0 {\\f$FONT_MONO ").append(escapeRtf(line)).append("}\\par\n")
+		blocks.add(
+			RtfParagraph(
+				content = listOf(RtfTextRun(line, RtfSpanStyle(font = MONO_FONT))),
+				style = RtfParagraphStyle(spaceAfterTwips = 0),
+			),
+		)
 	}
 
 	private fun horizontalRule() {
-		// A bottom border on an empty paragraph draws a horizontal rule.
-		out.append("\\pard\\brdrb\\brdrs\\brdrw10\\sa$PARAGRAPH_SPACE_AFTER\\par\n")
+		blocks.add(
+			RtfParagraph(
+				content = emptyList(),
+				style = RtfParagraphStyle(spaceAfterTwips = PARAGRAPH_SPACE_AFTER, bottomBorder = RtfBorder()),
+			),
+		)
+	}
+
+	/** Merges consecutive [RtfTextRun]s that share a style so plain prose stays in a single run. */
+	private fun coalesce(inlines: List<RtfInline>): List<RtfInline> {
+		val result = mutableListOf<RtfInline>()
+		for (inline in inlines) {
+			val last = result.lastOrNull()
+			if (inline is RtfTextRun && last is RtfTextRun && last.style == inline.style) {
+				result[result.lastIndex] = last.copy(text = last.text + inline.text)
+			} else {
+				result.add(inline)
+			}
+		}
+		return result
 	}
 
 	private fun List<ASTNode>.stripDelimiters(delimiterType: Any): List<ASTNode> =
 		dropWhile { it.type == delimiterType }.dropLastWhile { it.type == delimiterType }
 
-	/** Resolves CommonMark backslash escapes to their bare punctuation before RTF escaping. */
+	/** Resolves CommonMark backslash escapes to their bare punctuation. */
 	private fun unescape(text: String): String {
 		if (!text.contains('\\')) return text
 		val sb = StringBuilder(text.length)
@@ -435,28 +489,4 @@ private class MarkdownRtfWriter(
 	private companion object {
 		const val ASCII_PUNCTUATION = "!\"#\$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 	}
-}
-
-/**
- * Escapes text for an RTF body: the structural characters `\`, `{`, `}` are backslash-escaped,
- * tabs and newlines become control words, and any non-ASCII character is emitted as a `\uN`
- * escape with a `?` substitute so legacy readers still show something in its place.
- */
-internal fun escapeRtf(text: String): String {
-	val sb = StringBuilder(text.length)
-	for (ch in text) {
-		when {
-			ch == '\\' || ch == '{' || ch == '}' -> sb.append('\\').append(ch)
-			ch == '\t' -> sb.append("\\tab ")
-			ch == '\n' -> sb.append("\\line ")
-			ch == '\r' -> Unit
-			ch.code in 0x20..0x7E -> sb.append(ch)
-			else -> {
-				// RTF \u takes a signed 16-bit value; chars above 0x7FFF must be expressed as negative.
-				val code = if (ch.code > 0x7FFF) ch.code - 0x10000 else ch.code
-				sb.append("\\u").append(code).append('?')
-			}
-		}
-	}
-	return sb.toString()
 }
