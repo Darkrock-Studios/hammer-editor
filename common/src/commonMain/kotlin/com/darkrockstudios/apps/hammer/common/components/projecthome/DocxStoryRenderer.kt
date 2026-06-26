@@ -11,7 +11,6 @@ import nl.adaptivity.xmlutil.smartStartTag
 import no.synth.kmpzip.zip.ZipEntry
 import no.synth.kmpzip.zip.ZipOutputStream
 import okio.BufferedSink
-import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
 import no.synth.kmpzip.okio.ZipOutputStream as OkioZipOutputStream
 
 private const val W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
@@ -503,24 +502,17 @@ private fun XmlWriter.writeChapter(ctx: DocxRenderContext, index: Int, chapter: 
 }
 
 /**
- * Walks the markdown AST and streams WordprocessingML paragraphs and runs. Inline formatting
- * is carried as nesting state (bold/italic depth, hyperlink scope) so each emitted run's
- * properties reflect the state at its text's position; literal text accumulates in a buffer
- * that flushes as a single run whenever the state changes.
- */
-/**
  * Renders a chapter's markdown into WordprocessingML by consuming the shared [parseProseMarkdown]
- * model (CommonMark flavour) and streaming `<w:p>` / `<w:r>` into [writer]. Block kinds map onto
- * paragraph styles; inline spans become runs, with consecutive same-link spans wrapped in one
- * `<w:hyperlink>` (its URL registered with [ctx] in document order) and `\n` hard breaks split into
- * `<w:br/>`.
+ * model and streaming `<w:p>` / `<w:r>` into [writer]. Block kinds map onto paragraph styles; inline
+ * spans become runs, with consecutive same-link spans wrapped in one `<w:hyperlink>` (its URL
+ * registered with [ctx] in document order) and `\n` hard breaks split into `<w:br/>`.
  */
 private class MarkdownDocxWriter(
 	private val writer: XmlWriter,
 	private val ctx: DocxRenderContext,
 ) {
 	fun render(markdown: String) {
-		for (block in parseProseMarkdown(markdown, CommonMarkFlavourDescriptor())) {
+		for (block in parseProseMarkdown(markdown)) {
 			when (block) {
 				is ProseBlock.Paragraph -> paragraph(style = null, numId = null) { runs(block.spans) }
 				is ProseBlock.Heading -> paragraph(style = "Heading${block.level}", numId = null) { runs(block.spans) }
@@ -615,7 +607,7 @@ private class MarkdownDocxWriter(
 		}
 	}
 
-	/** Tab-separated text fallback for tables (never produced under CommonMark; defensive). */
+	/** Tab-separated text fallback for GFM pipe tables, which the export has no real table layout for yet. */
 	private fun tableFallback(block: ProseBlock.Table) {
 		(listOf(block.header) + block.rows).forEach { row ->
 			paragraph(style = null, numId = null) {

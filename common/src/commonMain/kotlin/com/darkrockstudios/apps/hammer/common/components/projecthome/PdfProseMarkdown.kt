@@ -20,7 +20,6 @@ import org.intellij.markdown.MarkdownTokenTypes
 import org.intellij.markdown.ast.ASTNode
 import org.intellij.markdown.ast.findChildOfType
 import org.intellij.markdown.ast.getTextInNode
-import org.intellij.markdown.flavours.MarkdownFlavourDescriptor
 import org.intellij.markdown.flavours.gfm.GFMElementTypes
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 import org.intellij.markdown.flavours.gfm.GFMTokenTypes
@@ -104,15 +103,11 @@ internal sealed interface ProseBlock {
 }
 
 /**
- * Parses [markdown] into renderable blocks. Defaults to GFM (so `~~strike~~` and pipe tables work);
- * pass [CommonMarkFlavourDescriptor][org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor]
- * to match the CommonMark renderers. Unknown syntax degrades to paragraph text.
+ * Parses [markdown] into renderable blocks using the GFM flavour, so `~~strike~~`, pipe tables, and
+ * autolinks are recognized. Unknown syntax degrades to paragraph text.
  */
-internal fun parseProseMarkdown(
-	markdown: String,
-	flavour: MarkdownFlavourDescriptor = GFMFlavourDescriptor(),
-): List<ProseBlock> {
-	val root = MarkdownParser(flavour).buildMarkdownTreeFromString(markdown)
+internal fun parseProseMarkdown(markdown: String): List<ProseBlock> {
+	val root = MarkdownParser(GFMFlavourDescriptor()).buildMarkdownTreeFromString(markdown)
 	return ProseWalker(markdown).blocks(root)
 }
 

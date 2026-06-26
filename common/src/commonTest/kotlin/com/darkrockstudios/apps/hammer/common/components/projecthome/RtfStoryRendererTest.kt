@@ -103,6 +103,13 @@ class RtfStoryRendererTest {
 	}
 
 	@Test
+	fun `markdown strikethrough becomes an RTF strike group`() {
+		val rtf = render(listOf(StoryChapter("Alpha", "This is ~~gone~~ now.")))
+
+		assertTrue(rtf.contains("{\\strike gone}"), "GFM strikethrough should become an RTF strike group")
+	}
+
+	@Test
 	fun `braces in prose are escaped so they do not open groups`() {
 		val rtf = render(listOf(StoryChapter("Alpha", "Use {braces} and a back\\slash.")))
 

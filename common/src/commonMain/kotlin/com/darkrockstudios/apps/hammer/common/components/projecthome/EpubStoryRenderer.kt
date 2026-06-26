@@ -7,7 +7,7 @@ import io.documentnode.epub4kmp.epub.EpubWriter
 import kotlinx.html.*
 import kotlinx.html.stream.appendHTML
 import okio.BufferedSink
-import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
+import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.parser.MarkdownParser
 
@@ -94,6 +94,7 @@ private fun buildStylesheet(theme: ProjectTheme?): Stylesheet = stylesheet {
 		nav.toc ol.toc-list { list-style: none; padding: 0; margin: 0; }
 		nav.toc li.toc-item { margin: 0.6em 0; text-indent: 0; }
 		nav.toc li.toc-item a { text-decoration: none; }
+		.user-del { text-decoration: line-through; }
 		""".trimIndent(),
 	)
 
@@ -170,7 +171,7 @@ private fun BODY.titlePageBody(projectName: String, authorName: String?) {
 
 private fun BODY.chapterBody(chapterTitle: String, markdown: String) {
 	h1(classes = "chapter-title") { +chapterTitle }
-	val flavour = CommonMarkFlavourDescriptor()
+	val flavour = GFMFlavourDescriptor()
 	val parsed = MarkdownParser(flavour).buildMarkdownTreeFromString(markdown)
 	val htmlBody = HtmlGenerator(markdown, parsed, flavour).generateHtml()
 	val xhtmlBody = htmlBody.selfCloseHtmlVoidTags()

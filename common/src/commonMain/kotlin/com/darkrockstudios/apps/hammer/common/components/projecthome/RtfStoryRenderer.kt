@@ -22,7 +22,6 @@ import com.darkrockstudios.libs.rtfparserkmp.writer.RtfSpanStyle
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfTab
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfTextRun
 import okio.BufferedSink
-import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
 
 private val BODY_FONT = RtfFont(EXPORT_BODY_FONT, RtfFontFamily.Roman)
 private val MONO_FONT = RtfFont(EXPORT_MONO_FONT, RtfFontFamily.Modern)
@@ -177,14 +176,14 @@ private fun themeColor(argb: String?): RtfColor? {
 }
 
 /**
- * Renders a chapter's markdown into [RtfBlock]s by consuming the shared [parseProseMarkdown] model
- * (CommonMark flavour). Block kinds map onto paragraph properties; inline spans become styled
- * [RtfTextRun]s, with consecutive same-link spans grouped into a single [RtfHyperlink]. Hard line
- * breaks ride along as `\n` in run text — the rtf-writer escaper turns those into `\line`.
+ * Renders a chapter's markdown into [RtfBlock]s by consuming the shared [parseProseMarkdown] model.
+ * Block kinds map onto paragraph properties; inline spans become styled [RtfTextRun]s, with
+ * consecutive same-link spans grouped into a single [RtfHyperlink]. Hard line breaks ride along as
+ * `\n` in run text — the rtf-writer escaper turns those into `\line`.
  */
 private fun renderMarkdownRtf(markdown: String, primary: RtfColor?, secondary: RtfColor?): List<RtfBlock> {
 	val blocks = mutableListOf<RtfBlock>()
-	for (block in parseProseMarkdown(markdown, CommonMarkFlavourDescriptor())) {
+	for (block in parseProseMarkdown(markdown)) {
 		when (block) {
 			is ProseBlock.Paragraph -> blocks += bodyParagraph(block.spans, primary)
 			is ProseBlock.Heading -> blocks += headingParagraph(block, primary, secondary)
@@ -255,7 +254,7 @@ private fun ruleParagraph(): RtfParagraph = RtfParagraph(
 	style = RtfParagraphStyle(spaceAfterTwips = PARAGRAPH_SPACE_AFTER, bottomBorder = RtfBorder()),
 )
 
-/** Tab-separated text fallback for tables (never produced under CommonMark; defensive). */
+/** Tab-separated text fallback for GFM pipe tables, which RTF has no real table primitive for yet. */
 private fun tableParagraphs(block: ProseBlock.Table, primary: RtfColor?): List<RtfBlock> =
 	(listOf(block.header) + block.rows).map { row ->
 		val content = buildList {
