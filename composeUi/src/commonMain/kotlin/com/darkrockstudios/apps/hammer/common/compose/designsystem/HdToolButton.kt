@@ -5,13 +5,19 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * Small (30dp) square-cornered hairline-bordered toolbar action — the
@@ -47,6 +53,32 @@ fun HdToolButton(
 		contentAlignment = Alignment.Center,
 	) {
 		content()
+	}
+}
+
+/**
+ * A help affordance: a `?` glyph inside an [HdToolButton]. The
+ * square hairline frame keeps the help action in vocabulary with the
+ * dialog mastheads it sits in, rather than reading as a bare icon.
+ */
+@Composable
+fun HdHelpButton(
+	onClick: () -> Unit,
+	contentDescription: String,
+	modifier: Modifier = Modifier,
+) {
+	HdToolButton(
+		active = false,
+		onClick = onClick,
+		modifier = modifier.semantics { this.contentDescription = contentDescription },
+	) {
+		Text(
+			text = "?",
+			fontFamily = FontFamily.Monospace,
+			fontWeight = FontWeight.Medium,
+			fontSize = 14.sp,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
+		)
 	}
 }
 

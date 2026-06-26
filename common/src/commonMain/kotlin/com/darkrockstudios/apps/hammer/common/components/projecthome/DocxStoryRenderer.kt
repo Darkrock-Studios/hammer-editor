@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.components.projecthome
 
+import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import nl.adaptivity.xmlutil.XMLConstants
@@ -225,6 +226,7 @@ private fun writeCoreProps(writer: XmlWriter, projectName: String, authorName: S
 private fun writeAppProps(writer: XmlWriter) {
 	writer.smartStartTag(APP_PROPS_NS, "Properties", "") {
 		smartStartTag(APP_PROPS_NS, "Application", "") { text("Hammer") }
+		smartStartTag(APP_PROPS_NS, "AppVersion", "") { text(BuildMetadata.APP_VERSION) }
 	}
 }
 

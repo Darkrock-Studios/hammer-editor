@@ -30,6 +30,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdButtonBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDropdown
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHelpButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -45,6 +46,8 @@ import com.darkrockstudios.apps.hammer.project_home_export_format_epub
 import com.darkrockstudios.apps.hammer.project_home_export_format_label
 import com.darkrockstudios.apps.hammer.project_home_export_format_markdown
 import com.darkrockstudios.apps.hammer.project_home_export_format_pdf
+import com.darkrockstudios.apps.hammer.project_home_export_format_rtf
+import com.darkrockstudios.apps.hammer.project_home_export_help_icon_description
 import com.darkrockstudios.apps.hammer.project_home_export_section
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -65,6 +68,7 @@ fun ExportOptionsDialog(
 	var format by remember(initialOptions, visible) {
 		mutableStateOf(initialOptions.format)
 	}
+	var showHelp by remember { mutableStateOf(false) }
 
 	AnimatedDialog(
 		visible = visible,
@@ -88,6 +92,10 @@ fun ExportOptionsDialog(
 				HdMasthead(
 					section = stringResource(Res.string.project_home_export_section),
 					trailing = {
+						HdHelpButton(
+							onClick = { showHelp = true },
+							contentDescription = stringResource(Res.string.project_home_export_help_icon_description),
+						)
 						HdMastheadAction(
 							label = stringResource(Res.string.project_home_export_close),
 							onClick = { if (!working) onCancel() },
@@ -161,14 +169,25 @@ fun ExportOptionsDialog(
 			}
 		}
 	}
+
+	if (showHelp) {
+		ExportHelpDialog(onDismiss = { showHelp = false })
+	}
 }
 
 private val AVAILABLE_EXPORT_FORMATS =
-	listOf(ExportFormat.Markdown, ExportFormat.Epub, ExportFormat.Pdf, ExportFormat.Docx)
+	listOf(
+		ExportFormat.Epub,
+		ExportFormat.Docx,
+		ExportFormat.Rtf,
+		ExportFormat.Pdf,
+		ExportFormat.Markdown,
+	)
 
 private fun ExportFormat.labelRes(): StringResource = when (this) {
 	ExportFormat.Markdown -> Res.string.project_home_export_format_markdown
 	ExportFormat.Epub -> Res.string.project_home_export_format_epub
 	ExportFormat.Pdf -> Res.string.project_home_export_format_pdf
 	ExportFormat.Docx -> Res.string.project_home_export_format_docx
+	ExportFormat.Rtf -> Res.string.project_home_export_format_rtf
 }

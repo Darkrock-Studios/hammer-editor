@@ -127,6 +127,23 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	@Test
+	fun `rtf export produces a valid rtf file with the RTF header`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Test Author"))
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = ExportFormat.Rtf, treatTopLevelAsChapters = true),
+		)
+
+		assertTrue(exportPath.path.endsWith(".rtf"), "Should produce a .rtf file, got $exportPath")
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertTrue(text.length > 100, "RTF output should be more than a stub, got ${text.length} chars")
+		// Every RTF document starts with the "{\rtf1" signature.
+		assertTrue(text.startsWith("{\\rtf1"), "RTF should start with the {\\rtf1 signature")
+	}
+
+	@Test
 	fun `docx export still produces a valid file when treatTopLevelAsChapters is false`() =
 		runTest {
 			initRepo()

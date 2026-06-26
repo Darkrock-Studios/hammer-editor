@@ -35,7 +35,7 @@ clikt = "5.1.0"
 kotlinx_atomicfu = "0.33.0"
 kotlinx_collections_immutable = "0.5.0"
 markdown = "0.7.5"
-rtfReader = "0.1.0"
+rtfParserKmp = "0.2.2"
 epub4kmp = "0.3.0"
 pdfkmp = "1.2.0"
 xmlutil = "1.0.0-rc3"
@@ -174,7 +174,8 @@ kotlinx_atomicfu_plugin = { group = "org.jetbrains.kotlinx", name = "atomicfu-gr
 kotlinx_collections_immutable = { group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable", version.ref = "kotlinx_collections_immutable" }
 
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
-rtf-reader = { module = "com.darkrockstudios:rtf-reader", version.ref = "rtfReader" }
+rtf-reader = { module = "com.darkrockstudios:rtf-reader", version.ref = "rtfParserKmp" }
+rtf-writer = { module = "com.darkrockstudios:rtf-writer", version.ref = "rtfParserKmp" }
 kotlin-multiplatform-diff = { module = "io.github.petertrr:kotlin-multiplatform-diff", version.ref = "kotlin-multiplatform-diff" }
 epub4kmp_core = { module = "com.darkrockstudios:epub4kmp-core", version.ref = "epub4kmp" }
 xmlutil_core = { module = "io.github.pdvrieze.xmlutil:core", version.ref = "xmlutil" }
