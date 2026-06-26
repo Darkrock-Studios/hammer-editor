@@ -29,19 +29,14 @@ import org.intellij.markdown.ast.getTextInNode
 import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
 import org.intellij.markdown.parser.MarkdownParser
 
-private const val TOC_TITLE = "Contents"
-
-private val BODY_FONT = RtfFont("Georgia", RtfFontFamily.Roman)
-private val MONO_FONT = RtfFont("Consolas", RtfFontFamily.Modern)
+private val BODY_FONT = RtfFont(EXPORT_BODY_FONT, RtfFontFamily.Roman)
+private val MONO_FONT = RtfFont(EXPORT_MONO_FONT, RtfFontFamily.Modern)
 
 // Font sizes in half-points; the body is 12pt to match the other exporters.
 private const val BODY_HALF_POINTS = 24
 private const val TITLE_HALF_POINTS = 72
 private const val AUTHOR_HALF_POINTS = 32
 private const val TOC_TITLE_HALF_POINTS = 48
-
-/** Heading 1..6 sizes in half-points, mirroring the DOCX renderer's scale. */
-private val HEADING_HALF_POINTS = listOf(48, 36, 32, 28, 26, 24)
 
 // Paragraph spacing/indent in twips (twentieths of a point); 1440 twips = 1 inch.
 private const val BODY_FIRST_LINE_INDENT = 360
@@ -51,8 +46,6 @@ private const val TITLE_SPACE_BEFORE = 3600
 private const val SECTION_SPACE = 240
 private const val QUOTE_INDENT = 720
 private const val LIST_INDENT_PER_LEVEL = 360
-
-private fun chapterBookmark(index: Int): String = "chapter${index + 1}"
 
 /**
  * Renders the story as a Rich Text Format (.rtf) document mirroring the EPUB/DOCX layout: a title
@@ -68,6 +61,7 @@ fun writeStoryAsRtf(
 	projectName: String,
 	projectData: ProjectData,
 	chapters: List<StoryChapter>,
+	strings: ExportStrings,
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
@@ -75,8 +69,8 @@ fun writeStoryAsRtf(
 	val secondary = themeColor(projectData.theme?.secondary)
 
 	val blocks = buildList {
-		addAll(titlePage(projectName, authorName, primary))
-		addAll(contentsPage(effective, primary))
+		addAll(titlePage(projectName, strings.authorByline, primary))
+		addAll(contentsPage(effective, strings.contentsTitle, primary))
 		effective.forEachIndexed { index, chapter -> addAll(chapterBlocks(index, chapter, primary, secondary)) }
 	}
 
@@ -91,7 +85,7 @@ fun writeStoryAsRtf(
 	sink.writeUtf8(RtfDocumentWriter().write(document))
 }
 
-private fun titlePage(projectName: String, authorName: String?, primary: RtfColor?): List<RtfBlock> = buildList {
+private fun titlePage(projectName: String, authorByline: String?, primary: RtfColor?): List<RtfBlock> = buildList {
 	add(
 		RtfParagraph(
 			content = listOf(
@@ -107,11 +101,11 @@ private fun titlePage(projectName: String, authorName: String?, primary: RtfColo
 			),
 		),
 	)
-	if (authorName != null) {
+	if (authorByline != null) {
 		add(
 			RtfParagraph(
 				content = listOf(
-					RtfTextRun("by $authorName", RtfSpanStyle(italic = true, fontSizeHalfPoints = AUTHOR_HALF_POINTS)),
+					RtfTextRun(authorByline, RtfSpanStyle(italic = true, fontSizeHalfPoints = AUTHOR_HALF_POINTS)),
 				),
 				style = RtfParagraphStyle(alignment = RtfAlignment.Center, spaceAfterTwips = SECTION_SPACE),
 			),
@@ -119,11 +113,11 @@ private fun titlePage(projectName: String, authorName: String?, primary: RtfColo
 	}
 }
 
-private fun contentsPage(chapters: List<StoryChapter>, primary: RtfColor?): List<RtfBlock> = buildList {
+private fun contentsPage(chapters: List<StoryChapter>, contentsTitle: String, primary: RtfColor?): List<RtfBlock> = buildList {
 	add(RtfPageBreak)
 	add(
 		RtfParagraph(
-			content = listOf(RtfTextRun(TOC_TITLE, RtfSpanStyle(bold = true, fontSizeHalfPoints = TOC_TITLE_HALF_POINTS))),
+			content = listOf(RtfTextRun(contentsTitle, RtfSpanStyle(bold = true, fontSizeHalfPoints = TOC_TITLE_HALF_POINTS))),
 			style = RtfParagraphStyle(
 				alignment = RtfAlignment.Center,
 				spaceBeforeTwips = SECTION_SPACE,
@@ -258,7 +252,7 @@ private class MarkdownRtfRenderer(
 					} else {
 						val literal = node.getTextInNode(source).toString()
 						if (literal.isNotBlank()) {
-							addParagraph(blockCtx, pendingMarker, listOf(RtfTextRun(unescape(literal), baseStyle(blockCtx))))
+							addParagraph(blockCtx, pendingMarker, listOf(RtfTextRun(unescapeMarkdown(literal), baseStyle(blockCtx))))
 							pendingMarker = null
 						}
 					}
@@ -296,7 +290,7 @@ private class MarkdownRtfRenderer(
 			.dropLastWhile { it.type == MarkdownTokenTypes.WHITE_SPACE }
 		val runs = when {
 			children.isNotEmpty() -> inlineRuns(children, style)
-			content != null -> listOf(RtfTextRun(unescape(content.getTextInNode(source).toString()).trim(), style))
+			content != null -> listOf(RtfTextRun(unescapeMarkdown(content.getTextInNode(source).toString()).trim(), style))
 			else -> emptyList()
 		}
 		blocks.add(
@@ -369,7 +363,7 @@ private class MarkdownRtfRenderer(
 
 				else -> {
 					if (node.children.isEmpty()) {
-						out.add(RtfTextRun(unescape(node.getTextInNode(source).toString()), style))
+						out.add(RtfTextRun(unescapeMarkdown(node.getTextInNode(source).toString()), style))
 					} else {
 						appendInline(out, node.children, style)
 					}
@@ -384,7 +378,7 @@ private class MarkdownRtfRenderer(
 				?.getTextInNode(source)?.toString()?.removeSurrounding("<", ">")
 		val linkText = node.children.firstOrNull { it.type == MarkdownElementTypes.LINK_TEXT }
 		if (destination == null || linkText == null) {
-			out.add(RtfTextRun(unescape(node.getTextInNode(source).toString()), style))
+			out.add(RtfTextRun(unescapeMarkdown(node.getTextInNode(source).toString()), style))
 			return
 		}
 		val content = inlineRuns(
@@ -407,29 +401,13 @@ private class MarkdownRtfRenderer(
 	}
 
 	private fun codeFence(node: ASTNode) {
-		collectCodeLines(node, MarkdownTokenTypes.CODE_FENCE_CONTENT).forEach { codeParagraph(it) }
+		collectCodeLines(node, source, MarkdownTokenTypes.CODE_FENCE_CONTENT).forEach { codeParagraph(it) }
 	}
 
 	private fun codeBlock(node: ASTNode) {
-		collectCodeLines(node, MarkdownTokenTypes.CODE_LINE)
+		collectCodeLines(node, source, MarkdownTokenTypes.CODE_LINE)
 			.map { it.removePrefix("    ").removePrefix("\t") }
 			.forEach { codeParagraph(it) }
-	}
-
-	private fun collectCodeLines(node: ASTNode, contentType: Any): List<String> {
-		val lines = mutableListOf<String>()
-		val current = StringBuilder()
-		for (child in node.children) {
-			when (child.type) {
-				contentType -> current.append(child.getTextInNode(source))
-				MarkdownTokenTypes.EOL -> {
-					lines += current.toString()
-					current.clear()
-				}
-			}
-		}
-		if (current.isNotEmpty()) lines += current.toString()
-		return lines.dropWhile { it.isBlank() }.dropLastWhile { it.isBlank() }
 	}
 
 	private fun codeParagraph(line: String) {
@@ -464,29 +442,4 @@ private class MarkdownRtfRenderer(
 		return result
 	}
 
-	private fun List<ASTNode>.stripDelimiters(delimiterType: Any): List<ASTNode> =
-		dropWhile { it.type == delimiterType }.dropLastWhile { it.type == delimiterType }
-
-	/** Resolves CommonMark backslash escapes to their bare punctuation. */
-	private fun unescape(text: String): String {
-		if (!text.contains('\\')) return text
-		val sb = StringBuilder(text.length)
-		var i = 0
-		while (i < text.length) {
-			val c = text[i]
-			val next = if (i + 1 < text.length) text[i + 1] else null
-			if (c == '\\' && next != null && next in ASCII_PUNCTUATION) {
-				sb.append(next)
-				i += 2
-			} else {
-				sb.append(c)
-				i++
-			}
-		}
-		return sb.toString()
-	}
-
-	private companion object {
-		const val ASCII_PUNCTUATION = "!\"#\$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
-	}
 }

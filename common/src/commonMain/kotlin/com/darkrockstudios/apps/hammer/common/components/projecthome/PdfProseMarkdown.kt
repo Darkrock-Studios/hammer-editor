@@ -112,12 +112,6 @@ private val HEADING_LEVELS: Map<IElementType, Int> = mapOf(
 	MarkdownElementTypes.SETEXT_2 to 2,
 )
 
-/** CommonMark backslash escapes: `\X` for ASCII punctuation X resolves to bare X. */
-private val ESCAPE_REGEX = Regex("""\\([!-/:-@\[-`{-~])""")
-
-private fun String.resolveEscapes(): String =
-	if ('\\' in this) ESCAPE_REGEX.replace(this) { it.groupValues[1] } else this
-
 private class ProseWalker(private val source: String) {
 
 	fun blocks(root: ASTNode): List<ProseBlock> = root.children.mapNotNull { block(it) }
@@ -323,7 +317,7 @@ private class ProseWalker(private val source: String) {
 			-> out += span(" ", flags)
 
 			else -> if (node.children.isEmpty()) {
-				out += span(node.getTextInNode(source).toString().resolveEscapes(), flags)
+				out += span(unescapeMarkdown(node.getTextInNode(source)), flags)
 			} else {
 				node.children.forEach { collect(it, flags, out) }
 			}
@@ -345,7 +339,7 @@ private class ProseWalker(private val source: String) {
 		node.findChildOfType(MarkdownElementTypes.LINK_DESTINATION)
 			?.getTextInNode(source)?.toString()
 			?.removeSurrounding("<", ">")
-			?.resolveEscapes()
+			?.let { unescapeMarkdown(it) }
 			?.takeIf { it.isNotBlank() }
 
 	private fun trimEqualDelimiters(children: List<ASTNode>, delimiter: IElementType): List<ASTNode> {

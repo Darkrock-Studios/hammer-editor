@@ -9,8 +9,6 @@ import com.conamobile.pdfkmp.unit.sp
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import okio.BufferedSink
 
-private const val TOC_TITLE = "Contents"
-
 private fun chapterAnchorId(index: Int): String = "chapter-$index"
 
 /**
@@ -25,6 +23,7 @@ fun writeStoryAsPdf(
 	projectName: String,
 	projectData: ProjectData,
 	chapters: List<StoryChapter>,
+	strings: ExportStrings,
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
@@ -54,15 +53,15 @@ fun writeStoryAsPdf(
 			box(width = 200.dp) {
 				divider(thickness = 2.dp, color = primary ?: PdfColor.Gray)
 			}
-			authorName?.let {
+			strings.authorByline?.let {
 				spacer(height = 10.dp)
-				text("by $it") { fontSize = 16.sp; italic = true }
+				text(it) { fontSize = 16.sp; italic = true }
 			}
 		}
 
 		// Contents page — each row links to the matching chapter's anchor below.
 		page {
-			text(TOC_TITLE) {
+			text(strings.contentsTitle) {
 				fontSize = 26.sp
 				bold = true
 				primary?.let { color = it }

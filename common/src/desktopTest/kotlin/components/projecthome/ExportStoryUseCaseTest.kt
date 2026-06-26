@@ -10,11 +10,13 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.util.Locale
+import com.darkrockstudios.apps.hammer.common.util.StrRes
 import integration.BaseIntegrationTest
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -25,6 +27,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	private lateinit var projectDataDatasource: ProjectDataDatasource
 	private lateinit var storedProjectData: StoredProjectData
 	private lateinit var localeResolver: DeviceLocaleResolver
+	private lateinit var strRes: StrRes
 
 	@BeforeEach
 	override fun setup() {
@@ -37,6 +40,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		localeResolver = mockk {
 			every { getCurrentLocale() } returns Locale.forLanguageTag("en-US")
 		}
+		strRes = mockk(relaxed = true)
 	}
 
 	private suspend fun initRepo() {
@@ -48,6 +52,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		projectDataDatasource = projectDataDatasource,
 		fileSystem = ffs,
 		localeResolver = localeResolver,
+		strRes = strRes,
 	)
 
 	@Test
@@ -141,6 +146,29 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		assertTrue(text.length > 100, "RTF output should be more than a stub, got ${text.length} chars")
 		// Every RTF document starts with the "{\rtf1" signature.
 		assertTrue(text.startsWith("{\\rtf1"), "RTF should start with the {\\rtf1 signature")
+	}
+
+	@Test
+	fun `exported document text comes from the localization system`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Ada"))
+		strRes = object : StrRes {
+			override suspend fun get(str: StringResource): String = "TOC_SENTINEL"
+			override suspend fun get(str: StringResource, vararg args: Any): String =
+				"BYLINE_SENTINEL ${args.joinToString()}"
+		}
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = ExportFormat.Rtf, treatTopLevelAsChapters = true),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertTrue("TOC_SENTINEL" in text, "Contents title should be resolved via StrRes, got: $text")
+		assertTrue(
+			"BYLINE_SENTINEL Ada" in text,
+			"Author byline should be resolved via StrRes with the author name, got: $text",
+		)
 	}
 
 	@Test

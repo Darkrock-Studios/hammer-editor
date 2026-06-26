@@ -172,6 +172,7 @@ val mainModule = module {
 				projectDataDatasource = get(),
 				fileSystem = get(named(RAW_FILESYSTEM)),
 				localeResolver = get(),
+				strRes = get(),
 			)
 		}
 		scopedOf(::SceneDraftsDatasource)

@@ -19,8 +19,6 @@ import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
 import org.intellij.markdown.parser.MarkdownParser
 import no.synth.kmpzip.okio.ZipOutputStream as OkioZipOutputStream
 
-private const val TOC_TITLE = "Contents"
-
 private const val W_NS = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 private const val R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 private const val CONTENT_TYPES_NS = "http://schemas.openxmlformats.org/package/2006/content-types"
@@ -44,8 +42,6 @@ private const val REL_TYPE_NUMBERING =
 private const val REL_TYPE_HYPERLINK =
 	"http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink"
 
-private const val BODY_FONT = "Georgia"
-private const val MONOSPACE_FONT = "Consolas"
 private const val DEFAULT_LINK_COLOR = "0563C1"
 
 private const val BULLET_NUM_ID = 1
@@ -54,8 +50,6 @@ private const val DECIMAL_ABSTRACT_ID = 1
 
 /** Relationship ids rId1/rId2 in document.xml.rels are styles and numbering; hyperlinks follow. */
 private const val FIRST_HYPERLINK_REL_ID = 3
-
-private fun chapterBookmark(index: Int): String = "chapter${index + 1}"
 
 /**
  * Renders the story as an OOXML WordprocessingML (.docx) package mirroring the EPUB layout:
@@ -68,6 +62,7 @@ fun writeStoryAsDocx(
 	projectName: String,
 	projectData: ProjectData,
 	chapters: List<StoryChapter>,
+	strings: ExportStrings,
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
@@ -75,7 +70,7 @@ fun writeStoryAsDocx(
 	// The body walk collects hyperlink targets and ordered-list instances that
 	// document.xml.rels and numbering.xml must declare, so it runs first.
 	val ctx = DocxRenderContext()
-	val documentXml = buildXmlPart { writeDocument(it, ctx, projectName, authorName, effective) }
+	val documentXml = buildXmlPart { writeDocument(it, ctx, projectName, strings, effective) }
 
 	val zip = OkioZipOutputStream(sink)
 	zip.putEntry("[Content_Types].xml", buildXmlPart(::writeContentTypes))
@@ -264,7 +259,7 @@ private fun writeStyles(writer: XmlWriter, theme: ProjectTheme?) {
 		w("docDefaults") {
 			w("rPrDefault") {
 				w("rPr") {
-					rFonts(BODY_FONT)
+					rFonts(EXPORT_BODY_FONT)
 					size(24)
 				}
 			}
@@ -312,8 +307,7 @@ private fun writeStyles(writer: XmlWriter, theme: ProjectTheme?) {
 			}
 		}
 
-		val headingSizes = listOf(48, 36, 32, 28, 26, 24)
-		headingSizes.forEachIndexed { index, halfPoints ->
+		HEADING_HALF_POINTS.forEachIndexed { index, halfPoints ->
 			val level = index + 1
 			style("Heading$level", "heading $level") {
 				wVal("next", "Normal")
@@ -404,14 +398,14 @@ private fun writeDocument(
 	writer: XmlWriter,
 	ctx: DocxRenderContext,
 	projectName: String,
-	authorName: String?,
+	strings: ExportStrings,
 	chapters: List<StoryChapter>,
 ) {
 	writer.smartStartTag(W_NS, "document", "w") {
 		namespaceAttr("r", R_NS)
 		w("body") {
-			writeTitlePage(projectName, authorName)
-			writeContentsPage(chapters)
+			writeTitlePage(projectName, strings.authorByline)
+			writeContentsPage(chapters, strings.contentsTitle)
 			chapters.forEachIndexed { index, chapter ->
 				writeChapter(ctx, index, chapter)
 			}
@@ -434,7 +428,7 @@ private fun writeDocument(
 	}
 }
 
-private fun XmlWriter.writeTitlePage(projectName: String, authorName: String?) {
+private fun XmlWriter.writeTitlePage(projectName: String, authorByline: String?) {
 	w("p") {
 		w("pPr") { wVal("pStyle", "Title") }
 		w("r") {
@@ -444,7 +438,7 @@ private fun XmlWriter.writeTitlePage(projectName: String, authorName: String?) {
 			}
 		}
 	}
-	authorName?.let {
+	authorByline?.let {
 		w("p") {
 			w("pPr") { wVal("jc", "center") }
 			w("r") {
@@ -454,14 +448,14 @@ private fun XmlWriter.writeTitlePage(projectName: String, authorName: String?) {
 				}
 				w("t") {
 					preserveSpace()
-					text("by $it")
+					text(it)
 				}
 			}
 		}
 	}
 }
 
-private fun XmlWriter.writeContentsPage(chapters: List<StoryChapter>) {
+private fun XmlWriter.writeContentsPage(chapters: List<StoryChapter>, contentsTitle: String) {
 	w("p") {
 		w("pPr") {
 			wVal("pStyle", "TocTitle")
@@ -470,7 +464,7 @@ private fun XmlWriter.writeContentsPage(chapters: List<StoryChapter>) {
 		w("r") {
 			w("t") {
 				preserveSpace()
-				text(TOC_TITLE)
+				text(contentsTitle)
 			}
 		}
 	}
@@ -613,7 +607,7 @@ private class MarkdownDocxWriter(
 			if (children.isNotEmpty()) {
 				renderInline(children)
 			} else {
-				content?.let { appendText(unescape(it.getTextInNode(source)).trim()) }
+				content?.let { appendText(unescapeMarkdown(it.getTextInNode(source)).trim()) }
 			}
 		}
 	}
@@ -649,7 +643,7 @@ private class MarkdownDocxWriter(
 
 				else -> {
 					if (node.children.isEmpty()) {
-						appendText(unescape(node.getTextInNode(source)))
+						appendText(unescapeMarkdown(node.getTextInNode(source)))
 					} else {
 						renderInline(node.children)
 					}
@@ -704,30 +698,14 @@ private class MarkdownDocxWriter(
 	}
 
 	private fun codeFence(node: ASTNode) {
-		val lines = collectCodeLines(node, MarkdownTokenTypes.CODE_FENCE_CONTENT)
+		val lines = collectCodeLines(node, source, MarkdownTokenTypes.CODE_FENCE_CONTENT)
 		lines.forEach { codeParagraph(it) }
 	}
 
 	private fun codeBlock(node: ASTNode) {
-		val lines = collectCodeLines(node, MarkdownTokenTypes.CODE_LINE)
+		val lines = collectCodeLines(node, source, MarkdownTokenTypes.CODE_LINE)
 			.map { it.removePrefix("    ").removePrefix("\t") }
 		lines.forEach { codeParagraph(it) }
-	}
-
-	private fun collectCodeLines(node: ASTNode, contentType: Any): List<String> {
-		val lines = mutableListOf<String>()
-		val current = StringBuilder()
-		for (child in node.children) {
-			when (child.type) {
-				contentType -> current.append(child.getTextInNode(source))
-				MarkdownTokenTypes.EOL -> {
-					lines += current.toString()
-					current.clear()
-				}
-			}
-		}
-		if (current.isNotEmpty()) lines += current.toString()
-		return lines.dropWhile { it.isBlank() }.dropLastWhile { it.isBlank() }
 	}
 
 	private fun codeParagraph(line: String) {
@@ -790,9 +768,9 @@ private class MarkdownDocxWriter(
 					if (inHyperlink) wVal("rStyle", "Hyperlink")
 					if (code) {
 						w("rFonts") {
-							wAttr("ascii", MONOSPACE_FONT)
-							wAttr("hAnsi", MONOSPACE_FONT)
-							wAttr("cs", MONOSPACE_FONT)
+							wAttr("ascii", EXPORT_MONO_FONT)
+							wAttr("hAnsi", EXPORT_MONO_FONT)
+							wAttr("cs", EXPORT_MONO_FONT)
 						}
 					}
 					if (boldDepth > 0) w("b")
@@ -806,32 +784,4 @@ private class MarkdownDocxWriter(
 		}
 	}
 
-	private fun List<ASTNode>.stripDelimiters(delimiterType: Any): List<ASTNode> =
-		dropWhile { it.type == delimiterType }.dropLastWhile { it.type == delimiterType }
-
-	/**
-	 * Resolves CommonMark backslash escapes to their bare punctuation. Unlike the PDF renderer's
-	 * variant, markdown delimiters are included: this text is final output, never re-parsed.
-	 */
-	private fun unescape(text: CharSequence): String {
-		if (!text.contains('\\')) return text.toString()
-		val out = StringBuilder(text.length)
-		var i = 0
-		while (i < text.length) {
-			val c = text[i]
-			val next = if (i + 1 < text.length) text[i + 1] else null
-			if (c == '\\' && next != null && next in ASCII_PUNCTUATION) {
-				out.append(next)
-				i += 2
-			} else {
-				out.append(c)
-				i++
-			}
-		}
-		return out.toString()
-	}
-
-	private companion object {
-		const val ASCII_PUNCTUATION = "!\"#\$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
-	}
 }

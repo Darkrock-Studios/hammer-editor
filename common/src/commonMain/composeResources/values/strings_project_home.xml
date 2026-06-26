@@ -111,6 +111,9 @@
 	<string name="project_home_export_help_format_rtf">A broadly compatible rich-text format; a safe choice when you are unsure which word processor the recipient uses.</string>
 	<string name="project_home_export_help_dismiss">Got it</string>
 
+	<string name="project_home_export_contents_title">Contents</string>
+	<string name="project_home_export_byline">by %1$s</string>
+
 	<string name="project_home_action_import">Import Story</string>
 	<string name="project_home_action_import_toast_success">Story Imported</string>
 	<string name="project_home_action_import_toast_failure">Import failed</string>
