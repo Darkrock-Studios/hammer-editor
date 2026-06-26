@@ -46,7 +46,6 @@ import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownFor
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
-import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.isDecorationOnly
 import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
 import com.darkrockstudios.apps.hammer.scene_editor_menu_item_close
 import com.darkrockstudios.texteditor.find.FindBar
@@ -55,7 +54,6 @@ import com.darkrockstudios.texteditor.rememberTextEditorStyle
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
-import kotlinx.coroutines.flow.filterNot
 
 @Composable
 fun FocusModeUi(component: FocusMode) {
@@ -95,7 +93,6 @@ fun FocusModeUi(component: FocusMode) {
 		// to prevent empty content from being sent to the buffer before it's populated
 		if (hasReceivedInitialBuffer) {
 			textEditorState.textState.editOperations
-				.filterNot { it.isDecorationOnly() }
 				.collect { _ ->
 					component.onContentChanged(ComposeRichText(markdownExtension))
 				}

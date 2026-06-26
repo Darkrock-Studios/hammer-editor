@@ -69,7 +69,6 @@ import com.darkrockstudios.texteditor.spellcheck.SpellCheckMode
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
-import kotlinx.coroutines.flow.filterNot
 import kotlinx.coroutines.launch
 
 const val SCENE_EDITOR_TEXT_TAG = "scene-editor-text"
@@ -122,7 +121,6 @@ fun SceneEditorUi(
 		// to prevent empty content from being sent to the buffer before it's populated
 		if (hasReceivedInitialBuffer) {
 			textEditorState.textState.editOperations
-				.filterNot { it.isDecorationOnly() }
 				.collect { _ ->
 					component.onContentChanged(ComposeRichText(markdownExtension))
 				}
