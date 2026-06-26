@@ -66,6 +66,7 @@ kmpalette = "3.1.0"
 koin_bom = "4.2.2"
 
 ktor = "3.5.1"
+ktor_plugin = "3.5.0"
 ktor_i18n = "2.0.0"
 
 okio = "3.17.0"
@@ -344,7 +345,7 @@ jetbrains_compose = { id = "org.jetbrains.compose", version.ref = "jetbrains_com
 compose_compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 compose_report_generator = { id = "dev.shreyaspatil.compose-compiler-report-generator", version.ref = "compose_compiler_report_generator" }
 jetbrains_kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "jetbrains_kover" }
-ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor_plugin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildconfig" }
 aboutlibraries_plugin = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutlibraries" }
