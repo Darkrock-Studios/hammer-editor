@@ -1,10 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.components.projecthome
 
-import org.intellij.markdown.IElementType
-import org.intellij.markdown.MarkdownTokenTypes
-import org.intellij.markdown.ast.ASTNode
-import org.intellij.markdown.ast.getTextInNode
-
 /**
  * Localized strings that appear in the exported document body. Resolved once by the export use case
  * (which has the suspending [com.darkrockstudios.apps.hammer.common.util.StrRes] context) and passed
@@ -31,7 +26,7 @@ internal val HEADING_HALF_POINTS = listOf(48, 36, 32, 28, 26, 24)
 /** Bookmark / anchor name for the chapter at [index], the target of its Contents link. */
 internal fun chapterBookmark(index: Int): String = "chapter${index + 1}"
 
-// Shared markdown-AST helpers used by the renderers that walk intellij-markdown directly.
+// Shared markdown text helpers used when turning the parsed prose model into export output.
 
 private const val ASCII_PUNCTUATION = "!\"#\$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 
@@ -54,23 +49,6 @@ internal fun unescapeMarkdown(text: CharSequence): String {
 	return sb.toString()
 }
 
-/** Drops the leading and trailing delimiter tokens (e.g. the `**` / `_` around a STRONG / EMPH span). */
-internal fun List<ASTNode>.stripDelimiters(delimiterType: IElementType): List<ASTNode> =
-	dropWhile { it.type == delimiterType }.dropLastWhile { it.type == delimiterType }
-
-/** Collects the lines of a fenced or indented code block, trimming leading and trailing blank lines. */
-internal fun collectCodeLines(node: ASTNode, source: String, contentType: IElementType): List<String> {
-	val lines = mutableListOf<String>()
-	val current = StringBuilder()
-	for (child in node.children) {
-		when (child.type) {
-			contentType -> current.append(child.getTextInNode(source))
-			MarkdownTokenTypes.EOL -> {
-				lines += current.toString()
-				current.clear()
-			}
-		}
-	}
-	if (current.isNotEmpty()) lines += current.toString()
-	return lines.dropWhile { it.isBlank() }.dropLastWhile { it.isBlank() }
-}
+/** Splits a code block's text into lines, trimming leading and trailing blank lines. */
+internal fun codeBlockLines(code: String): List<String> =
+	code.split("\n").dropWhile { it.isBlank() }.dropLastWhile { it.isBlank() }

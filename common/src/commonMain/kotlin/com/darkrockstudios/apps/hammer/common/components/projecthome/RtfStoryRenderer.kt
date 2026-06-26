@@ -15,19 +15,14 @@ import com.darkrockstudios.libs.rtfparserkmp.writer.RtfHyperlink
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfHyperlinkKind
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfInfo
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfInline
-import com.darkrockstudios.libs.rtfparserkmp.writer.RtfLineBreak
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfPageBreak
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfParagraph
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfParagraphStyle
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfSpanStyle
+import com.darkrockstudios.libs.rtfparserkmp.writer.RtfTab
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfTextRun
 import okio.BufferedSink
-import org.intellij.markdown.MarkdownElementTypes
-import org.intellij.markdown.MarkdownTokenTypes
-import org.intellij.markdown.ast.ASTNode
-import org.intellij.markdown.ast.getTextInNode
 import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
-import org.intellij.markdown.parser.MarkdownParser
 
 private val BODY_FONT = RtfFont(EXPORT_BODY_FONT, RtfFontFamily.Roman)
 private val MONO_FONT = RtfFont(EXPORT_MONO_FONT, RtfFontFamily.Modern)
@@ -170,7 +165,7 @@ private fun chapterBlocks(
 		),
 	)
 	if (chapter.markdown.isNotBlank()) {
-		addAll(MarkdownRtfRenderer(chapter.markdown, primary, secondary).render())
+		addAll(renderMarkdownRtf(chapter.markdown, primary, secondary))
 	}
 }
 
@@ -182,264 +177,166 @@ private fun themeColor(argb: String?): RtfColor? {
 }
 
 /**
- * Walks the markdown AST and produces [RtfBlock]s. Inline formatting is flattened into [RtfTextRun]s
- * carrying a cumulative [RtfSpanStyle], so nested emphasis (`**bold _italic_**`) becomes runs with the
- * combined style. Block structure (headings, lists, quotes, code) maps onto paragraph properties.
+ * Renders a chapter's markdown into [RtfBlock]s by consuming the shared [parseProseMarkdown] model
+ * (CommonMark flavour). Block kinds map onto paragraph properties; inline spans become styled
+ * [RtfTextRun]s, with consecutive same-link spans grouped into a single [RtfHyperlink]. Hard line
+ * breaks ride along as `\n` in run text — the rtf-writer escaper turns those into `\line`.
  */
-private class MarkdownRtfRenderer(
-	private val source: String,
-	private val primary: RtfColor?,
-	private val secondary: RtfColor?,
-) {
-	private val blocks = mutableListOf<RtfBlock>()
-	private var listDepth = -1
+private fun renderMarkdownRtf(markdown: String, primary: RtfColor?, secondary: RtfColor?): List<RtfBlock> {
+	val blocks = mutableListOf<RtfBlock>()
+	for (block in parseProseMarkdown(markdown, CommonMarkFlavourDescriptor())) {
+		when (block) {
+			is ProseBlock.Paragraph -> blocks += bodyParagraph(block.spans, primary)
+			is ProseBlock.Heading -> blocks += headingParagraph(block, primary, secondary)
+			is ProseBlock.Listing -> {
+				val numbering = RtfListNumbering()
+				block.items.forEach { blocks += listParagraph(it, numbering, primary) }
+			}
 
-	private data class BlockContext(
-		val quote: Boolean = false,
-		val listMarker: String? = null,
-		val indentLevel: Int = 0,
+			is ProseBlock.Quote -> block.paragraphs.forEach { blocks += quoteParagraph(it, primary) }
+			is ProseBlock.CodeBlock -> codeBlockLines(block.code).forEach { blocks += codeParagraph(it) }
+			ProseBlock.Rule -> blocks += ruleParagraph()
+			is ProseBlock.Table -> blocks += tableParagraphs(block, primary)
+		}
+	}
+	return blocks
+}
+
+private fun bodyParagraph(spans: List<ProseSpan>, primary: RtfColor?): RtfParagraph = RtfParagraph(
+	content = coalesceRuns(spansToInlines(spans, RtfSpanStyle.Default, primary)),
+	style = RtfParagraphStyle(firstLineIndentTwips = BODY_FIRST_LINE_INDENT, spaceAfterTwips = PARAGRAPH_SPACE_AFTER),
+)
+
+private fun headingParagraph(block: ProseBlock.Heading, primary: RtfColor?, secondary: RtfColor?): RtfParagraph {
+	val halfPoints = HEADING_HALF_POINTS[(block.level - 1).coerceIn(0, HEADING_HALF_POINTS.lastIndex)]
+	val color = when (block.level) {
+		1 -> primary
+		2 -> secondary
+		else -> null
+	}
+	val style = RtfSpanStyle(bold = true, fontSizeHalfPoints = halfPoints, color = color)
+	return RtfParagraph(
+		content = coalesceRuns(spansToInlines(block.spans, style, primary)),
+		style = RtfParagraphStyle(
+			spaceBeforeTwips = HEADING_SPACE_BEFORE,
+			spaceAfterTwips = PARAGRAPH_SPACE_AFTER,
+			keepWithNext = true,
+		),
 	)
+}
 
-	fun render(): List<RtfBlock> {
-		val tree = MarkdownParser(CommonMarkFlavourDescriptor()).buildMarkdownTreeFromString(source)
-		renderBlocks(tree.children, BlockContext())
-		return blocks
+private fun listParagraph(item: ProseListItem, numbering: RtfListNumbering, primary: RtfColor?): RtfParagraph {
+	val content = buildList {
+		add(RtfTextRun(numbering.marker(item), RtfSpanStyle.Default))
+		addAll(spansToInlines(item.spans, RtfSpanStyle.Default, primary))
 	}
+	return RtfParagraph(
+		content = coalesceRuns(content),
+		style = RtfParagraphStyle(
+			leftIndentTwips = LIST_INDENT_PER_LEVEL * (item.level + 1),
+			firstLineIndentTwips = -LIST_INDENT_PER_LEVEL,
+			spaceAfterTwips = PARAGRAPH_SPACE_AFTER,
+		),
+	)
+}
 
-	private fun renderBlocks(nodes: List<ASTNode>, blockCtx: BlockContext) {
-		// Only the first paragraph of a list item carries the bullet/number; trailing blocks flow under it.
-		var pendingMarker = blockCtx.listMarker
-		for (node in nodes) {
-			when (node.type) {
-				MarkdownElementTypes.PARAGRAPH -> {
-					addParagraph(blockCtx, pendingMarker, inlineRuns(node.children, baseStyle(blockCtx)))
-					pendingMarker = null
-				}
+private fun quoteParagraph(spans: List<ProseSpan>, primary: RtfColor?): RtfParagraph = RtfParagraph(
+	content = coalesceRuns(spansToInlines(spans, RtfSpanStyle(italic = true), primary)),
+	style = RtfParagraphStyle(leftIndentTwips = QUOTE_INDENT, spaceAfterTwips = PARAGRAPH_SPACE_AFTER),
+)
 
-				MarkdownElementTypes.ATX_1 -> heading(node, MarkdownTokenTypes.ATX_CONTENT, 1)
-				MarkdownElementTypes.ATX_2 -> heading(node, MarkdownTokenTypes.ATX_CONTENT, 2)
-				MarkdownElementTypes.ATX_3 -> heading(node, MarkdownTokenTypes.ATX_CONTENT, 3)
-				MarkdownElementTypes.ATX_4 -> heading(node, MarkdownTokenTypes.ATX_CONTENT, 4)
-				MarkdownElementTypes.ATX_5 -> heading(node, MarkdownTokenTypes.ATX_CONTENT, 5)
-				MarkdownElementTypes.ATX_6 -> heading(node, MarkdownTokenTypes.ATX_CONTENT, 6)
-				MarkdownElementTypes.SETEXT_1 -> heading(node, MarkdownTokenTypes.SETEXT_CONTENT, 1)
-				MarkdownElementTypes.SETEXT_2 -> heading(node, MarkdownTokenTypes.SETEXT_CONTENT, 2)
+private fun codeParagraph(line: String): RtfParagraph = RtfParagraph(
+	content = listOf(RtfTextRun(line, RtfSpanStyle(font = MONO_FONT))),
+	style = RtfParagraphStyle(spaceAfterTwips = 0),
+)
 
-				MarkdownElementTypes.BLOCK_QUOTE -> renderBlocks(
-					node.children,
-					blockCtx.copy(quote = true),
-				)
+private fun ruleParagraph(): RtfParagraph = RtfParagraph(
+	content = emptyList(),
+	style = RtfParagraphStyle(spaceAfterTwips = PARAGRAPH_SPACE_AFTER, bottomBorder = RtfBorder()),
+)
 
-				MarkdownElementTypes.UNORDERED_LIST -> renderList(node, ordered = false, blockCtx)
-				MarkdownElementTypes.ORDERED_LIST -> renderList(node, ordered = true, blockCtx)
-
-				MarkdownElementTypes.CODE_FENCE -> codeFence(node)
-				MarkdownElementTypes.CODE_BLOCK -> codeBlock(node)
-				MarkdownElementTypes.LINK_DEFINITION -> Unit
-
-				MarkdownTokenTypes.HORIZONTAL_RULE -> horizontalRule()
-
-				MarkdownTokenTypes.EOL,
-				MarkdownTokenTypes.WHITE_SPACE,
-				MarkdownTokenTypes.BLOCK_QUOTE,
-				MarkdownTokenTypes.LIST_BULLET,
-				MarkdownTokenTypes.LIST_NUMBER,
-					-> Unit
-
-				else -> {
-					if (node.children.isNotEmpty()) {
-						renderBlocks(node.children, blockCtx)
-					} else {
-						val literal = node.getTextInNode(source).toString()
-						if (literal.isNotBlank()) {
-							addParagraph(blockCtx, pendingMarker, listOf(RtfTextRun(unescapeMarkdown(literal), baseStyle(blockCtx))))
-							pendingMarker = null
-						}
-					}
-				}
+/** Tab-separated text fallback for tables (never produced under CommonMark; defensive). */
+private fun tableParagraphs(block: ProseBlock.Table, primary: RtfColor?): List<RtfBlock> =
+	(listOf(block.header) + block.rows).map { row ->
+		val content = buildList {
+			row.forEachIndexed { index, cell ->
+				if (index > 0) add(RtfTab)
+				addAll(spansToInlines(cell, RtfSpanStyle.Default, primary))
 			}
 		}
+		RtfParagraph(coalesceRuns(content), RtfParagraphStyle(spaceAfterTwips = PARAGRAPH_SPACE_AFTER))
 	}
 
-	private fun renderList(node: ASTNode, ordered: Boolean, blockCtx: BlockContext) {
-		listDepth++
-		var itemNumber = 1
-		node.children
-			.filter { it.type == MarkdownElementTypes.LIST_ITEM }
-			.forEach { item ->
-				val marker = if (ordered) "${itemNumber++}.\t" else "•\t"
-				renderBlocks(
-					item.children,
-					blockCtx.copy(listMarker = marker, indentLevel = listDepth + 1),
-				)
+/** Maps prose spans to RTF inlines, grouping consecutive same-link spans into one [RtfHyperlink]. */
+private fun spansToInlines(spans: List<ProseSpan>, base: RtfSpanStyle, primary: RtfColor?): List<RtfInline> {
+	val out = mutableListOf<RtfInline>()
+	var i = 0
+	while (i < spans.size) {
+		val link = spans[i].link
+		if (link != null) {
+			val linkStyle = base.copy(underline = true, color = primary)
+			val content = mutableListOf<RtfInline>()
+			while (i < spans.size && spans[i].link == link) {
+				content += runFor(spans[i], linkStyle)
+				i++
 			}
-		listDepth--
-	}
-
-	private fun heading(node: ASTNode, contentType: Any, level: Int) {
-		val content = node.children.firstOrNull { it.type == contentType }
-		val halfPoints = HEADING_HALF_POINTS[(level - 1).coerceIn(0, HEADING_HALF_POINTS.lastIndex)]
-		val color = when (level) {
-			1 -> primary
-			2 -> secondary
-			else -> null
+			out += RtfHyperlink(target = link, content = content)
+		} else {
+			out += runFor(spans[i], base)
+			i++
 		}
-		val style = RtfSpanStyle(bold = true, fontSizeHalfPoints = halfPoints, color = color)
-		val children = content?.children.orEmpty()
-			.dropWhile { it.type == MarkdownTokenTypes.WHITE_SPACE }
-			.dropLastWhile { it.type == MarkdownTokenTypes.WHITE_SPACE }
-		val runs = when {
-			children.isNotEmpty() -> inlineRuns(children, style)
-			content != null -> listOf(RtfTextRun(unescapeMarkdown(content.getTextInNode(source).toString()).trim(), style))
-			else -> emptyList()
-		}
-		blocks.add(
-			RtfParagraph(
-				content = coalesce(runs),
-				style = RtfParagraphStyle(
-					spaceBeforeTwips = HEADING_SPACE_BEFORE,
-					spaceAfterTwips = PARAGRAPH_SPACE_AFTER,
-					keepWithNext = true,
-				),
-			),
-		)
 	}
+	return out
+}
 
-	private fun addParagraph(blockCtx: BlockContext, listMarker: String?, content: List<RtfInline>) {
-		val style = when {
-			listMarker != null -> RtfParagraphStyle(
-				leftIndentTwips = LIST_INDENT_PER_LEVEL * blockCtx.indentLevel,
-				firstLineIndentTwips = -LIST_INDENT_PER_LEVEL,
-				spaceAfterTwips = PARAGRAPH_SPACE_AFTER,
-			)
+private fun runFor(span: ProseSpan, base: RtfSpanStyle): RtfTextRun = RtfTextRun(
+	text = span.text,
+	style = base.copy(
+		bold = base.bold || span.bold,
+		italic = base.italic || span.italic,
+		strikethrough = base.strikethrough || span.strikethrough,
+		font = if (span.code) MONO_FONT else base.font,
+	),
+)
 
-			blockCtx.quote -> RtfParagraphStyle(
-				leftIndentTwips = QUOTE_INDENT,
-				spaceAfterTwips = PARAGRAPH_SPACE_AFTER,
-			)
-
-			else -> RtfParagraphStyle(
-				firstLineIndentTwips = BODY_FIRST_LINE_INDENT,
-				spaceAfterTwips = PARAGRAPH_SPACE_AFTER,
-			)
+/** Merges consecutive [RtfTextRun]s that share a style so plain prose stays in a single run. */
+private fun coalesceRuns(inlines: List<RtfInline>): List<RtfInline> {
+	val result = mutableListOf<RtfInline>()
+	for (inline in inlines) {
+		val last = result.lastOrNull()
+		if (inline is RtfTextRun && last is RtfTextRun && last.style == inline.style) {
+			result[result.lastIndex] = last.copy(text = last.text + inline.text)
+		} else {
+			result.add(inline)
 		}
-		val full = buildList {
-			if (listMarker != null) add(RtfTextRun(listMarker, baseStyle(blockCtx)))
-			addAll(content)
-		}
-		blocks.add(RtfParagraph(coalesce(full), style))
 	}
+	return result
+}
 
-	private fun baseStyle(blockCtx: BlockContext): RtfSpanStyle =
-		if (blockCtx.quote) RtfSpanStyle(italic = true) else RtfSpanStyle.Default
+/**
+ * Per-level counters for the literal ordered-list numbers RTF must write itself. Items arrive
+ * flattened in reading order with a [ProseListItem.level]; descending starts a fresh counter,
+ * ascending continues the shallower list and drops the deeper ones.
+ */
+private class RtfListNumbering {
+	private val counters = mutableListOf<Int>()
+	private var lastLevel = -1
 
-	private fun inlineRuns(nodes: List<ASTNode>, style: RtfSpanStyle): List<RtfInline> {
-		val out = mutableListOf<RtfInline>()
-		appendInline(out, nodes, style)
-		return out
-	}
+	fun marker(item: ProseListItem): String {
+		val level = item.level
+		when {
+			level > lastLevel -> {
+				while (counters.size <= level) counters.add(0)
+				counters[level] = 1
+			}
 
-	private fun appendInline(out: MutableList<RtfInline>, nodes: List<ASTNode>, style: RtfSpanStyle) {
-		for (node in nodes) {
-			when (node.type) {
-				MarkdownElementTypes.STRONG ->
-					appendInline(out, node.children.stripDelimiters(MarkdownTokenTypes.EMPH), style.copy(bold = true))
-
-				MarkdownElementTypes.EMPH ->
-					appendInline(out, node.children.stripDelimiters(MarkdownTokenTypes.EMPH), style.copy(italic = true))
-
-				MarkdownElementTypes.CODE_SPAN -> {
-					val code = node.children
-						.filter { it.type != MarkdownTokenTypes.BACKTICK }
-						.joinToString("") { it.getTextInNode(source).toString() }
-					out.add(RtfTextRun(code.removeSurrounding(" "), style.copy(font = MONO_FONT)))
-				}
-
-				MarkdownElementTypes.INLINE_LINK -> inlineLink(out, node, style)
-				MarkdownElementTypes.AUTOLINK -> autoLink(out, node, style)
-
-				MarkdownTokenTypes.HARD_LINE_BREAK -> out.add(RtfLineBreak)
-				MarkdownTokenTypes.EOL -> out.add(RtfTextRun(" ", style))
-
-				else -> {
-					if (node.children.isEmpty()) {
-						out.add(RtfTextRun(unescapeMarkdown(node.getTextInNode(source).toString()), style))
-					} else {
-						appendInline(out, node.children, style)
-					}
-				}
+			level == lastLevel -> counters[level]++
+			else -> {
+				while (counters.size > level + 1) counters.removeAt(counters.lastIndex)
+				counters[level]++
 			}
 		}
+		lastLevel = level
+		return if (item.ordered) "${counters[level]}.\t" else "•\t"
 	}
-
-	private fun inlineLink(out: MutableList<RtfInline>, node: ASTNode, style: RtfSpanStyle) {
-		val destination =
-			node.children.firstOrNull { it.type == MarkdownElementTypes.LINK_DESTINATION }
-				?.getTextInNode(source)?.toString()?.removeSurrounding("<", ">")
-		val linkText = node.children.firstOrNull { it.type == MarkdownElementTypes.LINK_TEXT }
-		if (destination == null || linkText == null) {
-			out.add(RtfTextRun(unescapeMarkdown(node.getTextInNode(source).toString()), style))
-			return
-		}
-		val content = inlineRuns(
-			linkText.children.filter {
-				it.type != MarkdownTokenTypes.LBRACKET && it.type != MarkdownTokenTypes.RBRACKET
-			},
-			style.copy(underline = true, color = primary),
-		)
-		out.add(RtfHyperlink(target = destination, content = content))
-	}
-
-	private fun autoLink(out: MutableList<RtfInline>, node: ASTNode, style: RtfSpanStyle) {
-		val url = node.getTextInNode(source).toString().removeSurrounding("<", ">")
-		out.add(
-			RtfHyperlink(
-				target = url,
-				content = listOf(RtfTextRun(url, style.copy(underline = true, color = primary))),
-			),
-		)
-	}
-
-	private fun codeFence(node: ASTNode) {
-		collectCodeLines(node, source, MarkdownTokenTypes.CODE_FENCE_CONTENT).forEach { codeParagraph(it) }
-	}
-
-	private fun codeBlock(node: ASTNode) {
-		collectCodeLines(node, source, MarkdownTokenTypes.CODE_LINE)
-			.map { it.removePrefix("    ").removePrefix("\t") }
-			.forEach { codeParagraph(it) }
-	}
-
-	private fun codeParagraph(line: String) {
-		blocks.add(
-			RtfParagraph(
-				content = listOf(RtfTextRun(line, RtfSpanStyle(font = MONO_FONT))),
-				style = RtfParagraphStyle(spaceAfterTwips = 0),
-			),
-		)
-	}
-
-	private fun horizontalRule() {
-		blocks.add(
-			RtfParagraph(
-				content = emptyList(),
-				style = RtfParagraphStyle(spaceAfterTwips = PARAGRAPH_SPACE_AFTER, bottomBorder = RtfBorder()),
-			),
-		)
-	}
-
-	/** Merges consecutive [RtfTextRun]s that share a style so plain prose stays in a single run. */
-	private fun coalesce(inlines: List<RtfInline>): List<RtfInline> {
-		val result = mutableListOf<RtfInline>()
-		for (inline in inlines) {
-			val last = result.lastOrNull()
-			if (inline is RtfTextRun && last is RtfTextRun && last.style == inline.style) {
-				result[result.lastIndex] = last.copy(text = last.text + inline.text)
-			} else {
-				result.add(inline)
-			}
-		}
-		return result
-	}
-
 }
