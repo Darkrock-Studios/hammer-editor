@@ -19,11 +19,13 @@ class RtfStoryRendererTest {
 		projectData: ProjectData = ProjectData(authorName = "Test Author"),
 	): String {
 		val buffer = Buffer()
+		val author = projectData.authorName?.takeIf { it.isNotBlank() }
 		writeStoryAsRtf(
 			sink = buffer,
 			projectName = projectName,
 			projectData = projectData,
 			chapters = chapters,
+			strings = ExportStrings(contentsTitle = "Contents", authorByline = author?.let { "by $it" }),
 		)
 		return buffer.readByteArray().decodeToString()
 	}

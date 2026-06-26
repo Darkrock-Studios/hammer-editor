@@ -3,6 +3,7 @@ package components.projecthome
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.components.projecthome.StoryChapter
+import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStrings
 import com.darkrockstudios.apps.hammer.common.components.projecthome.writeStoryAsDocx
 import okio.Buffer
 import org.apache.poi.xwpf.usermodel.XWPFDocument
@@ -23,11 +24,13 @@ class DocxStoryRendererTest {
 		projectData: ProjectData = ProjectData(authorName = "Test Author"),
 	): XWPFDocument {
 		val buffer = Buffer()
+		val author = projectData.authorName?.takeIf { it.isNotBlank() }
 		writeStoryAsDocx(
 			sink = buffer,
 			projectName = projectName,
 			projectData = projectData,
 			chapters = chapters,
+			strings = ExportStrings(contentsTitle = "Contents", authorByline = author?.let { "by $it" }),
 		)
 		return XWPFDocument(ByteArrayInputStream(buffer.readByteArray()))
 	}

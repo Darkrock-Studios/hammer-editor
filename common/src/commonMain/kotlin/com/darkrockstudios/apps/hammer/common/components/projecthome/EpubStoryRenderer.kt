@@ -11,8 +11,6 @@ import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.parser.MarkdownParser
 
-private const val TOC_TITLE = "Contents"
-
 private data class TocEntry(val title: String, val href: String)
 
 fun writeStoryAsEpub(
@@ -21,6 +19,7 @@ fun writeStoryAsEpub(
 	projectData: ProjectData,
 	chapters: List<StoryChapter>,
 	language: String,
+	strings: ExportStrings,
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 
@@ -48,12 +47,12 @@ fun writeStoryAsEpub(
 		)
 
 		addSection(
-			TOC_TITLE,
+			strings.contentsTitle,
 			buildXhtmlResource(
 				id = "toc",
 				href = "toc.xhtml",
-				title = TOC_TITLE,
-				bodyBuilder = { tocPageBody(tocEntries) },
+				title = strings.contentsTitle,
+				bodyBuilder = { tocPageBody(strings.contentsTitle, tocEntries) },
 			),
 		)
 
@@ -144,9 +143,9 @@ private fun buildXhtmlResource(
 		.apply { mediaType = MediaTypes.XHTML }
 }
 
-private fun BODY.tocPageBody(entries: List<TocEntry>) {
+private fun BODY.tocPageBody(contentsTitle: String, entries: List<TocEntry>) {
 	classes = setOf("toc-page")
-	h1(classes = "toc-title") { +TOC_TITLE }
+	h1(classes = "toc-title") { +contentsTitle }
 	nav(classes = "toc") {
 		ol(classes = "toc-list") {
 			entries.forEach { entry ->
