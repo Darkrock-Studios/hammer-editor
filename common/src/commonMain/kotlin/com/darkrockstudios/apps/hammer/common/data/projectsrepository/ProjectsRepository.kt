@@ -107,7 +107,7 @@ class ProjectsRepository(
 	fun getProjects(projectsDir: HPath = getProjectsDirectory()): List<ProjectDef> {
 		val projPath = projectsDir.toOkioPath()
 		return fileSystem.list(projPath)
-			.filter { fileSystem.metadata(it).isDirectory }
+			.filter { fileSystem.metadataOrNull(it)?.isDirectory == true }
 			.filter { it.name.startsWith('.').not() }
 			.map { path -> ProjectDef(decodeFromFilename(path.name), path.toHPath()) }
 	}

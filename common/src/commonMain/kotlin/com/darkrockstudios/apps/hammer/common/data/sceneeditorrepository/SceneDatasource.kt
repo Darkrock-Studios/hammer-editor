@@ -100,7 +100,7 @@ class SceneDatasource(
 	fun getSceneTempBufferContents(): List<SceneContent> {
 		val bufferDirectory = getSceneBufferDirectory().toOkioPath()
 		return fileSystem.list(bufferDirectory)
-			.filter { fileSystem.metadata(it).isRegularFile }
+			.filter { fileSystem.metadataOrNull(it)?.isRegularFile == true }
 			.mapNotNull { path ->
 				val sceneId = getSceneIdFromBufferFilename(path.name)
 				resolveScenePathFromFilesystem(sceneId)?.let { scenePath ->
