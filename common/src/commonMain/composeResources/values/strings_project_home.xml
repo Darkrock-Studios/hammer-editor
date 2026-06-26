@@ -101,6 +101,16 @@
 	<string name="project_home_export_cancel">Cancel</string>
 	<string name="project_home_export_execute">Export</string>
 
+	<string name="project_home_export_help_icon_description">Learn about export formats</string>
+	<string name="project_home_export_help_title">Choosing an Export Format</string>
+	<string name="project_home_export_help_intro">Each format suits a different purpose. Pick the one that matches how you plan to use the exported story.</string>
+	<string name="project_home_export_help_format_markdown">Plain text with light formatting; ideal for version control, re-importing, or other writing tools.</string>
+	<string name="project_home_export_help_format_epub">The standard e-book format; best for beta readers reading on e-readers and phones with reflowable text.</string>
+	<string name="project_home_export_help_format_pdf">A fixed page layout that looks the same everywhere; best for printing or sharing a final, read-only copy.</string>
+	<string name="project_home_export_help_format_docx">Opens in Word and Google Docs; best for editors and beta readers who leave comments or track changes.</string>
+	<string name="project_home_export_help_format_rtf">A broadly compatible rich-text format; a safe choice when you are unsure which word processor the recipient uses.</string>
+	<string name="project_home_export_help_dismiss">Got it</string>
+
 	<string name="project_home_action_import">Import Story</string>
 	<string name="project_home_action_import_toast_success">Story Imported</string>
 	<string name="project_home_action_import_toast_failure">Import failed</string>

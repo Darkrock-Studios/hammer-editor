@@ -2,11 +2,6 @@ package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.compose.FormField
 import com.darkrockstudios.apps.hammer.common.compose.NameKind
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHelpButton
 import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
@@ -79,13 +75,10 @@ internal fun ProjectCreateMastheadActions(onHelp: () -> Unit, onImport: () -> Un
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
 	) {
-		IconButton(onClick = onHelp) {
-			Icon(
-				imageVector = Icons.AutoMirrored.Filled.HelpOutline,
-				contentDescription = Res.string.create_project_import_help_icon_description.get(),
-				tint = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-		}
+		HdHelpButton(
+			onClick = onHelp,
+			contentDescription = Res.string.create_project_import_help_icon_description.get(),
+		)
 		ProjectCreateImportAction(onImport)
 	}
 }
