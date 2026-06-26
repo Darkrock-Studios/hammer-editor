@@ -9,7 +9,6 @@ import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.Dp
@@ -179,31 +178,13 @@ private fun DraftPane(
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	val deletedHighlight = rememberDeletedHighlight()
-	val movedHighlight = rememberMovedHighlight()
-	var appliedStyle by remember(textEditorState) { mutableStateOf<HighlightSpanStyle?>(null) }
-	var appliedMovedStyle by remember(textEditorState) { mutableStateOf<HighlightSpanStyle?>(null) }
 
 	// The draft is read-only, so its rendered text never changes — submit it once for the diff.
 	LaunchedEffect(textEditorState) {
 		component.submitDraftText(textEditorState.getAllText().text)
 	}
-	LaunchedEffect(state.diffResult, state.showDiff, textEditorState, deletedHighlight, movedHighlight) {
-		val spans = if (state.showDiff) state.diffResult?.leftSpans.orEmpty() else emptyList()
-		applyDiffHighlights(
-			editorState = textEditorState,
-			spans = spans.filter { it.kind != DiffKind.MOVED },
-			style = deletedHighlight,
-			previousStyle = appliedStyle,
-		)
-		applyDiffHighlights(
-			editorState = textEditorState,
-			spans = spans.filter { it.kind == DiffKind.MOVED },
-			style = movedHighlight,
-			previousStyle = appliedMovedStyle,
-		)
-		appliedStyle = deletedHighlight
-		appliedMovedStyle = movedHighlight
-	}
+	val spans = if (state.showDiff) state.diffResult?.leftSpans.orEmpty() else emptyList()
+	DiffHighlightEffect(textEditorState, spans, deletedHighlight)
 
 	var title by remember { mutableStateOf("") }
 	LaunchedEffect(component.draftDef.draftName) {
@@ -263,9 +244,6 @@ private fun CurrentPane(
 	val state by component.state.subscribeAsState()
 	val markdownConfig = LocalMarkdownConfig.current
 	val insertedHighlight = rememberInsertedHighlight()
-	val movedHighlight = rememberMovedHighlight()
-	var appliedStyle by remember(textEditorState) { mutableStateOf<HighlightSpanStyle?>(null) }
-	var appliedMovedStyle by remember(textEditorState) { mutableStateOf<HighlightSpanStyle?>(null) }
 
 	val markdownExtension = remember(textEditorState) { textEditorState.withMarkdown(markdownConfig) }
 
@@ -288,23 +266,8 @@ private fun CurrentPane(
 		}
 	}
 
-	LaunchedEffect(state.diffResult, state.showDiff, textEditorState, insertedHighlight, movedHighlight) {
-		val spans = if (state.showDiff) state.diffResult?.rightSpans.orEmpty() else emptyList()
-		applyDiffHighlights(
-			editorState = textEditorState,
-			spans = spans.filter { it.kind != DiffKind.MOVED },
-			style = insertedHighlight,
-			previousStyle = appliedStyle,
-		)
-		applyDiffHighlights(
-			editorState = textEditorState,
-			spans = spans.filter { it.kind == DiffKind.MOVED },
-			style = movedHighlight,
-			previousStyle = appliedMovedStyle,
-		)
-		appliedStyle = insertedHighlight
-		appliedMovedStyle = movedHighlight
-	}
+	val spans = if (state.showDiff) state.diffResult?.rightSpans.orEmpty() else emptyList()
+	DiffHighlightEffect(textEditorState, spans, insertedHighlight)
 
 	Column(
 		modifier = modifier.padding(
@@ -361,8 +324,42 @@ private fun rememberInsertedHighlight(): HighlightSpanStyle {
 }
 
 @Composable
-private fun rememberMovedHighlight(): HighlightSpanStyle =
-	remember { HighlightSpanStyle(Color(0xFF3A5FA0).copy(alpha = DIFF_HIGHLIGHT_ALPHA)) }
+private fun rememberMovedHighlight(): HighlightSpanStyle {
+	val moved = LocalHammerColors.current.moved
+	return remember(moved) { HighlightSpanStyle(moved.copy(alpha = DIFF_HIGHLIGHT_ALPHA)) }
+}
+
+/**
+ * Paint one pane's diff [spans] onto its editor: plain deletions/insertions in [baseStyle] and
+ * relocated paragraphs in the shared moved style. Each kind is tracked independently so a theme
+ * change re-applies cleanly without orphaning the prior pass's spans.
+ */
+@Composable
+private fun DiffHighlightEffect(
+	editorState: TextEditorState,
+	spans: List<DiffSpan>,
+	baseStyle: HighlightSpanStyle,
+) {
+	val movedStyle = rememberMovedHighlight()
+	var appliedBase by remember(editorState) { mutableStateOf<HighlightSpanStyle?>(null) }
+	var appliedMoved by remember(editorState) { mutableStateOf<HighlightSpanStyle?>(null) }
+	LaunchedEffect(spans, editorState, baseStyle, movedStyle) {
+		applyDiffHighlights(
+			editorState = editorState,
+			spans = spans.filter { it.kind != DiffKind.MOVED },
+			style = baseStyle,
+			previousStyle = appliedBase,
+		)
+		applyDiffHighlights(
+			editorState = editorState,
+			spans = spans.filter { it.kind == DiffKind.MOVED },
+			style = movedStyle,
+			previousStyle = appliedMoved,
+		)
+		appliedBase = baseStyle
+		appliedMoved = movedStyle
+	}
+}
 
 /**
  * Replace the diff highlights drawn with [style] on this editor.

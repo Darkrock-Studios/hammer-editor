@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectsync
 
 import androidx.compose.runtime.*
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -74,9 +73,10 @@ internal fun diffInsertedStyle(): SpanStyle {
 	}
 }
 
+/** Blue background for relocated text, shown on both sides of a move. */
 @Composable
 internal fun diffMovedStyle(): SpanStyle {
-	val moved = Color(0xFF3A5FA0)
+	val moved = LocalHammerColors.current.moved
 	return remember(moved) {
 		SpanStyle(background = moved.copy(alpha = CONFLICT_DIFF_HIGHLIGHT_ALPHA))
 	}
@@ -93,7 +93,7 @@ internal fun diffHighlightedString(
 	text: String,
 	spans: List<DiffSpan>,
 	style: SpanStyle,
-	movedStyle: SpanStyle = style,
+	movedStyle: SpanStyle,
 ): AnnotatedString {
 	if (spans.isEmpty()) return AnnotatedString(text)
 	return buildAnnotatedString {
@@ -109,7 +109,7 @@ internal fun diffHighlightedString(
 internal class DiffHighlightTransformation(
 	private val spans: List<DiffSpan>,
 	private val style: SpanStyle,
-	private val movedStyle: SpanStyle = style,
+	private val movedStyle: SpanStyle,
 ) : VisualTransformation {
 	override fun filter(text: AnnotatedString): TransformedText {
 		if (spans.isEmpty()) return TransformedText(text, OffsetMapping.Identity)
@@ -133,7 +133,7 @@ internal class DiffHighlightTransformation(
 private fun AnnotatedString.Builder.applyDiffSpans(
 	spans: List<DiffSpan>,
 	style: SpanStyle,
-	movedStyle: SpanStyle = style,
+	movedStyle: SpanStyle,
 	length: Int,
 ) {
 	for (span in spans) {
