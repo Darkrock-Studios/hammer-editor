@@ -186,7 +186,8 @@
 					</select>
 					<a id="windows-download-btn"
 					   href="https://apps.microsoft.com/detail/9p84lm8qv5x6"
-					   class="download-link download-btn">
+					   class="download-link download-btn"{{#analyticsEnabled}}
+					   data-track-event="download" data-track-platform="windows" data-track-format="store"{{/analyticsEnabled}}>
 						<i id="windows-download-icon" class="fa-brands fa-windows"></i>
 						<span>{{msg.home_download_link}}</span>
 					</a>
@@ -209,7 +210,8 @@
 					</select>
 					<a id="macos-download-btn"
 					   href="https://apps.apple.com/us/app/hammer-editor/id6770841038"
-					   class="download-link download-btn">
+					   class="download-link download-btn"{{#analyticsEnabled}}
+					   data-track-event="download" data-track-platform="macos" data-track-format="store"{{/analyticsEnabled}}>
 						<i id="macos-download-icon" class="fa-brands fa-app-store-ios"></i>
 						<span>{{msg.home_download_link}}</span>
 					</a>
@@ -249,7 +251,8 @@
 					</select>
 					<a id="linux-download-btn"
 					   href="https://github.com/Wavesonics/hammer-editor/releases/latest/download/hammer.deb"
-					   class="download-link download-btn">
+					   class="download-link download-btn"{{#analyticsEnabled}}
+					   data-track-event="download" data-track-platform="linux" data-track-format="deb"{{/analyticsEnabled}}>
 						<i id="linux-download-icon" class="fa-brands fa-debian"></i>
 						<span>{{msg.home_download_link}}</span>
 					</a>
@@ -277,7 +280,8 @@
 					</select>
 					<a id="android-download-btn"
 					   href="https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android"
-					   class="download-link download-btn">
+					   class="download-link download-btn"{{#analyticsEnabled}}
+					   data-track-event="download" data-track-platform="android" data-track-format="playstore"{{/analyticsEnabled}}>
 						<i id="android-download-icon" class="fa-brands fa-google-play"></i>
 						<span>{{msg.home_download_link}}</span>
 					</a>
@@ -289,7 +293,8 @@
 				<h3>iOS</h3>
 				<span class="download-source"><i class="fa-brands fa-app-store-ios"></i> App Store</span>
 				<a href="https://apps.apple.com/us/app/hammer-editor/id6771650681"
-				   class="download-link download-btn">
+				   class="download-link download-btn"{{#analyticsEnabled}}
+				   data-track-event="download" data-track-platform="ios" data-track-format="appstore"{{/analyticsEnabled}}>
 					<i class="fa-brands fa-app-store-ios"></i>
 					<span>{{msg.home_download_link}}</span>
 				</a>

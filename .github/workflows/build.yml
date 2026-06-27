@@ -85,7 +85,7 @@ jobs:
       # boot. Keyed on every parameter that defines the AVD - bump the key if any `with:` value
       # below changes, or the cached snapshot won't match.
       - name: AVD cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         id: avd-cache
         with:
           path: |
@@ -127,13 +127,25 @@ jobs:
             android/build/reports/androidTests/connected/
             android/build/outputs/androidTest-results/connected/
 
-  # Compile gate for Kotlin/Native — the ubuntu `build` job never compiles the
-  # iOS targets, so Native-only breakage in commonMain slips through otherwise.
+  # The ubuntu `build` job never touches the iOS targets, so Native-only breakage
+  # in commonMain slips through otherwise. This job both compiles the iOS targets
+  # and runs the Kotlin/Native unit tests on the simulator.
   ios-compile:
-    name: iOS compile check
+    name: iOS compile & test
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
+      - name: Select Xcode 26
+        # macos-latest still defaults to Xcode 16.4 (iOS 18.5 SDK), but linking the
+        # iOS test executable pulls in Compose's ui-uikit, which references symbols
+        # (e.g. UIViewLayoutRegion) that only exist in the iOS 26 SDK. Without this
+        # the link fails non-deterministically depending on the runner image. Glob
+        # keeps us off a pinned patch version that could vanish on a future image.
+        run: |
+          XCODE_APP="$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+          echo "Using $XCODE_APP"
+          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          xcodebuild -version
       - name: set up JDK 21
         uses: actions/setup-java@v5
         with:
@@ -144,6 +156,17 @@ jobs:
         run: chmod +x gradlew
       - name: Compile iOS Kotlin targets
         run: ./gradlew :composeUi:compileKotlinIosArm64 :composeUi:compileKotlinIosSimulatorArm64
+      - name: Run iOS unit tests
+        id: ios-tests
+        run: ./gradlew :common:iosSimulatorArm64Test
+      - name: Upload iOS test report on failure
+        if: failure() && steps.ios-tests.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-tests-report
+          path: |
+            common/build/reports/tests/iosSimulatorArm64Test/
+            common/build/test-results/iosSimulatorArm64Test/
 
 #  ios:
 #    runs-on: macos-latest

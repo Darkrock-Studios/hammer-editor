@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.projecthome
+package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
@@ -15,23 +15,30 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
+import com.darkrockstudios.apps.hammer.common.compose.FormField
+import com.darkrockstudios.apps.hammer.common.compose.NameKind
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.data.ChapterHeadingLevel
 import com.darkrockstudios.apps.hammer.common.data.ImportFormat
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
+import com.darkrockstudios.apps.hammer.common.data.RtfSplitStrategy
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.PreviewItem
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 private val DialogMaxWidth = 560.dp
+private val DialogMaxHeight = 720.dp
 
 @Composable
 fun ImportStoryDialog(
 	visible: Boolean,
+	projectName: String,
 	options: ImportOptions,
 	preview: ImportPreview,
+	onProjectNameChange: (String) -> Unit,
 	onCancel: () -> Unit,
 	onOptionsChange: (ImportOptions) -> Unit,
 	onConfirm: () -> Unit,
@@ -46,58 +53,85 @@ fun ImportStoryDialog(
 		onClosed = { renderInternal = false },
 		properties = DialogProperties(usePlatformDefaultWidth = false),
 	) {
-		Surface(
-			modifier = Modifier
-				.padding(Ui.Padding.M)
-				.widthIn(max = DialogMaxWidth)
-				.fillMaxWidth()
-				.predictiveBackTransform(),
-			shape = RectangleShape,
-			color = MaterialTheme.colorScheme.surface,
-			contentColor = MaterialTheme.colorScheme.onSurface,
-			border = BorderStroke(
-				width = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-			),
-		) {
-			Column {
-				ImportMasthead(
-					options = options,
-					preview = preview,
-					onClose = onCancel,
-				)
-				HdFolioDivider()
+		Box(modifier = Modifier.predictiveBackTransform()) {
+			ImportStoryContent(
+				projectName = projectName,
+				options = options,
+				preview = preview,
+				onProjectNameChange = onProjectNameChange,
+				onCancel = onCancel,
+				onOptionsChange = onOptionsChange,
+				onConfirm = onConfirm,
+			)
+		}
+	}
+}
 
+@Composable
+internal fun ImportStoryContent(
+	projectName: String,
+	options: ImportOptions,
+	preview: ImportPreview,
+	onProjectNameChange: (String) -> Unit,
+	onCancel: () -> Unit,
+	onOptionsChange: (ImportOptions) -> Unit,
+	onConfirm: () -> Unit,
+) {
+	val nameValidation = rememberNameValidation(projectName, NameKind.Project)
+
+	Surface(
+		modifier = Modifier
+			.padding(Ui.Padding.M)
+			.widthIn(max = DialogMaxWidth)
+			.heightIn(max = DialogMaxHeight)
+			.fillMaxWidth()
+			.fillMaxHeight(0.9f),
+		shape = RectangleShape,
+		color = MaterialTheme.colorScheme.surface,
+		contentColor = MaterialTheme.colorScheme.onSurface,
+		border = BorderStroke(
+			width = Dp.Hairline,
+			color = MaterialTheme.colorScheme.outlineVariant,
+		),
+	) {
+		Column {
+			ImportMasthead(
+				options = options,
+				preview = preview,
+				onClose = onCancel,
+			)
+			HdFolioDivider()
+
+			Column(
+				modifier = Modifier
+					.weight(1f)
+					.fillMaxWidth()
+					.padding(
+						start = Ui.Padding.XL,
+						end = Ui.Padding.XL,
+						top = Ui.Padding.XL,
+						bottom = Ui.Padding.XL,
+					),
+			) {
 				Text(
 					text = stringResource(Res.string.project_home_import_dialog_title),
 					style = MaterialTheme.typography.headlineSmall,
 					color = MaterialTheme.colorScheme.onSurface,
-					modifier = Modifier.padding(
-						start = Ui.Padding.XL,
-						end = Ui.Padding.XL,
-						top = Ui.Padding.XL,
-						bottom = Ui.Padding.L,
-					),
+					modifier = Modifier.padding(bottom = Ui.Padding.L),
 				)
 
-				Column(
-					modifier = Modifier.padding(
-						start = Ui.Padding.XL,
-						end = Ui.Padding.XL,
-						bottom = Ui.Padding.XL,
-					),
-				) {
-					HdHairlineSegmentedPicker(
-						title = stringResource(Res.string.project_home_import_format_label),
-						options = AVAILABLE_IMPORT_FORMATS,
-						selected = options.format,
-						onSelect = { onOptionsChange(options.copy(format = it)) },
-						label = { stringResource(it.labelRes()) },
-					)
+				FormField(
+					value = projectName,
+					onValueChange = onProjectNameChange,
+					label = stringResource(Res.string.create_project_heading),
+					autoFocus = true,
+					error = nameValidation.fieldError(projectName),
+				)
 
-					Spacer(modifier = Modifier.height(Ui.Padding.XL))
+				Spacer(modifier = Modifier.height(Ui.Padding.XL))
 
-					HdHairlineSegmentedPicker(
+				when (options.format) {
+					ImportFormat.Markdown -> HdHairlineSegmentedPicker(
 						title = stringResource(Res.string.project_home_import_heading_label),
 						options = ChapterHeadingLevel.entries,
 						selected = options.chapterHeadingLevel,
@@ -105,25 +139,43 @@ fun ImportStoryDialog(
 						label = { stringResource(it.labelRes()) },
 					)
 
-					Spacer(modifier = Modifier.height(Ui.Padding.XL))
-
-					HdHairlineToggleRow(
-						checked = options.createChapterGroups,
-						onCheckedChange = { onOptionsChange(options.copy(createChapterGroups = it)) },
-						label = stringResource(Res.string.project_home_import_create_groups_label),
-					)
-
-					Spacer(modifier = Modifier.height(Ui.Padding.XL))
-
-					ImportPreviewPane(preview)
+					ImportFormat.Rtf -> {
+						HdHairlineSegmentedPicker(
+							title = stringResource(Res.string.project_home_import_split_label),
+							options = RtfSplitStrategy.entries,
+							selected = options.rtfSplitStrategy,
+							onSelect = { onOptionsChange(options.copy(rtfSplitStrategy = it)) },
+							label = { stringResource(it.labelRes()) },
+						)
+						if (options.rtfSplitStrategy == RtfSplitStrategy.Pattern) {
+							Spacer(modifier = Modifier.height(Ui.Padding.L))
+							FormField(
+								value = options.rtfChapterPattern,
+								onValueChange = { onOptionsChange(options.copy(rtfChapterPattern = it)) },
+								label = stringResource(Res.string.project_home_import_pattern_label),
+							)
+						}
+					}
 				}
 
-				ImportFooter(
-					onCancel = onCancel,
-					onConfirm = onConfirm,
-					confirmEnabled = !preview.isEmpty,
+				Spacer(modifier = Modifier.height(Ui.Padding.XL))
+
+				HdHairlineToggleRow(
+					checked = options.createChapterGroups,
+					onCheckedChange = { onOptionsChange(options.copy(createChapterGroups = it)) },
+					label = stringResource(Res.string.project_home_import_create_groups_label),
 				)
+
+				Spacer(modifier = Modifier.height(Ui.Padding.XL))
+
+				ImportPreviewPane(preview, Modifier.weight(1f))
 			}
+
+			ImportFooter(
+				onCancel = onCancel,
+				onConfirm = onConfirm,
+				confirmEnabled = !preview.isEmpty && nameValidation.isValid,
+			)
 		}
 	}
 }
@@ -137,7 +189,10 @@ private fun ImportMasthead(
 	val meta = remember(options, preview.totalScenes, preview.isEmpty) {
 		buildList {
 			add(options.format.metaLabel())
-			add(options.chapterHeadingLevel.name.uppercase())
+			when (options.format) {
+				ImportFormat.Markdown -> add(options.chapterHeadingLevel.name.uppercase())
+				ImportFormat.Rtf -> add(options.rtfSplitStrategy.name.uppercase())
+			}
 			if (!preview.isEmpty) {
 				add("${preview.totalScenes} SCENES")
 			}
@@ -187,8 +242,8 @@ private fun ImportFooter(
 }
 
 @Composable
-private fun ImportPreviewPane(preview: ImportPreview) {
-	Column {
+private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modifier) {
+	Column(modifier) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.SpaceBetween,
@@ -208,12 +263,12 @@ private fun ImportPreviewPane(preview: ImportPreview) {
 		Box(
 			modifier = Modifier
 				.fillMaxWidth()
+				.weight(1f)
 				.border(
 					width = Dp.Hairline,
 					color = MaterialTheme.colorScheme.outlineVariant,
 					shape = RectangleShape,
-				)
-				.heightIn(max = 240.dp),
+				),
 		) {
 			if (preview.isEmpty) {
 				Box(
@@ -291,17 +346,19 @@ private fun PreviewSceneRow(name: String, indented: Boolean) {
 	}
 }
 
-private val AVAILABLE_IMPORT_FORMATS = listOf(ImportFormat.Markdown)
-
-private fun ImportFormat.labelRes(): StringResource = when (this) {
-	ImportFormat.Markdown -> Res.string.project_home_export_format_markdown
-}
-
 private fun ImportFormat.metaLabel(): String = when (this) {
 	ImportFormat.Markdown -> "MARKDOWN"
+	ImportFormat.Rtf -> "RTF"
 }
 
 private fun ChapterHeadingLevel.labelRes(): StringResource = when (this) {
+	ChapterHeadingLevel.Auto -> Res.string.project_home_import_heading_auto
 	ChapterHeadingLevel.H1 -> Res.string.project_home_import_heading_h1
 	ChapterHeadingLevel.H2 -> Res.string.project_home_import_heading_h2
+}
+
+private fun RtfSplitStrategy.labelRes(): StringResource = when (this) {
+	RtfSplitStrategy.Formatting -> Res.string.project_home_import_split_formatting
+	RtfSplitStrategy.Pattern -> Res.string.project_home_import_split_pattern
+	RtfSplitStrategy.SingleScene -> Res.string.project_home_import_split_single
 }

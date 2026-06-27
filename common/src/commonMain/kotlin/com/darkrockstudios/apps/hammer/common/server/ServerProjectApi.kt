@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.*
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.encodeUrlPathSegment
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -26,7 +27,6 @@ class ServerProjectApi(
 
 	suspend fun beginProjectSync(
 		userId: Long,
-		projectName: String,
 		projectId: ProjectId,
 		clientState: ClientEntityState?,
 		lite: Boolean
@@ -37,11 +37,10 @@ class ServerProjectApi(
 		}
 
 		return post(
-			path = "/api/project/$userId/$projectName/begin_sync",
+			path = "/api/project/$userId/${projectId.id.encodeUrlPathSegment()}/begin_sync",
 			parse = { it.body() }
 		) {
 			url {
-				parameters.append("projectId", projectId.id)
 				if (lite) {
 					parameters.append("lite", lite.toString())
 				}
@@ -54,21 +53,17 @@ class ServerProjectApi(
 
 	suspend fun endProjectSync(
 		userId: Long,
-		projectName: String,
 		projectId: ProjectId,
 		syncId: String,
 		lastId: Int?,
 		syncEnd: Instant?,
 	): Result<String> {
 		return post(
-			path = "/api/project/$userId/$projectName/end_sync",
+			path = "/api/project/$userId/${projectId.id.encodeUrlPathSegment()}/end_sync",
 			parse = { it.body() },
 			builder = {
 				headers {
 					append(HEADER_SYNC_ID, syncId)
-				}
-				url {
-					parameters.append("projectId", projectId.id)
 				}
 				setBody(
 					FormDataContent(
@@ -83,7 +78,6 @@ class ServerProjectApi(
 	}
 
 	suspend fun uploadEntity(
-		projectName: String,
 		projectId: ProjectId,
 		entity: ApiProjectEntity,
 		originalHash: String?,
@@ -91,7 +85,7 @@ class ServerProjectApi(
 		force: Boolean = false
 	): Result<SaveEntityResponse> {
 		return post(
-			path = "/api/project/$userId/$projectName/upload_entity/${entity.id}",
+			path = "/api/project/$userId/${projectId.id.encodeUrlPathSegment()}/upload_entity/${entity.id}",
 			parse = { it.body() },
 			builder = {
 				contentType(ContentType.Application.Json)
@@ -104,7 +98,6 @@ class ServerProjectApi(
 				}
 				url {
 					parameters.append("force", force.toString())
-					parameters.append("projectId", projectId.id)
 				}
 				when (entity) {
 					is ApiProjectEntity.SceneEntity -> setBody(entity)
@@ -156,14 +149,13 @@ class ServerProjectApi(
 	}
 
 	suspend fun downloadEntity(
-		projectName: String,
 		projectId: ProjectId,
 		entityId: Int,
 		localHash: String?,
 		syncId: String
 	): Result<LoadEntityResponse> {
 		return get(
-			path = "/api/project/$userId/$projectName/download_entity/$entityId",
+			path = "/api/project/$userId/${projectId.id.encodeUrlPathSegment()}/download_entity/$entityId",
 			parse = { response ->
 				if (response.status == HttpStatusCode.NotModified) {
 					throw EntityNotModifiedException(entityId)
@@ -202,28 +194,21 @@ class ServerProjectApi(
 						append(HEADER_ENTITY_HASH, localHash)
 					}
 				}
-				url {
-					parameters.append("projectId", projectId.id)
-				}
 			}
 		)
 	}
 
 	suspend fun deleteId(
-		projectName: String,
 		projectId: ProjectId,
 		id: Int,
 		syncId: String
 	): Result<DeleteIdsResponse> {
 		return get(
-			path = "/api/project/$userId/$projectName/delete_entity/$id",
+			path = "/api/project/$userId/${projectId.id.encodeUrlPathSegment()}/delete_entity/$id",
 			parse = { it.body() },
 			builder = {
 				headers {
 					append(HEADER_SYNC_ID, syncId)
-				}
-				url {
-					parameters.append("projectId", projectId.id)
 				}
 			}
 		)

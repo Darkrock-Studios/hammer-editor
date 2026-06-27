@@ -8,13 +8,18 @@ import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
+import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.savableState
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
+import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
@@ -39,6 +44,8 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.common.util.lifecycleCoroutineScope
+import com.darkrockstudios.apps.hammer.project_home_action_import_toast_failure
+import com.darkrockstudios.apps.hammer.project_home_action_import_toast_success
 import com.darkrockstudios.apps.hammer.projects_list_toast_sync_complete
 import com.darkrockstudios.apps.hammer.projects_list_toast_sync_failed
 import com.darkrockstudios.apps.hammer.sync_log_begin_account
@@ -82,6 +89,7 @@ class ProjectsListComponent(
 	private val networkConnectivity: NetworkConnectivity by inject()
 	private val projectMetadataDatasource: ProjectMetadataDatasource by inject()
 	private val statisticsCacheReader: ProjectStatisticsCacheReader by inject()
+	private val importerRegistry: StoryImporterRegistry by inject()
 	private val fileSystem: FileSystem by inject()
 	private val toml: Toml by inject()
 	private val strRes: StrRes by inject()
@@ -307,6 +315,110 @@ class ProjectsListComponent(
 
 	override fun onProjectNameUpdate(newProjectName: String) {
 		_state.getAndUpdate { it.copy(createDialogProjectName = newProjectName) }
+	}
+
+	override fun beginProjectImport() {
+		modalRouter.dismissProjectCreate()
+		_state.getAndUpdate {
+			it.copy(createDialogProjectName = "", showImportFilePicker = true)
+		}
+	}
+
+	override fun cancelImportFilePicker() {
+		_state.getAndUpdate { it.copy(showImportFilePicker = false) }
+	}
+
+	override fun selectImportFile(name: String, content: ByteArray) {
+		val sourceName = name.substringBeforeLast('.')
+		val format = importerRegistry.formatForFileName(name)
+		val initialOptions = ImportOptions(format = format)
+		val preview = importerRegistry.forFormat(format).preview(sourceName, content, initialOptions)
+		val projectName = preview.title?.takeIf { it.isNotBlank() } ?: sourceName
+		_state.getAndUpdate {
+			it.copy(
+				showImportFilePicker = false,
+				showImportDialog = true,
+				importOptions = initialOptions,
+				importSourceName = sourceName,
+				importProjectName = projectName,
+				importFileContent = content,
+				importPreview = preview,
+			)
+		}
+	}
+
+	override fun updateImportProjectName(name: String) {
+		_state.getAndUpdate { it.copy(importProjectName = name) }
+	}
+
+	override fun updateImportOptions(options: ImportOptions) {
+		val current = _state.value
+		val preview = importerRegistry.forFormat(options.format).preview(
+			sourceName = current.importSourceName,
+			content = current.importFileContent,
+			options = options,
+		)
+		_state.getAndUpdate {
+			it.copy(importOptions = options, importPreview = preview)
+		}
+	}
+
+	override fun cancelImportDialog() {
+		_state.getAndUpdate {
+			it.copy(
+				showImportDialog = false,
+				importFileContent = ByteArray(0),
+				importSourceName = "",
+				importProjectName = "",
+				importPreview = ImportPreview(emptyList()),
+			)
+		}
+	}
+
+	override suspend fun confirmImportDialog() {
+		val projectName = _state.value.importProjectName
+		val previewToImport = _state.value.importPreview
+
+		val result = projectsRepository.createProject(projectName)
+		if (!isSuccess(result)) {
+			result.displayMessage?.let { msg -> showToast(scope, msg) }
+			Napier.e("Import: failed to create project '$projectName'")
+			return
+		}
+		val newDef = result.data
+
+		if (projectsSynchronizer.isServerSynchronized()) {
+			projectsSynchronizer.createProject(projectName)
+		}
+
+		_state.getAndUpdate {
+			it.copy(
+				showImportDialog = false,
+				importFileContent = ByteArray(0),
+				importSourceName = "",
+				importProjectName = "",
+				importPreview = ImportPreview(emptyList()),
+			)
+		}
+
+		try {
+			withContext(dispatcherDefault) {
+				temporaryProjectTask(newDef) { projScope ->
+					val importStoryUseCase: ImportStoryUseCase = projScope.get()
+					importStoryUseCase.execute(previewToImport)
+				}
+			}
+			loadProjectList()
+			withContext(mainDispatcher) {
+				showToast(scope, Res.string.project_home_action_import_toast_success)
+			}
+			// Import can fail many ways (parse, IO); report and show failure toast.
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+			Napier.e("Import failed", e)
+			withContext(mainDispatcher) {
+				showToast(scope, Res.string.project_home_action_import_toast_failure)
+			}
+		}
 	}
 
 	private suspend fun syncProject(

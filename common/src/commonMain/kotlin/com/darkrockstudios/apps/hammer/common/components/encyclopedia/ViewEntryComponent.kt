@@ -90,8 +90,10 @@ class ViewEntryComponent(
 
 	private fun reload() {
 		scope.launch {
-			val entryImagePath = getImagePath(state.value.entryDef)
-			val imageHash = encyclopediaService.calculateEntryImageHash(state.value.entryDef, "jpg")
+			val entryDef = state.value.entryDef
+			val entryImagePath = getImagePath(entryDef)
+			val imageHash = encyclopediaService.findEntryImageExtension(entryDef)
+				?.let { ext -> encyclopediaService.calculateEntryImageHash(entryDef, ext) }
 
 			val content = loadEntryContent(state.value.entryDef)
 			withContext(dispatcherMain) {
@@ -107,11 +109,7 @@ class ViewEntryComponent(
 	}
 
 	override fun getImagePath(entryDef: EntryDef): String? {
-		return if (encyclopediaService.hasEntryImage(entryDef, "jpg")) {
-			encyclopediaService.getEntryImagePath(entryDef, "jpg").path
-		} else {
-			null
-		}
+		return encyclopediaService.findEntryImagePath(entryDef)?.path
 	}
 
 	override suspend fun loadEntryContent(entryDef: EntryDef): EntryContent {

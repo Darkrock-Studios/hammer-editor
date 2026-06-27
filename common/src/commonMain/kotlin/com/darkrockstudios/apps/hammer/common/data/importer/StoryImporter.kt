@@ -9,7 +9,7 @@ interface StoryImporter {
 
 	fun preview(
 		sourceName: String,
-		content: String,
+		content: ByteArray,
 		options: ImportOptions,
 	): ImportPreview
 }
@@ -17,6 +17,8 @@ interface StoryImporter {
 @Serializable
 data class ImportPreview(
 	val items: List<PreviewItem>,
+	/** A story title detected during import (e.g. a leading Markdown `# Title`), if any. */
+	val title: String? = null,
 ) {
 	val isEmpty: Boolean get() = items.isEmpty()
 

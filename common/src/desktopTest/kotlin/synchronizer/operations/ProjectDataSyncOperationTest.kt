@@ -117,28 +117,28 @@ class ProjectDataSyncOperationTest : BaseTest() {
 
 	@Test
 	fun `server has no data and local is empty is a no-op success`() = runTest {
-		coEvery { api.getProjectData(any(), any(), any()) } returns Result.success(null)
+		coEvery { api.getProjectData(any(), any()) } returns Result.success(null)
 
 		val result = createOperation().run()
 
 		assertTrue(isSuccess(result))
-		coVerify(exactly = 0) { api.uploadProjectData(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 0) { api.uploadProjectData(any(), any(), any(), any()) }
 	}
 
 	@Test
 	fun `server has no data but local has data uploads with no original hash`() = runTest {
 		val local = ProjectData(authorName = "Author")
 		datasource.save(StoredProjectData(local, lastSyncedHash = null))
-		coEvery { api.getProjectData(any(), any(), any()) } returns Result.success(null)
+		coEvery { api.getProjectData(any(), any()) } returns Result.success(null)
 		coEvery {
-			api.uploadProjectData(any(), any(), any(), local, null)
+			api.uploadProjectData(any(), any(), local, null)
 		} returns Result.success(ProjectDataDto(local, "uploaded-hash"))
 
 		val result = createOperation().run()
 
 		assertTrue(isSuccess(result))
 		assertEquals("uploaded-hash", repository.state.value?.lastSyncedHash)
-		coVerify(exactly = 1) { api.uploadProjectData(any(), any(), any(), local, null) }
+		coVerify(exactly = 1) { api.uploadProjectData(any(), any(), local, null) }
 	}
 
 	@Test
@@ -146,14 +146,14 @@ class ProjectDataSyncOperationTest : BaseTest() {
 		val local = ProjectData(authorName = "Author")
 		val hash = ProjectDataHasher.hash(local)
 		datasource.save(StoredProjectData(local, lastSyncedHash = null))
-		coEvery { api.getProjectData(any(), any(), any()) } returns
+		coEvery { api.getProjectData(any(), any()) } returns
 			Result.success(ProjectDataDto(local, hash))
 
 		val result = createOperation().run()
 
 		assertTrue(isSuccess(result))
 		assertEquals(hash, repository.state.value?.lastSyncedHash)
-		coVerify(exactly = 0) { api.uploadProjectData(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 0) { api.uploadProjectData(any(), any(), any(), any()) }
 	}
 
 	@Test
@@ -161,7 +161,7 @@ class ProjectDataSyncOperationTest : BaseTest() {
 		val local = ProjectData(authorName = "Author")
 		val hash = ProjectDataHasher.hash(local)
 		datasource.save(StoredProjectData(local, lastSyncedHash = hash))
-		coEvery { api.getProjectData(any(), any(), any()) } returns
+		coEvery { api.getProjectData(any(), any()) } returns
 			Result.success(ProjectDataDto(local, hash))
 
 		val result = createOperation().run()
@@ -176,7 +176,7 @@ class ProjectDataSyncOperationTest : BaseTest() {
 		val localHash = ProjectDataHasher.hash(local)
 		datasource.save(StoredProjectData(local, lastSyncedHash = localHash))
 		val server = ProjectData(authorName = "Server Author")
-		coEvery { api.getProjectData(any(), any(), any()) } returns
+		coEvery { api.getProjectData(any(), any()) } returns
 			Result.success(ProjectDataDto(server, "server-hash"))
 
 		val result = createOperation().run()
@@ -190,27 +190,27 @@ class ProjectDataSyncOperationTest : BaseTest() {
 		val local = ProjectData(authorName = "Local Edit")
 		datasource.save(StoredProjectData(local, lastSyncedHash = "stale-hash"))
 		val server = ProjectData(authorName = "Server")
-		coEvery { api.getProjectData(any(), any(), any()) } returns
+		coEvery { api.getProjectData(any(), any()) } returns
 			Result.success(ProjectDataDto(server, "server-hash"))
 		coEvery {
-			api.uploadProjectData(any(), any(), any(), local, "stale-hash")
+			api.uploadProjectData(any(), any(), local, "stale-hash")
 		} returns Result.success(ProjectDataDto(local, "new-hash"))
 
 		val result = createOperation().run()
 
 		assertTrue(isSuccess(result))
 		assertEquals("new-hash", repository.state.value?.lastSyncedHash)
-		coVerify(exactly = 1) { api.uploadProjectData(any(), any(), any(), local, "stale-hash") }
+		coVerify(exactly = 1) { api.uploadProjectData(any(), any(), local, "stale-hash") }
 	}
 
 	@Test
 	fun `a non-conflict upload failure fails the sync`() = runTest {
 		val local = ProjectData(authorName = "Local Edit")
 		datasource.save(StoredProjectData(local, lastSyncedHash = "stale-hash"))
-		coEvery { api.getProjectData(any(), any(), any()) } returns
+		coEvery { api.getProjectData(any(), any()) } returns
 			Result.success(ProjectDataDto(ProjectData(authorName = "Server"), "server-hash"))
 		coEvery {
-			api.uploadProjectData(any(), any(), any(), any(), any())
+			api.uploadProjectData(any(), any(), any(), any())
 		} returns Result.failure(RuntimeException("upload exploded"))
 
 		val result = createOperation().run()
@@ -220,7 +220,7 @@ class ProjectDataSyncOperationTest : BaseTest() {
 
 	@Test
 	fun `a failure to load remote data fails the sync`() = runTest {
-		coEvery { api.getProjectData(any(), any(), any()) } returns
+		coEvery { api.getProjectData(any(), any()) } returns
 			Result.failure(RuntimeException("network down"))
 
 		val result = createOperation().run()
@@ -233,16 +233,16 @@ class ProjectDataSyncOperationTest : BaseTest() {
 		val local = ProjectData(authorName = "Local Edit")
 		datasource.save(StoredProjectData(local, lastSyncedHash = "stale-hash"))
 		val server = ProjectData(authorName = "Server")
-		coEvery { api.getProjectData(any(), any(), any()) } returns
+		coEvery { api.getProjectData(any(), any()) } returns
 			Result.success(ProjectDataDto(server, "server-hash"))
 		coEvery {
-			api.uploadProjectData(any(), any(), any(), local, "stale-hash")
+			api.uploadProjectData(any(), any(), local, "stale-hash")
 		} returns Result.failure(
 			ProjectDataConflictException(ProjectDataConflictDto(server, "server-hash"))
 		)
 		val resolved = ProjectData(authorName = "Merged")
 		coEvery {
-			api.uploadProjectData(any(), any(), any(), resolved, "server-hash")
+			api.uploadProjectData(any(), any(), resolved, "server-hash")
 		} returns Result.success(ProjectDataDto(resolved, "resolved-hash"))
 
 		val watcher = launch {
@@ -254,7 +254,7 @@ class ProjectDataSyncOperationTest : BaseTest() {
 
 		assertTrue(isSuccess(result))
 		assertEquals(StoredProjectData(resolved, "resolved-hash"), repository.state.value)
-		coVerify(exactly = 1) { api.uploadProjectData(any(), any(), any(), resolved, "server-hash") }
+		coVerify(exactly = 1) { api.uploadProjectData(any(), any(), resolved, "server-hash") }
 		watcher.cancel()
 	}
 
@@ -263,16 +263,16 @@ class ProjectDataSyncOperationTest : BaseTest() {
 		val local = ProjectData(authorName = "Local Edit")
 		datasource.save(StoredProjectData(local, lastSyncedHash = "stale-hash"))
 		val server = ProjectData(authorName = "Server")
-		coEvery { api.getProjectData(any(), any(), any()) } returns
+		coEvery { api.getProjectData(any(), any()) } returns
 			Result.success(ProjectDataDto(server, "server-hash"))
 		coEvery {
-			api.uploadProjectData(any(), any(), any(), local, "stale-hash")
+			api.uploadProjectData(any(), any(), local, "stale-hash")
 		} returns Result.failure(
 			ProjectDataConflictException(ProjectDataConflictDto(server, "server-hash"))
 		)
 		val resolved = ProjectData(authorName = "Merged")
 		coEvery {
-			api.uploadProjectData(any(), any(), any(), resolved, "server-hash")
+			api.uploadProjectData(any(), any(), resolved, "server-hash")
 		} returns Result.failure(RuntimeException("resolution rejected"))
 
 		val watcher = launch {
@@ -291,10 +291,10 @@ class ProjectDataSyncOperationTest : BaseTest() {
 		val local = ProjectData(authorName = "Local Edit")
 		datasource.save(StoredProjectData(local, lastSyncedHash = "stale-hash"))
 		val server = ProjectData(authorName = "Server")
-		coEvery { api.getProjectData(any(), any(), any()) } returns
+		coEvery { api.getProjectData(any(), any()) } returns
 			Result.success(ProjectDataDto(server, "server-hash"))
 		coEvery {
-			api.uploadProjectData(any(), any(), any(), any(), any())
+			api.uploadProjectData(any(), any(), any(), any())
 		} returns Result.failure(
 			ProjectDataConflictException(ProjectDataConflictDto(server, "server-hash"))
 		)

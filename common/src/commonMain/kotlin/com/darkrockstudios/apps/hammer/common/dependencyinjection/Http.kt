@@ -152,7 +152,24 @@ fun HttpRequestBuilder.url(serverSettings: ServerSettings, path: String) {
 		if (serverPort != null) {
 			port = serverPort
 		}
-		pathSegments = path.split("/")
+		encodedPath = path
+	}
+}
+
+/**
+ * Encodes a dynamic value (e.g. a project name) so it can be safely interpolated into a request
+ * path as a single opaque segment. Without this, a value containing `/` would split into extra
+ * path segments and a `..` value would act as a traversal dot-segment, letting a value reach a
+ * different endpoint than the one the template intended.
+ */
+fun String.encodeUrlPathSegment(): String {
+	val encoded = encodeURLPathPart()
+	// `encodeURLPathPart` leaves dots untouched, so a segment of only dots would still be a
+	// traversal dot-segment. Percent-encode them so the value stays a single inert segment.
+	return if (encoded.isNotEmpty() && encoded.all { it == '.' }) {
+		encoded.replace(".", "%2E")
+	} else {
+		encoded
 	}
 }
 

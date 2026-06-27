@@ -19,8 +19,8 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 /**
- * Verifies the scene-path scan cache: reads reuse a single recursive scan, and every structural
- * mutation invalidates it so results never go stale.
+ * Verifies the scene-path scan cache: reads reuse a single recursive scan, creation updates the
+ * cache in place, and other structural mutations invalidate it, so results never go stale.
  */
 class SceneDatasourceCacheTest : BaseTest() {
 
@@ -70,26 +70,26 @@ class SceneDatasourceCacheTest : BaseTest() {
 	}
 
 	@Test
-	fun `structural mutation invalidates the cache and returns fresh results`() = runTest {
+	fun `creating a scene updates the warm cache in place without re-scanning`() = runTest {
 		val before = sceneDatasource.getAllScenePaths()
 		val newId = 999
 		val newPath = sceneDatasource.getSceneDirectory().toOkioPath()
 			.div("5~Freshly Added~$newId.md").toHPath()
 
-		// createNewGroup writes a new scene file; the cache must be invalidated.
+		val scansBefore = countingFs.listRecursivelyCount
+		// createNewGroup writes a new scene file; the warm cache absorbs it without a re-scan.
 		sceneDatasource.createNewGroup(newPath)
 
-		val scansBefore = countingFs.listRecursivelyCount
 		val after = sceneDatasource.getAllScenePaths()
 		assertEquals(
-			scansBefore + 1,
+			scansBefore,
 			countingFs.listRecursivelyCount,
-			"A mutation must force the next read to re-scan"
+			"Creation must update the warm cache in place, not trigger a recursive re-scan"
 		)
-		assertEquals(before.size + 1, after.size, "New scene must appear after invalidation")
+		assertEquals(before.size + 1, after.size, "New scene must appear in the cache")
 		assertNotNull(
 			sceneDatasource.resolveScenePathFromFilesystem(newId),
-			"Newly created scene must be resolvable (no stale cache)"
+			"Newly created scene must be resolvable (cache stays fresh)"
 		)
 	}
 

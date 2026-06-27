@@ -12,9 +12,11 @@
 	{{#page_stylesheet}}
 		<link rel="stylesheet" href="{{page_stylesheet}}">
 	{{/page_stylesheet}}
-	{{#analyticsHead}}
+	{{#analyticsEnabled}}
 		{{{analyticsHead}}}
-	{{/analyticsHead}}
+		<script>{{{analyticsBridge}}}</script>
+		<script defer src="/assets/js/analytics.js"></script>
+	{{/analyticsEnabled}}
 </head>
 <body>
 <header class="site-header">

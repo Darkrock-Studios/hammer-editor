@@ -10,14 +10,14 @@ import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
-import com.darkrockstudios.apps.hammer.common.storyeditor.OutlineOverviewUi
+import com.darkrockstudios.apps.hammer.common.storyeditor.OutlineOverviewContent
 
 @Preview
 @Composable
 fun ScreenOutlineOverviewUiPreview() {
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview) {
-			OutlineOverviewUi(component)
+			OutlineOverviewContent(component, onDismiss = {})
 		}
 	}
 }

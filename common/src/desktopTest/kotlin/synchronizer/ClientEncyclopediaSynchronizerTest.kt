@@ -254,6 +254,99 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 	}
 
 	@Test
+	fun `storeEntity rejects a traversal file extension and writes no image but still stores the entry`() = runTest {
+		val imageBytes = byteArrayOf(4, 5, 6)
+		val sync = newSynchronizer()
+		val serverEntity = sync.createEntityForId(entry1().id).copy(
+			text = "Stored anyway",
+			image = com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity.EncyclopediaEntryEntity.Image(
+				base64 = Base64.encode(imageBytes, url = true),
+				fileExtension = "jpg/../../../../evil",
+			),
+		)
+
+		val before = allRegularFiles()
+
+		val stored = sync.storeEntity(serverEntity, syncId = "sync", onLog = {})
+
+		assertTrue(stored)
+		assertEquals("Stored anyway", repository.loadEntry(entry1().id).entry.text)
+		assertEquals(before, allRegularFiles())
+	}
+
+	@Test
+	fun `storeEntity rejects an unknown image extension`() = runTest {
+		val sync = newSynchronizer()
+		val serverEntity = sync.createEntityForId(entry1().id).copy(
+			image = com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity.EncyclopediaEntryEntity.Image(
+				base64 = Base64.encode(byteArrayOf(1), url = true),
+				fileExtension = "exe",
+			),
+		)
+
+		val before = allRegularFiles()
+		sync.storeEntity(serverEntity, syncId = "sync", onLog = {})
+
+		assertEquals(before, allRegularFiles())
+	}
+
+	@Test
+	fun `storeEntity writes a png image with an allowed extension`() = runTest {
+		val imageBytes = byteArrayOf(7, 7, 7)
+		val sync = newSynchronizer()
+		val serverEntity = sync.createEntityForId(entry1().id).copy(
+			image = com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity.EncyclopediaEntryEntity.Image(
+				base64 = Base64.encode(imageBytes, url = true),
+				fileExtension = "png",
+			),
+		)
+
+		sync.storeEntity(serverEntity, syncId = "sync", onLog = {})
+
+		val def = entry1().toDef(projectDef)
+		assertTrue(datasource.hasEntryImage(def, "png"))
+		assertContentEquals(imageBytes, datasource.loadEntryImage(def, "png"))
+	}
+
+	@Test
+	fun `a non-jpg synced image round-trips with a stable hash and is cleared on server-clear`() = runTest {
+		val imageBytes = byteArrayOf(10, 20, 30, 40)
+		val sync = newSynchronizer()
+		val serverEntity = sync.createEntityForId(entry1().id).copy(
+			image = com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity.EncyclopediaEntryEntity.Image(
+				base64 = Base64.encode(imageBytes, url = true),
+				fileExtension = "png",
+			),
+		)
+
+		// Download: the png is stored under its real extension, no stray jpg.
+		sync.storeEntity(serverEntity, syncId = "sync", onLog = {})
+		val def = entry1().toDef(projectDef)
+		assertTrue(datasource.hasEntryImage(def, "png"))
+		assertFalse(datasource.hasEntryImage(def, "jpg"))
+
+		// The locally recomputed hash agrees with the server's, so the entry is not
+		// flagged dirty and re-synced on every run.
+		assertEquals(serverEntity.hash(), sync.getEntityHash(entry1().id))
+
+		// Re-upload reports the real extension and the original bytes.
+		val reuploaded = sync.createEntityForId(entry1().id)
+		assertEquals("png", reuploaded.image?.fileExtension)
+		assertContentEquals(imageBytes, Base64.decode(reuploaded.image!!.base64, url = true))
+
+		// Server-clear removes the stored file rather than orphaning it.
+		sync.storeEntity(serverEntity.copy(image = null), syncId = "sync", onLog = {})
+		assertNull(datasource.findEntryImagePath(def))
+		assertFalse(datasource.hasEntryImage(def, "png"))
+	}
+
+	private fun allRegularFiles(): Set<String> =
+		fileSystem.allPaths
+			.filter { fileSystem.metadataOrNull(it)?.isRegularFile == true }
+			.map { it.toString() }
+			.toSet()
+
+	@Test
 	fun `storeEntity drops a local image when the server has none`() = runTest {
 		val def = entry1().toDef(projectDef)
 		datasource.writeEntryImage(def, byteArrayOf(1, 2, 3), "jpg")
@@ -310,7 +403,7 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 	fun `uploadEntity sends the entity and reports the synced hash on success`() = runTest {
 		val sync = newSynchronizer()
 		coEvery {
-			serverProjectApi.uploadEntity(any(), any(), any(), any(), any(), any())
+			serverProjectApi.uploadEntity(any(), any(), any(), any(), any())
 		} returns Result.success(SaveEntityResponse(saved = true))
 
 		val synced = mutableListOf<Pair<Int, String>>()
@@ -329,7 +422,6 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		assertEquals(listOf(entry1().id to sync.getEntityHash(entry1().id)), synced)
 		coVerify {
 			serverProjectApi.uploadEntity(
-				projectDef.name,
 				ProjectId("server-project"),
 				match { it.id == entry1().id },
 				"old-hash",
@@ -343,7 +435,7 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 	fun `uploadEntity passes the force flag through to the server`() = runTest {
 		val sync = newSynchronizer()
 		coEvery {
-			serverProjectApi.uploadEntity(any(), any(), any(), any(), any(), any())
+			serverProjectApi.uploadEntity(any(), any(), any(), any(), any())
 		} returns Result.success(SaveEntityResponse(saved = true))
 
 		sync.uploadEntity(
@@ -355,14 +447,14 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 			force = true,
 		)
 
-		coVerify { serverProjectApi.uploadEntity(any(), any(), any(), any(), any(), true) }
+		coVerify { serverProjectApi.uploadEntity(any(), any(), any(), any(), true) }
 	}
 
 	@Test
 	fun `uploadEntity returns false and does not report synced on a non-conflict failure`() = runTest {
 		val sync = newSynchronizer()
 		coEvery {
-			serverProjectApi.uploadEntity(any(), any(), any(), any(), any(), any())
+			serverProjectApi.uploadEntity(any(), any(), any(), any(), any())
 		} returns Result.failure(RuntimeException("server exploded"))
 
 		val synced = mutableListOf<Pair<Int, String>>()
@@ -387,10 +479,10 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		val resolved = sync.createEntityForId(entry1().id).copy(text = "merged resolution")
 
 		coEvery {
-			serverProjectApi.uploadEntity(any(), any(), any(), "old-hash", any(), false)
+			serverProjectApi.uploadEntity(any(), any(), "old-hash", any(), false)
 		} returns Result.failure(EntityConflictException.EncyclopediaEntryConflictException(serverVersion))
 		coEvery {
-			serverProjectApi.uploadEntity(any(), any(), any(), null, any(), true)
+			serverProjectApi.uploadEntity(any(), any(), null, any(), true)
 		} returns Result.success(SaveEntityResponse(saved = true))
 
 		val conflicted = mutableListOf<Int>()
@@ -419,10 +511,10 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		val resolved = sync.createEntityForId(entry1().id).copy(text = "merged resolution")
 
 		coEvery {
-			serverProjectApi.uploadEntity(any(), any(), any(), "old-hash", any(), false)
+			serverProjectApi.uploadEntity(any(), any(), "old-hash", any(), false)
 		} returns Result.failure(EntityConflictException.EncyclopediaEntryConflictException(serverVersion))
 		coEvery {
-			serverProjectApi.uploadEntity(any(), any(), any(), null, any(), true)
+			serverProjectApi.uploadEntity(any(), any(), null, any(), true)
 		} returns Result.failure(RuntimeException("resolution rejected"))
 
 		launch { sync.conflictResolution.send(resolved) }

@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.5.0] - 2026-6-27
+
+- [New] Import existing stories (from Markdown or RTF) from the new-project flow
+- [New] New export format: RTF
+- [New] Draft compare: Paragraph move highlighting
+- [Fix] Editor undo/redo getting broken by formatting
+- [Fix] Timeline reordering events snapping back into place
+- [Fix] Breaking change: Sync API URLs now only use project IDs
+- Security hardening: sync auth tokens encrypted at rest, file write sandboxing, max image size enforced
+
+
 ## [3.4.2] - 2026-6-23
 
 - [Fix] Server security hardening

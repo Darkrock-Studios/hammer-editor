@@ -8,6 +8,7 @@ import androidx.compose.ui.text.input.OffsetMapping
 import androidx.compose.ui.text.input.TransformedText
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
+import com.darkrockstudios.apps.hammer.base.diff.DiffKind
 import com.darkrockstudios.apps.hammer.base.diff.DiffResult
 import com.darkrockstudios.apps.hammer.base.diff.DiffSpan
 import com.darkrockstudios.apps.hammer.base.diff.PreparedText
@@ -72,6 +73,15 @@ internal fun diffInsertedStyle(): SpanStyle {
 	}
 }
 
+/** Blue background for relocated text, shown on both sides of a move. */
+@Composable
+internal fun diffMovedStyle(): SpanStyle {
+	val moved = LocalHammerColors.current.moved
+	return remember(moved) {
+		SpanStyle(background = moved.copy(alpha = CONFLICT_DIFF_HIGHLIGHT_ALPHA))
+	}
+}
+
 /**
  * Overlay [style] onto [text] across the given diff [spans], leaving the text itself unchanged.
  *
@@ -83,11 +93,12 @@ internal fun diffHighlightedString(
 	text: String,
 	spans: List<DiffSpan>,
 	style: SpanStyle,
+	movedStyle: SpanStyle,
 ): AnnotatedString {
 	if (spans.isEmpty()) return AnnotatedString(text)
 	return buildAnnotatedString {
 		append(text)
-		applyDiffSpans(spans, style, text.length)
+		applyDiffSpans(spans, style, movedStyle, text.length)
 	}
 }
 
@@ -98,32 +109,39 @@ internal fun diffHighlightedString(
 internal class DiffHighlightTransformation(
 	private val spans: List<DiffSpan>,
 	private val style: SpanStyle,
+	private val movedStyle: SpanStyle,
 ) : VisualTransformation {
 	override fun filter(text: AnnotatedString): TransformedText {
 		if (spans.isEmpty()) return TransformedText(text, OffsetMapping.Identity)
 		val annotated = buildAnnotatedString {
 			append(text)
-			applyDiffSpans(spans, style, text.length)
+			applyDiffSpans(spans, style, movedStyle, text.length)
 		}
 		return TransformedText(annotated, OffsetMapping.Identity)
 	}
 
 	override fun equals(other: Any?): Boolean =
-		other is DiffHighlightTransformation && other.spans == spans && other.style == style
+		other is DiffHighlightTransformation &&
+			other.spans == spans &&
+			other.style == style &&
+			other.movedStyle == movedStyle
 
-	override fun hashCode(): Int = 31 * spans.hashCode() + style.hashCode()
+	override fun hashCode(): Int =
+		31 * (31 * spans.hashCode() + style.hashCode()) + movedStyle.hashCode()
 }
 
 private fun AnnotatedString.Builder.applyDiffSpans(
 	spans: List<DiffSpan>,
 	style: SpanStyle,
+	movedStyle: SpanStyle,
 	length: Int,
 ) {
 	for (span in spans) {
 		val start = span.range.start
 		val end = span.range.endExclusive
 		if (start in 0..length && end in start..length) {
-			addStyle(style, start, end)
+			val s = if (span.kind == DiffKind.MOVED) movedStyle else style
+			addStyle(s, start, end)
 		}
 	}
 }

@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectListModalRouter
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -40,6 +41,13 @@ val projectListComponent = object : ProjectsList {
 	override fun showCreate() {}
 	override fun hideCreate() {}
 	override fun createProject(projectName: String) {}
+	override fun beginProjectImport() {}
+	override fun cancelImportFilePicker() {}
+	override fun selectImportFile(name: String, content: ByteArray) {}
+	override fun updateImportProjectName(name: String) {}
+	override fun updateImportOptions(options: ImportOptions) {}
+	override fun cancelImportDialog() {}
+	override suspend fun confirmImportDialog() {}
 	override fun deleteProject(projectDef: ProjectDef) {}
 	override fun renameProject(projectDef: ProjectDef, newName: String) {}
 	override fun syncProjects(callback: (Boolean) -> Unit) {}

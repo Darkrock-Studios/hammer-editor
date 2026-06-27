@@ -50,7 +50,6 @@ import io.github.koalaplot.core.style.KoalaPlotTheme
 import io.github.koalaplot.core.util.ExperimentalKoalaPlotApi
 import io.github.koalaplot.core.util.generateHueColorPalette
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import org.jetbrains.compose.resources.stringResource
@@ -124,16 +123,6 @@ fun ProjectStatsUi(
 		working = state.isExporting,
 	)
 	ExportDirectoryPicker(state.showExportFilePicker, component, scope)
-
-	ImportStoryDialog(
-		visible = state.showImportDialog,
-		options = state.importOptions,
-		preview = state.importPreview,
-		onCancel = component::cancelImportDialog,
-		onOptionsChange = component::updateImportOptions,
-		onConfirm = { scope.launch { component.confirmImportDialog() } },
-	)
-	ImportFilePicker(state.showImportFilePicker, component, scope)
 }
 
 @Composable
@@ -1279,14 +1268,6 @@ private fun ProjectHomeMenu(
 				text = { Text(Res.string.project_home_action_export.get()) },
 				onClick = {
 					component.beginProjectExport()
-					expanded = false
-				},
-			)
-
-			DropdownMenuItem(
-				text = { Text(Res.string.project_home_action_import.get()) },
-				onClick = {
-					component.beginProjectImport()
 					expanded = false
 				},
 			)

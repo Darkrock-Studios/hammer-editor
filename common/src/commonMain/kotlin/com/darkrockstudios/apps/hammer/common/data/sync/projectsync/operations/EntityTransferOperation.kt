@@ -220,7 +220,6 @@ class EntityTransferOperation(
 		val localEntityHash = entitySynchronizers.getLocalEntityHash(id)
 		val serverProjectId = projectMetadataDatasource.requireProjectId(projectDef)
 		val entityResponse = serverProjectApi.downloadEntity(
-			projectName = projectDef.name,
 			projectId = serverProjectId,
 			entityId = id,
 			syncId = syncId,
@@ -229,6 +228,25 @@ class EntityTransferOperation(
 
 		return if (entityResponse.isSuccess) {
 			val serverEntity = entityResponse.getOrThrow().entity
+
+			// The server is asked for a specific id but the response carries its own id and
+			// type. Never trust either: a hostile server could forge a different entity over
+			// the requested one and cement the forgery as the conflict baseline. Reject any
+			// id mismatch outright, and any type mismatch when the client already owns the id.
+			val localType = entitySynchronizers.findEntityType(id)
+			val serverType = serverEntity.type.toEntityType()
+			if (serverEntity.id != id || (localType != null && localType != serverType)) {
+				onLog(
+					syncLogE(
+						strRes.get(Res.string.sync_log_entity_download_rejected_mismatch, id),
+						projectDef
+					)
+				)
+				return CResult.failure(
+					IllegalStateException("Server returned mismatched entity for requested id $id")
+				)
+			}
+
 			val success = when (serverEntity) {
 				is ApiProjectEntity.SceneEntity ->
 					entitySynchronizers.sceneSynchronizer.storeEntity(
@@ -269,7 +287,7 @@ class EntityTransferOperation(
 			if (success) {
 				// Lock the downloaded entity's hash in as the conflict baseline: it's exactly
 				// what the server holds, so a later local edit won't forge a phantom conflict.
-				syncJournal.recordSyncedHash(serverEntity.id, serverEntity.hash())
+				syncJournal.recordSyncedHash(id, serverEntity.hash())
 				onLog(
 					syncLogI(
 						strRes.get(Res.string.sync_log_entity_download_success, id),
@@ -385,7 +403,7 @@ class EntityTransferOperation(
 
 	private suspend fun deleteEntityRemote(id: Int, syncId: String, onLog: OnSyncLog): Boolean {
 		val projectId = projectMetadataDatasource.requireProjectId(projectDef)
-		val result = serverProjectApi.deleteId(projectDef.name, projectId, id, syncId)
+		val result = serverProjectApi.deleteId(projectId, id, syncId)
 		return if (result.isSuccess) {
 			onLog(syncLogI(strRes.get(Res.string.sync_log_entity_delete_success, id), projectDef))
 			true

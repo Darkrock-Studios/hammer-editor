@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.util.*
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import org.koin.core.module.dsl.factoryOf
 import org.koin.core.module.dsl.singleOf
+import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
@@ -24,7 +25,9 @@ actual val platformModule = module {
 		AndroidPlatformSettingsComponent(
 			componentContext = params.get(),
 			context = get(),
-			fileSystem = get(),
+			// Storage relocation moves projects into the new app-managed directory before
+			// that directory is registered as a managed root, so it uses the raw filesystem.
+			fileSystem = get(named(RAW_FILESYSTEM)),
 		)
 	} bind PlatformSettings::class
 	singleOf(::PlatformSpellCheckerFactory)

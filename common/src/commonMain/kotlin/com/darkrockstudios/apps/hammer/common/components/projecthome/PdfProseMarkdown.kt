@@ -80,18 +80,32 @@ internal data class ProseSpan(
 	val link: String? = null,
 )
 
-/** A block-level markdown element, reduced to what the PDF prose layout renders. */
+/**
+ * One item of a [ProseBlock.Listing]. Nested lists are flattened into the parent's [items] in reading
+ * order, but each item keeps its own [level] (0-based nesting depth) and [ordered] flag so consumers
+ * can reconstruct indentation and markers.
+ */
+internal data class ProseListItem(
+	val spans: List<ProseSpan>,
+	val level: Int,
+	val ordered: Boolean,
+)
+
+/** A block-level markdown element, reduced to what the prose layout renders. */
 internal sealed interface ProseBlock {
 	data class Paragraph(val spans: List<ProseSpan>) : ProseBlock
 	data class Heading(val level: Int, val spans: List<ProseSpan>) : ProseBlock
-	data class Listing(val ordered: Boolean, val items: List<List<ProseSpan>>) : ProseBlock
+	data class Listing(val ordered: Boolean, val items: List<ProseListItem>) : ProseBlock
 	data class Quote(val paragraphs: List<List<ProseSpan>>) : ProseBlock
 	data class CodeBlock(val code: String) : ProseBlock
 	data object Rule : ProseBlock
 	data class Table(val header: List<List<ProseSpan>>, val rows: List<List<List<ProseSpan>>>) : ProseBlock
 }
 
-/** Parses [markdown] (GFM flavour) into renderable blocks. Unknown syntax degrades to paragraph text. */
+/**
+ * Parses [markdown] into renderable blocks using the GFM flavour, so `~~strike~~`, pipe tables, and
+ * autolinks are recognized. Unknown syntax degrades to paragraph text.
+ */
 internal fun parseProseMarkdown(markdown: String): List<ProseBlock> {
 	val root = MarkdownParser(GFMFlavourDescriptor()).buildMarkdownTreeFromString(markdown)
 	return ProseWalker(markdown).blocks(root)
@@ -112,12 +126,6 @@ private val HEADING_LEVELS: Map<IElementType, Int> = mapOf(
 	MarkdownElementTypes.SETEXT_2 to 2,
 )
 
-/** CommonMark backslash escapes: `\X` for ASCII punctuation X resolves to bare X. */
-private val ESCAPE_REGEX = Regex("""\\([!-/:-@\[-`{-~])""")
-
-private fun String.resolveEscapes(): String =
-	if ('\\' in this) ESCAPE_REGEX.replace(this) { it.groupValues[1] } else this
-
 private class ProseWalker(private val source: String) {
 
 	fun blocks(root: ASTNode): List<ProseBlock> = root.children.mapNotNull { block(it) }
@@ -128,8 +136,11 @@ private class ProseWalker(private val source: String) {
 
 		in HEADING_LEVELS -> heading(node)
 
-		MarkdownElementTypes.UNORDERED_LIST -> ProseBlock.Listing(ordered = false, items = listItems(node))
-		MarkdownElementTypes.ORDERED_LIST -> ProseBlock.Listing(ordered = true, items = listItems(node))
+		MarkdownElementTypes.UNORDERED_LIST ->
+			ProseBlock.Listing(ordered = false, items = listItems(node, level = 0, ordered = false))
+
+		MarkdownElementTypes.ORDERED_LIST ->
+			ProseBlock.Listing(ordered = true, items = listItems(node, level = 0, ordered = true))
 
 		MarkdownElementTypes.BLOCK_QUOTE ->
 			quoteParagraphs(node).ifEmpty { null }?.let { ProseBlock.Quote(it) }
@@ -158,31 +169,36 @@ private class ProseWalker(private val source: String) {
 		return ProseBlock.Heading(level = HEADING_LEVELS.getValue(node.type), spans = spans)
 	}
 
-	private fun listItems(listNode: ASTNode): List<List<ProseSpan>> {
-		val items = mutableListOf<List<ProseSpan>>()
+	private fun listItems(listNode: ASTNode, level: Int, ordered: Boolean): List<ProseListItem> {
+		val items = mutableListOf<ProseListItem>()
 		for (item in listNode.children) {
 			if (item.type != MarkdownElementTypes.LIST_ITEM) continue
 			val spans = mutableListOf<ProseSpan>()
+			fun flush() {
+				if (spans.isNotEmpty()) {
+					items += ProseListItem(spans.toList(), level = level, ordered = ordered)
+					spans.clear()
+				}
+			}
 			for (child in item.children) {
 				when (child.type) {
 					MarkdownElementTypes.PARAGRAPH -> {
 						if (spans.isNotEmpty()) spans += ProseSpan("\n")
 						spans += inline(child)
 					}
-					// Nested lists are flattened into follow-on items.
-					MarkdownElementTypes.UNORDERED_LIST,
-					MarkdownElementTypes.ORDERED_LIST,
-					-> {
-						if (spans.isNotEmpty()) {
-							items += spans.toList()
-							spans.clear()
-						}
-						items += listItems(child)
+					// Nested lists keep reading order: emit this item's text, then the deeper items.
+					MarkdownElementTypes.UNORDERED_LIST -> {
+						flush()
+						items += listItems(child, level = level + 1, ordered = false)
+					}
+					MarkdownElementTypes.ORDERED_LIST -> {
+						flush()
+						items += listItems(child, level = level + 1, ordered = true)
 					}
 					else -> Unit
 				}
 			}
-			if (spans.isNotEmpty()) items += spans.toList()
+			flush()
 		}
 		return items
 	}
@@ -323,7 +339,7 @@ private class ProseWalker(private val source: String) {
 			-> out += span(" ", flags)
 
 			else -> if (node.children.isEmpty()) {
-				out += span(node.getTextInNode(source).toString().resolveEscapes(), flags)
+				out += span(unescapeMarkdown(node.getTextInNode(source)), flags)
 			} else {
 				node.children.forEach { collect(it, flags, out) }
 			}
@@ -345,7 +361,7 @@ private class ProseWalker(private val source: String) {
 		node.findChildOfType(MarkdownElementTypes.LINK_DESTINATION)
 			?.getTextInNode(source)?.toString()
 			?.removeSurrounding("<", ">")
-			?.resolveEscapes()
+			?.let { unescapeMarkdown(it) }
 			?.takeIf { it.isNotBlank() }
 
 	private fun trimEqualDelimiters(children: List<ASTNode>, delimiter: IElementType): List<ASTNode> {
@@ -468,7 +484,7 @@ private fun ContainerScope.renderListing(block: ProseBlock.Listing, base: TextSt
 					richText {
 						defaultSpanStyle = base
 						lineHeight = base.lineHeight
-						for (s in item) span(s.text) { applyFlags(s, colors) }
+						for (s in item.spans) span(s.text) { applyFlags(s, colors) }
 					}
 				}
 			}

@@ -4,9 +4,13 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndex
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
+import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
+import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import getProject1Def
+import getProjectDef
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
+import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -72,6 +76,23 @@ class ReferenceIndexDatasourceTest : BaseTest() {
 
 		assertNull(datasource.loadIndex())
 	}
+
+	@Test
+	fun `Save with a traversal project name lands under the cache root`() =
+		runTest(mainTestDispatcher) {
+			val maliciousName = "a/../../../evil"
+			val datasource = createDatasource(getProjectDef(maliciousName))
+
+			datasource.saveIndex(ReferenceIndex())
+
+			val cacheRoot =
+				getCacheDirectory().toPath() / ReferenceIndexDatasource.PROJECTS_DIRECTORY
+			val written = ffs.allPaths.first { it.name == ReferenceIndexDatasource.FILENAME }
+			assertTrue(
+				written.isWithin(cacheRoot),
+				"Reference index escaped the cache root: $written",
+			)
+		}
 
 	@Test
 	fun `Delete removes the cache file`() = runTest(mainTestDispatcher) {

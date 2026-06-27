@@ -66,6 +66,7 @@ fun FormDialog(
 	keyboardHint: String? = "ESC cancel",
 	implicitDismiss: Boolean = true,
 	onDismissed: () -> Unit = {},
+	mastheadAction: (@Composable () -> Unit)? = null,
 	body: @Composable ColumnScope.() -> Unit,
 ) {
 	AnimatedDialog(
@@ -75,112 +76,152 @@ fun FormDialog(
 		modifier = Modifier.fillMaxSize(),
 		contentAlignment = Alignment.Center,
 	) {
-		val accent = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
-		Surface(
-			shape = RectangleShape,
-			color = MaterialTheme.colorScheme.surface,
-			contentColor = MaterialTheme.colorScheme.onSurface,
-			shadowElevation = Ui.Elevation.LARGE,
-			modifier = modifier
-				.padding(horizontal = Ui.Padding.XL)
-				.widthIn(max = 540.dp)
-				.fillMaxWidth(),
-		) {
-			Column {
-				// Masthead: § MARKER on the left, mono META on the right.
-				Row(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(start = 26.dp, end = 26.dp, top = 16.dp, bottom = 14.dp),
-					verticalAlignment = Alignment.CenterVertically,
-					horizontalArrangement = Arrangement.spacedBy(12.dp),
-				) {
+		FormDialogScaffold(
+			marker = marker,
+			title = title,
+			confirmLabel = confirmLabel,
+			cancelLabel = cancelLabel,
+			onConfirm = onConfirm,
+			onCancel = onCancel,
+			modifier = modifier,
+			meta = meta,
+			destructive = destructive,
+			confirmEnabled = confirmEnabled,
+			keyboardHint = keyboardHint,
+			mastheadAction = mastheadAction,
+			body = body,
+		)
+	}
+}
+
+/**
+ * The static chrome of [FormDialog] — masthead, folio divider, titled body slot, and action
+ * footer — without the [AnimatedDialog] wrapper. [FormDialog] animates this in/out; render it
+ * directly (e.g. in a `@Preview`) to capture the dialog as a settled, opaque frame, since the
+ * Desktop preview renderer can't advance the enter animation.
+ */
+@Composable
+fun FormDialogScaffold(
+	marker: String,
+	title: String,
+	confirmLabel: String,
+	cancelLabel: String,
+	onConfirm: () -> Unit,
+	onCancel: () -> Unit,
+	modifier: Modifier = Modifier,
+	meta: String? = null,
+	destructive: Boolean = false,
+	confirmEnabled: Boolean = true,
+	keyboardHint: String? = "ESC cancel",
+	mastheadAction: (@Composable () -> Unit)? = null,
+	body: @Composable ColumnScope.() -> Unit,
+) {
+	val accent = if (destructive) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+	Surface(
+		shape = RectangleShape,
+		color = MaterialTheme.colorScheme.surface,
+		contentColor = MaterialTheme.colorScheme.onSurface,
+		shadowElevation = Ui.Elevation.LARGE,
+		modifier = modifier
+			.padding(horizontal = Ui.Padding.XL)
+			.widthIn(max = 540.dp)
+			.fillMaxWidth(),
+	) {
+		Column {
+			// Masthead: § MARKER on the left, mono META on the right.
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(start = 26.dp, end = 26.dp, top = 16.dp, bottom = 14.dp),
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(12.dp),
+			) {
+				Text(
+					text = marker,
+					fontFamily = hammerMonoFontFamily(),
+					fontSize = 10.sp,
+					fontWeight = FontWeight.Medium,
+					letterSpacing = 1.8.sp,
+					color = if (destructive) accent else MaterialTheme.colorScheme.onSurfaceVariant,
+				)
+				Spacer(modifier = Modifier.weight(1f))
+				if (!meta.isNullOrEmpty()) {
 					Text(
-						text = marker,
+						text = meta,
 						fontFamily = hammerMonoFontFamily(),
 						fontSize = 10.sp,
-						fontWeight = FontWeight.Medium,
 						letterSpacing = 1.8.sp,
-						color = if (destructive) accent else MaterialTheme.colorScheme.onSurfaceVariant,
-					)
-					Spacer(modifier = Modifier.weight(1f))
-					if (!meta.isNullOrEmpty()) {
-						Text(
-							text = meta,
-							fontFamily = hammerMonoFontFamily(),
-							fontSize = 10.sp,
-							letterSpacing = 1.8.sp,
-							color = MaterialTheme.colorScheme.onSurfaceVariant,
-						)
-					}
-				}
-				FolioDivider()
-
-				// Body: title + fields slot.
-				Column(
-					modifier = Modifier.padding(start = 26.dp, end = 26.dp, top = 22.dp, bottom = 26.dp),
-					verticalArrangement = Arrangement.spacedBy(22.dp),
-				) {
-					Text(
-						text = title,
-						style = MaterialTheme.typography.headlineSmall.copy(
-							fontWeight = FontWeight.Normal,
-							letterSpacing = (-0.26).sp,
-							lineHeight = 30.sp,
-						),
-						color = MaterialTheme.colorScheme.onSurface,
-					)
-					Column(
-						verticalArrangement = Arrangement.spacedBy(20.dp),
-						content = body,
+						color = MaterialTheme.colorScheme.onSurfaceVariant,
 					)
 				}
+				mastheadAction?.invoke()
+			}
+			FolioDivider()
 
-				// Footer: keyboard hint + action buttons.
-				HorizontalDivider(
-					color = MaterialTheme.colorScheme.outlineVariant,
-					thickness = 1.dp,
+			// Body: title + fields slot.
+			Column(
+				modifier = Modifier.padding(start = 26.dp, end = 26.dp, top = 22.dp, bottom = 26.dp),
+				verticalArrangement = Arrangement.spacedBy(22.dp),
+			) {
+				Text(
+					text = title,
+					style = MaterialTheme.typography.headlineSmall.copy(
+						fontWeight = FontWeight.Normal,
+						letterSpacing = (-0.26).sp,
+						lineHeight = 30.sp,
+					),
+					color = MaterialTheme.colorScheme.onSurface,
 				)
-				Row(
-					modifier = Modifier
-						.fillMaxWidth()
-						.background(MaterialTheme.colorScheme.surfaceContainerLow)
-						.padding(start = 22.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
-					verticalAlignment = Alignment.CenterVertically,
-					horizontalArrangement = Arrangement.spacedBy(10.dp),
+				Column(
+					verticalArrangement = Arrangement.spacedBy(20.dp),
+					content = body,
+				)
+			}
+
+			// Footer: keyboard hint + action buttons.
+			HorizontalDivider(
+				color = MaterialTheme.colorScheme.outlineVariant,
+				thickness = 1.dp,
+			)
+			Row(
+				modifier = Modifier
+					.fillMaxWidth()
+					.background(MaterialTheme.colorScheme.surfaceContainerLow)
+					.padding(start = 22.dp, end = 14.dp, top = 10.dp, bottom = 10.dp),
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(10.dp),
+			) {
+				if (keyboardHint != null) {
+					Text(
+						text = keyboardHint,
+						fontFamily = hammerMonoFontFamily(),
+						fontSize = 10.sp,
+						letterSpacing = 0.4.sp,
+						color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+					)
+				}
+				Spacer(modifier = Modifier.weight(1f))
+				TextButton(
+					onClick = onCancel,
+					shape = RoundedCornerShape(4.dp),
 				) {
-					if (keyboardHint != null) {
-						Text(
-							text = keyboardHint,
-							fontFamily = hammerMonoFontFamily(),
-							fontSize = 10.sp,
-							letterSpacing = 0.4.sp,
-							color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-						)
-					}
-					Spacer(modifier = Modifier.weight(1f))
-					TextButton(
-						onClick = onCancel,
-						shape = RoundedCornerShape(4.dp),
-					) {
-						Text(cancelLabel)
-					}
-					val confirmColors = if (destructive) {
-						ButtonDefaults.buttonColors(
-							containerColor = MaterialTheme.colorScheme.error,
-							contentColor = MaterialTheme.colorScheme.onError,
-						)
-					} else {
-						ButtonDefaults.buttonColors()
-					}
-					Button(
-						onClick = onConfirm,
-						enabled = confirmEnabled,
-						shape = RoundedCornerShape(4.dp),
-						colors = confirmColors,
-					) {
-						Text(confirmLabel)
-					}
+					Text(cancelLabel)
+				}
+				val confirmColors = if (destructive) {
+					ButtonDefaults.buttonColors(
+						containerColor = MaterialTheme.colorScheme.error,
+						contentColor = MaterialTheme.colorScheme.onError,
+					)
+				} else {
+					ButtonDefaults.buttonColors()
+				}
+				Button(
+					onClick = onConfirm,
+					enabled = confirmEnabled,
+					shape = RoundedCornerShape(4.dp),
+					colors = confirmColors,
+				) {
+					Text(confirmLabel)
 				}
 			}
 		}

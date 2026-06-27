@@ -11,7 +11,7 @@ val MatchedRouteTemplateKey = AttributeKey<String>("MatchedRouteTemplate")
 private val SELECTOR_NOISE = Regex("""/\([^)]*\)""")
 
 /**
- * The matched route TEMPLATE (e.g. `/api/project/{userId}/{projectName}/upload_entity/{entityId}`),
+ * The matched route TEMPLATE (e.g. `/api/project/{userId}/{projectId}/upload_entity/{entityId}`),
  * with Ktor's method/auth selector noise removed. Keyed this way so per-user /
  * per-project path parameters don't explode cardinality, and so error rows and
  * metric buckets agree on the exact same string for a given endpoint.

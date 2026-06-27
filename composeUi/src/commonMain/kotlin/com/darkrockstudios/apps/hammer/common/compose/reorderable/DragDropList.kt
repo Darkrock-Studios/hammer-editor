@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
@@ -35,7 +36,9 @@ fun <T> DragDropList(
 	val scope = rememberCoroutineScope()
 
 	var overscrollJob by remember { mutableStateOf<Job?>(null) }
-	var currentExternalList = remember { items }
+	// Must be state-backed: it tracks the last external list so the guard below
+	// resets the drag preview only on a real external change, not every recompose.
+	var currentExternalList by remember { mutableStateOf(items) }
 
 	var data by remember {
 		mutableStateOf<List<T>>(
@@ -48,8 +51,12 @@ fun <T> DragDropList(
 		data = items
 	}
 
+	// rememberDragDropListState captures its callbacks once, so route the
+	// external one through rememberUpdatedState; otherwise it keeps invoking a
+	// stale closure and moves the wrong item once the list order has changed.
+	val currentOnMove by rememberUpdatedState(onMove)
 	val dragDropListState = rememberDragDropListState(
-		confirmReorder = onMove,
+		confirmReorder = { from, to -> currentOnMove(from, to) },
 		onMove = { from, to ->
 			data = data.toMutableList().apply {
 				add(to, removeAt(from))
@@ -87,18 +94,20 @@ fun <T> DragDropList(
 	) {
 		itemsIndexed(data, key) { index, item ->
 			val isDragging = index == dragDropListState.currentIndexOfDraggedItem
+			val isReordering = dragDropListState.currentIndexOfDraggedItem != null
 			val zIndex = if (isDragging) {
 				1f
 			} else {
 				0f
 			}
-			// Only the displaced items animate into place.
-			val itemModifier = if (isDragging) {
-				Modifier.graphicsLayer {
+			// Animate placement only while reordering, so the displaced items
+			// slide into place; otherwise plain scrolling would animate them too.
+			val itemModifier = when {
+				isDragging -> Modifier.graphicsLayer {
 					translationY = dragDropListState.elementDisplacement ?: 0f
 				}
-			} else {
-				Modifier.animateItem()
+				isReordering -> Modifier.animateItem()
+				else -> Modifier
 			}
 			Box(
 				modifier = Modifier

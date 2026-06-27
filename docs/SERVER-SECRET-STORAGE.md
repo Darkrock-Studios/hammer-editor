@@ -274,13 +274,13 @@ Use `inspect-keyring` to see which generations exist before and after pruning.
 Older releases always encrypted, (pre v3.3.1) using an auto-generated
 `~/hammer_data/server.secret`. After upgrading:
 
-- That `server.secret` is read automatically as the keyring's `content.v1` and
-  `tokenHmac.v1` — **existing data keeps decrypting and existing logins keep
-  working**, no action required for the keys themselves.
+- That `server.secret` is grandfathered in and read automatically since no keyring will exist yet
+  — **existing data keeps decrypting and existing logins keep
+  working**, no action required to server from this grandfather key.
 - But because the default `mode` is now unspecified, a server that holds
   encrypted data **will refuse to start until you set `mode` explicitly**. Set
-  `mode = "aes"` to keep encrypting (_recommended for an existing encrypted
-  server_), or `mode = "none"` to deliberately decrypt everything to plaintext.
+  `mode = "aes"` under a new `[encryption]` section in your server config to keep encrypting,
+   or `mode = "none"` to deliberately decrypt everything to plaintext (recommended for most self hosters).
 
 ### Moving to an explicit keyring (*strongly recommended*)
 

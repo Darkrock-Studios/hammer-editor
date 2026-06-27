@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.InvalidSceneFilename
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
@@ -85,8 +86,25 @@ class EncyclopediaDatasource(
 		return fileSystem.exists(path)
 	}
 
+	fun hasEntryImage(entryDef: EntryDef): Boolean = findEntryImagePath(entryDef) != null
+
+	/** Locates an entry's stored image regardless of its file extension. */
+	fun findEntryImagePath(entryDef: EntryDef): HPath? {
+		val dir = getTypeDirectory(entryDef.type).toOkioPath()
+		val prefix = "${entryDef.type.text}-${entryDef.id}-image."
+		return fileSystem.list(dir)
+			.firstOrNull { path ->
+				path.name.startsWith(prefix) &&
+					path.name.substringAfterLast('.').lowercase() in IMAGE_EXTENSIONS
+			}
+			?.toHPath()
+	}
+
+	fun findEntryImageExtension(entryDef: EntryDef): String? =
+		findEntryImagePath(entryDef)?.name?.substringAfterLast('.')
+
 	suspend fun removeEntryImage(entryDef: EntryDef): Boolean {
-		val imagePath = getEntryImagePath(entryDef, "jpg").toOkioPath()
+		val imagePath = findEntryImagePath(entryDef)?.toOkioPath() ?: return false
 
 		return try {
 			fileSystem.delete(imagePath)
@@ -154,10 +172,11 @@ class EncyclopediaDatasource(
 	suspend fun reIdEntry(oldId: Int, newId: Int) {
 		val oldDef = getEntryDef(oldId)
 		val newDef = oldDef.copy(id = newId)
-		if (hasEntryImage(oldDef, DEFAULT_IMAGE_EXT)) {
-			val oldImagePath = getEntryImagePath(oldDef, DEFAULT_IMAGE_EXT).toOkioPath()
-			val newImagePath = getEntryImagePath(newDef, DEFAULT_IMAGE_EXT).toOkioPath()
-			fileSystem.atomicMove(oldImagePath, newImagePath)
+		val oldImagePath = findEntryImagePath(oldDef)
+		if (oldImagePath != null) {
+			val extension = oldImagePath.name.substringAfterLast('.')
+			val newImagePath = getEntryImagePath(newDef, extension).toOkioPath()
+			fileSystem.atomicMove(oldImagePath.toOkioPath(), newImagePath)
 		}
 
 		val oldPath = getEntryPath(oldDef).toOkioPath()
@@ -205,20 +224,44 @@ class EncyclopediaDatasource(
 	}
 
 	suspend fun setEntryImage(entryDef: EntryDef, imagePath: String?) {
-		val targetPath = getEntryImagePath(entryDef, "jpg").toOkioPath()
-		if (imagePath != null) {
-			val pixelData = externalFileIo.readExternalFile(imagePath)
-			fileSystem.write(targetPath) {
-				write(pixelData)
-			}
-		} else {
-			fileSystem.delete(targetPath)
+		if (imagePath == null) {
+			removeEntryImage(entryDef)
+			return
 		}
+
+		val extension = imageExtensionOf(imagePath)
+		if (extension == null) {
+			Napier.w("Ignoring entry image with unsupported extension: $imagePath")
+			return
+		}
+
+		val pixelData = externalFileIo.readExternalFile(imagePath)
+		if (pixelData.size > MAX_IMAGE_SIZE_BYTES) {
+			Napier.w("Ignoring entry image over ${MAX_IMAGE_SIZE_MB}MB: $imagePath")
+			return
+		}
+
+		removeEntryImage(entryDef)
+		val targetPath = getEntryImagePath(entryDef, extension).toOkioPath()
+		fileSystem.write(targetPath) {
+			write(pixelData)
+		}
+	}
+
+	private fun imageExtensionOf(sourcePath: String): String? {
+		val extension = sourcePath.substringAfterLast('.', "").lowercase()
+		return if (extension in IMAGE_EXTENSIONS) extension else null
 	}
 
 	/** Writes raw image bytes (e.g. an image pulled from the server during sync) to the entry's image path. */
 	suspend fun writeEntryImage(entryDef: EntryDef, imageBytes: ByteArray, fileExtension: String) {
 		val targetPath = getEntryImagePath(entryDef, fileExtension).toOkioPath()
+
+		val typeDir = getTypeDirectory(entryDef.type).toOkioPath()
+		if (!targetPath.isWithin(typeDir)) {
+			error("Refusing to write entry image outside its type directory: $targetPath")
+		}
+
 		fileSystem.write(targetPath) {
 			write(imageBytes)
 		}
@@ -228,8 +271,9 @@ class EncyclopediaDatasource(
 		val path = getEntryPath(entryDef).toOkioPath()
 		fileSystem.delete(path)
 
-		val imagePath = getEntryImagePath(entryDef, "jpg").toOkioPath()
-		fileSystem.delete(imagePath)
+		findEntryImagePath(entryDef)?.let { imagePath ->
+			fileSystem.delete(imagePath.toOkioPath())
+		}
 
 		return true
 	}
@@ -337,7 +381,13 @@ class EncyclopediaDatasource(
 			}
 		}
 
-		const val DEFAULT_IMAGE_EXT = "jpg"
+		// Raster formats Coil renders on every target (Android BitmapFactory + desktop/iOS Skia).
+		// Doubles as the allowlist for server-supplied sync image extensions.
+		val IMAGE_EXTENSIONS = setOf("jpg", "jpeg", "png", "webp")
+
+		const val MAX_IMAGE_SIZE_MB = 16
+		const val MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024L * 1024
+
 		fun getTypeDirectory(
 			projectDef: ProjectDef,
 			type: EntryType,

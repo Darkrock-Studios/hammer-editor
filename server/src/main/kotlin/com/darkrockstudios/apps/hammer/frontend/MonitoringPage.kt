@@ -76,7 +76,8 @@ fun Route.adminMonitoringPages(
 			).map(::securityAlertModel)
 			// Critical security alerts lead; endpoint error-rate warnings follow.
 			val alerts = securityAlerts + deriveAlerts(stats)
-			val chart = buildHourlyChart(metricsRepository.getHourBucketsSince(since))
+			val trafficSince = clock.now() - 30.days
+			val chart = buildTrafficChart(metricsRepository.getTimeSeries(trafficSince, hourly = false))
 
 			val now = clock.now()
 			val activeUsers = userActivityRepository.activeUsersOverview(now)
@@ -386,12 +387,11 @@ private fun buildReadersChart(daily: List<ReaderDay>): String {
 	return Json.encodeToString(ReadersChartPayload.serializer(), payload)
 }
 
-private fun buildHourlyChart(buckets: List<com.darkrockstudios.apps.hammer.Api_metric_bucket>): String {
-	val byHour = buckets.groupBy { it.bucket_start }.toSortedMap()
+private fun buildTrafficChart(points: List<TimeSeriesPoint>): String {
 	val payload = ChartPayload(
-		labels = byHour.keys.map { formatInstant(it, "HH:00") },
-		requests = byHour.values.map { rows -> rows.sumOf { it.request_count } },
-		errors = byHour.values.map { rows -> rows.sumOf { it.error_count } },
+		labels = points.map { formatInstant(it.bucketStart, "MMM dd") },
+		requests = points.map { it.requests },
+		errors = points.map { it.errors },
 	)
 	return Json.encodeToString(ChartPayload.serializer(), payload)
 }

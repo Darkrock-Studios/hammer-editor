@@ -28,6 +28,10 @@ class SceneDatasource(
 
 	private fun invalidateScenePathCache() = synchronized(scenePathCacheLock) { cachedScenePaths = null }
 
+	private fun addScenePathToCache(scenePath: HPath) = synchronized(scenePathCacheLock) {
+		cachedScenePaths = cachedScenePaths?.let { (it + scenePath).sortedBy { path -> path.name } }
+	}
+
 	fun getSceneDirectory(): HPath = getSceneDirectory(projectDef, fileSystem)
 
 	fun getSceneIdFromPath(path: HPath): Int {
@@ -96,7 +100,7 @@ class SceneDatasource(
 	fun getSceneTempBufferContents(): List<SceneContent> {
 		val bufferDirectory = getSceneBufferDirectory().toOkioPath()
 		return fileSystem.list(bufferDirectory)
-			.filter { fileSystem.metadata(it).isRegularFile }
+			.filter { fileSystem.metadataOrNull(it)?.isRegularFile == true }
 			.mapNotNull { path ->
 				val sceneId = getSceneIdFromBufferFilename(path.name)
 				resolveScenePathFromFilesystem(sceneId)?.let { scenePath ->
@@ -318,14 +322,14 @@ class SceneDatasource(
 
 	fun createNewScene(scenePath: HPath) {
 		fileSystem.createDirectory(scenePath.toOkioPath(), true)
-		invalidateScenePathCache()
+		addScenePathToCache(scenePath)
 	}
 
 	fun createNewGroup(scenePath: HPath) {
 		fileSystem.write(scenePath.toOkioPath(), true) {
 			writeUtf8("")
 		}
-		invalidateScenePathCache()
+		addScenePathToCache(scenePath)
 	}
 
 	suspend fun deleteScene(scene: SceneItem): Boolean {

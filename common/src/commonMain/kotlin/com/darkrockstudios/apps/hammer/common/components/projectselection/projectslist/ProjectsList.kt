@@ -6,7 +6,9 @@ import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthentication
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -22,6 +24,13 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 	fun showCreate()
 	fun hideCreate()
 	fun createProject(projectName: String)
+	fun beginProjectImport()
+	fun cancelImportFilePicker()
+	fun selectImportFile(name: String, content: ByteArray)
+	fun updateImportProjectName(name: String)
+	fun updateImportOptions(options: ImportOptions)
+	fun cancelImportDialog()
+	suspend fun confirmImportDialog()
 	fun deleteProject(projectDef: ProjectDef)
 	fun renameProject(projectDef: ProjectDef, newName: String)
 	fun syncProjects(callback: (Boolean) -> Unit)
@@ -43,6 +52,13 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 		// In-flight sync progress is not meaningful after a process death; don't restore it.
 		@Transient val syncState: SyncState = SyncState(),
 		val createDialogProjectName: String = "",
+		val showImportFilePicker: Boolean = false,
+		val showImportDialog: Boolean = false,
+		val importOptions: ImportOptions = ImportOptions(),
+		val importSourceName: String = "",
+		val importProjectName: String = "",
+		val importFileContent: ByteArray = ByteArray(0),
+		val importPreview: ImportPreview = ImportPreview(emptyList()),
 	)
 
 	@Serializable

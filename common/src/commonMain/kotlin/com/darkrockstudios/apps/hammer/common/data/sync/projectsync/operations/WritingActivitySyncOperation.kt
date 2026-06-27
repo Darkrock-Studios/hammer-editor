@@ -55,7 +55,7 @@ class WritingActivitySyncOperation(
 			val projectId = state.serverProjectId
 			val ownDeviceId = repository.ownDeviceId()
 
-			val getResult = api.getWritingActivity(userId, projectDef.name, projectId)
+			val getResult = api.getWritingActivity(userId, projectId)
 			val response = getResult.getOrElse { error ->
 				Napier.w("Writing activity sync: GET failed, skipping", error)
 				onLog(syncLogW("Writing activity sync skipped: ${error.message}", projectDef))
@@ -79,7 +79,6 @@ class WritingActivitySyncOperation(
 			)
 			val postResult = api.uploadDeviceLog(
 				userId = userId,
-				projectName = projectDef.name,
 				projectId = projectId,
 				deviceId = ownDeviceId,
 				log = payload,

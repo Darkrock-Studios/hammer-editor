@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingActivityResponse
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.encodeUrlPathSegment
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.ktor.client.*
 import io.ktor.client.call.*
@@ -25,31 +26,22 @@ class WritingActivityApi(
 	/** Fetch every device's slot for this project. */
 	suspend fun getWritingActivity(
 		userId: Long,
-		projectName: String,
 		projectId: ProjectId,
 	): Result<WritingActivityResponse> = get(
-		path = "/api/project/$userId/$projectName/writing_activity",
+		path = "/api/project/$userId/${projectId.id.encodeUrlPathSegment()}/writing_activity",
 		parse = { it.body() },
-	) {
-		url {
-			parameters.append("projectId", projectId.id)
-		}
-	}
+	)
 
 	/** Replace this device's slot on the server. The server stores it as-is. */
 	suspend fun uploadDeviceLog(
 		userId: Long,
-		projectName: String,
 		projectId: ProjectId,
 		deviceId: String,
 		log: DeviceLog,
 	): Result<String> = post(
-		path = "/api/project/$userId/$projectName/writing_activity/$deviceId",
+		path = "/api/project/$userId/${projectId.id.encodeUrlPathSegment()}/writing_activity/${deviceId.encodeUrlPathSegment()}",
 	) {
 		contentType(ContentType.Application.Json)
-		url {
-			parameters.append("projectId", projectId.id)
-		}
 		setBody(log)
 	}
 }

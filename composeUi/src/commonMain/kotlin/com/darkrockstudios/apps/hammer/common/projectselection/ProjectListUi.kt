@@ -38,6 +38,7 @@ import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
+import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Instant
 
@@ -100,6 +101,7 @@ fun ProjectListUi(
 	val widthClass = LocalScreenCharacteristic.current.windowWidthClass
 	val isWide = widthClass != WindowWidthSizeClass.Compact
 	val state by component.state.subscribeAsState()
+	val scope = rememberCoroutineScope()
 
 	Toaster(component, rootSnackbar)
 
@@ -199,6 +201,23 @@ fun ProjectListUi(
 	}
 
 	ModalContent(component, rootSnackbar)
+
+	ImportStoryDialog(
+		visible = state.showImportDialog,
+		projectName = state.importProjectName,
+		options = state.importOptions,
+		preview = state.importPreview,
+		onProjectNameChange = component::updateImportProjectName,
+		onCancel = component::cancelImportDialog,
+		onOptionsChange = component::updateImportOptions,
+		onConfirm = { scope.launch { component.confirmImportDialog() } },
+	)
+	ImportFilePicker(
+		show = state.showImportFilePicker,
+		scope = scope,
+		onFileSelected = component::selectImportFile,
+		onCancel = component::cancelImportFilePicker,
+	)
 }
 
 @Composable

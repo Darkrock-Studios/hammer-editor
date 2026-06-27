@@ -1,14 +1,16 @@
 package com.darkrockstudios.apps.hammer.common.fileio
 
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.RAW_FILESYSTEM
 import io.github.aakira.napier.Napier
 import okio.FileSystem
 import okio.Path.Companion.toPath
-import org.koin.core.module.dsl.singleOf
+import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
 
 actual val externalFileIoModule = module {
-	singleOf(::DesktopExternalFileIo) bind ExternalFileIo::class
+	// Raw filesystem: this writes to user-chosen paths outside the app's managed storage.
+	single { DesktopExternalFileIo(get(named(RAW_FILESYSTEM))) } bind ExternalFileIo::class
 }
 
 private class DesktopExternalFileIo(private val fileSystem: FileSystem) : ExternalFileIo {

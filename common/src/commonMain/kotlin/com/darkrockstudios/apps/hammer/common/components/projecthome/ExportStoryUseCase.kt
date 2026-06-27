@@ -11,8 +11,12 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultD
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
+import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.project_home_export_byline
+import com.darkrockstudios.apps.hammer.project_home_export_contents_title
 import kotlinx.coroutines.withContext
 import okio.Buffer
 import okio.FileSystem
@@ -41,6 +45,7 @@ val ExportFormat.fileExtension: String
 		ExportFormat.Epub -> "epub"
 		ExportFormat.Pdf -> "pdf"
 		ExportFormat.Docx -> "docx"
+		ExportFormat.Rtf -> "rtf"
 	}
 
 /** Strips characters that have meaning in file paths or the SAF picker; covers project names that came from sync. */
@@ -53,6 +58,7 @@ class ExportStoryUseCase(
 	private val projectDataDatasource: ProjectDataDatasource,
 	private val fileSystem: FileSystem,
 	private val localeResolver: DeviceLocaleResolver,
+	private val strRes: StrRes,
 ) : KoinComponent {
 
 	private val ioDispatcher by injectIoDispatcher()
@@ -97,6 +103,8 @@ class ExportStoryUseCase(
 			ExportSource(perNodeChapters, projectData, language)
 		}
 
+		val exportStrings = resolveExportStrings(source.projectData)
+
 		return withContext(defaultDispatcher) {
 			val buffer = Buffer()
 			when (options.format) {
@@ -113,6 +121,7 @@ class ExportStoryUseCase(
 					projectData = source.requireProjectData(),
 					chapters = chaptersFor(options, projectName, source.perNodeChapters),
 					language = source.language,
+					strings = exportStrings,
 				)
 
 				ExportFormat.Pdf -> writeStoryAsPdf(
@@ -120,6 +129,7 @@ class ExportStoryUseCase(
 					projectName = projectName,
 					projectData = source.requireProjectData(),
 					chapters = chaptersFor(options, projectName, source.perNodeChapters),
+					strings = exportStrings,
 				)
 
 				ExportFormat.Docx -> writeStoryAsDocx(
@@ -127,10 +137,28 @@ class ExportStoryUseCase(
 					projectName = projectName,
 					projectData = source.requireProjectData(),
 					chapters = chaptersFor(options, projectName, source.perNodeChapters),
+					strings = exportStrings,
+				)
+
+				ExportFormat.Rtf -> writeStoryAsRtf(
+					sink = buffer,
+					projectName = projectName,
+					projectData = source.requireProjectData(),
+					chapters = chaptersFor(options, projectName, source.perNodeChapters),
+					strings = exportStrings,
 				)
 			}
 			buffer
 		}
+	}
+
+	/** Resolves the user-facing strings that appear inside the exported document for the active locale. */
+	private suspend fun resolveExportStrings(projectData: ProjectData?): ExportStrings {
+		val authorName = projectData?.authorName?.takeIf { it.isNotBlank() }
+		return ExportStrings(
+			contentsTitle = strRes.get(Res.string.project_home_export_contents_title),
+			authorByline = authorName?.let { strRes.get(Res.string.project_home_export_byline, it) },
+		)
 	}
 
 	/** Per-node chapters when treating top-level scenes as chapters; otherwise a single chapter named after the project. */

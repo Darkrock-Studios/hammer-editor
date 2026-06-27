@@ -2,6 +2,7 @@ package components.projecthome
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
+import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStrings
 import com.darkrockstudios.apps.hammer.common.components.projecthome.StoryChapter
 import com.darkrockstudios.apps.hammer.common.components.projecthome.writeStoryAsPdf
 import okio.FileSystem
@@ -40,7 +41,13 @@ class PdfProseVisualCheck {
 			theme = ProjectTheme(primary = "#FF6750A4", secondary = "#FF7D5260"),
 		)
 		FileSystem.SYSTEM.write(out) {
-			writeStoryAsPdf(this, "Indent Check", projectData, chapters)
+			writeStoryAsPdf(
+				this,
+				"Indent Check",
+				projectData,
+				chapters,
+				ExportStrings(contentsTitle = "Contents", authorByline = "by Test Author"),
+			)
 		}
 		println("Wrote $out")
 	}

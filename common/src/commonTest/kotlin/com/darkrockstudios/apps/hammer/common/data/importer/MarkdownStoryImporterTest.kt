@@ -17,7 +17,7 @@ class MarkdownStoryImporterTest {
 		sourceName: String = "story",
 	) = importer.preview(
 		sourceName = sourceName,
-		content = content,
+		content = content.encodeToByteArray(),
 		options = ImportOptions(
 			chapterHeadingLevel = level,
 			createChapterGroups = groups,
@@ -320,6 +320,76 @@ class MarkdownStoryImporterTest {
 		assertEquals("Chapter one body.", group.scenes[0].markdown)
 		assertEquals("2. Chapter Two", group.scenes[1].name)
 		assertEquals("Chapter two body.", group.scenes[1].markdown)
+	}
+
+	@Test
+	fun `Auto detects a leading H1 title and splits the H2 chapters as flat scenes`() {
+		val md = """
+			# My Novel
+
+			## Chapter One
+			First.
+
+			## Chapter Two
+			Second.
+		""".trimIndent()
+		val result = preview(md, level = ChapterHeadingLevel.Auto)
+		assertEquals("My Novel", result.title)
+		assertEquals(2, result.items.size)
+		assertTrue(result.items.all { it is PreviewItem.Scene })
+		assertEquals(listOf("Chapter One", "Chapter Two"), result.items.map { it.name })
+		assertEquals("First.", (result.items[0] as PreviewItem.Scene).markdown)
+	}
+
+	@Test
+	fun `Auto keeps flat H1 chapters as scenes with no title`() {
+		val md = """
+			# Chapter One
+			a
+			# Chapter Two
+			b
+		""".trimIndent()
+		val result = preview(md, level = ChapterHeadingLevel.Auto)
+		assertEquals(null, result.title)
+		assertEquals(2, result.items.size)
+		assertEquals(listOf("Chapter One", "Chapter Two"), result.items.map { it.name })
+	}
+
+	@Test
+	fun `Auto folds parts into groups beneath a detected title`() {
+		val md = """
+			# My Novel
+			## Part One
+			### Chapter A
+			a
+			### Chapter B
+			b
+			## Part Two
+			### Chapter C
+			c
+		""".trimIndent()
+		val result = preview(md, level = ChapterHeadingLevel.Auto)
+		assertEquals("My Novel", result.title)
+		assertEquals(2, result.items.size)
+		val partOne = result.items[0] as PreviewItem.Group
+		assertEquals("Part One", partOne.name)
+		assertEquals(listOf("Chapter A", "Chapter B"), partOne.scenes.map { it.name })
+		val partTwo = result.items[1] as PreviewItem.Group
+		assertEquals(listOf("Chapter C"), partTwo.scenes.map { it.name })
+	}
+
+	@Test
+	fun `Auto with a title and no chapters yields a single scene and the title`() {
+		val md = """
+			# My Novel
+			Just prose, no chapters.
+			More prose.
+		""".trimIndent()
+		val result = preview(md, level = ChapterHeadingLevel.Auto)
+		assertEquals("My Novel", result.title)
+		assertEquals(1, result.items.size)
+		val scene = result.items[0] as PreviewItem.Scene
+		assertTrue(scene.markdown.contains("Just prose, no chapters."))
 	}
 
 	@Test

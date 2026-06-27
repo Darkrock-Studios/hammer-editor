@@ -10,6 +10,9 @@
 				const selected = this.options[this.selectedIndex];
 				btn.href = selected.dataset.url;
 				icon.className = selected.dataset.icon;
+				if (btn.dataset.trackEvent) {
+					btn.dataset.trackFormat = selected.value;
+				}
 			});
 		}
 	}

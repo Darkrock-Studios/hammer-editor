@@ -1,6 +1,6 @@
 [versions]
 # App Versions
-app = "3.4.2"
+app = "3.5.0"
 data_version = "1.0"
 
 # Kotlin
@@ -27,6 +27,7 @@ cache4k = "0.14.0"
 core = "1.7.0"
 coreKtx = "1.19.0"
 cryptohash = "1.0.2"
+androidx-security-crypto = "1.1.0"
 glance = "1.2.0-rc01"
 androix-junit = "1.3.0"
 junit = "6.1.0"
@@ -34,6 +35,7 @@ clikt = "5.1.0"
 kotlinx_atomicfu = "0.33.0"
 kotlinx_collections_immutable = "0.5.0"
 markdown = "0.7.5"
+rtfParserKmp = "0.2.2"
 epub4kmp = "0.3.0"
 pdfkmp = "1.2.0"
 xmlutil = "1.0.0-rc3"
@@ -63,7 +65,8 @@ kmpalette = "3.1.0"
 
 koin_bom = "4.2.2"
 
-ktor = "3.5.0"
+ktor = "3.5.1"
+ktor_plugin = "3.5.1"
 ktor_i18n = "2.0.0"
 
 okio = "3.17.0"
@@ -89,14 +92,14 @@ embedded_postgres_binaries = "18.4.0"
 testcontainers = "1.21.4"
 buildconfig = "6.0.10"
 resources = "1.1.0"
-aboutlibraries = "15.0.0"
-logback_classic = "1.5.34"
+aboutlibraries = "15.0.2"
+logback_classic = "1.5.37"
 multiplatform_settings = "1.3.0"
 korge-core = "6.0.0"
 bouncycastle = "1.84"
 kotlinx-io-okio = "0.9.0"
 
-compose-texteditor = "2.2.3"
+compose-texteditor = "2.2.6"
 kotlin-multiplatform-diff = "1.3.0"
 platform-spellcheckerkt = "1.3.1"
 nucleus = "1.15.7"
@@ -112,6 +115,7 @@ cache4k = { module = "io.github.reactivecircus.cache4k:cache4k", version.ref = "
 core = { module = "androidx.test:core", version.ref = "core" }
 core-ktx = { module = "androidx.test:core-ktx", version.ref = "core" }
 cryptohash = { module = "com.appmattus.crypto:cryptohash", version.ref = "cryptohash" }
+androidx-security-crypto = { module = "androidx.security:security-crypto", version.ref = "androidx-security-crypto" }
 flatlaf = { module = "com.formdev:flatlaf", version.ref = "flatlaf" }
 glance = { module = "androidx.glance:glance", version.ref = "glance" }
 glance-appwidget = { module = "androidx.glance:glance-appwidget", version.ref = "glance" }
@@ -171,6 +175,8 @@ kotlinx_atomicfu_plugin = { group = "org.jetbrains.kotlinx", name = "atomicfu-gr
 kotlinx_collections_immutable = { group = "org.jetbrains.kotlinx", name = "kotlinx-collections-immutable", version.ref = "kotlinx_collections_immutable" }
 
 markdown = { module = "org.jetbrains:markdown", version.ref = "markdown" }
+rtf-reader = { module = "com.darkrockstudios:rtf-reader", version.ref = "rtfParserKmp" }
+rtf-writer = { module = "com.darkrockstudios:rtf-writer", version.ref = "rtfParserKmp" }
 kotlin-multiplatform-diff = { module = "io.github.petertrr:kotlin-multiplatform-diff", version.ref = "kotlin-multiplatform-diff" }
 epub4kmp_core = { module = "com.darkrockstudios:epub4kmp-core", version.ref = "epub4kmp" }
 xmlutil_core = { module = "io.github.pdvrieze.xmlutil:core", version.ref = "xmlutil" }
@@ -228,6 +234,7 @@ ktor_client_encoding = { group = "io.ktor", name = "ktor-client-encoding", versi
 ktor_client_okhttp = { group = "io.ktor", name = "ktor-client-okhttp", version.ref = "ktor" }
 ktor_client_darwin = { group = "io.ktor", name = "ktor-client-darwin", version.ref = "ktor" }
 ktor_client_java = { group = "io.ktor", name = "ktor-client-java", version.ref = "ktor" }
+ktor_client_mock = { group = "io.ktor", name = "ktor-client-mock", version.ref = "ktor" }
 
 ktor_serialization_kotlinx_json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktor" }
 
@@ -301,6 +308,7 @@ jetbrains_kover = { group = "org.jetbrains.kotlinx", name = "kover-gradle-plugin
 logback_classic = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logback_classic" }
 
 multiplatform_settings = { group = "com.russhwolf", name = "multiplatform-settings-no-arg", version.ref = "multiplatform_settings" }
+multiplatform_settings_test = { group = "com.russhwolf", name = "multiplatform-settings-test", version.ref = "multiplatform_settings" }
 korge-core = { group = "com.soywiz.korge", name = "korge-core", version.ref = "korge-core" }
 kotlinx-io-okio = { group = "org.jetbrains.kotlinx", name = "kotlinx-io-okio", version.ref = "kotlinx-io-okio" }
 
@@ -338,7 +346,7 @@ jetbrains_compose = { id = "org.jetbrains.compose", version.ref = "jetbrains_com
 compose_compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 compose_report_generator = { id = "dev.shreyaspatil.compose-compiler-report-generator", version.ref = "compose_compiler_report_generator" }
 jetbrains_kover = { id = "org.jetbrains.kotlinx.kover", version.ref = "jetbrains_kover" }
-ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+ktor = { id = "io.ktor.plugin", version.ref = "ktor_plugin" }
 sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildconfig" }
 aboutlibraries_plugin = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutlibraries" }

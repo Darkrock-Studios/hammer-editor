@@ -50,6 +50,7 @@ internal fun SceneConflict(
 	val contentDiff = rememberContentDiff(server.content, contentTextValue)
 	val deletedStyle = diffDeletedStyle()
 	val insertedStyle = diffInsertedStyle()
+	val movedStyle = diffMovedStyle()
 
 	val useLocal = {
 		val error = component.resolveConflict(
@@ -89,6 +90,7 @@ internal fun SceneConflict(
 				nameError = nameError,
 				contentInsertedSpans = contentDiff?.rightSpans.orEmpty(),
 				insertedStyle = insertedStyle,
+				movedStyle = movedStyle,
 				component = component,
 			)
 		},
@@ -100,6 +102,7 @@ internal fun SceneConflict(
 				tab = selectedTab,
 				contentDeletedSpans = contentDiff?.leftSpans.orEmpty(),
 				deletedStyle = deletedStyle,
+				movedStyle = movedStyle,
 				component = component,
 			)
 		},
@@ -151,6 +154,7 @@ private fun LocalSceneBody(
 	nameError: String?,
 	contentInsertedSpans: List<DiffSpan>,
 	insertedStyle: SpanStyle,
+	movedStyle: SpanStyle,
 	component: ProjectSynchronization,
 ) {
 	Column(
@@ -161,8 +165,8 @@ private fun LocalSceneBody(
 	) {
 		when (tab) {
 			SceneConflictTab.CONTENT -> {
-				val contentTransformation = remember(contentInsertedSpans, insertedStyle) {
-					DiffHighlightTransformation(contentInsertedSpans, insertedStyle)
+				val contentTransformation = remember(contentInsertedSpans, insertedStyle, movedStyle) {
+					DiffHighlightTransformation(contentInsertedSpans, insertedStyle, movedStyle)
 				}
 				HdConflictField(
 					label = Res.string.sync_conflict_title_scene_field_content.get(),
@@ -241,6 +245,7 @@ private fun RemoteSceneBody(
 	tab: SceneConflictTab,
 	contentDeletedSpans: List<DiffSpan>,
 	deletedStyle: SpanStyle,
+	movedStyle: SpanStyle,
 	component: ProjectSynchronization,
 ) {
 	Column(
@@ -251,8 +256,8 @@ private fun RemoteSceneBody(
 	) {
 		when (tab) {
 			SceneConflictTab.CONTENT -> {
-				val highlighted = remember(server.content, contentDeletedSpans, deletedStyle) {
-					diffHighlightedString(server.content, contentDeletedSpans, deletedStyle)
+				val highlighted = remember(server.content, contentDeletedSpans, deletedStyle, movedStyle) {
+					diffHighlightedString(server.content, contentDeletedSpans, deletedStyle, movedStyle)
 				}
 				HdConflictField(
 					label = Res.string.sync_conflict_title_scene_field_content.get(),

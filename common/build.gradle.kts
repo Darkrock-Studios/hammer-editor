@@ -83,6 +83,8 @@ kotlin {
 				implementation(libs.kmp.zip)
 				implementation(libs.kmp.zip.okio)
 				implementation(libs.markdown)
+				implementation(libs.rtf.reader)
+				implementation(libs.rtf.writer)
 				implementation(libs.xmlutil.core)
 				implementation(libs.epub4kmp.core)
 				implementation(libs.pdfkmp)
@@ -93,7 +95,6 @@ kotlin {
 			dependencies {
 				implementation(kotlin("test"))
 				implementation(libs.koin.test)
-				implementation(libs.okio.fakefilesystem)
 				implementation(libs.kotlin.reflect)
 			}
 		}
@@ -102,6 +103,12 @@ kotlin {
 		}
 		val jvmTest by creating {
 			dependsOn(commonTest)
+			dependencies {
+				// okio-fakefilesystem references the deprecated kotlinx.datetime.Clock typealias,
+				// which double-binds during Kotlin/Native klib caching and breaks the iOS test
+				// link. Keep it off the native test classpath - only JVM tests use FakeFileSystem.
+				implementation(libs.okio.fakefilesystem)
+			}
 		}
 		val androidMain by getting {
 			dependsOn(jvmMain)
@@ -112,6 +119,7 @@ kotlin {
 				implementation(libs.ktor.client.okhttp)
 				implementation(libs.moko.permissions)
 				implementation(libs.moko.permissions.storage)
+				implementation(libs.androidx.security.crypto)
 			}
 		}
 		val iosMain by getting {
@@ -121,7 +129,11 @@ kotlin {
 				api(libs.ktor.client.darwin)
 			}
 		}
-		val iosTest by getting
+		val iosTest by getting {
+			dependencies {
+				implementation(libs.multiplatform.settings.test)
+			}
+		}
 		val androidHostTest by getting {
 			dependencies {
 				implementation(kotlin("test"))
@@ -148,6 +160,7 @@ kotlin {
 				implementation(libs.koin.test.junit5)
 				implementation(compose.desktop.currentOs)
 				implementation(libs.poi.ooxml)
+				implementation(libs.ktor.client.mock)
 			}
 		}
 	}

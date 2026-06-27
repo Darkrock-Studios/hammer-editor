@@ -11,6 +11,9 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostSt
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
@@ -44,6 +47,14 @@ private fun fakeComponent() = object : SceneEditor {
 		get() = MutableValue(
 			SceneEditor.State(
 				sceneItem = fakeSceneItem(),
+				sceneBuffer = SceneBuffer(
+					content = SceneContent(
+						scene = fakeSceneItem(),
+						markdown = "The keeper steps off the ferry into a town that already knows his name."
+					),
+					source = UpdateSource.Editor
+				),
+				isLoading = false,
 				isSavingDraft = false,
 				isEditingName = false
 			)

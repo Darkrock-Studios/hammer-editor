@@ -18,10 +18,13 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceRemapper
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.sync_encyclopedia_deleted
+import com.darkrockstudios.apps.hammer.sync_encyclopedia_image_rejected_invalid_extension
+import io.github.aakira.napier.Napier
 import korlibs.crypto.encoding.Base64
 import kotlinx.coroutines.flow.first
 
@@ -73,14 +76,14 @@ class ClientEncyclopediaSynchronizer(
 		val entry = encyclopediaRepository.loadEntry(id).entry
 		val def = entry.toDef(projectDef)
 
-		val DEFAULT_EXTENSION = "jpg"
-		val image = if (encyclopediaDatasource.hasEntryImage(def, DEFAULT_EXTENSION)) {
-			val imageBytes = encyclopediaDatasource.loadEntryImage(def, DEFAULT_EXTENSION)
+		val imageExtension = encyclopediaDatasource.findEntryImageExtension(def)
+		val image = if (imageExtension != null) {
+			val imageBytes = encyclopediaDatasource.loadEntryImage(def, imageExtension)
 			val imageBase64 = Base64.encode(imageBytes, url = true)
 
 			ApiProjectEntity.EncyclopediaEntryEntity.Image(
 				base64 = imageBase64,
-				fileExtension = DEFAULT_EXTENSION,
+				fileExtension = imageExtension,
 			)
 		} else {
 			null
@@ -138,7 +141,7 @@ class ClientEncyclopediaSynchronizer(
 			type = EntryType.fromString(serverEntity.entryType),
 		)
 
-		handleImage(oldDef, serverDef, serverEntity)
+		handleImage(oldDef, serverDef, serverEntity, onLog)
 
 		if (oldDef != null) {
 			encyclopediaService.updateEntry(
@@ -166,16 +169,33 @@ class ClientEncyclopediaSynchronizer(
 	private suspend fun handleImage(
 		oldDef: EntryDef?,
 		serverDef: EntryDef,
-		serverEntity: ApiProjectEntity.EncyclopediaEntryEntity
+		serverEntity: ApiProjectEntity.EncyclopediaEntryEntity,
+		onLog: OnSyncLog,
 	) {
 		val image = serverEntity.image
 		if (image != null) {
+			if (image.fileExtension.lowercase() !in ALLOWED_IMAGE_EXTENSIONS) {
+				Napier.w("Skipped synced image for entry ${serverEntity.id}: invalid file extension '${image.fileExtension}'")
+				onLog(
+					syncLogW(
+						strRes.get(Res.string.sync_encyclopedia_image_rejected_invalid_extension, serverEntity.id),
+						projectDef
+					)
+				)
+				return
+			}
 			val imageBytes = Base64.decode(image.base64, url = true)
+			// Clear any prior image first so a changed extension can't leave an orphan file.
+			encyclopediaDatasource.removeEntryImage(serverDef)
 			encyclopediaDatasource.writeEntryImage(serverDef, imageBytes, image.fileExtension)
-		} else if (oldDef != null && encyclopediaDatasource.hasEntryImage(oldDef, "jpg")) {
+		} else if (oldDef != null && encyclopediaDatasource.hasEntryImage(oldDef)) {
 			// Server reports no image; drop the local one. Raw datasource delete (no
 			// sync-marking) since we're applying server state, not making a local edit.
 			encyclopediaDatasource.removeEntryImage(oldDef)
 		}
+	}
+
+	companion object {
+		val ALLOWED_IMAGE_EXTENSIONS = EncyclopediaDatasource.IMAGE_EXTENSIONS
 	}
 }

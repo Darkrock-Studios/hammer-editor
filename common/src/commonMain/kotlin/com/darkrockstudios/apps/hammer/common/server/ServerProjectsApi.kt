@@ -85,11 +85,12 @@ class ServerProjectsApi(
 		syncId: String,
 	): Result<CreateProjectResponse> {
 		return get(
-			path = "/api/projects/$userId/$projectName/create",
+			path = "/api/projects/$userId/create",
 			builder = {
 				headers {
 					append(HEADER_SYNC_ID, syncId)
 				}
+				parameter("projectName", projectName)
 			},
 			parse = { it.body() },
 		)

@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
@@ -71,6 +72,9 @@ class WritingActivityRoutesTest : BaseTest() {
 	private lateinit var projectEntityRepository: ProjectEntityRepository
 
 	@MockK(relaxed = true)
+	private lateinit var projectEntityDatasource: ProjectEntityDatasource
+
+	@MockK(relaxed = true)
 	private lateinit var projectAccessRepository: ProjectAccessRepository
 
 	@MockK(relaxed = true)
@@ -115,12 +119,16 @@ class WritingActivityRoutesTest : BaseTest() {
 		super.setup()
 		MockKAnnotations.init(this, relaxUnitFun = true)
 
+		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns
+			ProjectDefinition(projectName, projectId)
+
 		testModule = module {
 			single { accountsRepository }
 			single { whiteListRepository }
 			single { serverWritingActivityRepository }
 			single { serverProjectDataRepository }
 			single { projectEntityRepository }
+			single<ProjectEntityDatasource> { projectEntityDatasource }
 			single { projectAccessRepository }
 			single { projectsRepository }
 			single { accountsComponent }
@@ -171,9 +179,8 @@ class WritingActivityRoutesTest : BaseTest() {
 		}
 		val testClient = createClient { install(ContentNegotiation) { json(json) } }
 
-		val response = testClient.get("api/project/$userId/$projectName/writing_activity") {
+		val response = testClient.get("api/project/$userId/${projectId.id}/writing_activity") {
 			header("Authorization", "Bearer $bearerToken")
-			url { parameters.append("projectId", projectId.id) }
 		}
 
 		assertTrue(response.status.isSuccess())
@@ -196,9 +203,8 @@ class WritingActivityRoutesTest : BaseTest() {
 			configureRouting()
 		}
 
-		val response = client.get("api/project/$userId/$projectName/writing_activity") {
+		val response = client.get("api/project/$userId/${projectId.id}/writing_activity") {
 			header("Authorization", "Bearer $bearerToken")
-			url { parameters.append("projectId", projectId.id) }
 		}
 
 		assertEquals(HttpStatusCode.NotFound, response.status)
@@ -236,9 +242,8 @@ class WritingActivityRoutesTest : BaseTest() {
 		}
 		val testClient = createClient { install(ContentNegotiation) { json(json) } }
 
-		val response = testClient.post("api/project/$userId/$projectName/writing_activity/$deviceId") {
+		val response = testClient.post("api/project/$userId/${projectId.id}/writing_activity/$deviceId") {
 			header("Authorization", "Bearer $bearerToken")
-			url { parameters.append("projectId", projectId.id) }
 			contentType(ContentType.Application.Json)
 			setBody(log)
 		}
@@ -255,9 +260,10 @@ class WritingActivityRoutesTest : BaseTest() {
 	}
 
 	@Test
-	fun `POST writing_activity 400 when projectId missing`() = testApplication {
+	fun `GET writing_activity 410 Gone when project id unknown`() = testApplication {
 		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
 		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns null
 
 		application {
 			setupKtorTestKoin(this@WritingActivityRoutesTest, testModule)
@@ -268,12 +274,10 @@ class WritingActivityRoutesTest : BaseTest() {
 		}
 		val testClient = createClient { install(ContentNegotiation) { json(json) } }
 
-		val response = testClient.post("api/project/$userId/$projectName/writing_activity/$deviceId") {
+		val response = testClient.get("api/project/$userId/${projectId.id}/writing_activity") {
 			header("Authorization", "Bearer $bearerToken")
-			contentType(ContentType.Application.Json)
-			setBody(DeviceLog(deviceLabel = "Desktop"))
 		}
 
-		assertEquals(HttpStatusCode.BadRequest, response.status)
+		assertEquals(HttpStatusCode.Gone, response.status)
 	}
 }

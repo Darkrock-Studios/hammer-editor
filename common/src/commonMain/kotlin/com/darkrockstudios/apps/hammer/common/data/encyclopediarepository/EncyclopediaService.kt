@@ -83,6 +83,12 @@ class EncyclopediaService(
 	fun hasEntryImage(entryDef: EntryDef, fileExtension: String): Boolean =
 		repository.hasEntryImage(entryDef, fileExtension)
 
+	fun findEntryImagePath(entryDef: EntryDef): HPath? =
+		repository.findEntryImagePath(entryDef)
+
+	fun findEntryImageExtension(entryDef: EntryDef): String? =
+		repository.findEntryImageExtension(entryDef)
+
 	suspend fun calculateEntryImageHash(entryDef: EntryDef, fileExtension: String): String? =
 		repository.calculateEntryImageHash(entryDef, fileExtension)
 

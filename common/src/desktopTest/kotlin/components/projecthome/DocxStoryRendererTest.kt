@@ -3,6 +3,7 @@ package components.projecthome
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.components.projecthome.StoryChapter
+import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStrings
 import com.darkrockstudios.apps.hammer.common.components.projecthome.writeStoryAsDocx
 import okio.Buffer
 import org.apache.poi.xwpf.usermodel.XWPFDocument
@@ -23,11 +24,13 @@ class DocxStoryRendererTest {
 		projectData: ProjectData = ProjectData(authorName = "Test Author"),
 	): XWPFDocument {
 		val buffer = Buffer()
+		val author = projectData.authorName?.takeIf { it.isNotBlank() }
 		writeStoryAsDocx(
 			sink = buffer,
 			projectName = projectName,
 			projectData = projectData,
 			chapters = chapters,
+			strings = ExportStrings(contentsTitle = "Contents", authorByline = author?.let { "by $it" }),
 		)
 		return XWPFDocument(ByteArrayInputStream(buffer.readByteArray()))
 	}
@@ -47,6 +50,18 @@ class DocxStoryRendererTest {
 
 		assertEquals("Test Project", doc.properties.coreProperties.title)
 		assertEquals("Test Author", doc.properties.coreProperties.creator)
+	}
+
+	@Test
+	fun `extended metadata identifies Hammer as the generating application`() {
+		val doc = render(listOf(StoryChapter("Alpha", "Some text.")))
+
+		val extended = doc.properties.extendedProperties.underlyingProperties
+		assertEquals("Hammer", extended.application)
+		assertTrue(
+			extended.appVersion.isNotBlank(),
+			"App version metadata should be present",
+		)
 	}
 
 	@Test
@@ -118,6 +133,18 @@ class DocxStoryRendererTest {
 		val plain = runs.first { it.text().contains("plain") }
 		assertTrue(!plain.isBold)
 		assertTrue(!plain.isItalic)
+	}
+
+	@Test
+	fun `markdown strikethrough becomes a struck-through run`() {
+		val doc = render(listOf(StoryChapter("Alpha", "This is ~~gone~~ now.")))
+
+		val runs = doc.bodyParagraphs().flatMap { it.runs }
+		val struck = runs.first { it.text() == "gone" }
+		assertTrue(struck.isStrikeThrough, "GFM strikethrough should set the run's strike property")
+
+		val plain = runs.first { it.text().contains("now") }
+		assertTrue(!plain.isStrikeThrough)
 	}
 
 	@Test

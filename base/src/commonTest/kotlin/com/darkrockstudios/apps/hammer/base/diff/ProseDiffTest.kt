@@ -189,4 +189,158 @@ class ProseDiffTest {
 		val highlighted = right.substring(r.start, r.endExclusive)
 		assertTrue("Para two" in highlighted, "expected 'Para two' in inserted highlight, got: '$highlighted'")
 	}
+
+	@Test
+	fun `paragraph moved verbatim is marked moved on both sides`() {
+		val left = "Alpha para.\n\nBeta para.\n\nGamma para."
+		val right = "Beta para.\n\nGamma para.\n\nAlpha para."
+		val result = ProseDiff.diff(left, right)
+
+		val leftMove = result.leftSpans.singleOrNull {
+			it.kind == DiffKind.MOVED && "Alpha" in left.substring(it.range.start, it.range.endExclusive)
+		}
+		val rightMove = result.rightSpans.singleOrNull {
+			it.kind == DiffKind.MOVED && "Alpha" in right.substring(it.range.start, it.range.endExclusive)
+		}
+
+		assertTrue(leftMove != null, "expected moved Alpha span on left, got: ${result.leftSpans}")
+		assertTrue(rightMove != null, "expected moved Alpha span on right, got: ${result.rightSpans}")
+		assertEquals(leftMove.moveId, rightMove.moveId)
+		assertTrue(result.leftSpans.none { it.kind == DiffKind.DELETED }, "expected no deleted spans, got: ${result.leftSpans}")
+		assertTrue(result.rightSpans.none { it.kind == DiffKind.INSERTED }, "expected no inserted spans, got: ${result.rightSpans}")
+	}
+
+	@Test
+	fun `paragraph moved with whitespace-only change is still marked moved`() {
+		val left = "Alpha  para.\n\nBeta para.\n\nGamma para."
+		val right = "Beta para.\n\nGamma para.\n\nAlpha para."
+		val result = ProseDiff.diff(left, right)
+
+		val leftMove = result.leftSpans.singleOrNull {
+			it.kind == DiffKind.MOVED && "Alpha" in left.substring(it.range.start, it.range.endExclusive)
+		}
+		val rightMove = result.rightSpans.singleOrNull {
+			it.kind == DiffKind.MOVED && "Alpha" in right.substring(it.range.start, it.range.endExclusive)
+		}
+
+		assertTrue(leftMove != null, "expected moved Alpha span on left, got: ${result.leftSpans}")
+		assertTrue(rightMove != null, "expected moved Alpha span on right, got: ${result.rightSpans}")
+		assertEquals(leftMove.moveId, rightMove.moveId)
+	}
+
+	@Test
+	fun `paragraph moved with edited word is not marked moved`() {
+		val left = "Alpha para.\n\nBeta para.\n\nGamma para."
+		val right = "Beta para.\n\nGamma para.\n\nAlpha changed."
+		val result = ProseDiff.diff(left, right)
+
+		assertTrue(result.leftSpans.none { it.kind == DiffKind.MOVED }, "expected no moved left spans, got: ${result.leftSpans}")
+		assertTrue(result.rightSpans.none { it.kind == DiffKind.MOVED }, "expected no moved right spans, got: ${result.rightSpans}")
+		assertTrue(result.leftSpans.any { it.kind == DiffKind.DELETED }, "expected deleted span, got: ${result.leftSpans}")
+		assertTrue(result.rightSpans.any { it.kind == DiffKind.INSERTED }, "expected inserted span, got: ${result.rightSpans}")
+	}
+
+	@Test
+	fun `duplicate paragraph text is ambiguous and not marked moved`() {
+		val left = "Dup para.\n\nKeep one.\n\nDup para.\n\nKeep two."
+		val right = "Keep one.\n\nKeep two.\n\nDup para."
+		val result = ProseDiff.diff(left, right)
+
+		assertTrue(result.leftSpans.none { it.kind == DiffKind.MOVED }, "expected no moved left spans, got: ${result.leftSpans}")
+		assertTrue(result.rightSpans.none { it.kind == DiffKind.MOVED }, "expected no moved right spans, got: ${result.rightSpans}")
+		assertTrue(result.leftSpans.any { it.kind == DiffKind.DELETED }, "expected deleted span, got: ${result.leftSpans}")
+		assertTrue(result.rightSpans.any { it.kind == DiffKind.INSERTED }, "expected inserted span, got: ${result.rightSpans}")
+	}
+
+	@Test
+	fun `two different moved paragraphs get distinct move ids`() {
+		val left = "Alpha para.\n\nStable one.\n\nBeta para.\n\nStable two.\n\nStable three."
+		val right = "Stable one.\n\nAlpha para.\n\nStable two.\n\nBeta para.\n\nStable three."
+		val result = ProseDiff.diff(left, right)
+
+		val movedSpans = result.leftSpans.plus(result.rightSpans).filter { it.kind == DiffKind.MOVED }
+		val movedIds = movedSpans.mapNotNull { it.moveId }.toSet()
+
+		assertEquals(4, movedSpans.size, "expected two moved pairs, got: $movedSpans")
+		assertEquals(2, movedIds.size, "expected two distinct move ids, got: $movedIds")
+	}
+
+	@Test
+	fun `swapped paragraphs around an edited paragraph are both moved and the edit is shown`() {
+		val left = "Alpha para.\n\nMiddle cat.\n\nGamma para."
+		val right = "Gamma para.\n\nMiddle dog.\n\nAlpha para."
+		val result = ProseDiff.diff(left, right)
+
+		fun List<DiffSpan>.movedContaining(text: String, source: String) = singleOrNull {
+			it.kind == DiffKind.MOVED && text in source.substring(it.range.start, it.range.endExclusive)
+		}
+
+		val leftAlpha = result.leftSpans.movedContaining("Alpha", left)
+		val leftGamma = result.leftSpans.movedContaining("Gamma", left)
+		val rightAlpha = result.rightSpans.movedContaining("Alpha", right)
+		val rightGamma = result.rightSpans.movedContaining("Gamma", right)
+
+		assertTrue(leftAlpha != null, "expected moved Alpha on left, got: ${result.leftSpans}")
+		assertTrue(leftGamma != null, "expected moved Gamma on left, got: ${result.leftSpans}")
+		assertTrue(rightAlpha != null, "expected moved Alpha on right, got: ${result.rightSpans}")
+		assertTrue(rightGamma != null, "expected moved Gamma on right, got: ${result.rightSpans}")
+		assertEquals(leftAlpha.moveId, rightAlpha.moveId, "Alpha move ids should match")
+		assertEquals(leftGamma.moveId, rightGamma.moveId, "Gamma move ids should match")
+		assertTrue(leftAlpha.moveId != leftGamma.moveId, "Alpha and Gamma should have distinct move ids")
+
+		val deletedCat = result.leftSpans.any {
+			it.kind == DiffKind.DELETED && "cat" in left.substring(it.range.start, it.range.endExclusive)
+		}
+		val insertedDog = result.rightSpans.any {
+			it.kind == DiffKind.INSERTED && "dog" in right.substring(it.range.start, it.range.endExclusive)
+		}
+		assertTrue(deletedCat, "expected the cat->dog edit deleted on left, got: ${result.leftSpans}")
+		assertTrue(insertedDog, "expected the cat->dog edit inserted on right, got: ${result.rightSpans}")
+	}
+
+	@Test
+	fun `an edit adjacent to a moved paragraph is not swallowed by the move span`() {
+		val left = "Intro stays.\n\nAlpha para.\n\nThe quick fox."
+		val right = "Alpha para.\n\nIntro stays.\n\nThe slow fox."
+		val result = ProseDiff.diff(left, right)
+
+		assertTrue(
+			result.leftSpans.any { it.kind == DiffKind.DELETED && "quick" in left.substring(it.range.start, it.range.endExclusive) },
+			"expected 'quick' deleted on left, got: ${result.leftSpans}",
+		)
+		assertTrue(
+			result.rightSpans.any { it.kind == DiffKind.INSERTED && "slow" in right.substring(it.range.start, it.range.endExclusive) },
+			"expected 'slow' inserted on right, got: ${result.rightSpans}",
+		)
+		assertTrue(
+			result.leftSpans.any { it.kind == DiffKind.MOVED && "Alpha" in left.substring(it.range.start, it.range.endExclusive) },
+			"expected Alpha moved on left, got: ${result.leftSpans}",
+		)
+	}
+
+	@Test
+	fun `moved hunk emits no scroll sync anchor inside moved paragraph`() {
+		val left = "Alpha para.\n\nBeta para.\n\nGamma para."
+		val right = "Beta para.\n\nGamma para.\n\nAlpha para."
+		val result = ProseDiff.diff(left, right)
+		val movedLeft = result.leftSpans.single {
+			it.kind == DiffKind.MOVED && "Alpha" in left.substring(it.range.start, it.range.endExclusive)
+		}
+
+		assertEquals(DiffAnchor(0, 0), result.anchors.first())
+		assertEquals(DiffAnchor(left.length, right.length), result.anchors.last())
+
+		var prev = result.anchors.first()
+		for (a in result.anchors.drop(1)) {
+			assertTrue(a.leftSource >= prev.leftSource, "left anchors must be non-decreasing: $prev -> $a")
+			assertTrue(a.rightSource >= prev.rightSource, "right anchors must be non-decreasing: $prev -> $a")
+			prev = a
+		}
+
+		val movedRange = movedLeft.range
+		assertTrue(
+			result.anchors.none { it.leftSource > movedRange.start && it.leftSource < movedRange.endExclusive },
+			"expected no left anchor inside moved range $movedRange, got: ${result.anchors}",
+		)
+	}
 }

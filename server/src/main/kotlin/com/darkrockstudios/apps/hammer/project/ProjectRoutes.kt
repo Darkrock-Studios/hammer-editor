@@ -52,7 +52,7 @@ import kotlin.time.Instant
 
 fun Route.projectRoutes(logger: Logger) {
 	authenticate(USER_AUTH) {
-		route("/project/{userId}/{projectName}") {
+		route("/project/{userId}/{projectId}") {
 			beginProjectSync()
 			endProjectSync()
 			uploadEntity()
@@ -74,7 +74,7 @@ private fun Route.beginProjectSync() {
 
 	post("/begin_sync") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectDef = call.requireProjectDef() ?: return@post
+		val projectDef = call.requireProjectDef(principal.id) ?: return@post
 		val lite = call.parameters["lite"]?.toBoolean() ?: false
 
 		// Derived from the authenticated token (not client-asserted)
@@ -120,7 +120,7 @@ private fun Route.endProjectSync() {
 	post("/end_sync") {
 		val log = call.application.log
 		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectDef = call.requireProjectDef() ?: return@post
+		val projectDef = call.requireProjectDef(principal.id) ?: return@post
 		val syncId = call.requireSyncId() ?: return@post
 
 		log.info("end_sync: userId=${principal.id}, project=${projectDef.name}, projectId=${projectDef.uuid}, syncId=$syncId")
@@ -196,7 +196,7 @@ private fun Route.uploadEntity() {
 			ApiProjectEntity.Type.SCENE_DRAFT -> call.receive<ApiProjectEntity.SceneDraftEntity>()
 		}
 
-		val projectDef = call.requireProjectDef() ?: return@post
+		val projectDef = call.requireProjectDef(principal.id) ?: return@post
 		val entityId = call.requireEntityId() ?: return@post
 		val syncId = call.requireSyncId() ?: return@post
 
@@ -282,7 +282,7 @@ private fun Route.downloadEntity(log: Logger) {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
 		val entityHash = call.request.headers[HEADER_ENTITY_HASH]
 
-		val projectDef = call.requireProjectDef() ?: return@get
+		val projectDef = call.requireProjectDef(principal.id) ?: return@get
 		val entityId = call.requireEntityId() ?: return@get
 		val syncId = call.requireSyncId() ?: return@get
 
@@ -375,7 +375,7 @@ private fun Route.getWritingActivity() {
 
 	get("/writing_activity") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectDef = call.requireProjectDef() ?: return@get
+		val projectDef = call.requireProjectDef(principal.id) ?: return@get
 
 		val result = repository.loadAll(principal.id, projectDef)
 		if (isSuccess(result)) {
@@ -397,7 +397,7 @@ private fun Route.uploadWritingActivity() {
 
 	post("/writing_activity/{deviceId}") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectDef = call.requireProjectDef() ?: return@post
+		val projectDef = call.requireProjectDef(principal.id) ?: return@post
 		val deviceId = call.parameters["deviceId"]
 		if (deviceId.isNullOrBlank()) {
 			call.respondMissingParameter("api_project_writingactivity_error_deviceidmissing")
@@ -425,7 +425,7 @@ private fun Route.getProjectData() {
 
 	get("/project_data") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectDef = call.requireProjectDef() ?: return@get
+		val projectDef = call.requireProjectDef(principal.id) ?: return@get
 
 		val result = repository.load(principal.id, projectDef)
 		if (isSuccess(result)) {
@@ -452,7 +452,7 @@ private fun Route.uploadProjectData() {
 
 	post("/project_data") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectDef = call.requireProjectDef() ?: return@post
+		val projectDef = call.requireProjectDef(principal.id) ?: return@post
 
 		val request = call.receive<ProjectDataUploadRequest>()
 		val result = repository.save(
@@ -483,7 +483,7 @@ private fun Route.deleteEntity() {
 
 	get("/delete_entity/{entityId}") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectDef = call.requireProjectDef() ?: return@get
+		val projectDef = call.requireProjectDef(principal.id) ?: return@get
 		val entityId = call.requireEntityId(error = ERROR_MISSING_ENTITY_ID) ?: return@get
 		val syncId = call.requireSyncId() ?: return@get
 

@@ -31,7 +31,7 @@ class ApiMetricsPluginTest {
 			configureRouteTemplateCapture()
 			routing {
 				route("api") {
-					route("/project/{userId}/{projectName}") {
+					route("/project/{userId}/{projectId}") {
 						post("/upload_entity/{entityId}") { call.respond(HttpStatusCode.OK) }
 					}
 				}
@@ -41,7 +41,7 @@ class ApiMetricsPluginTest {
 		client.post("/api/project/1/Alice%20In%20Wonderland/upload_entity/8")
 
 		val recorded = collector.recentRequests().single()
-		assertEquals("/api/project/{userId}/{projectName}/upload_entity/{entityId}", recorded.route)
+		assertEquals("/api/project/{userId}/{projectId}/upload_entity/{entityId}", recorded.route)
 		assertEquals("POST", recorded.method)
 	}
 

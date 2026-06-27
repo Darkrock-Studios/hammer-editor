@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -34,6 +35,7 @@ import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.path
+import io.github.vinceglb.filekit.size
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -137,7 +139,19 @@ internal fun CreateEntryUi(
 					label = Res.string.encyclopedia_create_entry_cover_art_label.get(),
 					onClick = {
 						scope.launch {
-							imagePath = retryingFileDialog { FileKit.openFilePicker(type = FileKitType.Image) }
+							val picked = retryingFileDialog {
+								FileKit.openFilePicker(type = FileKitType.File(EncyclopediaDatasource.IMAGE_EXTENSIONS))
+							}
+							if (picked != null && picked.size() > EncyclopediaDatasource.MAX_IMAGE_SIZE_BYTES) {
+								rootSnackbar.showSnackbar(
+									strRes.get(
+										Res.string.encyclopedia_create_entry_image_too_large,
+										EncyclopediaDatasource.MAX_IMAGE_SIZE_MB,
+									)
+								)
+							} else {
+								imagePath = picked
+							}
 						}
 					},
 					dropHint = Res.string.encyclopedia_create_entry_image_drop_hint.get(),

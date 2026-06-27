@@ -15,6 +15,7 @@ data class HammerExtendedColors(
 	val success: Color,
 	val warning: Color,
 	val danger: Color,
+	val moved: Color,
 	val characterPalette: List<Color>,
 	val tagPalette: List<Color>,
 ) {
@@ -101,6 +102,7 @@ val LightHammerColors = HammerExtendedColors(
 	success = Color(0xFF2E7D32),
 	warning = Color(0xFFB58940),
 	danger = Color(0xFFC62828),
+	moved = Color(0xFF3A5FA0),
 	characterPalette = LightCharacterPalette,
 	tagPalette = LightTagPalette,
 )
@@ -114,6 +116,7 @@ val DarkHammerColors = HammerExtendedColors(
 	success = Color(0xFF7BC97D),
 	warning = Color(0xFFE0B36B),
 	danger = Color(0xFFE57373),
+	moved = Color(0xFF7B9FD4),
 	characterPalette = DarkCharacterPalette,
 	tagPalette = DarkTagPalette,
 )
