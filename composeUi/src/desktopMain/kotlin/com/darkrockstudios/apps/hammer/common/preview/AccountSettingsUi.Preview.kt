@@ -11,19 +11,6 @@ import com.darkrockstudios.apps.hammer.common.projectselection.settings.AccountS
 @Preview
 @Composable
 internal fun ScreenAccountSettingsUiPreview() {
-	val component = accountSettingsComponent()
-	val rootSnackbar = rememberRootSnackbarHostState()
-
-	KoinApplicationPreview {
-		AppTheme(globalSettingsPreview) {
-			AccountSettingsUi(component, rootSnackbar)
-		}
-	}
-}
-
-@Preview
-@Composable
-internal fun ScreenAccountSettingsUiNoServerSetupPreview() {
 	val component = accountSettingsComponent(
 		defaultAccountSettingsComponentState.copy(serverSetup = false)
 	)

@@ -35,16 +35,6 @@ fun ServerSetupDialog(
 ) {
 	val state by component.state.subscribeAsState()
 
-	var passwordVisible by rememberSaveable(state.serverSetup) { mutableStateOf(false) }
-	var confirmDeleteLocal by rememberSaveable(state.serverSetup) { mutableStateOf<Boolean?>(null) }
-	var showHelpDialog by rememberSaveable { mutableStateOf(false) }
-	val existingServer = rememberSaveable(state.serverSetup) {
-		state.serverWorking.not()
-			&& state.currentUrl != null
-			&& state.currentUserId != null
-			&& state.currentUserId != -1L
-	}
-
 	var renderInternal by remember { mutableStateOf(state.serverSetup) }
 	LaunchedEffect(state.serverSetup) { if (state.serverSetup) renderInternal = true }
 
@@ -57,146 +47,176 @@ fun ServerSetupDialog(
 			onClosed = { renderInternal = false },
 			properties = DialogProperties(usePlatformDefaultWidth = false),
 		) {
-			Surface(
+			ServerSetupDialogContent(
+				component = component,
+				scope = scope,
+				modifier = Modifier.predictiveBackTransform(),
+			)
+		}
+	}
+}
+
+/**
+ * The static chrome of [ServerSetupDialog] without the [AnimatedDialogContainer] wrapper.
+ * [ServerSetupDialog] animates this in/out; render it directly (e.g. in a `@Preview`) to capture
+ * the dialog as a settled, opaque frame, since the Desktop preview renderer can't advance the
+ * enter animation.
+ */
+@Composable
+fun ServerSetupDialogContent(
+	component: AccountSettings,
+	scope: CoroutineScope,
+	modifier: Modifier = Modifier,
+) {
+	val state by component.state.subscribeAsState()
+
+	var passwordVisible by rememberSaveable(state.serverSetup) { mutableStateOf(false) }
+	var confirmDeleteLocal by rememberSaveable(state.serverSetup) { mutableStateOf<Boolean?>(null) }
+	var showHelpDialog by rememberSaveable { mutableStateOf(false) }
+	val existingServer = rememberSaveable(state.serverSetup) {
+		state.serverWorking.not()
+			&& state.currentUrl != null
+			&& state.currentUserId != null
+			&& state.currentUserId != -1L
+	}
+
+	Surface(
+		modifier = modifier
+			.padding(Ui.Padding.M)
+			.widthIn(max = DialogMaxWidth)
+			.fillMaxWidth(),
+		shape = RectangleShape,
+		color = MaterialTheme.colorScheme.surface,
+		contentColor = MaterialTheme.colorScheme.onSurface,
+		border = BorderStroke(
+			width = Dp.Hairline,
+			color = MaterialTheme.colorScheme.outlineVariant,
+		),
+	) {
+		Column {
+			Masthead(
+				existingServer = existingServer,
+				loggedIn = state.serverIsLoggedIn,
+				onHelp = { showHelpDialog = true },
+				onClose = { component.cancelServerSetup() },
+			)
+			HdFolioDivider()
+
+			Header()
+
+			if (state.serverWorking) {
+				LinearProgressIndicator(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(horizontal = Ui.Padding.XL)
+						.height(2.dp),
+					color = MaterialTheme.colorScheme.primary,
+				)
+			}
+
+			Column(
 				modifier = Modifier
-					.padding(Ui.Padding.M)
-					.widthIn(max = DialogMaxWidth)
 					.fillMaxWidth()
-					.predictiveBackTransform(),
-				shape = RectangleShape,
-				color = MaterialTheme.colorScheme.surface,
-				contentColor = MaterialTheme.colorScheme.onSurface,
-				border = BorderStroke(
-					width = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outlineVariant,
-				),
+					.verticalScroll(rememberScrollState())
+					.padding(
+						start = Ui.Padding.XL,
+						end = Ui.Padding.XL,
+						top = Ui.Padding.L,
+						bottom = Ui.Padding.L,
+					),
+				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 			) {
-				Column {
-					Masthead(
-						existingServer = existingServer,
-						loggedIn = state.serverIsLoggedIn,
-						onHelp = { showHelpDialog = true },
-						onClose = { component.cancelServerSetup() },
-					)
-					HdFolioDivider()
-
-					Header()
-
-					if (state.serverWorking) {
-						LinearProgressIndicator(
-							modifier = Modifier
-								.fillMaxWidth()
-								.padding(horizontal = Ui.Padding.XL)
-								.height(2.dp),
-							color = MaterialTheme.colorScheme.primary,
-						)
-					}
-
-					Column(
-						modifier = Modifier
-							.fillMaxWidth()
-							.verticalScroll(rememberScrollState())
-							.padding(
-								start = Ui.Padding.XL,
-								end = Ui.Padding.XL,
-								top = Ui.Padding.L,
-								bottom = Ui.Padding.L,
-							),
-						verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-					) {
-						HdHairlineSegmentedPicker(
-							options = listOf(false, true),
-							selected = state.serverSsl,
-							onSelect = { ssl ->
-								if (!state.serverWorking && !existingServer) {
-									component.updateServerSsl(ssl)
-								}
-							},
-							label = { ssl -> if (ssl) "HTTPS" else "HTTP" },
-							title = "PROTOCOL",
-						)
-
-						HdHairlineField(
-							label = "URL",
-							value = state.serverUrl ?: "",
-							onValueChange = { component.updateServerUrl(it) },
-							placeholder = Res.string.settings_server_setup_url_hint.get(),
-							singleLine = true,
-							imeAction = ImeAction.Next,
-							keyboardType = KeyboardType.Uri,
-							enabled = !state.serverWorking && !existingServer,
-						)
-
-						HdHairlineField(
-							label = "EMAIL",
-							value = state.serverEmail ?: "",
-							onValueChange = { component.updateServerEmail(it) },
-							placeholder = Res.string.settings_server_setup_email_hint.get(),
-							singleLine = true,
-							imeAction = ImeAction.Next,
-							keyboardType = KeyboardType.Email,
-							enabled = !state.serverWorking && !existingServer,
-						)
-
-						HdHairlineField(
-							label = "PASSWORD",
-							value = state.serverPassword ?: "",
-							onValueChange = { component.updateServerPassword(it) },
-							placeholder = Res.string.settings_server_setup_password_hint.get(),
-							singleLine = true,
-							imeAction = ImeAction.Done,
-							keyboardType = KeyboardType.Password,
-							visualTransformation = if (passwordVisible) VisualTransformation.None
-							else PasswordVisualTransformation(),
-							enabled = !state.serverWorking,
-						)
-
-						HdHairlineToggleRow(
-							checked = passwordVisible,
-							onCheckedChange = { passwordVisible = it },
-							label = if (passwordVisible) {
-								Res.string.settings_server_setup_password_hide.get()
-							} else {
-								Res.string.settings_server_setup_password_show.get()
-							},
-						)
-
-						state.serverError?.let { error ->
-							HdMonoLabel(
-								text = "! $error",
-								color = MaterialTheme.colorScheme.error,
-							)
+				HdHairlineSegmentedPicker(
+					options = listOf(false, true),
+					selected = state.serverSsl,
+					onSelect = { ssl ->
+						if (!state.serverWorking && !existingServer) {
+							component.updateServerSsl(ssl)
 						}
-					}
+					},
+					label = { ssl -> if (ssl) "HTTPS" else "HTTP" },
+					title = "PROTOCOL",
+				)
 
-					HorizontalDivider(
-						thickness = Dp.Hairline,
-						color = MaterialTheme.colorScheme.outlineVariant,
-					)
+				HdHairlineField(
+					label = "URL",
+					value = state.serverUrl ?: "",
+					onValueChange = { component.updateServerUrl(it) },
+					placeholder = Res.string.settings_server_setup_url_hint.get(),
+					singleLine = true,
+					imeAction = ImeAction.Next,
+					keyboardType = KeyboardType.Uri,
+					enabled = !state.serverWorking && !existingServer,
+				)
 
-					ActionRow(
-						working = state.serverWorking,
-						isLoggedIn = state.serverIsLoggedIn,
-						canCreate = state.currentUrl == null,
-						onCancel = { scope.launch { component.cancelServerSetup() } },
-						onCreate = { confirmDeleteLocal = true },
-						onLogin = {
-							if (state.serverIsLoggedIn.not()) {
-								confirmDeleteLocal = false
-							} else {
-								component.setupServer(
-									ssl = state.serverSsl,
-									url = state.serverUrl ?: "",
-									email = state.serverEmail ?: "",
-									password = state.serverPassword ?: "",
-									create = false,
-									removeLocalContent = false,
-								)
-							}
-						},
+				HdHairlineField(
+					label = "EMAIL",
+					value = state.serverEmail ?: "",
+					onValueChange = { component.updateServerEmail(it) },
+					placeholder = Res.string.settings_server_setup_email_hint.get(),
+					singleLine = true,
+					imeAction = ImeAction.Next,
+					keyboardType = KeyboardType.Email,
+					enabled = !state.serverWorking && !existingServer,
+				)
+
+				HdHairlineField(
+					label = "PASSWORD",
+					value = state.serverPassword ?: "",
+					onValueChange = { component.updateServerPassword(it) },
+					placeholder = Res.string.settings_server_setup_password_hint.get(),
+					singleLine = true,
+					imeAction = ImeAction.Done,
+					keyboardType = KeyboardType.Password,
+					visualTransformation = if (passwordVisible) VisualTransformation.None
+					else PasswordVisualTransformation(),
+					enabled = !state.serverWorking,
+				)
+
+				HdHairlineToggleRow(
+					checked = passwordVisible,
+					onCheckedChange = { passwordVisible = it },
+					label = if (passwordVisible) {
+						Res.string.settings_server_setup_password_hide.get()
+					} else {
+						Res.string.settings_server_setup_password_show.get()
+					},
+				)
+
+				state.serverError?.let { error ->
+					HdMonoLabel(
+						text = "! $error",
+						color = MaterialTheme.colorScheme.error,
 					)
 				}
 			}
+
+			HorizontalDivider(
+				thickness = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			)
+
+			ActionRow(
+				working = state.serverWorking,
+				isLoggedIn = state.serverIsLoggedIn,
+				canCreate = state.currentUrl == null,
+				onCancel = { scope.launch { component.cancelServerSetup() } },
+				onCreate = { confirmDeleteLocal = true },
+				onLogin = {
+					if (state.serverIsLoggedIn.not()) {
+						confirmDeleteLocal = false
+					} else {
+						component.setupServer(
+							ssl = state.serverSsl,
+							url = state.serverUrl ?: "",
+							email = state.serverEmail ?: "",
+							password = state.serverPassword ?: "",
+							create = false,
+							removeLocalContent = false,
+						)
+					}
+				},
+			)
 		}
 	}
 
