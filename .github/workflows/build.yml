@@ -127,10 +127,11 @@ jobs:
             android/build/reports/androidTests/connected/
             android/build/outputs/androidTest-results/connected/
 
-  # Compile gate for Kotlin/Native — the ubuntu `build` job never compiles the
-  # iOS targets, so Native-only breakage in commonMain slips through otherwise.
+  # The ubuntu `build` job never touches the iOS targets, so Native-only breakage
+  # in commonMain slips through otherwise. This job both compiles the iOS targets
+  # and runs the Kotlin/Native unit tests on the simulator.
   ios-compile:
-    name: iOS compile check
+    name: iOS compile & test
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
@@ -144,6 +145,17 @@ jobs:
         run: chmod +x gradlew
       - name: Compile iOS Kotlin targets
         run: ./gradlew :composeUi:compileKotlinIosArm64 :composeUi:compileKotlinIosSimulatorArm64
+      - name: Run iOS unit tests
+        id: ios-tests
+        run: ./gradlew :common:iosSimulatorArm64Test
+      - name: Upload iOS test report on failure
+        if: failure() && steps.ios-tests.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-tests-report
+          path: |
+            common/build/reports/tests/iosSimulatorArm64Test/
+            common/build/test-results/iosSimulatorArm64Test/
 
 #  ios:
 #    runs-on: macos-latest

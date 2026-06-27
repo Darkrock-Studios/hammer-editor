@@ -95,7 +95,6 @@ kotlin {
 			dependencies {
 				implementation(kotlin("test"))
 				implementation(libs.koin.test)
-				implementation(libs.okio.fakefilesystem)
 				implementation(libs.kotlin.reflect)
 			}
 		}
@@ -104,6 +103,12 @@ kotlin {
 		}
 		val jvmTest by creating {
 			dependsOn(commonTest)
+			dependencies {
+				// okio-fakefilesystem references the deprecated kotlinx.datetime.Clock typealias,
+				// which double-binds during Kotlin/Native klib caching and breaks the iOS test
+				// link. Keep it off the native test classpath - only JVM tests use FakeFileSystem.
+				implementation(libs.okio.fakefilesystem)
+			}
 		}
 		val androidMain by getting {
 			dependsOn(jvmMain)
@@ -124,7 +129,11 @@ kotlin {
 				api(libs.ktor.client.darwin)
 			}
 		}
-		val iosTest by getting
+		val iosTest by getting {
+			dependencies {
+				implementation(libs.multiplatform.settings.test)
+			}
+		}
 		val androidHostTest by getting {
 			dependencies {
 				implementation(kotlin("test"))
