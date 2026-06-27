@@ -32,6 +32,17 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.5.0" date="2026-06-27">
+            <description>
+                <p>- [New] Import existing stories (from Markdown or RTF) from the new-project flow</p>
+                <p>- [New] New export format: RTF</p>
+                <p>- [New] Draft compare: Paragraph move highlighting</p>
+                <p>- [Fix] Editor undo/redo getting broken by formatting</p>
+                <p>- [Fix] Timeline reordering events snapping back into place</p>
+                <p>- [Fix] Breaking change: Sync API URLs now only use project IDs</p>
+                <p>- Security hardening: sync auth tokens encrypted at rest, file write sandboxing, max image size enforced</p>
+            </description>
+        </release>
         <release version="3.4.2" date="2026-06-23">
             <description>
                 <p>- [Fix] Server security hardening</p>
