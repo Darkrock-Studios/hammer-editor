@@ -40,7 +40,7 @@ class ProjectDataSyncOperation(
 		val userId = globalSettingsStore.userIdOrThrow()
 		val projectId = state.serverProjectId
 
-		val getResult = api.getProjectData(userId, projectDef.name, projectId)
+		val getResult = api.getProjectData(userId, projectId)
 		val serverDto: ProjectDataDto? = getResult.getOrElse { error ->
 			onLog(syncLogE("Project data sync: failed to load remote: ${error.message}", projectDef))
 			return CResult.failure(error)
@@ -84,7 +84,7 @@ class ProjectDataSyncOperation(
 		originalHash: String?,
 		onLog: OnSyncLog,
 	): ProjectDataDto? {
-		val result = api.uploadProjectData(userId, projectDef.name, projectId, data, originalHash)
+		val result = api.uploadProjectData(userId, projectId, data, originalHash)
 		val success = result.getOrNull()
 		if (success != null) {
 			repository.updateFromSync(success.data, success.hash)
@@ -112,7 +112,6 @@ class ProjectDataSyncOperation(
 
 		val resolveResult = api.uploadProjectData(
 			userId = userId,
-			projectName = projectDef.name,
 			projectId = projectId,
 			data = resolved,
 			originalHash = conflict.conflict.serverHash,

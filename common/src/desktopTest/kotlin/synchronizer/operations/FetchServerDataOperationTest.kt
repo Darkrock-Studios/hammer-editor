@@ -85,7 +85,6 @@ class FetchServerDataOperationTest : BaseTest() {
 				any(),
 				any(),
 				any(),
-				any(),
 				any()
 			)
 		} returns Result.success(beganResponse)
@@ -147,7 +146,6 @@ class FetchServerDataOperationTest : BaseTest() {
 		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns metadata
 		coEvery {
 			serverProjectApi.beginProjectSync(
-				any(),
 				any(),
 				any(),
 				any(),

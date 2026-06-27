@@ -105,9 +105,9 @@ class WritingActivitySyncOperationTest : BaseTest() {
 			deviceLabel = deviceLabel,
 			sessions = listOf(localOnlySession()),
 		)
-		coEvery { api.getWritingActivity(any(), any(), any()) } returns
+		coEvery { api.getWritingActivity(any(), any()) } returns
 			Result.success(WritingActivityResponse(devices = emptyMap()))
-		coEvery { api.uploadDeviceLog(any(), any(), any(), any(), any()) } returns
+		coEvery { api.uploadDeviceLog(any(), any(), any(), any()) } returns
 			Result.success("ok")
 
 		val result = createOperation().execute(startState(), onProgress, onLog, onConflict, onComplete)
@@ -119,7 +119,6 @@ class WritingActivitySyncOperationTest : BaseTest() {
 		coVerify {
 			api.uploadDeviceLog(
 				userId = userId,
-				projectName = projectDef.name,
 				projectId = projId,
 				deviceId = ownDeviceId,
 				log = DeviceLog(deviceLabel = deviceLabel, sessions = listOf(localOnlySession())),
@@ -138,10 +137,10 @@ class WritingActivitySyncOperationTest : BaseTest() {
 		val foreignLog = DeviceLog(deviceLabel = "Phone", sessions = listOf(foreignSession))
 
 		coEvery { repository.loadOwnLog() } returns DeviceLog(deviceLabel, emptyList())
-		coEvery { api.getWritingActivity(any(), any(), any()) } returns Result.success(
+		coEvery { api.getWritingActivity(any(), any()) } returns Result.success(
 			WritingActivityResponse(devices = mapOf("device-other" to foreignLog))
 		)
-		coEvery { api.uploadDeviceLog(any(), any(), any(), any(), any()) } returns Result.success("ok")
+		coEvery { api.uploadDeviceLog(any(), any(), any(), any()) } returns Result.success("ok")
 
 		createOperation().execute(startState(), onProgress, onLog, onConflict, onComplete)
 
@@ -164,12 +163,12 @@ class WritingActivitySyncOperationTest : BaseTest() {
 		)
 
 		coEvery { repository.loadOwnLog() } returns DeviceLog(deviceLabel, listOf(localCopy))
-		coEvery { api.getWritingActivity(any(), any(), any()) } returns Result.success(
+		coEvery { api.getWritingActivity(any(), any()) } returns Result.success(
 			WritingActivityResponse(devices = mapOf(ownDeviceId to DeviceLog(deviceLabel, listOf(serverCopy))))
 		)
 		val uploadedLog = slot<DeviceLog>()
 		coEvery {
-			api.uploadDeviceLog(any(), any(), any(), any(), capture(uploadedLog))
+			api.uploadDeviceLog(any(), any(), any(), capture(uploadedLog))
 		} returns Result.success("ok")
 
 		createOperation().execute(startState(), onProgress, onLog, onConflict, onComplete)
@@ -182,22 +181,22 @@ class WritingActivitySyncOperationTest : BaseTest() {
 
 	@Test
 	fun `GET failure skips activity sync without failing the pipeline`() = runTest {
-		coEvery { api.getWritingActivity(any(), any(), any()) } returns
+		coEvery { api.getWritingActivity(any(), any()) } returns
 			Result.failure(RuntimeException("server unavailable"))
 
 		val result = createOperation().execute(startState(), onProgress, onLog, onConflict, onComplete)
 
 		assertTrue(isSuccess(result), "GET failure must not fail the surrounding sync")
-		coVerify(exactly = 0) { api.uploadDeviceLog(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 0) { api.uploadDeviceLog(any(), any(), any(), any()) }
 		coVerify(exactly = 0) { tracker.invalidateSessionCache() }
 	}
 
 	@Test
 	fun `POST failure logs but does not fail the pipeline`() = runTest {
 		coEvery { repository.loadOwnLog() } returns DeviceLog(deviceLabel, emptyList())
-		coEvery { api.getWritingActivity(any(), any(), any()) } returns
+		coEvery { api.getWritingActivity(any(), any()) } returns
 			Result.success(WritingActivityResponse())
-		coEvery { api.uploadDeviceLog(any(), any(), any(), any(), any()) } returns
+		coEvery { api.uploadDeviceLog(any(), any(), any(), any()) } returns
 			Result.failure(RuntimeException("upload boom"))
 
 		val result = createOperation().execute(startState(), onProgress, onLog, onConflict, onComplete)

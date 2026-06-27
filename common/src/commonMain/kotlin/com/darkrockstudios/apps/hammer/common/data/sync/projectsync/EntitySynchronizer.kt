@@ -42,7 +42,6 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 
 		val entity = createEntityForId(id)
 		val result = serverProjectApi.uploadEntity(
-			projectDef.name,
 			serverProjectId,
 			entity,
 			originalHash,
@@ -62,7 +61,6 @@ abstract class EntitySynchronizer<T : ApiProjectEntity>(
 
 				val resolvedEntity = conflictResolution.receive()
 				val resolveResult = serverProjectApi.uploadEntity(
-					projectDef.name,
 					serverProjectId,
 					resolvedEntity,
 					null,

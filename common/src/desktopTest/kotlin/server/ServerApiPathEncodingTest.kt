@@ -27,6 +27,11 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
+/**
+ * The project is identified in the URL path by its [ProjectId]. That id is normally a UUID,
+ * but it must still be encoded so a reserved character could never split the path into extra
+ * segments or escape the intended `{userId}/{projectId}/{action}` template.
+ */
 class ServerApiPathEncodingTest : BaseTest() {
 
 	private val userId = 42L
@@ -75,28 +80,18 @@ class ServerApiPathEncodingTest : BaseTest() {
 		return requireNotNull(capturedUrl) { "No request was captured" }
 	}
 
-	/**
-	 * A project name containing slashes and dot-segments must not split into extra path
-	 * segments or escape the intended `{userId}/{projectName}/{action}` template.
-	 */
 	@Test
-	fun `malicious project name is a single encoded path segment`() = runTest {
+	fun `malicious project id is a single encoded path segment for ProjectDataApi`() = runTest {
 		val client = mockClient()
 		val api = ProjectDataApi(client, globalSettingsStore, json, TestStrRes())
 
-		val maliciousName = "p/../../../api/account/test_auth"
+		val maliciousId = "p/../../../api/account/test_auth"
 
 		val url = captureUrlOf {
-			api.getProjectData(
-				userId = userId,
-				projectName = maliciousName,
-				projectId = ProjectId("proj-1"),
-			)
+			api.getProjectData(userId = userId, projectId = ProjectId(maliciousId))
 		}
 
-		val expectedSegments = listOf(
-			"api", "project", userId.toString(), maliciousName, "project_data"
-		)
+		val expectedSegments = listOf("api", "project", userId.toString(), maliciousId, "project_data")
 		assertEquals(expectedSegments, url.rawSegments.filter { it.isNotEmpty() })
 		assertFalse(
 			url.rawSegments.any { it == ".." },
@@ -105,44 +100,35 @@ class ServerApiPathEncodingTest : BaseTest() {
 	}
 
 	@Test
-	fun `slash in project name does not create extra segments for ServerProjectApi`() = runTest {
+	fun `slash in project id does not create extra segments for ServerProjectApi`() = runTest {
 		val client = mockClient()
 		val api = ServerProjectApi(client, globalSettingsStore, json, TestStrRes())
 
-		val maliciousName = "a/b/c"
+		val maliciousId = "a/b/c"
 
 		val url = captureUrlOf {
 			api.downloadEntity(
-				projectName = maliciousName,
-				projectId = ProjectId("proj-1"),
+				projectId = ProjectId(maliciousId),
 				entityId = 7,
 				localHash = null,
 				syncId = "sync-1",
 			)
 		}
-		val expectedSegments = listOf(
-			"api", "project", userId.toString(), maliciousName, "download_entity", "7"
-		)
+		val expectedSegments = listOf("api", "project", userId.toString(), maliciousId, "download_entity", "7")
 		assertEquals(expectedSegments, url.rawSegments.filter { it.isNotEmpty() })
 	}
 
 	@Test
-	fun `slash in project name does not create extra segments for WritingActivityApi`() = runTest {
+	fun `slash in project id does not create extra segments for WritingActivityApi`() = runTest {
 		val client = mockClient()
 		val api = WritingActivityApi(client, globalSettingsStore, TestStrRes())
 
-		val maliciousName = "x/../y"
+		val maliciousId = "x/../y"
 
 		val url = captureUrlOf {
-			api.getWritingActivity(
-				userId = userId,
-				projectName = maliciousName,
-				projectId = ProjectId("proj-1"),
-			)
+			api.getWritingActivity(userId = userId, projectId = ProjectId(maliciousId))
 		}
-		val expectedSegments = listOf(
-			"api", "project", userId.toString(), maliciousName, "writing_activity"
-		)
+		val expectedSegments = listOf("api", "project", userId.toString(), maliciousId, "writing_activity")
 		assertEquals(expectedSegments, url.rawSegments.filter { it.isNotEmpty() })
 		assertFalse(url.rawSegments.any { it == ".." })
 	}

@@ -25,29 +25,23 @@ class ProjectDataApi(
 
 	suspend fun getProjectData(
 		userId: Long,
-		projectName: String,
 		projectId: ProjectId,
 	): Result<ProjectDataDto?> = get(
-		path = "/api/project/$userId/${projectName.encodeUrlPathSegment()}/project_data",
+		path = "/api/project/$userId/${projectId.id.encodeUrlPathSegment()}/project_data",
 		parse = { response ->
 			if (response.status == HttpStatusCode.NoContent) null
 			else response.body<ProjectDataDto>()
 		},
-	) {
-		url {
-			parameters.append("projectId", projectId.id)
-		}
-	}
+	)
 
 	/** Throws [ProjectDataConflictException] (wrapped in `Result.failure`) when the server returns 409. */
 	suspend fun uploadProjectData(
 		userId: Long,
-		projectName: String,
 		projectId: ProjectId,
 		data: ProjectData,
 		originalHash: String?,
 	): Result<ProjectDataDto> = post(
-		path = "/api/project/$userId/${projectName.encodeUrlPathSegment()}/project_data",
+		path = "/api/project/$userId/${projectId.id.encodeUrlPathSegment()}/project_data",
 		parse = { it.body<ProjectDataDto>() },
 		failureHandler = { response ->
 			if (response.status == HttpStatusCode.Conflict) {
@@ -59,9 +53,6 @@ class ProjectDataApi(
 		},
 	) {
 		contentType(ContentType.Application.Json)
-		url {
-			parameters.append("projectId", projectId.id)
-		}
 		setBody(ProjectDataUploadRequest(data = data, originalHash = originalHash))
 	}
 }

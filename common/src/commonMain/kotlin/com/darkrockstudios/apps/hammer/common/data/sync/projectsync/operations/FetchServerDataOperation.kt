@@ -37,7 +37,6 @@ class FetchServerDataOperation(
 		val serverSyncDataResult =
 			serverProjectApi.beginProjectSync(
 				userId(),
-				projectDef.name,
 				serverProjectId,
 				state.entityState,
 				state.onlyNew

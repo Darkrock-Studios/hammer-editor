@@ -403,7 +403,7 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 	fun `uploadEntity sends the entity and reports the synced hash on success`() = runTest {
 		val sync = newSynchronizer()
 		coEvery {
-			serverProjectApi.uploadEntity(any(), any(), any(), any(), any(), any())
+			serverProjectApi.uploadEntity(any(), any(), any(), any(), any())
 		} returns Result.success(SaveEntityResponse(saved = true))
 
 		val synced = mutableListOf<Pair<Int, String>>()
@@ -422,7 +422,6 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		assertEquals(listOf(entry1().id to sync.getEntityHash(entry1().id)), synced)
 		coVerify {
 			serverProjectApi.uploadEntity(
-				projectDef.name,
 				ProjectId("server-project"),
 				match { it.id == entry1().id },
 				"old-hash",
@@ -436,7 +435,7 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 	fun `uploadEntity passes the force flag through to the server`() = runTest {
 		val sync = newSynchronizer()
 		coEvery {
-			serverProjectApi.uploadEntity(any(), any(), any(), any(), any(), any())
+			serverProjectApi.uploadEntity(any(), any(), any(), any(), any())
 		} returns Result.success(SaveEntityResponse(saved = true))
 
 		sync.uploadEntity(
@@ -448,14 +447,14 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 			force = true,
 		)
 
-		coVerify { serverProjectApi.uploadEntity(any(), any(), any(), any(), any(), true) }
+		coVerify { serverProjectApi.uploadEntity(any(), any(), any(), any(), true) }
 	}
 
 	@Test
 	fun `uploadEntity returns false and does not report synced on a non-conflict failure`() = runTest {
 		val sync = newSynchronizer()
 		coEvery {
-			serverProjectApi.uploadEntity(any(), any(), any(), any(), any(), any())
+			serverProjectApi.uploadEntity(any(), any(), any(), any(), any())
 		} returns Result.failure(RuntimeException("server exploded"))
 
 		val synced = mutableListOf<Pair<Int, String>>()
@@ -480,10 +479,10 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		val resolved = sync.createEntityForId(entry1().id).copy(text = "merged resolution")
 
 		coEvery {
-			serverProjectApi.uploadEntity(any(), any(), any(), "old-hash", any(), false)
+			serverProjectApi.uploadEntity(any(), any(), "old-hash", any(), false)
 		} returns Result.failure(EntityConflictException.EncyclopediaEntryConflictException(serverVersion))
 		coEvery {
-			serverProjectApi.uploadEntity(any(), any(), any(), null, any(), true)
+			serverProjectApi.uploadEntity(any(), any(), null, any(), true)
 		} returns Result.success(SaveEntityResponse(saved = true))
 
 		val conflicted = mutableListOf<Int>()
@@ -512,10 +511,10 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		val resolved = sync.createEntityForId(entry1().id).copy(text = "merged resolution")
 
 		coEvery {
-			serverProjectApi.uploadEntity(any(), any(), any(), "old-hash", any(), false)
+			serverProjectApi.uploadEntity(any(), any(), "old-hash", any(), false)
 		} returns Result.failure(EntityConflictException.EncyclopediaEntryConflictException(serverVersion))
 		coEvery {
-			serverProjectApi.uploadEntity(any(), any(), any(), null, any(), true)
+			serverProjectApi.uploadEntity(any(), any(), null, any(), true)
 		} returns Result.failure(RuntimeException("resolution rejected"))
 
 		launch { sync.conflictResolution.send(resolved) }
