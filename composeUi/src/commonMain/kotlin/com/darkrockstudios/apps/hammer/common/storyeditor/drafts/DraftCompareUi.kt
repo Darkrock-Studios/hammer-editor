@@ -14,6 +14,7 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.unit.Dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.diff.DiffKind
 import com.darkrockstudios.apps.hammer.base.diff.DiffResult
 import com.darkrockstudios.apps.hammer.base.diff.DiffSpan
 import com.darkrockstudios.apps.hammer.base.diff.OffsetMap
@@ -179,21 +180,13 @@ private fun DraftPane(
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	val deletedHighlight = rememberDeletedHighlight()
-	var appliedStyle by remember(textEditorState) { mutableStateOf<HighlightSpanStyle?>(null) }
 
 	// The draft is read-only, so its rendered text never changes — submit it once for the diff.
 	LaunchedEffect(textEditorState) {
 		component.submitDraftText(textEditorState.getAllText().text)
 	}
-	LaunchedEffect(state.diffResult, state.showDiff, textEditorState, deletedHighlight) {
-		applyDiffHighlights(
-			editorState = textEditorState,
-			spans = if (state.showDiff) state.diffResult?.leftSpans.orEmpty() else emptyList(),
-			style = deletedHighlight,
-			previousStyle = appliedStyle,
-		)
-		appliedStyle = deletedHighlight
-	}
+	val spans = if (state.showDiff) state.diffResult?.leftSpans.orEmpty() else emptyList()
+	DiffHighlightEffect(textEditorState, spans, deletedHighlight)
 
 	var title by remember { mutableStateOf("") }
 	LaunchedEffect(component.draftDef.draftName) {
@@ -253,7 +246,6 @@ private fun CurrentPane(
 	val state by component.state.subscribeAsState()
 	val markdownConfig = LocalMarkdownConfig.current
 	val insertedHighlight = rememberInsertedHighlight()
-	var appliedStyle by remember(textEditorState) { mutableStateOf<HighlightSpanStyle?>(null) }
 
 	val markdownExtension = remember(textEditorState) { textEditorState.withMarkdown(markdownConfig) }
 
@@ -276,15 +268,8 @@ private fun CurrentPane(
 		}
 	}
 
-	LaunchedEffect(state.diffResult, state.showDiff, textEditorState, insertedHighlight) {
-		applyDiffHighlights(
-			editorState = textEditorState,
-			spans = if (state.showDiff) state.diffResult?.rightSpans.orEmpty() else emptyList(),
-			style = insertedHighlight,
-			previousStyle = appliedStyle,
-		)
-		appliedStyle = insertedHighlight
-	}
+	val spans = if (state.showDiff) state.diffResult?.rightSpans.orEmpty() else emptyList()
+	DiffHighlightEffect(textEditorState, spans, insertedHighlight)
 
 	Column(
 		modifier = modifier.padding(
@@ -338,6 +323,44 @@ private fun rememberDeletedHighlight(): HighlightSpanStyle {
 private fun rememberInsertedHighlight(): HighlightSpanStyle {
 	val success = LocalHammerColors.current.success
 	return remember(success) { HighlightSpanStyle(success.copy(alpha = DIFF_HIGHLIGHT_ALPHA)) }
+}
+
+@Composable
+private fun rememberMovedHighlight(): HighlightSpanStyle {
+	val moved = LocalHammerColors.current.moved
+	return remember(moved) { HighlightSpanStyle(moved.copy(alpha = DIFF_HIGHLIGHT_ALPHA)) }
+}
+
+/**
+ * Paint one pane's diff [spans] onto its editor: plain deletions/insertions in [baseStyle] and
+ * relocated paragraphs in the shared moved style. Each kind is tracked independently so a theme
+ * change re-applies cleanly without orphaning the prior pass's spans.
+ */
+@Composable
+private fun DiffHighlightEffect(
+	editorState: TextEditorState,
+	spans: List<DiffSpan>,
+	baseStyle: HighlightSpanStyle,
+) {
+	val movedStyle = rememberMovedHighlight()
+	var appliedBase by remember(editorState) { mutableStateOf<HighlightSpanStyle?>(null) }
+	var appliedMoved by remember(editorState) { mutableStateOf<HighlightSpanStyle?>(null) }
+	LaunchedEffect(spans, editorState, baseStyle, movedStyle) {
+		applyDiffHighlights(
+			editorState = editorState,
+			spans = spans.filter { it.kind != DiffKind.MOVED },
+			style = baseStyle,
+			previousStyle = appliedBase,
+		)
+		applyDiffHighlights(
+			editorState = editorState,
+			spans = spans.filter { it.kind == DiffKind.MOVED },
+			style = movedStyle,
+			previousStyle = appliedMoved,
+		)
+		appliedBase = baseStyle
+		appliedMoved = movedStyle
+	}
 }
 
 /**

@@ -44,6 +44,7 @@ internal fun SceneDraftConflict(
 	val contentDiff = rememberContentDiff(server.content, contentTextValue)
 	val deletedStyle = diffDeletedStyle()
 	val insertedStyle = diffInsertedStyle()
+	val movedStyle = diffMovedStyle()
 
 	val useLocal = {
 		val error = component.resolveConflict(
@@ -81,8 +82,8 @@ internal fun SceneDraftConflict(
 						modifier = Modifier.fillMaxWidth(),
 					)
 				}
-				val contentTransformation = remember(contentDiff, insertedStyle) {
-					DiffHighlightTransformation(contentDiff?.rightSpans.orEmpty(), insertedStyle)
+				val contentTransformation = remember(contentDiff, insertedStyle, movedStyle) {
+					DiffHighlightTransformation(contentDiff?.rightSpans.orEmpty(), insertedStyle, movedStyle)
 				}
 				HdConflictField(
 					label = Res.string.sync_conflict_title_scene_draft_field_content.get(),
@@ -113,8 +114,8 @@ internal fun SceneDraftConflict(
 				) {
 					ReadOnlyLine(c.serverEntity.name)
 				}
-				val highlighted = remember(c.serverEntity.content, contentDiff, deletedStyle) {
-					diffHighlightedString(c.serverEntity.content, contentDiff?.leftSpans.orEmpty(), deletedStyle)
+				val highlighted = remember(c.serverEntity.content, contentDiff, deletedStyle, movedStyle) {
+					diffHighlightedString(c.serverEntity.content, contentDiff?.leftSpans.orEmpty(), deletedStyle, movedStyle)
 				}
 				HdConflictField(
 					label = Res.string.sync_conflict_title_scene_draft_field_content.get(),

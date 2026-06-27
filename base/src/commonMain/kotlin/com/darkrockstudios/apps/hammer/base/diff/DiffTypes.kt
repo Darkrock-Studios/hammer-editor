@@ -10,12 +10,13 @@ data class SourceRange(val start: Int, val endExclusive: Int) {
 	}
 }
 
-enum class DiffKind { DELETED, INSERTED }
+enum class DiffKind { DELETED, INSERTED, MOVED }
 
 /** One change span to highlight in either the left (old) or right (new) text. */
 data class DiffSpan(
 	val kind: DiffKind,
 	val range: SourceRange,
+	val moveId: Int? = null,
 )
 
 /**
