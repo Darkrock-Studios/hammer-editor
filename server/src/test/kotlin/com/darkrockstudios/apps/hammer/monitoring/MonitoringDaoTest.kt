@@ -18,6 +18,12 @@ import kotlin.time.Instant
  * Exercises the monitoring DAOs against the (embedded Postgres) test database,
  * validating the Postgres-specific SQL: histogram upsert-accumulation, the
  * hour->day rollup with date_trunc, fingerprint dedupe, and retention purges.
+ *
+ * The embedded Postgres is shared process-wide, and a booted server's monitoring
+ * job can flush wall-clock-dated buckets into it concurrently. The metric tests
+ * therefore scope every `getBucketsSince` read to their own synthetic route
+ * (`/api/x` etc., never emitted by real traffic) rather than asserting on a
+ * global row count — do not remove those filters.
  */
 class MonitoringDaoTest : BaseTest() {
 
@@ -39,7 +45,7 @@ class MonitoringDaoTest : BaseTest() {
 		dao.upsertBucket(base, "HOUR", "/api/x", "POST", 1, 0, 50, 1, 0, 0, 0, 0, 0, 0)
 		dao.upsertBucket(base, "HOUR", "/api/x", "POST", 4, 2, 200, 0, 2, 1, 1, 0, 0, 0)
 
-		val rows = dao.getBucketsSince("HOUR", base)
+		val rows = dao.getBucketsSince("HOUR", base).filter { it.route == "/api/x" }
 		assertEquals(1, rows.size)
 		assertEquals(5L, rows.first().request_count)
 		assertEquals(2L, rows.first().error_count)
@@ -58,9 +64,12 @@ class MonitoringDaoTest : BaseTest() {
 
 		dao.rollupHourToDay(cutoff = base)
 
-		assertTrue(dao.getBucketsSince("HOUR", h0).isEmpty(), "hour buckets removed after rollup")
+		assertTrue(
+			dao.getBucketsSince("HOUR", h0).none { it.route == "/api/test" },
+			"hour buckets removed after rollup"
+		)
 
-		val days = dao.getBucketsSince("DAY", h0)
+		val days = dao.getBucketsSince("DAY", h0).filter { it.route == "/api/test" }
 		assertEquals(1, days.size)
 		val day = days.first()
 		assertEquals(5L, day.request_count)
@@ -79,6 +88,7 @@ class MonitoringDaoTest : BaseTest() {
 		dao.deleteDayBucketsBefore(base - 1.days)
 
 		val remaining = dao.getBucketsSince("DAY", Instant.parse("2024-01-01T00:00:00Z"))
+			.filter { it.route == "/api/old" || it.route == "/api/new" }
 		assertEquals(1, remaining.size)
 		assertEquals("/api/new", remaining.first().route)
 	}
