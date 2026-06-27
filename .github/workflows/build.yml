@@ -135,6 +135,17 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v7
+      - name: Select Xcode 26
+        # macos-latest still defaults to Xcode 16.4 (iOS 18.5 SDK), but linking the
+        # iOS test executable pulls in Compose's ui-uikit, which references symbols
+        # (e.g. UIViewLayoutRegion) that only exist in the iOS 26 SDK. Without this
+        # the link fails non-deterministically depending on the runner image. Glob
+        # keeps us off a pinned patch version that could vanish on a future image.
+        run: |
+          XCODE_APP="$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+          echo "Using $XCODE_APP"
+          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          xcodebuild -version
       - name: set up JDK 21
         uses: actions/setup-java@v5
         with:
