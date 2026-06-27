@@ -51,6 +51,28 @@ jobs:
             Write-Host "DRY RUN: will upload everything but skip the final /commit and delete the draft."
           }
 
+          # Retries transient network/5xx/429 failures; rethrows client errors (4xx) and the final attempt.
+          function Invoke-RestWithRetry {
+            param(
+              [Parameter(Mandatory)] [hashtable] $RequestArgs,
+              [string] $What = "request",
+              [int] $MaxAttempts = 3
+            )
+            for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+              try {
+                return Invoke-RestMethod @RequestArgs
+              } catch {
+                $status = $null
+                if ($_.Exception.Response) { $status = [int]$_.Exception.Response.StatusCode }
+                $transient = (-not $status) -or ($status -ge 500) -or ($status -eq 429) -or ($status -eq 408)
+                if ($attempt -ge $MaxAttempts -or -not $transient) { throw }
+                $delay = [Math]::Pow(2, $attempt) * 5   # 10s, 20s
+                Write-Host "  $What failed (attempt $attempt/$MaxAttempts, status=$status): $($_.Exception.Message). Retrying in $delay s..."
+                Start-Sleep -Seconds $delay
+              }
+            }
+          }
+
           # Get access token
           $tokenBody = @{
             grant_type    = "client_credentials"
@@ -58,7 +80,11 @@ jobs:
             client_secret = $env:MS_CLIENT_SECRET
             scope         = "https://manage.devcenter.microsoft.com/.default"
           }
-          $tokenResponse = Invoke-RestMethod -Uri "https://login.microsoftonline.com/$env:MS_TENANT_ID/oauth2/v2.0/token" -Method POST -Body $tokenBody
+          $tokenResponse = Invoke-RestWithRetry -What "token request" -RequestArgs @{
+            Uri    = "https://login.microsoftonline.com/$env:MS_TENANT_ID/oauth2/v2.0/token"
+            Method = "POST"
+            Body   = $tokenBody
+          }
           $accessToken = $tokenResponse.access_token
 
           $authHeaders = @{
@@ -68,16 +94,22 @@ jobs:
           $appUrl = "https://manage.devcenter.microsoft.com/v1.0/my/applications/$env:MS_APP_ID"
 
           # Only one in-flight submission allowed; clear any stale one.
-          $appInfo = Invoke-RestMethod -Uri $appUrl -Method GET -Headers $authHeaders
+          $appInfo = Invoke-RestWithRetry -What "get application" -RequestArgs @{
+            Uri = $appUrl; Method = "GET"; Headers = $authHeaders
+          }
           if ($appInfo.pendingApplicationSubmission) {
             $pendingId = $appInfo.pendingApplicationSubmission.id
             Write-Host "Deleting stale pending submission $pendingId"
-            Invoke-RestMethod -Uri "$appUrl/submissions/$pendingId" -Method DELETE -Headers $authHeaders | Out-Null
+            Invoke-RestWithRetry -What "delete stale submission" -RequestArgs @{
+              Uri = "$appUrl/submissions/$pendingId"; Method = "DELETE"; Headers = $authHeaders
+            } | Out-Null
           }
 
           # Create new submission (clones the last published one)
           Write-Host "Creating new submission..."
-          $submission = Invoke-RestMethod -Uri "$appUrl/submissions" -Method POST -Headers $authHeaders
+          $submission = Invoke-RestWithRetry -What "create submission" -RequestArgs @{
+            Uri = "$appUrl/submissions"; Method = "POST"; Headers = $authHeaders
+          }
           $submissionId    = $submission.id
           $fileUploadUrl   = $submission.fileUploadUrl
           Write-Host "Submission ID: $submissionId"
@@ -105,7 +137,9 @@ jobs:
           # PUT the modified submission back
           Write-Host "Updating submission with new package metadata..."
           $submissionJson = $submission | ConvertTo-Json -Depth 50
-          Invoke-RestMethod -Uri "$appUrl/submissions/$submissionId" -Method PUT -Headers $authHeaders -Body $submissionJson | Out-Null
+          Invoke-RestWithRetry -What "update submission" -RequestArgs @{
+            Uri = "$appUrl/submissions/$submissionId"; Method = "PUT"; Headers = $authHeaders; Body = $submissionJson
+          } | Out-Null
 
           # fileUploadUrl expects a ZIP whose entries match the applicationPackages fileNames, not a raw MSIX.
           $zipPath = Join-Path $msixFile.DirectoryName "submission.zip"
@@ -115,26 +149,34 @@ jobs:
           Write-Host "Uploading $zipPath to blob storage..."
           $zipBytes = [System.IO.File]::ReadAllBytes($zipPath)
           $blobHeaders = @{ "x-ms-blob-type" = "BlockBlob" }
-          Invoke-RestMethod -Uri $fileUploadUrl -Method PUT -Headers $blobHeaders -Body $zipBytes -ContentType "application/octet-stream" | Out-Null
+          Invoke-RestWithRetry -What "blob upload" -RequestArgs @{
+            Uri = $fileUploadUrl; Method = "PUT"; Headers = $blobHeaders; Body = $zipBytes; ContentType = "application/octet-stream"
+          } | Out-Null
           Write-Host "Upload complete."
 
           if ($dryRun) {
             Write-Host "Dry run — deleting draft submission $submissionId so it doesn't block future runs..."
-            Invoke-RestMethod -Uri "$appUrl/submissions/$submissionId" -Method DELETE -Headers $authHeaders | Out-Null
+            Invoke-RestWithRetry -What "delete draft submission" -RequestArgs @{
+              Uri = "$appUrl/submissions/$submissionId"; Method = "DELETE"; Headers = $authHeaders
+            } | Out-Null
             Write-Host "Dry run — draft submission $submissionId deleted, not committed."
             return
           }
 
           # Commit submission
           Write-Host "Committing submission..."
-          Invoke-RestMethod -Uri "$appUrl/submissions/$submissionId/commit" -Method POST -Headers $authHeaders | Out-Null
+          Invoke-RestWithRetry -What "commit submission" -RequestArgs @{
+            Uri = "$appUrl/submissions/$submissionId/commit"; Method = "POST"; Headers = $authHeaders
+          } | Out-Null
 
           # CommitFailed only surfaces via /status, not the commit response.
           Write-Host "Polling submission status..."
           $deadline = (Get-Date).AddMinutes(15)
           while ($true) {
             Start-Sleep -Seconds 20
-            $status = Invoke-RestMethod -Uri "$appUrl/submissions/$submissionId/status" -Method GET -Headers $authHeaders
+            $status = Invoke-RestWithRetry -What "poll status" -RequestArgs @{
+              Uri = "$appUrl/submissions/$submissionId/status"; Method = "GET"; Headers = $authHeaders
+            }
             Write-Host "  status=$($status.status)"
             if ($status.status -eq "CommitStarted" -or $status.status -eq "PreProcessing") {
               if ((Get-Date) -gt $deadline) {
