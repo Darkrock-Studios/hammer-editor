@@ -107,7 +107,6 @@ class EntityTransferOperationTest : BaseTest() {
 		coEvery {
 			serverProjectApi.downloadEntity(
 				any(),
-				any(),
 				4,
 				any(),
 				any()
@@ -121,7 +120,6 @@ class EntityTransferOperationTest : BaseTest() {
 		)
 		coEvery {
 			serverProjectApi.downloadEntity(
-				any(),
 				any(),
 				11,
 				any(),
@@ -186,8 +184,8 @@ class EntityTransferOperationTest : BaseTest() {
 			)
 		}
 
-		coVerify { serverProjectApi.downloadEntity(any(), any(), 4, any(), any()) }
-		coVerify { serverProjectApi.downloadEntity(any(), any(), 11, any(), any()) }
+		coVerify { serverProjectApi.downloadEntity(any(), 4, any(), any()) }
+		coVerify { serverProjectApi.downloadEntity(any(), 11, any(), any()) }
 
 		coEvery {
 			mockSynchronizers.sceneSynchronizer.storeEntity(
@@ -247,7 +245,7 @@ class EntityTransferOperationTest : BaseTest() {
 	fun `download - server reports not modified, transfer still succeeds`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 		coEvery {
-			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+			serverProjectApi.downloadEntity(any(), 4, any(), any())
 		} returns Result.failure(EntityNotModifiedException(4))
 
 		val result = op.run(singleDownloadState(4))
@@ -260,16 +258,16 @@ class EntityTransferOperationTest : BaseTest() {
 	fun `download - entity missing from server and client is deleted remotely`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 		coEvery {
-			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+			serverProjectApi.downloadEntity(any(), 4, any(), any())
 		} returns Result.failure(EntityNotFoundException(4))
-		coEvery { serverProjectApi.deleteId(any(), any(), 4, any()) } returns
+		coEvery { serverProjectApi.deleteId(any(), 4, any()) } returns
 			Result.success(DeleteIdsResponse(deleted = true))
 
 		val result = op.run(singleDownloadState(4))
 
 		assertTrue(isSuccess(result))
 		assertTrue(assertIs<EntityTransferState>(result.data).allSuccess)
-		coVerify(exactly = 1) { serverProjectApi.deleteId(any(), any(), 4, any()) }
+		coVerify(exactly = 1) { serverProjectApi.deleteId(any(), 4, any()) }
 	}
 
 	@Test
@@ -279,7 +277,7 @@ class EntityTransferOperationTest : BaseTest() {
 		// downloads — then the stale-hash response triggers the force-upload heal path.
 		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(4) } returns true
 		coEvery {
-			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+			serverProjectApi.downloadEntity(any(), 4, any(), any())
 		} returns Result.failure(StaleServerHashException(4, "cached", "computed"))
 		coEvery {
 			mockSynchronizers.sceneSynchronizer.uploadEntity(4, any(), any(), any(), any(), true, any())
@@ -298,7 +296,7 @@ class EntityTransferOperationTest : BaseTest() {
 	fun `download - a failed store logs an error but does not record a synced hash`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 		coEvery {
-			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+			serverProjectApi.downloadEntity(any(), 4, any(), any())
 		} returns Result.success(
 			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
 				every { id } returns 4
@@ -329,7 +327,7 @@ class EntityTransferOperationTest : BaseTest() {
 	fun `download - a failed store marks the transfer unsuccessful`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 		coEvery {
-			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+			serverProjectApi.downloadEntity(any(), 4, any(), any())
 		} returns Result.success(
 			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
 				every { id } returns 4
@@ -355,7 +353,7 @@ class EntityTransferOperationTest : BaseTest() {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 		// Requested id 4, but a hostile server answers with a forged entity carrying id 7.
 		coEvery {
-			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+			serverProjectApi.downloadEntity(any(), 4, any(), any())
 		} returns Result.success(
 			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
 				every { id } returns 7
@@ -389,7 +387,7 @@ class EntityTransferOperationTest : BaseTest() {
 		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(4) } returns true
 		// ...but the server steers the same id into a Note, attempting a type confusion.
 		coEvery {
-			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+			serverProjectApi.downloadEntity(any(), 4, any(), any())
 		} returns Result.success(
 			LoadEntityResponse(mockk<ApiProjectEntity.NoteEntity> {
 				every { id } returns 4
@@ -421,7 +419,7 @@ class EntityTransferOperationTest : BaseTest() {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 		// No synchronizer owns id 4 (findEntityType == null), so the type check must allow it.
 		coEvery {
-			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+			serverProjectApi.downloadEntity(any(), 4, any(), any())
 		} returns Result.success(
 			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
 				every { id } returns 4
@@ -447,7 +445,7 @@ class EntityTransferOperationTest : BaseTest() {
 		// Client owns id 4 as a Scene and the server agrees on both id and type.
 		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(4) } returns true
 		coEvery {
-			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+			serverProjectApi.downloadEntity(any(), 4, any(), any())
 		} returns Result.success(
 			LoadEntityResponse(mockk<ApiProjectEntity.SceneEntity> {
 				every { id } returns 4
@@ -474,21 +472,21 @@ class EntityTransferOperationTest : BaseTest() {
 		// download branch — then the server reports it gone while we still hold a copy.
 		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(4) } returns true
 		coEvery {
-			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+			serverProjectApi.downloadEntity(any(), 4, any(), any())
 		} returns Result.failure(EntityNotFoundException(4))
 
 		val result = op.run(singleDownloadState(4))
 
 		assertTrue(isSuccess(result))
 		assertFalse(assertIs<EntityTransferState>(result.data).allSuccess)
-		coVerify(exactly = 0) { serverProjectApi.deleteId(any(), any(), 4, any()) }
+		coVerify(exactly = 0) { serverProjectApi.deleteId(any(), 4, any()) }
 	}
 
 	@Test
 	fun `download - a generic server failure marks the transfer unsuccessful`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 		coEvery {
-			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+			serverProjectApi.downloadEntity(any(), 4, any(), any())
 		} returns Result.failure(RuntimeException("network down"))
 
 		val result = op.run(singleDownloadState(4))
@@ -502,7 +500,7 @@ class EntityTransferOperationTest : BaseTest() {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(4) } returns true
 		coEvery {
-			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+			serverProjectApi.downloadEntity(any(), 4, any(), any())
 		} returns Result.failure(StaleServerHashException(4, "cached", "computed"))
 		coEvery {
 			mockSynchronizers.sceneSynchronizer.uploadEntity(4, any(), any(), any(), any(), true, any())
@@ -548,9 +546,9 @@ class EntityTransferOperationTest : BaseTest() {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 		// Missing from both server and client, so it's cleaned up remotely — but the delete fails.
 		coEvery {
-			serverProjectApi.downloadEntity(any(), any(), 4, any(), any())
+			serverProjectApi.downloadEntity(any(), 4, any(), any())
 		} returns Result.failure(EntityNotFoundException(4))
-		coEvery { serverProjectApi.deleteId(any(), any(), 4, any()) } returns
+		coEvery { serverProjectApi.deleteId(any(), 4, any()) } returns
 			Result.failure(RuntimeException("delete rejected"))
 
 		val logs = mutableListOf<SyncLogMessage>()

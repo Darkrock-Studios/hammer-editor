@@ -26,31 +26,22 @@ class WritingActivityApi(
 	/** Fetch every device's slot for this project. */
 	suspend fun getWritingActivity(
 		userId: Long,
-		projectName: String,
 		projectId: ProjectId,
 	): Result<WritingActivityResponse> = get(
-		path = "/api/project/$userId/${projectName.encodeUrlPathSegment()}/writing_activity",
+		path = "/api/project/$userId/${projectId.id}/writing_activity",
 		parse = { it.body() },
-	) {
-		url {
-			parameters.append("projectId", projectId.id)
-		}
-	}
+	)
 
 	/** Replace this device's slot on the server. The server stores it as-is. */
 	suspend fun uploadDeviceLog(
 		userId: Long,
-		projectName: String,
 		projectId: ProjectId,
 		deviceId: String,
 		log: DeviceLog,
 	): Result<String> = post(
-		path = "/api/project/$userId/${projectName.encodeUrlPathSegment()}/writing_activity/${deviceId.encodeUrlPathSegment()}",
+		path = "/api/project/$userId/${projectId.id}/writing_activity/${deviceId.encodeUrlPathSegment()}",
 	) {
 		contentType(ContentType.Application.Json)
-		url {
-			parameters.append("projectId", projectId.id)
-		}
 		setBody(log)
 	}
 }

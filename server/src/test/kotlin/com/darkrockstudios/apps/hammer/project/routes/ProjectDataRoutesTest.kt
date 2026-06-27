@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.project.ProjectDataSaveResult
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
@@ -61,6 +62,7 @@ class ProjectDataRoutesTest : BaseTest() {
 	@MockK(relaxed = true) private lateinit var serverProjectDataRepository: ServerProjectDataRepository
 	@MockK(relaxed = true) private lateinit var serverWritingActivityRepository: ServerWritingActivityRepository
 	@MockK(relaxed = true) private lateinit var projectEntityRepository: ProjectEntityRepository
+	@MockK(relaxed = true) private lateinit var projectEntityDatasource: ProjectEntityDatasource
 	@MockK(relaxed = true) private lateinit var projectAccessRepository: ProjectAccessRepository
 	@MockK(relaxed = true) private lateinit var projectsRepository: ProjectsRepository
 	@MockK(relaxed = true) private lateinit var accountsComponent: AccountsComponent
@@ -91,12 +93,16 @@ class ProjectDataRoutesTest : BaseTest() {
 		super.setup()
 		MockKAnnotations.init(this, relaxUnitFun = true)
 
+		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns
+			ProjectDefinition(projectName, projectId)
+
 		testModule = module {
 			single { accountsRepository }
 			single { whiteListRepository }
 			single { serverProjectDataRepository }
 			single { serverWritingActivityRepository }
 			single { projectEntityRepository }
+			single<ProjectEntityDatasource> { projectEntityDatasource }
 			single { projectAccessRepository }
 			single { projectsRepository }
 			single { accountsComponent }
@@ -130,9 +136,8 @@ class ProjectDataRoutesTest : BaseTest() {
 		}
 		val testClient = createClient { install(ContentNegotiation) { json(json) } }
 
-		val response = testClient.get("api/project/$userId/$projectName/project_data") {
+		val response = testClient.get("api/project/$userId/${projectId.id}/project_data") {
 			header("Authorization", "Bearer $bearerToken")
-			url { parameters.append("projectId", projectId.id) }
 		}
 
 		assertEquals(HttpStatusCode.OK, response.status)
@@ -157,9 +162,8 @@ class ProjectDataRoutesTest : BaseTest() {
 			configureRouting()
 		}
 
-		val response = client.get("api/project/$userId/$projectName/project_data") {
+		val response = client.get("api/project/$userId/${projectId.id}/project_data") {
 			header("Authorization", "Bearer $bearerToken")
-			url { parameters.append("projectId", projectId.id) }
 		}
 
 		assertEquals(HttpStatusCode.NoContent, response.status)
@@ -181,9 +185,8 @@ class ProjectDataRoutesTest : BaseTest() {
 			configureRouting()
 		}
 
-		val response = client.get("api/project/$userId/$projectName/project_data") {
+		val response = client.get("api/project/$userId/${projectId.id}/project_data") {
 			header("Authorization", "Bearer $bearerToken")
-			url { parameters.append("projectId", projectId.id) }
 		}
 
 		assertEquals(HttpStatusCode.NotFound, response.status)
@@ -213,9 +216,8 @@ class ProjectDataRoutesTest : BaseTest() {
 		}
 		val testClient = createClient { install(ContentNegotiation) { json(json) } }
 
-		val response = testClient.post("api/project/$userId/$projectName/project_data") {
+		val response = testClient.post("api/project/$userId/${projectId.id}/project_data") {
 			header("Authorization", "Bearer $bearerToken")
-			url { parameters.append("projectId", projectId.id) }
 			contentType(ContentType.Application.Json)
 			setBody(ProjectDataUploadRequest(sampleData, originalHash = null))
 		}
@@ -256,9 +258,8 @@ class ProjectDataRoutesTest : BaseTest() {
 		}
 		val testClient = createClient { install(ContentNegotiation) { json(json) } }
 
-		val response = testClient.post("api/project/$userId/$projectName/project_data") {
+		val response = testClient.post("api/project/$userId/${projectId.id}/project_data") {
 			header("Authorization", "Bearer $bearerToken")
-			url { parameters.append("projectId", projectId.id) }
 			contentType(ContentType.Application.Json)
 			setBody(ProjectDataUploadRequest(sampleData.copy(authorName = "Local"), originalHash = "stale-hash"))
 		}

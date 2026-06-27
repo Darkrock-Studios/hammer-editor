@@ -15,7 +15,7 @@ private val RequestStartKey = AttributeKey<TimeSource.Monotonic.ValueTimeMark>("
  * Times every API request and feeds the result to the [MetricsCollector].
  *
  * The metric is keyed by the matched route TEMPLATE (e.g.
- * `/api/project/{userId}/{projectName}/upload_entity/{entityId}`) rather than the
+ * `/api/project/{userId}/{projectId}/upload_entity/{entityId}`) rather than the
  * concrete path, so per-user / per-project path parameters don't explode the
  * cardinality. The template is stashed on the call during routing by
  * [configureRouteTemplateCapture]; absence of one means no route matched, so

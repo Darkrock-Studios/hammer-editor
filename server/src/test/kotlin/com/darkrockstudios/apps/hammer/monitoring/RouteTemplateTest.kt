@@ -31,7 +31,7 @@ class RouteTemplateTest {
 			}
 			routing {
 				route("api") {
-					route("/project/{userId}/{projectName}") {
+					route("/project/{userId}/{projectId}") {
 						post("/upload_entity/{entityId}") { throw RuntimeException("boom") }
 					}
 				}
@@ -40,7 +40,7 @@ class RouteTemplateTest {
 
 		client.post("/api/project/1/Alice%20In%20Wonderland/upload_entity/8")
 
-		assertEquals("/api/project/{userId}/{projectName}/upload_entity/{entityId}", captured)
+		assertEquals("/api/project/{userId}/{projectId}/upload_entity/{entityId}", captured)
 	}
 
 	@Test

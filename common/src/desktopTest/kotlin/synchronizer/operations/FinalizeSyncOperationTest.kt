@@ -132,7 +132,7 @@ class FinalizeSyncOperationTest : BaseTest() {
 		mockSynchronizers.synchronizers.forEach { synchronizer ->
 			coVerify { synchronizer.finalizeSync() }
 		}
-		coVerify { serverProjectApi.endProjectSync(any(), any(), any(), any(), any(), any()) }
+		coVerify { serverProjectApi.endProjectSync(any(), any(), any(), any(), any()) }
 		coVerify { syncDataDatasource.saveSyncData(any()) }
 	}
 }

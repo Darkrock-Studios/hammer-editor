@@ -88,6 +88,6 @@ class EntityDeleteOperationTest : BaseTest() {
 		assertIs<EntityDeleteOperationState>(data)
 
 		assertNull(data.collatedIds.dirtyEntities.find { it.id == 9 })
-		coVerify { serverProjectApi.deleteId(any(), any(), 9, any()) }
+		coVerify { serverProjectApi.deleteId(any(), 9, any()) }
 	}
 }

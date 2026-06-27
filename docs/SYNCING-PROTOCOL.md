@@ -74,10 +74,10 @@ sequenceDiagram
 
 	rect rgb(49, 0, 74)
 		loop Create Projects
-			Client ->> Server: GET /api/projects/{userId}/{projectName}/create
+			Client ->> Server: GET /api/projects/{userId}/create
 			deactivate Client
 			activate Server
-			Note right of Client: bearer token <br/> syncId <br/> projectName
+			Note right of Client: bearer token <br/> syncId <br/> projectName (query param)
 			Server -->> Client: 200 OK (projectId)
 			deactivate Server
 			activate Client
@@ -215,7 +215,7 @@ sequenceDiagram
     participant Client
     participant Server
 
-    Client->>Server: POST /project/$userId/$projectName/begin_sync
+    Client->>Server: POST /project/$userId/$projectId/begin_sync
 	activate Server
 	Note right of Client: ProjectID<br/>ClientState
 
@@ -226,7 +226,7 @@ sequenceDiagram
 
     rect rgb(74, 0, 9)
         loop Delete Entities
-            Client->>Server: GET /project/$userId/$projectName/delete_entity/$id
+            Client->>Server: GET /project/$userId/$projectId/delete_entity/$id
             deactivate Client
             activate Server
             
@@ -245,7 +245,7 @@ sequenceDiagram
         end
     end
 
-    Client->>Server: POST /project/$userId/$projectName/end_sync
+    Client->>Server: POST /project/$userId/$projectId/end_sync
 	deactivate Client
 	activate Server
 	Note right of Client: ProjectID<br/>SyncId
@@ -266,7 +266,7 @@ sequenceDiagram
     participant Client
     participant Server
 
-    Client->>Server: GET /project/$userId/$projectName/download_entity/$entityId
+    Client->>Server: GET /project/$userId/$projectId/download_entity/$entityId
 	activate Server
 
 	Server -->> Client: 200 OK (Sync Began)
@@ -289,7 +289,7 @@ sequenceDiagram
     participant Client
     participant Server
 
-    Client->>Server: GET /project/$userId/$projectName/download_entity/$entityId
+    Client->>Server: GET /project/$userId/$projectId/download_entity/$entityId
 	activate Server
 	Note over Server: Cached hash != Computed hash
 
@@ -299,7 +299,7 @@ sequenceDiagram
 	Note left of Server: StaleHashResponse<br/>{cachedHash, computedHash}
 
 	Note right of Client: Client detects stale cache<br/>and initiates healing
-	Client->>Server: POST /project/$userId/$projectName/upload_entity/$entityId?force=true
+	Client->>Server: POST /project/$userId/$projectId/upload_entity/$entityId?force=true
 	deactivate Client
 	activate Server
 	Note right of Client: Force upload to heal server cache
@@ -323,7 +323,7 @@ sequenceDiagram
     participant Client
     participant Server
 
-    Client->>Server: POST /project/$userId/$projectName/upload_entity/$entityId
+    Client->>Server: POST /project/$userId/$projectId/upload_entity/$entityId
 	activate Server
 	Note right of Client: X-Entity-Hash = {original hash} <br /> ApiProjectEntity
 
@@ -344,7 +344,7 @@ sequenceDiagram
     participant Client
     participant Server
 
-    Client->>Server: POST /project/$userId/$projectName/upload_entity/$entityId
+    Client->>Server: POST /project/$userId/$projectId/upload_entity/$entityId
 	activate Server
 	Note right of Client: X-Entity-Hash = {original hash} <br /> ApiProjectEntity
 
@@ -354,7 +354,7 @@ sequenceDiagram
 	Note left of Server: ApiProjectEntity
 
 	Note right of Client: {client now helps the user resolve the conflict}
-	Client->>Server: POST /project/$userId/$projectName/upload_entity/$entityId?force=true
+	Client->>Server: POST /project/$userId/$projectId/upload_entity/$entityId?force=true
 	deactivate Client
 	activate Server
 	Note right of Client: X-Entity-Hash = {original hash} <br /> ApiProjectEntity {resolved entity}
@@ -377,7 +377,7 @@ sequenceDiagram
     participant Client
     participant Server
 
-    Client->>Server: GET /project/$userId/$projectName/project_data
+    Client->>Server: GET /project/$userId/$projectId/project_data
     activate Server
     Server -->> Client: 200 ProjectDataDto OR 204 No Content
     deactivate Server
@@ -416,7 +416,7 @@ sequenceDiagram
     participant Client
     participant Server
 
-    Client->>Server: GET /api/project/$userId/$projectName/writing_activity
+    Client->>Server: GET /api/project/$userId/$projectId/writing_activity
     activate Server
     Server -->> Client: 200 WritingActivityResponse
     deactivate Server
@@ -424,17 +424,17 @@ sequenceDiagram
 
     Note right of Client: Overwrite local copies of<br/>foreign device slots.<br/>Merge own slot with server's copy.
 
-    Client->>Server: POST /api/project/$userId/$projectName/writing_activity/$deviceId
+    Client->>Server: POST /api/project/$userId/$projectId/writing_activity/$deviceId
     activate Server
     Note right of Client: DeviceLog (own slot, merged)
     Server -->> Client: 200 OK
     deactivate Server
 ```
 
-Endpoints (both take `projectId` as a query parameter):
+Endpoints (the project is identified by `projectId` in the path):
 
-- `GET  /api/project/{userId}/{projectName}/writing_activity` → `WritingActivityResponse` (`Map<deviceId, DeviceLog>`)
-- `POST /api/project/{userId}/{projectName}/writing_activity/{deviceId}` body: `DeviceLog`
+- `GET  /api/project/{userId}/{projectId}/writing_activity` → `WritingActivityResponse` (`Map<deviceId, DeviceLog>`)
+- `POST /api/project/{userId}/{projectId}/writing_activity/{deviceId}` body: `DeviceLog`
 
 Data shapes (`WritingSession`, `DeviceLog`, `WritingActivityResponse`) live in [WritingSession.kt](base/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/base/http/writingactivity/WritingSession.kt).
 

@@ -45,14 +45,12 @@ abstract class ProjectSyncTestBase : EndToEndTest() {
 		clientState: ClientEntityState
 	): HttpResponse {
 		val beginSyncResponse =
-			post(api("project/$userId/${TestDataSet1.project1.name}/begin_sync")) {
+			post(api("project/$userId/${TestDataSet1.project1.uuid}/begin_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
 				}
 				contentType(ContentType.Application.OctetStream)
-				parameter("projectId", TestDataSet1.project1.uuid.toString())
-
 				val stateJson = json.encodeToString(ClientEntityState.serializer(), clientState)
 				val compressed = stateJson.toByteArray().compress(GZIP)
 
@@ -71,7 +69,7 @@ abstract class ProjectSyncTestBase : EndToEndTest() {
 		force: Boolean = false,
 	): SaveEntityResponse {
 		val uploadResponse =
-			post(api("project/$userId/${TestDataSet1.project1.name}/upload_entity/${entity.id}")) {
+			post(api("project/$userId/${TestDataSet1.project1.uuid}/upload_entity/${entity.id}")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -81,7 +79,6 @@ abstract class ProjectSyncTestBase : EndToEndTest() {
 				}
 				contentType(ContentType.Application.Json)
 				url {
-					parameters.append("projectId", TestDataSet1.project1.uuid.toString())
 					parameters.append("force", force.toString())
 				}
 
@@ -102,7 +99,7 @@ abstract class ProjectSyncTestBase : EndToEndTest() {
 		force: Boolean = false,
 	): T {
 		val uploadResponse =
-			post(api("project/$userId/${TestDataSet1.project1.name}/upload_entity/${entity.id}")) {
+			post(api("project/$userId/${TestDataSet1.project1.uuid}/upload_entity/${entity.id}")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -112,7 +109,6 @@ abstract class ProjectSyncTestBase : EndToEndTest() {
 				}
 				contentType(ContentType.Application.Json)
 				url {
-					parameters.append("projectId", TestDataSet1.project1.uuid.toString())
 					parameters.append("force", force.toString())
 				}
 
@@ -149,7 +145,7 @@ abstract class ProjectSyncTestBase : EndToEndTest() {
 	): HttpResponse {
 		// End Sync
 		val downloadResponse =
-			get(api("project/$userId/${TestDataSet1.project1.name}/download_entity/${entityId}")) {
+			get(api("project/$userId/${TestDataSet1.project1.uuid}/download_entity/${entityId}")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
@@ -158,9 +154,7 @@ abstract class ProjectSyncTestBase : EndToEndTest() {
 						append(HEADER_ENTITY_HASH, entityHash)
 					}
 				}
-				contentType(ContentType.Application.FormUrlEncoded)
-				parameter("projectId", TestDataSet1.project1.uuid.toString())
-			}
+				contentType(ContentType.Application.FormUrlEncoded)			}
 		return downloadResponse
 	}
 
@@ -171,15 +165,13 @@ abstract class ProjectSyncTestBase : EndToEndTest() {
 	) {
 		// End Sync
 		val endSyncResponse =
-			post(api("project/$userId/${TestDataSet1.project1.name}/end_sync")) {
+			post(api("project/$userId/${TestDataSet1.project1.uuid}/end_sync")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
 					append(HEADER_SYNC_ID, synchronizationBegan.syncId)
 				}
 				contentType(ContentType.Application.FormUrlEncoded)
-				parameter("projectId", TestDataSet1.project1.uuid.toString())
-
 				setBody(
 					FormDataContent(
 						Parameters.build {

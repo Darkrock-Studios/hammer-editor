@@ -35,7 +35,7 @@ data class DeviceLog(
 )
 
 /**
- * Wire envelope returned by `GET /api/project/{userId}/{projectName}/writing_activity`.
+ * Wire envelope returned by `GET /api/project/{userId}/{projectId}/writing_activity`.
  * Each device's log is keyed by its `deviceId` UUID.
  */
 @Serializable

@@ -201,9 +201,9 @@ private suspend fun RoutingContext.respondRenameFailure(exception: Throwable?) {
 private fun Route.createProject() {
 	val projectsRepository: ProjectsRepository = get()
 
-	get("/{projectName}/create") {
+	get("/create") {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectName = call.parameters["projectName"]
+		val projectName = call.request.queryParameters["projectName"]
 		if (projectName == null) {
 			call.respondMissingParameter(ERR_KEY_PROJECT_NAME_MISSING)
 			return@get

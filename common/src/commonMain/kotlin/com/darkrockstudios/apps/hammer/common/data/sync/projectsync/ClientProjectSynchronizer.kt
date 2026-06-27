@@ -171,7 +171,6 @@ class ClientProjectSynchronizer(
 
 			val endSyncResult = serverProjectApi.endProjectSync(
 				globalSettingsStore.userIdOrThrow(),
-				projectDef.name,
 				serverProjectId,
 				syncId,
 				null,

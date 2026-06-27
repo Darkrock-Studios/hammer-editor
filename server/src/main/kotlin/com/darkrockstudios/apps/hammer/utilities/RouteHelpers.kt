@@ -4,11 +4,13 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
+import org.koin.ktor.ext.get
 
 internal const val ERROR_MISSING_PARAMETER = "Missing Parameter"
 internal const val ERROR_MISSING_HEADER = "Missing Header"
@@ -39,23 +41,32 @@ suspend fun ApplicationCall.respondMissingParameter(
 suspend fun ApplicationCall.respondMissingHeader(messageKey: String) =
 	respondBadRequest(ERROR_MISSING_HEADER, t(R(messageKey)))
 
+/** Responds 404 NotFound with the given error name and a localized message from [messageKey]. */
+suspend fun ApplicationCall.respondNotFound(error: String, messageKey: String) =
+	respond(
+		status = HttpStatusCode.NotFound,
+		HttpResponseError(error = error, displayMessage = t(R(messageKey))),
+	)
+
 /**
- * Reads `projectName` from path params and `projectId` from query params, responding
- * 400 BadRequest if either is missing. Returns `null` after responding so the caller
+ * Reads `projectId` from path params and resolves the project from the database, scoped to
+ * the authenticated [userId]. Responds 400 BadRequest if the id is missing or 404 NotFound
+ * if no such project exists for the user. Returns `null` after responding so the caller
  * should `return@get` / `return@post` immediately.
  */
-suspend fun ApplicationCall.requireProjectDef(): ProjectDefinition? {
-	val projectName = parameters["projectName"]
-	if (projectName == null) {
-		respondMissingParameter(ERR_KEY_PROJECT_NAME_MISSING)
-		return null
-	}
-	val projectIdRaw = request.queryParameters["projectId"]
+suspend fun ApplicationCall.requireProjectDef(userId: Long): ProjectDefinition? {
+	val projectIdRaw = parameters["projectId"]
 	if (projectIdRaw == null) {
 		respondMissingParameter(ERR_KEY_PROJECT_ID_MISSING)
 		return null
 	}
-	return ProjectDefinition(projectName, ProjectId(projectIdRaw))
+
+	val projectDef = application.get<ProjectEntityDatasource>().getProject(userId, ProjectId(projectIdRaw))
+	if (projectDef == null) {
+		respondNotFound("Project Not Found", "api_project_getproject_error_notfound")
+		return null
+	}
+	return projectDef
 }
 
 /**

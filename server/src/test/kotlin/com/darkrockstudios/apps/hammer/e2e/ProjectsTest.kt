@@ -69,13 +69,13 @@ class ProjectsTest : EndToEndTest() {
 
 			// Create Project
 			val newProjectName = "New Project"
-			val urlEncoded = newProjectName.encodeURLQueryComponent()
-			val createProjectResponse = get(api("projects/$userId/$urlEncoded/create")) {
+			val createProjectResponse = get(api("projects/$userId/create")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 					append("Authorization", "Bearer ${authToken.auth}")
 					append(HEADER_SYNC_ID, beginSyncResponseBody.syncId)
 				}
+				parameter("projectName", newProjectName)
 			}
 			assertEquals(HttpStatusCode.OK, createProjectResponse.status)
 

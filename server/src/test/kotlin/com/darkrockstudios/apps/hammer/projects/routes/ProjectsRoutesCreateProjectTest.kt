@@ -41,7 +41,7 @@ class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
 
 		defaultApplication()
 
-		client.get("api/projects/0/TestProject/create") {
+		client.get("api/projects/0/create?projectName=TestProject") {
 			header("Authorization", "Bearer $BEARER_TOKEN")
 			header(HEADER_SYNC_ID, syncId)
 		}.apply {
@@ -63,7 +63,7 @@ class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
 
 		defaultApplication()
 
-		client.get("api/projects/0/TestProject/create") {
+		client.get("api/projects/0/create?projectName=TestProject") {
 			header("Authorization", "Bearer $BEARER_TOKEN")
 		}.apply {
 			assertEquals(HttpStatusCode.BadRequest, status)
@@ -88,7 +88,7 @@ class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
 
 		defaultApplication()
 
-		client.get("api/projects/0/TestProject/create") {
+		client.get("api/projects/0/create?projectName=TestProject") {
 			header("Authorization", "Bearer $BEARER_TOKEN")
 			header(HEADER_SYNC_ID, syncId)
 		}.apply {
@@ -114,7 +114,7 @@ class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
 
 		defaultApplication()
 
-		client.get("api/projects/0/TestProject/create") {
+		client.get("api/projects/0/create?projectName=TestProject") {
 			header("Authorization", "Bearer $BEARER_TOKEN")
 			header(HEADER_SYNC_ID, syncId)
 		}.apply {
