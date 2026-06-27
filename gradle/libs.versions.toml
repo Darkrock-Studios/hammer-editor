@@ -308,6 +308,7 @@ jetbrains_kover = { group = "org.jetbrains.kotlinx", name = "kover-gradle-plugin
 logback_classic = { group = "ch.qos.logback", name = "logback-classic", version.ref = "logback_classic" }
 
 multiplatform_settings = { group = "com.russhwolf", name = "multiplatform-settings-no-arg", version.ref = "multiplatform_settings" }
+multiplatform_settings_test = { group = "com.russhwolf", name = "multiplatform-settings-test", version.ref = "multiplatform_settings" }
 korge-core = { group = "com.soywiz.korge", name = "korge-core", version.ref = "korge-core" }
 kotlinx-io-okio = { group = "org.jetbrains.kotlinx", name = "kotlinx-io-okio", version.ref = "kotlinx-io-okio" }
 
