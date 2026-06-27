@@ -41,16 +41,24 @@ suspend fun ApplicationCall.respondMissingParameter(
 suspend fun ApplicationCall.respondMissingHeader(messageKey: String) =
 	respondBadRequest(ERROR_MISSING_HEADER, t(R(messageKey)))
 
-/** Responds 404 NotFound with the given error name and a localized message from [messageKey]. */
-suspend fun ApplicationCall.respondNotFound(error: String, messageKey: String) =
+/**
+ * Responds 410 Gone for a project that does not exist for the user.
+ *
+ * Thar be dragons: this must NOT be 404. The `download_entity` client maps a 404 to
+ * "entity deleted on the server" and, for an entity it doesn't already hold locally,
+ * silently marks it deleted. A project-level 404 would therefore make a client abandon
+ * undownloaded entities when a project vanishes mid-sync. A distinct status fails the
+ * sync cleanly instead.
+ */
+suspend fun ApplicationCall.respondProjectGone(messageKey: String) =
 	respond(
-		status = HttpStatusCode.NotFound,
-		HttpResponseError(error = error, displayMessage = t(R(messageKey))),
+		status = HttpStatusCode.Gone,
+		HttpResponseError(error = "Project Not Found", displayMessage = t(R(messageKey))),
 	)
 
 /**
  * Reads `projectId` from path params and resolves the project from the database, scoped to
- * the authenticated [userId]. Responds 400 BadRequest if the id is missing or 404 NotFound
+ * the authenticated [userId]. Responds 400 BadRequest if the id is missing or 410 Gone
  * if no such project exists for the user. Returns `null` after responding so the caller
  * should `return@get` / `return@post` immediately.
  */
@@ -63,7 +71,7 @@ suspend fun ApplicationCall.requireProjectDef(userId: Long): ProjectDefinition? 
 
 	val projectDef = application.get<ProjectEntityDatasource>().getProject(userId, ProjectId(projectIdRaw))
 	if (projectDef == null) {
-		respondNotFound("Project Not Found", "api_project_getproject_error_notfound")
+		respondProjectGone("api_project_getproject_error_notfound")
 		return null
 	}
 	return projectDef

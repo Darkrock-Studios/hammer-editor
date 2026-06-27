@@ -28,7 +28,7 @@ class WritingActivityApi(
 		userId: Long,
 		projectId: ProjectId,
 	): Result<WritingActivityResponse> = get(
-		path = "/api/project/$userId/${projectId.id}/writing_activity",
+		path = "/api/project/$userId/${projectId.id.encodeUrlPathSegment()}/writing_activity",
 		parse = { it.body() },
 	)
 
@@ -39,7 +39,7 @@ class WritingActivityApi(
 		deviceId: String,
 		log: DeviceLog,
 	): Result<String> = post(
-		path = "/api/project/$userId/${projectId.id}/writing_activity/${deviceId.encodeUrlPathSegment()}",
+		path = "/api/project/$userId/${projectId.id.encodeUrlPathSegment()}/writing_activity/${deviceId.encodeUrlPathSegment()}",
 	) {
 		contentType(ContentType.Application.Json)
 		setBody(log)

@@ -260,7 +260,7 @@ class WritingActivityRoutesTest : BaseTest() {
 	}
 
 	@Test
-	fun `GET writing_activity 404 when project id unknown`() = testApplication {
+	fun `GET writing_activity 410 Gone when project id unknown`() = testApplication {
 		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
 		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns null
@@ -278,6 +278,6 @@ class WritingActivityRoutesTest : BaseTest() {
 			header("Authorization", "Bearer $bearerToken")
 		}
 
-		assertEquals(HttpStatusCode.NotFound, response.status)
+		assertEquals(HttpStatusCode.Gone, response.status)
 	}
 }
