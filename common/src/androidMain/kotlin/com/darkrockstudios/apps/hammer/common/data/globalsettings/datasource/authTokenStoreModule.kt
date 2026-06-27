@@ -9,7 +9,6 @@ actual val authTokenStoreModule = module {
 		EncryptedSharedPrefsAuthTokenStore(
 			context = androidContext(),
 			json = get(),
-			fileSystem = get(),
 		)
 	} bind AuthTokenStore::class
 }

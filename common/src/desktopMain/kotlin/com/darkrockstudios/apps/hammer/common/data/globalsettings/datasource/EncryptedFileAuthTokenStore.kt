@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource
 
-import com.darkrockstudios.apps.hammer.base.http.readJsonOrNull
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokenStore.Companion.accountKey
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import io.github.aakira.napier.Napier
@@ -36,7 +35,6 @@ class EncryptedFileAuthTokenStore(
 	private val fileSystem: FileSystem,
 	private val json: Json,
 	private val filePath: Path = DEFAULT_FILE_PATH,
-	private val legacyPlaintextPath: Path = LEGACY_PLAINTEXT_PATH,
 	keyUserName: String = System.getProperty("user.name").orEmpty(),
 	keyHomeDir: String = System.getProperty("user.home").orEmpty(),
 	keySalt: ByteArray = APP_SALT,
@@ -45,7 +43,6 @@ class EncryptedFileAuthTokenStore(
 	private val lock = reentrantLock()
 	private val secretKey: SecretKeySpec = deriveKey(keyUserName, keyHomeDir, keySalt)
 	private val secureRandom = SecureRandom()
-	private var migrationChecked = false
 
 	override fun get(url: String, userId: Long): AuthTokens? = lock.withLock {
 		load()[accountKey(url, userId)]
@@ -65,11 +62,6 @@ class EncryptedFileAuthTokenStore(
 	}
 
 	private fun load(): Map<String, AuthTokens> {
-		migrateLegacyPlaintext()
-		return decryptStored()
-	}
-
-	private fun decryptStored(): Map<String, AuthTokens> {
 		if (!fileSystem.exists(filePath)) return emptyMap()
 		return try {
 			val encrypted = fileSystem.read(filePath) { readByteArray() }
@@ -86,29 +78,6 @@ class EncryptedFileAuthTokenStore(
 		val plaintext = json.encodeToString(tokens).encodeToByteArray()
 		fileSystem.write(filePath) { write(encrypt(plaintext)) }
 		restrictPermissions(filePath)
-	}
-
-	/**
-	 * Migrates a legacy plaintext token file, if present, into the encrypted store
-	 * and deletes it. Existing encrypted tokens win on key collision. Runs once per
-	 * instance; failures degrade to a no-op rather than dropping the session.
-	 */
-	private fun migrateLegacyPlaintext() {
-		if (migrationChecked) return
-		migrationChecked = true
-
-		if (!fileSystem.exists(legacyPlaintextPath)) return
-
-		try {
-			val legacy = fileSystem.readJsonOrNull<Map<String, AuthTokens>>(legacyPlaintextPath, json)
-				?: return
-			if (legacy.isNotEmpty()) {
-				store(legacy + decryptStored())
-			}
-			fileSystem.delete(legacyPlaintextPath, mustExist = false)
-		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.w("Failed to migrate plaintext auth token store", e)
-		}
 	}
 
 	private fun encrypt(plaintext: ByteArray): ByteArray {
@@ -162,6 +131,5 @@ class EncryptedFileAuthTokenStore(
 		private val APP_SALT = "hammer-editor::auth-token-store::v1".encodeToByteArray()
 
 		val DEFAULT_FILE_PATH = getConfigDirectory().toPath() / FILE_NAME
-		val LEGACY_PLAINTEXT_PATH = FileAuthTokenStore.FILE_PATH
 	}
 }

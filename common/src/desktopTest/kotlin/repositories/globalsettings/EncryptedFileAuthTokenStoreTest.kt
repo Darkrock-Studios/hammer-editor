@@ -1,7 +1,6 @@
 package repositories.globalsettings
 
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
-import com.darkrockstudios.apps.hammer.base.http.writeJson
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.AuthTokens
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.EncryptedFileAuthTokenStore
 import kotlinx.serialization.json.Json
@@ -14,7 +13,6 @@ import utils.BaseTest
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 class EncryptedFileAuthTokenStoreTest : BaseTest() {
 
@@ -22,7 +20,6 @@ class EncryptedFileAuthTokenStoreTest : BaseTest() {
 	private lateinit var json: Json
 
 	private val encPath: Path = "/config/auth_tokens.enc".toPath()
-	private val legacyPath: Path = "/config/auth_tokens.json".toPath()
 
 	private val url = "hammer.ink"
 	private val userId = 1L
@@ -43,7 +40,6 @@ class EncryptedFileAuthTokenStoreTest : BaseTest() {
 		fileSystem = fileSystem,
 		json = json,
 		filePath = encPath,
-		legacyPlaintextPath = legacyPath,
 		keyUserName = userName,
 		keyHomeDir = homeDir,
 		keySalt = salt,
@@ -104,40 +100,6 @@ class EncryptedFileAuthTokenStoreTest : BaseTest() {
 
 		assertNull(store.get(url, userId))
 		assertEquals(AuthTokens("a", "b"), store.get("other.example.com", 2L))
-	}
-
-	@Test
-	fun `Legacy plaintext file is imported then deleted`() {
-		fileSystem.createDirectories(legacyPath.parent!!)
-		val legacyMap = mapOf("$url|$userId" to tokens)
-		fileSystem.writeJson(legacyPath, json, legacyMap)
-		assertTrue(fileSystem.exists(legacyPath))
-
-		val store = createStore()
-		val loaded = store.get(url, userId)
-
-		assertEquals(tokens, loaded)
-		assertFalse(fileSystem.exists(legacyPath))
-		assertTrue(fileSystem.exists(encPath))
-
-		// Re-reading the encrypted file confirms the imported tokens persisted.
-		assertFalse(fileSystem.read(encPath) { readByteArray() }.decodeToString().contains("zxc456"))
-	}
-
-	@Test
-	fun `Existing encrypted tokens win over a stale legacy plaintext entry`() {
-		val fresh = AuthTokens(bearerToken = "fresh-bearer", refreshToken = "fresh-refresh")
-		createStore().put(url, userId, fresh)
-
-		fileSystem.createDirectories(legacyPath.parent!!)
-		val staleMap = mapOf("$url|$userId" to AuthTokens("stale-bearer", "stale-refresh"))
-		fileSystem.writeJson(legacyPath, json, staleMap)
-
-		// A fresh instance triggers migration on first access.
-		val migrated = createStore().get(url, userId)
-
-		assertEquals(fresh, migrated)
-		assertFalse(fileSystem.exists(legacyPath))
 	}
 
 	@Test
