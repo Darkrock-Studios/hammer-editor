@@ -75,6 +75,27 @@ private fun groupByChapter(items: List<OutlineOverview.OutlineItem>): List<Outli
 
 @Composable
 fun OutlineOverviewUi(component: OutlineOverview) {
+	AnimatedFullScreenDialog(
+		onDismissed = component::dismiss,
+		backgroundColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f),
+	) {
+		OutlineOverviewContent(
+			component = component,
+			onDismiss = { requestDismiss() },
+		)
+	}
+}
+
+/**
+ * The static content of [OutlineOverviewUi] without the [AnimatedFullScreenDialog] wrapper.
+ * [OutlineOverviewUi] animates this in/out; render it directly (e.g. in a `@Preview`) to capture
+ * a settled, opaque frame, since the Desktop preview renderer can't advance the enter animation.
+ */
+@Composable
+fun OutlineOverviewContent(
+	component: OutlineOverview,
+	onDismiss: () -> Unit,
+) {
 	val state by component.state.subscribeAsState()
 
 	val chapters = remember(state.overview) { groupByChapter(state.overview) }
@@ -102,98 +123,93 @@ fun OutlineOverviewUi(component: OutlineOverview) {
 		state.overview.firstOrNull()?.projectName()
 	}
 
-	AnimatedFullScreenDialog(
-		onDismissed = component::dismiss,
-		backgroundColor = MaterialTheme.colorScheme.scrim.copy(alpha = 0.55f),
+	Box(
+		modifier = Modifier
+			.fillMaxSize()
+			.pointerInput(Unit) {
+				detectTapGestures(onTap = { onDismiss() })
+			},
+		contentAlignment = Alignment.Center,
 	) {
-		Box(
-			modifier = Modifier
-				.fillMaxSize()
-				.pointerInput(Unit) {
-					detectTapGestures(onTap = { requestDismiss() })
-				},
+		BoxWithConstraints(
+			modifier = Modifier.fillMaxSize(),
 			contentAlignment = Alignment.Center,
 		) {
-			BoxWithConstraints(
-				modifier = Modifier.fillMaxSize(),
-				contentAlignment = Alignment.Center,
-			) {
-				val isWide = maxWidth >= WideThreshold
+			val isWide = maxWidth >= WideThreshold
 
-				Column(
-					modifier = Modifier
-						.padding(if (isWide) Ui.Padding.XXL else 0.dp)
-						.widthIn(max = 1080.dp)
-						.heightIn(max = 880.dp)
-						.fillMaxWidth()
-						.fillMaxHeight()
-						.background(MaterialTheme.colorScheme.surface)
-						.border(
-							width = Dp.Hairline,
-							color = MaterialTheme.colorScheme.outlineVariant,
-							shape = RectangleShape,
-						)
-						.pointerInput(Unit) {
-							detectTapGestures(onTap = {})
-						},
-				) {
-					Masthead(
-						chapterCount = totalChapters,
-						sceneCount = totalScenes,
-						isWide = isWide,
-						onClose = { requestDismiss() },
+			Column(
+				modifier = Modifier
+					.padding(if (isWide) Ui.Padding.XXL else 0.dp)
+					.widthIn(max = 1080.dp)
+					.heightIn(max = 880.dp)
+					.fillMaxWidth()
+					.fillMaxHeight()
+					.background(MaterialTheme.colorScheme.surface)
+					.border(
+						width = Dp.Hairline,
+						color = MaterialTheme.colorScheme.outlineVariant,
+						shape = RectangleShape,
 					)
+					.pointerInput(Unit) {
+						detectTapGestures(onTap = {})
+					},
+			) {
+				Masthead(
+					chapterCount = totalChapters,
+					sceneCount = totalScenes,
+					isWide = isWide,
+					onClose = onDismiss,
+				)
 
-					HdFolioDivider()
+				HdFolioDivider()
 
-					if (chapters.isEmpty()) {
-						EmptyOutline(modifier = Modifier.weight(1f))
-					} else if (isWide) {
-						Row(
-							modifier = Modifier
-								.weight(1f)
-								.fillMaxWidth(),
-						) {
-							ChapterRail(
-								chapters = chapters,
-								activeChapterIndex = activeChapterIndex,
-								onJumpTo = scrollToChapter,
-								modifier = Modifier
-									.width(240.dp)
-									.fillMaxHeight(),
-							)
-							VerticalDivider(
-								color = MaterialTheme.colorScheme.outlineVariant,
-								thickness = Dp.Hairline,
-							)
-							ReadingColumn(
-								chapters = chapters,
-								projectName = projectName,
-								listState = listState,
-								wide = true,
-								onSceneClick = component::selectScene,
-								modifier = Modifier
-									.weight(1f)
-									.fillMaxHeight(),
-							)
-						}
-					} else {
-						ChapterDropdown(
+				if (chapters.isEmpty()) {
+					EmptyOutline(modifier = Modifier.weight(1f))
+				} else if (isWide) {
+					Row(
+						modifier = Modifier
+							.weight(1f)
+							.fillMaxWidth(),
+					) {
+						ChapterRail(
 							chapters = chapters,
 							activeChapterIndex = activeChapterIndex,
 							onJumpTo = scrollToChapter,
+							modifier = Modifier
+								.width(240.dp)
+								.fillMaxHeight(),
+						)
+						VerticalDivider(
+							color = MaterialTheme.colorScheme.outlineVariant,
+							thickness = Dp.Hairline,
 						)
 						ReadingColumn(
 							chapters = chapters,
 							projectName = projectName,
 							listState = listState,
-							wide = false,
+							wide = true,
 							onSceneClick = component::selectScene,
 							modifier = Modifier
 								.weight(1f)
-								.fillMaxWidth(),
+								.fillMaxHeight(),
 						)
 					}
+				} else {
+					ChapterDropdown(
+						chapters = chapters,
+						activeChapterIndex = activeChapterIndex,
+						onJumpTo = scrollToChapter,
+					)
+					ReadingColumn(
+						chapters = chapters,
+						projectName = projectName,
+						listState = listState,
+						wide = false,
+						onSceneClick = component::selectScene,
+						modifier = Modifier
+							.weight(1f)
+							.fillMaxWidth(),
+					)
 				}
 			}
 		}

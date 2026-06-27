@@ -30,6 +30,7 @@ private val focusMode = object : FocusMode {
 				),
 				source = UpdateSource.Editor
 			),
+			isLoading = false,
 			textSize = 24f,
 			spellChecker = null,
 			spellCheckingEnabled = false
