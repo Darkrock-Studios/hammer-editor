@@ -417,6 +417,24 @@ class SceneEditorServiceTest : BaseTest() {
 			}
 		}
 
+	// A metadata flush can land after the scene was deleted (e.g. the metadata panel's
+	// fire-and-forget save on destroy). The scene is gone, so there is nothing to persist
+	// and the call must not crash.
+	@Test
+	fun `Store metadata for a deleted scene is a no-op and does not throw`() =
+		runTest(mainTestDispatcher) {
+			val service = initializedService()
+			val scene = service.getSceneItemFromId(1)!!
+			val metadata = service.loadSceneMetadata(1).copy(notes = "late write")
+
+			assertTrue(service.deleteScene(scene))
+			assertNull(service.getSceneItemFromIdIncludingArchived(1))
+
+			service.storeMetadata(metadata, 1)
+
+			coVerify(exactly = 0) { referenceIndexRepository.applySceneDelta(any(), any(), any()) }
+		}
+
 	@Test
 	fun `Store metadata emits on the metadata update flow`() = runTest(mainTestDispatcher) {
 		val service = initializedService()
