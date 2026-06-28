@@ -23,6 +23,7 @@ private val fakeServerSettingsDatasource = object : ServerSettingsDatasource {
 	override fun loadServerSettings(projectsDir: HPath): ServerSettings? = null
 	override fun storeServerSettings(settings: ServerSettings, projectsDir: HPath) {}
 	override fun removeServerSettings(projectsDir: HPath) {}
+	override fun migrateInlineTokens(projectsDir: HPath) {}
 }
 
 /**

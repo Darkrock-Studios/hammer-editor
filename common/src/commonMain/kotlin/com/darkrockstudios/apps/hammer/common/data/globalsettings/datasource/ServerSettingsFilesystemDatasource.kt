@@ -35,13 +35,14 @@ class ServerSettingsFilesystemDatasource(
 		val persisted: PersistedServerSettings = try {
 			json.decodeFromString(settingsText)
 		} catch (e: SerializationException) {
-			Napier.e("Failed to load Server Settings, removing invalid file.", e)
-			fileSystem.delete(path)
+			Napier.e("Failed to load Server Settings.", e)
 			return null
 		}
 
-		val migratedTokens = migrateInlineTokens(settingsText, persisted, projectsDir)
-		val tokens = migratedTokens ?: authTokenStore.get(persisted.url, persisted.userId)
+		// Legacy files may still carry inline tokens until migrateInlineTokens runs; honor
+		// them for this session, otherwise read from the token store. This is a pure read.
+		// Transitional: drop the readInlineTokens fallback once 4.0 ships.
+		val tokens = readInlineTokens(settingsText) ?: authTokenStore.get(persisted.url, persisted.userId)
 
 		return persisted.toServerSettings(tokens)
 	}
@@ -68,31 +69,34 @@ class ServerSettingsFilesystemDatasource(
 	}
 
 	/**
-	 * Moves inline tokens from a legacy `server.json` into the token store and
-	 * rewrites the file tokenless, so the plaintext secrets no longer live in the
-	 * workspace. Returns the extracted tokens, or null when there were none.
+	 * Moves inline tokens from a legacy `server.json` into the token store and rewrites
+	 * the file tokenless, so the plaintext secrets no longer live in the workspace.
+	 * Idempotent and self-gating: a no-op once the file carries no inline tokens.
 	 *
-	 * On a token-store write failure the extracted tokens are still returned so the
-	 * in-memory session is never dropped.
+	 * Transitional: delete this (and [readInlineTokens]) once 4.0 ships and every upgrading
+	 * user has run it.
 	 */
-	private fun migrateInlineTokens(
-		settingsText: String,
-		persisted: PersistedServerSettings,
-		projectsDir: HPath,
-	): AuthTokens? {
-		val inline = readInlineTokens(settingsText) ?: return null
+	override fun migrateInlineTokens(projectsDir: HPath) {
+		val path = getServerSettingsPath(projectsDir).toOkioPath()
+		if (!fileSystem.exists(path)) return
 
-		val migrated = runCatching {
+		val settingsText = fileSystem.read(path) { readUtf8() }
+		val inline = readInlineTokens(settingsText) ?: return
+
+		val persisted: PersistedServerSettings = try {
+			json.decodeFromString(settingsText)
+		} catch (e: SerializationException) {
+			Napier.e("Failed to parse server.json during inline-token migration.", e)
+			return
+		}
+
+		try {
 			authTokenStore.put(persisted.url, persisted.userId, inline)
-			val path = getServerSettingsPath(projectsDir).toOkioPath()
 			fileSystem.writeJson(path, json, persisted)
+			Napier.i("Migrated inline server.json tokens into the token store")
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+			Napier.e("Failed to migrate inline auth tokens", e)
 		}
-
-		if (migrated.isFailure) {
-			Napier.e("Failed to migrate inline auth tokens; keeping in-memory session.", migrated.exceptionOrNull())
-		}
-
-		return inline
 	}
 
 	private fun readInlineTokens(settingsText: String): AuthTokens? {
