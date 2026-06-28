@@ -70,52 +70,28 @@ class MetricsRepositoryTest : BaseTest() {
 		val dao = ApiMetricDao(db)
 		val repo = MetricsRepository(dao)
 
-		// All data is still hour-resolution (younger than the 7-day rollup window),
-		// which is exactly the state a server is in for its first week.
-		val dayStart = truncateToUtcDay(now)
-		val prevDayStart = dayStart - 1.days
-		dao.upsertBucket(
-			dayStart + 1.hours,
-			"HOUR",
-			routeA,
-			"GET",
-			10,
-			1,
-			1000,
-			9,
-			1,
-			0,
-			0,
-			0,
-			0,
-			0
-		)
-		dao.upsertBucket(dayStart + 2.hours, "HOUR", routeA, "GET", 5, 0, 250, 5, 0, 0, 0, 0, 0, 0)
-		dao.upsertBucket(
-			prevDayStart + 5.hours,
-			"HOUR",
-			routeA,
-			"GET",
-			3,
-			0,
-			90,
-			3,
-			0,
-			0,
-			0,
-			0,
-			0,
-			0
-		)
+		// The daily view folds HOUR buckets by UTC day across ALL routes, so route scoping
+		// can't isolate it. A booted server's monitoring collector flushes wall-clock "today"
+		// buckets into the shared DB; anchor our data on historical days (still hour-resolution,
+		// younger than the 7-day rollup window) so that collector can't bleed into our totals.
+		// Do not anchor on now/today.
+		val day = truncateToUtcDay(now) - 2.days
+		val prevDay = day - 1.days
+		dao.upsertBucket(day + 1.hours, "HOUR", routeA, "GET", 10, 1, 1000, 9, 1, 0, 0, 0, 0, 0)
+		dao.upsertBucket(day + 2.hours, "HOUR", routeA, "GET", 5, 0, 250, 5, 0, 0, 0, 0, 0, 0)
+		dao.upsertBucket(prevDay + 5.hours, "HOUR", routeA, "GET", 3, 0, 90, 3, 0, 0, 0, 0, 0, 0)
+
+		// Stand in for a live collector's "today" flush; the lookups below must ignore it.
+		dao.upsertBucket(truncateToUtcDay(now) + 3.hours, "HOUR", routeB, "GET", 7, 0, 70, 7, 0, 0, 0, 0, 0, 0)
 
 		val series = repo.getTimeSeries(now - 30.days, hourly = false)
-		assertEquals(2, series.size)
 
-		val (older, newer) = series
-		assertEquals(prevDayStart, older.bucketStart)
+		// Locate our own day buckets by start; the shared series may carry other days too.
+		val newer = series.single { it.bucketStart == day }
+		val older = series.single { it.bucketStart == prevDay }
+
 		assertEquals(3L, older.requests)
 
-		assertEquals(dayStart, newer.bucketStart)
 		assertEquals(15L, newer.requests)        // two hour buckets folded into one day
 		assertEquals(1L, newer.errors)
 		assertEquals(100L, newer.p95Ms)          // combined histogram: 14 <=50ms, 1 <=100ms
