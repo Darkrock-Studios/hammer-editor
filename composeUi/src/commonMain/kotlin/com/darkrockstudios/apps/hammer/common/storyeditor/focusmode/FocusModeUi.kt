@@ -120,6 +120,7 @@ fun FocusModeUi(component: FocusMode) {
 					markdownState = markdownExtension,
 					decreaseTextSize = component::decreaseTextSize,
 					increaseTextSize = component::increaseTextSize,
+					onFindReplace = { showFindBar = true },
 					modifier = Modifier.weight(1f),
 				)
 

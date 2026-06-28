@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.FormatQuote
 import androidx.compose.material.icons.filled.HorizontalRule
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,6 +54,7 @@ import com.darkrockstudios.apps.hammer.markdown_format_bar_blockquote
 import com.darkrockstudios.apps.hammer.markdown_format_bar_bold
 import com.darkrockstudios.apps.hammer.markdown_format_bar_bullet_list
 import com.darkrockstudios.apps.hammer.markdown_format_bar_decrease_text_size
+import com.darkrockstudios.apps.hammer.markdown_format_bar_find_replace
 import com.darkrockstudios.apps.hammer.markdown_format_bar_heading
 import com.darkrockstudios.apps.hammer.markdown_format_bar_horizontal_rule
 import com.darkrockstudios.apps.hammer.markdown_format_bar_increase_text_size
@@ -77,6 +79,7 @@ fun MarkdownFormatBar(
 	decreaseTextSize: (() -> Unit)? = null,
 	increaseTextSize: (() -> Unit)? = null,
 	resetTextSize: (() -> Unit)? = null,
+	onFindReplace: (() -> Unit)? = null,
 ) {
 	var isBoldActive by remember { mutableStateOf(false) }
 	var isItalicActive by remember { mutableStateOf(false) }
@@ -115,7 +118,8 @@ fun MarkdownFormatBar(
 		state.editOperations.collect { reconcileHorizontalRules(state) }
 	}
 
-	val showOverflow = decreaseTextSize != null || increaseTextSize != null || resetTextSize != null
+	val showOverflow = decreaseTextSize != null || increaseTextSize != null ||
+		resetTextSize != null || onFindReplace != null
 
 	BoxWithConstraints(modifier = modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)) {
 		val compact = maxWidth < TOOLBAR_COMPACT_THRESHOLD
@@ -147,6 +151,7 @@ fun MarkdownFormatBar(
 				decreaseTextSize = decreaseTextSize,
 				increaseTextSize = increaseTextSize,
 				resetTextSize = resetTextSize,
+				onFindReplace = onFindReplace,
 				showOverflow = showOverflow,
 			)
 		}
@@ -260,6 +265,7 @@ private fun HistoryAndOverflow(
 	decreaseTextSize: (() -> Unit)?,
 	increaseTextSize: (() -> Unit)?,
 	resetTextSize: (() -> Unit)?,
+	onFindReplace: (() -> Unit)?,
 	showOverflow: Boolean,
 ) {
 	EditorTooltip(Res.string.markdown_format_bar_undo.get()) {
@@ -295,6 +301,21 @@ private fun HistoryAndOverflow(
 			expanded = menuExpanded,
 			onDismissRequest = { menuExpanded = false },
 		) {
+			if (onFindReplace != null) {
+				DropdownMenuItem(
+					text = { Text(Res.string.markdown_format_bar_find_replace.get()) },
+					leadingIcon = {
+						Icon(
+							imageVector = Icons.Default.Search,
+							contentDescription = null,
+						)
+					},
+					onClick = {
+						onFindReplace()
+						menuExpanded = false
+					},
+				)
+			}
 			if (decreaseTextSize != null) {
 				DropdownMenuItem(
 					text = { Text(Res.string.markdown_format_bar_decrease_text_size.get()) },
