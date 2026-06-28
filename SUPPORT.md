@@ -71,3 +71,14 @@ Notes:
   If you've set `$XDG_CONFIG_HOME`, substitute it for `~/.config` above.
 - Snap and Flatpak run sandboxed, so they relocate the config directory
   into their per-app sandbox.
+
+### Mobile
+
+**Android:** Logs aren't browsed directly from a folder. Instead, open the
+About screen and use the **Export Logs** button at the bottom — it bundles
+the logs into a zip and lets you share them out (e.g. via email or a chat
+app) so you can attach them to a bug report.
+
+**iOS:** Hammer doesn't write logs to disk on iOS, so there's nothing to
+export or share. If you're hitting a bug on iOS, please describe what
+happened and your app version when you reach out.
