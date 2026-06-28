@@ -39,8 +39,35 @@ the About screen, and scrolling to the bottom.
 
 ### Where are the logs stored?
 
-On desktop, Logs are written to:
+On desktop, logs are written to a `logs` folder inside the app's config
+directory. The exact location depends on your OS and, on Linux, on how you
+installed Hammer (sandboxed packages such as Snap and Flatpak redirect the
+config directory).
 
 **Windows:**
 
 `C:\Users\<username>\AppData\Local\DarkrockStudios\hammer\0\logs\`
+
+**macOS:**
+
+`~/Library/Application Support/hammer/0/logs/`
+
+**Linux:**
+
+The path depends on the package format you installed:
+
+| Package format        | Logs directory                                                  |
+|-----------------------|-----------------------------------------------------------------|
+| `.deb`                | `~/.config/hammer/0/logs/`                                       |
+| `.rpm`                | `~/.config/hammer/0/logs/`                                       |
+| AppImage              | `~/.config/hammer/0/logs/`                                       |
+| Snap                  | `~/snap/hammer-editor/current/.config/hammer/0/logs/`           |
+| Flatpak               | `~/.var/app/studio.darkrock.hammer/config/hammer/0/logs/`       |
+
+Notes:
+
+- The native packages (`.deb`, `.rpm`, AppImage) follow the
+  [XDG Base Directory spec](https://specifications.freedesktop.org/basedir-spec/latest/).
+  If you've set `$XDG_CONFIG_HOME`, substitute it for `~/.config` above.
+- Snap and Flatpak run sandboxed, so they relocate the config directory
+  into their per-app sandbox.
