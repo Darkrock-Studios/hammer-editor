@@ -175,6 +175,7 @@ fun SceneEditorUi(
 					decreaseTextSize = component::decreaseTextSize,
 					increaseTextSize = component::increaseTextSize,
 					resetTextSize = component::resetTextSize,
+					onFindReplace = { showFindBar = true },
 				)
 
 				AnimatedVisibility(

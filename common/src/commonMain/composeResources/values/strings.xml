@@ -40,6 +40,7 @@
 	<string name="markdown_format_bar_decrease_text_size">Decrease text size</string>
 	<string name="markdown_format_bar_increase_text_size">Increase text size</string>
 	<string name="markdown_format_bar_reset_text_size">Reset text size</string>
+	<string name="markdown_format_bar_find_replace">Find and replace</string>
 
 	<string name="markdown_format_bar_bold">Bold</string>
 	<string name="markdown_format_bar_italic">Italic</string>
