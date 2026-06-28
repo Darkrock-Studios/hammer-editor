@@ -141,8 +141,10 @@ class SceneEditorService(
 	 * changed. The repo handles only the pure persist + flow emission.
 	 */
 	suspend fun storeMetadata(metadata: SceneMetadata, sceneId: Int) {
+		// A flush can arrive after the scene was deleted (e.g. the metadata panel's save on
+		// destroy). Nothing to persist for a scene that no longer exists.
 		val scene = sceneEditorRepository.getSceneItemFromIdIncludingArchived(sceneId)
-			?: error("storeMetadata: Failed to load scene for id: $sceneId ")
+			?: return
 
 		val previous = sceneMetadataRepository.loadRawMetadata(sceneId)
 

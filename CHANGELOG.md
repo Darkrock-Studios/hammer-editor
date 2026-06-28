@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.5.1] - 2026-6-27
+
+- [Fix] Hang on start when upgrading older clients
+- [Fix] Crash when deleting a scene
+
+
 ## [3.5.0] - 2026-6-27
 
 - [New] Import existing stories (from Markdown or RTF) from the new-project flow

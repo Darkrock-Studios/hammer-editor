@@ -5,10 +5,8 @@ on:
 
 # Tag-suffix gating: every per-store job runs when the release tag has no `+`
 # suffix (full release) OR when the tag contains that store's platform token
-# (single-store / subset release). `!cancelled() && !contains(needs.*.result,
-# 'failure')` lets the job run when an upstream need was *skipped* (because it
-# wasn't in the platform list) while still bailing out if an upstream actually
-# failed. See buildSrc Platform enum for the token catalog.
+# (single-store / subset release). All store jobs are independent and run in
+# parallel. See buildSrc Platform enum for the token catalog.
 jobs:
   publish-google-play:
     if: ${{ !contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+google-play') }}
@@ -18,10 +16,7 @@ jobs:
       track: production
 
   publish-fdroid-tag:
-    needs: publish-google-play
-    if: |
-      ${{ !cancelled() && !contains(needs.*.result, 'failure') &&
-          (!contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+fdroid')) }}
+    if: ${{ !contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+fdroid') }}
     permissions:
       contents: write
     uses: ./.github/workflows/publish-fdroid-tag.yml
@@ -30,20 +25,14 @@ jobs:
       release_tag: ${{ github.event.release.tag_name }}
 
   publish-snap:
-    needs: publish-google-play
-    if: |
-      ${{ !cancelled() && !contains(needs.*.result, 'failure') &&
-          (!contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+snap')) }}
+    if: ${{ !contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+snap') }}
     uses: ./.github/workflows/publish-snap.yml
     secrets: inherit
     with:
       release_tag: ${{ github.event.release.tag_name }}
 
   publish-microsoft-store:
-    needs: publish-google-play
-    if: |
-      ${{ !cancelled() && !contains(needs.*.result, 'failure') &&
-          (!contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+ms-store')) }}
+    if: ${{ !contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+ms-store') }}
     uses: ./.github/workflows/publish-microsoft-store.yml
     secrets: inherit
 

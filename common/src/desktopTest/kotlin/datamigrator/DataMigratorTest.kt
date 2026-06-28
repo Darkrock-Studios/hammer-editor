@@ -118,6 +118,7 @@ class DataMigratorTest : BaseTest() {
 			factory<Migration0_1> { mockMigrator }
 			factory<Migration1_2> { mockk(relaxed = true) }
 			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
+			factory<MigrateInlineAuthTokens> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
 
@@ -167,6 +168,7 @@ class DataMigratorTest : BaseTest() {
 			factory<Migration0_1> { mockMigrator }
 			factory<Migration1_2> { mockk(relaxed = true) }
 			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
+			factory<MigrateInlineAuthTokens> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
 
@@ -230,6 +232,7 @@ class DataMigratorTest : BaseTest() {
 
 		val testModule = module {
 			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
+			factory<MigrateInlineAuthTokens> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
 
@@ -318,6 +321,7 @@ class DataMigratorTest : BaseTest() {
 
 		val testModule = module {
 			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
+			factory<MigrateInlineAuthTokens> { mockk(relaxed = true) }
 		}
 		setupKoin(testModule)
 

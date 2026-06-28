@@ -26,8 +26,11 @@ open class DataMigrator(
 		return migrators
 	}
 
+	// Order matters: MigrateInlineAuthTokens rewrites server.json tokenless and in doing so
+	// drops legacy fields, so MigrateInstallIdToGlobal must read installId out of it first.
 	protected open fun getGlobalMigrations(): List<GlobalMigration> = listOf(
 		getKoin().get<MigrateInstallIdToGlobal>(),
+		getKoin().get<MigrateInlineAuthTokens>(),
 	)
 
 	private fun getProjects(): List<ProjectData> {

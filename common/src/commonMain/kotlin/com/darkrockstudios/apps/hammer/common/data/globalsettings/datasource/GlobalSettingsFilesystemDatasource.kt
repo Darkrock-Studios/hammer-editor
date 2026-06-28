@@ -34,18 +34,17 @@ class GlobalSettingsFilesystemDatasource(
 			readUtf8()
 		}
 
-		val settings: GlobalSettings = try {
+		// Pure read: a corrupt file is left in place (overwritten on the next store) rather
+		// than deleted here, so loading never mutates the filesystem during app bootstrap.
+		return try {
 			toml.decodeFromString(settingsText)
 		} catch (e: NumberFormatException) {
 			Napier.e("Failed to load Global Settings, Reverting to defaults.", e)
-			fileSystem.delete(CONFIG_PATH)
 			createDefault(languageUtil, platformSpellCheckerFactory)
 		} catch (e: SerializationException) {
 			Napier.e("Failed to load Global Settings, Reverting to defaults.", e)
-			fileSystem.delete(CONFIG_PATH)
 			createDefault(languageUtil, platformSpellCheckerFactory)
 		}
-		return settings
 	}
 
 	override fun storeSettings(settings: GlobalSettings) {
