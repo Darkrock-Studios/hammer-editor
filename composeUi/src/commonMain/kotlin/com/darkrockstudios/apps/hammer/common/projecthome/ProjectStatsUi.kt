@@ -4,7 +4,9 @@ import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -1196,6 +1198,10 @@ private fun EncyclopediaDonut(
 	val animationDelay = remember { Random.nextInt(300, 1000) }
 	val hammerColors = LocalHammerColors.current
 
+	// Touch has no hover, so a tap selects a slice and reveals its count in
+	// the donut hole; tapping the slice again or empty space clears it.
+	var selectedIndex by remember(keys) { mutableStateOf<Int?>(null) }
+
 	KoalaPlotTheme(
 		animationSpec = if (!hasAnimated) {
 			tween(
@@ -1208,6 +1214,16 @@ private fun EncyclopediaDonut(
 		},
 	) {
 		Box(modifier = modifier) {
+			if (selectedIndex != null) {
+				Box(
+					modifier = Modifier
+						.matchParentSize()
+						.clickable(
+							interactionSource = remember { MutableInteractionSource() },
+							indication = null,
+						) { selectedIndex = null },
+				)
+			}
 			PieChart(
 				modifier = Modifier.fillMaxSize().focusable(false),
 				values = values,
@@ -1216,6 +1232,8 @@ private fun EncyclopediaDonut(
 					DefaultSlice(
 						color = hammerColors.colorFor(keys[index]),
 						hoverExpandFactor = 1.05f,
+						clickable = true,
+						onClick = { selectedIndex = if (selectedIndex == index) null else index },
 						hoverElement = {
 							EncyclopediaSliceTooltip(
 								type = keys[index],
@@ -1226,20 +1244,33 @@ private fun EncyclopediaDonut(
 					)
 				},
 				holeContent = {
+					val selected = selectedIndex
 					Column(
 						modifier = Modifier.fillMaxSize(),
 						verticalArrangement = Arrangement.Center,
 						horizontalAlignment = Alignment.CenterHorizontally,
 					) {
-						Text(
-							totalEntries.formatDecimalSeparator(),
-							style = MaterialTheme.typography.headlineMedium,
-							color = MaterialTheme.colorScheme.onSurface,
-						)
-						HdMonoLabel(
-							text = stringResource(Res.string.project_home_stat_donut_entries),
-							color = MaterialTheme.colorScheme.onSurfaceVariant,
-						)
+						if (selected != null) {
+							Text(
+								counts[selected].formatDecimalSeparator(),
+								style = MaterialTheme.typography.headlineMedium,
+								color = hammerColors.colorFor(keys[selected]),
+							)
+							HdMonoLabel(
+								text = stringResource(keys[selected].toStringResource()),
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
+							)
+						} else {
+							Text(
+								totalEntries.formatDecimalSeparator(),
+								style = MaterialTheme.typography.headlineMedium,
+								color = MaterialTheme.colorScheme.onSurface,
+							)
+							HdMonoLabel(
+								text = stringResource(Res.string.project_home_stat_donut_entries),
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
+							)
+						}
 					}
 				},
 				label = { index ->

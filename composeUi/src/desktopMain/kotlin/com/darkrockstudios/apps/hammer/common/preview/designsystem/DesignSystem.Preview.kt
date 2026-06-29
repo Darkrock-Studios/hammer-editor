@@ -508,6 +508,7 @@ fun BarChartPreview() {
 					HdBarChartItem("Ch 6", 860),
 				),
 				modifier = Modifier.fillMaxWidth(),
+				tooltipText = { "Chapter ${it.label}: ${it.value} words" },
 			)
 		}
 	}
