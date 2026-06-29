@@ -20,15 +20,12 @@ class GlobalSettingsFilesystemDatasource(
 	private val platformSpellCheckerFactory: PlatformSpellCheckerFactory,
 ) : GlobalSettingsDatasource {
 
-	init {
-		if (!fileSystem.exists(CONFIG_PATH)) {
-			val default = createDefault(languageUtil, platformSpellCheckerFactory)
-			storeSettings(default)
-		}
-	}
-
 	override fun loadSettings(): GlobalSettings {
 		Napier.i { "Loading Global Settings from: $CONFIG_PATH" }
+
+		if (!fileSystem.exists(CONFIG_PATH)) {
+			return createDefault(languageUtil, platformSpellCheckerFactory)
+		}
 
 		val settingsText: String = fileSystem.read(CONFIG_PATH) {
 			readUtf8()

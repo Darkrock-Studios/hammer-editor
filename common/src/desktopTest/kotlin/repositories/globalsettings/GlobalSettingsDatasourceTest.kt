@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 
 class GlobalSettingsDatasourceTest : BaseTest() {
 
@@ -47,6 +48,19 @@ class GlobalSettingsDatasourceTest : BaseTest() {
 	}
 
 	@Test
+	fun `Construction does not write to the filesystem`() = runTest {
+		createDatasource()
+
+		// Writing during construction re-enters the still-constructing GlobalSettingsStore
+		// through the guarded ContainedFileSystem (managedStorageRoots -> get<GlobalSettingsStore>),
+		// recursing forever and crashing on launch (stack overflow / SIGSEGV) on a fresh install.
+		assertFalse(
+			fileSystem.exists(GlobalSettingsFilesystemDatasource.CONFIG_PATH),
+			"Constructing the datasource must not write during bootstrap"
+		)
+	}
+
+	@Test
 	fun `Load Global Settings when non exists`() = runTest {
 		val datasource = createDatasource()
 		val default = GlobalSettingsStore.createDefault(languageUtil, platformSpellCheckerFactory)
@@ -54,6 +68,12 @@ class GlobalSettingsDatasourceTest : BaseTest() {
 		val loaded: GlobalSettings = datasource.loadSettings()
 
 		assertEquals(default, loaded)
+		// loadSettings on a fresh install is a pure read: it returns defaults in memory and
+		// must not persist them (persistence happens on the next real store).
+		assertFalse(
+			fileSystem.exists(GlobalSettingsFilesystemDatasource.CONFIG_PATH),
+			"loadSettings on a fresh install must not write"
+		)
 	}
 
 	@Test
@@ -64,6 +84,7 @@ class GlobalSettingsDatasourceTest : BaseTest() {
 			automaticBackups = false,
 			automaticSyncing = false,
 		)
+		fileSystem.createDirectories(GlobalSettingsFilesystemDatasource.CONFIG_PATH.parent!!)
 		fileSystem.writeToml(
 			GlobalSettingsFilesystemDatasource.CONFIG_PATH,
 			toml,
@@ -78,6 +99,7 @@ class GlobalSettingsDatasourceTest : BaseTest() {
 	@Test
 	fun `Load when invalid one exists, default is returned`() = runTest {
 		val datasource = createDatasource()
+		fileSystem.createDirectories(GlobalSettingsFilesystemDatasource.CONFIG_PATH.parent!!)
 		fileSystem.write(GlobalSettingsFilesystemDatasource.CONFIG_PATH) {
 			writeUtf8(".invalid-!@#$%toml")
 		}
@@ -90,6 +112,7 @@ class GlobalSettingsDatasourceTest : BaseTest() {
 	@Test
 	fun `Load Global Settings missing initialProjectScreen defaults to Home`() = runTest {
 		val datasource = createDatasource()
+		fileSystem.createDirectories(GlobalSettingsFilesystemDatasource.CONFIG_PATH.parent!!)
 		fileSystem.write(GlobalSettingsFilesystemDatasource.CONFIG_PATH) {
 			writeUtf8(
 				"""
