@@ -123,6 +123,29 @@ class GlobalSettingsBootstrapCycleTest {
 		assertEquals(1, counter.loadCalls, "Migration must not trigger more settings loads")
 	}
 
+	@Test
+	fun `Fresh install with no config constructs the store without looping`() {
+		// The original crash: a fresh install (no config file) had the datasource write
+		// defaults from its init block, which re-entered the still-constructing store
+		// through the guarded filesystem and recursed until the stack overflowed. Seed
+		// nothing and assert construction is a pure read that completes.
+		assertFalse(rawFs.exists(GlobalSettingsFilesystemDatasource.CONFIG_PATH))
+
+		val store = koin.get<GlobalSettingsStore>()
+		val counter = koin.get<ServerSettingsDatasource>() as CountingServerSettingsDatasource
+
+		// Construction wrote nothing — defaults live in memory until a real store happens.
+		assertFalse(
+			rawFs.exists(GlobalSettingsFilesystemDatasource.CONFIG_PATH),
+			"Store construction must not write the config on a fresh install",
+		)
+		assertEquals(1, counter.loadCalls, "Store construction must not re-enter loadServerSettings")
+		assertEquals(
+			GlobalSettingsStore.defaultProjectDir().toString(),
+			store.globalSettings.projectsDirectory,
+		)
+	}
+
 	private fun legacyServerSettings() = ServerSettings(
 		ssl = true,
 		url = "hammer.ink",
