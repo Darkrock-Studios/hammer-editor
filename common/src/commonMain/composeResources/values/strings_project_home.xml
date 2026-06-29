@@ -61,6 +61,7 @@
 
 	<string name="project_home_stat_chapter_words_summary">σ %1$d · min %2$d · max %3$d</string>
 	<string name="project_home_stat_donut_entries">entries</string>
+	<string name="project_home_stat_donut_tooltip">%1$s · %2$s entries</string>
 
 	<string name="project_home_stat_themes_title">Themes</string>
 	<string name="project_home_stat_themes_summary">%1$d tags · %2$d uses</string>
