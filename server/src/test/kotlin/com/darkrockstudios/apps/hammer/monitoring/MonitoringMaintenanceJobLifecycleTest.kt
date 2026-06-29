@@ -68,7 +68,7 @@ class MonitoringMaintenanceJobLifecycleTest {
 	}
 
 	@Test
-	fun `stopAndJoin does not return while a tick is in flight`() = runBlocking {
+	fun `stop does not return while a tick is in flight`() = runBlocking {
 		val tickEntered = CountDownLatch(1)
 		val release = CountDownLatch(1)
 
@@ -90,14 +90,14 @@ class MonitoringMaintenanceJobLifecycleTest {
 
 		assertTrue(tickEntered.await(10, TimeUnit.SECONDS), "the maintenance tick never started")
 
-		val stopper = launch(Dispatchers.Default) { job.stopAndJoin() }
+		val stopper = launch(Dispatchers.Default) { job.stop() }
 		delay(200)
-		assertTrue(stopper.isActive, "stopAndJoin returned while a tick was still running")
+		assertTrue(stopper.isActive, "stop returned while a tick was still running")
 
 		release.countDown()
 		stopper.join()
 
-		assertFalse(job.isRunning(), "the job is still running after stopAndJoin")
+		assertFalse(job.isRunning(), "the job is still running after stop")
 		scope.cancel()
 	}
 
