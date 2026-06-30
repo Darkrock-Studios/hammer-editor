@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource
 
+import com.darkrockstudios.apps.hammer.base.http.readJsonOrNull
+import com.darkrockstudios.apps.hammer.base.http.writeJson
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import com.darkrockstudios.apps.hammer.base.http.readJsonOrNull
-import com.darkrockstudios.apps.hammer.base.http.writeJson
 import io.github.aakira.napier.Napier
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
@@ -39,11 +39,7 @@ class ServerSettingsFilesystemDatasource(
 			return null
 		}
 
-		// Legacy files may still carry inline tokens until migrateInlineTokens runs; honor
-		// them for this session, otherwise read from the token store. This is a pure read.
-		// Transitional: drop the readInlineTokens fallback once 4.0 ships.
-		val tokens = readInlineTokens(settingsText) ?: authTokenStore.get(persisted.url, persisted.userId)
-
+		val tokens = authTokenStore.get(persisted.url, persisted.userId)
 		return persisted.toServerSettings(tokens)
 	}
 

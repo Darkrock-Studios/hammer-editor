@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.Aut
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.FileAuthTokenStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.toPersisted
 import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -133,7 +134,7 @@ class ServerSettingsDatasourceTest : BaseTest() {
 	}
 
 	@Test
-	fun `Loading legacy server json honors inline tokens without rewriting the file`() = runTest {
+	fun `Loading legacy server json ignores inline tokens and reads from the store`() = runTest {
 		val legacy = createConfig()
 		fileSystem.createDirectories(projectsDir().toOkioPath())
 		fileSystem.writeJson(configPath().toOkioPath(), json, legacy)
@@ -144,10 +145,23 @@ class ServerSettingsDatasourceTest : BaseTest() {
 		val datasource = createDatasource()
 		val loaded = datasource.loadServerSettings(projectsDir())
 
-		// The session gets the tokens, but loading is a pure read: nothing is relocated yet.
-		assertEquals(legacy, loaded)
+		// Loading is a pure store-read: inline tokens are ignored (relocated up front by
+		// migrateInlineTokens), and the file is left untouched.
+		assertEquals(legacy.copy(bearerToken = null, refreshToken = null), loaded)
 		assertNull(authTokenStore.get(legacy.url, legacy.userId))
 		assertTrue(readServerJson().contains("zxc456"))
+	}
+
+	@Test
+	fun `Loading server json when the store has no tokens yields null tokens`() = runTest {
+		val tokenless = createConfig().copy(bearerToken = null, refreshToken = null)
+		fileSystem.createDirectories(projectsDir().toOkioPath())
+		fileSystem.writeJson(configPath().toOkioPath(), json, tokenless.toPersisted())
+
+		val datasource = createDatasource()
+		val loaded = datasource.loadServerSettings(projectsDir())
+
+		assertEquals(tokenless, loaded)
 	}
 
 	@Test
