@@ -253,9 +253,15 @@ val mainModule = module {
 
 /**
  * Managed storage roots checked by [ContainedFileSystem]: cache, config, and the
- * (user-relocatable, resolved per call) projects directory. Projects resolution is
- * cycle-safe — store, then persisted settings, then default — so config-root writes
- * during the store's own construction aren't blocked.
+ * (user-relocatable, resolved per call) projects directory. Projects resolution
+ * degrades gracefully — store, then persisted settings, then default — so a guarded
+ * write can resolve the root before settings are loaded.
+ *
+ * This chain does NOT make construction-time writes safe: Koin re-enters a still-
+ * constructing singleton instead of throwing, so a guarded write fired from
+ * [GlobalSettingsStore]'s own construction recurses here forever (the fallbacks never
+ * run). The real guarantee is upstream — the store performs no guarded writes during
+ * construction (see GlobalSettingsFilesystemDatasource). Keep it that way.
  */
 internal fun managedStorageRoots(koin: org.koin.core.Koin): List<Path> {
 	val cacheRoot = getCacheDirectory().toPath()

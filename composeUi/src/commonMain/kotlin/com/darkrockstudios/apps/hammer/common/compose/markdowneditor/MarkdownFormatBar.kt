@@ -66,6 +66,7 @@ import com.darkrockstudios.apps.hammer.markdown_format_bar_strikethrough
 import com.darkrockstudios.apps.hammer.markdown_format_bar_undo
 import com.darkrockstudios.apps.hammer.more_menu_button
 import com.darkrockstudios.texteditor.markdown.MarkdownExtension
+import com.darkrockstudios.texteditor.richstyle.BulletListSpanStyle
 import com.darkrockstudios.texteditor.richstyle.OrderedListSpanStyle
 import com.darkrockstudios.texteditor.state.TextEditorState
 import com.darkrockstudios.texteditor.state.getRichSpansAtPosition
@@ -85,6 +86,7 @@ fun MarkdownFormatBar(
 	var isItalicActive by remember { mutableStateOf(false) }
 	var isStrikethroughActive by remember { mutableStateOf(false) }
 	var isBlockquoteActive by remember { mutableStateOf(false) }
+	var isBulletListActive by remember { mutableStateOf(false) }
 	var isOrderedListActive by remember { mutableStateOf(false) }
 	var currentHeaderLevel by remember { mutableStateOf(0) }
 
@@ -107,6 +109,7 @@ fun MarkdownFormatBar(
 			isItalicActive = styles.contains(markdownState.markdownStyles.ITALICS)
 			isStrikethroughActive = styles.contains(markdownState.markdownStyles.STRIKETHROUGH)
 			isBlockquoteActive = styles.contains(markdownState.markdownStyles.BLOCKQUOTE)
+			isBulletListActive = richSpans.any { it.style === BulletListSpanStyle }
 			isOrderedListActive = richSpans.any { it.style === OrderedListSpanStyle }
 			currentHeaderLevel = HEADER_CYCLE_LEVELS.firstOrNull { lvl ->
 				styles.contains(markdownState.markdownStyles.header(lvl))
@@ -136,6 +139,7 @@ fun MarkdownFormatBar(
 				isItalicActive = isItalicActive,
 				isStrikethroughActive = isStrikethroughActive,
 				isBlockquoteActive = isBlockquoteActive,
+				isBulletListActive = isBulletListActive,
 				isOrderedListActive = isOrderedListActive,
 				currentHeaderLevel = currentHeaderLevel,
 			)
@@ -168,6 +172,7 @@ private fun RowScope.FormatButtons(
 	isItalicActive: Boolean,
 	isStrikethroughActive: Boolean,
 	isBlockquoteActive: Boolean,
+	isBulletListActive: Boolean,
 	isOrderedListActive: Boolean,
 	currentHeaderLevel: Int,
 ) {
@@ -221,9 +226,9 @@ private fun RowScope.FormatButtons(
 	EditorTooltip(Res.string.markdown_format_bar_bullet_list.get()) {
 		EditorAction(
 			icon = Icons.AutoMirrored.Filled.FormatListBulleted,
-			active = false,
+			active = isBulletListActive,
 		) {
-			insertLineBullet(state)
+			toggleBulletList(state, markdownState)
 		}
 	}
 	EditorTooltip(Res.string.markdown_format_bar_numbered_list.get()) {

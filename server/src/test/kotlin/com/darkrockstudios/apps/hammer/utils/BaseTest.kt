@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.plugins.LoginRateLimitConfig
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
+import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
@@ -149,6 +150,7 @@ fun Application.setupKtorTestKoin(baseTest: BaseTest, vararg modules: Module) {
 				single<UserActivityCollector> { mockk(relaxed = true) }
 				single<StoryReaderRepository> { mockk(relaxed = true) }
 				single<StoryReaderCollector> { mockk(relaxed = true) }
+				single { RecurringTaskRegistry() }
 				single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
 					mockk(relaxed = true)
 				}

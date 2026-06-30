@@ -19,6 +19,11 @@
 		<i class="fa-solid fa-shield-halved"></i>
 		<span>{{msg.admin_mon_nav_security}}</span>
 	</a>
+	<a href="/admin/monitoring/jobs"
+	   class="mon-subnav__link {{#activeMonJobs}}mon-subnav__link--active{{/activeMonJobs}}">
+		<i class="fa-solid fa-gears"></i>
+		<span>{{msg.admin_mon_nav_jobs}}</span>
+	</a>
 	<a href="/admin/monitoring/logs"
 	   class="mon-subnav__link {{#activeMonLogs}}mon-subnav__link--active{{/activeMonLogs}}">
 		<i class="fa-solid fa-terminal"></i>

@@ -4,9 +4,12 @@ import androidx.compose.animation.core.LinearOutSlowInEasing
 import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
@@ -45,6 +48,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimateRea
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import io.github.koalaplot.core.pie.BezierLabelConnector
+import io.github.koalaplot.core.pie.DefaultSlice
 import io.github.koalaplot.core.pie.PieChart
 import io.github.koalaplot.core.style.KoalaPlotTheme
 import io.github.koalaplot.core.util.ExperimentalKoalaPlotApi
@@ -528,10 +532,19 @@ private fun StructureSection(
 						)
 					},
 				)
+				val chapterAxis = stringResource(Res.string.project_home_stat_chapter_words_x_axis)
+				val chapterTooltips = state.wordsByChapter.values.mapIndexed { index, words ->
+					stringResource(
+						Res.string.project_home_stat_chapter_words_tooltip,
+						"$chapterAxis ${index + 1}",
+						words.formatDecimalSeparator(),
+					)
+				}
 				HdBarChart(
 					items = chapterStats.items,
 					modifier = Modifier.fillMaxWidth(),
 					height = 140.dp,
+					tooltipText = { item -> chapterTooltips[item.label.toInt() - 1] },
 				)
 			}
 		}
@@ -1175,6 +1188,7 @@ private fun EncyclopediaDonut(
 	// KoalaPlot crashes on zero values, so add 0.01f.
 	val values = remember(typeCounts) { typeCounts.map { it.value.toFloat() + .01f } }
 	val keys = remember(typeCounts) { typeCounts.keys.toList() }
+	val counts = remember(typeCounts) { typeCounts.values.toList() }
 	if (values.isEmpty() || values.sum() <= 0f) {
 		Spacer(modifier = modifier.height(180.dp))
 		return
@@ -1183,6 +1197,10 @@ private fun EncyclopediaDonut(
 	var hasAnimated by rememberSaveable { mutableStateOf(false) }
 	val animationDelay = remember { Random.nextInt(300, 1000) }
 	val hammerColors = LocalHammerColors.current
+
+	// Touch has no hover, so a tap selects a slice and reveals its count in
+	// the donut hole; tapping the slice again or empty space clears it.
+	var selectedIndex by remember(keys) { mutableStateOf<Int?>(null) }
 
 	KoalaPlotTheme(
 		animationSpec = if (!hasAnimated) {
@@ -1196,25 +1214,63 @@ private fun EncyclopediaDonut(
 		},
 	) {
 		Box(modifier = modifier) {
+			if (selectedIndex != null) {
+				Box(
+					modifier = Modifier
+						.matchParentSize()
+						.clickable(
+							interactionSource = remember { MutableInteractionSource() },
+							indication = null,
+						) { selectedIndex = null },
+				)
+			}
 			PieChart(
 				modifier = Modifier.fillMaxSize().focusable(false),
 				values = values,
 				holeSize = 0.55f,
+				slice = { index ->
+					DefaultSlice(
+						color = hammerColors.colorFor(keys[index]),
+						hoverExpandFactor = 1.05f,
+						clickable = true,
+						onClick = { selectedIndex = if (selectedIndex == index) null else index },
+						hoverElement = {
+							EncyclopediaSliceTooltip(
+								type = keys[index],
+								count = counts[index],
+								color = hammerColors.colorFor(keys[index]),
+							)
+						},
+					)
+				},
 				holeContent = {
+					val selected = selectedIndex
 					Column(
 						modifier = Modifier.fillMaxSize(),
 						verticalArrangement = Arrangement.Center,
 						horizontalAlignment = Alignment.CenterHorizontally,
 					) {
-						Text(
-							totalEntries.formatDecimalSeparator(),
-							style = MaterialTheme.typography.headlineMedium,
-							color = MaterialTheme.colorScheme.onSurface,
-						)
-						HdMonoLabel(
-							text = stringResource(Res.string.project_home_stat_donut_entries),
-							color = MaterialTheme.colorScheme.onSurfaceVariant,
-						)
+						if (selected != null) {
+							Text(
+								counts[selected].formatDecimalSeparator(),
+								style = MaterialTheme.typography.headlineMedium,
+								color = hammerColors.colorFor(keys[selected]),
+							)
+							HdMonoLabel(
+								text = stringResource(keys[selected].toStringResource()),
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
+							)
+						} else {
+							Text(
+								totalEntries.formatDecimalSeparator(),
+								style = MaterialTheme.typography.headlineMedium,
+								color = MaterialTheme.colorScheme.onSurface,
+							)
+							HdMonoLabel(
+								text = stringResource(Res.string.project_home_stat_donut_entries),
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
+							)
+						}
 					}
 				},
 				label = { index ->
@@ -1234,6 +1290,36 @@ private fun EncyclopediaDonut(
 	}
 
 	LaunchedEffect(Unit) { hasAnimated = true }
+}
+
+@Composable
+private fun EncyclopediaSliceTooltip(
+	type: EntryType,
+	count: Int,
+	color: Color,
+) {
+	Surface(
+		color = MaterialTheme.colorScheme.inverseSurface,
+		contentColor = MaterialTheme.colorScheme.inverseOnSurface,
+		shape = RoundedCornerShape(4.dp),
+		shadowElevation = 4.dp,
+	) {
+		Row(
+			modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(8.dp),
+		) {
+			Box(modifier = Modifier.size(8.dp).background(color))
+			HdMonoLabel(
+				text = stringResource(
+					Res.string.project_home_stat_donut_tooltip,
+					stringResource(type.toStringResource()),
+					count.formatDecimalSeparator(),
+				),
+				color = MaterialTheme.colorScheme.inverseOnSurface,
+			)
+		}
+	}
 }
 
 @Composable

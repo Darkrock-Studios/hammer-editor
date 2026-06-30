@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.5.2] - 2026-6-29
+
+- [Fix] More hang on start when upgrading older clients
+- [Fix] iOS crash on start
+- [Fix] Restore hover values in Project home dashboard
+
+
 ## [3.5.1] - 2026-6-27
 
 - [Fix] Hang on start when upgrading older clients

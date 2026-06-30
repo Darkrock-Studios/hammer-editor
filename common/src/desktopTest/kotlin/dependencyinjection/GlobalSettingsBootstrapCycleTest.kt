@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import io.mockk.mockk
+import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.fakefilesystem.FakeFileSystem
@@ -31,9 +32,9 @@ import org.koin.core.Koin
 import org.koin.core.context.startKoin
 import org.koin.core.context.stopKoin
 import org.koin.dsl.module
-import kotlinx.serialization.json.Json
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -103,12 +104,14 @@ class GlobalSettingsBootstrapCycleTest {
 		// Precondition: the seeded file really does carry inline tokens.
 		assertTrue(rawFs.read(serverJson) { readUtf8() }.contains("zxc456"))
 
-		// Constructing the store must not loop, and reads the inline tokens for the session.
+		// Constructing the store must not loop. The load path is a pure store-read, so the
+		// legacy inline tokens are NOT honored at construction — they surface only once the
+		// migration relocates them into the store and the store reloads.
 		val store = koin.get<GlobalSettingsStore>()
 		val counter = koin.get<ServerSettingsDatasource>() as CountingServerSettingsDatasource
 
 		assertEquals(1, counter.loadCalls, "Store construction must not re-enter loadServerSettings")
-		assertEquals("zxc456", store.serverSettings?.bearerToken)
+		assertNull(store.serverSettings?.bearerToken)
 		// Construction is pure: the file is untouched until the migration runs.
 		assertTrue(rawFs.read(serverJson) { readUtf8() }.contains("zxc456"))
 
@@ -120,7 +123,35 @@ class GlobalSettingsBootstrapCycleTest {
 		assertFalse(rewritten.contains("zxc456"))
 		assertFalse(rewritten.contains("bnm789"))
 		assertEquals(AuthTokens("zxc456", "bnm789"), koin.get<AuthTokenStore>().get("hammer.ink", 1L))
-		assertEquals(1, counter.loadCalls, "Migration must not trigger more settings loads")
+		assertEquals(1, counter.loadCalls, "Migration itself must not trigger more settings loads")
+
+		// Reloading after migration surfaces the relocated tokens on the store for the session.
+		store.reloadServerSettings()
+		assertEquals(2, counter.loadCalls)
+		assertEquals("zxc456", store.serverSettings?.bearerToken)
+	}
+
+	@Test
+	fun `Fresh install with no config constructs the store without looping`() {
+		// The original crash: a fresh install (no config file) had the datasource write
+		// defaults from its init block, which re-entered the still-constructing store
+		// through the guarded filesystem and recursed until the stack overflowed. Seed
+		// nothing and assert construction is a pure read that completes.
+		assertFalse(rawFs.exists(GlobalSettingsFilesystemDatasource.CONFIG_PATH))
+
+		val store = koin.get<GlobalSettingsStore>()
+		val counter = koin.get<ServerSettingsDatasource>() as CountingServerSettingsDatasource
+
+		// Construction wrote nothing — defaults live in memory until a real store happens.
+		assertFalse(
+			rawFs.exists(GlobalSettingsFilesystemDatasource.CONFIG_PATH),
+			"Store construction must not write the config on a fresh install",
+		)
+		assertEquals(1, counter.loadCalls, "Store construction must not re-enter loadServerSettings")
+		assertEquals(
+			GlobalSettingsStore.defaultProjectDir().toString(),
+			store.globalSettings.projectsDirectory,
+		)
 	}
 
 	private fun legacyServerSettings() = ServerSettings(

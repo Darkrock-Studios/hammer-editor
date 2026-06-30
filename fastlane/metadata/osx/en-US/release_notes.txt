@@ -1,2 +1,3 @@
-- [Fix] Hang on start when upgrading older clients
-- [Fix] Crash when deleting a scene
+- [Fix] More hang on start when upgrading older clients
+- [Fix] iOS crash on start
+- [Fix] Restore hover values in Project home dashboard

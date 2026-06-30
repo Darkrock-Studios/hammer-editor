@@ -4,14 +4,7 @@ import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.email.EmailResult
 import com.darkrockstudios.apps.hammer.email.EmailService
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
+import com.darkrockstudios.apps.hammer.scheduling.RecurringTask
 import org.slf4j.Logger
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
@@ -42,50 +35,17 @@ class MonitoringMaintenanceJob(
 	private val monitoringState: MonitoringState,
 	private val emailService: EmailService,
 	private val clock: Clock,
-	private val logger: Logger,
-) {
-	private var job: Job? = null
+	logger: Logger,
+) : RecurringTask("Monitoring maintenance job", logger, clock) {
 	private var lastMaintenance: Instant = Instant.DISTANT_PAST
 
 	// Per-subject cooldown for security alert emails. Single-coroutine access; resets on restart.
 	private val securityAlertCooldown = mutableMapOf<String, Instant>()
 
-	fun start(scope: CoroutineScope) {
-		if (job?.isActive == true) {
-			logger.info("Monitoring maintenance job already running")
-			return
-		}
-		job = scope.launch {
-			logger.info("Starting monitoring maintenance job")
-			loop()
-		}
-	}
-
-	/** Cancels the loop and waits for any in-flight tick to finish, so no tick outlives the caller. */
-	suspend fun stopAndJoin() {
-		job?.cancelAndJoin()
-		job = null
-		logger.info("Monitoring maintenance job stopped")
-	}
-
-	fun isRunning(): Boolean = job?.isActive == true
-
-	private suspend fun loop() {
-		while (currentCoroutineContext().isActive) {
-			try {
-				tick()
-			} catch (e: CancellationException) {
-				throw e
-				// Background loop must survive any tick failure.
-			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-				logger.error("Error in monitoring maintenance loop", e)
-			}
-			delay(FLUSH_INTERVAL)
-		}
-	}
+	override suspend fun nextDelay() = FLUSH_INTERVAL
 
 	/** One scheduler tick. Public so tests can drive it deterministically. */
-	suspend fun tick() {
+	override suspend fun tick() {
 		val config = configRepository.get(AdminServerConfig.MONITORING_CONFIG)
 		collector.setCollecting(config.enabled && config.trackApiMetrics)
 		userActivityCollector.setCollecting(config.enabled)

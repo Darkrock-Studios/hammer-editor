@@ -54,6 +54,9 @@ open class DataMigrator(
 
 	private suspend fun runGlobalMigrations() {
 		getGlobalMigrations().forEach { it.migrate() }
+		// Global migrations may relocate legacy inline tokens into the store; refresh the
+		// store's cached server settings so this session sees them.
+		globalSettingsStore.reloadServerSettings()
 	}
 
 	fun checkIfMigrationNeeded(): Boolean {

@@ -1,9 +1,7 @@
 package com.darkrockstudios.apps.hammer.account
 
+import com.darkrockstudios.apps.hammer.scheduling.launchRecurringTask
 import io.ktor.server.application.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 import org.koin.ktor.ext.inject
 
 /**
@@ -12,11 +10,6 @@ import org.koin.ktor.ext.inject
  */
 fun Application.configureTokenMaintenanceJob() {
 	val job: TokenMaintenanceJob by inject()
-	val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-	job.start(scope)
+	launchRecurringTask(job)
 	log.info("Token maintenance job started")
-
-	environment.monitor.subscribe(ApplicationStopped) {
-		job.stop()
-	}
 }

@@ -7,13 +7,6 @@ import com.darkrockstudios.texteditor.richstyle.HR_PLACEHOLDER
 import com.darkrockstudios.texteditor.richstyle.HorizontalRuleSpanStyle
 import com.darkrockstudios.texteditor.state.TextEditorState
 
-internal fun insertLineBullet(state: TextEditorState) {
-	val saved = state.cursorPosition
-	state.cursor.updatePosition(CharLineOffset(saved.line, 0))
-	state.insertStringAtCursor("• ")
-	state.cursor.updatePosition(CharLineOffset(saved.line, saved.char + 2))
-}
-
 internal fun insertHorizontalRule(state: TextEditorState) {
 	state.insertNewlineAtCursor()
 	val hrLine = state.cursorPosition.line
@@ -54,6 +47,16 @@ internal fun reconcileHorizontalRules(state: TextEditorState) {
 		}
 		state.removeRichSpan(span)
 	}
+}
+
+internal fun toggleBulletList(state: TextEditorState, markdown: MarkdownExtension) {
+	val selection = state.selector.selection
+	val lines = if (selection != null) {
+		selection.start.line..selection.end.line
+	} else {
+		state.cursorPosition.line..state.cursorPosition.line
+	}
+	markdown.toggleBulletList(lines)
 }
 
 internal fun toggleOrderedList(state: TextEditorState, markdown: MarkdownExtension) {
