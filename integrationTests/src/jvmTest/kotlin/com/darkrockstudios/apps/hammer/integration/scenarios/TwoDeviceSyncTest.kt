@@ -45,10 +45,6 @@ class TwoDeviceSyncTest : RoundTripTestBase() {
 
 		val b = secondDeviceFor(a, "two device merge B")
 		assertTrue(b.syncNoConflict(), "B adopts the project")
-		// A real second device re-derives its next id from the now-populated project on open;
-		// without this the allocator is stale from the empty-project sync start and the new scene
-		// collides with the just-downloaded one.
-		b.sceneEditor.initializeSceneEditor()
 
 		// Independent work on each device, touching different entities.
 		val notesA: NotesRepository = a.scope.get()
