@@ -32,6 +32,13 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.5.2" date="2026-06-29">
+            <description>
+                <p>- [Fix] More hang on start when upgrading older clients</p>
+                <p>- [Fix] iOS crash on start</p>
+                <p>- [Fix] Restore hover values in Project home dashboard</p>
+            </description>
+        </release>
         <release version="3.5.1" date="2026-06-27">
             <description>
                 <p>- [Fix] Hang on start when upgrading older clients</p>
