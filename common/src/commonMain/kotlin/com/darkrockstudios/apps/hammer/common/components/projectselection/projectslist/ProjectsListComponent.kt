@@ -19,7 +19,6 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
-import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
@@ -178,7 +177,11 @@ class ProjectsListComponent(
 
 		_state.getAndUpdate {
 			it.copy(
-				projectsPath = HPath(globalSettingsStore.globalSettings.projectsDirectory, "", true),
+				projectsPath = HPath(
+					globalSettingsStore.globalSettings.projectsDirectory,
+					"",
+					true
+				),
 				isServerSynced = projectsSynchronizer.isServerSynchronized()
 			)
 		}
@@ -332,7 +335,8 @@ class ProjectsListComponent(
 		val sourceName = name.substringBeforeLast('.')
 		val format = importerRegistry.formatForFileName(name)
 		val initialOptions = ImportOptions(format = format)
-		val preview = importerRegistry.forFormat(format).preview(sourceName, content, initialOptions)
+		val preview =
+			importerRegistry.forFormat(format).preview(sourceName, content, initialOptions)
 		val projectName = preview.title?.takeIf { it.isNotBlank() } ?: sourceName
 		_state.getAndUpdate {
 			it.copy(
@@ -517,11 +521,16 @@ class ProjectsListComponent(
 		}
 	}
 
-	private suspend fun syncProgressStatus(projectName: String, status: ProjectsList.Status, progress: Float? = null) =
+	private suspend fun syncProgressStatus(
+		projectName: String,
+		status: ProjectsList.Status,
+		progress: Float? = null
+	) =
 		withContext(mainDispatcher) {
 			_state.getAndUpdate {
 				val projStatus =
-					it.syncState.projectsStatus[projectName] ?: error("Project status not found for $projectName")
+					it.syncState.projectsStatus[projectName]
+						?: error("Project status not found for $projectName")
 
 				val map = it.syncState.projectsStatus.toMutableMap()
 				val updatedMap = projStatus.copy(
@@ -538,7 +547,7 @@ class ProjectsListComponent(
 			}
 		}
 
-	private fun showReauth() {
+	private suspend fun showReauth() = withContext(mainDispatcher) {
 		modalRouter.showServerReauthentication()
 	}
 
@@ -583,7 +592,8 @@ class ProjectsListComponent(
 					}
 
 					// Pre-sync change probe: skip projects the server confirms are unchanged.
-					val unchangedProjectIds = projectsSynchronizer.probeUnchangedProjects(projectsToSync)
+					val unchangedProjectIds =
+						projectsSynchronizer.probeUnchangedProjects(projectsToSync)
 
 					projectsToSync.parallelMap { synced ->
 						val projectDef = synced.projectDef
@@ -591,14 +601,21 @@ class ProjectsListComponent(
 							try {
 								if (synced.projectId in unchangedProjectIds) {
 									onSyncLog(syncLogI("No changes — skipped", projectDef))
-									syncProgressStatus(projectDef.name, ProjectsList.Status.Complete)
+									syncProgressStatus(
+										projectDef.name,
+										ProjectsList.Status.Complete
+									)
 									return@launch
 								}
 
 								syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing)
 
 								suspend fun onProgress(progress: Float, message: SyncLogMessage?) {
-									syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing, progress)
+									syncProgressStatus(
+										projectDef.name,
+										ProjectsList.Status.Syncing,
+										progress
+									)
 									if (message != null) onSyncLog(message)
 								}
 
@@ -615,7 +632,12 @@ class ProjectsListComponent(
 								throw e
 							} catch (e: Exception) {
 								Napier.e("Project sync failed for ${projectDef.name}", e)
-								onSyncLog(syncLogE("Sync failed: ${e.message ?: "Unknown error"}", projectDef))
+								onSyncLog(
+									syncLogE(
+										"Sync failed: ${e.message ?: "Unknown error"}",
+										projectDef
+									)
+								)
 								allSuccess = false
 								syncProgressStatus(projectDef.name, ProjectsList.Status.Failed)
 							}
@@ -658,7 +680,8 @@ class ProjectsListComponent(
 						val statuses = it.syncState.projectsStatus.toMutableMap()
 						it.syncState.projectsStatus.values.forEach { status ->
 							if (status.status == ProjectsList.Status.Pending || status.status == ProjectsList.Status.Syncing) {
-								statuses[status.projectName] = status.copy(status = ProjectsList.Status.Failed)
+								statuses[status.projectName] =
+									status.copy(status = ProjectsList.Status.Failed)
 							}
 						}
 
