@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations
 
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.EntityType
 import com.darkrockstudios.apps.hammer.base.http.ProjectSynchronizationBegan
@@ -8,15 +8,41 @@ import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer.Companion.ENTITY_END
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer.Companion.ENTITY_START
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer.Companion.ENTITY_TOTAL
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityDeleteOperationState
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityTransferState
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncOperationState
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.toEntityType
 import com.darkrockstudios.apps.hammer.common.server.EntityNotFoundException
 import com.darkrockstudios.apps.hammer.common.server.EntityNotModifiedException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.server.StaleServerHashException
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.sync_log_entities_transferred
+import com.darkrockstudios.apps.hammer.sync_log_entity_conflict
+import com.darkrockstudios.apps.hammer.sync_log_entity_delete_failed
+import com.darkrockstudios.apps.hammer.sync_log_entity_delete_success
+import com.darkrockstudios.apps.hammer.sync_log_entity_download_failed_general
+import com.darkrockstudios.apps.hammer.sync_log_entity_download_failed_not_found
+import com.darkrockstudios.apps.hammer.sync_log_entity_download_not_modified
+import com.darkrockstudios.apps.hammer.sync_log_entity_download_rejected_mismatch
+import com.darkrockstudios.apps.hammer.sync_log_entity_download_success
+import com.darkrockstudios.apps.hammer.sync_log_entity_upload_entity_not_owned
+import com.darkrockstudios.apps.hammer.sync_log_stale_hash_detected
+import com.darkrockstudios.apps.hammer.sync_log_stale_hash_heal_failed
+import com.darkrockstudios.apps.hammer.sync_log_stale_hash_healed
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.yield
 
@@ -192,7 +218,7 @@ class EntityTransferOperation(
 								true
 							} else {
 								// TODO what do we do here?
-								Napier.d("Entity ID $entityId missing from server, but it does exist locally, should we upload it? How did we get here?")
+								Napier.w("Entity ID $entityId missing from server, but it does exist locally, should we upload it? How did we get here?")
 								false
 							}
 						} else {
@@ -288,6 +314,7 @@ class EntityTransferOperation(
 				// Lock the downloaded entity's hash in as the conflict baseline: it's exactly
 				// what the server holds, so a later local edit won't forge a phantom conflict.
 				syncJournal.recordSyncedHash(id, serverEntity.hash())
+				healServerIfEnriched(id, serverEntity, syncId, onLog)
 				onLog(
 					syncLogI(
 						strRes.get(Res.string.sync_log_entity_download_success, id),
@@ -376,6 +403,30 @@ class EntityTransferOperation(
 		}
 	}
 
+	/**
+	 * When storing a downloaded entity leaves the local copy hashing differently from the server's
+	 * (e.g. a null field the client backfilled on store), push the enriched copy back so the server
+	 * converges — otherwise it re-sends the same entity on every sync. The hash just recorded as the
+	 * baseline is exactly what the server holds, so a lone client heals without a conflict.
+	 */
+	private suspend fun healServerIfEnriched(
+		id: Int,
+		serverEntity: ApiProjectEntity,
+		syncId: String,
+		onLog: OnSyncLog,
+	) {
+		val localHash = entitySynchronizers.getLocalEntityHash(id) ?: return
+		if (localHash == serverEntity.hash()) return
+
+		Napier.d("Healing server entity $id: local copy is enriched beyond the server's")
+		suspend fun abortOnConflict(entity: ApiProjectEntity): Unit = throw HealConflictException(entity.id)
+		try {
+			uploadEntity(id, syncId, originalHash = serverEntity.hash(), ::abortOnConflict, onLog)
+		} catch (e: HealConflictException) {
+			Napier.w("Heal upload for entity ${e.entityId} hit a conflict; deferring to a later sync")
+		}
+	}
+
 	private suspend fun uploadEntity(
 		id: Int,
 		syncId: String,
@@ -422,6 +473,8 @@ class EntityTransferOperation(
 			false
 		}
 	}
+
+	private class HealConflictException(val entityId: Int) : Exception()
 
 	private data class TransferState(
 		var maxId: Int,

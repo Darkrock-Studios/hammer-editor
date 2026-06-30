@@ -1,5 +1,11 @@
 # Changelog
 
+## [3.5.3] - 2026-6-30
+
+- [Fix] Several sync protocol bugs
+- [Fix] Spellcheck not respecting disable setting
+
+
 ## [3.5.2] - 2026-6-29
 
 - [Fix] More hang on start when upgrading older clients

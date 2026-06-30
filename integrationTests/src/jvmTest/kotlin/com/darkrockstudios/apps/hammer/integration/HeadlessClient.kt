@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.integration
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
@@ -66,7 +67,17 @@ class HeadlessClient private constructor(
 	}
 
 	companion object {
-		suspend fun create(projectName: String, serverSettings: ServerSettings): HeadlessClient {
+		/**
+		 * @param serverProjectId when set, the local project is pre-bound to this existing server
+		 * project instead of minting a new one on first sync — i.e. a second device opening a project
+		 * that already lives on the server. The local project name must differ from the first device's
+		 * (they share one on-disk projects root) but both resolve to the same server project.
+		 */
+		suspend fun create(
+			projectName: String,
+			serverSettings: ServerSettings,
+			serverProjectId: ProjectId? = null,
+		): HeadlessClient {
 			val koin = getKoin()
 			val projectsRepository: ProjectsRepository = koin.get<ProjectsRepository>()
 			val globalSettings: GlobalSettingsStore = koin.get<GlobalSettingsStore>()
@@ -74,6 +85,10 @@ class HeadlessClient private constructor(
 			val createResult = projectsRepository.createProject(projectName)
 			check(isSuccess(createResult)) { "Failed to create local project: $createResult" }
 			val projectDef: ProjectDef = createResult.data
+
+			if (serverProjectId != null) {
+				projectsRepository.setProjectId(projectDef, serverProjectId)
+			}
 
 			// Persist server settings BEFORE opening the scope so the sync pipeline
 			// resolves an HttpClient that points at the test server.

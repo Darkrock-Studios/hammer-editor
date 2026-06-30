@@ -49,6 +49,10 @@ class ProjectDataSyncOperation(
 		val stored = repository.load()
 		val localHash = ProjectDataHasher.hash(stored.data)
 		val lastSyncedHash = stored.lastSyncedHash
+		// A never-synced project baselines against the default-data hash, matching what the server
+		// holds for it. Without this, a fresh download (default local data, null lastSyncedHash)
+		// looks like a local edit and gets pushed, colliding with the server's real settings.
+		val baseline = lastSyncedHash ?: ProjectDataHasher.hash(ProjectData())
 
 		when {
 			serverDto == null -> {
@@ -64,7 +68,7 @@ class ProjectDataSyncOperation(
 				onLog(syncLogI("Project data already in sync", projectDef))
 				return CResult.success(state)
 			}
-			lastSyncedHash == localHash -> {
+			baseline == localHash -> {
 				repository.updateFromSync(serverDto.data, serverDto.hash)
 				onLog(syncLogI("Project data updated from server", projectDef))
 				return CResult.success(state)

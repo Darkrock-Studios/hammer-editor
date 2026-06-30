@@ -2,6 +2,8 @@ package synchronizer
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.SceneItem.Companion.ROOT_ID
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
@@ -33,6 +35,7 @@ import utils.fromApiEntity
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
+import kotlin.time.Instant
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -76,8 +79,11 @@ class SceneSynchronizerTest : BaseTest() {
 		every { sceneEditorRepository.getArchivedScenes() } returns emptyList()
 		every { sceneEditorRepository.getArchivedSceneFromId(any()) } returns null
 
-		// Download path reads existing metadata for created/lastEdited fallback.
 		coEvery { sceneEditorService.loadSceneMetadata(any()) } returns SceneMetadata()
+
+		// Backfilling a downloaded scene's null timestamps reads the project's creation time.
+		every { projectMetadataDatasource.loadMetadata(any()) } returns
+			ProjectMetadata(Info(created = Instant.fromEpochSeconds(1_600_000_000)))
 	}
 
 	private fun defaultSceneSynchronizer() = ClientSceneSynchronizer(
