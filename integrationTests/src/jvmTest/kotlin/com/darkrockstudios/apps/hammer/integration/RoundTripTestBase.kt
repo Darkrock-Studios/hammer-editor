@@ -285,7 +285,16 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 		/** IDs whose entity body the server actually sent down (download_entity → 200). */
 		fun entitiesPulled(): List<Int> = calls
 			.filter { it.path.contains("/download_entity/") && it.status == 200 }
-			.mapNotNull { it.path.substringAfterLast('/').toIntOrNull() }
+			.mapNotNull { idFromPath(it.path) }
+
+		/** IDs the client pushed up (upload_entity, any accepted status). */
+		fun entitiesUploaded(): List<Int> = calls
+			.filter { it.path.contains("/upload_entity/") && it.status in 200..299 }
+			.mapNotNull { idFromPath(it.path) }
+
+		// Paths can carry a query string; the id is the last path segment before any '?'.
+		private fun idFromPath(path: String): Int? =
+			path.substringBefore('?').substringAfterLast('/').toIntOrNull()
 	}
 
 	/**
