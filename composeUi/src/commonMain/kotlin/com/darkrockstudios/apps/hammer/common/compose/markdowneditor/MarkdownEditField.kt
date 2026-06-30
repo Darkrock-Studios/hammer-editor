@@ -54,7 +54,9 @@ fun MarkdownEditField(
 	val textEditorState = rememberSpellCheckState(
 		spellChecker = platformSpellChecker.toEditorSpellChecker(),
 		initialText = null,
-		enableSpellChecking = enableSpellChecking,
+		// The repository only emits a dictionary while spell checking is globally enabled,
+		// so a null checker also means "disabled" — clear decorations rather than keep checking.
+		enableSpellChecking = enableSpellChecking && platformSpellChecker != null,
 	)
 	val markdownExtension = remember { textEditorState.withMarkdown(markdownConfig) }
 

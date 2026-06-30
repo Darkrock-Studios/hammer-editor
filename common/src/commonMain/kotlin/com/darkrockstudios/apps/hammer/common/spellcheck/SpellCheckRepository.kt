@@ -29,35 +29,45 @@ class SpellCheckRepository(
 	)
 	val dictionaryFlow: SharedFlow<PlatformSpellChecker?> = _dictionaryFlow
 	private var currentLanguage: Locale? = null
+	private var currentEnabled: Boolean? = null
 
-	private fun requestSpellChecker(language: Locale) {
-		scope.launch {
-			val spLocale = language.toSpLocale()
-			if (spellCheckFactory.hasLanguage(spLocale).not()) {
-				Napier.w("Unsupported Locale type: $language")
-			} else {
-				val checker = spellCheckFactory.createSpellChecker(spLocale)
-				currentLanguage = language
-				_dictionaryFlow.tryEmit(checker)
-
-				Napier.i("Spell Checker loaded for: ${language.toLanguageTag()}")
+	private suspend fun applySpellCheckSettings(enabled: Boolean, language: Locale) {
+		if (!enabled) {
+			if (currentEnabled != false) {
+				currentEnabled = false
+				currentLanguage = null
+				_dictionaryFlow.tryEmit(null)
+				Napier.i("Spell Check disabled: dictionary cleared")
 			}
+			return
+		}
+
+		if (currentEnabled == true && currentLanguage == language) return
+
+		val spLocale = language.toSpLocale()
+		if (spellCheckFactory.hasLanguage(spLocale).not()) {
+			Napier.w("Unsupported Locale type: $language")
+		} else {
+			val checker = spellCheckFactory.createSpellChecker(spLocale)
+			currentLanguage = language
+			currentEnabled = true
+			_dictionaryFlow.tryEmit(checker)
+
+			Napier.i("Spell Checker loaded for: ${language.toLanguageTag()}")
 		}
 	}
 
 	init {
 		scope.launch {
-			val initialLocale =
-				globalSettingsStore.globalSettings.spellCheckSettings.locale
-			requestSpellChecker(initialLocale)
-			Napier.i("Spell Check: Initial language set: $initialLocale")
+			val initial = globalSettingsStore.globalSettings.spellCheckSettings
+			applySpellCheckSettings(initial.enabled, initial.locale)
+			Napier.i("Spell Check: Initial settings applied: enabled=${initial.enabled}, locale=${initial.locale}")
 
 			globalSettingsStore.globalSettingsUpdates.collect { settings ->
-				val newLanguage = settings.spellCheckSettings.locale
-				if (currentLanguage != settings.spellCheckSettings.locale) {
-					Napier.i("Updating Spell Check Language: $newLanguage")
-					requestSpellChecker(newLanguage)
-				}
+				applySpellCheckSettings(
+					settings.spellCheckSettings.enabled,
+					settings.spellCheckSettings.locale,
+				)
 			}
 		}
 	}
