@@ -1,12 +1,6 @@
 package com.darkrockstudios.apps.hammer.account
 
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
+import com.darkrockstudios.apps.hammer.scheduling.RecurringTask
 import org.slf4j.Logger
 import kotlin.time.Duration.Companion.hours
 
@@ -19,45 +13,16 @@ import kotlin.time.Duration.Companion.hours
 class TokenMaintenanceJob(
 	private val accountsRepository: AccountsRepository,
 	private val passwordResetRepository: PasswordResetRepository,
-	private val logger: Logger,
-) {
-	private var job: Job? = null
-
-	fun start(scope: CoroutineScope) {
-		if (job?.isActive == true) {
-			logger.info("Token maintenance job already running")
-			return
-		}
-		job = scope.launch {
-			logger.info("Starting token maintenance job")
-			loop()
-		}
-	}
-
-	fun stop() {
-		job?.cancel()
-		job = null
-		logger.info("Token maintenance job stopped")
-	}
-
-	private suspend fun loop() {
-		while (currentCoroutineContext().isActive) {
-			try {
-				tick()
-			} catch (e: CancellationException) {
-				throw e
-			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-				logger.error("Error in token maintenance loop", e)
-			}
-			delay(PURGE_INTERVAL)
-		}
-	}
+	logger: Logger,
+) : RecurringTask("Token maintenance job", logger) {
 
 	/** One cleanup pass. Public so it can be driven deterministically in tests. */
-	suspend fun tick() {
+	override suspend fun tick() {
 		accountsRepository.purgeExpiredTokens()
 		passwordResetRepository.cleanupExpiredTokens()
 	}
+
+	override suspend fun nextDelay() = PURGE_INTERVAL
 
 	companion object {
 		private val PURGE_INTERVAL = 24.hours

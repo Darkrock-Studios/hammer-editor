@@ -1,0 +1,83 @@
+{{> header}}
+
+<link rel="stylesheet" href="/assets/css/monitoring.css">
+
+<main class="page">
+	<div class="admin-layout">
+		{{> partials/admin-nav}}
+
+		<div class="admin-content">
+			<div class="page-header">
+				<div class="page-header__content">
+					<h1 class="page-header__title">{{msg.admin_mon_jobs_title}}</h1>
+					<p class="page-header__subtitle">{{msg.admin_mon_jobs_subtitle}}</p>
+				</div>
+			</div>
+
+			{{> partials/monitoring-nav}}
+
+			<section class="paper-section">
+				<div class="section-header">
+					<h2 class="section-header__title">{{msg.admin_mon_jobs_section}}</h2>
+				</div>
+
+				{{#hasJobs}}
+					{{^anyFailing}}
+						<div class="mon-nominal">
+							<i class="fa-solid fa-circle-check"></i>
+							<span>{{msg.admin_mon_jobs_health_ok}}</span>
+						</div>
+					{{/anyFailing}}
+					{{#anyFailing}}
+						<div class="mon-alert">
+							<i class="fa-solid fa-triangle-exclamation mon-alert__icon"></i>
+							<div class="mon-alert__body">
+								<span class="mon-alert__detail">{{msg.admin_mon_jobs_health_warn}}</span>
+							</div>
+						</div>
+					{{/anyFailing}}
+
+					<div class="mon-table-wrap">
+						<table class="mon-table">
+							<thead>
+							<tr>
+								<th>{{msg.admin_mon_jobs_col_name}}</th>
+								<th>{{msg.admin_mon_jobs_col_status}}</th>
+								<th>{{msg.admin_mon_jobs_col_last_run}}</th>
+								<th>{{msg.admin_mon_jobs_col_next_run}}</th>
+							</tr>
+							</thead>
+							<tbody>
+							{{#jobs}}
+								<tr>
+									<td class="mon-table__route">{{name}}</td>
+									<td>
+										{{#running}}<span class="mon-badge mon-badge--ok">{{msg.admin_mon_jobs_alive}}</span>{{/running}}
+										{{^running}}<span class="mon-badge mon-badge--fail">{{msg.admin_mon_jobs_stopped}}</span>{{/running}}
+										{{#failing}}<span class="mon-badge mon-badge--fail">{{msg.admin_mon_jobs_failing}}</span>{{/failing}}
+									</td>
+									<td>{{lastRun}}</td>
+									<td>{{nextRun}}</td>
+								</tr>
+								{{#hasError}}
+									<tr class="mon-job-error-row">
+										<td colspan="4">
+											<span class="mon-job-error__label">{{msg.admin_mon_jobs_error}}:</span>
+											<code class="mon-job-error__msg">{{lastError}}</code>
+										</td>
+									</tr>
+								{{/hasError}}
+							{{/jobs}}
+							</tbody>
+						</table>
+					</div>
+				{{/hasJobs}}
+				{{^hasJobs}}
+					<div class="empty-state"><p>{{msg.admin_mon_jobs_none}}</p></div>
+				{{/hasJobs}}
+			</section>
+		</div>
+	</div>
+</main>
+
+{{> footer}}
