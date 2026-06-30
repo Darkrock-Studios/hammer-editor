@@ -18,6 +18,8 @@ import io.github.aakira.napier.Napier
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.e2e.util.TestAccount
 import io.ktor.client.HttpClient
+import io.ktor.client.plugins.HttpSend
+import io.ktor.client.plugins.plugin
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -266,5 +268,39 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 		val ok = sync(resolveConflict = { entity -> conflicted = true; entity })
 		assertFalse(conflicted, "single-client resync raised a phantom conflict")
 		return ok
+	}
+
+	/** One HTTP request the client made, captured by [tapWire]. */
+	protected data class WireCall(val method: String, val path: String, val status: Int)
+
+	/** Records the HTTP calls the client makes so a test can assert what actually crossed the wire. */
+	protected class WireTap {
+		private val lock = Any()
+		private val recorded = mutableListOf<WireCall>()
+
+		fun record(call: WireCall) = synchronized(lock) { recorded += call }
+		fun reset() = synchronized(lock) { recorded.clear() }
+		val calls: List<WireCall> get() = synchronized(lock) { recorded.toList() }
+
+		/** IDs whose entity body the server actually sent down (download_entity → 200). */
+		fun entitiesPulled(): List<Int> = calls
+			.filter { it.path.contains("/download_entity/") && it.status == 200 }
+			.mapNotNull { it.path.substringAfterLast('/').toIntOrNull() }
+	}
+
+	/**
+	 * Installs an [HttpSend] interceptor on the client's shared [HttpClient] that records every
+	 * request and its response status. The interceptor runs inline on the send pipeline, so what it
+	 * captures is exactly what went over the wire — a 200 on `download_entity` is a real pull, a 304
+	 * is the server saying "you already have this".
+	 */
+	protected fun tapWire(): WireTap {
+		val tap = WireTap()
+		get<HttpClient>().plugin(HttpSend).intercept { request ->
+			val call = execute(request)
+			tap.record(WireCall(request.method.value, request.url.buildString(), call.response.status.value))
+			call
+		}
+		return tap
 	}
 }
