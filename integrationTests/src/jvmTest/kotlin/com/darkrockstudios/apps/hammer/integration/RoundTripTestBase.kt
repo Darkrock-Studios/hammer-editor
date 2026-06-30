@@ -17,6 +17,8 @@ import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.e2e.util.TestAccount
+import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.HttpSend
 import io.ktor.client.plugins.plugin
@@ -41,7 +43,9 @@ import org.koin.test.KoinTest
 import org.koin.test.get
 import java.util.concurrent.Executors
 import kotlin.coroutines.CoroutineContext
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.uuid.Uuid
 
 /**
@@ -254,6 +258,19 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 	protected suspend fun newClient(projectName: String): HeadlessClient =
 		HeadlessClient.create(projectName, makeServerSettings()).also { openClients += it }
 
+	/**
+	 * Opens a second device on the same server project as [primary], which must have synced at least
+	 * once so its server project id exists. The second device gets its own local project dir
+	 * ([localName], which must differ from the first device's name) but binds to the same server
+	 * project — the realistic "two devices, one account, one project" setup.
+	 */
+	protected suspend fun secondDeviceFor(primary: HeadlessClient, localName: String): HeadlessClient {
+		val sharedId = get<ProjectMetadataDatasource>().loadProjectId(primary.projectDef)
+			?: error("primary device has no server project id yet — sync it before opening a second device")
+		return HeadlessClient.create(localName, makeServerSettings(), serverProjectId = sharedId)
+			.also { openClients += it }
+	}
+
 	/** The hash the server currently stores for an entity, or null if it holds none. */
 	protected fun serverEntityHash(projectName: String, entityId: Int): String? {
 		val projectId = serverNumericProjectIdFor(projectName) ?: return null
@@ -268,6 +285,51 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 		val ok = sync(resolveConflict = { entity -> conflicted = true; entity })
 		assertFalse(conflicted, "single-client resync raised a phantom conflict")
 		return ok
+	}
+
+	/** The live entity id→hash map the server currently holds for a project. */
+	protected fun serverEntityHashes(projectName: String): Map<Int, String> {
+		val projectId = serverNumericProjectIdFor(projectName) ?: return emptyMap()
+		return database().serverDatabase.storyEntityQueries
+			.getEntityHashes(userId = userId, projectId = projectId)
+			.executeAsList()
+			.associate { it.id.toInt() to it.hash }
+	}
+
+	/** The live entity id→hash map a client computes from its own local state. */
+	protected suspend fun clientEntityHashes(client: HeadlessClient): Map<Int, String> {
+		val synchronizers: EntitySynchronizers = client.scope.get()
+		return synchronizers.synchronizers.values
+			.flatMap { it.hashEntities(emptyList()) }
+			.associate { it.id to it.hash }
+	}
+
+	/**
+	 * Convergence oracle: every client holds exactly the entity set the server holds, hash for hash.
+	 * Model-free — it doesn't care what the entities *should* be, only that client and server agree,
+	 * which is the property every sync must establish.
+	 */
+	protected suspend fun assertConverged(projectName: String, vararg clients: HeadlessClient) {
+		val server = serverEntityHashes(projectName)
+		clients.forEachIndexed { index, client ->
+			assertEquals(
+				server,
+				clientEntityHashes(client),
+				"client #$index did not converge with the server",
+			)
+		}
+	}
+
+	/**
+	 * Stability oracle: an immediate extra sync moves nothing over the wire. Any client/server hash
+	 * divergence shows up here as a re-download or re-upload, so this catches drift even when the two
+	 * sides happen to be equally wrong.
+	 */
+	protected suspend fun assertResyncSilent(client: HeadlessClient) {
+		val wire = tapWire()
+		assertTrue(client.syncNoConflict(), "resync should succeed")
+		assertEquals(emptyList(), wire.entitiesPulled(), "resync re-downloaded an entity")
+		assertEquals(emptyList(), wire.entitiesUploaded(), "resync re-uploaded an entity")
 	}
 
 	/** One HTTP request the client made, captured by [tapWire]. */
