@@ -6,8 +6,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
@@ -129,7 +131,9 @@ class RecurringTaskTest {
 			override suspend fun tick() {
 				if (!inTick.isCompleted) {
 					inTick.complete(Unit)
-					release.await()
+					// NonCancellable so cancelAndJoin must wait for the tick, mimicking
+					// real work that runs past stop() rather than a cancellable suspension.
+					withContext(NonCancellable) { release.await() }
 				}
 			}
 
