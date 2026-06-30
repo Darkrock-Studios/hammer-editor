@@ -38,6 +38,7 @@ fun Route.adminPage(
 	securityRepository: com.darkrockstudios.apps.hammer.monitoring.SecurityRepository,
 	userActivityRepository: com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository,
 	storyReaderRepository: com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository,
+	recurringTaskRegistry: com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry,
 	projectsSyncManager: com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager<Long, com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession>,
 	projectSyncManager: com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager<*, com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession>,
 	clock: kotlin.time.Clock,
@@ -50,7 +51,8 @@ fun Route.adminPage(
 			adminSettingsPage(configRepository, patreonFeatureEnabled, emailFeatureEnabled)
 			adminMonitoringPages(
 				metricsRepository, configRepository, errorRepository, securityRepository,
-				userActivityRepository, storyReaderRepository, projectsSyncManager, projectSyncManager, clock,
+				userActivityRepository, storyReaderRepository, recurringTaskRegistry,
+				projectsSyncManager, projectSyncManager, clock,
 				patreonFeatureEnabled, emailFeatureEnabled,
 			)
 			adminWhitelistPage(

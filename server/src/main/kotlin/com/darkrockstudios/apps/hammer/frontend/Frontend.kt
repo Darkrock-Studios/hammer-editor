@@ -88,6 +88,7 @@ fun Route.frontend() {
 	val userActivityRepository: UserActivityRepository by inject()
 	val storyReaderRepository: StoryReaderRepository by inject()
 	val storyReaderCollector: StoryReaderCollector by inject()
+	val recurringTaskRegistry: com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry by inject()
 	val clock: kotlin.time.Clock by inject()
 	val projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(named(PROJECTS_SYNC_MANAGER))
 	val projectSyncManager: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession> by inject(named(PROJECT_SYNC_MANAGER))
@@ -154,6 +155,7 @@ fun Route.frontend() {
 		securityRepository,
 		userActivityRepository,
 		storyReaderRepository,
+		recurringTaskRegistry,
 		projectsSyncManager,
 		projectSyncManager,
 		clock,

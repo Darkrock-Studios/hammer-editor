@@ -534,3 +534,19 @@
 	.mon-subnav__link span { font-size: 0.85rem; }
 	.mon-error__summary { flex-wrap: wrap; }
 }
+
+/* --- Background jobs --- */
+.mon-job-error-row td {
+	background: rgba(239, 68, 68, 0.08);
+	font-size: 0.85rem;
+}
+.mon-job-error__label {
+	color: var(--error);
+	font-weight: 700;
+	margin-right: 0.4rem;
+}
+.mon-job-error__msg {
+	font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+	color: var(--neutral-300);
+	word-break: break-word;
+}

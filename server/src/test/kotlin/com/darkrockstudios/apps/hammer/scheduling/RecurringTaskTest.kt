@@ -14,10 +14,14 @@ import org.slf4j.LoggerFactory
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Clock
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Instant
 
 class RecurringTaskTest {
 
@@ -73,6 +77,46 @@ class RecurringTaskTest {
 		assertTrue(calls.get() >= 3, "loop stopped after the failing tick")
 		task.stop()
 		assertFalse(task.isRunning())
+		scope.cancel()
+	}
+
+	/** status() reports liveness plus the last and next run times derived from the clock and nextDelay. */
+	@Test
+	fun `status reports last run and next run`() = runBlocking {
+		val now = Instant.parse("2026-01-15T12:00:00Z")
+		val fixedClock = object : Clock {
+			override fun now(): Instant = now
+		}
+		val ticked = CompletableDeferred<Unit>()
+		val task = object : RecurringTask("test", logger, fixedClock) {
+			override suspend fun tick() {
+				if (!ticked.isCompleted) ticked.complete(Unit)
+			}
+
+			override suspend fun nextDelay(): Duration = 30.minutes
+		}
+		val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+		task.start(scope)
+		withTimeout(5.seconds) { ticked.await() }
+
+		// After the first tick the loop sets nextRun, then parks in delay(30m).
+		var status = task.status()
+		withTimeout(5.seconds) {
+			while (status.nextRun == null) {
+				delay(10)
+				status = task.status()
+			}
+		}
+
+		assertTrue(status.running)
+		assertFalse(status.lastTickFailed)
+		assertNull(status.lastError)
+		assertEquals(now, status.lastRun)
+		assertEquals(now + 30.minutes, status.nextRun)
+
+		task.stop()
+		assertNull(task.status().nextRun, "nextRun should clear once stopped")
 		scope.cancel()
 	}
 

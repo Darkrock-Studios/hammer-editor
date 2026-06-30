@@ -18,6 +18,8 @@ import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.monitoring.TimeSeriesPoint
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
+import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
+import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskStatus
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
@@ -53,6 +55,7 @@ fun Route.adminMonitoringPages(
 	securityRepository: SecurityRepository,
 	userActivityRepository: UserActivityRepository,
 	storyReaderRepository: StoryReaderRepository,
+	recurringTaskRegistry: RecurringTaskRegistry,
 	projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession>,
 	projectSyncManager: SyncSessionManager<*, ProjectSynchronizationSession>,
 	clock: Clock,
@@ -243,6 +246,21 @@ fun Route.adminMonitoringPages(
 			call.respond(MustacheContent("admin-monitoring-security.mustache", call.withDefaults(model)))
 		}
 
+		get("/jobs") {
+			val jobs = recurringTaskRegistry.statuses().map(::jobStatusModel)
+			val model = mutableMapOf<String, Any>(
+				"page_stylesheet" to "/assets/css/admin.css",
+				"activeMonitoring" to true,
+				"activeMonJobs" to true,
+				"patreonFeatureEnabled" to patreonFeatureEnabled,
+				"emailFeatureEnabled" to emailFeatureEnabled,
+				"jobs" to jobs,
+				"hasJobs" to jobs.isNotEmpty(),
+				"anyFailing" to jobs.any { it["failing"] == true },
+			)
+			call.respond(MustacheContent("admin-monitoring-jobs.mustache", call.withDefaults(model)))
+		}
+
 		get("/logs") {
 			val model = mutableMapOf<String, Any>(
 				"page_stylesheet" to "/assets/css/admin.css",
@@ -287,6 +305,17 @@ private fun logLineModel(line: LogLine): Map<String, Any> = mapOf(
 	"levelClass" to line.level.lowercase(),
 	"logger" to line.logger,
 	"message" to line.message,
+)
+
+private fun jobStatusModel(s: RecurringTaskStatus): Map<String, Any> = mapOf(
+	"name" to s.name,
+	"running" to s.running,
+	"failing" to (s.running && s.lastTickFailed),
+	"lastRun" to (s.lastRun?.let { formatInstant(it, "MMM dd, HH:mm:ss") } ?: "—"),
+	// Next run is only meaningful while the loop is alive to honor it.
+	"nextRun" to (s.nextRun?.takeIf { s.running }?.let { formatInstant(it, "MMM dd, HH:mm:ss") } ?: "—"),
+	"hasError" to (s.lastError != null),
+	"lastError" to (s.lastError ?: ""),
 )
 
 private fun errorRowModel(e: Error_log): Map<String, Any> {

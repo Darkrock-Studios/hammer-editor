@@ -36,7 +36,7 @@ class MonitoringMaintenanceJob(
 	private val emailService: EmailService,
 	private val clock: Clock,
 	logger: Logger,
-) : RecurringTask("Monitoring maintenance job", logger) {
+) : RecurringTask("Monitoring maintenance job", logger, clock) {
 	private var lastMaintenance: Instant = Instant.DISTANT_PAST
 
 	// Per-subject cooldown for security alert emails. Single-coroutine access; resets on restart.

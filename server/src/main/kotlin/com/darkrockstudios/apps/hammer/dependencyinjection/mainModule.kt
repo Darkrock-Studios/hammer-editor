@@ -42,6 +42,7 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.review.ReviewRepository
+import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
@@ -135,6 +136,7 @@ fun mainModule(
 	singleOf(::StoryReaderCollector)
 	singleOf(::StoryReaderRepository)
 	single { MonitoringState() }
+	single { RecurringTaskRegistry() }
 	singleOf(::MonitoringMaintenanceJob)
 	singleOf(::TokenMaintenanceJob)
 	singleOf(::StoryExportService)

@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.Error_log
 import com.darkrockstudios.apps.hammer.frontend.adminMonitoringPages
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
+import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import io.ktor.client.request.get
 import io.ktor.client.statement.bodyAsText
@@ -58,6 +59,7 @@ class MonitoringExportRouteTest {
 				securityRepository = mockk(relaxed = true),
 				userActivityRepository = mockk(relaxed = true),
 				storyReaderRepository = mockk(relaxed = true),
+				recurringTaskRegistry = RecurringTaskRegistry(),
 				projectsSyncManager = mockk<SyncSessionManager<Long, ProjectsSynchronizationSession>>(relaxed = true),
 				projectSyncManager = mockk<SyncSessionManager<Long, ProjectSynchronizationSession>>(relaxed = true),
 				clock = clock,
