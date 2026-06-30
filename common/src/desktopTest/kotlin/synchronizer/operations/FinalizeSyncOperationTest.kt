@@ -3,6 +3,7 @@ package synchronizer.operations
 import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
@@ -45,6 +46,9 @@ class FinalizeSyncOperationTest : BaseTest() {
 	@MockK(relaxed = true)
 	private lateinit var projectDataDatasource: ProjectDataDatasource
 
+	@MockK(relaxed = true)
+	private lateinit var idAllocator: IdAllocator
+
 	private lateinit var strRes: TestStrRes
 
 	private lateinit var clock: TestClock
@@ -80,6 +84,7 @@ class FinalizeSyncOperationTest : BaseTest() {
 			globalSettingsStore = globalSettingsStore,
 			syncDataDatasource = syncDataDatasource,
 			projectDataDatasource = projectDataDatasource,
+			idAllocator = idAllocator,
 		)
 	}
 

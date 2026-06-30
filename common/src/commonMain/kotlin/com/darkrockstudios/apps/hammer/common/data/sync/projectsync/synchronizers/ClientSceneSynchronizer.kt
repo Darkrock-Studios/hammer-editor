@@ -322,18 +322,20 @@ class ClientSceneSynchronizer(
 		return true
 	}
 
-	// Preserves local `created`/`lastEdited` when the server didn't ship them
-	// (e.g. older client uploaded first).
-	private suspend fun mergeServerMetadata(serverEntity: ApiProjectEntity.SceneEntity): SceneMetadata {
-		val existing = sceneEditorService.loadSceneMetadata(serverEntity.id)
+	// A scene uploaded before scenes tracked timestamps arrives with null `created`/`lastEdited`.
+	// Those fields are hashed, so backfill them with the project's creation time: the resulting
+	// hash divergence from the server drives the heal upload in [EntityTransferOperation] that
+	// enriches the server's copy, converging both sides on a non-null value.
+	private fun mergeServerMetadata(serverEntity: ApiProjectEntity.SceneEntity): SceneMetadata {
+		val projectCreated = projectMetadataDatasource.loadMetadata(projectDef).info.created
 		return SceneMetadata(
 			notes = serverEntity.notes,
 			outline = serverEntity.outline,
 			confirmedReferences = serverEntity.confirmedReferences,
 			dismissedReferences = serverEntity.dismissedReferences,
 			tags = serverEntity.tags,
-			created = serverEntity.created ?: existing.created,
-			lastEdited = serverEntity.lastEdited ?: existing.lastEdited,
+			created = serverEntity.created ?: projectCreated,
+			lastEdited = serverEntity.lastEdited ?: projectCreated,
 		)
 	}
 

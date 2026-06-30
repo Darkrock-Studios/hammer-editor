@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
@@ -26,6 +27,7 @@ class FinalizeSyncOperation(
 	private val globalSettingsStore: GlobalSettingsStore,
 	private val syncDataDatasource: SyncDataDatasource,
 	private val projectDataDatasource: ProjectDataDatasource,
+	private val idAllocator: IdAllocator,
 ) : SyncOperation(projectDef) {
 
 	override suspend fun execute(
@@ -41,6 +43,10 @@ class FinalizeSyncOperation(
 		var allSuccess = state.allSuccess
 
 		finalizeSync()
+
+		// Entity transfer may have pulled down ids above the allocator's snapshot (taken at sync
+		// start). Re-derive it now so a create before the next sync can't reuse a downloaded id.
+		idAllocator.findNextId()
 
 		yield()
 
