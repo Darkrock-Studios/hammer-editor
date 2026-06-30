@@ -8,7 +8,7 @@ plugins {
 	alias(libs.plugins.android.kotlin.multiplatform.library)
 	alias(libs.plugins.jetbrains.kover)
 	//alias(libs.plugins.compose.report.generator)
-	id("ee.schimke.composeai.preview") version "0.16.1"
+	id("ee.schimke.composeai.preview") version "0.16.6"
 }
 
 group = "com.darkrockstudios.apps.hammer.composeui"
