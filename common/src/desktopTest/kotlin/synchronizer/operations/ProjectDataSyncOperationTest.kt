@@ -186,6 +186,21 @@ class ProjectDataSyncOperationTest : BaseTest() {
 	}
 
 	@Test
+	fun `fresh sync with default local data adopts the server copy without uploading`() = runTest {
+		// Never synced on this device: no project_data.toml, so the repository hands back
+		// default ProjectData() with a null lastSyncedHash. The server already has settings.
+		val server = ProjectData(authorName = "Server Author")
+		coEvery { api.getProjectData(any(), any()) } returns
+			Result.success(ProjectDataDto(server, "server-hash"))
+
+		val result = createOperation().run()
+
+		assertTrue(isSuccess(result))
+		assertEquals(StoredProjectData(server, "server-hash"), repository.state.value)
+		coVerify(exactly = 0) { api.uploadProjectData(any(), any(), any(), any()) }
+	}
+
+	@Test
 	fun `local diverged from server uploads with the last synced hash as baseline`() = runTest {
 		val local = ProjectData(authorName = "Local Edit")
 		datasource.save(StoredProjectData(local, lastSyncedHash = "stale-hash"))
