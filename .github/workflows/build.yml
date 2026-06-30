@@ -168,6 +168,64 @@ jobs:
             common/build/reports/tests/iosSimulatorArm64Test/
             common/build/test-results/iosSimulatorArm64Test/
 
+  # Runs the real iOS app on a simulator and drives it through XCUITest (the iOS analogue of the
+  # android-instrumented-tests job). The whole UI is Compose Multiplatform, so the tests target
+  # Compose testTags, which the app exposes to the iOS accessibility tree when launched with
+  # --uitesting (see composeUi .../MainViewController.kt and ios/iosUITests).
+  ios-ui-tests:
+    name: iOS UI tests
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Select Xcode 26
+        # Match ios-compile: linking Compose's ui-uikit needs the iOS 26 SDK.
+        run: |
+          XCODE_APP="$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)"
+          echo "Using $XCODE_APP"
+          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          xcodebuild -version
+      - name: set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      # Pick the newest available iPhone simulator rather than pinning a device that a future
+      # Xcode image might drop, then boot it so the test run doesn't race first-boot.
+      - name: Select & boot a simulator
+        id: sim
+        run: |
+          UDID=$(xcrun simctl list devices available --json \
+            | jq -r '[.devices[][] | select(.name | startswith("iPhone"))] | last | .udid')
+          if [ -z "$UDID" ] || [ "$UDID" = "null" ]; then
+            echo "No iPhone simulator available"; xcrun simctl list devices available; exit 1
+          fi
+          echo "Using simulator $UDID"
+          # Disable the hardware keyboard before boot so the software keyboard shows — Compose
+          # text fields need it for XCUITest text entry (see ios/scripts).
+          bash ios/scripts/disable_sim_hardware_keyboard.sh
+          xcrun simctl boot "$UDID" || true
+          echo "udid=$UDID" >> "$GITHUB_OUTPUT"
+      - name: Run iOS UI tests
+        id: ios-ui-tests
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project ios/ios.xcodeproj \
+            -scheme iosUITests \
+            -destination "id=${{ steps.sim.outputs.udid }}" \
+            -configuration Debug \
+            -resultBundlePath ios-ui-tests.xcresult \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Upload iOS UI test results on failure
+        if: failure() && steps.ios-ui-tests.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: ios-ui-tests-report
+          path: ios-ui-tests.xcresult
+
 #  ios:
 #    runs-on: macos-latest
 #    steps:
