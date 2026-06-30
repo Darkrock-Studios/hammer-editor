@@ -6,9 +6,11 @@
 //  verifies it opens in the editor.
 //
 //  Note: unlike the Android test, this stops short of typing into the scene body and saving.
-//  The scene body is a Compose rich-text editor that XCUITest cannot focus via a synthesized tap
-//  (only auto-focused fields accept input on Compose-iOS), so driving the edit+save step isn't
-//  reliably automatable. The create-and-open path is the meaningful smoke coverage we can get.
+//  Text entry into the editor itself now works (the rich-text editor publishes text semantics as
+//  of composetexteditor 2.3.0 — see NotesWorkflowUITests, which types into the note body). The
+//  scene edit+save flow is deferred because the scene editor is gated on its initial buffer load
+//  and its save affordance is dirty-driven, so an IME-driven edit doesn't reliably surface the
+//  save action in time; promoting this to the full edit+save flow is a follow-up.
 //
 
 import XCTest
