@@ -44,10 +44,10 @@ class SpellCheckRepositoryTest : BaseTest() {
 		setupKoin()
 	}
 
-	private fun settingsStore(locale: Locale): GlobalSettingsStore {
+	private fun settingsStore(locale: Locale, enabled: Boolean = true): GlobalSettingsStore {
 		coEvery { globalSettingsDatasource.loadSettings() } returns GlobalSettings(
 			projectsDirectory = "/projects",
-			spellCheckSettings = SpellCheckerSettings(locale = locale),
+			spellCheckSettings = SpellCheckerSettings(enabled = enabled, locale = locale),
 		)
 		coEvery { serverSettingsDatasource.loadServerSettings(any()) } returns null
 		return GlobalSettingsStore(globalSettingsDatasource, serverSettingsDatasource)
@@ -122,6 +122,68 @@ class SpellCheckRepositoryTest : BaseTest() {
 		advanceUntilIdle()
 
 		assertEquals(loadsAfterInit, loadCount)
+	}
+
+	@Test
+	fun `does not load or emit a checker when spell check is globally disabled`() = scope.runTest {
+		every { factory.hasLanguage(any()) } returns true
+		coEvery { factory.createSpellChecker(any()) } returns mockk()
+
+		val repo = SpellCheckRepository(settingsStore(Locale.forLanguageTag("en"), enabled = false), factory)
+		advanceUntilIdle()
+
+		assertTrue(repo.dictionaryFlow.replayCache.all { it == null })
+		coVerify(exactly = 0) { factory.createSpellChecker(any()) }
+	}
+
+	@Test
+	fun `emits null when spell check is disabled after being enabled`() = scope.runTest {
+		val checker = mockk<PlatformSpellChecker>()
+		every { factory.hasLanguage(any()) } returns true
+		coEvery { factory.createSpellChecker(any()) } returns checker
+		coEvery { globalSettingsDatasource.storeSettings(any()) } just Runs
+
+		val store = settingsStore(Locale.forLanguageTag("en"), enabled = true)
+		val repo = SpellCheckRepository(store, factory)
+
+		repo.dictionaryFlow.test {
+			assertSame(checker, awaitItem())
+
+			store.updateSettings { settings ->
+				settings.copy(
+					spellCheckSettings = settings.spellCheckSettings.copy(enabled = false)
+				)
+			}
+
+			assertEquals(null, awaitItem())
+			cancelAndConsumeRemainingEvents()
+		}
+	}
+
+	@Test
+	fun `reloads the checker when spell check is re-enabled`() = scope.runTest {
+		val checker = mockk<PlatformSpellChecker>()
+		every { factory.hasLanguage(any()) } returns true
+		coEvery { factory.createSpellChecker(any()) } returns checker
+		coEvery { globalSettingsDatasource.storeSettings(any()) } just Runs
+
+		val store = settingsStore(Locale.forLanguageTag("en"), enabled = false)
+		val repo = SpellCheckRepository(store, factory)
+		advanceUntilIdle()
+
+		repo.dictionaryFlow.test {
+			// Disabled at init: no checker handed out.
+			assertEquals(null, awaitItem())
+
+			store.updateSettings { settings ->
+				settings.copy(
+					spellCheckSettings = settings.spellCheckSettings.copy(enabled = true)
+				)
+			}
+
+			assertSame(checker, awaitItem())
+			cancelAndConsumeRemainingEvents()
+		}
 	}
 
 	@Test
