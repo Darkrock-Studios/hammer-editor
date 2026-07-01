@@ -1,6 +1,8 @@
 package repositories.sceneeditor
 
 import PROJECT_1_NAME
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -90,6 +92,36 @@ class SceneDatasourceCacheTest : BaseTest() {
 		assertNotNull(
 			sceneDatasource.resolveScenePathFromFilesystem(newId),
 			"Newly created scene must be resolvable (cache stays fresh)"
+		)
+	}
+
+	@Test
+	fun `rewriting scene content leaves the warm cache valid`() = runTest {
+		// Warm the cache, then rewrite a leaf scene's markdown in place.
+		val before = sceneDatasource.getAllScenePaths()
+		val scenePath = before.first { sceneDatasource.getSceneFromPath(it).type == SceneItem.Type.Scene }
+		val sceneItem = sceneDatasource.getSceneFromPath(scenePath)
+		val scansBefore = countingFs.listRecursivelyCount
+
+		val stored = sceneDatasource.storeSceneMarkdownRaw(
+			SceneContent(sceneItem, "Freshly rewritten content"),
+			scenePath,
+		)
+		assertTrue(stored, "Content rewrite should succeed")
+
+		// A content write doesn't move the file, so the path cache must stay warm and untouched.
+		// The scene hasher resolves paths through this cache; staleness here is the shape that made
+		// content-only notes ping-pong the server during sync.
+		val after = sceneDatasource.getAllScenePaths()
+		assertEquals(
+			scansBefore,
+			countingFs.listRecursivelyCount,
+			"Content rewrite must not invalidate or re-scan the path cache"
+		)
+		assertEquals(before, after, "A content-only write must not change the cached path set")
+		assertNotNull(
+			sceneDatasource.resolveScenePathFromFilesystem(sceneItem.id),
+			"Scene must remain resolvable from the warm cache after a content rewrite"
 		)
 	}
 
