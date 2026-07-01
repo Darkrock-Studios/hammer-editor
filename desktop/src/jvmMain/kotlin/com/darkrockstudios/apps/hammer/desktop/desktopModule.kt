@@ -10,7 +10,6 @@ import com.darkrockstudios.apps.hammer.common.sandbox.SandboxFileAccess
 import com.darkrockstudios.apps.hammer.desktop.sandbox.MacOsBookmarks
 import com.darkrockstudios.apps.hammer.desktop.sandbox.MacOsSandboxFileAccess
 import com.darkrockstudios.apps.hammer.desktop.sandbox.SandboxBookmarkStore
-import com.darkrockstudios.apps.hammer.desktop.shortcuts.LinuxQuicklist
 import com.darkrockstudios.apps.hammer.desktop.shortcuts.NoOpQuickShortcuts
 import com.darkrockstudios.apps.hammer.desktop.shortcuts.QuickShortcuts
 import com.darkrockstudios.apps.hammer.desktop.shortcuts.WindowsJumpList
@@ -28,7 +27,8 @@ val desktopModule: Module = module {
 		val ioDispatcher = get<CoroutineContext>(named(DISPATCHER_IO))
 		when (hostOs) {
 			HostOs.Windows -> WindowsJumpList(projects, ioDispatcher)
-			HostOs.Linux -> LinuxQuicklist(projects, ioDispatcher)
+			// TODO: Disabled: the D-Bus quicklist is crashing, have to debug some day
+			HostOs.Linux -> NoOpQuickShortcuts()
 			HostOs.MacOs -> NoOpQuickShortcuts()
 			HostOs.Other -> NoOpQuickShortcuts()
 		}
