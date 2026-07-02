@@ -28,6 +28,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
+import com.darkrockstudios.apps.hammer.common.logStartupBanner
 import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
 import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModule
 import com.darkrockstudios.apps.hammer.desktop.sandbox.SandboxStartup
@@ -84,6 +85,7 @@ fun main(args: Array<String>) {
 
 	val appScope = CoroutineScope(Dispatchers.Default)
 	setupLogging(appScope)
+	logStartupBanner()
 
 	GlobalContext.startKoin {
 		logger(NapierLogger())
@@ -92,7 +94,9 @@ fun main(args: Array<String>) {
 
 	SandboxStartup.ensureProjectsDirAccess()
 
+	Napier.i("Startup: running data migration")
 	runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }
+	Napier.i("Startup: data migration complete")
 
 	val initialProject: ProjectDef? = launchArgs.projectName?.let { name ->
 		val match = getKoin().get<ProjectsRepository>().findProject(name)
@@ -108,8 +112,10 @@ fun main(args: Array<String>) {
 		}.onFailure { Napier.w("Failed to bump lastAccessed for --project launch", it) }
 	}
 
+	Napier.i("Startup: initializing quick shortcuts")
 	val quickShortcuts = getKoin().get<QuickShortcuts>()
 	quickShortcuts.init()
+	Napier.i("Startup: quick shortcuts initialized")
 	if (initialProject == null) {
 		// When opening a project, the subsequent ApplicationState.openProject() will refresh.
 		appScope.launch { quickShortcuts.refresh() }
@@ -129,7 +135,9 @@ fun main(args: Array<String>) {
 		}
 	}
 
+	Napier.i("Startup: entering Compose application")
 	application {
+		LaunchedEffect(Unit) { Napier.i("Startup: first composition") }
 		val applicationState = remember {
 			ApplicationState(
 				appScope = appScope,
