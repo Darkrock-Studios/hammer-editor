@@ -26,8 +26,10 @@ Any given user account may only have one sync in progress at a time. Attempting 
 one is already in progress will result in a failure to begin the sync (`400 Bad Request`).
 
 Account sessions expire after 2 minutes without activity (sliding, refreshed on each use); an
-expired session may be reclaimed by anyone. Unlike Project sync sessions, there is no same-install
-reclaim at the account level — a live session must expire before another sync may begin.
+expired session may be reclaimed by anyone. Like Project sync sessions, a live account session may
+also be **reclaimed by the same install** that owns it (identified server-side from the bearer
+token), so a crashed account sync doesn't lock that device out until expiry. A different install
+must wait for the live session to expire.
 
 ```mermaid
 sequenceDiagram

@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
 import com.darkrockstudios.apps.hammer.base.http.CreateProjectResponse
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
+import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.base.http.ProjectsSyncProbeRequest
 import com.darkrockstudios.apps.hammer.base.http.ProjectsSyncProbeResponse
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
@@ -78,6 +79,7 @@ fun Route.projectsRoutes() {
 
 private fun Route.beginProjectsSync() {
 	val projectsRepository: ProjectsRepository = get()
+	val accountsRepository: AccountsRepository = get()
 
 	get("/begin_sync") {
 		val principal = call.principal<ServerUserIdPrincipal>()
@@ -88,7 +90,13 @@ private fun Route.beginProjectsSync() {
 
 		call.application.get<UserActivityCollector>().record(principal.id, ActivityType.SYNC)
 
-		val result = projectsRepository.beginProjectsSync(principal.id)
+		// Derived from the authenticated token (not client-asserted)
+		val installId = call.request.headers[HttpHeaders.Authorization]
+			?.substringAfter("Bearer ", "")
+			?.takeIf { it.isNotBlank() }
+			?.let { accountsRepository.getInstallId(it) }
+
+		val result = projectsRepository.beginProjectsSync(principal.id, installId)
 		if (isSuccess(result)) {
 			val syncData = result.data
 			call.respond(
@@ -142,8 +150,15 @@ private fun Route.endProjectSync() {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
 		val syncId = call.requireSyncIdFromHeader() ?: return@get
 
-		projectsRepository.endProjectsSync(principal.id, syncId)
-		call.respond("Okay")
+		val result = projectsRepository.endProjectsSync(principal.id, syncId)
+		if (isSuccess(result)) {
+			call.respond("Okay")
+		} else {
+			call.respondBadRequest(
+				ERROR_GENERIC,
+				result.displayMessage?.text(call) ?: call.t(R(ERR_KEY_INVALID_SYNC_ID)),
+			)
+		}
 	}
 }
 

@@ -35,9 +35,10 @@ class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 		)
 
 		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
+		coEvery { accountsRepository.getInstallId(BEARER_TOKEN) } returns "test-install-id"
 		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery {
-			projectsRepository.beginProjectsSync(userId = userId)
+			projectsRepository.beginProjectsSync(userId, "test-install-id")
 		} returns SResult.success(syncData)
 
 		defaultApplication()
@@ -57,7 +58,7 @@ class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 				}
 			}
 
-			coVerify { projectsRepository.beginProjectsSync(userId = userId) }
+			coVerify { projectsRepository.beginProjectsSync(userId, "test-install-id") }
 		}
 	}
 
@@ -66,7 +67,7 @@ class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 		coEvery { accountsRepository.checkToken(any(), any()) } returns SResult.success(0L)
 		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery {
-			projectsRepository.beginProjectsSync(userId = any())
+			projectsRepository.beginProjectsSync(any(), any())
 		} returns SResult.failure(Exception())
 
 		defaultApplication()
