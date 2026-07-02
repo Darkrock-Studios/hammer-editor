@@ -19,6 +19,7 @@ interface BrowseEntries {
 	fun getFilteredEntries(): List<EntryDef>
 	suspend fun loadEntryContent(entryDef: EntryDef): EntryContent
 	fun getImagePath(entryDef: EntryDef): String?
+	suspend fun calculateEntryImageHash(entryDef: EntryDef): String?
 	fun addTagToSearch(tag: String)
 	fun clearFilterText()
 }

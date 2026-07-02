@@ -83,20 +83,27 @@ internal fun EncyclopediaEntryItem(
 	var loadContentJob = remember<Job?> { null }
 	var entryContent by remember { mutableStateOf<EntryContent?>(null) }
 	var entryImagePath by remember { mutableStateOf<String?>(null) }
+	var entryImageHash by remember { mutableStateOf<String?>(null) }
 	var hasImage by remember { mutableStateOf<Boolean?>(null) }
 
 	val paletteState = rememberPaletteState(loader = FilePathLoader)
 
 	LaunchedEffect(entryDef) {
 		entryImagePath = null
+		entryImageHash = null
 		hasImage = null
 		paletteState.reset()
 		loadContentJob?.cancel()
 		loadContentJob = scope.launch(ioDispatcher) {
 			val imagePath = component.getImagePath(entryDef)
+			// The image's filename is stable across replacement, so the cache key must include
+			// a content hash — otherwise Coil keeps serving the old cached bytes after a photo
+			// is replaced (same path key, stale cache entry).
+			val imageHash = imagePath?.let { component.calculateEntryImageHash(entryDef) }
 			val content = component.loadEntryContent(entryDef)
 			withContext(mainDispatcher) {
 				entryImagePath = imagePath
+				entryImageHash = imageHash
 				hasImage = imagePath != null
 				entryContent = content
 				loadContentJob = null
@@ -168,10 +175,12 @@ internal fun EncyclopediaEntryItem(
 							val context = LocalPlatformContext.current
 							with(animatedVisibilityScope) {
 								AsyncImage(
-									model = remember(imagePath) {
+									model = remember(imagePath, entryImageHash) {
 										ImageRequest.Builder(context)
 											.data(imagePath)
-											.memoryCacheKey(imagePath)
+											.memoryCacheKeyExtras(
+												mapOf("hash" to entryImageHash.toString()),
+											)
 											.placeholderMemoryCacheKey(imagePath)
 											.crossfade(300)
 											.build()
