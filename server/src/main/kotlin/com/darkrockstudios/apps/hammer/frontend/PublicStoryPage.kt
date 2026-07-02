@@ -76,6 +76,9 @@ fun Route.publicStoryPage(
 				}
 
 				is PublicProjectResult.PasswordRequired -> {
+					// Password-protected stories are private shares — never index them.
+					call.applyRobotsTag(indexable = false)
+
 					// Show password form
 					val model = call.withDefaults(
 						mapOf(
@@ -89,6 +92,13 @@ fun Route.publicStoryPage(
 				}
 
 				is PublicProjectResult.Success -> {
+					// Only publicly-published stories (no password) by authors who participate in
+					// the community feature are indexable. A crawler never supplies a password, so a
+					// Success it reaches is necessarily public access; the password check keeps
+					// private shares (reached with a valid password) out of the index too.
+					val indexable = password.isNullOrBlank() && account.community_member
+					call.applyRobotsTag(indexable = indexable)
+
 					// Best-effort unique-reader count, skipping the author viewing their own story.
 					val viewerId = call.sessions.get<UserSession>()?.userId
 					if (viewerId != resolved.userId) {

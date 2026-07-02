@@ -111,6 +111,7 @@ fun Route.frontend() {
 		etag(ETagProvider.StrongSha256)
 	}
 
+	robotsRoutes()
 	setupPage(serverConfig)
 	homePage(whiteListRepository, configRepository, serverConfig, accountsRepository, projectAccessRepository)
 	aboutPage(configRepository, serverConfig, accountsRepository, projectAccessRepository, markdownService)
