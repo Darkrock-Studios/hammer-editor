@@ -22,7 +22,6 @@ import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
 import io.ktor.http.*
-import korlibs.io.lang.InvalidArgumentException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.IO
 import kotlinx.coroutines.NonCancellable
@@ -628,7 +627,7 @@ class ClientAccountSynchronizer(
 			try {
 				Uuid.parse(it.id)
 				true
-			} catch (e: InvalidArgumentException) {
+			} catch (e: IllegalArgumentException) {
 				Napier.w("Invalid UUID for deleted project: $it", e)
 				false
 			}
@@ -637,7 +636,7 @@ class ClientAccountSynchronizer(
 			try {
 				Uuid.parse(it.id)
 				true
-			} catch (e: InvalidArgumentException) {
+			} catch (e: IllegalArgumentException) {
 				Napier.w("Invalid UUID for deleted project: $it")
 				false
 			}

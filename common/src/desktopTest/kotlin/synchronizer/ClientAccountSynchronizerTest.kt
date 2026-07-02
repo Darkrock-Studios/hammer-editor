@@ -35,7 +35,6 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.TestStrRes
 import kotlin.test.assertEquals
-import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -359,17 +358,21 @@ class ClientAccountSynchronizerTest {
 		assertEquals(setOf(validId), result.deletedProjects)
 	}
 
-	// NOTE: Documents a latent bug, not intended behavior. The migration scrub in
-	// loadSyncData() catches korlibs InvalidArgumentException, but Uuid.parse throws
-	// kotlin.IllegalArgumentException, so a single malformed id in sync.json crashes
-	// every load (and therefore every sync) instead of being filtered out.
 	@Test
-	fun `loadSyncData currently throws on a malformed project id instead of scrubbing it`() {
-		writeSyncData(emptySyncData().copy(projectsToDelete = setOf(ProjectId("not-a-uuid"))))
+	fun `loadSyncData scrubs malformed project ids instead of crashing`() {
+		writeSyncData(
+			emptySyncData().copy(
+				projectsToDelete = setOf(ProjectId("not-a-uuid")),
+				deletedProjects = setOf(ProjectId("also-not-a-uuid")),
+			)
+		)
 
-		assertFailsWith<IllegalArgumentException> {
-			createSynchronizer().createProject("AnyProject")
-		}
+		// Any mutation forces a load+save cycle, which runs the migration scrub.
+		createSynchronizer().createProject("AnyProject")
+
+		val result = readSyncData()
+		assertTrue(result.projectsToDelete.isEmpty())
+		assertTrue(result.deletedProjects.isEmpty())
 	}
 
 	@Test
