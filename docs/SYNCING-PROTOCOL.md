@@ -31,13 +31,17 @@ also be **reclaimed by the same install** that owns it (identified server-side f
 token), so a crashed account sync doesn't lock that device out until expiry. A different install
 must wait for the live session to expire.
 
+All account endpoints use `POST`. They were historically `GET`, so the server still routes the
+`GET` form for legacy clients, and the client retries a `POST` that answers 404/405 as a `GET`
+for servers that predate the move. Parameters are unchanged either way (query params + headers).
+
 ```mermaid
 sequenceDiagram
 	participant Client as Client
 	participant Server as Server
 
 	rect rgb(1, 59, 15)
-		Client ->> Server: GET /api/projects/{userId}/begin_sync
+		Client ->> Server: POST /api/projects/{userId}/begin_sync
 		activate Server
 		Note right of Client: bearer token
 		Server -->> Client: 200 OK (Sync Began)
@@ -50,7 +54,7 @@ sequenceDiagram
 	end
 	rect rgb(11, 0, 74)
 		loop Rename Projects
-			Client ->> Server: GET /api/projects/{userId}/rename
+			Client ->> Server: POST /api/projects/{userId}/rename
 			deactivate Client
 			activate Server
 			Note right of Client: bearer token <br/> syncId <br/> projectId <br/> projectName
@@ -65,7 +69,7 @@ sequenceDiagram
 
 	rect rgb(74, 0, 9)
 		loop Delete Projects
-			Client ->> Server: GET /api/projects/{userId}/delete
+			Client ->> Server: POST /api/projects/{userId}/delete
 			deactivate Client
 			activate Server
 			Note right of Client: bearer token <br/> syncId <br/> projectId
@@ -80,7 +84,7 @@ sequenceDiagram
 
 	rect rgb(49, 0, 74)
 		loop Create Projects
-			Client ->> Server: GET /api/projects/{userId}/create
+			Client ->> Server: POST /api/projects/{userId}/create
 			deactivate Client
 			activate Server
 			Note right of Client: bearer token <br/> syncId <br/> projectName (query param)
@@ -94,7 +98,7 @@ sequenceDiagram
 	end
 
 	rect rgb(0, 15, 6)
-		Client ->> Server: GET /api/projects/{userId}/end_sync
+		Client ->> Server: POST /api/projects/{userId}/end_sync
 		deactivate Client
 		activate Server
 		Note right of Client: bearer token <br/> syncId

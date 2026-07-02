@@ -177,6 +177,42 @@ abstract class Api(
 			failureHandler = failureHandler
 		)
 
+	/**
+	 * POST first, retrying once as GET when the server answers 404/405: servers that predate
+	 * the POST migration only route these endpoints as GET. A genuine 404 from a modern server
+	 * costs one redundant GET that fails the same way, so the result is still correct.
+	 */
+	protected suspend fun <T> postWithLegacyGetFallback(
+		path: String,
+		parse: suspend (HttpResponse) -> T,
+		failureHandler: FailureHandler = { defaultFailureHandler(it, strRes) },
+		builder: HttpRequestBuilder.() -> Unit = {},
+	): Result<T> {
+		val postResult = makeRequest(
+			path = path,
+			builder = builder,
+			execute = httpClient::post,
+			parse = parse,
+			failureHandler = failureHandler,
+		)
+
+		val failure = postResult.exceptionOrNull()
+		val serverLacksPostRoute = failure is HttpFailureException &&
+			(failure.statusCode == HttpStatusCode.NotFound || failure.statusCode == HttpStatusCode.MethodNotAllowed)
+
+		return if (serverLacksPostRoute) {
+			makeRequest(
+				path = path,
+				builder = builder,
+				execute = httpClient::get,
+				parse = parse,
+				failureHandler = failureHandler,
+			)
+		} else {
+			postResult
+		}
+	}
+
 	protected suspend fun get(
 		path: String,
 		failureHandler: FailureHandler = { defaultFailureHandler(it, strRes) },
