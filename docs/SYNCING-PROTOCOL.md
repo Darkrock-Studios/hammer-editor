@@ -313,6 +313,49 @@ sequenceDiagram
 This mechanism is transparent to the user and ensures data consistency across schema migrations without requiring manual
 intervention or database migrations.
 
+#### Post-Download Enrichment Heal (client-initiated)
+
+The 412 heal above is driven by the *server* noticing its own cache is stale. A second,
+complementary heal is driven
+entirely by the *client*, at the download chokepoint.
+
+If a downloaded entity hashes differently once it's been stored, because storing it backfilled or
+normalized a field the
+server left null or absent, the local copy no longer matches the server's. Left alone, the server
+keeps offering that
+entity for download on every sync, so it re-downloads forever.
+
+To break the loop, right after recording a successful download the client re-hashes its stored copy
+against the server's
+hash. If they differ, it uploads the enriched copy back, using the server's just-recorded hash as
+the conflict baseline
+(`original hash`). Because the sync session holds the project lock, the server's copy cannot change
+between the download
+and this upload, and the baseline is exactly what the server holds — so the heal always applies
+cleanly, with no conflict
+and no `force`.
+
+```mermaid
+sequenceDiagram
+	participant Client
+	participant Server
+	Client ->> Server: GET /project/$userId/$projectId/download_entity/$entityId
+	activate Server
+	Server -->> Client: 200 OK (server copy)
+	deactivate Server
+	activate Client
+	Note right of Client: Store copy, backfilling lossy fields.<br/>Record server hash as baseline.<br/>Re-hash stored copy.
+
+	alt Stored copy hash != server hash (enriched)
+		Client ->> Server: POST /upload_entity/$entityId
+		Note right of Client: X-Entity-Hash = server hash (baseline)
+		activate Server
+		Server -->> Client: 200 OK (server converged)
+		deactivate Server
+	end
+	deactivate Client
+```
+
 ### Upload
 The client has determined that it needs to upload the local Client copy of an Entity. This is either because the server is missing the entity, or the client has a dirty copy that needs to be synchronized.
 
