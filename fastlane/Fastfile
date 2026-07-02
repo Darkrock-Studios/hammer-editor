@@ -33,10 +33,52 @@ def app_marketing_version
   toml[/^app\s*=\s*"([^"]+)"/, 1] || UI.user_error!("Could not read `app` version from libs.versions.toml")
 end
 
+# Maps deliver's platform param to the App Store Connect API platform enum.
+ASC_PLATFORM = { "ios" => "IOS", "osx" => "MAC_OS" }.freeze
+
+# Version states meaning the build was already accepted into review or beyond —
+# i.e. the submission landed. Covers both the legacy appStoreState and the newer
+# appVersionState vocabularies (Apple is migrating between them). Editable states
+# (PREPARE_FOR_SUBMISSION, READY_FOR_REVIEW) and rejections are excluded on purpose.
+SUBMITTED_STATES = %w[
+  WAITING_FOR_REVIEW IN_REVIEW PENDING_APPLE_RELEASE PENDING_DEVELOPER_RELEASE
+  PROCESSING_FOR_APP_STORE PROCESSING_FOR_DISTRIBUTION READY_FOR_SALE
+  READY_FOR_DISTRIBUTION ACCEPTED
+].freeze
+
+# True if the App Store version for params is already submitted with the intended
+# build attached. Requires the spaceship token, which appstore_api_key sets.
+# Any lookup failure is non-fatal: return false and let the caller retry/raise.
+def submission_landed?(params)
+  platform = ASC_PLATFORM[params[:platform]] || params[:platform].to_s.upcase
+  app = Spaceship::ConnectAPI::App.find(params[:app_identifier])
+  return false unless app
+
+  version = app.get_app_store_versions(
+    filter: { platform: platform, versionString: params[:app_version] },
+  ).find { |v| v.version_string == params[:app_version] }
+  return false unless version
+
+  states = [version.app_store_state, version.app_version_state].compact
+  return false unless states.any? { |s| SUBMITTED_STATES.include?(s) }
+
+  # When a specific build was targeted, only trust the green if that's the one attached.
+  return version.get_build&.version.to_s == params[:build_number].to_s if params[:build_number]
+
+  true
+rescue => e
+  UI.important("Could not verify App Store submission state: #{e.message.to_s.lines.first&.strip}")
+  false
+end
+
 # Run deliver with a bounded retry. Right after upload the build is processed in
 # TestFlight but can lag propagating to the App Store version API, so deliver
 # crashes with "Could not find build". That crash happens during build lookup —
 # before anything is attached or submitted — so retrying the whole call is safe.
+# Once the build attaches, App Store Connect is eventually consistent: the submit
+# takes effect but the version→build relationship API briefly reports the build
+# as unmodifiable, so deliver raises after the submission already landed. Verify
+# the real version state before treating that as a failure.
 # https://github.com/fastlane/fastlane/issues/9012
 def deliver_with_retry(params, attempts: 6, wait_seconds: 60)
   try = 0
@@ -44,6 +86,10 @@ def deliver_with_retry(params, attempts: 6, wait_seconds: 60)
     try += 1
     deliver(params)
   rescue => e
+    if submission_landed?(params)
+      UI.success("App Store version #{params[:app_version]} is already submitted for review — deliver's error was a false negative.")
+      return
+    end
     raise if try >= attempts
     UI.important("deliver attempt #{try}/#{attempts} failed: #{e.message.to_s.lines.first&.strip}")
     UI.important("Build may still be propagating to App Store Connect; retrying in #{wait_seconds}s…")
