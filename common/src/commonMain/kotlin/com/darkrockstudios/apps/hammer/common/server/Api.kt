@@ -182,6 +182,7 @@ abstract class Api(
 	 * the POST migration only route these endpoints as GET. A genuine 404 from a modern server
 	 * costs one redundant GET that fails the same way, so the result is still correct.
 	 */
+	// TODO Remove the GET fallback (use plain post) at the next protocol version bump.
 	protected suspend fun <T> postWithLegacyGetFallback(
 		path: String,
 		parse: suspend (HttpResponse) -> T,
