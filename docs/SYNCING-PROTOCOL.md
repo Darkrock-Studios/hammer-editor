@@ -1,6 +1,6 @@
 # Synchronization Protocol
 
-This doc will try to give a breif (_as possible_) overview of the client/server synchronization
+This doc will try to give a brief (_as possible_) overview of the client/server synchronization
 protocol Hammer
 uses.
 
@@ -9,7 +9,7 @@ uses.
 **Account Sync:** This synchronizes what projects the Account has, creating, deleting, or renaming
 just the top level directories on the client
 
-**Project Sync:** This synchronizes an individual project and all of it's Entities
+**Project Sync:** This synchronizes an individual project and all of its Entities
 
 ---
 
@@ -23,7 +23,11 @@ Additionally, it will find or create a `projectId` for the client's local projec
 key to being able to sync a local project with the server.
 
 Any given user account may only have one sync in progress at a time. Attempting to start a sync when
-one is already in progress will result in a failure to begin the sync.
+one is already in progress will result in a failure to begin the sync (`400 Bad Request`).
+
+Account sessions expire after 2 minutes without activity (sliding, refreshed on each use); an
+expired session may be reclaimed by anyone. Unlike Project sync sessions, there is no same-install
+reclaim at the account level — a live session must expire before another sync may begin.
 
 ```mermaid
 sequenceDiagram
@@ -31,7 +35,7 @@ sequenceDiagram
 	participant Server as Server
 
 	rect rgb(1, 59, 15)
-		Client ->> Server: GET /projects/{userId}/begin_sync
+		Client ->> Server: GET /api/projects/{userId}/begin_sync
 		activate Server
 		Note right of Client: bearer token
 		Server -->> Client: 200 OK (Sync Began)
@@ -78,7 +82,7 @@ sequenceDiagram
 			deactivate Client
 			activate Server
 			Note right of Client: bearer token <br/> syncId <br/> projectName (query param)
-			Server -->> Client: 200 OK (projectId)
+			Server -->> Client: 200 OK (projectId, alreadyExisted)
 			deactivate Server
 			activate Client
 			alt Creation fails
@@ -196,7 +200,8 @@ The install is identified server-side from the authenticated bearer token (never
 
 - **Same install** as the active session → the old session is terminated and a fresh `syncID` is issued. The previous `syncID` immediately becomes invalid.
 - **Different install**, session still active → `400 Bad Request`; the original session keeps its claim, preserving the cross-device race protection above.
-- **Expired session** (any install) → treated as gone and reclaimable by anyone.
+- **Expired session** (any install) → treated as gone and reclaimable by anyone. Sessions expire
+  after 2 minutes without activity (sliding — refreshed each time the `syncID` is used).
 
 The client also fires `end_sync` even when its sync is cancelled, so sessions are normally released cleanly; reclaim is the safety net for the cases where that request can't be delivered.
 
@@ -205,19 +210,19 @@ You may however have `syncID`s for multiple different projects simultaneously.
 These are Project level `syncID`s. Account syncing use separate Account level `syncID`s. There may only be one valid Account level `syncID` at a time, and if there is a valid Account `syncID`, then no Project level `syncID`s are allowed to be created. The Account level sync must finish before any Project level syncs may begin.
 
 ### Entity Update Sequence
-The server will inspect the provided ClientState, and then return a sequence of Entity IDs. Those and only those IDs should be synchronized by the client, and in that order.
+The server will inspect the provided ClientState, and then return a sequence of Entity IDs: every server Entity the client is missing or holds a different version of (compared by hash). The client synchronizes those IDs in that order, then appends any local Entities the server doesn't know about yet (IDs above the server's `lastId`).
 
 ### Remote Entity Deletion
-The last step befor individual Entity synchronization can begin is having the Client notify the server of any locally deleted Entities.
+The last step before individual Entity synchronization can begin is having the Client notify the server of any locally deleted Entities.
 
 ```mermaid
 sequenceDiagram
     participant Client
     participant Server
 
-    Client->>Server: POST /project/$userId/$projectId/begin_sync
+    Client->>Server: POST /api/project/$userId/$projectId/begin_sync
 	activate Server
-	Note right of Client: ProjectID<br/>ClientState
+	Note right of Client: body: ClientEntityState (gzip)<br/>per-entity { id, hash }
 
 	Server -->> Client: 200 OK (Sync Began)
 	deactivate Server
@@ -226,7 +231,7 @@ sequenceDiagram
 
     rect rgb(74, 0, 9)
         loop Delete Entities
-            Client->>Server: GET /project/$userId/$projectId/delete_entity/$id
+            Client->>Server: GET /api/project/$userId/$projectId/delete_entity/$id
             deactivate Client
             activate Server
             
@@ -245,10 +250,10 @@ sequenceDiagram
         end
     end
 
-    Client->>Server: POST /project/$userId/$projectId/end_sync
+    Client->>Server: POST /api/project/$userId/$projectId/end_sync
 	deactivate Client
 	activate Server
-	Note right of Client: ProjectID<br/>SyncId
+	Note right of Client: X-Sync-Id header<br/>lastSync, lastId (form params)
 	Server -->> Client: 200 OK (Sync Terminated)
 	deactivate Server
 	activate Client
@@ -261,18 +266,25 @@ It will now either upload or download each ID depending on what it infers from t
 
 ### Download
 The client has determined that it needs to download the Server's copy of an Entity. This is either because the client is simply missing the Entity, or it has determined that the server has a newer version and it wants to overwrite the local client copy with the server copy.
+
+If the client has a local copy, it sends that copy's hash in the `X-Entity-Hash` header. When it matches the server's copy, the server answers `304 Not Modified` and the client records the Entity as synchronized without transferring the body.
 ```mermaid
 sequenceDiagram
     participant Client
     participant Server
 
-    Client->>Server: GET /project/$userId/$projectId/download_entity/$entityId
+    Client->>Server: GET /api/project/$userId/$projectId/download_entity/$entityId
 	activate Server
+	Note right of Client: X-Entity-Hash = {local hash, if any}
 
-	Server -->> Client: 200 OK (Sync Began)
+	Server -->> Client: 200 OK (entity body + X-Entity-Type header)
 	deactivate Server
 	activate Client
 	Note left of Server: LoadEntityResponse
+
+	alt Local hash matches server copy
+		Server -->> Client: 304 Not Modified (no-op, already in sync)
+	end
 ```
 
 #### Stale Hash Detection and Self-Healing
@@ -289,20 +301,20 @@ sequenceDiagram
     participant Client
     participant Server
 
-    Client->>Server: GET /project/$userId/$projectId/download_entity/$entityId
+    Client->>Server: GET /api/project/$userId/$projectId/download_entity/$entityId
 	activate Server
 	Note over Server: Cached hash != Computed hash
 
 	Server -->> Client: 412 Precondition Failed
 	deactivate Server
 	activate Client
-	Note left of Server: StaleHashResponse<br/>{cachedHash, computedHash}
+	Note left of Server: StaleHashResponse<br/>{entityId, message, cachedHash, computedHash}
 
 	Note right of Client: Client detects stale cache<br/>and initiates healing
-	Client->>Server: POST /project/$userId/$projectId/upload_entity/$entityId?force=true
+	Client->>Server: POST /api/project/$userId/$projectId/upload_entity/$entityId?force=true
 	deactivate Client
 	activate Server
-	Note right of Client: Force upload to heal server cache
+	Note right of Client: Force upload to heal server cache<br/>(no X-Original-Hash — force skips the conflict check)
 
 	Server -->> Client: 200 OK
 	deactivate Server
@@ -339,7 +351,7 @@ and no `force`.
 sequenceDiagram
 	participant Client
 	participant Server
-	Client ->> Server: GET /project/$userId/$projectId/download_entity/$entityId
+	Client ->> Server: GET /api/project/$userId/$projectId/download_entity/$entityId
 	activate Server
 	Server -->> Client: 200 OK (server copy)
 	deactivate Server
@@ -348,7 +360,7 @@ sequenceDiagram
 
 	alt Stored copy hash != server hash (enriched)
 		Client ->> Server: POST /upload_entity/$entityId
-		Note right of Client: X-Entity-Hash = server hash (baseline)
+		Note right of Client: X-Original-Hash = server hash (baseline)
 		activate Server
 		Server -->> Client: 200 OK (server converged)
 		deactivate Server
@@ -366,9 +378,9 @@ sequenceDiagram
     participant Client
     participant Server
 
-    Client->>Server: POST /project/$userId/$projectId/upload_entity/$entityId
+    Client->>Server: POST /api/project/$userId/$projectId/upload_entity/$entityId
 	activate Server
-	Note right of Client: X-Entity-Hash = {original hash} <br /> ApiProjectEntity
+	Note right of Client: X-Original-Hash = {original hash} <br /> X-Entity-Type <br /> ApiProjectEntity
 
 	Server -->> Client: 200 OK
 	deactivate Server
@@ -377,19 +389,19 @@ sequenceDiagram
 ```
 
 #### Conflict detected
-In the case where the Sever and Client's `original hash` do no match, there is a conflict.
+In the case where the Server and Client's `original hash` do not match, there is a conflict.
 
 The server infers from this that the client was editing a different version of the Entity than what the server now has. This is probably because a different client uploaded an independent edit of the Entity.
 
-The server will respond with it's copy of the Entity and require the Client to resolve the conflict by resubmitting the upload with `force=true` set.
+The server will respond with its copy of the Entity and require the Client to resolve the conflict by resubmitting the upload with `force=true` set.
 ```mermaid
 sequenceDiagram
     participant Client
     participant Server
 
-    Client->>Server: POST /project/$userId/$projectId/upload_entity/$entityId
+    Client->>Server: POST /api/project/$userId/$projectId/upload_entity/$entityId
 	activate Server
-	Note right of Client: X-Entity-Hash = {original hash} <br /> ApiProjectEntity
+	Note right of Client: X-Original-Hash = {original hash} <br /> ApiProjectEntity
 
 	Server -->> Client: 409 Conflict
 	deactivate Server
@@ -397,10 +409,10 @@ sequenceDiagram
 	Note left of Server: ApiProjectEntity
 
 	Note right of Client: {client now helps the user resolve the conflict}
-	Client->>Server: POST /project/$userId/$projectId/upload_entity/$entityId?force=true
+	Client->>Server: POST /api/project/$userId/$projectId/upload_entity/$entityId?force=true
 	deactivate Client
 	activate Server
-	Note right of Client: X-Entity-Hash = {original hash} <br /> ApiProjectEntity {resolved entity}
+	Note right of Client: no X-Original-Hash (force skips the conflict check) <br /> ApiProjectEntity {resolved entity}
 
 	Server -->> Client: 200 OK
 	deactivate Server
@@ -409,9 +421,11 @@ sequenceDiagram
 ```
 Note that the resolved `ApiProjectEntity` in the `force` request does not have to be exclusively the Client's or Server's copy, it can be a merging between the two that the client helped the user create.
 
+Uploads carry an `X-Entity-Type` header (the server rejects an upload without one, and answers `409` on a type mismatch — a distinct conflict from the hash conflict above). An upload may also fail with `413 Payload Too Large`, or `417 Expectation Failed` for a non-conflict save failure.
+
 ## Project Data Sync (non-entity blob)
 
-In addition to entity sync, each project has a single per-project blob holding user-authored settings (author name, theme colors, word-count goal). This blob is synced as its own phase, inserted into the pipeline immediately *before* entity transfer so the project's identity is settled before any entity churn.
+In addition to entity sync, each project has a single per-project blob holding user-authored settings (author name, theme colors, word-count goal). This blob is synced as its own phase, inserted into the pipeline *before* the entity phases (entity deletion, then entity transfer) so the project's identity is settled before any entity churn.
 
 The blob is a structured object — see `ProjectData` in the `base` module — but is treated as a single unit at the sync layer. Conflict detection is hash-based, mirroring entity sync: the client persists the `lastSyncedHash` it most recently agreed on with the server and replays it on the next upload.
 
@@ -420,7 +434,7 @@ sequenceDiagram
     participant Client
     participant Server
 
-    Client->>Server: GET /project/$userId/$projectId/project_data
+    Client->>Server: GET /api/project/$userId/$projectId/project_data
     activate Server
     Server -->> Client: 200 ProjectDataDto OR 204 No Content
     deactivate Server
@@ -444,7 +458,11 @@ sequenceDiagram
     end
 ```
 
+Two further branches aren't diagrammed: if the server has no blob yet (`204`) and the local data is non-default, the client uploads with a null `originalHash` (the server accepts a baseline-less upload unchecked); and if the hashes already match, the phase is a no-op (re-recording `lastSyncedHash` if it was stale).
+
 Unlike writing-activity sync (which swallows errors and continues), a non-conflict failure on the project-data phase fails the whole sync — the data is user-authored and silent loss is unacceptable.
+
+Note: unlike the entity endpoints, the `project_data` and `writing_activity` endpoints are not gated on a `syncID` — they simply run inside the sync session window.
 
 ## Writing Activity Sync (per-device slots)
 
@@ -452,7 +470,7 @@ After entity transfer, the client syncs **writing activity** — an auxiliary re
 
 The model is intentionally conflict-free by construction: **only the owning device ever writes its own slot**. When the client pulls the server's view, it wholesale-overwrites its local copies of *foreign* device slots, and merges only its *own* slot before pushing it back. There is no hash-based conflict detection like entity sync or project_data — each device is the sole writer of its slot, so there is nothing to conflict on across devices.
 
-For the device's own slot, `mergeOwnSlotSessions` (see [SessionMerge.kt](common/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/common/data/writingactivity/SessionMerge.kt)) unions sessions by `startedAt`. On collision it keeps the higher `wordsWritten`, the later `endedAt`, and `sealed = local || remote` (sealing is one-way).
+For the device's own slot, `mergeOwnSlotSessions` (see [SessionMerge.kt](../common/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/common/data/writingactivity/SessionMerge.kt)) unions sessions by `startedAt`. On collision it keeps the higher `wordsWritten`, the later `endedAt`, and `sealed = local || remote` (sealing is one-way).
 
 ```mermaid
 sequenceDiagram
@@ -479,7 +497,7 @@ Endpoints (the project is identified by `projectId` in the path):
 - `GET  /api/project/{userId}/{projectId}/writing_activity` → `WritingActivityResponse` (`Map<deviceId, DeviceLog>`)
 - `POST /api/project/{userId}/{projectId}/writing_activity/{deviceId}` body: `DeviceLog`
 
-Data shapes (`WritingSession`, `DeviceLog`, `WritingActivityResponse`) live in [WritingSession.kt](base/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/base/http/writingactivity/WritingSession.kt).
+Data shapes (`WritingSession`, `DeviceLog`, `WritingActivityResponse`) live in [WritingSession.kt](../base/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/base/http/writingactivity/WritingSession.kt).
 
 Both GET and POST failures are logged and swallowed: the writing-activity phase never fails the surrounding project sync. Activity data is auxiliary observability — a transient network or server error must not block the user's actual content from syncing. Local state is left untouched on a failed GET, so the next sync simply tries again.
 
@@ -488,7 +506,8 @@ Beyond the network side of the Protocol, the Client is doing a bit of work to en
 
 ```mermaid
 flowchart TD
-    A[PrepareForSync] --> B[FetchLocalData]
+    A[PrepareForSync] --> EP[EnsureProjectId]
+    EP --> B[FetchLocalData]
     B --> C[FetchServerData]
     C --> D[CollateIds]
     D --> E[Backup]
@@ -517,8 +536,8 @@ integer, with the first valid ID being 1
 
 **Sync ID**
 This is a UUID generated by the server and passed back to the client identifying a
-particular syncing session to a particular client. The server will only allow one syncing session per
-account at a time to prevent race conditions.
+particular syncing session to a particular client. The server allows one Account-level session per
+account, and one Project-level session per project, at a time to prevent race conditions.
 
 **Entity Update Sequence**
 A list of Entity IDs in a particular order determined by the server.
