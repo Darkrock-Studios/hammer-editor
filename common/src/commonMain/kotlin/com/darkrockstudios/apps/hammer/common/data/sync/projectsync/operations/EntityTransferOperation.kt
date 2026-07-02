@@ -143,10 +143,6 @@ class EntityTransferOperation(
 	): Boolean {
 		var allSuccess = true
 
-		// Add dirty IDs that are not already in the update sequence
-		val dirtyEntityIds = state.dirtyEntities
-			.map { it.id }
-			.filter { id -> !state.serverSyncData.idSequence.contains(id) }
 		// Add local IDs on top of the server sequence
 		val combinedSequence = if (state.maxId > state.serverSyncData.lastId) {
 			val localIds = (state.serverSyncData.lastId + 1..state.maxId).toList()
