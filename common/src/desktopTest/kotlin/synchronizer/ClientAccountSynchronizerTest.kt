@@ -480,6 +480,28 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
+	fun `syncProjects does not recreate a project deleted locally that the server still lists`() = runTest {
+		val id = ProjectId.randomUUID()
+		val serverProject = ApiProjectDefinition(name = "DeadNovel", uuid = id)
+		writeSyncData(emptySyncData().copy(projectsToDelete = setOf(id)))
+
+		// The begin_sync snapshot was taken before our delete request, so it still lists the project.
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(projects = setOf(serverProject)))
+		coEvery { serverProjectsApi.deleteProject(id, "sync-1") } returns Result.success("ok")
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+		every { projectsRepository.findProject(any<String>()) } returns null
+		every { projectsRepository.createProject(any()) } returns CResult.success(projectDef("DeadNovel"))
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify { serverProjectsApi.deleteProject(id, "sync-1") }
+		verify(exactly = 0) { projectsRepository.createProject(any()) }
+		verify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+	}
+
+	@Test
 	fun `syncProjects creates a local project from a new server project`() = runTest {
 		writeSyncData(emptySyncData())
 		val serverId = ProjectId.randomUUID()

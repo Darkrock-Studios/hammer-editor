@@ -232,7 +232,7 @@ class ClientAccountSynchronizer(
 
 		// Replace client renamed projects in the list of projects to sync
 		updatedServerSyncData = updatedServerSyncData.copy(
-			projects = serverSyncData.projects.map { serverProj ->
+			projects = updatedServerSyncData.projects.map { serverProj ->
 				val renamed = clientSyncData.projectsToRename
 					.find { (clientProjId, _) -> clientProjId == serverProj.uuid }
 
