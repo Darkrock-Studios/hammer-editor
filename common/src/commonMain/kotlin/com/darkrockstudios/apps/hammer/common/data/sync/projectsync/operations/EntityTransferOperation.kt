@@ -213,9 +213,18 @@ class EntityTransferOperation(
 								state.combinedDeletions += entityId
 								true
 							} else {
-								// TODO what do we do here?
-								Napier.w("Entity ID $entityId missing from server, but it does exist locally, should we upload it? How did we get here?")
-								false
+								// The server lost an entity we still hold. Known deletions were
+								// skipped earlier in the loop, so no deletion record exists on
+								// either side: preserve the content by re-uploading it. No
+								// baseline — the server has nothing to conflict with.
+								Napier.w("Entity ID $entityId missing from server but present locally, re-uploading it to heal")
+								uploadEntity(
+									thisId,
+									state.serverSyncData.syncId,
+									null,
+									onConflict,
+									onLog
+								)
 							}
 						} else {
 							Napier.d("Download failed for ID $thisId")
