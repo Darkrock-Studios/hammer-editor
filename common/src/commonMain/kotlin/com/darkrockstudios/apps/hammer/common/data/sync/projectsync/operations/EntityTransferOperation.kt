@@ -364,14 +364,17 @@ class EntityTransferOperation(
 					)
 					Napier.w("Stale server hash detected for entity $id. Cached: ${exception.cachedHash}, Computed: ${exception.computedHash}")
 
-					// Heal the server by force uploading our local copy
+					// Heal the server by force uploading our local copy. Legacy servers
+					// (pre read-repair) refuse the download until healed, so without a
+					// local copy to upload this is a real failure, not a heal.
 					suspend fun onConflict(entity: ApiProjectEntity) {
 						val message = strRes.get(Res.string.sync_log_entity_conflict, entity.id, entity.type)
 						onLog(syncLogE(message, projectDef))
 						throw IllegalStateException(message)
 					}
 
-					val uploadSuccess = uploadEntity(id, syncId, null, ::onConflict, onLog, force = true)
+					val uploadSuccess = entitySynchronizers.clientHasEntity(id) &&
+						uploadEntity(id, syncId, null, ::onConflict, onLog, force = true)
 					if (uploadSuccess) {
 						onLog(
 							syncLogI(

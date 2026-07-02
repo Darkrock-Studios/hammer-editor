@@ -287,47 +287,32 @@ sequenceDiagram
 	end
 ```
 
-#### Stale Hash Detection and Self-Healing
+#### Stale Hash Read-Repair (server-side)
 
-During a download, the server compares its cached entity hash with a freshly computed hash. If they don't match (which
-can occur due to schema evolution, such as adding new fields to entities), the server returns a 412 Precondition Failed
-response with details about the mismatch.
+The server stores a per-entity hash alongside the entity content. That hash is derived metadata —
+the content is the truth. If the hash algorithm or serialized shape changes between when a row was
+written and when it's next read (schema evolution, adding fields to entities), the stored hash goes
+stale.
 
-The client handles this by force uploading its local copy to "heal" the server's stale cache. This self-healing protocol
-ensures that schema changes don't cause persistent sync issues.
+The server repairs this itself, lazily, on download: when loading an entity it compares the stored
+hash against a hash freshly computed from the content, and on mismatch it rewrites the stored hash
+and serves the download normally. The client never sees the repair. Because a stale hash also makes
+the entity look changed to the `Entity Update Sequence` check, every stale entity is guaranteed to
+be offered for download, so lazy repair converges without any O(n) sweep.
 
-```mermaid
-sequenceDiagram
-    participant Client
-    participant Server
+##### Legacy: 412 Stale Hash Self-Healing
 
-    Client->>Server: GET /api/project/$userId/$projectId/download_entity/$entityId
-	activate Server
-	Note over Server: Cached hash != Computed hash
-
-	Server -->> Client: 412 Precondition Failed
-	deactivate Server
-	activate Client
-	Note left of Server: StaleHashResponse<br/>{entityId, message, cachedHash, computedHash}
-
-	Note right of Client: Client detects stale cache<br/>and initiates healing
-	Client->>Server: POST /api/project/$userId/$projectId/upload_entity/$entityId?force=true
-	deactivate Client
-	activate Server
-	Note right of Client: Force upload to heal server cache<br/>(no X-Original-Hash — force skips the conflict check)
-
-	Server -->> Client: 200 OK
-	deactivate Server
-	activate Client
-	Note left of Server: SaveEntityResponse<br/>Server cache now healed
-```
-
-This mechanism is transparent to the user and ensures data consistency across schema migrations without requiring manual
-intervention or database migrations.
+Older servers (pre read-repair) instead respond to a stale hash with `412 Precondition Failed` and a
+`StaleHashResponse` (`{entityId, message, cachedHash, computedHash}`), expecting the client to heal
+the server by force-uploading its local copy (no `X-Original-Hash` — force skips the conflict
+check). The client retains this handler for compatibility with old servers. If the client has no
+local copy of the entity to upload (e.g. a fresh install), the heal is impossible and the entity is
+reported as failed for that sync — against such servers the entity remains undownloadable until a
+client that still has a copy syncs.
 
 #### Post-Download Enrichment Heal (client-initiated)
 
-The 412 heal above is driven by the *server* noticing its own cache is stale. A second,
+The read-repair above is driven by the *server* noticing its own hash is stale. A second,
 complementary heal is driven
 entirely by the *client*, at the download chokepoint.
 

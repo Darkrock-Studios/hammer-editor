@@ -9,7 +9,6 @@ import com.darkrockstudios.apps.hammer.base.http.HEADER_ENTITY_TYPE
 import com.darkrockstudios.apps.hammer.base.http.HEADER_ORIGINAL_HASH
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.base.http.SaveEntityResponse
-import com.darkrockstudios.apps.hammer.base.http.StaleHashResponse
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataUploadRequest
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
@@ -286,11 +285,10 @@ private fun Route.downloadEntity(log: Logger) {
 		val entityId = call.requireEntityId() ?: return@get
 		val syncId = call.requireSyncId() ?: return@get
 
-		val cachedHash = projectEntityRepository.getCachedHash(principal.id, projectDef, entityId)
 		val result = projectEntityRepository.loadEntity(principal.id, projectDef, entityId, syncId)
 
 		if (isSuccess(result)) {
-			respondDownloadedEntity(log, entityId, entityHash, cachedHash, result.data)
+			respondDownloadedEntity(log, entityId, entityHash, result.data)
 		} else {
 			respondDownloadFailure(log, entityId, result)
 		}
@@ -301,24 +299,10 @@ private suspend fun RoutingContext.respondDownloadedEntity(
 	log: Logger,
 	entityId: Int,
 	entityHash: String?,
-	cachedHash: String?,
 	serverEntity: ApiProjectEntity,
 ) {
 	val serverEntityHash = serverEntity.hash()
 
-	if (cachedHash != null && cachedHash != serverEntityHash) {
-		log.warn("Stale hash detected for entity $entityId. Cached: $cachedHash, Computed: $serverEntityHash")
-		call.respond(
-			status = HttpStatusCode.PreconditionFailed,
-			StaleHashResponse(
-				entityId = entityId,
-				message = "Server cached hash is stale",
-				cachedHash = cachedHash,
-				computedHash = serverEntityHash,
-			),
-		)
-		return
-	}
 	if (entityHash != null && entityHash == serverEntityHash) {
 		call.respond(HttpStatusCode.NotModified)
 		return

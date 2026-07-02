@@ -326,14 +326,6 @@ class ProjectEntityRepository(
 		}
 	}
 
-	suspend fun getCachedHash(
-		userId: Long,
-		projectDef: ProjectDefinition,
-		entityId: Int
-	): String? {
-		return projectEntityDatasource.getCachedHash(userId, projectDef, entityId)
-	}
-
 	private suspend fun validateSyncId(
 		userId: Long,
 		projectDef: ProjectDefinition,
