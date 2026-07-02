@@ -32,10 +32,15 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryE
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.cacheDir
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
+import io.github.vinceglb.filekit.div
+import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.path
+import io.github.vinceglb.filekit.readBytes
 import io.github.vinceglb.filekit.size
+import io.github.vinceglb.filekit.write
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
@@ -149,8 +154,13 @@ internal fun CreateEntryUi(
 										EncyclopediaDatasource.MAX_IMAGE_SIZE_MB,
 									)
 								)
+							} else if (picked != null) {
+								val bytes = picked.readBytes()
+								val localCopy = FileKit.cacheDir / picked.name
+								localCopy.write(bytes)
+								imagePath = localCopy
 							} else {
-								imagePath = picked
+								imagePath = null
 							}
 						}
 					},

@@ -54,10 +54,15 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryR
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.cacheDir
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
+import io.github.vinceglb.filekit.div
+import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.path
+import io.github.vinceglb.filekit.readBytes
 import io.github.vinceglb.filekit.size
+import io.github.vinceglb.filekit.write
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -304,7 +309,13 @@ internal fun ViewEntryUi(
 						)
 					)
 				} else {
-					scope.launch { component.setImage(file.path) }
+					val localPath = withContext(dispatcherDefault) {
+						val bytes = file.readBytes()
+						val localCopy = FileKit.cacheDir / file.name
+						localCopy.write(bytes)
+						localCopy.path
+					}
+					scope.launch { component.setImage(localPath) }
 				}
 			}
 			component.closeAddImageDialog()
