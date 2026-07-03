@@ -106,6 +106,73 @@ class ProjectsTest : EndToEndTest() {
 	}
 
 	@Test
+	fun `Projects Sync - All account endpoints accept POST`(): Unit = runBlocking {
+		val database = database()
+		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		TestDataSet1.createFullDataset(database, encryptor())
+		val userId = 1L
+		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
+		doStartServer()
+
+		client().apply {
+			// Begin Sync
+			val beginSyncResponse = post(api("projects/$userId/begin_sync")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+					append("Authorization", "Bearer ${authToken.auth}")
+				}
+			}
+			assertEquals(HttpStatusCode.OK, beginSyncResponse.status)
+			val syncId = beginSyncResponse.body<BeginProjectsSyncResponse>().syncId
+
+			// Create Project
+			val newProjectName = "New Project"
+			val createProjectResponse = post(api("projects/$userId/create")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+					append("Authorization", "Bearer ${authToken.auth}")
+					append(HEADER_SYNC_ID, syncId)
+				}
+				parameter("projectName", newProjectName)
+			}
+			assertEquals(HttpStatusCode.OK, createProjectResponse.status)
+
+			// Rename Project
+			val renameProjectResponse = post(api("projects/$userId/rename")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+					append("Authorization", "Bearer ${authToken.auth}")
+					append(HEADER_SYNC_ID, syncId)
+				}
+				parameter("projectId", TestDataSet1.project1.uuid)
+				parameter("projectName", "Renamed Project")
+			}
+			assertEquals(HttpStatusCode.OK, renameProjectResponse.status)
+
+			// Delete Project
+			val deleteProjectResponse = post(api("projects/$userId/delete")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+					append("Authorization", "Bearer ${authToken.auth}")
+					append(HEADER_SYNC_ID, syncId)
+				}
+				parameter("projectId", TestDataSet1.project1.uuid)
+			}
+			assertEquals(HttpStatusCode.OK, deleteProjectResponse.status)
+
+			// End sync
+			val endSyncResponse = post(api("projects/$userId/end_sync")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+					append("Authorization", "Bearer ${authToken.auth}")
+					append(HEADER_SYNC_ID, syncId)
+				}
+			}
+			assertEquals(HttpStatusCode.OK, endSyncResponse.status)
+		}
+	}
+
+	@Test
 	fun `Projects Sync - Beginning again reclaims the same install's existing session`(): Unit = runBlocking {
 		val database = database()
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
