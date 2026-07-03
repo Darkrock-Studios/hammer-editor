@@ -14,6 +14,7 @@ import kotlinx.serialization.Serializable
 
 class ProjectListModalRouter(
 	componentContext: ComponentContext,
+	private val onReauthSuccess: () -> Unit,
 ) : Router {
 	private val navigation = SlotNavigation<Config>()
 
@@ -46,7 +47,7 @@ class ProjectListModalRouter(
 				ServerReauthenticationComponent(
 					componentContext = componentContext,
 					dismissAuth = ::dismissServerReauthentication,
-					onReauthSuccess = ::showProjectSync,
+					onReauthSuccess = onReauthSuccess,
 				)
 			)
 		}

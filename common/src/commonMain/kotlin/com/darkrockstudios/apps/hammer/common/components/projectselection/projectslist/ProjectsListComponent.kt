@@ -98,7 +98,10 @@ class ProjectsListComponent(
 	private var syncProjectsJob: Job? = null
 	private var syncScope: CoroutineScope? = null
 
-	private val modalRouter = ProjectListModalRouter(componentContext)
+	private val modalRouter = ProjectListModalRouter(
+		componentContext = componentContext,
+		onReauthSuccess = ::showProjectsSync,
+	)
 	override val modalRouterState = modalRouter.state
 
 	private val _state by savableState {

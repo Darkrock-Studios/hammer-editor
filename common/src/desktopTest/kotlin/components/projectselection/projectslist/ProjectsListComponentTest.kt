@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Pr
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
+import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
@@ -24,9 +25,12 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSeri
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -54,6 +58,7 @@ class ProjectsListComponentTest : ComponentTest() {
 	private lateinit var networkConnectivity: NetworkConnectivity
 	private lateinit var metadataDatasource: ProjectMetadataDatasource
 	private lateinit var statsReader: ProjectStatisticsCacheReader
+	private lateinit var reauthUseCase: AccountReauthUseCase
 
 	private lateinit var globalSettings: GlobalSettings
 	private lateinit var settingsUpdates: MutableSharedFlow<GlobalSettings>
@@ -73,6 +78,7 @@ class ProjectsListComponentTest : ComponentTest() {
 		networkConnectivity = mockk(relaxed = true)
 		metadataDatasource = mockk(relaxed = true)
 		statsReader = mockk(relaxed = true)
+		reauthUseCase = mockk(relaxed = true)
 
 		globalSettings = GlobalSettings(
 			projectsDirectory = "/projects",
@@ -95,6 +101,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			single { networkConnectivity }
 			single { metadataDatasource }
 			single { statsReader }
+			single { reauthUseCase }
 			single<FileSystem> { FakeFileSystem() }
 			single<Toml> { createTomlSerializer() }
 			single<StrRes> { TestStrRes() }
@@ -410,6 +417,37 @@ class ProjectsListComponentTest : ComponentTest() {
 		comp.dismissProjectDelete()
 		assertIs<ProjectsList.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
 	}
+
+	// --- sync reauthentication -------------------------------------------------
+
+	@OptIn(ExperimentalCoroutinesApi::class)
+	@Test
+	fun `successful reauthentication after an unauthorized sync starts a new sync`() =
+		runTest(mainTestDispatcher) {
+			every { synchronizer.isServerSynchronized() } returns true
+			var syncCalls = 0
+			coEvery { synchronizer.syncProjects(any(), any()) } coAnswers {
+				syncCalls++
+				// First sync hits a 401 and reports unauthorized; the retry just fails plainly.
+				if (syncCalls == 1) secondArg<suspend () -> Unit>().invoke()
+				false
+			}
+			coEvery { reauthUseCase.reauthenticate(any()) } returns CResult.success()
+			val comp = newComponent()
+
+			comp.showProjectsSync()
+			advanceUntilIdle()
+
+			val reauth = comp.modalRouterState.value.child?.instance
+			assertIs<ProjectsList.ModalDestination.ServerReauth>(reauth)
+
+			reauth.component.updateServerPassword("hunter2")
+			reauth.component.reauthenticate("hunter2")
+			advanceUntilIdle()
+
+			coVerify(exactly = 2) { synchronizer.syncProjects(any(), any()) }
+			assertIs<ProjectsList.ModalDestination.ProjectSync>(comp.modalRouterState.value.child?.instance)
+		}
 
 	// --- loadProjectList -----------------------------------------------------
 
