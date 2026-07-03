@@ -82,7 +82,7 @@ class SceneEditorRepositoryLoadTest : BaseTest() {
 
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
-			rootDir.toPath().div(SceneEditorRepositoryMoveTest.PROJ_DIR).toHPath()
+			rootDir.toPath().div(SceneRepositoryTestBase.PROJ_DIR).toHPath()
 
 		setupKoin()
 	}

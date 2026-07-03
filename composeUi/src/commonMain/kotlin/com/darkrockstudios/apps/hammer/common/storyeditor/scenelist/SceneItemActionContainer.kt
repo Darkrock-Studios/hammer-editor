@@ -10,6 +10,7 @@ expect fun SceneItemActionContainer(
 	onSceneDeleteClick: (scene: SceneItem) -> Unit,
 	onSceneRenameClick: (scene: SceneItem) -> Unit,
 	onSceneArchiveClick: (scene: SceneItem) -> Unit,
+	onSceneMoveClick: (scene: SceneItem) -> Unit,
 	shouldNux: Boolean = false,
 	itemContent: @Composable (modifier: Modifier) -> Unit,
 )

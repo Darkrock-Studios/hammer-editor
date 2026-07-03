@@ -1,14 +1,49 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Archive
+import androidx.compose.material.icons.filled.CreateNewFolder
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PostAdd
+import androidx.compose.material3.Badge
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -20,12 +55,19 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.archived_scenes_restored_snackbar
+import com.darkrockstudios.apps.hammer.collapse
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.serializableSaver
+import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.emptySceneSummary
@@ -34,6 +76,20 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.Sc
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.SceneTreeState
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree.rememberReorderableLazyListState
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.expand
+import com.darkrockstudios.apps.hammer.more_menu_button
+import com.darkrockstudios.apps.hammer.scene_archived_snackbar
+import com.darkrockstudios.apps.hammer.scene_list_add_button
+import com.darkrockstudios.apps.hammer.scene_list_count_format
+import com.darkrockstudios.apps.hammer.scene_list_create_group_dialog_message
+import com.darkrockstudios.apps.hammer.scene_list_create_group_dialog_title
+import com.darkrockstudios.apps.hammer.scene_list_create_menu_group
+import com.darkrockstudios.apps.hammer.scene_list_create_menu_scene
+import com.darkrockstudios.apps.hammer.scene_list_create_scene_dialog_message
+import com.darkrockstudios.apps.hammer.scene_list_create_scene_dialog_title
+import com.darkrockstudios.apps.hammer.scene_list_header
+import com.darkrockstudios.apps.hammer.scene_list_outline_overview_button
+import com.darkrockstudios.apps.hammer.view_archived_scenes_button
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -66,15 +122,24 @@ fun SceneListUi(
 	var sceneDefDeleteTarget by rememberSaveable(stateSaver = serializableSaver<SceneItem>()) { mutableStateOf(null) }
 	var sceneDefRenameTarget by rememberSaveable(stateSaver = serializableSaver<SceneItem>()) { mutableStateOf(null) }
 	var sceneDefArchiveTarget by rememberSaveable(stateSaver = serializableSaver<SceneItem>()) { mutableStateOf(null) }
+	var sceneDefMoveTarget by rememberSaveable(stateSaver = serializableSaver<SceneItem>()) {
+		mutableStateOf(
+			null
+		)
+	}
 
 	var showCreateGroupDialog by rememberSaveable(stateSaver = serializableSaver<SceneItem>()) { mutableStateOf(null) }
 	var showCreateSceneDialog by rememberSaveable(stateSaver = serializableSaver<SceneItem>()) { mutableStateOf(null) }
 
 	var addMenuOpen by remember { mutableStateOf(false) }
 
+	fun moveScene(request: MoveRequest) {
+		scope.launch { component.moveScene(request) }
+	}
+
 	val treeState = rememberReorderableLazyListState(
 		summary = state.sceneSummary ?: emptySceneSummary(state.projectDef),
-		moveItem = { scope.launch { component.moveScene(it) } }
+		moveItem = ::moveScene
 	)
 	LaunchedEffect(state.sceneSummary) {
 		state.sceneSummary?.let { summary ->
@@ -161,6 +226,9 @@ fun SceneListUi(
 							},
 							sceneDefArchiveTarget = { archiveTarget ->
 								sceneDefArchiveTarget = archiveTarget
+							},
+							sceneDefMoveTarget = { moveTarget ->
+								sceneDefMoveTarget = moveTarget
 							},
 							createScene = { parent -> showCreateSceneDialog = parent },
 							createGroup = { parent -> showCreateGroupDialog = parent },
@@ -291,6 +359,15 @@ fun SceneListUi(
 		ArchiveSceneDialog(scene, scope, component, mainDispatcher, snackbarHostState, strRes) {
 			sceneDefArchiveTarget = null
 		}
+	}
+
+	sceneDefMoveTarget?.let { scene ->
+		MoveSceneDialog(
+			item = scene,
+			tree = treeState.summary.sceneTree,
+			onDismiss = { sceneDefMoveTarget = null },
+			onMove = ::moveScene,
+		)
 	}
 
 	if (state.showArchivedDialog) {
@@ -461,6 +538,7 @@ private fun SceneNode(
 	sceneDefDeleteTarget: (SceneItem) -> Unit,
 	sceneDefRenameTarget: (SceneItem) -> Unit,
 	sceneDefArchiveTarget: (SceneItem) -> Unit,
+	sceneDefMoveTarget: (SceneItem) -> Unit,
 	createScene: (SceneItem) -> Unit,
 	createGroup: (SceneItem) -> Unit,
 ) {
@@ -480,6 +558,7 @@ private fun SceneNode(
 			onSceneDeleteRequest = sceneDefDeleteTarget,
 			onSceneRenameRequest = sceneDefRenameTarget,
 			onSceneArchiveRequest = sceneDefArchiveTarget,
+			onSceneMoveRequest = sceneDefMoveTarget,
 		)
 	} else {
 		SceneGroupItem(
@@ -491,6 +570,7 @@ private fun SceneNode(
 			shouldNux = doNux,
 			onSceneDeleteRequest = sceneDefDeleteTarget,
 			onSceneRenameRequest = sceneDefRenameTarget,
+			onSceneMoveRequest = sceneDefMoveTarget,
 			onCreateGroupClick = createGroup,
 			onCreateSceneClick = createScene
 		)

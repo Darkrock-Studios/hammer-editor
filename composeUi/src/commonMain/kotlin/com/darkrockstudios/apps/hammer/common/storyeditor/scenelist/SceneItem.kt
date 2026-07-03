@@ -3,7 +3,10 @@ package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -33,11 +36,19 @@ internal fun SceneItem(
 	onSceneDeleteRequest: (SceneItem) -> Unit,
 	onSceneRenameRequest: (SceneItem) -> Unit,
 	onSceneArchiveRequest: (SceneItem) -> Unit,
+	onSceneMoveRequest: (SceneItem) -> Unit,
 ) {
 	val bg = if (isSelected) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent
 	val accent = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
 
-	SceneItemActionContainer(scene, onSceneDeleteRequest, onSceneRenameRequest, onSceneArchiveRequest, shouldNux) {
+	SceneItemActionContainer(
+		scene,
+		onSceneDeleteRequest,
+		onSceneRenameRequest,
+		onSceneArchiveRequest,
+		onSceneMoveRequest,
+		shouldNux,
+	) {
 		Box(
 			modifier = draggable
 				.fillMaxWidth()

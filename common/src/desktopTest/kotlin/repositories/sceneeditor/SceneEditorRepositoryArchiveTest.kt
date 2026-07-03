@@ -32,7 +32,11 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
-import kotlin.test.*
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -89,7 +93,7 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
-			rootDir.toPath().div(SceneEditorRepositoryMoveTest.PROJ_DIR).toHPath()
+			rootDir.toPath().div(SceneRepositoryTestBase.PROJ_DIR).toHPath()
 
 		mockkObject(ProjectsRepository.Companion)
 

@@ -36,6 +36,7 @@ internal fun findInsertPosition(
 	layouts: List<LazyListItemInfo>,
 	collapsedGroups: SnapshotStateMap<Int, Boolean>,
 	tree: ImmutableTree<SceneItem>,
+	visibleNodes: List<TreeValue<SceneItem>>,
 	selectedNode: TreeValue<SceneItem>?,
 ): InsertPosition? {
 	if (selectedNode == null) return null
@@ -52,7 +53,11 @@ internal fun findInsertPosition(
 			&& dragY >= itemPos
 			&& dragY <= (itemPos + size)
 		) {
-			val leaf = tree.findBy { it.id == id } ?: continue
+			// Rendered rows come from visibleNodes; the tree search covers layout info
+			// that is a frame behind a mid-drag tree update.
+			val leaf = visibleNodes.find { it.value.id == id }
+				?: tree.findBy { it.id == id }
+				?: continue
 			val isAncestorOf = tree.isAncestorOf(
 				needleIndex = selectedNode.index,
 				leafIndex = leaf.index
@@ -67,28 +72,27 @@ internal fun findInsertPosition(
 
 				// Leaf is a group
 				foundItemId = if (leaf.value.type.isCollection) {
+					if (collapsedGroups[leaf.value.id] == true) {
+						// Collapsed group: thirds — above, into, or below the group
+						val third = size / 3f
+						when {
+							localY < third -> InsertPosition(tree.getCoordinatesFor(leaf), true)
+							localY > third * 2 -> InsertPosition(
+								tree.getCoordinatesFor(leaf),
+								false
+							)
+
+							else -> firstPositionInGroup(tree, leaf)
+						}
+					}
 					// Insert above group
-					if (before) {
+					else if (before) {
 						val coords = tree.getCoordinatesFor(leaf)
 						InsertPosition(coords, true)
 					}
 					// Insert as first item in group
 					else {
-						if (collapsedGroups[leaf.value.id] == true) {
-							val coords = tree.getCoordinatesFor(leaf)
-							InsertPosition(coords, false)
-						} else if (leaf.children.isNotEmpty()) {
-							val coords = tree.getCoordinatesFor(leaf.children[0])
-							InsertPosition(coords, true)
-						} else {
-							// Empty group - use -1 as sentinel for globalIndex
-							val coords = NodeCoordinates(
-								globalIndex = -1,
-								parentIndex = leaf.index,
-								childLocalIndex = 0
-							)
-							InsertPosition(coords, false)
-						}
+						firstPositionInGroup(tree, leaf)
 					}
 				}
 				// Leaf is just a leaf
@@ -102,4 +106,21 @@ internal fun findInsertPosition(
 		}
 	}
 	return foundItemId
+}
+
+private fun firstPositionInGroup(
+	tree: ImmutableTree<SceneItem>,
+	group: TreeValue<SceneItem>,
+): InsertPosition {
+	return if (group.children.isNotEmpty()) {
+		InsertPosition(tree.getCoordinatesFor(group.children[0]), true)
+	} else {
+		// Empty group - use -1 as sentinel for globalIndex
+		val coords = NodeCoordinates(
+			globalIndex = -1,
+			parentIndex = group.index,
+			childLocalIndex = 0
+		)
+		InsertPosition(coords, false)
+	}
 }

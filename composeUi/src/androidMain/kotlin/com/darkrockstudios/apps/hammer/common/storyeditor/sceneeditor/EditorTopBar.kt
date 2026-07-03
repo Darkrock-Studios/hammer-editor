@@ -1,22 +1,53 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor
 
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material3.*
+import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Save
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
-import com.darkrockstudios.apps.hammer.common.compose.*
+import com.darkrockstudios.apps.hammer.common.compose.FormDialog
+import com.darkrockstudios.apps.hammer.common.compose.FormField
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.NameKind
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.TopBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdUnsavedBadge
+import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.storyeditor.sceneTypeMeta
+import com.darkrockstudios.apps.hammer.scene_editor_cancel_button
+import com.darkrockstudios.apps.hammer.scene_editor_focus_mode_button
+import com.darkrockstudios.apps.hammer.scene_editor_metadata_button
+import com.darkrockstudios.apps.hammer.scene_editor_name_hint
+import com.darkrockstudios.apps.hammer.scene_editor_rename_button
+import com.darkrockstudios.apps.hammer.scene_editor_rename_dialog_title
+import com.darkrockstudios.apps.hammer.scene_editor_save_button
+import com.darkrockstudios.apps.hammer.scene_editor_toast_save_successful
+import com.darkrockstudios.apps.hammer.scene_editor_unsaved_chip
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -104,11 +135,7 @@ private fun RenameSceneDialog(
 
 	val validation = rememberNameValidation(editSceneNameValue, NameKind.SceneItem)
 
-	val meta = when (state.sceneItem.type) {
-		SceneItem.Type.Scene -> "SCENE"
-		SceneItem.Type.Group -> "GROUP"
-		SceneItem.Type.Root -> "ROOT"
-	}
+	val meta = sceneTypeMeta(state.sceneItem)
 
 	fun submit() {
 		if (validation.isValid) dialogScope.launch { component.changeSceneName(editSceneNameValue) }
