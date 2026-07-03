@@ -81,6 +81,7 @@ internal fun ViewEntryUi(
 	val strRes = rememberStrRes()
 	val dispatcherMain = rememberMainDispatcher()
 	val dispatcherDefault = rememberDefaultDispatcher()
+	val dispatcherIo = rememberIoDispatcher()
 	val state by component.state.subscribeAsState()
 
 	var entryNameText by rememberSaveable { mutableStateOf(state.content?.name ?: "") }
@@ -304,7 +305,14 @@ internal fun ViewEntryUi(
 						)
 					)
 				} else {
-					scope.launch { component.setImage(file.path) }
+					val localCopy = withContext(dispatcherIo) { file.stageIntoCache() }
+					if (localCopy != null) {
+						scope.launch { component.setImage(localCopy.path) }
+					} else {
+						rootSnackbar.showSnackbar(
+							strRes.get(Res.string.encyclopedia_create_entry_image_load_failed)
+						)
+					}
 				}
 			}
 			component.closeAddImageDialog()
@@ -758,7 +766,7 @@ private fun InsetFigure(
 			val context = LocalPlatformContext.current
 			with(sharedTransitionScope) {
 				AsyncImage(
-					model = remember(imagePath) {
+					model = remember(imagePath, state.entryImageHash) {
 						ImageRequest.Builder(context)
 							.data(imagePath)
 							.memoryCacheKeyExtras(

@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertContentEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -184,6 +185,24 @@ class EncyclopediaRepositoryImageTest : BaseTest() {
 
 		repo.setEntryImage(def, sourcePath)
 		assertNotNull(repo.calculateEntryImageHash(def, "jpg"))
+	}
+
+	@Test
+	fun `calculateEntryImageHash changes when the image is replaced with different bytes`() = runTest {
+		val repo = repository()
+		val def = entry1().toDef(projDef)
+
+		repo.setEntryImage(def, sourcePath)
+		val originalHash = repo.calculateEntryImageHash(def, "jpg")
+
+		val replacementSource = "/external/replacement.jpg"
+		every { externalFileIo.readExternalFile(replacementSource) } returns byteArrayOf(9, 8, 7, 6)
+		repo.setEntryImage(def, replacementSource)
+		val replacedHash = repo.calculateEntryImageHash(def, "jpg")
+
+		assertNotNull(originalHash)
+		assertNotNull(replacedHash)
+		assertNotEquals(originalHash, replacedHash)
 	}
 
 	@Test
