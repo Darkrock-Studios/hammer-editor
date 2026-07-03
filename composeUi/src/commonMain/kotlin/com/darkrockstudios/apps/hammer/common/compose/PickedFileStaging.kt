@@ -10,10 +10,12 @@ import io.github.vinceglb.filekit.readBytes
 import io.github.vinceglb.filekit.write
 import kotlin.coroutines.cancellation.CancellationException
 
-// Files picked outside the app sandbox (e.g. iCloud on iOS) are only readable through the
-// security-scoped access granted at pick time. Copy the bytes into the app cache now, while
-// that scope is live, so downstream code can re-open the file by path. Returns null if the
-// copy fails.
+/**
+ * Files picked from outside the app sandbox — iCloud on iOS, `content://` providers on Android —
+ * are only readable through the scoped access granted at pick time. Copy the bytes into the app
+ * cache now, while that scope is live, so downstream code can re-open the file by path. Returns
+ * null if the copy fails.
+ */
 suspend fun PlatformFile.stageIntoCache(): PlatformFile? {
 	return try {
 		val bytes = readBytes()

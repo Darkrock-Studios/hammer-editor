@@ -96,9 +96,7 @@ internal fun EncyclopediaEntryItem(
 		loadContentJob?.cancel()
 		loadContentJob = scope.launch(ioDispatcher) {
 			val imagePath = component.getImagePath(entryDef)
-			// The image's filename is stable across replacement, so the cache key must include
-			// a content hash — otherwise Coil keeps serving the old cached bytes after a photo
-			// is replaced (same path key, stale cache entry).
+			// The image's filename is stable across replacement, so the cache key must be unique
 			val imageHash = imagePath?.let { component.calculateEntryImageHash(entryDef) }
 			val content = component.loadEntryContent(entryDef)
 			withContext(mainDispatcher) {
