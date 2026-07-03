@@ -54,15 +54,10 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryR
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.vinceglb.filekit.FileKit
-import io.github.vinceglb.filekit.cacheDir
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
-import io.github.vinceglb.filekit.div
-import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.path
-import io.github.vinceglb.filekit.readBytes
 import io.github.vinceglb.filekit.size
-import io.github.vinceglb.filekit.write
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -86,6 +81,7 @@ internal fun ViewEntryUi(
 	val strRes = rememberStrRes()
 	val dispatcherMain = rememberMainDispatcher()
 	val dispatcherDefault = rememberDefaultDispatcher()
+	val dispatcherIo = rememberIoDispatcher()
 	val state by component.state.subscribeAsState()
 
 	var entryNameText by rememberSaveable { mutableStateOf(state.content?.name ?: "") }
@@ -309,13 +305,14 @@ internal fun ViewEntryUi(
 						)
 					)
 				} else {
-					val localPath = withContext(dispatcherDefault) {
-						val bytes = file.readBytes()
-						val localCopy = FileKit.cacheDir / file.name
-						localCopy.write(bytes)
-						localCopy.path
+					val localCopy = withContext(dispatcherIo) { file.stageIntoCache() }
+					if (localCopy != null) {
+						scope.launch { component.setImage(localCopy.path) }
+					} else {
+						rootSnackbar.showSnackbar(
+							strRes.get(Res.string.encyclopedia_create_entry_image_load_failed)
+						)
 					}
-					scope.launch { component.setImage(localPath) }
 				}
 			}
 			component.closeAddImageDialog()
@@ -769,7 +766,7 @@ private fun InsetFigure(
 			val context = LocalPlatformContext.current
 			with(sharedTransitionScope) {
 				AsyncImage(
-					model = remember(imagePath) {
+					model = remember(imagePath, state.entryImageHash) {
 						ImageRequest.Builder(context)
 							.data(imagePath)
 							.memoryCacheKeyExtras(

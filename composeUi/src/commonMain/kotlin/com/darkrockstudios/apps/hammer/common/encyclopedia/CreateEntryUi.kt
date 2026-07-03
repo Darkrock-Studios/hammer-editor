@@ -32,17 +32,13 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryE
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
-import io.github.vinceglb.filekit.cacheDir
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
-import io.github.vinceglb.filekit.div
-import io.github.vinceglb.filekit.name
 import io.github.vinceglb.filekit.path
-import io.github.vinceglb.filekit.readBytes
 import io.github.vinceglb.filekit.size
-import io.github.vinceglb.filekit.write
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 const val ENCYCLOPEDIA_CREATE_NAME_TAG = "encyclopedia-create-name"
 const val ENCYCLOPEDIA_CREATE_TAGS_TAG = "encyclopedia-create-tags"
@@ -59,6 +55,7 @@ internal fun CreateEntryUi(
 ) {
 	val state by component.state.subscribeAsState()
 	val strRes = rememberStrRes()
+	val dispatcherIo = rememberIoDispatcher()
 
 	var name by rememberSaveable { mutableStateOf("") }
 	var description by rememberSaveable { mutableStateOf("") }
@@ -155,10 +152,14 @@ internal fun CreateEntryUi(
 									)
 								)
 							} else if (picked != null) {
-								val bytes = picked.readBytes()
-								val localCopy = FileKit.cacheDir / picked.name
-								localCopy.write(bytes)
-								imagePath = localCopy
+								val localCopy = withContext(dispatcherIo) { picked.stageIntoCache() }
+								if (localCopy != null) {
+									imagePath = localCopy
+								} else {
+									rootSnackbar.showSnackbar(
+										strRes.get(Res.string.encyclopedia_create_entry_image_load_failed)
+									)
+								}
 							} else {
 								imagePath = null
 							}
