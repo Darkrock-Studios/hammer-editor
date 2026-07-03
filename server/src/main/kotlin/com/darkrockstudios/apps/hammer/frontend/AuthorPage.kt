@@ -36,6 +36,9 @@ fun Route.authorPage(
 			}
 			val penNameForUrl = ProjectName.penNameForUrl(penName)
 
+			// Only surface author pages of community participants to search indexes.
+			call.applyRobotsTag(indexable = account.community_member)
+
 			// Get published stories for this author
 			val stories = projectAccessRepository.getPublishedStoriesByPenName(penName)
 
