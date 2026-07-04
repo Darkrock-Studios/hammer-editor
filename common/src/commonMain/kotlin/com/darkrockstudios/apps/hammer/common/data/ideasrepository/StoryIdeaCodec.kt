@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.ideasrepository
 
 import com.darkrockstudios.apps.hammer.base.IdeaId
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
+import kotlinx.serialization.SerializationException
 import kotlinx.serialization.Serializable
 import net.peanuuutz.tomlkt.Toml
 import kotlin.time.Instant
@@ -110,10 +111,16 @@ class StoryIdeaCodec(toml: Toml) {
 			.lines()
 			.joinToString("\n") { it.trimEnd('\r') }
 
+		// tomlkt does not funnel every decode failure through SerializationException: malformed
+		// input can also throw IllegalArgumentException (numeric coercion, type-mismatch casts)
+		// or IllegalStateException (parser errors such as a malformed date-time).
 		val frontMatter = try {
 			toml.decodeFromString(IdeaFrontMatter.serializer(), block)
-		} catch (e: Exception) {
-			// tomlkt can throw beyond SerializationException on malformed input
+		} catch (e: SerializationException) {
+			throw IdeaCodecException("Malformed front matter", e)
+		} catch (e: IllegalArgumentException) {
+			throw IdeaCodecException("Malformed front matter", e)
+		} catch (e: IllegalStateException) {
 			throw IdeaCodecException("Malformed front matter", e)
 		}
 
@@ -140,7 +147,7 @@ class StoryIdeaCodec(toml: Toml) {
 	fun decodeOrNull(text: String, onError: (Exception) -> Unit = {}): StoryIdea? {
 		return try {
 			decode(text)
-		} catch (e: Exception) {
+		} catch (e: IdeaCodecException) {
 			onError(e)
 			null
 		}
