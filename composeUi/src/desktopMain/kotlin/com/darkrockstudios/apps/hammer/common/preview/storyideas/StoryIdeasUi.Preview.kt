@@ -40,7 +40,7 @@ fun ScreenStoryIdeasUiTabletPreview() {
 
 @Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
 @Composable
-fun ScreenStoryIdeasEditorPreview() {
+fun ScreenStoryIdeasViewPreview() {
 	KoinApplicationPreview {
 		TabletPreviewSurface {
 			StoryIdeasUi(

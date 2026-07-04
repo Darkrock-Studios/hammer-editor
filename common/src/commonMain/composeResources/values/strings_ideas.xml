@@ -31,10 +31,13 @@
 	<string name="ideas_stamp_archived">ARCHIVED · %1$s</string>
 
 	<string name="ideas_create_fab">Capture a new idea</string>
-	<string name="ideas_create_marker">NEW IDEA</string>
-	<string name="ideas_create_header">Capture Idea</string>
-	<string name="ideas_edit_marker">EDIT IDEA</string>
-	<string name="ideas_edit_header">Edit Idea</string>
+	<string name="ideas_create_marker">New Idea</string>
+	<string name="ideas_view_header">Story Idea</string>
+	<string name="ideas_view_label_editing">Editing</string>
+	<string name="ideas_view_status_unsaved">UNSAVED</string>
+	<string name="ideas_view_crumb_root">STORY IDEAS</string>
+	<string name="ideas_view_close_button">Close idea</string>
+	<string name="ideas_view_action_edit">Edit</string>
 	<string name="ideas_title_label">Title</string>
 	<string name="ideas_title_placeholder">Optional title</string>
 	<string name="ideas_tags_label">Tags</string>

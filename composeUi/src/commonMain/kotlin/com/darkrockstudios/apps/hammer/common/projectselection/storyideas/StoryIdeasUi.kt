@@ -1,8 +1,13 @@
-package com.darkrockstudios.apps.hammer.common.projectselection.storyideas
+﻿package com.darkrockstudios.apps.hammer.common.projectselection.storyideas
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
@@ -12,14 +17,22 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
@@ -37,13 +50,14 @@ import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
@@ -55,12 +69,15 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.projectselection.storyideas.StoryIdeas
 import com.darkrockstudios.apps.hammer.common.compose.CollapseWhileTyping
+import com.darkrockstudios.apps.hammer.common.compose.DetailViewDropdownMenu
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdActiveFiltersStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCollapsingStrip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCrumbBackLink
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDetailStampRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
@@ -72,31 +89,32 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortMenu
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortOption
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagFilterBar
 import com.darkrockstudios.apps.hammer.common.compose.firstNonBlankLine
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
+import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.saveShortcutModifier
+import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeaError
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
-import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.idea.StoryIdea
+import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.ideas_archive_button
 import com.darkrockstudios.apps.hammer.ideas_cancel_button
 import com.darkrockstudios.apps.hammer.ideas_create_button
 import com.darkrockstudios.apps.hammer.ideas_create_fab
-import com.darkrockstudios.apps.hammer.ideas_create_header
 import com.darkrockstudios.apps.hammer.ideas_create_marker
 import com.darkrockstudios.apps.hammer.ideas_delete_button
 import com.darkrockstudios.apps.hammer.ideas_delete_dialog_message
 import com.darkrockstudios.apps.hammer.ideas_delete_dialog_title
 import com.darkrockstudios.apps.hammer.ideas_discard_dialog_message
 import com.darkrockstudios.apps.hammer.ideas_discard_dialog_title
-import com.darkrockstudios.apps.hammer.ideas_edit_header
-import com.darkrockstudios.apps.hammer.ideas_edit_marker
 import com.darkrockstudios.apps.hammer.ideas_editor_counter
 import com.darkrockstudios.apps.hammer.ideas_filter_all
 import com.darkrockstudios.apps.hammer.ideas_filter_archived
@@ -137,6 +155,12 @@ import com.darkrockstudios.apps.hammer.ideas_toast_saved
 import com.darkrockstudios.apps.hammer.ideas_toast_tag_too_long
 import com.darkrockstudios.apps.hammer.ideas_toast_too_long
 import com.darkrockstudios.apps.hammer.ideas_unarchive_button
+import com.darkrockstudios.apps.hammer.ideas_view_action_edit
+import com.darkrockstudios.apps.hammer.ideas_view_close_button
+import com.darkrockstudios.apps.hammer.ideas_view_crumb_root
+import com.darkrockstudios.apps.hammer.ideas_view_header
+import com.darkrockstudios.apps.hammer.ideas_view_label_editing
+import com.darkrockstudios.apps.hammer.ideas_view_status_unsaved
 import com.darkrockstudios.apps.hammer.ideas_word_count_short
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -151,7 +175,11 @@ const val IDEAS_CREATE_FAB_TAG = "ideas-create-fab"
 const val IDEAS_EDITOR_BODY_TAG = "ideas-editor-body"
 const val IDEAS_EDITOR_CONFIRM_TAG = "ideas-editor-confirm"
 const val IDEAS_EDITOR_CANCEL_TAG = "ideas-editor-cancel"
+const val IDEAS_VIEW_EDIT_TAG = "ideas-view-edit"
 fun ideaCardTag(id: String) = "idea-card-$id"
+
+private val DetailMaxWidth = TextEditorDefaults.MAX_WIDTH * 1.25f
+private val DetailMaxHeight = 760.dp
 
 private enum class IdeasSortMode(
 	override val labelRes: StringResource,
@@ -189,7 +217,7 @@ fun StoryIdeasUi(
 		label = "StoryIdeasEditorSwap",
 	) { editor ->
 		if (editor != null) {
-			IdeaEditor(
+			IdeaDetail(
 				component = component,
 				editor = editor,
 				rootSnackbar = rootSnackbar,
@@ -567,36 +595,42 @@ private fun IdeaStamps(idea: StoryIdea) {
 }
 
 @Composable
-private fun IdeaEditor(
+private fun IdeaDetail(
 	component: StoryIdeas,
 	editor: StoryIdeas.Editor,
 	rootSnackbar: RootSnackbarHostState,
 ) {
-	val scope = androidx.compose.runtime.rememberCoroutineScope()
+	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
 	val strRes = rememberStrRes()
 
 	val existing = (editor as? StoryIdeas.Editor.Edit)?.idea
+	val isCreate = existing == null
 
+	// Creating starts straight in edit mode; an existing idea opens read-only.
+	var isEditing by rememberSaveable(editor) { mutableStateOf(isCreate) }
 	var titleText by remember(editor) { mutableStateOf(existing?.title.orEmpty()) }
 	var contentText by remember(editor) { mutableStateOf(existing?.content.orEmpty()) }
 	var tags by remember(editor) { mutableStateOf(existing?.tags?.toList().orEmpty()) }
+	// The view body reflects saved edits without waiting for the state flow to round-trip.
+	var savedTitle by remember(editor) { mutableStateOf(existing?.title) }
+	var savedContent by remember(editor) { mutableStateOf(existing?.content.orEmpty()) }
+	var savedTags by remember(editor) { mutableStateOf(existing?.tags ?: emptySet()) }
+
 	var confirmDelete by remember { mutableStateOf(false) }
 	var confirmDiscard by remember { mutableStateOf(false) }
+	var confirmClose by remember { mutableStateOf(false) }
 	var confirmPromote by remember { mutableStateOf(false) }
 
-	val isDirty = titleText != existing?.title.orEmpty() ||
-		contentText != existing?.content.orEmpty() ||
-		tags.toSet() != (existing?.tags ?: emptySet<String>())
+	val isDirty = isEditing && (
+		titleText != savedTitle.orEmpty() ||
+			contentText != savedContent ||
+			tags.toSet() != savedTags
+		)
 
 	val charCount = contentText.length
 	val overLimit = charCount > StoryIdea.MAX_CONTENT_LENGTH
 	val canSave = contentText.isNotBlank() && !overLimit
-
-	val requestClose: () -> Unit = {
-		if (isDirty) confirmDiscard = true
-		else component.closeEditor()
-	}
 
 	suspend fun showError(error: IdeaError) {
 		when (error) {
@@ -614,175 +648,175 @@ private fun IdeaEditor(
 		}
 	}
 
-	Column(
-		modifier = Modifier
-			.fillMaxSize()
-			.widthIn(max = TextEditorDefaults.MAX_WIDTH * 1.25f),
-	) {
-		CollapseWhileTyping {
-			Column(modifier = Modifier.fillMaxWidth()) {
-				HdSectionHeader(
-					marker = stringResource(
-						if (existing == null) Res.string.ideas_create_marker
-						else Res.string.ideas_edit_marker
-					),
-					title = stringResource(
-						if (existing == null) Res.string.ideas_create_header
-						else Res.string.ideas_edit_header
-					),
-					trailing = {
-						existing?.let { IdeaStamps(it) }
-					},
-					modifier = Modifier
-						.fillMaxWidth()
-						.height(Ui.TOP_BAR_HEIGHT)
-						.padding(horizontal = Ui.Padding.XL),
-				)
-
-				HdFolioDivider()
+	val saveChanges: () -> Unit = {
+		scope.launch {
+			val title = titleText.trim().ifEmpty { null }
+			val error = if (existing == null) {
+				component.createIdea(title, contentText, tags.toSet())
+			} else {
+				component.saveIdea(existing.id, title, contentText, tags.toSet())
+			}
+			if (error == IdeaError.NONE) {
+				if (isCreate) {
+					withContext(mainDispatcher) { component.closeEditor() }
+					rootSnackbar.showSnackbar(strRes.get(Res.string.ideas_toast_created))
+				} else {
+					withContext(mainDispatcher) {
+						savedTitle = title
+						savedContent = contentText
+						savedTags = tags.toSet()
+						isEditing = false
+					}
+					rootSnackbar.showSnackbar(strRes.get(Res.string.ideas_toast_saved))
+				}
+			} else {
+				showError(error)
 			}
 		}
+	}
 
-		var titleFocused by remember { mutableStateOf(false) }
-		CollapseWhileTyping(keepVisible = titleFocused) {
-			HdHairlineField(
-				label = stringResource(Res.string.ideas_title_label),
-				value = titleText,
-				onValueChange = { titleText = it },
-				placeholder = stringResource(Res.string.ideas_title_placeholder),
-				onFocusChanged = { titleFocused = it },
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-			)
+	val cancelEdit: () -> Unit = {
+		if (isDirty) {
+			confirmDiscard = true
+		} else if (isCreate) {
+			component.closeEditor()
+		} else {
+			isEditing = false
 		}
+	}
 
-		HdHairlineTagField(
-			label = stringResource(Res.string.ideas_tags_label),
-			tags = tags,
-			onTagsChange = { tags = it },
-			hint = stringResource(Res.string.ideas_tags_hint),
-			placeholder = stringResource(Res.string.ideas_tags_placeholder),
-			suggestTags = component::suggestTags,
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(horizontal = Ui.Padding.XL)
-				.padding(bottom = Ui.Padding.L),
+	val requestClose: () -> Unit = {
+		if (isDirty) confirmClose = true
+		else component.closeEditor()
+	}
+
+	val menuItems = if (existing == null) {
+		emptySet()
+	} else {
+		setOf(
+			MenuItemDescriptor("idea-delete", Res.string.ideas_delete_button, "") {
+				confirmDelete = true
+			},
+			MenuItemDescriptor(
+				"idea-archive",
+				if (existing.archived == null) Res.string.ideas_archive_button
+				else Res.string.ideas_unarchive_button,
+				"",
+			) {
+				scope.launch {
+					if (existing.archived == null) {
+						component.archiveIdea(existing.id)
+					} else {
+						component.unarchiveIdea(existing.id)
+					}
+					withContext(mainDispatcher) { component.closeEditor() }
+				}
+			},
 		)
+	}
 
-		Box(
+	Box(
+		modifier = Modifier
+			.fillMaxSize()
+			.saveShortcutModifier { if (isEditing) saveChanges() }
+			.background(MaterialTheme.colorScheme.surfaceDim),
+		contentAlignment = Alignment.TopCenter,
+	) {
+		Column(
 			modifier = Modifier
 				.padding(horizontal = Ui.Padding.XL)
-				.padding(bottom = Ui.Padding.L)
+				.widthIn(max = DetailMaxWidth)
+				.heightIn(max = DetailMaxHeight)
 				.fillMaxWidth()
-				.weight(1f, fill = true)
+				.then(if (isEditing) Modifier.fillMaxHeight() else Modifier)
+				.background(MaterialTheme.colorScheme.surface)
 				.border(
 					width = Dp.Hairline,
 					color = MaterialTheme.colorScheme.outlineVariant,
 					shape = RectangleShape,
 				),
 		) {
-			key(editor) {
-				MarkdownEditField(
-					initialMarkdown = contentText,
-					onMarkdownChanged = { contentText = it },
-					contentPadding = PaddingValues(Ui.Padding.XL),
-					testTag = IDEAS_EDITOR_BODY_TAG,
-					modifier = Modifier
-						.fillMaxWidth()
-						.widthIn(max = TextEditorDefaults.MAX_WIDTH),
+			CollapseWhileTyping(enabled = isEditing) {
+				Column {
+					CrumbRow(
+						onClose = requestClose,
+						menuSlot = {
+							if (existing != null) {
+								DetailViewDropdownMenu(menuItems = menuItems)
+							}
+						},
+					)
+
+					HorizontalDivider(
+						thickness = Dp.Hairline,
+						color = MaterialTheme.colorScheme.outlineVariant,
+					)
+				}
+			}
+
+			StampRow(
+				isCreate = isCreate,
+				isEditing = isEditing,
+				idea = existing,
+				onEdit = { isEditing = true },
+				onSave = saveChanges,
+				onCancel = cancelEdit,
+				onPromote = { confirmPromote = true },
+				saveEnabled = canSave,
+			)
+
+			HorizontalDivider(
+				thickness = 2.dp,
+				color = MaterialTheme.colorScheme.outline,
+			)
+
+			if (isEditing) {
+				EditBody(
+					titleText = titleText,
+					onTitleChanged = { titleText = it },
+					tags = tags,
+					onTagsChanged = { tags = it },
+					contentText = contentText,
+					onContentChanged = { contentText = it },
+					suggestTags = component::suggestTags,
+					modifier = Modifier.weight(1f),
 				)
+
+				EditStatusFooter(charCount = charCount, overLimit = overLimit)
+			} else {
+				ViewBody(
+					title = savedTitle,
+					markdown = savedContent,
+					tags = savedTags,
+					idea = existing,
+					onEnterEdit = { isEditing = true },
+					modifier = Modifier.weight(1f, fill = false),
+				)
+
+				ViewFolioFooter(markdown = savedContent, tagCount = savedTags.size)
 			}
 		}
+	}
 
-		HorizontalDivider(
-			thickness = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
-
-		Row(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-			verticalAlignment = Alignment.CenterVertically,
+	if (confirmDiscard || confirmClose) {
+		SimpleConfirm(
+			title = Res.string.ideas_discard_dialog_title.get(),
+			message = Res.string.ideas_discard_dialog_message.get(),
+			onDismiss = {
+				confirmDiscard = false
+				confirmClose = false
+			},
 		) {
-			HdMonoLabel(
-				text = stringResource(
-					Res.string.ideas_editor_counter,
-					charCount,
-					StoryIdea.MAX_CONTENT_LENGTH,
-				),
-				color = if (overLimit) {
-					MaterialTheme.colorScheme.error
-				} else {
-					MaterialTheme.colorScheme.onSurfaceVariant
-				},
-			)
-
-			Spacer(modifier = Modifier.weight(1f))
-
-			if (existing != null) {
-				HdHairlineButton(
-					label = stringResource(Res.string.ideas_promote_button),
-					onClick = { confirmPromote = true },
-				)
-				HdHairlineButton(
-					label = stringResource(Res.string.ideas_delete_button),
-					onClick = { confirmDelete = true },
-				)
-				HdHairlineButton(
-					label = stringResource(
-						if (existing.archived == null) Res.string.ideas_archive_button
-						else Res.string.ideas_unarchive_button
-					),
-					onClick = {
-						scope.launch {
-							if (existing.archived == null) {
-								component.archiveIdea(existing.id)
-							} else {
-								component.unarchiveIdea(existing.id)
-							}
-							withContext(mainDispatcher) { component.closeEditor() }
-						}
-					},
-				)
+			if (confirmClose || isCreate) {
+				component.closeEditor()
+			} else {
+				titleText = savedTitle.orEmpty()
+				contentText = savedContent
+				tags = savedTags.toList()
+				isEditing = false
 			}
-
-			HdHairlineButton(
-				label = stringResource(Res.string.ideas_cancel_button),
-				onClick = requestClose,
-				modifier = Modifier.testTag(IDEAS_EDITOR_CANCEL_TAG),
-			)
-			HdHairlineButton(
-				label = stringResource(
-					if (existing == null) Res.string.ideas_create_button
-					else Res.string.ideas_save_button
-				),
-				emphasised = canSave,
-				modifier = Modifier.testTag(IDEAS_EDITOR_CONFIRM_TAG),
-				onClick = {
-					scope.launch {
-						val title = titleText.trim().ifEmpty { null }
-						val error = if (existing == null) {
-							component.createIdea(title, contentText, tags.toSet())
-						} else {
-							component.saveIdea(existing.id, title, contentText, tags.toSet())
-						}
-						if (error == IdeaError.NONE) {
-							withContext(mainDispatcher) { component.closeEditor() }
-							rootSnackbar.showSnackbar(
-								strRes.get(
-									if (existing == null) Res.string.ideas_toast_created
-									else Res.string.ideas_toast_saved
-								)
-							)
-						} else {
-							showError(error)
-						}
-					}
-				},
-			)
+			confirmDiscard = false
+			confirmClose = false
 		}
 	}
 
@@ -821,15 +855,295 @@ private fun IdeaEditor(
 			}
 		}
 	}
+}
 
-	if (confirmDiscard) {
-		SimpleConfirm(
-			title = Res.string.ideas_discard_dialog_title.get(),
-			message = Res.string.ideas_discard_dialog_message.get(),
-			onDismiss = { confirmDiscard = false },
-		) {
-			confirmDiscard = false
-			component.closeEditor()
+@Composable
+private fun CrumbRow(
+	onClose: () -> Unit,
+	menuSlot: @Composable () -> Unit,
+) {
+	// Screen masthead â€” see DESIGN_README "Screen masthead" pattern.
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.height(Ui.TOP_BAR_HEIGHT)
+			.padding(horizontal = Ui.Padding.XL),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		HdCrumbBackLink(
+			label = Res.string.ideas_view_crumb_root.get(),
+			onClick = onClose,
+			onClickLabel = Res.string.ideas_view_close_button.get(),
+		)
+		Spacer(modifier = Modifier.weight(1f))
+		menuSlot()
+	}
+}
+
+@Composable
+private fun StampRow(
+	isCreate: Boolean,
+	isEditing: Boolean,
+	idea: StoryIdea?,
+	onEdit: () -> Unit,
+	onSave: () -> Unit,
+	onCancel: () -> Unit,
+	onPromote: () -> Unit,
+	saveEnabled: Boolean,
+) {
+	val sectionTitle = when {
+		isCreate -> Res.string.ideas_create_marker.get()
+		isEditing -> Res.string.ideas_view_label_editing.get()
+		else -> Res.string.ideas_view_header.get()
+	}
+
+	HdDetailStampRow(
+		stackActionsWhenNarrow = isEditing,
+		leading = {
+			HdMonoLabel(
+				text = "§ II · $sectionTitle",
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+
+			if (isEditing) {
+				PulsingDot()
+			}
+		},
+		meta = {
+			Box(
+				modifier = Modifier
+					.height(14.dp)
+					.width(Dp.Hairline)
+					.background(MaterialTheme.colorScheme.outlineVariant),
+			)
+
+			val metaText = if (isEditing) {
+				Res.string.ideas_view_status_unsaved.get()
+			} else {
+				idea?.created?.let { formatStampDate(it) }.orEmpty()
+			}
+			HdMonoLabel(text = metaText)
+		},
+		actions = {
+			if (isEditing) {
+				HdHairlineButton(
+					label = stringResource(
+						if (isCreate) Res.string.ideas_create_button
+						else Res.string.ideas_save_button
+					),
+					onClick = onSave,
+					emphasised = saveEnabled,
+					modifier = Modifier.testTag(IDEAS_EDITOR_CONFIRM_TAG),
+				)
+				HdHairlineButton(
+					label = stringResource(Res.string.ideas_cancel_button),
+					onClick = onCancel,
+					modifier = Modifier.testTag(IDEAS_EDITOR_CANCEL_TAG),
+				)
+			} else {
+				HdHairlineButton(
+					label = stringResource(Res.string.ideas_promote_button),
+					onClick = onPromote,
+				)
+				HdHairlineButton(
+					label = stringResource(Res.string.ideas_view_action_edit),
+					onClick = onEdit,
+					modifier = Modifier.testTag(IDEAS_VIEW_EDIT_TAG),
+				)
+			}
+		},
+	)
+}
+
+@Composable
+private fun PulsingDot() {
+	val transition = rememberInfiniteTransition(label = "ideaEditingPulse")
+	val alpha by transition.animateFloat(
+		initialValue = 1f,
+		targetValue = 0.35f,
+		animationSpec = infiniteRepeatable(
+			animation = tween(durationMillis = 800),
+			repeatMode = RepeatMode.Reverse,
+		),
+		label = "ideaEditingPulseAlpha",
+	)
+	Box(
+		modifier = Modifier
+			.size(7.dp)
+			.alpha(alpha)
+			.background(MaterialTheme.colorScheme.primary, RectangleShape),
+	)
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ViewBody(
+	title: String?,
+	markdown: String,
+	tags: Set<String>,
+	idea: StoryIdea?,
+	onEnterEdit: () -> Unit,
+	modifier: Modifier = Modifier,
+) {
+	val scrollState = rememberScrollState()
+	Column(
+		modifier = modifier
+			.fillMaxWidth()
+			.verticalScroll(scrollState)
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.XL),
+	) {
+		title?.let {
+			Text(
+				text = it,
+				style = MaterialTheme.typography.headlineSmall,
+				color = MaterialTheme.colorScheme.onSurface,
+				modifier = Modifier.padding(bottom = Ui.Padding.M),
+			)
 		}
+
+		idea?.let { IdeaStamps(it) }
+
+		if (tags.isNotEmpty()) {
+			FlowRow(
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(top = Ui.Padding.M, bottom = Ui.Padding.L),
+				horizontalArrangement = Arrangement.spacedBy(6.dp),
+				verticalArrangement = Arrangement.spacedBy(6.dp),
+			) {
+				tags.sorted().forEach { tag ->
+					HdTagChip(
+						label = tag,
+						active = true,
+						onClick = {},
+					)
+				}
+			}
+
+			HorizontalDivider(
+				thickness = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+				modifier = Modifier.padding(bottom = Ui.Padding.L),
+			)
+		}
+
+		MarkdownView(
+			markdown = markdown,
+			modifier = Modifier
+				.fillMaxWidth()
+				.clickable(onClick = onEnterEdit),
+		)
+	}
+}
+
+@Composable
+private fun EditBody(
+	titleText: String,
+	onTitleChanged: (String) -> Unit,
+	tags: List<String>,
+	onTagsChanged: (List<String>) -> Unit,
+	contentText: String,
+	onContentChanged: (String) -> Unit,
+	suggestTags: (prefix: String) -> List<String>,
+	modifier: Modifier = Modifier,
+) {
+	Column(modifier = modifier.fillMaxWidth()) {
+		var titleFocused by remember { mutableStateOf(false) }
+		CollapseWhileTyping(keepVisible = titleFocused) {
+			HdHairlineField(
+				label = stringResource(Res.string.ideas_title_label),
+				value = titleText,
+				onValueChange = onTitleChanged,
+				placeholder = stringResource(Res.string.ideas_title_placeholder),
+				onFocusChanged = { titleFocused = it },
+				modifier = Modifier
+					.fillMaxWidth()
+					.padding(horizontal = Ui.Padding.XL)
+					.padding(top = Ui.Padding.L),
+			)
+		}
+
+		HdHairlineTagField(
+			label = stringResource(Res.string.ideas_tags_label),
+			tags = tags,
+			onTagsChange = onTagsChanged,
+			hint = stringResource(Res.string.ideas_tags_hint),
+			placeholder = stringResource(Res.string.ideas_tags_placeholder),
+			suggestTags = suggestTags,
+			modifier = Modifier.padding(
+				horizontal = Ui.Padding.XL,
+				vertical = Ui.Padding.L,
+			),
+		)
+
+		CollapseWhileTyping {
+			HorizontalDivider(
+				thickness = 2.dp,
+				color = MaterialTheme.colorScheme.outline,
+			)
+		}
+
+		MarkdownEditField(
+			initialMarkdown = contentText,
+			onMarkdownChanged = onContentChanged,
+			contentPadding = PaddingValues(Ui.Padding.XL),
+			testTag = IDEAS_EDITOR_BODY_TAG,
+			modifier = Modifier
+				.fillMaxWidth()
+				.weight(1f),
+		)
+	}
+}
+
+@Composable
+private fun ViewFolioFooter(markdown: String, tagCount: Int) {
+	val words = remember(markdown) {
+		markdown.trim().split(Regex("\\s+")).count { it.isNotBlank() }
+	}
+	HorizontalDivider(
+		thickness = Dp.Hairline,
+		color = MaterialTheme.colorScheme.outlineVariant,
+	)
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+		verticalAlignment = Alignment.CenterVertically,
+		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
+		HdMonoLabel(text = stringResource(Res.string.ideas_word_count_short, words))
+		Spacer(modifier = Modifier.weight(1f))
+		if (tagCount > 0) {
+			HdMonoLabel(text = "$tagCount TAGS")
+		}
+	}
+}
+
+@Composable
+private fun EditStatusFooter(charCount: Int, overLimit: Boolean) {
+	HorizontalDivider(
+		thickness = Dp.Hairline,
+		color = MaterialTheme.colorScheme.outlineVariant,
+	)
+	Row(
+		modifier = Modifier
+			.fillMaxWidth()
+			.background(MaterialTheme.colorScheme.surfaceContainerLow)
+			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+		verticalAlignment = Alignment.CenterVertically,
+	) {
+		HdMonoLabel(
+			text = stringResource(
+				Res.string.ideas_editor_counter,
+				charCount,
+				StoryIdea.MAX_CONTENT_LENGTH,
+			),
+			color = if (overLimit) {
+				MaterialTheme.colorScheme.error
+			} else {
+				MaterialTheme.colorScheme.onSurfaceVariant
+			},
+		)
 	}
 }
