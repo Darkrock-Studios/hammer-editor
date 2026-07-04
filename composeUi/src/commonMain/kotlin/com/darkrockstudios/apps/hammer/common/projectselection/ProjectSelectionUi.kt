@@ -7,6 +7,7 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.LibraryBooks
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.runtime.Composable
@@ -29,12 +30,14 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostSt
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.projectselection.about.AboutAppUi
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.AccountSettingsUi
+import com.darkrockstudios.apps.hammer.common.projectselection.storyideas.StoryIdeasUi
 
 private val WIDE_SCREEN_THRESHOLD = 720.dp
 
 fun getLocationIcon(location: ProjectSelection.Locations): ImageVector {
 	return when (location) {
 		ProjectSelection.Locations.Projects -> Icons.AutoMirrored.Filled.LibraryBooks
+		ProjectSelection.Locations.StoryIdeas -> Icons.Filled.Lightbulb
 		ProjectSelection.Locations.Settings -> Icons.Filled.Settings
 		ProjectSelection.Locations.AboutApp -> Icons.Filled.Info
 	}
@@ -90,6 +93,11 @@ fun ProjectSelectionUi(
 					)
 
 					is ProjectSelection.Destination.ProjectsListDestination -> ProjectListUi(
+						destination.component,
+						rootSnackbar,
+					)
+
+					is ProjectSelection.Destination.StoryIdeasDestination -> StoryIdeasUi(
 						destination.component,
 						rootSnackbar,
 					)

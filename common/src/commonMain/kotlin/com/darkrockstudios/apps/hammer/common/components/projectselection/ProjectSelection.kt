@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutApp
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
+import com.darkrockstudios.apps.hammer.common.components.projectselection.storyideas.StoryIdeas
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.StringResource
@@ -43,6 +44,10 @@ interface ProjectSelection : HammerComponent, BackHandlerOwner {
 			Res.string.project_select_nav_projects_list,
 			Res.string.project_select_nav_projects_list_short,
 		),
+		StoryIdeas(
+			Res.string.project_select_nav_story_ideas,
+			Res.string.project_select_nav_story_ideas_short,
+		),
 		Settings(
 			Res.string.project_select_nav_account_settings,
 			Res.string.project_select_nav_account_settings_short,
@@ -59,6 +64,9 @@ interface ProjectSelection : HammerComponent, BackHandlerOwner {
 		data object ProjectsList : Config(Locations.Projects)
 
 		@Serializable
+		data object StoryIdeas : Config(Locations.StoryIdeas)
+
+		@Serializable
 		data object AccountSettings : Config(Locations.Settings)
 
 		@Serializable
@@ -67,6 +75,7 @@ interface ProjectSelection : HammerComponent, BackHandlerOwner {
 
 	sealed class Destination {
 		data class ProjectsListDestination(val component: ProjectsList) : Destination()
+		data class StoryIdeasDestination(val component: StoryIdeas) : Destination()
 		data class AccountSettingsDestination(val component: AccountSettings) : Destination()
 		data class AboutAppDestination(val component: AboutApp) : Destination()
 	}
