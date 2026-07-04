@@ -167,6 +167,7 @@ import com.darkrockstudios.apps.hammer.ideas_view_crumb_root
 import com.darkrockstudios.apps.hammer.ideas_view_header
 import com.darkrockstudios.apps.hammer.ideas_view_label_editing
 import com.darkrockstudios.apps.hammer.ideas_view_status_unsaved
+import com.darkrockstudios.apps.hammer.ideas_tag_count_short
 import com.darkrockstudios.apps.hammer.ideas_word_count_short
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -1234,7 +1235,7 @@ private fun ViewFolioFooter(markdown: String, tagCount: Int) {
 		HdMonoLabel(text = stringResource(Res.string.ideas_word_count_short, words))
 		Spacer(modifier = Modifier.weight(1f))
 		if (tagCount > 0) {
-			HdMonoLabel(text = "$tagCount TAGS")
+			HdMonoLabel(text = stringResource(Res.string.ideas_tag_count_short, tagCount))
 		}
 	}
 }

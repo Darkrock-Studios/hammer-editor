@@ -598,15 +598,17 @@ class ProjectsListComponent(
 
 				onSyncLog(syncAccLogI(strRes.get(Res.string.sync_log_begin_account)))
 
+				var ideasSuccess = true
 				val success = projectsSynchronizer.syncProjects(
 					onLog = ::onSyncLog,
 					onUnauthorized = ::showReauth,
 					onIdeaConflict = ::onIdeaConflict,
+					onIdeasSyncResult = { ideasSuccess = it },
 				)
 
 				yield()
 
-				var allSuccess = success
+				var allSuccess = success && ideasSuccess
 				if (success) {
 					onSyncLog(syncAccLogI(strRes.get(Res.string.sync_log_begin_projects)))
 

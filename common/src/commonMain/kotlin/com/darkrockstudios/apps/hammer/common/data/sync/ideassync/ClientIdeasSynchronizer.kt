@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.base.http.storyideas.IdeaHashItem
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.IdeaConflictException
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.IdeaHasher
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.IdeasStateHasher
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeaError
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasDatasource
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
@@ -104,8 +105,13 @@ class ClientIdeasSynchronizer(
 
 		yield()
 
+		// Every id we attempt to delete this session, captured before the outbox is drained on
+		// ack — the server's idea list was fetched before these deletes landed, so these ids
+		// must be excluded from the missing-ideas download pass below or they 404.
+		val deletesInFlight = syncData.pendingDeletes
+
 		// Push this client's pending deletes; erased from the outbox on server ack.
-		for (id in syncData.pendingDeletes.toList()) {
+		for (id in deletesInFlight.toList()) {
 			val result = serverIdeasApi.deleteIdea(id, syncId)
 			if (result.isSuccess) {
 				syncData = syncData.copy(
@@ -162,10 +168,11 @@ class ClientIdeasSynchronizer(
 			yield()
 		}
 
-		// Ideas the server has that we don't — but never ones still awaiting our delete.
+		// Ideas the server has that we don't — but never ones we just deleted (the server list
+		// predates our delete, so a just-acked delete would otherwise be re-downloaded and 404).
 		val localIds = localIdeas.map { it.id }.toSet()
 		val missing = serverState.ideas.filter {
-			it.id !in localIds && it.id !in syncData.pendingDeletes
+			it.id !in localIds && it.id !in deletesInFlight
 		}
 		for (item in missing) {
 			if (downloadIdea(item.id, syncId, onLog)) {
@@ -277,6 +284,14 @@ class ClientIdeasSynchronizer(
 		val resolved = resolveConflict(IdeaConflict(local = local, server = conflict.conflict.server))
 		if (resolved == null) {
 			// Left unresolved on purpose: the idea stays dirty and will conflict again next sync.
+			onLog(syncAccLogW(strRes.get(Res.string.sync_log_ideas_conflict_skipped, label(local))))
+			return UploadOutcome(success = true)
+		}
+
+		// The conflict UI's local pane is freely editable, so a resolution can be blank or
+		// over-limit — invalid ideas the normal editor rejects. Refuse to upload/persist one;
+		// the idea stays dirty and re-conflicts next sync rather than corrupting local + server.
+		if (ideasRepository.validateIdea(resolved.content, resolved.tags) != IdeaError.NONE) {
 			onLog(syncAccLogW(strRes.get(Res.string.sync_log_ideas_conflict_skipped, label(local))))
 			return UploadOutcome(success = true)
 		}

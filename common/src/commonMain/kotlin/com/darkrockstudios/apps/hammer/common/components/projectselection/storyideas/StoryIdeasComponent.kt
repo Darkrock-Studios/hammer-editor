@@ -57,7 +57,10 @@ class StoryIdeasComponent(
 	}
 
 	override fun suggestTags(prefix: String): List<String> {
-		return accountTagService.suggest(prefix).map { it.tag }
+		// Uncapped: the tag field filters out tags already on the idea, so a small hard cap here
+		// could empty the strip when an idea's own tags fill the top ranks. The field's flow row
+		// bounds what actually shows.
+		return accountTagService.suggest(prefix, limit = Int.MAX_VALUE).map { it.tag }
 	}
 
 	override suspend fun createIdea(title: String?, content: String, tags: Set<String>): IdeaError {

@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.base.http.synchronizer.IdeaHasher
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.IdeasStateHasher
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeaError
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasDatasource
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCodec
@@ -80,6 +81,10 @@ class ClientIdeasSynchronizerTest : BaseTest() {
 		ideasDatasource = IdeasDatasource(ffs, StoryIdeaCodec(createTomlSerializer()), globalSettingsStore)
 		syncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), ideasDatasource)
 		ideasRepository = mockk(relaxed = true)
+		// Mirror the real content validation so the conflict-resolution guard behaves correctly.
+		every { ideasRepository.validateIdea(any(), any()) } answers {
+			if (firstArg<String>().isBlank()) IdeaError.EMPTY else IdeaError.NONE
+		}
 		api = mockk()
 		coEvery { api.deleteIdea(any(), any()) } returns Result.success("Success")
 
@@ -138,6 +143,23 @@ class ClientIdeasSynchronizerTest : BaseTest() {
 
 		assertTrue(success)
 		coVerify { api.deleteIdea(deadId, syncId) }
+		assertTrue(syncDatasource.load().pendingDeletes.isEmpty())
+	}
+
+	@Test
+	fun `A successful delete is not re-downloaded even though the pre-delete server list still holds it`() = runTest {
+		val deadId = IdeaId(uuid(3))
+		// The state snapshot is fetched before the delete lands, so the server still lists it.
+		val serverCopy = idea(uuid(3), content = "still listed on server")
+		syncDatasource.save(IdeasSynchronizationData(pendingDeletes = setOf(deadId)))
+		coEvery { api.getSyncState(syncId) } returns Result.success(serverState(ideas = listOf(serverCopy)))
+
+		val success = sync()
+
+		assertTrue(success, "propagating a delete must not report the ideas phase as failed")
+		coVerify { api.deleteIdea(deadId, syncId) }
+		// It must NOT be treated as a missing server idea and re-downloaded (that would 404).
+		coVerify(exactly = 0) { api.downloadIdea(any(), any()) }
 		assertTrue(syncDatasource.load().pendingDeletes.isEmpty())
 	}
 
@@ -233,6 +255,27 @@ class ClientIdeasSynchronizerTest : BaseTest() {
 		assertTrue(success)
 		assertEquals(listOf(local), ideasDatasource.loadIdeas())
 		assertEquals("stale-baseline", syncDatasource.load().baselines[local.id])
+	}
+
+	@Test
+	fun `An invalid conflict resolution is not uploaded or persisted`() = runTest {
+		val local = idea(content = "local edit")
+		val serverCopy = local.copy(content = "server edit")
+		ideasDatasource.createIdea(local)
+		syncDatasource.save(IdeasSynchronizationData(baselines = mapOf(local.id to "stale-baseline")))
+
+		coEvery { api.getSyncState(syncId) } returns Result.success(serverState(ideas = listOf(serverCopy)))
+		coEvery { api.uploadIdea(local, "stale-baseline", syncId) } returns
+			Result.failure(IdeaConflictException(IdeaConflictDto(serverCopy, IdeaHasher.hash(serverCopy))))
+
+		// The freely-editable local pane yields a blank (invalid) merge.
+		val blank = local.copy(content = "   ")
+		val success = synchronizer.syncIdeas(syncId, onLog = {}) { blank }
+
+		assertTrue(success)
+		// The invalid resolution must never reach the server or disk.
+		coVerify(exactly = 0) { api.uploadIdea(blank, any(), syncId) }
+		assertEquals(listOf(local), ideasDatasource.loadIdeas())
 	}
 
 	@Test

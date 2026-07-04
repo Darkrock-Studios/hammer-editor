@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
@@ -31,6 +33,9 @@ class IdeasRepository(
 	private val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
 	private val ideasScope = CoroutineScope(dispatcherDefault)
 
+	// Serializes disk-read + cache read-modify-write so a background reload can't clobber a
+	// concurrent create/update/delete (both run on the multi-threaded default dispatcher).
+	private val ideasLock = Mutex()
 	private var _ideas = listOf<StoryIdea>()
 
 	private val _ideasFlow = MutableSharedFlow<List<StoryIdea>>(
@@ -46,7 +51,9 @@ class IdeasRepository(
 
 	fun loadIdeas(onLoaded: (() -> Unit)? = null) {
 		ideasScope.launch {
-			updateIdeas(ideasDatasource.loadIdeas())
+			ideasLock.withLock {
+				updateIdeas(ideasDatasource.loadIdeas())
+			}
 			onLoaded?.invoke()
 		}
 	}
@@ -71,8 +78,10 @@ class IdeasRepository(
 				content = content,
 				tags = cleanTags(tags),
 			)
-			ideasDatasource.createIdea(idea)
-			updateIdeas(_ideas + idea)
+			ideasLock.withLock {
+				ideasDatasource.createIdea(idea)
+				updateIdeas(_ideas + idea)
+			}
 			CResult.success(idea)
 		}
 	}
@@ -87,8 +96,10 @@ class IdeasRepository(
 				title = cleanTitle(idea.title),
 				tags = cleanTags(idea.tags),
 			)
-			ideasDatasource.updateIdea(updated)
-			updateIdeas(_ideas.map { if (it.id == updated.id) updated else it })
+			ideasLock.withLock {
+				ideasDatasource.updateIdea(updated)
+				updateIdeas(_ideas.map { if (it.id == updated.id) updated else it })
+			}
 			CResult.success(updated)
 		}
 	}
@@ -97,8 +108,10 @@ class IdeasRepository(
 		// Outbox entry first, so a crash between the two can only over-delete on the server
 		// (idempotent) rather than resurrect the idea on the next sync.
 		ideasSyncDatasource.recordPendingDelete(id)
-		ideasDatasource.deleteIdea(id)
-		updateIdeas(_ideas.filterNot { it.id == id })
+		ideasLock.withLock {
+			ideasDatasource.deleteIdea(id)
+			updateIdeas(_ideas.filterNot { it.id == id })
+		}
 	}
 
 	suspend fun archiveIdea(id: IdeaId): CResult<StoryIdea> {

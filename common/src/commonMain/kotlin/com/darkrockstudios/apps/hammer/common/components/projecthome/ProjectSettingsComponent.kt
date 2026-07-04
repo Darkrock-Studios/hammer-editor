@@ -77,6 +77,9 @@ class ProjectSettingsComponent(
 	}
 
 	override fun suggestProjectTags(prefix: String): List<String> {
-		return accountTagService.suggest(prefix).map { it.tag }
+		// Exclude this project's own tags so it suggests from the *other* projects' / ideas'
+		// vocabulary, rather than offering back tags already applied here.
+		return accountTagService.suggest(prefix, exclude = _projectInfoState.value.data.tags)
+			.map { it.tag }
 	}
 }

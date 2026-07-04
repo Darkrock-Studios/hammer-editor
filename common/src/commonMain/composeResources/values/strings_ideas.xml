@@ -8,6 +8,7 @@
 	<string name="ideas_list_empty">No story ideas yet. Capture your first spark.</string>
 	<string name="ideas_list_empty_archived">No archived ideas.</string>
 	<string name="ideas_word_count_short">%1$d W</string>
+	<string name="ideas_tag_count_short">%1$d TAGS</string>
 
 	<string name="ideas_search_placeholder">Search ideas</string>
 	<string name="ideas_search_button">Search ideas</string>

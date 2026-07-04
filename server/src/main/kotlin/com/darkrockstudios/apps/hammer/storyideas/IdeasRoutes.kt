@@ -22,6 +22,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.get
+import kotlin.uuid.Uuid
 
 private const val ERROR_GENERIC = "Error"
 private const val ERR_KEY_IDEA_ID_MISSING = "api_ideas_error_ideaidmissing"
@@ -47,6 +48,14 @@ fun Route.ideasRoutes() {
 private suspend fun ApplicationCall.requireIdeaIdFromPath(): IdeaId? {
 	val raw = parameters["ideaId"]
 	if (raw == null) {
+		respondMissingParameter(ERR_KEY_IDEA_ID_MISSING)
+		return null
+	}
+	// Ids are UUIDs; the DAO casts them to a Postgres UUID column, which throws on malformed
+	// input. Reject it here as a routine 400 rather than letting it surface as a 500.
+	try {
+		Uuid.parse(raw)
+	} catch (e: IllegalArgumentException) {
 		respondMissingParameter(ERR_KEY_IDEA_ID_MISSING)
 		return null
 	}

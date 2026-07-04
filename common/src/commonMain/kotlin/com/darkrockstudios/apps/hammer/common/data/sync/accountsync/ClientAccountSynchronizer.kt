@@ -64,6 +64,10 @@ class ClientAccountSynchronizer(
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit,
 		onIdeaConflict: IdeaConflictResolver = { null },
+		// The ideas phase's success is reported separately rather than folded into the return
+		// value: a transient idea failure must not gate the (much more important) project sync,
+		// but the caller still needs it so a failed idea sync doesn't show a success toast.
+		onIdeasSyncResult: (Boolean) -> Unit = {},
 	): Boolean {
 		onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_begin)))
 
@@ -95,14 +99,15 @@ class ClientAccountSynchronizer(
 
 				yield()
 
-				// Ideas phase rides the same session; failures are logged, not fatal to the
-				// account sync (matching how per-project ops above behave).
-				ideasSynchronizer.syncIdeas(
+				// Ideas phase rides the same session. Its outcome is reported to the caller but
+				// does not gate project sync — the manuscript is more important than the ideas.
+				val ideasSuccess = ideasSynchronizer.syncIdeas(
 					syncId = syncId,
 					onLog = onLog,
 					resolveConflict = onIdeaConflict,
 					serverIdeasStateHash = serverSyncData.ideasStateHash,
 				)
+				onIdeasSyncResult(ideasSuccess)
 
 				yield()
 

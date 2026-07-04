@@ -132,6 +132,22 @@ class AccountTagServiceTest : BaseTest() {
 	}
 
 	@Test
+	fun `Excluded tags are dropped before the limit is applied`() = runTest {
+		advanceUntilIdle()
+		// Five already-applied tags that outrank the one the user actually wants.
+		ideasRepository.createIdea(content = "a", tags = setOf("apple", "apricot", "avocado", "amber", "azure"))
+		ideasRepository.createIdea(content = "b", tags = setOf("anchor"))
+		advanceUntilIdle()
+
+		// Without exclusion, the five applied tags fill the cap and "anchor" is truncated out.
+		val applied = setOf("apple", "apricot", "avocado", "amber", "azure")
+		assertEquals(
+			listOf(TagCount("anchor", 1)),
+			service.suggest("a", exclude = applied),
+		)
+	}
+
+	@Test
 	fun `Refresh picks up newly written project tags`() = runTest {
 		advanceUntilIdle()
 		val project = seedProject("One", setOf("draft"))

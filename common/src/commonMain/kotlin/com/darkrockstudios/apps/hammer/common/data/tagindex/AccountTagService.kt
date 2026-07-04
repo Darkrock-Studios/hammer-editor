@@ -53,7 +53,17 @@ class AccountTagService(
 			.eachCount()
 	}
 
-	fun suggest(prefix: String, limit: Int = MAX_SUGGESTIONS): List<TagCount> {
+	/**
+	 * Prefix-matching tag suggestions ranked by usage. [exclude] tags (already applied on the
+	 * thing being tagged) are dropped **before** the [limit] cap — otherwise a few already-used
+	 * tags can fill every slot and the caller's own "not already applied" filter then empties
+	 * the strip.
+	 */
+	fun suggest(
+		prefix: String,
+		exclude: Set<String> = emptySet(),
+		limit: Int = MAX_SUGGESTIONS,
+	): List<TagCount> {
 		val needle = prefix.trim().removePrefix("#")
 		if (needle.isEmpty()) return emptyList()
 
@@ -63,7 +73,7 @@ class AccountTagService(
 		}
 
 		return merged
-			.filterKeys { it.startsWith(needle, ignoreCase = true) }
+			.filterKeys { it.startsWith(needle, ignoreCase = true) && it !in exclude }
 			.map { (tag, count) -> TagCount(tag, count) }
 			.sortedWith(compareByDescending<TagCount> { it.count }.thenBy { it.tag })
 			.take(limit)

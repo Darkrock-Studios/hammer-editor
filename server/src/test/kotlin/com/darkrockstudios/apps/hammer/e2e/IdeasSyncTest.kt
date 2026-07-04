@@ -80,6 +80,24 @@ class IdeasSyncTest : EndToEndTest() {
 	}
 
 	@Test
+	fun `A malformed idea id is a 400, not a 500`(): Unit = runBlocking {
+		val database = database()
+		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		TestDataSet1.createFullDataset(database, encryptor())
+		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
+		doStartServer()
+
+		client().apply {
+			val syncId = get(api("projects/$userId/begin_sync")) { authHeaders(authToken.auth) }
+				.body<BeginProjectsSyncResponse>().syncId
+
+			// A non-UUID id would hit Postgres's CAST(:uuid AS UUID) and 500 without the guard.
+			val response = get(api("ideas/$userId/idea/not-a-uuid")) { authHeaders(authToken.auth, syncId) }
+			assertEquals(HttpStatusCode.BadRequest, response.status)
+		}
+	}
+
+	@Test
 	fun `Ideas Sync - Golden Path`(): Unit = runBlocking {
 		val database = database()
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
