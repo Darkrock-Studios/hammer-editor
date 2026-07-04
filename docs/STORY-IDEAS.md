@@ -190,7 +190,17 @@ CREATE TABLE deleted_idea (
 );
 ```
 
-Endpoints under `/api/ideas/{userId}/…`, gated on the account sync session.
+Endpoints under `/api/ideas/{userId}/…`, all gated on the account sync session's syncId header:
+
+| Endpoint | Verb | Purpose |
+| --- | --- | --- |
+| `/state` | POST | `{ ideas: [{id, hash}], deletedIdeas: [id] }` |
+| `/idea/{ideaId}` | GET | Download one idea (opaque blob + hash) |
+| `/idea/{ideaId}` | POST | Upload; `409` + server copy on baseline mismatch, `410` if tombstoned, `413` over the 64 KiB cap |
+| `/idea/{ideaId}/delete` | POST | Delete + write the permanent tombstone |
+
+Idea blobs are encrypted at rest with the same content-encryption path as entities, and are
+covered by the key-rotation convergence job and the key-prune in-use scan.
 
 ## Lifecycle
 
@@ -209,6 +219,8 @@ Endpoints under `/api/ideas/{userId}/…`, gated on the account sync session.
      earmarked for `HdCollapsingStrip` in the design README) into `Hd*` design-system
      components, re-point Notes at them with no visual change, then build the Ideas screen
      from the same pieces. The extraction lands as its own commit before new screen code.
-2. **Phase 2 — sync.** Server tables + routes, account-sync phase, conflict baseline sidecar,
-   `IdeaConflict` UI, hash-sensitivity guards.
+2. **Phase 2 — sync.** ✅ Complete. Server tables + routes (`story_idea`/`deleted_idea`,
+   migration 5→6), `IdeaHasher` + golden-pin sensitivity tests, the client ideas phase inside
+   `ClientAccountSynchronizer`, the `.ideas/sync.json` sidecar, and `IdeaConflictUi` in the
+   account sync dialog (editable local pane for manual merges).
 3. **Later:** sync-probe integration; tag-based filtering/search niceties.
