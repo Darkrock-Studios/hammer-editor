@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection.story
 
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.IdeaId
+import com.darkrockstudios.apps.hammer.common.data.CResult
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeaError
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.idea.StoryIdea
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
@@ -19,6 +21,9 @@ interface StoryIdeas : HammerComponent {
 	suspend fun deleteIdea(id: IdeaId)
 	suspend fun archiveIdea(id: IdeaId)
 	suspend fun unarchiveIdea(id: IdeaId)
+
+	/** Creates a project from the idea, seeding its content as the project's first Note. */
+	suspend fun promoteIdea(id: IdeaId): CResult<ProjectDef>
 
 	data class State(
 		val ideas: List<StoryIdea> = emptyList(),

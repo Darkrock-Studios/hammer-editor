@@ -82,6 +82,7 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeaError
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
+import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.idea.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.util.format
@@ -107,6 +108,9 @@ import com.darkrockstudios.apps.hammer.ideas_header
 import com.darkrockstudios.apps.hammer.ideas_header_meta
 import com.darkrockstudios.apps.hammer.ideas_list_empty
 import com.darkrockstudios.apps.hammer.ideas_list_empty_archived
+import com.darkrockstudios.apps.hammer.ideas_promote_button
+import com.darkrockstudios.apps.hammer.ideas_promote_dialog_message
+import com.darkrockstudios.apps.hammer.ideas_promote_dialog_title
 import com.darkrockstudios.apps.hammer.ideas_save_button
 import com.darkrockstudios.apps.hammer.ideas_search_button
 import com.darkrockstudios.apps.hammer.ideas_search_clear
@@ -128,6 +132,8 @@ import com.darkrockstudios.apps.hammer.ideas_title_label
 import com.darkrockstudios.apps.hammer.ideas_title_placeholder
 import com.darkrockstudios.apps.hammer.ideas_toast_created
 import com.darkrockstudios.apps.hammer.ideas_toast_deleted
+import com.darkrockstudios.apps.hammer.ideas_toast_promote_failed
+import com.darkrockstudios.apps.hammer.ideas_toast_promoted
 import com.darkrockstudios.apps.hammer.ideas_toast_empty
 import com.darkrockstudios.apps.hammer.ideas_toast_saved
 import com.darkrockstudios.apps.hammer.ideas_toast_tag_too_long
@@ -575,6 +581,7 @@ private fun IdeaEditor(
 	var tags by remember(editor) { mutableStateOf(existing?.tags?.toList().orEmpty()) }
 	var confirmDelete by remember { mutableStateOf(false) }
 	var confirmDiscard by remember { mutableStateOf(false) }
+	var confirmPromote by remember { mutableStateOf(false) }
 
 	val isDirty = titleText != existing?.title.orEmpty() ||
 		contentText != existing?.content.orEmpty() ||
@@ -715,6 +722,10 @@ private fun IdeaEditor(
 
 			if (existing != null) {
 				HdHairlineButton(
+					label = stringResource(Res.string.ideas_promote_button),
+					onClick = { confirmPromote = true },
+				)
+				HdHairlineButton(
 					label = stringResource(Res.string.ideas_delete_button),
 					onClick = { confirmDelete = true },
 				)
@@ -784,6 +795,27 @@ private fun IdeaEditor(
 				component.deleteIdea(existing.id)
 				withContext(mainDispatcher) { component.closeEditor() }
 				rootSnackbar.showSnackbar(strRes.get(Res.string.ideas_toast_deleted))
+			}
+		}
+	}
+
+	if (confirmPromote && existing != null) {
+		SimpleConfirm(
+			title = Res.string.ideas_promote_dialog_title.get(),
+			message = Res.string.ideas_promote_dialog_message.get(),
+			onDismiss = { confirmPromote = false },
+		) {
+			confirmPromote = false
+			scope.launch {
+				val result = component.promoteIdea(existing.id)
+				if (isSuccess(result)) {
+					withContext(mainDispatcher) { component.closeEditor() }
+					rootSnackbar.showSnackbar(
+						strRes.get(Res.string.ideas_toast_promoted, result.data.name)
+					)
+				} else {
+					rootSnackbar.showSnackbar(strRes.get(Res.string.ideas_toast_promote_failed))
+				}
 			}
 		}
 	}

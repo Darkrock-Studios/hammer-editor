@@ -6,10 +6,13 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.base.IdeaId
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
+import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ClientResult
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeaError
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.InvalidIdea
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.PromoteIdeaUseCase
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.idea.StoryIdea
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -20,6 +23,7 @@ class StoryIdeasComponent(
 ) : StoryIdeas, ComponentBase(componentContext) {
 
 	private val ideasRepository: IdeasRepository by inject()
+	private val promoteIdeaUseCase: PromoteIdeaUseCase by inject()
 
 	private val _state = MutableValue(StoryIdeas.State())
 	override val state: Value<StoryIdeas.State> = _state
@@ -83,6 +87,10 @@ class StoryIdeasComponent(
 
 	override suspend fun unarchiveIdea(id: IdeaId) {
 		ideasRepository.unarchiveIdea(id)
+	}
+
+	override suspend fun promoteIdea(id: IdeaId): CResult<ProjectDef> {
+		return promoteIdeaUseCase(id)
 	}
 
 	private fun ClientResult<StoryIdea>.toIdeaError(): IdeaError = when (this) {

@@ -7,6 +7,8 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.base.IdeaId
 import com.darkrockstudios.apps.hammer.common.components.projectselection.storyideas.StoryIdeas
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.data.CResult
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeaError
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.idea.StoryIdea
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
@@ -97,4 +99,6 @@ private fun fakeComponent(
 	override suspend fun deleteIdea(id: IdeaId) {}
 	override suspend fun archiveIdea(id: IdeaId) {}
 	override suspend fun unarchiveIdea(id: IdeaId) {}
+	override suspend fun promoteIdea(id: IdeaId): CResult<ProjectDef> =
+		CResult.failure(Exception("preview"))
 }

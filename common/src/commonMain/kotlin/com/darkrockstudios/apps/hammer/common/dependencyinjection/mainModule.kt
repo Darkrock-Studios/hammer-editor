@@ -27,6 +27,7 @@ import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasou
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasDatasource
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.PromoteIdeaUseCase
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCodec
 import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
@@ -183,6 +184,7 @@ val mainModule = module {
 	singleOf(::StoryIdeaCodec)
 	singleOf(::IdeasDatasource)
 	singleOf(::IdeasRepository)
+	factoryOf(::PromoteIdeaUseCase)
 
 	singleOf(::SuggestProjectTagsUseCase)
 

@@ -55,6 +55,12 @@
 	<string name="ideas_toast_too_long">Idea is too long: %1$d characters max</string>
 	<string name="ideas_toast_tag_too_long">Tags can be at most %1$d characters</string>
 
+	<string name="ideas_promote_button">Create Project</string>
+	<string name="ideas_promote_dialog_title">Create Project from Idea</string>
+	<string name="ideas_promote_dialog_message">A new project will be created and this idea will be added to it as its first note.</string>
+	<string name="ideas_toast_promoted">Project created: %1$s</string>
+	<string name="ideas_toast_promote_failed">Failed to create project</string>
+
 	<string name="ideas_delete_dialog_title">Delete Idea</string>
 	<string name="ideas_delete_dialog_message">This idea will be permanently deleted. This cannot be undone.</string>
 	<string name="ideas_discard_dialog_title">Discard Changes</string>
