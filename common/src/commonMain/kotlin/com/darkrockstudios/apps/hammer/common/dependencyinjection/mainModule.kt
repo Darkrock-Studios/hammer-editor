@@ -29,6 +29,7 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasDatasour
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.PromoteIdeaUseCase
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCodec
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
@@ -183,6 +184,7 @@ val mainModule = module {
 
 	singleOf(::StoryIdeaCodec)
 	singleOf(::IdeasDatasource)
+	singleOf(::IdeasSyncDatasource)
 	singleOf(::IdeasRepository)
 	factoryOf(::PromoteIdeaUseCase)
 

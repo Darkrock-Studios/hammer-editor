@@ -5,8 +5,10 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasDatasource
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.PromoteIdeaUseCase
+import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCodec
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
@@ -61,8 +63,10 @@ class PromoteIdeaUseCaseTest : BaseTest() {
 			globalSettingsStore = globalSettingsStore,
 			projectsMetadataDatasource = ProjectMetadataDatasource(ffs, toml),
 		)
+		val ideasDatasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), globalSettingsStore)
 		ideasRepository = IdeasRepository(
-			ideasDatasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), globalSettingsStore),
+			ideasDatasource = ideasDatasource,
+			ideasSyncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), ideasDatasource),
 			clock = FixedClock(Instant.parse("2026-07-04T12:00:00Z")),
 		)
 		promoteIdea = PromoteIdeaUseCase(

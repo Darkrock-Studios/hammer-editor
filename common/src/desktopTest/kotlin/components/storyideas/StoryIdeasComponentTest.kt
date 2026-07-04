@@ -8,7 +8,9 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeaError
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasDatasource
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCodec
+import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import io.mockk.every
@@ -48,7 +50,8 @@ class StoryIdeasComponentTest : ComponentTest() {
 			single {
 				val toml = createTomlSerializer()
 				val datasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), globalSettingsStore)
-				IdeasRepository(datasource, Clock.System)
+				val syncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), datasource)
+				IdeasRepository(datasource, syncDatasource, Clock.System)
 			} bind IdeasRepository::class
 			single {
 				AccountTagService(get(), projectsRepository, ffs, createTomlSerializer())

@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.ideasrepository
 import com.darkrockstudios.apps.hammer.base.IdeaId
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import kotlinx.coroutines.CoroutineScope
@@ -23,6 +24,7 @@ import kotlin.time.Clock
  */
 class IdeasRepository(
 	private val ideasDatasource: IdeasDatasource,
+	private val ideasSyncDatasource: IdeasSyncDatasource,
 	private val clock: Clock,
 ) : KoinComponent {
 
@@ -92,6 +94,9 @@ class IdeasRepository(
 	}
 
 	suspend fun deleteIdea(id: IdeaId) {
+		// Outbox entry first, so a crash between the two can only over-delete on the server
+		// (idempotent) rather than resurrect the idea on the next sync.
+		ideasSyncDatasource.recordPendingDelete(id)
 		ideasDatasource.deleteIdea(id)
 		updateIdeas(_ideas.filterNot { it.id == id })
 	}

@@ -11,8 +11,11 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasReposito
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.InvalidIdea
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCodec
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
+import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSynchronizationData
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.mockk.every
@@ -40,6 +43,7 @@ class IdeasRepositoryTest : BaseTest() {
 	private lateinit var ffs: FakeFileSystem
 	private lateinit var globalSettingsStore: GlobalSettingsStore
 	private lateinit var datasource: IdeasDatasource
+	private lateinit var syncDatasource: IdeasSyncDatasource
 	private lateinit var clock: FixedClock
 
 	private class FixedClock(var time: Instant) : Clock {
@@ -58,7 +62,8 @@ class IdeasRepositoryTest : BaseTest() {
 
 	private fun createRepository(): IdeasRepository {
 		datasource = IdeasDatasource(ffs, StoryIdeaCodec(createTomlSerializer()), globalSettingsStore)
-		return IdeasRepository(datasource, clock)
+		syncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), datasource)
+		return IdeasRepository(datasource, syncDatasource, clock)
 	}
 
 	private suspend fun IdeasRepository.createIdeaOrFail(content: String): StoryIdea {
@@ -78,7 +83,7 @@ class IdeasRepositoryTest : BaseTest() {
 		)
 		datasource.createIdea(existing)
 
-		val repo = IdeasRepository(datasource, clock)
+		val repo = IdeasRepository(datasource, IdeasSyncDatasource(ffs, createJsonSerializer(), datasource), clock)
 
 		repo.ideasFlow.test {
 			assertEquals(listOf(existing), awaitItem())
@@ -171,6 +176,33 @@ class IdeasRepositoryTest : BaseTest() {
 		repo.ideasFlow.test {
 			assertTrue(awaitItem().isEmpty())
 		}
+	}
+
+	@Test
+	fun `Delete on a never-synced install records no pending delete`() = runTest {
+		val repo = createRepository()
+		advanceUntilIdle()
+		val created = repo.createIdeaOrFail("gone quietly")
+
+		repo.deleteIdea(created.id)
+
+		assertFalse(syncDatasource.hasSynced())
+		assertTrue(syncDatasource.load().pendingDeletes.isEmpty())
+	}
+
+	@Test
+	fun `Delete on a synced install lands in the pending-deletes outbox`() = runTest {
+		val repo = createRepository()
+		advanceUntilIdle()
+		val created = repo.createIdeaOrFail("gone loudly")
+		// The sidecar exists once a sync has run; that is the "has synced" marker.
+		syncDatasource.save(IdeasSynchronizationData(baselines = mapOf(created.id to "hash")))
+
+		repo.deleteIdea(created.id)
+
+		val syncData = syncDatasource.load()
+		assertEquals(setOf(created.id), syncData.pendingDeletes)
+		assertTrue(syncData.baselines.isEmpty())
 	}
 
 	@Test

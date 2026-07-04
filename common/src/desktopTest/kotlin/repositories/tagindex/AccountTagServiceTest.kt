@@ -1,5 +1,6 @@
 package repositories.tagindex
 
+import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -11,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCode
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -58,8 +60,10 @@ class AccountTagServiceTest : BaseTest() {
 		projectsRepository = mockk()
 		every { projectsRepository.getProjects() } returns emptyList()
 
+		val ideasDatasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), globalSettingsStore)
 		ideasRepository = IdeasRepository(
-			ideasDatasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), globalSettingsStore),
+			ideasDatasource = ideasDatasource,
+			ideasSyncDatasource = IdeasSyncDatasource(ffs, createJsonSerializer(), ideasDatasource),
 			clock = Clock.System,
 		)
 		service = AccountTagService(ideasRepository, projectsRepository, ffs, toml)
