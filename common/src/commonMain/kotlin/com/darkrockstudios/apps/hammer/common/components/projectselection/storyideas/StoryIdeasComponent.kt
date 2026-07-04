@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasReposito
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.InvalidIdea
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.PromoteIdeaUseCase
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.idea.StoryIdea
+import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
@@ -24,6 +25,7 @@ class StoryIdeasComponent(
 
 	private val ideasRepository: IdeasRepository by inject()
 	private val promoteIdeaUseCase: PromoteIdeaUseCase by inject()
+	private val accountTagService: AccountTagService by inject()
 
 	private val _state = MutableValue(StoryIdeas.State())
 	override val state: Value<StoryIdeas.State> = _state
@@ -38,6 +40,7 @@ class StoryIdeasComponent(
 		}
 		// Pick up any ideas edited on disk since the repository first loaded
 		ideasRepository.loadIdeas()
+		scope.launch { accountTagService.refreshProjectTags() }
 	}
 
 	override fun showCreate() {
@@ -54,16 +57,7 @@ class StoryIdeasComponent(
 	}
 
 	override fun suggestTags(prefix: String): List<String> {
-		val cleaned = prefix.trim().removePrefix("#")
-		if (cleaned.isEmpty()) return emptyList()
-		return _state.value.ideas
-			.flatMap { it.tags }
-			.groupingBy { it }
-			.eachCount()
-			.filterKeys { it.startsWith(cleaned, ignoreCase = true) }
-			.entries
-			.sortedByDescending { it.value }
-			.map { it.key }
+		return accountTagService.suggest(prefix).map { it.tag }
 	}
 
 	override suspend fun createIdea(title: String?, content: String, tags: Set<String>): IdeaError {

@@ -18,7 +18,7 @@ interface ProjectSettings : HammerComponent {
 	fun setWordCountGoal(goal: WordCountGoal?)
 	fun setTags(tags: Set<String>)
 
-	/** Suggests from tags used on the user's other projects — distinct from [com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting.suggestTags], which suggests in-project entity tags. */
+	/** Suggests from the account-level tag vocabulary (project + story-idea tags, via [com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService]) — distinct from [com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting.suggestTags], which suggests in-project entity tags. */
 	fun suggestProjectTags(prefix: String): List<String>
 
 	data class ProjectInfoState(

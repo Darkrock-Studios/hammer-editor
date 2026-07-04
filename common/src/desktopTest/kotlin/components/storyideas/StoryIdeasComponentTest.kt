@@ -8,6 +8,8 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeaError
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasDatasource
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCodec
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import io.mockk.every
 import io.mockk.mockk
@@ -39,11 +41,18 @@ class StoryIdeasComponentTest : ComponentTest() {
 		val globalSettingsStore = mockk<GlobalSettingsStore>()
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
 
+		val projectsRepository = mockk<ProjectsRepository>()
+		every { projectsRepository.getProjects() } returns emptyList()
+
 		setupKoin(module {
 			single {
-				val datasource = IdeasDatasource(ffs, StoryIdeaCodec(createTomlSerializer()), globalSettingsStore)
+				val toml = createTomlSerializer()
+				val datasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), globalSettingsStore)
 				IdeasRepository(datasource, Clock.System)
 			} bind IdeasRepository::class
+			single {
+				AccountTagService(get(), projectsRepository, ffs, createTomlSerializer())
+			}
 		})
 	}
 

@@ -38,7 +38,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRe
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
-import com.darkrockstudios.apps.hammer.common.data.projectdata.SuggestProjectTagsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
@@ -85,6 +84,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
@@ -186,7 +186,7 @@ val mainModule = module {
 	singleOf(::IdeasRepository)
 	factoryOf(::PromoteIdeaUseCase)
 
-	singleOf(::SuggestProjectTagsUseCase)
+	singleOf(::AccountTagService)
 
 	singleOf(::createTomlSerializer) bind Toml::class
 
