@@ -61,14 +61,35 @@ fun <T : ApiProjectEntity> EntityConflict(
 	RemoteBody: EntityPaneBody<T>,
 	bottomBar: (@Composable () -> Unit)? = null,
 ) {
+	ConflictSplit(
+		compact = screenCharacteristics.widthSizeClass == WindowWidthSizeClass.Compact,
+		onUseRemote = onUseRemote,
+		onUseLocal = onUseLocal,
+		LocalBody = { modifier -> LocalBody(modifier, entityConflict, component) },
+		RemoteBody = { modifier -> RemoteBody(modifier, entityConflict, component) },
+		bottomBar = bottomBar,
+	)
+}
+
+/**
+ * The bare Remote / Local split without any entity-sync coupling, so non-entity conflicts
+ * (project data, story ideas) can reuse the same chrome.
+ */
+@Composable
+fun ConflictSplit(
+	compact: Boolean,
+	onUseRemote: () -> Unit,
+	onUseLocal: () -> Unit,
+	LocalBody: @Composable (modifier: Modifier) -> Unit,
+	RemoteBody: @Composable (modifier: Modifier) -> Unit,
+	bottomBar: (@Composable () -> Unit)? = null,
+) {
 	val remoteLabel = Res.string.sync_conflict_tab_remote.get()
 	val localLabel = Res.string.sync_conflict_tab_local.get()
 	Column(modifier = Modifier.fillMaxSize()) {
 		Box(modifier = Modifier.weight(1f)) {
-			when (screenCharacteristics.widthSizeClass) {
-				WindowWidthSizeClass.Compact -> CompactConflictUi(
-					entityConflict = entityConflict,
-					component = component,
+			if (compact) {
+				CompactConflictUi(
 					onUseRemote = onUseRemote,
 					onUseLocal = onUseLocal,
 					LocalBody = LocalBody,
@@ -76,10 +97,8 @@ fun <T : ApiProjectEntity> EntityConflict(
 					remoteLabel = remoteLabel,
 					localLabel = localLabel,
 				)
-
-				else -> ExpandedConflictUi(
-					entityConflict = entityConflict,
-					component = component,
+			} else {
+				ExpandedConflictUi(
 					onUseRemote = onUseRemote,
 					onUseLocal = onUseLocal,
 					LocalBody = LocalBody,
@@ -100,13 +119,11 @@ fun <T : ApiProjectEntity> EntityConflict(
 }
 
 @Composable
-private fun <T : ApiProjectEntity> ExpandedConflictUi(
-	entityConflict: ProjectSynchronization.EntityConflict<T>,
-	component: ProjectSynchronization,
+private fun ExpandedConflictUi(
 	onUseRemote: () -> Unit,
 	onUseLocal: () -> Unit,
-	LocalBody: EntityPaneBody<T>,
-	RemoteBody: EntityPaneBody<T>,
+	LocalBody: @Composable (modifier: Modifier) -> Unit,
+	RemoteBody: @Composable (modifier: Modifier) -> Unit,
 	remoteLabel: String,
 	localLabel: String,
 ) {
@@ -116,7 +133,7 @@ private fun <T : ApiProjectEntity> ExpandedConflictUi(
 			onUse = onUseRemote,
 			modifier = Modifier.weight(1f).fillMaxHeight(),
 		) {
-			RemoteBody(Modifier.fillMaxSize(), entityConflict, component)
+			RemoteBody(Modifier.fillMaxSize())
 		}
 		Box(
 			modifier = Modifier
@@ -129,19 +146,17 @@ private fun <T : ApiProjectEntity> ExpandedConflictUi(
 			onUse = onUseLocal,
 			modifier = Modifier.weight(1f).fillMaxHeight(),
 		) {
-			LocalBody(Modifier.fillMaxSize(), entityConflict, component)
+			LocalBody(Modifier.fillMaxSize())
 		}
 	}
 }
 
 @Composable
-private fun <T : ApiProjectEntity> CompactConflictUi(
-	entityConflict: ProjectSynchronization.EntityConflict<T>,
-	component: ProjectSynchronization,
+private fun CompactConflictUi(
 	onUseRemote: () -> Unit,
 	onUseLocal: () -> Unit,
-	LocalBody: EntityPaneBody<T>,
-	RemoteBody: EntityPaneBody<T>,
+	LocalBody: @Composable (modifier: Modifier) -> Unit,
+	RemoteBody: @Composable (modifier: Modifier) -> Unit,
 	remoteLabel: String,
 	localLabel: String,
 ) {
@@ -163,9 +178,9 @@ private fun <T : ApiProjectEntity> CompactConflictUi(
 			modifier = Modifier.fillMaxWidth().weight(1f),
 		) {
 			if (isRemote) {
-				RemoteBody(Modifier.fillMaxSize(), entityConflict, component)
+				RemoteBody(Modifier.fillMaxSize())
 			} else {
-				LocalBody(Modifier.fillMaxSize(), entityConflict, component)
+				LocalBody(Modifier.fillMaxSize())
 			}
 		}
 	}

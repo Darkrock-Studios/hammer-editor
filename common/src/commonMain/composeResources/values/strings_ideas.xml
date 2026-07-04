@@ -86,8 +86,7 @@
 	<string name="sync_log_ideas_conflict_skipped">Conflict left unresolved for idea: %1$s</string>
 
 	<string name="ideas_conflict_title">Story Idea Conflict</string>
-	<string name="ideas_conflict_local_title">Local Idea</string>
-	<string name="ideas_conflict_remote_title">Remote Idea</string>
-	<string name="ideas_conflict_use_local">Use Local</string>
-	<string name="ideas_conflict_use_remote">Use Remote</string>
+	<string name="ideas_conflict_field_title">Title</string>
+	<string name="ideas_conflict_field_tags">Tags</string>
+	<string name="ideas_conflict_field_content">Content</string>
 </resources>

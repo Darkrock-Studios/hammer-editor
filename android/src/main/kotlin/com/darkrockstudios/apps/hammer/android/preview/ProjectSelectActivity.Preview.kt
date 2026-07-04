@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectListModalRouter
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
+import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -54,6 +55,7 @@ val projectListComponent = object : ProjectsList {
 	override fun showProjectsSync() {}
 	override fun hideProjectsSync() {}
 	override fun cancelProjectsSync() {}
+	override fun resolveIdeaConflict(resolution: StoryIdea?) {}
 	override suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata? = null
 	override fun onProjectNameUpdate(newProjectName: String) {}
 	override fun showProjectRename(projectDef: ProjectDef) {}
