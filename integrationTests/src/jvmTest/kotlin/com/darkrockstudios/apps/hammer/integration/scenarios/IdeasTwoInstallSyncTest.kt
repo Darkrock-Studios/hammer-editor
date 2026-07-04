@@ -89,14 +89,15 @@ class IdeasTwoInstallSyncTest : RoundTripTestBase() {
 		assertEquals(server, baselines, "conflict baselines drifted from the agreed state")
 	}
 
-	/** Stability oracle: an extra account sync moves no idea bodies over the wire. */
+	/**
+	 * Stability oracle: an unchanged ideas set makes zero `/ideas/` requests on resync — the
+	 * begin-sync response's ideas state hash lets the client skip even the `/state` fetch.
+	 */
 	private suspend fun assertIdeasResyncSilent() {
 		val wire = tapWire()
 		assertTrue(syncAccount(), "resync should succeed")
-		val ideaTransfers = wire.calls.filter {
-			it.path.contains("/ideas/") && it.path.contains("/idea/") && it.status in 200..299
-		}
-		assertEquals(emptyList(), ideaTransfers, "resync moved an idea over the wire")
+		val ideaCalls = wire.calls.filter { it.path.contains("/ideas/") }
+		assertEquals(emptyList(), ideaCalls, "resync touched the ideas endpoints")
 	}
 
 	@Test

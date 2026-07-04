@@ -3,7 +3,9 @@ package com.darkrockstudios.apps.hammer.storyideas
 import com.darkrockstudios.apps.hammer.Account
 import com.darkrockstudios.apps.hammer.base.IdeaId
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
+import com.darkrockstudios.apps.hammer.base.http.storyideas.IdeaHashItem
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.IdeasStateHasher
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.DeletedIdeaDao
 import com.darkrockstudios.apps.hammer.database.IdeaHashRow
@@ -109,6 +111,18 @@ class ServerIdeasRepositoryTest : BaseTest() {
 		assertEquals(listOf(ideaId), state.ideas.map { it.id })
 		assertEquals(listOf("hash-1"), state.ideas.map { it.hash })
 		assertEquals(setOf(IdeaId("dead-uuid")), state.deletedIdeas)
+	}
+
+	@Test
+	fun `Ideas state hash reflects the live idea set`() = runTest {
+		coEvery { storyIdeaDao.getIdeaHashes(userId) } returns listOf(IdeaHashRow(ideaId, "hash-1"))
+
+		val stateHash = createRepository().getIdeasStateHash(userId)
+
+		assertEquals(
+			IdeasStateHasher.hash(listOf(IdeaHashItem(ideaId, "hash-1"))),
+			stateHash,
+		)
 	}
 
 	@Test

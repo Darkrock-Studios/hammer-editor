@@ -72,6 +72,7 @@
 	<string name="ideas_discard_dialog_message">You have unsaved changes. Discard them?</string>
 
 	<string name="sync_log_ideas_begin">Syncing story ideas</string>
+	<string name="sync_log_ideas_unchanged">Story ideas unchanged — skipped</string>
 	<string name="sync_log_ideas_complete">Story ideas sync complete</string>
 	<string name="sync_log_ideas_state_failed">Failed to fetch story ideas state: %1$s</string>
 	<string name="sync_log_ideas_deleted_local">Removed deleted idea: %1$s</string>

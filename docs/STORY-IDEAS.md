@@ -166,8 +166,11 @@ Client-supplied hash over the `StoryIdea` fields, following the established evol
    prefix), so existing baselines and server rows stay byte-identical.
 3. Covered by `EntityHashSensitivityTest`-style guards.
 
-The idea set should eventually fold into the **sync probe** (an account-level ideas hash alongside
-the per-project hashes) so an unchanged ideas set costs zero round-trips; optimization, not v1.
+An unchanged ideas set costs **zero extra round-trips**: the `begin_sync` response carries an
+account-level `ideasStateHash` (`IdeasStateHasher` over the server's live `{uuid, hash}` pairs),
+and a client with no pending work whose locked baselines hash to the same value skips the ideas
+phase outright. Riding `begin_sync` beats the post-account-sync probe endpoint here — the ideas
+phase runs *inside* the account session, before the probe would fire.
 
 ## Server
 
@@ -221,6 +224,7 @@ covered by the key-rotation convergence job and the key-prune in-use scan.
      from the same pieces. The extraction lands as its own commit before new screen code.
 2. **Phase 2 — sync.** ✅ Complete. Server tables + routes (`story_idea`/`deleted_idea`,
    migration 5→6), `IdeaHasher` + golden-pin sensitivity tests, the client ideas phase inside
-   `ClientAccountSynchronizer`, the `.ideas/sync.json` sidecar, and `IdeaConflictUi` in the
-   account sync dialog (editable local pane for manual merges).
-3. **Later:** sync-probe integration; tag-based filtering/search niceties.
+   `ClientAccountSynchronizer`, the `.ideas/sync.json` sidecar, `IdeaConflictUi` in the
+   account sync dialog (editable local pane for manual merges), and the `ideasStateHash`
+   skip riding `begin_sync`.
+3. **Later:** tag-based filtering/search niceties.

@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.database.StoryIdeaDao
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.IdeasStateHasher
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
@@ -55,6 +56,13 @@ class ServerIdeasRepository(
 		data class Saved(val dto: RawSavedIdeaDto) : IdeaSaveResult()
 		data class Conflict(val conflict: RawIdeaConflictDto) : IdeaSaveResult()
 	}
+
+	/**
+	 * [IdeasStateHasher] hash of the account's live idea set, sent in the begin-sync response so
+	 * a client in agreement can skip the ideas phase. Read-only — no sync session required.
+	 */
+	suspend fun getIdeasStateHash(userId: Long): String =
+		IdeasStateHasher.hash(storyIdeaDao.getIdeaHashes(userId).map { IdeaHashItem(it.id, it.hash) })
 
 	suspend fun getSyncState(userId: Long, syncId: String): SResult<IdeasSyncState> {
 		if (!syncSessionManager.validateSyncId(userId, syncId))

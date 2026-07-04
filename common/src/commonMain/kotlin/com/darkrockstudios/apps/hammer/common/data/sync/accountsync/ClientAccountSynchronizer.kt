@@ -97,7 +97,12 @@ class ClientAccountSynchronizer(
 
 				// Ideas phase rides the same session; failures are logged, not fatal to the
 				// account sync (matching how per-project ops above behave).
-				ideasSynchronizer.syncIdeas(syncId, onLog, onIdeaConflict)
+				ideasSynchronizer.syncIdeas(
+					syncId = syncId,
+					onLog = onLog,
+					resolveConflict = onIdeaConflict,
+					serverIdeasStateHash = serverSyncData.ideasStateHash,
+				)
 
 				yield()
 

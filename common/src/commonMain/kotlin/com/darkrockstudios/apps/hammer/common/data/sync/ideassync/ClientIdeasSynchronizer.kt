@@ -3,8 +3,10 @@ package com.darkrockstudios.apps.hammer.common.data.sync.ideassync
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.IdeaId
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
+import com.darkrockstudios.apps.hammer.base.http.storyideas.IdeaHashItem
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.IdeaConflictException
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.IdeaHasher
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.IdeasStateHasher
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasDatasource
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
@@ -25,6 +27,7 @@ import com.darkrockstudios.apps.hammer.sync_log_ideas_deleted_server
 import com.darkrockstudios.apps.hammer.sync_log_ideas_download_failed
 import com.darkrockstudios.apps.hammer.sync_log_ideas_downloaded
 import com.darkrockstudios.apps.hammer.sync_log_ideas_state_failed
+import com.darkrockstudios.apps.hammer.sync_log_ideas_unchanged
 import com.darkrockstudios.apps.hammer.sync_log_ideas_upload_failed
 import com.darkrockstudios.apps.hammer.sync_log_ideas_uploaded
 import io.github.aakira.napier.Napier
@@ -59,8 +62,14 @@ class ClientIdeasSynchronizer(
 	suspend fun syncIdeas(
 		syncId: String,
 		onLog: OnSyncLog,
+		serverIdeasStateHash: String? = null,
 		resolveConflict: IdeaConflictResolver,
 	): Boolean {
+		if (serverIdeasStateHash != null && isInAgreement(serverIdeasStateHash)) {
+			onLog(syncAccLogI(strRes.get(Res.string.sync_log_ideas_unchanged)))
+			return true
+		}
+
 		onLog(syncAccLogI(strRes.get(Res.string.sync_log_ideas_begin)))
 
 		val stateResult = serverIdeasApi.getSyncState(syncId)
@@ -173,6 +182,25 @@ class ClientIdeasSynchronizer(
 
 		onLog(syncAccLogI(strRes.get(Res.string.sync_log_ideas_complete)))
 		return allSuccess
+	}
+
+	/**
+	 * True when the ideas phase can be skipped outright: no pending local work (no outbox
+	 * entries, every local idea hashes to its locked baseline, no local-only or missing ideas)
+	 * and the server's live idea set hashes to the same state as those baselines. Any failure
+	 * mode is conservative — the phase runs and reconciles the normal way.
+	 */
+	private suspend fun isInAgreement(serverIdeasStateHash: String): Boolean {
+		val syncData = ideasSyncDatasource.load()
+		if (syncData.pendingDeletes.isNotEmpty()) return false
+
+		val localHashes = ideasDatasource.loadIdeas().associate { it.id to IdeaHasher.hash(it) }
+		if (localHashes != syncData.baselines) return false
+
+		val localStateHash = IdeasStateHasher.hash(
+			localHashes.map { (id, hash) -> IdeaHashItem(id, hash) }
+		)
+		return localStateHash == serverIdeasStateHash
 	}
 
 	private data class UploadOutcome(

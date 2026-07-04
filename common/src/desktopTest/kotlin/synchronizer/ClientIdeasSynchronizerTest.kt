@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.base.http.storyideas.SavedIdeaDto
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.IdeaConflictException
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.IdeaHasher
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.IdeasStateHasher
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasDatasource
@@ -263,6 +264,71 @@ class ClientIdeasSynchronizerTest : BaseTest() {
 
 		assertFalse(success)
 		assertFalse(syncDatasource.hasSynced())
+	}
+
+	@Test
+	fun `Matching state hash skips the phase without touching the server`() = runTest {
+		val local = idea()
+		val localHash = IdeaHasher.hash(local)
+		ideasDatasource.createIdea(local)
+		syncDatasource.save(IdeasSynchronizationData(baselines = mapOf(local.id to localHash)))
+		val stateHash = IdeasStateHasher.hash(listOf(IdeaHashItem(local.id, localHash)))
+
+		val success = synchronizer.syncIdeas(
+			syncId,
+			onLog = {},
+			resolveConflict = { null },
+			serverIdeasStateHash = stateHash,
+		)
+
+		assertTrue(success)
+		coVerify(exactly = 0) { api.getSyncState(any()) }
+	}
+
+	@Test
+	fun `A dirty local idea defeats the state-hash skip`() = runTest {
+		val original = idea()
+		val edited = original.copy(content = "edited offline")
+		ideasDatasource.createIdea(edited)
+		syncDatasource.save(
+			IdeasSynchronizationData(baselines = mapOf(original.id to IdeaHasher.hash(original)))
+		)
+		// The server still agrees with the old baseline...
+		val staleStateHash = IdeasStateHasher.hash(
+			listOf(IdeaHashItem(original.id, IdeaHasher.hash(original)))
+		)
+		coEvery { api.getSyncState(syncId) } returns Result.success(serverState(ideas = listOf(original)))
+		coEvery { api.uploadIdea(edited, IdeaHasher.hash(original), syncId) } returns
+			Result.success(SavedIdeaDto(edited, IdeaHasher.hash(edited)))
+
+		val success = synchronizer.syncIdeas(
+			syncId,
+			onLog = {},
+			resolveConflict = { null },
+			serverIdeasStateHash = staleStateHash,
+		)
+
+		assertTrue(success)
+		coVerify { api.uploadIdea(edited, IdeaHasher.hash(original), syncId) }
+	}
+
+	@Test
+	fun `Pending deletes defeat the state-hash skip`() = runTest {
+		val deadId = IdeaId(uuid(3))
+		syncDatasource.save(IdeasSynchronizationData(pendingDeletes = setOf(deadId)))
+		coEvery { api.getSyncState(syncId) } returns Result.success(serverState())
+
+		val success = synchronizer.syncIdeas(
+			syncId,
+			onLog = {},
+			resolveConflict = { null },
+			// Both sides hold zero live ideas, so the state hashes match...
+			serverIdeasStateHash = IdeasStateHasher.hash(emptyList()),
+		)
+
+		assertTrue(success)
+		// ...but the outbox still has to drain.
+		coVerify { api.deleteIdea(deadId, syncId) }
 	}
 
 	@Test

@@ -112,7 +112,7 @@ class ClientAccountSynchronizerTest {
 		projectsRepository = mockk(relaxed = true)
 		serverProjectsApi = mockk()
 		ideasSynchronizer = mockk()
-		coEvery { ideasSynchronizer.syncIdeas(any(), any(), any()) } returns true
+		coEvery { ideasSynchronizer.syncIdeas(any(), any(), any(), any()) } returns true
 		networkConnectivity = mockk()
 
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")
