@@ -3,7 +3,15 @@ package com.darkrockstudios.apps.hammer.common.compose.designsystem
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -87,26 +95,21 @@ fun HdHairlineImageDrop(
 			) {
 				image()
 				if (onRemove != null) {
-					Box(
+					HdClearGlyph(
+						onClick = onRemove,
 						modifier = Modifier
 							.align(Alignment.TopEnd)
 							.padding(8.dp)
-							.size(24.dp)
 							.background(MaterialTheme.colorScheme.surface, RectangleShape)
 							.border(
 								width = Dp.Hairline,
 								color = MaterialTheme.colorScheme.outlineVariant,
 								shape = RectangleShape,
-							)
-							.clickable(onClick = onRemove),
-						contentAlignment = Alignment.Center,
-					) {
-						Text(
-							text = "×",
-							style = MaterialTheme.typography.labelLarge,
-							color = MaterialTheme.colorScheme.onSurface,
-						)
-					}
+							),
+						boxSize = 24.dp,
+						glyphSize = 8.dp,
+						color = MaterialTheme.colorScheme.onSurface,
+					)
 				}
 			}
 		} else {

@@ -7,6 +7,8 @@ data class ProjectData(
 	val authorName: String? = null,
 	val theme: ProjectTheme? = null,
 	val wordCountGoal: WordCountGoal? = null,
+	/** Picked as a unit during conflict resolution — the whole set comes from one side, never a merge. */
+	val tags: Set<String> = emptySet(),
 )
 
 /** Picked as a unit during conflict resolution — one device's primary paired with another's secondary is undesigned. */

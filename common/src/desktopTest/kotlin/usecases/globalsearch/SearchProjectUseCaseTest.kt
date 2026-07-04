@@ -2,7 +2,11 @@ package usecases.globalsearch
 
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSearchFilter
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
-import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
@@ -118,24 +122,6 @@ class SearchProjectUseCaseTest : BaseTest() {
 		assertNotNull(match)
 		assertTrue(!match.text.contains("\n"))
 		assertTrue(!match.text.contains("\t"))
-	}
-
-	@Test
-	fun `parseQuery extracts tags and free text in any order`() {
-		val parsed = SearchProjectUseCase.parseQuery("dragon #fantasy battle #adventure")
-		assertEquals(listOf("fantasy", "adventure"), parsed.tags)
-		assertEquals("dragon battle", parsed.text)
-	}
-
-	@Test
-	fun `parseQuery handles tag-only and stray hash`() {
-		val tagOnly = SearchProjectUseCase.parseQuery("#hero")
-		assertEquals(listOf("hero"), tagOnly.tags)
-		assertEquals("", tagOnly.text)
-
-		val strayHash = SearchProjectUseCase.parseQuery("# foo")
-		assertTrue(strayHash.tags.isEmpty())
-		assertEquals("foo", strayHash.text)
 	}
 
 	@Test

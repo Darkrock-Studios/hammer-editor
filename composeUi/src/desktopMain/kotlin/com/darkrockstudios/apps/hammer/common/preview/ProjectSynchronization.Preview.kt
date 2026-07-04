@@ -12,7 +12,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.update
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
@@ -22,6 +22,12 @@ import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSync
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.projectsync.ProjectSynchronizationContent
+import com.darkrockstudios.apps.hammer.sync_conflict_encyclopedia_title
+import com.darkrockstudios.apps.hammer.sync_conflict_note_title
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_title
+import com.darkrockstudios.apps.hammer.sync_conflict_scene_draft_title
+import com.darkrockstudios.apps.hammer.sync_conflict_scene_title
+import com.darkrockstudios.apps.hammer.sync_conflict_timeline_title
 import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
@@ -232,11 +238,13 @@ fun ProjectDataConflictPreview() {
 		authorName = "Lewis Carroll",
 		theme = ProjectTheme(primary = "#3F51B5", secondary = "#FFC107"),
 		wordCountGoal = WordCountGoal(cadence = WordCountGoal.Cadence.DAY, count = 500),
+		tags = setOf("fantasy", "classic"),
 	)
 	val server = ProjectData(
 		authorName = "Charles Dodgson",
 		theme = ProjectTheme(primary = "#009688", secondary = "#E91E63"),
 		wordCountGoal = WordCountGoal(cadence = WordCountGoal.Cadence.WEEK, count = 3500),
+		tags = setOf("fantasy", "children"),
 	)
 
 	val conflictState = ProjectSynchronization.ProjectDataConflictState(

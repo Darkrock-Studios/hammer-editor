@@ -111,6 +111,36 @@ class ProjectDataRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `updateData persists tags and they round-trip through TOML`() = runTest {
+		datasource.save(StoredProjectData(ProjectData(authorName = "Pat"), "synced-hash"))
+
+		repository.updateData { it.copy(tags = setOf("fantasy", "draft")) }
+
+		val onDisk = datasource.load()
+		assertEquals(setOf("fantasy", "draft"), onDisk.data.tags)
+		assertEquals("Pat", onDisk.data.authorName)
+		coVerify(exactly = 1) { syncDataDatasource.invalidateProjectHash() }
+	}
+
+	@Test
+	fun `pre-tags project_data toml loads with empty tags`() = runTest {
+		// A file written before the tags field existed.
+		val legacyToml = """
+			|[data]
+			|authorName = "Legacy"
+			|
+		""".trimMargin()
+		fileSystem.write("/projects/Test Project/project_data.toml".toPath()) {
+			writeUtf8(legacyToml)
+		}
+
+		val loaded = repository.load()
+
+		assertEquals("Legacy", loaded.data.authorName)
+		assertEquals(emptySet(), loaded.data.tags)
+	}
+
+	@Test
 	fun `updateFromSync replaces both data and the synced hash`() = runTest {
 		repository.load()
 

@@ -24,7 +24,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentHeight
@@ -32,7 +31,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -74,6 +72,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDragHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
@@ -177,32 +176,18 @@ fun TimeLineOverviewUi(
 			label = "TimeLineTitleAnim",
 		) { searching ->
 			if (searching) {
-				Row(
+				HdSearchRow(
+					query = searchQuery,
+					onQueryChange = { searchQuery = it },
+					placeholder = stringResource(Res.string.timeline_search_placeholder),
+					clearContentDescription = stringResource(Res.string.timeline_search_clear),
+					onCollapse = {
+						showSearchBar = false
+						searchQuery = ""
+					},
+					collapseContentDescription = Res.string.timeline_search_close.get(),
 					modifier = Modifier.fillMaxSize(),
-					verticalAlignment = Alignment.CenterVertically,
-					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-				) {
-					HdSearchField(
-						value = searchQuery,
-						onValueChange = { searchQuery = it },
-						placeholder = stringResource(Res.string.timeline_search_placeholder),
-						onClear = { searchQuery = "" },
-						clearContentDescription =
-							stringResource(Res.string.timeline_search_clear),
-						modifier = Modifier.weight(1f),
-					)
-					Icon(
-						imageVector = Icons.Default.Close,
-						contentDescription = Res.string.timeline_search_close.get(),
-						tint = MaterialTheme.colorScheme.onSurface,
-						modifier = Modifier
-							.size(24.dp)
-							.clickable {
-								showSearchBar = false
-								searchQuery = ""
-							},
-					)
-				}
+				)
 			} else {
 				Row(
 					modifier = Modifier.fillMaxSize(),

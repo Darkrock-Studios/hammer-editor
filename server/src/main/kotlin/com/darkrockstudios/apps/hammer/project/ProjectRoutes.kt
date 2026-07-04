@@ -9,7 +9,6 @@ import com.darkrockstudios.apps.hammer.base.http.HEADER_ENTITY_TYPE
 import com.darkrockstudios.apps.hammer.base.http.HEADER_ORIGINAL_HASH
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.base.http.SaveEntityResponse
-import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataUploadRequest
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityConflictException
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
@@ -438,12 +437,13 @@ private fun Route.uploadProjectData() {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
 		val projectDef = call.requireProjectDef(principal.id) ?: return@post
 
-		val request = call.receive<ProjectDataUploadRequest>()
+		val request = call.receive<RawProjectDataUploadRequest>()
 		val result = repository.save(
 			userId = principal.id,
 			projectDef = projectDef,
 			data = request.data,
 			originalHash = request.originalHash,
+			clientHash = request.hash,
 		)
 		if (isSuccess(result)) {
 			when (val outcome = result.data) {
@@ -451,8 +451,13 @@ private fun Route.uploadProjectData() {
 				is ProjectDataSaveResult.Conflict -> call.respond(HttpStatusCode.Conflict, outcome.conflict)
 			}
 		} else {
+			val status = if (result.exception is IllegalArgumentException) {
+				HttpStatusCode.BadRequest
+			} else {
+				HttpStatusCode.NotFound
+			}
 			call.respond(
-				status = HttpStatusCode.NotFound,
+				status = status,
 				HttpResponseError(
 					error = "Failed to save project data",
 					displayMessage = result.displayMessageText(call, R(ERR_KEY_UNKNOWN)),

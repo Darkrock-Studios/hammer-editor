@@ -6,7 +6,6 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataConflict
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataDto
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataConflictException
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
@@ -182,7 +181,43 @@ class ProjectDataSyncOperationTest : BaseTest() {
 		val result = createOperation().run()
 
 		assertTrue(isSuccess(result))
-		assertEquals(StoredProjectData(server, "server-hash"), repository.state.value)
+		// The recorded baseline is the hash of the stored data, not the server row's hash —
+		// see `fast-forward from a newer-shaped server row must not manufacture a local edit`.
+		assertEquals(
+			StoredProjectData(server, ProjectDataHasher.hash(server)),
+			repository.state.value,
+		)
+	}
+
+	@Test
+	fun `fast-forward from a newer-shaped server row must not manufacture a local edit`() =
+		runTest {
+			// Simulates a same-protocol peer whose ProjectData gained a field this build doesn't
+			// know: the typed decode strips it, so the decoded data hashes differently from the
+			// server row's hash.
+			val local = ProjectData(authorName = "Author")
+			datasource.save(
+				StoredProjectData(
+					local,
+					lastSyncedHash = ProjectDataHasher.hash(local)
+				)
+			)
+			val strippedServerView = ProjectData(authorName = "Server Author")
+			val serverRowHash = "hash-including-a-field-this-build-cannot-see"
+			coEvery { api.getProjectData(any(), any()) } returns
+				Result.success(ProjectDataDto(strippedServerView, serverRowHash))
+
+			assertTrue(isSuccess(createOperation().run()))
+			assertEquals(
+				StoredProjectData(strippedServerView, ProjectDataHasher.hash(strippedServerView)),
+				repository.state.value,
+				"the baseline must be the hash of what was actually stored, not the server row's hash",
+			)
+
+			// The next sync must fast-forward again — uploading the stripped copy would delete the
+			// unknown field server-side.
+			assertTrue(isSuccess(createOperation().run()))
+			coVerify(exactly = 0) { api.uploadProjectData(any(), any(), any(), any()) }
 	}
 
 	@Test
@@ -196,7 +231,10 @@ class ProjectDataSyncOperationTest : BaseTest() {
 		val result = createOperation().run()
 
 		assertTrue(isSuccess(result))
-		assertEquals(StoredProjectData(server, "server-hash"), repository.state.value)
+		assertEquals(
+			StoredProjectData(server, ProjectDataHasher.hash(server)),
+			repository.state.value,
+		)
 		coVerify(exactly = 0) { api.uploadProjectData(any(), any(), any(), any()) }
 	}
 

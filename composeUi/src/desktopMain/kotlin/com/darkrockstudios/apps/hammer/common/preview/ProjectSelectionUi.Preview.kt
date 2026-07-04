@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectIndexRow
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData as StoredData
 
 @Preview
 @Composable
@@ -56,5 +57,6 @@ fun ProjectCardCompactPreview() {
 
 fun fakeProjectData() = ProjectData(
 	fakeProjectDef(),
-	fakeProjectMetadata()
+	fakeProjectMetadata(),
+	storedData = StoredData(authorName = "A. Writer", tags = setOf("fantasy", "draft")),
 )

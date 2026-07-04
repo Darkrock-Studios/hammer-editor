@@ -457,6 +457,42 @@ Unlike writing-activity sync (which swallows errors and continues), a non-confli
 
 Note: unlike the entity endpoints, the `project_data` and `writing_activity` endpoints are not gated on a `syncID` — they simply run inside the sync session window.
 
+### Server storage is shape-agnostic
+
+Server storage never depends on client data shape: synced content — entities, and project data
+alike — is stored as an opaque blob with a **client-supplied** hash. The server never decodes the
+blob into the typed model except to *validate* that it decodes at all (`ignoreUnknownKeys`, so
+fields it doesn't know still pass); on upload it stores the received JSON verbatim (`hash` field in
+the upload request), and on download/conflict it passes the stored bytes back untouched (
+`RawProjectData*` DTOs server-side, `JsonElement` data slots). A stored row that no longer decodes
+is treated as missing, so the next client upload heals it.
+
+This makes adding a field to a synced model a **client-only** change:
+
+1. Add the field to the model (in `base`) with a serialization default, so old data deserializes.
+2. Fold the field into its hasher such that the empty/absent value contributes **zero bytes** —
+   existing hashes (stored `lastSyncedHash` baselines, server rows) must stay byte-identical. Hash
+   collections in sorted order with a size prefix (see `tags` in `ProjectDataHasher`).
+3. Update the hash-sensitivity guard (`EntityHashSensitivityTest` fails automatically until the new
+   field provably affects the hash).
+
+The server needs no update, and no protocol bump is required. The one legacy exception: clients that
+predate the `hash` upload field don't send a content hash, so the server falls back to a typed
+decode + server-side hash for those uploads only.
+
+**Mixed app versions within one protocol version.** A not-yet-updated client's typed decode strips
+fields it doesn't know, so its stored copy of downloaded project data hashes differently from the
+server row. To keep that from destroying data, the fast-forward path records `lastSyncedHash` as the
+hash of **what it actually stored**, not the server row's hash — a passive out-of-date device then
+just keeps fast-forwarding harmlessly instead of "detecting" a phantom local edit and re-uploading
+the stripped copy (which would delete the newer field server-side). The remaining caveat: if the
+out-of-date device *genuinely edits* project data during the mixed-version window, its upload
+surfaces as a 409 conflict (its baseline no longer matches the server row), and resolving that
+conflict uploads its stripped view — the newer field's value is lost (reset to its default) and
+propagates that way to the newer device. Accepted as the cost of not forcing lockstep upgrades for
+additive changes; genuinely destructive shape changes (removing or re-typing a field) still warrant
+a `HAMMER_PROTOCOL_VERSION` bump.
+
 ## Writing Activity Sync (per-device slots)
 
 After entity transfer, the client syncs **writing activity** — an auxiliary record of writing sessions used for stats and observability (words written, session start/end, sealed flag). Each device tracks its own sessions locally; the project's full activity is the union of every device's log, keyed by `deviceId`.

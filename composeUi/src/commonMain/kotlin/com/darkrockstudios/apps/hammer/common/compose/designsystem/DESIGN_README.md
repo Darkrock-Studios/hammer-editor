@@ -265,6 +265,10 @@ The handwriting of the system. Reach for these instead of styling
   top stripe in the type's color when active.
 - **[`HdSearchField`](HdSearchField.kt)** — 32dp tall hairline search
   bar with `⌕` glyph and clear `×`.
+- **[`HdSearchRow`](HdSearchRow.kt)** — the revealed-search molecule:
+  weighted `HdSearchField` + trailing `HdCollapseGlyph`. Use it for
+  any search bar a toggle reveals; the caller owns the reveal state
+  and decides whether collapsing also clears the query.
 - **[`HdHairlineImageDrop`](HdHairlineImageDrop.kt)** — image-picker
   drop zone. Empty state has 135° stripes, dashed hairline border,
   centered `+` tile, mono hint, and a "browse files" affordance.
@@ -308,6 +312,16 @@ screen that surfaces them.
   entry card; tapping it re-runs the filter, not the card open.
 - **[`HdTagChip`](HdTagChip.kt)** — `# label` chip with optional `×`
   remove. The tag primitive used inside cards and tag fields.
+- **[`HdClearGlyph`](HdClearGlyph.kt)** — the small `×` clear/remove
+  affordance, drawn as two strokes so it stays geometrically centered
+  (a font-rendered `×` sits low in a small box). Use this instead of
+  `Text("×")` anywhere a chip, field, or panel needs a dismiss glyph;
+  pass `onClick = null` when a parent handles the click.
+- **[`HdCollapseGlyph`](HdCollapseGlyph.kt)** — dock-to-top arrow
+  (`⤒`) for dismissing a strip that tucks back up into the chrome,
+  e.g. a revealed search bar. Not an `×`: clear empties a value,
+  collapse puts the strip away — two `×`s side by side read as one
+  ambiguous action.
 - **[`HdTypographicHero`](HdTypographicHero.kt)** — imageless hero
   zone for entry cards: 6dp accent stripe + low-opacity glyph
   backdrop + the entry name in display weight. Use when no cover

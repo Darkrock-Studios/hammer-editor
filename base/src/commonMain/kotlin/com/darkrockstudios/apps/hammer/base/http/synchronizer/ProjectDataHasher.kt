@@ -37,6 +37,15 @@ object ProjectDataHasher {
 			d.update(0, buf)
 		}
 
+		// No presence byte, unlike the fields above: an empty set must contribute zero bytes so
+		// tag-less data keeps its pre-tags hash (stored lastSyncedHash baselines and server rows
+		// were computed without this field). Sorted for a canonical order across devices; the
+		// size prefix keeps ["ab"] and ["a","b"] distinct.
+		if (data.tags.isNotEmpty()) {
+			d.update(data.tags.size, buf)
+			data.tags.sorted().forEach { tag -> d.update(tag, buf) }
+		}
+
 		return d.digest().base64Url
 	}
 }

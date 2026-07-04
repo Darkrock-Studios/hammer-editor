@@ -2,15 +2,19 @@ package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -93,18 +97,11 @@ fun HdSearchField(
 			}
 		}
 		if (value.isNotEmpty() && onClear != null) {
-			Box(
-				modifier = Modifier
-					.size(20.dp)
-					.clickable(onClick = onClear),
-				contentAlignment = Alignment.Center,
-			) {
-				Text(
-					text = "×",
-					style = LocalTextStyle.current,
-					color = onSurfaceMuted,
-				)
-			}
+			HdClearGlyph(
+				onClick = onClear,
+				color = onSurfaceMuted,
+				contentDescription = clearContentDescription,
+			)
 		}
 	}
 }

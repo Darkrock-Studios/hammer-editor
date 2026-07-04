@@ -2,11 +2,12 @@ package com.darkrockstudios.apps.hammer.projects.repository
 
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.base.http.ProjectHashItem
+import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
-import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataDto
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
+import com.darkrockstudios.apps.hammer.project.RawProjectDataDto
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import io.mockk.coEvery
 import io.mockk.every
@@ -26,7 +27,7 @@ class ProjectsRepositoryProbeTest : ProjectsRepositoryBaseTest() {
 			EntityHash(2, "h2"),
 		)
 		coEvery { serverProjectDataRepository.load(userId, projectDefinition) } returns
-			SResult.success<ProjectDataDto?>(null)
+			SResult.success<RawProjectDataDto?>(null)
 	}
 
 	private fun expectedServerHash(): String = ProjectContentHasher.hash(
@@ -90,8 +91,11 @@ class ProjectsRepositoryProbeTest : ProjectsRepositoryBaseTest() {
 	@Test
 	fun `project-data changes are reflected in the hash`() = runTest {
 		stubTwoEntities()
-		val withData = ProjectDataDto(
-			data = ProjectData(authorName = "Pat"),
+		val withData = RawProjectDataDto(
+			data = createJsonSerializer().encodeToJsonElement(
+				ProjectData.serializer(),
+				ProjectData(authorName = "Pat"),
+			),
 			hash = ProjectDataHasher.hash(ProjectData(authorName = "Pat")),
 		)
 		coEvery { serverProjectDataRepository.load(userId, projectDefinition) } returns SResult.success(withData)

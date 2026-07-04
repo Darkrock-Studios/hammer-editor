@@ -1,7 +1,15 @@
 package com.darkrockstudios.apps.hammer.common.preview.designsystem
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
@@ -9,10 +17,50 @@ import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdAttributionItem
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBarChart
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBarChartItem
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBarDestination
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCategoryChip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCategorySwatch
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCollapseGlyph
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDailyGoalProgress
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDeltaBadge
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEngravingPlaceholder
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryCard
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryFilterBar
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryFilterOption
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineGrid
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineImageDrop
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTypePicker
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdInlineStat
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetadataItem
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMiniBarChart
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailDestination
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPlainSection
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChipVariant
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResponsiveStrip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatBlock
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTypeStamp
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTypographicHero
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdUnsavedBadge
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -702,6 +750,27 @@ fun SearchFieldPreview() {
 				onClear = {},
 				modifier = Modifier.fillMaxWidth(),
 			)
+		}
+	}
+}
+
+@Preview
+@Composable
+fun SearchStripGlyphsPreview() {
+	AppTheme(globalSettingsPreview, useDarkTheme = true) {
+		PreviewSurface {
+			Row(
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(8.dp),
+			) {
+				HdSearchField(
+					value = "test",
+					onValueChange = {},
+					onClear = {},
+					modifier = Modifier.weight(1f),
+				)
+				HdCollapseGlyph(onClick = {})
+			}
 		}
 	}
 }

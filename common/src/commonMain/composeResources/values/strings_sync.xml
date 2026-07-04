@@ -49,6 +49,10 @@
 	<string name="project_info_word_goal_cadence_week">Week</string>
 	<string name="project_info_word_goal_effective_label">Effective</string>
 	<string name="project_info_word_goal_effective_unit">W / day</string>
+	<string name="project_info_tags_section_title">Tags</string>
+	<string name="project_info_tags_label">Tags</string>
+	<string name="project_info_tags_hint">↵ to add</string>
+	<string name="project_info_tags_placeholder">fantasy, draft, nanowrimo…</string>
 	<string name="project_info_color_picker_edit">Edit</string>
 	<string name="project_info_color_picker_cancel">Cancel</string>
 	<string name="project_info_color_picker_confirm">OK</string>
@@ -67,6 +71,7 @@
 	<string name="sync_conflict_project_data_field_author">Author Name</string>
 	<string name="sync_conflict_project_data_field_theme">Project Theme</string>
 	<string name="sync_conflict_project_data_field_word_goal">Word Count Goal</string>
+	<string name="sync_conflict_project_data_field_tags">Tags</string>
 	<string name="sync_conflict_project_data_value_unset">(not set)</string>
 	<string name="sync_conflict_project_data_word_goal_value">%1$d / %2$s</string>
 	<string name="sync_conflict_project_data_cadence_day">day</string>

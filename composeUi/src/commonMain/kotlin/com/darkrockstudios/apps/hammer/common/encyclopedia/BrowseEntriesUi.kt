@@ -1,36 +1,80 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
-import androidx.compose.animation.*
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
+import androidx.compose.animation.SizeTransform
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.rememberTopAppBarState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryFilterBar
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryFilterOption
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.encyclopedia_browse_list_empty
+import com.darkrockstudios.apps.hammer.encyclopedia_create_button
+import com.darkrockstudios.apps.hammer.encyclopedia_header
+import com.darkrockstudios.apps.hammer.encyclopedia_search_clear_button
+import com.darkrockstudios.apps.hammer.encyclopedia_search_hint
+import com.darkrockstudios.apps.hammer.notes_search_button
+import com.darkrockstudios.apps.hammer.notes_search_close
 import kotlinx.coroutines.CoroutineScope
 import kotlin.math.roundToInt
 
@@ -123,29 +167,16 @@ fun BrowseEntriesUi(
 			label = "EncyclopediaTitleAnim",
 		) { searching ->
 			if (searching) {
-				Row(
+				HdSearchRow(
+					query = plainSearch,
+					onQueryChange = onPlainSearchChange,
+					placeholder = Res.string.encyclopedia_search_hint.get(),
+					clearContentDescription = Res.string.encyclopedia_search_clear_button.get(),
+					onCollapse = { showSearchBar = false },
+					collapseContentDescription = Res.string.notes_search_close.get(),
 					modifier = Modifier.fillMaxSize(),
-					verticalAlignment = Alignment.CenterVertically,
-					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-				) {
-					HdSearchField(
-						value = plainSearch,
-						onValueChange = onPlainSearchChange,
-						placeholder = Res.string.encyclopedia_search_hint.get(),
-						onClear = onClearSearch,
-						clearContentDescription =
-							Res.string.encyclopedia_search_clear_button.get(),
-						modifier = Modifier.weight(1f),
-					)
-					Icon(
-						imageVector = Icons.Default.Close,
-						contentDescription = Res.string.notes_search_close.get(),
-						tint = MaterialTheme.colorScheme.onSurface,
-						modifier = Modifier
-							.size(24.dp)
-							.clickable { showSearchBar = false },
-					)
-				}
+					onClear = onClearSearch,
+				)
 			} else {
 				Row(
 					modifier = Modifier.fillMaxSize(),
@@ -323,7 +354,13 @@ private fun FilterStrip(
 			onSelect = onSelectType,
 		)
 		if (activeTag != null) {
-			ActiveTagChip(label = activeTag, onDismiss = onClearTag)
+			HdTagChip(
+				label = activeTag,
+				active = true,
+				accent = null,
+				onClick = onClearTag,
+				onRemove = onClearTag,
+			)
 		}
 	}
 	if (wrap) {
@@ -342,40 +379,6 @@ private fun FilterStrip(
 		) {
 			content()
 		}
-	}
-}
-
-@Composable
-private fun ActiveTagChip(label: String, onDismiss: () -> Unit) {
-	Row(
-		modifier = Modifier
-			.height(28.dp)
-			.background(MaterialTheme.colorScheme.surfaceContainerHigh)
-			.border(
-				width = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outline,
-				shape = RectangleShape,
-			)
-			.clickable(onClick = onDismiss)
-			.padding(horizontal = 10.dp),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(6.dp),
-	) {
-		Text(
-			text = "#",
-			style = MaterialTheme.typography.labelMedium,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
-		Text(
-			text = label,
-			style = MaterialTheme.typography.labelMedium,
-			color = MaterialTheme.colorScheme.onSurface,
-		)
-		Text(
-			text = "×",
-			style = MaterialTheme.typography.labelMedium,
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
 	}
 }
 

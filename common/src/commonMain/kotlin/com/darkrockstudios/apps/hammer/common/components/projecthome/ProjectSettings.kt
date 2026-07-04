@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
+import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 
 interface ProjectSettings : HammerComponent {
@@ -15,9 +16,24 @@ interface ProjectSettings : HammerComponent {
 	fun setAuthorName(name: String?)
 	fun setTheme(theme: ProjectTheme?)
 	fun setWordCountGoal(goal: WordCountGoal?)
+	fun setTags(tags: Set<String>)
+
+	/** Suggests from tags used on the user's other projects — distinct from [com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting.suggestTags], which suggests in-project entity tags. */
+	fun suggestProjectTags(prefix: String): List<String>
 
 	data class ProjectInfoState(
 		val data: ProjectData = ProjectData(),
 		val isLoaded: Boolean = false,
 	)
+
+	companion object {
+		const val MAX_TAG_SIZE = 64
+
+		/**
+		 * The single normalization rule for project tags. The tag field UI must run additions
+		 * through this too, so a chip that won't survive persistence is never shown.
+		 */
+		fun cleanProjectTags(tags: Set<String>): Set<String> =
+			cleanTags(tags).filter { it.length <= MAX_TAG_SIZE }.toSet()
+	}
 }
