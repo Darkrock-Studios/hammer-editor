@@ -1,0 +1,34 @@
+-- Migration 5 -> 6: account-level story ideas (sync) — the idea blobs and their
+-- deletion tombstones. Mirrors StoryIdea.sq / DeletedIdea.sq for already-deployed
+-- v5 databases; fresh installs get them from Schema.create.
+--
+-- uuid is created as TEXT (the .sq parser's fixed type set) then promoted to UUID
+-- in-place, matching what PostgresSchemaInitializer does for fresh installs — the
+-- migration path alone must reproduce the fresh-install schema exactly.
+
+CREATE TABLE story_idea (
+    user_id BIGINT NOT NULL,
+    uuid TEXT NOT NULL,
+    content TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    cipher TEXT,
+    CONSTRAINT story_idea_content_max CHECK (length(content) <= 65536),
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
+    UNIQUE(user_id, uuid)
+);
+
+CREATE INDEX story_idea_user_id_idx ON story_idea (user_id);
+
+CREATE TABLE deleted_idea (
+    user_id BIGINT NOT NULL,
+    uuid TEXT NOT NULL,
+    deleted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
+    UNIQUE(user_id, uuid)
+);
+
+CREATE INDEX deleted_idea_user_id_idx ON deleted_idea (user_id);
+
+ALTER TABLE story_idea ALTER COLUMN uuid TYPE UUID USING uuid::uuid;
+
+ALTER TABLE deleted_idea ALTER COLUMN uuid TYPE UUID USING uuid::uuid;

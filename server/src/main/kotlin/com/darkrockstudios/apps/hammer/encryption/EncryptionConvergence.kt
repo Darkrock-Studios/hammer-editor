@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.encryption
 
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.Database
+import com.darkrockstudios.apps.hammer.database.StoryIdeaDao
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatabaseDatasource
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
@@ -9,17 +10,18 @@ import org.koin.core.component.KoinComponent
 
 class EncryptionConvergenceException(message: String) : IllegalStateException(message)
 
-data class ConvergenceReport(val storyEntities: Int, val reviewScenes: Int) {
-	val total: Int get() = storyEntities + reviewScenes
+data class ConvergenceReport(val storyEntities: Int, val reviewScenes: Int, val storyIdeas: Int) {
+	val total: Int get() = storyEntities + reviewScenes + storyIdeas
 }
 
 data class ConvergenceDryRun(
 	val storyEntities: Long,
 	val reviewScenes: Long,
-	/** Entities that would exceed the size cap once encrypted; convergence would fail on these. */
+	val storyIdeas: Long,
+	/** Rows that would exceed their size cap once encrypted; convergence would fail on these. */
 	val overCapEntities: List<String>,
 ) {
-	val total: Long get() = storyEntities + reviewScenes
+	val total: Long get() = storyEntities + reviewScenes + storyIdeas
 }
 
 /**
@@ -38,16 +40,19 @@ class EncryptionConvergence(
 	private val registry: ContentEncryptorRegistry,
 	private val maxContentLength: Int = ProjectEntityDatabaseDatasource.MAX_ENTITY_CONTENT_LENGTH,
 	private val batchSize: Long = 500,
+	private val maxIdeaContentLength: Int = StoryIdeaDao.MAX_IDEA_CONTENT_LENGTH,
 ) : KoinComponent {
 
 	private val ioDispatcher by injectIoDispatcher()
 	private val story = database.serverDatabase.storyEntityQueries
 	private val review = database.serverDatabase.reviewSceneQueries
+	private val ideas = database.serverDatabase.storyIdeaQueries
 
 	/** Rows not yet on [targetTag] — the completion signal; 0 means fully converged. */
 	suspend fun remaining(targetTag: String): Long = withContext(ioDispatcher) {
 		story.countForConvergence(targetTag).executeAsOne() +
-			review.countForConvergence(targetTag).executeAsOne()
+			review.countForConvergence(targetTag).executeAsOne() +
+			ideas.countForConvergence(targetTag).executeAsOne()
 	}
 
 	/**
@@ -62,6 +67,7 @@ class EncryptionConvergence(
 
 		val storyRemaining = story.countForConvergence(targetTag).executeAsOne()
 		val reviewRemaining = review.countForConvergence(targetTag).executeAsOne()
+		val ideasRemaining = ideas.countForConvergence(targetTag).executeAsOne()
 
 		val overCap = mutableListOf<String>()
 		var offset = 0L
@@ -78,7 +84,21 @@ class EncryptionConvergence(
 			offset += batch.size
 		}
 
-		ConvergenceDryRun(storyRemaining, reviewRemaining, overCap)
+		offset = 0L
+		while (true) {
+			val batch = ideas.selectForConvergencePaged(targetTag, batchSize, offset).executeAsList()
+			if (batch.isEmpty()) break
+			for (row in batch) {
+				val secret = secretFor(secrets, row.user_id)
+				val plain = registry.resolve(row.cipher).decrypt(row.content, secret)
+				if (target.encrypt(plain, secret).length > maxIdeaContentLength) {
+					overCap += "idea ${row.uuid} (user ${row.user_id})"
+				}
+			}
+			offset += batch.size
+		}
+
+		ConvergenceDryRun(storyRemaining, reviewRemaining, ideasRemaining, overCap)
 	}
 
 	private suspend fun secretFor(cache: MutableMap<Long, String>, userId: Long): String {
@@ -126,6 +146,25 @@ class EncryptionConvergence(
 			}
 		}
 
-		ConvergenceReport(storyCount, reviewCount)
+		var ideaCount = 0
+		while (true) {
+			val batch = ideas.selectForConvergence(targetTag, batchSize).executeAsList()
+			if (batch.isEmpty()) break
+			for (row in batch) {
+				val secret = secretFor(secrets, row.user_id)
+				val plain = registry.resolve(row.cipher).decrypt(row.content, secret)
+				val reEncrypted = target.encrypt(plain, secret)
+				if (reEncrypted.length > maxIdeaContentLength) {
+					throw EncryptionConvergenceException(
+						"Idea ${row.uuid} (user ${row.user_id}) would be ${reEncrypted.length} bytes " +
+							"once encrypted, over the $maxIdeaContentLength cap. Shrink it, then re-run convergence."
+					)
+				}
+				ideas.updateContentCipher(reEncrypted, targetTag, row.user_id, row.uuid)
+				ideaCount++
+			}
+		}
+
+		ConvergenceReport(storyCount, reviewCount, ideaCount)
 	}
 }

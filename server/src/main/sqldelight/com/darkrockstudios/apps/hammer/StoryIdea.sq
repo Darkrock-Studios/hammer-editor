@@ -1,0 +1,78 @@
+-- Account-scoped story ideas: an opaque blob (serialized StoryIdea JSON, stored verbatim,
+-- never decoded beyond shape validation) plus a client-supplied hash, keyed by client UUID.
+--
+-- uuid is declared TEXT for SqlDelight's parser; promoted to UUID at runtime by
+-- PostgresSchemaInitializer (matches deleted_project.uuid). Callers cast bound String
+-- parameters with CAST(:uuid AS UUID) because Postgres won't auto-cast text against a
+-- UUID column in comparisons or against the UNIQUE index.
+CREATE TABLE story_idea (
+    user_id BIGINT NOT NULL,
+    uuid TEXT NOT NULL,
+    content TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    cipher TEXT,
+    -- 64 KiB encrypted; must match MAX_IDEA_CONTENT_LENGTH in StoryIdeaDao.
+    CONSTRAINT story_idea_content_max CHECK (length(content) <= 65536),
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
+    UNIQUE(user_id, uuid)
+);
+
+CREATE INDEX story_idea_user_id_idx ON story_idea (user_id);
+
+getIdeaHashes:
+SELECT uuid, hash
+FROM story_idea
+WHERE user_id = :userId;
+
+getIdea:
+SELECT *
+FROM story_idea
+WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID)
+LIMIT 1;
+
+getHash:
+SELECT hash
+FROM story_idea
+WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID)
+LIMIT 1;
+
+upsert:
+INSERT INTO story_idea(user_id, uuid, content, hash, cipher)
+VALUES (:userId, CAST(:uuid AS UUID), :content, :hash, :cipher)
+ON CONFLICT (user_id, uuid) DO UPDATE SET
+    content = EXCLUDED.content,
+    hash = EXCLUDED.hash,
+    cipher = EXCLUDED.cipher;
+
+deleteIdea:
+DELETE FROM story_idea
+WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);
+
+countEncrypted:
+SELECT COUNT(*) FROM story_idea WHERE cipher IS NOT NULL AND cipher != 'none';
+
+-- Convergence/pruning: NULL normalizes to plaintext ('none'). No legacy
+-- 'AES/GCM/NoPadding' branch — this table postdates cipher key ids.
+countForConvergence:
+SELECT COUNT(*) FROM story_idea
+WHERE (CASE WHEN cipher IS NULL THEN 'none' ELSE cipher END) != :target;
+
+distinctCiphers:
+SELECT DISTINCT (CASE WHEN cipher IS NULL THEN 'none' ELSE cipher END) AS cipher FROM story_idea;
+
+selectForConvergence:
+SELECT user_id, uuid, content, cipher FROM story_idea
+WHERE (CASE WHEN cipher IS NULL THEN 'none' ELSE cipher END) != :target
+LIMIT :batchLimit;
+
+-- Ordered + offset paging for the read-only dry-run, which never writes and so
+-- can't rely on the predicate advancing the way convergence does.
+selectForConvergencePaged:
+SELECT user_id, uuid, content, cipher FROM story_idea
+WHERE (CASE WHEN cipher IS NULL THEN 'none' ELSE cipher END) != :target
+ORDER BY user_id, uuid
+LIMIT :batchLimit OFFSET :offset;
+
+updateContentCipher:
+UPDATE story_idea SET content = :content, cipher = :cipher
+WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);

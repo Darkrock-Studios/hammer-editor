@@ -113,6 +113,8 @@ fun mainModule(
 	singleOf(::ReviewSuggestionDao)
 	singleOf(::WritingActivityDao)
 	singleOf(::ProjectDataDao)
+	singleOf(::StoryIdeaDao)
+	singleOf(::DeletedIdeaDao)
 	singleOf(::ApiMetricDao)
 	singleOf(::ErrorLogDao)
 	singleOf(::LoginAttemptDao)

@@ -57,7 +57,8 @@ class EncryptionBootstrap(
 		configDao.upsertConfig(LAST_APPLIED_KEY, targetTag)
 		log.info(
 			"Converged ${report.total} row(s) to '$targetTag' " +
-				"(${report.storyEntities} entities, ${report.reviewScenes} review scenes)."
+				"(${report.storyEntities} entities, ${report.reviewScenes} review scenes, " +
+				"${report.storyIdeas} ideas)."
 		)
 	}
 
