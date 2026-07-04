@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasReposito
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository.Companion.MAX_TAG_SIZE
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.InvalidIdea
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCodec
-import com.darkrockstudios.apps.hammer.common.data.ideasrepository.idea.StoryIdea
+import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.isFailure
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer

@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.ideasrepository
 
 import com.darkrockstudios.apps.hammer.base.IdeaId
-import com.darkrockstudios.apps.hammer.common.data.ideasrepository.idea.StoryIdea
+import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import kotlinx.serialization.Serializable
 import net.peanuuutz.tomlkt.Toml
 import kotlin.time.Instant

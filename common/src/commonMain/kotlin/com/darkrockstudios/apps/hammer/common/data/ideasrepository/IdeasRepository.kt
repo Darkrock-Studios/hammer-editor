@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.ideasrepository
 
 import com.darkrockstudios.apps.hammer.base.IdeaId
 import com.darkrockstudios.apps.hammer.common.data.CResult
-import com.darkrockstudios.apps.hammer.common.data.ideasrepository.idea.StoryIdea
+import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import kotlinx.coroutines.CoroutineScope

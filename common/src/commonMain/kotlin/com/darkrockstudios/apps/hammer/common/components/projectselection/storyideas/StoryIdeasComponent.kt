@@ -13,7 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeaError
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.InvalidIdea
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.PromoteIdeaUseCase
-import com.darkrockstudios.apps.hammer.common.data.ideasrepository.idea.StoryIdea
+import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext

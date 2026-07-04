@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostSt
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeaError
-import com.darkrockstudios.apps.hammer.common.data.ideasrepository.idea.StoryIdea
+import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.projectselection.storyideas.IDEAS_CREATE_FAB_TAG
 import com.darkrockstudios.apps.hammer.common.projectselection.storyideas.StoryIdeasUi
 import com.darkrockstudios.apps.hammer.common.projectselection.storyideas.ideaCardTag

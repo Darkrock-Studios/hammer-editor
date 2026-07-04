@@ -2,7 +2,7 @@ package repositories.ideas
 
 import com.darkrockstudios.apps.hammer.base.IdeaId
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCodec
-import com.darkrockstudios.apps.hammer.common.data.ideasrepository.idea.StoryIdea
+import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
