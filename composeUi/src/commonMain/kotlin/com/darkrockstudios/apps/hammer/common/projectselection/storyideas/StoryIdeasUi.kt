@@ -2,6 +2,10 @@
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -146,6 +150,8 @@ import com.darkrockstudios.apps.hammer.ideas_tags_label
 import com.darkrockstudios.apps.hammer.ideas_tags_placeholder
 import com.darkrockstudios.apps.hammer.ideas_title_label
 import com.darkrockstudios.apps.hammer.ideas_title_placeholder
+import com.darkrockstudios.apps.hammer.ideas_toast_archived
+import com.darkrockstudios.apps.hammer.ideas_toast_unarchived
 import com.darkrockstudios.apps.hammer.ideas_toast_created
 import com.darkrockstudios.apps.hammer.ideas_toast_deleted
 import com.darkrockstudios.apps.hammer.ideas_toast_promote_failed
@@ -209,33 +215,41 @@ fun StoryIdeasUi(
 ) {
 	val state by component.state.subscribeAsState()
 
-	AnimatedContent(
-		targetState = state.editor,
-		modifier = modifier.fillMaxSize(),
-		transitionSpec = { fadeIn() togetherWith fadeOut() },
-		contentKey = { it != null },
-		label = "StoryIdeasEditorSwap",
-	) { editor ->
-		if (editor != null) {
-			IdeaDetail(
-				component = component,
-				editor = editor,
-				rootSnackbar = rootSnackbar,
-			)
-		} else {
-			IdeasBrowse(
-				component = component,
-				ideas = state.ideas,
-			)
+	SharedTransitionLayout(modifier = modifier.fillMaxSize()) {
+		AnimatedContent(
+			targetState = state.editor,
+			modifier = Modifier.fillMaxSize(),
+			transitionSpec = { fadeIn() togetherWith fadeOut() },
+			contentKey = { it != null },
+			label = "StoryIdeasEditorSwap",
+		) { editor ->
+			if (editor != null) {
+				IdeaDetail(
+					component = component,
+					editor = editor,
+					rootSnackbar = rootSnackbar,
+					sharedTransitionScope = this@SharedTransitionLayout,
+					animatedVisibilityScope = this@AnimatedContent,
+				)
+			} else {
+				IdeasBrowse(
+					component = component,
+					ideas = state.ideas,
+					sharedTransitionScope = this@SharedTransitionLayout,
+					animatedVisibilityScope = this@AnimatedContent,
+				)
+			}
 		}
 	}
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalSharedTransitionApi::class)
 @Composable
 private fun IdeasBrowse(
 	component: StoryIdeas,
 	ideas: List<StoryIdea>,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
 	val screen = LocalScreenCharacteristic.current
 	val isWide = screen.isWide
@@ -475,6 +489,8 @@ private fun IdeasBrowse(
 						idea = idea,
 						activeTags = activeTags,
 						onTagClick = toggleTag,
+						sharedTransitionScope = sharedTransitionScope,
+						animatedVisibilityScope = animatedVisibilityScope,
 						modifier = Modifier.padding(bottom = Ui.Padding.L),
 						onClick = { component.editIdea(idea.id) },
 					)
@@ -527,11 +543,14 @@ private fun formatStampDate(instant: Instant): String = remember(instant) {
 	instant.toLocalDateTime(TimeZone.currentSystemDefault()).format("dd MMM `yy")
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun IdeaCard(
 	idea: StoryIdea,
 	activeTags: Set<String>,
 	onTagClick: (String) -> Unit,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
 	onClick: () -> Unit,
 	modifier: Modifier = Modifier,
 ) {
@@ -539,37 +558,58 @@ private fun IdeaCard(
 	val words = remember(idea.content) { idea.wordCount() }
 	val hasHeader = idea.title != null || idea.promoted != null || idea.archived != null
 
-	HdMarkdownCard(
-		markdown = idea.content,
-		metaStart = date,
-		metaEnd = stringResource(Res.string.ideas_word_count_short, words),
-		onClick = onClick,
-		modifier = modifier,
-		surfaceModifier = Modifier.testTag(ideaCardTag(idea.id.id)),
-		tags = idea.tags,
-		activeTags = activeTags,
-		onTagClick = onTagClick,
-		header = if (hasHeader) {
-			{
-				Column(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M)
-				) {
-					idea.title?.let { title ->
-						Text(
-							text = title,
-							style = MaterialTheme.typography.titleMedium,
-							color = MaterialTheme.colorScheme.onSurface,
-						)
+	with(sharedTransitionScope) {
+		HdMarkdownCard(
+			markdown = idea.content,
+			metaStart = date,
+			metaEnd = stringResource(Res.string.ideas_word_count_short, words),
+			onClick = onClick,
+			modifier = modifier,
+			surfaceModifier = Modifier
+				.sharedElement(
+					sharedContentState = rememberSharedContentState(key = "idea-card-${idea.id.id}"),
+					animatedVisibilityScope = animatedVisibilityScope,
+				)
+				.testTag(ideaCardTag(idea.id.id)),
+			metaStartModifier = Modifier.sharedElement(
+				sharedContentState = rememberSharedContentState(key = "idea-date-${idea.id.id}"),
+				animatedVisibilityScope = animatedVisibilityScope,
+			),
+			markdownModifier = Modifier.sharedElement(
+				sharedContentState = rememberSharedContentState(key = "idea-content-${idea.id.id}"),
+				animatedVisibilityScope = animatedVisibilityScope,
+			),
+			tags = idea.tags,
+			activeTags = activeTags,
+			onTagClick = onTagClick,
+			header = if (hasHeader) {
+				{
+					Column(
+						modifier = Modifier
+							.fillMaxWidth()
+							.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M)
+					) {
+						idea.title?.let { title ->
+							Text(
+								text = title,
+								style = MaterialTheme.typography.titleMedium,
+								color = MaterialTheme.colorScheme.onSurface,
+								modifier = Modifier.sharedElement(
+									sharedContentState = rememberSharedContentState(
+										key = "idea-title-${idea.id.id}",
+									),
+									animatedVisibilityScope = animatedVisibilityScope,
+								),
+							)
+						}
+						IdeaStamps(idea)
 					}
-					IdeaStamps(idea)
 				}
-			}
-		} else {
-			null
-		},
-	)
+			} else {
+				null
+			},
+		)
+	}
 }
 
 @Composable
@@ -594,11 +634,14 @@ private fun IdeaStamps(idea: StoryIdea) {
 	}
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun IdeaDetail(
 	component: StoryIdeas,
 	editor: StoryIdeas.Editor,
 	rootSnackbar: RootSnackbarHostState,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
 ) {
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
@@ -704,12 +747,15 @@ private fun IdeaDetail(
 				"",
 			) {
 				scope.launch {
-					if (existing.archived == null) {
+					val toast = if (existing.archived == null) {
 						component.archiveIdea(existing.id)
+						Res.string.ideas_toast_archived
 					} else {
 						component.unarchiveIdea(existing.id)
+						Res.string.ideas_toast_unarchived
 					}
 					withContext(mainDispatcher) { component.closeEditor() }
+					rootSnackbar.showSnackbar(strRes.get(toast))
 				}
 			},
 		)
@@ -722,6 +768,7 @@ private fun IdeaDetail(
 			.background(MaterialTheme.colorScheme.surfaceDim),
 		contentAlignment = Alignment.TopCenter,
 	) {
+		with(sharedTransitionScope) {
 		Column(
 			modifier = Modifier
 				.padding(horizontal = Ui.Padding.XL)
@@ -734,6 +781,18 @@ private fun IdeaDetail(
 					width = Dp.Hairline,
 					color = MaterialTheme.colorScheme.outlineVariant,
 					shape = RectangleShape,
+				)
+				.then(
+					if (existing != null) {
+						Modifier.sharedElement(
+							sharedContentState = rememberSharedContentState(
+								key = "idea-card-${existing.id.id}",
+							),
+							animatedVisibilityScope = animatedVisibilityScope,
+						)
+					} else {
+						Modifier
+					}
 				),
 		) {
 			CollapseWhileTyping(enabled = isEditing) {
@@ -758,6 +817,8 @@ private fun IdeaDetail(
 				isCreate = isCreate,
 				isEditing = isEditing,
 				idea = existing,
+				sharedTransitionScope = sharedTransitionScope,
+				animatedVisibilityScope = animatedVisibilityScope,
 				onEdit = { isEditing = true },
 				onSave = saveChanges,
 				onCancel = cancelEdit,
@@ -789,12 +850,15 @@ private fun IdeaDetail(
 					markdown = savedContent,
 					tags = savedTags,
 					idea = existing,
+					sharedTransitionScope = sharedTransitionScope,
+					animatedVisibilityScope = animatedVisibilityScope,
 					onEnterEdit = { isEditing = true },
 					modifier = Modifier.weight(1f, fill = false),
 				)
 
 				ViewFolioFooter(markdown = savedContent, tagCount = savedTags.size)
 			}
+		}
 		}
 	}
 
@@ -881,11 +945,14 @@ private fun CrumbRow(
 	}
 }
 
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun StampRow(
 	isCreate: Boolean,
 	isEditing: Boolean,
 	idea: StoryIdea?,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
 	onEdit: () -> Unit,
 	onSave: () -> Unit,
 	onCancel: () -> Unit,
@@ -923,7 +990,21 @@ private fun StampRow(
 			} else {
 				idea?.created?.let { formatStampDate(it) }.orEmpty()
 			}
-			HdMonoLabel(text = metaText)
+			with(sharedTransitionScope) {
+				HdMonoLabel(
+					text = metaText,
+					modifier = if (idea != null) {
+						Modifier.sharedElement(
+							sharedContentState = rememberSharedContentState(
+								key = "idea-date-${idea.id.id}",
+							),
+							animatedVisibilityScope = animatedVisibilityScope,
+						)
+					} else {
+						Modifier
+					},
+				)
+			}
 		},
 		actions = {
 			if (isEditing) {
@@ -976,16 +1057,18 @@ private fun PulsingDot() {
 	)
 }
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalSharedTransitionApi::class)
 @Composable
 private fun ViewBody(
 	title: String?,
 	markdown: String,
 	tags: Set<String>,
 	idea: StoryIdea?,
+	sharedTransitionScope: SharedTransitionScope,
+	animatedVisibilityScope: AnimatedVisibilityScope,
 	onEnterEdit: () -> Unit,
 	modifier: Modifier = Modifier,
-) {
+) = with(sharedTransitionScope) {
 	val scrollState = rememberScrollState()
 	Column(
 		modifier = modifier
@@ -998,7 +1081,20 @@ private fun ViewBody(
 				text = it,
 				style = MaterialTheme.typography.headlineSmall,
 				color = MaterialTheme.colorScheme.onSurface,
-				modifier = Modifier.padding(bottom = Ui.Padding.M),
+				modifier = Modifier
+					.padding(bottom = Ui.Padding.M)
+					.then(
+						if (idea != null) {
+							Modifier.sharedElement(
+								sharedContentState = rememberSharedContentState(
+									key = "idea-title-${idea.id.id}",
+								),
+								animatedVisibilityScope = animatedVisibilityScope,
+							)
+						} else {
+							Modifier
+						}
+					),
 			)
 		}
 
@@ -1032,6 +1128,18 @@ private fun ViewBody(
 			markdown = markdown,
 			modifier = Modifier
 				.fillMaxWidth()
+				.then(
+					if (idea != null) {
+						Modifier.sharedElement(
+							sharedContentState = rememberSharedContentState(
+								key = "idea-content-${idea.id.id}",
+							),
+							animatedVisibilityScope = animatedVisibilityScope,
+						)
+					} else {
+						Modifier
+					}
+				)
 				.clickable(onClick = onEnterEdit),
 		)
 	}

@@ -54,6 +54,8 @@
 	<string name="ideas_toast_created">Idea captured</string>
 	<string name="ideas_toast_saved">Idea saved</string>
 	<string name="ideas_toast_deleted">Idea deleted</string>
+	<string name="ideas_toast_archived">Idea archived</string>
+	<string name="ideas_toast_unarchived">Idea unarchived</string>
 	<string name="ideas_toast_empty">Idea cannot be empty</string>
 	<string name="ideas_toast_too_long">Idea is too long: %1$d characters max</string>
 	<string name="ideas_toast_tag_too_long">Tags can be at most %1$d characters</string>
