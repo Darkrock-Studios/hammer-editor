@@ -25,6 +25,9 @@ import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasou
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasDatasource
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCodec
 import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
@@ -176,6 +179,10 @@ val mainModule = module {
 	}
 
 	singleOf(::ProjectsRepository)
+
+	singleOf(::StoryIdeaCodec)
+	singleOf(::IdeasDatasource)
+	singleOf(::IdeasRepository)
 
 	singleOf(::SuggestProjectTagsUseCase)
 
