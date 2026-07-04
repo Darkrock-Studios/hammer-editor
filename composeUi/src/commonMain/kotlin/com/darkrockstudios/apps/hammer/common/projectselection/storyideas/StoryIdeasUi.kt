@@ -19,10 +19,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
@@ -34,7 +34,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberTopAppBarState
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -69,7 +68,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineFie
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMarkdownCard
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortMenu
@@ -213,7 +211,6 @@ private fun IdeasBrowse(
 ) {
 	val screen = LocalScreenCharacteristic.current
 	val isWide = screen.isWide
-	val isExpanded = screen.windowWidthClass == WindowWidthSizeClass.Expanded
 
 	var searchQuery by rememberSaveable { mutableStateOf("") }
 	var sortMode by remember { mutableStateOf(IdeasSortMode.DateDesc) }
@@ -319,14 +316,21 @@ private fun IdeasBrowse(
 								}
 							},
 						)
-						if (!isWide) {
-							IconButton(onClick = { showSearchBar = true }) {
-								Icon(
-									imageVector = Icons.Default.Search,
-									contentDescription = Res.string.ideas_search_button.get(),
-									tint = MaterialTheme.colorScheme.onSurface,
-								)
-							}
+						IconButton(
+							onClick = {
+								if (showSearchBar) {
+									showSearchBar = false
+									searchQuery = ""
+								} else {
+									showSearchBar = true
+								}
+							},
+						) {
+							Icon(
+								imageVector = Icons.Default.Search,
+								contentDescription = Res.string.ideas_search_button.get(),
+								tint = MaterialTheme.colorScheme.onSurface,
+							)
 						}
 					}
 				}
@@ -335,26 +339,29 @@ private fun IdeasBrowse(
 			HdFolioDivider()
 
 			HdCollapsingStrip(scrollBehavior = scrollBehavior) {
-				val searchField: @Composable () -> Unit = {
-					HdSearchField(
-						value = searchQuery,
-						onValueChange = { searchQuery = it },
-						modifier = Modifier
-							.then(if (isExpanded) Modifier.width(280.dp) else Modifier.fillMaxWidth()),
-						placeholder = stringResource(Res.string.ideas_search_placeholder),
-						onClear = { searchQuery = "" },
-						clearContentDescription = stringResource(Res.string.ideas_search_clear),
-					)
-				}
-
-				if (isWide && !isExpanded) {
-					Row(
-						modifier = Modifier
-							.fillMaxWidth()
-							.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-						verticalAlignment = Alignment.CenterVertically,
-					) {
-						searchField()
+				// On wide screens the search field is hidden until the masthead icon reveals
+				// it; on compact the reveal swaps into the title row instead (above).
+				if (isWide) {
+					AnimatedVisibility(visible = showSearchBar) {
+						Row(
+							modifier = Modifier
+								.fillMaxWidth()
+								.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
+							verticalAlignment = Alignment.CenterVertically,
+						) {
+							HdSearchRow(
+								query = searchQuery,
+								onQueryChange = { searchQuery = it },
+								placeholder = stringResource(Res.string.ideas_search_placeholder),
+								clearContentDescription = stringResource(Res.string.ideas_search_clear),
+								onCollapse = {
+									showSearchBar = false
+									searchQuery = ""
+								},
+								collapseContentDescription = Res.string.ideas_search_close.get(),
+								modifier = Modifier.fillMaxWidth(),
+							)
+						}
 					}
 				}
 
@@ -364,11 +371,6 @@ private fun IdeasBrowse(
 					activeTags = activeTags,
 					onToggle = toggleTag,
 					onClear = clearTags,
-					leading = if (isExpanded) {
-						{ searchField() }
-					} else {
-						null
-					},
 					trailing = {
 						val archivedCount = ideas.count { it.archived != null }
 						ArchivedToggle(
@@ -418,7 +420,7 @@ private fun IdeasBrowse(
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 			) {
 				if (visibleIdeas.isEmpty()) {
-					item {
+					item(span = StaggeredGridItemSpan.FullLine) {
 						Box(
 							modifier = Modifier
 								.fillMaxWidth()

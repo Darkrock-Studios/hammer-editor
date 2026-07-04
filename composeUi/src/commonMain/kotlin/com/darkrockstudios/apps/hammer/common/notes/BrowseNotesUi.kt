@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Search
@@ -338,7 +339,7 @@ fun BrowseNotesUi(
 			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 		) {
 			if (visibleNotes.isEmpty()) {
-				item {
+				item(span = StaggeredGridItemSpan.FullLine) {
 					Box(
 						modifier = Modifier
 							.fillMaxWidth()
