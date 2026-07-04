@@ -29,6 +29,7 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasDatasour
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.PromoteIdeaUseCase
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCodec
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
@@ -109,6 +110,7 @@ import com.darkrockstudios.apps.hammer.common.server.ProjectDataApi
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import com.darkrockstudios.apps.hammer.common.server.ServerAdminApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
+import com.darkrockstudios.apps.hammer.common.server.ServerIdeasApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.server.WritingActivityApi
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
@@ -159,6 +161,7 @@ val mainModule = module {
 	singleOf(::ServerProjectsApi)
 	singleOf(::WritingActivityApi)
 	singleOf(::ProjectDataApi)
+	singleOf(::ServerIdeasApi)
 	singleOf(::ServerAdminApi)
 
 	singleOf(::ServerSettingsFilesystemDatasource) bind ServerSettingsDatasource::class
@@ -194,6 +197,7 @@ val mainModule = module {
 
 	singleOf(::createJsonSerializer) bind Json::class
 
+	singleOf(::ClientIdeasSynchronizer)
 	singleOf(::ClientAccountSynchronizer)
 
 	singleOf(::ProjectBackupRepository)

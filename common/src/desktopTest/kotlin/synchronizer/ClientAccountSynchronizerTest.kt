@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityOriginalState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectSynchronizationData
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ProjectsSynchronizationData
@@ -46,6 +47,7 @@ class ClientAccountSynchronizerTest {
 	private lateinit var globalSettingsStore: GlobalSettingsStore
 	private lateinit var projectsRepository: ProjectsRepository
 	private lateinit var serverProjectsApi: ServerProjectsApi
+	private lateinit var ideasSynchronizer: ClientIdeasSynchronizer
 	private lateinit var networkConnectivity: NetworkConnectivity
 
 	private val projectsDirPath = "/projects".toPath()
@@ -93,6 +95,7 @@ class ClientAccountSynchronizerTest {
 		globalSettingsStore = globalSettingsStore,
 		projectsRepository = projectsRepository,
 		serverProjectsApi = serverProjectsApi,
+		ideasSynchronizer = ideasSynchronizer,
 		networkConnectivity = networkConnectivity,
 		json = json,
 		toml = Toml,
@@ -108,6 +111,8 @@ class ClientAccountSynchronizerTest {
 		globalSettingsStore = mockk(relaxed = true)
 		projectsRepository = mockk(relaxed = true)
 		serverProjectsApi = mockk()
+		ideasSynchronizer = mockk()
+		coEvery { ideasSynchronizer.syncIdeas(any(), any(), any()) } returns true
 		networkConnectivity = mockk()
 
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects")

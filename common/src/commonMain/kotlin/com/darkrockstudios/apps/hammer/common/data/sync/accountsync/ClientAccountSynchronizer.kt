@@ -14,6 +14,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeaConflictResolver
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
@@ -40,6 +42,7 @@ class ClientAccountSynchronizer(
 	private val globalSettingsStore: GlobalSettingsStore,
 	private val projectsRepository: ProjectsRepository,
 	private val serverProjectsApi: ServerProjectsApi,
+	private val ideasSynchronizer: ClientIdeasSynchronizer,
 	private val networkConnectivity: NetworkConnectivity,
 	private val json: Json,
 	private val toml: Toml,
@@ -57,7 +60,11 @@ class ClientAccountSynchronizer(
 
 	// Must-not-crash sync boundary; any failure logged and reported as false.
 	@Suppress("TooGenericExceptionCaught")
-	suspend fun syncProjects(onLog: OnSyncLog, onUnauthorized: suspend () -> Unit): Boolean {
+	suspend fun syncProjects(
+		onLog: OnSyncLog,
+		onUnauthorized: suspend () -> Unit,
+		onIdeaConflict: IdeaConflictResolver = { null },
+	): Boolean {
 		onLog(syncAccLogI(strRes.get(Res.string.sync_log_account_begin)))
 
 		var syncId: String? = null
@@ -85,6 +92,12 @@ class ClientAccountSynchronizer(
 
 				val localProjects = projectsRepository.getProjects()
 				syncCreatedProjects(clientSyncData, updatedServerSyncData, localProjects, onLog, onUnauthorized)
+
+				yield()
+
+				// Ideas phase rides the same session; failures are logged, not fatal to the
+				// account sync (matching how per-project ops above behave).
+				ideasSynchronizer.syncIdeas(syncId, onLog, onIdeaConflict)
 
 				yield()
 

@@ -426,7 +426,7 @@ class ProjectsListComponentTest : ComponentTest() {
 		runTest(mainTestDispatcher) {
 			every { synchronizer.isServerSynchronized() } returns true
 			var syncCalls = 0
-			coEvery { synchronizer.syncProjects(any(), any()) } coAnswers {
+			coEvery { synchronizer.syncProjects(any(), any(), any()) } coAnswers {
 				syncCalls++
 				// First sync hits a 401 and reports unauthorized; the retry just fails plainly.
 				if (syncCalls == 1) secondArg<suspend () -> Unit>().invoke()
@@ -445,7 +445,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			reauth.component.reauthenticate("hunter2")
 			advanceUntilIdle()
 
-			coVerify(exactly = 2) { synchronizer.syncProjects(any(), any()) }
+			coVerify(exactly = 2) { synchronizer.syncProjects(any(), any(), any()) }
 			assertIs<ProjectsList.ModalDestination.ProjectSync>(comp.modalRouterState.value.child?.instance)
 		}
 

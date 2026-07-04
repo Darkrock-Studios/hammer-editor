@@ -70,4 +70,24 @@
 	<string name="ideas_delete_dialog_message">This idea will be permanently deleted. This cannot be undone.</string>
 	<string name="ideas_discard_dialog_title">Discard Changes</string>
 	<string name="ideas_discard_dialog_message">You have unsaved changes. Discard them?</string>
+
+	<string name="sync_log_ideas_begin">Syncing story ideas</string>
+	<string name="sync_log_ideas_complete">Story ideas sync complete</string>
+	<string name="sync_log_ideas_state_failed">Failed to fetch story ideas state: %1$s</string>
+	<string name="sync_log_ideas_deleted_local">Removed deleted idea: %1$s</string>
+	<string name="sync_log_ideas_deleted_server">Propagated idea deletion to server: %1$s</string>
+	<string name="sync_log_ideas_delete_server_failed">Failed to delete idea on server: %1$s</string>
+	<string name="sync_log_ideas_uploaded">Uploaded idea: %1$s</string>
+	<string name="sync_log_ideas_upload_failed">Failed to upload idea "%1$s": %2$s</string>
+	<string name="sync_log_ideas_downloaded">Downloaded idea: %1$s</string>
+	<string name="sync_log_ideas_download_failed">Failed to download idea %1$s: %2$s</string>
+	<string name="sync_log_ideas_conflict">Conflict detected for idea: %1$s</string>
+	<string name="sync_log_ideas_conflict_resolved">Resolved conflict for idea: %1$s</string>
+	<string name="sync_log_ideas_conflict_skipped">Conflict left unresolved for idea: %1$s</string>
+
+	<string name="ideas_conflict_title">Story Idea Conflict</string>
+	<string name="ideas_conflict_local_title">Local Idea</string>
+	<string name="ideas_conflict_remote_title">Remote Idea</string>
+	<string name="ideas_conflict_use_local">Use Local</string>
+	<string name="ideas_conflict_use_remote">Use Remote</string>
 </resources>
