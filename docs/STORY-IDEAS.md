@@ -112,6 +112,38 @@ Ideas sync as a **new phase inside the existing account sync session** — same 
 3. Client downloads ideas it is missing or holds a different hash of; uploads dirty ideas and
    ideas the server doesn't know (plain UUID set difference — no update sequence needed).
 
+### Deletion propagation
+
+Only the **server** keeps tombstones. The client keeps no deletion memory at all — except a
+short-lived *pending operation* while a delete awaits its next sync, which is not a tombstone
+but an outbox entry.
+
+Why the pending record is required on synced clients: at sync time, "the server has an idea
+the client doesn't" is ambiguous between *created elsewhere* (must download) and *deleted
+here* (must propagate). No ID scheme can encode the difference; an unrecorded delete is
+re-downloaded and silently resurrects on every sync.
+
+- **Client — pending operation only.** `pendingDeletes: Set<Uuid>` in `.ideas/sync.json`,
+  written at delete time, erased on server ack (precedent: `projectsToDelete` in the root
+  `sync.json`). Nothing permanent is ever needed: UUIDs are never reused, so the reason the
+  entity `SyncJournal` keeps `deletedIds` forever (allocator protection) does not apply.
+  Mirroring `SyncJournal.recordNewId`, deletes are only recorded on clients that have synced
+  ideas before — a never-synced client deletes the file and that is genuinely all.
+- **Server — permanent tombstones.** `deleted_idea (user_id, uuid)` rows, written when a
+  delete lands. Every device prunes local copies matching the tombstone list on each sync.
+
+Migrating to a fresh server needs no tombstones on either side — clients upload everything
+they hold, and deleted ideas are not part of that. Caveat (shared with entity sync): a stale
+device still holding a deleted idea can resurrect it on a fresh server, since the old
+server's tombstones died with it. Accepted cost of "no required bookkeeping."
+
+**Delete-vs-edit race:** deletion wins, matching entity sync — a device that edited an idea
+offline while another device deleted it loses the edit when the tombstone is applied.
+
+**Degradation:** losing `.ideas/sync.json` loses not-yet-synced deletions, so those ideas
+resurrect on the next sync — annoying but lossless, the same failure mode as the entity
+journal. Consistent with "no bookkeeping is actually required."
+
 ### Conflicts
 
 Clone of the entity scheme:
@@ -172,6 +204,11 @@ Endpoints under `/api/ideas/{userId}/…`, gated on the account sync session.
 1. **Phase 1 — local-only feature.** Datasource, repository, model + front-matter serialization,
    the Story Ideas tab (list, editor, tags, archive, delete), promotion flow. Fully usable
    offline; no server or protocol changes.
+   - The browse UI reuses Notes' vocabulary: first lift `BrowseNotesUi`'s private molecules
+     (`NoteCard`, `TagFilterBar`, `ActiveFiltersStrip`, `CollapsingStrip` — the last already
+     earmarked for `HdCollapsingStrip` in the design README) into `Hd*` design-system
+     components, re-point Notes at them with no visual change, then build the Ideas screen
+     from the same pieces. The extraction lands as its own commit before new screen code.
 2. **Phase 2 — sync.** Server tables + routes, account-sync phase, conflict baseline sidecar,
    `IdeaConflict` UI, hash-sensitivity guards.
 3. **Later:** sync-probe integration; tag-based filtering/search niceties.
