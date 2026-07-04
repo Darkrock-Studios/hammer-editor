@@ -655,6 +655,9 @@ private fun IdeaDetail(
 	var titleText by remember(editor) { mutableStateOf(existing?.title.orEmpty()) }
 	var contentText by remember(editor) { mutableStateOf(existing?.content.orEmpty()) }
 	var tags by remember(editor) { mutableStateOf(existing?.tags?.toList().orEmpty()) }
+	// A tag typed into the field but not yet committed with Enter/comma; folded in on save
+	// so it can't be silently dropped.
+	var tagDraft by remember(editor) { mutableStateOf("") }
 	// The view body reflects saved edits without waiting for the state flow to round-trip.
 	var savedTitle by remember(editor) { mutableStateOf(existing?.title) }
 	var savedContent by remember(editor) { mutableStateOf(existing?.content.orEmpty()) }
@@ -668,7 +671,8 @@ private fun IdeaDetail(
 	val isDirty = isEditing && (
 		titleText != savedTitle.orEmpty() ||
 			contentText != savedContent ||
-			tags.toSet() != savedTags
+			tags.toSet() != savedTags ||
+			tagDraft.isNotBlank()
 		)
 
 	val charCount = contentText.length
@@ -694,10 +698,12 @@ private fun IdeaDetail(
 	val saveChanges: () -> Unit = {
 		scope.launch {
 			val title = titleText.trim().ifEmpty { null }
+			val pendingTag = tagDraft.trim().removePrefix("#")
+			val allTags = if (pendingTag.isEmpty()) tags.toSet() else tags.toSet() + pendingTag
 			val error = if (existing == null) {
-				component.createIdea(title, contentText, tags.toSet())
+				component.createIdea(title, contentText, allTags)
 			} else {
-				component.saveIdea(existing.id, title, contentText, tags.toSet())
+				component.saveIdea(existing.id, title, contentText, allTags)
 			}
 			if (error == IdeaError.NONE) {
 				if (isCreate) {
@@ -707,7 +713,9 @@ private fun IdeaDetail(
 					withContext(mainDispatcher) {
 						savedTitle = title
 						savedContent = contentText
-						savedTags = tags.toSet()
+						savedTags = allTags
+						tags = allTags.toList()
+						tagDraft = ""
 						isEditing = false
 					}
 					rootSnackbar.showSnackbar(strRes.get(Res.string.ideas_toast_saved))
@@ -837,6 +845,7 @@ private fun IdeaDetail(
 					onTitleChanged = { titleText = it },
 					tags = tags,
 					onTagsChanged = { tags = it },
+					onTagDraftChanged = { tagDraft = it },
 					contentText = contentText,
 					onContentChanged = { contentText = it },
 					suggestTags = component::suggestTags,
@@ -1151,6 +1160,7 @@ private fun EditBody(
 	onTitleChanged: (String) -> Unit,
 	tags: List<String>,
 	onTagsChanged: (List<String>) -> Unit,
+	onTagDraftChanged: (String) -> Unit,
 	contentText: String,
 	onContentChanged: (String) -> Unit,
 	suggestTags: (prefix: String) -> List<String>,
@@ -1176,6 +1186,7 @@ private fun EditBody(
 			label = stringResource(Res.string.ideas_tags_label),
 			tags = tags,
 			onTagsChange = onTagsChanged,
+			onDraftChange = onTagDraftChanged,
 			hint = stringResource(Res.string.ideas_tags_hint),
 			placeholder = stringResource(Res.string.ideas_tags_placeholder),
 			suggestTags = suggestTags,

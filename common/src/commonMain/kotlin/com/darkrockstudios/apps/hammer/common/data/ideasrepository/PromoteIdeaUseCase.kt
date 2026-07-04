@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.data.ideasrepository
 
 import com.darkrockstudios.apps.hammer.base.IdeaId
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ClientResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -8,14 +10,21 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.idea.StoryIde
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcherNow
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import kotlinx.coroutines.withContext
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import org.koin.core.component.KoinComponent
 import kotlin.time.Clock
 
 /**
  * "Create project from idea": creates a new project named from the idea, seeds the idea's
- * content (and tags) as the project's first Note, and stamps the idea as promoted.
+ * content (and tags) as the project's first Note, copies the idea's tags onto the project
+ * itself (`project_data.toml`), and stamps the idea as promoted.
  *
  * The idea itself keeps no reference to the created project — a name or id link would go
  * stale on rename/delete. Only the `promoted` timestamp records that it happened.
@@ -26,7 +35,9 @@ class PromoteIdeaUseCase(
 	private val fileSystem: FileSystem,
 	private val toml: Toml,
 	private val clock: Clock,
-) {
+) : KoinComponent {
+	private val ioDispatcher = injectIoDispatcherNow()
+
 	suspend operator fun invoke(id: IdeaId): CResult<ProjectDef> {
 		val idea = ideasRepository.getIdeaById(id)
 			?: return CResult.failure(IllegalArgumentException("No idea for id: $id"))
@@ -48,6 +59,19 @@ class PromoteIdeaUseCase(
 				)
 			)
 		)
+
+		if (idea.tags.isNotEmpty()) {
+			// Written directly rather than through ProjectDataDatasource to avoid opening a
+			// per-project Koin scope for a project that isn't loaded. The project is brand new,
+			// so there is no existing blob to merge with.
+			withContext(ioDispatcher) {
+				fileSystem.writeToml(
+					projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME,
+					toml,
+					StoredProjectData(data = ProjectData(tags = idea.tags)),
+				)
+			}
+		}
 
 		ideasRepository.markPromoted(id)
 

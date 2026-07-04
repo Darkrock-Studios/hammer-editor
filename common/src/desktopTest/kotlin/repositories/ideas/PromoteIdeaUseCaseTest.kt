@@ -9,6 +9,8 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCode
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -98,6 +100,12 @@ class PromoteIdeaUseCaseTest : BaseTest() {
 		)
 		assertEquals(idea.content, note.note.content)
 		assertEquals(setOf("gothic", "coastal"), note.note.tags)
+
+		val storedProjectData: StoredProjectData = toml.decodeFromString(
+			StoredProjectData.serializer(),
+			ffs.read(projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME) { readUtf8() },
+		)
+		assertEquals(setOf("gothic", "coastal"), storedProjectData.data.tags)
 
 		val promoted = ideasRepository.getIdeaById(idea.id)
 		assertNotNull(promoted?.promoted)
