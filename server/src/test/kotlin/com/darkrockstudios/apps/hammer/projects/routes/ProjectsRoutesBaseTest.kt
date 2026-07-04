@@ -104,6 +104,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 			single { passwordResetRepository }
 			single { markdownService }
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
+			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
 		}
 	}

@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.frontend.frontend
 import com.darkrockstudios.apps.hammer.patreon.patreonRoutes
 import com.darkrockstudios.apps.hammer.project.projectRoutes
 import com.darkrockstudios.apps.hammer.projects.projectsRoutes
+import com.darkrockstudios.apps.hammer.storyideas.ideasRoutes
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
 import io.ktor.http.*
@@ -23,6 +24,7 @@ fun Application.configureRouting(serverConfig: ServerConfig = ServerConfig()) {
 		route(API_ROUTE_PREFIX) {
 			accountRoutes()
 			projectsRoutes()
+			ideasRoutes()
 			projectRoutes(logger)
 			adminRoutes()
 			teapot()
