@@ -228,8 +228,8 @@
 	<string name="protocol_mismatch_title_server">The sync server is out of date</string>
 	<string name="protocol_mismatch_body_client">This version of Hammer can no longer sync with the server. Update to the latest version to keep syncing your work.</string>
 	<string name="protocol_mismatch_body_server">The sync server is running an older protocol than this app. The server needs to be updated before syncing will work again.</string>
-	<string name="protocol_mismatch_latest_version">Latest version: %1$s</string>
-	<string name="protocol_mismatch_current_version">You have: %1$s</string>
+	<string name="protocol_mismatch_latest_version">Latest version: %s</string>
+	<string name="protocol_mismatch_current_version">You have: %s</string>
 	<string name="protocol_mismatch_open_release_button">Get the Update</string>
 	<string name="protocol_mismatch_dismiss_button">Dismiss</string>
 

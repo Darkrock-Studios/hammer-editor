@@ -49,50 +49,68 @@ import korlibs.io.lang.format
 @Composable
 fun ProtocolMismatchDialog(component: ProtocolMismatch) {
 	val state by component.state.subscribeAsState()
-	val versionTag = state.latestVersionTag
 	AnimatedDialog(
 		visible = true,
 		onCloseRequest = { component.dismiss() },
 		modifier = Modifier.fillMaxSize(),
 		contentAlignment = Alignment.Center,
 	) {
-		Surface(
-			shape = RectangleShape,
-			color = MaterialTheme.colorScheme.surface,
-			contentColor = MaterialTheme.colorScheme.onSurface,
-			shadowElevation = Ui.Elevation.LARGE,
-			modifier = Modifier
-				.padding(horizontal = Ui.Padding.XL)
-				.widthIn(max = 560.dp)
-				.fillMaxWidth(),
-		) {
-			Column {
-				HdMasthead(
-					section = Res.string.protocol_mismatch_section.get(),
-					leadingMeta = listOfNotNull(versionTag),
-					trailing = {
-						HdMastheadAction(
-							label = "× CLOSE",
-							onClick = { component.dismiss() },
-						)
-					},
-				)
-				HdFolioDivider()
-				Body(
-					clientIsBehind = state.clientIsBehind,
-					currentVersion = state.currentVersion,
-					latestVersionTag = versionTag,
-					showLatestVersion = state.isNewVersionAvailable,
-				)
-				HorizontalDivider(
-					color = MaterialTheme.colorScheme.outlineVariant,
-					thickness = 1.dp,
-				)
-				Footer(
-					onOpenRelease = component::openReleaseUrl,
-					onDismiss = component::dismiss,
-				)
-			}
+		ProtocolMismatchContent(
+			state = state,
+			onOpenRelease = component::openReleaseUrl,
+			onDismiss = component::dismiss,
+		)
+	}
+}
+
+/**
+ * The dialog's chrome without the animated [AnimatedDialog] window wrapper, so it can be
+ * rendered directly in a Compose preview (the live dialog hangs in its own window and won't
+ * settle to a static frame).
+ */
+@Composable
+fun ProtocolMismatchContent(
+	state: ProtocolMismatch.State,
+	onOpenRelease: () -> Unit,
+	onDismiss: () -> Unit,
+	modifier: Modifier = Modifier,
+) {
+	Surface(
+		shape = RectangleShape,
+		color = MaterialTheme.colorScheme.surface,
+		contentColor = MaterialTheme.colorScheme.onSurface,
+		shadowElevation = Ui.Elevation.LARGE,
+		modifier = modifier
+			.padding(horizontal = Ui.Padding.XL)
+			.widthIn(max = 560.dp)
+			.fillMaxWidth(),
+	) {
+		Column {
+			HdMasthead(
+				section = Res.string.protocol_mismatch_section.get(),
+				leadingMeta = listOfNotNull(state.latestVersionTag),
+				trailing = {
+					HdMastheadAction(
+						label = "× CLOSE",
+						onClick = onDismiss,
+					)
+				},
+			)
+			HdFolioDivider()
+			Body(
+				clientIsBehind = state.clientIsBehind,
+				currentVersion = state.currentVersion,
+				latestVersionTag = state.latestVersionTag,
+				showLatestVersion = state.isNewVersionAvailable,
+			)
+			HorizontalDivider(
+				color = MaterialTheme.colorScheme.outlineVariant,
+				thickness = 1.dp,
+			)
+			Footer(
+				onOpenRelease = onOpenRelease,
+				onDismiss = onDismiss,
+			)
 		}
 	}
 }
