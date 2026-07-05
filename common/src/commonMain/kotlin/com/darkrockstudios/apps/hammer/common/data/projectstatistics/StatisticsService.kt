@@ -170,7 +170,14 @@ class StatisticsService(
 			writingActivityRepository.loadAllLogs().values.forEach { deviceLog ->
 				var deviceTotal = 0
 				deviceLog.sessions.forEach { session ->
-					if (!session.sealed || session.wordsWritten <= 0) return@forEach
+					// Count every session with words, sealed or not. `sealed` is a
+					// lifecycle flag for the extend-vs-open-new merge rules; it only
+					// flips when a *later* write crosses a day/gap boundary, so the
+					// current day's in-progress session is never sealed. Requiring
+					// `sealed` here dropped the most recent day of writing entirely —
+					// zeroing out "today", "this week" and the current streak while
+					// older days still showed in the heatmap.
+					if (session.wordsWritten <= 0) return@forEach
 					val date = session.startedAt.toLocalDateTime(timeZone).date.toString()
 					dailyWordTotals[date] = (dailyWordTotals[date] ?: 0) + session.wordsWritten
 					deviceTotal += session.wordsWritten

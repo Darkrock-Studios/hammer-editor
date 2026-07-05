@@ -17,6 +17,8 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineCo
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
+import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
+import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import io.mockk.*
@@ -198,5 +200,34 @@ class StatisticsServiceTest : BaseTest() {
 			assertEquals(stats, saved.captured)
 			// Calculation flag is reset once finished.
 			assertFalse(service.isCalculating.value)
+		}
+
+	@Test
+	fun `recalculateStatistics counts unsealed sessions in daily totals and per-device`() =
+		runTest(mainTestDispatcher) {
+			// A sealed session (an older, finalized day) plus an unsealed one (the
+			// current, in-progress day). Both must be reflected in the stats; the
+			// unsealed one is the day the user is actively writing.
+			val day1 = Instant.parse("2026-04-27T09:00:00Z")
+			val day2 = Instant.parse("2026-04-28T09:00:00Z")
+			coEvery { writingActivityRepository.loadAllLogs() } returns mapOf(
+				"device-1" to DeviceLog(
+					deviceLabel = "Laptop",
+					sessions = listOf(
+						WritingSession(startedAt = day1, endedAt = day1, wordsWritten = 100, sealed = true),
+						WritingSession(startedAt = day2, endedAt = day2, wordsWritten = 250, sealed = false),
+					),
+				),
+			)
+			coEvery { statisticsRepository.loadStatistics() } returns null
+
+			val stats = makeService().recalculateStatistics()
+
+			// Two distinct calendar days regardless of the host timezone (the two
+			// sessions are 24h apart), and the unsealed (current-day) session must be
+			// counted rather than dropped: 100 sealed + 250 unsealed = 350.
+			assertEquals(2, stats.dailyWordTotals.size)
+			assertEquals(350, stats.dailyWordTotals.values.sum())
+			assertEquals(350, stats.wordsPerDevice["Laptop"])
 		}
 }
