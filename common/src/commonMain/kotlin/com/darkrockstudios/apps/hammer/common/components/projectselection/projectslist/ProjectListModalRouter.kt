@@ -8,8 +8,10 @@ import com.arkivanov.decompose.router.slot.childSlot
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
+import com.darkrockstudios.apps.hammer.common.components.protocolmismatch.ProtocolMismatchComponent
 import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthenticationComponent
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchInfo
 import kotlinx.serialization.Serializable
 
 class ProjectListModalRouter(
@@ -48,6 +50,17 @@ class ProjectListModalRouter(
 					componentContext = componentContext,
 					dismissAuth = ::dismissServerReauthentication,
 					onReauthSuccess = onReauthSuccess,
+				)
+			)
+
+			is Config.ProtocolMismatch -> ProjectsList.ModalDestination.ProtocolMismatch(
+				ProtocolMismatchComponent(
+					componentContext = componentContext,
+					info = ProtocolMismatchInfo(
+						clientProtocolVersion = config.clientProtocolVersion,
+						serverProtocolVersion = config.serverProtocolVersion,
+					),
+					dismissDialog = ::dismissProtocolMismatch,
 				)
 			)
 		}
@@ -92,6 +105,19 @@ class ProjectListModalRouter(
 		navigation.activate(Config.None)
 	}
 
+	fun showProtocolMismatch(info: ProtocolMismatchInfo) {
+		navigation.activate(
+			Config.ProtocolMismatch(
+				clientProtocolVersion = info.clientProtocolVersion,
+				serverProtocolVersion = info.serverProtocolVersion,
+			)
+		)
+	}
+
+	fun dismissProtocolMismatch() {
+		navigation.activate(Config.None)
+	}
+
 	@Serializable
 	sealed class Config {
 		@Serializable
@@ -111,5 +137,11 @@ class ProjectListModalRouter(
 
 		@Serializable
 		data object ServerReauth : Config()
+
+		@Serializable
+		data class ProtocolMismatch(
+			val clientProtocolVersion: Int,
+			val serverProtocolVersion: Int?,
+		) : Config()
 	}
 }

@@ -94,6 +94,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRe
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubVersionCheckDataSource
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.ShouldNotifyOfUpdateUseCase
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDataSource
+import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
@@ -155,6 +156,7 @@ val mainModule = module {
 
 	includes(platformModule)
 
+	singleOf(::ProtocolMismatchRepository)
 	single { createHttpClient(get()) } bind HttpClient::class
 	singleOf(::ServerAccountApi)
 	singleOf(::ServerProjectApi)

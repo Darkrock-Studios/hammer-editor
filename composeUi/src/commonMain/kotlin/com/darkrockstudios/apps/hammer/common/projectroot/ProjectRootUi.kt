@@ -37,6 +37,7 @@ import com.darkrockstudios.apps.hammer.common.notes.NotesFab
 import com.darkrockstudios.apps.hammer.common.notes.NotesUi
 import com.darkrockstudios.apps.hammer.common.projecthome.ProjectHomeUi
 import com.darkrockstudios.apps.hammer.common.projectsync.ProjectSynchronization
+import com.darkrockstudios.apps.hammer.common.protocolmismatch.ProtocolMismatchDialog
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.StoryEditorUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.focusmode.FocusModeUi
@@ -169,6 +170,10 @@ fun ModalContent(component: ProjectRoot, showSnackbar: (String) -> Unit) {
 
 		is ProjectRoot.ModalDestination.FocusModeModal -> {
 			FocusModeModalContent(overlay.component)
+		}
+
+		is ProjectRoot.ModalDestination.ProtocolMismatchModal -> {
+			ProtocolMismatchDialog(overlay.component)
 		}
 	}
 }

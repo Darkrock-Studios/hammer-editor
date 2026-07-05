@@ -1,5 +1,6 @@
 package utils
 
+import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_MAIN
@@ -63,6 +64,7 @@ open class BaseTest : KoinTest {
 							name = "IO dispatcher"
 						)
 					}
+					single { ProtocolMismatchRepository() }
 				},
 				*modules
 			)

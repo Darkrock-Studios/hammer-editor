@@ -1,8 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.server
 
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
+import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.url
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
@@ -47,6 +50,7 @@ abstract class Api(
 
 	private val ioDispatcher by injectIoDispatcher()
 	private val localeResolver: DeviceLocaleResolver by inject()
+	private val protocolMismatchRepository: ProtocolMismatchRepository by inject()
 
 	private suspend fun <T> makeRequest(
 		path: String,
@@ -72,6 +76,12 @@ abstract class Api(
 				val value = parse(response)
 				Result.success(value)
 			} else {
+				if (response.status == HttpStatusCode.UpgradeRequired) {
+					protocolMismatchRepository.notifyMismatch(
+						clientProtocolVersion = HAMMER_PROTOCOL_VERSION,
+						serverProtocolVersion = response.headers[HAMMER_PROTOCOL_HEADER]?.toIntOrNull(),
+					)
+				}
 				Result.failure(
 					failureHandler(response)
 				)

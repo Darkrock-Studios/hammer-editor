@@ -72,6 +72,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdToolButton
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
+import com.darkrockstudios.apps.hammer.common.protocolmismatch.ProtocolMismatchDialog
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
 import com.darkrockstudios.apps.hammer.project_select_project_list_empty
 import com.darkrockstudios.apps.hammer.projects_list_create_button
@@ -637,6 +638,10 @@ fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 
 		is ProjectsList.ModalDestination.ServerReauth -> {
 			ReauthenticationUi(overlay.component)
+		}
+
+		is ProjectsList.ModalDestination.ProtocolMismatch -> {
+			ProtocolMismatchDialog(overlay.component)
 		}
 	}
 }
