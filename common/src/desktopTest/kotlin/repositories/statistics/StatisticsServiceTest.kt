@@ -207,15 +207,19 @@ class StatisticsServiceTest : BaseTest() {
 		runTest(mainTestDispatcher) {
 			// A sealed session (an older, finalized day) plus an unsealed one (the
 			// current, in-progress day). Both must be reflected in the stats; the
-			// unsealed one is the day the user is actively writing.
+			// unsealed one is the day the user is actively writing. A third, empty
+			// session guards the other side of the filter: sessions with no words
+			// are skipped regardless of their sealed state.
 			val day1 = Instant.parse("2026-04-27T09:00:00Z")
 			val day2 = Instant.parse("2026-04-28T09:00:00Z")
+			val day3 = Instant.parse("2026-04-29T09:00:00Z")
 			coEvery { writingActivityRepository.loadAllLogs() } returns mapOf(
 				"device-1" to DeviceLog(
 					deviceLabel = "Laptop",
 					sessions = listOf(
 						WritingSession(startedAt = day1, endedAt = day1, wordsWritten = 100, sealed = true),
 						WritingSession(startedAt = day2, endedAt = day2, wordsWritten = 250, sealed = false),
+						WritingSession(startedAt = day3, endedAt = day3, wordsWritten = 0, sealed = false),
 					),
 				),
 			)
@@ -223,9 +227,10 @@ class StatisticsServiceTest : BaseTest() {
 
 			val stats = makeService().recalculateStatistics()
 
-			// Two distinct calendar days regardless of the host timezone (the two
-			// sessions are 24h apart), and the unsealed (current-day) session must be
-			// counted rather than dropped: 100 sealed + 250 unsealed = 350.
+			// Only the two word-bearing days appear (the empty session is skipped),
+			// regardless of the host timezone (the sessions are 24h apart), and the
+			// unsealed (current-day) session must be counted rather than dropped:
+			// 100 sealed + 250 unsealed = 350.
 			assertEquals(2, stats.dailyWordTotals.size)
 			assertEquals(350, stats.dailyWordTotals.values.sum())
 			assertEquals(350, stats.wordsPerDevice["Laptop"])
