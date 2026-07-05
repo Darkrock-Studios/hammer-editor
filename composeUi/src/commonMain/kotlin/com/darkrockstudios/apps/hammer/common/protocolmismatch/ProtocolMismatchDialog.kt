@@ -49,7 +49,7 @@ import korlibs.io.lang.format
 @Composable
 fun ProtocolMismatchDialog(component: ProtocolMismatch) {
 	val state by component.state.subscribeAsState()
-	val versionTag = state.latestVersionTag?.let { "v$it" }
+	val versionTag = state.latestVersionTag
 	AnimatedDialog(
 		visible = true,
 		onCloseRequest = { component.dismiss() },
