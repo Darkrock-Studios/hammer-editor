@@ -7,7 +7,8 @@ uses.
 ## Two levels of syncing
 
 **Account Sync:** This synchronizes what projects the Account has, creating, deleting, or renaming
-just the top level directories on the client
+just the top level directories on the client. It also carries the account-level **Story Ideas**
+phase (see [Story Ideas Sync](#story-ideas-sync-account-level)).
 
 **Project Sync:** This synchronizes an individual project and all of its Entities
 
@@ -97,6 +98,10 @@ sequenceDiagram
 		end
 	end
 
+	rect rgb(40, 30, 0)
+		Note over Client,Server: Story Ideas phase (same session — see Story Ideas Sync below)
+	end
+
 	rect rgb(0, 15, 6)
 		Client ->> Server: POST /api/projects/{userId}/end_sync
 		deactivate Client
@@ -107,6 +112,97 @@ sequenceDiagram
 	end
 
 ```
+
+The `begin_sync` response also carries `ideasStateHash` — an account-wide hash of the server's
+live idea set — which lets the client skip the Story Ideas phase entirely when nothing changed
+(see below).
+
+---
+
+## Story Ideas Sync (account-level)
+
+Story ideas are account-level content: markdown blobs with tags that live at the projects root
+(`.ideas/idea-<uuid>.md`), outside any project. They sync as an extra **phase inside the account
+sync session** — same `syncId`, same sliding expiry, no third session type. The full feature
+design lives in [STORY-IDEAS.md](STORY-IDEAS.md); this section covers the protocol.
+
+Ideas are keyed by **client-generated UUIDs**, so they don't participate in the Entity Update
+Sequence and need none of the re-ID machinery — two devices can create ideas offline with zero
+coordination.
+
+### Endpoints
+
+All under `/api/ideas/{userId}/…`, all requiring the account session's `syncId` header:
+
+| Endpoint | Verb | Purpose |
+| --- | --- | --- |
+| `/state` | POST | `IdeasSyncStateResponse { ideas: [{id, hash}], deletedIdeas: [id] }` |
+| `/idea/{ideaId}` | GET | Download one idea (`SavedIdeaDto { idea, hash }`) |
+| `/idea/{ideaId}` | POST | Upload (`IdeaUploadRequest { idea, hash, originalHash? }`) |
+| `/idea/{ideaId}/delete` | POST | Delete + write the permanent tombstone |
+
+Upload responses: `200` with the saved copy; `409` + `IdeaConflictDto { server, serverHash }` on a
+baseline mismatch; `410 Gone` if the idea is tombstoned (deletion wins — the client deletes its
+local copy); `413` over the server's 64 KiB blob cap.
+
+### The phase
+
+1. Fetch `/state`: the server's live `{id, hash}` set plus deletion tombstones.
+2. **Tombstones win**: prune local copies of tombstoned ideas and drop their bookkeeping.
+3. Push the client's **pending-delete outbox**; each entry is erased on server ack.
+4. Reconcile each local idea against the server set:
+   - hashes agree → lock the baseline;
+   - server-unknown or locally dirty (hash ≠ baseline) → upload with `originalHash = baseline`;
+   - local clean but server changed → download the server copy.
+5. Download server ideas the client doesn't hold (excluding ones still awaiting our delete).
+
+### Hashing and conflict detection
+
+Per-idea hashing (`IdeaHasher`, in `base` so both sides run byte-identical code) covers every
+`StoryIdea` field, following the same evolution rules as `ProjectDataHasher`: presence bytes for
+nullable fields, zero bytes for the empty tag set, guarded by golden-pin sensitivity tests.
+
+Conflicts mirror project-data sync: the client persists a per-idea **baseline** (the hash last
+agreed with the server) in `.ideas/sync.json` and replays it as `originalHash` on upload. A `409`
+returns the server copy; the user resolves (either side, or a manual merge in the editable local
+pane) and the resolution is re-uploaded with `originalHash = serverHash` from the conflict. An
+unresolved conflict simply leaves the idea dirty for next session.
+
+### Deletion propagation
+
+Only the **server** keeps tombstones (`deleted_idea` rows, permanent). The client keeps a
+transient `pendingDeletes` outbox in `.ideas/sync.json`, written at delete time and erased on
+ack — required because "the server has an idea the client doesn't" is otherwise ambiguous between
+*created elsewhere* and *deleted here*. Deletes are only recorded once the install has synced
+ideas before (the sidecar's existence is the marker); a never-synced install just deletes the
+file. Losing the sidecar degrades to baseline-less uploads and resurrected not-yet-pushed
+deletions — annoying but never content loss.
+
+### Skipping the phase (ideas state hash)
+
+The `begin_sync` response carries `ideasStateHash`: an `IdeasStateHasher` hash over the server's
+live `{uuid, hash}` pairs (sorted, size-prefixed; tombstones excluded). The client skips the
+whole phase when **both** hold:
+
+1. no pending local work — empty outbox, and every local idea hashes exactly to its locked
+   baseline (which also rules out local-only or missing ideas), and
+2. the hash of those baselines equals the server's `ideasStateHash`.
+
+Tombstones can be excluded safely: a tombstone only matters to a client still holding the idea,
+and that client's baseline set necessarily disagrees with the server's live set, forcing the
+phase to run. The field is optional — a server that predates ideas omits it and the client runs
+the phase unconditionally; any doubt on the client (corrupt sidecar, dirty ideas) also falls
+back to running it. Same asymmetric-risk argument as the project probe: a false mismatch costs a
+redundant phase, and a "false match" cannot exist while rule 1 holds, because a client never
+skips with unsynced local changes.
+
+### Server storage
+
+Same shape-agnostic scheme as entities and project data: the serialized `StoryIdea` JSON is the
+wire format, stored verbatim (encrypted at rest with the entity content-encryption path, covered
+by key-rotation convergence and the key-prune in-use scan) alongside the client-supplied hash.
+The server decodes only to validate shape, so adding a field to `StoryIdea` is a client-only
+change.
 
 ---
 
@@ -459,8 +555,8 @@ Note: unlike the entity endpoints, the `project_data` and `writing_activity` end
 
 ### Server storage is shape-agnostic
 
-Server storage never depends on client data shape: synced content — entities, and project data
-alike — is stored as an opaque blob with a **client-supplied** hash. The server never decodes the
+Server storage never depends on client data shape: synced content — entities, project data, and
+story ideas alike — is stored as an opaque blob with a **client-supplied** hash. The server never decodes the
 blob into the typed model except to *validate* that it decodes at all (`ignoreUnknownKeys`, so
 fields it doesn't know still pass); on upload it stores the received JSON verbatim (`hash` field in
 the upload request), and on download/conflict it passes the stored bytes back untouched (

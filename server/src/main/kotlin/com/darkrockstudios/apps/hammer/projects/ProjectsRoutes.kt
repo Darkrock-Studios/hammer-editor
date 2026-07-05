@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import com.darkrockstudios.apps.hammer.monitoring.ActivityType
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
+import com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository
 import com.darkrockstudios.apps.hammer.utilities.*
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
@@ -80,16 +81,18 @@ fun Route.projectsRoutes() {
 private fun Route.beginProjectsSync() {
 	val projectsRepository: ProjectsRepository = get()
 	val accountsRepository: AccountsRepository = get()
+	val ideasRepository: ServerIdeasRepository = get()
 
 	// POST is the preferred verb; GET remains for legacy clients.
 	// TODO Remove the legacy GET route at the next protocol version bump.
-	get("/begin_sync") { handleBeginProjectsSync(projectsRepository, accountsRepository) }
-	post("/begin_sync") { handleBeginProjectsSync(projectsRepository, accountsRepository) }
+	get("/begin_sync") { handleBeginProjectsSync(projectsRepository, accountsRepository, ideasRepository) }
+	post("/begin_sync") { handleBeginProjectsSync(projectsRepository, accountsRepository, ideasRepository) }
 }
 
 private suspend fun RoutingContext.handleBeginProjectsSync(
 	projectsRepository: ProjectsRepository,
 	accountsRepository: AccountsRepository,
+	ideasRepository: ServerIdeasRepository,
 ) {
 	val principal = call.principal<ServerUserIdPrincipal>()
 	if (principal == null) {
@@ -113,6 +116,7 @@ private suspend fun RoutingContext.handleBeginProjectsSync(
 				syncId = syncData.syncId,
 				projects = syncData.projects.map { it.toApi() }.toSet(),
 				deletedProjects = syncData.deletedProjects,
+				ideasStateHash = ideasRepository.getIdeasStateHash(principal.id),
 			),
 		)
 	} else {

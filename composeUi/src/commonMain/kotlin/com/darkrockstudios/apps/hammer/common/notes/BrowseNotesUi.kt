@@ -9,26 +9,19 @@ import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Search
@@ -39,7 +32,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
@@ -51,11 +43,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -64,21 +52,21 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.notes.BrowseNotes
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdActiveFiltersStrip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCollapsingStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMarkdownCard
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortMenu
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortOption
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagFilterBar
 import com.darkrockstudios.apps.hammer.common.compose.firstNonBlankLine
-import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.notes_create_note_button
 import com.darkrockstudios.apps.hammer.notes_filter_all
@@ -107,7 +95,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
-import kotlin.math.roundToInt
 import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
 
 const val NOTES_CREATE_FAB_TAG = "notes-create-fab"
@@ -139,7 +126,6 @@ private fun applySort(notes: List<NoteContent>, mode: NotesSortMode): List<NoteC
 
 @OptIn(
 	ExperimentalSharedTransitionApi::class,
-	ExperimentalLayoutApi::class,
 	ExperimentalMaterial3Api::class,
 )
 @Composable
@@ -270,7 +256,7 @@ fun BrowseNotesUi(
 
 		// Toolbar + tag filter + active filters slide off together on
 		// scroll-down and reveal on scroll-up.
-		CollapsingStrip(scrollBehavior = scrollBehavior) {
+		HdCollapsingStrip(scrollBehavior = scrollBehavior) {
 			val searchField: @Composable () -> Unit = {
 				HdSearchField(
 					value = searchQuery,
@@ -302,9 +288,9 @@ fun BrowseNotesUi(
 			// Tag filter bar always renders so SORT has a stable home —
 			// the chips area is empty when no tags exist, but ALL and
 			// SORT are still useful affordances.
-			TagFilterBar(
+			HdTagFilterBar(
 				tags = tagIndex,
-				total = state.notes.size,
+				allLabel = "${stringResource(Res.string.notes_filter_all)} · ${state.notes.size}",
 				activeTags = activeTags,
 				onToggle = toggleTag,
 				onClear = clearTags,
@@ -324,10 +310,14 @@ fun BrowseNotesUi(
 			)
 
 			AnimatedVisibility(visible = activeTags.isNotEmpty()) {
-				ActiveFiltersStrip(
+				HdActiveFiltersStrip(
 					activeTags = activeTags,
-					hits = visibleNotes.size,
-					total = state.notes.size,
+					filteredLabel = stringResource(
+						Res.string.notes_filter_filtered,
+						visibleNotes.size,
+						state.notes.size,
+					),
+					clearAllLabel = stringResource(Res.string.notes_filter_clear_all),
 					onToggle = toggleTag,
 					onClear = clearTags,
 				)
@@ -349,7 +339,7 @@ fun BrowseNotesUi(
 			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 		) {
 			if (visibleNotes.isEmpty()) {
-				item {
+				item(span = StaggeredGridItemSpan.FullLine) {
 					Box(
 						modifier = Modifier
 							.fillMaxWidth()
@@ -383,42 +373,8 @@ fun BrowseNotesUi(
 	}
 }
 
-/**
- * Translates [content] by [scrollBehavior]'s height offset and reduces
- * the slot's reported height by the same amount, so a sibling scroll
- * container slides up under the disappearing strip. Mirrors the
- * `CollapsingStrip` used in `BrowseEntriesUi`.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CollapsingStrip(
-	scrollBehavior: TopAppBarScrollBehavior,
-	content: @Composable () -> Unit,
-) {
-	Layout(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surface)
-			.clipToBounds(),
-		content = content,
-	) { measurables, constraints ->
-		val placeables = measurables.map { it.measure(constraints) }
-		val totalHeight = placeables.sumOf { it.height }
-		scrollBehavior.state.heightOffsetLimit = -totalHeight.toFloat()
-		val offset = scrollBehavior.state.heightOffset.roundToInt()
-		val visibleHeight = (totalHeight + offset).coerceAtLeast(0)
-		val width = placeables.maxOfOrNull { it.width } ?: constraints.minWidth
-		layout(width, visibleHeight) {
-			var y = offset
-			placeables.forEach { placeable ->
-				placeable.place(0, y)
-				y += placeable.height
-			}
-		}
-	}
-}
 
-@OptIn(ExperimentalSharedTransitionApi::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalSharedTransitionApi::class)
 @Composable
 private fun NoteCard(
 	note: NoteContent,
@@ -429,231 +385,36 @@ private fun NoteCard(
 	onClick: () -> Unit,
 	modifier: Modifier = Modifier,
 ) {
-	val hammerColors = LocalHammerColors.current
 	with(sharedTransitionScope) {
-		// `wrapContentHeight()` is defensive — staggered grid items already
-		// give children unbounded height, but this guarantees the card sizes
-		// to its content even when a sibling modifier propagates a max.
-		Column(
-			modifier = modifier
-				.fillMaxWidth()
-				.wrapContentHeight()
-				.background(MaterialTheme.colorScheme.surfaceContainerLow, RectangleShape)
-				.border(
-					width = Dp.Hairline,
-					color = MaterialTheme.colorScheme.outlineVariant,
-					shape = RectangleShape,
-				)
+		val date = remember(note.created) {
+			note.created.toLocalDateTime(TimeZone.currentSystemDefault()).format("dd MMM `yy")
+		}
+		val words = remember(note.content) { note.wordCount() }
+
+		HdMarkdownCard(
+			markdown = note.content,
+			metaStart = date,
+			metaEnd = stringResource(Res.string.notes_word_count_short, words),
+			onClick = onClick,
+			modifier = modifier,
+			surfaceModifier = Modifier
 				.sharedElement(
 					sharedContentState = rememberSharedContentState(key = "note-card-${note.id}"),
 					animatedVisibilityScope = animatedVisibilityScope,
 				)
-				.testTag(noteCardTag(note.id))
-				.clickable(onClick = onClick),
-		) {
-			val date = remember(note.created) {
-				note.created.toLocalDateTime(TimeZone.currentSystemDefault()).format("dd MMM `yy")
-			}
-			val words = remember(note.content) { note.wordCount() }
-			// Editor-saved notes commonly end with a trailing `\n`; the
-			// markdown pipeline splits on newlines, so a trailing newline
-			// becomes an empty trailing line and shows up as a blank gap at
-			// the bottom of the card. Trim defensively.
-			val previewMarkdown = remember(note.content) { note.content.trim() }
-
-			Row(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(horizontal = Ui.Padding.L, vertical = Ui.Padding.M),
-				verticalAlignment = Alignment.CenterVertically,
-			) {
-				HdMonoLabel(
-					text = date,
-					modifier = Modifier.sharedElement(
-						sharedContentState = rememberSharedContentState(key = "note-date-${note.id}"),
-						animatedVisibilityScope = animatedVisibilityScope,
-					),
-				)
-				Spacer(modifier = Modifier.weight(1f))
-				HdMonoLabel(text = stringResource(Res.string.notes_word_count_short, words))
-			}
-
-			HorizontalDivider(
-				thickness = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-			)
-
-			MarkdownView(
-				markdown = previewMarkdown,
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(
-						horizontal = Ui.Padding.XL,
-						vertical = Ui.Padding.L,
-					)
-					.sharedElement(
-						sharedContentState = rememberSharedContentState(key = "note-content-${note.id}"),
-						animatedVisibilityScope = animatedVisibilityScope,
-					),
-			)
-
-			if (note.tags.isNotEmpty()) {
-				FlowRow(
-					modifier = Modifier
-						.fillMaxWidth()
-						.padding(
-							start = Ui.Padding.L,
-							end = Ui.Padding.L,
-							bottom = Ui.Padding.L,
-						),
-					horizontalArrangement = Arrangement.spacedBy(6.dp),
-					verticalArrangement = Arrangement.spacedBy(6.dp),
-				) {
-					note.tags.sorted().forEach { tag ->
-						val isActive = tag in activeTags
-						HdTagChip(
-							label = tag,
-							active = isActive,
-							onClick = { onTagClick(tag) },
-						)
-					}
-				}
-			}
-		}
-	}
-}
-
-@Composable
-private fun TagFilterBar(
-	tags: List<TagCount>,
-	total: Int,
-	activeTags: Set<String>,
-	onToggle: (String) -> Unit,
-	onClear: () -> Unit,
-	leading: (@Composable () -> Unit)? = null,
-	trailing: @Composable () -> Unit = {},
-) {
-	val hammerColors = LocalHammerColors.current
-	val allActive = activeTags.isEmpty()
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.S),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-	) {
-		if (leading != null) {
-			leading()
-			Box(
-				modifier = Modifier
-					.height(20.dp)
-					.width(Dp.Hairline)
-					.background(MaterialTheme.colorScheme.outlineVariant),
-			)
-		}
-		AllChip(
-			label = "${stringResource(Res.string.notes_filter_all)} · $total",
-			active = allActive,
-			onClick = onClear,
+				.testTag(noteCardTag(note.id)),
+			metaStartModifier = Modifier.sharedElement(
+				sharedContentState = rememberSharedContentState(key = "note-date-${note.id}"),
+				animatedVisibilityScope = animatedVisibilityScope,
+			),
+			markdownModifier = Modifier.sharedElement(
+				sharedContentState = rememberSharedContentState(key = "note-content-${note.id}"),
+				animatedVisibilityScope = animatedVisibilityScope,
+			),
+			tags = note.tags,
+			activeTags = activeTags,
+			onTagClick = onTagClick,
 		)
-		Box(
-			modifier = Modifier
-				.height(20.dp)
-				.width(Dp.Hairline)
-				.background(MaterialTheme.colorScheme.outlineVariant),
-		)
-		LazyRow(
-			modifier = Modifier.weight(1f),
-			horizontalArrangement = Arrangement.spacedBy(6.dp),
-			verticalAlignment = Alignment.CenterVertically,
-		) {
-			items(count = tags.size) { i ->
-				val (label, count) = tags[i]
-				val isActive = label in activeTags
-				HdTagChip(
-					label = "$label · $count",
-					active = isActive,
-					onClick = { onToggle(label) },
-				)
-			}
-		}
-		trailing()
-	}
-}
-
-@Composable
-private fun AllChip(
-	label: String,
-	active: Boolean,
-	onClick: () -> Unit,
-) {
-	val background = if (active) {
-		MaterialTheme.colorScheme.surfaceContainerHigh
-	} else {
-		Color.Transparent
-	}
-	val labelColor = if (active) {
-		MaterialTheme.colorScheme.onSurface
-	} else {
-		MaterialTheme.colorScheme.onSurfaceVariant
-	}
-	Box(
-		modifier = Modifier
-			.height(28.dp)
-			.background(background, RectangleShape)
-			.clickable(onClick = onClick)
-			.padding(horizontal = Ui.Padding.L),
-		contentAlignment = Alignment.Center,
-	) {
-		HdMonoLabel(text = label, color = labelColor)
-	}
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun ActiveFiltersStrip(
-	activeTags: Set<String>,
-	hits: Int,
-	total: Int,
-	onToggle: (String) -> Unit,
-	onClear: () -> Unit,
-) {
-	val hammerColors = LocalHammerColors.current
-	Column(modifier = Modifier.fillMaxWidth()) {
-		HorizontalDivider(
-			thickness = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
-		FlowRow(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.S),
-			horizontalArrangement = Arrangement.spacedBy(6.dp),
-			verticalArrangement = Arrangement.spacedBy(6.dp),
-		) {
-			HdMonoLabel(
-				text = stringResource(Res.string.notes_filter_filtered, hits, total),
-				modifier = Modifier
-					.padding(end = Ui.Padding.S)
-					.align(Alignment.CenterVertically),
-			)
-			activeTags.sorted().forEach { tag ->
-				HdTagChip(
-					label = tag,
-					active = true,
-					onClick = { onToggle(tag) },
-					onRemove = { onToggle(tag) },
-				)
-			}
-			Box(
-				modifier = Modifier
-					.clickable(onClick = onClear)
-					.padding(horizontal = Ui.Padding.S, vertical = Ui.Padding.S),
-				contentAlignment = Alignment.Center,
-			) {
-				HdMonoLabel(text = stringResource(Res.string.notes_filter_clear_all))
-			}
-		}
 	}
 }
 

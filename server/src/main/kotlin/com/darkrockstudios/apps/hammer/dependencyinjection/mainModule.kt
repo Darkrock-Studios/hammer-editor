@@ -40,6 +40,7 @@ import com.darkrockstudios.apps.hammer.project.synchronizers.*
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatabaseDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
+import com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.review.ReviewRepository
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
@@ -113,6 +114,8 @@ fun mainModule(
 	singleOf(::ReviewSuggestionDao)
 	singleOf(::WritingActivityDao)
 	singleOf(::ProjectDataDao)
+	singleOf(::StoryIdeaDao)
+	singleOf(::DeletedIdeaDao)
 	singleOf(::ApiMetricDao)
 	singleOf(::ErrorLogDao)
 	singleOf(::LoginAttemptDao)
@@ -125,6 +128,7 @@ fun mainModule(
 	singleOf(::ProjectAccessRepository)
 	singleOf(::ServerWritingActivityRepository)
 	singleOf(::ServerProjectDataRepository)
+	single { ServerIdeasRepository(get(), get(), get(), get(), get(), get(), get()) }
 	singleOf(::WhiteListRepository)
 	singleOf(::ConfigRepository)
 	singleOf(::MetricsRepository)

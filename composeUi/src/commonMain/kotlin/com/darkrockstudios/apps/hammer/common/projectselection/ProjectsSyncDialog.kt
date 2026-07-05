@@ -69,10 +69,13 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdToolButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.accentColor
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
+import com.darkrockstudios.apps.hammer.common.projectsync.IdeaConflictUi
+import com.darkrockstudios.apps.hammer.ideas_conflict_title
 import kotlinx.coroutines.launch
 
 private val DialogMaxWidth = 580.dp
 private val DialogBodyMinHeight = 280.dp
+private val DialogBodyMaxHeight = 560.dp
 
 @Composable
 fun ProjectsSyncDialog(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
@@ -121,6 +124,7 @@ fun ProjectsSyncDialog(component: ProjectsList, rootSnackbar: RootSnackbarHostSt
 
 				TitleAndToolbar(
 					inLogView = showLog,
+					inConflictView = state.syncState.ideaConflict != null,
 					syncComplete = state.syncState.syncComplete,
 					onStop = { component.cancelProjectsSync() },
 					onToggleLog = { showLog = !showLog },
@@ -148,9 +152,17 @@ fun ProjectsSyncDialog(component: ProjectsList, rootSnackbar: RootSnackbarHostSt
 				Box(
 					modifier = Modifier
 						.fillMaxWidth()
-						.heightIn(min = DialogBodyMinHeight),
+						.heightIn(min = DialogBodyMinHeight, max = DialogBodyMaxHeight),
 				) {
-					if (showLog) {
+					val ideaConflict = state.syncState.ideaConflict
+					if (ideaConflict != null) {
+						// The dialog is too narrow for side-by-side panes; use the tabbed layout.
+						IdeaConflictUi(
+							conflict = ideaConflict,
+							compact = true,
+							onResolve = { component.resolveIdeaConflict(it) },
+						)
+					} else if (showLog) {
 						val showAll = logProjectFilter == null
 						val filteredLog = remember(state.syncState.syncLog, logProjectFilter) {
 							if (logProjectFilter == null) {
@@ -214,6 +226,7 @@ private fun Masthead(
 @Composable
 private fun TitleAndToolbar(
 	inLogView: Boolean,
+	inConflictView: Boolean,
 	syncComplete: Boolean,
 	onStop: () -> Unit,
 	onToggleLog: () -> Unit,
@@ -231,10 +244,10 @@ private fun TitleAndToolbar(
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
 		Text(
-			text = if (inLogView) {
-				Res.string.account_sync_log_title.get()
-			} else {
-				Res.string.account_sync_dialog_header.get()
+			text = when {
+				inConflictView -> Res.string.ideas_conflict_title.get()
+				inLogView -> Res.string.account_sync_log_title.get()
+				else -> Res.string.account_sync_dialog_header.get()
 			},
 			style = MaterialTheme.typography.headlineSmall,
 			color = MaterialTheme.colorScheme.onSurface,

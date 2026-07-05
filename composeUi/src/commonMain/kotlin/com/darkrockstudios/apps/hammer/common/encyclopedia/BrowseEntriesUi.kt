@@ -34,7 +34,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -44,9 +43,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -56,6 +53,7 @@ import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntr
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCollapsingStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryFilterBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryFilterOption
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFab
@@ -76,7 +74,6 @@ import com.darkrockstudios.apps.hammer.encyclopedia_search_hint
 import com.darkrockstudios.apps.hammer.notes_search_button
 import com.darkrockstudios.apps.hammer.notes_search_close
 import kotlinx.coroutines.CoroutineScope
-import kotlin.math.roundToInt
 
 const val ENCYCLOPEDIA_CREATE_FAB_TAG = "encyclopedia-create-fab"
 
@@ -217,7 +214,7 @@ fun BrowseEntriesUi(
 		// scroll behavior's height offset so they slide off together.
 		// The search field is included on wide only — narrow screens
 		// surface it through the title-row toggle instead.
-		CollapsingStrip(scrollBehavior = scrollBehavior) {
+		HdCollapsingStrip(scrollBehavior = scrollBehavior) {
 			FilterStrip(
 				searchText = plainSearch,
 				onSearchTextChange = onPlainSearchChange,
@@ -279,46 +276,6 @@ fun BrowseEntriesUi(
 	}
 }
 
-/**
- * Translates [content] by [scrollBehavior]'s height offset and reduces
- * the slot's reported height by the same amount, so a sibling scroll
- * container slides up under the disappearing strip. Borrowed from how
- * M3's [androidx.compose.material3.TopAppBar] internals collapse —
- * applied here to a non-app-bar element.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun CollapsingStrip(
-	scrollBehavior: TopAppBarScrollBehavior,
-	content: @Composable () -> Unit,
-) {
-	Layout(
-		// Opaque surface so the grid sliding underneath doesn't show
-		// through, and clipped so the translated content can't bleed
-		// up into the section header above.
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surface)
-			.clipToBounds(),
-		content = content,
-	) { measurables, constraints ->
-		val placeables = measurables.map { it.measure(constraints) }
-		val totalHeight = placeables.sumOf { it.height }
-		// Once we know the strip's total height, set the offset limit so
-		// it can hide entirely but no further.
-		scrollBehavior.state.heightOffsetLimit = -totalHeight.toFloat()
-		val offset = scrollBehavior.state.heightOffset.roundToInt()
-		val visibleHeight = (totalHeight + offset).coerceAtLeast(0)
-		val width = placeables.maxOfOrNull { it.width } ?: constraints.minWidth
-		layout(width, visibleHeight) {
-			var y = offset
-			placeables.forEach { placeable ->
-				placeable.place(0, y)
-				y += placeable.height
-			}
-		}
-	}
-}
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

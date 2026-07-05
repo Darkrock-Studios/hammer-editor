@@ -42,15 +42,20 @@ fun HdHairlineTagField(
 	placeholder: String? = null,
 	suggestTags: (prefix: String) -> List<String> = { emptyList() },
 	testTag: String? = null,
+	onDraftChange: (String) -> Unit = {},
 ) {
 	var draft by remember { mutableStateOf("") }
+	val updateDraft: (String) -> Unit = {
+		draft = it
+		onDraftChange(it)
+	}
 
 	val addTag: (String) -> Unit = { raw ->
 		val candidate = raw.trim().removePrefix("#")
 		if (candidate.isNotEmpty() && !tags.contains(candidate)) {
 			onTagsChange(tags + candidate)
 		}
-		draft = ""
+		updateDraft("")
 	}
 	val addCurrent: () -> Boolean = add@{
 		if (draft.trim().removePrefix("#").isEmpty()) return@add false
@@ -122,10 +127,10 @@ fun HdHairlineTagField(
 						onValueChange = { next ->
 							val last = next.lastOrNull()
 							if (last == ',' || last == ' ') {
-								draft = next.dropLast(1)
+								updateDraft(next.dropLast(1))
 								addCurrent()
 							} else {
-								draft = next
+								updateDraft(next)
 							}
 						},
 						singleLine = true,
@@ -135,7 +140,14 @@ fun HdHairlineTagField(
 						modifier = Modifier
 							.fillMaxWidth()
 							.heightIn(min = 24.dp)
-							.onFocusChanged { tagsFocused = it.isFocused }
+							.onFocusChanged { focusState ->
+								tagsFocused = focusState.isFocused
+								// A typed-but-uncommitted tag would otherwise be silently
+								// dropped when focus moves on — commit it instead.
+								if (!focusState.isFocused && draft.isNotBlank()) {
+									addCurrent()
+								}
+							}
 							.then(if (testTag != null) Modifier.testTag(testTag) else Modifier)
 							.onPreviewKeyEvent { event ->
 								if (event.type != KeyEventType.KeyDown) return@onPreviewKeyEvent false

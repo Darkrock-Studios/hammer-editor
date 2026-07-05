@@ -25,6 +25,12 @@ import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasou
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
 import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasDatasource
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.PromoteIdeaUseCase
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCodec
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
@@ -34,7 +40,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRe
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
-import com.darkrockstudios.apps.hammer.common.data.projectdata.SuggestProjectTagsUseCase
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
@@ -81,6 +86,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
@@ -104,6 +110,7 @@ import com.darkrockstudios.apps.hammer.common.server.ProjectDataApi
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import com.darkrockstudios.apps.hammer.common.server.ServerAdminApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
+import com.darkrockstudios.apps.hammer.common.server.ServerIdeasApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.server.WritingActivityApi
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
@@ -154,6 +161,7 @@ val mainModule = module {
 	singleOf(::ServerProjectsApi)
 	singleOf(::WritingActivityApi)
 	singleOf(::ProjectDataApi)
+	singleOf(::ServerIdeasApi)
 	singleOf(::ServerAdminApi)
 
 	singleOf(::ServerSettingsFilesystemDatasource) bind ServerSettingsDatasource::class
@@ -177,12 +185,19 @@ val mainModule = module {
 
 	singleOf(::ProjectsRepository)
 
-	singleOf(::SuggestProjectTagsUseCase)
+	singleOf(::StoryIdeaCodec)
+	singleOf(::IdeasDatasource)
+	singleOf(::IdeasSyncDatasource)
+	singleOf(::IdeasRepository)
+	factoryOf(::PromoteIdeaUseCase)
+
+	singleOf(::AccountTagService)
 
 	singleOf(::createTomlSerializer) bind Toml::class
 
 	singleOf(::createJsonSerializer) bind Json::class
 
+	singleOf(::ClientIdeasSynchronizer)
 	singleOf(::ClientAccountSynchronizer)
 
 	singleOf(::ProjectBackupRepository)

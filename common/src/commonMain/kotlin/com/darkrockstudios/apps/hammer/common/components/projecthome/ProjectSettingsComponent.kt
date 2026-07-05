@@ -12,7 +12,7 @@ import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.Spel
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
-import com.darkrockstudios.apps.hammer.common.data.projectdata.SuggestProjectTagsUseCase
+import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -25,11 +25,7 @@ class ProjectSettingsComponent(
 
 	private val mainDispatcher by injectMainDispatcher()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
-	private val suggestProjectTagsUseCase: SuggestProjectTagsUseCase by inject()
-
-	// Loaded once at init; sorted for stable suggestion order. Staleness within a session is
-	// fine. Written and read on the main dispatcher only.
-	private var otherProjectTags: List<String> = emptyList()
+	private val accountTagService: AccountTagService by inject()
 
 	override val projectName: String = projectDef.name
 
@@ -39,12 +35,7 @@ class ProjectSettingsComponent(
 	override val projectInfoState: Value<ProjectSettings.ProjectInfoState> = _projectInfoState
 
 	init {
-		scope.launch {
-			val tags = suggestProjectTagsUseCase.tagsFromOtherProjects(projectDef).sorted()
-			withContext(mainDispatcher) {
-				otherProjectTags = tags
-			}
-		}
+		scope.launch { accountTagService.refreshProjectTags() }
 		scope.launch {
 			projectDataRepository.load()
 			projectDataRepository.state.collect { stored ->
@@ -86,13 +77,9 @@ class ProjectSettingsComponent(
 	}
 
 	override fun suggestProjectTags(prefix: String): List<String> {
-		if (prefix.isBlank()) return emptyList()
-		return otherProjectTags
-			.filter { it.startsWith(prefix, ignoreCase = true) }
-			.take(MAX_TAG_SUGGESTIONS)
-	}
-
-	companion object {
-		private const val MAX_TAG_SUGGESTIONS = 5
+		// Exclude this project's own tags so it suggests from the *other* projects' / ideas'
+		// vocabulary, rather than offering back tags already applied here.
+		return accountTagService.suggest(prefix, exclude = _projectInfoState.value.data.tags)
+			.map { it.tag }
 	}
 }

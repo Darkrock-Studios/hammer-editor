@@ -139,7 +139,8 @@ class PruneKeyCommand : CliktCommand(name = "prune-key") {
 		return try {
 			database.initialize()
 			val tags = database.serverDatabase.storyEntityQueries.distinctCiphers().executeAsList() +
-				database.serverDatabase.reviewSceneQueries.distinctCiphers().executeAsList()
+				database.serverDatabase.reviewSceneQueries.distinctCiphers().executeAsList() +
+				database.serverDatabase.storyIdeaQueries.distinctCiphers().executeAsList()
 			tags.filterNotNull().mapNotNull { AesGcmContentEncryptor.keyIdForTag(it) }.toSet()
 		} catch (e: Exception) {
 			throw CliktError("Could not read the database to verify which content keys are in use: ${e.message}")
