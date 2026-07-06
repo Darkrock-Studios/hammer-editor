@@ -6,6 +6,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
+import kotlinx.atomicfu.locks.reentrantLock
+import kotlinx.atomicfu.locks.withLock as withReentrantLock
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.datetime.TimeZone
@@ -35,6 +37,7 @@ class WritingSessionTracker(
 	override val projectScope = ProjectDefScope(projectDef)
 
 	private val mutex = Mutex()
+	private val baselineLock = reentrantLock()
 	private val baseline = mutableMapOf<Int, String>()
 
 	// Cached in memory once loaded from disk; kept in sync with every save.
@@ -42,12 +45,12 @@ class WritingSessionTracker(
 
 	/** Records the pre-edit content of a scene the user just opened. */
 	fun rememberBaseline(sceneId: Int, content: String) {
-		baseline[sceneId] = content
+		baselineLock.withReentrantLock { baseline[sceneId] = content }
 	}
 
 	/** Drops the baseline for a scene that's been deleted. */
 	fun forgetBaseline(sceneId: Int) {
-		baseline.remove(sceneId)
+		baselineLock.withReentrantLock { baseline.remove(sceneId) }
 	}
 
 	/**
@@ -68,17 +71,17 @@ class WritingSessionTracker(
 	suspend fun onSceneSaved(sceneId: Int, newContent: String, source: UpdateSource): Int {
 		if (source != UpdateSource.Editor) return 0
 
-		val oldContent = baseline[sceneId]
-		if (oldContent == null) {
-			// We never saw the pre-edit text (e.g. scene loaded before the
-			// tracker was wired up, or buffer was populated from sync). Don't
-			// credit anything — establish a baseline going forward.
+		// Read-diff-write the baseline atomically. This is now driven by both the
+		// autosave pipeline and full saves, which can run on different threads for
+		// the same scene; the lock guarantees each caller credits its own delta and
+		// hands the updated baseline to the next, so nothing is double-counted or
+		// lost. A null baseline (scene loaded before the tracker saw it, or buffer
+		// populated from sync) just establishes one and credits nothing.
+		val added = baselineLock.withReentrantLock {
+			val oldContent = baseline[sceneId]
 			baseline[sceneId] = newContent
-			return 0
+			if (oldContent == null) 0 else countAddedWords(oldContent, newContent)
 		}
-
-		val added = countAddedWords(oldContent, newContent)
-		baseline[sceneId] = newContent
 
 		if (added > 0) {
 			recordWriting(added, clock.now())

@@ -339,6 +339,30 @@ class SceneEditorServiceTest : BaseTest() {
 		}
 
 	@Test
+	fun `Autosave records writing activity without an explicit full save`() =
+		runTest(mainTestDispatcher) {
+			val service = initializedService()
+			val scene = service.getSceneItemFromId(3)!!
+
+			service.loadSceneBuffer(scene)
+			service.onContentChanged(
+				SceneContent(scene, "Content of scene id 3 plus several freshly typed words"),
+				UpdateSource.Editor,
+			)
+			// Only the debounced autosave runs — no storeSceneBuffer call. Writing
+			// activity must still be credited from the buffer-persisted event.
+			advanceUntilIdle()
+
+			coVerify {
+				writingSessionTracker.onSceneSaved(
+					eq(3),
+					eq("Content of scene id 3 plus several freshly typed words"),
+					eq(UpdateSource.Editor),
+				)
+			}
+		}
+
+	@Test
 	fun `Store-all-buffers flushes every dirty buffer`() = runTest(mainTestDispatcher) {
 		val service = initializedService()
 
