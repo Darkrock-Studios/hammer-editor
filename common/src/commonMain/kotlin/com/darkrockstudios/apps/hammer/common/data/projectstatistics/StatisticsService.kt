@@ -170,7 +170,8 @@ class StatisticsService(
 			writingActivityRepository.loadAllLogs().values.forEach { deviceLog ->
 				var deviceTotal = 0
 				deviceLog.sessions.forEach { session ->
-					if (!session.sealed || session.wordsWritten <= 0) return@forEach
+					// Count every session with words, sealed or not.
+					if (session.wordsWritten <= 0) return@forEach
 					val date = session.startedAt.toLocalDateTime(timeZone).date.toString()
 					dailyWordTotals[date] = (dailyWordTotals[date] ?: 0) + session.wordsWritten
 					deviceTotal += session.wordsWritten
