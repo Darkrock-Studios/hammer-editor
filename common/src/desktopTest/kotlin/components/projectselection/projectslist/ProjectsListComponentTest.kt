@@ -19,12 +19,16 @@ import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistr
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
+import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.toMsg
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDataSource
+import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -41,6 +45,7 @@ import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
+import org.koin.test.get
 import utils.ComponentTest
 import utils.TestStrRes
 import kotlin.test.assertEquals
@@ -107,6 +112,9 @@ class ProjectsListComponentTest : ComponentTest() {
 			single<StrRes> { TestStrRes() }
 			single<Clock> { Clock.System }
 			single { StoryImporterRegistry(listOf(MarkdownStoryImporter(), RtfStoryImporter())) }
+			single<UrlLauncher> { mockk(relaxed = true) }
+			single<VersionCheckDataSource> { mockk(relaxed = true) }
+			single { VersionCheckRepository(get()) }
 		})
 
 		selectedProject = null
@@ -472,6 +480,24 @@ class ProjectsListComponentTest : ComponentTest() {
 				comp.state.value.projects.map { it.definition.name },
 			)
 		}
+
+	@Test
+	fun `a protocol mismatch shows the update dialog`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		// Start the lifecycle so onCreate() subscribes the mismatch observer.
+		context.resume()
+		advanceUntilIdle()
+
+		get<ProtocolMismatchRepository>().notifyMismatch(
+			clientProtocolVersion = 3,
+			serverProtocolVersion = 5,
+		)
+		advanceUntilIdle()
+
+		assertIs<ProjectsList.ModalDestination.ProtocolMismatch>(
+			comp.modalRouterState.value.child?.instance,
+		)
+	}
 
 	@Test
 	fun `loadProjectList skips a project whose metadata fails to load`() =

@@ -98,6 +98,8 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 		data object ProjectCreate : ModalDestination()
 		data class ProjectDelete(val projectDef: ProjectDef) : ModalDestination()
 		data class ServerReauth(val component: ServerReauthentication) : ModalDestination()
+		data class ProtocolMismatch(val component: com.darkrockstudios.apps.hammer.common.components.protocolmismatch.ProtocolMismatch) :
+			ModalDestination()
 	}
 }
 

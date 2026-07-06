@@ -11,10 +11,12 @@ import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSear
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot.ModalDestination.*
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronizationComponent
+import com.darkrockstudios.apps.hammer.common.components.protocolmismatch.ProtocolMismatchComponent
 import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthenticationComponent
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusModeComponent
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchInfo
 import kotlinx.serialization.Serializable
 
 class ProjectRootModalRouter(
@@ -86,6 +88,17 @@ class ProjectRootModalRouter(
 					},
 				)
 			)
+
+			is Config.ProtocolMismatch -> ProtocolMismatchModal(
+				ProtocolMismatchComponent(
+					componentContext,
+					info = ProtocolMismatchInfo(
+						clientProtocolVersion = config.clientProtocolVersion,
+						serverProtocolVersion = config.serverProtocolVersion,
+					),
+					dismissDialog = ::dismissProtocolMismatch,
+				)
+			)
 		}
 
 	fun showProjectSync() {
@@ -109,6 +122,19 @@ class ProjectRootModalRouter(
 	}
 
 	fun dismissGlobalSearch() {
+		navigation.activate(Config.None)
+	}
+
+	fun showProtocolMismatch(info: ProtocolMismatchInfo) {
+		navigation.activate(
+			Config.ProtocolMismatch(
+				clientProtocolVersion = info.clientProtocolVersion,
+				serverProtocolVersion = info.serverProtocolVersion,
+			)
+		)
+	}
+
+	fun dismissProtocolMismatch() {
 		navigation.activate(Config.None)
 	}
 
@@ -140,5 +166,11 @@ class ProjectRootModalRouter(
 
 		@Serializable
 		data class FocusMode(val sceneItem: SceneItem) : Config()
+
+		@Serializable
+		data class ProtocolMismatch(
+			val clientProtocolVersion: Int,
+			val serverProtocolVersion: Int?,
+		) : Config()
 	}
 }

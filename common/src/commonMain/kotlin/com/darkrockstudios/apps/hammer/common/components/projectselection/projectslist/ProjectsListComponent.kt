@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
+import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeaConflict
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
@@ -88,6 +89,7 @@ class ProjectsListComponent(
 	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectsSynchronizer: ClientAccountSynchronizer by inject()
+	private val protocolMismatchRepository: ProtocolMismatchRepository by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
 	private val projectMetadataDatasource: ProjectMetadataDatasource by inject()
 	private val statisticsCacheReader: ProjectStatisticsCacheReader by inject()
@@ -153,6 +155,17 @@ class ProjectsListComponent(
 		super.onCreate()
 		watchSettingsUpdates()
 		initialProjectSync()
+		watchProtocolMismatch()
+	}
+
+	private fun watchProtocolMismatch() {
+		scope.launch {
+			protocolMismatchRepository.mismatches.collect { info ->
+				withContext(mainDispatcher) {
+					modalRouter.showProtocolMismatch(info)
+				}
+			}
+		}
 	}
 
 	override fun onResume() {
