@@ -60,12 +60,20 @@ class ProjectsRepository(
 		return projectsDatasource.getMostRecentSyncForUser(userId)
 	}
 
-	suspend fun beginProjectsSync(userId: Long): SResult<ProjectsBeginSyncData> {
-		val newSyncId = syncSessionManager.claimSession(userId) { user, sync ->
+	suspend fun beginProjectsSync(
+		userId: Long,
+		installId: String? = null,
+	): SResult<ProjectsBeginSyncData> {
+		// Atomically claim the slot, reclaiming only this install's own stale session
+		val newSyncId = syncSessionManager.claimSession(
+			userId,
+			canReplace = { it.installId == installId },
+		) { user, sync ->
 			ProjectsSynchronizationSession(
 				userId = user,
 				started = clock.now(),
-				syncId = sync
+				syncId = sync,
+				installId = installId,
 			)
 		} ?: return SResult.failure(
 			"User $userId already has a synchronization session",

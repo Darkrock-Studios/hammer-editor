@@ -121,6 +121,11 @@ class NotesRepository(
 		val cleaned = noteContent.copy(tags = cleanTags(noteContent.tags))
 		notesDatasource.updateNote(cleaned)
 
+		// Update the in-memory cache if it exists
+		if (_notes.any { it.note.id == cleaned.id }) {
+			updateNotes(_notes.map { if (it.note.id == cleaned.id) NoteContainer(cleaned) else it })
+		}
+
 		if (markForSync) {
 			markForSync(id = cleaned.id)
 		}

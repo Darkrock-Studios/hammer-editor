@@ -31,7 +31,12 @@ import com.darkrockstudios.apps.hammer.create_project_error_blank
 import com.darkrockstudios.apps.hammer.create_project_error_null_filename
 import createProject
 import getProject1Def
-import io.mockk.*
+import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkObject
+import io.mockk.spyk
+import io.mockk.unmockkObject
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.IOException
@@ -42,7 +47,12 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
 import utils.getPrivateProperty
-import kotlin.test.*
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -130,7 +140,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 
 		projectsRepo = mockk()
 		every { projectsRepo.getProjectsDirectory() } returns
-			rootDir.toPath().div(SceneEditorRepositoryMoveTest.PROJ_DIR).toHPath()
+			rootDir.toPath().div(SceneRepositoryTestBase.PROJ_DIR).toHPath()
 
 		mockkObject(ProjectsRepository.Companion)
 

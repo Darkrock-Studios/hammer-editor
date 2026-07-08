@@ -7,6 +7,8 @@ import kotlinx.coroutines.runBlocking
 import org.koin.mp.KoinPlatform.getKoin
 
 fun initializeHammerApp() {
+	logStartupBanner()
+
 	initializeKoin(
 		extraModules = listOf(
 			imageLoadingModule,

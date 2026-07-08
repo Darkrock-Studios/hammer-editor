@@ -10,6 +10,7 @@ expect fun SceneGroupActionContainer(
 	shouldNux: Boolean,
 	onSceneAltClick: (scene: SceneItem) -> Unit,
 	onSceneRenameClick: (scene: SceneItem) -> Unit,
+	onSceneMoveClick: (scene: SceneItem) -> Unit,
 	onCreateSceneClick: (scene: SceneItem) -> Unit,
 	onCreateGroupClick: (scene: SceneItem) -> Unit,
 	itemContent: @Composable (modifier: Modifier) -> Unit

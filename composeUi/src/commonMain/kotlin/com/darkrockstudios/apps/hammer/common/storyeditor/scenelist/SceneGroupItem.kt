@@ -1,7 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Folder
@@ -38,6 +43,7 @@ internal fun SceneGroupItem(
 	shouldNux: Boolean,
 	onSceneDeleteRequest: (SceneItem) -> Unit,
 	onSceneRenameRequest: (SceneItem) -> Unit,
+	onSceneMoveRequest: (SceneItem) -> Unit,
 	onCreateSceneClick: (SceneItem) -> Unit,
 	onCreateGroupClick: (scene: SceneItem) -> Unit,
 ) {
@@ -54,6 +60,7 @@ internal fun SceneGroupItem(
 		shouldNux = shouldNux,
 		onSceneAltClick = onSceneDeleteRequest,
 		onSceneRenameClick = onSceneRenameRequest,
+		onSceneMoveClick = onSceneMoveRequest,
 		onCreateSceneClick = onCreateSceneClick,
 		onCreateGroupClick = onCreateGroupClick,
 	) {

@@ -24,6 +24,8 @@ import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
+import com.darkrockstudios.apps.hammer.project.RawProjectDataConflictDto
+import com.darkrockstudios.apps.hammer.project.RawProjectDataDto
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.project.ServerWritingActivityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
@@ -45,10 +47,10 @@ import io.ktor.http.contentType
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.testing.testApplication
 import io.mockk.MockKAnnotations
-import io.mockk.mockk
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.impl.annotations.MockK
+import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -88,6 +90,10 @@ class ProjectDataRoutesTest : BaseTest() {
 		wordCountGoal = WordCountGoal(WordCountGoal.Cadence.DAY, 500),
 	)
 
+	// The typed client DTOs on the request side vs Raw* on the mocked repository side is the
+	// point of these tests: they prove the raw wire format is identical to the typed one.
+	private val sampleJson get() = json.encodeToJsonElement(ProjectData.serializer(), sampleData)
+
 	@BeforeEach
 	override fun setup() {
 		super.setup()
@@ -114,6 +120,7 @@ class ProjectDataRoutesTest : BaseTest() {
 			single { passwordResetRepository }
 			single { markdownService }
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
+			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
 			single { json }
 		}
@@ -125,7 +132,7 @@ class ProjectDataRoutesTest : BaseTest() {
 		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery {
 			serverProjectDataRepository.load(userId, ProjectDefinition(projectName, projectId))
-		} returns SResult.success(ProjectDataDto(sampleData, "hash-abc"))
+		} returns SResult.success(RawProjectDataDto(sampleJson, "hash-abc"))
 
 		application {
 			setupKtorTestKoin(this@ProjectDataRoutesTest, testModule)
@@ -200,11 +207,12 @@ class ProjectDataRoutesTest : BaseTest() {
 			serverProjectDataRepository.save(
 				userId,
 				ProjectDefinition(projectName, projectId),
-				sampleData,
+				sampleJson,
 				null,
+				"client-hash",
 			)
 		} returns SResult.success(
-			ProjectDataSaveResult.Saved(ProjectDataDto(sampleData, "hash-new"))
+			ProjectDataSaveResult.Saved(RawProjectDataDto(sampleJson, "hash-new"))
 		)
 
 		application {
@@ -219,7 +227,7 @@ class ProjectDataRoutesTest : BaseTest() {
 		val response = testClient.post("api/project/$userId/${projectId.id}/project_data") {
 			header("Authorization", "Bearer $bearerToken")
 			contentType(ContentType.Application.Json)
-			setBody(ProjectDataUploadRequest(sampleData, originalHash = null))
+			setBody(ProjectDataUploadRequest(sampleData, originalHash = null, hash = "client-hash"))
 		}
 
 		assertEquals(HttpStatusCode.OK, response.status)
@@ -229,8 +237,9 @@ class ProjectDataRoutesTest : BaseTest() {
 			serverProjectDataRepository.save(
 				userId,
 				ProjectDefinition(projectName, projectId),
-				sampleData,
+				sampleJson,
 				null,
+				"client-hash",
 			)
 		}
 	}
@@ -242,10 +251,13 @@ class ProjectDataRoutesTest : BaseTest() {
 
 		val serverState = sampleData.copy(authorName = "Server")
 		coEvery {
-			serverProjectDataRepository.save(any(), any(), any(), any())
+			serverProjectDataRepository.save(any(), any(), any(), any(), any())
 		} returns SResult.success(
 			ProjectDataSaveResult.Conflict(
-				ProjectDataConflictDto(server = serverState, serverHash = "server-hash")
+				RawProjectDataConflictDto(
+					server = json.encodeToJsonElement(ProjectData.serializer(), serverState),
+					serverHash = "server-hash",
+				)
 			)
 		)
 

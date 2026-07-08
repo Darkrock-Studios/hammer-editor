@@ -1,21 +1,43 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -30,14 +52,49 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
-import com.darkrockstudios.apps.hammer.common.compose.*
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.filterProjects
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.Toaster
+import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortMenu
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortOption
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdToolButton
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
+import com.darkrockstudios.apps.hammer.common.protocolmismatch.ProtocolMismatchDialog
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
+import com.darkrockstudios.apps.hammer.project_select_project_list_empty
+import com.darkrockstudios.apps.hammer.projects_list_create_button
+import com.darkrockstudios.apps.hammer.projects_list_no_matches
+import com.darkrockstudios.apps.hammer.projects_list_search_button
+import com.darkrockstudios.apps.hammer.projects_list_search_clear
+import com.darkrockstudios.apps.hammer.projects_list_search_close
+import com.darkrockstudios.apps.hammer.projects_list_search_placeholder
+import com.darkrockstudios.apps.hammer.projects_list_sort_glyph_created_asc
+import com.darkrockstudios.apps.hammer.projects_list_sort_glyph_created_desc
+import com.darkrockstudios.apps.hammer.projects_list_sort_glyph_opened_asc
+import com.darkrockstudios.apps.hammer.projects_list_sort_glyph_opened_desc
+import com.darkrockstudios.apps.hammer.projects_list_sort_glyph_words_asc
+import com.darkrockstudios.apps.hammer.projects_list_sort_glyph_words_desc
+import com.darkrockstudios.apps.hammer.projects_list_sort_label
+import com.darkrockstudios.apps.hammer.projects_list_sort_least_recent
+import com.darkrockstudios.apps.hammer.projects_list_sort_longest
+import com.darkrockstudios.apps.hammer.projects_list_sort_newest
+import com.darkrockstudios.apps.hammer.projects_list_sort_oldest
+import com.darkrockstudios.apps.hammer.projects_list_sort_recently_opened
+import com.darkrockstudios.apps.hammer.projects_list_sort_shortest
+import com.darkrockstudios.apps.hammer.projects_list_sync_button
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import kotlin.time.Instant
@@ -108,8 +165,18 @@ fun ProjectListUi(
 	val horizontalPadding = if (isWide) WideContentPadding else NarrowContentPadding
 
 	var sortMode by remember { mutableStateOf(ProjectsSortMode.LastAccessedDesc) }
-	val sortedProjects by remember(state.projects, sortMode) {
-		derivedStateOf { applySort(state.projects, sortMode) }
+	var showSearchBar by rememberSaveable { mutableStateOf(false) }
+	var query by rememberSaveable { mutableStateOf("") }
+	val parsed = remember(query) { parseQuery(query) }
+	// Every input is a remember key, so derivedStateOf would add nothing here.
+	val visibleProjects = remember(state.projects, sortMode, parsed) {
+		applySort(filterProjects(state.projects, parsed), sortMode)
+	}
+	val onTagClick: (String) -> Unit = { tag ->
+		showSearchBar = true
+		if (parsed.tags.none { it.equals(tag, ignoreCase = true) }) {
+			query = "$query #$tag".trim()
+		}
 	}
 
 	// Same scroll-away pattern as the scene list outline button: hide the
@@ -137,12 +204,30 @@ fun ProjectListUi(
 			horizontalPadding = horizontalPadding,
 			sortMode = sortMode,
 			onSortChange = { sortMode = it },
+			searchActive = showSearchBar,
+			onToggleSearch = {
+				if (showSearchBar) {
+					showSearchBar = false
+					query = ""
+				} else {
+					showSearchBar = true
+				}
+			},
 		)
 
 		HdFolioDivider()
 
-		if (isWide) {
-			PageHeading(horizontalPadding = horizontalPadding)
+		AnimatedVisibility(visible = showSearchBar) {
+			SearchStrip(
+				query = query,
+				onQueryChange = { query = it },
+				parsedTags = parsed.tags,
+				onClose = {
+					showSearchBar = false
+					query = ""
+				},
+				horizontalPadding = horizontalPadding,
+			)
 		}
 
 		ColumnHeader(showLastOpen = isWide)
@@ -155,23 +240,28 @@ fun ProjectListUi(
 					.nestedScroll(scrollConnection),
 				state = listState,
 			) {
-				if (sortedProjects.isEmpty()) {
+				if (visibleProjects.isEmpty()) {
 					item(key = "empty") {
-						EmptyState(horizontalPadding = horizontalPadding)
+						if (state.projects.isEmpty()) {
+							EmptyState(horizontalPadding = horizontalPadding)
+						} else {
+							NoMatchesState(horizontalPadding = horizontalPadding)
+						}
 					}
 				}
 
 				items(
-					count = sortedProjects.size,
-					key = { index -> sortedProjects[index].definition.name.hashCode() }
+					count = visibleProjects.size,
+					key = { index -> visibleProjects[index].definition.name.hashCode() }
 				) { index ->
 					ProjectIndexRow(
 						isWide = isWide,
 						index = index,
-						projectData = sortedProjects[index],
+						projectData = visibleProjects[index],
 						onProjectClick = component::selectProject,
 						onProjectAltClick = component::showProjectDelete,
 						onProjectRenameClick = component::showProjectRename,
+						onTagClick = onTagClick,
 					)
 				}
 			}
@@ -230,6 +320,8 @@ private fun Masthead(
 	horizontalPadding: Dp,
 	sortMode: ProjectsSortMode,
 	onSortChange: (ProjectsSortMode) -> Unit,
+	searchActive: Boolean,
+	onToggleSearch: () -> Unit,
 ) {
 	Row(
 		modifier = Modifier
@@ -248,6 +340,7 @@ private fun Masthead(
 			text = entrySummary(entryCount),
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
+		SearchAffordance(active = searchActive, onClick = onToggleSearch)
 		HdSortMenu(
 			label = Res.string.projects_list_sort_label,
 			options = ProjectsSortMode.entries,
@@ -291,27 +384,74 @@ private fun RefreshAffordance(onClick: () -> Unit) {
 }
 
 @Composable
-private fun PageHeading(horizontalPadding: Dp) {
-	Row(
+private fun SearchAffordance(active: Boolean, onClick: () -> Unit) {
+	HdToolButton(
+		active = active,
+		onClick = onClick,
+		modifier = Modifier.testTag("projects-list-search-toggle"),
+	) {
+		Icon(
+			imageVector = Icons.Default.Search,
+			contentDescription = Res.string.projects_list_search_button.get(),
+			tint = if (active) {
+				MaterialTheme.colorScheme.onSurface
+			} else {
+				MaterialTheme.colorScheme.onSurfaceVariant
+			},
+			modifier = Modifier.size(16.dp),
+		)
+	}
+}
+
+@Composable
+private fun SearchStrip(
+	query: String,
+	onQueryChange: (String) -> Unit,
+	parsedTags: List<String>,
+	onClose: () -> Unit,
+	horizontalPadding: Dp,
+) {
+	Column(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(
-				horizontal = horizontalPadding,
-				vertical = Ui.Padding.L,
-			),
-		verticalAlignment = Alignment.Bottom,
-		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+			.padding(horizontal = horizontalPadding, vertical = Ui.Padding.L),
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
-		HdMonoLabel(
-			text = "§ 00 · Index",
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-			modifier = Modifier.padding(bottom = 6.dp),
+		HdSearchRow(
+			query = query,
+			onQueryChange = onQueryChange,
+			placeholder = Res.string.projects_list_search_placeholder.get(),
+			clearContentDescription = Res.string.projects_list_search_clear.get(),
+			onCollapse = onClose,
+			collapseContentDescription = Res.string.projects_list_search_close.get(),
+			modifier = Modifier.fillMaxWidth(),
+			testTag = "projects-list-search",
 		)
+		if (parsedTags.isNotEmpty()) {
+			Row(horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S)) {
+				parsedTags.forEach { tag ->
+					HdTagChip(label = tag, active = true)
+				}
+			}
+		}
+	}
+}
+
+@Composable
+private fun NoMatchesState(horizontalPadding: Dp) {
+	Column(
+		modifier = Modifier
+			.fillMaxWidth()
+			.padding(horizontal = horizontalPadding, vertical = Ui.Padding.XXL),
+		horizontalAlignment = Alignment.CenterHorizontally,
+		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+	) {
 		Text(
-			text = Res.string.project_select_list_header.get(),
-			style = MaterialTheme.typography.headlineLarge,
-			fontWeight = FontWeight.Light,
-			color = MaterialTheme.colorScheme.onSurface,
+			text = Res.string.projects_list_no_matches.get(),
+			style = MaterialTheme.typography.headlineSmall,
+			fontStyle = FontStyle.Italic,
+			textAlign = TextAlign.Center,
+			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 	}
 }
@@ -498,6 +638,10 @@ fun ModalContent(component: ProjectsList, rootSnackbar: RootSnackbarHostState) {
 
 		is ProjectsList.ModalDestination.ServerReauth -> {
 			ReauthenticationUi(overlay.component)
+		}
+
+		is ProjectsList.ModalDestination.ProtocolMismatch -> {
+			ProtocolMismatchDialog(overlay.component)
 		}
 	}
 }

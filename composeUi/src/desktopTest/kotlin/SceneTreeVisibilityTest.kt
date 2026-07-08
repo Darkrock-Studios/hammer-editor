@@ -1,12 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree
 
-import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.Tree
-import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
-import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
-import okio.Path.Companion.toPath
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -22,8 +18,6 @@ import kotlin.test.assertEquals
  *    └─ 6 Scene C1
  */
 class SceneTreeVisibilityTest {
-
-	private val projectDef = ProjectDef("Test", "/test".toPath().toHPath())
 
 	@Test
 	fun `expanded tree shows every node except the root scene`() {
@@ -56,31 +50,22 @@ class SceneTreeVisibilityTest {
 	private fun buildTree(): ImmutableTree<SceneItem> {
 		val tree = Tree<SceneItem>()
 		tree.setRoot(
-			node(
-				item(0, SceneItem.Type.Root, ""),
-				node(
-					item(1, SceneItem.Type.Group, "A"),
-					node(item(2, SceneItem.Type.Scene, "A1")),
-					node(
-						item(3, SceneItem.Type.Group, "B"),
-						node(item(4, SceneItem.Type.Scene, "B1")),
+			sceneNode(
+				sceneItem(0, SceneItem.Type.Root, ""),
+				sceneNode(
+					sceneItem(1, SceneItem.Type.Group, "A"),
+					sceneNode(sceneItem(2, SceneItem.Type.Scene, "A1")),
+					sceneNode(
+						sceneItem(3, SceneItem.Type.Group, "B"),
+						sceneNode(sceneItem(4, SceneItem.Type.Scene, "B1")),
 					),
 				),
-				node(
-					item(5, SceneItem.Type.Group, "C"),
-					node(item(6, SceneItem.Type.Scene, "C1")),
+				sceneNode(
+					sceneItem(5, SceneItem.Type.Group, "C"),
+					sceneNode(sceneItem(6, SceneItem.Type.Scene, "C1")),
 				),
 			)
 		)
 		return tree.toImmutableTree()
-	}
-
-	private fun item(id: Int, type: SceneItem.Type, name: String) =
-		SceneItem(projectDef = projectDef, type = type, id = id, name = name, order = id)
-
-	private fun node(item: SceneItem, vararg children: TreeNode<SceneItem>): TreeNode<SceneItem> {
-		val treeNode = TreeNode(item)
-		children.forEach { treeNode.addChild(it) }
-		return treeNode
 	}
 }

@@ -1,8 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.server
 
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
+import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.url
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
@@ -47,6 +50,7 @@ abstract class Api(
 
 	private val ioDispatcher by injectIoDispatcher()
 	private val localeResolver: DeviceLocaleResolver by inject()
+	private val protocolMismatchRepository: ProtocolMismatchRepository by inject()
 
 	private suspend fun <T> makeRequest(
 		path: String,
@@ -72,6 +76,12 @@ abstract class Api(
 				val value = parse(response)
 				Result.success(value)
 			} else {
+				if (response.status == HttpStatusCode.UpgradeRequired) {
+					protocolMismatchRepository.notifyMismatch(
+						clientProtocolVersion = HAMMER_PROTOCOL_VERSION,
+						serverProtocolVersion = response.headers[HAMMER_PROTOCOL_HEADER]?.toIntOrNull(),
+					)
+				}
 				Result.failure(
 					failureHandler(response)
 				)
@@ -176,6 +186,43 @@ abstract class Api(
 			parse = parse,
 			failureHandler = failureHandler
 		)
+
+	/**
+	 * POST first, retrying once as GET when the server answers 404/405: servers that predate
+	 * the POST migration only route these endpoints as GET. A genuine 404 from a modern server
+	 * costs one redundant GET that fails the same way, so the result is still correct.
+	 */
+	// TODO Remove the GET fallback (use plain post) at the next protocol version bump.
+	protected suspend fun <T> postWithLegacyGetFallback(
+		path: String,
+		parse: suspend (HttpResponse) -> T,
+		failureHandler: FailureHandler = { defaultFailureHandler(it, strRes) },
+		builder: HttpRequestBuilder.() -> Unit = {},
+	): Result<T> {
+		val postResult = makeRequest(
+			path = path,
+			builder = builder,
+			execute = httpClient::post,
+			parse = parse,
+			failureHandler = failureHandler,
+		)
+
+		val failure = postResult.exceptionOrNull()
+		val serverLacksPostRoute = failure is HttpFailureException &&
+			(failure.statusCode == HttpStatusCode.NotFound || failure.statusCode == HttpStatusCode.MethodNotAllowed)
+
+		return if (serverLacksPostRoute) {
+			makeRequest(
+				path = path,
+				builder = builder,
+				execute = httpClient::get,
+				parse = parse,
+				failureHandler = failureHandler,
+			)
+		} else {
+			postResult
+		}
+	}
 
 	protected suspend fun get(
 		path: String,

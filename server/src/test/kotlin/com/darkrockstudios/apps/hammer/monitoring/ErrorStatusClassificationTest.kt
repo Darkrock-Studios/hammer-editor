@@ -10,8 +10,8 @@ import kotlin.test.assertEquals
 class ErrorStatusClassificationTest {
 
 	@Test
-	fun `protocol-version rejections carry their own 400 status`() {
-		assertEquals(400, UnsupportedProtocolVersionException(null, 1).toMonitoredStatus())
+	fun `protocol-version rejections carry their own 426 status`() {
+		assertEquals(426, UnsupportedProtocolVersionException(null, 1).toMonitoredStatus())
 	}
 
 	@Test

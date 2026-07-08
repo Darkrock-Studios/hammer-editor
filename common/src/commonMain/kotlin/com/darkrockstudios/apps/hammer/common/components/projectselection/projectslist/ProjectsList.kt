@@ -8,7 +8,9 @@ import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeaConflict
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -37,6 +39,9 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 	fun showProjectsSync()
 	fun hideProjectsSync()
 	fun cancelProjectsSync()
+
+	/** Resolves the pending story-idea sync conflict; null leaves the idea unsynced this session. */
+	fun resolveIdeaConflict(resolution: StoryIdea?)
 	suspend fun loadProjectMetadata(projectDef: ProjectDef): ProjectMetadata?
 	fun onProjectNameUpdate(newProjectName: String)
 	fun showProjectRename(projectDef: ProjectDef)
@@ -65,7 +70,9 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 	data class SyncState(
 		val syncComplete: Boolean = false,
 		val syncLog: List<SyncLogMessage> = emptyList(),
-		val projectsStatus: Map<String, ProjectSyncStatus> = emptyMap()
+		val projectsStatus: Map<String, ProjectSyncStatus> = emptyMap(),
+		// A mid-sync question for the user, meaningless after process death.
+		@Transient val ideaConflict: IdeaConflict? = null,
 	)
 
 	@Serializable
@@ -91,6 +98,8 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 		data object ProjectCreate : ModalDestination()
 		data class ProjectDelete(val projectDef: ProjectDef) : ModalDestination()
 		data class ServerReauth(val component: ServerReauthentication) : ModalDestination()
+		data class ProtocolMismatch(val component: com.darkrockstudios.apps.hammer.common.components.protocolmismatch.ProtocolMismatch) :
+			ModalDestination()
 	}
 }
 

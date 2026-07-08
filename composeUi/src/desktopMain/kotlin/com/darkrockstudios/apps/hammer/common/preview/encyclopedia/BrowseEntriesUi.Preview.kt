@@ -79,6 +79,7 @@ private val component = object : BrowseEntries {
 	)
 
 	override fun getImagePath(entryDef: EntryDef) = null
+	override suspend fun calculateEntryImageHash(entryDef: EntryDef) = null
 	override fun addTagToSearch(tag: String) {}
 	override fun clearFilterText() {}
 }

@@ -9,6 +9,53 @@ import kotlin.test.assertNotEquals
 
 class ProjectDataHasherTest {
 
+	// Golden values captured before the tags field existed. Tag-less data must hash to these
+	// exact literals forever: stored lastSyncedHash baselines and server-side row hashes were
+	// computed by the old algorithm, and a drift here makes every synced project look edited.
+	@Test
+	fun `golden pin - default data hash never changes`() {
+		assertEquals("pNjs6dfA3-OAO7-OtvCFPw", ProjectDataHasher.hash(ProjectData()))
+	}
+
+	@Test
+	fun `golden pin - populated tag-less data hash never changes`() {
+		val data = ProjectData(
+			authorName = "Pat",
+			theme = ProjectTheme(primary = "#FF112233", secondary = "#FFAABBCC"),
+			wordCountGoal = WordCountGoal(WordCountGoal.Cadence.DAY, 500),
+		)
+		assertEquals("WEYYxe1FU1Tf_4kU69k4uw", ProjectDataHasher.hash(data))
+	}
+
+	@Test
+	fun `tags affect hash`() {
+		val untagged = ProjectData(authorName = "Pat")
+		val tagged = untagged.copy(tags = setOf("fantasy"))
+		assertNotEquals(ProjectDataHasher.hash(untagged), ProjectDataHasher.hash(tagged))
+	}
+
+	@Test
+	fun `tag insertion order does not affect hash`() {
+		val ab = ProjectData(tags = setOf("alpha", "beta"))
+		val ba = ProjectData(tags = setOf("beta", "alpha"))
+		assertEquals(
+			ProjectDataHasher.hash(ab),
+			ProjectDataHasher.hash(ba),
+			"equal tag sets must hash identically regardless of insertion order",
+		)
+	}
+
+	@Test
+	fun `tag boundaries affect hash`() {
+		val joined = ProjectData(tags = setOf("ab"))
+		val split = ProjectData(tags = setOf("a", "b"))
+		assertNotEquals(
+			ProjectDataHasher.hash(joined),
+			ProjectDataHasher.hash(split),
+			"concatenation-equivalent tag sets must not collide",
+		)
+	}
+
 	@Test
 	fun `same input produces same hash`() {
 		val data = ProjectData(

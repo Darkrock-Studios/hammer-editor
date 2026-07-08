@@ -40,6 +40,7 @@ import com.darkrockstudios.apps.hammer.sync_conflict_project_data_cadence_day
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_cadence_week
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_explanation
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_author
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_tags
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_theme
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_word_goal
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_resolve_button
@@ -58,10 +59,12 @@ internal fun ProjectDataConflict(
 	var authorChoice by remember { mutableStateOf(DataChoice.LOCAL) }
 	var themeChoice by remember { mutableStateOf(DataChoice.LOCAL) }
 	var goalChoice by remember { mutableStateOf(DataChoice.LOCAL) }
+	var tagsChoice by remember { mutableStateOf(DataChoice.LOCAL) }
 
 	val authorConflict = conflictState.local.authorName != conflictState.server.authorName
 	val themeConflict = conflictState.local.theme != conflictState.server.theme
 	val goalConflict = conflictState.local.wordCountGoal != conflictState.server.wordCountGoal
+	val tagsConflict = conflictState.local.tags != conflictState.server.tags
 
 	val unsetLabel = Res.string.sync_conflict_project_data_value_unset.get()
 	val localLabel = Res.string.sync_conflict_tab_local.get()
@@ -119,6 +122,18 @@ internal fun ProjectDataConflict(
 			stackVertical = stackVertical,
 		)
 
+		PerFieldChoice(
+			label = Res.string.sync_conflict_project_data_field_tags.get(),
+			conflict = tagsConflict,
+			localValue = displayTags(conflictState.local.tags, unsetLabel),
+			serverValue = displayTags(conflictState.server.tags, unsetLabel),
+			selected = tagsChoice,
+			onSelect = { tagsChoice = it },
+			localLabel = localLabel,
+			remoteLabel = remoteLabel,
+			stackVertical = stackVertical,
+		)
+
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.End,
@@ -133,6 +148,7 @@ internal fun ProjectDataConflict(
 							authorChoice = authorChoice,
 							themeChoice = themeChoice,
 							goalChoice = goalChoice,
+							tagsChoice = tagsChoice,
 						)
 					)
 				},
@@ -234,10 +250,12 @@ private fun buildResolved(
 	authorChoice: DataChoice,
 	themeChoice: DataChoice,
 	goalChoice: DataChoice,
+	tagsChoice: DataChoice,
 ): ProjectData = ProjectData(
 	authorName = if (authorChoice == DataChoice.LOCAL) local.authorName else server.authorName,
 	theme = if (themeChoice == DataChoice.LOCAL) local.theme else server.theme,
 	wordCountGoal = if (goalChoice == DataChoice.LOCAL) local.wordCountGoal else server.wordCountGoal,
+	tags = if (tagsChoice == DataChoice.LOCAL) local.tags else server.tags,
 )
 
 private fun displayString(value: String?, unsetLabel: String): String =
@@ -245,6 +263,9 @@ private fun displayString(value: String?, unsetLabel: String): String =
 
 private fun displayTheme(theme: ProjectTheme?, unsetLabel: String): String =
 	if (theme == null) unsetLabel else "${theme.primary} • ${theme.secondary}"
+
+private fun displayTags(tags: Set<String>, unsetLabel: String): String =
+	if (tags.isEmpty()) unsetLabel else tags.sorted().joinToString("  ") { "#$it" }
 
 private fun displayWordGoal(goal: WordCountGoal?, unsetLabel: String, dayLabel: String, weekLabel: String): String {
 	if (goal == null) return unsetLabel

@@ -8,13 +8,16 @@ plugins {
 	alias(libs.plugins.android.kotlin.multiplatform.library)
 	alias(libs.plugins.jetbrains.kover)
 	//alias(libs.plugins.compose.report.generator)
-	id("ee.schimke.composeai.preview") version "0.16.7"
+	id("ee.schimke.composeai.preview") version "0.16.24"
 }
 
 group = "com.darkrockstudios.apps.hammer.composeui"
 version = libs.versions.app.get()
 
 kotlin {
+	jvmToolchain {
+		languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
+	}
 	androidLibrary {
 		namespace = "com.darkrockstudios.apps.hammer.composeui"
 		compileSdk = libs.versions.android.sdk.compile.get().toInt()

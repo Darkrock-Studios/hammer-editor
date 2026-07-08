@@ -13,6 +13,7 @@ import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
+import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.compose.getDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.getMainDispatcher
@@ -28,6 +29,9 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
+import com.darkrockstudios.apps.hammer.common.getLogDirectory
+import com.darkrockstudios.apps.hammer.common.logStartupBanner
+import com.darkrockstudios.apps.hammer.common.platformStartupInfo
 import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
 import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModule
 import com.darkrockstudios.apps.hammer.desktop.sandbox.SandboxStartup
@@ -40,8 +44,10 @@ import io.github.sudarshanmhasrup.splashify.SplashifyApp
 import kotlinx.coroutines.*
 import org.koin.core.context.GlobalContext
 import org.koin.java.KoinJavaComponent.getKoin
+import java.io.File
 import java.util.logging.ConsoleHandler
 import java.util.logging.Level
+import kotlin.system.exitProcess
 import kotlin.time.Clock
 
 private fun handleArguments(args: Array<String>): DesktopLaunchArgs {
@@ -59,6 +65,34 @@ private fun setupLogging(appScope: CoroutineScope) {
 	}
 
 	Napier.base(DebugAntilog(handler = listOf(consoleHandler, FileLogger(scope = appScope))))
+}
+
+/**
+ * Catch, log, and die on any otherwise-unhandled exception. The async [FileLogger] can't be
+ * relied on to flush before the process exits (and packaged builds have no visible stderr), so
+ * we also write a synchronous crash dump straight to disk before terminating.
+ */
+private fun installGlobalExceptionHandler() {
+	val previous = Thread.getDefaultUncaughtExceptionHandler()
+	Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+		runCatching { Napier.e("Uncaught exception on thread '${thread.name}', terminating", throwable) }
+		runCatching { writeCrashDump(thread, throwable) }
+		runCatching { previous?.uncaughtException(thread, throwable) }
+		exitProcess(1)
+	}
+}
+
+/** Synchronous, self-contained crash record in the logs dir — the guaranteed artifact when the app dies. */
+private fun writeCrashDump(thread: Thread, throwable: Throwable) {
+	val dir = getLogDirectory() ?: return
+	File(dir).mkdirs()
+	File(dir, "crash-${System.currentTimeMillis()}.txt").writeText(
+		buildString {
+			append("Hammer v${BuildMetadata.APP_VERSION} | ${platformStartupInfo()}\n")
+			append("Uncaught exception on thread '${thread.name}'\n\n")
+			append(throwable.stackTraceToString())
+		}
+	)
 }
 
 /**
@@ -84,6 +118,8 @@ fun main(args: Array<String>) {
 
 	val appScope = CoroutineScope(Dispatchers.Default)
 	setupLogging(appScope)
+	logStartupBanner()
+	installGlobalExceptionHandler()
 
 	GlobalContext.startKoin {
 		logger(NapierLogger())
@@ -92,6 +128,7 @@ fun main(args: Array<String>) {
 
 	SandboxStartup.ensureProjectsDirAccess()
 
+	Napier.i("Startup: running data migration")
 	runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }
 
 	val initialProject: ProjectDef? = launchArgs.projectName?.let { name ->
@@ -108,8 +145,10 @@ fun main(args: Array<String>) {
 		}.onFailure { Napier.w("Failed to bump lastAccessed for --project launch", it) }
 	}
 
+	Napier.i("Startup: initializing quick shortcuts")
 	val quickShortcuts = getKoin().get<QuickShortcuts>()
 	quickShortcuts.init()
+
 	if (initialProject == null) {
 		// When opening a project, the subsequent ApplicationState.openProject() will refresh.
 		appScope.launch { quickShortcuts.refresh() }
@@ -129,7 +168,9 @@ fun main(args: Array<String>) {
 		}
 	}
 
+	Napier.i("Startup: entering Compose application")
 	application {
+		LaunchedEffect(Unit) { Napier.i("Startup: first composition") }
 		val applicationState = remember {
 			ApplicationState(
 				appScope = appScope,

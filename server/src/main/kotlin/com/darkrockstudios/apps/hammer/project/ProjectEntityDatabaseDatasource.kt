@@ -11,6 +11,7 @@ import java.security.GeneralSecurityException
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
+import org.slf4j.LoggerFactory
 
 class ProjectEntityDatabaseDatasource(
 	private val projectDao: ProjectDao,
@@ -27,6 +28,8 @@ class ProjectEntityDatabaseDatasource(
 	companion object {
 		// Must match the story_entity_content_max CHECK in StoryEntity.sq. 64 MiB.
 		const val MAX_ENTITY_CONTENT_LENGTH = 67_108_864
+
+		private val logger = LoggerFactory.getLogger(ProjectEntityDatabaseDatasource::class.java)
 	}
 
 	override suspend fun loadProjectSyncData(
@@ -230,6 +233,7 @@ class ProjectEntityDatabaseDatasource(
 				val rowEncryptor = encryptorRegistry.resolve(dbEntity.cipher)
 				val decrypted = rowEncryptor.decrypt(dbEntity.content, account.cipher_secret)
 				val entity = json.decodeFromString(serializer, decrypted)
+				repairStaleHash(userId, projectId, entityId, dbEntity.hash, entity)
 				SResult.success(entity)
 			} catch (e: SerializationException) {
 				SResult.failure(e)
@@ -240,6 +244,25 @@ class ProjectEntityDatabaseDatasource(
 				// Ciphertext that isn't valid Base64.
 				SResult.failure(e)
 			}
+		}
+	}
+
+	/**
+	 * The hash column is derived metadata; the stored content is the truth. A mismatch
+	 * (e.g. the hash algorithm changed since the row was written) is repaired in place so
+	 * downloads and update-sequence checks converge instead of flagging the entity forever.
+	 */
+	private suspend fun repairStaleHash(
+		userId: Long,
+		projectId: Long,
+		entityId: Int,
+		cachedHash: String,
+		entity: ApiProjectEntity,
+	) {
+		val computedHash = entity.hash()
+		if (cachedHash != computedHash) {
+			logger.warn("Repairing stale hash for entity $entityId. Cached: $cachedHash, Computed: $computedHash")
+			storyEntityDao.updateEntityHash(userId, projectId, entityId.toLong(), computedHash)
 		}
 	}
 
@@ -326,15 +349,6 @@ class ProjectEntityDatabaseDatasource(
 		} else {
 			null
 		}
-	}
-
-	override suspend fun getCachedHash(
-		userId: Long,
-		projectDef: ProjectDefinition,
-		entityId: Int
-	): String? {
-		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
-		return storyEntityDao.getEntityHash(userId, projectId, entityId.toLong())
 	}
 
 	override suspend fun getEntityHashes(

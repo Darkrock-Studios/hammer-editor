@@ -116,6 +116,11 @@ UPDATE story_entity
 SET content = :content, hash = :hash, cipher = :cipher
 WHERE user_id = :userId AND project_id = :projectId AND id = :id;
 
+updateHash:
+UPDATE story_entity
+SET hash = :hash
+WHERE user_id = :userId AND project_id = :projectId AND id = :id;
+
 deleteEntity:
 DELETE FROM story_entity
 WHERE user_id = :userId AND project_id = :projectId AND id = :id;

@@ -293,6 +293,23 @@ class EntityTransferOperationTest : BaseTest() {
 	}
 
 	@Test
+	fun `download - stale server hash with no local copy fails instead of claiming healed`() = runTest {
+		val op = createOperation(getProjectDef(PROJECT_2_NAME))
+		// Fresh device: no synchronizer owns the entity, so there is nothing to force-upload.
+		coEvery {
+			serverProjectApi.downloadEntity(any(), 4, any(), any())
+		} returns Result.failure(StaleServerHashException(4, "cached", "computed"))
+
+		val result = op.run(singleDownloadState(4))
+
+		assertTrue(isSuccess(result))
+		assertFalse(assertIs<EntityTransferState>(result.data).allSuccess)
+		coVerify(exactly = 0) {
+			mockSynchronizers.sceneSynchronizer.uploadEntity(any(), any(), any(), any(), any(), any(), any())
+		}
+	}
+
+	@Test
 	fun `download - a failed store logs an error but does not record a synced hash`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 		coEvery {
@@ -466,11 +483,16 @@ class EntityTransferOperationTest : BaseTest() {
 	}
 
 	@Test
-	fun `download - entity missing from server but present locally is not resolved and fails`() = runTest {
+	fun `download - entity missing from server but present locally is re-uploaded to heal`() = runTest {
 		val op = createOperation(getProjectDef(PROJECT_2_NAME))
 		// Owned locally, but not dirty/new and not newer than the server, so it takes the
 		// download branch — then the server reports it gone while we still hold a copy.
+		// Known deletions never reach this point, so the local copy is the surviving truth.
 		coEvery { mockSynchronizers.sceneSynchronizer.ownsEntity(4) } returns true
+		coEvery {
+			mockSynchronizers.sceneSynchronizer.uploadEntity(4, any(), null, any(), any(), false, any())
+		} returns true
+
 		coEvery {
 			serverProjectApi.downloadEntity(any(), 4, any(), any())
 		} returns Result.failure(EntityNotFoundException(4))
@@ -478,7 +500,10 @@ class EntityTransferOperationTest : BaseTest() {
 		val result = op.run(singleDownloadState(4))
 
 		assertTrue(isSuccess(result))
-		assertFalse(assertIs<EntityTransferState>(result.data).allSuccess)
+		assertTrue(assertIs<EntityTransferState>(result.data).allSuccess)
+		coVerify(exactly = 1) {
+			mockSynchronizers.sceneSynchronizer.uploadEntity(4, any(), null, any(), any(), false, any())
+		}
 		coVerify(exactly = 0) { serverProjectApi.deleteId(any(), 4, any()) }
 	}
 

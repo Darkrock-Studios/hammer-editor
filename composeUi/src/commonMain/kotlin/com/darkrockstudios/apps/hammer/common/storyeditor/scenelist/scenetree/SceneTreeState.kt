@@ -2,9 +2,17 @@ package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree
 
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
@@ -61,6 +69,11 @@ class SceneTreeState(
 	var selectedId by mutableStateOf(NO_SELECTION)
 	var selectedNode by mutableStateOf<TreeValue<SceneItem>?>(null)
 	var insertAt by mutableStateOf<InsertPosition?>(null)
+
+	/** The rows the tree renders, in display order — also the drag handler's id → node lookup. */
+	val visibleNodes: List<TreeValue<SceneItem>> by derivedStateOf {
+		visibleSceneNodes(summary.sceneTree, collapsedNodes)
+	}
 
 	private var scrollJob by mutableStateOf<Job?>(null)
 	private var treeHash by mutableStateOf(sceneSummary.sceneTree.hashCode())

@@ -56,6 +56,8 @@
 	<string name="project_home_stat_words_per_device">Words by Device</string>
 
 	<string name="project_home_stat_activity">Activity · %1$d weeks</string>
+	<string name="project_home_stat_activity_tooltip">%1$s · %2$s words</string>
+	<string name="project_home_stat_activity_tooltip_empty">%1$s · no writing</string>
 	<string name="project_home_stat_avg_weekday">Avg weekday</string>
 	<string name="project_home_stat_avg_weekend">Avg weekend</string>
 

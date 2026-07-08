@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="project_select_list_header">Projetos</string>
 	<string name="project_select_project_list_empty">Não Há Projetos</string>
 	<string name="project_select_card_delete_button">Excluir</string>
 	<string name="project_select_card_rename_button">Renomear</string>
@@ -15,6 +14,11 @@
 	<string name="projects_list_card_opened">Opened %1$s</string>
 	<string name="projects_list_card_never_opened">Never opened</string>
 	<string name="projects_list_card_content_description">Project %1$s</string>
+	<string name="projects_list_search_button">Search projects</string>
+	<string name="projects_list_search_close">Close search</string>
+	<string name="projects_list_search_placeholder">filter by name or #tag</string>
+	<string name="projects_list_search_clear">Clear filter</string>
+	<string name="projects_list_no_matches">No projects match your filter</string>
 	<string name="projects_list_sort_label">SORT</string>
 	<string name="projects_list_sort_recently_opened">Recently Opened</string>
 	<string name="projects_list_sort_least_recent">Least Recent</string>

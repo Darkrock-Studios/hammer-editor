@@ -12,7 +12,14 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflict
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.IdConflictResolutionState
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncOperationState
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
 import com.darkrockstudios.apps.hammer.common.server.ProjectDataApi
 import io.github.aakira.napier.Napier
 
@@ -69,7 +76,12 @@ class ProjectDataSyncOperation(
 				return CResult.success(state)
 			}
 			baseline == localHash -> {
-				repository.updateFromSync(serverDto.data, serverDto.hash)
+				// Record the hash of the data as THIS build stored it, not the server row's hash.
+				// When the row carries a field a newer build added, our typed decode stripped it;
+				// recording the server hash would make the stored copy look locally edited, and the
+				// next sync would upload it — deleting the newer field server-side. With the stored
+				// hash, an out-of-date device just keeps fast-forwarding harmlessly.
+				repository.updateFromSync(serverDto.data, ProjectDataHasher.hash(serverDto.data))
 				onLog(syncLogI("Project data updated from server", projectDef))
 				return CResult.success(state)
 			}

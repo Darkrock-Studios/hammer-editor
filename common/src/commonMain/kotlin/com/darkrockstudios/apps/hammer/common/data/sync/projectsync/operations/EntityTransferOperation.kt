@@ -143,10 +143,6 @@ class EntityTransferOperation(
 	): Boolean {
 		var allSuccess = true
 
-		// Add dirty IDs that are not already in the update sequence
-		val dirtyEntityIds = state.dirtyEntities
-			.map { it.id }
-			.filter { id -> !state.serverSyncData.idSequence.contains(id) }
 		// Add local IDs on top of the server sequence
 		val combinedSequence = if (state.maxId > state.serverSyncData.lastId) {
 			val localIds = (state.serverSyncData.lastId + 1..state.maxId).toList()
@@ -217,9 +213,18 @@ class EntityTransferOperation(
 								state.combinedDeletions += entityId
 								true
 							} else {
-								// TODO what do we do here?
-								Napier.w("Entity ID $entityId missing from server, but it does exist locally, should we upload it? How did we get here?")
-								false
+								// The server lost an entity we still hold. Known deletions were
+								// skipped earlier in the loop, so no deletion record exists on
+								// either side: preserve the content by re-uploading it. No
+								// baseline — the server has nothing to conflict with.
+								Napier.w("Entity ID $entityId missing from server but present locally, re-uploading it to heal")
+								uploadEntity(
+									thisId,
+									state.serverSyncData.syncId,
+									null,
+									onConflict,
+									onLog
+								)
 							}
 						} else {
 							Napier.d("Download failed for ID $thisId")
@@ -364,14 +369,17 @@ class EntityTransferOperation(
 					)
 					Napier.w("Stale server hash detected for entity $id. Cached: ${exception.cachedHash}, Computed: ${exception.computedHash}")
 
-					// Heal the server by force uploading our local copy
+					// Heal the server by force uploading our local copy. Legacy servers
+					// (pre read-repair) refuse the download until healed, so without a
+					// local copy to upload this is a real failure, not a heal.
 					suspend fun onConflict(entity: ApiProjectEntity) {
 						val message = strRes.get(Res.string.sync_log_entity_conflict, entity.id, entity.type)
 						onLog(syncLogE(message, projectDef))
 						throw IllegalStateException(message)
 					}
 
-					val uploadSuccess = uploadEntity(id, syncId, null, ::onConflict, onLog, force = true)
+					val uploadSuccess = entitySynchronizers.clientHasEntity(id) &&
+						uploadEntity(id, syncId, null, ::onConflict, onLog, force = true)
 					if (uploadSuccess) {
 						onLog(
 							syncLogI(

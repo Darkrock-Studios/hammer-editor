@@ -1,7 +1,17 @@
 package com.darkrockstudios.apps.hammer.common.projecthome
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
@@ -17,7 +27,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSettings
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -28,6 +38,15 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.SpellCheckSettingsContent
+import com.darkrockstudios.apps.hammer.project_settings_autosaved
+import com.darkrockstudios.apps.hammer.project_settings_breadcrumb_home
+import com.darkrockstudios.apps.hammer.project_settings_breadcrumb_root
+import com.darkrockstudios.apps.hammer.project_settings_folio_caption
+import com.darkrockstudios.apps.hammer.project_settings_folio_section_count
+import com.darkrockstudios.apps.hammer.project_settings_hero_by
+import com.darkrockstudios.apps.hammer.project_settings_hero_marker
+import com.darkrockstudios.apps.hammer.project_settings_hero_no_author
+import com.darkrockstudios.apps.hammer.project_settings_spellcheck_section_title
 import org.jetbrains.compose.resources.stringResource
 
 private val MaxColumnWidth = 880.dp
@@ -81,7 +100,7 @@ fun ProjectSettingsUi(
 						ProjectInfoSettingsUi(component)
 
 						HdHairlineSection(
-							section = 3,
+							section = 4,
 							title = Res.string.project_settings_spellcheck_section_title.get(),
 							contentSpacing = 18.dp,
 						) {
@@ -96,7 +115,7 @@ fun ProjectSettingsUi(
 
 		FolioCaption(
 			projectName = component.projectName,
-			sectionCount = 3,
+			sectionCount = 4,
 			horizontalPadding = outerHorizontal,
 		)
 	}

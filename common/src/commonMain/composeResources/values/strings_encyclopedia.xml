@@ -32,6 +32,7 @@
 	<string name="encyclopedia_create_entry_image_attached">1 attached</string>
 	<string name="encyclopedia_create_entry_image_replace">Replace</string>
 	<string name="encyclopedia_create_entry_image_too_large">Image is too large. Maximum size is %1$d MB.</string>
+	<string name="encyclopedia_create_entry_image_load_failed">Could not read the selected image.</string>
 	<string name="encyclopedia_create_entry_remove_image_button">Remove Image</string>
 	<string name="encyclopedia_create_entry_select_image_button">Select Image</string>
 	<string name="encyclopedia_create_entry_create_button">Create entry</string>

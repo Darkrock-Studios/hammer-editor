@@ -1,0 +1,97 @@
+package com.darkrockstudios.apps.hammer.common.components.projectselection.storyideas
+
+import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.value.MutableValue
+import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.update
+import com.darkrockstudios.apps.hammer.base.IdeaId
+import com.darkrockstudios.apps.hammer.common.components.ComponentBase
+import com.darkrockstudios.apps.hammer.common.data.CResult
+import com.darkrockstudios.apps.hammer.common.data.ClientResult
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeaError
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.InvalidIdea
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.PromoteIdeaUseCase
+import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
+import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.koin.core.component.inject
+
+class StoryIdeasComponent(
+	componentContext: ComponentContext,
+) : StoryIdeas, ComponentBase(componentContext) {
+
+	private val ideasRepository: IdeasRepository by inject()
+	private val promoteIdeaUseCase: PromoteIdeaUseCase by inject()
+	private val accountTagService: AccountTagService by inject()
+
+	private val _state = MutableValue(StoryIdeas.State())
+	override val state: Value<StoryIdeas.State> = _state
+
+	init {
+		scope.launch {
+			ideasRepository.ideasFlow.collect { ideas ->
+				withContext(dispatcherMain) {
+					_state.update { it.copy(ideas = ideas) }
+				}
+			}
+		}
+		// Pick up any ideas edited on disk since the repository first loaded
+		ideasRepository.loadIdeas()
+		scope.launch { accountTagService.refreshProjectTags() }
+	}
+
+	override fun showCreate() {
+		_state.update { it.copy(editor = StoryIdeas.Editor.Create) }
+	}
+
+	override fun editIdea(id: IdeaId) {
+		val idea = _state.value.ideas.find { it.id == id } ?: return
+		_state.update { it.copy(editor = StoryIdeas.Editor.Edit(idea)) }
+	}
+
+	override fun closeEditor() {
+		_state.update { it.copy(editor = null) }
+	}
+
+	override fun suggestTags(prefix: String): List<String> {
+		// Uncapped: the tag field filters out tags already on the idea, so a small hard cap here
+		// could empty the strip when an idea's own tags fill the top ranks. The field's flow row
+		// bounds what actually shows.
+		return accountTagService.suggest(prefix, limit = Int.MAX_VALUE).map { it.tag }
+	}
+
+	override suspend fun createIdea(title: String?, content: String, tags: Set<String>): IdeaError {
+		return ideasRepository.createIdea(content = content, title = title, tags = tags).toIdeaError()
+	}
+
+	override suspend fun saveIdea(id: IdeaId, title: String?, content: String, tags: Set<String>): IdeaError {
+		val idea = ideasRepository.getIdeaById(id) ?: return IdeaError.EMPTY
+		return ideasRepository.updateIdea(
+			idea.copy(title = title, content = content, tags = tags)
+		).toIdeaError()
+	}
+
+	override suspend fun deleteIdea(id: IdeaId) {
+		ideasRepository.deleteIdea(id)
+	}
+
+	override suspend fun archiveIdea(id: IdeaId) {
+		ideasRepository.archiveIdea(id)
+	}
+
+	override suspend fun unarchiveIdea(id: IdeaId) {
+		ideasRepository.unarchiveIdea(id)
+	}
+
+	override suspend fun promoteIdea(id: IdeaId): CResult<ProjectDef> {
+		return promoteIdeaUseCase(id)
+	}
+
+	private fun ClientResult<StoryIdea>.toIdeaError(): IdeaError = when (this) {
+		is ClientResult.Success -> IdeaError.NONE
+		is ClientResult.Failure -> (exception as? InvalidIdea)?.error ?: IdeaError.EMPTY
+	}
+}

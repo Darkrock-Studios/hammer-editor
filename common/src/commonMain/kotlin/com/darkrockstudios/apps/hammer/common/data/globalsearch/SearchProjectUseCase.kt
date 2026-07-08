@@ -10,6 +10,9 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesReposito
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.search.ParsedQuery
+import com.darkrockstudios.apps.hammer.common.data.search.matchesAllTags
+import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
@@ -21,18 +24,6 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import kotlin.coroutines.CoroutineContext
-
-/** Parsed search query: free text plus any `#tags` pulled out of it. */
-internal data class ParsedQuery(
-	val text: String,
-	val tags: List<String>,
-) {
-	fun isUsable(): Boolean {
-		val tagOk = tags.any { it.length >= SearchProjectUseCase.MIN_TAG_LENGTH }
-		val textOk = text.length >= SearchProjectUseCase.MIN_QUERY_LENGTH
-		return tagOk || textOk
-	}
-}
 
 /**
  * Stateless cross-repo project search. Given a query and a filter it fans out across the
@@ -255,39 +246,10 @@ class SearchProjectUseCase(
 	}
 
 	companion object {
-		const val MIN_QUERY_LENGTH = 2
-		const val MIN_TAG_LENGTH = 1
 		const val PER_SOURCE_CAP = 25
 		const val TITLE_MAX = 60
 		const val SNIPPET_BEFORE = 40
 		const val SNIPPET_AFTER = 80
-
-		internal fun parseQuery(query: String): ParsedQuery {
-			val tags = mutableListOf<String>()
-			val textBuilder = StringBuilder()
-			var i = 0
-			while (i < query.length) {
-				val c = query[i]
-				if (c == '#') {
-					i++
-					val tagStart = i
-					while (i < query.length && !query[i].isWhitespace()) i++
-					if (i > tagStart) tags.add(query.substring(tagStart, i))
-				} else {
-					textBuilder.append(c)
-					i++
-				}
-			}
-			val text = textBuilder.toString().replace(Regex("\\s+"), " ").trim()
-			return ParsedQuery(text = text, tags = tags)
-		}
-
-		internal fun Set<String>.matchesAllTags(needles: List<String>): Boolean {
-			if (needles.isEmpty()) return true
-			return needles.all { needle ->
-				any { it.contains(needle, ignoreCase = true) }
-			}
-		}
 
 		internal fun previewSnippet(content: String): AnnotatedSnippet? {
 			if (content.isEmpty()) return null

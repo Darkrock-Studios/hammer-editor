@@ -286,7 +286,10 @@ tasks.register("prepareForRelease") {
 		}
 
 		// Tag the merge commit explicitly; the main tree stays on develop.
-		git("tag", "-a", releaseInfo.tag, "-m", releaseInfo.changeLog, "release")
+		val tagMessageFile = File(project.rootDir, "build/release-tag-message.txt")
+		tagMessageFile.parentFile.mkdirs()
+		tagMessageFile.writeText(releaseInfo.changeLog)
+		git("tag", "-a", releaseInfo.tag, "-F", tagMessageFile.absolutePath, "release")
 
 		// Push the branches and only this release's tag. Pushing --tags would try
 		// to sync every stale local tag and fail when one already exists on origin.
@@ -484,48 +487,60 @@ tasks.register("revertLastRelease") {
 			}
 		}
 
-		// Delete GitHub draft release for this version if one exists.
+		// Delete the GitHub release(s) for this version if any exist. A draft
+		// release has no git tag yet, so GET /releases/tags/{tag} returns 404 for
+		// it — the draft is invisible to a by-tag lookup. List releases and match
+		// on the tag_name field instead, which does see drafts.
 		val ghToken = System.getenv("GH_TOKEN") ?: System.getenv("GITHUB_TOKEN")
 		if (ghToken == null) {
 			println("No GH_TOKEN or GITHUB_TOKEN found — skipping GitHub draft release deletion.")
 		} else {
 			val repoSlug = "Wavesonics/hammer-editor"
-			println("Looking up GitHub release for $tagName...")
-			val lookupConn = java.net.URL("https://api.github.com/repos/$repoSlug/releases/tags/$tagName")
-				.openConnection() as java.net.HttpURLConnection
-			lookupConn.setRequestProperty("Authorization", "Bearer $ghToken")
-			lookupConn.setRequestProperty("Accept", "application/vnd.github+json")
-			lookupConn.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
-			when (val lookupStatus = lookupConn.responseCode) {
-				404 -> println("No GitHub release found for $tagName — nothing to delete.")
-				200 -> {
-					val body = lookupConn.inputStream.bufferedReader().readText()
-					val isDraft = body.contains("\"draft\":true")
-					if (!isDraft) {
-						println("GitHub release $tagName is not a draft — skipping deletion.")
-					} else {
-						val releaseId = Regex("\"id\":(\\d+)").find(body)?.groupValues?.get(1)
-						if (releaseId == null) {
-							println("Warning: Could not parse release ID from GitHub response.")
+
+			fun githubApi(method: String, path: String): Pair<Int, String> {
+				val conn = java.net.URL("https://api.github.com/repos/$repoSlug/$path")
+					.openConnection() as java.net.HttpURLConnection
+				conn.requestMethod = method
+				conn.setRequestProperty("Authorization", "Bearer $ghToken")
+				conn.setRequestProperty("Accept", "application/vnd.github+json")
+				conn.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
+				val status = conn.responseCode
+				val body = (if (status in 200..299) conn.inputStream else conn.errorStream)
+					?.bufferedReader()?.readText().orEmpty()
+				return status to body
+			}
+
+			println("Looking up GitHub releases for $tagName...")
+			val (listStatus, listBody) = githubApi("GET", "releases?per_page=100")
+			if (listStatus != 200) {
+				println("Warning: GitHub API returned HTTP $listStatus when listing releases.")
+			} else {
+				@Suppress("UNCHECKED_CAST")
+				val releases =
+					groovy.json.JsonSlurper().parseText(listBody) as List<Map<String, Any?>>
+				val matches = releases.filter { release ->
+					val name = release["tag_name"] as? String ?: return@filter false
+					isPlatformReleaseTag(name, tagName)
+				}
+				if (matches.isEmpty()) {
+					println("No GitHub release found for $tagName — nothing to delete.")
+				} else {
+					matches.forEach { release ->
+						val name = release["tag_name"]
+						val releaseId = (release["id"] as Number).toLong()
+						if (release["draft"] != true) {
+							println("GitHub release $name is not a draft — skipping deletion.")
 						} else {
-							println("Deleting GitHub draft release $tagName (id=$releaseId)...")
-							val deleteConn = java.net.URL("https://api.github.com/repos/$repoSlug/releases/$releaseId")
-								.openConnection() as java.net.HttpURLConnection
-							deleteConn.requestMethod = "DELETE"
-							deleteConn.setRequestProperty("Authorization", "Bearer $ghToken")
-							deleteConn.setRequestProperty("Accept", "application/vnd.github+json")
-							deleteConn.setRequestProperty("X-GitHub-Api-Version", "2022-11-28")
-							val deleteStatus = deleteConn.responseCode
+							println("Deleting GitHub draft release $name (id=$releaseId)...")
+							val (deleteStatus, _) = githubApi("DELETE", "releases/$releaseId")
 							if (deleteStatus == 204) {
-								println("GitHub draft release $tagName deleted.")
+								println("GitHub draft release $name deleted.")
 							} else {
-								println("Warning: Failed to delete GitHub release (HTTP $deleteStatus).")
+								println("Warning: Failed to delete GitHub release $name (HTTP $deleteStatus).")
 							}
 						}
 					}
 				}
-
-				else -> println("Warning: GitHub API returned HTTP $lookupStatus for $tagName.")
 			}
 		}
 

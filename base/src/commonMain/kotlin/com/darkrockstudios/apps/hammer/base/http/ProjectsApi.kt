@@ -14,6 +14,12 @@ data class BeginProjectsSyncResponse(
 	val syncId: String,
 	val projects: Set<ApiProjectDefinition>,
 	val deletedProjects: Set<ProjectId>,
+	/**
+	 * [com.darkrockstudios.apps.hammer.base.http.synchronizer.IdeasStateHasher] hash of the
+	 * server's live idea set, so a client in agreement can skip the ideas phase. Null from
+	 * servers that predate story ideas — the client then runs the phase unconditionally.
+	 */
+	val ideasStateHash: String? = null,
 )
 
 @Serializable

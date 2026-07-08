@@ -38,6 +38,7 @@ import io.github.vinceglb.filekit.path
 import io.github.vinceglb.filekit.size
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 const val ENCYCLOPEDIA_CREATE_NAME_TAG = "encyclopedia-create-name"
 const val ENCYCLOPEDIA_CREATE_TAGS_TAG = "encyclopedia-create-tags"
@@ -54,6 +55,7 @@ internal fun CreateEntryUi(
 ) {
 	val state by component.state.subscribeAsState()
 	val strRes = rememberStrRes()
+	val dispatcherIo = rememberIoDispatcher()
 
 	var name by rememberSaveable { mutableStateOf("") }
 	var description by rememberSaveable { mutableStateOf("") }
@@ -149,8 +151,17 @@ internal fun CreateEntryUi(
 										EncyclopediaDatasource.MAX_IMAGE_SIZE_MB,
 									)
 								)
+							} else if (picked != null) {
+								val localCopy = withContext(dispatcherIo) { picked.stageIntoCache() }
+								if (localCopy != null) {
+									imagePath = localCopy
+								} else {
+									rootSnackbar.showSnackbar(
+										strRes.get(Res.string.encyclopedia_create_entry_image_load_failed)
+									)
+								}
 							} else {
-								imagePath = picked
+								imagePath = null
 							}
 						}
 					},

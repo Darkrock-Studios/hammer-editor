@@ -49,6 +49,10 @@
 	<string name="project_info_word_goal_cadence_week">Week</string>
 	<string name="project_info_word_goal_effective_label">Effective</string>
 	<string name="project_info_word_goal_effective_unit">W / day</string>
+	<string name="project_info_tags_section_title">Tags</string>
+	<string name="project_info_tags_label">Tags</string>
+	<string name="project_info_tags_hint">↵ to add</string>
+	<string name="project_info_tags_placeholder">fantasy, draft, nanowrimo…</string>
 	<string name="project_info_color_picker_edit">Edit</string>
 	<string name="project_info_color_picker_cancel">Cancel</string>
 	<string name="project_info_color_picker_confirm">OK</string>
@@ -67,6 +71,7 @@
 	<string name="sync_conflict_project_data_field_author">Author Name</string>
 	<string name="sync_conflict_project_data_field_theme">Project Theme</string>
 	<string name="sync_conflict_project_data_field_word_goal">Word Count Goal</string>
+	<string name="sync_conflict_project_data_field_tags">Tags</string>
 	<string name="sync_conflict_project_data_value_unset">(not set)</string>
 	<string name="sync_conflict_project_data_word_goal_value">%1$d / %2$s</string>
 	<string name="sync_conflict_project_data_cadence_day">day</string>
@@ -217,6 +222,16 @@
 
 	<string name="sync_unauthorized">Unauthorized</string>
 	<string name="sync_general_error">Unhandled server error</string>
+
+	<string name="protocol_mismatch_section">UPDATE REQUIRED</string>
+	<string name="protocol_mismatch_title_client">Your app is out of date</string>
+	<string name="protocol_mismatch_title_server">The sync server is out of date</string>
+	<string name="protocol_mismatch_body_client">This version of Hammer can no longer sync with the server. Update to the latest version to keep syncing your work.</string>
+	<string name="protocol_mismatch_body_server">The sync server is running an older protocol than this app. The server needs to be updated before syncing will work again.</string>
+	<string name="protocol_mismatch_latest_version">Latest version: %s</string>
+	<string name="protocol_mismatch_current_version">You have: %s</string>
+	<string name="protocol_mismatch_open_release_button">Get the Update</string>
+	<string name="protocol_mismatch_dismiss_button">Dismiss</string>
 
 	<string name="reauth_title">Reauthorize</string>
 	<string name="reauth_explanation">Your token has expired, please reauthorize with your sync server.</string>

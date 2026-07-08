@@ -15,12 +15,22 @@ import com.darkrockstudios.apps.hammer.common.data.exampleProjectModule
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.authTokenStoreModule
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsFilesystemDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsFilesystemDatasource
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.authTokenStoreModule
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
-import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.EncyclopediaIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.NotesIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneDraftIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.SceneIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.id.datasources.TimeLineEventIdDatasource
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasDatasource
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.PromoteIdeaUseCase
+import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCodec
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
@@ -36,16 +46,47 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStat
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
-import com.darkrockstudios.apps.hammer.common.data.references.*
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.*
+import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
+import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
+import com.darkrockstudios.apps.hammer.common.data.references.CleanupReferencesOnEntryDeleteUseCase
+import com.darkrockstudios.apps.hammer.common.data.references.NameMatcher
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexConfig
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
+import com.darkrockstudios.apps.hammer.common.data.references.ReferenceRemapper
+import com.darkrockstudios.apps.hammer.common.data.references.SceneMetadataReferenceRemapper
+import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
+import com.darkrockstudios.apps.hammer.common.data.references.WholeWordCaseSensitiveMatcher
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.*
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.*
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.BackupOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EnsureProjectIdOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityDeleteOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EntityTransferOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchLocalDataOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchServerDataOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FinalizeSyncOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.IdConflictResolutionOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.PrepareForSyncOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.ProjectDataSyncOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.WritingActivitySyncOperation
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientEncyclopediaSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientNoteSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneDraftSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientTimelineSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
@@ -53,6 +94,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRe
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubVersionCheckDataSource
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.ShouldNotifyOfUpdateUseCase
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDataSource
+import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
@@ -65,10 +107,16 @@ import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
 import com.darkrockstudios.apps.hammer.common.platformDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
 import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
-import com.darkrockstudios.apps.hammer.common.server.*
+import com.darkrockstudios.apps.hammer.common.server.ProjectDataApi
+import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
+import com.darkrockstudios.apps.hammer.common.server.ServerAdminApi
+import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
+import com.darkrockstudios.apps.hammer.common.server.ServerIdeasApi
+import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
+import com.darkrockstudios.apps.hammer.common.server.WritingActivityApi
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.russhwolf.settings.Settings
-import io.ktor.client.*
+import io.ktor.client.HttpClient
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
@@ -108,12 +156,14 @@ val mainModule = module {
 
 	includes(platformModule)
 
+	singleOf(::ProtocolMismatchRepository)
 	single { createHttpClient(get()) } bind HttpClient::class
 	singleOf(::ServerAccountApi)
 	singleOf(::ServerProjectApi)
 	singleOf(::ServerProjectsApi)
 	singleOf(::WritingActivityApi)
 	singleOf(::ProjectDataApi)
+	singleOf(::ServerIdeasApi)
 	singleOf(::ServerAdminApi)
 
 	singleOf(::ServerSettingsFilesystemDatasource) bind ServerSettingsDatasource::class
@@ -137,10 +187,19 @@ val mainModule = module {
 
 	singleOf(::ProjectsRepository)
 
+	singleOf(::StoryIdeaCodec)
+	singleOf(::IdeasDatasource)
+	singleOf(::IdeasSyncDatasource)
+	singleOf(::IdeasRepository)
+	factoryOf(::PromoteIdeaUseCase)
+
+	singleOf(::AccountTagService)
+
 	singleOf(::createTomlSerializer) bind Toml::class
 
 	singleOf(::createJsonSerializer) bind Json::class
 
+	singleOf(::ClientIdeasSynchronizer)
 	singleOf(::ClientAccountSynchronizer)
 
 	singleOf(::ProjectBackupRepository)

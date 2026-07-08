@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.material.FixedThreshold
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.DriveFileMove
 import androidx.compose.material.icons.filled.MenuOpen
 import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.outlined.Delete
@@ -13,8 +14,16 @@ import androidx.compose.material.icons.outlined.Edit
 import androidx.compose.material.icons.outlined.Folder
 import androidx.compose.material.rememberSwipeableState
 import androidx.compose.material.swipeable
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -23,9 +32,15 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.scene_list_group_action_create_group
+import com.darkrockstudios.apps.hammer.scene_list_group_action_create_scene
+import com.darkrockstudios.apps.hammer.scene_list_item_action_delete
+import com.darkrockstudios.apps.hammer.scene_list_item_action_menu_description
+import com.darkrockstudios.apps.hammer.scene_list_item_action_move
+import com.darkrockstudios.apps.hammer.scene_list_item_action_rename
 import kotlin.math.roundToInt
 
 @Composable
@@ -34,6 +49,7 @@ actual fun SceneGroupActionContainer(
 	shouldNux: Boolean,
 	onSceneAltClick: (scene: SceneItem) -> Unit,
 	onSceneRenameClick: (scene: SceneItem) -> Unit,
+	onSceneMoveClick: (scene: SceneItem) -> Unit,
 	onCreateSceneClick: (scene: SceneItem) -> Unit,
 	onCreateGroupClick: (scene: SceneItem) -> Unit,
 	itemContent: @Composable (modifier: Modifier) -> Unit
@@ -115,6 +131,19 @@ actual fun SceneGroupActionContainer(
 				Icon(
 					Icons.Outlined.Edit,
 					contentDescription = Res.string.scene_list_item_action_rename.get()
+				)
+			}
+		)
+		DropdownMenuItem(
+			text = { Text(Res.string.scene_list_item_action_move.get()) },
+			onClick = {
+				onSceneMoveClick(scene)
+				showMenu = false
+			},
+			leadingIcon = {
+				Icon(
+					Icons.AutoMirrored.Outlined.DriveFileMove,
+					contentDescription = Res.string.scene_list_item_action_move.get()
 				)
 			}
 		)

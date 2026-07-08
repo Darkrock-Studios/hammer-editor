@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.ktor.client.*
 import io.ktor.client.call.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
 
 class ServerProjectsApi(
@@ -21,7 +22,7 @@ class ServerProjectsApi(
 ) : Api(httpClient, globalSettingsStore, strRes) {
 
 	suspend fun beginProjectsSync(): Result<BeginProjectsSyncResponse> {
-		return get(
+		return postWithLegacyGetFallback(
 			path = "/api/projects/$userId/begin_sync",
 			parse = { it.body() },
 		)
@@ -41,8 +42,9 @@ class ServerProjectsApi(
 	}
 
 	suspend fun endProjectsSync(syncId: String): Result<String> {
-		return get(
+		return postWithLegacyGetFallback(
 			path = "/api/projects/$userId/end_sync",
+			parse = { it.bodyAsText() },
 			builder = {
 				headers {
 					append(HEADER_SYNC_ID, syncId)
@@ -52,8 +54,9 @@ class ServerProjectsApi(
 	}
 
 	suspend fun deleteProject(projectId: ProjectId, syncId: String): Result<String> {
-		return get(
+		return postWithLegacyGetFallback(
 			path = "/api/projects/$userId/delete",
+			parse = { it.bodyAsText() },
 			builder = {
 				headers {
 					append(HEADER_SYNC_ID, syncId)
@@ -68,8 +71,9 @@ class ServerProjectsApi(
 		syncId: String,
 		newName: String
 	): Result<String> {
-		return get(
+		return postWithLegacyGetFallback(
 			path = "/api/projects/$userId/rename",
+			parse = { it.bodyAsText() },
 			builder = {
 				headers {
 					append(HEADER_SYNC_ID, syncId)
@@ -84,7 +88,7 @@ class ServerProjectsApi(
 		projectName: String,
 		syncId: String,
 	): Result<CreateProjectResponse> {
-		return get(
+		return postWithLegacyGetFallback(
 			path = "/api/projects/$userId/create",
 			builder = {
 				headers {

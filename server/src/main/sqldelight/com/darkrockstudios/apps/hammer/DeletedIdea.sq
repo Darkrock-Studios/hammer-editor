@@ -1,0 +1,30 @@
+import kotlinx.datetime.Instant;
+
+-- Permanent deletion tombstones for story ideas: written when a delete lands, never
+-- pruned, so a stale device holding a deleted idea cannot resurrect it on sync.
+--
+-- uuid is declared TEXT for SqlDelight's parser; promoted to UUID at runtime by
+-- PostgresSchemaInitializer (matches deleted_project.uuid). Callers cast bound
+-- String parameters with CAST(:uuid AS UUID).
+CREATE TABLE deleted_idea (
+    user_id BIGINT NOT NULL,
+    uuid TEXT NOT NULL,
+    deleted_at TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
+    UNIQUE(user_id, uuid)
+);
+
+CREATE INDEX deleted_idea_user_id_idx ON deleted_idea (user_id);
+
+getDeletedIdeas:
+SELECT uuid
+FROM deleted_idea
+WHERE user_id = :userId;
+
+addDeletedIdea:
+INSERT INTO deleted_idea(user_id, uuid)
+VALUES(:userId, CAST(:uuid AS UUID))
+ON CONFLICT (user_id, uuid) DO NOTHING;
+
+hasDeletedIdea:
+SELECT EXISTS(SELECT 1 FROM deleted_idea WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID));

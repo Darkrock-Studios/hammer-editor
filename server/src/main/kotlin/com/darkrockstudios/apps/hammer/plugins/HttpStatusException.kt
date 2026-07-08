@@ -13,11 +13,15 @@ abstract class HttpStatusException(
 	message: String,
 ) : Exception(message)
 
-/** A request hit an `/api` route without a matching protocol version header. */
+/**
+ * A request hit an `/api` route without a matching protocol version header. Resolves to
+ * 426 Upgrade Required so the client can distinguish a version mismatch from an ordinary
+ * bad request — API error responses carry no body, so the status code is the only signal.
+ */
 class UnsupportedProtocolVersionException(
 	clientVersion: Int?,
 	expectedVersion: Int,
 ) : HttpStatusException(
-	HttpStatusCode.BadRequest,
+	HttpStatusCode.UpgradeRequired,
 	"Unsupported protocol version: $clientVersion (expected: $expectedVersion)",
 )

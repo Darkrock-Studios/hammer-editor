@@ -12,9 +12,11 @@ import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.Spel
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
+import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.core.component.inject
 
 class ProjectSettingsComponent(
 	componentContext: ComponentContext,
@@ -23,6 +25,7 @@ class ProjectSettingsComponent(
 
 	private val mainDispatcher by injectMainDispatcher()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
+	private val accountTagService: AccountTagService by inject()
 
 	override val projectName: String = projectDef.name
 
@@ -32,6 +35,7 @@ class ProjectSettingsComponent(
 	override val projectInfoState: Value<ProjectSettings.ProjectInfoState> = _projectInfoState
 
 	init {
+		scope.launch { accountTagService.refreshProjectTags() }
 		scope.launch {
 			projectDataRepository.load()
 			projectDataRepository.state.collect { stored ->
@@ -63,5 +67,19 @@ class ProjectSettingsComponent(
 		scope.launch {
 			projectDataRepository.updateData { it.copy(wordCountGoal = goal) }
 		}
+	}
+
+	override fun setTags(tags: Set<String>) {
+		val cleaned = ProjectSettings.cleanProjectTags(tags)
+		scope.launch {
+			projectDataRepository.updateData { it.copy(tags = cleaned) }
+		}
+	}
+
+	override fun suggestProjectTags(prefix: String): List<String> {
+		// Exclude this project's own tags so it suggests from the *other* projects' / ideas'
+		// vocabulary, rather than offering back tags already applied here.
+		return accountTagService.suggest(prefix, exclude = _projectInfoState.value.data.tags)
+			.map { it.tag }
 	}
 }

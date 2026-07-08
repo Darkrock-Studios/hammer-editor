@@ -2,11 +2,33 @@ package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
@@ -25,6 +47,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectData
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.parseHexColor
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -72,9 +95,11 @@ fun ProjectIndexRow(
 	onProjectAltClick: (projectDef: ProjectDef) -> Unit,
 	onProjectRenameClick: (projectDef: ProjectDef) -> Unit,
 	modifier: Modifier = Modifier,
+	onTagClick: (tag: String) -> Unit = {},
 ) {
 	val storedData = projectData.storedData
 	val author = storedData.authorName?.takeIf { it.isNotBlank() }
+	val tags = remember(storedData.tags) { storedData.tags.sorted() }
 	val themePrimary = remember(storedData.theme?.primary) {
 		storedData.theme?.primary?.let { parseHexColor(it) }
 	}
@@ -153,6 +178,7 @@ fun ProjectIndexRow(
 					fontStyle = FontStyle.Italic,
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
+				TagChipRow(tags = tags, onTagClick = onTagClick)
 			} else {
 				if (byAuthor != null) {
 					Text(
@@ -162,6 +188,7 @@ fun ProjectIndexRow(
 						color = MaterialTheme.colorScheme.onSurfaceVariant,
 					)
 				}
+				TagChipRow(tags = tags, onTagClick = onTagClick)
 				Spacer(modifier = Modifier.height(8.dp))
 				CompactMetaGrid(
 					createdValue = createdDate,
@@ -215,6 +242,21 @@ fun ProjectIndexRow(
 		thickness = Dp.Hairline,
 		color = MaterialTheme.colorScheme.outlineVariant,
 	)
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TagChipRow(tags: List<String>, onTagClick: (String) -> Unit) {
+	if (tags.isEmpty()) return
+	FlowRow(
+		modifier = Modifier.padding(top = 4.dp),
+		horizontalArrangement = Arrangement.spacedBy(6.dp),
+		verticalArrangement = Arrangement.spacedBy(4.dp),
+	) {
+		tags.forEach { tag ->
+			HdTagChip(label = tag, onClick = { onTagClick(tag) })
+		}
+	}
 }
 
 /**

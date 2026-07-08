@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.BeginProjectsSyncResponse
 import com.darkrockstudios.apps.hammer.base.http.CreateProjectResponse
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
+import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.base.http.ProjectsSyncProbeRequest
 import com.darkrockstudios.apps.hammer.base.http.ProjectsSyncProbeResponse
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
@@ -14,6 +15,7 @@ import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import com.darkrockstudios.apps.hammer.monitoring.ActivityType
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
+import com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository
 import com.darkrockstudios.apps.hammer.utilities.*
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
@@ -78,35 +80,53 @@ fun Route.projectsRoutes() {
 
 private fun Route.beginProjectsSync() {
 	val projectsRepository: ProjectsRepository = get()
+	val accountsRepository: AccountsRepository = get()
+	val ideasRepository: ServerIdeasRepository = get()
 
-	get("/begin_sync") {
-		val principal = call.principal<ServerUserIdPrincipal>()
-		if (principal == null) {
-			call.respond(HttpStatusCode.Unauthorized)
-			return@get
-		}
+	// POST is the preferred verb; GET remains for legacy clients.
+	// TODO Remove the legacy GET route at the next protocol version bump.
+	get("/begin_sync") { handleBeginProjectsSync(projectsRepository, accountsRepository, ideasRepository) }
+	post("/begin_sync") { handleBeginProjectsSync(projectsRepository, accountsRepository, ideasRepository) }
+}
 
-		call.application.get<UserActivityCollector>().record(principal.id, ActivityType.SYNC)
+private suspend fun RoutingContext.handleBeginProjectsSync(
+	projectsRepository: ProjectsRepository,
+	accountsRepository: AccountsRepository,
+	ideasRepository: ServerIdeasRepository,
+) {
+	val principal = call.principal<ServerUserIdPrincipal>()
+	if (principal == null) {
+		call.respond(HttpStatusCode.Unauthorized)
+		return
+	}
 
-		val result = projectsRepository.beginProjectsSync(principal.id)
-		if (isSuccess(result)) {
-			val syncData = result.data
-			call.respond(
-				BeginProjectsSyncResponse(
-					syncId = syncData.syncId,
-					projects = syncData.projects.map { it.toApi() }.toSet(),
-					deletedProjects = syncData.deletedProjects,
-				),
-			)
-		} else {
-			call.respond(
-				status = HttpStatusCode.BadRequest,
-				HttpResponseError(
-					error = "Begin Project Sync Failed",
-					displayMessage = result.displayMessage?.text(call) ?: call.t(R(ERR_KEY_UNKNOWN)),
-				),
-			)
-		}
+	call.application.get<UserActivityCollector>().record(principal.id, ActivityType.SYNC)
+
+	// Derived from the authenticated token (not client-asserted)
+	val installId = call.request.headers[HttpHeaders.Authorization]
+		?.substringAfter("Bearer ", "")
+		?.takeIf { it.isNotBlank() }
+		?.let { accountsRepository.getInstallId(it) }
+
+	val result = projectsRepository.beginProjectsSync(principal.id, installId)
+	if (isSuccess(result)) {
+		val syncData = result.data
+		call.respond(
+			BeginProjectsSyncResponse(
+				syncId = syncData.syncId,
+				projects = syncData.projects.map { it.toApi() }.toSet(),
+				deletedProjects = syncData.deletedProjects,
+				ideasStateHash = ideasRepository.getIdeasStateHash(principal.id),
+			),
+		)
+	} else {
+		call.respond(
+			status = HttpStatusCode.BadRequest,
+			HttpResponseError(
+				error = "Begin Project Sync Failed",
+				displayMessage = result.displayMessage?.text(call) ?: call.t(R(ERR_KEY_UNKNOWN)),
+			),
+		)
 	}
 }
 
@@ -138,47 +158,69 @@ private fun Route.syncProbe() {
 private fun Route.endProjectSync() {
 	val projectsRepository: ProjectsRepository = get()
 
-	get("/end_sync") {
-		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val syncId = call.requireSyncIdFromHeader() ?: return@get
+	// POST is the preferred verb; GET remains for legacy clients.
+	// TODO Remove the legacy GET route at the next protocol version bump.
+	get("/end_sync") { handleEndProjectsSync(projectsRepository) }
+	post("/end_sync") { handleEndProjectsSync(projectsRepository) }
+}
 
-		projectsRepository.endProjectsSync(principal.id, syncId)
+private suspend fun RoutingContext.handleEndProjectsSync(projectsRepository: ProjectsRepository) {
+	val principal = call.principal<ServerUserIdPrincipal>()!!
+	val syncId = call.requireSyncIdFromHeader() ?: return
+
+	val result = projectsRepository.endProjectsSync(principal.id, syncId)
+	if (isSuccess(result)) {
 		call.respond("Okay")
+	} else {
+		call.respondBadRequest(
+			ERROR_GENERIC,
+			result.displayMessage?.text(call) ?: call.t(R(ERR_KEY_INVALID_SYNC_ID)),
+		)
 	}
 }
 
 private fun Route.deleteProject() {
 	val projectsRepository: ProjectsRepository = get()
 
-	get("/delete") {
-		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectId = call.requireProjectIdFromPath() ?: return@get
-		val syncId = call.requireSyncIdFromHeader() ?: return@get
+	// POST is the preferred verb; GET remains for legacy clients.
+	// TODO Remove the legacy GET route at the next protocol version bump.
+	get("/delete") { handleDeleteProject(projectsRepository) }
+	post("/delete") { handleDeleteProject(projectsRepository) }
+}
 
-		val result = projectsRepository.deleteProject(principal.id, syncId, projectId)
-		if (isSuccess(result)) {
-			call.respond("Success")
-		} else {
-			call.respondSyncFailure(result.exception)
-		}
+private suspend fun RoutingContext.handleDeleteProject(projectsRepository: ProjectsRepository) {
+	val principal = call.principal<ServerUserIdPrincipal>()!!
+	val projectId = call.requireProjectIdFromPath() ?: return
+	val syncId = call.requireSyncIdFromHeader() ?: return
+
+	val result = projectsRepository.deleteProject(principal.id, syncId, projectId)
+	if (isSuccess(result)) {
+		call.respond("Success")
+	} else {
+		call.respondSyncFailure(result.exception)
 	}
 }
 
 private fun Route.renameProject() {
 	val projectsRepository: ProjectsRepository = get()
 
-	get("/rename") {
-		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectId = call.requireProjectIdFromPath() ?: return@get
-		val syncId = call.requireSyncIdFromHeader() ?: return@get
-		val newProjectName = call.request.queryParameters["projectName"]
+	// POST is the preferred verb; GET remains for legacy clients.
+	// TODO Remove the legacy GET route at the next protocol version bump.
+	get("/rename") { handleRenameProject(projectsRepository) }
+	post("/rename") { handleRenameProject(projectsRepository) }
+}
 
-		val result = projectsRepository.renameProject(principal.id, syncId, projectId, newProjectName)
-		if (isSuccess(result)) {
-			call.respond("Success")
-		} else {
-			respondRenameFailure(result.exception)
-		}
+private suspend fun RoutingContext.handleRenameProject(projectsRepository: ProjectsRepository) {
+	val principal = call.principal<ServerUserIdPrincipal>()!!
+	val projectId = call.requireProjectIdFromPath() ?: return
+	val syncId = call.requireSyncIdFromHeader() ?: return
+	val newProjectName = call.request.queryParameters["projectName"]
+
+	val result = projectsRepository.renameProject(principal.id, syncId, projectId, newProjectName)
+	if (isSuccess(result)) {
+		call.respond("Success")
+	} else {
+		respondRenameFailure(result.exception)
 	}
 }
 
@@ -201,21 +243,26 @@ private suspend fun RoutingContext.respondRenameFailure(exception: Throwable?) {
 private fun Route.createProject() {
 	val projectsRepository: ProjectsRepository = get()
 
-	get("/create") {
-		val principal = call.principal<ServerUserIdPrincipal>()!!
-		val projectName = call.request.queryParameters["projectName"]
-		if (projectName == null) {
-			call.respondMissingParameter(ERR_KEY_PROJECT_NAME_MISSING)
-			return@get
-		}
-		val syncId = call.requireSyncIdFromHeader() ?: return@get
+	// POST is the preferred verb; GET remains for legacy clients.
+	// TODO Remove the legacy GET route at the next protocol version bump.
+	get("/create") { handleCreateProject(projectsRepository) }
+	post("/create") { handleCreateProject(projectsRepository) }
+}
 
-		val result = projectsRepository.createProject(principal.id, syncId, projectName)
-		if (isSuccess(result)) {
-			val data = result.data
-			call.respond(CreateProjectResponse(data.project.uuid, data.alreadyExisted))
-		} else {
-			call.respondSyncFailure(result.exception)
-		}
+private suspend fun RoutingContext.handleCreateProject(projectsRepository: ProjectsRepository) {
+	val principal = call.principal<ServerUserIdPrincipal>()!!
+	val projectName = call.request.queryParameters["projectName"]
+	if (projectName == null) {
+		call.respondMissingParameter(ERR_KEY_PROJECT_NAME_MISSING)
+		return
+	}
+	val syncId = call.requireSyncIdFromHeader() ?: return
+
+	val result = projectsRepository.createProject(principal.id, syncId, projectName)
+	if (isSuccess(result)) {
+		val data = result.data
+		call.respond(CreateProjectResponse(data.project.uuid, data.alreadyExisted))
+	} else {
+		call.respondSyncFailure(result.exception)
 	}
 }

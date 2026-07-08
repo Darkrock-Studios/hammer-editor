@@ -6,14 +6,17 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataConflict
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataDto
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectDataUploadRequest
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataConflictException
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.encodeUrlPathSegment
 import com.darkrockstudios.apps.hammer.common.util.StrRes
-import io.ktor.client.*
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
+import io.ktor.client.HttpClient
+import io.ktor.client.call.body
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
 import kotlinx.serialization.json.Json
 
 class ProjectDataApi(
@@ -53,6 +56,12 @@ class ProjectDataApi(
 		},
 	) {
 		contentType(ContentType.Application.Json)
-		setBody(ProjectDataUploadRequest(data = data, originalHash = originalHash))
+		setBody(
+			ProjectDataUploadRequest(
+				data = data,
+				originalHash = originalHash,
+				hash = ProjectDataHasher.hash(data),
+			)
+		)
 	}
 }

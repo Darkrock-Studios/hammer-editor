@@ -25,7 +25,10 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
+import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
+import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeaConflict
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
@@ -55,6 +58,7 @@ import com.darkrockstudios.apps.hammer.sync_log_project_conflict
 import io.github.aakira.napier.Napier
 import korlibs.datastructure.iterators.parallelMap
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
@@ -85,6 +89,7 @@ class ProjectsListComponent(
 	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectsSynchronizer: ClientAccountSynchronizer by inject()
+	private val protocolMismatchRepository: ProtocolMismatchRepository by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
 	private val projectMetadataDatasource: ProjectMetadataDatasource by inject()
 	private val statisticsCacheReader: ProjectStatisticsCacheReader by inject()
@@ -98,7 +103,10 @@ class ProjectsListComponent(
 	private var syncProjectsJob: Job? = null
 	private var syncScope: CoroutineScope? = null
 
-	private val modalRouter = ProjectListModalRouter(componentContext)
+	private val modalRouter = ProjectListModalRouter(
+		componentContext = componentContext,
+		onReauthSuccess = ::showProjectsSync,
+	)
 	override val modalRouterState = modalRouter.state
 
 	private val _state by savableState {
@@ -147,6 +155,17 @@ class ProjectsListComponent(
 		super.onCreate()
 		watchSettingsUpdates()
 		initialProjectSync()
+		watchProtocolMismatch()
+	}
+
+	private fun watchProtocolMismatch() {
+		scope.launch {
+			protocolMismatchRepository.mismatches.collect { info ->
+				withContext(mainDispatcher) {
+					modalRouter.showProtocolMismatch(info)
+				}
+			}
+		}
 	}
 
 	override fun onResume() {
@@ -551,6 +570,34 @@ class ProjectsListComponent(
 		modalRouter.showServerReauthentication()
 	}
 
+	private var ideaConflictResponse: CompletableDeferred<StoryIdea?>? = null
+
+	// Suspends the ideas sync phase until the user resolves the conflict in the sync dialog
+	// (or the sync is canceled, which cancels the await).
+	private suspend fun onIdeaConflict(conflict: IdeaConflict): StoryIdea? {
+		val response = CompletableDeferred<StoryIdea?>()
+		ideaConflictResponse = response
+		withContext(mainDispatcher) {
+			_state.getAndUpdate {
+				it.copy(syncState = it.syncState.copy(ideaConflict = conflict))
+			}
+		}
+		return try {
+			response.await()
+		} finally {
+			ideaConflictResponse = null
+			withContext(NonCancellable + mainDispatcher) {
+				_state.getAndUpdate {
+					it.copy(syncState = it.syncState.copy(ideaConflict = null))
+				}
+			}
+		}
+	}
+
+	override fun resolveIdeaConflict(resolution: StoryIdea?) {
+		ideaConflictResponse?.complete(resolution)
+	}
+
 	override fun syncProjects(callback: (Boolean) -> Unit) {
 		syncProjectsJob?.cancel(CancellationException("Started another sync"))
 		syncScope?.cancel(CancellationException("Started another sync"))
@@ -564,14 +611,17 @@ class ProjectsListComponent(
 
 				onSyncLog(syncAccLogI(strRes.get(Res.string.sync_log_begin_account)))
 
+				var ideasSuccess = true
 				val success = projectsSynchronizer.syncProjects(
 					onLog = ::onSyncLog,
-					onUnauthorized = ::showReauth
+					onUnauthorized = ::showReauth,
+					onIdeaConflict = ::onIdeaConflict,
+					onIdeasSyncResult = { ideasSuccess = it },
 				)
 
 				yield()
 
-				var allSuccess = success
+				var allSuccess = success && ideasSuccess
 				if (success) {
 					onSyncLog(syncAccLogI(strRes.get(Res.string.sync_log_begin_projects)))
 

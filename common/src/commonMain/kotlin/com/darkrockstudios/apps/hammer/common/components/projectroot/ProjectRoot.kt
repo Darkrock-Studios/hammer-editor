@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSear
 import com.darkrockstudios.apps.hammer.common.components.notes.Notes
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projectsync.ProjectSynchronization
+import com.darkrockstudios.apps.hammer.common.components.protocolmismatch.ProtocolMismatch
 import com.darkrockstudios.apps.hammer.common.components.serverreauthentication.ServerReauthentication
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusMode
@@ -95,6 +96,8 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 		data class GlobalSearchModal(val component: GlobalSearch) : ModalDestination()
 
 		data class FocusModeModal(val component: FocusMode) : ModalDestination()
+
+		data class ProtocolMismatchModal(val component: ProtocolMismatch) : ModalDestination()
 	}
 
 	enum class DestinationTypes(val text: StringResource, val shortText: StringResource) {

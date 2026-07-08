@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutAppComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsListComponent
+import com.darkrockstudios.apps.hammer.common.components.projectselection.storyideas.StoryIdeasComponent
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -141,6 +142,14 @@ class ProjectSelectionComponent(
 				)
 			}
 
+			ProjectSelection.Config.StoryIdeas -> {
+				ProjectSelection.Destination.StoryIdeasDestination(
+					StoryIdeasComponent(
+						componentContext,
+					)
+				)
+			}
+
 			ProjectSelection.Config.AccountSettings -> {
 				ProjectSelection.Destination.AccountSettingsDestination(
 					AccountSettingsComponent(
@@ -165,6 +174,7 @@ class ProjectSelectionComponent(
 	override fun showLocation(location: ProjectSelection.Locations) {
 		when (location) {
 			ProjectSelection.Locations.Projects -> navigation.bringToFront(ProjectSelection.Config.ProjectsList)
+			ProjectSelection.Locations.StoryIdeas -> navigation.bringToFront(ProjectSelection.Config.StoryIdeas)
 			ProjectSelection.Locations.Settings -> navigation.bringToFront(ProjectSelection.Config.AccountSettings)
 			ProjectSelection.Locations.AboutApp -> navigation.bringToFront(ProjectSelection.Config.AboutApp)
 		}

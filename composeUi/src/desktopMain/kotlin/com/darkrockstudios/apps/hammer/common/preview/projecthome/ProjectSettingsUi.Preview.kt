@@ -77,7 +77,7 @@ private val component = object : ProjectSettings {
 	override val spellCheckSettings: SpellCheckSettings = fakeSpellCheckSettings
 	override val projectInfoState: Value<ProjectSettings.ProjectInfoState> = MutableValue(
 		ProjectSettings.ProjectInfoState(
-			data = ProjectData(authorName = "A. Writer"),
+			data = ProjectData(authorName = "A. Writer", tags = setOf("fantasy", "draft")),
 			isLoaded = true,
 		)
 	)
@@ -85,4 +85,7 @@ private val component = object : ProjectSettings {
 	override fun setAuthorName(name: String?) {}
 	override fun setTheme(theme: ProjectTheme?) {}
 	override fun setWordCountGoal(goal: WordCountGoal?) {}
+	override fun setTags(tags: Set<String>) {}
+	override fun suggestProjectTags(prefix: String): List<String> =
+		listOf("fantasy", "sci-fi", "nanowrimo").filter { it.startsWith(prefix, ignoreCase = true) }
 }

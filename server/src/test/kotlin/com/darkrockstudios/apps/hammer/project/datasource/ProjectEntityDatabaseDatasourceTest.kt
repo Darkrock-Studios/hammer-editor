@@ -472,6 +472,25 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 	}
 
 	@Test
+	fun `Load Entity - Stale Cached Hash - Repaired On Read`() = runTest {
+		setupAccount(testDatabase)
+		testDatabase.serverDatabase.projectQueries
+			.createProject(userId, projectDef.name, projectDef.uuid.id)
+
+		// The hash column no longer matches the stored content (e.g. the hash
+		// algorithm changed since the row was written). The content is the truth.
+		val entity = insertSceneEntityRaw(
+			1, "content", contentEncryptor, contentEncryptor.cipherName(),
+			hash = "stale-hash",
+		)
+
+		val datasource = createDatasource()
+
+		assertEquals(entity, loadScene(datasource, 1))
+		assertEquals(entity.hash(), getRow(1).hash)
+	}
+
+	@Test
 	fun `Store Entity - Cipher Is Orthogonal To Hash`() = runTest {
 		val entity = ApiProjectEntity.SceneEntity(
 			id = 1,
@@ -537,6 +556,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		plaintextContent: String,
 		encryptor: ContentEncryptor,
 		cipherTag: String?,
+		hash: String? = null,
 	): ApiProjectEntity.SceneEntity {
 		val entity = ApiProjectEntity.SceneEntity(
 			id = id,
@@ -560,7 +580,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 			type = ApiProjectEntity.Type.SCENE.toStringId(),
 			content = content,
 			cipher = cipherTag,
-			hash = entity.hash(),
+			hash = hash ?: entity.hash(),
 		)
 		return entity
 	}

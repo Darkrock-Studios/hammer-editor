@@ -175,6 +175,11 @@ class BrowseEntriesComponent(
 		return encyclopediaService.findEntryImagePath(entryDef)?.path
 	}
 
+	override suspend fun calculateEntryImageHash(entryDef: EntryDef): String? {
+		return encyclopediaService.findEntryImageExtension(entryDef)
+			?.let { ext -> encyclopediaService.calculateEntryImageHash(entryDef, ext) }
+	}
+
 	override fun clearFilterText() {
 		_filterText.update { "" }
 	}

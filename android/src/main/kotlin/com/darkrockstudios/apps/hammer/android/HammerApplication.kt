@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.android.widgets.StoriesListWidgetReceiver
 import com.darkrockstudios.apps.hammer.android.widgets.StoryInfoWidgetReceiver
 import com.darkrockstudios.apps.hammer.common.BuildConfig
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
+import com.darkrockstudios.apps.hammer.common.logStartupBanner
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
@@ -47,6 +48,7 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 
 		initializeDirectories()
 		Napier.base(FileLogger(scope = applicationScope))
+		logStartupBanner()
 
 		startKoin {
 			logger(NapierLogger())

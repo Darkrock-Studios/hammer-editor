@@ -181,6 +181,11 @@ class StoryEntityDao(
 			queries.getEntity(userId = userId, projectId = projectId, id = id).executeAsOneOrNull()
 		}
 
+	suspend fun updateEntityHash(userId: Long, projectId: Long, id: Long, hash: String) =
+		withContext(ioDispatcher) {
+			queries.updateHash(userId = userId, projectId = projectId, id = id, hash = hash)
+		}
+
 	suspend fun getEntityHash(userId: Long, projectId: Long, id: Long): String? =
 		withContext(ioDispatcher) {
 			queries.getEntityHash(userId = userId, projectId = projectId, id = id)

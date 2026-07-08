@@ -120,7 +120,8 @@ private fun runConvergeDryRun(config: ServerConfig): Int {
 		val report = runBlocking { koinApp.koin.get<EncryptionBootstrap>().dryRun() }
 		println(
 			"Convergence dry run: ${report.total} row(s) off target " +
-				"(${report.storyEntities} entities, ${report.reviewScenes} review scenes)."
+				"(${report.storyEntities} entities, ${report.reviewScenes} review scenes, " +
+				"${report.storyIdeas} ideas)."
 		)
 		if (report.overCapEntities.isEmpty()) {
 			println("No over-cap entities; convergence would complete.")

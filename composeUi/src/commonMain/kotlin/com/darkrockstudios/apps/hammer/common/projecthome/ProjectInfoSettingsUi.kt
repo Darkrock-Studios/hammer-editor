@@ -3,10 +3,25 @@ package com.darkrockstudios.apps.hammer.common.projecthome
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -17,16 +32,42 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSettings
 import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSegmentedPicker
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.parseHexColor
 import com.darkrockstudios.apps.hammer.common.compose.theme.toArgbHex
+import com.darkrockstudios.apps.hammer.project_info_author_label
+import com.darkrockstudios.apps.hammer.project_info_color_picker_cancel
+import com.darkrockstudios.apps.hammer.project_info_color_picker_confirm
+import com.darkrockstudios.apps.hammer.project_info_color_picker_edit
+import com.darkrockstudios.apps.hammer.project_info_tags_hint
+import com.darkrockstudios.apps.hammer.project_info_tags_label
+import com.darkrockstudios.apps.hammer.project_info_tags_placeholder
+import com.darkrockstudios.apps.hammer.project_info_tags_section_title
+import com.darkrockstudios.apps.hammer.project_info_theme_enable_label
+import com.darkrockstudios.apps.hammer.project_info_theme_primary_label
+import com.darkrockstudios.apps.hammer.project_info_theme_secondary_label
+import com.darkrockstudios.apps.hammer.project_info_theme_section_title
+import com.darkrockstudios.apps.hammer.project_info_word_goal_cadence_day
+import com.darkrockstudios.apps.hammer.project_info_word_goal_cadence_label
+import com.darkrockstudios.apps.hammer.project_info_word_goal_cadence_week
+import com.darkrockstudios.apps.hammer.project_info_word_goal_count_label
+import com.darkrockstudios.apps.hammer.project_info_word_goal_effective_label
+import com.darkrockstudios.apps.hammer.project_info_word_goal_effective_unit
+import com.darkrockstudios.apps.hammer.project_info_word_goal_enable_label
+import com.darkrockstudios.apps.hammer.project_info_word_goal_section_title
 import com.github.skydoves.colorpicker.compose.BrightnessSlider
 import com.github.skydoves.colorpicker.compose.ColorEnvelope
 import com.github.skydoves.colorpicker.compose.HsvColorPicker
@@ -191,6 +232,43 @@ internal fun WordCountGoalSection(
 			}
 			EffectivePerDay(perDay = effectivePerDay)
 		}
+	}
+}
+
+@Composable
+internal fun ProjectTagsSection(
+	section: Int,
+	tags: Set<String>,
+	onChange: (Set<String>) -> Unit,
+	suggest: (prefix: String) -> List<String>,
+	modifier: Modifier = Modifier,
+) {
+	var localTags by remember(tags) { mutableStateOf(tags.toList()) }
+
+	HdHairlineSection(
+		modifier = modifier,
+		section = section,
+		title = Res.string.project_info_tags_section_title.get(),
+		headerTrailing = {
+			HdMonoLabel(text = if (localTags.isEmpty()) "NONE" else localTags.size.toString())
+		},
+		contentSpacing = 18.dp,
+	) {
+		HdHairlineTagField(
+			label = Res.string.project_info_tags_label.get(),
+			tags = localTags,
+			onTagsChange = { updated ->
+				// Same rule the component persists with — a chip that won't survive
+				// setTags must not render, or it lingers as a phantom all session.
+				val cleaned = ProjectSettings.cleanProjectTags(updated.toSet())
+				localTags = updated.filter { it in cleaned }
+				onChange(cleaned)
+			},
+			hint = Res.string.project_info_tags_hint.get(),
+			placeholder = Res.string.project_info_tags_placeholder.get(),
+			suggestTags = suggest,
+			testTag = "project-settings-tags",
+		)
 	}
 }
 
@@ -361,6 +439,12 @@ fun ProjectInfoSettingsUi(component: ProjectSettings) {
 			section = 2,
 			goal = state.data.wordCountGoal,
 			onChange = component::setWordCountGoal,
+		)
+		ProjectTagsSection(
+			section = 3,
+			tags = state.data.tags,
+			onChange = component::setTags,
+			suggest = component::suggestProjectTags,
 		)
 	}
 }

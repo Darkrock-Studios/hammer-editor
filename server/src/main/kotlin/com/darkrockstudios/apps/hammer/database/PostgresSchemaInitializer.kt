@@ -91,5 +91,16 @@ object PostgresSchemaInitializer {
 			"ALTER TABLE deleted_project ALTER COLUMN uuid TYPE UUID USING uuid::uuid",
 			0,
 		)
+
+		promoteIdeaColumns(driver)
+	}
+
+	private fun promoteIdeaColumns(driver: SqlDriver) {
+		driver.execute(null, "ALTER TABLE story_idea ALTER COLUMN uuid TYPE UUID USING uuid::uuid", 0)
+		driver.execute(
+			null,
+			"ALTER TABLE deleted_idea ALTER COLUMN uuid TYPE UUID USING uuid::uuid",
+			0,
+		)
 	}
 }

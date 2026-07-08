@@ -1,6 +1,6 @@
 [versions]
 # App Versions
-app = "3.5.3"
+app = "3.6.0"
 data_version = "1.0"
 
 # Kotlin
@@ -33,8 +33,8 @@ androix-junit = "1.3.0"
 junit = "6.1.1"
 clikt = "5.1.0"
 kotlinx_atomicfu = "0.33.0"
-kotlinx_collections_immutable = "0.5.0"
-markdown = "0.7.5"
+kotlinx_collections_immutable = "0.5.1"
+markdown = "0.7.6"
 rtfParserKmp = "0.2.2"
 epub4kmp = "0.3.0"
 pdfkmp = "1.2.0"
@@ -85,7 +85,7 @@ argon2_jvm = "2.12"
 owasp_html_sanitizer = "20260313.1"
 
 sqldelight = "2.3.2"
-postgresql_jdbc = "42.7.12"
+postgresql_jdbc = "42.7.13"
 hikaricp = "7.1.0"
 embedded_postgres = "2.2.2"
 embedded_postgres_binaries = "18.4.0"

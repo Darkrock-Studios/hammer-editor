@@ -14,6 +14,8 @@ val ApiProtocolEnforcerPlugin = createApplicationPlugin("ProtocolEnforcerPlugin"
 		if (firstPathSegment == API_ROUTE_PREFIX) {
 			val clientProtocolVersion = call.request.headers[HAMMER_PROTOCOL_HEADER]?.toIntOrNull()
 			if (clientProtocolVersion != HAMMER_PROTOCOL_VERSION) {
+				// Echo the server's protocol version so the client can tell which side is behind.
+				call.response.headers.append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
 				throw UnsupportedProtocolVersionException(
 					clientProtocolVersion,
 					HAMMER_PROTOCOL_VERSION

@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
+import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.sync_menu_group
@@ -46,6 +47,7 @@ class ProjectRootComponent(
 	private val encyclopediaService: EncyclopediaService by projectInject()
 	private val settingsRepository: GlobalSettingsStore by inject()
 	private val searchProjectUseCase: SearchProjectUseCase by projectInject()
+	private val protocolMismatchRepository: ProtocolMismatchRepository by inject()
 
 	// Retained on this long-lived parent so search state survives the modal being dismissed/reopened
 	// and config changes; stateKeeper carries the query/filter slice across process death.
@@ -148,6 +150,14 @@ class ProjectRootComponent(
 		pendingDeepLink?.let { link ->
 			pendingDeepLink = null
 			navigateToDeepLink(link)
+		}
+
+		scope.launch {
+			protocolMismatchRepository.mismatches.collect { info ->
+				withContext(dispatcherMain) {
+					modalRouter.showProtocolMismatch(info)
+				}
+			}
 		}
 	}
 
