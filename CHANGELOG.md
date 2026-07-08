@@ -1,5 +1,20 @@
 # Changelog
 
+## [3.6.0] - 2026-7-7
+
+[New]
+- Ideas: capture ideas for new stories
+- Project Tags: tag your projects and filter the project list by tag
+- "Move To" dialog for moving a scene to an exact spot
+[Improve]
+- Writing activity reliability improvements
+- More reliable sync with automatic self-healing when data gets out of step
+[Fix]
+- Crash when importing an image on iOS
+- Crash on some Linux systems
+- Notes could revert to an older version during sync
+
+
 ## [3.5.3] - 2026-6-30
 
 - [Fix] Several sync protocol bugs

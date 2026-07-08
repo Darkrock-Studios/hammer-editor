@@ -32,6 +32,21 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.6.0" date="2026-07-07">
+            <description>
+                <p>[New]</p>
+                <p>- Ideas: capture ideas for new stories</p>
+                <p>- Project Tags: tag your projects and filter the project list by tag</p>
+                <p>- &quot;Move To&quot; dialog for moving a scene to an exact spot</p>
+                <p>[Improve]</p>
+                <p>- Writing activity reliability improvements</p>
+                <p>- More reliable sync with automatic self-healing when data gets out of step</p>
+                <p>[Fix]</p>
+                <p>- Crash when importing an image on iOS</p>
+                <p>- Crash on some Linux systems</p>
+                <p>- Notes could revert to an older version during sync</p>
+            </description>
+        </release>
         <release version="3.5.3" date="2026-06-30">
             <description>
                 <p>- [Fix] Several sync protocol bugs</p>
