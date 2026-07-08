@@ -1,6 +1,7 @@
 package repositories.projectsrepository
 
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.isFailure
@@ -122,6 +123,43 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 	}
 
 	@Test
+	fun `Get Projects ignores non-project directories`() = scope.runTest {
+		createProjectDirectories(ffs)
+		val projDir = getProjectsDirectory()
+
+		// Directory without a project.toml
+		ffs.createDirectory(projDir.div("Not A Project"))
+		// Hidden directory
+		ffs.createDirectory(projDir.div(".hidden"))
+		ffs.write(projDir.div(".hidden").div(ProjectMetadata.FILENAME)) { writeUtf8("") }
+		// project.toml exists but is a directory, not a file
+		ffs.createDirectories(projDir.div("Sneaky").div(ProjectMetadata.FILENAME))
+		// project.toml present, but the folder is not a valid project name
+		ffs.createDirectory(projDir.div("bad~name"))
+		ffs.write(projDir.div("bad~name").div(ProjectMetadata.FILENAME)) { writeUtf8("") }
+		// Stray file at the top level
+		ffs.write(projDir.div("stray.txt")) { writeUtf8("") }
+
+		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val projects = repo.getProjects()
+
+		assertEquals(projectNames.toSet(), projects.map { it.name }.toSet())
+	}
+
+	@Test
+	fun `Get Projects decodes encoded folder names`() = scope.runTest {
+		val projDir = getProjectsDirectory()
+		val encodedName = ProjectsRepository.encodeForFilename("Chapter 3: The Fall?")
+		ffs.createDirectories(projDir.div(encodedName))
+		ffs.write(projDir.div(encodedName).div(ProjectMetadata.FILENAME)) { writeUtf8("") }
+
+		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val projects = repo.getProjects()
+
+		assertEquals(listOf("Chapter 3: The Fall?"), projects.map { it.name })
+	}
+
+	@Test
 	fun `Get Project Directory`() = scope.runTest {
 		createProjectDirectories(ffs)
 		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
@@ -150,7 +188,10 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 		val newDef = ProjectDef(projectName, actualProjDir.toHPath())
 		val metadataDatasource = ProjectMetadataDatasource(ffs, toml)
 		val metadataPath = metadataDatasource.getMetadataPath(newDef)
-		ffs.exists(metadataPath.toOkioPath())
+		assertTrue(
+			ffs.exists(metadataPath.toOkioPath()),
+			"createProject must write ${ProjectMetadata.FILENAME} immediately"
+		)
 	}
 
 	@Test
