@@ -286,7 +286,10 @@ tasks.register("prepareForRelease") {
 		}
 
 		// Tag the merge commit explicitly; the main tree stays on develop.
-		git("tag", "-a", releaseInfo.tag, "-m", releaseInfo.changeLog, "release")
+		val tagMessageFile = File(project.rootDir, "build/release-tag-message.txt")
+		tagMessageFile.parentFile.mkdirs()
+		tagMessageFile.writeText(releaseInfo.changeLog)
+		git("tag", "-a", releaseInfo.tag, "-F", tagMessageFile.absolutePath, "release")
 
 		// Push the branches and only this release's tag. Pushing --tags would try
 		// to sync every stale local tag and fail when one already exists on origin.
