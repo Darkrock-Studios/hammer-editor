@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
+import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utilities.loadPemAsKeyStore
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.main
@@ -38,6 +39,7 @@ import io.ktor.util.logging.KtorSimpleLogger
 import kotlinx.coroutines.runBlocking
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.Path
 import okio.Path.Companion.toPath
 import org.koin.core.module.Module
 import org.koin.dsl.koinApplication
@@ -79,7 +81,7 @@ class HammerServerCommand : CliktCommand(name = "Hammer Server") {
 		if (currentContext.invokedSubcommand != null) return
 
 		val logLevel = parseLogLevel(logLevelArg)
-		val config: ServerConfig = configPath?.let { loadConfig(it) } ?: ServerConfig()
+		val config: ServerConfig = resolveServerConfig(configPath)
 
 		config.storage.validate()
 		config.analytics.validate()
@@ -162,9 +164,35 @@ private fun parseLogLevel(logLevelArg: String?): Level? {
 	}
 }
 
-fun loadConfig(path: String): ServerConfig {
-	return FileSystem.SYSTEM.readToml(path.toPath(), Toml { ignoreUnknownKeys = true }, ServerConfig::class)
+const val DEFAULT_CONFIG_FILE_NAME = "config.toml"
+
+private val configLogger = KtorSimpleLogger("HammerServer")
+
+/**
+ * Resolves the server config. An explicit `--config` path always wins. Absent that, a
+ * `config.toml` in the data directory (`~/hammer_data/`) is loaded if present; otherwise
+ * built-in defaults are used. A config file that exists but fails to parse aborts startup
+ * rather than silently falling back to defaults.
+ */
+internal fun resolveServerConfig(
+	configPath: String?,
+	fileSystem: FileSystem = FileSystem.SYSTEM,
+): ServerConfig {
+	if (configPath != null) return loadConfig(fileSystem, configPath.toPath())
+
+	val defaultConfig = getRootDataDirectory(fileSystem) / DEFAULT_CONFIG_FILE_NAME
+	return if (fileSystem.exists(defaultConfig)) {
+		configLogger.info("Loading config from default location: $defaultConfig")
+		loadConfig(fileSystem, defaultConfig)
+	} else {
+		ServerConfig()
+	}
 }
+
+fun loadConfig(path: String): ServerConfig = loadConfig(FileSystem.SYSTEM, path.toPath())
+
+fun loadConfig(fileSystem: FileSystem, path: Path): ServerConfig =
+	fileSystem.readToml(path, Toml { ignoreUnknownKeys = true }, ServerConfig::class)
 
 private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?) {
 	System.setProperty("io.ktor.development", devMode.toString())
