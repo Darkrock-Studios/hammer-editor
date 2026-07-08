@@ -57,10 +57,20 @@ class SceneEditorService(
 	init {
 		projectScope.scope.registerCallback(this)
 		// Autosave persists from the content repo's debounce engine fire here; run the
-		// save side-effects (timestamp + stats) the content repo deliberately doesn't.
+		// save side-effects (writing-activity, timestamp, stats) the content repo
+		// deliberately doesn't. Crediting writing activity here — not only on full
+		// saves — means active typing counts as it happens, instead of waiting for the
+		// next sync, scene switch, or app close to flush the buffer.
 		serviceScope.launch {
 			sceneContentRepository.bufferPersistedFlow.collect { event ->
 				if (event.source == UpdateSource.Editor) {
+					sceneContentRepository.getSceneBuffer(event.sceneId)?.let { buffer ->
+						writingSessionTracker.onSceneSaved(
+							sceneId = event.sceneId,
+							newContent = buffer.content.coerceMarkdown(),
+							source = event.source,
+						)
+					}
 					sceneMetadataRepository.recordSceneActivity(event.sceneId)
 					statisticsRepository.markDirty()
 				}
