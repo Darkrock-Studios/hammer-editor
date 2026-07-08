@@ -1,3 +1,4 @@
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -62,7 +63,9 @@ fun createProjectDirectories(ffs: FakeFileSystem) {
 	val projDir = getProjectsDirectory()
 	ffs.createDirectories(projDir)
 	projectNames.forEach { projectName ->
-		ffs.createDirectory(projDir.div(projectName), true)
+		val dir = projDir.div(projectName)
+		ffs.createDirectory(dir, true)
+		ffs.write(dir.div(ProjectMetadata.FILENAME)) { writeUtf8("") }
 	}
 }
 

@@ -1,22 +1,34 @@
 package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidationResult
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidator
+import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
-import com.darkrockstudios.apps.hammer.common.data.*
+import com.darkrockstudios.apps.hammer.common.data.CResult
+import com.darkrockstudios.apps.hammer.common.data.ClientMessage
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.MAX_FILENAME_LENGTH
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.RECOVERED_PROJECT_NAME
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.encodeForFilename
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.sanitizeFileName
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.validateFileName
+import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.create_project_error_already_exists
+import com.darkrockstudios.apps.hammer.create_project_error_blank
+import com.darkrockstudios.apps.hammer.create_project_error_invalid_characters
+import com.darkrockstudios.apps.hammer.create_project_error_null_filename
+import com.darkrockstudios.apps.hammer.create_project_error_too_long
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
@@ -104,12 +116,18 @@ class ProjectsRepository(
 		return found
 	}
 
+	/**
+	 * A directory is considered a project only if it contains a [ProjectMetadata.FILENAME]
+	 * file and its (decoded) name is a valid project name.
+	 */
 	fun getProjects(projectsDir: HPath = getProjectsDirectory()): List<ProjectDef> {
 		val projPath = projectsDir.toOkioPath()
 		return fileSystem.list(projPath)
-			.filter { fileSystem.metadataOrNull(it)?.isDirectory == true }
 			.filter { it.name.startsWith('.').not() }
+			.filter { fileSystem.metadataOrNull(it)?.isDirectory == true }
+			.filter { fileSystem.metadataOrNull(it / ProjectMetadata.FILENAME)?.isRegularFile == true }
 			.map { path -> ProjectDef(decodeFromFilename(path.name), path.toHPath()) }
+			.filter { validateProjectName(it.name) }
 	}
 
 	/** Returns up to [limit] projects ordered by `metadata.info.lastAccessed` descending, optionally excluding [excludeCurrent]. Projects with unreadable metadata sort last. */
