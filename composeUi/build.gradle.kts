@@ -17,7 +17,6 @@ version = libs.versions.app.get()
 kotlin {
 	jvmToolchain {
 		languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
-		vendor.set(JvmVendorSpec.JETBRAINS)
 	}
 	androidLibrary {
 		namespace = "com.darkrockstudios.apps.hammer.composeui"
