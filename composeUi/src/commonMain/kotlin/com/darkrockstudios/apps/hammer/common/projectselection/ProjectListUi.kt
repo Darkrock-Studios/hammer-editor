@@ -105,7 +105,7 @@ private val NarrowContentPadding: Dp = Ui.Padding.XL
 /** Tags the "Create Project" affordance (masthead button when wide, bottom bar when narrow). */
 const val CreateProjectButtonTestTag = "create-project-button"
 
-private enum class ProjectsSortMode(
+internal enum class ProjectsSortMode(
 	override val labelRes: StringResource,
 	override val glyphRes: StringResource,
 ) : HdSortOption {
@@ -197,6 +197,7 @@ fun ProjectListUi(
 	) {
 		Masthead(
 			entryCount = state.projects.size,
+			showEntryCount = isWide,
 			isServerSynced = state.isServerSynced,
 			onSync = component::showProjectsSync,
 			onCreate = component::showCreate,
@@ -204,6 +205,7 @@ fun ProjectListUi(
 			horizontalPadding = horizontalPadding,
 			sortMode = sortMode,
 			onSortChange = { sortMode = it },
+			showSort = isWide,
 			searchActive = showSearchBar,
 			onToggleSearch = {
 				if (showSearchBar) {
@@ -227,6 +229,9 @@ fun ProjectListUi(
 					query = ""
 				},
 				horizontalPadding = horizontalPadding,
+				showSort = !isWide,
+				sortMode = sortMode,
+				onSortChange = { sortMode = it },
 			)
 		}
 
@@ -311,8 +316,9 @@ fun ProjectListUi(
 }
 
 @Composable
-private fun Masthead(
+internal fun Masthead(
 	entryCount: Int,
+	showEntryCount: Boolean,
 	isServerSynced: Boolean,
 	onSync: () -> Unit,
 	onCreate: () -> Unit,
@@ -320,6 +326,7 @@ private fun Masthead(
 	horizontalPadding: Dp,
 	sortMode: ProjectsSortMode,
 	onSortChange: (ProjectsSortMode) -> Unit,
+	showSort: Boolean,
 	searchActive: Boolean,
 	onToggleSearch: () -> Unit,
 ) {
@@ -336,17 +343,21 @@ private fun Masthead(
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		Spacer(modifier = Modifier.weight(1f))
-		HdMonoLabel(
-			text = entrySummary(entryCount),
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
+		if (showEntryCount) {
+			HdMonoLabel(
+				text = entrySummary(entryCount),
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
 		SearchAffordance(active = searchActive, onClick = onToggleSearch)
-		HdSortMenu(
-			label = Res.string.projects_list_sort_label,
-			options = ProjectsSortMode.entries,
-			selected = sortMode,
-			onSelect = onSortChange,
-		)
+		if (showSort) {
+			HdSortMenu(
+				label = Res.string.projects_list_sort_label,
+				options = ProjectsSortMode.entries,
+				selected = sortMode,
+				onSelect = onSortChange,
+			)
+		}
 		if (isServerSynced) {
 			RefreshAffordance(onClick = onSync)
 		}
@@ -404,12 +415,15 @@ private fun SearchAffordance(active: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun SearchStrip(
+internal fun SearchStrip(
 	query: String,
 	onQueryChange: (String) -> Unit,
 	parsedTags: List<String>,
 	onClose: () -> Unit,
 	horizontalPadding: Dp,
+	showSort: Boolean,
+	sortMode: ProjectsSortMode,
+	onSortChange: (ProjectsSortMode) -> Unit,
 ) {
 	Column(
 		modifier = Modifier
@@ -427,10 +441,23 @@ private fun SearchStrip(
 			modifier = Modifier.fillMaxWidth(),
 			testTag = "projects-list-search",
 		)
-		if (parsedTags.isNotEmpty()) {
-			Row(horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S)) {
+		if (showSort || parsedTags.isNotEmpty()) {
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+			) {
 				parsedTags.forEach { tag ->
 					HdTagChip(label = tag, active = true)
+				}
+				if (showSort) {
+					Spacer(modifier = Modifier.weight(1f))
+					HdSortMenu(
+						label = Res.string.projects_list_sort_label,
+						options = ProjectsSortMode.entries,
+						selected = sortMode,
+						onSelect = onSortChange,
+					)
 				}
 			}
 		}

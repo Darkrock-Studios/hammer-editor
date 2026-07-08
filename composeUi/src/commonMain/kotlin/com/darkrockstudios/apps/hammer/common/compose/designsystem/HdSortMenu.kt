@@ -67,10 +67,14 @@ fun <T : HdSortOption> HdSortMenu(
 			HdMonoLabel(
 				text = stringResource(label),
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				maxLines = 1,
+				softWrap = false,
 			)
 			HdMonoLabel(
 				text = stringResource(selected.glyphRes),
 				color = MaterialTheme.colorScheme.onSurface,
+				maxLines = 1,
+				softWrap = false,
 			)
 		}
 		DropdownMenu(
