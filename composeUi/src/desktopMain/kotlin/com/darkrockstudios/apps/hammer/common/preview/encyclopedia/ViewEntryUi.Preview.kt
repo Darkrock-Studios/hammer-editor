@@ -9,7 +9,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.encyclopedia.ViewEntryUi
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
-import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_TALL_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.fakeViewEntryComponent
@@ -37,7 +37,7 @@ fun ScreenViewEntryUiPreview() {
 }
 
 @OptIn(ExperimentalSharedTransitionApi::class)
-@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_TALL_HEIGHT_DP)
 @Composable
 fun ScreenViewEntryUiTabletPreview() {
 	val scope = rememberCoroutineScope()
