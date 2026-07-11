@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.crowdin
 
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.graphics.toAwtImage
 import androidx.compose.ui.semantics.SemanticsNode
@@ -13,11 +14,17 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.allStringResources
 import com.darkrockstudios.apps.hammer.common.compose.resources.LocalStringKeyRecorder
 import com.darkrockstudios.apps.hammer.common.compose.resources.StringKeyRecorder
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_TALL_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
+import com.darkrockstudios.apps.hammer.common.preview.encyclopedia.ScreenBrowseEntriesUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.encyclopedia.ScreenViewEntryUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.notes.ScreenBrowseNotesUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectSettingsUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectStatsUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.storyideas.ScreenStoryIdeasUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.timeline.ScreenTimeLineOverviewUiTabletPreview
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -30,32 +37,65 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 /**
- * Prototype for the exact Crowdin tag pipeline (stage 1): render a screen, capture
- * every text node's pixel bounds, and map each back to its string resource key.
+ * Stage 1 of the Crowdin screenshot pipeline: render each tablet screen preview,
+ * capture an aligned PNG plus every text node's pixel bounds, and map each node
+ * back to its string resource key.
  *
- * Two mapping sources are compared:
- *  - recorder: keys captured live from `.get()` calls (exact but partial — most of
- *    the app calls `stringResource()` directly).
- *  - table: the full `Res.allStringResources` resolved to English text and reversed,
- *    with `%n$s` templates turned into regexes (covers direct `stringResource()`).
- *
- * Writes JSON to build/crowdin/ for inspection.
+ * Mapping prefers the scoped [StringKeyRecorder] (exact, this-screen-only, fed by
+ * `.get()`), falling back to the full resolved string table and then to
+ * format-string regexes. Writes `<screen>.png` and `<screen>.tags.json` to
+ * build/crowdin/ for the upload task to publish.
  */
 @OptIn(ExperimentalTestApi::class)
 class ScreenshotTagExtractorTest {
 
+	private data class ScreenSpec(
+		val name: String,
+		val height: Int,
+		val content: @Composable () -> Unit,
+	)
+
 	private data class Template(val key: String, val regex: Regex)
 
-	@Test
-	fun extractProjectStatsTags() = runDesktopComposeUiTest(
-		width = TABLET_WIDTH_DP,
-		height = TABLET_TALL_HEIGHT_DP,
-	) {
-		val recorder = StringKeyRecorder()
+	private data class Resolved(val source: String, val keys: List<String>)
 
+	private val screens = listOf(
+		ScreenSpec("ScreenProjectStatsUiTabletPreview", TABLET_TALL_HEIGHT_DP) { ScreenProjectStatsUiTabletPreview() },
+		ScreenSpec("ScreenViewEntryUiTabletPreview", TABLET_TALL_HEIGHT_DP) { ScreenViewEntryUiTabletPreview() },
+		ScreenSpec("ScreenBrowseEntriesUiTabletPreview", TABLET_HEIGHT_DP) { ScreenBrowseEntriesUiTabletPreview() },
+		ScreenSpec("ScreenBrowseNotesUiTabletPreview", TABLET_HEIGHT_DP) { ScreenBrowseNotesUiTabletPreview() },
+		ScreenSpec("ScreenProjectSettingsUiTabletPreview", TABLET_HEIGHT_DP) { ScreenProjectSettingsUiTabletPreview() },
+		ScreenSpec("ScreenStoryIdeasUiTabletPreview", TABLET_HEIGHT_DP) { ScreenStoryIdeasUiTabletPreview() },
+		ScreenSpec("ScreenTimeLineOverviewUiTabletPreview", TABLET_HEIGHT_DP) { ScreenTimeLineOverviewUiTabletPreview() },
+	)
+
+	@Test
+	fun extractAllTabletScreens() {
+		val outDir = File("build/crowdin").apply { mkdirs() }
+		val (tableKeysByText, templates) = buildStringTable()
+
+		var totalTags = 0
+		for (spec in screens) {
+			val result = runCatching { extractScreen(spec, tableKeysByText, templates, outDir) }
+			result.onFailure { println("Crowdin extractor: ${spec.name} FAILED: ${it.message}") }
+			totalTags += result.getOrDefault(0)
+		}
+		println("Crowdin extractor: wrote artifacts for ${screens.size} screens, $totalTags total tags")
+		assertTrue(totalTags > 0, "no tags extracted across any screen")
+	}
+
+	private fun extractScreen(
+		spec: ScreenSpec,
+		tableKeysByText: Map<String, List<String>>,
+		templates: List<Template>,
+		outDir: File,
+	): Int {
+		var result = 0
+		runDesktopComposeUiTest(width = TABLET_WIDTH_DP, height = spec.height) {
+			val recorder = StringKeyRecorder()
 		setContent {
 			CompositionLocalProvider(LocalStringKeyRecorder provides recorder) {
-				ScreenProjectStatsUiTabletPreview()
+				spec.content()
 			}
 		}
 		waitForIdle()
@@ -65,9 +105,73 @@ class ScreenshotTagExtractorTest {
 			recorderKeysByText.getOrPut(normalize(text)) { mutableListOf() }.add(key)
 		}
 
-		// Full resolved string table: normalized English text -> key(s), plus
-		// regex templates for format strings.
-		val tableKeysByText = HashMap<String, MutableList<String>>()
+		val root = onRoot(useUnmergedTree = true).fetchSemanticsNode()
+		val textNodes = mutableListOf<SemanticsNode>()
+		collectTextNodes(root, textNodes)
+
+		var tagCount = 0
+		var ambiguous = 0
+		var unmatched = 0
+		val tagsArr = buildJsonArray {
+			for (node in textNodes) {
+				val text = nodeText(node) ?: continue
+				val resolved = resolveKeys(normalize(text), recorderKeysByText, tableKeysByText, templates)
+				when (resolved.keys.size) {
+					1 -> {
+						tagCount++
+						val b = node.boundsInRoot
+						addJsonObject {
+							put("key", resolved.keys.single())
+							put("text", text)
+							put("source", resolved.source)
+							put("x", b.left.roundToInt())
+							put("y", b.top.roundToInt())
+							put("width", b.width.roundToInt())
+							put("height", b.height.roundToInt())
+						}
+					}
+					0 -> unmatched++
+					else -> ambiguous++
+				}
+			}
+		}
+
+		val report = buildJsonObject {
+			put("screen", spec.name)
+			put("width", TABLET_WIDTH_DP)
+			put("height", spec.height)
+			put("textNodes", textNodes.size)
+			put("tagCount", tagCount)
+			put("ambiguous", ambiguous)
+			put("unmatched", unmatched)
+			put("tags", tagsArr)
+		}
+		File(outDir, "${spec.name}.tags.json").writeText(report.toString())
+
+		val awt = onRoot().captureToImage().toAwtImage()
+		ImageIO.write(awt, "png", File(outDir, "${spec.name}.png"))
+
+			println("Crowdin extractor: ${spec.name} -> $tagCount tags, $ambiguous ambiguous (${awt.width}x${awt.height})")
+			result = tagCount
+		}
+		return result
+	}
+
+	private fun resolveKeys(
+		norm: String,
+		recorderKeysByText: Map<String, List<String>>,
+		tableKeysByText: Map<String, List<String>>,
+		templates: List<Template>,
+	): Resolved {
+		recorderKeysByText[norm]?.let { if (it.isNotEmpty()) return Resolved("recorder", it.distinct()) }
+		tableKeysByText[norm]?.let { if (it.isNotEmpty()) return Resolved("table", it.distinct()) }
+		val t = templates.filter { it.regex.matches(norm) }.map { it.key }.distinct()
+		if (t.isNotEmpty()) return Resolved("template", t)
+		return Resolved("none", emptyList())
+	}
+
+	private fun buildStringTable(): Pair<Map<String, List<String>>, List<Template>> {
+		val byText = HashMap<String, MutableList<String>>()
 		val templates = mutableListOf<Template>()
 		runBlocking {
 			for ((key, resource) in Res.allStringResources) {
@@ -75,78 +179,11 @@ class ScreenshotTagExtractorTest {
 				if (text.contains('%')) {
 					templates.add(Template(key, templateRegex(text)))
 				} else {
-					tableKeysByText.getOrPut(normalize(text)) { mutableListOf() }.add(key)
+					byText.getOrPut(normalize(text)) { mutableListOf() }.add(key)
 				}
 			}
 		}
-
-		val root = onRoot(useUnmergedTree = true).fetchSemanticsNode()
-		val textNodes = mutableListOf<SemanticsNode>()
-		collectTextNodes(root, textNodes)
-
-		var matchedRecorder = 0
-		var matchedTable = 0
-		var matchedTemplate = 0
-		var unmatched = 0
-		val tags = buildJsonArray {
-			for (node in textNodes) {
-				val text = nodeText(node) ?: continue
-				val norm = normalize(text)
-				val bounds = node.boundsInRoot
-
-				// Prefer the scoped recorder (exact, this-screen-only); fall back to the
-				// global resolved table, then to format-string templates.
-				val recorderKeys = recorderKeysByText[norm].orEmpty()
-				val exactKeys = tableKeysByText[norm].orEmpty()
-				val templateKeys = templates.filter { it.regex.matches(norm) }.map { it.key }
-
-				val (source, keys) = when {
-					recorderKeys.isNotEmpty() -> "recorder".also { matchedRecorder++ } to recorderKeys
-					exactKeys.isNotEmpty() -> "table".also { matchedTable++ } to exactKeys
-					templateKeys.isNotEmpty() -> "template".also { matchedTemplate++ } to templateKeys
-					else -> "none".also { unmatched++ } to emptyList()
-				}
-
-				addJsonObject {
-					put("text", text)
-					put("source", source)
-					put("keys", buildJsonArray { keys.forEach { add(it) } })
-					put("x", bounds.left.roundToInt())
-					put("y", bounds.top.roundToInt())
-					put("width", bounds.width.roundToInt())
-					put("height", bounds.height.roundToInt())
-				}
-			}
-		}
-
-		val report = buildJsonObject {
-			put("screen", "ScreenProjectStatsUiTabletPreview")
-			put("surfaceWidth", TABLET_WIDTH_DP)
-			put("surfaceHeight", TABLET_TALL_HEIGHT_DP)
-			put("textNodes", textNodes.size)
-			put("matchedRecorder", matchedRecorder)
-			put("matchedTable", matchedTable)
-			put("matchedTemplate", matchedTemplate)
-			put("unmatched", unmatched)
-			put("tableSize", Res.allStringResources.size)
-			put("tags", tags)
-		}
-
-		val dir = File("build/crowdin").apply { mkdirs() }
-		val jsonFile = File(dir, "ScreenProjectStatsUiTabletPreview.tags.json")
-		jsonFile.writeText(report.toString())
-
-		val awt = onRoot().captureToImage().toAwtImage()
-		val pngFile = File(dir, "ScreenProjectStatsUiTabletPreview.png")
-		ImageIO.write(awt, "png", pngFile)
-
-		println(
-			"Crowdin extractor: ${textNodes.size} text nodes | " +
-				"recorder=$matchedRecorder table=$matchedTable template=$matchedTemplate unmatched=$unmatched"
-		)
-		println("  image ${awt.width}x${awt.height} -> ${pngFile.absolutePath}")
-
-		assertTrue(textNodes.isNotEmpty(), "no text nodes captured")
+		return byText to templates
 	}
 
 	private fun collectTextNodes(node: SemanticsNode, out: MutableList<SemanticsNode>) {
@@ -170,7 +207,6 @@ class ScreenshotTagExtractorTest {
 		while (i < norm.length) {
 			val c = norm[i]
 			if (c == '%') {
-				// Consume a %n$s / %d / %s style placeholder.
 				val end = norm.indexOfFirst(i + 1) { it.isLetter() }
 				sb.append(".+")
 				i = if (end >= 0) end + 1 else norm.length
