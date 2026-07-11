@@ -94,19 +94,18 @@ class ScreenshotTagExtractorTest {
 				val norm = normalize(text)
 				val bounds = node.boundsInRoot
 
+				// Prefer the scoped recorder (exact, this-screen-only); fall back to the
+				// global resolved table, then to format-string templates.
 				val recorderKeys = recorderKeysByText[norm].orEmpty()
 				val exactKeys = tableKeysByText[norm].orEmpty()
-				val templateKeys = if (recorderKeys.isEmpty() && exactKeys.isEmpty()) {
-					templates.filter { it.regex.matches(norm) }.map { it.key }
-				} else emptyList()
+				val templateKeys = templates.filter { it.regex.matches(norm) }.map { it.key }
 
-				val source = when {
-					recorderKeys.isNotEmpty() -> "recorder".also { matchedRecorder++ }
-					exactKeys.isNotEmpty() -> "table".also { matchedTable++ }
-					templateKeys.isNotEmpty() -> "template".also { matchedTemplate++ }
-					else -> "none".also { unmatched++ }
+				val (source, keys) = when {
+					recorderKeys.isNotEmpty() -> "recorder".also { matchedRecorder++ } to recorderKeys
+					exactKeys.isNotEmpty() -> "table".also { matchedTable++ } to exactKeys
+					templateKeys.isNotEmpty() -> "template".also { matchedTemplate++ } to templateKeys
+					else -> "none".also { unmatched++ } to emptyList()
 				}
-				val keys = (recorderKeys + exactKeys + templateKeys).distinct()
 
 				addJsonObject {
 					put("text", text)
