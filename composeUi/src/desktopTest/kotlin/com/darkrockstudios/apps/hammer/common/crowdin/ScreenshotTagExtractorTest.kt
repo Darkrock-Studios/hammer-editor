@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.allStringResources
 import com.darkrockstudios.apps.hammer.common.compose.resources.LocalStringKeyRecorder
 import com.darkrockstudios.apps.hammer.common.compose.resources.StringKeyRecorder
+import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_TALL_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
@@ -22,8 +23,13 @@ import com.darkrockstudios.apps.hammer.common.preview.encyclopedia.ScreenViewEnt
 import com.darkrockstudios.apps.hammer.common.preview.notes.ScreenBrowseNotesUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectSettingsUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectStatsUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectCreateDialogPreview
+import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.storyeditor.ScreenMoveSceneDialogPreview
+import com.darkrockstudios.apps.hammer.common.preview.storyeditor.ScreenOutlineOverviewUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.storyideas.ScreenStoryIdeasUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.timeline.ScreenTimeLineOverviewUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.projectselection.about.ScreenAboutAppUiTabletPreview
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonArray
@@ -37,14 +43,15 @@ import kotlin.test.Test
 import kotlin.test.assertTrue
 
 /**
- * Stage 1 of the Crowdin screenshot pipeline: render each tablet screen preview,
- * capture an aligned PNG plus every text node's pixel bounds, and map each node
- * back to its string resource key.
+ * Stage 1 of the Crowdin screenshot pipeline: render each screen preview, capture
+ * an aligned PNG plus every text node's pixel bounds, and map each node back to its
+ * string resource key.
  *
  * Mapping prefers the scoped [StringKeyRecorder] (exact, this-screen-only, fed by
  * `.get()`), falling back to the full resolved string table and then to
- * format-string regexes. Writes `<screen>.png` and `<screen>.tags.json` to
- * build/crowdin/ for the upload task to publish.
+ * format-string regexes. A string that renders more than once (list rows, grids)
+ * is tagged at its topmost occurrence and skipped thereafter. Writes `<screen>.png`
+ * and `<screen>.tags.json` to build/crowdin/ for the upload task to publish.
  */
 @OptIn(ExperimentalTestApi::class)
 class ScreenshotTagExtractorTest {
@@ -52,6 +59,7 @@ class ScreenshotTagExtractorTest {
 	private data class ScreenSpec(
 		val name: String,
 		val height: Int,
+		val width: Int = TABLET_WIDTH_DP,
 		val content: @Composable () -> Unit,
 	)
 
@@ -67,6 +75,12 @@ class ScreenshotTagExtractorTest {
 		ScreenSpec("ScreenProjectSettingsUiTabletPreview", TABLET_HEIGHT_DP) { ScreenProjectSettingsUiTabletPreview() },
 		ScreenSpec("ScreenStoryIdeasUiTabletPreview", TABLET_HEIGHT_DP) { ScreenStoryIdeasUiTabletPreview() },
 		ScreenSpec("ScreenTimeLineOverviewUiTabletPreview", TABLET_HEIGHT_DP) { ScreenTimeLineOverviewUiTabletPreview() },
+		ScreenSpec("ScreenProjectListUiTabletPreview", TABLET_HEIGHT_DP) { ScreenProjectListUiTabletPreview() },
+		ScreenSpec("ScreenAccountSettingsUiTabletPreview", TABLET_HEIGHT_DP) { ScreenAccountSettingsUiTabletPreview() },
+		ScreenSpec("ScreenAboutAppUiTabletPreview", TABLET_HEIGHT_DP) { ScreenAboutAppUiTabletPreview() },
+		ScreenSpec("ScreenOutlineOverviewUiTabletPreview", TABLET_HEIGHT_DP) { ScreenOutlineOverviewUiTabletPreview() },
+		ScreenSpec("ScreenProjectCreateDialogPreview", 460, width = 720) { ScreenProjectCreateDialogPreview() },
+		ScreenSpec("ScreenMoveSceneDialogPreview", 720, width = 720) { ScreenMoveSceneDialogPreview() },
 	)
 
 	@Test
@@ -91,65 +105,72 @@ class ScreenshotTagExtractorTest {
 		outDir: File,
 	): Int {
 		var result = 0
-		runDesktopComposeUiTest(width = TABLET_WIDTH_DP, height = spec.height) {
+		runDesktopComposeUiTest(width = spec.width, height = spec.height) {
 			val recorder = StringKeyRecorder()
-		setContent {
-			CompositionLocalProvider(LocalStringKeyRecorder provides recorder) {
-				spec.content()
-			}
-		}
-		waitForIdle()
-
-		val recorderKeysByText = HashMap<String, MutableList<String>>()
-		for ((key, text) in recorder.snapshot()) {
-			recorderKeysByText.getOrPut(normalize(text)) { mutableListOf() }.add(key)
-		}
-
-		val root = onRoot(useUnmergedTree = true).fetchSemanticsNode()
-		val textNodes = mutableListOf<SemanticsNode>()
-		collectTextNodes(root, textNodes)
-
-		var tagCount = 0
-		var ambiguous = 0
-		var unmatched = 0
-		val tagsArr = buildJsonArray {
-			for (node in textNodes) {
-				val text = nodeText(node) ?: continue
-				val resolved = resolveKeys(normalize(text), recorderKeysByText, tableKeysByText, templates)
-				when (resolved.keys.size) {
-					1 -> {
-						tagCount++
-						val b = node.boundsInRoot
-						addJsonObject {
-							put("key", resolved.keys.single())
-							put("text", text)
-							put("source", resolved.source)
-							put("x", b.left.roundToInt())
-							put("y", b.top.roundToInt())
-							put("width", b.width.roundToInt())
-							put("height", b.height.roundToInt())
-						}
-					}
-					0 -> unmatched++
-					else -> ambiguous++
+			setContent {
+				CompositionLocalProvider(LocalStringKeyRecorder provides recorder) {
+					spec.content()
 				}
 			}
-		}
+			waitForIdle()
 
-		val report = buildJsonObject {
-			put("screen", spec.name)
-			put("width", TABLET_WIDTH_DP)
-			put("height", spec.height)
-			put("textNodes", textNodes.size)
-			put("tagCount", tagCount)
-			put("ambiguous", ambiguous)
-			put("unmatched", unmatched)
-			put("tags", tagsArr)
-		}
-		File(outDir, "${spec.name}.tags.json").writeText(report.toString())
+			val recorderKeysByText = HashMap<String, MutableList<String>>()
+			for ((key, text) in recorder.snapshot()) {
+				recorderKeysByText.getOrPut(normalize(text)) { mutableListOf() }.add(key)
+			}
 
-		val awt = onRoot().captureToImage().toAwtImage()
-		ImageIO.write(awt, "png", File(outDir, "${spec.name}.png"))
+			val root = onRoot(useUnmergedTree = true).fetchSemanticsNode()
+			val textNodes = mutableListOf<SemanticsNode>()
+			collectTextNodes(root, textNodes)
+
+			// Topmost-first so a repeated string is tagged at its first on-screen row.
+			val ordered = textNodes.sortedWith(
+				compareBy({ it.boundsInRoot.top }, { it.boundsInRoot.left }),
+			)
+			val seen = HashSet<String>()
+			var tagCount = 0
+			var ambiguous = 0
+			var unmatched = 0
+			val tagsArr = buildJsonArray {
+				for (node in ordered) {
+					val text = nodeText(node) ?: continue
+					val resolved = resolveKeys(normalize(text), recorderKeysByText, tableKeysByText, templates)
+					when (resolved.keys.size) {
+						1 -> {
+							val key = resolved.keys.single()
+							if (!seen.add(key)) continue
+							tagCount++
+							val b = node.boundsInRoot
+							addJsonObject {
+								put("key", key)
+								put("text", text)
+								put("source", resolved.source)
+								put("x", b.left.roundToInt())
+								put("y", b.top.roundToInt())
+								put("width", b.width.roundToInt())
+								put("height", b.height.roundToInt())
+							}
+						}
+						0 -> unmatched++
+						else -> ambiguous++
+					}
+				}
+			}
+
+			val report = buildJsonObject {
+				put("screen", spec.name)
+				put("width", spec.width)
+				put("height", spec.height)
+				put("textNodes", textNodes.size)
+				put("tagCount", tagCount)
+				put("ambiguous", ambiguous)
+				put("unmatched", unmatched)
+				put("tags", tagsArr)
+			}
+			File(outDir, "${spec.name}.tags.json").writeText(report.toString())
+
+			val awt = onRoot().captureToImage().toAwtImage()
+			ImageIO.write(awt, "png", File(outDir, "${spec.name}.png"))
 
 			println("Crowdin extractor: ${spec.name} -> $tagCount tags, $ambiguous ambiguous (${awt.width}x${awt.height})")
 			result = tagCount

@@ -29,7 +29,7 @@ import com.darkrockstudios.apps.hammer.create_project_title
  */
 @Preview(widthDp = 720, heightDp = 460)
 @Composable
-fun ProjectCreateDialogPreview() {
+fun ScreenProjectCreateDialogPreview() {
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview, true) {
 			Box(

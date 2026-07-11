@@ -33,7 +33,7 @@ import com.darkrockstudios.apps.hammer.scene_move_dialog_move_button
  */
 @Preview(widthDp = 720, heightDp = 720)
 @Composable
-fun MoveSceneDialogPreview() {
+fun ScreenMoveSceneDialogPreview() {
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview, true) {
 			Box(
