@@ -123,6 +123,39 @@ fun ScreenEncyclopediaUiPreview() {
 	}
 }
 
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenEncyclopediaUiTabletPreview() {
+	val component: Encyclopedia = object : Encyclopedia {
+		override val backHandler = dummyBackHandler
+		override fun onBack() {}
+
+		override val stack: Value<ChildStack<Encyclopedia.Config, Encyclopedia.Destination>>
+			get() = MutableValue(
+				ChildStack(
+					Encyclopedia.Config.BrowseEntriesConfig(
+						fakeProjectDef()
+					),
+					Encyclopedia.Destination.BrowseEntriesDestination(
+						browseEntriesComponent
+					)
+				)
+			)
+
+		override fun showBrowse() {}
+		override fun showViewEntry(entryDef: EntryDef) {}
+		override fun showCreateEntry() {}
+		override fun isAtRoot() = true
+		override fun shouldConfirmClose() = emptySet<CloseConfirm>()
+	}
+	val rootSnackbar = rememberRootSnackbarHostState()
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			EncyclopediaUi(component, rootSnackbar)
+		}
+	}
+}
+
 private val fakeCreateEntryComponent: CreateEntry = object : CreateEntry {
 	override val state: Value<CreateEntry.State>
 		get() = MutableValue(CreateEntry.State(fakeProjectDef()))

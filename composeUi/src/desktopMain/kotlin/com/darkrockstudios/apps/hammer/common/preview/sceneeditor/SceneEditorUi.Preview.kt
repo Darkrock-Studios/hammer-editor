@@ -17,6 +17,9 @@ import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
+import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.fakeSceneItem
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.SceneEditorUi
 import kotlinx.coroutines.CoroutineScope
@@ -30,6 +33,18 @@ fun ScreenSceneEditorUiPreview() {
 		val component = fakeComponent()
 		val rootSnackbar = rememberRootSnackbarHostState()
 		SceneEditorUi(component, rootSnackbar)
+	}
+}
+
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenSceneEditorUiTabletPreview() {
+	KoinApplicationPreview {
+		val component = fakeComponent()
+		val rootSnackbar = rememberRootSnackbarHostState()
+		TabletPreviewSurface {
+			SceneEditorUi(component, rootSnackbar)
+		}
 	}
 }
 

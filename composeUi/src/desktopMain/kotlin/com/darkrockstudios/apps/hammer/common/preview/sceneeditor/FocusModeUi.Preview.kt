@@ -8,6 +8,9 @@ import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
+import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.preview.fakeSceneItem
 import com.darkrockstudios.apps.hammer.common.storyeditor.focusmode.FocusModeUi
@@ -16,6 +19,14 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.focusmode.FocusModeUi
 @Composable
 fun ScreenFocusModeUiPreview() {
 	FocusModeUi(focusMode)
+}
+
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenFocusModeUiTabletPreview() {
+	TabletPreviewSurface {
+		FocusModeUi(focusMode)
+	}
 }
 
 private val focusMode = object : FocusMode {

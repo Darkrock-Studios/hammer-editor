@@ -53,6 +53,21 @@ fun ScreenStoryIdeasViewPreview() {
 	}
 }
 
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenStoryIdeasViewTabletPreview() {
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			StoryIdeasUi(
+				component = fakeComponent(
+					editor = StoryIdeas.Editor.Edit(previewIdeas.first()),
+				),
+				rootSnackbar = rememberRootSnackbarHostState(),
+			)
+		}
+	}
+}
+
 private val previewIdeas = listOf(
 	StoryIdea(
 		id = IdeaId("0198c9a1-7b2e-7c43-9f6a-2d8e41b0a55c"),

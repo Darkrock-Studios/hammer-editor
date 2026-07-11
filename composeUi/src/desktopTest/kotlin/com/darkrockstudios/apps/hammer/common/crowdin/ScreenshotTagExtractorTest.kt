@@ -15,20 +15,28 @@ import com.darkrockstudios.apps.hammer.allStringResources
 import com.darkrockstudios.apps.hammer.common.compose.resources.LocalStringKeyRecorder
 import com.darkrockstudios.apps.hammer.common.compose.resources.StringKeyRecorder
 import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.ScreenEncyclopediaUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.ScreenSceneListUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_TALL_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.encyclopedia.ScreenBrowseEntriesUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.encyclopedia.ScreenViewEntryUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.notes.ScreenBrowseNotesUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.notes.ScreenViewNoteUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectSettingsUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectStatsUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectCreateDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.ScreenDraftsListUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.ScreenFocusModeUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.ScreenSceneEditorUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.storyeditor.ScreenMoveSceneDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.storyeditor.ScreenOutlineOverviewUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.storyideas.ScreenStoryIdeasUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.storyideas.ScreenStoryIdeasViewTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.timeline.ScreenTimeLineOverviewUiTabletPreview
+import com.darkrockstudios.apps.hammer.common.preview.timeline.ScreenViewTimeLineEventUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.projectselection.about.ScreenAboutAppUiTabletPreview
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.add
@@ -80,6 +88,14 @@ class ScreenshotTagExtractorTest {
 		ScreenSpec("ScreenAccountSettingsUiTabletPreview", TABLET_HEIGHT_DP) { ScreenAccountSettingsUiTabletPreview() },
 		ScreenSpec("ScreenAboutAppUiTabletPreview", TABLET_HEIGHT_DP) { ScreenAboutAppUiTabletPreview() },
 		ScreenSpec("ScreenOutlineOverviewUiTabletPreview", TABLET_HEIGHT_DP) { ScreenOutlineOverviewUiTabletPreview() },
+		ScreenSpec("ScreenEncyclopediaUiTabletPreview", TABLET_HEIGHT_DP) { ScreenEncyclopediaUiTabletPreview() },
+		ScreenSpec("ScreenSceneListUiTabletPreview", TABLET_HEIGHT_DP) { ScreenSceneListUiTabletPreview() },
+		ScreenSpec("ScreenSceneEditorUiTabletPreview", TABLET_HEIGHT_DP) { ScreenSceneEditorUiTabletPreview() },
+		ScreenSpec("ScreenFocusModeUiTabletPreview", TABLET_HEIGHT_DP) { ScreenFocusModeUiTabletPreview() },
+		ScreenSpec("ScreenDraftsListUiTabletPreview", TABLET_HEIGHT_DP) { ScreenDraftsListUiTabletPreview() },
+		ScreenSpec("ScreenViewNoteUiTabletPreview", TABLET_HEIGHT_DP) { ScreenViewNoteUiTabletPreview() },
+		ScreenSpec("ScreenViewTimeLineEventUiTabletPreview", TABLET_HEIGHT_DP) { ScreenViewTimeLineEventUiTabletPreview() },
+		ScreenSpec("ScreenStoryIdeasViewTabletPreview", TABLET_HEIGHT_DP) { ScreenStoryIdeasViewTabletPreview() },
 		ScreenSpec("ScreenProjectCreateDialogPreview", 460, width = 720) { ScreenProjectCreateDialogPreview() },
 		ScreenSpec("ScreenMoveSceneDialogPreview", 720, width = 720) { ScreenMoveSceneDialogPreview() },
 	)
@@ -124,6 +140,10 @@ class ScreenshotTagExtractorTest {
 	): Int {
 		var result = 0
 		runDesktopComposeUiTest(width = spec.width, height = spec.height) {
+			// Infinite animations (text-editor cursor blink, shimmers, spinners) never
+			// let the clock go idle, so waitForIdle() would hang. Stop auto-advancing
+			// so it settles composition/layout only.
+			mainClock.autoAdvance = false
 			val recorder = StringKeyRecorder()
 			setContent {
 				CompositionLocalProvider(LocalStringKeyRecorder provides recorder) {
