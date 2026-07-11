@@ -125,7 +125,10 @@ tasks.register("uploadCrowdinScreenshots") {
 			val png = File(dir, pngName)
 			val rawTags = parsed["tags"] as List<*>
 
+			// Crowdin allows one tag per string per screenshot; keep the first
+			// (topmost) placed occurrence of each string.
 			val tags = mutableListOf<Map<String, Any>>()
+			val seen = HashSet<Long>()
 			var missing = 0
 			for (t in rawTags) {
 				val tm = t as Map<*, *>
@@ -137,6 +140,7 @@ tasks.register("uploadCrowdinScreenshots") {
 				val y = (tm["y"] as Number).toInt()
 				if (sid == null) { missing++; continue }
 				if (w <= 0 || h <= 0 || x < 0 || y < 0) continue
+				if (!seen.add(sid)) continue
 				tags.add(mapOf("stringId" to sid, "position" to mapOf("x" to x, "y" to y, "width" to w, "height" to h)))
 			}
 			totalTags += tags.size
@@ -147,7 +151,7 @@ tasks.register("uploadCrowdinScreenshots") {
 
 			val storageId = (dataOf(send("POST", "$base/storages", null, png.readBytes(), pngName))["id"] as Number).toLong()
 			val screenshotId = idByName[pngName]?.also {
-				send("PUT", "$base/projects/$projectId/screenshots/$it", JsonOutput.toJson(mapOf("storageId" to storageId)))
+				send("PUT", "$base/projects/$projectId/screenshots/$it", JsonOutput.toJson(mapOf("storageId" to storageId, "name" to pngName)))
 			} ?: run {
 				val body = mutableMapOf<String, Any>("storageId" to storageId, "name" to pngName, "autoTag" to false)
 				if (branchProp != null) body["branchId"] = branchProp
