@@ -17,5 +17,11 @@ internal object InstantColumnAdapter : ColumnAdapter<Instant, OffsetDateTime> {
 		databaseValue.toInstant().toKotlinInstant()
 
 	override fun encode(value: Instant): OffsetDateTime =
-		OffsetDateTime.ofInstant(value.toJavaInstant(), ZoneOffset.UTC)
+		// `Instant.MIN`/`MAX` reach further than an `OffsetDateTime`'s `LocalDate` can hold, so an
+		// out-of-range value (e.g. a garbage client-supplied sync time) would throw DateTimeException.
+		// The distant-past/future sentinels are the only meaningful values out here and both round-trip.
+		OffsetDateTime.ofInstant(
+			value.coerceIn(Instant.DISTANT_PAST, Instant.DISTANT_FUTURE).toJavaInstant(),
+			ZoneOffset.UTC,
+		)
 }
