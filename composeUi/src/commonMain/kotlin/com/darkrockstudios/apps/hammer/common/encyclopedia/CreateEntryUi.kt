@@ -2,14 +2,31 @@ package com.darkrockstudios.apps.hammer.common.encyclopedia
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -19,17 +36,55 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
-import com.darkrockstudios.apps.hammer.common.compose.*
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.CollapseWhileTyping
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
+import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineImageDrop
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTypePicker
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
+import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.retryingFileDialog
+import com.darkrockstudios.apps.hammer.common.compose.stageIntoCache
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_cancel_button
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_cover_art_label
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_create_button
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_description_label
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_discard_title
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_draft_marker
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_header
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_attached
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_browse_button
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_drop_hint
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_load_failed
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_replace
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_too_large
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_name_label
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_name_placeholder
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_section_marker
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_hint
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_label
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_placeholder
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_alias_too_long
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_invalid_name
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_success
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_tag_too_long
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_tag_too_short
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_too_long
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
 import io.github.vinceglb.filekit.dialogs.FileKitType
@@ -63,6 +118,26 @@ internal fun CreateEntryUi(
 	var selectedType by rememberSaveable { mutableStateOf(EntryType.PERSON) }
 
 	var imagePath by remember { mutableStateOf<PlatformFile?>(null) }
+
+	suspend fun applyImage(picked: PlatformFile) {
+		if (picked.size() > EncyclopediaDatasource.MAX_IMAGE_SIZE_BYTES) {
+			rootSnackbar.showSnackbar(
+				strRes.get(
+					Res.string.encyclopedia_create_entry_image_too_large,
+					EncyclopediaDatasource.MAX_IMAGE_SIZE_MB,
+				)
+			)
+		} else {
+			val localCopy = withContext(dispatcherIo) { picked.stageIntoCache() }
+			if (localCopy != null) {
+				imagePath = localCopy
+			} else {
+				rootSnackbar.showSnackbar(
+					strRes.get(Res.string.encyclopedia_create_entry_image_load_failed)
+				)
+			}
+		}
+	}
 
 	BoxWithConstraints(
 		modifier = Modifier.fillMaxSize().padding(Ui.Padding.XL),
@@ -144,27 +219,15 @@ internal fun CreateEntryUi(
 							val picked = retryingFileDialog {
 								FileKit.openFilePicker(type = FileKitType.File(EncyclopediaDatasource.IMAGE_EXTENSIONS))
 							}
-							if (picked != null && picked.size() > EncyclopediaDatasource.MAX_IMAGE_SIZE_BYTES) {
-								rootSnackbar.showSnackbar(
-									strRes.get(
-										Res.string.encyclopedia_create_entry_image_too_large,
-										EncyclopediaDatasource.MAX_IMAGE_SIZE_MB,
-									)
-								)
-							} else if (picked != null) {
-								val localCopy = withContext(dispatcherIo) { picked.stageIntoCache() }
-								if (localCopy != null) {
-									imagePath = localCopy
-								} else {
-									rootSnackbar.showSnackbar(
-										strRes.get(Res.string.encyclopedia_create_entry_image_load_failed)
-									)
-								}
-							} else {
-								imagePath = null
-							}
+							if (picked != null) applyImage(picked)
 						}
 					},
+					onFilesDropped = { files ->
+						files.firstOrNull()?.let { file ->
+							scope.launch { applyImage(file) }
+						}
+					},
+					dropExtensions = EncyclopediaDatasource.IMAGE_EXTENSIONS,
 					dropHint = Res.string.encyclopedia_create_entry_image_drop_hint.get(),
 					browseLabel = Res.string.encyclopedia_create_entry_image_browse_button.get(),
 					attachedLabel = Res.string.encyclopedia_create_entry_image_attached.get(),
