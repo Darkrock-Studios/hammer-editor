@@ -31,6 +31,7 @@ import com.darkrockstudios.apps.hammer.common.preview.storyideas.ScreenStoryIdea
 import com.darkrockstudios.apps.hammer.common.preview.timeline.ScreenTimeLineOverviewUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.projectselection.about.ScreenAboutAppUiTabletPreview
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.addJsonObject
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -88,12 +89,28 @@ class ScreenshotTagExtractorTest {
 		val outDir = File("build/crowdin").apply { mkdirs() }
 		val (tableKeysByText, templates) = buildStringTable()
 
+		val unmatchedByScreen = LinkedHashMap<String, List<String>>()
 		var totalTags = 0
 		for (spec in screens) {
-			val result = runCatching { extractScreen(spec, tableKeysByText, templates, outDir) }
+			val result = runCatching { extractScreen(spec, tableKeysByText, templates, outDir, unmatchedByScreen) }
 			result.onFailure { println("Crowdin extractor: ${spec.name} FAILED: ${it.message}") }
 			totalTags += result.getOrDefault(0)
 		}
+
+		val lint = buildString {
+			appendLine("# Untranslated on-screen text (candidates)")
+			appendLine()
+			appendLine("Text rendered on a screen that maps to no string resource. Filter out fake")
+			appendLine("preview data (names, dates); the rest are likely hardcoded UI strings.")
+			for ((screen, texts) in unmatchedByScreen) {
+				if (texts.isEmpty()) continue
+				appendLine()
+				appendLine("## $screen")
+				texts.forEach { appendLine("- ${it.replace("\n", " ")}") }
+			}
+		}
+		File(outDir, "_untranslated-candidates.md").writeText(lint)
+
 		println("Crowdin extractor: wrote artifacts for ${screens.size} screens, $totalTags total tags")
 		assertTrue(totalTags > 0, "no tags extracted across any screen")
 	}
@@ -103,6 +120,7 @@ class ScreenshotTagExtractorTest {
 		tableKeysByText: Map<String, List<String>>,
 		templates: List<Template>,
 		outDir: File,
+		unmatchedByScreen: MutableMap<String, List<String>>,
 	): Int {
 		var result = 0
 		runDesktopComposeUiTest(width = spec.width, height = spec.height) {
@@ -130,7 +148,9 @@ class ScreenshotTagExtractorTest {
 			val seen = HashSet<String>()
 			var tagCount = 0
 			var ambiguous = 0
-			var unmatched = 0
+			// On-screen text that maps to no string resource — likely hardcoded UI
+			// strings (or fake preview data, which the reader filters out).
+			val unmatchedText = LinkedHashSet<String>()
 			val tagsArr = buildJsonArray {
 				for (node in ordered) {
 					val text = nodeText(node) ?: continue
@@ -151,7 +171,7 @@ class ScreenshotTagExtractorTest {
 								put("height", b.height.roundToInt())
 							}
 						}
-						0 -> unmatched++
+						0 -> if (looksLikeLabel(text)) unmatchedText.add(text.trim())
 						else -> ambiguous++
 					}
 				}
@@ -164,15 +184,16 @@ class ScreenshotTagExtractorTest {
 				put("textNodes", textNodes.size)
 				put("tagCount", tagCount)
 				put("ambiguous", ambiguous)
-				put("unmatched", unmatched)
+				put("unmatched", buildJsonArray { unmatchedText.forEach { add(it) } })
 				put("tags", tagsArr)
 			}
 			File(outDir, "${spec.name}.tags.json").writeText(report.toString())
+			unmatchedByScreen[spec.name] = unmatchedText.toList()
 
 			val awt = onRoot().captureToImage().toAwtImage()
 			ImageIO.write(awt, "png", File(outDir, "${spec.name}.png"))
 
-			println("Crowdin extractor: ${spec.name} -> $tagCount tags, $ambiguous ambiguous (${awt.width}x${awt.height})")
+			println("Crowdin extractor: ${spec.name} -> $tagCount tags, $ambiguous ambiguous, ${unmatchedText.size} unmatched (${awt.width}x${awt.height})")
 			result = tagCount
 		}
 		return result
@@ -219,6 +240,10 @@ class ScreenshotTagExtractorTest {
 
 	private fun normalize(text: String): String =
 		text.trim().replace(Regex("\\s+"), " ").lowercase()
+
+	/** Filters out numbers/dates/symbols so the unmatched list is mostly real labels. */
+	private fun looksLikeLabel(text: String): Boolean =
+		text.count { it.isLetter() } >= 2
 
 	/** Turns a resolved format string like "created: %1$s" into a matching regex. */
 	private fun templateRegex(text: String): Regex {
