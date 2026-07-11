@@ -6,7 +6,9 @@ import io.github.vinceglb.filekit.PlatformFile
 
 /**
  * Accepts files dragged onto this element from outside the app. Implemented on desktop and
- * Android; a no-op on platforms without external file drag-and-drop.
+ * Android. A no-op on iOS: Compose exposes no public API for the drop-session payload
+ * (`DragAndDropEvent.dropSessionContext` is internal), so reading dropped files needs a native
+ * `UIDropInteraction` path not yet built here.
  *
  * @param enabled when false the modifier is inert.
  * @param extensions lowercase extensions (without the dot) to accept; empty accepts any. Applied
