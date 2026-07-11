@@ -75,7 +75,17 @@ import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
 import com.darkrockstudios.apps.hammer.common.protocolmismatch.ProtocolMismatchDialog
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
 import com.darkrockstudios.apps.hammer.project_select_project_list_empty
+import com.darkrockstudios.apps.hammer.projects_list_column_last_open
+import com.darkrockstudios.apps.hammer.projects_list_column_title
 import com.darkrockstudios.apps.hammer.projects_list_create_button
+import com.darkrockstudios.apps.hammer.projects_list_empty_index
+import com.darkrockstudios.apps.hammer.projects_list_entry_count_none
+import com.darkrockstudios.apps.hammer.projects_list_entry_count_one
+import com.darkrockstudios.apps.hammer.projects_list_entry_count_other
+import com.darkrockstudios.apps.hammer.projects_list_footer_library
+import com.darkrockstudios.apps.hammer.projects_list_footer_local
+import com.darkrockstudios.apps.hammer.projects_list_footer_sync_on
+import com.darkrockstudios.apps.hammer.projects_list_masthead_title
 import com.darkrockstudios.apps.hammer.projects_list_no_matches
 import com.darkrockstudios.apps.hammer.projects_list_search_button
 import com.darkrockstudios.apps.hammer.projects_list_search_clear
@@ -339,7 +349,7 @@ internal fun Masthead(
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
 		HdMonoLabel(
-			text = "Hammer · Library",
+			text = Res.string.projects_list_masthead_title.get(),
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		Spacer(modifier = Modifier.weight(1f))
@@ -508,13 +518,13 @@ private fun ColumnHeader(showLastOpen: Boolean) {
 				modifier = Modifier.width(40.dp),
 			)
 			HdMonoLabel(
-				text = "Title",
+				text = Res.string.projects_list_column_title.get(),
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 				modifier = Modifier.weight(1f),
 			)
 			if (showLastOpen) {
 				HdMonoLabel(
-					text = "Last Open",
+					text = Res.string.projects_list_column_last_open.get(),
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 			}
@@ -538,7 +548,7 @@ private fun EmptyState(horizontalPadding: Dp) {
 		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
 		HdMonoLabel(
-			text = "— Empty Index —",
+			text = Res.string.projects_list_empty_index.get(),
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		Text(
@@ -569,12 +579,16 @@ private fun FooterFolio(
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
 		HdMonoLabel(
-			text = "Library",
+			text = Res.string.projects_list_footer_library.get(),
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		Spacer(modifier = Modifier.weight(1f))
 		HdMonoLabel(
-			text = if (isServerSynced) "Sync · On" else "Local",
+			text = if (isServerSynced) {
+				Res.string.projects_list_footer_sync_on.get()
+			} else {
+				Res.string.projects_list_footer_local.get()
+			},
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		HdMonoLabel(
@@ -625,10 +639,11 @@ private fun BottomCreateBar(
 	}
 }
 
+@Composable
 private fun entrySummary(count: Int): String = when (count) {
-	0 -> "0 entries"
-	1 -> "1 entry"
-	else -> "$count entries"
+	0 -> Res.string.projects_list_entry_count_none.get()
+	1 -> Res.string.projects_list_entry_count_one.get()
+	else -> Res.string.projects_list_entry_count_other.get(count)
 }
 
 @Composable
