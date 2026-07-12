@@ -20,7 +20,8 @@
 	<string name="sync_conflict">Conflito</string>
 	<string name="sync_conflict_local_entry">Entrada local:</string>
 	<string name="sync_conflict_local_use_button">Usar Local</string>
-	<string name="sync_conflict_merge_explained">Você pode manter a cópia local ou remota como são, ou pode mesclá-las manualmente, copiando partes da versão remota para a sua cópia local, e em seguida, aceitando-as.</string>
+	<string name="sync_conflict_merge_explained">Você pode manter a cópia local ou remota como são, ou pode mesclá-las manualmente, copiando partes da versão remota para a sua cópia local, e em seguida, aceitando-as.
+	</string>
 	<string name="sync_conflict_remote_entry">Registro remoto:</string>
 	<string name="sync_conflict_remote_use_button">Usar remoto</string>
 	<string name="sync_conflict_encyclopedia_title">Conflito de Entrada da Enciclopédia</string>
@@ -185,7 +186,8 @@
 	<string name="reauth_server_email">E-mail</string>
 	<string name="server_setup_help_title">Sobre Servidores de Sincronização</string>
 	<string name="server_setup_help_icon_description">Saiba mais sobre servidores de sincronização</string>
-	<string name="server_setup_help_intro">Servidores de Sincronização para o Hammer permitem que você trabalhe em seus projetos de vários dispositivos. Eles vão sincronizar seu trabalho entre todos os dispositivos que você configurar com o mesmo servidor.</string>
+	<string name="server_setup_help_intro">Servidores de Sincronização para o Hammer permitem que você trabalhe em seus projetos de vários dispositivos. Eles vão sincronizar seu trabalho entre todos os dispositivos que você configurar com o mesmo servidor.
+	</string>
 	<string name="server_setup_help_official_header">Servidor Oficial</string>
 	<string name="server_setup_help_official_body">Você pode executar seu próprio servidor de sincronização, mas se isso for muito técnico, ou você só quer dar suporte ao projeto, nós executamos um servidor oficial no hammer. nk</string>
 	<string name="server_setup_help_patreon">Se você se inscrever no nosso Patreon, você terá acesso ao servidor oficial. Esta é a melhor maneira de apoiar este projeto</string>
