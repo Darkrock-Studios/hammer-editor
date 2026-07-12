@@ -67,9 +67,11 @@
 	<string name="settings_dnd_permission_button">Conceder permissão de Não Perturbe</string>
 	<string name="settings_dnd_permission_explanation">O Hammer precisa de permissão para ativar o modo Não Perturbe quando você está no Modo de Foco</string>
 	<string name="settings_storage_public_label">Store projects in public storage</string>
-	<string name="settings_storage_public_hint">Keep your projects in the shared Documents folder so other apps and your file manager can reach them.</string>
+	<string name="settings_storage_public_hint">Keep your projects in the shared Documents folder so other apps and your file manager can reach them.
+	</string>
 	<string name="settings_storage_location_label">Projects Location</string>
-	<string name="settings_storage_permission_explanation">Hammer needs file access permission to store projects in public storage.</string>
+	<string name="settings_storage_permission_explanation">Hammer needs file access permission to store projects in public storage.
+	</string>
 	<string name="settings_storage_permission_button">Grant File Access</string>
 	<string name="notice_experimental_label">Experimental</string>
 	<string name="settings_spellcheck_heading">Corretor Ortográfico</string>
@@ -119,10 +121,14 @@
 	<!-- Server Setup Toast Messages -->
 	<string name="settings_server_setup_toast_success">Servidor configurado com sucesso!</string>
 	<string name="settings_server_setup_toast_failure">Configuração do servidor falhou: %1$s</string>
-	<string name="settings_server_setup_toast_failure_unknown">Configuração do servidor falhou. Por favor, verifique sua conexão e tente novamente.</string>
+	<string name="settings_server_setup_toast_failure_unknown">Configuração do servidor falhou. Por favor, verifique sua conexão e tente novamente.
+	</string>
 	<!-- Network Errors -->
-	<string name="server_error_connection_timeout">Não foi possível conectar ao servidor. Verifique se o servidor está rodando e se o endereço está correto.</string>
-	<string name="server_error_timeout">O servidor não está respondendo. Verifique sua conexão com a \'internet\' e tente novamente.</string>
+	<string name="server_error_connection_timeout">Não foi possível conectar ao servidor. Verifique se o servidor está rodando e se o endereço está correto.
+	</string>
+	<string name="server_error_timeout">O servidor não está respondendo. Verifique sua conexão com a \'internet\' e tente novamente.
+	</string>
 	<string name="server_error_dns">Servidor não encontrado. Verifique o endereço do servidor e sua conexão de \'internet\'.</string>
-	<string name="server_error_connection_generic">Erro de rede ao conectar-se a %1$s. Verifique sua conexão e tente novamente.</string>
+	<string name="server_error_connection_generic">Erro de rede ao conectar-se a %1$s. Verifique sua conexão e tente novamente.
+	</string>
 </resources>
