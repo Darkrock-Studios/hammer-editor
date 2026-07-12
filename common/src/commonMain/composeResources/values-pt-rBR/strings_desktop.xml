@@ -5,17 +5,13 @@
 	<string name="project_window_menu_file">Arquivo</string>
 	<string name="project_window_menu_item_close">Fechar Projeto</string>
 	<string name="project_window_menu_item_exit">Sair</string>
-	<string name="jump_list_recent_projects">Recent Projects</string>
+	<string name="jump_list_recent_projects">Projetos Recentes</string>
 	<!-- Sandbox first-run projects-directory flow (Mac App Store builds) -->
-	<string name="sandbox_intro_title">Welcome to Hammer</string>
-	<string name="sandbox_intro_message">Hammer stores your projects in a folder you choose, so your writing stays in
-		your hands.\n\nOn the next screen, pick an existing hammer projects folder or create a new one. You can change
-		this later in Settings.
-	</string>
-	<string name="sandbox_picker_title">Choose where to store your Hammer projects</string>
-	<string name="sandbox_choose_folder_button">Choose Folder</string>
-	<string name="sandbox_quit_button">Quit</string>
-	<string name="sandbox_retry_message">Hammer needs a folder to store your projects.\nChoose a folder now, or quit.
-	</string>
-	<string name="splash_subtitle">A simple tool for building stories.</string>
+	<string name="sandbox_intro_title">Boas-vindas ao Hammer</string>
+	<string name="sandbox_intro_message">O Hammer armazena seus projetos em uma pasta que você escolher, para que seus escritos fiquem em suas mãos.\n\nNa próxima tela, escolha uma pasta de projetos do Hammer existente ou crie uma nova. Você pode mudar isso depois nas Configurações.</string>
+	<string name="sandbox_picker_title">Escolha onde armazenar seus projetos do Hammer</string>
+	<string name="sandbox_choose_folder_button">Escolher Pasta</string>
+	<string name="sandbox_quit_button">Sair</string>
+	<string name="sandbox_retry_message">O Hammer precisa de uma pasta para armazenar seus projetos.\nEscolha uma pasta agora ou saia.</string>
+	<string name="splash_subtitle">Uma ferramenta simples para construir histórias.</string>
 </resources>
