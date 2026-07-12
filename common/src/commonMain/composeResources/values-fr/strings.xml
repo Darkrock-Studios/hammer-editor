@@ -38,4 +38,5 @@
 	<string name="markdown_format_bar_horizontal_rule">Ligne horizontale</string>
 	<string name="markdown_format_bar_undo">Annuler</string>
 	<string name="markdown_format_bar_redo">Refaire</string>
+	<string name="form_dialog_keyboard_hint">ESC cancel</string>
 </resources>
