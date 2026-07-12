@@ -12,14 +12,15 @@ import androidx.compose.runtime.staticCompositionLocalOf
  * nodes' bounds.
  */
 class StringKeyRecorder {
-	private val lock = Any()
+	// Written only from the single composition thread during a render; read via
+	// [snapshot] after the render is idle. Not safe under parallel composition.
 	private val entries = LinkedHashSet<Pair<String, String>>()
 
 	fun record(key: String, text: String) {
-		synchronized(lock) { entries.add(key to text) }
+		entries.add(key to text)
 	}
 
-	fun snapshot(): List<Pair<String, String>> = synchronized(lock) { entries.toList() }
+	fun snapshot(): List<Pair<String, String>> = entries.toList()
 }
 
 val LocalStringKeyRecorder = staticCompositionLocalOf<StringKeyRecorder?> { null }

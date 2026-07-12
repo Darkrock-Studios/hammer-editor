@@ -167,6 +167,10 @@ class ScreenshotTagExtractorTest {
 				compareBy({ it.boundsInRoot.top }, { it.boundsInRoot.left }),
 			)
 			val seen = HashSet<String>()
+			// Same text mapping to several keys (e.g. a title and a button both
+			// "Create Project"): assign successive on-screen occurrences to successive
+			// keys, recorder order approximating top-to-bottom visual order.
+			val groupUse = HashMap<String, Int>()
 			var tagCount = 0
 			var ambiguous = 0
 			// On-screen text that maps to no string resource — likely hardcoded UI
@@ -176,24 +180,30 @@ class ScreenshotTagExtractorTest {
 				for (node in ordered) {
 					val text = nodeText(node) ?: continue
 					val resolved = resolveKeys(normalize(text), recorderKeysByText, tableKeysByText, templates)
-					when (resolved.keys.size) {
-						1 -> {
-							val key = resolved.keys.single()
-							if (!seen.add(key)) continue
-							tagCount++
-							val b = node.boundsInRoot
-							addJsonObject {
-								put("key", key)
-								put("text", text)
-								put("source", resolved.source)
-								put("x", b.left.roundToInt())
-								put("y", b.top.roundToInt())
-								put("width", b.width.roundToInt())
-								put("height", b.height.roundToInt())
-							}
-						}
-						0 -> if (looksLikeLabel(text)) unmatchedText.add(text.trim())
-						else -> ambiguous++
+					if (resolved.keys.isEmpty()) {
+						if (looksLikeLabel(text)) unmatchedText.add(text.trim())
+						continue
+					}
+					val key = if (resolved.keys.size == 1) {
+						resolved.keys.single()
+					} else {
+						val sig = resolved.keys.joinToString(" ")
+						val idx = groupUse.getOrDefault(sig, 0)
+						groupUse[sig] = idx + 1
+						ambiguous++
+						resolved.keys[minOf(idx, resolved.keys.size - 1)]
+					}
+					if (!seen.add(key)) continue
+					tagCount++
+					val b = node.boundsInRoot
+					addJsonObject {
+						put("key", key)
+						put("text", text)
+						put("source", resolved.source)
+						put("x", b.left.roundToInt())
+						put("y", b.top.roundToInt())
+						put("width", b.width.roundToInt())
+						put("height", b.height.roundToInt())
 					}
 				}
 			}
@@ -228,6 +238,13 @@ class ScreenshotTagExtractorTest {
 	): Resolved {
 		recorderKeysByText[norm]?.let { if (it.isNotEmpty()) return Resolved("recorder", it.distinct()) }
 		tableKeysByText[norm]?.let { if (it.isNotEmpty()) return Resolved("table", it.distinct()) }
+		// Masthead labels bake a decorative glyph into the text node (e.g. "§ MOVE",
+		// "↓ Import"); retry against the label after dropping the leading decoration.
+		val stripped = norm.dropWhile { !it.isLetterOrDigit() }
+		if (stripped.isNotEmpty() && stripped != norm) {
+			recorderKeysByText[stripped]?.let { if (it.isNotEmpty()) return Resolved("recorder", it.distinct()) }
+			tableKeysByText[stripped]?.let { if (it.isNotEmpty()) return Resolved("table", it.distinct()) }
+		}
 		val t = templates.filter { it.regex.matches(norm) }.map { it.key }.distinct()
 		if (t.isNotEmpty()) return Resolved("template", t)
 		return Resolved("none", emptyList())
@@ -240,7 +257,13 @@ class ScreenshotTagExtractorTest {
 			for ((key, resource) in Res.allStringResources) {
 				val text = runCatching { getString(resource) }.getOrNull() ?: continue
 				if (text.contains('%')) {
-					templates.add(Template(key, templateRegex(text)))
+					// A format string whose only literal content is a separator (e.g.
+					// "%1$s · %2$s") matches arbitrary data, so it produces false tags;
+					// keep templates that carry at least one literal character.
+					val literal = text.replace(Regex("%\\d*\\$?[a-zA-Z]"), "")
+					if (literal.count { it.isLetterOrDigit() } >= 1) {
+						templates.add(Template(key, templateRegex(text)))
+					}
 				} else {
 					byText.getOrPut(normalize(text)) { mutableListOf() }.add(key)
 				}
