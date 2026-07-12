@@ -15,7 +15,6 @@ import com.darkrockstudios.apps.hammer.allStringResources
 import com.darkrockstudios.apps.hammer.common.compose.resources.LocalStringKeyRecorder
 import com.darkrockstudios.apps.hammer.common.compose.resources.StringKeyRecorder
 import com.darkrockstudios.apps.hammer.common.preview.ScreenAccountSettingsUiTabletPreview
-import com.darkrockstudios.apps.hammer.common.preview.ScreenEncyclopediaUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.ScreenSceneListUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_TALL_HEIGHT_DP
@@ -29,7 +28,6 @@ import com.darkrockstudios.apps.hammer.common.preview.projecthome.ScreenProjectS
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectCreateDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.projectselection.ScreenProjectListUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.ScreenDraftsListUiTabletPreview
-import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.ScreenFocusModeUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.sceneeditor.ScreenSceneEditorUiTabletPreview
 import com.darkrockstudios.apps.hammer.common.preview.storyeditor.ScreenMoveSceneDialogPreview
 import com.darkrockstudios.apps.hammer.common.preview.storyeditor.ScreenOutlineOverviewUiTabletPreview
@@ -88,10 +86,13 @@ class ScreenshotTagExtractorTest {
 		ScreenSpec("ScreenAccountSettingsUiTabletPreview", TABLET_HEIGHT_DP) { ScreenAccountSettingsUiTabletPreview() },
 		ScreenSpec("ScreenAboutAppUiTabletPreview", TABLET_HEIGHT_DP) { ScreenAboutAppUiTabletPreview() },
 		ScreenSpec("ScreenOutlineOverviewUiTabletPreview", TABLET_HEIGHT_DP) { ScreenOutlineOverviewUiTabletPreview() },
-		ScreenSpec("ScreenEncyclopediaUiTabletPreview", TABLET_HEIGHT_DP) { ScreenEncyclopediaUiTabletPreview() },
+		// EncyclopediaUi roots a SharedTransitionLayout, which invalidates draw every
+		// frame so the harness never goes idle. Its strings are covered by the
+		// BrowseEntries and ViewEntry twins.
 		ScreenSpec("ScreenSceneListUiTabletPreview", TABLET_HEIGHT_DP) { ScreenSceneListUiTabletPreview() },
 		ScreenSpec("ScreenSceneEditorUiTabletPreview", TABLET_HEIGHT_DP) { ScreenSceneEditorUiTabletPreview() },
-		ScreenSpec("ScreenFocusModeUiTabletPreview", TABLET_HEIGHT_DP) { ScreenFocusModeUiTabletPreview() },
+		// FocusMode is a distraction-free editor: an icon-only toolbar and an empty
+		// text pane, so it has no translatable strings to tag.
 		ScreenSpec("ScreenDraftsListUiTabletPreview", TABLET_HEIGHT_DP) { ScreenDraftsListUiTabletPreview() },
 		ScreenSpec("ScreenViewNoteUiTabletPreview", TABLET_HEIGHT_DP) { ScreenViewNoteUiTabletPreview() },
 		ScreenSpec("ScreenViewTimeLineEventUiTabletPreview", TABLET_HEIGHT_DP) { ScreenViewTimeLineEventUiTabletPreview() },
