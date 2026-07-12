@@ -150,3 +150,5 @@ kover {
 		}
 	}
 }
+
+apply(from = "crowdin-screenshots.gradle.kts")

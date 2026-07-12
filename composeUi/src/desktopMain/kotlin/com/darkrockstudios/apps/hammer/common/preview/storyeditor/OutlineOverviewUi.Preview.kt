@@ -8,6 +8,9 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.outlineover
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
+import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.fakeProjectDef
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import com.darkrockstudios.apps.hammer.common.storyeditor.OutlineOverviewContent
@@ -17,6 +20,16 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.OutlineOverviewContent
 fun ScreenOutlineOverviewUiPreview() {
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview) {
+			OutlineOverviewContent(component, onDismiss = {})
+		}
+	}
+}
+
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenOutlineOverviewUiTabletPreview() {
+	KoinApplicationPreview {
+		TabletPreviewSurface {
 			OutlineOverviewContent(component, onDismiss = {})
 		}
 	}

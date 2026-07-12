@@ -47,7 +47,6 @@ import com.darkrockstudios.apps.hammer.project_settings_hero_by
 import com.darkrockstudios.apps.hammer.project_settings_hero_marker
 import com.darkrockstudios.apps.hammer.project_settings_hero_no_author
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_section_title
-import org.jetbrains.compose.resources.stringResource
 
 private val MaxColumnWidth = 880.dp
 
@@ -202,7 +201,7 @@ private fun Hero(
 		val by = if (authorName.isNullOrBlank()) {
 			Res.string.project_settings_hero_no_author.get()
 		} else {
-			stringResource(Res.string.project_settings_hero_by, authorName)
+			Res.string.project_settings_hero_by.get(authorName)
 		}
 		Text(
 			text = by,
@@ -230,14 +229,14 @@ private fun FolioCaption(
 		horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
 	) {
 		HdMonoLabel(
-			text = stringResource(Res.string.project_settings_folio_caption, projectName),
+			text = Res.string.project_settings_folio_caption.get(projectName),
 		)
 		HdMonoLabel(
 			text = "·",
 			color = MaterialTheme.colorScheme.outlineVariant,
 		)
 		HdMonoLabel(
-			text = stringResource(Res.string.project_settings_folio_section_count, sectionCount),
+			text = Res.string.project_settings_folio_section_count.get(sectionCount),
 		)
 	}
 }

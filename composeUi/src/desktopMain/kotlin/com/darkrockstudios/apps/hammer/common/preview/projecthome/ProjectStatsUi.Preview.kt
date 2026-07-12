@@ -24,7 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDe
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
-import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_TALL_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.dummyBackHandler
@@ -57,7 +57,7 @@ fun ScreenProjectStatsUiPreview() {
 	}
 }
 
-@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_TALL_HEIGHT_DP)
 @Composable
 fun ScreenProjectStatsUiTabletPreview() {
 	val scope = rememberCoroutineScope()

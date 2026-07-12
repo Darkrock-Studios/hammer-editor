@@ -1,3 +1,6 @@
+project_id_env: CROWDIN_PROJECT_ID
+api_token_env: CROWDIN_PERSONAL_TOKEN
+
 files:
   - source: /common/src/commonMain/composeResources/values/strings*.xml
     translation: /common/src/commonMain/composeResources/values-%android_code%/%original_file_name%

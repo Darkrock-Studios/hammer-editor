@@ -28,7 +28,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import org.jetbrains.compose.resources.stringResource
 
 private val DialogMaxWidth = 480.dp
 
@@ -105,8 +104,7 @@ fun ProjectDeleteDialog(
 						label = "CONFIRM NAME",
 						value = confirmationText,
 						onValueChange = { confirmationText = it },
-						placeholder = stringResource(
-							Res.string.delete_project_confirm_hint,
+						placeholder = Res.string.delete_project_confirm_hint.get(
 							projectDef.name,
 						),
 						hint = projectDef.name,

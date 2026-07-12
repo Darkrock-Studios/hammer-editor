@@ -24,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.sceneTypeMeta
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.MoveSceneDialogBody
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.MoveSceneDialogState
 import com.darkrockstudios.apps.hammer.scene_move_dialog_dismiss_button
+import com.darkrockstudios.apps.hammer.scene_move_dialog_marker
 import com.darkrockstudios.apps.hammer.scene_move_dialog_move_button
 
 /**
@@ -33,7 +34,7 @@ import com.darkrockstudios.apps.hammer.scene_move_dialog_move_button
  */
 @Preview(widthDp = 720, heightDp = 720)
 @Composable
-fun MoveSceneDialogPreview() {
+fun ScreenMoveSceneDialogPreview() {
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview, true) {
 			Box(
@@ -47,7 +48,7 @@ fun MoveSceneDialogPreview() {
 				val state = remember(tree, item) { MoveSceneDialogState(item, tree) }
 
 				FormDialogScaffold(
-					marker = "§ MOVE",
+					marker = "§ ${Res.string.scene_move_dialog_marker.get().uppercase()}",
 					meta = sceneTypeMeta(item),
 					title = item.name,
 					confirmLabel = Res.string.scene_move_dialog_move_button.get(),

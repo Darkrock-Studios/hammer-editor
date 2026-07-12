@@ -39,6 +39,24 @@ fun ScreenSceneListUiPreview() {
 	}
 }
 
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenSceneListUiTabletPreview() {
+	val snackbarHostState = rememberRootSnackbarHostState()
+
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			val component = fakeComponent(
+				SceneList.State(
+					projectDef = fakeProjectDef(),
+					sceneSummary = fakeSceneSummary()
+				)
+			)
+			SceneListUi(component, snackbarHostState)
+		}
+	}
+}
+
 private fun fakeSceneSummary(): SceneSummary {
 	val tree = Tree<SceneItem>()
 	val root = TreeNode(fakeScene(0, 0, SceneItem.Type.Root))

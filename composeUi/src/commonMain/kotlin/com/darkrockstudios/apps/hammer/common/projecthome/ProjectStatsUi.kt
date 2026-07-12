@@ -56,7 +56,6 @@ import io.github.koalaplot.core.util.generateHueColorPalette
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
-import org.jetbrains.compose.resources.stringResource
 import kotlin.random.Random
 import kotlin.time.Clock
 
@@ -150,7 +149,7 @@ private fun DashboardHeader(
 				if (state.isStatsDirty) {
 					Icon(
 						Icons.Default.Warning,
-						contentDescription = stringResource(Res.string.project_home_stats_dirty_indicator),
+						contentDescription = Res.string.project_home_stats_dirty_indicator.get(),
 						tint = MaterialTheme.colorScheme.tertiary,
 						modifier = Modifier.size(18.dp),
 					)
@@ -162,7 +161,7 @@ private fun DashboardHeader(
 				) {
 					Icon(
 						Icons.Default.Refresh,
-						contentDescription = stringResource(Res.string.project_home_refresh_stats_button),
+						contentDescription = Res.string.project_home_refresh_stats_button.get(),
 						tint = if (state.isLoadingStats) {
 							MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
 						} else {
@@ -173,7 +172,7 @@ private fun DashboardHeader(
 				IconButton(onClick = { component.showProjectSettings() }) {
 					Icon(
 						Icons.Default.Settings,
-						contentDescription = stringResource(Res.string.project_home_action_settings_button),
+						contentDescription = Res.string.project_home_action_settings_button.get(),
 						tint = MaterialTheme.colorScheme.primary,
 					)
 				}
@@ -181,7 +180,7 @@ private fun DashboardHeader(
 			}
 		}
 		HdMonoLabel(
-			text = stringResource(Res.string.project_home_stat_created, state.created),
+			text = Res.string.project_home_stat_created.get(state.created),
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 	}
@@ -265,7 +264,7 @@ private fun LoadingRow() {
 		)
 		Spacer(Modifier.width(12.dp))
 		Text(
-			stringResource(Res.string.project_home_loading_stats),
+			Res.string.project_home_loading_stats.get(),
 			style = MaterialTheme.typography.bodyMedium,
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
@@ -297,11 +296,11 @@ private fun StatsStrip(state: ProjectHome.State, isWide: Boolean) {
 @Composable
 private fun TotalWordsBlock(state: ProjectHome.State, modifier: Modifier = Modifier) {
 	HdStatBlock(
-		label = stringResource(Res.string.project_home_stat_total_words),
+		label = Res.string.project_home_stat_total_words.get(),
 		value = state.totalWords.formatDecimalSeparator(),
 		subtitle = if (state.totalWords > 0) {
-			stringResource(Res.string.project_home_stat_reading_time, estimateReadingMinutes(state.totalWords)) +
-				" · " + stringResource(Res.string.project_home_stat_pages, estimatePages(state.totalWords))
+			Res.string.project_home_stat_reading_time.get(estimateReadingMinutes(state.totalWords)) +
+				" · " + Res.string.project_home_stat_pages.get(estimatePages(state.totalWords))
 		} else null,
 		modifier = modifier,
 	) {
@@ -311,12 +310,10 @@ private fun TotalWordsBlock(state: ProjectHome.State, modifier: Modifier = Modif
 				WordCountGoal.Cadence.DAY -> state.writingActivity.wordsToday
 				WordCountGoal.Cadence.WEEK -> state.writingActivity.wordsThisWeek
 			}
-			val label = stringResource(
-				when (goal.cadence) {
+			val label = (when (goal.cadence) {
 					WordCountGoal.Cadence.DAY -> Res.string.project_home_stat_daily_goal
 					WordCountGoal.Cadence.WEEK -> Res.string.project_home_stat_weekly_goal
-				}
-			)
+				}).get()
 			Spacer(Modifier.height(4.dp))
 			HdDailyGoalProgress(
 				current = current,
@@ -331,7 +328,7 @@ private fun TotalWordsBlock(state: ProjectHome.State, modifier: Modifier = Modif
 @Composable
 private fun ThisWeekBlock(activity: WritingActivityDerived, modifier: Modifier = Modifier) {
 	HdStatBlock(
-		label = stringResource(Res.string.project_home_stat_this_week),
+		label = Res.string.project_home_stat_this_week.get(),
 		value = "+${activity.wordsThisWeek.formatDecimalSeparator()}",
 		valueColor = MaterialTheme.colorScheme.primary,
 		modifier = modifier,
@@ -339,22 +336,22 @@ private fun ThisWeekBlock(activity: WritingActivityDerived, modifier: Modifier =
 		val pct = activity.weekChangePercent
 		when {
 			pct == null -> HdMonoLabel(
-				text = stringResource(Res.string.project_home_stat_week_change_new),
+				text = Res.string.project_home_stat_week_change_new.get(),
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
 			pct == 0 -> HdMonoLabel(
-				text = stringResource(Res.string.project_home_stat_week_change_flat),
+				text = Res.string.project_home_stat_week_change_flat.get(),
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
 			else -> HdDeltaBadge(percent = pct.toFloat(), suffix = "vs last week")
 		}
 		Spacer(Modifier.height(4.dp))
 		HdInlineStat(
-			label = stringResource(Res.string.project_home_stat_today),
+			label = Res.string.project_home_stat_today.get(),
 			value = activity.wordsToday.formatDecimalSeparator(),
 		)
 		HdInlineStat(
-			label = stringResource(Res.string.project_home_stat_daily_avg),
+			label = Res.string.project_home_stat_daily_avg.get(),
 			value = activity.dailyAverageThisWeek.formatDecimalSeparator(),
 		)
 	}
@@ -363,22 +360,21 @@ private fun ThisWeekBlock(activity: WritingActivityDerived, modifier: Modifier =
 @Composable
 private fun StreakBlock(activity: WritingActivityDerived, modifier: Modifier = Modifier) {
 	HdStatBlock(
-		label = stringResource(Res.string.project_home_stat_streak),
-		value = stringResource(Res.string.project_home_stat_streak_days, activity.currentStreak),
-		subtitle = stringResource(Res.string.project_home_stat_longest_streak, activity.longestStreak),
+		label = Res.string.project_home_stat_streak.get(),
+		value = Res.string.project_home_stat_streak_days.get(activity.currentStreak),
+		subtitle = Res.string.project_home_stat_longest_streak.get(activity.longestStreak),
 		modifier = modifier,
 	) {
 		Spacer(Modifier.height(4.dp))
 		HdInlineStat(
-			label = stringResource(Res.string.project_home_stat_days_written),
+			label = Res.string.project_home_stat_days_written.get(),
 			value = activity.daysWritten.formatDecimalSeparator(),
 		)
 		val best = activity.bestDayInStreak
 		if (best != null) {
 			HdInlineStat(
-				label = stringResource(Res.string.project_home_stat_best_day),
-				value = stringResource(
-					Res.string.project_home_stat_best_day_value,
+				label = Res.string.project_home_stat_best_day.get(),
+				value = Res.string.project_home_stat_best_day_value.get(
 					best.date.toString(),
 					best.words.formatDecimalSeparator(),
 				),
@@ -414,28 +410,27 @@ private fun StructureSection(
 	) {
 		val scenes: @Composable () -> Unit = {
 			HdStatBlock(
-				label = stringResource(Res.string.project_home_stat_num_scenes),
+				label = Res.string.project_home_stat_num_scenes.get(),
 				value = state.numberOfScenes.formatDecimalSeparator(),
 				subtitle = "across $chapterCount chapters",
 			)
 		}
 		val avgPerScene: @Composable () -> Unit = {
 			HdStatBlock(
-				label = stringResource(Res.string.project_home_stat_avg_words_per_scene),
+				label = Res.string.project_home_stat_avg_words_per_scene.get(),
 				value = state.averageWordsPerScene.formatDecimalSeparator(),
 				subtitle = if (state.medianSceneWords > 0)
-					"${stringResource(Res.string.project_home_stat_scene_median).lowercase()} ${state.medianSceneWords.formatDecimalSeparator()}"
+					"${Res.string.project_home_stat_scene_median.get().lowercase()} ${state.medianSceneWords.formatDecimalSeparator()}"
 				else null,
 			)
 		}
 		val longestScene: @Composable () -> Unit = {
 			SceneCallout(
-				label = stringResource(Res.string.project_home_stat_longest_scene),
-				sceneName = state.longestSceneName ?: stringResource(Res.string.project_home_stat_longest_scene_empty),
+				label = Res.string.project_home_stat_longest_scene.get(),
+				sceneName = state.longestSceneName ?: Res.string.project_home_stat_longest_scene_empty.get(),
 				sceneId = state.longestSceneId,
 				footnote = if (state.longestSceneWords > 0)
-					stringResource(
-						Res.string.project_home_stat_longest_scene_words,
+					Res.string.project_home_stat_longest_scene_words.get(
 						state.longestSceneWords.formatDecimalSeparator()
 					)
 				else null,
@@ -444,7 +439,7 @@ private fun StructureSection(
 		}
 		val lastEditedScene: @Composable (String) -> Unit = { name ->
 			SceneCallout(
-				label = stringResource(Res.string.project_home_stat_last_edited_scene),
+				label = Res.string.project_home_stat_last_edited_scene.get(),
 				sceneName = name,
 				sceneId = state.lastEditedSceneId,
 				footnote = null,
@@ -453,14 +448,14 @@ private fun StructureSection(
 		}
 		val notes: @Composable () -> Unit = {
 			HdStatBlock(
-				label = stringResource(Res.string.project_home_stat_num_notes),
+				label = Res.string.project_home_stat_num_notes.get(),
 				value = state.numberOfNotes.formatDecimalSeparator(),
 				valueStyle = MaterialTheme.typography.displayMedium,
 			)
 		}
 		val events: @Composable () -> Unit = {
 			HdStatBlock(
-				label = stringResource(Res.string.project_home_stat_num_timeline_events),
+				label = Res.string.project_home_stat_num_timeline_events.get(),
 				value = state.numberOfTimelineEvents.formatDecimalSeparator(),
 				valueStyle = MaterialTheme.typography.displayMedium,
 				valueColor = MaterialTheme.colorScheme.primary,
@@ -518,12 +513,11 @@ private fun StructureSection(
 			Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
 				HdSectionHeader(
 					marker = "—",
-					title = stringResource(Res.string.project_home_stat_chapter_words),
+					title = Res.string.project_home_stat_chapter_words.get(),
 					modifier = Modifier.fillMaxWidth(),
 					trailing = {
 						HdMonoLabel(
-							text = stringResource(
-								Res.string.project_home_stat_chapter_words_summary,
+							text = Res.string.project_home_stat_chapter_words_summary.get(
 								state.sceneWordsStdDev,
 								chapterStats.min,
 								chapterStats.max,
@@ -532,10 +526,9 @@ private fun StructureSection(
 						)
 					},
 				)
-				val chapterAxis = stringResource(Res.string.project_home_stat_chapter_words_x_axis)
+				val chapterAxis = Res.string.project_home_stat_chapter_words_x_axis.get()
 				val chapterTooltips = state.wordsByChapter.values.mapIndexed { index, words ->
-					stringResource(
-						Res.string.project_home_stat_chapter_words_tooltip,
+					Res.string.project_home_stat_chapter_words_tooltip.get(
 						"$chapterAxis ${index + 1}",
 						words.formatDecimalSeparator(),
 					)
@@ -594,7 +587,7 @@ private fun InhabitantsSection(
 		HdResponsiveStrip(isWide = isWide) {
 			Column(modifier = Modifier.cell(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
 				HdMonoLabel(
-					text = stringResource(Res.string.project_home_stat_characters_appearances),
+					text = Res.string.project_home_stat_characters_appearances.get(),
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 				if (attributions.isNotEmpty()) {
@@ -605,7 +598,7 @@ private fun InhabitantsSection(
 			}
 			Column(modifier = Modifier.cell(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
 				HdMonoLabel(
-					text = stringResource(Res.string.project_home_stat_encyclopedia_entries),
+					text = Res.string.project_home_stat_encyclopedia_entries.get(),
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 				EncyclopediaDonut(
@@ -615,14 +608,14 @@ private fun InhabitantsSection(
 				)
 				if (state.totalEntryConnections > 0) {
 					HdMonoLabel(
-						text = stringResource(Res.string.project_home_stat_connections, state.totalEntryConnections),
+						text = Res.string.project_home_stat_connections.get(state.totalEntryConnections),
 						color = MaterialTheme.colorScheme.onSurfaceVariant,
 					)
 				}
 			}
 			Column(modifier = Modifier.cell(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
 				HdMonoLabel(
-					text = stringResource(Res.string.project_home_stat_activity, DEFAULT_HEATMAP_WEEKS),
+					text = Res.string.project_home_stat_activity.get(DEFAULT_HEATMAP_WEEKS),
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 				if (state.dailyWordTotals.isNotEmpty()) {
@@ -633,12 +626,12 @@ private fun InhabitantsSection(
 					)
 					Spacer(Modifier.height(4.dp))
 					HdInlineStat(
-						label = stringResource(Res.string.project_home_stat_avg_weekday),
+						label = Res.string.project_home_stat_avg_weekday.get(),
 						value = state.writingActivity.avgWeekday.formatDecimalSeparator(),
 						valueStyle = MaterialTheme.typography.titleSmall,
 					)
 					HdInlineStat(
-						label = stringResource(Res.string.project_home_stat_avg_weekend),
+						label = Res.string.project_home_stat_avg_weekend.get(),
 						value = state.writingActivity.avgWeekend.formatDecimalSeparator(),
 						valueStyle = MaterialTheme.typography.titleSmall,
 					)
@@ -673,15 +666,13 @@ private fun colorForTagSource(source: TaggedEntityType): Color {
 private fun connectiveBreadthCaption(connective: TagBreakdown, short: Boolean): String {
 	val isAllFour = connective.breadth >= THEMES_SOURCE_ORDER.size
 	return when {
-		isAllFour && short -> stringResource(Res.string.project_home_stat_themes_all_four_short)
-		isAllFour -> stringResource(Res.string.project_home_stat_themes_all_four, connective.total)
-		short -> stringResource(
-			Res.string.project_home_stat_themes_breadth_of_four_short,
+		isAllFour && short -> Res.string.project_home_stat_themes_all_four_short.get()
+		isAllFour -> Res.string.project_home_stat_themes_all_four.get(connective.total)
+		short -> Res.string.project_home_stat_themes_breadth_of_four_short.get(
 			connective.breadth,
 		)
 
-		else -> stringResource(
-			Res.string.project_home_stat_themes_breadth_of_four,
+		else -> Res.string.project_home_stat_themes_breadth_of_four.get(
 			connective.breadth,
 			connective.total,
 		)
@@ -689,14 +680,12 @@ private fun connectiveBreadthCaption(connective: TagBreakdown, short: Boolean): 
 }
 
 @Composable
-private fun labelForTagSource(source: TaggedEntityType): String = stringResource(
-	when (source) {
+private fun labelForTagSource(source: TaggedEntityType): String = (when (source) {
 		TaggedEntityType.Scene -> Res.string.project_home_stat_themes_source_scenes
 		TaggedEntityType.Note -> Res.string.project_home_stat_themes_source_notes
 		TaggedEntityType.Encyclopedia -> Res.string.project_home_stat_themes_source_encyclopedia
 		TaggedEntityType.TimelineEvent -> Res.string.project_home_stat_themes_source_events
-	}
-)
+	}).get()
 
 @Composable
 private fun ThemesStackedBar(
@@ -748,11 +737,10 @@ private fun ThemesSection(
 
 	HdHairlineSection(
 		section = 3,
-		title = stringResource(Res.string.project_home_stat_themes_title),
+		title = Res.string.project_home_stat_themes_title.get(),
 		headerTrailing = {
 			HdMonoLabel(
-				text = stringResource(
-					Res.string.project_home_stat_themes_summary,
+				text = Res.string.project_home_stat_themes_summary.get(
 					tags.size,
 					totalUses,
 				),
@@ -810,14 +798,13 @@ private fun ThemesSectionWide(
 				horizontalArrangement = Arrangement.SpaceBetween,
 			) {
 				HdMonoLabel(
-					text = stringResource(
-						Res.string.project_home_stat_themes_showing,
+					text = Res.string.project_home_stat_themes_showing.get(
 						top.size,
 						tags.size,
 					),
 				)
 				HdMonoLabel(
-					text = stringResource(Res.string.project_home_stat_themes_columns_legend),
+					text = Res.string.project_home_stat_themes_columns_legend.get(),
 				)
 			}
 		}
@@ -841,7 +828,7 @@ private fun ThemesSectionWide(
 				color = MaterialTheme.colorScheme.outlineVariant,
 				modifier = Modifier.padding(vertical = 8.dp),
 			)
-			HdMonoLabel(text = stringResource(Res.string.project_home_stat_themes_distribution))
+			HdMonoLabel(text = Res.string.project_home_stat_themes_distribution.get())
 			Column(
 				modifier = Modifier.fillMaxWidth(),
 				verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -891,7 +878,7 @@ private fun ThemesRankedRow(rank: Int, tag: TagBreakdown, max: Int, onClick: () 
 			)
 		}
 		HdMonoLabel(
-			text = stringResource(Res.string.project_home_stat_themes_breadth, tag.breadth),
+			text = Res.string.project_home_stat_themes_breadth.get(tag.breadth),
 			modifier = Modifier.width(36.dp),
 			textAlign = TextAlign.End,
 		)
@@ -912,7 +899,7 @@ private fun ThemesRankedRow(rank: Int, tag: TagBreakdown, max: Int, onClick: () 
 
 @Composable
 private fun ThemesConnectiveCallout(connective: TagBreakdown?, onClick: (() -> Unit)?) {
-	HdMonoLabel(text = stringResource(Res.string.project_home_stat_themes_most_connective))
+	HdMonoLabel(text = Res.string.project_home_stat_themes_most_connective.get())
 	if (connective == null) return
 	Row(
 		modifier = Modifier
@@ -1010,7 +997,7 @@ private fun ThemesSectionNarrow(
 				verticalAlignment = Alignment.CenterVertically,
 			) {
 				Column(modifier = Modifier.weight(1f)) {
-					HdMonoLabel(text = stringResource(Res.string.project_home_stat_themes_most_connective))
+					HdMonoLabel(text = Res.string.project_home_stat_themes_most_connective.get())
 					Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
 						Text(
 							text = "#",
@@ -1094,7 +1081,7 @@ private fun ThemesSectionNarrow(
 		color = rule,
 		modifier = Modifier.padding(vertical = 12.dp),
 	)
-	HdMonoLabel(text = stringResource(Res.string.project_home_stat_themes_distribution))
+	HdMonoLabel(text = Res.string.project_home_stat_themes_distribution.get())
 	val distMax = tagUsesByType.values.maxOrNull()?.coerceAtLeast(1) ?: 1
 	val distributionCells: List<@Composable () -> Unit> = THEMES_SOURCE_ORDER.map { source ->
 		val count = tagUsesByType[source] ?: 0
@@ -1158,7 +1145,7 @@ private fun ThemesDistributionCellNarrow(source: TaggedEntityType, count: Int, f
 private fun DevicesSection(state: ProjectHome.State) {
 	HdHairlineSection(
 		section = 4,
-		title = stringResource(Res.string.project_home_stat_words_per_device),
+		title = Res.string.project_home_stat_words_per_device.get(),
 	) {
 		val sorted = remember(state.wordsPerDevice) {
 			state.wordsPerDevice.entries.sortedByDescending { it.value }
@@ -1257,7 +1244,7 @@ private fun EncyclopediaDonut(
 								color = hammerColors.colorFor(keys[selected]),
 							)
 							HdMonoLabel(
-								text = stringResource(keys[selected].toStringResource()),
+								text = (keys[selected].toStringResource()).get(),
 								color = MaterialTheme.colorScheme.onSurfaceVariant,
 							)
 						} else {
@@ -1267,7 +1254,7 @@ private fun EncyclopediaDonut(
 								color = MaterialTheme.colorScheme.onSurface,
 							)
 							HdMonoLabel(
-								text = stringResource(Res.string.project_home_stat_donut_entries),
+								text = Res.string.project_home_stat_donut_entries.get(),
 								color = MaterialTheme.colorScheme.onSurfaceVariant,
 							)
 						}
@@ -1311,9 +1298,8 @@ private fun EncyclopediaSliceTooltip(
 		) {
 			Box(modifier = Modifier.size(8.dp).background(color))
 			HdMonoLabel(
-				text = stringResource(
-					Res.string.project_home_stat_donut_tooltip,
-					stringResource(type.toStringResource()),
+				text = Res.string.project_home_stat_donut_tooltip.get(
+					(type.toStringResource()).get(),
 					count.formatDecimalSeparator(),
 				),
 				color = MaterialTheme.colorScheme.inverseOnSurface,
