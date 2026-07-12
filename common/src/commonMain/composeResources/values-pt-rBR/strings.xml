@@ -38,4 +38,5 @@
 	<string name="markdown_format_bar_horizontal_rule">Horizontal rule</string>
 	<string name="markdown_format_bar_undo">Undo</string>
 	<string name="markdown_format_bar_redo">Redo</string>
+	<string name="form_dialog_keyboard_hint">ESC cancel</string>
 </resources>
