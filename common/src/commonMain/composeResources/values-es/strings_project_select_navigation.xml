@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="project_select_nav_projects_list">Projects</string>
-	<string name="project_select_nav_account_settings">Settings</string>
-	<string name="project_select_nav_about_app">About</string>
-	<string name="project_select_nav_projects_list_short">PROJ</string>
-	<string name="project_select_nav_account_settings_short">SETT</string>
+	<string name="project_select_nav_projects_list">Proyectos</string>
+	<string name="project_select_nav_account_settings">Ajustes</string>
+	<string name="project_select_nav_about_app">Acerca de</string>
+	<string name="project_select_nav_projects_list_short">PROY</string>
+	<string name="project_select_nav_account_settings_short">AJUS</string>
 	<string name="project_select_nav_about_app_short">INFO</string>
-	<string name="project_libraries_dialog_title">Libraries</string>
+	<string name="project_libraries_dialog_title">Bibliotecas</string>
 </resources>
