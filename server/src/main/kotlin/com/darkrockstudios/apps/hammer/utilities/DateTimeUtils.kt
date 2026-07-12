@@ -25,6 +25,15 @@ fun LocalDateTime.format(format: String): String =
 //ISO 8601
 fun Instant.toISO8601(): String = toString()
 
+/**
+ * Coerce an instant into the range a Postgres `TIMESTAMPTZ` column can hold. Instants near
+ * [Instant.DISTANT_PAST]..[Instant.DISTANT_FUTURE] round-trip; values beyond reach further than an
+ * `OffsetDateTime`'s `LocalDate` can represent and would throw when encoded. Those extremes only ever
+ * arise from garbage input, so clamping to the distant-past/future sentinels preserves ordering.
+ */
+fun Instant.coerceToStorableRange(): Instant =
+	coerceIn(Instant.DISTANT_PAST, Instant.DISTANT_FUTURE)
+
 // SQLite Date/Time formatting
 private val UTC = ZoneId.of("UTC")
 private val sqliteDatetimeFormatter =
