@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="draft_compare_cancel_button">Cancel</string>
-	<string name="draft_compare_current_header">Merge with Current</string>
-	<string name="draft_compare_current_subheader">Copy parts of the draft into here</string>
-	<string name="draft_compare_current_accept_button">Take Merged</string>
-	<string name="draft_compare_current_body_placeholder">Begin writing your scene here</string>
-	<string name="draft_compare_draft_header">Draft: %1$s</string>
-	<string name="draft_compare_draft_subheader">Copy desired parts into current, or accept all of this.</string>
-	<string name="draft_compare_draft_accept_button">Take this whole draft</string>
-	<string name="draft_compare_draft_body_placeholder">Draft</string>
-	<string name="draft_compare_tab_title_draft">Draft</string>
-	<string name="draft_compare_tab_title_current">Current</string>
-	<string name="draft_list_close_button">Close Drafts</string>
-	<string name="draft_list_header">%1$s Drafts:</string>
-	<string name="draft_list_empty">No Drafts Found</string>
-	<string name="draft_list_item_created">Created: %1$s</string>
-	<string name="scene_draft_invalid_name">Invalid name</string>
+	<string name="draft_compare_cancel_button">Скасувати</string>
+	<string name="draft_compare_current_header">Об\'єднати з поточним</string>
+	<string name="draft_compare_current_subheader">Скопіюйте сюди частини чернетки</string>
+	<string name="draft_compare_current_accept_button">Узяти об\'єднане</string>
+	<string name="draft_compare_current_body_placeholder">Почніть писати вашу сцену тут</string>
+	<string name="draft_compare_draft_header">Чернетка: %1$s</string>
+	<string name="draft_compare_draft_subheader">Скопіюйте потрібні частини в поточне або прийміть усе це.</string>
+	<string name="draft_compare_draft_accept_button">Узяти всю цю чернетку</string>
+	<string name="draft_compare_draft_body_placeholder">Чернетка</string>
+	<string name="draft_compare_tab_title_draft">Чернетка</string>
+	<string name="draft_compare_tab_title_current">Поточне</string>
+	<string name="draft_list_close_button">Закрити чернетки</string>
+	<string name="draft_list_header">Чернетки %1$s:</string>
+	<string name="draft_list_empty">Чернеток не знайдено</string>
+	<string name="draft_list_item_created">Створено: %1$s</string>
+	<string name="scene_draft_invalid_name">Недійсна назва</string>
 </resources>

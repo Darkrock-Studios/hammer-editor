@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="account_window_title">Hammer - Project Selection</string>
+	<string name="account_window_title">Hammer - Sélection de projet</string>
 	<string name="project_window_title">Hammer - %1$s</string>
-	<string name="project_window_menu_file">File</string>
-	<string name="project_window_menu_item_close">Close Project</string>
-	<string name="project_window_menu_item_exit">Exit</string>
-	<string name="jump_list_recent_projects">Recent Projects</string>
+	<string name="project_window_menu_file">Fichier</string>
+	<string name="project_window_menu_item_close">Fermer le projet</string>
+	<string name="project_window_menu_item_exit">Quitter</string>
+	<string name="jump_list_recent_projects">Projets récents</string>
 	<!-- Sandbox first-run projects-directory flow (Mac App Store builds) -->
-	<string name="sandbox_intro_title">Welcome to Hammer</string>
+	<string name="sandbox_intro_title">Bienvenue dans Hammer</string>
 	<string name="sandbox_intro_message">Hammer stores your projects in a folder you choose, so your writing stays in
 		your hands.\n\nOn the next screen, pick an existing hammer projects folder or create a new one. You can change
 		this later in Settings.</string>
-	<string name="sandbox_picker_title">Choose where to store your Hammer projects</string>
-	<string name="sandbox_choose_folder_button">Choose Folder</string>
-	<string name="sandbox_quit_button">Quit</string>
+	<string name="sandbox_picker_title">Choisissez où stocker vos projets Hammer</string>
+	<string name="sandbox_choose_folder_button">Choisir un dossier</string>
+	<string name="sandbox_quit_button">Quitter</string>
 	<string name="sandbox_retry_message">Hammer needs a folder to store your projects.\nChoose a folder now, or quit.</string>
-	<string name="splash_subtitle">A simple tool for building stories.</string>
+	<string name="splash_subtitle">Un outil simple pour construire des histoires.</string>
 </resources>
