@@ -10,6 +10,6 @@
 	<string name="project_nav_notes_short">NOTE</string>
 	<string name="project_nav_encyclopedia_short">ENCY</string>
 	<string name="project_nav_time_line_short">TIME</string>
-	<string name="nav_rail_expand">Expandir navegação</string>
-	<string name="nav_rail_collapse">Recolher navegação</string>
+	<string name="nav_rail_expand">Expand navigation</string>
+	<string name="nav_rail_collapse">Collapse navigation</string>
 </resources>
