@@ -1,15 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="project_nav_home">Home</string>
-	<string name="project_nav_scene_editor">Story</string>
-	<string name="project_nav_notes">Notes</string>
-	<string name="project_nav_encyclopedia">Encyclopedia</string>
-	<string name="project_nav_time_line">Time Line</string>
+	<string name="project_nav_scene_editor">Storia</string>
+	<string name="project_nav_notes">Note</string>
+	<string name="project_nav_encyclopedia">Enciclopedia</string>
+	<string name="project_nav_time_line">Cronologia</string>
 	<string name="project_nav_home_short">HOME</string>
-	<string name="project_nav_scene_editor_short">STRY</string>
+	<string name="project_nav_scene_editor_short">STOR</string>
 	<string name="project_nav_notes_short">NOTE</string>
-	<string name="project_nav_encyclopedia_short">ENCY</string>
-	<string name="project_nav_time_line_short">TIME</string>
-	<string name="nav_rail_expand">Expand navigation</string>
-	<string name="nav_rail_collapse">Collapse navigation</string>
+	<string name="project_nav_encyclopedia_short">ENCI</string>
+	<string name="project_nav_time_line_short">CRON</string>
+	<string name="nav_rail_expand">Espandi la navigazione</string>
+	<string name="nav_rail_collapse">Comprimi la navigazione</string>
 </resources>
