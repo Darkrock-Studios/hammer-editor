@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.monitoring
 
+import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.database.ApiMetricDao
 import com.darkrockstudios.apps.hammer.database.ErrorLogDao
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
 
@@ -95,6 +97,62 @@ class MonitoringAlertTest : BaseTest() {
 		assertEquals(1, email.sentSubjects.size)
 
 		// Already notified: a second pass sends nothing more.
+		maintenance.evaluateErrorAlerts(alertingConfig)
+		assertEquals(1, email.sentSubjects.size)
+	}
+
+	@Test
+	fun `does not email error groups matching an ignore rule`() = runTest {
+		val email = FakeEmailService()
+		val (maintenance, errorRepository) = job(email)
+		ConfigRepository(ServerConfigDao(db)).set(
+			AdminServerConfig.IGNORED_ERROR_RULES,
+			listOf(IgnoredErrorRule("UnsupportedProtocolVersionException")),
+		)
+
+		repeat(3) {
+			errorRepository.record(
+				"UnsupportedProtocolVersionException",
+				"/api/.env",
+				null,
+				"bad protocol",
+				null,
+				426
+			)
+		}
+		repeat(3) {
+			errorRepository.record("RuntimeException", "/api/sync", 7L, "boom", "stack", 500)
+		}
+
+		maintenance.evaluateErrorAlerts(alertingConfig)
+		assertEquals(1, email.sentSubjects.size)
+		assertTrue(email.sentSubjects.single().contains("RuntimeException"))
+	}
+
+	@Test
+	fun `removing an ignore rule makes the group alertable again`() = runTest {
+		val email = FakeEmailService()
+		val (maintenance, errorRepository) = job(email)
+		val configRepository = ConfigRepository(ServerConfigDao(db))
+		configRepository.set(
+			AdminServerConfig.IGNORED_ERROR_RULES,
+			listOf(IgnoredErrorRule("UnsupportedProtocolVersionException")),
+		)
+
+		repeat(3) {
+			errorRepository.record(
+				"UnsupportedProtocolVersionException",
+				"/api/.env",
+				null,
+				"bad protocol",
+				null,
+				426
+			)
+		}
+		maintenance.evaluateErrorAlerts(alertingConfig)
+		assertEquals(0, email.sentSubjects.size)
+
+		configRepository.set(AdminServerConfig.IGNORED_ERROR_RULES, emptyList())
 		maintenance.evaluateErrorAlerts(alertingConfig)
 		assertEquals(1, email.sentSubjects.size)
 	}

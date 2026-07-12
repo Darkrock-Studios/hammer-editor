@@ -56,24 +56,7 @@
 				{{#hasErrors}}
 					<div class="mon-error-list">
 						{{#errors}}
-							<details class="mon-error mon-error--{{severity}}">
-								<summary class="mon-error__summary">
-									<span class="mon-error__count">{{count}}&times;</span>
-									<i class="mon-error__icon fa-solid {{severityIcon}}"
-									   aria-hidden="true"></i>
-									<span class="mon-error__status">{{status}}</span>
-									<span class="mon-error__type">{{type}}</span>
-									<span class="mon-error__route">{{route}}</span>
-									<span class="mon-error__meta">
-										{{#hasUser}}<span class="mon-error__user"><i class="fa-solid fa-user"></i> {{user}}</span>{{/hasUser}}
-										<span class="mon-error__seen">{{lastSeen}}</span>
-									</span>
-								</summary>
-								<div class="mon-error__body">
-									{{#hasMessage}}<p class="mon-error__message">{{message}}</p>{{/hasMessage}}
-									{{#hasStack}}<pre class="mon-error__stack">{{stackTrace}}</pre>{{/hasStack}}
-								</div>
-							</details>
+							{{> partials/mon-error-row}}
 						{{/errors}}
 					</div>
 
@@ -95,6 +78,63 @@
 						<span>{{msg.admin_mon_errors_none}}</span>
 					</div>
 				{{/hasErrors}}
+			</section>
+
+			<section class="paper-section">
+				<details class="mon-ignored">
+					<summary class="mon-ignored__summary">
+						<i class="fa-solid fa-chevron-right mon-ignored__chevron"
+						   aria-hidden="true"></i>
+						<h2 class="mon-ignored__title">{{msg.admin_mon_errors_ignored_section}}</h2>
+						<span class="mon-ignored__count">{{ignoredCount}}</span>
+					</summary>
+
+					<p class="section-description">{{msg.admin_mon_errors_ignored_help}}</p>
+
+					{{#hasIgnoreRules}}
+						<div class="mon-ignore-rules">
+							<span
+								class="mon-ignore-rules__label">{{msg.admin_mon_errors_rules_label}}</span>
+							{{#ignoreRules}}
+								<form class="mon-rule-chip"
+								      hx-post="/admin/monitoring/errors/unignore" hx-swap="none">
+									<input type="hidden" name="type" value="{{type}}">
+									{{#hasGlob}}<input type="hidden" name="routeGlob"
+									                   value="{{glob}}">{{/hasGlob}}
+									<span class="mon-rule-chip__type">{{type}}</span>
+									{{#hasGlob}}<span
+										class="mon-rule-chip__glob">{{glob}}</span>{{/hasGlob}}
+									<button type="submit" class="mon-rule-chip__remove"
+									        title="{{msg.admin_mon_errors_rule_remove}}"
+									        aria-label="{{msg.admin_mon_errors_rule_remove}}">
+										<i class="fa-solid fa-xmark"></i>
+									</button>
+								</form>
+							{{/ignoreRules}}
+						</div>
+					{{/hasIgnoreRules}}
+
+					<form class="mon-rule-add" hx-post="/admin/monitoring/errors/ignore"
+					      hx-swap="none">
+						<input type="text" class="form-input mon-rule-add__type" name="type"
+						       placeholder="{{msg.admin_mon_errors_rule_type_placeholder}}"
+						       required>
+						<input type="text" class="form-input mon-rule-add__glob" name="routeGlob"
+						       placeholder="{{msg.admin_mon_errors_rule_route_placeholder}}">
+						<button type="submit" class="btn">{{msg.admin_mon_errors_rule_add}}</button>
+					</form>
+
+					{{#hasIgnoredErrors}}
+						<div class="mon-error-list mon-error-list--ignored">
+							{{#ignoredErrors}}
+								{{> partials/mon-error-row}}
+							{{/ignoredErrors}}
+						</div>
+						{{#ignoredTruncated}}
+							<p class="mon-ignored__truncated">{{msg.admin_mon_errors_ignored_truncated}}</p>
+						{{/ignoredTruncated}}
+					{{/hasIgnoredErrors}}
+				</details>
 			</section>
 		</div>
 	</div>

@@ -463,6 +463,117 @@
 	white-space: pre;
 }
 
+.mon-error__actions {
+	display: flex;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+	margin-top: 0.7rem;
+}
+.mon-error__ignore-btn {
+	font-size: 0.78rem;
+	padding: 0.3rem 0.7rem;
+}
+
+/* --- Ignored errors: the filed-away drawer at the bottom of the ledger --- */
+.mon-error--ignored { border-left-color: var(--neutral-300); opacity: 0.7; }
+.mon-error--ignored:hover, .mon-error--ignored[open] { opacity: 1; }
+.mon-error--ignored .mon-error__count { background: var(--neutral-400); }
+.mon-error--ignored .mon-error__icon,
+.mon-error--ignored .mon-error__status { color: var(--neutral-400); }
+
+.mon-ignored__summary {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	cursor: pointer;
+	list-style: none;
+}
+.mon-ignored__summary::-webkit-details-marker { display: none; }
+
+.mon-ignored__chevron {
+	font-size: 0.8rem;
+	color: var(--neutral-400);
+	transition: transform var(--transition-fast);
+}
+.mon-ignored[open] .mon-ignored__chevron { transform: rotate(90deg); }
+
+.mon-ignored__title {
+	margin: 0;
+	font-size: 1.15rem;
+	color: var(--neutral-600);
+}
+
+.mon-ignored__count {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8rem;
+	color: #fff;
+	background: var(--neutral-400);
+	padding: 0.1rem 0.5rem;
+	border-radius: 999px;
+	white-space: nowrap;
+}
+
+.mon-ignored__truncated {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.85rem;
+	color: var(--neutral-500);
+	margin: 0.6rem 0 0;
+}
+
+.mon-ignore-rules {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+	margin: 0.75rem 0;
+}
+.mon-ignore-rules__label {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.78rem;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+	color: var(--neutral-500);
+}
+
+.mon-rule-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.45rem;
+	margin: 0;
+	padding: 0.15rem 0.3rem 0.15rem 0.7rem;
+	border: 1px solid var(--neutral-300);
+	border-radius: 999px;
+	background: var(--paper-white);
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8rem;
+	color: var(--ink);
+}
+.mon-rule-chip__glob { color: var(--neutral-500); word-break: break-all; }
+.mon-rule-chip__glob::before { content: "on "; }
+.mon-rule-chip__remove {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 1.3rem;
+	height: 1.3rem;
+	border: none;
+	border-radius: 50%;
+	background: none;
+	cursor: pointer;
+	color: var(--neutral-400);
+	transition: color var(--transition-fast), background var(--transition-fast);
+}
+.mon-rule-chip__remove:hover { color: var(--error); background: var(--neutral-100); }
+
+.mon-rule-add {
+	display: flex;
+	gap: 0.5rem;
+	flex-wrap: wrap;
+	margin: 0.5rem 0 1rem;
+}
+.mon-rule-add__type { flex: 1; min-width: 180px; }
+.mon-rule-add__glob { flex: 1; min-width: 180px; }
+
 /* --- Security: login-attempt result badges --- */
 .mon-badge {
 	display: inline-block;
