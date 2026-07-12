@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.plugins.USER_AUTH
 import com.darkrockstudios.apps.hammer.utilities.ERROR_MISSING_ENTITY_ID
 import com.darkrockstudios.apps.hammer.utilities.ERR_KEY_UNKNOWN
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
+import com.darkrockstudios.apps.hammer.utilities.coerceToStorableRange
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.darkrockstudios.apps.hammer.utilities.requireEntityId
 import com.darkrockstudios.apps.hammer.utilities.requireProjectDef
@@ -132,7 +133,14 @@ private fun Route.endProjectSync() {
 		}
 
 		val lastSync = try {
-			Instant.parse(formParameters["lastSync"].toString())
+			val parsed = Instant.parse(formParameters["lastSync"].toString())
+			// A client with a badly-wrong system clock can send a timestamp outside the range Postgres
+			// can store. Clamp (don't fail the sync) and log so we can spot the offending client.
+			val clamped = parsed.coerceToStorableRange()
+			if (clamped != parsed) {
+				log.warn("end_sync: clamped out-of-range client lastSync userId=${principal.id}, project=${projectDef.uuid}: $parsed -> $clamped")
+			}
+			clamped
 			// Unparseable timestamp is treated as absent.
 		} catch (@Suppress("SwallowedException") e: IllegalArgumentException) {
 			null
