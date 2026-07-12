@@ -20,7 +20,8 @@
 	<string name="sync_conflict">Conflict</string>
 	<string name="sync_conflict_local_entry">Local Entry:</string>
 	<string name="sync_conflict_local_use_button">Use Local</string>
-	<string name="sync_conflict_merge_explained">You can take either the local or remote copy as is, or you can manually merge the two by copying parts of the remote into your local copy, and then taking that.</string>
+	<string name="sync_conflict_merge_explained">You can take either the local or remote copy as is, or you can manually merge the two by copying parts of the remote into your local copy, and then taking that.
+	</string>
 	<string name="sync_conflict_remote_entry">Remote Entry:</string>
 	<string name="sync_conflict_remote_use_button">Use Remote</string>
 	<string name="sync_conflict_encyclopedia_title">Encyclopedia Entry Conflict</string>
@@ -111,29 +112,37 @@
 	<string name="sync_log_account_complete">Account Sync complete</string>
 	<string name="sync_log_account_failed">Failed to sync projects: %1$s</string>
 	<string name="sync_log_account_project_delete_server_success">Deleting server project:
-		ID(%1$s)</string>
+		ID(%1$s)
+	</string>
 	<string name="sync_log_account_project_delete_server_failure">Failed to delete project on server: %1$s</string>
 	<string name="sync_log_account_project_delete_client">Deleting local project: %1$s</string>
 	<string name="sync_log_account_project_rename_server_success">Renaming server project:
-		ID(%1$s)</string>
+		ID(%1$s)
+	</string>
 	<string name="sync_log_account_project_rename_server_failure">Failed to rename project on
-		server: %1$s</string>
+		server: %1$s
+	</string>
 	<string name="sync_log_account_project_rename_client_from_server_success">Rename project from
-		server: %1$s</string>
+		server: %1$s
+	</string>
 	<string name="sync_log_account_project_rename_client_from_server_failure">Failed to rename
-		project from server: %1$s</string>
+		project from server: %1$s
+	</string>
 	<string name="sync_log_account_project_create_server_success">Created project on server: %1$s</string>
 	<string name="sync_log_account_project_create_server_failure">Failed to create project on server: %1$s</string>
 	<string name="sync_log_account_project_create_client">Created local project: %1$s</string>
 	<string name="sync_log_account_project_create_client_local">Setting local project Server ID:
-		%1$s</string>
+		%1$s
+	</string>
 	<string name="sync_log_account_project_create_client_failure">Failed to create server project:
-		%1$s</string>
+		%1$s
+	</string>
 	<string name="sync_log_begin_account">Syncing Account...</string>
 	<string name="sync_log_begin_projects">Syncing Projects...</string>
 	<string name="sync_log_end_projects">Projects Sync Complete</string>
 	<string name="sync_log_begin_project">Syncing Project: %1$s</string>
-	<string name="sync_log_project_conflict">There is a conflict in project: %1$s, open that project and sync in order to resolve it</string>
+	<string name="sync_log_project_conflict">There is a conflict in project: %1$s, open that project and sync in order to resolve it
+	</string>
 	<string name="sync_log_client_data_computed">Client Entity data calculated</string>
 	<string name="sync_log_server_data_loaded">Server data received</string>
 	<string name="sync_log_client_data_loaded">Client data loaded</string>
@@ -146,7 +155,8 @@
 	<string name="sync_log_entity_upload_entity_not_owned">Failed to upload entity %1$d: type not owned by anything, probably deleted</string>
 	<string name="sync_log_entity_delete_failed">Failed to delete ID %1$d on server: %2$s</string>
 	<string name="sync_log_entity_delete_success">Deleted ID %1$d on server</string>
-	<string name="sync_log_entity_conflict">Encountered conflict for new Entity, this should not be possible! ID: %1$d TYPE: %2$s</string>
+	<string name="sync_log_entity_conflict">Encountered conflict for new Entity, this should not be possible! ID: %1$d TYPE: %2$s
+	</string>
 	<string name="sync_log_entity_failed">Sync failed: %1$s</string>
 	<string name="sync_log_stale_hash_detected">Server cached hash is stale for entity %1$d. Healing by force uploading.</string>
 	<string name="sync_log_stale_hash_healed">Successfully healed server cache for entity %1$d by force uploading</string>
@@ -192,19 +202,27 @@
 	<string name="reauth_server_email">E-Mail</string>
 	<string name="server_setup_help_title">About Sync Servers</string>
 	<string name="server_setup_help_icon_description">Learn more about sync servers</string>
-	<string name="server_setup_help_intro">Sync Servers for Hammer allow you to work on your projects from multiple devices. They will sync your work across whatever devices you configure with the same server.</string>
+	<string name="server_setup_help_intro">Sync Servers for Hammer allow you to work on your projects from multiple devices. They will sync your work across whatever devices you configure with the same server.
+	</string>
 	<string name="server_setup_help_official_header">Official Server</string>
-	<string name="server_setup_help_official_body">You can run your own Sync server, but if that is too technical, or you just want to support the project, we run an official server at hammer.ink.</string>
-	<string name="server_setup_help_patreon">If you subscribe to our Patreon, you get access to the official server. This is the best way to support this project.</string>
+	<string name="server_setup_help_official_body">You can run your own Sync server, but if that is too technical, or you just want to support the project, we run an official server at hammer.ink.
+	</string>
+	<string name="server_setup_help_patreon">If you subscribe to our Patreon, you get access to the official server. This is the best way to support this project.
+	</string>
 	<string name="server_setup_help_patreon_link">Patreon</string>
 	<string name="server_setup_help_hammer_link">Hammer.Ink</string>
 	<string name="server_setup_help_registration_header">Registration</string>
-	<string name="server_setup_help_registration_body">By default, servers have closed registration, meaning you need to get added to that server\'s whitelist to be able to create an account.</string>
+	<string name="server_setup_help_registration_body">By default, servers have closed registration, meaning you need to get added to that server\'s whitelist to be able to create an account.
+	</string>
 	<string name="server_setup_help_setup_header">SetUp</string>
-	<string name="server_setup_help_setup_step1">Enter the server\'s URL, such as \"hammer.ink\" for the official server.</string>
-	<string name="server_setup_help_setup_step2">Enter your email and password, then hit \"Create\" to create your account.</string>
-	<string name="server_setup_help_setup_step3">In the future, and on other devices, you will simply hit \"Log In\".</string>
+	<string name="server_setup_help_setup_step1">Enter the server\'s URL, such as \"hammer.ink\" for the official server.
+	</string>
+	<string name="server_setup_help_setup_step2">Enter your email and password, then hit \"Create\" to create your account.
+	</string>
+	<string name="server_setup_help_setup_step3">In the future, and on other devices, you will simply hit \"Log In\".
+	</string>
 	<string name="server_setup_help_note_header">Important Note</string>
-	<string name="server_setup_help_note_body">Syncing in Hammer is different from online-first applications like Google Docs. The syncing is not real-time. It usually happens when you open or close the app. Make sure you\'re synced with the latest versions of your projects before going offline. Hammer does automatic syncing, but it\'s always good to check if you\'re going to be offline for a while.</string>
+	<string name="server_setup_help_note_body">Syncing in Hammer is different from online-first applications like Google Docs. The syncing is not real-time. It usually happens when you open or close the app. Make sure you\'re synced with the latest versions of your projects before going offline. Hammer does automatic syncing, but it\'s always good to check if you\'re going to be offline for a while.
+	</string>
 	<string name="server_setup_help_dismiss_button">Got It</string>
 </resources>
