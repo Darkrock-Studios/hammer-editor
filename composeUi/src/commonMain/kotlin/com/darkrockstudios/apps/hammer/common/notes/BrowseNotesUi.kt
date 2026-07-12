@@ -94,7 +94,6 @@ import com.darkrockstudios.apps.hammer.notes_word_count_short
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
 import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
 
 const val NOTES_CREATE_FAB_TAG = "notes-create-fab"
@@ -206,8 +205,8 @@ fun BrowseNotesUi(
 				HdSearchRow(
 					query = searchQuery,
 					onQueryChange = { searchQuery = it },
-					placeholder = stringResource(Res.string.notes_search_placeholder),
-					clearContentDescription = stringResource(Res.string.notes_search_clear),
+					placeholder = Res.string.notes_search_placeholder.get(),
+					clearContentDescription = Res.string.notes_search_clear.get(),
 					onCollapse = {
 						showSearchBar = false
 						searchQuery = ""
@@ -222,7 +221,7 @@ fun BrowseNotesUi(
 				) {
 					HdSectionHeader(
 						section = 3,
-						title = stringResource(Res.string.notes_header),
+						title = Res.string.notes_header.get(),
 						modifier = Modifier.weight(1f),
 						trailing = {
 							// On narrow screens the meta competes with the
@@ -230,8 +229,7 @@ fun BrowseNotesUi(
 							// summary when there's room for it.
 							if (isWide) {
 								HdMonoLabel(
-									text = stringResource(
-										Res.string.notes_header_meta,
+									text = Res.string.notes_header_meta.get(
 										state.notes.size,
 										tagIndex.size,
 									),
@@ -263,10 +261,10 @@ fun BrowseNotesUi(
 					onValueChange = { searchQuery = it },
 					modifier = Modifier
 						.then(if (isExpanded) Modifier.width(280.dp) else Modifier.fillMaxWidth()),
-					placeholder = stringResource(Res.string.notes_search_placeholder),
+					placeholder = Res.string.notes_search_placeholder.get(),
 					onClear = { searchQuery = "" },
 					clearContentDescription =
-						stringResource(Res.string.notes_search_clear),
+						Res.string.notes_search_clear.get(),
 				)
 			}
 
@@ -290,7 +288,7 @@ fun BrowseNotesUi(
 			// SORT are still useful affordances.
 			HdTagFilterBar(
 				tags = tagIndex,
-				allLabel = "${stringResource(Res.string.notes_filter_all)} · ${state.notes.size}",
+				allLabel = "${Res.string.notes_filter_all.get()} · ${state.notes.size}",
 				activeTags = activeTags,
 				onToggle = toggleTag,
 				onClear = clearTags,
@@ -312,12 +310,11 @@ fun BrowseNotesUi(
 			AnimatedVisibility(visible = activeTags.isNotEmpty()) {
 				HdActiveFiltersStrip(
 					activeTags = activeTags,
-					filteredLabel = stringResource(
-						Res.string.notes_filter_filtered,
+					filteredLabel = Res.string.notes_filter_filtered.get(
 						visibleNotes.size,
 						state.notes.size,
 					),
-					clearAllLabel = stringResource(Res.string.notes_filter_clear_all),
+					clearAllLabel = Res.string.notes_filter_clear_all.get(),
 					onToggle = toggleTag,
 					onClear = clearTags,
 				)
@@ -347,7 +344,7 @@ fun BrowseNotesUi(
 						contentAlignment = Alignment.Center,
 					) {
 						Text(
-							text = stringResource(Res.string.notes_list_empty),
+							text = Res.string.notes_list_empty.get(),
 							style = MaterialTheme.typography.headlineSmall,
 							color = MaterialTheme.colorScheme.onSurfaceVariant,
 						)
@@ -394,7 +391,7 @@ private fun NoteCard(
 		HdMarkdownCard(
 			markdown = note.content,
 			metaStart = date,
-			metaEnd = stringResource(Res.string.notes_word_count_short, words),
+			metaEnd = Res.string.notes_word_count_short.get(words),
 			onClick = onClick,
 			modifier = modifier,
 			surfaceModifier = Modifier

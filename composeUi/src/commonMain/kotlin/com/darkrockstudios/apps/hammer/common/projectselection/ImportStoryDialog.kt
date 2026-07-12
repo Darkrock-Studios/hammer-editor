@@ -27,7 +27,7 @@ import com.darkrockstudios.apps.hammer.common.data.RtfSplitStrategy
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.PreviewItem
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
 private val DialogMaxWidth = 560.dp
 private val DialogMaxHeight = 720.dp
@@ -114,7 +114,7 @@ internal fun ImportStoryContent(
 					),
 			) {
 				Text(
-					text = stringResource(Res.string.project_home_import_dialog_title),
+					text = Res.string.project_home_import_dialog_title.get(),
 					style = MaterialTheme.typography.headlineSmall,
 					color = MaterialTheme.colorScheme.onSurface,
 					modifier = Modifier.padding(bottom = Ui.Padding.L),
@@ -123,7 +123,7 @@ internal fun ImportStoryContent(
 				FormField(
 					value = projectName,
 					onValueChange = onProjectNameChange,
-					label = stringResource(Res.string.create_project_heading),
+					label = Res.string.create_project_heading.get(),
 					autoFocus = true,
 					error = nameValidation.fieldError(projectName),
 				)
@@ -132,27 +132,27 @@ internal fun ImportStoryContent(
 
 				when (options.format) {
 					ImportFormat.Markdown -> HdHairlineSegmentedPicker(
-						title = stringResource(Res.string.project_home_import_heading_label),
+						title = Res.string.project_home_import_heading_label.get(),
 						options = ChapterHeadingLevel.entries,
 						selected = options.chapterHeadingLevel,
 						onSelect = { onOptionsChange(options.copy(chapterHeadingLevel = it)) },
-						label = { stringResource(it.labelRes()) },
+						label = { (it.labelRes()).get() },
 					)
 
 					ImportFormat.Rtf -> {
 						HdHairlineSegmentedPicker(
-							title = stringResource(Res.string.project_home_import_split_label),
+							title = Res.string.project_home_import_split_label.get(),
 							options = RtfSplitStrategy.entries,
 							selected = options.rtfSplitStrategy,
 							onSelect = { onOptionsChange(options.copy(rtfSplitStrategy = it)) },
-							label = { stringResource(it.labelRes()) },
+							label = { (it.labelRes()).get() },
 						)
 						if (options.rtfSplitStrategy == RtfSplitStrategy.Pattern) {
 							Spacer(modifier = Modifier.height(Ui.Padding.L))
 							FormField(
 								value = options.rtfChapterPattern,
 								onValueChange = { onOptionsChange(options.copy(rtfChapterPattern = it)) },
-								label = stringResource(Res.string.project_home_import_pattern_label),
+								label = Res.string.project_home_import_pattern_label.get(),
 							)
 						}
 					}
@@ -163,7 +163,7 @@ internal fun ImportStoryContent(
 				HdHairlineToggleRow(
 					checked = options.createChapterGroups,
 					onCheckedChange = { onOptionsChange(options.copy(createChapterGroups = it)) },
-					label = stringResource(Res.string.project_home_import_create_groups_label),
+					label = Res.string.project_home_import_create_groups_label.get(),
 				)
 
 				Spacer(modifier = Modifier.height(Ui.Padding.XL))
@@ -229,11 +229,11 @@ private fun ImportFooter(
 		)
 		Spacer(modifier = Modifier.weight(1f))
 		HdHairlineButton(
-			label = stringResource(Res.string.project_home_import_cancel),
+			label = Res.string.project_home_import_cancel.get(),
 			onClick = onCancel,
 		)
 		HdHairlineButton(
-			label = stringResource(Res.string.project_home_import_execute),
+			label = Res.string.project_home_import_execute.get(),
 			onClick = onConfirm,
 			emphasised = true,
 			enabled = confirmEnabled,
@@ -249,11 +249,10 @@ private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modif
 			horizontalArrangement = Arrangement.SpaceBetween,
 			verticalAlignment = Alignment.CenterVertically,
 		) {
-			HdMonoLabel(stringResource(Res.string.project_home_import_preview_label))
+			HdMonoLabel(Res.string.project_home_import_preview_label.get())
 			if (!preview.isEmpty) {
 				HdMonoLabel(
-					stringResource(
-						Res.string.project_home_import_preview_count,
+					Res.string.project_home_import_preview_count.get(
 						preview.totalScenes,
 					),
 				)
@@ -277,7 +276,7 @@ private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modif
 						.padding(Ui.Padding.L),
 					contentAlignment = Alignment.Center,
 				) {
-					HdMonoLabel(stringResource(Res.string.project_home_import_preview_empty))
+					HdMonoLabel(Res.string.project_home_import_preview_empty.get())
 				}
 			} else {
 				Column(

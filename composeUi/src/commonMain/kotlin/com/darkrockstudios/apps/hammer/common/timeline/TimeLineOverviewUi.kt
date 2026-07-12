@@ -94,7 +94,6 @@ import com.darkrockstudios.apps.hammer.timeline_search_placeholder
 import com.darkrockstudios.apps.hammer.timeline_view_undated
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.stringResource
 import kotlin.math.roundToInt
 
 const val TIME_LINE_CREATE_TAG = "Timeline Overview Create"
@@ -179,8 +178,8 @@ fun TimeLineOverviewUi(
 				HdSearchRow(
 					query = searchQuery,
 					onQueryChange = { searchQuery = it },
-					placeholder = stringResource(Res.string.timeline_search_placeholder),
-					clearContentDescription = stringResource(Res.string.timeline_search_clear),
+					placeholder = Res.string.timeline_search_placeholder.get(),
+					clearContentDescription = Res.string.timeline_search_clear.get(),
 					onCollapse = {
 						showSearchBar = false
 						searchQuery = ""
@@ -195,13 +194,12 @@ fun TimeLineOverviewUi(
 				) {
 					HdSectionHeader(
 						section = 4,
-						title = stringResource(Res.string.timeline_header),
+						title = Res.string.timeline_header.get(),
 						modifier = Modifier.weight(1f),
 						trailing = {
 							if (isWide) {
 								HdMonoLabel(
-									text = stringResource(
-										Res.string.timeline_header_meta,
+									text = Res.string.timeline_header_meta.get(
 										events.size,
 										tagIndex.size,
 									),
@@ -231,10 +229,10 @@ fun TimeLineOverviewUi(
 					onValueChange = { searchQuery = it },
 					modifier = Modifier
 						.then(if (isExpanded) Modifier.width(280.dp) else Modifier.fillMaxWidth()),
-					placeholder = stringResource(Res.string.timeline_search_placeholder),
+					placeholder = Res.string.timeline_search_placeholder.get(),
 					onClear = { searchQuery = "" },
 					clearContentDescription =
-						stringResource(Res.string.timeline_search_clear),
+						Res.string.timeline_search_clear.get(),
 				)
 			}
 
@@ -314,7 +312,7 @@ fun TimeLineOverviewUi(
 					contentAlignment = Alignment.Center,
 				) {
 					Text(
-						text = stringResource(Res.string.timeline_no_events),
+						text = Res.string.timeline_no_events.get(),
 						style = MaterialTheme.typography.headlineSmall,
 						color = MaterialTheme.colorScheme.onSurfaceVariant,
 						textAlign = TextAlign.Center,
@@ -439,7 +437,7 @@ internal fun EventCard(
 				) {
 					HdMonoLabel(
 						text = event.date?.takeIf { it.isNotBlank() }
-							?: stringResource(Res.string.timeline_view_undated),
+							?: Res.string.timeline_view_undated.get(),
 						modifier = Modifier
 							.sharedElement(
 								sharedContentState = rememberSharedContentState(key = "timeline-date-${event.id}"),
@@ -567,7 +565,7 @@ private fun TagFilterBar(
 			)
 		}
 		AllChip(
-			label = "${stringResource(Res.string.timeline_filter_all)} · $total",
+			label = "${Res.string.timeline_filter_all.get()} · $total",
 			active = allActive,
 			onClick = onClear,
 		)
@@ -646,7 +644,7 @@ private fun ActiveFiltersStrip(
 			verticalArrangement = Arrangement.spacedBy(6.dp),
 		) {
 			HdMonoLabel(
-				text = stringResource(Res.string.timeline_filter_filtered, hits, total),
+				text = Res.string.timeline_filter_filtered.get(hits, total),
 				modifier = Modifier
 					.padding(end = Ui.Padding.S)
 					.align(Alignment.CenterVertically),
@@ -665,7 +663,7 @@ private fun ActiveFiltersStrip(
 					.padding(horizontal = Ui.Padding.S, vertical = Ui.Padding.S),
 				contentAlignment = Alignment.Center,
 			) {
-				HdMonoLabel(text = stringResource(Res.string.timeline_filter_clear_all))
+				HdMonoLabel(text = Res.string.timeline_filter_clear_all.get())
 			}
 		}
 	}

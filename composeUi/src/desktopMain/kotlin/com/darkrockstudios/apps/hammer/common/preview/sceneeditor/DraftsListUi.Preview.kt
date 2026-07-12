@@ -12,6 +12,9 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.Draf
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
+import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.fakeSceneItem
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import com.darkrockstudios.apps.hammer.common.storyeditor.drafts.DraftsListUi
@@ -61,6 +64,48 @@ fun ScreenDraftsListUiPreview() {
 			AppTheme(globalSettingsPreview, true) {
 				DraftsListUi(component)
 			}
+		}
+	}
+}
+
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenDraftsListUiTabletPreview() {
+	val component = object : DraftsList {
+		override val state = MutableValue(
+			DraftsList.State(
+				sceneItem = fakeSceneItem(),
+				drafts = listOf(
+					DraftDef(
+						id = 3,
+						sceneId = 0,
+						draftTimestamp = Clock.System.now(),
+						draftName = "Test Draft"
+					),
+					DraftDef(
+						id = 4,
+						sceneId = 1,
+						draftTimestamp = Clock.System.now(),
+						draftName = "Test Draft 2"
+					),
+					DraftDef(
+						id = 5,
+						sceneId = 2,
+						draftTimestamp = Clock.System.now(),
+						draftName = "Another Test Draft"
+					),
+				)
+			)
+		)
+
+		override fun loadDrafts() {}
+		override fun selectDraft(draftDef: DraftDef) {}
+		override fun cancel() {}
+	}
+
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			DraftsListUi(component)
 		}
 	}
 }

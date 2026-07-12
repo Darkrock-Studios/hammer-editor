@@ -174,7 +174,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
 import kotlin.time.Instant
 import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
 
@@ -329,8 +328,8 @@ private fun IdeasBrowse(
 					HdSearchRow(
 						query = searchQuery,
 						onQueryChange = { searchQuery = it },
-						placeholder = stringResource(Res.string.ideas_search_placeholder),
-						clearContentDescription = stringResource(Res.string.ideas_search_clear),
+						placeholder = Res.string.ideas_search_placeholder.get(),
+						clearContentDescription = Res.string.ideas_search_clear.get(),
 						onCollapse = {
 							showSearchBar = false
 							searchQuery = ""
@@ -345,13 +344,12 @@ private fun IdeasBrowse(
 					) {
 						HdSectionHeader(
 							section = 2,
-							title = stringResource(Res.string.ideas_header),
+							title = Res.string.ideas_header.get(),
 							modifier = Modifier.weight(1f),
 							trailing = {
 								if (isWide) {
 									HdMonoLabel(
-										text = stringResource(
-											Res.string.ideas_header_meta,
+										text = Res.string.ideas_header_meta.get(
 											ideas.size,
 											rankedTags.size,
 										),
@@ -395,8 +393,8 @@ private fun IdeasBrowse(
 							HdSearchRow(
 								query = searchQuery,
 								onQueryChange = { searchQuery = it },
-								placeholder = stringResource(Res.string.ideas_search_placeholder),
-								clearContentDescription = stringResource(Res.string.ideas_search_clear),
+								placeholder = Res.string.ideas_search_placeholder.get(),
+								clearContentDescription = Res.string.ideas_search_clear.get(),
 								onCollapse = {
 									showSearchBar = false
 									searchQuery = ""
@@ -410,14 +408,14 @@ private fun IdeasBrowse(
 
 				HdTagFilterBar(
 					tags = rankedTags,
-					allLabel = "${stringResource(Res.string.ideas_filter_all)} · ${scopedIdeas.size}",
+					allLabel = "${Res.string.ideas_filter_all.get()} · ${scopedIdeas.size}",
 					activeTags = activeTags,
 					onToggle = toggleTag,
 					onClear = clearTags,
 					trailing = {
 						val archivedCount = ideas.count { it.archived != null }
 						ArchivedToggle(
-							label = "${stringResource(Res.string.ideas_filter_archived)} · $archivedCount",
+							label = "${Res.string.ideas_filter_archived.get()} · $archivedCount",
 							active = showArchived,
 							onClick = {
 								showArchived = !showArchived
@@ -436,12 +434,11 @@ private fun IdeasBrowse(
 				AnimatedVisibility(visible = activeTags.isNotEmpty()) {
 					HdActiveFiltersStrip(
 						activeTags = activeTags,
-						filteredLabel = stringResource(
-							Res.string.ideas_filter_filtered,
+						filteredLabel = Res.string.ideas_filter_filtered.get(
 							visibleIdeas.size,
 							scopedIdeas.size,
 						),
-						clearAllLabel = stringResource(Res.string.ideas_filter_clear_all),
+						clearAllLabel = Res.string.ideas_filter_clear_all.get(),
 						onToggle = toggleTag,
 						onClear = clearTags,
 					)
@@ -471,10 +468,8 @@ private fun IdeasBrowse(
 							contentAlignment = Alignment.Center,
 						) {
 							Text(
-								text = stringResource(
-									if (showArchived) Res.string.ideas_list_empty_archived
-									else Res.string.ideas_list_empty
-								),
+								text = (if (showArchived) Res.string.ideas_list_empty_archived
+									else Res.string.ideas_list_empty).get(),
 								style = MaterialTheme.typography.headlineSmall,
 								color = MaterialTheme.colorScheme.onSurfaceVariant,
 							)
@@ -563,7 +558,7 @@ private fun IdeaCard(
 		HdMarkdownCard(
 			markdown = idea.content,
 			metaStart = date,
-			metaEnd = stringResource(Res.string.ideas_word_count_short, words),
+			metaEnd = Res.string.ideas_word_count_short.get(words),
 			onClick = onClick,
 			modifier = modifier,
 			surfaceModifier = Modifier
@@ -622,13 +617,13 @@ private fun IdeaStamps(idea: StoryIdea) {
 	) {
 		idea.promoted?.let {
 			HdMonoLabel(
-				text = stringResource(Res.string.ideas_stamp_promoted, formatStampDate(it)),
+				text = Res.string.ideas_stamp_promoted.get(formatStampDate(it)),
 				color = MaterialTheme.colorScheme.primary,
 			)
 		}
 		idea.archived?.let {
 			HdMonoLabel(
-				text = stringResource(Res.string.ideas_stamp_archived, formatStampDate(it)),
+				text = Res.string.ideas_stamp_archived.get(formatStampDate(it)),
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 			)
 		}
@@ -1019,26 +1014,24 @@ private fun StampRow(
 		actions = {
 			if (isEditing) {
 				HdHairlineButton(
-					label = stringResource(
-						if (isCreate) Res.string.ideas_create_button
-						else Res.string.ideas_save_button
-					),
+					label = (if (isCreate) Res.string.ideas_create_button
+						else Res.string.ideas_save_button).get(),
 					onClick = onSave,
 					emphasised = saveEnabled,
 					modifier = Modifier.testTag(IDEAS_EDITOR_CONFIRM_TAG),
 				)
 				HdHairlineButton(
-					label = stringResource(Res.string.ideas_cancel_button),
+					label = Res.string.ideas_cancel_button.get(),
 					onClick = onCancel,
 					modifier = Modifier.testTag(IDEAS_EDITOR_CANCEL_TAG),
 				)
 			} else {
 				HdHairlineButton(
-					label = stringResource(Res.string.ideas_promote_button),
+					label = Res.string.ideas_promote_button.get(),
 					onClick = onPromote,
 				)
 				HdHairlineButton(
-					label = stringResource(Res.string.ideas_view_action_edit),
+					label = Res.string.ideas_view_action_edit.get(),
 					onClick = onEdit,
 					modifier = Modifier.testTag(IDEAS_VIEW_EDIT_TAG),
 				)
@@ -1171,10 +1164,10 @@ private fun EditBody(
 		var titleFocused by remember { mutableStateOf(false) }
 		CollapseWhileTyping(keepVisible = titleFocused) {
 			HdHairlineField(
-				label = stringResource(Res.string.ideas_title_label),
+				label = Res.string.ideas_title_label.get(),
 				value = titleText,
 				onValueChange = onTitleChanged,
-				placeholder = stringResource(Res.string.ideas_title_placeholder),
+				placeholder = Res.string.ideas_title_placeholder.get(),
 				onFocusChanged = { titleFocused = it },
 				modifier = Modifier
 					.fillMaxWidth()
@@ -1184,12 +1177,12 @@ private fun EditBody(
 		}
 
 		HdHairlineTagField(
-			label = stringResource(Res.string.ideas_tags_label),
+			label = Res.string.ideas_tags_label.get(),
 			tags = tags,
 			onTagsChange = onTagsChanged,
 			onDraftChange = onTagDraftChanged,
-			hint = stringResource(Res.string.ideas_tags_hint),
-			placeholder = stringResource(Res.string.ideas_tags_placeholder),
+			hint = Res.string.ideas_tags_hint.get(),
+			placeholder = Res.string.ideas_tags_placeholder.get(),
 			suggestTags = suggestTags,
 			modifier = Modifier.padding(
 				horizontal = Ui.Padding.XL,
@@ -1232,10 +1225,10 @@ private fun ViewFolioFooter(markdown: String, tagCount: Int) {
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
-		HdMonoLabel(text = stringResource(Res.string.ideas_word_count_short, words))
+		HdMonoLabel(text = Res.string.ideas_word_count_short.get(words))
 		Spacer(modifier = Modifier.weight(1f))
 		if (tagCount > 0) {
-			HdMonoLabel(text = stringResource(Res.string.ideas_tag_count_short, tagCount))
+			HdMonoLabel(text = Res.string.ideas_tag_count_short.get(tagCount))
 		}
 	}
 }
@@ -1254,8 +1247,7 @@ private fun EditStatusFooter(charCount: Int, overLimit: Boolean) {
 		verticalAlignment = Alignment.CenterVertically,
 	) {
 		HdMonoLabel(
-			text = stringResource(
-				Res.string.ideas_editor_counter,
+			text = Res.string.ideas_editor_counter.get(
 				charCount,
 				StoryIdea.MAX_CONTENT_LENGTH,
 			),

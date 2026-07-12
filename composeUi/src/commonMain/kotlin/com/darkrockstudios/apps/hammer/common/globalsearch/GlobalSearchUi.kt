@@ -81,7 +81,6 @@ import com.darkrockstudios.apps.hammer.ic_encyclopedia
 import com.darkrockstudios.apps.hammer.ic_notes
 import com.darkrockstudios.apps.hammer.ic_timeline
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
 import org.jetbrains.compose.resources.vectorResource
 
 private val DialogMaxWidth = 720.dp
@@ -191,7 +190,7 @@ private fun Masthead(
 		Spacer(modifier = Modifier.weight(1f))
 		if (resultCount > 0) {
 			Text(
-				text = stringResource(Res.string.global_search_results_count, resultCount).uppercase(),
+				text = Res.string.global_search_results_count.get(resultCount).uppercase(),
 				fontFamily = hammerMonoFontFamily(),
 				fontSize = 10.sp,
 				letterSpacing = 1.8.sp,

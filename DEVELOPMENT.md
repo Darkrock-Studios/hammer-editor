@@ -242,3 +242,39 @@ to (re)build everything.
 
 See [ASSET-GENERATION.md](docs/ASSET-GENERATION.md) for the manifest schema,
 dependencies, asset types, and how to add or modify outputs.
+
+## Translation Screenshots
+
+We give Crowdin translators visual context by uploading screenshots of our screens
+with every UI string tagged to a bounding box on the image. Tags are exact — they
+come from the render itself, not OCR.
+
+**How it works:** a desktop test renders each tablet screen preview, walks the
+Compose semantics tree for every text node, and maps each back to its string
+resource key. Mapping works because UI reads strings through `StringResource.get()`
+(see below), which records `key -> text` during the render; unrecorded text falls
+back to the resolved string table. Each screen produces a PNG and a tag JSON in
+`composeUi/build/crowdin/`. A Gradle task then uploads them and places the tags at
+pixel-accurate positions (Crowdin's string `identifier` equals our XML `name`, so
+the key-to-string join is exact). Screenshots are matched by name, so re-runs
+replace in place instead of duplicating.
+
+**Tasks & tools:**
+- `./gradlew :composeUi:uploadCrowdinScreenshots` — renders, maps, and prints an
+  upload plan. **Dry run by default**; add `-Pcrowdin.live=true` to actually upload.
+  Auth resolves from `-Pcrowdin.projectId` / `-Pcrowdin.token`, then the
+  `CROWDIN_PROJECT_ID` / `CROWDIN_PERSONAL_TOKEN` env vars, then an interactive
+  prompt (add `--console=plain --no-daemon` if a prompt appears blank).
+- `ScreenshotTagExtractorTest` (in `composeUi` `desktopTest`) generates the artifacts;
+  the upload task depends on it.
+- `composeUi/build/crowdin/_untranslated-candidates.md` — a by-product listing
+  on-screen text that mapped to no resource, i.e. likely hardcoded strings to fix
+  (filter out fake preview data like names and dates).
+
+**Conventions:**
+- Read strings in Compose with `StringResource.get()` / `.get(args)`, not the raw
+  `stringResource(...)`. Only `.get()` is recorded, so anything read another way
+  won't tag and will show up in the untranslated-candidates report.
+- To add a screen to the pipeline, give it a `Screen<Name>TabletPreview` (wrap the
+  content in `TabletPreviewSurface`) and register it in the `screens` list in
+  `ScreenshotTagExtractorTest`.

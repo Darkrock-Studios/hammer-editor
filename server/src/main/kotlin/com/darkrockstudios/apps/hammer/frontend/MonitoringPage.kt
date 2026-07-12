@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.monitoring.DailyActiveUsers
 import com.darkrockstudios.apps.hammer.monitoring.EndpointStat
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
+import com.darkrockstudios.apps.hammer.monitoring.IgnoredErrorRule
 import com.darkrockstudios.apps.hammer.monitoring.LATENCY_OVERFLOW_MS
 import com.darkrockstudios.apps.hammer.monitoring.LogLine
 import com.darkrockstudios.apps.hammer.monitoring.LogRingBuffer
@@ -18,17 +19,26 @@ import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.monitoring.TimeSeriesPoint
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
-import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
-import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskStatus
+import com.darkrockstudios.apps.hammer.monitoring.ignores
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
+import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
+import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskStatus
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
+import io.ktor.htmx.HxResponseHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.htmx.hx
 import io.ktor.server.mustache.MustacheContent
+import io.ktor.server.request.receiveParameters
+import io.ktor.server.response.header
 import io.ktor.server.response.respond
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.Route
 import io.ktor.server.routing.get
+import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
@@ -159,12 +169,33 @@ fun Route.adminMonitoringPages(
 			val errorRateChart = buildErrorRateChart(timeSeries, labelFormat)
 
 			val routeFilter = call.request.queryParameters["route"]?.takeIf { it.isNotBlank() }
+			val ignoreRules = configRepository.get(AdminServerConfig.IGNORED_ERROR_RULES)
+
+			// Ignore rules are pattern-based, so the visible/ignored split happens
+			// here rather than in SQL; rows are deduped groups, capped so a flood of
+			// distinct fingerprints can't balloon the render.
+			val allErrors = errorRepository.getRecent(0, ERROR_SCAN_CAP, routeFilter)
+			val (ignoredErrors, activeErrors) = allErrors.partition { e ->
+				ignoreRules.ignores(e.exception_type, e.route)
+			}
+
 			val pageSize = 20
-			val totalCount = errorRepository.getCount(routeFilter)
-			val totalPages = ceil(totalCount.toDouble() / pageSize).toInt()
+			val totalPages = ceil(activeErrors.size.toDouble() / pageSize).toInt()
 			val requestedPage = call.request.queryParameters["page"]?.toIntOrNull() ?: 0
 			val currentPage = if (totalPages > 0) requestedPage.coerceIn(0, totalPages - 1) else 0
-			val errors = errorRepository.getRecent(currentPage, pageSize, routeFilter).map(::errorRowModel)
+			val errors = activeErrors
+				.drop(currentPage * pageSize).take(pageSize)
+				.map { errorRowModel(it, canIgnore = true) }
+
+			val ignoredShown = ignoredErrors.take(IGNORED_DISPLAY_CAP)
+				.map { errorRowModel(it, canIgnore = false) }
+			val ruleModels = ignoreRules.map { rule ->
+				mapOf(
+					"type" to rule.exceptionType,
+					"hasGlob" to (rule.routeGlob != null),
+					"glob" to (rule.routeGlob ?: ""),
+				)
+			}
 
 			val model = mutableMapOf<String, Any>(
 				"page_stylesheet" to "/assets/css/admin.css",
@@ -189,9 +220,49 @@ fun Route.adminMonitoringPages(
 				"prevPage" to currentPage - 1,
 				"nextPage" to currentPage + 1,
 				"isPaged" to (totalPages > 1),
+				"ignoredErrors" to ignoredShown,
+				"hasIgnoredErrors" to ignoredShown.isNotEmpty(),
+				"ignoredCount" to ignoredErrors.size,
+				"ignoredTruncated" to (ignoredErrors.size > IGNORED_DISPLAY_CAP),
+				"ignoreRules" to ruleModels,
+				"hasIgnoreRules" to ruleModels.isNotEmpty(),
 			)
 
 			call.respond(MustacheContent("admin-monitoring-errors.mustache", call.withDefaults(model)))
+		}
+
+		// HTMX: add an ignore rule. Posted from a row's "ignore" buttons (type,
+		// optionally narrowed to its route) or the free-form add-rule field.
+		hx.post("/errors/ignore") {
+			val params = call.receiveParameters()
+			val type = params["type"]?.trim().orEmpty()
+			val glob = params["routeGlob"]?.trim()?.takeIf { it.isNotBlank() }
+			if (type.isNotEmpty()) {
+				ignoreRulesMutex.withLock {
+					val rules = configRepository.get(AdminServerConfig.IGNORED_ERROR_RULES)
+					val rule = IgnoredErrorRule(type, glob)
+					if (rule !in rules) {
+						configRepository.set(AdminServerConfig.IGNORED_ERROR_RULES, rules + rule)
+					}
+				}
+			}
+			call.response.header(HxResponseHeaders.Refresh, "true")
+			call.respond(HttpStatusCode.OK, "")
+		}
+
+		hx.post("/errors/unignore") {
+			val params = call.receiveParameters()
+			val type = params["type"]?.trim().orEmpty()
+			val glob = params["routeGlob"]?.trim()?.takeIf { it.isNotBlank() }
+			ignoreRulesMutex.withLock {
+				val rules = configRepository.get(AdminServerConfig.IGNORED_ERROR_RULES)
+				configRepository.set(
+					AdminServerConfig.IGNORED_ERROR_RULES,
+					rules - IgnoredErrorRule(type, glob)
+				)
+			}
+			call.response.header(HxResponseHeaders.Refresh, "true")
+			call.respond(HttpStatusCode.OK, "")
 		}
 
 		// Full dump of the grouped errors (respecting the route filter) as JSON —
@@ -318,11 +389,13 @@ private fun jobStatusModel(s: RecurringTaskStatus): Map<String, Any> = mapOf(
 	"lastError" to (s.lastError ?: ""),
 )
 
-private fun errorRowModel(e: Error_log): Map<String, Any> {
+private fun errorRowModel(e: Error_log, canIgnore: Boolean): Map<String, Any> {
 	val severity = severityFor(e.status)
 	return mapOf(
 		"type" to e.exception_type,
 		"route" to (e.route ?: "—"),
+		"routeRaw" to (e.route ?: ""),
+		"hasRoute" to (e.route != null),
 		"user" to (e.user_id?.toString() ?: "all"),
 		"hasUser" to (e.user_id != null),
 		"count" to e.occurrence_count,
@@ -334,6 +407,7 @@ private fun errorRowModel(e: Error_log): Map<String, Any> {
 		"hasMessage" to (e.message != null),
 		"stackTrace" to (e.stack_trace ?: ""),
 		"hasStack" to (e.stack_trace != null),
+		"canIgnore" to canIgnore,
 	)
 }
 
@@ -491,5 +565,14 @@ private data class LatencyChartPayload(
 private const val RANGE_24H = "24h"
 private const val RANGE_7D = "7d"
 private const val RANGE_30D = "30d"
+
+/** Most-recent ignored groups rendered in the collapsed drawer; the export has the full set. */
+private const val IGNORED_DISPLAY_CAP = 50
+
+/** Most-recent error groups scanned per render for the visible/ignored split. */
+private const val ERROR_SCAN_CAP = 2000
+
+/** Serializes read-modify-write of the ignore-rule list so concurrent posts can't drop rules. */
+private val ignoreRulesMutex = Mutex()
 internal const val ALERT_MIN_REQUESTS = 20
 internal const val ALERT_ERROR_RATE = 0.25
