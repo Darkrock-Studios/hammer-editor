@@ -13,8 +13,8 @@ _Note: For now, the server is only available as a Java executable. Eventually we
 The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 
 1. Download the latest server release:
-	- [ZIP](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.zip)
-	- [TAR](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.tar)
+	- [ZIP](https://github.com/Darkrock-Studios/hammer-editor/releases/latest/download/server.zip)
+	- [TAR](https://github.com/Darkrock-Studios/hammer-editor/releases/latest/download/server.tar)
 2. Extract the archive to your desired location
 3. Create your config file: `config.toml`. The server automatically loads a `config.toml` placed in its data directory (`~/hammer_data/`), so you don't need to pass `--config` if you put it there. To keep it elsewhere, pass its path with `--config` (see the platform-specific scripts below). It is strongly advised to use a port other than `80`, unless this is the only web-based program running on the system. If you intend to access the server by the host FQDN (e.g. `hammer.example.com`), make sure to set this in your DNS records; otherwise this will only be accessible via IP (e.g. `10.1.1.1`, `192.0.2.1`).
 

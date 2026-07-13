@@ -6,7 +6,7 @@ Thanks for using Hammer! If you need help, have feedback, or want to request a f
 
 - **Email:** [darkrockstudios@gmail.com](mailto:darkrockstudios@gmail.com)
 - **Chat with us on Discord:** [discord.gg/GTmgjZcupk](https://discord.gg/GTmgjZcupk)
-- **Report a bug or request a feature:** [open an issue on GitHub](https://github.com/Wavesonics/hammer-editor/issues)
+- **Report a bug or request a feature:** [open an issue on GitHub](https://github.com/Darkrock-Studios/hammer-editor/issues)
 
 We aim to reply to support emails within a few business days.
 
@@ -29,7 +29,7 @@ No coding required, and every contribution helps.
 
 ## Other resources
 
-- **Source code & releases:** [github.com/Wavesonics/hammer-editor](https://github.com/Wavesonics/hammer-editor)
+- **Source code & releases:** [github.com/Darkrock-Studios/hammer-editor](https://github.com/Darkrock-Studios/hammer-editor)
 - **Sync protocol & docs:** see the [`docs/`](docs/) folder in the repo
 
 ## Logs
