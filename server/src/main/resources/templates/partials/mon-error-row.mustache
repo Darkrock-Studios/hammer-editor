@@ -15,7 +15,13 @@
 	<div class="mon-error__body">
 		{{#hasMessage}}<p class="mon-error__message">{{message}}</p>{{/hasMessage}}
 		{{#hasStack}}
-			<pre class="mon-error__stack">{{stackTrace}}</pre>{{/hasStack}}
+			<div class="mon-error__stack-wrap">
+				<button type="button" class="btn btn--ghost mon-error__copy-btn"
+				        data-copy-stack data-copied-label="{{msg.admin_mon_errors_copied}}">
+					<i class="fa-solid fa-copy"></i> {{msg.admin_mon_errors_copy_stack}}
+				</button>
+				<pre class="mon-error__stack">{{stackTrace}}</pre>
+			</div>{{/hasStack}}
 		{{#canIgnore}}
 			<form class="mon-error__actions" hx-post="/admin/monitoring/errors/ignore"
 			      hx-swap="none">

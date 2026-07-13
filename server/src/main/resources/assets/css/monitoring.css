@@ -452,6 +452,25 @@
 
 .mon-error__body { padding: 0.25rem 0.9rem 0.9rem; }
 .mon-error__message { font-family: 'Lora', Georgia, serif; color: var(--neutral-800); margin: 0.4rem 0; }
+.mon-error__stack-wrap { position: relative; }
+.mon-error__copy-btn {
+	position: absolute;
+	top: 0.5rem;
+	right: 0.5rem;
+	font-size: 0.72rem;
+	padding: 0.25rem 0.55rem;
+	background: var(--neutral-800);
+	color: var(--neutral-100);
+	border-color: var(--neutral-600);
+	opacity: 0.85;
+}
+.mon-error__copy-btn:hover {
+	opacity: 1;
+	background: var(--neutral-700);
+	border-color: var(--neutral-500);
+	color: var(--neutral-100);
+}
+.mon-error__copy-btn.copied { color: #4ade80; border-color: #4ade80; }
 .mon-error__stack {
 	margin: 0;
 	padding: 0.75rem;
