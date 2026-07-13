@@ -99,17 +99,11 @@ fun Route.publicStoryPage(
 					val indexable = password.isNullOrBlank() && account.community_member
 					call.applyRobotsTag(indexable = indexable)
 
-					// Best-effort unique-reader count, skipping the author viewing their own story.
-					val viewerId = call.sessions.get<UserSession>()?.userId
-					if (viewerId != resolved.userId) {
-						projectDao.getProjectIdOrNull(resolved.userId, resolved.projectUuid)?.let { projectId ->
-							storyReaderCollector.record(
-								projectId = projectId,
-								clientIp = call.request.origin.remoteAddress,
-								userAgent = call.request.userAgent(),
-							)
-						}
-					}
+					// The unique-reader count is no longer recorded here on page load — that
+					// counts everyone who clicks, including bounces. Instead the page loads a
+					// tiny script that fires a beacon to POST .../read once the visitor has
+					// actually dwelt on the page for a few seconds (see story-reader.js). That
+					// beacon is what best-effort filters out drive-by clicks.
 
 					val exportResult = storyExportService.exportStoryAsHtmlPaginated(
 						userId = resolved.userId,
@@ -130,6 +124,7 @@ fun Route.publicStoryPage(
 							val model = call.withDefaults(
 								mapOf(
 									"page_stylesheet" to "/assets/css/story.css",
+									"page_script" to "/assets/js/story-reader.js",
 									"projectName" to data.projectName,
 									"authorPenName" to resolved.penName,
 									"authorPenNameUrl" to ProjectName.penNameForUrl(resolved.penName),
@@ -197,6 +192,56 @@ fun Route.publicStoryPage(
 			} else {
 				call.respondRedirect("/a/$penNameParam/$projectNameParam")
 			}
+		}
+
+		// Best-effort "reader" beacon. story-reader.js fires this only after the visitor
+		// has actually dwelt on the page for a few seconds, so drive-by clicks (bounces)
+		// never reach here. Resolution mirrors the GET exactly — including the author-skip
+		// and access checks — so a beacon can only record a read the visitor could load.
+		post("/read") {
+			val penNameParam = call.parameters["penName"]
+			val projectNameParam = call.parameters["projectName"]
+
+			// A beacon is fire-and-forget: always answer 204 and never leak resolution
+			// outcomes, so a bad beacon looks the same as a good one.
+			if (penNameParam.isNullOrBlank() || projectNameParam.isNullOrBlank()) {
+				call.respond(HttpStatusCode.NoContent)
+				return@post
+			}
+
+			val password = call.request.queryParameters["p"]
+
+			val account = resolveByPenName(penNameParam) { accountsRepository.findAccountByPenName(it) }
+			val penName = account?.pen_name
+			if (account == null || penName == null) {
+				call.respond(HttpStatusCode.NoContent)
+				return@post
+			}
+
+			val projectShortId = ProjectName.idFromSegment(projectNameParam)
+			val projectName = projectsRepository.getProjectsWithSyncDate(account.id)
+				.find { ProjectName.shortId(it.uuid) == projectShortId }?.name
+			if (projectName == null) {
+				call.respond(HttpStatusCode.NoContent)
+				return@post
+			}
+
+			val resolved = projectAccessRepository.findAccessibleProject(penName, projectName, password)
+			if (resolved is PublicProjectResult.Success) {
+				// Skip the author reading their own story.
+				val viewerId = call.sessions.get<UserSession>()?.userId
+				if (viewerId != resolved.userId) {
+					projectDao.getProjectIdOrNull(resolved.userId, resolved.projectUuid)?.let { projectId ->
+						storyReaderCollector.record(
+							projectId = projectId,
+							clientIp = call.request.origin.remoteAddress,
+							userAgent = call.request.userAgent(),
+						)
+					}
+				}
+			}
+
+			call.respond(HttpStatusCode.NoContent)
 		}
 	}
 }

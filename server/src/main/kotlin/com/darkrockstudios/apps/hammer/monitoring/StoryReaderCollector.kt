@@ -17,6 +17,11 @@ import kotlin.time.Instant
  * rotated every UTC day — never persisted — so the hash can't be reversed to an IP
  * nor linked across days. The raw IP is consumed here and never stored.
  *
+ * A view is only recorded once the reader has actually dwelt on the page for a few
+ * seconds — the public page fires a beacon on a client-side timer (story-reader.js)
+ * rather than counting on page load — so drive-by clicks (bounces) never reach
+ * [record]. That's a best-effort filter, not a guarantee.
+ *
  * Recording is a lock-light concurrent-set add and a cheap no-op when
  * [setCollecting] has been told the feature is off. The maintenance job
  * periodically [drainToKeys] and persists them.
