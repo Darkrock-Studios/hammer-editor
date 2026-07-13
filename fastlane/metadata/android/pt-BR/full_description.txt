@@ -18,4 +18,4 @@ Seus dados podem ser sincronizados entre aparelhos, permitindo que você trabalh
 
 Sincronização Opcional e Auto-hospedada
 
-Sincronizar é completamente opcional. Você pode instalar o cliente e usá-lo em um dispositivo, ou instalar o servidor e sincronizar seus dados com outros dispositivos.
+Você pode instalar o cliente e usá-lo em um dispositivo, ou instalar o servidor e sincronizar seus dados com outros dispositivos.

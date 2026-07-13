@@ -16,7 +16,7 @@ The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 	- [ZIP](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.zip)
 	- [TAR](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.tar)
 2. Extract the archive to your desired location
-3. Create your config file: `serverConfig.toml` in a location of your choice. It is strongly advised to use a port other than `80`, unless this is the only web-based program running on the system. If you intend to access the server by the host FQDN (e.g. `hammer.example.com`), make sure to set this in your DNS records; otherwise this will only be accessible via IP (e.g. `10.1.1.1`, `192.0.2.1`).
+3. Create your config file: `config.toml`. The server automatically loads a `config.toml` placed in its data directory (`~/hammer_data/`), so you don't need to pass `--config` if you put it there. To keep it elsewhere, pass its path with `--config` (see the platform-specific scripts below). It is strongly advised to use a port other than `80`, unless this is the only web-based program running on the system. If you intend to access the server by the host FQDN (e.g. `hammer.example.com`), make sure to set this in your DNS records; otherwise this will only be accessible via IP (e.g. `10.1.1.1`, `192.0.2.1`).
 
    ```toml
    host = "example.com"
@@ -55,7 +55,7 @@ The server persists its data in a PostgreSQL database. It supports two modes:
 
 Embedded is the default; no config is needed for it. This is the intended mode for self-hosters.
 To override the embedded port, or to switch to remote, add a `[storage]` block to
-`serverConfig.toml`:
+`config.toml`:
 
 ```toml
 # Embedded (defaults shown). Omit this whole block to accept the defaults.
@@ -108,7 +108,7 @@ full walkthrough.
 Create a script to run the server in the top level of the installation directory (e.g. `hammer/`): `run.sh`
 ```bash
 #!/bin/bash
-./bin/server --config serverConfig.toml
+./bin/server --config config.toml
 ```
 
 Make the script executable:
@@ -168,7 +168,7 @@ Create a script to run the server in the top level of the installation directory
 
 ```batch
 @echo off
-bin\server.bat --config serverConfig.toml
+bin\server.bat --config config.toml
 ```
 
 Run the server:
@@ -184,7 +184,7 @@ Create a script to run the server in the top level of the installation directory
 
 ```bash
 #!/bin/bash
-./bin/server --config serverConfig.toml
+./bin/server --config config.toml
 ```
 
 Make the script executable:
@@ -246,7 +246,7 @@ Once you've set it up, Let's Encrypt will give you a directory of PEM files such
 `/etc/letsencrypt/live/example.com`. The two files we care about are `fullchain.pem` and
 `privkey.pem`.
 
-Point **Hammer** straight at them in your `serverConfig.toml` — no conversion needed:
+Point **Hammer** straight at them in your `config.toml` — no conversion needed:
 
 ```toml
 [sslCert]
@@ -331,7 +331,7 @@ section above), you can put it behind a reverse proxy that terminates TLS and fo
 Hammer. This is good practice — especially when other services share the host — and is documented
 here for Nginx. Use **either** this approach **or** Java SSL, not both.
 
-### Changes to serverConfig
+### Changes to config.toml
 
 Example port used. (If you're running multiple services on a webserver, you've probably already used 8080.) For security purposes, make sure to set `bindHosts` as below (V => 3.4.0).
 
@@ -454,7 +454,7 @@ There are several supported ways to send emails:
 - Postmark - https://postmarkapp.com/
 
 You can configure the email provider by first selecting which you want to use in your
-`serverConfig.toml` file:
+`config.toml` file:
 
 ```toml
 emailProvider = "SMTP" 

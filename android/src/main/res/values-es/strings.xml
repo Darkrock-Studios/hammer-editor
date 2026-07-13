@@ -24,7 +24,7 @@
     <string name="note_widget_config_title">Configurar widget de notas:</string>
     <string name="note_widget_config_project_checkbox">Agregar notas al proyecto indicado</string>
     <string name="note_widget_config_project_checkbox_explained">Si no se selecciona ningún proyecto, se te pedirá que elijas uno cada vez.</string>
-    <string name="stories_list_widget_description">Hammer · Library — open a story</string>
+    <string name="stories_list_widget_description">Hammer · Biblioteca — abre una historia</string>
     <string name="story_info_widget_description">Hammer · Story — at-a-glance stats for one project</string>
     <string name="story_info_widget_config_title">Story Info Widget:</string>
     <string name="title_activity_story_info_widget_config">Configure Story Info Widget</string>

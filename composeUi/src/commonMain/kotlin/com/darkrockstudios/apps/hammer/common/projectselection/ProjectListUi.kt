@@ -75,7 +75,17 @@ import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
 import com.darkrockstudios.apps.hammer.common.protocolmismatch.ProtocolMismatchDialog
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
 import com.darkrockstudios.apps.hammer.project_select_project_list_empty
+import com.darkrockstudios.apps.hammer.projects_list_column_last_open
+import com.darkrockstudios.apps.hammer.projects_list_column_title
 import com.darkrockstudios.apps.hammer.projects_list_create_button
+import com.darkrockstudios.apps.hammer.projects_list_empty_index
+import com.darkrockstudios.apps.hammer.projects_list_entry_count_none
+import com.darkrockstudios.apps.hammer.projects_list_entry_count_one
+import com.darkrockstudios.apps.hammer.projects_list_entry_count_other
+import com.darkrockstudios.apps.hammer.projects_list_footer_library
+import com.darkrockstudios.apps.hammer.projects_list_footer_local
+import com.darkrockstudios.apps.hammer.projects_list_footer_sync_on
+import com.darkrockstudios.apps.hammer.projects_list_masthead_title
 import com.darkrockstudios.apps.hammer.projects_list_no_matches
 import com.darkrockstudios.apps.hammer.projects_list_search_button
 import com.darkrockstudios.apps.hammer.projects_list_search_clear
@@ -105,7 +115,7 @@ private val NarrowContentPadding: Dp = Ui.Padding.XL
 /** Tags the "Create Project" affordance (masthead button when wide, bottom bar when narrow). */
 const val CreateProjectButtonTestTag = "create-project-button"
 
-private enum class ProjectsSortMode(
+internal enum class ProjectsSortMode(
 	override val labelRes: StringResource,
 	override val glyphRes: StringResource,
 ) : HdSortOption {
@@ -197,6 +207,7 @@ fun ProjectListUi(
 	) {
 		Masthead(
 			entryCount = state.projects.size,
+			showEntryCount = isWide,
 			isServerSynced = state.isServerSynced,
 			onSync = component::showProjectsSync,
 			onCreate = component::showCreate,
@@ -204,6 +215,7 @@ fun ProjectListUi(
 			horizontalPadding = horizontalPadding,
 			sortMode = sortMode,
 			onSortChange = { sortMode = it },
+			showSort = isWide,
 			searchActive = showSearchBar,
 			onToggleSearch = {
 				if (showSearchBar) {
@@ -227,6 +239,9 @@ fun ProjectListUi(
 					query = ""
 				},
 				horizontalPadding = horizontalPadding,
+				showSort = !isWide,
+				sortMode = sortMode,
+				onSortChange = { sortMode = it },
 			)
 		}
 
@@ -311,8 +326,9 @@ fun ProjectListUi(
 }
 
 @Composable
-private fun Masthead(
+internal fun Masthead(
 	entryCount: Int,
+	showEntryCount: Boolean,
 	isServerSynced: Boolean,
 	onSync: () -> Unit,
 	onCreate: () -> Unit,
@@ -320,6 +336,7 @@ private fun Masthead(
 	horizontalPadding: Dp,
 	sortMode: ProjectsSortMode,
 	onSortChange: (ProjectsSortMode) -> Unit,
+	showSort: Boolean,
 	searchActive: Boolean,
 	onToggleSearch: () -> Unit,
 ) {
@@ -332,21 +349,25 @@ private fun Masthead(
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
 		HdMonoLabel(
-			text = "Hammer · Library",
+			text = Res.string.projects_list_masthead_title.get(),
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		Spacer(modifier = Modifier.weight(1f))
-		HdMonoLabel(
-			text = entrySummary(entryCount),
-			color = MaterialTheme.colorScheme.onSurfaceVariant,
-		)
+		if (showEntryCount) {
+			HdMonoLabel(
+				text = entrySummary(entryCount),
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
 		SearchAffordance(active = searchActive, onClick = onToggleSearch)
-		HdSortMenu(
-			label = Res.string.projects_list_sort_label,
-			options = ProjectsSortMode.entries,
-			selected = sortMode,
-			onSelect = onSortChange,
-		)
+		if (showSort) {
+			HdSortMenu(
+				label = Res.string.projects_list_sort_label,
+				options = ProjectsSortMode.entries,
+				selected = sortMode,
+				onSelect = onSortChange,
+			)
+		}
 		if (isServerSynced) {
 			RefreshAffordance(onClick = onSync)
 		}
@@ -404,12 +425,15 @@ private fun SearchAffordance(active: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun SearchStrip(
+internal fun SearchStrip(
 	query: String,
 	onQueryChange: (String) -> Unit,
 	parsedTags: List<String>,
 	onClose: () -> Unit,
 	horizontalPadding: Dp,
+	showSort: Boolean,
+	sortMode: ProjectsSortMode,
+	onSortChange: (ProjectsSortMode) -> Unit,
 ) {
 	Column(
 		modifier = Modifier
@@ -427,10 +451,23 @@ private fun SearchStrip(
 			modifier = Modifier.fillMaxWidth(),
 			testTag = "projects-list-search",
 		)
-		if (parsedTags.isNotEmpty()) {
-			Row(horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S)) {
+		if (showSort || parsedTags.isNotEmpty()) {
+			Row(
+				modifier = Modifier.fillMaxWidth(),
+				verticalAlignment = Alignment.CenterVertically,
+				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+			) {
 				parsedTags.forEach { tag ->
 					HdTagChip(label = tag, active = true)
+				}
+				if (showSort) {
+					Spacer(modifier = Modifier.weight(1f))
+					HdSortMenu(
+						label = Res.string.projects_list_sort_label,
+						options = ProjectsSortMode.entries,
+						selected = sortMode,
+						onSelect = onSortChange,
+					)
 				}
 			}
 		}
@@ -481,13 +518,13 @@ private fun ColumnHeader(showLastOpen: Boolean) {
 				modifier = Modifier.width(40.dp),
 			)
 			HdMonoLabel(
-				text = "Title",
+				text = Res.string.projects_list_column_title.get(),
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
 				modifier = Modifier.weight(1f),
 			)
 			if (showLastOpen) {
 				HdMonoLabel(
-					text = "Last Open",
+					text = Res.string.projects_list_column_last_open.get(),
 					color = MaterialTheme.colorScheme.onSurfaceVariant,
 				)
 			}
@@ -511,7 +548,7 @@ private fun EmptyState(horizontalPadding: Dp) {
 		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
 		HdMonoLabel(
-			text = "— Empty Index —",
+			text = Res.string.projects_list_empty_index.get(),
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		Text(
@@ -542,12 +579,16 @@ private fun FooterFolio(
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 	) {
 		HdMonoLabel(
-			text = "Library",
+			text = Res.string.projects_list_footer_library.get(),
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		Spacer(modifier = Modifier.weight(1f))
 		HdMonoLabel(
-			text = if (isServerSynced) "Sync · On" else "Local",
+			text = if (isServerSynced) {
+				Res.string.projects_list_footer_sync_on.get()
+			} else {
+				Res.string.projects_list_footer_local.get()
+			},
 			color = MaterialTheme.colorScheme.onSurfaceVariant,
 		)
 		HdMonoLabel(
@@ -598,10 +639,11 @@ private fun BottomCreateBar(
 	}
 }
 
+@Composable
 private fun entrySummary(count: Int): String = when (count) {
-	0 -> "0 entries"
-	1 -> "1 entry"
-	else -> "$count entries"
+	0 -> Res.string.projects_list_entry_count_none.get()
+	1 -> Res.string.projects_list_entry_count_one.get()
+	else -> Res.string.projects_list_entry_count_other.get(count)
 }
 
 @Composable

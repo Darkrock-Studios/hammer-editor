@@ -15,6 +15,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
@@ -28,6 +32,8 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.darkrockstudios.apps.hammer.common.compose.fileDropTarget
+import io.github.vinceglb.filekit.PlatformFile
 import kotlin.math.ceil
 
 /**
@@ -57,7 +63,17 @@ fun HdHairlineImageDrop(
 	onRemove: (() -> Unit)? = null,
 	attachedLabel: String? = null,
 	replaceLabel: String? = null,
+	onFilesDropped: ((List<PlatformFile>) -> Unit)? = null,
+	dropExtensions: Set<String> = emptySet(),
 ) {
+	var dragActive by remember { mutableStateOf(false) }
+	val dropModifier = Modifier.fileDropTarget(
+		enabled = onFilesDropped != null,
+		extensions = dropExtensions,
+		onDragChange = { dragActive = it },
+		onFilesDropped = { onFilesDropped?.invoke(it) },
+	)
+
 	Column(modifier = modifier.fillMaxWidth()) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
@@ -88,10 +104,15 @@ fun HdHairlineImageDrop(
 					.height(height)
 					.padding(top = 8.dp)
 					.border(
-						width = Dp.Hairline,
-						color = MaterialTheme.colorScheme.outlineVariant,
+						width = if (dragActive) 1.dp else Dp.Hairline,
+						color = if (dragActive) {
+							MaterialTheme.colorScheme.primary
+						} else {
+							MaterialTheme.colorScheme.outlineVariant
+						},
 						shape = RectangleShape,
-					),
+					)
+					.then(dropModifier),
 			) {
 				image()
 				if (onRemove != null) {
@@ -115,7 +136,11 @@ fun HdHairlineImageDrop(
 		} else {
 			val stripeA = MaterialTheme.colorScheme.surfaceContainerLow
 			val stripeB = MaterialTheme.colorScheme.surfaceContainer
-			val dashColor = MaterialTheme.colorScheme.outlineVariant
+			val dashColor = if (dragActive) {
+				MaterialTheme.colorScheme.primary
+			} else {
+				MaterialTheme.colorScheme.outlineVariant
+			}
 			val tileColor = MaterialTheme.colorScheme.surfaceContainer
 			val onSurfaceVariant = MaterialTheme.colorScheme.onSurfaceVariant
 
@@ -126,6 +151,7 @@ fun HdHairlineImageDrop(
 					.padding(top = 8.dp)
 					.diagonalStripes(stripeA, stripeB)
 					.dashedHairlineBorder(dashColor)
+					.then(dropModifier)
 					.clickable(onClick = onClick),
 				contentAlignment = Alignment.Center,
 			) {

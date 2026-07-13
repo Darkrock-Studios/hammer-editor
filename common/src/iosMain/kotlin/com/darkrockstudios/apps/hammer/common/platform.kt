@@ -45,7 +45,17 @@ actual fun getConfigDirectory(): String {
 	return (urls[0] as NSURL).path!!
 }
 
-actual fun getLogDirectory(): String? = null
+private fun getApplicationSupportDirectory(): String {
+	val urls = NSFileManager.defaultManager.URLsForDirectory(
+		directory = NSApplicationSupportDirectory,
+		inDomains = NSUserDomainMask,
+	)
+	return (urls[0] as NSURL).path!!
+}
+
+// Logs live in Application Support (OS-managed, not user-visible, and not purged
+// like Caches), keeping them out of the user-facing Documents/projects directory.
+actual fun getLogDirectory(): String? = "${getApplicationSupportDirectory()}/logs"
 
 fun initializeKoin(extraModules: List<Module>) {
 	val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

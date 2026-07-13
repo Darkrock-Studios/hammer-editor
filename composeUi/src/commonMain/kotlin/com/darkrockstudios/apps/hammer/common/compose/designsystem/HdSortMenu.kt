@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
 interface HdSortOption {
 	/** Long-form label shown in the dropdown menu (e.g. "Newest"). */
@@ -65,12 +65,16 @@ fun <T : HdSortOption> HdSortMenu(
 			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
 		) {
 			HdMonoLabel(
-				text = stringResource(label),
+				text = label.get(),
 				color = MaterialTheme.colorScheme.onSurfaceVariant,
+				maxLines = 1,
+				softWrap = false,
 			)
 			HdMonoLabel(
-				text = stringResource(selected.glyphRes),
+				text = selected.glyphRes.get(),
 				color = MaterialTheme.colorScheme.onSurface,
+				maxLines = 1,
+				softWrap = false,
 			)
 		}
 		DropdownMenu(
@@ -85,7 +89,7 @@ fun <T : HdSortOption> HdSortMenu(
 							verticalAlignment = Alignment.CenterVertically,
 						) {
 							Text(
-								text = stringResource(option.labelRes),
+								text = option.labelRes.get(),
 								style = MaterialTheme.typography.bodyMedium,
 								color = if (option == selected) {
 									MaterialTheme.colorScheme.onSurface
@@ -95,7 +99,7 @@ fun <T : HdSortOption> HdSortMenu(
 							)
 							Spacer(modifier = Modifier.weight(1f))
 							Spacer(modifier = Modifier.width(Ui.Padding.XL))
-							HdMonoLabel(text = stringResource(option.glyphRes))
+							HdMonoLabel(text = option.glyphRes.get())
 						}
 					},
 					onClick = {

@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
+import com.darkrockstudios.apps.hammer.monitoring.isClientAbort
 import com.darkrockstudios.apps.hammer.monitoring.recordMonitoredError
 import com.darkrockstudios.apps.hammer.monitoring.toMonitoredStatus
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
@@ -211,6 +212,13 @@ fun Application.configureFrontEnd() {
 		}
 	}
 
+	configureStatusPages(errorRepository, monitoringState)
+}
+
+fun Application.configureStatusPages(
+	errorRepository: ErrorRepository,
+	monitoringState: MonitoringState,
+) {
 	fun ApplicationRequest.isApiCall(): Boolean = path().startsWith("/$API_ROUTE_PREFIX/")
 
 	install(StatusPages) {
@@ -229,6 +237,14 @@ fun Application.configureFrontEnd() {
 			}
 		}
 		exception<Throwable> { call, cause ->
+			// A client abort is not a server fault: skip the error log and
+			// monitoring, and don't try to respond down a dead stream.
+			if (cause.isClientAbort()) {
+				call.application.log.debug(
+					"Client aborted response for ${call.request.httpMethod.value} ${call.request.path()}"
+				)
+				return@exception
+			}
 			call.application.log.error(
 				"Unhandled exception on ${call.request.httpMethod.value} ${call.request.path()}",
 				cause

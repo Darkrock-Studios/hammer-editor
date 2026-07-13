@@ -5,6 +5,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import com.arkivanov.decompose.value.MutableValue
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutApp
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
+import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
+import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
+import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 
 @Preview
@@ -12,6 +16,16 @@ import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 fun ScreenAboutAppUiPreview() {
 	AppTheme(globalSettingsPreview) {
 		AboutAppUi(previewComponent)
+	}
+}
+
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+fun ScreenAboutAppUiTabletPreview() {
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			AboutAppUi(previewComponent)
+		}
 	}
 }
 

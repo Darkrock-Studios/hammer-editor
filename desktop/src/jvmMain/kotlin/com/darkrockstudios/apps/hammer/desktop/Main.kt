@@ -41,7 +41,13 @@ import io.github.aakira.napier.Napier
 import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
 import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
 import io.github.sudarshanmhasrup.splashify.SplashifyApp
-import kotlinx.coroutines.*
+import io.github.vinceglb.filekit.FileKit
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.koin.core.context.GlobalContext
 import org.koin.java.KoinJavaComponent.getKoin
 import java.io.File
@@ -114,6 +120,7 @@ private fun configureJnaForPackagedRuntime() {
 @ExperimentalComposeApi
 fun main(args: Array<String>) {
 	configureJnaForPackagedRuntime()
+	FileKit.init(appId = "com.darkrockstudios.apps.hammer")
 	val launchArgs = handleArguments(args)
 
 	val appScope = CoroutineScope(Dispatchers.Default)

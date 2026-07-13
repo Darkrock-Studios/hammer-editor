@@ -35,7 +35,7 @@ import androidx.compose.ui.Alignment
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.nav_rail_collapse
 import com.darkrockstudios.apps.hammer.nav_rail_expand
-import org.jetbrains.compose.resources.stringResource
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.draw.drawBehind
@@ -252,9 +252,7 @@ private fun HdNavRailToggle(
 		targetValue = if (expanded) 0f else 180f,
 		animationSpec = tween(durationMillis = 240, easing = FastOutSlowInEasing),
 	)
-	val toggleLabel = stringResource(
-		if (expanded) Res.string.nav_rail_collapse else Res.string.nav_rail_expand
-	)
+	val toggleLabel = (if (expanded) Res.string.nav_rail_collapse else Res.string.nav_rail_expand).get()
 	IconButton(
 		onClick = onToggle,
 		modifier = modifier.semantics { contentDescription = toggleLabel },

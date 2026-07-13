@@ -110,7 +110,12 @@ fun FocusModeUi(component: FocusMode) {
 			CircularProgressIndicator()
 		}
 	} else {
-		Column(modifier = Modifier.fillMaxSize().findShortcutModifier { showFindBar = true }) {
+		Column(
+			modifier = Modifier
+				.fillMaxSize()
+				.focusModeChromePadding()
+				.findShortcutModifier { showFindBar = true }
+		) {
 			Row(
 				modifier = Modifier
 					.fillMaxWidth(),

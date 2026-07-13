@@ -20,6 +20,8 @@ import com.darkrockstudios.apps.hammer.common.projectselection.ProjectCreateMast
 import com.darkrockstudios.apps.hammer.create_project_button
 import com.darkrockstudios.apps.hammer.create_project_cancel_button
 import com.darkrockstudios.apps.hammer.create_project_heading
+import com.darkrockstudios.apps.hammer.create_project_marker
+import com.darkrockstudios.apps.hammer.create_project_meta
 import com.darkrockstudios.apps.hammer.create_project_title
 
 /**
@@ -29,7 +31,7 @@ import com.darkrockstudios.apps.hammer.create_project_title
  */
 @Preview(widthDp = 720, heightDp = 460)
 @Composable
-fun ProjectCreateDialogPreview() {
+fun ScreenProjectCreateDialogPreview() {
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview, true) {
 			Box(
@@ -39,8 +41,8 @@ fun ProjectCreateDialogPreview() {
 				contentAlignment = Alignment.Center,
 			) {
 				FormDialogScaffold(
-					marker = "§ NEW",
-					meta = "PROJECT",
+					marker = "§ ${Res.string.create_project_marker.get().uppercase()}",
+					meta = Res.string.create_project_meta.get().uppercase(),
 					title = Res.string.create_project_title.get(),
 					confirmLabel = Res.string.create_project_button.get(),
 					cancelLabel = Res.string.create_project_cancel_button.get(),

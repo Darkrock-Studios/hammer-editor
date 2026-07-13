@@ -35,7 +35,7 @@ import kotlinx.datetime.LocalDate
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
-import org.jetbrains.compose.resources.stringResource
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
 const val DEFAULT_HEATMAP_WEEKS = 12
 
@@ -97,13 +97,12 @@ fun ActivityHeatmap(
 private fun HeatmapCellData.tooltipText(): String {
 	val date = date.toString()
 	return if (words > 0) {
-		stringResource(
-			Res.string.project_home_stat_activity_tooltip,
+		Res.string.project_home_stat_activity_tooltip.get(
 			date,
 			words.formatDecimalSeparator()
 		)
 	} else {
-		stringResource(Res.string.project_home_stat_activity_tooltip_empty, date)
+		Res.string.project_home_stat_activity_tooltip_empty.get(date)
 	}
 }
 

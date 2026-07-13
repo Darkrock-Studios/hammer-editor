@@ -23,6 +23,13 @@ const val TABLET_WIDTH_DP: Int = 1280
 const val TABLET_HEIGHT_DP: Int = 800
 
 /**
+ * Extra-tall canvas for screens whose content scrolls well past a normal tablet
+ * height (e.g. project stats, encyclopedia entries). Use it as the `heightDp` so
+ * the whole screen renders for translation screenshots instead of being clipped.
+ */
+const val TABLET_TALL_HEIGHT_DP: Int = 1400
+
+/**
  * Wraps [content] in the app theme and a wide [ScreenCharacteristics] so screens
  * that branch on `LocalScreenCharacteristic` render their expanded/wide layouts
  * instead of the compact phone path. Pair with `@Preview(widthDp = TABLET_WIDTH_DP,

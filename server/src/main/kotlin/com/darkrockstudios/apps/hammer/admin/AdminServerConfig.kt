@@ -4,8 +4,10 @@ import com.darkrockstudios.apps.hammer.email.MailgunConfig
 import com.darkrockstudios.apps.hammer.email.PostmarkConfig
 import com.darkrockstudios.apps.hammer.email.SendGridConfig
 import com.darkrockstudios.apps.hammer.email.SmtpConfig
+import com.darkrockstudios.apps.hammer.monitoring.IgnoredErrorRule
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringConfig
 import com.darkrockstudios.apps.hammer.patreon.PatreonConfig
+import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
 data class ServerConfigKey<T>(
@@ -63,5 +65,20 @@ object AdminServerConfig {
 		default = MonitoringConfig(),
 		parse = { Json.decodeFromString<MonitoringConfig>(it) },
 		serialize = { Json.encodeToString(MonitoringConfig.serializer(), it) }
+	)
+
+	// Lenient so an unknown field (e.g. after a version rollback) can't silently
+	// void the whole rule list and resurrect suppressed alert emails.
+	private val ignoredRulesJson = Json { ignoreUnknownKeys = true }
+	val IGNORED_ERROR_RULES = ServerConfigKey(
+		key = "ignored_error_rules",
+		default = emptyList<IgnoredErrorRule>(),
+		parse = { ignoredRulesJson.decodeFromString<List<IgnoredErrorRule>>(it) },
+		serialize = {
+			ignoredRulesJson.encodeToString(
+				ListSerializer(IgnoredErrorRule.serializer()),
+				it
+			)
+		}
 	)
 }

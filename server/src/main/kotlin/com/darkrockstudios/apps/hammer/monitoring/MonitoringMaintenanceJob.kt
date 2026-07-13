@@ -4,6 +4,9 @@ import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.email.EmailResult
 import com.darkrockstudios.apps.hammer.email.EmailService
+import com.darkrockstudios.apps.hammer.monitoring.MonitoringMaintenanceJob.Companion.FLUSH_INTERVAL
+import com.darkrockstudios.apps.hammer.monitoring.MonitoringMaintenanceJob.Companion.MAINTENANCE_INTERVAL
+import com.darkrockstudios.apps.hammer.monitoring.MonitoringMaintenanceJob.Companion.SECURITY_ALERT_COOLDOWN
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTask
 import org.slf4j.Logger
 import kotlin.time.Clock
@@ -75,14 +78,17 @@ class MonitoringMaintenanceJob(
 	/**
 	 * Email the admin about error groups that have crossed the occurrence
 	 * threshold and haven't been alerted on yet, then mark them notified so we
-	 * don't repeat. Public for tests.
+	 * don't repeat. Groups matching an admin ignore rule are skipped without
+	 * being marked, so deleting the rule makes them alertable again. Public for tests.
 	 */
 	suspend fun evaluateErrorAlerts(config: MonitoringConfig) {
 		if (config.alertEmail.isBlank() || !emailService.isConfigured()) return
 
+		val ignoreRules = configRepository.get(AdminServerConfig.IGNORED_ERROR_RULES)
 		val since = clock.now() - ALERT_WINDOW
 		val toAlert = errorRepository.errorsToAlert(config.syncFailureThreshold, since)
 		for (error in toAlert) {
+			if (ignoreRules.ignores(error.exception_type, error.route)) continue
 			val subject = "[Hammer] ${error.exception_type} (${error.occurrence_count}×)" +
 				(error.route?.let { " on $it" } ?: "")
 			val text = buildString {

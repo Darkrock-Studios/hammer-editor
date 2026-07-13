@@ -50,7 +50,6 @@ import com.darkrockstudios.apps.hammer.project_home_export_format_rtf
 import com.darkrockstudios.apps.hammer.project_home_export_help_icon_description
 import com.darkrockstudios.apps.hammer.project_home_export_section
 import org.jetbrains.compose.resources.StringResource
-import org.jetbrains.compose.resources.stringResource
 
 private val DialogMaxWidth = 520.dp
 
@@ -90,14 +89,14 @@ fun ExportOptionsDialog(
 		) {
 			Column {
 				HdMasthead(
-					section = stringResource(Res.string.project_home_export_section),
+					section = Res.string.project_home_export_section.get(),
 					trailing = {
 						HdHelpButton(
 							onClick = { showHelp = true },
-							contentDescription = stringResource(Res.string.project_home_export_help_icon_description),
+							contentDescription = Res.string.project_home_export_help_icon_description.get(),
 						)
 						HdMastheadAction(
-							label = stringResource(Res.string.project_home_export_close),
+							label = Res.string.project_home_export_close.get(),
 							onClick = { if (!working) onCancel() },
 						)
 					},
@@ -137,23 +136,23 @@ fun ExportOptionsDialog(
 					HdHairlineToggleRow(
 						checked = treatAsChapters,
 						onCheckedChange = { treatAsChapters = it },
-						label = stringResource(Res.string.project_home_export_chapters_label),
+						label = Res.string.project_home_export_chapters_label.get(),
 					)
 
 					HdHairlineDropdown(
-						title = stringResource(Res.string.project_home_export_format_label),
+						title = Res.string.project_home_export_format_label.get(),
 						options = AVAILABLE_EXPORT_FORMATS,
 						selected = format,
 						onSelect = { format = it },
-						label = { stringResource(it.labelRes()) },
+						label = { (it.labelRes()).get() },
 					)
 				}
 
 				Spacer(modifier = Modifier.height(Ui.Padding.M))
 
 				HdButtonBar(
-					cancelLabel = stringResource(Res.string.project_home_export_cancel),
-					primaryLabel = stringResource(Res.string.project_home_export_execute),
+					cancelLabel = Res.string.project_home_export_cancel.get(),
+					primaryLabel = Res.string.project_home_export_execute.get(),
 					onCancel = onCancel,
 					onPrimary = {
 						onConfirm(

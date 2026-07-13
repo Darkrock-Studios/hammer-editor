@@ -23,6 +23,28 @@ internal fun ScreenAccountSettingsUiPreview() {
 	}
 }
 
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
+@Composable
+internal fun ScreenAccountSettingsUiTabletPreview() {
+	val component = accountSettingsComponent(
+		defaultAccountSettingsComponentState.copy(
+			serverSetup = false,
+			serverIsLoggedIn = true,
+			currentEmail = "admin@example.com",
+			currentUrl = "https://hammer-server.com",
+			currentSsl = true,
+			serverWorking = false,
+		)
+	)
+	val rootSnackbar = rememberRootSnackbarHostState()
+
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			AccountSettingsUi(component, rootSnackbar)
+		}
+	}
+}
+
 @Preview
 @Composable
 internal fun ScreenAccountSettingsUiServerConfiguredPreview() {
