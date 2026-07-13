@@ -32,6 +32,14 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.6.1" date="2026-07-12">
+            <description>
+                <p>- [New] Re-added translations</p>
+                <p>- [New] iOS can now export logs</p>
+                <p>- [Fix] Encyclopedia image selection</p>
+                <p>- [Fix] Focus mode UI padding on Desktop</p>
+            </description>
+        </release>
         <release version="3.6.0" date="2026-07-07">
             <description>
                 <p>[New]</p>

@@ -1,5 +1,13 @@
 # Changelog
 
+## [3.6.1] - 2026-7-12
+
+- [New] Re-added translations
+- [New] iOS can now export logs
+- [Fix] Encyclopedia image selection
+- [Fix] Focus mode UI padding on Desktop
+
+
 ## [3.6.0] - 2026-7-7
 
 [New]
