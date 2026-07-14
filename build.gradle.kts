@@ -102,6 +102,7 @@ kover {
 				packages("com.darkrockstudios.apps.hammer.legacy")
 				classes(
 					"*Queries",
+					"*Queries$*",
 					"*.ServerDatabaseImpl",
 					"*.LegacySqliteDatabaseImpl",
 					"*.LegacySqliteDatabaseImplKt",

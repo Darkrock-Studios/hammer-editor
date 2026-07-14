@@ -9,6 +9,9 @@ ignore:
   - "composeUi"
   - "android"
   - "desktop"
+  - "common/src/androidMain"
+  - "common/src/iosMain"
+  - "server/src/testFixtures"
 
 component_management:
     default_rules:  # default rules that will be inherited by all components
