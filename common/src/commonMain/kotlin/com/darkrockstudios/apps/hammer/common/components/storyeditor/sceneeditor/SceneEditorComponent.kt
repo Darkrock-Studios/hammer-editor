@@ -242,7 +242,7 @@ class SceneEditorComponent(
 		}
 
 		val draftsItem = MenuItemDescriptor(
-			"scene-editor-view-drafts",
+			VIEW_DRAFTS_MENU_ITEM_ID,
 			Res.string.scene_editor_menu_item_view_drafts,
 			""
 		) {
@@ -498,5 +498,9 @@ class SceneEditorComponent(
 
 	override fun onStop() {
 		removeEditorMenu()
+	}
+
+	companion object {
+		const val VIEW_DRAFTS_MENU_ITEM_ID = "scene-editor-view-drafts"
 	}
 }
