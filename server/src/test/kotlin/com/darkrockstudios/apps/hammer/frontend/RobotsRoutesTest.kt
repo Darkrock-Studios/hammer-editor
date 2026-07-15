@@ -74,8 +74,6 @@ class RobotsRoutesTest {
 			response.headers[HttpHeaders.ContentType]?.startsWith("text/plain") == true,
 			"expected text/plain, got ${response.headers[HttpHeaders.ContentType]}",
 		)
-		val body = response.bodyAsText()
-		assertTrue(body.startsWith("# Search engines"))
-		assertContains(body, "User-agent: GPTBot")
+		assertEquals(buildRobotsTxt(), response.bodyAsText())
 	}
 }

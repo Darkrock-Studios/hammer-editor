@@ -2,7 +2,6 @@ package components.timeline
 
 import PROJECT_EMPTY_NAME
 import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLineEventComponent
-import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import getProjectDef
@@ -10,7 +9,6 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.slot
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import repositories.timeline.TimeLineTestBase
@@ -21,18 +19,6 @@ class CreateTimeLineEventComponentTest : TimeLineTestBase() {
 	@Test
 	fun `Create event`() = runTest {
 		val id = 0
-		coEvery { idRepo.claimNextId() } returns id
-
-		val originalEvents = listOf(
-			TimeLineEvent(
-				id = id,
-				order = 0,
-				date = "original date",
-				content = "original content"
-			)
-		)
-		val timeline = TimeLineContainer(originalEvents)
-		coEvery { timelineRepo.timelineFlow.first() } returns timeline
 
 		val date = "date"
 		val content = "content"

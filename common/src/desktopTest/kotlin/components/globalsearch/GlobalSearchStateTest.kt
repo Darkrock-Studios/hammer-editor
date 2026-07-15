@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.common.components.globalsearch.GlobalSear
 import com.darkrockstudios.apps.hammer.common.components.globalsearch.SearchResult
 import com.darkrockstudios.apps.hammer.common.data.globalsearch.SearchProjectUseCase
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceTimeBy
@@ -47,13 +48,19 @@ class GlobalSearchStateTest : BaseTest() {
 
 	@Test
 	fun `query shorter than min length clears results without searching`() = runTest {
+		coEvery { useCase.search("dragon", any()) } returns listOf(note(1))
 		val state = GlobalSearchState(useCase, mainContext = StandardTestDispatcher(testScheduler))
+		state.setQuery("dragon")
+		advanceUntilIdle()
+		assertEquals(1, state.state.value.results.size)
+
 		state.setQuery("a")
 		advanceUntilIdle()
 
 		assertEquals("a", state.state.value.query)
 		assertEquals(emptyList(), state.state.value.results)
 		assertTrue(!state.state.value.isSearching)
+		coVerify(exactly = 0) { useCase.search("a", any()) }
 	}
 
 	@Test
@@ -70,6 +77,7 @@ class GlobalSearchStateTest : BaseTest() {
 		val results = state.state.value.results.filterIsInstance<SearchResult.Note>()
 		assertEquals(1, results.size)
 		assertEquals(2, results.first().noteId)
+		coVerify(exactly = 0) { useCase.search("alpha", any()) }
 	}
 
 	@Test

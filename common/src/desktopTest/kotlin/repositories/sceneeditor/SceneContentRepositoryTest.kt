@@ -176,13 +176,19 @@ class SceneContentRepositoryTest : BaseTest() {
 		createStack(projDef)
 		service.initialize()
 
-		val onSceneUpdate: ((SceneSummary) -> Unit) = mockk()
-		coEvery { onSceneUpdate(any()) } just Runs
+		val summaries = mutableListOf<SceneSummary>()
 
-		val subJob = service.subscribeToSceneUpdates(scope, onSceneUpdate)
+		val subJob = service.subscribeToSceneUpdates(scope) { summaries.add(it) }
 		advanceUntilIdle()
 		subJob.cancelAndJoin()
-		coVerify(atLeast = 1) { onSceneUpdate(any()) }
+
+		val summary = summaries.last()
+		assertEquals(
+			listOf(1, 2, 6, 7),
+			summary.sceneTree.root.children.map { it.value.id },
+			"Initial summary should carry the project's root scene order",
+		)
+		assertTrue(summary.hasDirtyBuffer.isEmpty(), "No buffers should be dirty on first load")
 	}
 
 	@Test
@@ -217,21 +223,6 @@ class SceneContentRepositoryTest : BaseTest() {
 		ffs.read(scene3Path) {
 			assertEquals(content.markdown, readUtf8())
 		}
-	}
-
-	@Test
-	fun `Get scene path from filesystem`() = runTest(mainTestDispatcher) {
-		val projDef = getProject1Def()
-		createProject(ffs, PROJECT_1_NAME)
-
-		createStack(projDef)
-		val scene3Path = repo.resolveScenePathFromFilesystem(3)?.toOkioPath()
-		assertNotNull(scene3Path)
-
-		val pathSegments = scene3Path.segments.reversed()
-		assertEquals("0-Scene ID 3-3.md", pathSegments[0])
-		assertEquals("1-Chapter ID 2-2", pathSegments[1])
-		assertEquals("scenes", pathSegments[2])
 	}
 
 	@Test

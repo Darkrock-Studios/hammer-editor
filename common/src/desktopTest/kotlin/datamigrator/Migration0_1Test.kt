@@ -50,11 +50,6 @@ class Migration0_1Test : BaseTest() {
 		val path = TimeLineDatasource.getTimelineFilePath(projDef)
 		val timeLineContainer = fakeFileSystem.readToml(path.toOkioPath(), toml, TimeLineContainer::class)
 
-		fakeFileSystem.read(path.toOkioPath()) {
-			val str = readUtf8()
-			println(str)
-		}
-
 		assertEquals(3, timeLineContainer.events.size)
 
 		assertEquals(

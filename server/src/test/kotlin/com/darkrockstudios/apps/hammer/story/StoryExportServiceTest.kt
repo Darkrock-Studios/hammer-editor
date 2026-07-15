@@ -113,8 +113,10 @@ class StoryExportServiceTest {
 		assertTrue(html.contains("First child content."))
 		assertTrue(html.contains("Second child content."))
 
-		// Child scene names should NOT appear as headings (only group name appears)
-		// The content is concatenated without sub-headings
+		// Child scene names do not appear at all — only the group name becomes a heading
+		assertFalse(html.contains("Scene 1.1"))
+		assertFalse(html.contains("Scene 1.2"))
+
 		val firstContentPos = html.indexOf("First child content.")
 		val secondContentPos = html.indexOf("Second child content.")
 		assertTrue(firstContentPos < secondContentPos, "Child scenes should be in order")
@@ -507,8 +509,6 @@ class StoryExportServiceTest {
 
 	@Test
 	fun `paginated - calculates estimated reading time`() = runTest {
-		// WordCountUtils uses ~200 words per minute
-		// 400 words should be about 2 minutes
 		val words = (1..400).joinToString(" ") { "word" }
 		val scene = createScene(id = 1, name = "Long Scene", content = words, order = 0)
 		setupMocksForScenes(listOf(scene))
@@ -516,8 +516,8 @@ class StoryExportServiceTest {
 		val result = service.exportStoryAsHtmlPaginated(userId, projectId)
 
 		assertIs<PaginatedExportResult.Success>(result)
-		// At ~200 wpm, 400 words should be ~2 minutes
-		assertTrue(result.data.estimatedReadingTimeMinutes >= 1)
+		// 400 words at WordCountUtils' 225 wpm, rounded up
+		assertEquals(2, result.data.estimatedReadingTimeMinutes)
 	}
 
 	@Test

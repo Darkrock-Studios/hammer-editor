@@ -486,12 +486,17 @@ class SceneEditorServiceTest : BaseTest() {
 		runTest(mainTestDispatcher) {
 			val service = initializedService()
 
-			val onUpdate: (SceneSummary) -> Unit = mockk(relaxed = true)
-			val job = service.subscribeToSceneUpdates(scope, onUpdate)
+			val summaries = mutableListOf<SceneSummary>()
+			val job = service.subscribeToSceneUpdates(scope) { summaries.add(it) }
 			advanceUntilIdle()
 			job.cancelAndJoin()
 
-			verify(atLeast = 1) { onUpdate(any()) }
+			val summary = summaries.first()
+			assertEquals(
+				listOf(1, 2, 6, 7),
+				summary.sceneTree.root.children.map { it.value.id },
+				"Initial emission should carry the project's root scene order",
+			)
 		}
 
 	// Risk Register #7: the scene-list SharedFlow replays its latest value to late subscribers.

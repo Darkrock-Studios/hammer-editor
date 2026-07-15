@@ -12,12 +12,14 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchLocalDataOperation
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.MissingProjectIdException
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.SyncOperationException
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientNoteSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.synchronizers.ClientSceneSynchronizer
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import getProjectDef
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -140,9 +142,11 @@ class FetchLocalDataOperationTest : BaseTest() {
 		)
 		assertEquals(expectedSyncData, data.clientSyncData)
 		assertEquals(
-			data.entityState,
-			ClientEntityState(produceEntityHashSet(1, 2, 3, 4, 5, 6, 7, 10))
+			ClientEntityState(produceEntityHashSet(1, 2, 3, 4, 5, 6, 7, 10)),
+			data.entityState
 		)
+		// The backfilled baselines must be persisted, not just held in memory.
+		coVerify { syncJournal.saveSyncData(expectedSyncData) }
 	}
 
 	@Test
@@ -214,6 +218,7 @@ class FetchLocalDataOperationTest : BaseTest() {
 		)
 
 		assertFalse(isSuccess(result))
+		assertIs<SyncOperationException>(result.exception)
 	}
 
 	@Test

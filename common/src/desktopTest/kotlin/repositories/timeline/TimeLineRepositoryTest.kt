@@ -133,8 +133,7 @@ class TimeLineRepositoryTest : BaseTest() {
 		assertNotNull(collectedTimeline, "Did not get initial timeline")
 
 		collectedTimeline?.let {
-			val events = fakeEvents()
-			assertEquals(events.size, it.events.size, "Wrong number of events loaded")
+			assertEquals(fakeEvents(), it.events, "Loaded events did not match what was on disk")
 		}
 	}
 

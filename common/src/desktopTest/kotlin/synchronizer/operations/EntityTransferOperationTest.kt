@@ -28,6 +28,7 @@ import synchronizer.addSynchronizers
 import utils.BaseTest
 import utils.TestClock
 import utils.TestStrRes
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
@@ -103,6 +104,9 @@ class EntityTransferOperationTest : BaseTest() {
 				any()
 			)
 		} returns true
+		coEvery {
+			mockSynchronizers.sceneSynchronizer.uploadEntity(any(), any(), any(), any(), any(), any(), any())
+		} returns true
 
 		coEvery {
 			serverProjectApi.downloadEntity(
@@ -169,6 +173,10 @@ class EntityTransferOperationTest : BaseTest() {
 		assertTrue(isSuccess(result))
 		val data = result.data
 		assertIs<EntityTransferState>(data)
+		assertTrue(data.allSuccess)
+		// Successfully uploaded dirty entities (1, 3) are cleared; 9 (deleted) and 11
+		// (downloaded, not uploaded) remain for later handling.
+		assertEquals(produceEntityStateList(9, 11), data.collatedIds.dirtyEntities)
 
 		coVerify { mockSynchronizers.sceneSynchronizer.uploadEntity(1, any(), any(), any(), any(), any(), any()) }
 		coVerify { mockSynchronizers.sceneSynchronizer.uploadEntity(3, any(), any(), any(), any(), any(), any()) }
@@ -187,13 +195,10 @@ class EntityTransferOperationTest : BaseTest() {
 		coVerify { serverProjectApi.downloadEntity(any(), 4, any(), any()) }
 		coVerify { serverProjectApi.downloadEntity(any(), 11, any(), any()) }
 
-		coEvery {
-			mockSynchronizers.sceneSynchronizer.storeEntity(
-				any(),
-				any(),
-				any()
-			)
-		} returns true
+		// The downloaded entities are actually persisted locally.
+		val stored = mutableListOf<ApiProjectEntity.SceneEntity>()
+		coVerify { mockSynchronizers.sceneSynchronizer.storeEntity(capture(stored), any(), any()) }
+		assertEquals(setOf(4, 11), stored.map { it.id }.toSet())
 	}
 
 	/**

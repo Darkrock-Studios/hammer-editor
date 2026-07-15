@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.utilities.isFailure
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -136,6 +137,8 @@ class AccountsComponentLoginTest {
 		val result = comp.login(validEmail, validPassword, installId)
 
 		assertTrue(isFailure(result))
+		// Rejection must short-circuit before login mints (and persists) a token.
+		coVerify(exactly = 0) { accountsRepository.login(any(), any(), any()) }
 	}
 
 	@Test

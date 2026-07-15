@@ -20,6 +20,7 @@ import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -100,6 +101,7 @@ class PatreonSyncServiceTest : BaseTest() {
 		val result = service.performFullSync()
 
 		assertTrue(result.isFailure)
+		assertIs<PatreonSyncException>(result.exceptionOrNull())
 	}
 
 	@Test
@@ -297,7 +299,7 @@ class PatreonSyncServiceTest : BaseTest() {
 		service.performFullSync()
 
 		val config = configRepository.get(AdminServerConfig.PATREON_CONFIG)
-		assertTrue(config.lastSync.isNotEmpty())
+		assertEquals(clock.now().toString(), config.lastSync)
 	}
 
 	@Test

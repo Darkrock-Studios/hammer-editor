@@ -5,16 +5,15 @@ import com.darkrockstudios.apps.hammer.project.ProjectSyncData
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
-import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.every
-import io.mockk.just
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.minutes
 
 class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 
@@ -34,8 +33,8 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 		val syncId = "sync-id"
 		val syncData = ProjectSyncData(
 			lastSync = clock.now(),
-			lastId = 1,
-			deletedIds = emptySet()
+			lastId = 5,
+			deletedIds = setOf(3, 7)
 		)
 
 		coEvery { projectsSessionManager.hasActiveSyncSession(any()) } returns false
@@ -61,7 +60,10 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 
 			assertTrue(isSuccess(result))
 			val syncBegan = result.data
-			assertTrue(syncBegan.syncId.isNotBlank())
+			assertEquals(syncId, syncBegan.syncId)
+			assertEquals(syncData.lastId, syncBegan.lastId)
+			assertEquals(syncData.lastSync, syncBegan.lastSync)
+			assertEquals(syncData.deletedIds, syncBegan.deletedIds)
 		}
 	}
 
@@ -98,7 +100,8 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 			val result = beginProjectSync(userId, projectDefinition, clientState, false, installId)
 
 			assertTrue(isSuccess(result))
-			assertTrue(result.data.syncId.isNotBlank())
+			// A fresh syncId must be issued, not the stale session's id echoed back.
+			assertEquals(syncId, result.data.syncId)
 		}
 	}
 
@@ -171,7 +174,7 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 
 			assertTrue(isSuccess(result))
 			val syncBegan = result.data
-			assertTrue(syncBegan.syncId.isNotBlank())
+			assertEquals(syncId, syncBegan.syncId)
 			assertEquals((1..14).toList(), syncBegan.idSequence)
 		}
 	}
@@ -205,13 +208,13 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 				)
 			} returns syncData
 
+			var updatedSyncData: ProjectSyncData? = null
 			coEvery {
-				projectEntityDatasource.updateSyncData(
-					userId,
-					projectDefinition,
-					any(),
-				)
-			} just Runs
+				projectEntityDatasource.updateSyncData(userId, projectDefinition, captureLambda())
+			} answers {
+				updatedSyncData =
+					lambda<(ProjectSyncData) -> ProjectSyncData>().captured.invoke(syncData)
+			}
 
 			mockCreateSession(syncId)
 
@@ -228,14 +231,22 @@ class ProjectEntityRepositorySyncTest : ProjectEntityRepositoryBaseTest() {
 			)
 			coEvery { projectSessionManager.findSession(any()) } returns session
 
+			val endLastSync = syncBegan.lastSync + 5.minutes
+			val endLastId = 42
 			val endResult = endProjectSync(
 				userId,
 				projectDefinition,
 				syncBegan.syncId,
-				syncBegan.lastSync,
-				syncBegan.lastId
+				endLastSync,
+				endLastId
 			)
 			assertTrue { endResult.isSuccess }
+
+			assertEquals(
+				syncData.copy(lastSync = endLastSync, lastId = endLastId),
+				updatedSyncData
+			)
+			verify { projectSessionManager.terminateSession(ProjectSyncKey(userId, projectDefinition)) }
 		}
 	}
 

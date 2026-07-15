@@ -14,10 +14,8 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
-import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.slot
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.BeforeEach
 import org.koin.core.qualifier.named
@@ -42,21 +40,6 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 
 	protected fun createProjectsRepository(): ProjectsRepository {
 		return ProjectsRepository(clock, projectsDatasource, projectEntityDatasource, serverProjectDataRepository)
-	}
-
-	protected fun mockCreateSession(syncId: String) {
-		val createSessionSlot =
-			slot<(key: ProjectSyncKey, syncId: String) -> ProjectSynchronizationSession>()
-		val key = ProjectSyncKey(userId, projectDefinition)
-		coEvery {
-			projectSessionManager.createNewSession(
-				key,
-				capture(createSessionSlot)
-			)
-		} coAnswers {
-			val session = createSessionSlot.captured(key, syncId)
-			session.syncId
-		}
 	}
 
 	@BeforeEach

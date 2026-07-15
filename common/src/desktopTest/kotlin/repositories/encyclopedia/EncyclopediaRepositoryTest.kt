@@ -118,7 +118,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		val repo = createRepository()
 
 		/////////////////////
-		// Too long
+		// Invalid characters
 		var newName = "A : Invalid"
 		var newEntry = oldEntry.copy(
 			name = newName
@@ -279,25 +279,6 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		assertFalse(fileSystem.exists(path))
 		assertEquals(entry1().id, deletionIdSlot.captured)
 		coVerify { syncJournal.recordIdDeletion(any()) }
-	}
-
-	@Test
-	fun `Set Entry Image`() = runTest {
-		val repo = createRepository()
-		//repo.setEntryImage(entry1().toDef(projDef), "image.png")
-		// TODO implement image tests at some point
-	}
-
-	@Test
-	fun `Remove Entry Image`() = runTest {
-		val repo = createRepository()
-		// TODO implement image tests at some point
-	}
-
-	@Test
-	fun `Load Entry Image`() = runTest {
-		val repo = createRepository()
-		// TODO implement image tests at some point
 	}
 
 	@Test

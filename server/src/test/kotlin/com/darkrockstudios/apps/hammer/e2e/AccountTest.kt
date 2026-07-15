@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.utils.SERVER_CONFIG_ONE
-import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
+import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_YES_WHITELIST
 import com.darkrockstudios.apps.hammer.utils.createTestServer
 import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
@@ -16,6 +16,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class AccountTest : EndToEndTest() {
@@ -23,7 +24,7 @@ class AccountTest : EndToEndTest() {
 	@Test
 	fun `Create Account the First User with Whitelist enabled, who becomes Admin`(): Unit =
 		runBlocking {
-			createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database())
+			createTestServer(SERVER_EMPTY_YES_WHITELIST, fileSystem, database())
 			doStartServer()
 			client().apply {
 				val response = post(api("account/create")) {
@@ -47,6 +48,9 @@ class AccountTest : EndToEndTest() {
 				assertEquals(1, token.userId)
 				assertTrue(token.auth.isNotBlank())
 				assertEquals(Token.LENGTH, createTokenBase64().decode(token.auth).size)
+
+				val account = database().serverDatabase.accountQueries.getAccount(1L).executeAsOne()
+				assertTrue(account.is_admin, "First account on the server must be created as admin")
 			}
 		}
 
@@ -71,6 +75,10 @@ class AccountTest : EndToEndTest() {
 			}
 
 			assertEquals(HttpStatusCode.Conflict, response.status)
+			assertNull(
+				database().serverDatabase.accountQueries.findAccount("test2@example.com").executeAsOneOrNull(),
+				"A whitelist-rejected signup must not persist an account",
+			)
 		}
 	}
 

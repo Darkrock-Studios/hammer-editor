@@ -8,6 +8,7 @@ import okio.Path
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class ZipUtilsTest {
@@ -28,11 +29,13 @@ class ZipUtilsTest {
 	}
 
 	@Test
-	fun `zipDirectory creates a zip file`() = runBlocking {
+	fun `zipDirectory creates a zip file containing every source file`() = runBlocking {
 		val sourceDir = tempDir / "test-project"
 		val zipFile = tempDir / "test-project.zip"
+		val extractDir = tempDir / "extracted-basic"
 
 		fileSystem.createDirectories(sourceDir)
+		fileSystem.createDirectories(extractDir)
 		fileSystem.write(sourceDir / "file1.txt") { writeUtf8("Hello World") }
 		fileSystem.write(sourceDir / "file2.txt") { writeUtf8("Test content") }
 
@@ -43,6 +46,15 @@ class ZipUtilsTest {
 		)
 
 		assertTrue(fileSystem.exists(zipFile), "Zip file should be created")
+
+		unzipToDirectory(
+			fileSystem = fileSystem,
+			zipPath = zipFile,
+			destinationDirectory = extractDir,
+		)
+
+		assertEquals("Hello World", fileSystem.read(extractDir / sourceDir.name / "file1.txt") { readUtf8() })
+		assertEquals("Test content", fileSystem.read(extractDir / sourceDir.name / "file2.txt") { readUtf8() })
 	}
 
 	@Test
@@ -77,11 +89,13 @@ class ZipUtilsTest {
 	}
 
 	@Test
-	fun `zipDirectory handles nested directories`() = runBlocking {
+	fun `zipDirectory preserves nested directory structure`() = runBlocking {
 		val sourceDir = tempDir / "test-project-nested"
 		val zipFile = tempDir / "test-project-nested.zip"
+		val extractDir = tempDir / "extracted-nested"
 
 		fileSystem.createDirectories(sourceDir / "subdir1" / "subdir2")
+		fileSystem.createDirectories(extractDir)
 		fileSystem.write(sourceDir / "root.txt") { writeUtf8("Root file") }
 		fileSystem.write(sourceDir / "subdir1" / "level1.txt") { writeUtf8("Level 1 file") }
 		fileSystem.write(sourceDir / "subdir1" / "subdir2" / "level2.txt") { writeUtf8("Level 2 file") }
@@ -92,7 +106,19 @@ class ZipUtilsTest {
 			destinationZip = zipFile,
 		)
 
-		assertTrue(fileSystem.exists(zipFile), "Zip file should be created")
+		unzipToDirectory(
+			fileSystem = fileSystem,
+			zipPath = zipFile,
+			destinationDirectory = extractDir,
+		)
+
+		val extractedRoot = extractDir / sourceDir.name
+		assertEquals("Root file", fileSystem.read(extractedRoot / "root.txt") { readUtf8() })
+		assertEquals("Level 1 file", fileSystem.read(extractedRoot / "subdir1" / "level1.txt") { readUtf8() })
+		assertEquals(
+			"Level 2 file",
+			fileSystem.read(extractedRoot / "subdir1" / "subdir2" / "level2.txt") { readUtf8() },
+		)
 	}
 
 	@Test

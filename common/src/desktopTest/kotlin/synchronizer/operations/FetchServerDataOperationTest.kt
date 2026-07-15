@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import getProjectDef
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
@@ -130,6 +131,8 @@ class FetchServerDataOperationTest : BaseTest() {
 			),
 			data
 		)
+		// The request carries the settings userId, the metadata project id, and the local entity state.
+		coVerify { serverProjectApi.beginProjectSync(1L, projId, entityState, false) }
 	}
 
 	@Test

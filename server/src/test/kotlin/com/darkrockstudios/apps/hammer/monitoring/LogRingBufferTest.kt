@@ -33,10 +33,13 @@ class LogRingBufferTest {
 	}
 
 	@Test
-	fun `is bounded to capacity`() {
+	fun `is bounded to capacity, evicting the oldest lines`() {
 		LogRingBuffer.clear()
 		repeat(LogRingBuffer.CAPACITY + 50) { LogRingBuffer.add(line("INFO", "L", "m$it")) }
-		assertEquals(LogRingBuffer.CAPACITY, LogRingBuffer.recent(limit = Int.MAX_VALUE).size)
+		val all = LogRingBuffer.recent(limit = Int.MAX_VALUE)
+		assertEquals(LogRingBuffer.CAPACITY, all.size)
+		assertTrue(all.none { it.message == "m0" }, "oldest lines are evicted")
+		assertTrue(all.any { it.message == "m${LogRingBuffer.CAPACITY + 49}" }, "newest line is kept")
 	}
 
 	@Test
@@ -45,6 +48,6 @@ class LogRingBufferTest {
 			"Authorization: Bearer ***",
 			RingBufferLogAppender.redactSecrets("Authorization: Bearer abc123.def-456"),
 		)
-		assertTrue(RingBufferLogAppender.redactSecrets("password=hunter2").contains("***"))
+		assertEquals("password=***", RingBufferLogAppender.redactSecrets("password=hunter2"))
 	}
 }

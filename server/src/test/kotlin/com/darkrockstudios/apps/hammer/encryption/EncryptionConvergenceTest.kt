@@ -162,6 +162,10 @@ class EncryptionConvergenceTest : BaseTest() {
 		insertPlaintextNullCipher(1, "this plaintext is well over sixteen bytes once encrypted")
 
 		assertFailsWith<EncryptionConvergenceException> { tinyCap.converge(aesV1) }
+
+		// The failing row is left untouched, still readable as its original plaintext.
+		assertEquals(null, entityRow(1).cipher)
+		assertEquals("this plaintext is well over sixteen bytes once encrypted", entityRow(1).content)
 	}
 
 	@Test

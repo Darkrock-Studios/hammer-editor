@@ -69,7 +69,11 @@ class AutoConfirmReferencesUseCaseTest : BaseTest() {
 		every { sceneEditor.getSceneBuffer(sceneItem) } returns bufferWith("Bob walked away.")
 		coEvery { sceneEditor.loadSceneMetadata(sceneItem.id) } returns SceneMetadata()
 		coEvery {
-			referenceIndexService.computeAutoReferencesForScene(any(), any(), any())
+			referenceIndexService.computeAutoReferencesForScene(
+				sceneId = sceneItem.id,
+				sceneText = "Bob walked away.",
+				metadata = SceneMetadata(),
+			)
 		} returns listOf(EntrySuggestion(entryId = 42, matchedAlias = "Bob"))
 
 		val storedSlot = slot<SceneMetadata>()

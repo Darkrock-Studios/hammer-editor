@@ -16,6 +16,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -98,15 +99,20 @@ class AccountsRepositoryTest : BaseTest() {
 	fun `Login - Success`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns account
 
-		// Mock setToken since login now creates fresh tokens
-		coEvery { authTokenDao.setToken(any(), any(), any(), any()) } just Runs
+		val storedToken = slot<Token>()
+		coEvery { authTokenDao.setToken(userId, installId, capture(storedToken), any()) } just Runs
 
 		val accountsRepository =
 			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
 
 		val result =
 			accountsRepository.login(email = email, installId = installId, password = password)
-		assertTrue(result.isSuccess)
+		assertTrue(isSuccess(result))
+		assertEquals(userId, result.data.userId)
+		assertTrue(result.data.isValid())
+		// The client gets plaintext tokens; only their hashes may be persisted.
+		assertEquals("${result.data.auth}-hashed", storedToken.captured.auth)
+		assertEquals("${result.data.refresh}-hashed", storedToken.captured.refresh)
 	}
 
 	@Test
@@ -159,8 +165,9 @@ class AccountsRepositoryTest : BaseTest() {
 	@Test
 	fun `Create Account - Success`() = runTest {
 		coEvery { accountDao.numAccounts() } returns 1
+		// Not the first account on the server, so it must not be created as admin.
 		coEvery { accountDao.findAccount(any()) } returns null
-		coEvery { accountDao.createAccount(any(), any(), any(), any()) } returns userId
+		coEvery { accountDao.createAccount(any(), any(), any(), isAdmin = false) } returns userId
 		coEvery { authTokenDao.setToken(any(), any(), any(), any()) } just Runs
 		val accountsRepository =
 			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
@@ -173,6 +180,7 @@ class AccountsRepositoryTest : BaseTest() {
 		assertTrue(isSuccess(result))
 
 		val token = result.data
+		assertEquals(userId, token.userId)
 		assertTrue(token.isValid(), "Token should be valid")
 	}
 
@@ -229,7 +237,7 @@ class AccountsRepositoryTest : BaseTest() {
 
 	@Test
 	fun `Create Account - Failure - Invalid Email`() = runTest {
-		coEvery { accountDao.findAccount(any()) } returns account
+		coEvery { accountDao.findAccount(any()) } returns null
 		val accountsRepository =
 			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
 
@@ -240,13 +248,14 @@ class AccountsRepositoryTest : BaseTest() {
 		)
 		assertTrue(isFailure(result))
 		assertTrue(result.exception is CreateFailed)
-		assertEquals("account already exists", result.error)
+		assertEquals("invalid email", result.error)
 	}
 
 	@Test
 	fun `Check Token - Success`() = runTest {
 		val token = createAuthToken()
-		coEvery { authTokenDao.getTokenByAuthToken(any()) } returns token
+		// Argument-specific: the lookup must use the hashed token, never the plaintext.
+		coEvery { authTokenDao.getTokenByAuthToken("$bearerToken-hashed") } returns token
 		val accountsRepository =
 			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
 

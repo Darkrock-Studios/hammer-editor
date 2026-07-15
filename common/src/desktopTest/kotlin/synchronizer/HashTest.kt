@@ -2,6 +2,7 @@ package synchronizer
 
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.EntityHasher
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
 import kotlin.time.Instant
 
 class HashTest {
@@ -14,9 +15,7 @@ class HashTest {
 			tags = emptySet(),
 		)
 
-		println("hash: $hash")
-
-		val expected = "IAvvisZNMehI-2mBnczrnw"
-		assert(expected == hash)
+		// Pinned golden value: clients and server must agree on this hash across releases.
+		assertEquals("IAvvisZNMehI-2mBnczrnw", hash)
 	}
 }

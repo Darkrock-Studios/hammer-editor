@@ -7,7 +7,6 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneCo
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.filterScenePathsOkio
 import com.darkrockstudios.apps.hammer.common.data.tree.NodeCoordinates
-import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.mockk.mockk
@@ -16,7 +15,6 @@ import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import utils.getPrivateProperty
 import verifyCoords
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -56,7 +54,7 @@ class SceneEditorRepositoryMoveTest : SceneRepositoryTestBase() {
 			.sortedBy { it.name }.forEach { childPath ->
 				val sceneItem = sceneDatasource.getSceneFromPath(childPath)
 				val foundItem = nodesById[sceneItem.id]
-				assertNotNull(sceneItem, "File system scene didn't exist in tree")
+				assertNotNull(foundItem, "File system scene didn't exist in tree")
 				assertEquals(foundItem, sceneItem, "File system scene didn't match tree scene")
 			}
 	}
@@ -81,7 +79,7 @@ class SceneEditorRepositoryMoveTest : SceneRepositoryTestBase() {
 
 	@Test
 	fun `Verify Initial Layout`() {
-		val tree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.rawTree
 
 		for (index in 0..tree.numChildrenRecursive()) {
 			assertEquals(index, tree[index].value.id)
@@ -95,12 +93,12 @@ class SceneEditorRepositoryMoveTest : SceneRepositoryTestBase() {
 		print: Boolean,
 		vararg ids: Int
 	) = runTest {
-		val tree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.rawTree
 		verifyCoords(tree, request.toPosition.coords, targetPosId)
 		repo.moveScene(request)
 
 		val afterTree =
-			repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
+			repo.rawTree
 		verify(afterTree[leafToVerify], ffs, print, *ids)
 	}
 
@@ -264,7 +262,7 @@ class SceneEditorRepositoryMoveTest : SceneRepositoryTestBase() {
 		repo.initializeSceneEditor()
 
 		// Find the legacy group in the tree
-		val tree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.rawTree
 		val legacyGroupNode = tree.findOrNull { it.id == groupId }
 		assertNotNull(legacyGroupNode, "Legacy group should be found in tree")
 
@@ -293,7 +291,7 @@ class SceneEditorRepositoryMoveTest : SceneRepositoryTestBase() {
 		repo.moveScene(moveRequest)
 
 		// Verify the scene is now in the group
-		val afterTree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
+		val afterTree = repo.rawTree
 		val groupAfterMove = afterTree.findOrNull { it.id == groupId }
 		assertNotNull(groupAfterMove, "Group should still exist after move")
 		assertEquals(1, groupAfterMove.numChildrenImmedate(), "Group should have 1 child after move")

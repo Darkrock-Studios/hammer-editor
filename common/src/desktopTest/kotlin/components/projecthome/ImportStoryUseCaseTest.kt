@@ -41,7 +41,12 @@ class ImportStoryUseCaseTest {
 		val created = ImportStoryUseCase(service).execute(preview)
 
 		assertEquals(1, created)
-		coVerify { service.storeSceneMarkdownRaw(any(), scenePath) }
+		coVerify {
+			service.storeSceneMarkdownRaw(
+				match { it.scene === item && it.markdown == "Once upon a time" },
+				scenePath,
+			)
+		}
 	}
 
 	@Test

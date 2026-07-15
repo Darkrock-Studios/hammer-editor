@@ -33,6 +33,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -73,6 +74,8 @@ class ProjectsListComponentTest : ComponentTest() {
 
 	private val projectDefA = ProjectDef("Alpha", HPath("/projects/Alpha", "Alpha", false))
 
+	private val fixedNow = Instant.fromEpochSeconds(1_000_000)
+
 	@BeforeEach
 	override fun setup() {
 		super.setup()
@@ -110,7 +113,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			single<FileSystem> { FakeFileSystem() }
 			single<Toml> { createTomlSerializer() }
 			single<StrRes> { TestStrRes() }
-			single<Clock> { Clock.System }
+			single<Clock> { object : Clock { override fun now(): Instant = fixedNow } }
 			single { StoryImporterRegistry(listOf(MarkdownStoryImporter(), RtfStoryImporter())) }
 			single<UrlLauncher> { mockk(relaxed = true) }
 			single<VersionCheckDataSource> { mockk(relaxed = true) }
@@ -371,7 +374,13 @@ class ProjectsListComponentTest : ComponentTest() {
 
 		comp.selectProject(projectDefA)
 
-		verify { metadataDatasource.updateMetadata(eq(projectDefA), any()) }
+		val transform = slot<(ProjectMetadata) -> ProjectMetadata>()
+		verify { metadataDatasource.updateMetadata(eq(projectDefA), capture(transform)) }
+		val before = metadata(lastAccessed = Instant.fromEpochSeconds(5))
+		assertEquals(
+			before.copy(info = before.info.copy(lastAccessed = fixedNow)),
+			transform.captured(before),
+		)
 		assertEquals(projectDefA, selectedProject)
 	}
 

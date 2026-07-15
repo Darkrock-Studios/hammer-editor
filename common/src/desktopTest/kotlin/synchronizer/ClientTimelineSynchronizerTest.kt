@@ -55,11 +55,19 @@ class ClientTimelineSynchronizerTest {
 	}
 
 	@Test
-	fun `getEntityHash returns a hash when present and null when absent`() = runTest {
+	fun `getEntityHash is deterministic and content-sensitive and null when absent`() = runTest {
 		coEvery { timeLineRepository.getTimelineEvent(5) } returns event(5)
 		coEvery { timeLineRepository.getTimelineEvent(99) } returns null
 		val sync = newSynchronizer()
-		assertNotNull(sync.getEntityHash(5))
+
+		val hash = sync.getEntityHash(5)
+		assertNotNull(hash)
+		assertEquals(hash, sync.getEntityHash(5))
+
+		// Event content must feed the sync hash, or edits never propagate.
+		coEvery { timeLineRepository.getTimelineEvent(5) } returns event(5, content = "changed")
+		assertNotEquals(hash, sync.getEntityHash(5))
+
 		assertNull(sync.getEntityHash(99))
 	}
 

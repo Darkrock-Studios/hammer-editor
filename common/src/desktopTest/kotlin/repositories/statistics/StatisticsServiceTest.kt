@@ -125,9 +125,11 @@ class StatisticsServiceTest : BaseTest() {
 	fun `loadStatistics recalculates when the cache is missing`() = runTest(mainTestDispatcher) {
 		coEvery { statisticsRepository.loadStatistics() } returns null
 
-		makeService().loadStatistics()
+		val result = makeService().loadStatistics()
 
-		coVerify(exactly = 1) { statisticsRepository.saveStatistics(any()) }
+		assertEquals(ProjectStatistics.CURRENT_SCHEMA_VERSION, result.schemaVersion)
+		assertFalse(result.isDirty)
+		coVerify { statisticsRepository.saveStatistics(result) }
 	}
 
 	@Test
@@ -135,9 +137,11 @@ class StatisticsServiceTest : BaseTest() {
 		coEvery { statisticsRepository.loadStatistics() } returns
 			cachedStats(schema = ProjectStatistics.CURRENT_SCHEMA_VERSION - 1, dirty = false)
 
-		makeService().loadStatistics()
+		val result = makeService().loadStatistics()
 
-		coVerify(exactly = 1) { statisticsRepository.saveStatistics(any()) }
+		// A regression that returned the stale cache would carry the old schema version.
+		assertEquals(ProjectStatistics.CURRENT_SCHEMA_VERSION, result.schemaVersion)
+		coVerify { statisticsRepository.saveStatistics(result) }
 	}
 
 	@Test
@@ -145,9 +149,11 @@ class StatisticsServiceTest : BaseTest() {
 		coEvery { statisticsRepository.loadStatistics() } returns
 			cachedStats(schema = ProjectStatistics.CURRENT_SCHEMA_VERSION, dirty = true)
 
-		makeService().loadStatistics()
+		val result = makeService().loadStatistics()
 
-		coVerify(exactly = 1) { statisticsRepository.saveStatistics(any()) }
+		// A regression that returned the dirty cache would still be flagged dirty.
+		assertFalse(result.isDirty)
+		coVerify { statisticsRepository.saveStatistics(result) }
 	}
 
 	@Test

@@ -202,6 +202,10 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 		val result = repo.createProject(projectName)
 		assertTrue(isFailure(result))
 		assertTrue(result.exception is ProjectCreationFailedException)
+		assertTrue(
+			ffs.list(getProjectsDirectory()).isEmpty(),
+			"no project directory may be created for an invalid name"
+		)
 	}
 
 	@Test

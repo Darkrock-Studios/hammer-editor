@@ -143,6 +143,9 @@ class AccountsComponentCreateAccountTest {
 		)
 
 		assertTrue(isFailure(result))
+		// A whitelist rejection must short-circuit: no account row, no user data.
+		coVerify(exactly = 0) { accountsRepository.createAccount(any(), any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.createUserData(any()) }
 	}
 
 	@Test
@@ -173,5 +176,7 @@ class AccountsComponentCreateAccountTest {
 		)
 
 		assertTrue(isSuccess(result))
+		assertEquals(token, result.data)
+		coVerify { projectsRepository.createUserData(token.userId) }
 	}
 }

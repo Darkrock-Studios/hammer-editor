@@ -43,15 +43,81 @@ The results of which will be here:
 
 ## Writing Tests
 
+### Testing Philosophy
+
+We follow the **classical school** of unit testing (Khorikov). The two qualities every test is
+judged on:
+
+1. **Detection power** — the test *can* fail, and fails when the behavior it describes breaks.
+2. **Resistance to refactoring** — the test *doesn't* fail when behavior is preserved but the
+   implementation changes.
+
+In practice:
+
+- **Test observable behavior, not implementation details.** Assert on component state, returned
+  values, emitted flows, files written, callbacks fired — never on private fields, internal
+  ordering, or "method X called method Y".
+- **Test units of *behavior*, not units of code.** Our tests look more like small integration
+  tests than mock-everything unit tests, and that's intentional.
+- **Prefer real collaborators and fakes over mocks.** Real repositories over okio
+  `FakeFileSystem` with real serializers are cheap here. Mock only out-of-process boundaries
+  (HTTP, DAOs) and heavy orchestrator seams. When you do mock, make stubs **argument-specific**
+  and verifications **argument-exact** — an all-`any()` stub that the test then echoes back
+  proves nothing.
+- **AAA structure** (Arrange, Act, Assert), readable and maintainable.
+
+Anti-patterns that keep sneaking in (each of these was found and fixed in a repo-wide audit —
+don't reintroduce them):
+
+- **Assertions that can't fail:** `assertNotNull` on a non-nullable value, `x >= before` on a
+  monotonic value, asserting a size without asserting the contents, tests with no assertions
+  at all.
+- **`verify { mock.method(any()) }` as the only assertion.** It proves a call happened, not that
+  it did the right thing. Capture the argument (MockK `slot`) and assert on its effect.
+- **Echoing the stub:** `coEvery { x() } returns Y` then `assertEquals(Y, callX())` is only
+  meaningful if the stub is argument-specific or the value is transformed.
+- **Self-invoked callbacks:** calling the component's own listener and asserting the state equals
+  what you just passed bypasses the wiring under test. Drive the test through the callback the
+  component registered on its collaborator.
+- **Half a round trip:** "store succeeded" without reading back what was stored; "returns
+  success" without checking anything was persisted; "loading started" without completing the
+  fake flow and asserting it finished.
+- **Pinning incidentals:** exact call counts where the behavior is just "it happens"
+  (keep `exactly = 0` when "nothing happens" *is* the contract), internal ordering,
+  locale/timezone-dependent formatting (assert the stable part), or production string literals
+  copy-pasted into the test (extract a shared constant instead).
+- **Kotlin's `assert()`** — it's a no-op unless the JVM runs with `-ea`. Use `kotlin.test`
+  assertions.
+
+**Test-driven bug fixing:** when fixing a bug, first write a test that reproduces it, watch it
+fail, then fix the bug and watch it pass.
+
 ### `Common` Module Tests:
 
 Most tests live in the `desktopTest` source set, but a few do live in `commonTest`
 
 #### Testing utilities:
 
-`BaseTest` sets you up for injecting with Koin and dealing with coroutines for testing.
+`BaseTest` sets you up for injecting with Koin and dealing with coroutines for testing
+(`runTest(mainTestDispatcher)` + `advanceUntilIdle()` drive everything on one scheduler).
 
 `TestProjectUtils.kt` has functions for generating test data.
+
+For component tests, extend `utils.ComponentTest`: it provides a real `TestComponentContext`
+(call `context.resume()` after constructing your component), a `projectDef`, and
+`setupComponentKoin(module)`. Dependencies a component gets via `by projectInject()` must be
+registered inside `scope<ProjectDefScope> { scoped { … } }`; plain `by inject()` deps go in the
+module root.
+
+Hard-won gotchas:
+
+- **Relaxed-mock Flow properties crash on collect** with `KotlinNothingValueException`. Stub
+  every collected `Flow`/`SharedFlow`/`StateFlow`/`Channel` property with a real instance
+  (`MutableSharedFlow()`, `MutableStateFlow(...)`, `Channel()`).
+- **`TestScope.backgroundScope` collectors never subscribe under `BaseTest`** — collect with a
+  plain `launch` and cancel it at the end of the test.
+- If `desktopTest` fails with an `EOFException` from the results store, delete
+  `common/build/test-results/desktopTest` and re-run (corrupt Gradle results cache).
 
 ### `ComposeUI` Module Tests:
 

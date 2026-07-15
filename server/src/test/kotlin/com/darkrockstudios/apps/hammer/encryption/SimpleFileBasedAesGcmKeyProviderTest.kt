@@ -9,6 +9,7 @@ import kotlin.io.encoding.ExperimentalEncodingApi
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalEncodingApi::class)
@@ -42,7 +43,9 @@ class SimpleFileBasedAesGcmKeyProviderTest : BaseTest() {
 	fun `same inputs return the cached key`() = runTest {
 		val first = keyProvider.getEncryptionKey(clientSecret1, contentKey)
 		val second = keyProvider.getEncryptionKey(clientSecret1, contentKey)
-		assertTrue(first.encoded.contentEquals(second.encoded))
+		// Same instance, not just same bytes: derivation is deterministic, so only
+		// instance identity can detect a cache that never hits.
+		assertSame(first, second)
 	}
 
 	@Test

@@ -72,9 +72,15 @@ class ReviewMailerTest {
 			locale = Locale.ENGLISH,
 		)
 
-		// The no-expiry branch is taken and the link still renders.
+		val messages = ReviewMailTemplates.loadMessages(Locale.ENGLISH)
+		val noteTitle = ReviewMailTemplates.format(messages, "review_page_note_title")
+		val noExpiryLine = ReviewMailTemplates.format(messages, "review_invite_no_expiry")
+
 		assertTrue(html.captured.contains("https://hammer.test/review/abc"))
-		assertFalse(text.captured!!.contains("June"))
+		assertFalse(html.captured.contains(noteTitle))
+		val body = text.captured!!
+		assertFalse(body.contains(noteTitle))
+		assertTrue(body.contains(noExpiryLine))
 	}
 
 	@Test
@@ -113,7 +119,9 @@ class ReviewMailerTest {
 		coVerify(exactly = 1) { emailService.sendEmail("author@example.com", any(), any(), any()) }
 		assertTrue(html.captured.contains("https://hammer.test/review/xyz"))
 		assertTrue(html.captured.contains("Project X"))
-		assertTrue(text.captured!!.contains("5"))
+		val messages = ReviewMailTemplates.loadMessages(Locale.ENGLISH)
+		val pluralTally = ReviewMailTemplates.format(messages, "review_submit_tally_many", 5)
+		assertTrue(text.captured!!.contains(pluralTally))
 	}
 
 	@Test
@@ -132,6 +140,14 @@ class ReviewMailerTest {
 
 		assertIs<EmailResult.Success>(result)
 		assertTrue(html.captured.contains("https://hammer.test/review/xyz"))
+		val messages = ReviewMailTemplates.loadMessages(Locale.ENGLISH)
+		val singularTally = ReviewMailTemplates.format(messages, "review_submit_tally_one")
+		val pluralTally = ReviewMailTemplates.format(messages, "review_submit_tally_many", 1)
+		val body = text.captured!!
+		assertTrue(body.contains(singularTally))
+		// The singular string is a prefix of the plural one, so the absence check is load-bearing.
+		assertFalse(body.contains(pluralTally))
+		assertFalse(html.captured.contains(pluralTally))
 	}
 
 	@Test

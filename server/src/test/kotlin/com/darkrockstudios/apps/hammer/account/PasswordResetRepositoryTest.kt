@@ -12,17 +12,21 @@ import com.darkrockstudios.apps.hammer.utilities.isFailure
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
+import de.mkammerer.argon2.Argon2Factory
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.minutes
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 class PasswordResetRepositoryTest : BaseTest() {
@@ -109,8 +113,13 @@ class PasswordResetRepositoryTest : BaseTest() {
 		val result = repository().requestPasswordReset(email, resetUrl)
 
 		assertIs<PasswordResetResult.Success>(result)
-		coVerify(exactly = 1) { passwordResetTokenDao.createToken(userId, any(), any()) }
-		coVerify(exactly = 1) { emailService.sendEmail(email, any(), any(), any()) }
+		val storedToken = slot<String>()
+		val textBodies = mutableListOf<String?>()
+		coVerify(exactly = 1) { passwordResetTokenDao.createToken(userId, capture(storedToken), any()) }
+		coVerify(exactly = 1) { emailService.sendEmail(email, any(), any(), captureNullable(textBodies)) }
+		// The emailed link must carry the same token that was persisted. (The plain-text
+		// body embeds the link verbatim; the HTML body entity-escapes it.)
+		assertContains(assertNotNull(textBodies.single()), resetUrl(storedToken.captured))
 	}
 
 	@Test
@@ -208,7 +217,12 @@ class PasswordResetRepositoryTest : BaseTest() {
 		val result = repository().resetPassword("t", "BrandNewPass123")
 
 		assertTrue(isSuccess(result))
-		coVerify(exactly = 1) { accountDao.updatePassword(userId, any()) }
+		val newHash = slot<String>()
+		coVerify(exactly = 1) { accountDao.updatePassword(userId, capture(newHash)) }
+		assertTrue(
+			Argon2Factory.create().verify(newHash.captured, "BrandNewPass123".toCharArray()),
+			"Stored hash must verify against the new password",
+		)
 		coVerify(exactly = 1) { authTokenDao.deleteTokensByUserId(userId) }
 		coVerify(exactly = 1) { passwordResetTokenDao.markTokenAsUsed("t") }
 	}

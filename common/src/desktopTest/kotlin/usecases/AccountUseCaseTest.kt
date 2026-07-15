@@ -1,6 +1,8 @@
 package usecases
 
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.Token
+import com.darkrockstudios.apps.hammer.common.data.ClientMessage
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
@@ -9,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.updateCredentials
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.server_setup_error_unknown
 import io.ktor.client.*
 import io.ktor.client.plugins.auth.providers.*
 import io.mockk.*
@@ -20,6 +23,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 class AccountUseCaseTest : BaseTest() {
@@ -87,8 +91,11 @@ class AccountUseCaseTest : BaseTest() {
 		)
 		assertTrue(isSuccess(result))
 
-		coVerify { accountApi.createAccount(any(), any(), any()) }
+		coVerify { accountApi.createAccount(settings.email, "password", "test-uuid") }
 		coVerify(exactly = 0) { accountApi.login(any(), any(), any()) }
+
+		assertEquals(token.auth, bearerTokenSlot.captured.accessToken)
+		assertEquals(token.refresh, bearerTokenSlot.captured.refreshToken)
 
 		coVerify { globalSettingsStore.updateServerSettings(any()) }
 		assertEquals(
@@ -126,6 +133,7 @@ class AccountUseCaseTest : BaseTest() {
 			)
 		} returns Result.failure(IOException())
 		coEvery { accountApi.login(any(), any(), any()) } returns Result.failure(IOException())
+		coEvery { strRes.get(Res.string.server_setup_error_unknown) } returns "Unknown error message"
 
 		val usecase = createSut()
 
@@ -137,8 +145,10 @@ class AccountUseCaseTest : BaseTest() {
 			create = true
 		)
 		assertTrue(isFailure(result))
-		// Result should have a displayMessage from strRes fallback
-		kotlin.test.assertNotNull(result.displayMessage)
+		assertEquals("Unknown error", result.error)
+		// Non-HTTP failures fall back to the localized unknown-error message.
+		val displayMessage = assertIs<ClientMessage.Literal>(result.displayMessage)
+		assertEquals("Unknown error message", displayMessage.text())
 
 		coVerify { accountApi.createAccount(any(), any(), any()) }
 		coVerify(exactly = 0) { accountApi.login(any(), any(), any()) }
@@ -179,7 +189,10 @@ class AccountUseCaseTest : BaseTest() {
 		assertTrue(isSuccess(result))
 
 		coVerify(exactly = 0) { accountApi.createAccount(any(), any(), any()) }
-		coVerify { accountApi.login(any(), any(), any()) }
+		coVerify { accountApi.login(settings.email, "password", "test-uuid") }
+
+		assertEquals(token.auth, bearerTokenSlot.captured.accessToken)
+		assertEquals(token.refresh, bearerTokenSlot.captured.refreshToken)
 
 		coVerify { globalSettingsStore.updateServerSettings(any()) }
 		assertEquals(

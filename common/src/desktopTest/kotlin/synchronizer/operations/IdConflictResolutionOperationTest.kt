@@ -100,6 +100,9 @@ class IdConflictResolutionOperationTest : BaseTest() {
 
 		assertEquals(12, data.maxId)
 		assertEquals(listOf(12), data.newClientIds)
+		// The remap must also land in the client sync data that later operations persist.
+		assertEquals(listOf(12), data.clientSyncData.newIds)
+		assertEquals(12, data.clientSyncData.lastId)
 		assertEquals(
 			produceEntityStateList(1, 3) + EntityOriginalState(12, "old-hash-11"),
 			data.clientSyncData.dirty

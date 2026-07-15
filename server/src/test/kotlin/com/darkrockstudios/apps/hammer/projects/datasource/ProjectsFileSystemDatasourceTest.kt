@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.readJson
 import com.darkrockstudios.apps.hammer.base.http.writeJson
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsFileSystemDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
 import com.darkrockstudios.apps.hammer.utils.BaseTest
@@ -46,6 +47,9 @@ class ProjectsFileSystemDatasourceTest : BaseTest() {
 
 		val dataFile = ProjectsFileSystemDatasource.getSyncDataPath(userId, fileSystem)
 		assertTrue(fileSystem.exists(dataFile))
+
+		val writtenData: ProjectsSyncData? = fileSystem.readJson(dataFile, json)
+		assertEquals(ProjectsDatasource.defaultUserData(userId), writtenData)
 	}
 
 	@Test
@@ -151,5 +155,8 @@ class ProjectsFileSystemDatasourceTest : BaseTest() {
 		)
 
 		assertEquals(updatedSyncData, loadedSyncData)
+
+		val persistedData: ProjectsSyncData? = fileSystem.readJson(syncDataPath, json)
+		assertEquals(updatedSyncData, persistedData)
 	}
 }

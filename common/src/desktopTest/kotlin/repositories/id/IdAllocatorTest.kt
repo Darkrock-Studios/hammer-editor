@@ -10,12 +10,11 @@ import com.darkrockstudios.apps.hammer.common.data.id.datasources.*
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
-import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import createProject
 import getProject1Def
 import getProjectDef
-import getProjectsDirectory
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -86,7 +85,8 @@ class IdAllocatorTest : BaseTest() {
 		idAllocator = IdAllocator(getProjectDef(PROJECT_EMPTY_NAME))
 		idAllocator.findNextId()
 
-		assertEquals(idAllocator.claimNextId(), 1, "First claimed ID should be 1 in empty project")
+		assertEquals(1, idAllocator.claimNextId(), "First claimed ID should be 1 in empty project")
+		coVerify(exactly = 0) { syncJournal.recordNewId(any()) }
 	}
 
 	@Test
@@ -115,25 +115,7 @@ class IdAllocatorTest : BaseTest() {
 		idAllocator.findNextId()
 
 		assertEquals(9, idAllocator.claimNextId(), "Failed to find last entity ID")
-	}
-
-	@Test
-	fun `No Ids`() = runTest {
-		createProject(ffs, PROJECT_EMPTY_NAME)
-		setupForProject(getProjectDef(PROJECT_EMPTY_NAME))
-
-		val projectPath = getProjectsDirectory().div(PROJECT_EMPTY_NAME).toHPath()
-		every { syncJournal.isServerSynchronized() } returns false
-
-		val projectDef = ProjectDef(
-			name = PROJECT_EMPTY_NAME,
-			path = projectPath
-		)
-
-		idAllocator = IdAllocator(projectDef)
-		idAllocator.findNextId()
-
-		assertEquals(1, idAllocator.claimNextId(), "Failed to find last scene ID")
+		coVerify { syncJournal.recordNewId(9) }
 	}
 
 	@Test

@@ -133,11 +133,6 @@ class ClientProjectSynchronizerTest : BaseTest() {
 	}
 
 	@Test
-	fun `Initialize`() = runTest {
-		val syncer = createProjectSync(getProjectDef(PROJECT_2_NAME))
-	}
-
-	@Test
 	fun `Successful Sync`() = runTest {
 		val syncer = createProjectSync(getProjectDef(PROJECT_2_NAME))
 
@@ -244,13 +239,15 @@ class ClientProjectSynchronizerTest : BaseTest() {
 				any()
 			)
 		}
+		coVerify(exactly = 1) { projectDataSyncOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 1) { entityDeleteOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 1) { entityTransferOperation.execute(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 1) { writingActivitySyncOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 1) { finalizeSyncOperation.execute(any(), any(), any(), any(), any()) }
 	}
 
 	@Test
-	fun `Sync fails on FetchServerData Operation`() = runTest {
+	fun `Sync fails on Backup Operation`() = runTest {
 		val syncer = createProjectSync(getProjectDef(PROJECT_2_NAME))
 
 		coEvery { projectMetadataDatasource.requireProjectId(any()) } returns ProjectId("project-id")
@@ -359,8 +356,10 @@ class ClientProjectSynchronizerTest : BaseTest() {
 				any()
 			)
 		}
+		coVerify(exactly = 0) { projectDataSyncOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 0) { entityDeleteOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 0) { entityTransferOperation.execute(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 0) { writingActivitySyncOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 0) { finalizeSyncOperation.execute(any(), any(), any(), any(), any()) }
 	}
 
@@ -484,11 +483,12 @@ class ClientProjectSynchronizerTest : BaseTest() {
 				any()
 			)
 		}
+		coVerify(exactly = 0) { projectDataSyncOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 0) { entityDeleteOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 0) { entityTransferOperation.execute(any(), any(), any(), any(), any()) }
+		coVerify(exactly = 0) { writingActivitySyncOperation.execute(any(), any(), any(), any(), any()) }
 		coVerify(exactly = 0) { finalizeSyncOperation.execute(any(), any(), any(), any(), any()) }
 
-		// Verify that onUnauthorized was called
 		coVerify(exactly = 1) { onUnauthorized() }
 	}
 }

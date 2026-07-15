@@ -166,11 +166,17 @@ class SceneMetadataReferenceRemapperTest : BaseTest() {
 
 	@Test
 	fun `remap is a no-op when oldId equals newId`() = runTest(mainTestDispatcher) {
+		// Rewriting 7 -> 7 would leave the metadata content identical anyway, so the
+		// observable effect of the guard is that the index is never marked dirty.
 		stubSceneTree(activeIds = listOf(10))
 		metadataDatasource.storeMetadata(SceneMetadata(confirmedReferences = setOf(7)), 10)
+		indexDatasource.saveIndex(ReferenceIndex(isDirty = false))
+		indexRepository.loadIndex()
 
 		makeRemapper().remapEntryReferences(oldEntryId = 7, newEntryId = 7)
+		defaultTestDispatcher.scheduler.advanceUntilIdle()
 
 		assertEquals(setOf(7), metadataDatasource.loadMetadata(10)?.confirmedReferences)
+		assertEquals(false, indexRepository.isDirty.value)
 	}
 }
