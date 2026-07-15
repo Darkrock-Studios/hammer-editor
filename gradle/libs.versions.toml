@@ -26,6 +26,7 @@ appdirs = "1.5.0"
 cache4k = "0.14.0"
 core = "1.7.0"
 coreKtx = "1.19.0"
+espresso = "3.7.0"
 cryptohash = "1.0.2"
 androidx-security-crypto = "1.1.0"
 glance = "1.2.0-rc01"
@@ -201,6 +202,7 @@ orchestrator = { module = "androidx.test:orchestrator", version.ref = "orchestra
 mockk = { group = "io.mockk", name = "mockk", version.ref = "mockk" }
 
 androidx_runner = { module = "androidx.test:runner", version.ref = "androidx-runner" }
+espresso-core = { module = "androidx.test.espresso:espresso-core", version.ref = "espresso" }
 androidx_datastore = { module = "androidx.datastore:datastore-preferences", version.ref = "androidx-datastore" }
 androidx_window = { module = "androidx.window:window", version.ref = "androidx-window" }
 serialization_core = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-core", version.ref = "serialization" }

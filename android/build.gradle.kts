@@ -48,6 +48,9 @@ dependencies {
 	androidTestImplementation(libs.core.ktx)
 	androidTestImplementation(libs.androidx.runner)
 	androidTestImplementation(libs.jetbrains.compose.ui.test.junit4)
+	// Compose ui-test drags in espresso-core 3.5.0, whose InputManagerEventInjectionStrategy
+	// reflectively calls the removed InputManager.getInstance() and crashes on API 35+.
+	androidTestImplementation(libs.espresso.core)
 	androidTestUtil(libs.orchestrator)
 
 	implementation(libs.aboutlibraries.core)
