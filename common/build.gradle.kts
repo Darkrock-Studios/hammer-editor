@@ -11,10 +11,24 @@ plugins {
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.compose.compiler)
 	alias(libs.plugins.buildconfig)
+	alias(libs.plugins.koin.compiler)
 }
 
 group = "com.darkrockstudios.apps.hammer"
 version = libs.versions.app.get()
+
+// compileSafety validates the DI graph at compile time (missing definitions become
+// compile errors). Passes on desktop, android, and the common metadata compilation.
+//
+// Kotlin/Native (iOS) currently trips an upstream plugin bug: the generated `dsl_single`
+// hint functions encode a definition's named() qualifier as a value-parameter NAME, and
+// K/N's IdSignature ignores parameter names — so multiple same-type qualified definitions
+// (our main/default/io CoroutineContext dispatchers) collapse to one signature and fail
+// klib serialization with an Ir SignatureClashDetector AssertionError. Tracked upstream in
+// koin-compiler-plugin; revisit iOS once fixed.
+koinCompiler {
+	compileSafety = true
+}
 
 kotlin {
 	jvmToolchain {
@@ -65,6 +79,7 @@ kotlin {
 				api(libs.coroutines.core)
 				api(project.dependencies.platform(libs.koin.bom.get()))
 				api(libs.koin.core)
+				api(libs.koin.annotations)
 				api(libs.okio)
 
 				implementation(libs.bundles.ktor.client)

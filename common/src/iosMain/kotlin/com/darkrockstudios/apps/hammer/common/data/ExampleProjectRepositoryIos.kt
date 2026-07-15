@@ -9,9 +9,9 @@ import kotlinx.cinterop.convert
 import kotlinx.cinterop.usePinned
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
-import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import org.koin.plugin.module.dsl.single
 import platform.Foundation.NSBundle
 import platform.Foundation.NSData
 import platform.Foundation.dataWithContentsOfFile
@@ -19,7 +19,7 @@ import platform.posix.memcpy
 import kotlin.time.Clock
 
 actual val exampleProjectModule = module {
-	singleOf(::ExampleProjectRepositoryiOs) bind ExampleProjectRepository::class
+	single<ExampleProjectRepositoryiOs>() bind ExampleProjectRepository::class
 }
 
 private class ExampleProjectRepositoryiOs(

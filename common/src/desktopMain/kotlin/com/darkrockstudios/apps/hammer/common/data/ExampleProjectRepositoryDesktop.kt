@@ -5,15 +5,15 @@ import com.darkrockstudios.apps.hammer.common.util.zip.unzipBytesToDirectory
 import io.github.aakira.napier.Napier
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
-import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import org.koin.plugin.module.dsl.single
 import java.io.InputStream
 import kotlin.time.Clock
 
 
 actual val exampleProjectModule = module {
-	singleOf(::ExampleProjectRepositoryDesktop) bind ExampleProjectRepository::class
+	single<ExampleProjectRepositoryDesktop>() bind ExampleProjectRepository::class
 }
 
 class ExampleProjectRepositoryDesktop(
