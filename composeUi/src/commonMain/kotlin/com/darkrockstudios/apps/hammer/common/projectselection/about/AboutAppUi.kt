@@ -41,7 +41,7 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 
 	val outerHorizontal: Dp = if (isCompact) Ui.Padding.XL else 56.dp
 	val outerVertical: Dp = if (isCompact) Ui.Padding.L else 28.dp
-	val sectionCount = 4 + platformAboutSectionCount
+	val sectionCount = 5 + platformAboutSectionCount
 
 	Column(
 		modifier = modifier
@@ -116,7 +116,24 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 						)
 					}
 
-					PlatformAboutSection(component, section = 5)
+					HdHairlineSection(
+						section = 5,
+						title = Res.string.about_report_bug_header.get(),
+						contentSpacing = 14.dp,
+					) {
+						Text(
+							text = Res.string.about_report_bug_description.get(),
+							style = MaterialTheme.typography.bodyMedium,
+							color = MaterialTheme.colorScheme.onSurfaceVariant,
+						)
+						HdHairlineButton(
+							label = Res.string.about_report_bug_button.get(),
+							onClick = component::reportBug,
+							emphasised = true,
+						)
+					}
+
+					PlatformAboutSection(component, section = 6)
 
 					Spacer(Modifier.height(8.dp))
 				}

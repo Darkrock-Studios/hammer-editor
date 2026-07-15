@@ -11,6 +11,7 @@ interface AboutApp {
 	fun openDiscord()
 	fun openReddit()
 	fun openGithub()
+	fun reportBug()
 	fun viewReleaseDetails()
 
 	@Serializable

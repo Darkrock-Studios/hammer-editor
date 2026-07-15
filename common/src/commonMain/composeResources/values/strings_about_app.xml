@@ -11,6 +11,10 @@
 	<string name="about_attribution_header">Attribution</string>
 	<string name="about_attribution_libraries_button">Libraries</string>
 
+	<string name="about_report_bug_header">Report a Bug</string>
+	<string name="about_report_bug_description">Found a problem? This opens a pre-filled GitHub issue in your browser with your app version and system details already added. Please also attach your log files (see the logs section below) so we can reproduce it.</string>
+	<string name="about_report_bug_button">Report a Bug</string>
+
 	<string name="about_version_new_available_title">New Version Available!</string>
 	<string name="about_version_new_available_message">Version %s is now available</string>
 	<string name="about_version_up_to_date">Up to date!</string>

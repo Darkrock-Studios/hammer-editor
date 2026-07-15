@@ -11,7 +11,10 @@ import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getLogDirectory
+import com.darkrockstudios.apps.hammer.common.getPlatformName
+import com.darkrockstudios.apps.hammer.common.platformStartupInfo
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
+import com.darkrockstudios.apps.hammer.common.util.buildBugReportUrl
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -56,6 +59,15 @@ class AboutAppComponent(
 
 	override fun openGithub() {
 		urlLauncher.openInBrowser(GITHUB_URL)
+	}
+
+	override fun reportBug() {
+		val url = buildBugReportUrl(
+			appVersion = state.value.currentVersion,
+			platformName = getPlatformName(),
+			platformInfo = platformStartupInfo(),
+		)
+		urlLauncher.openInBrowser(url)
 	}
 
 	override fun viewReleaseDetails() {
