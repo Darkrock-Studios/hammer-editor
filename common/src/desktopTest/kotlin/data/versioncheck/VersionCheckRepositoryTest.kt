@@ -17,7 +17,7 @@ class VersionCheckRepositoryTest {
 		tagName = tag,
 		name = "Release $tag",
 		body = "Changelog body",
-		htmlUrl = "https://github.com/Wavesonics/hammer-editor/releases/tag/$tag",
+		htmlUrl = "https://github.com/Darkrock-Studios/hammer-editor/releases/tag/$tag",
 	)
 
 	@Test

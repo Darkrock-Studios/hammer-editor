@@ -40,7 +40,7 @@ class ProtocolMismatchComponentTest : BaseTest() {
 		tagName = "v9.9.9",
 		name = "Big Release",
 		body = "notes",
-		htmlUrl = "https://github.com/Wavesonics/hammer-editor/releases/tag/v9.9.9",
+		htmlUrl = "https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v9.9.9",
 	)
 
 	@BeforeEach

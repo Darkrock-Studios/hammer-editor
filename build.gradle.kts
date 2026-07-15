@@ -496,7 +496,7 @@ tasks.register("revertLastRelease") {
 		if (ghToken == null) {
 			println("No GH_TOKEN or GITHUB_TOKEN found — skipping GitHub draft release deletion.")
 		} else {
-			val repoSlug = "Wavesonics/hammer-editor"
+			val repoSlug = "Darkrock-Studios/hammer-editor"
 
 			fun githubApi(method: String, path: String): Pair<Int, String> {
 				val conn = java.net.URL("https://api.github.com/repos/$repoSlug/$path")
