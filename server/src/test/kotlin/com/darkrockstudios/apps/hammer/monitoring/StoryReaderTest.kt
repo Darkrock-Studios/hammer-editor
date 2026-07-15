@@ -66,6 +66,22 @@ class StoryReaderTest : BaseTest() {
 	}
 
 	@Test
+	fun `the collector sheds keys past its cap so a flood can't grow the set without bound`() {
+		val collector = StoryReaderCollector(clock, maxPendingKeys = 5)
+
+		// A flood of distinct visitor keys (varied user-agents) far exceeding the cap.
+		repeat(100) { i ->
+			collector.record(projectId = 1L, clientIp = "1.1.1.1", userAgent = "UA-$i")
+		}
+
+		assertEquals(5, collector.drainToKeys().size)
+
+		// Draining frees the set, so recording resumes afterward.
+		collector.record(projectId = 1L, clientIp = "1.1.1.1", userAgent = "UA-after")
+		assertEquals(1, collector.drainToKeys().size)
+	}
+
+	@Test
 	fun `a disabled collector records nothing`() {
 		val collector = StoryReaderCollector(clock)
 		collector.setCollecting(false)

@@ -28,6 +28,7 @@ import kotlin.time.Instant
  */
 class StoryReaderCollector(
 	private val clock: Clock,
+	private val maxPendingKeys: Int = MAX_PENDING_KEYS,
 ) {
 	@Volatile
 	private var collecting: Boolean = true
@@ -48,6 +49,13 @@ class StoryReaderCollector(
 
 	fun record(projectId: Long, clientIp: String?, userAgent: String?) {
 		if (!collecting) return
+		// Backstop against a flood of distinct keys (e.g. someone hammering the read
+		// beacon with varied user-agents) growing the set without bound between the
+		// once-a-minute drains. Past the cap we simply shed new reads until the next
+		// drain frees the set — a best-effort metric may undercount under abuse, but
+		// it must not exhaust memory. The cap sits far above any legitimate
+		// unique-reader volume in a single drain window.
+		if (keys.size >= maxPendingKeys) return
 		val now = clock.now()
 		val epochDay = now.epochSeconds / SECONDS_PER_DAY
 		val dailySalt = currentSalt(epochDay)
@@ -89,6 +97,11 @@ class StoryReaderCollector(
 	private companion object {
 		const val SECONDS_PER_DAY = 86_400L
 		const val SALT_BYTES = 32
+
+		// Upper bound on distinct keys held between drains (~once a minute). Well
+		// above any real per-minute unique-reader count; only an abusive flood of
+		// varied keys reaches it, at which point excess reads are shed to cap memory.
+		const val MAX_PENDING_KEYS = 100_000
 	}
 }
 

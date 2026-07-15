@@ -7,22 +7,56 @@
  * dwell time on the page, then fire a single beacon to POST .../read; the
  * server records the unique reader only when that beacon arrives.
  *
- * The dwell timer only accrues while the tab is visible, so a story opened in a
- * background tab and never looked at doesn't count either. This is a heuristic,
- * not a guarantee — it just filters the obvious bounces.
+ * Two refinements keep the heuristic honest:
+ *  - The dwell timer only accrues while the tab is visible, so a story opened in
+ *    a background tab and never looked at doesn't count.
+ *  - Dwell accumulates ACROSS pages of a multi-page story. Pagination is a full
+ *    page navigation, so each page reloads this script; we carry the running
+ *    total in sessionStorage (per-tab, never sent to the server, no crypto or
+ *    backend involved) keyed by the story path, so a reader who spends a few
+ *    seconds on each of several pages still crosses the threshold. Without this
+ *    a page-turner reading a long serialized story would never be counted.
+ *
+ * This is a heuristic, not a guarantee — it just filters the obvious bounces.
  */
 (function () {
 	// Minimum visible time on the page before we count the visit as a read.
 	var DWELL_THRESHOLD_MS = 10000;
 
-	var sent = false;
-	var dwellMs = 0;
+	// The story path is /a/{penName}/{projectName}; only the ?page=N query varies
+	// between pages, so the pathname identifies the story across page turns.
+	var storyKey = window.location.pathname;
+	var DWELL_KEY = 'hammer.readDwell:' + storyKey;
+	var SENT_KEY = 'hammer.readSent:' + storyKey;
+
+	// sessionStorage can throw (private-mode quotas, disabled storage). Degrade to
+	// a per-page timer rather than break the page: dwell just won't carry across
+	// pages, which is the same as having no refinement at all.
+	function storageGet(key) {
+		try {
+			return sessionStorage.getItem(key);
+		} catch (e) {
+			return null;
+		}
+	}
+
+	function storageSet(key, value) {
+		try {
+			sessionStorage.setItem(key, value);
+		} catch (e) {
+			// Best-effort only.
+		}
+	}
+
+	// Already counted this story in this tab — nothing more to do.
+	if (storageGet(SENT_KEY) === '1') return;
+
+	var dwellMs = parseInt(storageGet(DWELL_KEY), 10) || 0;
 	var lastResume = null;
 	var timer = null;
 
 	function sendBeacon() {
-		if (sent) return;
-		sent = true;
+		storageSet(SENT_KEY, '1');
 		stopTimer();
 
 		// Beacon back to the same story URL (carrying ?p=... for private shares and
@@ -44,32 +78,36 @@
 		}
 	}
 
-	function tick() {
-		if (sent || lastResume === null) return;
+	// Fold the time since the last resume into the running total and persist it,
+	// so the next page (a full reload) picks up where this one left off.
+	function accrue() {
+		if (lastResume === null) return;
 		var now = Date.now();
 		dwellMs += now - lastResume;
 		lastResume = now;
+		storageSet(DWELL_KEY, String(dwellMs));
+	}
+
+	function tick() {
+		accrue();
 		if (dwellMs >= DWELL_THRESHOLD_MS) {
 			sendBeacon();
 		}
 	}
 
 	function startTimer() {
-		if (sent || timer !== null) return;
+		if (timer !== null) return;
 		lastResume = Date.now();
 		timer = setInterval(tick, 1000);
 	}
 
 	function stopTimer() {
 		if (timer !== null) {
-			// Fold the in-progress interval into the accumulated total before pausing.
-			if (lastResume !== null) {
-				dwellMs += Date.now() - lastResume;
-				lastResume = null;
-			}
+			accrue();
 			clearInterval(timer);
 			timer = null;
 		}
+		lastResume = null;
 	}
 
 	// Only accrue dwell time while the tab is actually in the foreground.
@@ -80,6 +118,10 @@
 			startTimer();
 		}
 	});
+
+	// Persist the in-progress dwell when navigating away (e.g. clicking "next
+	// page") so it isn't lost between the tick interval and the page unload.
+	window.addEventListener('pagehide', accrue);
 
 	if (!document.hidden) {
 		startTimer();
