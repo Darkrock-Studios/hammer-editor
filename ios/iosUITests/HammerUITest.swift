@@ -153,6 +153,41 @@ class HammerUITest: XCTestCase {
         app.typeText(text)
     }
 
+    /// Type into a Compose rich-text editor (the scene body) and retry until the edit lands.
+    ///
+    /// Unlike the note body — whose `MarkdownEditField` is always enabled — the scene editor's
+    /// `SpellCheckingTextEditor` is gated `enabled = hasReceivedInitialBuffer`, so its platform IME
+    /// input session only starts once the scene buffer has loaded. Focusing/typing before that
+    /// silently drops the keystrokes, so a single injection can race the buffer load and never
+    /// dirty the buffer (leaving the save affordance hidden). Re-focus and re-inject until `until`
+    /// confirms the change, mirroring the Android `typeIntoEditor` retry loop.
+    func typeIntoEditor(_ text: String, into tag: String, until condition: () -> Bool,
+                        timeout: TimeInterval = HammerUITest.defaultTimeout,
+                        file: StaticString = #file, line: UInt = #line) {
+        let field = waitFor(tag, timeout: timeout, file: file, line: line)
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            tapToFocus(field)
+            // The software keyboard only rises once the editor is enabled and focused; if it
+            // doesn't this round, loop and re-focus rather than failing outright.
+            if app.keyboards.firstMatch.waitForExistence(timeout: 3) {
+                app.typeText(text)
+            }
+            if poll(condition, timeout: 1) { return }
+        } while Date() < deadline
+        XCTFail("Editor input for \(tag) never propagated within \(timeout)s", file: file, line: line)
+    }
+
+    /// Poll `condition` until it's true or `timeout` elapses, pumping the run loop between checks.
+    private func poll(_ condition: () -> Bool, timeout: TimeInterval, interval: TimeInterval = 0.25) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if condition() { return true }
+            RunLoop.current.run(until: Date().addingTimeInterval(interval))
+        }
+        return condition()
+    }
+
     // MARK: - Shared flows
 
     /// A unique project name so re-runs (and a persistent simulator) don't collide — mirrors
