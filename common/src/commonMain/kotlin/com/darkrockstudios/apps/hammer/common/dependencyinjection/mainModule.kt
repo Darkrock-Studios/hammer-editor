@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
+import com.darkrockstudios.apps.hammer.base.di.dispatcherModule
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
@@ -146,9 +147,19 @@ val mainModule = module {
 	includes(authTokenStoreModule)
 	includes(exampleProjectModule)
 
-	single(named(DISPATCHER_MAIN)) { platformMainDispatcher }
-	single(named(DISPATCHER_DEFAULT)) { platformDefaultDispatcher }
-	single(named(DISPATCHER_IO)) { platformIoDispatcher }
+	// Dispatchers live in a plugin-less module (see dispatcherModule): three same-type
+	// qualified definitions would otherwise collapse to one K/N hint signature under
+	// compileSafety and break the iOS klib link.
+	includes(
+		dispatcherModule(
+			mainQualifier = DISPATCHER_MAIN,
+			defaultQualifier = DISPATCHER_DEFAULT,
+			ioQualifier = DISPATCHER_IO,
+			mainDispatcher = platformMainDispatcher,
+			defaultDispatcher = platformDefaultDispatcher,
+			ioDispatcher = platformIoDispatcher,
+		)
+	)
 
 	single { Clock.System } bind Clock::class
 

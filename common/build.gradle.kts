@@ -18,14 +18,16 @@ group = "com.darkrockstudios.apps.hammer"
 version = libs.versions.app.get()
 
 // compileSafety validates the DI graph at compile time (missing definitions become
-// compile errors). Passes on desktop, android, and the common metadata compilation.
+// compile errors). Passes on all targets: desktop, android, common metadata, and iOS.
 //
-// Kotlin/Native (iOS) currently trips an upstream plugin bug: the generated `dsl_single`
-// hint functions encode a definition's named() qualifier as a value-parameter NAME, and
-// K/N's IdSignature ignores parameter names — so multiple same-type qualified definitions
-// (our main/default/io CoroutineContext dispatchers) collapse to one signature and fail
-// klib serialization with an Ir SignatureClashDetector AssertionError. Tracked upstream in
-// koin-compiler-plugin; revisit iOS once fixed.
+// Kotlin/Native (iOS) can't host multiple same-type qualified definitions in a plugin-
+// processed module: the generated `dsl_single` hint functions encode a definition's
+// named() qualifier as a value-parameter NAME, and K/N's IdSignature ignores parameter
+// names — so same-type qualified definitions collapse to one signature and fail klib
+// serialization with an Ir SignatureClashDetector AssertionError. Our three main/default/io
+// CoroutineContext dispatchers hit this, so they're defined in a plugin-less module in
+// :base instead (see dispatcherModule); they're only consumed via runtime inject(named()),
+// never auto-wiring, so nothing the plugin validates depends on them.
 koinCompiler {
 	compileSafety = true
 }
