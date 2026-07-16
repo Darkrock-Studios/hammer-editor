@@ -158,15 +158,30 @@ class HammerUITest: XCTestCase {
         tapUntil(el, until: { self.element(expect).exists }, timeout: timeout, file: file, line: line)
     }
 
-    /// Tap the element tagged `tag`, re-tapping until it disappears — e.g. the scene-editor save
-    /// affordance, which is rendered only while the buffer is dirty and so vanishes once the save
-    /// lands. A lone tap here is doubly flaky: the tap can be dropped, or a late IME keystroke can
-    /// re-dirty the buffer right after a save and bring the button back. Re-tapping converges on
-    /// both; see `tapUntil(_:until:)`.
+    /// Tap the element tagged `tag` until it disappears — e.g. the scene-editor save affordance,
+    /// which is rendered only while the buffer is dirty and so vanishes once the save lands.
+    ///
+    /// The save button lives in the top bar, and right after the edit that surfaces it its
+    /// accessibility frame can be briefly *stale* — reported up under the status bar (a dead pixel)
+    /// before the layout settles. A blind coordinate tap there does nothing, and repeatedly tapping
+    /// that dead spot can even scroll/navigate the app away. So only tap when the button is actually
+    /// hittable (settled), using a hit-tested `tap()` that re-resolves its real position; otherwise
+    /// wait for it to settle. Re-tap until it's gone, which also covers a dropped tap or a late IME
+    /// keystroke re-dirtying the buffer right after a save.
     func tapUntilGone(_ tag: String, timeout: TimeInterval = HammerUITest.defaultTimeout,
                       file: StaticString = #file, line: UInt = #line) {
         let el = waitFor(tag, timeout: timeout, file: file, line: line)
-        tapUntil(el, until: { !el.exists }, timeout: timeout, file: file, line: line)
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            if !el.exists { return }
+            if el.isHittable {
+                el.tap()
+                if poll({ !el.exists }, timeout: 3) { return }
+            } else {
+                _ = poll({ el.isHittable || !el.exists }, timeout: 1)
+            }
+        } while Date() < deadline
+        XCTFail("Element still present after \(timeout)s: \(tag)", file: file, line: line)
     }
 
     /// Tap a tagged field and type into it. Compose text fields don't report per-element keyboard
