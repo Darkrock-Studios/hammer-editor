@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
 import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
@@ -56,9 +57,7 @@ fun Route.publicStoryPage(
 
 			// Resolve the project by the id embedded in its URL segment, scoped to this author's
 			// projects; the slug beside the id is decorative and ignored.
-			val projectId = ProjectName.idFromSegment(projectNameParam)
-			val projectName = projectsRepository.getProjectsWithSyncDate(account.id)
-				.find { ProjectName.shortId(it.uuid) == projectId }?.name
+			val projectName = projectsRepository.findProjectByUrlSegment(account.id, projectNameParam)?.name
 			if (projectName == null) {
 				call.respond(HttpStatusCode.NotFound)
 				return@get
@@ -124,6 +123,7 @@ fun Route.publicStoryPage(
 							val model = call.withDefaults(
 								mapOf(
 									"page_stylesheet" to "/assets/css/story.css",
+									"page_pre_script" to "/assets/js/story-reader-logic.js",
 									"page_script" to "/assets/js/story-reader.js",
 									"projectName" to data.projectName,
 									"authorPenName" to resolved.penName,
@@ -218,9 +218,7 @@ fun Route.publicStoryPage(
 				return@post
 			}
 
-			val projectShortId = ProjectName.idFromSegment(projectNameParam)
-			val projectName = projectsRepository.getProjectsWithSyncDate(account.id)
-				.find { ProjectName.shortId(it.uuid) == projectShortId }?.name
+			val projectName = projectsRepository.findProjectByUrlSegment(account.id, projectNameParam)?.name
 			if (projectName == null) {
 				call.respond(HttpStatusCode.NoContent)
 				return@post
