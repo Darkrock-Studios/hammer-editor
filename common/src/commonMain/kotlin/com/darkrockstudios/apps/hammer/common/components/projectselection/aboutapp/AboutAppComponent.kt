@@ -11,12 +11,15 @@ import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getLogDirectory
+import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
 import com.darkrockstudios.apps.hammer.common.getPlatformName
 import com.darkrockstudios.apps.hammer.common.platformStartupInfo
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
 import com.darkrockstudios.apps.hammer.common.util.buildBugReportUrl
+import com.darkrockstudios.apps.hammer.common.util.readLatestCrash
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okio.Path.Companion.toPath
 
 class AboutAppComponent(
 	componentContext: ComponentContext,
@@ -47,6 +50,17 @@ class AboutAppComponent(
 		if (versionCheckRepository.currentResult() == null) {
 			scope.launch { versionCheckRepository.checkForUpdate() }
 		}
+
+		scope.launch {
+			val crash = withContext(dispatcherIo) {
+				readLatestCrash(getPlatformFilesystem(), getLogDirectoryPath().toPath())
+			}
+			if (crash != null) {
+				withContext(dispatcherMain) {
+					_state.update { it.copy(latestCrash = crash) }
+				}
+			}
+		}
 	}
 
 	override fun openDiscord() {
@@ -66,6 +80,7 @@ class AboutAppComponent(
 			appVersion = state.value.currentVersion,
 			platformName = getPlatformName(),
 			platformInfo = platformStartupInfo(),
+			crashContent = state.value.latestCrash?.content,
 		)
 		urlLauncher.openInBrowser(url)
 	}

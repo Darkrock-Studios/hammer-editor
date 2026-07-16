@@ -1,8 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp
 
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.util.CrashReport
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.Transient
 
 
 interface AboutApp {
@@ -20,6 +22,7 @@ interface AboutApp {
 		val currentVersion: String = getAppVersionString(),
 		val newVersionAvailable: Boolean = false,
 		val logDirectoryPath: String = "",
+		@Transient val latestCrash: CrashReport? = null,
 	)
 
 }

@@ -14,6 +14,7 @@
 	<string name="about_report_bug_header">Report a Bug</string>
 	<string name="about_report_bug_description">Found a problem? This opens a pre-filled GitHub issue in your browser with your app version and system details already added. Please also attach your log files (see the logs section below) so we can reproduce it.</string>
 	<string name="about_report_bug_button">Report a Bug</string>
+	<string name="about_report_bug_crash_found">A recent crash was found. It will be included in your report and copied to your clipboard.</string>
 
 	<string name="about_version_new_available_title">New Version Available!</string>
 	<string name="about_version_new_available_message">Version %s is now available</string>

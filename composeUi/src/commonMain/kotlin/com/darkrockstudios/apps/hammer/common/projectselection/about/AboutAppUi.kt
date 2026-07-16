@@ -12,6 +12,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -36,6 +38,7 @@ private val MaxColumnWidth = 880.dp
 fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 	var showLibraries by remember { mutableStateOf(false) }
 	val state by component.state.subscribeAsState()
+	@Suppress("DEPRECATION") val clipboard = LocalClipboardManager.current
 	val screen = LocalScreenCharacteristic.current
 	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
 
@@ -126,9 +129,23 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 							style = MaterialTheme.typography.bodyMedium,
 							color = MaterialTheme.colorScheme.onSurfaceVariant,
 						)
+						val crash = state.latestCrash
+						if (crash != null) {
+							Text(
+								text = Res.string.about_report_bug_crash_found.get(),
+								style = MaterialTheme.typography.bodyMedium,
+								color = MaterialTheme.colorScheme.primary,
+							)
+						}
 						HdHairlineButton(
 							label = Res.string.about_report_bug_button.get(),
-							onClick = component::reportBug,
+							onClick = {
+								crash?.let {
+									@Suppress("DEPRECATION")
+									clipboard.setText(AnnotatedString(it.content))
+								}
+								component.reportBug()
+							},
 							emphasised = true,
 						)
 					}
