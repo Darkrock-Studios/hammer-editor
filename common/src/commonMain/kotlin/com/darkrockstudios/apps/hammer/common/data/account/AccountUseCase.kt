@@ -1,14 +1,16 @@
 package com.darkrockstudios.apps.hammer.common.data.account
 
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.base.http.Token
-import com.darkrockstudios.apps.hammer.common.data.CResult
+import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.updateCredentials
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
+import com.darkrockstudios.apps.hammer.common.server.TermsOfServiceRequiredException
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.server_setup_error_unknown
 import io.ktor.client.*
@@ -25,8 +27,9 @@ class AccountUseCase(
 		url: String,
 		email: String,
 		password: String,
-		create: Boolean
-	): CResult<Unit> {
+		create: Boolean,
+		acceptedTosVersion: String? = null,
+	): ServerSetupResult {
 		val installId = globalSettingsStore.ensureInstallId()
 		val newSettings = ServerSettings(
 			userId = -1,
@@ -44,6 +47,7 @@ class AccountUseCase(
 				email = email,
 				password = password,
 				installId = installId,
+				acceptedTosVersion = acceptedTosVersion,
 			)
 		} else {
 			accountApi.login(
@@ -66,23 +70,31 @@ class AccountUseCase(
 			httpClient.updateCredentials(bearerTokens)
 			globalSettingsStore.updateServerSettings(authedSettings)
 
-			CResult.success()
+			ServerSetupResult.Success
 		} else {
-			globalSettingsStore.deleteServerSettings()
+			val exception = result.exceptionOrNull()
+			if (exception is TermsOfServiceRequiredException) {
+				// Keep the provisional server settings so accepting the terms can retry the request.
+				ServerSetupResult.TermsRequired(exception.challenge)
+			} else {
+				globalSettingsStore.deleteServerSettings()
 
-			val exception = result.exceptionOrNull() as? HttpFailureException
-			val displayMessage = exception?.error?.displayMessage
-				?: strRes.get(Res.string.server_setup_error_unknown)
+				val httpFailure = exception as? HttpFailureException
+				val displayMessage = httpFailure?.error?.displayMessage?.toMsg()
+					?: strRes.get(Res.string.server_setup_error_unknown).toMsg()
 
-			CResult.failure(
-				error = exception?.error?.error ?: "Unknown error",
-				displayMessage = displayMessage.toMsg(),
-				exception = exception
-			)
+				ServerSetupResult.Failure(displayMessage = displayMessage, exception = exception)
+			}
 		}
 	}
 
 	suspend fun testAuth(): Boolean {
 		return accountApi.testAuth().isSuccess
 	}
+}
+
+sealed interface ServerSetupResult {
+	data object Success : ServerSetupResult
+	data class TermsRequired(val challenge: TermsOfServiceChallenge) : ServerSetupResult
+	data class Failure(val displayMessage: Msg?, val exception: Throwable?) : ServerSetupResult
 }

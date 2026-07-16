@@ -28,6 +28,11 @@ data class ServerConfig(
 	val publicUrl: String? = null,
 	val sslCert: SslCertConfig? = null,
 	val patreonEnabled: Boolean? = null,
+	/**
+	 * Path to a plaintext file whose contents are presented as a Terms of Service that
+	 * users must accept before an account is created. Null/absent disables the requirement.
+	 */
+	val termsOfService: String? = null,
 	val emailProvider: String? = null,
 	val communityEnabled: Boolean = false,
 	val storage: StorageConfig = StorageConfig(),

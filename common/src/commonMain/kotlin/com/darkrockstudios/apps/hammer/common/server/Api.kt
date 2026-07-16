@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
+import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
@@ -45,6 +46,9 @@ abstract class Api(
 	private val globalSettingsStore: GlobalSettingsStore,
 	private val strRes: StrRes,
 ) : KoinComponent {
+
+	protected suspend fun defaultFailure(response: HttpResponse): Throwable =
+		defaultFailureHandler(response, strRes)
 	protected val userId: Long?
 		get() = globalSettingsStore.serverSettings?.userId
 
@@ -312,6 +316,11 @@ class HttpFailureException(
 ) : Exception("HTTP $statusCode ${error.error}: ${error.displayMessage}") {
 	override fun toString() = message ?: super.toString()
 }
+
+/** The server requires the given Terms of Service to be accepted before an account can be created. */
+class TermsOfServiceRequiredException(
+	val challenge: TermsOfServiceChallenge
+) : Exception("Terms of service acceptance required (version ${challenge.version})")
 
 typealias FailureHandler = suspend (HttpResponse) -> Throwable
 

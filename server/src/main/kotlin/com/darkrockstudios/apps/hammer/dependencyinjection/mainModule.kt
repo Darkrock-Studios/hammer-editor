@@ -123,6 +123,7 @@ fun mainModule(
 	singleOf(::PublishedStoryReaderDao)
 
 	singleOf(::AccountsRepository)
+	singleOf(::TermsOfServiceRepository)
 	singleOf(::ProjectsRepository)
 	singleOf(::ProjectEntityRepository)
 	singleOf(::ProjectAccessRepository)

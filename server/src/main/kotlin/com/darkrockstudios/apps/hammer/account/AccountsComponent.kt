@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
+import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.patreon.PatreonConfig
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
@@ -18,25 +19,35 @@ class AccountsComponent(
 	private val whiteListRepository: WhiteListRepository,
 	private val projectsRepository: ProjectsRepository,
 	private val configRepository: ConfigRepository,
+	private val termsOfServiceRepository: TermsOfServiceRepository,
 	private val serverConfig: ServerConfig,
 ) {
 	suspend fun createAccount(
 		email: String,
 		installId: String,
-		password: String
-	): ServerResult<Token> {
+		password: String,
+		acceptedTosVersion: String? = null,
+	): CreateAccountResult {
 		// If we dont have users, skip whitelist check
 		if (accountsRepository.hasUsers() && checkIfWhiteListRejected(email)) {
-			return whiteListRejectedFailure()
+			return CreateAccountResult.Failure(whiteListRejectedFailure())
+		}
+
+		// A single read closes the enforce/accept race: if a challenge exists and the submitted
+		// version doesn't match it, the account is never created.
+		val challenge = termsOfServiceRepository.challenge()
+		if (challenge != null && acceptedTosVersion != challenge.version) {
+			return CreateAccountResult.TermsRequired(challenge)
 		}
 
 		val result = accountsRepository.createAccount(email, installId, password)
-		if (isSuccess(result)) {
+		return if (isSuccess(result)) {
 			val token = result.data
 			projectsRepository.createUserData(token.userId)
+			CreateAccountResult.Success(token)
+		} else {
+			CreateAccountResult.Failure(result as ServerResult.Failure<Token>)
 		}
-
-		return result
 	}
 
 	suspend fun login(email: String, password: String, installId: String): SResult<Token> {
@@ -84,7 +95,7 @@ class AccountsComponent(
 		return if (config.enabled && config.patreonUrl.isNotBlank()) config else null
 	}
 
-	private suspend fun whiteListRejectedFailure(): SResult<Token> {
+	private suspend fun whiteListRejectedFailure(): ServerResult.Failure<Token> {
 		val patreonConfig = getActivePatreonConfig()
 		return if (patreonConfig != null) {
 			val amount = "%.2f".format(patreonConfig.minimumAmountCents / 100.0)
@@ -99,4 +110,10 @@ class AccountsComponent(
 			)
 		}
 	}
+}
+
+sealed interface CreateAccountResult {
+	data class Success(val token: Token) : CreateAccountResult
+	data class TermsRequired(val challenge: TermsOfServiceChallenge) : CreateAccountResult
+	data class Failure(val failure: ServerResult.Failure<Token>) : CreateAccountResult
 }

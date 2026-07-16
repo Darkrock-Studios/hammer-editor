@@ -148,6 +148,12 @@
 		name="settings_server_setup_toast_failure_unknown">Server setup failed. Please check your connection and try again.
 	</string>
 
+	<!-- Terms of Service -->
+	<string name="settings_server_tos_title">Terms of Service</string>
+	<string name="settings_server_tos_accept">Accept</string>
+	<string name="settings_server_tos_decline">Decline</string>
+	<string name="settings_server_tos_declined">You must accept the Terms of Service to create an account.</string>
+
 	<!-- Network Errors -->
 	<string
 		name="server_error_connection_timeout">Could not connect to server. Make sure the server is running and the address is correct.

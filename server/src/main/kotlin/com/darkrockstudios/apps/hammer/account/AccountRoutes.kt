@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.account
 
+import com.darkrockstudios.apps.hammer.base.http.HTTP_STATUS_TERMS_OF_SERVICE
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.base.http.INVALID_USER_ID
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
@@ -40,17 +41,28 @@ private fun Route.createAccount() {
 		val email = formParameters["email"].toString()
 		val password = formParameters["password"].toString()
 		val installId = formParameters["installId"].toString()
+		val acceptedTosVersion = formParameters["acceptedTosVersion"]
 
-		val result = accountsComponent.createAccount(email = email, installId = installId, password = password)
-		if (isSuccess(result)) {
-			val token = result.data
-			call.respond(HttpStatusCode.Created, token)
-		} else {
-			val response = HttpResponseError(
-				error = "Failed to create account",
-				displayMessage = result.displayMessageText(call, R("api_error_unknown"))
+		val result = accountsComponent.createAccount(
+			email = email,
+			installId = installId,
+			password = password,
+			acceptedTosVersion = acceptedTosVersion,
+		)
+		when (result) {
+			is CreateAccountResult.Success -> call.respond(HttpStatusCode.Created, result.token)
+			is CreateAccountResult.TermsRequired -> call.respond(
+				status = HttpStatusCode(HTTP_STATUS_TERMS_OF_SERVICE, "Unavailable For Legal Reasons"),
+				message = result.challenge,
 			)
-			call.respond(status = HttpStatusCode.Conflict, response)
+
+			is CreateAccountResult.Failure -> {
+				val response = HttpResponseError(
+					error = "Failed to create account",
+					displayMessage = result.failure.displayMessageText(call, R("api_error_unknown"))
+				)
+				call.respond(status = HttpStatusCode.Conflict, response)
+			}
 		}
 	}
 }

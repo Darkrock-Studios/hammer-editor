@@ -26,6 +26,17 @@ class ServerConfigTest {
 	}
 
 	@Test
+	fun `termsOfService defaults to null`() {
+		assertEquals(null, parse("").termsOfService)
+	}
+
+	@Test
+	fun `termsOfService parses a file path`() {
+		val config = parse("""termsOfService = "/srv/hammer/tos.txt"""")
+		assertEquals("/srv/hammer/tos.txt", config.termsOfService)
+	}
+
+	@Test
 	fun `resolve falls back to defaults when no config file present`() {
 		val fs = FakeFileSystem()
 

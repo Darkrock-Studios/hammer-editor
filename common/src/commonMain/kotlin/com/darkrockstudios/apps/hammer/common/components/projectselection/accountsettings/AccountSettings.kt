@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection.accou
 
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
@@ -28,6 +29,9 @@ interface AccountSettings : ComponentToaster {
 		create: Boolean,
 		removeLocalContent: Boolean
 	)
+
+	fun acceptTos()
+	fun declineTos()
 
 	suspend fun authTest(): Boolean
 	fun removeServer()
@@ -64,6 +68,7 @@ interface AccountSettings : ComponentToaster {
 		@Transient val serverPassword: String? = null,
 		@Transient val serverError: String? = null,
 		@Transient val serverWorking: Boolean = false,
+		@Transient val tosChallenge: TermsOfServiceChallenge? = null,
 		val syncAutomaticSync: Boolean,
 		val syncAutomaticBackups: Boolean,
 		val syncAutoCloseDialog: Boolean,
