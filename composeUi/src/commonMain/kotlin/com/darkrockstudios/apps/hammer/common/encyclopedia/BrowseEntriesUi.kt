@@ -8,7 +8,6 @@ import androidx.compose.animation.SizeTransform
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -66,6 +65,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
 import com.darkrockstudios.apps.hammer.encyclopedia_browse_list_empty
 import com.darkrockstudios.apps.hammer.encyclopedia_create_button
 import com.darkrockstudios.apps.hammer.encyclopedia_header
@@ -89,46 +89,30 @@ fun BrowseEntriesUi(
 	val state by component.state.subscribeAsState()
 	var selectedType by remember(state.filterType) { mutableStateOf(state.filterType) }
 	val searchText by component.filterText.subscribeAsState()
+	val tagIndex by component.tagIndex.subscribeAsState()
 
-	val filteredEntries by remember(state.entryDefs, searchText, state.filterType) {
-		mutableStateOf(component.getFilteredEntries())
+	// `#tag` needles are parsed out of the raw query the same way Global Search
+	// and the project list do it; the query field itself keeps the literal text
+	// so `#` is typeable and the tags round-trip.
+	val activeTags = remember(searchText) { parseQuery(searchText).tags }
+
+	// Keyed on `tagIndex` (not just its counts) so results recompute whenever the
+	// async index rebuilds - membership can change without the entry list changing.
+	val filteredEntries = remember(state.entryDefs, searchText, state.filterType, tagIndex) {
+		component.getFilteredEntries()
 	}
 
 	val isWide = LocalScreenCharacteristic.current.isWide
-
-	// Tag filter is encoded as a `#tag` token inside the search text;
-	// surface it as its own affordance so the user can clear it without
-	// losing other search terms.
-	val activeTag = remember(searchText) {
-		searchText.split(' ')
-			.firstOrNull { it.startsWith('#') && it.length > 1 }
-			?.removePrefix("#")
-	}
-	val plainSearch = remember(searchText) {
-		searchText.split(' ')
-			.filterNot { it.startsWith('#') }
-			.joinToString(" ")
-	}
 
 	val onSelectType: (EntryType?) -> Unit = { type ->
 		selectedType = type
 		component.updateFilter(searchText, type)
 	}
-	val onPlainSearchChange: (String) -> Unit = { text ->
-		val joined = if (activeTag != null) {
-			val plain = text.split(' ').filterNot { it.startsWith('#') }.joinToString(" ")
-			(plain + " #" + activeTag).trim()
-		} else {
-			text
-		}
-		component.updateFilter(joined, selectedType)
+	val onSearchTextChange: (String) -> Unit = { text ->
+		component.updateFilter(text, selectedType)
 	}
 	val onClearSearch: () -> Unit = {
-		val keepTag = if (activeTag != null) "#$activeTag" else ""
-		component.updateFilter(keepTag, selectedType)
-	}
-	val onClearTag: () -> Unit = {
-		component.updateFilter(plainSearch.trim(), selectedType)
+		component.updateFilter("", selectedType)
 	}
 
 	// `enterAlwaysScrollBehavior` collapses the strip on scroll-down and
@@ -165,8 +149,8 @@ fun BrowseEntriesUi(
 		) { searching ->
 			if (searching) {
 				HdSearchRow(
-					query = plainSearch,
-					onQueryChange = onPlainSearchChange,
+					query = searchText,
+					onQueryChange = onSearchTextChange,
 					placeholder = Res.string.encyclopedia_search_hint.get(),
 					clearContentDescription = Res.string.encyclopedia_search_clear_button.get(),
 					onCollapse = { showSearchBar = false },
@@ -210,22 +194,21 @@ fun BrowseEntriesUi(
 
 		HdFolioDivider()
 
-		// Filter strip + its trailing divider, both translated by the
-		// scroll behavior's height offset so they slide off together.
-		// The search field is included on wide only — narrow screens
-		// surface it through the title-row toggle instead.
+		// Filter strip + reflected tag chips, both translated by the scroll
+		// behavior's height offset so they slide off together. The search
+		// field is included on wide only — narrow screens surface it through
+		// the title-row toggle instead.
 		HdCollapsingStrip(scrollBehavior = scrollBehavior) {
 			FilterStrip(
-				searchText = plainSearch,
-				onSearchTextChange = onPlainSearchChange,
+				searchText = searchText,
+				onSearchTextChange = onSearchTextChange,
 				onClearSearch = onClearSearch,
 				searchClearLabel = Res.string.encyclopedia_search_clear_button.get(),
 				searchPlaceholder = Res.string.encyclopedia_search_hint.get(),
 				options = remember(state.entryDefs) { buildFilterOptions(state.entryDefs) },
 				selectedType = selectedType,
 				onSelectType = onSelectType,
-				activeTag = activeTag,
-				onClearTag = onClearTag,
+				activeTags = activeTags,
 				showSearchField = isWide,
 				wrap = isWide,
 				modifier = Modifier
@@ -266,7 +249,7 @@ fun BrowseEntriesUi(
 						scope = scope,
 						sharedTransitionScope = sharedTransitionScope,
 						animatedVisibilityScope = animatedVisibilityScope,
-						activeTag = activeTag,
+						activeTags = activeTags.toSet(),
 						tagsScrollHorizontally = !isWide,
 						filterByType = onSelectType,
 					)
@@ -288,8 +271,7 @@ private fun FilterStrip(
 	options: List<HdEntryFilterOption>,
 	selectedType: EntryType?,
 	onSelectType: (EntryType?) -> Unit,
-	activeTag: String?,
-	onClearTag: () -> Unit,
+	activeTags: List<String>,
 	showSearchField: Boolean,
 	wrap: Boolean,
 	modifier: Modifier = Modifier,
@@ -310,14 +292,11 @@ private fun FilterStrip(
 			selected = selectedType,
 			onSelect = onSelectType,
 		)
-		if (activeTag != null) {
-			HdTagChip(
-				label = activeTag,
-				active = true,
-				accent = null,
-				onClick = onClearTag,
-				onRemove = onClearTag,
-			)
+		// Reflected `#tag` chips — a read-only echo of the tags parsed out of
+		// the query, cleared by editing the query text (same as Global Search
+		// and the project list).
+		activeTags.forEach { tag ->
+			HdTagChip(label = tag, active = true)
 		}
 	}
 	if (wrap) {

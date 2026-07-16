@@ -12,6 +12,8 @@ import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryRefer
 import com.darkrockstudios.apps.hammer.common.data.references.CleanupReferencesOnEntryDeleteUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.mockk.every
 import io.mockk.mockk
@@ -62,10 +64,14 @@ class EncyclopediaComponentTest : ComponentTest() {
 		val referenceIndexService = mockk<ReferenceIndexService>(relaxed = true)
 		every { referenceIndexService.flowForEntry(any()) } returns emptyFlow()
 
+		val tagIndexService = mockk<TagIndexService>(relaxed = true)
+		every { tagIndexService.tagIndex } returns MutableStateFlow(TagIndex.EMPTY)
+
 		setupComponentKoin(module {
 			scope<ProjectDefScope> {
 				scoped { encyclopediaService }
 				scoped { referenceIndexService }
+				scoped { tagIndexService }
 				scoped { mockk<SceneEditorService>(relaxed = true) }
 				scoped { mockk<BackfillEntryReferencesUseCase>(relaxed = true) }
 				scoped { mockk<CleanupReferencesOnEntryDeleteUseCase>(relaxed = true) }

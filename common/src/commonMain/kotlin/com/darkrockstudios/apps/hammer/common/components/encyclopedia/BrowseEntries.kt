@@ -4,11 +4,13 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
 
 interface BrowseEntries {
 
 	val state: Value<State>
 	val filterText: Value<String>
+	val tagIndex: Value<TagIndex>
 
 	data class State(
 		val entryDefs: List<EntryDef> = emptyList(),
