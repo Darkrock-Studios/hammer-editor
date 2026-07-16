@@ -137,7 +137,9 @@ fun mainModule(
 	singleOf(::MetricsCollector)
 	singleOf(::UserActivityCollector)
 	singleOf(::UserActivityRepository)
-	singleOf(::StoryReaderCollector)
+	// Explicit ctor: maxPendingKeys has a default, but a constructor reference would
+	// make Koin try to inject the Int rather than honor it.
+	single { StoryReaderCollector(clock = get()) }
 	singleOf(::StoryReaderRepository)
 	single { MonitoringState() }
 	single { RecurringTaskRegistry() }

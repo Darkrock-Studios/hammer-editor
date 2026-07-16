@@ -43,7 +43,16 @@ jobs:
       # only run as a side-effect of koverXmlReport, which is fragile - a kover config change would
       # silently stop running them.
       - name: Run Server Unit Tests
+        id: server-tests
         run: ./gradlew :server:test
+      - name: Upload server test report on failure
+        if: failure() && steps.server-tests.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: server-tests-report
+          path: |
+            server/build/reports/tests/test/
+            server/build/test-results/test/
       - name: Run JavaScript Unit Tests
         run: ./gradlew :server:jsTest
       - name: Run Server Migration Tests
