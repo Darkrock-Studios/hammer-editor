@@ -15,11 +15,12 @@ final class SceneEditorWorkflowUITests: HammerUITest {
     func testEditSceneTextThenSave() {
         createAndOpenProject(baseName: "iOS-Scene")
 
-        tap(Tag.navEditor)
+        tap(Tag.navEditor, expecting: Tag.sceneListAdd)
 
-        // Create a scene and open it.
-        tap(Tag.sceneListAdd)
-        tap(Tag.sceneListAddScene)
+        // Create a scene and open it. Each coordinate tap onto Compose can be dropped, so drive each
+        // step by the element its tap surfaces (the add menu, then the create-item dialog).
+        tap(Tag.sceneListAdd, expecting: Tag.sceneListAddScene)
+        tap(Tag.sceneListAddScene, expecting: Tag.createItemNameField)
 
         // The scene-name dialog auto-focuses, so typing + IME submit works.
         type("Opening", into: Tag.createItemNameField)
@@ -34,8 +35,9 @@ final class SceneEditorWorkflowUITests: HammerUITest {
             self.element(Tag.sceneEditorSave).exists
         }
 
-        // Saving clears the dirty buffer, so the save action disappears.
-        tap(Tag.sceneEditorSave)
-        waitUntilGone(Tag.sceneEditorSave)
+        // Saving clears the dirty buffer, so the save action disappears. Re-tap until it does: the
+        // coordinate tap can be dropped, or a late IME keystroke can re-dirty the buffer just after
+        // the save and bring the button back.
+        tapUntilGone(Tag.sceneEditorSave)
     }
 }

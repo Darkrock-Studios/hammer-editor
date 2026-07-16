@@ -99,15 +99,6 @@ class HammerUITest: XCTestCase {
         return el
     }
 
-    /// Assert an element disappears (e.g. the save affordance vanishing after a successful save).
-    func waitUntilGone(_ tag: String, timeout: TimeInterval = HammerUITest.defaultTimeout,
-                       file: StaticString = #file, line: UInt = #line) {
-        let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"),
-                                             object: element(tag))
-        XCTAssertEqual(XCTWaiter().wait(for: [gone], timeout: timeout), .completed,
-                       "Element still present after \(timeout)s: \(tag)", file: file, line: line)
-    }
-
     // MARK: - Interaction
 
     /// Tap a Compose element by its center point. Compose renders to a single surface, so most
@@ -120,6 +111,26 @@ class HammerUITest: XCTestCase {
         app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: frame.midX, dy: frame.midY))
             .tap()
+    }
+
+    /// Tap a Compose element by its center and re-tap on a short sub-timeout until `reaction`
+    /// becomes true. `tapCenter` synthesizes a best-effort *coordinate* tap onto Compose's single
+    /// surface, and an individual tap can be silently dropped (mid-relayout, under simulator load,
+    /// or while the software-keyboard geometry is shifting). A lone tap followed by one long wait is
+    /// the classic XCUITest flake — a single dropped tap costs the entire timeout and fails the
+    /// test — so re-tapping until the app demonstrably reacts converges instead. `reaction` is
+    /// checked first, so an already-satisfied state never taps and a tap that *did* land isn't
+    /// double-fired into a toggle.
+    func tapUntil(_ element: XCUIElement, until reaction: () -> Bool,
+                  timeout: TimeInterval = HammerUITest.defaultTimeout,
+                  file: StaticString = #file, line: UInt = #line) {
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            if reaction() { return }
+            tapCenter(element)
+            if poll(reaction, timeout: 3) { return }
+        } while Date() < deadline
+        XCTFail("App never reacted after re-tapping for \(timeout)s", file: file, line: line)
     }
 
     /// Tap near a field's top-leading edge to focus it. For multiline Compose editors (scene text,
@@ -135,6 +146,27 @@ class HammerUITest: XCTestCase {
     func tap(_ tag: String, timeout: TimeInterval = HammerUITest.defaultTimeout,
              file: StaticString = #file, line: UInt = #line) {
         tapCenter(waitFor(tag, timeout: timeout, file: file, line: line))
+    }
+
+    /// Tap the element tagged `tag`, re-tapping until the element tagged `expect` appears — i.e.
+    /// until the tap has demonstrably registered (a menu opened, a screen navigated). Robust
+    /// against dropped/stale Compose taps; see `tapUntil(_:until:)`. Use when a tap's effect is a
+    /// *new* element surfacing.
+    func tap(_ tag: String, expecting expect: String, timeout: TimeInterval = HammerUITest.defaultTimeout,
+             file: StaticString = #file, line: UInt = #line) {
+        let el = waitFor(tag, timeout: timeout, file: file, line: line)
+        tapUntil(el, until: { self.element(expect).exists }, timeout: timeout, file: file, line: line)
+    }
+
+    /// Tap the element tagged `tag`, re-tapping until it disappears — e.g. the scene-editor save
+    /// affordance, which is rendered only while the buffer is dirty and so vanishes once the save
+    /// lands. A lone tap here is doubly flaky: the tap can be dropped, or a late IME keystroke can
+    /// re-dirty the buffer right after a save and bring the button back. Re-tapping converges on
+    /// both; see `tapUntil(_:until:)`.
+    func tapUntilGone(_ tag: String, timeout: TimeInterval = HammerUITest.defaultTimeout,
+                      file: StaticString = #file, line: UInt = #line) {
+        let el = waitFor(tag, timeout: timeout, file: file, line: line)
+        tapUntil(el, until: { !el.exists }, timeout: timeout, file: file, line: line)
     }
 
     /// Tap a tagged field and type into it. Compose text fields don't report per-element keyboard
@@ -208,22 +240,22 @@ class HammerUITest: XCTestCase {
         // FormField submits on the IME action; the keyboard return key triggers it.
         app.typeText("\n")
 
-        // The new project shows as a card on the list; tap the one we just made.
+        // The new project shows as a card on the list; tap the one we just made. openProjectCard
+        // re-taps until the project root's nav rail renders, so on return we're in the open project.
         openProjectCard(named: name, file: file, line: line)
-
-        // The project root renders its navigation rail once open.
-        waitFor(Tag.navHome, file: file, line: line)
         return name
     }
 
-    /// Tap the project card matching `name`, falling back to the first card if the label isn't
-    /// exposed (Compose may merge the card's text into the card node's label).
+    /// Tap the project card matching `name` to open it, falling back to the first card if the label
+    /// isn't exposed (Compose may merge the card's text into the card node's label). The card tap is
+    /// re-tried until the project root's nav rail renders — a single Compose coordinate tap can be
+    /// dropped, which would otherwise fail the whole test on one miss (see `tapUntil`).
     private func openProjectCard(named name: String, file: StaticString, line: UInt) {
         let cards = app.descendants(matching: .any).matching(identifier: Tag.projectCard)
         let named = cards.matching(NSPredicate(format: "label CONTAINS[c] %@", name)).firstMatch
         let card = named.waitForExistence(timeout: 5) ? named : cards.firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: HammerUITest.defaultTimeout),
                       "No project card appeared for \(name)", file: file, line: line)
-        tapCenter(card)
+        tapUntil(card, until: { self.element(Tag.navHome).exists }, file: file, line: line)
     }
 }
