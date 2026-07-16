@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common
 
+import com.darkrockstudios.apps.hammer.base.di.bootstrapKoin
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
@@ -7,7 +8,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import okio.FileSystem
-import org.koin.core.context.startKoin
 import org.koin.core.module.Module
 import platform.Foundation.*
 import kotlin.coroutines.CoroutineContext
@@ -59,7 +59,7 @@ actual fun getLogDirectory(): String? = "${getApplicationSupportDirectory()}/log
 
 fun initializeKoin(extraModules: List<Module>) {
 	val appScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-	startKoin {
+	bootstrapKoin {
 		logger(NapierLogger())
 		modules(listOf(mainModule, appModule(appScope)) + extraModules)
 	}

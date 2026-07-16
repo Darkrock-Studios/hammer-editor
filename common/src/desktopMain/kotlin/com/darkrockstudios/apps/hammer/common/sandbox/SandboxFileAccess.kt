@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.sandbox
 
+import org.koin.core.annotation.Provided
+
 /**
  * Abstraction over macOS security-scoped bookmark APIs used to persist
  * access to a user-picked directory across app launches in the sandboxed
@@ -9,7 +11,11 @@ package com.darkrockstudios.apps.hammer.common.sandbox
  *
  * On Linux/Windows/non-App-Store desktop builds, [NoopSandboxFileAccess]
  * is bound — [isSandboxed] is false and all calls return null / do nothing.
+ *
+ * [Provided]: the Koin definition lives in the desktop app module, so it is
+ * external to this module's compile-time dependency graph.
  */
+@Provided
 interface SandboxFileAccess {
 	/** True only on Mac App Store builds with the bookmark dylib successfully loaded. */
 	val isSandboxed: Boolean

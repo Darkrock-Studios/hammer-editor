@@ -9,19 +9,20 @@ import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupManagerSe
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
 import com.darkrockstudios.apps.hammer.common.util.*
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
-import org.koin.core.module.dsl.singleOf
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import org.koin.plugin.module.dsl.single
+import org.koin.plugin.module.dsl.factory
 
 actual val platformModule = module {
-	singleOf(::NetworkConnectivity)
-	singleOf(::StrResImpl) bind StrRes::class
-	singleOf(::DeviceLocaleResolver)
-	singleOf(::UrlLauncherDesktop) bind UrlLauncher::class
-	singleOf(::LanguageUtil)
+	single<NetworkConnectivity>()
+	single<StrResImpl>() bind StrRes::class
+	single<DeviceLocaleResolver>()
+	single<UrlLauncherDesktop>() bind UrlLauncher::class
+	single<LanguageUtil>()
 	factory { params -> DesktopPlatformSettingsComponent(componentContext = params.get()) } bind PlatformSettings::class
-	singleOf(::PlatformSpellCheckerFactory)
-	factory { FocusModeService() } bind FocusModeService::class
-	singleOf(::BackupManagerService)
+	single<PlatformSpellCheckerFactory>()
+	factory<FocusModeService>()
+	single<BackupManagerService>()
 	single<GlobalSettingsDatasource> { get<GlobalSettingsFilesystemDatasource>() }
 }

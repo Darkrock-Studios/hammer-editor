@@ -9,18 +9,18 @@ import com.darkrockstudios.apps.hammer.common.data.projectbackup.BackupManagerSe
 import com.darkrockstudios.apps.hammer.common.spellcheck.LanguageUtil
 import com.darkrockstudios.apps.hammer.common.util.*
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
-import org.koin.core.module.dsl.factoryOf
-import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import org.koin.plugin.module.dsl.single
+import org.koin.plugin.module.dsl.factory
 
 actual val platformModule = module {
-	singleOf(::NetworkConnectivity)
-	singleOf(::StrResImpl) bind StrRes::class
-	singleOf(::DeviceLocaleResolver)
-	singleOf(::UrlLauncherAndroid) bind UrlLauncher::class
-	singleOf(::LanguageUtil)
+	single<NetworkConnectivity>()
+	single<StrResImpl>() bind StrRes::class
+	single<DeviceLocaleResolver>()
+	single<UrlLauncherAndroid>() bind UrlLauncher::class
+	single<LanguageUtil>()
 	factory { params ->
 		AndroidPlatformSettingsComponent(
 			componentContext = params.get(),
@@ -30,9 +30,9 @@ actual val platformModule = module {
 			fileSystem = get(named(RAW_FILESYSTEM)),
 		)
 	} bind PlatformSettings::class
-	singleOf(::PlatformSpellCheckerFactory)
-	factoryOf(::FocusModeService)
-	singleOf(::AndroidShareService)
-	singleOf(::BackupManagerService)
+	single<PlatformSpellCheckerFactory>()
+	factory<FocusModeService>()
+	single<AndroidShareService>()
+	single<BackupManagerService>()
 	single<GlobalSettingsDatasource> { get<GlobalSettingsFilesystemDatasource>() }
 }
