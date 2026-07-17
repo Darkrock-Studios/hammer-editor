@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.account.configureTokenMaintenanceJob
+import com.darkrockstudios.apps.hammer.admin.configureWhitelistExpiryJob
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.database.Database
@@ -324,6 +325,7 @@ fun Application.appMain(
 	configurePatreonPolling(config)
 	configureMonitoringJob()
 	configureTokenMaintenanceJob()
+	configureWhitelistExpiryJob()
 }
 
 fun cliKeyringCodec(): KeyringCodec =

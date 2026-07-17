@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.database.WhiteListDao
 import io.ktor.util.*
 import org.koin.core.component.KoinComponent
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 class WhiteListRepository(
 	private val whiteListDao: WhiteListDao,
@@ -48,14 +49,29 @@ class WhiteListRepository(
 		return whiteListDao.getWhiteListCount()
 	}
 
+	/** False for an entry whose expiry has passed, even if the reaping job hasn't run yet. */
 	suspend fun isOnWhiteList(email: String): Boolean {
 		val cleanedEmail = cleanEmail(email)
-		return whiteListDao.isWhiteListed(cleanedEmail)
+		return whiteListDao.isWhiteListed(cleanedEmail, clock.now())
 	}
 
-	suspend fun addToWhiteList(email: String, reason: String = "Added by admin") {
+	/** A null [expires] never expires. */
+	suspend fun addToWhiteList(email: String, reason: String = "Added by admin", expires: Instant? = null) {
 		val cleanedEmail = cleanEmail(email)
-		whiteListDao.addToWhiteList(cleanedEmail, clock.now(), reason)
+		whiteListDao.addToWhiteList(cleanedEmail, clock.now(), reason, expires)
+	}
+
+	suspend fun updateExpiry(email: String, expires: Instant?) {
+		val cleanedEmail = cleanEmail(email)
+		whiteListDao.updateExpiry(cleanedEmail, expires)
+	}
+
+	suspend fun getExpiredEntries(): List<WhiteList> {
+		return whiteListDao.getExpired(clock.now())
+	}
+
+	suspend fun removeExpired() {
+		whiteListDao.deleteExpired(clock.now())
 	}
 
 	suspend fun removeFromWhiteList(email: String) {
@@ -88,6 +104,11 @@ class WhiteListRepository(
 	fun validateReason(reason: String): Boolean {
 		val trimmed = reason.trim()
 		return trimmed.length <= MAX_REASON_LENGTH && trimmed.isNotBlank()
+	}
+
+	/** A null [expires] means never expires and is always valid. */
+	fun validateExpiry(expires: Instant?): Boolean {
+		return expires == null || expires > clock.now()
 	}
 
 	companion object {

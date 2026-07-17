@@ -58,6 +58,7 @@ fun buildServerDatabase(driver: SqlDriver): ServerDatabase {
 		),
 		white_listAdapter = White_list.Adapter(
 			date_addedAdapter = instant,
+			expiresAdapter = instant,
 		),
 		api_metric_bucketAdapter = Api_metric_bucket.Adapter(
 			bucket_startAdapter = instant,

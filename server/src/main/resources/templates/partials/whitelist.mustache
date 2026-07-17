@@ -46,6 +46,13 @@
 					<span class="whitelist-entry__date">Added: {{dateAdded}}</span>
 					<span class="whitelist-entry__separator">•</span>
 					<span class="whitelist-entry__reason">{{reason}}</span>
+					{{#hasExpiry}}
+						<span class="whitelist-entry__separator">•</span>
+						<span class="whitelist-entry__expiry whitelist-entry__expiry--set">
+							<i class="fa-solid fa-hourglass-half"></i>
+							{{msg.admin_whitelist_expires_prefix}} {{expires}}
+						</span>
+					{{/hasExpiry}}
 				</div>
 			</div>
 			<div class="whitelist-entry__actions">
@@ -58,6 +65,17 @@
 					<i class="fa-solid fa-pen"></i>
 					{{msg.admin_whitelist_edit_button}}
 				</button>
+				{{^isPatreon}}
+					<button type="button" class="btn btn--ghost edit-expiry-btn"
+							data-email="{{email}}"
+							data-expires-raw="{{expiresRaw}}"
+							data-page="{{currentPage}}"
+							data-sort-oldest-first="{{sortOldestFirst}}"
+							onclick="openEditExpiryDialog(this)">
+						<i class="fa-solid fa-hourglass-half"></i>
+						{{msg.admin_whitelist_expiry_label}}
+					</button>
+				{{/isPatreon}}
 				<form action="/admin/whitelist/remove" method="post"
 					  hx-post="/admin/whitelist/remove"
 					  hx-target="#whitelist"

@@ -3,25 +3,37 @@ import kotlinx.datetime.Instant;
 -- date_added was Unix-seconds INTEGER in SQLite; promoted to TIMESTAMPTZ here.
 -- email is declared TEXT for SqlDelight's parser; PostgresSchemaPostInit
 -- promotes it to CITEXT for case-insensitive lookups.
+-- A NULL `expires` never expires.
 CREATE TABLE white_list(
     email TEXT NOT NULL PRIMARY KEY,
     date_added TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
-    reason TEXT DEFAULT ''
+    reason TEXT DEFAULT '',
+    expires TIMESTAMPTZ AS Instant
 );
+
+CREATE INDEX white_list_expires_idx ON white_list (expires);
 
 -- Bound parameters for the CITEXT `email` column are cast explicitly so the
 -- comparison goes through the citext-equality operator (case-insensitive)
 -- rather than being narrowed to text-equality. See Account.sq:findAccount.
+-- Expiry is enforced here, not by WhitelistExpiryJob's reaping, so an entry stops
+-- authorizing the instant it expires no matter when the job last ran. `now` is bound
+-- from the injected Clock so expiry tracks the server's clock, not the database's.
 isWhiteListed:
 SELECT EXISTS
 (SELECT 1
  FROM white_list
- WHERE email = CAST(? AS CITEXT));
+ WHERE email = CAST(? AS CITEXT)
+   AND (expires IS NULL OR expires > ?));
 
+-- Re-adding an existing email renews it, so an admin can extend or clear an expiry
+-- by adding the address again.
 addToWhiteList:
-INSERT INTO white_list(email, date_added, reason)
-VALUES (CAST(? AS CITEXT), ?, ?)
-ON CONFLICT (email) DO NOTHING;
+INSERT INTO white_list(email, date_added, reason, expires)
+VALUES (CAST(? AS CITEXT), ?, ?, ?)
+ON CONFLICT (email) DO UPDATE
+SET reason = EXCLUDED.reason,
+    expires = EXCLUDED.expires;
 
 removeFromWhiteList:
 DELETE FROM white_list
@@ -71,3 +83,19 @@ updateReason:
 UPDATE white_list
 SET reason = ?
 WHERE email = CAST(? AS CITEXT);
+
+updateExpiry:
+UPDATE white_list
+SET expires = ?
+WHERE email = CAST(? AS CITEXT);
+
+-- A NULL `expires` never matches `<= ?`, so never-expiring entries are excluded
+-- without an IS NOT NULL guard — which would narrow the projection's nullability and
+-- stop it generating as the shared White_list type.
+selectExpired:
+SELECT * FROM white_list
+WHERE expires <= ?;
+
+deleteExpired:
+DELETE FROM white_list
+WHERE expires <= ?;

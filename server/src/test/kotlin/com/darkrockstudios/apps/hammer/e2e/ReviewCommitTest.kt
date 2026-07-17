@@ -51,7 +51,8 @@ class ReviewCommitTest : EndToEndTest() {
 		database().serverDatabase.whiteListQueries.addToWhiteList(
 			email,
 			Clock.System.now(),
-			"Test author"
+			"Test author",
+			null,
 		)
 		E2eTestData.createProject(TestProject("Insurgency", Uuid.random(), userId), database())
 		val db = database().serverDatabase
