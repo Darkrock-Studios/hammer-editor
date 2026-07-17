@@ -327,18 +327,20 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 		model["isLoggedIn"] = false
 	}
 
+	val serverConfig = get<ServerConfig>()
+
 	val configRepository = get<ConfigRepository>()
 	val aboutContent = configRepository.get(AdminServerConfig.ABOUT_SERVER)
 	val hasAboutPage = aboutContent.isNotBlank()
-	val hasTermsPage = get<TermsOfServiceRepository>().challenge() != null
-	val hasPrivacyPage = get<PrivacyPolicyRepository>().text() != null
+	// Footer visibility keys off config, never a file read, so page renders stay off the filesystem.
+	val hasTermsPage = serverConfig.termsOfService != null
+	val hasPrivacyPage = serverConfig.privacyPolicy != null
 	model["hasAboutPage"] = hasAboutPage
 	model["hasTermsPage"] = hasTermsPage
 	model["hasPrivacyPage"] = hasPrivacyPage
 	model["hasFooterNav"] = hasAboutPage || hasTermsPage || hasPrivacyPage
 
 	// Add Patreon link for footer if configured
-	val serverConfig = get<ServerConfig>()
 	if (serverConfig.patreonEnabled == true) {
 		val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
 		if (patreonConfig.enabled && patreonConfig.patreonUrl.isNotBlank()) {
