@@ -433,6 +433,16 @@ a:focus-visible {
 	font-size: 0.9375rem;
 }
 
+/* Plaintext legal content (e.g. Terms of Service) */
+.legal-text {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 1.0625rem;
+	line-height: 1.8;
+	color: var(--text-primary);
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
 .language-selector {
 	display: flex;
 	align-items: center;

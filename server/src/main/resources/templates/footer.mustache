@@ -1,13 +1,21 @@
 <footer class="site-footer">
 	<div class="footer-content">
-		{{#hasAboutPage}}
+		{{#hasFooterNav}}
 			<nav class="footer-nav">
-				<a href="/about">
-					<i class="fa-solid fa-info-circle"></i>
-					<span>{{msg.footer_about}}</span>
-				</a>
+				{{#hasAboutPage}}
+					<a href="/about">
+						<i class="fa-solid fa-info-circle"></i>
+						<span>{{msg.footer_about}}</span>
+					</a>
+				{{/hasAboutPage}}
+				{{#hasTermsPage}}
+					<a href="/terms">
+						<i class="fa-solid fa-file-contract"></i>
+						<span>{{msg.footer_terms}}</span>
+					</a>
+				{{/hasTermsPage}}
 			</nav>
-		{{/hasAboutPage}}
+		{{/hasFooterNav}}
 		<div class="footer-social">
 			<a href="https://github.com/Darkrock-Studios/hammer-editor" target="_blank" rel="noopener noreferrer" aria-label="{{msg.home_footer_github}}">
 				<i class="fa-brands fa-github"></i>
