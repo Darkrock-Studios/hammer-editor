@@ -125,7 +125,6 @@ class AccountSettingsComponent(
 					_state.getAndUpdate {
 						it.copy(
 							currentUserId = settings?.userId,
-							currentSsl = settings?.ssl,
 							currentUrl = settings?.url,
 							currentEmail = settings?.email,
 							serverIsLoggedIn = settings?.bearerToken?.isNotBlank() == true,
@@ -169,7 +168,6 @@ class AccountSettingsComponent(
 				serverSetup = true,
 				serverUrl = it.currentUrl,
 				serverEmail = it.currentEmail,
-				serverSsl = it.currentSsl ?: true,
 				serverPassword = null,
 			)
 		}
@@ -196,7 +194,6 @@ class AccountSettingsComponent(
 	private fun cleanUpServerSetup() {
 		_state.getAndUpdate {
 			it.copy(
-				serverSsl = true,
 				serverUrl = null,
 				serverEmail = null,
 				serverPassword = null,
@@ -260,7 +257,6 @@ class AccountSettingsComponent(
 		_state.getAndUpdate {
 			it.copy(
 				serverSetup = true,
-				serverSsl = state.value.currentSsl ?: true,
 				serverUrl = state.value.currentUrl,
 				serverEmail = state.value.currentEmail,
 			)
@@ -269,10 +265,6 @@ class AccountSettingsComponent(
 
 	override fun updateServerUrl(url: String) {
 		_state.getAndUpdate { it.copy(serverUrl = url) }
-	}
-
-	override fun updateServerSsl(ssl: Boolean) {
-		_state.getAndUpdate { it.copy(serverSsl = ssl) }
 	}
 
 	override fun updateServerEmail(email: String) {
@@ -292,7 +284,6 @@ class AccountSettingsComponent(
 	}
 
 	override fun setupServer(
-		ssl: Boolean,
 		url: String,
 		email: String,
 		password: String,
@@ -339,7 +330,7 @@ class AccountSettingsComponent(
 				removeLocalContent()
 			}
 
-			val pending = PendingServerSetup(ssl, cleanUrl, email.trim(), password, create)
+			val pending = PendingServerSetup(cleanUrl, email.trim(), password, create)
 			pendingServerSetup = pending
 			performServerSetup(pending, acceptedTosVersion = null)
 		}
@@ -380,7 +371,6 @@ class AccountSettingsComponent(
 
 	private suspend fun performServerSetup(pending: PendingServerSetup, acceptedTosVersion: String?) {
 		val result = accountUseCase.setupServer(
-			ssl = pending.ssl,
 			url = pending.url,
 			email = pending.email,
 			password = pending.password,
@@ -485,7 +475,6 @@ class AccountSettingsComponent(
 }
 
 private data class PendingServerSetup(
-	val ssl: Boolean,
 	val url: String,
 	val email: String,
 	val password: String,

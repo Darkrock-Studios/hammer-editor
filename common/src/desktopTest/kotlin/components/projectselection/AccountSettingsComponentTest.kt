@@ -129,14 +129,12 @@ class AccountSettingsComponentTest : BaseTest() {
 				any(),
 				any(),
 				any(),
-				any(),
 				any()
 			)
 		} returns ServerSetupResult.Success
 
 		val component = newComponent()
 		component.setupServer(
-			ssl = true,
 			url = "example.com",
 			email = "writer@example.com",
 			password = "Password1!",
@@ -159,14 +157,12 @@ class AccountSettingsComponentTest : BaseTest() {
 				any(),
 				any(),
 				any(),
-				any(),
 				any()
 			)
 		} returns ServerSetupResult.Success
 
 		val component = newComponent()
 		component.setupServer(
-			ssl = true,
 			url = "example.com",
 			email = "writer@example.com",
 			password = "Password1!",
@@ -182,15 +178,14 @@ class AccountSettingsComponentTest : BaseTest() {
 	fun `Terms of service challenge is surfaced and acceptance retries the request`() = runTest {
 		every { projectsRepository.getProjects() } returns emptyList()
 		coEvery {
-			accountUseCase.setupServer(any(), any(), any(), any(), any(), null)
+			accountUseCase.setupServer(any(), any(), any(), any(), null)
 		} returns ServerSetupResult.TermsRequired(TermsOfServiceChallenge(text = "Legal text", version = "v1"))
 		coEvery {
-			accountUseCase.setupServer(any(), any(), any(), any(), any(), "v1")
+			accountUseCase.setupServer(any(), any(), any(), any(), "v1")
 		} returns ServerSetupResult.Success
 
 		val component = newComponent()
 		component.setupServer(
-			ssl = true,
 			url = "example.com",
 			email = "writer@example.com",
 			password = "Password1!",
@@ -208,18 +203,17 @@ class AccountSettingsComponentTest : BaseTest() {
 
 		assertNull(component.state.value.tosChallenge)
 		assertFalse(component.state.value.serverSetup)
-		coVerify { accountUseCase.setupServer(any(), any(), any(), any(), any(), "v1") }
+		coVerify { accountUseCase.setupServer(any(), any(), any(), any(), "v1") }
 	}
 
 	@Test
 	fun `Declining terms of service clears the challenge without creating an account`() = runTest {
 		coEvery {
-			accountUseCase.setupServer(any(), any(), any(), any(), any(), null)
+			accountUseCase.setupServer(any(), any(), any(), any(), null)
 		} returns ServerSetupResult.TermsRequired(TermsOfServiceChallenge(text = "Legal text", version = "v1"))
 
 		val component = newComponent()
 		component.setupServer(
-			ssl = true,
 			url = "example.com",
 			email = "writer@example.com",
 			password = "Password1!",
@@ -236,6 +230,6 @@ class AccountSettingsComponentTest : BaseTest() {
 		// Declining discards the provisional server settings setupServer persisted for the retry.
 		verify { globalSettingsStore.deleteServerSettings() }
 		// Only the initial challenge attempt ran; declining never resubmits.
-		coVerify(exactly = 1) { accountUseCase.setupServer(any(), any(), any(), any(), any(), any()) }
+		coVerify(exactly = 1) { accountUseCase.setupServer(any(), any(), any(), any(), any()) }
 	}
 }
