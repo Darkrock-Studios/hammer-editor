@@ -69,6 +69,22 @@ jobs:
             integrationTests/build/reports/tests/jvmTest/
             integrationTests/build/test-results/jvmTest/
 
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Semgrep
+        run: pip install semgrep
+      # TODO(gating): report-only for now. This surfaces the existing baseline without failing
+      # the build; once the baseline is triaged (fixed or `// nosemgrep`-suppressed) add `--error`
+      # so an unsuppressed finding blocks the PR. Honors existing `// nosemgrep` comments.
+      - name: Run Semgrep
+        run: semgrep scan --config p/kotlin --config p/secrets --metrics off
+
   android-instrumented-tests:
     runs-on: ubuntu-latest
     steps:
