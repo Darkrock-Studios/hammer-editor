@@ -139,8 +139,9 @@ class SqliteToPostgresMigrator(
 		bind: PreparedStatement.(T) -> Unit,
 	): Int {
 		if (rows.isEmpty()) return 0
-		// nosemgrep: kotlin_inject_rule-SqlInjection -- sql is always a compile-time
-		// INSERT string from the copy* methods in this file; no user input reaches it.
+		// sql is always a compile-time INSERT string from the copy* methods in this file;
+		// no user input reaches it.
+		// nosemgrep: kotlin_inject_rule-SqlInjection,hammer-raw-sql-to-prepared-statement
 		conn.prepareStatement(sql).use { ps ->
 			var batched = 0
 			for (r in rows) {
