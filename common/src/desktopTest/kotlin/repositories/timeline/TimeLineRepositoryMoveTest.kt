@@ -4,15 +4,18 @@ import app.cash.turbine.test
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.essenty.lifecycle.Lifecycle
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
+import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
+import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import getProject1Def
 import io.mockk.Runs
 import io.mockk.every
@@ -140,6 +143,11 @@ class TimeLineRepositoryMoveTest : BaseTest() {
 		assertEquals(3, newEvents.indexOfFirst { it.id == first.id }, "Moved item was not at the correct position")
 
 		verifyEventSequence(newEvents, 1, 2, 3, 0, 4, 5, 6, 7, 8, 9)
+
+		// The moved order must also be persisted, not just emitted.
+		val file = TimeLineDatasource.getTimelineFilePath(getProject1Def()).toOkioPath()
+		val onDisk: TimeLineContainer = ffs.readToml(file, toml)
+		verifyEventSequence(onDisk.events, 1, 2, 3, 0, 4, 5, 6, 7, 8, 9)
 	}
 
 	@Test

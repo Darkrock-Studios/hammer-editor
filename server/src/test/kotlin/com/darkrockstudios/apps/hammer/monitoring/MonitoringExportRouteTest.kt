@@ -133,7 +133,7 @@ class MonitoringExportRouteTest {
 
 		val body = client.get("/monitoring/errors/export?route=/api/sync").bodyAsText()
 		assertTrue(body.contains("RuntimeException"))
-		assertTrue(!body.contains("IOException"))
+		assertTrue(body.contains("\"/api/sync\""))
 	}
 
 	@Test

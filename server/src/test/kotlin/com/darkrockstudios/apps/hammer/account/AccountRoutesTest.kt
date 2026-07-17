@@ -194,6 +194,81 @@ class AccountRoutesTest : BaseTest() {
 		}
 	}
 
+	@Test
+	fun `Account - Create - Terms of service challenge`() = testApplication {
+		val challenge = TermsOfServiceChallenge(text = "Be excellent to each other", version = "v1")
+		coEvery {
+			accountsComponent.createAccount(any(), any(), any(), acceptedTosVersion = null)
+		} returns CreateAccountResult.TermsRequired(challenge)
+
+		application {
+			setupKtorTestKoin(this@AccountRoutesTest, testModule)
+
+			configureSerialization()
+			configureLocalization()
+			configureSecurity()
+			configureRouting()
+		}
+
+		createClient {
+			install(ContentNegotiation) {
+				json(json)
+			}
+		}
+
+		makeCreateCall(acceptedTosVersion = null).apply {
+			assertEquals(HTTP_STATUS_TERMS_OF_SERVICE, status.value)
+			val body = json.decodeFromString<TermsOfServiceChallenge>(bodyAsText())
+			assertEquals(challenge, body)
+		}
+	}
+
+	@Test
+	fun `Account - Create - Accepted terms succeeds`() = testApplication {
+		val expectedToken = Token(userId = 0L, auth = "access", refresh = "refresh")
+		coEvery {
+			accountsComponent.createAccount(any(), any(), any(), acceptedTosVersion = "v1")
+		} returns CreateAccountResult.Success(expectedToken)
+
+		application {
+			setupKtorTestKoin(this@AccountRoutesTest, testModule)
+
+			configureSerialization()
+			configureLocalization()
+			configureSecurity()
+			configureRouting()
+		}
+
+		createClient {
+			install(ContentNegotiation) {
+				json(json)
+			}
+		}
+
+		makeCreateCall(acceptedTosVersion = "v1").apply {
+			assertEquals(HttpStatusCode.Created, status)
+			val body = json.decodeFromString<Token>(bodyAsText())
+			assertEquals(expectedToken.auth, body.auth)
+		}
+	}
+
+	private suspend fun ApplicationTestBuilder.makeCreateCall(acceptedTosVersion: String?): HttpResponse =
+		client.post("/api/account/create") {
+			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION)
+			header(HEADER_CLIENT_VERSION, BuildMetadata.APP_VERSION)
+			header(HttpHeaders.Accept, ContentType.Application.Json.toString())
+			setBody(
+				FormDataContent(
+					Parameters.build {
+						append("email", "test@test.com")
+						append("password", "qweasdZXC123")
+						append("installId", INSTALL_ID)
+						acceptedTosVersion?.let { append("acceptedTosVersion", it) }
+					}
+				)
+			)
+		}
+
 	private suspend fun ApplicationTestBuilder.makeRefreshCall(userId: Long, mockRefreshToken: String): HttpResponse =
 		client.post("/api/account/refresh_token/$userId") {
 			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION)

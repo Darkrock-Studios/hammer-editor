@@ -163,7 +163,7 @@ fun Project.registerBuildDistAppImageTask() {
 					appimagetool.absolutePath,
 					"--appimage-extract-and-run",
 					"--runtime-file", runtimeFile.absolutePath,
-					"-u", "gh-releases-zsync|Wavesonics|hammer-editor|latest|hammer*.AppImage.zsync",
+					"-u", "gh-releases-zsync|Darkrock-Studios|hammer-editor|latest|hammer*.AppImage.zsync",
 					appDir.absolutePath,
 					outputDir.resolve("hammer.AppImage").absolutePath
 				)

@@ -35,6 +35,9 @@ object MigrationParityChecker {
 	}
 
 	private fun countPostgres(conn: Connection, table: String): Int =
+		// table is always a hardcoded name from the migrator's copy map, never user input;
+		// a table identifier cannot be bound as a `?` parameter.
+		// nosemgrep: hammer-raw-sql-to-prepared-statement
 		conn.prepareStatement("SELECT COUNT(*) FROM $table").executeQuery().use {
 			it.next(); it.getInt(1)
 		}

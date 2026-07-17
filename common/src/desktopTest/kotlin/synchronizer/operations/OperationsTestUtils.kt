@@ -47,12 +47,15 @@ val beganResponse = ProjectSynchronizationBegan(
 	deletedIds = setOf(7),
 )
 
-val collatedIds = CollatedIds(
-	combinedDeletions = setOf(7, 8, 9),
-	serverDeletedIds = setOf(11),
-	newlyDeletedIds = setOf(9),
-	dirtyEntities = produceEntityStateList(1, 3, 9, 11).toMutableList(),
-)
+// Getter: dirtyEntities is mutated by the operations under test (EntityDeleteOperation removes
+// entries, FinalizeSyncOperation clears it), so a shared instance would leak between tests.
+val collatedIds
+	get() = CollatedIds(
+		combinedDeletions = setOf(7, 8, 9),
+		serverDeletedIds = setOf(11),
+		newlyDeletedIds = setOf(9),
+		dirtyEntities = produceEntityStateList(1, 3, 9, 11).toMutableList(),
+	)
 
 fun produceEntityHash(id: Int) = EntityHash(id, "hash-$id")
 fun produceEntityHashSet(vararg ids: Int) = ids.map { produceEntityHash(it) }.toSet()

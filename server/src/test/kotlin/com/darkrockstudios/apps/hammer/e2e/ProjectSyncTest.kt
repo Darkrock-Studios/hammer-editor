@@ -118,6 +118,16 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 							entity.hash(),
 						)
 						assertTrue(uploadResponse.saved)
+
+						// The upload must actually persist, not just report saved
+						val roundTripped: ApiProjectEntity.SceneEntity = downloadEntity(
+							userId,
+							authToken,
+							synchronizationBegan.syncId,
+							modifiedEntity.id,
+							null,
+						)
+						assertEquals(modifiedEntity, roundTripped)
 					}
 				}
 			}
@@ -278,6 +288,16 @@ class ProjectSyncTest : ProjectSyncTestBase() {
 				true,
 			)
 			assertTrue(uploadResponse.saved)
+
+			// The forced upload must actually persist, not just report saved
+			val roundTripped: ApiProjectEntity.SceneEntity = downloadEntity(
+				userId,
+				authToken,
+				synchronizationBegan.syncId,
+				modifiedEntity.id,
+				null,
+			)
+			assertEquals(modifiedEntity, roundTripped)
 
 			endSyncRequest(userId, authToken, synchronizationBegan)
 		}

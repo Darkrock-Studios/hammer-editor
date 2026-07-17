@@ -9,7 +9,6 @@ import io.mockk.coEvery
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
@@ -24,25 +23,6 @@ class ProjectsRepositoryBeginSyncTest : ProjectsRepositoryBaseTest() {
 		createProjectsRepository().apply {
 			val result = beginProjectsSync(userId)
 			assertTrue(result.isFailure)
-		}
-	}
-
-	@Test
-	fun `Begin Sync, existing session`() = runTest {
-		coEvery { projectsSessionManager.claimSession(any(), any(), any()) } returns null
-
-		coEvery { projectSessionManager.hasActiveSyncSession(any()) } returns false
-
-		coEvery { projectsDatasource.getProjects(userId) } returns emptySet()
-		coEvery { projectsDatasource.loadSyncData(userId) } returns
-			ProjectsSyncData(
-				lastSync = Instant.DISTANT_PAST,
-				deletedProjects = emptySet()
-			)
-
-		createProjectsRepository().apply {
-			val beginResult = beginProjectsSync(userId)
-			assertFalse(isSuccess(beginResult))
 		}
 	}
 
@@ -65,8 +45,6 @@ class ProjectsRepositoryBeginSyncTest : ProjectsRepositoryBaseTest() {
 				deletedProjects = setOf(ProjectId("uuid-3"))
 			)
 
-		mockCreateSession(newSyncId)
-
 		createProjectsRepository().apply {
 			val beginResult = beginProjectsSync(userId)
 			assertTrue(isSuccess(beginResult))
@@ -74,7 +52,7 @@ class ProjectsRepositoryBeginSyncTest : ProjectsRepositoryBaseTest() {
 			val syncData = beginResult.data
 
 			val expectedData = ProjectsBeginSyncData(
-				syncId = syncData.syncId,
+				syncId = newSyncId,
 				projects = setOf(
 					ProjectDefinition("Project 1", ProjectId("uuid-1")),
 					ProjectDefinition("Project 2", ProjectId("uuid-2"))

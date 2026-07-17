@@ -120,6 +120,7 @@ fun ServerSettingsUi(
 
 	Toaster(component, rootSnackbar)
 	ServerSetupDialog(component, scope)
+	TermsOfServiceDialog(component)
 
 	if (showHelpDialog) {
 		ServerSetupHelpDialog(onDismiss = { showHelpDialog = false })

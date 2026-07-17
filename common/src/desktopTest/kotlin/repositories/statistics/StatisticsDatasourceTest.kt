@@ -67,8 +67,7 @@ class StatisticsDatasourceTest : BaseTest() {
 		assertTrue(datasource.exists())
 
 		val loaded = datasource.loadStatistics()
-		assertEquals(original.totalWords, loaded?.totalWords)
-		assertEquals(original.wordsByChapter, loaded?.wordsByChapter)
+		assertEquals(original, loaded)
 	}
 
 	@Test

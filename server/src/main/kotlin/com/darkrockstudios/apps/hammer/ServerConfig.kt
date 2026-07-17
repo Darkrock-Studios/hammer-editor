@@ -19,7 +19,7 @@ data class ServerConfig(
 	 */
 	val bindHosts: List<String> = listOf("0.0.0.0"),
 	val port: Int = 8080,
-	val sslPort: Int = 443,
+	val sslPort: Int = DEFAULT_SSL_PORT,
 	/**
 	 * The externally visible base URL (e.g. "https://hammer.example.com"), used for
 	 * links placed in emails. Set this when running behind a reverse proxy; otherwise
@@ -28,6 +28,20 @@ data class ServerConfig(
 	val publicUrl: String? = null,
 	val sslCert: SslCertConfig? = null,
 	val patreonEnabled: Boolean? = null,
+	/**
+	 * Path to a plaintext file whose contents are presented as a Terms of Service that
+	 * users must accept before an account is created. Null/absent disables the requirement.
+	 * A relative path is resolved against the config file's own directory, so `tos.txt` finds
+	 * a file sitting next to `config.toml`. A configured path that can't be read aborts startup.
+	 */
+	val termsOfService: String? = null,
+	/**
+	 * Path to a plaintext file whose contents are published at `/privacy` and linked from the
+	 * footer. Null/absent hides the page and the link. Resolution and startup validation mirror
+	 * [termsOfService]: a relative path resolves against the config file's directory, and a
+	 * configured path that can't be read aborts startup.
+	 */
+	val privacyPolicy: String? = null,
 	val emailProvider: String? = null,
 	val communityEnabled: Boolean = false,
 	val storage: StorageConfig = StorageConfig(),
@@ -38,6 +52,10 @@ data class ServerConfig(
 	@Transient
 	val emailProviderType: EmailProvider? = emailProvider?.let { provider ->
 		EmailProvider.entries.find { it.name.equals(provider, ignoreCase = true) }
+	}
+
+	companion object {
+		const val DEFAULT_SSL_PORT = 443
 	}
 }
 

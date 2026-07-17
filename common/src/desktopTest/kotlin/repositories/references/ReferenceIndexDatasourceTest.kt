@@ -20,7 +20,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
-import kotlin.time.Clock
+import kotlin.time.Instant
 
 class ReferenceIndexDatasourceTest : BaseTest() {
 
@@ -53,7 +53,7 @@ class ReferenceIndexDatasourceTest : BaseTest() {
 		val datasource = createDatasource()
 		val original = ReferenceIndex(
 			isDirty = false,
-			lastCalculated = Clock.System.now(),
+			lastCalculated = Instant.fromEpochSeconds(1729286670),
 			entryToScenes = mapOf(1 to setOf(10, 11), 2 to setOf(11, 12)),
 		)
 
@@ -61,9 +61,7 @@ class ReferenceIndexDatasourceTest : BaseTest() {
 		assertTrue(datasource.exists())
 
 		val loaded = datasource.loadIndex()
-		assertEquals(original.entryToScenes, loaded?.entryToScenes)
-		assertEquals(original.isDirty, loaded?.isDirty)
-		assertEquals(original.schemaVersion, loaded?.schemaVersion)
+		assertEquals(original, loaded)
 	}
 
 	@Test

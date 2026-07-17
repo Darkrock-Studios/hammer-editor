@@ -1,0 +1,11 @@
+# Gitleaks configuration. Extends the built-in ruleset (so all default secret rules run) and
+# allowlists known test fixtures that are not real credentials.
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Fake credentials used only as test fixtures, not real secrets."
+regexes = [
+  # Shared fake password in the server account tests (a keyboard-walk, not a real key).
+  '''qweasdZXC123''',
+]

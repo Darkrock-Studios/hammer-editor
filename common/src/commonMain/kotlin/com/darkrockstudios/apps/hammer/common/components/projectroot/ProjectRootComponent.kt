@@ -357,7 +357,7 @@ class ProjectRootComponent(
 		if (syncJournal.isServerSynchronized()) {
 			addMenu(
 				MenuDescriptor(
-					id = "project-root-sync",
+					id = SYNC_MENU_ID,
 					label = Res.string.sync_menu_group,
 					items = listOf(
 						MenuItemDescriptor(
@@ -375,7 +375,11 @@ class ProjectRootComponent(
 
 	private fun removeMenuItems() {
 		if (syncJournal.isServerSynchronized()) {
-			removeMenu("project-root-sync")
+			removeMenu(SYNC_MENU_ID)
 		}
+	}
+
+	companion object {
+		const val SYNC_MENU_ID = "project-root-sync"
 	}
 }

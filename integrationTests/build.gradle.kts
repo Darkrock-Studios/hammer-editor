@@ -68,6 +68,7 @@ dependencies {
 
 tasks.withType<Test>().configureEach {
 	useJUnitPlatform()
-	// EndToEndTest binds port 54321; only one server at a time.
+	// These tests share JVM-global state (Koin GlobalContext, Dispatchers.setMain),
+	// so they must run one at a time.
 	maxParallelForks = 1
 }

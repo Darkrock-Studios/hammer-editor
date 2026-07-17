@@ -29,7 +29,7 @@ class AdminErrorsPageTest : EndToEndTest() {
 	private fun seed() = runBlocking {
 		E2eTestData.createAccount(TestAccount(email, password, isAdmin = true), database())
 		val db = database().serverDatabase
-		db.whiteListQueries.addToWhiteList(email, Clock.System.now(), "Test admin")
+		db.whiteListQueries.addToWhiteList(email, Clock.System.now(), "Test admin", null)
 
 		val now = Clock.System.now()
 		db.errorLogQueries.recordError(

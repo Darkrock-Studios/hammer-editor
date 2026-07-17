@@ -16,6 +16,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -255,9 +256,14 @@ class ProjectAccessRepositoryTest {
 		assertEquals(1, result[0].id)
 		assertEquals("pass1", result[0].password)
 		assertFalse(result[0].isExpired)
+		assertEquals(Instant.parse("2099-06-15T12:00:00Z"), result[0].expiresAt)
+		// Locale/zone-dependent formatting: assert only the stable year.
+		assertTrue(result[0].expiresAtFormatted!!.contains("2099"))
 		assertEquals(2, result[1].id)
 		assertEquals("pass2", result[1].password)
 		assertFalse(result[1].isExpired)
+		assertNull(result[1].expiresAt)
+		assertNull(result[1].expiresAtFormatted)
 	}
 
 	@Test

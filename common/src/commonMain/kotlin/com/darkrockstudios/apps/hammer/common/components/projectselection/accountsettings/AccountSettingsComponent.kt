@@ -20,11 +20,11 @@ import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.Spel
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettingsComponent
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
+import com.darkrockstudios.apps.hammer.common.data.account.ServerSetupResult
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
-import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -39,6 +39,7 @@ import com.darkrockstudios.apps.hammer.server_setup_error_password_too_short
 import com.darkrockstudios.apps.hammer.settings_server_setup_toast_failure
 import com.darkrockstudios.apps.hammer.settings_server_setup_toast_failure_unknown
 import com.darkrockstudios.apps.hammer.settings_server_setup_toast_success
+import com.darkrockstudios.apps.hammer.settings_server_tos_declined
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -73,6 +74,7 @@ class AccountSettingsComponent(
 		)
 
 	private var serverSetupJob: Job? = null
+	private var pendingServerSetup: PendingServerSetup? = null
 
 	override val platformSettings: PlatformSettings by inject { parametersOf(componentContext) }
 	override val spellCheckSettings: SpellCheckSettings = SpellCheckSettingsComponent(componentContext)
@@ -123,7 +125,6 @@ class AccountSettingsComponent(
 					_state.getAndUpdate {
 						it.copy(
 							currentUserId = settings?.userId,
-							currentSsl = settings?.ssl,
 							currentUrl = settings?.url,
 							currentEmail = settings?.email,
 							serverIsLoggedIn = settings?.bearerToken?.isNotBlank() == true,
@@ -167,7 +168,6 @@ class AccountSettingsComponent(
 				serverSetup = true,
 				serverUrl = it.currentUrl,
 				serverEmail = it.currentEmail,
-				serverSsl = it.currentSsl ?: true,
 				serverPassword = null,
 			)
 		}
@@ -176,11 +176,17 @@ class AccountSettingsComponent(
 	override fun cancelServerSetup() {
 		cancelSetupJob()
 		cleanUpServerSetup()
+		// A pending setup means setupServer already persisted provisional settings; drop them.
+		if (pendingServerSetup != null) {
+			globalSettingsStore.deleteServerSettings()
+		}
+		pendingServerSetup = null
 		_state.getAndUpdate {
 			it.copy(
 				serverSetup = false,
 				serverError = null,
 				serverWorking = false,
+				tosChallenge = null,
 			)
 		}
 	}
@@ -188,7 +194,6 @@ class AccountSettingsComponent(
 	private fun cleanUpServerSetup() {
 		_state.getAndUpdate {
 			it.copy(
-				serverSsl = true,
 				serverUrl = null,
 				serverEmail = null,
 				serverPassword = null,
@@ -252,7 +257,6 @@ class AccountSettingsComponent(
 		_state.getAndUpdate {
 			it.copy(
 				serverSetup = true,
-				serverSsl = state.value.currentSsl ?: true,
 				serverUrl = state.value.currentUrl,
 				serverEmail = state.value.currentEmail,
 			)
@@ -261,10 +265,6 @@ class AccountSettingsComponent(
 
 	override fun updateServerUrl(url: String) {
 		_state.getAndUpdate { it.copy(serverUrl = url) }
-	}
-
-	override fun updateServerSsl(ssl: Boolean) {
-		_state.getAndUpdate { it.copy(serverSsl = ssl) }
 	}
 
 	override fun updateServerEmail(email: String) {
@@ -284,7 +284,6 @@ class AccountSettingsComponent(
 	}
 
 	override fun setupServer(
-		ssl: Boolean,
 		url: String,
 		email: String,
 		password: String,
@@ -331,12 +330,60 @@ class AccountSettingsComponent(
 				removeLocalContent()
 			}
 
-			val result = accountUseCase.setupServer(ssl, cleanUrl, email.trim(), password, create)
+			val pending = PendingServerSetup(cleanUrl, email.trim(), password, create)
+			pendingServerSetup = pending
+			performServerSetup(pending, acceptedTosVersion = null)
+		}
+	}
+
+	override fun acceptTos() {
+		val pending = pendingServerSetup ?: return
+		val version = _state.value.tosChallenge?.version ?: return
+
+		cancelSetupJob()
+		serverSetupJob = scope.launch {
 			withContext(mainDispatcher) {
-				if (isSuccess(result)) {
+				_state.getAndUpdate {
+					it.copy(
+						tosChallenge = null,
+						serverError = null,
+						serverWorking = true,
+					)
+				}
+			}
+			performServerSetup(pending, acceptedTosVersion = version)
+		}
+	}
+
+	override fun declineTos() {
+		pendingServerSetup = null
+		// setupServer persisted provisional settings for the retry; declining discards them.
+		globalSettingsStore.deleteServerSettings()
+		_state.getAndUpdate {
+			it.copy(
+				tosChallenge = null,
+				serverSetup = false,
+				serverWorking = false,
+			)
+		}
+		showToast(scope, Res.string.settings_server_tos_declined)
+	}
+
+	private suspend fun performServerSetup(pending: PendingServerSetup, acceptedTosVersion: String?) {
+		val result = accountUseCase.setupServer(
+			url = pending.url,
+			email = pending.email,
+			password = pending.password,
+			create = pending.create,
+			acceptedTosVersion = acceptedTosVersion,
+		)
+		withContext(mainDispatcher) {
+			when (result) {
+				is ServerSetupResult.Success -> {
+					pendingServerSetup = null
 					// A freshly created account holds no projects, so any serverProjectId from a
 					// previous server is stale and would make sync skip re-creating the project.
-					if (create) {
+					if (pending.create) {
 						clearAllProjectIds()
 					}
 					cleanUpServerSetup()
@@ -347,7 +394,21 @@ class AccountSettingsComponent(
 						)
 					}
 					showToast(Res.string.settings_server_setup_toast_success)
-				} else {
+				}
+
+				is ServerSetupResult.TermsRequired -> {
+					// Replace the setup dialog with the terms dialog so they don't stack.
+					_state.getAndUpdate {
+						it.copy(
+							tosChallenge = result.challenge,
+							serverSetup = false,
+							serverWorking = false,
+						)
+					}
+				}
+
+				is ServerSetupResult.Failure -> {
+					pendingServerSetup = null
 					val message = result.displayMessage?.text(strRes)
 						?: strRes.get(Res.string.settings_server_setup_toast_failure_unknown)
 					_state.getAndUpdate {
@@ -412,6 +473,13 @@ class AccountSettingsComponent(
 		}
 	}
 }
+
+private data class PendingServerSetup(
+	val url: String,
+	val email: String,
+	val password: String,
+	val create: Boolean,
+)
 
 @Serializable
 data object BackupManagerConfig

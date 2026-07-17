@@ -12,12 +12,12 @@ import getProjectDef
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import synchronizer.MockSynchronizers
 import utils.BaseTest
 import utils.TestStrRes
+import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
@@ -87,7 +87,11 @@ class EntityDeleteOperationTest : BaseTest() {
 		val data = result.data
 		assertIs<EntityDeleteOperationState>(data)
 
-		assertNull(data.collatedIds.dirtyEntities.find { it.id == 9 })
+		// Only the dirty entry for the deleted id 9 is dropped; 1, 3, 11 survive untouched.
+		assertEquals(produceEntityStateList(1, 3, 11), data.collatedIds.dirtyEntities)
+		// Only the newly-deleted id goes to the server; server-known deletions (7) and
+		// previously-synced deletions (8) must not be re-deleted.
+		coVerify(exactly = 1) { serverProjectApi.deleteId(any(), any(), any()) }
 		coVerify { serverProjectApi.deleteId(any(), 9, any()) }
 	}
 }

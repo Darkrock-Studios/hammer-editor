@@ -18,7 +18,7 @@ import org.koin.dsl.module
 import synchronizer.MockSynchronizers
 import synchronizer.addSynchronizers
 import utils.BaseTest
-import kotlin.test.assertIs
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class PrepareForSyncOperationTest : BaseTest() {
@@ -82,7 +82,7 @@ class PrepareForSyncOperationTest : BaseTest() {
 		)
 
 		assertTrue(isSuccess(result))
-		assertIs<SyncOperationState>(result.data)
+		assertEquals(initialState, result.data)
 
 		coVerify { idAllocator.findNextId() }
 		coVerify { syncJournal.createSyncData() }

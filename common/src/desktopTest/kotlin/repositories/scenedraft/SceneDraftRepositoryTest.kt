@@ -71,11 +71,6 @@ class SceneDraftRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `Initialize scene draft repository`() {
-		val repo = createRepository()
-	}
-
-	@Test
 	fun `Get All Drafts`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
 
@@ -143,7 +138,8 @@ class SceneDraftRepositoryTest : BaseTest() {
 		val repo = createRepository()
 		val sceneIds = repo.getSceneIdsThatHaveDrafts()
 
-		assertEquals(listOf(1, 6), sceneIds)
+		// Order is incidental (directory listing order); the contract is which IDs are found.
+		assertEquals(listOf(1, 6), sceneIds.sorted())
 	}
 
 	@Test
@@ -165,7 +161,7 @@ class SceneDraftRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `Save new draft that has a scene buffer in memory`() = runTest {
+	fun `Save new draft persists the current scene content`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
 
 		val sceneId = 3
@@ -186,7 +182,7 @@ class SceneDraftRepositoryTest : BaseTest() {
 		val draftId = 11
 
 		coEvery { idAllocator.claimNextId() } returns draftId
-		every { sceneContentRepository.getCurrentSceneContent(any()) } returns buffer.content.coerceMarkdown()
+		every { sceneContentRepository.getCurrentSceneContent(sceneItem) } returns buffer.content.coerceMarkdown()
 		every { clock.now() } returns fakeNow
 
 		val repo = createRepository()
@@ -203,53 +199,7 @@ class SceneDraftRepositoryTest : BaseTest() {
 		)
 
 		val draftFile = datasource.getDraftPath(draftDef!!).toOkioPath()
-		ffs.exists(draftFile)
-		val draftContent = ffs.read(draftFile) {
-			readUtf8()
-		}
-		assertEquals(buffer.content.markdown, draftContent)
-	}
-
-	@Test
-	fun `Save new draft that has to load from disk`() = runTest {
-		createProject(ffs, PROJECT_2_NAME)
-
-		val sceneId = 3
-		val sceneItem = SceneItem(
-			projectDef = projectDef,
-			type = SceneItem.Type.Scene,
-			id = sceneId,
-			name = "Scene 3",
-			order = 3,
-		)
-		val buffer = SceneBuffer(
-			content = SceneContent(sceneItem, "Some scene content text", null),
-			dirty = false,
-			source = UpdateSource.Repository,
-		)
-		val fakeNow = Instant.fromEpochSeconds(1729286670)
-		val draftName = "New Draft"
-		val draftId = 11
-
-		coEvery { idAllocator.claimNextId() } returns draftId
-		every { sceneContentRepository.getCurrentSceneContent(any()) } returns buffer.content.coerceMarkdown()
-		every { clock.now() } returns fakeNow
-
-		val repo = createRepository()
-		val draftDef = repo.saveDraft(sceneItem, draftName)
-
-		assertNotNull(draftDef)
-		assertEquals(
-			DraftDef(
-				id = draftId,
-				sceneId = sceneId,
-				draftTimestamp = fakeNow,
-				draftName = draftName
-			), draftDef
-		)
-
-		val draftFile = datasource.getDraftPath(draftDef!!).toOkioPath()
-		ffs.exists(draftFile)
+		assertTrue(ffs.exists(draftFile))
 		val draftContent = ffs.read(draftFile) {
 			readUtf8()
 		}
@@ -283,7 +233,7 @@ class SceneDraftRepositoryTest : BaseTest() {
 		)
 
 		val draftFile = datasource.getDraftPath(draftDef).toOkioPath()
-		ffs.exists(draftFile)
+		assertTrue(ffs.exists(draftFile))
 		val draftContent = ffs.read(draftFile) {
 			readUtf8()
 		}

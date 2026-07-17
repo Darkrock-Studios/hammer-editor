@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
+import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
@@ -34,6 +35,7 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
+import io.ktor.serialization.ContentConvertException
 import io.ktor.util.network.UnresolvedAddressException
 import kotlinx.coroutines.withContext
 import okio.IOException
@@ -45,6 +47,9 @@ abstract class Api(
 	private val globalSettingsStore: GlobalSettingsStore,
 	private val strRes: StrRes,
 ) : KoinComponent {
+
+	protected suspend fun defaultFailure(response: HttpResponse): Throwable =
+		defaultFailureHandler(response, strRes)
 	protected val userId: Long?
 		get() = globalSettingsStore.serverSettings?.userId
 
@@ -313,7 +318,27 @@ class HttpFailureException(
 	override fun toString() = message ?: super.toString()
 }
 
+/** The server requires the given Terms of Service to be accepted before an account can be created. */
+class TermsOfServiceRequiredException(
+	val challenge: TermsOfServiceChallenge
+) : Exception("Terms of service acceptance required (version ${challenge.version})")
+
 typealias FailureHandler = suspend (HttpResponse) -> Throwable
+
+private suspend fun unparseableErrorBody(
+	status: HttpStatusCode,
+	strRes: StrRes,
+	cause: Throwable,
+): HttpFailureException {
+	Napier.w("Error response body unable to be parsed", cause)
+	return HttpFailureException(
+		statusCode = status,
+		error = HttpResponseError(
+			error = "Unhandled error body",
+			displayMessage = strRes.get(Res.string.sync_general_error),
+		)
+	)
+}
 
 suspend fun defaultFailureHandler(response: HttpResponse, strRes: StrRes): Throwable {
 	return when(response.status) {
@@ -334,14 +359,9 @@ suspend fun defaultFailureHandler(response: HttpResponse, strRes: StrRes): Throw
 					error = error
 				)
 			} catch (e: NoTransformationFoundException) {
-				Napier.w("Error response body unable to be parsed", e)
-				HttpFailureException(
-					statusCode = response.status,
-					error = HttpResponseError(
-						error = "Unhandled error body",
-						displayMessage = strRes.get(Res.string.sync_general_error),
-					)
-				)
+				unparseableErrorBody(response.status, strRes, e)
+			} catch (e: ContentConvertException) {
+				unparseableErrorBody(response.status, strRes, e)
 			}
 		}
 	}

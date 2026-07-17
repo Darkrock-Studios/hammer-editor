@@ -55,10 +55,13 @@ class MetricsCollectorTest {
 	}
 
 	@Test
-	fun `recent requests are bounded`() {
+	fun `recent requests are bounded, evicting the oldest`() {
 		val c = collector()
-		repeat(MetricsCollector.MAX_RECENT + 50) { c.record("/api/r", "GET", 200, 1) }
-		assertEquals(MetricsCollector.MAX_RECENT, c.recentRequests().size)
+		repeat(MetricsCollector.MAX_RECENT + 50) { c.record("/api/r", "GET", 200, it.toLong()) }
+		val recent = c.recentRequests()
+		assertEquals(MetricsCollector.MAX_RECENT, recent.size)
+		assertEquals(50L, recent.first().durationMs)
+		assertEquals((MetricsCollector.MAX_RECENT + 49).toLong(), recent.last().durationMs)
 	}
 
 	@Test

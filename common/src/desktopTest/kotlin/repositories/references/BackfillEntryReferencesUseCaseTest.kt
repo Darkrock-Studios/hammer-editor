@@ -14,6 +14,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
+import kotlin.test.assertEquals
 
 class BackfillEntryReferencesUseCaseTest : BaseTest() {
 
@@ -76,12 +77,8 @@ class BackfillEntryReferencesUseCaseTest : BaseTest() {
 		useCase(entry)
 
 		// Scene 10 gains 42; scene 11 keeps its existing 7 and gains 42.
-		assert(storedById[10]?.confirmedReferences == setOf(42)) {
-			"Scene 10: ${storedById[10]?.confirmedReferences}"
-		}
-		assert(storedById[11]?.confirmedReferences == setOf(7, 42)) {
-			"Scene 11: ${storedById[11]?.confirmedReferences}"
-		}
+		assertEquals(setOf(42), storedById[10]?.confirmedReferences)
+		assertEquals(setOf(7, 42), storedById[11]?.confirmedReferences)
 	}
 
 	@Test

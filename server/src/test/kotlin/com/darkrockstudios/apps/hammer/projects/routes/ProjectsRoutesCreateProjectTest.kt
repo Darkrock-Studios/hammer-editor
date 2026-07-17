@@ -1,18 +1,22 @@
 package com.darkrockstudios.apps.hammer.projects.routes
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.CreateProjectResponse
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository.ProjectCreatedResult
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import io.mockk.coEvery
 import io.mockk.coVerify
+import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
@@ -46,6 +50,11 @@ class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
 			header(HEADER_SYNC_ID, syncId)
 		}.apply {
 			assertTrue(status.isSuccess())
+
+			val response = Json.decodeFromString<CreateProjectResponse>(bodyAsText())
+			assertEquals(projectId, response.projectId)
+			assertFalse(response.alreadyExisted)
+
 			coVerify {
 				projectsRepository.createProject(
 					userId = userId,

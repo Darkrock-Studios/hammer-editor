@@ -7,7 +7,8 @@ import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.ValueSource
+import org.junit.jupiter.params.provider.MethodSource
+import java.util.stream.Stream
 import kotlin.test.assertTrue
 
 class ProjectsRepositoryRenameEntityTest : ProjectsRepositoryBaseTest() {
@@ -24,34 +25,20 @@ class ProjectsRepositoryRenameEntityTest : ProjectsRepositoryBaseTest() {
 		createProjectsRepository().apply {
 			val result = renameProject(userId, syncId, projectId, newProjectName)
 			assertTrue(result.isSuccess)
-			coVerify(exactly = 1) { projectEntityDatasource.renameProject(any(), any(), any()) }
+			coVerify { projectEntityDatasource.renameProject(userId, projectId, newProjectName) }
 		}
 	}
 
-	@Test
-	fun `Rename Project - Failure - Bad Name`() = runTest {
-		val syncId = "sync-id"
-		val projectId = ProjectId("ProjectId")
-		val newProjectName = "1".repeat(MAX_PROJECT_NAME_LENGTH + 1)
-
-		coEvery { projectsSessionManager.validateSyncId(any(), any(), any()) } returns true
-		coEvery { projectEntityDatasource.checkProjectExists(any(), projectId) } returns true
-		coEvery { projectEntityDatasource.renameProject(any(), any(), any()) } returns true
-
-		createProjectsRepository().apply {
-			val result = renameProject(userId, syncId, projectId, newProjectName)
-			assertTrue(result.isFailure)
-			coVerify(exactly = 0) { projectEntityDatasource.renameProject(any(), any(), any()) }
-		}
+	companion object {
+		@JvmStatic
+		fun provideBadNames(): Stream<String> = Stream.of(
+			"1".repeat(MAX_PROJECT_NAME_LENGTH + 1),
+			"",
+		)
 	}
 
 	@ParameterizedTest
-	@ValueSource(
-		strings = [
-			"xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-			""
-		]
-	)
+	@MethodSource("provideBadNames")
 	fun `Rename Project - Failure - Bad Name`(newProjectName: String) = runTest {
 		val syncId = "sync-id"
 		val projectId = ProjectId("ProjectId")

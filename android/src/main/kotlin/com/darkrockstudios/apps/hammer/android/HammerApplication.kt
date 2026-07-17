@@ -16,13 +16,16 @@ import com.darkrockstudios.apps.hammer.android.shortcuts.shortcutsModule
 import com.darkrockstudios.apps.hammer.android.widgets.AddNoteWidgetReceiver
 import com.darkrockstudios.apps.hammer.android.widgets.StoriesListWidgetReceiver
 import com.darkrockstudios.apps.hammer.android.widgets.StoryInfoWidgetReceiver
+import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.BuildConfig
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
-import com.darkrockstudios.apps.hammer.common.logStartupBanner
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
+import com.darkrockstudios.apps.hammer.common.getConfigDirectory
+import com.darkrockstudios.apps.hammer.common.logStartupBanner
+import com.darkrockstudios.apps.hammer.common.platformStartupInfo
 import com.darkrockstudios.apps.hammer.common.setExternalDirectories
 import com.darkrockstudios.apps.hammer.common.setInternalDirectories
 import com.darkrockstudios.apps.hammer.common.util.AndroidSettingsKeys
@@ -38,6 +41,7 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext.startKoin
 import org.koin.java.KoinJavaComponent
 import org.koin.java.KoinJavaComponent.getKoin
+import java.io.File
 
 class HammerApplication : Application(), SingletonImageLoader.Factory {
 
@@ -48,6 +52,7 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 
 		initializeDirectories()
 		Napier.base(FileLogger(scope = applicationScope))
+		installGlobalExceptionHandler()
 		logStartupBanner()
 
 		startKoin {
@@ -119,6 +124,38 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 		} else {
 			setExternalDirectories(this)
 		}
+	}
+
+	/**
+	 * Catch, log, and hand off any otherwise-unhandled exception. The async [FileLogger] can't be
+	 * relied on to flush before the process dies, so we also write a synchronous crash dump straight
+	 * to disk, then chain to the platform default handler so Android still terminates and reports.
+	 */
+	private fun installGlobalExceptionHandler() {
+		val previous = Thread.getDefaultUncaughtExceptionHandler()
+		Thread.setDefaultUncaughtExceptionHandler { thread, throwable ->
+			runCatching {
+				Napier.e(
+					"Uncaught exception on thread '${thread.name}', terminating",
+					throwable
+				)
+			}
+			runCatching { writeCrashDump(thread, throwable) }
+			previous?.uncaughtException(thread, throwable)
+		}
+	}
+
+	/** Synchronous, self-contained crash record in the logs dir — the guaranteed artifact when the app dies. */
+	private fun writeCrashDump(thread: Thread, throwable: Throwable) {
+		val dir = File(getConfigDirectory(), "logs")
+		dir.mkdirs()
+		File(dir, "crash-${System.currentTimeMillis()}.txt").writeText(
+			buildString {
+				append("Hammer v${BuildMetadata.APP_VERSION} | ${platformStartupInfo()}\n")
+				append("Uncaught exception on thread '${thread.name}'\n\n")
+				append(throwable.stackTraceToString())
+			}
+		)
 	}
 
 	override fun onTerminate() {

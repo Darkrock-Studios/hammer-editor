@@ -44,7 +44,13 @@ import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootScaffold
 import com.darkrockstudios.apps.hammer.common.util.AndroidSettingsKeys
 import com.russhwolf.settings.Settings
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.*
+import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.dialogs.init
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 import org.koin.core.component.getScopeId
 import org.koin.java.KoinJavaComponent.getKoin
@@ -68,6 +74,9 @@ class ProjectRootActivity : AppCompatActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
 		enableEdgeToEdge()
+
+		// Point FileKit's suspend dialog API at this activity's result registry
+		FileKit.init(this)
 
 		val projectDef = resolveProjectDef(intent)
 		if (projectDef == null) {

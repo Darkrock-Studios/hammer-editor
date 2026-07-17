@@ -334,14 +334,14 @@ a:focus-visible {
 	gap: 2rem;
 }
 
-.footer-links {
+.footer-nav {
 	display: flex;
 	gap: 2.5rem;
 	flex-wrap: wrap;
 	justify-content: center;
 }
 
-.footer-links a {
+.footer-nav a {
 	color: var(--neutral-300);
 	font-family: 'Lora', serif;
 	font-size: 1.0625rem;
@@ -353,7 +353,7 @@ a:focus-visible {
 	padding-bottom: 0.25rem;
 }
 
-.footer-links a::after {
+.footer-nav a::after {
 	content: '';
 	position: absolute;
 	bottom: 0;
@@ -366,19 +366,81 @@ a:focus-visible {
 	transition: transform var(--transition-base);
 }
 
-.footer-links a:hover {
+.footer-nav a:hover {
 	color: white;
 }
 
-.footer-links a:hover::after {
+.footer-nav a:hover::after {
 	transform: scaleX(1);
 	transform-origin: left;
+}
+
+.footer-social {
+	display: flex;
+	gap: 1.75rem;
+	flex-wrap: wrap;
+	justify-content: center;
+}
+
+.footer-social a {
+	position: relative;
+	color: var(--neutral-400);
+	font-size: 1.5rem;
+	line-height: 1;
+	transition: color var(--transition-base), transform var(--transition-base);
+}
+
+.footer-social a:hover {
+	color: white;
+	transform: translateY(-2px);
+}
+
+.footer-social a:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 4px;
+	border-radius: 0.25rem;
+}
+
+/* Accessible hover/focus tooltip sourced from each link's aria-label */
+.footer-social a::after {
+	content: attr(aria-label);
+	position: absolute;
+	bottom: calc(100% + 0.6rem);
+	left: 50%;
+	transform: translateX(-50%) translateY(4px);
+	padding: 0.25rem 0.5rem;
+	background: var(--neutral-800);
+	border: 1px solid var(--neutral-700);
+	border-radius: 0.25rem;
+	color: var(--neutral-200);
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8125rem;
+	white-space: nowrap;
+	opacity: 0;
+	pointer-events: none;
+	transition: opacity var(--transition-base), transform var(--transition-base);
+}
+
+.footer-social a:hover::after,
+.footer-social a:focus-visible::after {
+	opacity: 1;
+	transform: translateX(-50%) translateY(0);
 }
 
 .footer-version {
 	font-family: 'Kingthings Typewriter', monospace;
 	color: var(--neutral-500);
 	font-size: 0.9375rem;
+}
+
+/* Plaintext legal content (e.g. Terms of Service) */
+.legal-text {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 1.0625rem;
+	line-height: 1.8;
+	color: var(--text-primary);
+	white-space: pre-wrap;
+	word-break: break-word;
 }
 
 .language-selector {
@@ -621,10 +683,14 @@ a:focus-visible {
 		width: 100%;
 	}
 
-	.footer-links {
+	.footer-nav {
 		gap: 1.5rem;
 		flex-direction: column;
 		text-align: center;
+	}
+
+	.footer-social {
+		gap: 1.5rem;
 	}
 
 	.language-selector {

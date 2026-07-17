@@ -3,12 +3,13 @@ package components.projectselection
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.arkivanov.essenty.lifecycle.resume
+import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
-import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
+import com.darkrockstudios.apps.hammer.common.data.account.ServerSetupResult
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
@@ -17,9 +18,13 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -126,11 +131,10 @@ class AccountSettingsComponentTest : BaseTest() {
 				any(),
 				any()
 			)
-		} returns CResult.success()
+		} returns ServerSetupResult.Success
 
 		val component = newComponent()
 		component.setupServer(
-			ssl = true,
 			url = "example.com",
 			email = "writer@example.com",
 			password = "Password1!",
@@ -155,11 +159,10 @@ class AccountSettingsComponentTest : BaseTest() {
 				any(),
 				any()
 			)
-		} returns CResult.success()
+		} returns ServerSetupResult.Success
 
 		val component = newComponent()
 		component.setupServer(
-			ssl = true,
 			url = "example.com",
 			email = "writer@example.com",
 			password = "Password1!",
@@ -169,5 +172,64 @@ class AccountSettingsComponentTest : BaseTest() {
 		advanceUntilIdle()
 
 		verify(exactly = 0) { projectsRepository.removeProjectId(any()) }
+	}
+
+	@Test
+	fun `Terms of service challenge is surfaced and acceptance retries the request`() = runTest {
+		every { projectsRepository.getProjects() } returns emptyList()
+		coEvery {
+			accountUseCase.setupServer(any(), any(), any(), any(), null)
+		} returns ServerSetupResult.TermsRequired(TermsOfServiceChallenge(text = "Legal text", version = "v1"))
+		coEvery {
+			accountUseCase.setupServer(any(), any(), any(), any(), "v1")
+		} returns ServerSetupResult.Success
+
+		val component = newComponent()
+		component.setupServer(
+			url = "example.com",
+			email = "writer@example.com",
+			password = "Password1!",
+			create = true,
+			removeLocalContent = false,
+		)
+		advanceUntilIdle()
+
+		assertEquals("Legal text", component.state.value.tosChallenge?.text)
+		assertEquals("v1", component.state.value.tosChallenge?.version)
+		assertFalse(component.state.value.serverWorking)
+
+		component.acceptTos()
+		advanceUntilIdle()
+
+		assertNull(component.state.value.tosChallenge)
+		assertFalse(component.state.value.serverSetup)
+		coVerify { accountUseCase.setupServer(any(), any(), any(), any(), "v1") }
+	}
+
+	@Test
+	fun `Declining terms of service clears the challenge without creating an account`() = runTest {
+		coEvery {
+			accountUseCase.setupServer(any(), any(), any(), any(), null)
+		} returns ServerSetupResult.TermsRequired(TermsOfServiceChallenge(text = "Legal text", version = "v1"))
+
+		val component = newComponent()
+		component.setupServer(
+			url = "example.com",
+			email = "writer@example.com",
+			password = "Password1!",
+			create = true,
+			removeLocalContent = false,
+		)
+		advanceUntilIdle()
+		assertNotNull(component.state.value.tosChallenge)
+
+		component.declineTos()
+		advanceUntilIdle()
+
+		assertNull(component.state.value.tosChallenge)
+		// Declining discards the provisional server settings setupServer persisted for the retry.
+		verify { globalSettingsStore.deleteServerSettings() }
+		// Only the initial challenge attempt ran; declining never resubmits.
+		coVerify(exactly = 1) { accountUseCase.setupServer(any(), any(), any(), any(), any()) }
 	}
 }

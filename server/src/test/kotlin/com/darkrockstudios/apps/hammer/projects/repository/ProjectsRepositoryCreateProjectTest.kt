@@ -2,10 +2,13 @@ package com.darkrockstudios.apps.hammer.projects.repository
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.mockk.coEvery
 import io.mockk.coVerify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
@@ -43,7 +46,9 @@ class ProjectsRepositoryCreateProjectTest : ProjectsRepositoryBaseTest() {
 		createProjectsRepository().apply {
 			val result = createProject(userId, syncId, projectName)
 
-			assertTrue(result.isSuccess)
+			assertTrue(isSuccess(result))
+			assertEquals(ProjectDefinition(projectName, projectId), result.data.project)
+			assertFalse(result.data.alreadyExisted)
 			coVerify { projectEntityDatasource.createProject(userId, projectName) }
 		}
 	}

@@ -472,19 +472,48 @@
 	font-style: italic;
 }
 
+.whitelist-entry__expiry {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	color: var(--neutral-500);
+}
+
+.whitelist-entry__expiry i {
+	font-size: 0.75rem;
+}
+
+.whitelist-entry__expiry--set {
+	color: var(--accent-dark);
+}
+
+/* "Current expiry: <date>" line inside the edit-expiry dialog */
+.whitelist-expiry__current {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.875rem;
+	color: var(--neutral-500);
+	margin: 0 0 1rem;
+}
+
+.whitelist-expiry__current-value {
+	color: var(--accent-dark);
+}
+
 .whitelist-entry__actions {
 	display: flex;
 	gap: 0.5rem;
 	align-items: center;
 }
 
-.whitelist-entry__actions .edit-reason-btn {
+.whitelist-entry__actions .edit-reason-btn,
+.whitelist-entry__actions .edit-expiry-btn {
 	display: inline-flex;
 	align-items: center;
 	gap: 0.375rem;
 }
 
-.whitelist-entry__actions .edit-reason-btn i {
+.whitelist-entry__actions .edit-reason-btn i,
+.whitelist-entry__actions .edit-expiry-btn i {
 	font-size: 0.75rem;
 }
 

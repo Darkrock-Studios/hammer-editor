@@ -21,6 +21,7 @@ import createProject
 import getProjectDef
 import io.mockk.Runs
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.just
 import io.mockk.mockk
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -67,11 +68,6 @@ class NotesRepositoryTest : BaseTest() {
 	}
 
 	@Test
-	fun `Initialize notes repository`() = runTest {
-		val repo = createRepository()
-	}
-
-	@Test
 	fun `Load notes on init`() = runTest {
 		createProject(ffs, PROJECT_2_NAME)
 
@@ -111,6 +107,8 @@ class NotesRepositoryTest : BaseTest() {
 		repo.deleteNote(noteId)
 
 		assertFalse(ffs.exists(path))
+		// The deletion must land in the journal or the server resurrects the note on next sync.
+		coVerify { syncJournal.recordIdDeletion(noteId) }
 
 		repo.notesListFlow.test {
 			val notes = awaitItem()
@@ -278,6 +276,9 @@ class NotesRepositoryTest : BaseTest() {
 
 		assertFalse(ffs.exists(oldPath))
 		assertTrue(ffs.exists(newPath))
+		// The id is also embedded in the file contents and must be rewritten, not just the filename.
+		val rewritten: NoteContainer = ffs.readToml(newPath, toml)
+		assertEquals(15, rewritten.note.id)
 	}
 
 	@Test

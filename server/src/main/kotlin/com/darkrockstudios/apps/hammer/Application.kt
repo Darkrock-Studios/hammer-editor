@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer
 
 import com.darkrockstudios.apps.hammer.account.configureTokenMaintenanceJob
+import com.darkrockstudios.apps.hammer.admin.configureWhitelistExpiryJob
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.database.Database
@@ -20,6 +21,7 @@ import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
+import com.darkrockstudios.apps.hammer.utilities.DevSelfSignedCert
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utilities.loadPemAsKeyStore
 import com.github.ajalt.clikt.core.CliktCommand
@@ -178,14 +180,69 @@ internal fun resolveServerConfig(
 	configPath: String?,
 	fileSystem: FileSystem = FileSystem.SYSTEM,
 ): ServerConfig {
-	if (configPath != null) return loadConfig(fileSystem, configPath.toPath())
-
-	val defaultConfig = getRootDataDirectory(fileSystem) / DEFAULT_CONFIG_FILE_NAME
-	return if (fileSystem.exists(defaultConfig)) {
-		configLogger.info("Loading config from default location: $defaultConfig")
-		loadConfig(fileSystem, defaultConfig)
+	val configFile: Path? = if (configPath != null) {
+		configPath.toPath()
 	} else {
-		ServerConfig()
+		val defaultConfig = getRootDataDirectory(fileSystem) / DEFAULT_CONFIG_FILE_NAME
+		if (fileSystem.exists(defaultConfig)) {
+			configLogger.info("Loading config from default location: $defaultConfig")
+			defaultConfig
+		} else {
+			null
+		}
+	}
+
+	val config = configFile?.let { loadConfig(fileSystem, it) } ?: ServerConfig()
+
+	val resolved = resolveConfigFilePaths(config, configFile?.parent)
+	validateConfigFiles(resolved, fileSystem)
+	return resolved
+}
+
+/**
+ * Operator-supplied plaintext files configured by a path in `config.toml` ([ServerConfig.termsOfService],
+ * [ServerConfig.privacyPolicy]). Each is resolved relative to the config file's directory and validated
+ * at startup by the same rules.
+ */
+private class ConfigFileSetting(
+	val name: String,
+	val path: (ServerConfig) -> String?,
+	val withPath: (ServerConfig, String) -> ServerConfig,
+)
+
+private val configFileSettings = listOf(
+	ConfigFileSetting("termsOfService", { it.termsOfService }, { c, p -> c.copy(termsOfService = p) }),
+	ConfigFileSetting("privacyPolicy", { it.privacyPolicy }, { c, p -> c.copy(privacyPolicy = p) }),
+)
+
+/**
+ * A relative config-file path is resolved against the config file's own directory, so a bare
+ * `tos.txt` sitting next to `config.toml` is found regardless of the working directory. Absolute
+ * paths are left untouched.
+ */
+private fun resolveConfigFilePaths(config: ServerConfig, configDir: Path?): ServerConfig =
+	configFileSettings.fold(config) { current, setting ->
+		val path = setting.path(current)?.toPath() ?: return@fold current
+		if (path.isAbsolute || configDir == null) current
+		else setting.withPath(current, configDir.resolve(path).toString())
+	}
+
+/**
+ * Every configured config-file path must resolve to a readable, non-blank file. Aborting startup on
+ * a bad path keeps a misconfiguration from silently disabling the feature it gates.
+ */
+private fun validateConfigFiles(config: ServerConfig, fileSystem: FileSystem) {
+	for (setting in configFileSettings) {
+		val raw = setting.path(config) ?: continue
+		val path = raw.toPath()
+
+		val metadata = fileSystem.metadataOrNull(path)
+		check(metadata?.isRegularFile == true) {
+			"${setting.name} is set to \"$raw\" but no readable file exists there."
+		}
+		check(fileSystem.read(path) { readUtf8() }.isNotBlank()) {
+			"${setting.name} file \"$raw\" is empty; provide the text or remove the setting."
+		}
 	}
 }
 
@@ -206,7 +263,7 @@ private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?
 	embeddedServer(
 		Jetty,
 		configure = {
-			configureServer(config)
+			configureServer(config, devMode)
 		},
 		module = {
 			appMain(config, logLevel = logLevel)
@@ -215,10 +272,13 @@ private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?
 }
 
 private fun JettyApplicationEngineBase.Configuration.configureServer(
-	config: ServerConfig
+	config: ServerConfig,
+	devMode: Boolean,
 ) {
 	require(config.bindHosts.isNotEmpty()) { "bindHosts must list at least one address" }
 
+	// The plain connector stays so reverse-proxy deployments can forward plain HTTP to Hammer;
+	// clients themselves are HTTPS-only and talk TLS to the proxy.
 	config.bindHosts.forEach { bindHost ->
 		connector {
 			port = config.port
@@ -226,30 +286,64 @@ private fun JettyApplicationEngineBase.Configuration.configureServer(
 		}
 	}
 
-	config.sslCert?.apply {
-		require(validate()) { "SSL config must have either keystore (path + storePassword) or PEM files (certChainPath + privateKeyPath)" }
+	val sslCert = config.sslCert
+	if (sslCert != null) {
+		require(sslCert.validate()) { "SSL config must have either keystore (path + storePassword) or PEM files (certChainPath + privateKeyPath)" }
 
-		val keyStore = getKeyStore(this)
-		val alias = if (usePem()) "server" else (keyAlias ?: "")
-		val storePass = if (usePem()) "" else (storePassword ?: "")
-		val keyPass = if (usePem()) "" else (keyPassword ?: "")
+		val keyStore = getKeyStore(sslCert)
+		val alias = if (sslCert.usePem()) "server" else (sslCert.keyAlias ?: "")
+		val storePass = if (sslCert.usePem()) "" else (sslCert.storePassword ?: "")
+		val keyPass = if (sslCert.usePem()) "" else (sslCert.keyPassword ?: "")
+		val keyStorePath = if (!sslCert.usePem() && sslCert.path != null) File(sslCert.path) else null
 
-		config.bindHosts.forEach { bindHost ->
-			sslConnector(
-				keyStore = keyStore,
-				keyAlias = alias,
-				keyStorePassword = { storePass.toCharArray() },
-				privateKeyPassword = { keyPass.toCharArray() }
-			) {
-				if (!usePem() && path != null) {
-					this.keyStorePath = File(path)
-				}
-				host = bindHost
-				port = config.sslPort
-			}
+		bindSslConnectors(config, keyStore, alias, storePass, keyPass, config.sslPort, keyStorePath)
+	} else if (devMode) {
+		configureDevTlsConnector(config)
+	}
+}
+
+/**
+ * Binds a TLS connector backed by an auto-generated self-signed cert, for the dev loop where
+ * no real certificate is configured. Never reached in production: absent an [ServerConfig.sslCert]
+ * a production server serves plain HTTP only (the reverse-proxy deployment shape).
+ */
+private fun JettyApplicationEngineBase.Configuration.configureDevTlsConnector(config: ServerConfig) {
+	val dev = DevSelfSignedCert.getOrCreate()
+	// 443 is privileged on Linux/macOS; when the operator hasn't overridden the default, fall back
+	// to a non-privileged port so the dev server boots without root.
+	val port = if (config.sslPort == ServerConfig.DEFAULT_SSL_PORT) DEV_TLS_FALLBACK_PORT else config.sslPort
+	configLogger.warn(
+		"Dev mode: no sslCert configured, serving a self-signed certificate on port $port " +
+			"(keystore: ${dev.path}). Clients must trust it — the desktop --dev client does so automatically."
+	)
+	bindSslConnectors(config, dev.keyStore, dev.alias, dev.password, dev.password, port, keyStorePath = null)
+}
+
+/** Binds one TLS connector per bind host, sharing the same keystore-backed configuration. */
+private fun JettyApplicationEngineBase.Configuration.bindSslConnectors(
+	config: ServerConfig,
+	keyStore: KeyStore,
+	alias: String,
+	storePassword: String,
+	keyPassword: String,
+	sslPort: Int,
+	keyStorePath: File?,
+) {
+	config.bindHosts.forEach { bindHost ->
+		sslConnector(
+			keyStore = keyStore,
+			keyAlias = alias,
+			keyStorePassword = { storePassword.toCharArray() },
+			privateKeyPassword = { keyPassword.toCharArray() },
+		) {
+			if (keyStorePath != null) this.keyStorePath = keyStorePath
+			host = bindHost
+			port = sslPort
 		}
 	}
 }
+
+private const val DEV_TLS_FALLBACK_PORT = 8443
 
 internal fun getKeyStore(sslConfig: SslCertConfig): KeyStore {
 	return if (sslConfig.usePem()) {
@@ -288,6 +382,7 @@ fun Application.appMain(
 	configurePatreonPolling(config)
 	configureMonitoringJob()
 	configureTokenMaintenanceJob()
+	configureWhitelistExpiryJob()
 }
 
 fun cliKeyringCodec(): KeyringCodec =

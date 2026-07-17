@@ -16,6 +16,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isCtrlPressed
+import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
@@ -71,11 +73,20 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 		onCloseRequest = ::exitApplication,
 		icon = painterResource("icon.png"),
 		onKeyEvent = { event ->
-			if ((event.key == Key.Escape) && (event.type == KeyEventType.KeyUp)) {
-				backDispatcher.back()
-				true
-			} else {
-				false
+			when {
+				event.key == Key.Escape && event.type == KeyEventType.KeyUp -> {
+					backDispatcher.back()
+					true
+				}
+
+				event.type == KeyEventType.KeyDown &&
+					event.key == Key.Q &&
+					(event.isCtrlPressed || event.isMetaPressed) -> {
+					exitApplication()
+					true
+				}
+
+				else -> false
 			}
 		}
 	) {

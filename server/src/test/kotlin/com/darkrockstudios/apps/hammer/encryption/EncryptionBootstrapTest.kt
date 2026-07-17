@@ -21,6 +21,7 @@ import java.security.SecureRandom
 import kotlin.io.encoding.Base64
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertNotEquals
 
 class EncryptionBootstrapTest : BaseTest() {
 
@@ -120,7 +121,10 @@ class EncryptionBootstrapTest : BaseTest() {
 
 		bootstrap(mode = EncryptionMode.AES).run()
 
-		assertEquals("aesgcm:v1", entityRow(1).cipher)
+		val row = entityRow(1)
+		assertEquals("aesgcm:v1", row.cipher)
+		assertNotEquals("open", row.content)
+		assertEquals("open", aesV1.decrypt(row.content, cipherSecret))
 		assertEquals("aesgcm:v1", marker())
 	}
 

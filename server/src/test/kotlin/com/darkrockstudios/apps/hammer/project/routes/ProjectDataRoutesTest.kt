@@ -232,6 +232,7 @@ class ProjectDataRoutesTest : BaseTest() {
 
 		assertEquals(HttpStatusCode.OK, response.status)
 		val dto = response.body<ProjectDataDto>()
+		assertEquals(sampleData, dto.data)
 		assertEquals("hash-new", dto.hash)
 		coVerify {
 			serverProjectDataRepository.save(

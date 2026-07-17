@@ -75,10 +75,15 @@ class FileLogger(
 		// Delegate to DebugAntilog for console output
 		debugAntilog.log(priority, tag, throwable, message)
 
-		// Write to file
-		if (message != null) {
+		// Write to file, appending the stack trace so errors keep their throwable in the log.
+		if (message != null || throwable != null) {
 			val timestamp = clock.now()
-			val logLine = "$timestamp | $priority | ${tag ?: ""} | $message\n"
+			val body = when {
+				throwable == null -> message
+				message == null -> throwable.stackTraceToString()
+				else -> "$message\n${throwable.stackTraceToString()}"
+			}
+			val logLine = "$timestamp | $priority | ${tag ?: ""} | $body\n"
 			messageChannel.trySendBlocking(logLine)
 		}
 	}

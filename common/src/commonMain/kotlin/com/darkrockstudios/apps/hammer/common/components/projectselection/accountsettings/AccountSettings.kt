@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection.accou
 
 import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
 import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
@@ -21,13 +22,15 @@ interface AccountSettings : ComponentToaster {
 	fun beginSetupServer()
 	fun cancelServerSetup()
 	fun setupServer(
-		ssl: Boolean,
 		url: String,
 		email: String,
 		password: String,
 		create: Boolean,
 		removeLocalContent: Boolean
 	)
+
+	fun acceptTos()
+	fun declineTos()
 
 	suspend fun authTest(): Boolean
 	fun removeServer()
@@ -38,7 +41,6 @@ interface AccountSettings : ComponentToaster {
 	suspend fun setMaxBackups(value: Int): Boolean
 	fun reauthenticate()
 	fun updateServerUrl(url: String)
-	fun updateServerSsl(ssl: Boolean)
 	fun updateServerEmail(email: String)
 	fun updateServerPassword(password: String)
 
@@ -52,18 +54,17 @@ interface AccountSettings : ComponentToaster {
 		val location: ProjectSelection.Locations = ProjectSelection.Locations.Projects,
 		val uiTheme: UiTheme,
 		val currentUserId: Long? = null,
-		val currentSsl: Boolean? = null,
 		val currentUrl: String? = null,
 		val currentEmail: String? = null,
 		val serverSetup: Boolean = false,
 		val serverIsLoggedIn: Boolean = false,
-		val serverSsl: Boolean = true,
 		val serverUrl: String? = null,
 		val serverEmail: String? = null,
 		// Never persist the password to disk; drop stale error/working state on restore.
 		@Transient val serverPassword: String? = null,
 		@Transient val serverError: String? = null,
 		@Transient val serverWorking: Boolean = false,
+		@Transient val tosChallenge: TermsOfServiceChallenge? = null,
 		val syncAutomaticSync: Boolean,
 		val syncAutomaticBackups: Boolean,
 		val syncAutoCloseDialog: Boolean,

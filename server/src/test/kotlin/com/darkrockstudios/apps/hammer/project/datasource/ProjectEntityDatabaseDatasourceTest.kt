@@ -125,12 +125,13 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 			.executeAsOneOrNull()
 		assertNull(result)
 
-		datasource.createProject(userId, projectDef.name)
+		val created = datasource.createProject(userId, projectDef.name)
 
 		result = testDatabase.serverDatabase.projectQueries
 			.findProjectByName(1, projectDef.name)
 			.executeAsOneOrNull()
 		assertNotNull(result)
+		assertEquals(created.uuid.id, result.uuid)
 	}
 
 	@Test
@@ -351,10 +352,9 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		)
 		assertTrue(result.isSuccess)
 
-		val exists = testDatabase.serverDatabase.storyEntityQueries
-			.checkExists(userId, 1, entityId.toLong())
-			.executeAsOne()
-		assertTrue(exists)
+		val row = getRow(entityId.toLong())
+		assertEquals(entity.hash(), row.hash)
+		assertEquals(entity, loadScene(datasource, entityId))
 	}
 
 	@Test
@@ -414,6 +414,9 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		val datasource = createDatasource()
 		val success = datasource.renameProject(userId, projectDef.uuid, newProjectName)
 		assertTrue(success)
+
+		val renamed = datasource.getProject(userId, projectDef.uuid)
+		assertEquals(newProjectName, renamed?.name)
 	}
 
 	@Test

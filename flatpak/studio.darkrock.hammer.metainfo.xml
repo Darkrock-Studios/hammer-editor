@@ -24,14 +24,22 @@
 
 	<launchable type="desktop-id">studio.darkrock.hammer.desktop</launchable>
 
-	<url type="homepage">https://github.com/Wavesonics/hammer-editor</url>
-	<url type="bugtracker">https://github.com/Wavesonics/hammer-editor/issues</url>
+	<url type="homepage">https://github.com/Darkrock-Studios/hammer-editor</url>
+	<url type="bugtracker">https://github.com/Darkrock-Studios/hammer-editor/issues</url>
 
-	<developer_name>Wavesonics</developer_name>
+<developer_name>Darkrock-Studios</developer_name>
 
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.6.1" date="2026-07-12">
+            <description>
+                <p>- [New] Re-added translations</p>
+                <p>- [New] iOS can now export logs</p>
+                <p>- [Fix] Encyclopedia image selection</p>
+                <p>- [Fix] Focus mode UI padding on Desktop</p>
+            </description>
+        </release>
         <release version="3.6.0" date="2026-07-07">
             <description>
                 <p>[New]</p>
@@ -326,27 +334,27 @@
 
 	<screenshots>
 		<screenshot type="default">
-			<image>https://raw.githubusercontent.com/Wavesonics/hammer-editor/93901e0f4c802508d33e29f34d515f506a9ef989/readme/preview.png</image>
+			<image>https://raw.githubusercontent.com/Darkrock-Studios/hammer-editor/93901e0f4c802508d33e29f34d515f506a9ef989/readme/preview.png</image>
 			<caption>Hammer story editor interface showing the project browser, scene editor, and timeline features</caption>
 		</screenshot>
 		<screenshot type="default">
-			<image>https://raw.githubusercontent.com/Wavesonics/hammer-editor/93901e0f4c802508d33e29f34d515f506a9ef989/readme/screenshots/desktop/hammer-linux-02.png</image>
+			<image>https://raw.githubusercontent.com/Darkrock-Studios/hammer-editor/93901e0f4c802508d33e29f34d515f506a9ef989/readme/screenshots/desktop/hammer-linux-02.png</image>
 			<caption>Project Stats</caption>
 		</screenshot>
 		<screenshot type="default">
-			<image>https://raw.githubusercontent.com/Wavesonics/hammer-editor/93901e0f4c802508d33e29f34d515f506a9ef989/readme/screenshots/desktop/hammer-linux-03.png</image>
+			<image>https://raw.githubusercontent.com/Darkrock-Studios/hammer-editor/93901e0f4c802508d33e29f34d515f506a9ef989/readme/screenshots/desktop/hammer-linux-03.png</image>
 			<caption>Scene Editor</caption>
 		</screenshot>
 		<screenshot type="default">
-			<image>https://raw.githubusercontent.com/Wavesonics/hammer-editor/93901e0f4c802508d33e29f34d515f506a9ef989/readme/screenshots/desktop/hammer-linux-04.png</image>
+			<image>https://raw.githubusercontent.com/Darkrock-Studios/hammer-editor/93901e0f4c802508d33e29f34d515f506a9ef989/readme/screenshots/desktop/hammer-linux-04.png</image>
 			<caption>Notes</caption>
 		</screenshot>
 		<screenshot type="default">
-			<image>https://raw.githubusercontent.com/Wavesonics/hammer-editor/93901e0f4c802508d33e29f34d515f506a9ef989/readme/screenshots/desktop/hammer-linux-05.png</image>
+			<image>https://raw.githubusercontent.com/Darkrock-Studios/hammer-editor/93901e0f4c802508d33e29f34d515f506a9ef989/readme/screenshots/desktop/hammer-linux-05.png</image>
 			<caption>Encyclopedia</caption>
 		</screenshot>
 		<screenshot type="default">
-			<image>https://raw.githubusercontent.com/Wavesonics/hammer-editor/93901e0f4c802508d33e29f34d515f506a9ef989/readme/screenshots/desktop/hammer-linux-06.png</image>
+			<image>https://raw.githubusercontent.com/Darkrock-Studios/hammer-editor/93901e0f4c802508d33e29f34d515f506a9ef989/readme/screenshots/desktop/hammer-linux-06.png</image>
 			<caption>Timeline</caption>
 		</screenshot>
 	</screenshots>

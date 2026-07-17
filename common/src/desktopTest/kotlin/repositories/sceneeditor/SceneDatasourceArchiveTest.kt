@@ -197,7 +197,8 @@ class SceneDatasourceArchiveTest : BaseTest() {
 		val archivedPath = sceneDatasource.archiveScene(group)
 
 		// The file should have been moved
-		assertNotNull(archivedPath)
 		assertTrue(archivedPath.path.contains(SceneDatasource.ARCHIVED_DIRECTORY))
+		assertFalse(ffs.exists(groupPath.toOkioPath()), "Original group path should be gone")
+		assertTrue(ffs.exists(archivedPath.toOkioPath()), "Group should exist at the archived path")
 	}
 }

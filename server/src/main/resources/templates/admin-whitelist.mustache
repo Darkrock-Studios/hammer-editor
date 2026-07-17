@@ -58,7 +58,7 @@
 					  hx-post="/admin/whitelist/add"
 					  hx-target="#whitelist"
 					  hx-swap="innerHTML"
-					  hx-on::after-request="this.reset()">
+					  hx-on::after-request="this.reset(); syncAddExpiryDateVisibility()">
 					<input type="hidden" name="page" id="add-form-page" value="0"/>
 					<input type="hidden" name="sortOldestFirst" id="add-form-sort" value="false"/>
 					<div class="form-group">
@@ -70,6 +70,24 @@
 						<label for="reason" class="form-field__label">Reason (optional)</label>
 						<input id="reason" name="reason" type="text" class="form-input"
 							   placeholder="e.g., Beta tester, Friend of the project" maxlength="32"/>
+					</div>
+					<div class="form-group">
+						<label for="add-expiry-preset"
+							   class="form-field__label">{{msg.admin_whitelist_expiry_label}}</label>
+						<select id="add-expiry-preset" name="expiryPreset" class="form-select"
+								onchange="toggleExpiryDate(this, 'add-expiry-date-field')">
+							<option value="never" selected>{{msg.admin_whitelist_expiry_never}}</option>
+							<option value="7">{{msg.admin_whitelist_expiry_7days}}</option>
+							<option value="30">{{msg.admin_whitelist_expiry_30days}}</option>
+							<option value="90">{{msg.admin_whitelist_expiry_90days}}</option>
+							<option value="custom">{{msg.admin_whitelist_expiry_custom}}</option>
+						</select>
+						<p class="form-field__help">{{msg.admin_whitelist_expiry_help}}</p>
+					</div>
+					<div class="form-group hidden" id="add-expiry-date-field">
+						<label for="add-expiry-date"
+							   class="form-field__label form-field__label--small">{{msg.admin_whitelist_expiry_date_label}}</label>
+						<input id="add-expiry-date" name="expiryDate" type="date" class="form-input"/>
 					</div>
 					<div class="form-group">
 						<button type="submit"
@@ -126,7 +144,100 @@
 	</div>
 </div>
 
+<!-- Edit Expiry Dialog -->
+<div class="dialog-overlay hidden" id="edit-expiry-dialog">
+	<div class="dialog">
+		<div class="dialog__header">
+			<h3>{{msg.admin_whitelist_edit_expiry_title}}</h3>
+			<button class="dialog__close" onclick="closeEditExpiryDialog()">
+				<i class="fas fa-times"></i>
+			</button>
+		</div>
+		<form action="/admin/whitelist/edit-expiry" method="post"
+			  hx-post="/admin/whitelist/edit-expiry"
+			  hx-target="#whitelist"
+			  hx-swap="innerHTML"
+			  hx-on::after-request="closeEditExpiryDialog()">
+			<div class="dialog__body">
+				<p class="dialog__email-display" id="edit-expiry-email-display"></p>
+				<p class="whitelist-expiry__current">
+						{{msg.admin_whitelist_expiry_current}}
+						<span class="whitelist-expiry__current-value" id="edit-expiry-current"></span>
+					</p>
+					<input type="hidden" name="email" id="edit-expiry-email"/>
+				<input type="hidden" name="page" id="edit-expiry-page"/>
+				<input type="hidden" name="sortOldestFirst" id="edit-expiry-sort"/>
+				<div class="form-field">
+					<label for="edit-expiry-preset"
+						   class="form-field__label">{{msg.admin_whitelist_expiry_change_label}}</label>
+					<select id="edit-expiry-preset" name="expiryPreset" class="form-select"
+							onchange="toggleExpiryDate(this, 'edit-expiry-date-field')">
+						<option value="never">{{msg.admin_whitelist_expiry_never}}</option>
+						<option value="7">{{msg.admin_whitelist_expiry_extend_7days}}</option>
+						<option value="30">{{msg.admin_whitelist_expiry_extend_30days}}</option>
+						<option value="90">{{msg.admin_whitelist_expiry_extend_90days}}</option>
+						<option value="custom">{{msg.admin_whitelist_expiry_custom}}</option>
+					</select>
+					<p class="form-field__help">{{msg.admin_whitelist_expiry_help}}</p>
+				</div>
+				<div class="form-field hidden" id="edit-expiry-date-field">
+					<label for="edit-expiry-date"
+						   class="form-field__label form-field__label--small">{{msg.admin_whitelist_expiry_date_label}}</label>
+					<input type="date" id="edit-expiry-date" name="expiryDate" class="form-input"/>
+				</div>
+			</div>
+			<div class="dialog__actions">
+				<button type="button" class="btn btn--ghost"
+						onclick="closeEditExpiryDialog()">{{msg.admin_dialog_cancel}}</button>
+				<button type="submit" class="btn btn--accent">{{msg.admin_whitelist_save_expiry}}</button>
+			</div>
+		</form>
+	</div>
+</div>
+
 <script>
+	function toggleExpiryDate(select, fieldId) {
+		const field = document.getElementById(fieldId);
+		field.classList.toggle('hidden', select.value !== 'custom');
+	}
+
+	// form.reset() restores the select without firing onchange, so visibility is re-synced by hand.
+	function syncAddExpiryDateVisibility() {
+		toggleExpiryDate(document.getElementById('add-expiry-preset'), 'add-expiry-date-field');
+	}
+
+	function openEditExpiryDialog(btn) {
+		const email = btn.dataset.email;
+		const expiresRaw = btn.dataset.expiresRaw;
+
+		document.getElementById('edit-expiry-email-display').textContent = email;
+		document.getElementById('edit-expiry-current').textContent = btn.dataset.expires;
+		document.getElementById('edit-expiry-email').value = email;
+		document.getElementById('edit-expiry-page').value = btn.dataset.page;
+		document.getElementById('edit-expiry-sort').value = btn.dataset.sortOldestFirst;
+
+		// Default to a no-op: an entry with an expiry opens on "specific date" showing
+		// its current value; an entry with no expiry opens on "Never".
+		const preset = document.getElementById('edit-expiry-preset');
+		preset.value = expiresRaw ? 'custom' : 'never';
+		document.getElementById('edit-expiry-date').value = expiresRaw || '';
+		toggleExpiryDate(preset, 'edit-expiry-date-field');
+
+		const dialog = document.getElementById('edit-expiry-dialog');
+		dialog.classList.remove('hidden', 'closing');
+
+		setTimeout(() => preset.focus(), 100);
+	}
+
+	function closeEditExpiryDialog() {
+		const dialog = document.getElementById('edit-expiry-dialog');
+		dialog.classList.add('closing');
+		setTimeout(() => {
+			dialog.classList.add('hidden');
+			dialog.classList.remove('closing');
+		}, 200);
+	}
+
 	function openEditReasonDialog(btn) {
 		const email = btn.dataset.email;
 		const reason = btn.dataset.reason;
@@ -179,6 +290,10 @@
 			if (!dialog.classList.contains('hidden')) {
 				closeEditReasonDialog();
 			}
+			const expiryDialog = document.getElementById('edit-expiry-dialog');
+			if (!expiryDialog.classList.contains('hidden')) {
+				closeEditExpiryDialog();
+			}
 		}
 	});
 
@@ -186,6 +301,12 @@
 	document.getElementById('edit-reason-dialog').addEventListener('click', function (e) {
 		if (e.target === this) {
 			closeEditReasonDialog();
+		}
+	});
+
+	document.getElementById('edit-expiry-dialog').addEventListener('click', function (e) {
+		if (e.target === this) {
+			closeEditExpiryDialog();
 		}
 	});
 </script>

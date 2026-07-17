@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.CollateIdsOperation
 import getProjectDef
 import io.mockk.MockKAnnotations
+import io.mockk.coVerify
 import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
@@ -70,6 +71,10 @@ class CollateIdsOperationTest : BaseTest() {
 		assertTrue(isSuccess(result))
 		val data = result.data
 		assertIs<CollateIdsState>(data)
+
+		// The in-progress sync id must be stamped and persisted so an interrupted sync can recover.
+		assertEquals(beganResponse.syncId, data.clientSyncData.currentSyncId)
+		coVerify { syncDataDatasource.saveSyncData(projectData.copy(currentSyncId = beganResponse.syncId)) }
 
 		data.collatedIds.apply {
 			assertEquals(setOf(7, 8, 9), combinedDeletions)

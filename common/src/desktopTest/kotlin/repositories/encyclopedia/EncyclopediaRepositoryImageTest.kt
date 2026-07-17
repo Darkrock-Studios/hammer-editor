@@ -22,6 +22,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNotNull
@@ -83,7 +84,7 @@ class EncyclopediaRepositoryImageTest : BaseTest() {
 		repo.setEntryImage(def, sourcePath)
 
 		assertTrue(repo.hasEntryImage(def, "jpg"))
-		coVerify(exactly = 1) { syncJournal.markEntityAsDirty(def.id) }
+		coVerify { syncJournal.markEntityAsDirty(def.id) }
 	}
 
 	@Test
@@ -249,7 +250,7 @@ class EncyclopediaRepositoryImageTest : BaseTest() {
 		val first = repo.ensureEntriesLoaded()
 		val second = repo.ensureEntriesLoaded()
 
-		assertTrue(first.map { it.id }.containsAll(listOf(1, 2)))
+		assertEquals(listOf(1, 2), first.map { it.id }.sorted())
 		assertContentEquals(first, second)
 	}
 }

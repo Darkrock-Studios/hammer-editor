@@ -13,13 +13,18 @@ open class WhiteListDao(
 	private val ioDispatcher by injectIoDispatcher()
 	private val queries = database.serverDatabase.whiteListQueries
 
-	open suspend fun isWhiteListed(email: String): Boolean = withContext(ioDispatcher) {
-		val query = queries.isWhiteListed(email)
+	open suspend fun isWhiteListed(email: String, now: Instant): Boolean = withContext(ioDispatcher) {
+		val query = queries.isWhiteListed(email, now)
 		return@withContext query.executeAsOne()
 	}
 
-	open suspend fun addToWhiteList(email: String, dateAdded: Instant, reason: String): Unit = withContext(ioDispatcher) {
-		queries.addToWhiteList(email, dateAdded, reason)
+	open suspend fun addToWhiteList(
+		email: String,
+		dateAdded: Instant,
+		reason: String,
+		expires: Instant? = null,
+	): Unit = withContext(ioDispatcher) {
+		queries.addToWhiteList(email, dateAdded, reason, expires)
 	}
 
 	open suspend fun removeFromWhiteList(email: String): Unit = withContext(ioDispatcher) {
@@ -64,6 +69,7 @@ open class WhiteListDao(
 						email = it.email,
 						date_added = it.date_added,
 						reason = it.reason,
+						expires = it.expires,
 						has_account = it.has_account
 					)
 				}
@@ -71,6 +77,10 @@ open class WhiteListDao(
 				queries.getPaginatedWithAccountStatus(limit, offset).executeAsList()
 			}
 		}
+
+	open suspend fun getByEmail(email: String): WhiteList? = withContext(ioDispatcher) {
+		return@withContext queries.getByEmail(email).executeAsOneOrNull()
+	}
 
 	open suspend fun getByReason(reason: String): List<WhiteList> = withContext(ioDispatcher) {
 		return@withContext queries.getByReason(reason).executeAsList()
@@ -82,5 +92,17 @@ open class WhiteListDao(
 
 	open suspend fun updateReason(email: String, reason: String): Unit = withContext(ioDispatcher) {
 		queries.updateReason(reason, email)
+	}
+
+	open suspend fun updateExpiry(email: String, expires: Instant?): Unit = withContext(ioDispatcher) {
+		queries.updateExpiry(expires, email)
+	}
+
+	open suspend fun getExpired(now: Instant): List<WhiteList> = withContext(ioDispatcher) {
+		return@withContext queries.selectExpired(now).executeAsList()
+	}
+
+	open suspend fun deleteExpired(now: Instant): Unit = withContext(ioDispatcher) {
+		queries.deleteExpired(now)
 	}
 }

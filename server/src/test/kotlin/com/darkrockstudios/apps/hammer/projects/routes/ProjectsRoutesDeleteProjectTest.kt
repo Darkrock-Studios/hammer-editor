@@ -91,9 +91,16 @@ class ProjectsRoutesDeleteProjectTest : ProjectsRoutesBaseTest() {
 			header("Authorization", "Bearer $BEARER_TOKEN")
 			header(HEADER_SYNC_ID, syncId)
 
-			parameter("projectId", projectId)
+			parameter("projectId", projectId.id)
 		}.apply {
 			assertEquals(HttpStatusCode.InternalServerError, status)
+			coVerify {
+				projectsRepository.deleteProject(
+					userId = userId,
+					syncId = syncId,
+					projectId = projectId,
+				)
+			}
 		}
 	}
 }

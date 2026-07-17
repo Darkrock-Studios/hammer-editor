@@ -22,7 +22,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
 import utils.TestStrRes
-import kotlin.test.assertIs
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class BackupOperationTest : BaseTest() {
@@ -83,8 +83,7 @@ class BackupOperationTest : BaseTest() {
 		)
 
 		assertTrue(isSuccess(result))
-		val data = result.data
-		assertIs<CollateIdsState>(data)
+		assertEquals(initialState, result.data)
 
 		coVerify(exactly = 1) { backupRepository.createBackup(getProjectDef(PROJECT_2_NAME)) }
 	}
@@ -120,8 +119,7 @@ class BackupOperationTest : BaseTest() {
 		)
 
 		assertTrue(isSuccess(result))
-		val data = result.data
-		assertIs<CollateIdsState>(data)
+		assertEquals(initialState, result.data)
 
 		coVerify(exactly = 0) { backupRepository.createBackup(getProjectDef(PROJECT_2_NAME)) }
 	}
@@ -157,8 +155,7 @@ class BackupOperationTest : BaseTest() {
 		)
 
 		assertTrue(isSuccess(result))
-		val data = result.data
-		assertIs<CollateIdsState>(data)
+		assertEquals(initialState, result.data)
 
 		coVerify(exactly = 0) { backupRepository.createBackup(getProjectDef(PROJECT_2_NAME)) }
 	}

@@ -15,6 +15,8 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRe
 import getProject1Def
 import io.mockk.*
 import io.mockk.impl.annotations.MockK
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -23,7 +25,9 @@ import org.koin.dsl.module
 import repositories.encyclopedia.fakeEntry
 import utils.BaseTest
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ViewEntryComponentTest : BaseTest() {
 
 	@MockK
@@ -41,17 +45,21 @@ class ViewEntryComponentTest : BaseTest() {
 	@MockK
 	private lateinit var encyclopediaService: EncyclopediaService
 
+	private lateinit var backfillEntryReferences: BackfillEntryReferencesUseCase
+
 	@BeforeEach
 	override fun setup() {
 		super.setup()
 
 		MockKAnnotations.init(this, relaxUnitFun = true)
 
+		backfillEntryReferences = mockk(relaxed = true)
+
 		val testModule = module {
 			single { encyclopediaService } bind EncyclopediaService::class
 			single<ReferenceIndexService> { mockk(relaxed = true) }
 			single<SceneRepository> { mockk(relaxed = true) }
-			single<BackfillEntryReferencesUseCase> { mockk(relaxed = true) }
+			single { backfillEntryReferences } bind BackfillEntryReferencesUseCase::class
 		}
 		setupKoin(testModule)
 
@@ -101,7 +109,12 @@ class ViewEntryComponentTest : BaseTest() {
 			text = oldEntry.text,
 			tags = oldEntry.tags
 		)
+		advanceUntilIdle()
+
 		assertEquals(EntryError.NONE, result.error)
+		assertEquals(newEntry.toDef(proj), comp.state.value.entryDef)
+		assertEquals(newEntry, comp.state.value.content)
+		coVerify { backfillEntryReferences(newEntry) }
 	}
 
 	@Test
@@ -142,6 +155,11 @@ class ViewEntryComponentTest : BaseTest() {
 			text = oldEntry.text,
 			tags = oldEntry.tags
 		)
+		advanceUntilIdle()
+
 		assertEquals(EntryError.NAME_INVALID_CHARACTERS, result.error)
+		assertEquals(origDef, comp.state.value.entryDef)
+		assertNull(comp.state.value.content)
+		coVerify(exactly = 0) { backfillEntryReferences(any()) }
 	}
 }

@@ -79,12 +79,20 @@ class ClientSceneDraftSynchronizerTest : BaseTest() {
 	}
 
 	@Test
-	fun `getEntityHash returns a hash when present and null when absent`() = runTest {
+	fun `getEntityHash is deterministic and content-sensitive and null when absent`() = runTest {
 		every { sceneDraftRepository.getDraftDef(5) } returns draftDef(5)
 		every { sceneDraftRepository.loadDraftContent(any()) } returns "content"
 		every { sceneDraftRepository.getDraftDef(99) } returns null
 		val sync = newSynchronizer()
-		assertNotNull(sync.getEntityHash(5))
+
+		val hash = sync.getEntityHash(5)
+		assertNotNull(hash)
+		assertEquals(hash, sync.getEntityHash(5))
+
+		// Draft content must feed the sync hash, or edits never propagate.
+		every { sceneDraftRepository.loadDraftContent(any()) } returns "changed content"
+		assertNotEquals(hash, sync.getEntityHash(5))
+
 		assertNull(sync.getEntityHash(99))
 	}
 

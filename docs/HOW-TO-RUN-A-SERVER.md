@@ -13,8 +13,8 @@ _Note: For now, the server is only available as a Java executable. Eventually we
 The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 
 1. Download the latest server release:
-	- [ZIP](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.zip)
-	- [TAR](https://github.com/Wavesonics/hammer-editor/releases/latest/download/server.tar)
+	- [ZIP](https://github.com/Darkrock-Studios/hammer-editor/releases/latest/download/server.zip)
+	- [TAR](https://github.com/Darkrock-Studios/hammer-editor/releases/latest/download/server.tar)
 2. Extract the archive to your desired location
 3. Create your config file: `config.toml`. The server automatically loads a `config.toml` placed in its data directory (`~/hammer_data/`), so you don't need to pass `--config` if you put it there. To keep it elsewhere, pass its path with `--config` (see the platform-specific scripts below). It is strongly advised to use a port other than `80`, unless this is the only web-based program running on the system. If you intend to access the server by the host FQDN (e.g. `hammer.example.com`), make sure to set this in your DNS records; otherwise this will only be accessible via IP (e.g. `10.1.1.1`, `192.0.2.1`).
 
@@ -199,9 +199,12 @@ Run the server:
 ./run.sh
 ```
 
-## Setting up SSL (optional)
+## Setting up SSL (required for direct connections)
 
-_This step is optional but strongly recommended._
+**Hammer clients only speak `https`.** A client will never connect over plain HTTP, so a
+server that clients reach **directly** must terminate TLS. The only deployment that can run
+Hammer on plain HTTP is one sitting **behind a reverse proxy** — the proxy holds the
+certificate and forwards plain HTTP to Hammer on the same host.
 
 There are two ways to serve Hammer over `https`. Pick **one**:
 
@@ -211,6 +214,9 @@ There are two ways to serve Hammer over `https`. Pick **one**:
   Hammer. Preferred if you run other services on the same host. If you go this route,
   **skip the rest of this section** and follow
   [Reverse Proxy using Nginx](#reverse-proxy-using-nginx) instead.
+
+> The plain HTTP connector (`port`, default 8080) still exists solely for the reverse-proxy
+> case. Do not expose it directly to clients — they won't use it.
 
 If you want Hammer to terminate SSL itself, you'll first need to edit your server config file and
 add these lines:
@@ -222,13 +228,29 @@ forceHttps = true # Optional, defualts to true
 
 ### Getting an SSL Certificate
 
-#### Self-signed certs are not supported
+#### Self-signed certs are not supported in production
 
-Don't use a self-signed certificate. The mobile clients trust only the system CA store — Android
-won't trust user-added or self-signed CAs by default, and iOS rejects them too — so they'll fail the
-TLS handshake with no way to override it. Use a real certificate from **Let's Encrypt** below (or
-put
-Hammer behind a reverse proxy that holds one).
+Don't use a self-signed certificate for a real deployment. The mobile clients trust only the
+system CA store — Android won't trust user-added or self-signed CAs by default, and iOS rejects
+them too — so they'll fail the TLS handshake with no way to override it. The desktop client also
+rejects self-signed certs outside development mode. Use a real certificate from **Let's Encrypt**
+below (or put Hammer behind a reverse proxy that holds one).
+
+#### Development: automatic self-signed cert
+
+When you run the server with `--dev` and **no** `sslCert` configured, Hammer generates a
+self-signed certificate on first boot and serves it, persisting the keystore to
+`hammer_data/dev-selfsigned.jks` so it stays stable across restarts. To avoid the privileged
+port 443 (which needs root on Linux/macOS), the dev connector listens on **8443** by default;
+set `sslPort` to override. Point the client at `localhost:8443` or `127.0.0.1:8443`.
+
+The desktop client run with `--dev` trusts this self-signed cert, but **only for loopback hosts**
+(localhost / 127.0.0.1) — a `--dev` client talking to any other host still does full certificate
+and hostname validation, so pointing a dev build at a real server is not silently insecure.
+
+This path never activates without `--dev`; a production server with no `sslCert` serves plain HTTP
+only (for the reverse-proxy case). Mobile clients still won't trust the self-signed cert, so
+develop the mobile clients against a real certificate or a reverse proxy.
 
 #### Let's Encrypt
 

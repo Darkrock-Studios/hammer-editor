@@ -14,6 +14,7 @@ import io.ktor.http.*
 import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
@@ -79,6 +80,8 @@ class ProjectsTest : EndToEndTest() {
 				parameter("projectName", newProjectName)
 			}
 			assertEquals(HttpStatusCode.OK, createProjectResponse.status)
+			val createdProject: CreateProjectResponse = createProjectResponse.body()
+			assertFalse(createdProject.alreadyExisted)
 
 			// Delete Project
 			val deleteProjectResponse = get(api("projects/$userId/delete")) {
@@ -102,6 +105,34 @@ class ProjectsTest : EndToEndTest() {
 			}
 
 			assertEquals(HttpStatusCode.OK, endSyncResponse.status)
+
+			// A fresh sync must reflect the create and the delete
+			val verifySyncResponse = get(api("projects/$userId/begin_sync")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+					append("Authorization", "Bearer ${authToken.auth}")
+				}
+			}
+			assertEquals(HttpStatusCode.OK, verifySyncResponse.status)
+			val verifyBody: BeginProjectsSyncResponse = verifySyncResponse.body()
+
+			assertEquals(
+				setOf(ApiProjectDefinition(newProjectName, createdProject.projectId)),
+				verifyBody.projects,
+			)
+			assertTrue(
+				ProjectId.fromUUID(TestDataSet1.project1.uuid) in verifyBody.deletedProjects,
+				"The deleted project must be reported as deleted on the next sync",
+			)
+
+			val verifyEndSyncResponse = get(api("projects/$userId/end_sync")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+					append("Authorization", "Bearer ${authToken.auth}")
+					append(HEADER_SYNC_ID, verifyBody.syncId)
+				}
+			}
+			assertEquals(HttpStatusCode.OK, verifyEndSyncResponse.status)
 		}
 	}
 

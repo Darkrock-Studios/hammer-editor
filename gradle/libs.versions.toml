@@ -1,6 +1,6 @@
 [versions]
 # App Versions
-app = "3.6.0"
+app = "3.6.1"
 data_version = "1.0"
 
 # Kotlin
@@ -64,6 +64,7 @@ coil = "3.5.0"
 kmpalette = "3.1.0"
 
 koin_bom = "4.2.2"
+koin_plugin = "1.0.2"
 
 ktor = "3.5.1"
 ktor_plugin = "3.5.1"
@@ -215,6 +216,7 @@ coroutines_test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-
 
 koin_bom = { group = "io.insert-koin", name = "koin-bom", version.ref = "koin_bom" }
 koin_core = { group = "io.insert-koin", name = "koin-core" }
+koin_annotations = { group = "io.insert-koin", name = "koin-annotations" }
 koin_core_coroutines = { group = "io.insert-koin", name = "koin-core-coroutines" }
 koin_android = { group = "io.insert-koin", name = "koin-android" }
 koin_test = { group = "io.insert-koin", name = "koin-test" }
@@ -351,6 +353,7 @@ sqldelight = { id = "app.cash.sqldelight", version.ref = "sqldelight" }
 buildconfig = { id = "com.github.gmazzo.buildconfig", version.ref = "buildconfig" }
 aboutlibraries_plugin = { id = "com.mikepenz.aboutlibraries.plugin", version.ref = "aboutlibraries" }
 aboutlibraries_plugin_android = { id = "com.mikepenz.aboutlibraries.plugin.android", version.ref = "aboutlibraries" }
+koin_compiler = { id = "io.insert-koin.compiler.plugin", version.ref = "koin_plugin" }
 
 [bundles]
 koin_server = ["koin_core", "koin_core_coroutines", "koin_sl4j", "koin_ktor"]

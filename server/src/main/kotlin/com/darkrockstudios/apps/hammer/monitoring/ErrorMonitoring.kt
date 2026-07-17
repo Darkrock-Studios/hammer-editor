@@ -6,8 +6,18 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.auth.principal
 import io.ktor.server.request.path
+import io.ktor.utils.io.ClosedByteChannelException
 
 private const val MAX_STACK_CHARS = 8000
+
+/**
+ * True when the throwable is the client abandoning an in-flight response
+ * (navigation away, tab close, HTTP/2 stream reset) rather than a server fault.
+ * The engine surfaces the abort as a [ClosedByteChannelException] somewhere in
+ * the cause chain when the response body write fails.
+ */
+fun Throwable.isClientAbort(): Boolean =
+	generateSequence(this) { it.cause }.take(10).any { it is ClosedByteChannelException }
 
 /**
  * The HTTP status an unhandled throwable should resolve to. Only exceptions that

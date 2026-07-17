@@ -20,7 +20,6 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDa
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
-import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -46,7 +45,6 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
-import utils.getPrivateProperty
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
@@ -83,7 +81,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 	}
 
 	private fun verifyTreeAndFilesystem() {
-		val tree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.rawTree
 
 		// Verify tree nodes match file system nodes
 		tree.filter { !it.value.isRootScene }.forEach { node ->
@@ -201,7 +199,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 
 		verifyTreeAndFilesystem()
 
-		val tree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.rawTree
 		tree.forEachIndexed { index, node ->
 			when (index) {
 				0 -> assertTrue(node.value.isRootScene)
@@ -267,6 +265,10 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 		)
 
 		repo.initializeSceneEditor()
+
+		// The project still opens: the tree is loaded despite the failed rename pass.
+		assertTrue(repo.getSceneTree().totalChildren > 0)
+		assertNotNull(repo.getSceneItemFromId(1))
 	}
 
 	// Regression for #492: two scene files sharing one id crashed cleanupSceneOrder
@@ -283,7 +285,7 @@ class SceneEditorRepositoryOtherTest : BaseTest() {
 
 		repo.initializeSceneEditor()
 
-		val tree = repo.getPrivateProperty<SceneRepository, Tree<SceneItem>>("sceneTree")
+		val tree = repo.rawTree
 		val idsInTree = tree
 			.filter { !it.value.isRootScene }
 			.map { it.value.id }

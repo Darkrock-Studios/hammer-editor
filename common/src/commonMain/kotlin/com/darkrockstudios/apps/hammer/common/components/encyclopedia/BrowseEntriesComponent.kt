@@ -14,6 +14,10 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectInject
+import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import io.github.aakira.napier.Napier
 import io.github.reactivecircus.cache4k.Cache
 import kotlinx.coroutines.launch
@@ -34,7 +38,11 @@ class BrowseEntriesComponent(
 	private val _filterText = MutableValue(restoredFilter?.filterText ?: "")
 	override val filterText: Value<String> = _filterText
 
+	private val _tagIndex = MutableValue(TagIndex.EMPTY)
+	override val tagIndex: Value<TagIndex> = _tagIndex
+
 	private val encyclopediaService: EncyclopediaService by projectInject()
+	private val tagIndexService: TagIndexService by projectInject()
 
 	init {
 		stateKeeper.register(FILTER_KEY, SavedFilter.serializer()) {
@@ -45,11 +53,11 @@ class BrowseEntriesComponent(
 	private val entryContentCache = Cache.Builder<Int, EntryContainer>()
 		.maximumCacheSize(20)
 		.build()
-	private val indexByTag = mutableMapOf<String, MutableSet<Int>>()
 
 	override fun onCreate() {
 		super.onCreate()
 		watchEntries()
+		watchTagIndex()
 	}
 
 	override fun onResume() {
@@ -57,26 +65,10 @@ class BrowseEntriesComponent(
 		encyclopediaService.loadEntries()
 	}
 
-	private fun reindexEntries(entryDefs: List<EntryDef>) {
-		indexByTag.clear()
-		entryDefs.forEach { entryDef ->
-			val entryContainer = encyclopediaService.loadEntry(entryDef)
-			entryContainer.entry.tags.forEach { tag ->
-				val ids = indexByTag[tag]
-				if (ids == null) {
-					indexByTag[tag] = mutableSetOf(entryDef.id)
-				} else {
-					ids.add(entryDef.id)
-				}
-			}
-		}
-	}
-
 	private fun watchEntries() {
 		scope.launch {
 			encyclopediaService.entryListFlow.collect { entryDefs ->
 				entryContentCache.invalidateAll()
-				reindexEntries(entryDefs)
 
 				withContext(dispatcherMain) {
 					_state.getAndUpdate { state ->
@@ -84,6 +76,16 @@ class BrowseEntriesComponent(
 							entryDefs = entryDefs
 						)
 					}
+				}
+			}
+		}
+	}
+
+	private fun watchTagIndex() {
+		scope.launch {
+			tagIndexService.tagIndex.collect { index ->
+				withContext(dispatcherMain) {
+					if (index != _tagIndex.value) _tagIndex.value = index
 				}
 			}
 		}
@@ -98,56 +100,48 @@ class BrowseEntriesComponent(
 		_filterText.update { text ?: "" }
 	}
 
-	private val hashtagRegex = Regex("""#(\w+)""")
+	override fun addTagToSearch(tag: String) {
+		val parsed = parseQuery(_filterText.value)
+		if (parsed.tags.none { it.equals(tag, ignoreCase = true) }) {
+			_filterText.update { "$it #$tag".trim() }
+		}
+	}
+
 	override fun getFilteredEntries(): List<EntryDef> {
 		val type = state.value.filterType
-		val text = filterText.value
+		val parsed = parseQuery(filterText.value)
+		val index = tagIndexService.tagIndex.value
 
-		val tags = hashtagRegex.findAll(text).map {
-			it.groupValues[1]
-		}.filter { it.isNotBlank() }.toSet()
+		// Name matching ignores whitespace on both sides, so "darkforest" still
+		// finds "Dark Forest".
+		val searchTerm = parsed.text.filterNot { it.isWhitespace() }
 
-		// Remove hashtags
-		var searchTerms = text
-		tags.forEach {
-			searchTerms = searchTerms.replace("#$it", "")
+		val idsMatchingAllTags: Set<Int>? = if (parsed.tags.isEmpty()) {
+			null
+		} else {
+			parsed.tags.map { needle -> encyclopediaIdsMatchingTag(needle, index) }
+				.reduce { acc, ids -> acc intersect ids }
 		}
 
-		// Remove any remaining empty hashtags
-		searchTerms = searchTerms.replace("#", "")
-
-		// Remove all whitespace
-		searchTerms = searchTerms.replace(" ", "")
-
 		return state.value.entryDefs.filter { entry ->
-			val typeOk = (type == null || entry.type == type)
-			val cleanedName = entry.name.replace(" ", "")
-
-			val textOk = searchTerms.isBlank() || (
-				searchTerms.isNotBlank() &&
-					cleanedName.contains(
-						searchTerms.trim(),
-						ignoreCase = true
-					)
-				)
-
-			val tagOk = if (tags.isEmpty()) {
-				true
-			} else {
-				tags.any { tag ->
-					val partialTag = indexByTag.keys.any { curTag ->
-						curTag.startsWith(tag, true) && (indexByTag[curTag]?.contains(entry.id) == true)
-					}
-
-					val exactMatch = (indexByTag[tag]?.contains(entry.id) == true)
-
-					partialTag || exactMatch
-				}
-			}
+			val typeOk = type == null || entry.type == type
+			val textOk = searchTerm.isEmpty() ||
+				entry.name.filterNot { it.isWhitespace() }.contains(searchTerm, ignoreCase = true)
+			val tagOk = idsMatchingAllTags == null || entry.id in idsMatchingAllTags
 
 			typeOk && textOk && tagOk
 		}
 	}
+
+	// Substring, case-insensitive tag match against the project's tag universe -
+	// same semantics as Global Search and the project list.
+	private fun encyclopediaIdsMatchingTag(needle: String, index: TagIndex): Set<Int> =
+		index.tagToEntities
+			.asSequence()
+			.filter { (tag, _) -> tag.contains(needle, ignoreCase = true) }
+			.flatMap { (_, refs) -> refs.asSequence() }
+			.filter { it.type == TaggedEntityType.Encyclopedia }
+			.mapTo(mutableSetOf()) { it.id }
 
 	override suspend fun loadEntryContent(entryDef: EntryDef): EntryContent {
 		val cachedEntry = entryContentCache.get(entryDef.id)
@@ -182,10 +176,6 @@ class BrowseEntriesComponent(
 
 	override fun clearFilterText() {
 		_filterText.update { "" }
-	}
-
-	override fun addTagToSearch(tag: String) {
-		_filterText.update { "${filterText.value} #$tag" }
 	}
 
 	@Serializable

@@ -1,8 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-	Self-hosted sync servers are configured by the user at runtime and may be plain HTTP
-	(ServerSettings.ssl = false), so cleartext must stay permitted. From Android 17 (API 37)
-	the usesCleartextTraffic manifest flag is ignored without this config.
--->
-<network-security-config>
-	<base-config cleartextTrafficPermitted="true" />
-</network-security-config>

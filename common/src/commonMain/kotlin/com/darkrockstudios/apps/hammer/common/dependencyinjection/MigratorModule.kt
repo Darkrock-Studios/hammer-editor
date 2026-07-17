@@ -5,13 +5,13 @@ import com.darkrockstudios.apps.hammer.common.data.migrator.MigrateInlineAuthTok
 import com.darkrockstudios.apps.hammer.common.data.migrator.MigrateInstallIdToGlobal
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration0_1
 import com.darkrockstudios.apps.hammer.common.data.migrator.Migration1_2
-import org.koin.core.module.dsl.factoryOf
 import org.koin.dsl.module
+import org.koin.plugin.module.dsl.factory
 
 val migratorModule = module {
-	factoryOf(::DataMigrator)
-	factoryOf(::Migration0_1)
-	factoryOf(::Migration1_2)
-	factoryOf(::MigrateInstallIdToGlobal)
-	factoryOf(::MigrateInlineAuthTokens)
+	factory<DataMigrator>()
+	factory<Migration0_1>()
+	factory<Migration1_2>()
+	factory<MigrateInstallIdToGlobal>()
+	factory<MigrateInlineAuthTokens>()
 }

@@ -137,11 +137,12 @@ class SceneSynchronizerTest : BaseTest() {
 		////////////////////
 		// Test
 		val sync = defaultSceneSynchronizer()
-		sync.storeEntity(
+		val stored = sync.storeEntity(
 			serverEntity = serverEntity,
 			syncId = syncId,
 			onLog = {}
 		)
+		assertTrue(stored)
 
 		////////////////////
 		// Verify
@@ -189,11 +190,12 @@ class SceneSynchronizerTest : BaseTest() {
 		////////////////////
 		// Test
 		val sync = defaultSceneSynchronizer()
-		sync.storeEntity(
+		val stored = sync.storeEntity(
 			serverEntity = serverEntity,
 			syncId = syncId,
 			onLog = {}
 		)
+		assertTrue(stored)
 
 		////////////////////
 		// Verify
@@ -251,11 +253,12 @@ class SceneSynchronizerTest : BaseTest() {
 		////////////////////
 		// Test
 		val sync = defaultSceneSynchronizer()
-		sync.storeEntity(
+		val stored = sync.storeEntity(
 			serverEntity = serverEntity,
 			syncId = syncId,
 			onLog = {}
 		)
+		assertTrue(stored)
 
 		////////////////////
 		// Verify
@@ -297,11 +300,12 @@ class SceneSynchronizerTest : BaseTest() {
 		////////////////////
 		// Test
 		val sync = defaultSceneSynchronizer()
-		sync.storeEntity(
+		val stored = sync.storeEntity(
 			serverEntity = serverEntity,
 			syncId = syncId,
 			onLog = {}
 		)
+		assertTrue(stored)
 
 		////////////////////
 		// Verify
@@ -346,11 +350,12 @@ class SceneSynchronizerTest : BaseTest() {
 		////////////////////
 		// Test
 		val sync = defaultSceneSynchronizer()
-		sync.storeEntity(
+		val stored = sync.storeEntity(
 			serverEntity = serverEntity,
 			syncId = syncId,
 			onLog = {}
 		)
+		assertTrue(stored)
 
 		////////////////////
 		// Verify
@@ -503,11 +508,12 @@ class SceneSynchronizerTest : BaseTest() {
 		coEvery { sceneEditorRepository.storeSceneMarkdownRaw(content, filePath) } returns true
 
 		val sync = defaultSceneSynchronizer()
-		sync.storeEntity(
+		val stored = sync.storeEntity(
 			serverEntity = serverEntity,
 			syncId = syncId,
 			onLog = {}
 		)
+		assertTrue(stored)
 
 		coVerify(exactly = 1) {
 			sceneEditorService.storeMetadata(
@@ -816,7 +822,7 @@ class SceneSynchronizerTest : BaseTest() {
 		parentGroupNode.addChild(groupNode)
 
 		val sync = defaultSceneSynchronizer()
-		sync.storeEntity(serverEntity, syncId = syncId, onLog = {})
+		assertTrue(sync.storeEntity(serverEntity, syncId = syncId, onLog = {}))
 
 		assertEquals(0, groupNode.parent?.value?.id)
 	}

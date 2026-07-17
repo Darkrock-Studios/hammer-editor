@@ -13,8 +13,10 @@ import io.ktor.server.auth.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.get
+import kotlin.time.Instant
 
 private const val ERR_KEY_WHITELIST_EMAIL_MISSING = "api_admin_whitelist_error_emailmissing"
+private const val ERR_KEY_WHITELIST_EXPIRES_INVALID = "api_admin_whitelist_error_expiresinvalid"
 private const val ERR_KEY_ENABLE_WHITELIST_MISSING = "api_admin_enablewhitelist_enablemissing"
 private const val MSG_SUCCESS_KEY = "api_success"
 
@@ -48,7 +50,24 @@ private fun Route.addToWhiteList() {
 			return@put
 		}
 
-		val result = adminRepository.addToWhiteList(email)
+		// Optional ISO-8601 instant; absent means no expiry, exactly as before.
+		val expiresParam = call.request.queryParameters["expires"]
+		val expires = if (expiresParam == null) {
+			null
+		} else {
+			runCatching { Instant.parse(expiresParam) }.getOrElse {
+				call.respond(
+					status = HttpStatusCode.BadRequest,
+					HttpResponseError(
+						error = "invalid expires",
+						displayMessage = call.t(R(ERR_KEY_WHITELIST_EXPIRES_INVALID)),
+					),
+				)
+				return@put
+			}
+		}
+
+		val result = adminRepository.addToWhiteList(email, expires)
 		if (isSuccess(result)) {
 			call.respond("Success")
 		} else {

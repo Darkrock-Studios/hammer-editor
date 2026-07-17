@@ -133,12 +133,14 @@ class ReviewPageTest : EndToEndTest() {
 		doStartServer()
 		seedReview(ReviewStatus.SENT)
 
+		// "xx" resolves to the deliberately incomplete test-resource bundle
+		// (Messages_xx.properties); real locales are kept complete by Crowdin.
 		val response = client().get(route("review/$plainToken")) {
-			header(HttpHeaders.AcceptLanguage, "fr")
+			header(HttpHeaders.AcceptLanguage, "xx")
 		}
 
-		// The review keys only exist in the English bundle so far; the page must
-		// fall back to them rather than 500 on MissingResourceException.
+		// The review keys are missing from the bundle; the page must fall back
+		// to English rather than 500 on MissingResourceException.
 		assertEquals(HttpStatusCode.OK, response.status)
 		assertContains(response.bodyAsText(), "Submit Revisions")
 	}

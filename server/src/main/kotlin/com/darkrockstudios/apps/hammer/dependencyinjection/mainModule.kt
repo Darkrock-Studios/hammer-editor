@@ -30,6 +30,7 @@ import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
+import com.darkrockstudios.apps.hammer.admin.WhitelistExpiryJob
 import com.darkrockstudios.apps.hammer.patreon.PatreonApiClient
 import com.darkrockstudios.apps.hammer.patreon.PatreonPollingJob
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
@@ -123,6 +124,8 @@ fun mainModule(
 	singleOf(::PublishedStoryReaderDao)
 
 	singleOf(::AccountsRepository)
+	singleOf(::TermsOfServiceRepository)
+	singleOf(::PrivacyPolicyRepository)
 	singleOf(::ProjectsRepository)
 	singleOf(::ProjectEntityRepository)
 	singleOf(::ProjectAccessRepository)
@@ -137,12 +140,15 @@ fun mainModule(
 	singleOf(::MetricsCollector)
 	singleOf(::UserActivityCollector)
 	singleOf(::UserActivityRepository)
-	singleOf(::StoryReaderCollector)
+	// Explicit ctor: maxPendingKeys has a default, but a constructor reference would
+	// make Koin try to inject the Int rather than honor it.
+	single { StoryReaderCollector(clock = get()) }
 	singleOf(::StoryReaderRepository)
 	single { MonitoringState() }
 	single { RecurringTaskRegistry() }
 	singleOf(::MonitoringMaintenanceJob)
 	singleOf(::TokenMaintenanceJob)
+	singleOf(::WhitelistExpiryJob)
 	singleOf(::StoryExportService)
 	singleOf(::PenNameService)
 	singleOf(::BioService)

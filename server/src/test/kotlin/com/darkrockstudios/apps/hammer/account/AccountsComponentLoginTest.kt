@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.utilities.isFailure
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -32,6 +33,9 @@ class AccountsComponentLoginTest {
 
 	@MockK
 	private lateinit var configRepository: ConfigRepository
+
+	@MockK
+	private lateinit var termsOfServiceRepository: TermsOfServiceRepository
 
 	private val serverConfig = ServerConfig()
 
@@ -79,6 +83,7 @@ class AccountsComponentLoginTest {
 			whiteListRepository,
 			projectsRepository,
 			configRepository,
+			termsOfServiceRepository,
 			serverConfig
 		)
 		val result = comp.login(validEmail, validPassword, installId)
@@ -105,6 +110,7 @@ class AccountsComponentLoginTest {
 			whiteListRepository,
 			projectsRepository,
 			configRepository,
+			termsOfServiceRepository,
 			serverConfig
 		)
 		val result = comp.login(validEmail, validPassword, installId)
@@ -131,11 +137,14 @@ class AccountsComponentLoginTest {
 			whiteListRepository,
 			projectsRepository,
 			configRepository,
+			termsOfServiceRepository,
 			serverConfig
 		)
 		val result = comp.login(validEmail, validPassword, installId)
 
 		assertTrue(isFailure(result))
+		// Rejection must short-circuit before login mints (and persists) a token.
+		coVerify(exactly = 0) { accountsRepository.login(any(), any(), any()) }
 	}
 
 	@Test
@@ -155,6 +164,7 @@ class AccountsComponentLoginTest {
 			whiteListRepository,
 			projectsRepository,
 			configRepository,
+			termsOfServiceRepository,
 			serverConfig
 		)
 		val result = comp.login(validEmail, validPassword, installId)
@@ -174,6 +184,7 @@ class AccountsComponentLoginTest {
 			whiteListRepository,
 			projectsRepository,
 			configRepository,
+			termsOfServiceRepository,
 			serverConfig
 		)
 
@@ -199,6 +210,7 @@ class AccountsComponentLoginTest {
 			whiteListRepository,
 			projectsRepository,
 			configRepository,
+			termsOfServiceRepository,
 			serverConfig
 		)
 		val result = comp.login(validEmail, validPassword, installId)
