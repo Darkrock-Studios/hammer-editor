@@ -193,36 +193,55 @@ internal fun resolveServerConfig(
 
 	val config = configFile?.let { loadConfig(fileSystem, it) } ?: ServerConfig()
 
-	val resolved = resolveTermsOfServicePath(config, configFile?.parent)
-	validateTermsOfService(resolved, fileSystem)
+	val resolved = resolveConfigFilePaths(config, configFile?.parent)
+	validateConfigFiles(resolved, fileSystem)
 	return resolved
 }
 
 /**
- * A relative [ServerConfig.termsOfService] is resolved against the config file's own directory, so
- * a bare `tos.txt` sitting next to `config.toml` is found regardless of the server's working
- * directory. Absolute paths are left untouched.
+ * Operator-supplied plaintext files configured by a path in `config.toml` ([ServerConfig.termsOfService],
+ * [ServerConfig.privacyPolicy]). Each is resolved relative to the config file's directory and validated
+ * at startup by the same rules.
  */
-private fun resolveTermsOfServicePath(config: ServerConfig, configDir: Path?): ServerConfig {
-	val tosPath = config.termsOfService?.toPath() ?: return config
-	if (tosPath.isAbsolute || configDir == null) return config
-	return config.copy(termsOfService = configDir.resolve(tosPath).toString())
-}
+private class ConfigFileSetting(
+	val name: String,
+	val path: (ServerConfig) -> String?,
+	val withPath: (ServerConfig, String) -> ServerConfig,
+)
+
+private val configFileSettings = listOf(
+	ConfigFileSetting("termsOfService", { it.termsOfService }, { c, p -> c.copy(termsOfService = p) }),
+	ConfigFileSetting("privacyPolicy", { it.privacyPolicy }, { c, p -> c.copy(privacyPolicy = p) }),
+)
 
 /**
- * A configured [ServerConfig.termsOfService] must resolve to a readable, non-blank file. Aborting
- * startup on a bad path keeps a misconfiguration from silently disabling the terms-of-service gate.
+ * A relative config-file path is resolved against the config file's own directory, so a bare
+ * `tos.txt` sitting next to `config.toml` is found regardless of the working directory. Absolute
+ * paths are left untouched.
  */
-private fun validateTermsOfService(config: ServerConfig, fileSystem: FileSystem) {
-	val tosPath = config.termsOfService ?: return
-	val path = tosPath.toPath()
-
-	val metadata = fileSystem.metadataOrNull(path)
-	check(metadata?.isRegularFile == true) {
-		"termsOfService is set to \"$tosPath\" but no readable file exists there."
+private fun resolveConfigFilePaths(config: ServerConfig, configDir: Path?): ServerConfig =
+	configFileSettings.fold(config) { current, setting ->
+		val path = setting.path(current)?.toPath() ?: return@fold current
+		if (path.isAbsolute || configDir == null) current
+		else setting.withPath(current, configDir.resolve(path).toString())
 	}
-	check(fileSystem.read(path) { readUtf8() }.isNotBlank()) {
-		"termsOfService file \"$tosPath\" is empty; provide the terms text or remove the setting."
+
+/**
+ * Every configured config-file path must resolve to a readable, non-blank file. Aborting startup on
+ * a bad path keeps a misconfiguration from silently disabling the feature it gates.
+ */
+private fun validateConfigFiles(config: ServerConfig, fileSystem: FileSystem) {
+	for (setting in configFileSettings) {
+		val raw = setting.path(config) ?: continue
+		val path = raw.toPath()
+
+		val metadata = fileSystem.metadataOrNull(path)
+		check(metadata?.isRegularFile == true) {
+			"${setting.name} is set to \"$raw\" but no readable file exists there."
+		}
+		check(fileSystem.read(path) { readUtf8() }.isNotBlank()) {
+			"${setting.name} file \"$raw\" is empty; provide the text or remove the setting."
+		}
 	}
 }
 

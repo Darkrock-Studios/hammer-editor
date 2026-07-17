@@ -1,32 +1,49 @@
 <footer class="site-footer">
 	<div class="footer-content">
-		<div class="footer-links">
-			{{#hasAboutPage}}
-				<a href="/about">
-					<i class="fa-solid fa-info-circle"></i>
-					<span>{{msg.footer_about}}</span>
-				</a>
-			{{/hasAboutPage}}
-			<a href="https://github.com/Darkrock-Studios/hammer-editor" target="_blank">
+		{{#hasFooterNav}}
+			<nav class="footer-nav">
+				{{#hasAboutPage}}
+					<a href="/about">
+						<i class="fa-solid fa-info-circle"></i>
+						<span>{{msg.footer_about}}</span>
+					</a>
+				{{/hasAboutPage}}
+				{{#hasTermsPage}}
+					<a href="/terms">
+						<i class="fa-solid fa-file-contract"></i>
+						<span>{{msg.footer_terms}}</span>
+					</a>
+				{{/hasTermsPage}}
+				{{#hasPrivacyPage}}
+					<a href="/privacy">
+						<i class="fa-solid fa-user-shield"></i>
+						<span>{{msg.footer_privacy}}</span>
+					</a>
+				{{/hasPrivacyPage}}
+			</nav>
+		{{/hasFooterNav}}
+		<div class="footer-social">
+			<a href="https://github.com/Darkrock-Studios/hammer-editor" target="_blank" rel="noopener noreferrer" aria-label="{{msg.home_footer_github}}">
 				<i class="fa-brands fa-github"></i>
-				<span>{{msg.home_footer_github}}</span>
 			</a>
-			<a href="https://discord.gg/4ae6y4V4F5" target="_blank">
+			<a href="https://discord.gg/4ae6y4V4F5" target="_blank" rel="noopener noreferrer" aria-label="{{msg.home_footer_discord}}">
 				<i class="fa-brands fa-discord"></i>
-				<span>{{msg.home_footer_discord}}</span>
 			</a>
-			<a href="https://www.reddit.com/r/HammerEditor/" target="_blank">
+			<a href="https://www.reddit.com/r/HammerEditor/" target="_blank" rel="noopener noreferrer" aria-label="{{msg.home_footer_reddit}}">
 				<i class="fa-brands fa-reddit"></i>
-				<span>{{msg.home_footer_reddit}}</span>
 			</a>
-			<a href="https://www.youtube.com/@darkrockstudios/" target="_blank">
+			<a href="https://www.youtube.com/@darkrockstudios/" target="_blank" rel="noopener noreferrer" aria-label="{{msg.home_footer_youtube}}">
 				<i class="fa-brands fa-youtube"></i>
-				<span>{{msg.home_footer_youtube}}</span>
+			</a>
+			<a href="https://mastodon.social/@DarkRockStudios" target="_blank" rel="noopener noreferrer" aria-label="{{msg.home_footer_mastodon}}">
+				<i class="fa-brands fa-mastodon"></i>
+			</a>
+			<a href="https://bsky.app/profile/darkrockstudios.bsky.social" target="_blank" rel="noopener noreferrer" aria-label="{{msg.home_footer_bluesky}}">
+				<i class="fa-brands fa-bluesky"></i>
 			</a>
 			{{#patreonUrl}}
-				<a href="{{patreonUrl}}" target="_blank" rel="noopener noreferrer">
+				<a href="{{patreonUrl}}" target="_blank" rel="noopener noreferrer" aria-label="{{msg.home_footer_patreon}}">
 					<i class="fa-brands fa-patreon"></i>
-					<span>{{msg.home_footer_patreon}}</span>
 				</a>
 			{{/patreonUrl}}
 		</div>

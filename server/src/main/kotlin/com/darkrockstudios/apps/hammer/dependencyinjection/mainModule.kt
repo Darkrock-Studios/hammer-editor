@@ -124,6 +124,7 @@ fun mainModule(
 
 	singleOf(::AccountsRepository)
 	singleOf(::TermsOfServiceRepository)
+	singleOf(::PrivacyPolicyRepository)
 	singleOf(::ProjectsRepository)
 	singleOf(::ProjectEntityRepository)
 	singleOf(::ProjectAccessRepository)
