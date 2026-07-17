@@ -5,8 +5,6 @@ import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
 import com.darkrockstudios.apps.hammer.account.PenNameService
-import com.darkrockstudios.apps.hammer.account.PrivacyPolicyRepository
-import com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
@@ -82,8 +80,6 @@ fun Route.frontend() {
 	val bioService: BioService by inject()
 	val serverConfig: ServerConfig by inject()
 	val passwordResetRepository: PasswordResetRepository by inject()
-	val termsOfServiceRepository: TermsOfServiceRepository by inject()
-	val privacyPolicyRepository: PrivacyPolicyRepository by inject()
 	val markdownService: MarkdownService by inject()
 	val reviewRepository: com.darkrockstudios.apps.hammer.review.ReviewRepository by inject()
 	val projectDao: com.darkrockstudios.apps.hammer.database.ProjectDao by inject()
@@ -120,8 +116,8 @@ fun Route.frontend() {
 	setupPage(serverConfig)
 	homePage(whiteListRepository, configRepository, serverConfig, accountsRepository, projectAccessRepository)
 	aboutPage(configRepository, serverConfig, accountsRepository, projectAccessRepository, markdownService)
-	termsOfServicePage(termsOfServiceRepository)
-	privacyPolicyPage(privacyPolicyRepository)
+	termsOfServicePage()
+	privacyPolicyPage()
 	localeRoutes()
 	authRoutes(accountsRepository, whiteListRepository, configRepository, serverConfig)
 	passwordResetRoutes(passwordResetRepository)

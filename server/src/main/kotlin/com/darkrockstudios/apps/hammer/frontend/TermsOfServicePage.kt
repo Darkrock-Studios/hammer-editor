@@ -5,10 +5,10 @@ import io.ktor.http.*
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.koin.ktor.ext.inject
 
-fun Route.termsOfServicePage(
-	termsOfServiceRepository: TermsOfServiceRepository,
-) {
+fun Route.termsOfServicePage() {
+	val termsOfServiceRepository: TermsOfServiceRepository by inject()
 	route("/terms") {
 		get {
 			val challenge = termsOfServiceRepository.challenge()

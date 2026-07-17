@@ -5,10 +5,10 @@ import io.ktor.http.*
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.koin.ktor.ext.inject
 
-fun Route.privacyPolicyPage(
-	privacyPolicyRepository: PrivacyPolicyRepository,
-) {
+fun Route.privacyPolicyPage() {
+	val privacyPolicyRepository: PrivacyPolicyRepository by inject()
 	route("/privacy") {
 		get {
 			val text = privacyPolicyRepository.text()
