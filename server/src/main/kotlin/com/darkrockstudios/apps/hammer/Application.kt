@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
+import com.darkrockstudios.apps.hammer.utilities.DevSelfSignedCert
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utilities.loadPemAsKeyStore
 import com.github.ajalt.clikt.core.CliktCommand
@@ -242,7 +243,7 @@ private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?
 	embeddedServer(
 		Jetty,
 		configure = {
-			configureServer(config)
+			configureServer(config, devMode)
 		},
 		module = {
 			appMain(config, logLevel = logLevel)
@@ -251,10 +252,13 @@ private fun startServer(config: ServerConfig, devMode: Boolean, logLevel: Level?
 }
 
 private fun JettyApplicationEngineBase.Configuration.configureServer(
-	config: ServerConfig
+	config: ServerConfig,
+	devMode: Boolean,
 ) {
 	require(config.bindHosts.isNotEmpty()) { "bindHosts must list at least one address" }
 
+	// The plain connector stays so reverse-proxy deployments can forward plain HTTP to Hammer;
+	// clients themselves are HTTPS-only and talk TLS to the proxy.
 	config.bindHosts.forEach { bindHost ->
 		connector {
 			port = config.port
@@ -262,30 +266,64 @@ private fun JettyApplicationEngineBase.Configuration.configureServer(
 		}
 	}
 
-	config.sslCert?.apply {
-		require(validate()) { "SSL config must have either keystore (path + storePassword) or PEM files (certChainPath + privateKeyPath)" }
+	val sslCert = config.sslCert
+	if (sslCert != null) {
+		require(sslCert.validate()) { "SSL config must have either keystore (path + storePassword) or PEM files (certChainPath + privateKeyPath)" }
 
-		val keyStore = getKeyStore(this)
-		val alias = if (usePem()) "server" else (keyAlias ?: "")
-		val storePass = if (usePem()) "" else (storePassword ?: "")
-		val keyPass = if (usePem()) "" else (keyPassword ?: "")
+		val keyStore = getKeyStore(sslCert)
+		val alias = if (sslCert.usePem()) "server" else (sslCert.keyAlias ?: "")
+		val storePass = if (sslCert.usePem()) "" else (sslCert.storePassword ?: "")
+		val keyPass = if (sslCert.usePem()) "" else (sslCert.keyPassword ?: "")
+		val keyStorePath = if (!sslCert.usePem() && sslCert.path != null) File(sslCert.path) else null
 
-		config.bindHosts.forEach { bindHost ->
-			sslConnector(
-				keyStore = keyStore,
-				keyAlias = alias,
-				keyStorePassword = { storePass.toCharArray() },
-				privateKeyPassword = { keyPass.toCharArray() }
-			) {
-				if (!usePem() && path != null) {
-					this.keyStorePath = File(path)
-				}
-				host = bindHost
-				port = config.sslPort
-			}
+		bindSslConnectors(config, keyStore, alias, storePass, keyPass, config.sslPort, keyStorePath)
+	} else if (devMode) {
+		configureDevTlsConnector(config)
+	}
+}
+
+/**
+ * Binds a TLS connector backed by an auto-generated self-signed cert, for the dev loop where
+ * no real certificate is configured. Never reached in production: absent an [ServerConfig.sslCert]
+ * a production server serves plain HTTP only (the reverse-proxy deployment shape).
+ */
+private fun JettyApplicationEngineBase.Configuration.configureDevTlsConnector(config: ServerConfig) {
+	val dev = DevSelfSignedCert.getOrCreate()
+	// 443 is privileged on Linux/macOS; when the operator hasn't overridden the default, fall back
+	// to a non-privileged port so the dev server boots without root.
+	val port = if (config.sslPort == ServerConfig.DEFAULT_SSL_PORT) DEV_TLS_FALLBACK_PORT else config.sslPort
+	configLogger.warn(
+		"Dev mode: no sslCert configured, serving a self-signed certificate on port $port " +
+			"(keystore: ${dev.path}). Clients must trust it — the desktop --dev client does so automatically."
+	)
+	bindSslConnectors(config, dev.keyStore, dev.alias, dev.password, dev.password, port, keyStorePath = null)
+}
+
+/** Binds one TLS connector per bind host, sharing the same keystore-backed configuration. */
+private fun JettyApplicationEngineBase.Configuration.bindSslConnectors(
+	config: ServerConfig,
+	keyStore: KeyStore,
+	alias: String,
+	storePassword: String,
+	keyPassword: String,
+	sslPort: Int,
+	keyStorePath: File?,
+) {
+	config.bindHosts.forEach { bindHost ->
+		sslConnector(
+			keyStore = keyStore,
+			keyAlias = alias,
+			keyStorePassword = { storePassword.toCharArray() },
+			privateKeyPassword = { keyPassword.toCharArray() },
+		) {
+			if (keyStorePath != null) this.keyStorePath = keyStorePath
+			host = bindHost
+			port = sslPort
 		}
 	}
 }
+
+private const val DEV_TLS_FALLBACK_PORT = 8443
 
 internal fun getKeyStore(sslConfig: SslCertConfig): KeyStore {
 	return if (sslConfig.usePem()) {

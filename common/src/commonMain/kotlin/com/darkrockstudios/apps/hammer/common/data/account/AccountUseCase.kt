@@ -23,7 +23,6 @@ class AccountUseCase(
 	private val strRes: StrRes,
 ) {
 	suspend fun setupServer(
-		ssl: Boolean,
 		url: String,
 		email: String,
 		password: String,
@@ -33,7 +32,6 @@ class AccountUseCase(
 		val installId = globalSettingsStore.ensureInstallId()
 		val newSettings = ServerSettings(
 			userId = -1,
-			ssl = ssl,
 			url = url,
 			email = email,
 			bearerToken = null,

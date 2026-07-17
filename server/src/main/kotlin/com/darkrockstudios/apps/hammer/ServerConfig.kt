@@ -19,7 +19,7 @@ data class ServerConfig(
 	 */
 	val bindHosts: List<String> = listOf("0.0.0.0"),
 	val port: Int = 8080,
-	val sslPort: Int = 443,
+	val sslPort: Int = DEFAULT_SSL_PORT,
 	/**
 	 * The externally visible base URL (e.g. "https://hammer.example.com"), used for
 	 * links placed in emails. Set this when running behind a reverse proxy; otherwise
@@ -45,6 +45,10 @@ data class ServerConfig(
 	@Transient
 	val emailProviderType: EmailProvider? = emailProvider?.let { provider ->
 		EmailProvider.entries.find { it.name.equals(provider, ignoreCase = true) }
+	}
+
+	companion object {
+		const val DEFAULT_SSL_PORT = 443
 	}
 }
 

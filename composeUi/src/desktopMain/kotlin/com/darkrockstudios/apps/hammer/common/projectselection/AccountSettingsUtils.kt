@@ -57,7 +57,6 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 		override fun beginSetupServer() {}
 		override fun cancelServerSetup() {}
 		override fun setupServer(
-			ssl: Boolean,
 			url: String,
 			email: String,
 			password: String,
@@ -77,7 +76,6 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 		override suspend fun setMaxBackups(value: Int) = true
 		override fun reauthenticate() {}
 		override fun updateServerUrl(url: String) {}
-		override fun updateServerSsl(ssl: Boolean) {}
 		override fun updateServerEmail(email: String) {}
 		override fun updateServerPassword(password: String) {}
 		override val spellCheckSettings: SpellCheckSettings

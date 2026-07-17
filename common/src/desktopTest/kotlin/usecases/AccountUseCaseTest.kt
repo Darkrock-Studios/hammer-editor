@@ -63,7 +63,6 @@ class AccountUseCaseTest : BaseTest() {
 	fun `Create account successfully`() = runTest {
 		val token = Token(1, "test-auth", "test-refresh")
 		val settings = ServerSettings(
-			ssl = false,
 			url = "hammer.ink",
 			email = "test@example.com",
 			userId = 1,
@@ -83,7 +82,6 @@ class AccountUseCaseTest : BaseTest() {
 		val usecase = createSut()
 
 		val result = usecase.setupServer(
-			ssl = false,
 			url = settings.url,
 			email = settings.email,
 			password = "password",
@@ -117,7 +115,6 @@ class AccountUseCaseTest : BaseTest() {
 	fun `Create account failure`() = runTest {
 		val token = Token(1, "test-auth", "test-refresh")
 		val settings = ServerSettings(
-			ssl = false,
 			url = "hammer.ink",
 			email = "test@example.com",
 			userId = 1,
@@ -139,7 +136,6 @@ class AccountUseCaseTest : BaseTest() {
 		val usecase = createSut()
 
 		val result = usecase.setupServer(
-			ssl = false,
 			url = settings.url,
 			email = settings.email,
 			password = "password",
@@ -166,7 +162,6 @@ class AccountUseCaseTest : BaseTest() {
 		val usecase = createSut()
 
 		val result = usecase.setupServer(
-			ssl = false,
 			url = "hammer.ink",
 			email = "test@example.com",
 			password = "password",
@@ -190,7 +185,6 @@ class AccountUseCaseTest : BaseTest() {
 		val usecase = createSut()
 
 		val result = usecase.setupServer(
-			ssl = false,
 			url = "hammer.ink",
 			email = "test@example.com",
 			password = "password",
@@ -206,7 +200,6 @@ class AccountUseCaseTest : BaseTest() {
 	fun `Login account successfully`() = runTest {
 		val token = Token(1, "test-auth", "test-refresh")
 		val settings = ServerSettings(
-			ssl = false,
 			url = "hammer.ink",
 			email = "test@example.com",
 			userId = 1,
@@ -226,7 +219,6 @@ class AccountUseCaseTest : BaseTest() {
 		val usecase = createSut()
 
 		val result = usecase.setupServer(
-			ssl = false,
 			url = settings.url,
 			email = settings.email,
 			password = "password",
