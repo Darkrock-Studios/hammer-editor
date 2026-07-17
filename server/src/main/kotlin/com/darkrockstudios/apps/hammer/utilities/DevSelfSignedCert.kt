@@ -16,6 +16,9 @@ import java.security.KeyStore
  */
 object DevSelfSignedCert {
 	private const val ALIAS = "server"
+
+	// nosemgrep: generic.secrets.gitleaks.hashicorp-tf-password.hashicorp-tf-password -- not a
+	// secret; guards a throwaway self-signed keystore generated locally in dev mode.
 	private const val PASSWORD = "hammer-dev"
 	private const val FILE_NAME = "dev-selfsigned.jks"
 

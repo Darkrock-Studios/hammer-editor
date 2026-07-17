@@ -71,7 +71,7 @@ private fun loopbackTrustingSslContext(): SSLContext {
 
 		override fun getAcceptedIssuers(): Array<X509Certificate> = default.acceptedIssuers
 	}
-	return SSLContext.getInstance("TLS").apply {
+	return SSLContext.getInstance("TLSv1.3").apply {
 		init(null, arrayOf(trustManager), SecureRandom())
 	}
 }
