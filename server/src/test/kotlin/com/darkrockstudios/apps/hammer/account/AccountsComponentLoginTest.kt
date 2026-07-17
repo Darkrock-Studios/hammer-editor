@@ -34,6 +34,9 @@ class AccountsComponentLoginTest {
 	@MockK
 	private lateinit var configRepository: ConfigRepository
 
+	@MockK
+	private lateinit var termsOfServiceRepository: TermsOfServiceRepository
+
 	private val serverConfig = ServerConfig()
 
 	private val validEmail = "test@test.com"
@@ -80,6 +83,7 @@ class AccountsComponentLoginTest {
 			whiteListRepository,
 			projectsRepository,
 			configRepository,
+			termsOfServiceRepository,
 			serverConfig
 		)
 		val result = comp.login(validEmail, validPassword, installId)
@@ -106,6 +110,7 @@ class AccountsComponentLoginTest {
 			whiteListRepository,
 			projectsRepository,
 			configRepository,
+			termsOfServiceRepository,
 			serverConfig
 		)
 		val result = comp.login(validEmail, validPassword, installId)
@@ -132,6 +137,7 @@ class AccountsComponentLoginTest {
 			whiteListRepository,
 			projectsRepository,
 			configRepository,
+			termsOfServiceRepository,
 			serverConfig
 		)
 		val result = comp.login(validEmail, validPassword, installId)
@@ -158,6 +164,7 @@ class AccountsComponentLoginTest {
 			whiteListRepository,
 			projectsRepository,
 			configRepository,
+			termsOfServiceRepository,
 			serverConfig
 		)
 		val result = comp.login(validEmail, validPassword, installId)
@@ -177,6 +184,7 @@ class AccountsComponentLoginTest {
 			whiteListRepository,
 			projectsRepository,
 			configRepository,
+			termsOfServiceRepository,
 			serverConfig
 		)
 
@@ -202,6 +210,7 @@ class AccountsComponentLoginTest {
 			whiteListRepository,
 			projectsRepository,
 			configRepository,
+			termsOfServiceRepository,
 			serverConfig
 		)
 		val result = comp.login(validEmail, validPassword, installId)

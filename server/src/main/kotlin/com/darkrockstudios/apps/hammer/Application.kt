@@ -178,14 +178,50 @@ internal fun resolveServerConfig(
 	configPath: String?,
 	fileSystem: FileSystem = FileSystem.SYSTEM,
 ): ServerConfig {
-	if (configPath != null) return loadConfig(fileSystem, configPath.toPath())
-
-	val defaultConfig = getRootDataDirectory(fileSystem) / DEFAULT_CONFIG_FILE_NAME
-	return if (fileSystem.exists(defaultConfig)) {
-		configLogger.info("Loading config from default location: $defaultConfig")
-		loadConfig(fileSystem, defaultConfig)
+	val configFile: Path? = if (configPath != null) {
+		configPath.toPath()
 	} else {
-		ServerConfig()
+		val defaultConfig = getRootDataDirectory(fileSystem) / DEFAULT_CONFIG_FILE_NAME
+		if (fileSystem.exists(defaultConfig)) {
+			configLogger.info("Loading config from default location: $defaultConfig")
+			defaultConfig
+		} else {
+			null
+		}
+	}
+
+	val config = configFile?.let { loadConfig(fileSystem, it) } ?: ServerConfig()
+
+	val resolved = resolveTermsOfServicePath(config, configFile?.parent)
+	validateTermsOfService(resolved, fileSystem)
+	return resolved
+}
+
+/**
+ * A relative [ServerConfig.termsOfService] is resolved against the config file's own directory, so
+ * a bare `tos.txt` sitting next to `config.toml` is found regardless of the server's working
+ * directory. Absolute paths are left untouched.
+ */
+private fun resolveTermsOfServicePath(config: ServerConfig, configDir: Path?): ServerConfig {
+	val tosPath = config.termsOfService?.toPath() ?: return config
+	if (tosPath.isAbsolute || configDir == null) return config
+	return config.copy(termsOfService = configDir.resolve(tosPath).toString())
+}
+
+/**
+ * A configured [ServerConfig.termsOfService] must resolve to a readable, non-blank file. Aborting
+ * startup on a bad path keeps a misconfiguration from silently disabling the terms-of-service gate.
+ */
+private fun validateTermsOfService(config: ServerConfig, fileSystem: FileSystem) {
+	val tosPath = config.termsOfService ?: return
+	val path = tosPath.toPath()
+
+	val metadata = fileSystem.metadataOrNull(path)
+	check(metadata?.isRegularFile == true) {
+		"termsOfService is set to \"$tosPath\" but no readable file exists there."
+	}
+	check(fileSystem.read(path) { readUtf8() }.isNotBlank()) {
+		"termsOfService file \"$tosPath\" is empty; provide the terms text or remove the setting."
 	}
 }
 
