@@ -184,6 +184,63 @@ class AdminWhitelistExpiryPageTest : EndToEndTest() {
 		}
 	}
 
+	@Test
+	fun `edit-expiry day preset extends the entry's current expiry`(): Unit = runBlocking {
+		doStartServer()
+		seed()
+
+		login().use { authed ->
+			// Seed a known future expiry directly.
+			val current = Clock.System.now() + kotlin.time.Duration.parse("10d")
+			authed.addEntry("ext@example.com", "never")
+			database().serverDatabase.whiteListQueries.updateExpiry(current, "ext@example.com")
+
+			val resp = authed.post(route("admin/whitelist/edit-expiry")) {
+				header("HX-Request", "true")
+				contentType(ContentType.Application.FormUrlEncoded)
+				setBody("email=${URLEncoder.encode("ext@example.com", "UTF-8")}&expiryPreset=30")
+			}
+			assertEquals(HttpStatusCode.OK, resp.status)
+
+			val extended = assertNotNull(storedExpiry("ext@example.com"))
+			val expected = current + kotlin.time.Duration.parse("30d")   // ~40 days out, not 30
+			assertEquals(
+				expected.toEpochMilliseconds().toDouble(),
+				extended.toEpochMilliseconds().toDouble(),
+				60_000.0,
+				"A day preset must add to the current expiry, not reset to N days from now",
+			)
+		}
+	}
+
+	@Test
+	fun `edit-expiry day preset on a lapsed entry extends from now`(): Unit = runBlocking {
+		doStartServer()
+		seed()
+
+		login().use { authed ->
+			val past = Clock.System.now() - kotlin.time.Duration.parse("5d")
+			authed.addEntry("lapsed2@example.com", "never")
+			database().serverDatabase.whiteListQueries.updateExpiry(past, "lapsed2@example.com")
+
+			val resp = authed.post(route("admin/whitelist/edit-expiry")) {
+				header("HX-Request", "true")
+				contentType(ContentType.Application.FormUrlEncoded)
+				setBody("email=${URLEncoder.encode("lapsed2@example.com", "UTF-8")}&expiryPreset=30")
+			}
+			assertEquals(HttpStatusCode.OK, resp.status)
+
+			val extended = assertNotNull(storedExpiry("lapsed2@example.com"))
+			val expected = Clock.System.now() + kotlin.time.Duration.parse("30d")
+			assertEquals(
+				expected.toEpochMilliseconds().toDouble(),
+				extended.toEpochMilliseconds().toDouble(),
+				120_000.0,
+				"Extending a lapsed entry must count from now, not from the past expiry",
+			)
+		}
+	}
+
 	/** The single `.whitelist-entry` block for [target], so per-row markup can be asserted. */
 	private fun rowFor(body: String, target: String): String =
 		body.split("class=\"whitelist-entry\"")

@@ -78,6 +78,10 @@ open class WhiteListDao(
 			}
 		}
 
+	open suspend fun getByEmail(email: String): WhiteList? = withContext(ioDispatcher) {
+		return@withContext queries.getByEmail(email).executeAsOneOrNull()
+	}
+
 	open suspend fun getByReason(reason: String): List<WhiteList> = withContext(ioDispatcher) {
 		return@withContext queries.getByReason(reason).executeAsList()
 	}

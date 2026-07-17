@@ -50,22 +50,24 @@ internal const val EXPIRY_PRESET_CUSTOM = "custom"
 /**
  * Resolves the add/edit form's expiry controls to an instant, or null for "never".
  *
- * A custom date is the `yyyy-MM-dd` emitted by `<input type="date">`, interpreted as
- * the *end* of that day in the server's zone so an entry survives the whole date the
- * admin picked. Returns [ExpiryParse.Invalid] for an unparseable custom date.
+ * A day preset (`7`, `30`, `90`) is added to [base] — so on the add form [base] is
+ * "now" and the entry expires N days out, while on the edit form [base] is the entry's
+ * current expiry and the preset extends it by N more days. A custom date is the
+ * `yyyy-MM-dd` emitted by `<input type="date">`, interpreted absolutely as the *end* of
+ * that day in the server's zone. Returns [ExpiryParse.Invalid] for an unparseable date.
  */
 internal sealed interface ExpiryParse {
 	data class Parsed(val expires: Instant?) : ExpiryParse
 	data object Invalid : ExpiryParse
 }
 
-internal fun parseExpiry(preset: String?, customDate: String?, now: Instant): ExpiryParse {
+internal fun parseExpiry(preset: String?, customDate: String?, base: Instant): ExpiryParse {
 	return when (preset?.trim()?.lowercase()) {
 		null, "", EXPIRY_PRESET_NEVER -> ExpiryParse.Parsed(null)
 		EXPIRY_PRESET_CUSTOM -> parseCustomExpiryDate(customDate)
 		else -> {
 			val days = preset.trim().toLongOrNull() ?: return ExpiryParse.Invalid
-			if (days <= 0) ExpiryParse.Invalid else ExpiryParse.Parsed(now + days.days)
+			if (days <= 0) ExpiryParse.Invalid else ExpiryParse.Parsed(base + days.days)
 		}
 	}
 }
@@ -242,7 +244,13 @@ private fun Route.whitelistEditExpiry(whiteListRepository: WhiteListRepository, 
 			return@post
 		}
 
-		val parsedExpiry = parseExpiry(params["expiryPreset"], params["expiryDate"], clock.now())
+		// Day presets extend the entry's current expiry, so a lapsed or never-expiring
+		// entry extends from now, and a still-valid one extends from its remaining time.
+		val now = clock.now()
+		val currentExpiry = whiteListRepository.getEntry(email)?.expires
+		val extendFrom = maxOf(now, currentExpiry ?: now)
+
+		val parsedExpiry = parseExpiry(params["expiryPreset"], params["expiryDate"], extendFrom)
 		if (parsedExpiry !is ExpiryParse.Parsed || !whiteListRepository.validateExpiry(parsedExpiry.expires)) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,

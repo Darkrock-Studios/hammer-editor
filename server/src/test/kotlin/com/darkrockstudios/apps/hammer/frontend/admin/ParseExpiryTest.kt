@@ -33,10 +33,24 @@ class ParseExpiryTest {
 	}
 
 	@Test
-	fun `day presets resolve relative to now`() {
+	fun `day presets resolve relative to the base`() {
 		assertEquals(now + 7.days, parsed("7").expires)
 		assertEquals(now + 30.days, parsed("30").expires)
 		assertEquals(now + 90.days, parsed("90").expires)
+	}
+
+	@Test
+	fun `day presets are additive on a future base`() {
+		// The edit route passes an entry's current expiry as the base, so a preset
+		// extends that expiry rather than resetting it to N days from now.
+		val currentExpiry = now + 10.days
+		assertEquals(currentExpiry + 30.days, parseAt(currentExpiry, "30").expires)
+	}
+
+	private fun parseAt(base: Instant, preset: String): ExpiryParse.Parsed {
+		val result = parseExpiry(preset, null, base)
+		assertIs<ExpiryParse.Parsed>(result)
+		return result
 	}
 
 	@Test

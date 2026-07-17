@@ -254,6 +254,25 @@ class WhiteListRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `getEntry - returns the entry with its expiry, cleaning the email`() = runTest {
+		val repo = createRepo()
+		val expiry = clock.now() + 30.days
+		repo.addToWhiteList("entry@example.com", "Beta tester", expires = expiry)
+
+		val entry = repo.getEntry("  ENTRY@Example.com  ")
+
+		assertEquals("entry@example.com", entry?.email)
+		// Postgres stores microseconds, so compare at millisecond granularity.
+		assertEquals(expiry.toEpochMilliseconds(), entry?.expires?.toEpochMilliseconds())
+	}
+
+	@Test
+	fun `getEntry - returns null for an unknown email`() = runTest {
+		val repo = createRepo()
+		assertEquals(null, repo.getEntry("nobody@example.com"))
+	}
+
+	@Test
 	fun `validateExpiry - null is valid and past is not`() = runTest {
 		val repo = createRepo()
 

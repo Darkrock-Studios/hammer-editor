@@ -61,6 +61,11 @@ class WhiteListRepository(
 		whiteListDao.addToWhiteList(cleanedEmail, clock.now(), reason, expires)
 	}
 
+	suspend fun getEntry(email: String): WhiteList? {
+		val cleanedEmail = cleanEmail(email)
+		return whiteListDao.getByEmail(cleanedEmail)
+	}
+
 	suspend fun updateExpiry(email: String, expires: Instant?) {
 		val cleanedEmail = cleanEmail(email)
 		whiteListDao.updateExpiry(cleanedEmail, expires)

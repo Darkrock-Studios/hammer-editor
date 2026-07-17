@@ -487,6 +487,18 @@
 	color: var(--accent-dark);
 }
 
+/* "Current expiry: <date>" line inside the edit-expiry dialog */
+.whitelist-expiry__current {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.875rem;
+	color: var(--neutral-500);
+	margin: 0 0 1rem;
+}
+
+.whitelist-expiry__current-value {
+	color: var(--accent-dark);
+}
+
 .whitelist-entry__actions {
 	display: flex;
 	gap: 0.5rem;

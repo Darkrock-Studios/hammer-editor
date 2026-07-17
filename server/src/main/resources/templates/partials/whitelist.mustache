@@ -68,12 +68,13 @@
 				{{^isPatreon}}
 					<button type="button" class="btn btn--ghost edit-expiry-btn"
 							data-email="{{email}}"
+							data-expires="{{expires}}"
 							data-expires-raw="{{expiresRaw}}"
 							data-page="{{currentPage}}"
 							data-sort-oldest-first="{{sortOldestFirst}}"
 							onclick="openEditExpiryDialog(this)">
 						<i class="fa-solid fa-hourglass-half"></i>
-						{{msg.admin_whitelist_expiry_label}}
+						{{msg.admin_whitelist_edit_expiry_button}}
 					</button>
 				{{/isPatreon}}
 				<form action="/admin/whitelist/remove" method="post"
