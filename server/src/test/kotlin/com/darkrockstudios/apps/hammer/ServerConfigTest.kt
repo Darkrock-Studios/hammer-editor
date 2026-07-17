@@ -106,6 +106,19 @@ class ServerConfigTest {
 		assertEquals("/data/tos.txt", config.termsOfService)
 	}
 
+	@Test
+	fun `a relative termsOfService is resolved next to the config file`() {
+		val fs = FakeFileSystem()
+		val configDir = getRootDataDirectory(fs)
+		writeConfig(fs, configDir / "tos.txt", "Be excellent to each other")
+		val explicit = configDir / "custom.toml"
+		writeConfig(fs, explicit, """termsOfService = "tos.txt"""")
+
+		val config = resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+
+		assertEquals((configDir / "tos.txt").toString(), config.termsOfService)
+	}
+
 	private fun writeConfig(fs: FakeFileSystem, path: Path, contents: String) {
 		path.parent?.let { fs.createDirectories(it) }
 		fs.write(path) { writeUtf8(contents) }

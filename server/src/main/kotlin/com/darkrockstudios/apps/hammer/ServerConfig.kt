@@ -31,6 +31,8 @@ data class ServerConfig(
 	/**
 	 * Path to a plaintext file whose contents are presented as a Terms of Service that
 	 * users must accept before an account is created. Null/absent disables the requirement.
+	 * A relative path is resolved against the config file's own directory, so `tos.txt` finds
+	 * a file sitting next to `config.toml`. A configured path that can't be read aborts startup.
 	 */
 	val termsOfService: String? = null,
 	val emailProvider: String? = null,

@@ -178,20 +178,34 @@ internal fun resolveServerConfig(
 	configPath: String?,
 	fileSystem: FileSystem = FileSystem.SYSTEM,
 ): ServerConfig {
-	val config = if (configPath != null) {
-		loadConfig(fileSystem, configPath.toPath())
+	val configFile: Path? = if (configPath != null) {
+		configPath.toPath()
 	} else {
 		val defaultConfig = getRootDataDirectory(fileSystem) / DEFAULT_CONFIG_FILE_NAME
 		if (fileSystem.exists(defaultConfig)) {
 			configLogger.info("Loading config from default location: $defaultConfig")
-			loadConfig(fileSystem, defaultConfig)
+			defaultConfig
 		} else {
-			ServerConfig()
+			null
 		}
 	}
 
-	validateTermsOfService(config, fileSystem)
-	return config
+	val config = configFile?.let { loadConfig(fileSystem, it) } ?: ServerConfig()
+
+	val resolved = resolveTermsOfServicePath(config, configFile?.parent)
+	validateTermsOfService(resolved, fileSystem)
+	return resolved
+}
+
+/**
+ * A relative [ServerConfig.termsOfService] is resolved against the config file's own directory, so
+ * a bare `tos.txt` sitting next to `config.toml` is found regardless of the server's working
+ * directory. Absolute paths are left untouched.
+ */
+private fun resolveTermsOfServicePath(config: ServerConfig, configDir: Path?): ServerConfig {
+	val tosPath = config.termsOfService?.toPath() ?: return config
+	if (tosPath.isAbsolute || configDir == null) return config
+	return config.copy(termsOfService = configDir.resolve(tosPath).toString())
 }
 
 /**
