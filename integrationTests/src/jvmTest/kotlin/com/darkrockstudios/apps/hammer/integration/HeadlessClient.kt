@@ -23,7 +23,7 @@ import org.koin.mp.KoinPlatform.getKoin
  *
  * Each instance:
  *   - creates a local project on the real filesystem (Okio `FileSystem.SYSTEM`),
- *   - writes [ServerSettings] pointing at `127.0.0.1:54321` with the test's bearer token,
+ *   - writes [ServerSettings] pointing at the in-process server's port with the test's bearer token,
  *   - opens the project's Koin scope so the full sync pipeline is resolvable.
  *
  * The on-disk state under [projectPath] is what tests assert against.

@@ -38,7 +38,10 @@ abstract class EndToEndTest {
 
 	protected lateinit var fileSystem: FakeFileSystem
 	private lateinit var server: ApplicationEngine
-	private var serverPort: Int = 0
+
+	/** The OS-assigned port the server bound to; valid after [doStartServer]. */
+	protected var serverPort: Int = 0
+		private set
 	private lateinit var client: HttpClient
 	private lateinit var testDatabase: SqliteTestDatabase
 	private lateinit var base64: Base64

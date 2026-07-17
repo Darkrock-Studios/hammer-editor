@@ -50,7 +50,7 @@ import kotlin.uuid.Uuid
 
 /**
  * Base class for round-trip sync integration tests. Spins up a real Jetty server
- * on `127.0.0.1:54321` (via [EndToEndTest]) and a real client Koin context with
+ * on an OS-assigned port (via [EndToEndTest]) and a real client Koin context with
  * production wiring.
  *
  * Both server and client share `EndToEndTest`'s [okio.fakefilesystem.FakeFileSystem]
@@ -247,7 +247,7 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 	 */
 	protected fun makeServerSettings(): ServerSettings = ServerSettings(
 		ssl = false,
-		url = "127.0.0.1:$TEST_PORT",
+		url = "127.0.0.1:$serverPort",
 		email = account.email,
 		userId = userId,
 		bearerToken = authToken.auth,
