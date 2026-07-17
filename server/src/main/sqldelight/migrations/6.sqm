@@ -1,0 +1,9 @@
+-- Migration 6 -> 7: optional expiry on whitelist entries. Mirrors WhiteList.sq for
+-- already-deployed v6 databases; fresh installs get this from Schema.create.
+--
+-- The column is nullable with no default, so every existing row reads as NULL —
+-- never expires — preserving the behaviour those entries have today.
+
+ALTER TABLE white_list ADD COLUMN expires TIMESTAMPTZ;
+
+CREATE INDEX white_list_expires_idx ON white_list (expires);

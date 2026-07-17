@@ -30,6 +30,7 @@ import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
+import com.darkrockstudios.apps.hammer.admin.WhitelistExpiryJob
 import com.darkrockstudios.apps.hammer.patreon.PatreonApiClient
 import com.darkrockstudios.apps.hammer.patreon.PatreonPollingJob
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
@@ -147,6 +148,7 @@ fun mainModule(
 	single { RecurringTaskRegistry() }
 	singleOf(::MonitoringMaintenanceJob)
 	singleOf(::TokenMaintenanceJob)
+	singleOf(::WhitelistExpiryJob)
 	singleOf(::StoryExportService)
 	singleOf(::PenNameService)
 	singleOf(::BioService)
