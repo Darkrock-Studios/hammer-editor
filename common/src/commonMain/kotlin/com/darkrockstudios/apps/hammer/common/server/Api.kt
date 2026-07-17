@@ -35,6 +35,7 @@ import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.isSuccess
+import io.ktor.serialization.ContentConvertException
 import io.ktor.util.network.UnresolvedAddressException
 import kotlinx.coroutines.withContext
 import okio.IOException
@@ -324,6 +325,21 @@ class TermsOfServiceRequiredException(
 
 typealias FailureHandler = suspend (HttpResponse) -> Throwable
 
+private suspend fun unparseableErrorBody(
+	status: HttpStatusCode,
+	strRes: StrRes,
+	cause: Throwable,
+): HttpFailureException {
+	Napier.w("Error response body unable to be parsed", cause)
+	return HttpFailureException(
+		statusCode = status,
+		error = HttpResponseError(
+			error = "Unhandled error body",
+			displayMessage = strRes.get(Res.string.sync_general_error),
+		)
+	)
+}
+
 suspend fun defaultFailureHandler(response: HttpResponse, strRes: StrRes): Throwable {
 	return when(response.status) {
 		HttpStatusCode.Unauthorized -> {
@@ -343,14 +359,9 @@ suspend fun defaultFailureHandler(response: HttpResponse, strRes: StrRes): Throw
 					error = error
 				)
 			} catch (e: NoTransformationFoundException) {
-				Napier.w("Error response body unable to be parsed", e)
-				HttpFailureException(
-					statusCode = response.status,
-					error = HttpResponseError(
-						error = "Unhandled error body",
-						displayMessage = strRes.get(Res.string.sync_general_error),
-					)
-				)
+				unparseableErrorBody(response.status, strRes, e)
+			} catch (e: ContentConvertException) {
+				unparseableErrorBody(response.status, strRes, e)
 			}
 		}
 	}

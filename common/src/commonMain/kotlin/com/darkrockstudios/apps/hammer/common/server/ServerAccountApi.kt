@@ -11,7 +11,7 @@ import io.ktor.client.request.*
 import io.ktor.client.request.forms.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
-import kotlinx.serialization.SerializationException
+import io.ktor.serialization.ContentConvertException
 
 class ServerAccountApi(
 	httpClient: HttpClient,
@@ -49,7 +49,7 @@ class ServerAccountApi(
 				response.body<TermsOfServiceChallenge>()
 			} catch (e: NoTransformationFoundException) {
 				null
-			} catch (e: SerializationException) {
+			} catch (e: ContentConvertException) {
 				// A 451 with a malformed/empty body falls through to the default failure.
 				null
 			}
