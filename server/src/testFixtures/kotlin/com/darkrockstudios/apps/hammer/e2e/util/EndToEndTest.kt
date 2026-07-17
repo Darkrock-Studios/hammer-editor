@@ -18,6 +18,7 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.engine.*
 import io.ktor.server.jetty.jakarta.*
+import kotlinx.coroutines.runBlocking
 import okio.FileSystem
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.AfterEach
@@ -28,17 +29,16 @@ import kotlin.io.encoding.Base64
 
 /**
  * Base class for End to End Tests.
- * This will start up and tear down a server running on
- * port 54321, and writing to a FakeFileSystem.
+ * This will start up and tear down a server on an ephemeral port (assigned by
+ * the OS at bind time), and writing to a FakeFileSystem. Binding to a fixed port
+ * made the suite flaky: back-to-back tests reuse the same JVM and a server whose
+ * socket hadn't fully released yet could collide with the next test's bind.
  */
 abstract class EndToEndTest {
 
-	companion object {
-		const val TEST_PORT = 54321
-	}
-
 	protected lateinit var fileSystem: FakeFileSystem
 	private lateinit var server: ApplicationEngine
+	private var serverPort: Int = 0
 	private lateinit var client: HttpClient
 	private lateinit var testDatabase: SqliteTestDatabase
 	private lateinit var base64: Base64
@@ -92,11 +92,14 @@ abstract class EndToEndTest {
 		server.stop(1000, 3000)
 	}
 
-	protected fun route(path: String): String = "http://127.0.0.1:$TEST_PORT/$path"
+	protected fun route(path: String): String = "http://127.0.0.1:$serverPort/$path"
 	protected fun api(path: String): String = route("api/$path")
 
 	fun doStartServer() {
 		server = startServer()
+		// port = 0 bound an OS-assigned port; read back what we actually got so
+		// the client connects to the right place.
+		serverPort = runBlocking { server.resolvedConnectors().first().port }
 	}
 
 	private fun startServer(): ApplicationEngine {
@@ -112,7 +115,7 @@ abstract class EndToEndTest {
 
 		val server = embeddedServer(
 			Jetty,
-			port = TEST_PORT,
+			port = 0,
 			host = "0.0.0.0",
 			module = {
 				appMain(config, testModule)
