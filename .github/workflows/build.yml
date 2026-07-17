@@ -79,11 +79,21 @@ jobs:
           python-version: '3.12'
       - name: Install Semgrep
         run: pip install semgrep
-      # TODO(gating): report-only for now. This surfaces the existing baseline without failing
-      # the build; once the baseline is triaged (fixed or `// nosemgrep`-suppressed) add `--error`
-      # so an unsuppressed finding blocks the PR. Honors existing `// nosemgrep` comments.
-      - name: Run Semgrep
-        run: semgrep scan --config p/kotlin --config p/secrets --metrics off
+      # Self-contained code-pattern rules under .semgrep/ (no registry fetch, no account).
+      # Honors `// nosemgrep` comments. TODO(gating): add `--error` once the baseline is clean.
+      - name: Run Semgrep (custom rules)
+        run: semgrep scan --config .semgrep --metrics off
+      - name: Install gitleaks
+        run: |
+          version=$(curl -sSL https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep -oP '"tag_name": "v\K[^"]+')
+          echo "gitleaks version: $version"
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin gitleaks
+          gitleaks version
+      # Report-only for now (--exit-code 0): surfaces the secrets baseline (test fixtures, the
+      # dev keystore password, etc.) so it can be allowlisted in .gitleaks.toml before gating.
+      - name: Run gitleaks (report only)
+        run: gitleaks dir . --no-banner --redact --exit-code 0
 
   android-instrumented-tests:
     runs-on: ubuntu-latest
