@@ -90,14 +90,19 @@ jobs:
           curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" \
             | sudo tar -xz -C /usr/local/bin gitleaks
           gitleaks version
-      # Report-only for now (--exit-code 0): surfaces the secrets baseline (test fixtures, the
-      # dev keystore password, etc.) so it can be allowlisted in .gitleaks.toml before gating.
-      - name: Run gitleaks (report only)
+      # Fails the build on any committed secret. Known test fixtures are allowlisted in
+      # .gitleaks.toml; the JSON report is parsed so failures list rule + file:line.
+      - name: Run gitleaks
         run: |
-          gitleaks dir . --no-banner --redact --exit-code 0 \
-            --report-format json --report-path gitleaks-report.json
-          echo "=== gitleaks findings (rule  file:line) ==="
-          python3 -c "import json; [print(f\"{x['RuleID']}  {x['File']}:{x['StartLine']}\") for x in json.load(open('gitleaks-report.json'))]"
+          gitleaks dir . --config .gitleaks.toml --no-banner --redact \
+            --report-format json --report-path gitleaks-report.json --exit-code 2 || true
+          count=$(python3 -c "import json; print(len(json.load(open('gitleaks-report.json'))))")
+          if [ "$count" -gt 0 ]; then
+            echo "::error::gitleaks found $count secret(s):"
+            python3 -c "import json; [print(f\"  {x['RuleID']}  {x['File']}:{x['StartLine']}\") for x in json.load(open('gitleaks-report.json'))]"
+            exit 1
+          fi
+          echo "gitleaks: no leaks"
 
   android-instrumented-tests:
     runs-on: ubuntu-latest
