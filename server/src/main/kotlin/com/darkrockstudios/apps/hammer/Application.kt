@@ -178,14 +178,36 @@ internal fun resolveServerConfig(
 	configPath: String?,
 	fileSystem: FileSystem = FileSystem.SYSTEM,
 ): ServerConfig {
-	if (configPath != null) return loadConfig(fileSystem, configPath.toPath())
-
-	val defaultConfig = getRootDataDirectory(fileSystem) / DEFAULT_CONFIG_FILE_NAME
-	return if (fileSystem.exists(defaultConfig)) {
-		configLogger.info("Loading config from default location: $defaultConfig")
-		loadConfig(fileSystem, defaultConfig)
+	val config = if (configPath != null) {
+		loadConfig(fileSystem, configPath.toPath())
 	} else {
-		ServerConfig()
+		val defaultConfig = getRootDataDirectory(fileSystem) / DEFAULT_CONFIG_FILE_NAME
+		if (fileSystem.exists(defaultConfig)) {
+			configLogger.info("Loading config from default location: $defaultConfig")
+			loadConfig(fileSystem, defaultConfig)
+		} else {
+			ServerConfig()
+		}
+	}
+
+	validateTermsOfService(config, fileSystem)
+	return config
+}
+
+/**
+ * A configured [ServerConfig.termsOfService] must resolve to a readable, non-blank file. Aborting
+ * startup on a bad path keeps a misconfiguration from silently disabling the terms-of-service gate.
+ */
+private fun validateTermsOfService(config: ServerConfig, fileSystem: FileSystem) {
+	val tosPath = config.termsOfService ?: return
+	val path = tosPath.toPath()
+
+	val metadata = fileSystem.metadataOrNull(path)
+	check(metadata?.isRegularFile == true) {
+		"termsOfService is set to \"$tosPath\" but no readable file exists there."
+	}
+	check(fileSystem.read(path) { readUtf8() }.isNotBlank()) {
+		"termsOfService file \"$tosPath\" is empty; provide the terms text or remove the setting."
 	}
 }
 

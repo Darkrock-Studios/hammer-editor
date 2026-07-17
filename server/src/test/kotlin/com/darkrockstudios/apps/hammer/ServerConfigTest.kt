@@ -3,9 +3,12 @@ package com.darkrockstudios.apps.hammer
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import net.peanuuutz.tomlkt.Toml
 import okio.Path
+import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
+import kotlin.test.assertTrue
 
 class ServerConfigTest {
 
@@ -65,6 +68,42 @@ class ServerConfigTest {
 		val config = resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
 
 		assertEquals(1234, config.port)
+	}
+
+	@Test
+	fun `resolve aborts when termsOfService points at a missing file`() {
+		val fs = FakeFileSystem()
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(fs, explicit, """termsOfService = "/data/tos.txt"""")
+
+		val error = assertFailsWith<IllegalStateException> {
+			resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+		}
+		assertTrue(error.message.orEmpty().contains("/data/tos.txt"))
+	}
+
+	@Test
+	fun `resolve aborts when termsOfService file is blank`() {
+		val fs = FakeFileSystem()
+		writeConfig(fs, "/data/tos.txt".toPath(), "   \n ")
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(fs, explicit, """termsOfService = "/data/tos.txt"""")
+
+		assertFailsWith<IllegalStateException> {
+			resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+		}
+	}
+
+	@Test
+	fun `resolve succeeds when termsOfService file exists and is non-blank`() {
+		val fs = FakeFileSystem()
+		writeConfig(fs, "/data/tos.txt".toPath(), "Be excellent to each other")
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(fs, explicit, """termsOfService = "/data/tos.txt"""")
+
+		val config = resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+
+		assertEquals("/data/tos.txt", config.termsOfService)
 	}
 
 	private fun writeConfig(fs: FakeFileSystem, path: Path, contents: String) {

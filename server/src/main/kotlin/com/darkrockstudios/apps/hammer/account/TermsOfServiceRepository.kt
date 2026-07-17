@@ -10,6 +10,9 @@ import java.security.MessageDigest
  * Serves the optional Terms of Service that new accounts must accept. When
  * [ServerConfig.termsOfService] points at a readable, non-blank file, [challenge] returns the
  * current terms and account creation is gated on accepting its version; otherwise it returns null.
+ *
+ * A configured-but-missing path is rejected at startup (see validateTermsOfService in Application),
+ * so [challenge] only returns null here when no path is configured.
  */
 class TermsOfServiceRepository(
 	serverConfig: ServerConfig,
