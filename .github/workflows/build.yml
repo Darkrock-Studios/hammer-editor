@@ -78,16 +78,18 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install Semgrep
-        run: pip install semgrep
+        run: pip install semgrep==1.170.0
       # Self-contained code-pattern rules under .semgrep/ (no registry fetch, no account).
       # Honors `// nosemgrep` comments. `--error` makes an unsuppressed finding fail the build.
       - name: Run Semgrep (custom rules)
         run: semgrep scan --config .semgrep --error --metrics off
+      # Pinned for reproducibility — a tool auto-update must never spontaneously fail an
+      # unrelated PR's gate. Bump deliberately to pick up new secret-detection rules.
       - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.1
         run: |
-          version=$(curl -sSL https://api.github.com/repos/gitleaks/gitleaks/releases/latest | grep -oP '"tag_name": "v\K[^"]+')
-          echo "gitleaks version: $version"
-          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz" \
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
             | sudo tar -xz -C /usr/local/bin gitleaks
           gitleaks version
       # Fails the build on any committed secret. Known test fixtures are allowlisted in
