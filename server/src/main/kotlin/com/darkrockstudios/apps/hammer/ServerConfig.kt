@@ -35,6 +35,13 @@ data class ServerConfig(
 	 * a file sitting next to `config.toml`. A configured path that can't be read aborts startup.
 	 */
 	val termsOfService: String? = null,
+	/**
+	 * Path to a plaintext file whose contents are published at `/privacy` and linked from the
+	 * footer. Null/absent hides the page and the link. Resolution and startup validation mirror
+	 * [termsOfService]: a relative path resolves against the config file's directory, and a
+	 * configured path that can't be read aborts startup.
+	 */
+	val privacyPolicy: String? = null,
 	val emailProvider: String? = null,
 	val communityEnabled: Boolean = false,
 	val storage: StorageConfig = StorageConfig(),

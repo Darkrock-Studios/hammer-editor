@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
 import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.PrivacyPolicyRepository
 import com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
@@ -82,6 +83,7 @@ fun Route.frontend() {
 	val serverConfig: ServerConfig by inject()
 	val passwordResetRepository: PasswordResetRepository by inject()
 	val termsOfServiceRepository: TermsOfServiceRepository by inject()
+	val privacyPolicyRepository: PrivacyPolicyRepository by inject()
 	val markdownService: MarkdownService by inject()
 	val reviewRepository: com.darkrockstudios.apps.hammer.review.ReviewRepository by inject()
 	val projectDao: com.darkrockstudios.apps.hammer.database.ProjectDao by inject()
@@ -119,6 +121,7 @@ fun Route.frontend() {
 	homePage(whiteListRepository, configRepository, serverConfig, accountsRepository, projectAccessRepository)
 	aboutPage(configRepository, serverConfig, accountsRepository, projectAccessRepository, markdownService)
 	termsOfServicePage(termsOfServiceRepository)
+	privacyPolicyPage(privacyPolicyRepository)
 	localeRoutes()
 	authRoutes(accountsRepository, whiteListRepository, configRepository, serverConfig)
 	passwordResetRoutes(passwordResetRepository)
@@ -328,9 +331,11 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	val aboutContent = configRepository.get(AdminServerConfig.ABOUT_SERVER)
 	val hasAboutPage = aboutContent.isNotBlank()
 	val hasTermsPage = get<TermsOfServiceRepository>().challenge() != null
+	val hasPrivacyPage = get<PrivacyPolicyRepository>().text() != null
 	model["hasAboutPage"] = hasAboutPage
 	model["hasTermsPage"] = hasTermsPage
-	model["hasFooterNav"] = hasAboutPage || hasTermsPage
+	model["hasPrivacyPage"] = hasPrivacyPage
+	model["hasFooterNav"] = hasAboutPage || hasTermsPage || hasPrivacyPage
 
 	// Add Patreon link for footer if configured
 	val serverConfig = get<ServerConfig>()

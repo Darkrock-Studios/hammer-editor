@@ -119,6 +119,66 @@ class ServerConfigTest {
 		assertEquals((configDir / "tos.txt").toString(), config.termsOfService)
 	}
 
+	@Test
+	fun `privacyPolicy defaults to null`() {
+		assertEquals(null, parse("").privacyPolicy)
+	}
+
+	@Test
+	fun `privacyPolicy parses a file path`() {
+		val config = parse("""privacyPolicy = "/srv/hammer/privacy.txt"""")
+		assertEquals("/srv/hammer/privacy.txt", config.privacyPolicy)
+	}
+
+	@Test
+	fun `resolve aborts when privacyPolicy points at a missing file`() {
+		val fs = FakeFileSystem()
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(fs, explicit, """privacyPolicy = "/data/privacy.txt"""")
+
+		val error = assertFailsWith<IllegalStateException> {
+			resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+		}
+		assertTrue(error.message.orEmpty().contains("/data/privacy.txt"))
+	}
+
+	@Test
+	fun `resolve aborts when privacyPolicy file is blank`() {
+		val fs = FakeFileSystem()
+		writeConfig(fs, "/data/privacy.txt".toPath(), "   \n ")
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(fs, explicit, """privacyPolicy = "/data/privacy.txt"""")
+
+		assertFailsWith<IllegalStateException> {
+			resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+		}
+	}
+
+	@Test
+	fun `resolve succeeds when privacyPolicy file exists and is non-blank`() {
+		val fs = FakeFileSystem()
+		writeConfig(fs, "/data/privacy.txt".toPath(), "We respect your privacy")
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(fs, explicit, """privacyPolicy = "/data/privacy.txt"""")
+
+		val config = resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+
+		assertEquals("/data/privacy.txt", config.privacyPolicy)
+	}
+
+	@Test
+	fun `a relative privacyPolicy is resolved next to the config file`() {
+		val fs = FakeFileSystem()
+		val configDir = getRootDataDirectory(fs)
+		writeConfig(fs, configDir / "privacy.txt", "We respect your privacy")
+		val explicit = configDir / "custom.toml"
+		writeConfig(fs, explicit, """privacyPolicy = "privacy.txt"""")
+
+		val config = resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+
+		assertEquals((configDir / "privacy.txt").toString(), config.privacyPolicy)
+	}
+
 	private fun writeConfig(fs: FakeFileSystem, path: Path, contents: String) {
 		path.parent?.let { fs.createDirectories(it) }
 		fs.write(path) { writeUtf8(contents) }

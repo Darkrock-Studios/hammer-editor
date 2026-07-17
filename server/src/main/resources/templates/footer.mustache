@@ -14,6 +14,12 @@
 						<span>{{msg.footer_terms}}</span>
 					</a>
 				{{/hasTermsPage}}
+				{{#hasPrivacyPage}}
+					<a href="/privacy">
+						<i class="fa-solid fa-user-shield"></i>
+						<span>{{msg.footer_privacy}}</span>
+					</a>
+				{{/hasPrivacyPage}}
 			</nav>
 		{{/hasFooterNav}}
 		<div class="footer-social">

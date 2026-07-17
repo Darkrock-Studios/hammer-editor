@@ -192,8 +192,12 @@ internal fun resolveServerConfig(
 
 	val config = configFile?.let { loadConfig(fileSystem, it) } ?: ServerConfig()
 
-	val resolved = resolveTermsOfServicePath(config, configFile?.parent)
+	val resolved = resolvePrivacyPolicyPath(
+		resolveTermsOfServicePath(config, configFile?.parent),
+		configFile?.parent,
+	)
 	validateTermsOfService(resolved, fileSystem)
+	validatePrivacyPolicy(resolved, fileSystem)
 	return resolved
 }
 
@@ -222,6 +226,33 @@ private fun validateTermsOfService(config: ServerConfig, fileSystem: FileSystem)
 	}
 	check(fileSystem.read(path) { readUtf8() }.isNotBlank()) {
 		"termsOfService file \"$tosPath\" is empty; provide the terms text or remove the setting."
+	}
+}
+
+/**
+ * A relative [ServerConfig.privacyPolicy] is resolved against the config file's own directory, so a
+ * bare `privacy.txt` sitting next to `config.toml` is found regardless of the working directory.
+ */
+private fun resolvePrivacyPolicyPath(config: ServerConfig, configDir: Path?): ServerConfig {
+	val privacyPath = config.privacyPolicy?.toPath() ?: return config
+	if (privacyPath.isAbsolute || configDir == null) return config
+	return config.copy(privacyPolicy = configDir.resolve(privacyPath).toString())
+}
+
+/**
+ * A configured [ServerConfig.privacyPolicy] must resolve to a readable, non-blank file. Aborting
+ * startup on a bad path keeps a misconfiguration from silently hiding the privacy policy.
+ */
+private fun validatePrivacyPolicy(config: ServerConfig, fileSystem: FileSystem) {
+	val privacyPath = config.privacyPolicy ?: return
+	val path = privacyPath.toPath()
+
+	val metadata = fileSystem.metadataOrNull(path)
+	check(metadata?.isRegularFile == true) {
+		"privacyPolicy is set to \"$privacyPath\" but no readable file exists there."
+	}
+	check(fileSystem.read(path) { readUtf8() }.isNotBlank()) {
+		"privacyPolicy file \"$privacyPath\" is empty; provide the policy text or remove the setting."
 	}
 }
 
