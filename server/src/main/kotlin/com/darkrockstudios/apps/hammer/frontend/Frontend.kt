@@ -322,7 +322,7 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	// OpenGraph / Twitter card defaults; pages override ogType (profile/article) and may
 	// override ogImage. Title, description, and url reuse the fields set above.
 	model.putIfAbsent("ogType", "website")
-	model.putIfAbsent("ogImage", canonicalUrl("/assets/images/hammer_icon.png"))
+	model.putIfAbsent("ogImage", canonicalUrl("/assets/images/og-default.png"))
 	val session = sessions.get<UserSession>()
 	if (session != null) {
 		model["isLoggedIn"] = true
