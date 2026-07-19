@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
@@ -33,6 +34,7 @@ fun Route.publicStoryPage(
 	storyReaderCollector: StoryReaderCollector,
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
+	serverConfig: ServerConfig,
 ) {
 	route("/a/{penName}/{projectName}") {
 		get {
@@ -129,7 +131,11 @@ fun Route.publicStoryPage(
 									// password (?p) is never included — it's a secret and those pages are noindex.
 									"canonicalUrl" to (call.canonicalUrl() + if (page > 1) "?page=$page" else ""),
 									"ogType" to "article",
-									"ogImage" to call.canonicalUrl("/assets/images/og-story.png"),
+									"ogImage" to if (serverConfig.richLinkPreviews) {
+										call.canonicalUrl("/a/$penNameForUrl/$projectNameForUrl/og.png")
+									} else {
+										call.canonicalUrl("/assets/images/og-story.png")
+									},
 									"page_pre_script" to "/assets/js/story-reader-logic.js",
 									"page_script" to "/assets/js/story-reader.js",
 									"projectName" to data.projectName,

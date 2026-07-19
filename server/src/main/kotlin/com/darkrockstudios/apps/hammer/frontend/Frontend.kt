@@ -14,6 +14,8 @@ import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
+import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
+import com.darkrockstudios.apps.hammer.frontend.og.ogImageRoutes
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
@@ -139,7 +141,7 @@ fun Route.frontend() {
 		reviewSubmittedMailer = emailService?.let { com.darkrockstudios.apps.hammer.review.ReviewSubmittedMailer(it) },
 		clock = clock,
 	)
-	authorPage(accountsRepository, projectAccessRepository, markdownService)
+	authorPage(accountsRepository, projectAccessRepository, markdownService, serverConfig)
 	publicStoryPage(
 		storyExportService,
 		projectAccessRepository,
@@ -147,7 +149,12 @@ fun Route.frontend() {
 		storyReaderCollector,
 		accountsRepository,
 		projectsRepository,
+		serverConfig,
 	)
+	if (serverConfig.richLinkPreviews) {
+		val ogImageService by inject<OgImageService>()
+		ogImageRoutes(accountsRepository, projectsRepository, projectAccessRepository, ogImageService)
+	}
 	adminPage(
 		whiteListRepository,
 		configRepository,

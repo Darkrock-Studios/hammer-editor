@@ -44,6 +44,28 @@ bindHosts = ["127.0.0.1", "::1"]
 public name shown to users. Each address gets its own listener (and its own HTTPS listener when an
 SSL cert is configured).
 
+## Rich link previews (optional)
+
+By default, sharing an author or story link on social media shows a branded static preview card.
+To instead generate a **per-page** share image — the story title or author name rendered onto the
+card — enable `richLinkPreviews`:
+
+```toml
+richLinkPreviews = true
+```
+
+Generated images are disk-cached under `~/hammer_data/cache/og/` and pruned automatically.
+
+**Requirement:** rendering the text uses headless AWT, which needs native font libraries installed.
+On Debian/Ubuntu:
+
+```sh
+sudo apt-get install -y fontconfig libfreetype6
+```
+
+Without them, leave `richLinkPreviews` off (the default): link previews still work via the static
+cards, so the out-of-the-box setup needs nothing extra.
+
 ## Storage
 
 The server persists its data in a PostgreSQL database. It supports two modes:

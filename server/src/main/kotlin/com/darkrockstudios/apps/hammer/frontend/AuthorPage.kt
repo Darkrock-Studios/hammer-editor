@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
@@ -18,7 +19,8 @@ import kotlin.time.toJavaInstant
 fun Route.authorPage(
 	accountsRepository: AccountsRepository,
 	projectAccessRepository: ProjectAccessRepository,
-	markdownService: MarkdownService
+	markdownService: MarkdownService,
+	serverConfig: ServerConfig,
 ) {
 	route("/a/{penName}") {
 		get {
@@ -69,7 +71,11 @@ fun Route.authorPage(
 					"page_stylesheet" to "/assets/css/author.css",
 					"title" to "$penName — Hammer",
 					"ogType" to "profile",
-					"ogImage" to call.canonicalUrl("/assets/images/og-author.png"),
+					"ogImage" to if (serverConfig.richLinkPreviews) {
+						call.canonicalUrl("/a/$penNameForUrl/og.png")
+					} else {
+						call.canonicalUrl("/assets/images/og-author.png")
+					},
 					"penName" to penName,
 					"urlPenName" to penNameForUrl,
 					"bio" to (account.bio ?: ""),
