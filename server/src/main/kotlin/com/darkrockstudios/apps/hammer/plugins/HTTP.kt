@@ -5,8 +5,12 @@ import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SERVER_VERSION
+import io.ktor.http.CacheControl
+import io.ktor.http.ContentType
+import io.ktor.http.content.CachingOptions
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.plugins.cachingheaders.CachingHeaders
 import io.ktor.server.plugins.compression.Compression
 import io.ktor.server.plugins.compression.deflate
 import io.ktor.server.plugins.compression.gzip
@@ -55,10 +59,14 @@ fun Application.configureHTTP(config: ServerConfig) {
 		header("Content-Security-Policy", cspDirectives)
 	}
 	install(ConditionalHeaders)
+	install(CachingHeaders) {
+		options { _, content -> staticAssetCaching(content.contentType) }
+	}
 	install(IgnoreTrailingSlash)
 	install(Compression) {
 		gzip {
 			priority = 1.0
+			minimumSize(1024)
 		}
 		deflate {
 			priority = 10.0
@@ -76,5 +84,27 @@ fun Application.configureHTTP(config: ServerConfig) {
 			maxAgeInSeconds = 31536000
 			includeSubDomains = true
 		}
+	}
+}
+
+/**
+ * Long-lived, publicly cacheable `Cache-Control` for static assets (served from `/assets`), so
+ * browsers can skip re-fetching CSS/JS/images/fonts on every navigation. ETags (via
+ * ConditionalHeaders) still catch changes on revalidation once the max-age lapses. Non-asset
+ * responses — HTML pages, XML sitemaps — get no caching header so they stay fresh and never
+ * leak session-varying content into a shared cache.
+ */
+internal fun staticAssetCaching(contentType: ContentType?): CachingOptions? {
+	val type = contentType?.withoutParameters() ?: return null
+	return when {
+		type.match(ContentType.Text.CSS) ||
+			type.match(ContentType.Application.JavaScript) ||
+			type.match(ContentType("text", "javascript")) ->
+			CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 86_400, visibility = CacheControl.Visibility.Public))
+
+		type.contentType == "image" || type.contentType == "font" ->
+			CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 604_800, visibility = CacheControl.Visibility.Public))
+
+		else -> null
 	}
 }
