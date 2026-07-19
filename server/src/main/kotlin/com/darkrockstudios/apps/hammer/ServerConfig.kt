@@ -26,6 +26,7 @@ data class ServerConfig(
 	 * links are derived from each request's Host header.
 	 */
 	val publicUrl: String? = null,
+	val additionalSitemaps: List<String> = emptyList(),
 	val sslCert: SslCertConfig? = null,
 	val patreonEnabled: Boolean? = null,
 	/**
