@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.metaDescription
 import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
@@ -65,6 +66,7 @@ fun Route.authorPage(
 			val model = call.withDefaults(
 				mapOf(
 					"page_stylesheet" to "/assets/css/author.css",
+					"title" to "$penName — Hammer",
 					"penName" to penName,
 					"urlPenName" to penNameForUrl,
 					"bio" to (account.bio ?: ""),
@@ -74,6 +76,7 @@ fun Route.authorPage(
 					"storyCount" to stories.size
 				)
 			)
+			metaDescription(account.bio)?.let { model["metaDescription"] = it }
 			call.respond(MustacheContent("author.mustache", model))
 		}
 	}

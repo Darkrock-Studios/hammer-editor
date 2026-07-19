@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
 import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
@@ -123,6 +124,10 @@ fun Route.publicStoryPage(
 							val model = call.withDefaults(
 								mapOf(
 									"page_stylesheet" to "/assets/css/story.css",
+									"title" to "${data.projectName} · ${resolved.penName} — Hammer",
+									// Self-referential canonical: each page is its own indexable URL. The
+									// password (?p) is never included — it's a secret and those pages are noindex.
+									"canonicalUrl" to (call.canonicalUrl() + if (page > 1) "?page=$page" else ""),
 									"page_pre_script" to "/assets/js/story-reader-logic.js",
 									"page_script" to "/assets/js/story-reader.js",
 									"projectName" to data.projectName,

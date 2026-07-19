@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
+import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import com.darkrockstudios.apps.hammer.monitoring.ActivityType
@@ -315,6 +316,9 @@ fun MutableMap<String, Any>.addDefaults(): MutableMap<String, Any> {
 suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): MutableMap<String, Any> {
 	val model = withMessages(data).addDefaults()
 	model.putIfAbsent("title", msg("page_title"))
+	// Self-referential canonical from the request path (query stripped). Pages whose query
+	// params are content-bearing (e.g. story pagination) override this with their own value.
+	model.putIfAbsent("canonicalUrl", canonicalUrl())
 	val session = sessions.get<UserSession>()
 	if (session != null) {
 		model["isLoggedIn"] = true
