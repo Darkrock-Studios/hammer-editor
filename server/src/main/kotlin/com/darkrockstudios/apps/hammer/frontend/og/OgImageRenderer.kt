@@ -27,7 +27,7 @@ class OgImageRenderer {
 			?: error("Missing font resource $FONT_RESOURCE"))
 			.use { Font.createFont(Font.TRUETYPE_FONT, it) }
 		brandFont = base.deriveFont(Font.PLAIN, 54f)
-		titleFont = base.deriveFont(Font.PLAIN, 88f)
+		titleFont = base.deriveFont(Font.PLAIN, 78f)
 		subtitleFont = base.deriveFont(Font.PLAIN, 40f)
 		icon = (javaClass.getResourceAsStream(ICON_RESOURCE)
 			?: error("Missing icon resource $ICON_RESOURCE"))
@@ -55,16 +55,18 @@ class OgImageRenderer {
 			g.font = titleFont
 			val titleMetrics = g.fontMetrics
 			val lines = wrapText(title, MAX_TEXT_WIDTH, MAX_TITLE_LINES) { titleMetrics.stringWidth(it) }
-			var y = 300
+			// Fixed baselines so the subtitle never collides with the accent bar, whatever the
+			// line count. At most MAX_TITLE_LINES lines fit above SUBTITLE_BASELINE.
+			var baseline = TITLE_TOP_BASELINE
 			for (line in lines) {
-				g.drawString(line, MARGIN, y)
-				y += titleMetrics.height + 6
+				g.drawString(line, MARGIN, baseline)
+				baseline += TITLE_LINE_STEP
 			}
 
 			if (!subtitle.isNullOrBlank()) {
 				g.font = subtitleFont
 				g.color = MUTE
-				g.drawString(subtitle, MARGIN, y + 20)
+				g.drawString(subtitle, MARGIN, SUBTITLE_BASELINE)
 			}
 		} finally {
 			g.dispose()
@@ -82,6 +84,9 @@ class OgImageRenderer {
 		const val ACCENT_BAR = 18
 		const val MAX_TEXT_WIDTH = WIDTH - MARGIN * 2
 		const val MAX_TITLE_LINES = 3
+		const val TITLE_TOP_BASELINE = 240
+		const val TITLE_LINE_STEP = 96
+		const val SUBTITLE_BASELINE = 566
 		const val FONT_RESOURCE = "/assets/Kingthings_Trypewriter_2.ttf"
 		const val ICON_RESOURCE = "/assets/images/hammer_icon.png"
 		val PAPER = Color(255, 254, 249)
