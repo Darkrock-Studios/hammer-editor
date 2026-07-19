@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.metaDescription
 import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
@@ -68,6 +69,7 @@ fun Route.authorPage(
 					"page_stylesheet" to "/assets/css/author.css",
 					"title" to "$penName — Hammer",
 					"ogType" to "profile",
+					"ogImage" to call.canonicalUrl("/assets/images/og-author.png"),
 					"penName" to penName,
 					"urlPenName" to penNameForUrl,
 					"bio" to (account.bio ?: ""),

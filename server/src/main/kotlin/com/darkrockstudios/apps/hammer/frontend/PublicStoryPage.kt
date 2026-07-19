@@ -129,6 +129,7 @@ fun Route.publicStoryPage(
 									// password (?p) is never included — it's a secret and those pages are noindex.
 									"canonicalUrl" to (call.canonicalUrl() + if (page > 1) "?page=$page" else ""),
 									"ogType" to "article",
+									"ogImage" to call.canonicalUrl("/assets/images/og-story.png"),
 									"page_pre_script" to "/assets/js/story-reader-logic.js",
 									"page_script" to "/assets/js/story-reader.js",
 									"projectName" to data.projectName,
