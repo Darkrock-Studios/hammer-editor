@@ -67,6 +67,7 @@ fun Route.authorPage(
 				mapOf(
 					"page_stylesheet" to "/assets/css/author.css",
 					"title" to "$penName — Hammer",
+					"ogType" to "profile",
 					"penName" to penName,
 					"urlPenName" to penNameForUrl,
 					"bio" to (account.bio ?: ""),

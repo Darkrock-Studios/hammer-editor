@@ -10,6 +10,26 @@
 	{{#canonicalUrl}}
 		<link rel="canonical" href="{{canonicalUrl}}">
 	{{/canonicalUrl}}
+	<meta property="og:site_name" content="Hammer">
+	<meta property="og:type" content="{{ogType}}">
+	<meta property="og:title" content="{{title}}">
+	{{#metaDescription}}
+		<meta property="og:description" content="{{metaDescription}}">
+	{{/metaDescription}}
+	{{#canonicalUrl}}
+		<meta property="og:url" content="{{canonicalUrl}}">
+	{{/canonicalUrl}}
+	{{#ogImage}}
+		<meta property="og:image" content="{{ogImage}}">
+	{{/ogImage}}
+	<meta name="twitter:card" content="summary">
+	<meta name="twitter:title" content="{{title}}">
+	{{#metaDescription}}
+		<meta name="twitter:description" content="{{metaDescription}}">
+	{{/metaDescription}}
+	{{#ogImage}}
+		<meta name="twitter:image" content="{{ogImage}}">
+	{{/ogImage}}
 	<link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
 	<script src="https://unpkg.com/htmx.org@2.0.4"></script>
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">

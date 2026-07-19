@@ -128,6 +128,7 @@ fun Route.publicStoryPage(
 									// Self-referential canonical: each page is its own indexable URL. The
 									// password (?p) is never included — it's a secret and those pages are noindex.
 									"canonicalUrl" to (call.canonicalUrl() + if (page > 1) "?page=$page" else ""),
+									"ogType" to "article",
 									"page_pre_script" to "/assets/js/story-reader-logic.js",
 									"page_script" to "/assets/js/story-reader.js",
 									"projectName" to data.projectName,

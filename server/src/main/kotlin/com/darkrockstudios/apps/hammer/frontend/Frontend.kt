@@ -319,6 +319,10 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	// Self-referential canonical from the request path (query stripped). Pages whose query
 	// params are content-bearing (e.g. story pagination) override this with their own value.
 	model.putIfAbsent("canonicalUrl", canonicalUrl())
+	// OpenGraph / Twitter card defaults; pages override ogType (profile/article) and may
+	// override ogImage. Title, description, and url reuse the fields set above.
+	model.putIfAbsent("ogType", "website")
+	model.putIfAbsent("ogImage", canonicalUrl("/assets/images/hammer_icon.png"))
 	val session = sessions.get<UserSession>()
 	if (session != null) {
 		model["isLoggedIn"] = true
