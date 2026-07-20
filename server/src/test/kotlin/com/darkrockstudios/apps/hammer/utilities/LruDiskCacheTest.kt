@@ -35,6 +35,33 @@ class LruDiskCacheTest {
 	}
 
 	@Test
+	fun `getOrPut computes a hot key once under concurrent misses`() {
+		val c = cache(1_000_000)
+		val computeCount = java.util.concurrent.atomic.AtomicInteger(0)
+		val start = java.util.concurrent.CountDownLatch(1)
+		val threadCount = 16
+		val results = java.util.Collections.synchronizedList(mutableListOf<ByteArray>())
+		val threads = List(threadCount) {
+			Thread {
+				start.await()
+				val bytes = c.getOrPut("hot") {
+					computeCount.incrementAndGet()
+					Thread.sleep(50) // hold the compute so racers pile up on the lock
+					byteArrayOf(7)
+				}
+				results.add(bytes)
+			}
+		}
+		threads.forEach { it.start() }
+		start.countDown()
+		threads.forEach { it.join() }
+
+		assertEquals(1, computeCount.get(), "a hot key should be computed exactly once")
+		assertEquals(threadCount, results.size)
+		results.forEach { assertContentEquals(byteArrayOf(7), it) }
+	}
+
+	@Test
 	fun `keys with filesystem-unsafe characters are hashed to a valid filename`() {
 		val c = cache(1_000)
 		val key = "a/b c:\\d?e"

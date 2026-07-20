@@ -23,13 +23,17 @@ import kotlin.time.toJavaDuration
  * never evicted, so a value larger than the cap simply stays as the sole occupant.
  *
  * Reads are lock-free; evictions are serialized. A read racing an eviction that deletes the same
- * file just yields a miss, which the caller regenerates.
+ * file just yields a miss, which the caller regenerates. [getOrPut] is single-flight per key: a
+ * burst of concurrent misses for the same key computes the value once rather than once per caller.
  */
 class LruDiskCache(
 	private val directory: Path,
 	private val maxBytes: Long,
 ) {
 	private val evictionLock = Any()
+	// Striped locks bound the number of monitors while still serializing same-key computes
+	// (same key -> same stripe). Distinct keys rarely collide; a collision only serializes.
+	private val computeLocks = Array(COMPUTE_STRIPES) { Any() }
 
 	init {
 		require(maxBytes > 0) { "maxBytes must be positive, was $maxBytes" }
@@ -65,8 +69,16 @@ class LruDiskCache(
 		prune()
 	}
 
-	fun getOrPut(key: String, compute: () -> ByteArray): ByteArray =
-		get(key) ?: compute().also { put(key, it) }
+	fun getOrPut(key: String, compute: () -> ByteArray): ByteArray {
+		get(key)?.let { return it }
+		// Serialize computes for this key: a racer that computed while we waited wins the re-check.
+		return synchronized(computeLockFor(key)) {
+			get(key) ?: compute().also { put(key, it) }
+		}
+	}
+
+	private fun computeLockFor(key: String): Any =
+		computeLocks[(key.hashCode() and 0x7fffffff) % COMPUTE_STRIPES]
 
 	/**
 	 * Enforce the size bound now, evicting least-recently-used entries until the cache fits.
@@ -124,5 +136,6 @@ class LruDiskCache(
 
 	private companion object {
 		const val TEMP_SUFFIX = ".tmp"
+		const val COMPUTE_STRIPES = 64
 	}
 }

@@ -202,33 +202,12 @@ internal fun wrapText(
 	maxWidth: Int,
 	maxLines: Int,
 	widthOf: (String) -> Int,
-): List<String> {
-	val words = text.trim().split(Regex("\\s+")).filter { it.isNotEmpty() }
-	if (words.isEmpty()) return emptyList()
-
-	val lines = mutableListOf<String>()
-	var line = ""
-	var i = 0
-	while (i < words.size) {
-		val candidate = if (line.isEmpty()) words[i] else "$line ${words[i]}"
-		if (line.isEmpty() || widthOf(candidate) <= maxWidth) {
-			line = candidate
-			i++
-		} else if (lines.size == maxLines - 1) {
-			return lines + ellipsize(line, maxWidth, widthOf)
-		} else {
-			lines += line
-			line = ""
-		}
-	}
-	if (line.isNotEmpty()) lines += line
-	return lines
-}
+): List<String> = wrapTextIndented(text, firstLineWidth = maxWidth, bodyWidth = maxWidth, maxLines = maxLines, widthOf = widthOf)
 
 /**
- * Like [wrapText], but the first line is constrained to [firstLineWidth] (leaving room for an
+ * Greedy word-wrap where the first line is constrained to [firstLineWidth] (leaving room for an
  * inline icon) while every later line uses [bodyWidth]. The last line ellipsizes if the text runs
- * past [maxLines].
+ * past [maxLines]; a single word wider than its line's width overflows onto its own line.
  */
 internal fun wrapTextIndented(
 	text: String,

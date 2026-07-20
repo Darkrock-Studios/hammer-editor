@@ -19,6 +19,7 @@ import io.ktor.server.plugins.conditionalheaders.ConditionalHeaders
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
 import io.ktor.server.plugins.hsts.HSTS
 import io.ktor.server.plugins.httpsredirect.HttpsRedirect
+import io.ktor.server.request.path
 import io.ktor.server.routing.IgnoreTrailingSlash
 
 fun Application.configureHTTP(config: ServerConfig) {
@@ -60,7 +61,7 @@ fun Application.configureHTTP(config: ServerConfig) {
 	}
 	install(ConditionalHeaders)
 	install(CachingHeaders) {
-		options { _, content -> staticAssetCaching(content.contentType) }
+		options { call, content -> staticAssetCaching(call.request.path(), content.contentType) }
 	}
 	install(IgnoreTrailingSlash)
 	install(Compression) {
@@ -88,22 +89,34 @@ fun Application.configureHTTP(config: ServerConfig) {
 }
 
 /**
- * Long-lived, publicly cacheable `Cache-Control` for static assets (served from `/assets`), so
- * browsers can skip re-fetching CSS/JS/images/fonts on every navigation. ETags (via
- * ConditionalHeaders) still catch changes on revalidation once the max-age lapses. Non-asset
- * responses — HTML pages, XML sitemaps — get no caching header so they stay fresh and never
- * leak session-varying content into a shared cache.
+ * Publicly cacheable `Cache-Control`, scoped by path so only content meant to be cached is:
+ *
+ * - Dynamic OG share cards under `/og/` cache for 30 days — the same window the disk cache prunes
+ *   on — since a card's URL is keyed to a stable subject.
+ * - Static files under `/assets` cache by type (CSS/JS one day, images/fonts a week).
+ * - Everything else — HTML pages, XML sitemaps, and any dynamic image outside those paths — gets
+ *   no caching header, so it stays fresh and never leaks session-varying content into a shared
+ *   cache.
+ *
+ * ETags (via ConditionalHeaders) still catch changes on revalidation once a max-age lapses.
  */
-internal fun staticAssetCaching(contentType: ContentType?): CachingOptions? {
-	val type = contentType?.withoutParameters() ?: return null
+internal fun staticAssetCaching(path: String, contentType: ContentType?): CachingOptions? {
+	val type = contentType?.withoutParameters()
 	return when {
-		type.match(ContentType.Text.CSS) ||
-			type.match(ContentType.Application.JavaScript) ||
-			type.match(ContentType("text", "javascript")) ->
-			CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 86_400, visibility = CacheControl.Visibility.Public))
+		path.startsWith("/og/") ->
+			CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 2_592_000, visibility = CacheControl.Visibility.Public))
 
-		type.contentType == "image" || type.contentType == "font" ->
-			CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 604_800, visibility = CacheControl.Visibility.Public))
+		path.startsWith("/assets") && type != null -> when {
+			type.match(ContentType.Text.CSS) ||
+				type.match(ContentType.Application.JavaScript) ||
+				type.match(ContentType("text", "javascript")) ->
+				CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 86_400, visibility = CacheControl.Visibility.Public))
+
+			type.contentType == "image" || type.contentType == "font" ->
+				CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 604_800, visibility = CacheControl.Visibility.Public))
+
+			else -> null
+		}
 
 		else -> null
 	}
