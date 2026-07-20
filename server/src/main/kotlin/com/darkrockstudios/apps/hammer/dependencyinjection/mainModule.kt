@@ -59,11 +59,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
-import org.koin.core.module.dsl.factoryOf
-import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import org.koin.plugin.module.dsl.factory
+import org.koin.plugin.module.dsl.single
 import java.security.SecureRandom
 import kotlin.coroutines.CoroutineContext
 import kotlin.io.encoding.Base64
@@ -83,7 +83,7 @@ fun mainModule(
 	single { logger }
 	single { com.darkrockstudios.apps.hammer.plugins.LoginRateLimitConfig() }
 
-	singleOf(::createJsonSerializer) bind Json::class
+	single { createJsonSerializer() } bind Json::class
 	single { Toml { ignoreUnknownKeys = true } } bind Toml::class
 	single { Clock.System } bind Clock::class
 	single { createTokenBase64() } bind Base64::class
@@ -99,71 +99,71 @@ fun mainModule(
 			)
 		}
 	}
-	singleOf(::AccountDao)
-	singleOf(::AuthTokenDao)
-	singleOf(::WhiteListDao)
-	singleOf(::StoryEntityDao)
-	singleOf(::ProjectsDao)
-	singleOf(::ProjectDao)
-	singleOf(::DeletedProjectDao)
-	singleOf(::DeletedEntityDao)
-	singleOf(::ServerConfigDao)
-	singleOf(::ProjectAccessDao)
-	singleOf(::PasswordResetTokenDao)
-	singleOf(::ReviewRequestDao)
-	singleOf(::ReviewSceneDao)
-	singleOf(::ReviewSuggestionDao)
-	singleOf(::WritingActivityDao)
-	singleOf(::ProjectDataDao)
-	singleOf(::StoryIdeaDao)
-	singleOf(::DeletedIdeaDao)
-	singleOf(::ApiMetricDao)
-	singleOf(::ErrorLogDao)
-	singleOf(::LoginAttemptDao)
-	singleOf(::UserActivityDao)
-	singleOf(::PublishedStoryReaderDao)
+	single<AccountDao>()
+	single<AuthTokenDao>()
+	single<WhiteListDao>()
+	single<StoryEntityDao>()
+	single<ProjectsDao>()
+	single<ProjectDao>()
+	single<DeletedProjectDao>()
+	single<DeletedEntityDao>()
+	single<ServerConfigDao>()
+	single<ProjectAccessDao>()
+	single<PasswordResetTokenDao>()
+	single<ReviewRequestDao>()
+	single<ReviewSceneDao>()
+	single<ReviewSuggestionDao>()
+	single<WritingActivityDao>()
+	single<ProjectDataDao>()
+	single<StoryIdeaDao>()
+	single<DeletedIdeaDao>()
+	single<ApiMetricDao>()
+	single<ErrorLogDao>()
+	single<LoginAttemptDao>()
+	single<UserActivityDao>()
+	single<PublishedStoryReaderDao>()
 
-	singleOf(::AccountsRepository)
-	singleOf(::TermsOfServiceRepository)
-	singleOf(::PrivacyPolicyRepository)
-	singleOf(::ProjectsRepository)
-	singleOf(::ProjectEntityRepository)
-	singleOf(::ProjectAccessRepository)
-	singleOf(::ServerWritingActivityRepository)
-	singleOf(::ServerProjectDataRepository)
+	single<AccountsRepository>()
+	single<TermsOfServiceRepository>()
+	single<PrivacyPolicyRepository>()
+	single<ProjectsRepository>()
+	single<ProjectEntityRepository>()
+	single<ProjectAccessRepository>()
+	single<ServerWritingActivityRepository>()
+	single<ServerProjectDataRepository>()
 	single { ServerIdeasRepository(get(), get(), get(), get(), get(), get(), get()) }
-	singleOf(::WhiteListRepository)
-	singleOf(::ConfigRepository)
-	singleOf(::MetricsRepository)
-	singleOf(::ErrorRepository)
-	singleOf(::SecurityRepository)
-	singleOf(::MetricsCollector)
-	singleOf(::UserActivityCollector)
-	singleOf(::UserActivityRepository)
+	single<WhiteListRepository>()
+	single<ConfigRepository>()
+	single<MetricsRepository>()
+	single<ErrorRepository>()
+	single<SecurityRepository>()
+	single<MetricsCollector>()
+	single<UserActivityCollector>()
+	single<UserActivityRepository>()
 	// Explicit ctor: maxPendingKeys has a default, but a constructor reference would
 	// make Koin try to inject the Int rather than honor it.
 	single { StoryReaderCollector(clock = get()) }
-	singleOf(::StoryReaderRepository)
+	single<StoryReaderRepository>()
 	single { MonitoringState() }
 	single { RecurringTaskRegistry() }
-	singleOf(::MonitoringMaintenanceJob)
-	singleOf(::TokenMaintenanceJob)
-	singleOf(::WhitelistExpiryJob)
-	singleOf(::StoryExportService)
-	singleOf(::PenNameService)
-	singleOf(::BioService)
-	singleOf(::PasswordResetRepository)
-	singleOf(::ReviewRepository)
+	single<MonitoringMaintenanceJob>()
+	single<TokenMaintenanceJob>()
+	single<WhitelistExpiryJob>()
+	single<StoryExportService>()
+	single<PenNameService>()
+	single<BioService>()
+	single<PasswordResetRepository>()
+	single<ReviewRepository>()
 
-	singleOf(::ServerSecretManager)
-	singleOf(::MarkdownService)
+	single<ServerSecretManager>()
+	single<MarkdownService>()
 	single { KeyringCodec(get(), get()) }
 	single<ServerSecretProvider> { buildSecretProvider(get<ServerConfig>().secret, get()) }
 	single {
 		KeyringManager(get(), get(), get(), KeyringManager.legacySecretPath())
 	}
-	singleOf(::SimpleFileBasedAesGcmKeyProvider) bind AesGcmKeyProvider::class
-	singleOf(::PlaintextContentEncryptor)
+	single<SimpleFileBasedAesGcmKeyProvider>() bind AesGcmKeyProvider::class
+	single<PlaintextContentEncryptor>()
 	single {
 		val keyProvider = get<AesGcmKeyProvider>()
 		val random = get<SecureRandom>()
@@ -178,7 +178,7 @@ fun mainModule(
 	}
 	single { EncryptionConvergence(get(), get(), get()) }
 	single { EncryptionBootstrap(get(), get(), get(), get(), get(), get()) }
-	singleOf(::TokenHasher)
+	single<TokenHasher>()
 
 	single<EmailService> {
 		val serverConfig = get<ServerConfig>()
@@ -191,24 +191,24 @@ fun mainModule(
 		}
 	}
 
-	factoryOf(::ProjectsDatabaseDatasource) bind ProjectsDatasource::class
+	factory<ProjectsDatabaseDatasource>() bind ProjectsDatasource::class
 	factory<ProjectEntityDatasource> {
 		ProjectEntityDatabaseDatasource(get(), get(), get(), get(), get(), get(), get(), get())
 	}
 
-	singleOf(::AdminComponent)
-	singleOf(::AccountsComponent)
+	single<AdminComponent>()
+	single<AccountsComponent>()
 
-	singleOf(::PatreonApiClient)
-	singleOf(::PatreonSyncService)
-	singleOf(::PatreonWebhookHandler)
-	singleOf(::PatreonPollingJob)
+	single<PatreonApiClient>()
+	single<PatreonSyncService>()
+	single<PatreonWebhookHandler>()
+	single<PatreonPollingJob>()
 
-	singleOf(::ServerSceneSynchronizer)
-	singleOf(::ServerNoteSynchronizer)
-	singleOf(::ServerTimelineSynchronizer)
-	singleOf(::ServerEncyclopediaSynchronizer)
-	singleOf(::ServerSceneDraftSynchronizer)
+	single<ServerSceneSynchronizer>()
+	single<ServerNoteSynchronizer>()
+	single<ServerTimelineSynchronizer>()
+	single<ServerEncyclopediaSynchronizer>()
+	single<ServerSceneDraftSynchronizer>()
 
 	single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
 		SyncSessionManager(get(), get())
