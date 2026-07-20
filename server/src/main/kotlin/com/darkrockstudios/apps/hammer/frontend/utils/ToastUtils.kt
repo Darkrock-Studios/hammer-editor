@@ -39,6 +39,25 @@ fun toastHtml(message: String, toast: Toast = Toast.Success): String {
 }
 
 /**
+ * Ktor's respond* functions are tail-call suspend functions that hand back the send pipeline's
+ * subject (a TextContent, or a CompressedReadChannelResponse once the Compression plugin has run)
+ * instead of Unit. With nothing after the call, the compiler emits a tail call and that value is
+ * returned to our caller, which casts it to Unit and dies with a ClassCastException whenever the
+ * respond lands in a value position — the last expression of a route handler's `when`/`if`.
+ * The trailing statement forces a real Unit return. Do not remove it.
+ */
+private suspend fun RoutingContext.respondHtml(html: String, status: HttpStatusCode) {
+	call.respondText(
+		text = html,
+		contentType = ContentType.Text.Html,
+		status = status
+	)
+	forceUnitReturn()
+}
+
+private fun forceUnitReturn() = Unit
+
+/**
  * Responds with HTML content plus an OOB toast notification.
  * Use this for HTMX endpoints that need to swap content AND show a toast.
  */
@@ -48,12 +67,7 @@ suspend fun RoutingContext.respondHtmlWithToast(
 	toast: Toast = Toast.Success,
 	status: HttpStatusCode = HttpStatusCode.OK
 ) {
-	val toastHtml = toastHtml(message, toast)
-	call.respondText(
-		text = "$content$toastHtml",
-		contentType = ContentType.Text.Html,
-		status = status
-	)
+	respondHtml("$content${toastHtml(message, toast)}", status)
 }
 
 /**
@@ -65,11 +79,7 @@ suspend fun RoutingContext.respondToast(
 	toast: Toast = Toast.Success,
 	status: HttpStatusCode = HttpStatusCode.OK
 ) {
-	call.respondText(
-		text = toastHtml(message, toast),
-		contentType = ContentType.Text.Html,
-		status = status
-	)
+	respondHtml(toastHtml(message, toast), status)
 }
 
 /**
@@ -98,10 +108,5 @@ suspend fun RoutingContext.respondTemplateWithToast(
 	status: HttpStatusCode = HttpStatusCode.OK
 ) {
 	val content = renderTemplate(templatePath, model)
-	val toastHtml = toastHtml(message, toast)
-	call.respondText(
-		text = "$content$toastHtml",
-		contentType = ContentType.Text.Html,
-		status = status
-	)
+	respondHtml("$content${toastHtml(message, toast)}", status)
 }

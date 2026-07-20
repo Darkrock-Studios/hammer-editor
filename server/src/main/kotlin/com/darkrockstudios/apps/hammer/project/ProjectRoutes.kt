@@ -169,6 +169,9 @@ private fun Route.endProjectSync() {
 				),
 			)
 		}
+		// Keeps the branches above out of value position: Ktor's respond* hand back the send
+		// pipeline's subject rather than Unit, which the compiler would then cast to Unit and fail.
+		return@post
 	}
 }
 
