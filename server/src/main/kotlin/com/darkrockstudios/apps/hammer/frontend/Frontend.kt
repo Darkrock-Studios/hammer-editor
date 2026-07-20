@@ -14,6 +14,9 @@ import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
+import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
+import com.darkrockstudios.apps.hammer.frontend.og.ogImageRoutes
+import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import com.darkrockstudios.apps.hammer.monitoring.ActivityType
@@ -138,7 +141,7 @@ fun Route.frontend() {
 		reviewSubmittedMailer = emailService?.let { com.darkrockstudios.apps.hammer.review.ReviewSubmittedMailer(it) },
 		clock = clock,
 	)
-	authorPage(accountsRepository, projectAccessRepository, markdownService)
+	authorPage(accountsRepository, projectAccessRepository, markdownService, serverConfig)
 	publicStoryPage(
 		storyExportService,
 		projectAccessRepository,
@@ -146,7 +149,12 @@ fun Route.frontend() {
 		storyReaderCollector,
 		accountsRepository,
 		projectsRepository,
+		serverConfig,
 	)
+	if (serverConfig.richLinkPreviews) {
+		val ogImageService by inject<OgImageService>()
+		ogImageRoutes(accountsRepository, projectAccessRepository, ogImageService)
+	}
 	adminPage(
 		whiteListRepository,
 		configRepository,
@@ -315,6 +323,13 @@ fun MutableMap<String, Any>.addDefaults(): MutableMap<String, Any> {
 suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): MutableMap<String, Any> {
 	val model = withMessages(data).addDefaults()
 	model.putIfAbsent("title", msg("page_title"))
+	// Self-referential canonical from the request path (query stripped). Pages whose query
+	// params are content-bearing (e.g. story pagination) override this with their own value.
+	model.putIfAbsent("canonicalUrl", canonicalUrl())
+	// OpenGraph / Twitter card defaults; pages override ogType (profile/article) and may
+	// override ogImage. Title, description, and url reuse the fields set above.
+	model.putIfAbsent("ogType", "website")
+	model.putIfAbsent("ogImage", canonicalUrl("/assets/images/og-default.png"))
 	val session = sessions.get<UserSession>()
 	if (session != null) {
 		model["isLoggedIn"] = true

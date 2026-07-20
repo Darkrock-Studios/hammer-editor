@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.monitoring.configureRouteTemplateCapture
 import com.darkrockstudios.apps.hammer.patreon.configurePatreonPolling
 import com.darkrockstudios.apps.hammer.plugins.SetupModePlugin
 import com.darkrockstudios.apps.hammer.plugins.configureDependencyInjection
+import com.darkrockstudios.apps.hammer.frontend.og.configureOgImageCachePruneJob
 import com.darkrockstudios.apps.hammer.plugins.configureHTTP
 import com.darkrockstudios.apps.hammer.plugins.configureLocalization
 import com.darkrockstudios.apps.hammer.plugins.configureMonitoring
@@ -383,6 +384,7 @@ fun Application.appMain(
 	configureMonitoringJob()
 	configureTokenMaintenanceJob()
 	configureWhitelistExpiryJob()
+	if (config.richLinkPreviews) configureOgImageCachePruneJob()
 }
 
 fun cliKeyringCodec(): KeyringCodec =

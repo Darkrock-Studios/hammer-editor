@@ -49,7 +49,11 @@ import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
 import com.darkrockstudios.apps.hammer.secret.buildSecretProvider
+import com.darkrockstudios.apps.hammer.frontend.og.OgImageCachePruneJob
+import com.darkrockstudios.apps.hammer.frontend.og.OgImageRenderer
+import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
 import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.utilities.DATA_DIR
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
@@ -149,6 +153,9 @@ fun mainModule(
 	single<MonitoringMaintenanceJob>()
 	single<TokenMaintenanceJob>()
 	single<WhitelistExpiryJob>()
+	single<OgImageRenderer>()
+	single { OgImageService(get(), java.nio.file.Path.of(System.getProperty("user.home"), DATA_DIR, "cache", "og")) }
+	single<OgImageCachePruneJob>()
 	single<StoryExportService>()
 	single<PenNameService>()
 	single<BioService>()

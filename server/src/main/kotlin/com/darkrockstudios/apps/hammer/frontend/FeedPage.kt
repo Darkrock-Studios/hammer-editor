@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import io.ktor.http.*
 import io.ktor.server.mustache.*
@@ -53,6 +54,8 @@ fun Route.feedPage(
 			val model = call.withDefaults(
 				mapOf(
 					"page_stylesheet" to "/assets/css/feed.css",
+					"title" to "${call.msg("feed_page_title")} — Hammer",
+					"metaDescription" to call.msg("feed_page_subtitle"),
 					"feedActive" to true,
 					"stories" to storiesForTemplate,
 					"hasStories" to stories.isNotEmpty(),

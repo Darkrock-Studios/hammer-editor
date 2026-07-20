@@ -142,6 +142,22 @@ class ProjectAccessRepository(
 		)
 	}
 
+	suspend fun findPublicProjectByUuid(projectUuid: ProjectId): PublicProjectResult {
+		val info = projectAccessDao.findPublicProjectByUuid(projectUuid.id)
+			?: return PublicProjectResult.NotFound
+
+		if (info.expiresAt != null && clock.now() > info.expiresAt) {
+			return PublicProjectResult.NotFound
+		}
+
+		return PublicProjectResult.Success(
+			userId = info.userId,
+			projectUuid = ProjectId(info.projectUuid),
+			projectName = info.projectName,
+			penName = info.penName
+		)
+	}
+
 	suspend fun findAccessibleProject(
 		penName: String,
 		projectName: String,

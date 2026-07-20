@@ -27,6 +27,13 @@ data class ServerConfig(
 	 */
 	val publicUrl: String? = null,
 	val additionalSitemaps: List<String> = emptyList(),
+	/**
+	 * Generate per-page social share images (OpenGraph) on the fly for author and story pages.
+	 * Requires native font libraries for headless AWT text rendering — e.g. `fontconfig` and
+	 * `libfreetype6` on Debian/Ubuntu. When off (the default), share links fall back to branded
+	 * static cards, so the out-of-the-box setup needs nothing extra installed.
+	 */
+	val richLinkPreviews: Boolean = false,
 	val sslCert: SslCertConfig? = null,
 	val patreonEnabled: Boolean? = null,
 	/**

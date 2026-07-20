@@ -1,11 +1,16 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
+import com.darkrockstudios.apps.hammer.frontend.utils.metaDescription
+import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
+import com.darkrockstudios.apps.hammer.frontend.utils.storyArticleJsonLd
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
@@ -32,6 +37,7 @@ fun Route.publicStoryPage(
 	storyReaderCollector: StoryReaderCollector,
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
+	serverConfig: ServerConfig,
 ) {
 	route("/a/{penName}/{projectName}") {
 		get {
@@ -123,6 +129,18 @@ fun Route.publicStoryPage(
 							val model = call.withDefaults(
 								mapOf(
 									"page_stylesheet" to "/assets/css/story.css",
+									"title" to "${data.projectName} · ${resolved.penName} — Hammer",
+									// Self-referential canonical: each page is its own indexable URL. The
+									// password (?p) is never included — it's a secret and those pages are noindex.
+									"canonicalUrl" to (call.canonicalUrl() + if (page > 1) "?page=$page" else ""),
+									"ogType" to "article",
+									// Dynamic card only for public (password-free) access, matching the OG
+									// route; a private share falls back to the static card, never a 404.
+									"ogImage" to if (serverConfig.richLinkPreviews && password.isNullOrBlank()) {
+										call.canonicalUrl("/og/s/${resolved.projectUuid.id}.png")
+									} else {
+										call.canonicalUrl("/assets/images/og-story.png")
+									},
 									"page_pre_script" to "/assets/js/story-reader-logic.js",
 									"page_script" to "/assets/js/story-reader.js",
 									"projectName" to data.projectName,
@@ -143,6 +161,18 @@ fun Route.publicStoryPage(
 									"prevPageUrl" to "/a/$penNameForUrl/$projectNameForUrl?page=${data.prevPage}$passwordParam"
 								)
 							)
+							metaDescription(
+								call.msg("public_story_meta_description", data.projectName, resolved.penName),
+							)?.let { model["metaDescription"] = it }
+							if (indexable) {
+								model["jsonLd"] = storyArticleJsonLd(
+									title = data.projectName,
+									url = call.canonicalUrl("/a/$penNameForUrl/$projectNameForUrl"),
+									authorName = resolved.penName,
+									authorUrl = call.canonicalUrl("/a/${ProjectName.penNameForUrl(resolved.penName)}"),
+									wordCount = data.totalWordCount.toLong(),
+								)
+							}
 							call.respond(MustacheContent("publicstory.mustache", model))
 						}
 

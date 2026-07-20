@@ -4,6 +4,8 @@ import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
+import com.darkrockstudios.apps.hammer.frontend.utils.metaDescription
+import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import io.ktor.http.*
@@ -31,6 +33,8 @@ fun Route.aboutPage(
 			val model = call.withDefaults()
 			model["page_stylesheet"] = "/assets/css/about.css"
 			model["aboutHtml"] = aboutHtml
+			model["title"] = "${call.msg("about_page_title")} — Hammer"
+			metaDescription(aboutMarkdown)?.let { model["metaDescription"] = it }
 
 			populateCommunityCalloutModel(serverConfig, model, accountsRepository, projectAccessRepository)
 
