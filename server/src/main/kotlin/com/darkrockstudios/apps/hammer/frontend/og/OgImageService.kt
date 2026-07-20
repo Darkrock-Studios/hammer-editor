@@ -6,9 +6,10 @@ import kotlin.time.Duration
 
 /**
  * Renders OpenGraph share cards through a size-bounded disk cache, so a viral link's scraper
- * traffic renders each card at most once. Cache keys embed the entity's mutable fields, so a
- * renamed story or author regenerates automatically; bump [TEMPLATE_VERSION] to invalidate every
- * card after a design change.
+ * traffic renders each card at most once. Cache keys are built from the exact render inputs — so a
+ * renamed story, a re-titled author, a different language, or a different server host all
+ * regenerate automatically (the localized labels and host are part of the key). Bump
+ * [TEMPLATE_VERSION] to invalidate every card after a design change.
  */
 class OgImageService(
 	private val renderer: OgImageRenderer,
@@ -17,14 +18,20 @@ class OgImageService(
 ) {
 	private val cache = LruDiskCache(cacheDirectory, maxCacheBytes)
 
-	fun authorCard(accountId: Long, penName: String): ByteArray =
-		cache.getOrPut("author:$TEMPLATE_VERSION:$accountId:$penName") {
-			renderer.render(penName, "An author on Hammer")
+	fun authorCard(accountId: Long, penName: String, subtitle: String): ByteArray =
+		cache.getOrPut("author:$TEMPLATE_VERSION:$accountId:$penName:$subtitle") {
+			renderer.render(penName, subtitle)
 		}
 
-	fun storyCard(projectUuid: String, projectName: String, penName: String): ByteArray =
-		cache.getOrPut("story:$TEMPLATE_VERSION:$projectUuid:$projectName:$penName") {
-			renderer.render(projectName, "by $penName")
+	fun storyCard(
+		projectUuid: String,
+		projectName: String,
+		penName: String,
+		kicker: String,
+		attribution: String,
+	): ByteArray =
+		cache.getOrPut("story:$TEMPLATE_VERSION:$projectUuid:$projectName:$penName:$kicker:$attribution") {
+			renderer.renderStoryCard(projectName, penName, kicker, attribution)
 		}
 
 	/** Evict cards not requested within [maxAge], then enforce the size bound. */

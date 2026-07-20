@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.frontend.og
 
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.frontend.utils.displayHost
 import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
+import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.project.access.PublicProjectResult
@@ -38,7 +40,11 @@ fun Route.ogImageRoutes(
 			call.respond(HttpStatusCode.NotFound)
 			return@get
 		}
-		call.respondBytes(ogImageService.authorCard(account.id, penName), ContentType.Image.PNG)
+		val subtitle = call.msg("og_author_subtitle", call.displayHost())
+		call.respondBytes(
+			ogImageService.authorCard(account.id, penName, subtitle),
+			ContentType.Image.PNG,
+		)
 	}
 
 	get("/a/{penName}/{projectName}/og.png") {
@@ -65,8 +71,16 @@ fun Route.ogImageRoutes(
 			call.respond(HttpStatusCode.NotFound)
 			return@get
 		}
+		val kicker = call.msg("public_story_by")
+		val attribution = call.msg("og_attribution")
 		call.respondBytes(
-			ogImageService.storyCard(result.projectUuid.toString(), projectName, penName),
+			ogImageService.storyCard(
+				result.projectUuid.toString(),
+				projectName,
+				penName,
+				kicker,
+				attribution,
+			),
 			ContentType.Image.PNG,
 		)
 	}
