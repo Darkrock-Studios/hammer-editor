@@ -72,8 +72,10 @@ fun Route.authorPage(
 					"page_stylesheet" to "/assets/css/author.css",
 					"title" to "$penName — Hammer",
 					"ogType" to "profile",
-					"ogImage" to if (serverConfig.richLinkPreviews) {
-						call.canonicalUrl("/a/$penNameForUrl/og.png")
+					// Dynamic card only when the OG route would actually serve it (community author);
+					// otherwise the static fallback, so the share preview is never a broken 404.
+					"ogImage" to if (serverConfig.richLinkPreviews && account.community_member) {
+						call.canonicalUrl("/og/a/${account.id}.png")
 					} else {
 						call.canonicalUrl("/assets/images/og-author.png")
 					},

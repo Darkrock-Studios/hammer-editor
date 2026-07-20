@@ -109,6 +109,22 @@ class ProjectAccessDao(
 			}
 	}
 
+	suspend fun findPublicProjectByUuid(
+		projectUuid: String
+	): PublicProjectInfo? = withContext(ioDispatcher) {
+		queries.findPublicProjectByUuid(projectUuid)
+			.executeAsOneOrNull()
+			?.let {
+				PublicProjectInfo(
+					projectUuid = it.project_uuid,
+					userId = it.user_id,
+					projectName = it.project_name,
+					penName = it.pen_name ?: "",
+					expiresAt = it.expires_at
+				)
+			}
+	}
+
 	suspend fun findProjectByPenNameProjectNameAndPassword(
 		penName: String,
 		projectName: String,

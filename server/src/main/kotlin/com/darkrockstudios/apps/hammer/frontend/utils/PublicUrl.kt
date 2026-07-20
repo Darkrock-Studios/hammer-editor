@@ -41,13 +41,3 @@ fun ApplicationCall.requestBaseUrl(): String {
 		"$scheme://$host:$port"
 	}
 }
-
-/**
- * The server's bare hostname for display (e.g. "hammer.ink"), taken from the configured
- * [ServerConfig.publicUrl] and falling back to the request's `Host`. Suitable only for text shown
- * back to the requester — never for a link or redirect, where the client-controlled `Host` is
- * unsafe (use [publicBaseUrl] there).
- */
-fun ApplicationCall.displayHost(): String =
-	publicBaseUrl()?.substringAfter("://")?.substringBefore('/')?.takeIf { it.isNotBlank() }
-		?: request.host()

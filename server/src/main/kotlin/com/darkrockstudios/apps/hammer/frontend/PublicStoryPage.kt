@@ -134,8 +134,10 @@ fun Route.publicStoryPage(
 									// password (?p) is never included — it's a secret and those pages are noindex.
 									"canonicalUrl" to (call.canonicalUrl() + if (page > 1) "?page=$page" else ""),
 									"ogType" to "article",
-									"ogImage" to if (serverConfig.richLinkPreviews) {
-										call.canonicalUrl("/a/$penNameForUrl/$projectNameForUrl/og.png")
+									// Dynamic card only for public (password-free) access, matching the OG
+									// route; a private share falls back to the static card, never a 404.
+									"ogImage" to if (serverConfig.richLinkPreviews && password.isNullOrBlank()) {
+										call.canonicalUrl("/og/s/${resolved.projectUuid.id}.png")
 									} else {
 										call.canonicalUrl("/assets/images/og-story.png")
 									},

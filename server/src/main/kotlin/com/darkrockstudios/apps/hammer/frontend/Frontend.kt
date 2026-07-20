@@ -153,7 +153,7 @@ fun Route.frontend() {
 	)
 	if (serverConfig.richLinkPreviews) {
 		val ogImageService by inject<OgImageService>()
-		ogImageRoutes(accountsRepository, projectsRepository, projectAccessRepository, ogImageService)
+		ogImageRoutes(accountsRepository, projectAccessRepository, ogImageService)
 	}
 	adminPage(
 		whiteListRepository,

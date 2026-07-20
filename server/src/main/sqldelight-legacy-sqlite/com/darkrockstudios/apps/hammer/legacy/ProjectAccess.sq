@@ -70,6 +70,19 @@ WHERE LOWER(account.pen_name) = LOWER(:penName)
   AND LOWER(project.name) = LOWER(:projectName)
   AND project_access.access_password IS NULL;
 
+findPublicProjectByUuid:
+SELECT
+    project.uuid AS project_uuid,
+    project.user_id,
+    project.name AS project_name,
+    account.pen_name,
+    project_access.expires_at
+FROM project
+INNER JOIN account ON project.user_id = account.id
+INNER JOIN project_access ON project.id = project_access.project_id
+WHERE project.uuid = :projectUuid
+  AND project_access.access_password IS NULL;
+
 findProjectByPenNameProjectNameAndPassword:
 SELECT
     project.uuid AS project_uuid,
