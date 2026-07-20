@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.Toast
 import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
 import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.renderTemplate
 import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
 import com.darkrockstudios.apps.hammer.frontend.utils.respondHtmlWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
@@ -189,7 +190,7 @@ fun Route.dashboardPage(
 					return@post
 				}
 
-				when (val result = bioService.setBio(session.userId, newBio)) {
+				val outcome = when (bioService.setBio(session.userId, newBio)) {
 					BioService.BioResult.VALID -> {
 						// Re-render the bio section with updated data
 						val updatedAccount = accountsRepository.getAccount(session.userId)
@@ -202,32 +203,29 @@ fun Route.dashboardPage(
 							)
 						)
 
-						respondTemplateWithToast(
-							templatePath = "partials/bio-section.mustache",
-							model = model,
+						BioOutcome(
+							content = renderTemplate("partials/bio-section.mustache", model),
 							message = call.msg("bio_toast_saved"),
-							toast = Toast.Success
+							toast = Toast.Success,
+							status = HttpStatusCode.OK
 						)
 					}
 
-					BioService.BioResult.TOO_LONG -> {
-						respondHtmlWithToast(
-							content = "",
-							message = call.msg("bio_validation_too_long", BioService.MAX_BIO_LENGTH),
-							toast = Toast.Error,
-							status = HttpStatusCode.BadRequest
-						)
-					}
+					BioService.BioResult.TOO_LONG -> BioOutcome(
+						message = call.msg("bio_validation_too_long", BioService.MAX_BIO_LENGTH)
+					)
 
-					BioService.BioResult.NO_PEN_NAME -> {
-						respondHtmlWithToast(
-							content = "",
-							message = call.msg("bio_error_no_penname"),
-							toast = Toast.Error,
-							status = HttpStatusCode.BadRequest
-						)
-					}
+					BioService.BioResult.NO_PEN_NAME -> BioOutcome(
+						message = call.msg("bio_error_no_penname")
+					)
 				}
+
+				respondHtmlWithToast(
+					content = outcome.content,
+					message = outcome.message,
+					toast = outcome.toast,
+					status = outcome.status
+				)
 			}
 
 			hx.delete("/bio") {
@@ -380,6 +378,14 @@ private suspend fun penNameResultToMessage(call: ApplicationCall, result: PenNam
 		PenNameResult.NOT_AVAILABLE -> call.msg("penname_validation_taken")
 	}
 }
+
+/** What the bio endpoint sends back: the swapped-in content plus the toast that goes with it. */
+private data class BioOutcome(
+	val message: String,
+	val content: String = "",
+	val toast: Toast = Toast.Error,
+	val status: HttpStatusCode = HttpStatusCode.BadRequest
+)
 
 @Serializable
 data class PenNameCheckResponse(
