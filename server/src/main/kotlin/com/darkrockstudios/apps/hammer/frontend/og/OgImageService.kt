@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.frontend.og
 
 import com.darkrockstudios.apps.hammer.utilities.LruDiskCache
+import com.darkrockstudios.apps.hammer.utilities.PrunableCache
 import java.nio.file.Path
 import kotlin.time.Duration
 
@@ -15,7 +16,7 @@ class OgImageService(
 	private val renderer: OgImageRenderer,
 	cacheDirectory: Path,
 	maxCacheBytes: Long = DEFAULT_MAX_BYTES,
-) {
+) : PrunableCache {
 	private val cache = LruDiskCache(cacheDirectory, maxCacheBytes)
 
 	fun authorCard(accountId: Long, penName: String, subtitle: String): ByteArray =
@@ -35,7 +36,7 @@ class OgImageService(
 		}
 
 	/** Evict cards not requested within [maxAge], then enforce the size bound. */
-	fun prune(maxAge: Duration) = cache.prune(maxAge)
+	override fun prune(maxAge: Duration) = cache.prune(maxAge)
 
 	private companion object {
 		const val TEMPLATE_VERSION = "v1"

@@ -92,7 +92,7 @@ class OgImageRoutesTest {
 		val uuid = "11111111-1111-1111-1111-111111111111"
 		val access = mockk<ProjectAccessRepository>()
 		coEvery { access.findPublicProjectByUuid(any()) } returns
-			PublicProjectResult.Success(1L, ProjectId(uuid), "My Story", "Jane Doe")
+			PublicProjectResult.Success(1L, ProjectId(uuid), "My Story", "Jane Doe", isPublic = true)
 		installRoutes(accounts = mockk(), access = access)
 
 		val response = client.get("/og/s/$uuid.png")

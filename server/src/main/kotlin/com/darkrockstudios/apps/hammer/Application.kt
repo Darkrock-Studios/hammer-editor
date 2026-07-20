@@ -14,7 +14,6 @@ import com.darkrockstudios.apps.hammer.monitoring.configureRouteTemplateCapture
 import com.darkrockstudios.apps.hammer.patreon.configurePatreonPolling
 import com.darkrockstudios.apps.hammer.plugins.SetupModePlugin
 import com.darkrockstudios.apps.hammer.plugins.configureDependencyInjection
-import com.darkrockstudios.apps.hammer.frontend.og.configureOgImageCachePruneJob
 import com.darkrockstudios.apps.hammer.plugins.configureHTTP
 import com.darkrockstudios.apps.hammer.plugins.configureLocalization
 import com.darkrockstudios.apps.hammer.plugins.configureMonitoring
@@ -22,8 +21,8 @@ import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
-import com.darkrockstudios.apps.hammer.story.configureStoryRenderCachePruneJob
 import com.darkrockstudios.apps.hammer.utilities.DevSelfSignedCert
+import com.darkrockstudios.apps.hammer.utilities.configureDiskCachePruneJob
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utilities.loadPemAsKeyStore
 import com.github.ajalt.clikt.core.CliktCommand
@@ -385,8 +384,7 @@ fun Application.appMain(
 	configureMonitoringJob()
 	configureTokenMaintenanceJob()
 	configureWhitelistExpiryJob()
-	if (config.richLinkPreviews) configureOgImageCachePruneJob()
-	configureStoryRenderCachePruneJob()
+	configureDiskCachePruneJob()
 }
 
 fun cliKeyringCodec(): KeyringCodec =

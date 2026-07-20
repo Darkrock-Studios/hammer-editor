@@ -37,6 +37,7 @@ class StoryRenderCacheTest {
 		projectName: String = "Test Story",
 		page: Int = 1,
 		hashes: List<EntityHash> = listOf(EntityHash(1, "hash-one"), EntityHash(2, "hash-two")),
+		complete: Boolean = true,
 		render: suspend () -> PaginatedStoryExportResult,
 	) = getOrRender(
 		projectId = projectId,
@@ -44,8 +45,7 @@ class StoryRenderCacheTest {
 		page = page,
 		wordsPerPage = 2000,
 		sceneHashes = hashes,
-		render = render,
-	)
+	) { StoryRender(render(), complete) }
 
 	@Test
 	fun `a second call with the same inputs is served from the cache`() = runTest {
@@ -110,6 +110,32 @@ class StoryRenderCacheTest {
 		val second = cache.render(page = 2) { result("<p>page two</p>") }
 
 		assertEquals("<p>page two</p>", second.pageHtml)
+	}
+
+	@Test
+	fun `an incomplete render is served but never stored`() = runTest {
+		val cache = cache()
+		var renderCount = 0
+
+		val first = cache.render(complete = false) { renderCount++; result("<p>missing a scene</p>") }
+		val second = cache.render(complete = false) { renderCount++; result("<p>missing a scene</p>") }
+
+		assertEquals("<p>missing a scene</p>", first.pageHtml, "the caller still gets the render")
+		assertEquals("<p>missing a scene</p>", second.pageHtml)
+		assertEquals(2, renderCount, "an incomplete render must not be cached")
+		assertEquals(0, Files.list(dir).use { it.count() }.toInt(), "nothing should be written")
+	}
+
+	@Test
+	fun `a complete render replaces nothing an incomplete one left behind`() = runTest {
+		val cache = cache()
+
+		cache.render(complete = false) { result("<p>partial</p>") }
+		val healed = cache.render(complete = true) { result("<p>whole</p>") }
+		val served = cache.render { error("should be cached now") }
+
+		assertEquals("<p>whole</p>", healed.pageHtml)
+		assertEquals("<p>whole</p>", served.pageHtml)
 	}
 
 	@Test

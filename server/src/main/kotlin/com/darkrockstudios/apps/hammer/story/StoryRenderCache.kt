@@ -3,8 +3,7 @@ package com.darkrockstudios.apps.hammer.story
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.utilities.LruDiskCache
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.darkrockstudios.apps.hammer.utilities.PrunableCache
 import kotlinx.serialization.json.Json
 import java.nio.file.Path
 import kotlin.time.Duration
@@ -22,30 +21,38 @@ import kotlin.time.Duration
 class StoryRenderCache(
 	cacheDirectory: Path,
 	maxCacheBytes: Long = DEFAULT_MAX_BYTES,
-) {
+) : PrunableCache {
 	private val cache = LruDiskCache(cacheDirectory, maxCacheBytes)
 	private val json = Json { ignoreUnknownKeys = true }
 
+	/**
+	 * Serve this page from the cache, or [render] it. A render marked
+	 * [StoryRender.complete]`= false` is returned to the caller but never stored — a page missing
+	 * scenes that failed to load must not outlive the failure that produced it.
+	 */
 	suspend fun getOrRender(
 		projectId: ProjectId,
 		projectName: String,
 		page: Int,
 		wordsPerPage: Int,
 		sceneHashes: List<EntityHash>,
-		render: suspend () -> PaginatedStoryExportResult,
+		render: suspend () -> StoryRender,
 	): PaginatedStoryExportResult {
 		val key = buildKey(projectId, projectName, page, wordsPerPage, sceneHashes)
 
-		val bytes = cache.getOrPutSuspending(key) { encode(render()) }
-		decode(bytes)?.let { return it }
-
-		return render().also { fresh ->
-			withContext(Dispatchers.IO) { cache.put(key, encode(fresh)) }
+		var rendered: StoryRender? = null
+		val cached = cache.getOrPutSuspending(key) {
+			render().also { rendered = it }.let { if (it.complete) encode(it.result) else null }
 		}
+
+		// Rendered on this call — return it whether or not it was worth storing.
+		rendered?.let { return it.result }
+		// Otherwise it came from disk; a corrupt entry falls back to a fresh render.
+		return cached?.let { decode(it) } ?: render().result
 	}
 
 	/** Evict renders not requested within [maxAge], then enforce the size bound. */
-	fun prune(maxAge: Duration) = cache.prune(maxAge)
+	override fun prune(maxAge: Duration) = cache.prune(maxAge)
 
 	private fun buildKey(
 		projectId: ProjectId,
@@ -71,8 +78,19 @@ class StoryRenderCache(
 		/**
 		 * Everything a render of this story depends on, collapsed to a string: the title heading
 		 * and every scene's stored content hash. Doubles as the HTTP validator for story pages.
+		 *
+		 * The name is length-prefixed so one containing the delimiters can't imitate a scene list.
 		 */
 		fun fingerprint(projectName: String, sceneHashes: List<EntityHash>): String =
-			"$projectName|" + sceneHashes.joinToString(",") { "${it.id}:${it.hash}" }
+			"${projectName.length}:$projectName|" + sceneHashes.joinToString(",") { "${it.id}:${it.hash}" }
 	}
 }
+
+/**
+ * A rendered story page, plus whether it is complete enough to cache. An incomplete render is one
+ * whose scenes didn't all load — still worth serving, never worth keeping.
+ */
+data class StoryRender(
+	val result: PaginatedStoryExportResult,
+	val complete: Boolean,
+)

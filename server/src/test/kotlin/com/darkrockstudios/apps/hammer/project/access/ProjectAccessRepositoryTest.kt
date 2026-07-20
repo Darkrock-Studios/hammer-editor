@@ -356,6 +356,26 @@ class ProjectAccessRepositoryTest {
 		val result = repository.findAccessibleProject(penName, projectName, null)
 
 		assertTrue(result is PublicProjectResult.Success)
+		// Gates indexing and whether the rendered page may be written to the disk cache.
+		assertTrue((result as PublicProjectResult.Success).isPublic)
+	}
+
+	@Test
+	fun `findAccessibleProject - public access stays public even when a password is supplied`() = runTest {
+		val publicInfo = PublicProjectInfo(
+			projectUuid = projectUuid.id,
+			userId = userId,
+			projectName = projectName,
+			penName = penName,
+			expiresAt = null
+		)
+
+		coEvery { projectAccessDao.findPublicProjectByPenNameAndProjectName(penName, projectName) } returns publicInfo
+
+		val result = repository.findAccessibleProject(penName, projectName, "stray-password")
+
+		assertTrue(result is PublicProjectResult.Success)
+		assertTrue((result as PublicProjectResult.Success).isPublic)
 	}
 
 	@Test
@@ -403,6 +423,8 @@ class ProjectAccessRepositoryTest {
 
 		assertTrue(result is PublicProjectResult.Success)
 		assertEquals(projectUuid, (result as PublicProjectResult.Success).projectUuid)
+		// A private share unlocked by a password must never be treated as public.
+		assertFalse(result.isPublic)
 	}
 
 	@Test

@@ -15,6 +15,7 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class LruDiskCacheTest {
 
@@ -115,6 +116,30 @@ class LruDiskCacheTest {
 		assertEquals(1, computeCount)
 		assertContentEquals(byteArrayOf(7), first)
 		assertContentEquals(byteArrayOf(7), second)
+	}
+
+	@Test
+	fun `getOrPutSuspending does not store a null value`() = runBlocking {
+		val c = cache(1_000)
+
+		val value = c.getOrPutSuspending("k") { null }
+
+		assertNull(value)
+		assertNull(c.get("k"), "a null compute must leave the cache empty")
+	}
+
+	@Test
+	fun `a value is still returned when the cache cannot be written`() = runBlocking {
+		val cacheDir = dir.resolve("evaporating")
+		val c = LruDiskCache(cacheDir, 1_000)
+		// Pull the directory out from under the cache so every write fails.
+		Files.delete(cacheDir)
+
+		val computed = c.getOrPutSuspending("k") { byteArrayOf(1, 2, 3) }
+		val direct = runCatching { c.put("k", byteArrayOf(4)) }
+
+		assertContentEquals(byteArrayOf(1, 2, 3), computed, "a failed write must not fail the caller")
+		assertTrue(direct.isSuccess, "put must swallow IO failures, was ${direct.exceptionOrNull()}")
 	}
 
 	@Test

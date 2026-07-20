@@ -1,10 +1,10 @@
 package com.darkrockstudios.apps.hammer.frontend.utils
 
+import com.darkrockstudios.apps.hammer.utilities.sha256Hex
 import io.ktor.http.HttpHeaders
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.header
 import io.ktor.server.response.header
-import java.security.MessageDigest
 
 /**
  * A validator for a server-rendered page: the SHA-256 of its Mustache model plus any [extra] inputs
@@ -18,16 +18,19 @@ import java.security.MessageDigest
  * Weak, because Compression may re-encode the body and a strong validator promises byte equality.
  */
 fun pageETag(model: Map<String, Any>, vararg extra: Any?): String {
-	val digest = MessageDigest.getInstance("SHA-256")
-	model.entries
-		.filter { it.key !in UNHASHED_MODEL_KEYS }
-		.sortedBy { it.key }
-		.forEach { digest.update("${it.key}=${it.value}\n".toByteArray(Charsets.UTF_8)) }
-	extra.forEach { digest.update("$it\n".toByteArray(Charsets.UTF_8)) }
-
-	val hex = digest.digest().joinToString("") { "%02x".format(it.toInt() and 0xFF) }
-	return "W/\"$hex\""
+	// Length-prefixed so a value containing the delimiters can't imitate another entry.
+	val canonical = buildString {
+		model.entries
+			.filter { it.key !in UNHASHED_MODEL_KEYS }
+			.sortedBy { it.key }
+			.forEach { append(it.key).append('=').appendLengthPrefixed(it.value.toString()) }
+		extra.forEach { appendLengthPrefixed(it.toString()) }
+	}
+	return "W/\"${sha256Hex(canonical)}\""
 }
+
+private fun StringBuilder.appendLengthPrefixed(value: String): StringBuilder =
+	append(value.length).append(':').append(value).append('\n')
 
 /** True when the client already holds [etag], so the caller can answer 304 without rendering. */
 fun ApplicationCall.matchesETag(etag: String): Boolean =

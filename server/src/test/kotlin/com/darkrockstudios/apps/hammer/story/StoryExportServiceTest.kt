@@ -17,6 +17,7 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Files
 import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -299,6 +300,10 @@ class StoryExportServiceTest {
 		val entityDefs = scenes.map { EntityDefinition(it.id, ApiProjectEntity.Type.SCENE) }
 		coEvery { datasource.getEntityDefsByType(userId, projectDef, ApiProjectEntity.Type.SCENE) } returns entityDefs
 
+		// Mirrors the real column: the stored hash covers the scene's content, so editing a scene
+		// here changes its hash the way a sync would.
+		stubSceneHashes(*scenes.map { EntityHash(it.id, "h${it.content.hashCode()}") }.toTypedArray())
+
 		val entityIdSlot = slot<Int>()
 		coEvery {
 			datasource.loadEntity(
@@ -378,12 +383,19 @@ class StoryExportServiceTest {
 	}
 
 	@Test
-	fun `cached - a non-cacheable export never touches the cache`() = runTest {
+	fun `cached - a non-cacheable export writes nothing to disk`() = runTest {
 		setupMocksForScenes(listOf(createScene(1, "Chapter One", "Hello world", 0)))
+		stubSceneHashes(EntityHash(1, "hash-one"))
 
 		cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = false)
 		cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = false)
 
+		// The gate that keeps a password-protected story's decrypted prose off disk.
+		assertEquals(
+			0,
+			Files.list(cacheDir).use { it.count() }.toInt(),
+			"a non-cacheable export must leave no rendered prose on disk"
+		)
 		coVerify(exactly = 2) {
 			datasource.loadEntity(
 				userId,
@@ -393,9 +405,36 @@ class StoryExportServiceTest {
 				ApiProjectEntity.SceneEntity.serializer()
 			)
 		}
-		coVerify(exactly = 0) {
-			datasource.getEntityHashes(userId, projectDef, ApiProjectEntity.Type.SCENE)
-		}
+	}
+
+	@Test
+	fun `cached - a render missing a scene is served but not cached`() = runTest {
+		val scenes = listOf(
+			createScene(1, "Chapter One", "First chapter", 0),
+			createScene(2, "Chapter Two", "Second chapter", 1),
+		)
+		setupMocksForScenes(scenes)
+		stubSceneHashes(EntityHash(1, "hash-one"), EntityHash(2, "hash-two"))
+		// Scene 2 fails to load, the way a transient decrypt or DB failure would present.
+		coEvery {
+			datasource.loadEntity(
+				userId,
+				projectDef,
+				2,
+				ApiProjectEntity.Type.SCENE,
+				ApiProjectEntity.SceneEntity.serializer()
+			)
+		} returns SResult.failure("boom")
+
+		val result = cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		assertTrue(result.data.pageHtml.contains("First chapter"), "the readable part is still served")
+		assertEquals(
+			0,
+			Files.list(cacheDir).use { it.count() }.toInt(),
+			"a partial render must not outlive the failure that produced it"
+		)
 	}
 
 	// Paginated Export Tests

@@ -9,8 +9,8 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.FileTime
-import java.security.MessageDigest
 import java.time.Instant
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.streams.toList
 import kotlin.time.Duration
 import kotlin.time.toJavaDuration
@@ -29,6 +29,9 @@ import kotlin.time.toJavaDuration
  * Reads are lock-free; evictions are serialized. A read racing an eviction that deletes the same
  * file just yields a miss, which the caller regenerates. [getOrPut] is single-flight per key: a
  * burst of concurrent misses for the same key computes the value once rather than once per caller.
+ *
+ * The cache is an optimization and never a dependency: a full disk, a read-only directory, or any
+ * other IO failure degrades to a miss, so callers keep serving computed values.
  */
 class LruDiskCache(
 	private val directory: Path,
@@ -39,6 +42,10 @@ class LruDiskCache(
 	// (same key -> same stripe). Distinct keys rarely collide; a collision only serializes.
 	private val computeLocks = Array(COMPUTE_STRIPES) { Any() }
 	private val computeMutexes = Array(COMPUTE_STRIPES) { Mutex() }
+
+	// Pruning walks the whole directory, so amortize it: only sweep once writes since the last
+	// sweep could plausibly have breached the cap. The bound is exceeded by at most this much.
+	private val bytesSincePrune = AtomicLong(0)
 
 	init {
 		require(maxBytes > 0) { "maxBytes must be positive, was $maxBytes" }
@@ -61,17 +68,28 @@ class LruDiskCache(
 		}
 	}
 
+	/**
+	 * Store [value] under [key]. A write that fails leaves the cache without the entry rather than
+	 * raising: the value is regenerable, so a caller must never fail because the disk did.
+	 */
 	fun put(key: String, value: ByteArray) {
 		val target = fileFor(key)
-		val temp = Files.createTempFile(directory, "put-", TEMP_SUFFIX)
+		val temp = try {
+			Files.createTempFile(directory, "put-", TEMP_SUFFIX)
+		} catch (_: IOException) {
+			return
+		}
 		try {
 			Files.write(temp, value)
 			Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING)
-		} catch (e: IOException) {
+		} catch (_: IOException) {
 			runCatching { Files.deleteIfExists(temp) }
-			throw e
+			return
 		}
-		prune()
+		if (bytesSincePrune.addAndGet(value.size.toLong()) >= pruneThreshold) {
+			bytesSincePrune.set(0)
+			prune()
+		}
 	}
 
 	fun getOrPut(key: String, compute: () -> ByteArray): ByteArray {
@@ -87,12 +105,15 @@ class LruDiskCache(
 	 * single-flight guarantee, held by a mutex rather than a monitor. Named apart from [getOrPut]
 	 * because the two would be ambiguous at any lambda call site. The blocking file access moves to
 	 * [Dispatchers.IO]; [compute] stays on the caller's context.
+	 *
+	 * A null from [compute] is returned to the caller without being stored, for values that turned
+	 * out not to be worth keeping.
 	 */
-	suspend fun getOrPutSuspending(key: String, compute: suspend () -> ByteArray): ByteArray {
+	suspend fun getOrPutSuspending(key: String, compute: suspend () -> ByteArray?): ByteArray? {
 		withContext(Dispatchers.IO) { get(key) }?.let { return it }
 		return computeMutexFor(key).withLock {
 			withContext(Dispatchers.IO) { get(key) }
-				?: compute().also { value -> withContext(Dispatchers.IO) { put(key, value) } }
+				?: compute()?.also { value -> withContext(Dispatchers.IO) { put(key, value) } }
 		}
 	}
 
@@ -151,13 +172,15 @@ class LruDiskCache(
 	/** Exposed for tests to locate an entry's file (e.g. to assert or age it deterministically). */
 	internal fun fileFor(key: String): Path = directory.resolve(hashKey(key))
 
-	private fun hashKey(key: String): String =
-		MessageDigest.getInstance("SHA-256")
-			.digest(key.toByteArray(Charsets.UTF_8))
-			.joinToString("") { "%02x".format(it.toInt() and 0xFF) }
+	private fun hashKey(key: String): String = sha256Hex(key)
+
+	// A tenth of the cap: frequent enough that the cache never drifts far past [maxBytes], rare
+	// enough that a burst of writes doesn't walk the directory once per entry.
+	private val pruneThreshold: Long = (maxBytes / PRUNE_THRESHOLD_DIVISOR).coerceAtLeast(1)
 
 	private companion object {
 		const val TEMP_SUFFIX = ".tmp"
 		const val COMPUTE_STRIPES = 64
+		const val PRUNE_THRESHOLD_DIVISOR = 10
 	}
 }

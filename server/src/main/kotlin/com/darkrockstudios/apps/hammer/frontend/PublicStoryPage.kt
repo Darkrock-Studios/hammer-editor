@@ -100,11 +100,10 @@ fun Route.publicStoryPage(
 				}
 
 				is PublicProjectResult.Success -> {
-					// Only publicly-published stories (no password) by authors who participate in
-					// the community feature are indexable. A crawler never supplies a password, so a
-					// Success it reaches is necessarily public access; the password check keeps
-					// private shares (reached with a valid password) out of the index too.
-					val indexable = password.isNullOrBlank() && account.community_member
+					// Only publicly-published stories by authors who participate in the community
+					// feature are indexable. `isPublic` comes from the access layer, which knows
+					// whether it granted access with no password or unlocked a private share.
+					val indexable = resolved.isPublic && account.community_member
 					call.applyRobotsTag(indexable = indexable)
 
 					val passwordParam = if (!password.isNullOrBlank()) {
@@ -125,7 +124,7 @@ fun Route.publicStoryPage(
 							"ogType" to "article",
 							// Dynamic card only for public (password-free) access, matching the OG
 							// route; a private share falls back to the static card, never a 404.
-							"ogImage" to if (serverConfig.richLinkPreviews && password.isNullOrBlank()) {
+							"ogImage" to if (serverConfig.richLinkPreviews && resolved.isPublic) {
 								call.canonicalUrl("/og/s/${resolved.projectUuid.id}.png")
 							} else {
 								call.canonicalUrl("/assets/images/og-story.png")
@@ -138,11 +137,13 @@ fun Route.publicStoryPage(
 						)
 					)
 
+					// Resolved once and reused by the render below, so the ETag costs no extra queries.
+					val prepared = storyExportService.prepareExport(resolved.userId, resolved.projectUuid)
+
 					// A reader who already holds this exact page is answered without rendering it.
-					val etag = storyExportService.storyVersion(resolved.userId, resolved.projectUuid)
-						// `indexable` is an explicit input: it gates the JSON-LD block but never
-						// reaches the shell model.
-						?.let { pageETag(model, it, page, passwordParam, indexable) }
+					// `indexable` is an explicit input: it gates the JSON-LD block but never reaches
+					// the shell model.
+					val etag = prepared?.let { pageETag(model, it.version, page, passwordParam, indexable) }
 					if (etag != null && call.matchesETag(etag)) {
 						call.applyRevalidationHeaders(etag)
 						call.respond(HttpStatusCode.NotModified)
@@ -155,14 +156,17 @@ fun Route.publicStoryPage(
 					// actually dwelt on the page for a few seconds (see story-reader.js). That
 					// beacon is what best-effort filters out drive-by clicks.
 
-					val exportResult = storyExportService.exportStoryAsHtmlPaginated(
-						userId = resolved.userId,
-						projectId = resolved.projectUuid,
-						page = page,
-						// Same predicate as `indexable`: a Success reached without a password is
-						// public access, so its render is safe to keep on disk.
-						cacheable = password.isNullOrBlank(),
-					)
+					val exportResult = if (prepared == null) {
+						PaginatedExportResult.ProjectNotFound
+					} else {
+						storyExportService.exportStoryAsHtmlPaginated(
+							prepared = prepared,
+							page = page,
+							// Only a publicly-reachable story may be written to disk; a private
+							// share's prose is encrypted at rest and must stay that way.
+							cacheable = resolved.isPublic,
+						)
+					}
 
 					when (exportResult) {
 						is PaginatedExportResult.Success -> {
@@ -206,12 +210,7 @@ fun Route.publicStoryPage(
 						}
 
 						is PaginatedExportResult.Error -> {
-							val model = call.withDefaults(
-								mapOf(
-									"page_stylesheet" to "/assets/css/story.css",
-									"errorMessage" to exportResult.message,
-								)
-							)
+							model["errorMessage"] = exportResult.message
 							call.respond(
 								HttpStatusCode.InternalServerError,
 								MustacheContent("storyerror.mustache", model)
