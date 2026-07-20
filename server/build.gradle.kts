@@ -138,6 +138,7 @@ dependencies {
 	testImplementation(libs.mockk)
 	testImplementation(libs.koin.test)
 	testImplementation(libs.okio.fakefilesystem)
+	testImplementation(libs.asm.tree)
 	testImplementation(libs.bundles.junit.jupiter)
 	testRuntimeOnly(libs.junit.jupiter.engine)
 	testRuntimeOnly(libs.junit.platform.launcher)
