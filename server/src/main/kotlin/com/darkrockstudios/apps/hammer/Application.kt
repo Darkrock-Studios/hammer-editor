@@ -22,6 +22,7 @@ import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
+import com.darkrockstudios.apps.hammer.story.configureStoryRenderCachePruneJob
 import com.darkrockstudios.apps.hammer.utilities.DevSelfSignedCert
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utilities.loadPemAsKeyStore
@@ -385,6 +386,7 @@ fun Application.appMain(
 	configureTokenMaintenanceJob()
 	configureWhitelistExpiryJob()
 	if (config.richLinkPreviews) configureOgImageCachePruneJob()
+	configureStoryRenderCachePruneJob()
 }
 
 fun cliKeyringCodec(): KeyringCodec =

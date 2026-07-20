@@ -1,5 +1,9 @@
 package com.darkrockstudios.apps.hammer.utilities
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -34,6 +38,7 @@ class LruDiskCache(
 	// Striped locks bound the number of monitors while still serializing same-key computes
 	// (same key -> same stripe). Distinct keys rarely collide; a collision only serializes.
 	private val computeLocks = Array(COMPUTE_STRIPES) { Any() }
+	private val computeMutexes = Array(COMPUTE_STRIPES) { Mutex() }
 
 	init {
 		require(maxBytes > 0) { "maxBytes must be positive, was $maxBytes" }
@@ -77,8 +82,25 @@ class LruDiskCache(
 		}
 	}
 
-	private fun computeLockFor(key: String): Any =
-		computeLocks[(key.hashCode() and 0x7fffffff) % COMPUTE_STRIPES]
+	/**
+	 * [getOrPut] for a suspending [compute], which cannot run inside a `synchronized` block. Same
+	 * single-flight guarantee, held by a mutex rather than a monitor. Named apart from [getOrPut]
+	 * because the two would be ambiguous at any lambda call site. The blocking file access moves to
+	 * [Dispatchers.IO]; [compute] stays on the caller's context.
+	 */
+	suspend fun getOrPutSuspending(key: String, compute: suspend () -> ByteArray): ByteArray {
+		withContext(Dispatchers.IO) { get(key) }?.let { return it }
+		return computeMutexFor(key).withLock {
+			withContext(Dispatchers.IO) { get(key) }
+				?: compute().also { value -> withContext(Dispatchers.IO) { put(key, value) } }
+		}
+	}
+
+	private fun computeLockFor(key: String): Any = computeLocks[stripeFor(key)]
+
+	private fun computeMutexFor(key: String): Mutex = computeMutexes[stripeFor(key)]
+
+	private fun stripeFor(key: String): Int = (key.hashCode() and 0x7fffffff) % COMPUTE_STRIPES
 
 	/**
 	 * Enforce the size bound now, evicting least-recently-used entries until the cache fits.

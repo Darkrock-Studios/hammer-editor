@@ -8,12 +8,16 @@ import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.SResult
+import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.io.TempDir
+import java.nio.file.Path
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -24,6 +28,10 @@ class StoryExportServiceTest {
 	private lateinit var datasource: ProjectEntityDatasource
 	private lateinit var markdownService: MarkdownService
 	private lateinit var service: StoryExportService
+	private lateinit var cachingService: StoryExportService
+
+	@TempDir
+	lateinit var cacheDir: Path
 
 	private val userId = 1L
 	private val projectId = ProjectId("test-project-uuid")
@@ -34,6 +42,7 @@ class StoryExportServiceTest {
 		datasource = mockk()
 		markdownService = MarkdownService()
 		service = StoryExportService(datasource, markdownService)
+		cachingService = StoryExportService(datasource, markdownService, StoryRenderCache(cacheDir))
 	}
 
 	@Test
@@ -302,6 +311,90 @@ class StoryExportServiceTest {
 		} answers {
 			val scene = scenes.find { it.id == entityIdSlot.captured }
 			if (scene != null) SResult.success(scene) else SResult.failure("Scene not found")
+		}
+	}
+
+	private fun stubSceneHashes(vararg hashes: EntityHash) {
+		coEvery {
+			datasource.getEntityHashes(userId, projectDef, ApiProjectEntity.Type.SCENE)
+		} returns hashes.toList()
+	}
+
+	// Render Cache Tests
+
+	@Test
+	fun `cached - an unchanged story is rendered once`() = runTest {
+		setupMocksForScenes(listOf(createScene(1, "Chapter One", "Hello world", 0)))
+		stubSceneHashes(EntityHash(1, "hash-one"))
+
+		val first = cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+		val second = cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+
+		assertIs<PaginatedExportResult.Success>(first)
+		assertIs<PaginatedExportResult.Success>(second)
+		assertEquals(first.data, second.data)
+		coVerify(exactly = 1) {
+			datasource.loadEntity(
+				userId,
+				projectDef,
+				1,
+				ApiProjectEntity.Type.SCENE,
+				ApiProjectEntity.SceneEntity.serializer()
+			)
+		}
+	}
+
+	@Test
+	fun `cached - a changed scene hash renders the new content`() = runTest {
+		setupMocksForScenes(listOf(createScene(1, "Chapter One", "Before the edit", 0)))
+		stubSceneHashes(EntityHash(1, "hash-before"))
+		cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+
+		setupMocksForScenes(listOf(createScene(1, "Chapter One", "After the edit", 0)))
+		stubSceneHashes(EntityHash(1, "hash-after"))
+		val result = cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		assertTrue(result.data.pageHtml.contains("After the edit"))
+	}
+
+	@Test
+	fun `cached - an added scene renders the new content`() = runTest {
+		setupMocksForScenes(listOf(createScene(1, "Chapter One", "First chapter", 0)))
+		stubSceneHashes(EntityHash(1, "hash-one"))
+		cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+
+		setupMocksForScenes(
+			listOf(
+				createScene(1, "Chapter One", "First chapter", 0),
+				createScene(2, "Chapter Two", "Second chapter", 1),
+			)
+		)
+		stubSceneHashes(EntityHash(1, "hash-one"), EntityHash(2, "hash-two"))
+		val result = cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		assertTrue(result.data.pageHtml.contains("Second chapter"))
+	}
+
+	@Test
+	fun `cached - a non-cacheable export never touches the cache`() = runTest {
+		setupMocksForScenes(listOf(createScene(1, "Chapter One", "Hello world", 0)))
+
+		cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = false)
+		cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = false)
+
+		coVerify(exactly = 2) {
+			datasource.loadEntity(
+				userId,
+				projectDef,
+				1,
+				ApiProjectEntity.Type.SCENE,
+				ApiProjectEntity.SceneEntity.serializer()
+			)
+		}
+		coVerify(exactly = 0) {
+			datasource.getEntityHashes(userId, projectDef, ApiProjectEntity.Type.SCENE)
 		}
 	}
 

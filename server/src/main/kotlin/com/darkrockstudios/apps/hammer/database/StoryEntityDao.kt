@@ -198,4 +198,19 @@ class StoryEntityDao(
 				EntityHash(id = it.id.toInt(), hash = it.hash)
 			}
 		}
+
+	suspend fun getEntityHashes(
+		userId: Long,
+		projectId: Long,
+		type: ApiProjectEntity.Type,
+	): List<EntityHash> =
+		withContext(ioDispatcher) {
+			queries.getEntityHashesByType(
+				userId = userId,
+				projectId = projectId,
+				type = type.toStringId(),
+			).executeAsList().map {
+				EntityHash(id = it.id.toInt(), hash = it.hash)
+			}
+		}
 }

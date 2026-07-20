@@ -53,6 +53,8 @@ import com.darkrockstudios.apps.hammer.frontend.og.OgImageCachePruneJob
 import com.darkrockstudios.apps.hammer.frontend.og.OgImageRenderer
 import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
 import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.story.StoryRenderCache
+import com.darkrockstudios.apps.hammer.story.StoryRenderCachePruneJob
 import com.darkrockstudios.apps.hammer.utilities.DATA_DIR
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
@@ -156,7 +158,12 @@ fun mainModule(
 	single<OgImageRenderer>()
 	single { OgImageService(get(), java.nio.file.Path.of(System.getProperty("user.home"), DATA_DIR, "cache", "og")) }
 	single<OgImageCachePruneJob>()
-	single<StoryExportService>()
+	single {
+		StoryRenderCache(java.nio.file.Path.of(System.getProperty("user.home"), DATA_DIR, "cache", "story-html"))
+	}
+	single<StoryRenderCachePruneJob>()
+	// Explicit ctor: renderCache defaults to null, which the constructor DSL would honor over injection.
+	single { StoryExportService(get(), get(), get()) }
 	single<PenNameService>()
 	single<BioService>()
 	single<PasswordResetRepository>()

@@ -5,10 +5,13 @@ import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.applyRevalidationHeaders
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
+import com.darkrockstudios.apps.hammer.frontend.utils.matchesETag
 import com.darkrockstudios.apps.hammer.frontend.utils.metaDescription
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.pageETag
 import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
 import com.darkrockstudios.apps.hammer.frontend.utils.storyArticleJsonLd
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
@@ -104,6 +107,48 @@ fun Route.publicStoryPage(
 					val indexable = password.isNullOrBlank() && account.community_member
 					call.applyRobotsTag(indexable = indexable)
 
+					val passwordParam = if (!password.isNullOrBlank()) {
+						"&p=${URLEncoder.encode(password, StandardCharsets.UTF_8)}"
+					} else {
+						""
+					}
+
+					// The page shell — everything not derived from the story render. Built first so
+					// it can be hashed into the validator, then filled in with the render below.
+					val model = call.withDefaults(
+						mapOf(
+							"page_stylesheet" to "/assets/css/story.css",
+							"title" to "$projectName · ${resolved.penName} — Hammer",
+							// Self-referential canonical: each page is its own indexable URL. The
+							// password (?p) is never included — it's a secret and those pages are noindex.
+							"canonicalUrl" to (call.canonicalUrl() + if (page > 1) "?page=$page" else ""),
+							"ogType" to "article",
+							// Dynamic card only for public (password-free) access, matching the OG
+							// route; a private share falls back to the static card, never a 404.
+							"ogImage" to if (serverConfig.richLinkPreviews && password.isNullOrBlank()) {
+								call.canonicalUrl("/og/s/${resolved.projectUuid.id}.png")
+							} else {
+								call.canonicalUrl("/assets/images/og-story.png")
+							},
+							"page_pre_script" to "/assets/js/story-reader-logic.js",
+							"page_script" to "/assets/js/story-reader.js",
+							"projectName" to projectName,
+							"authorPenName" to resolved.penName,
+							"authorPenNameUrl" to ProjectName.penNameForUrl(resolved.penName),
+						)
+					)
+
+					// A reader who already holds this exact page is answered without rendering it.
+					val etag = storyExportService.storyVersion(resolved.userId, resolved.projectUuid)
+						// `indexable` is an explicit input: it gates the JSON-LD block but never
+						// reaches the shell model.
+						?.let { pageETag(model, it, page, passwordParam, indexable) }
+					if (etag != null && call.matchesETag(etag)) {
+						call.applyRevalidationHeaders(etag)
+						call.respond(HttpStatusCode.NotModified)
+						return@get
+					}
+
 					// The unique-reader count is no longer recorded here on page load — that
 					// counts everyone who clicks, including bounces. Instead the page loads a
 					// tiny script that fires a beacon to POST .../read once the visitor has
@@ -113,39 +158,18 @@ fun Route.publicStoryPage(
 					val exportResult = storyExportService.exportStoryAsHtmlPaginated(
 						userId = resolved.userId,
 						projectId = resolved.projectUuid,
-						page = page
+						page = page,
+						// Same predicate as `indexable`: a Success reached without a password is
+						// public access, so its render is safe to keep on disk.
+						cacheable = password.isNullOrBlank(),
 					)
 
 					when (exportResult) {
 						is PaginatedExportResult.Success -> {
 							val data = exportResult.data
-							val passwordParam = if (!password.isNullOrBlank()) "&p=${
-								URLEncoder.encode(
-									password,
-									StandardCharsets.UTF_8
-								)
-							}" else ""
 
-							val model = call.withDefaults(
+							model.putAll(
 								mapOf(
-									"page_stylesheet" to "/assets/css/story.css",
-									"title" to "${data.projectName} · ${resolved.penName} — Hammer",
-									// Self-referential canonical: each page is its own indexable URL. The
-									// password (?p) is never included — it's a secret and those pages are noindex.
-									"canonicalUrl" to (call.canonicalUrl() + if (page > 1) "?page=$page" else ""),
-									"ogType" to "article",
-									// Dynamic card only for public (password-free) access, matching the OG
-									// route; a private share falls back to the static card, never a 404.
-									"ogImage" to if (serverConfig.richLinkPreviews && password.isNullOrBlank()) {
-										call.canonicalUrl("/og/s/${resolved.projectUuid.id}.png")
-									} else {
-										call.canonicalUrl("/assets/images/og-story.png")
-									},
-									"page_pre_script" to "/assets/js/story-reader-logic.js",
-									"page_script" to "/assets/js/story-reader.js",
-									"projectName" to data.projectName,
-									"authorPenName" to resolved.penName,
-									"authorPenNameUrl" to ProjectName.penNameForUrl(resolved.penName),
 									"storyHtml" to data.pageHtml,
 									"hasContent" to data.hasContent,
 									"sceneCount" to data.sceneCount,
@@ -173,6 +197,7 @@ fun Route.publicStoryPage(
 									wordCount = data.totalWordCount.toLong(),
 								)
 							}
+							etag?.let { call.applyRevalidationHeaders(it) }
 							call.respond(MustacheContent("publicstory.mustache", model))
 						}
 

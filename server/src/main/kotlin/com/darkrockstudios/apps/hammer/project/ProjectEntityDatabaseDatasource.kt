@@ -358,4 +358,13 @@ class ProjectEntityDatabaseDatasource(
 		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
 		return storyEntityDao.getEntityHashes(userId, projectId)
 	}
+
+	override suspend fun getEntityHashes(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		type: ApiProjectEntity.Type,
+	): List<EntityHash> {
+		val projectId = projectDao.getProjectId(userId, projectDef.uuid)
+		return storyEntityDao.getEntityHashes(userId, projectId, type)
+	}
 }

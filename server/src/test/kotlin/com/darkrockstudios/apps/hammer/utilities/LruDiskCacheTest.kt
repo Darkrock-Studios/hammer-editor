@@ -1,5 +1,10 @@
 package com.darkrockstudios.apps.hammer.utilities
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
@@ -75,6 +80,38 @@ class LruDiskCacheTest {
 		var computeCount = 0
 		val first = c.getOrPut("k") { computeCount++; byteArrayOf(7) }
 		val second = c.getOrPut("k") { computeCount++; byteArrayOf(7) }
+		assertEquals(1, computeCount)
+		assertContentEquals(byteArrayOf(7), first)
+		assertContentEquals(byteArrayOf(7), second)
+	}
+
+	@Test
+	fun `getOrPutSuspending computes a hot key once under concurrent misses`() = runBlocking {
+		val c = cache(1_000_000)
+		val computeCount = java.util.concurrent.atomic.AtomicInteger(0)
+		val callers = 16
+
+		val results = (1..callers).map {
+			async(Dispatchers.IO) {
+				c.getOrPutSuspending("hot") {
+					computeCount.incrementAndGet()
+					delay(50) // hold the compute so racers pile up on the mutex
+					byteArrayOf(7)
+				}
+			}
+		}.awaitAll()
+
+		assertEquals(1, computeCount.get(), "a hot key should be computed exactly once")
+		assertEquals(callers, results.size)
+		results.forEach { assertContentEquals(byteArrayOf(7), it) }
+	}
+
+	@Test
+	fun `getOrPutSuspending computes only on a miss`() = runBlocking {
+		val c = cache(1_000)
+		var computeCount = 0
+		val first = c.getOrPutSuspending("k") { computeCount++; byteArrayOf(7) }
+		val second = c.getOrPutSuspending("k") { computeCount++; byteArrayOf(7) }
 		assertEquals(1, computeCount)
 		assertContentEquals(byteArrayOf(7), first)
 		assertContentEquals(byteArrayOf(7), second)
