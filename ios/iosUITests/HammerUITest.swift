@@ -189,15 +189,24 @@ class HammerUITest: XCTestCase {
     /// keyboard focus". Tapping focuses the Compose field (raising the keyboard); typing on the
     /// *application* then routes to whatever Compose has focused — the reliable path for
     /// Compose-on-iOS text entry.
+    ///
+    /// The focus tap is a best-effort coordinate tap and can be silently dropped (see `tapUntil`),
+    /// so re-focus on a short sub-timeout until the keyboard rises rather than betting the whole
+    /// test on one tap. If a hardware keyboard is "connected" on the simulator the software one
+    /// stays hidden and typing fails outright — the run script disables that (see ios/scripts).
     func type(_ text: String, into tag: String, timeout: TimeInterval = HammerUITest.defaultTimeout,
               file: StaticString = #file, line: UInt = #line) {
-        tapToFocus(waitFor(tag, timeout: timeout, file: file, line: line))
-        // The software keyboard must be up for typing to route to the focused Compose field.
-        // If a hardware keyboard is "connected" on the simulator it stays hidden and typeText
-        // fails with "no keyboard focus" — the run script disables that (see ios/scripts).
-        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 10),
-                      "Software keyboard never appeared after focusing \(tag)", file: file, line: line)
-        app.typeText(text)
+        let field = waitFor(tag, timeout: timeout, file: file, line: line)
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            tapToFocus(field)
+            if app.keyboards.firstMatch.waitForExistence(timeout: 3) {
+                app.typeText(text)
+                return
+            }
+        } while Date() < deadline
+        XCTFail("Software keyboard never appeared after focusing \(tag) within \(timeout)s",
+                file: file, line: line)
     }
 
     /// Type into a Compose rich-text editor (the scene body) and retry until the edit lands.
