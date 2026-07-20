@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.authorProfileJsonLd
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.metaDescription
 import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
@@ -86,6 +87,14 @@ fun Route.authorPage(
 				)
 			)
 			metaDescription(account.bio)?.let { model["metaDescription"] = it }
+			// Structured data only for indexable (community) authors.
+			if (account.community_member) {
+				model["jsonLd"] = authorProfileJsonLd(
+					name = penName,
+					url = call.canonicalUrl("/a/$penNameForUrl"),
+					description = metaDescription(account.bio),
+				)
+			}
 			call.respond(MustacheContent("author.mustache", model))
 		}
 	}

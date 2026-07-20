@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
 import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
+import com.darkrockstudios.apps.hammer.frontend.utils.storyArticleJsonLd
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
@@ -156,6 +157,15 @@ fun Route.publicStoryPage(
 									"prevPageUrl" to "/a/$penNameForUrl/$projectNameForUrl?page=${data.prevPage}$passwordParam"
 								)
 							)
+							if (indexable) {
+								model["jsonLd"] = storyArticleJsonLd(
+									title = data.projectName,
+									url = call.canonicalUrl("/a/$penNameForUrl/$projectNameForUrl"),
+									authorName = resolved.penName,
+									authorUrl = call.canonicalUrl("/a/${ProjectName.penNameForUrl(resolved.penName)}"),
+									wordCount = data.totalWordCount.toLong(),
+								)
+							}
 							call.respond(MustacheContent("publicstory.mustache", model))
 						}
 

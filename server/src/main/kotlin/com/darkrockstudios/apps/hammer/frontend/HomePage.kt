@@ -5,7 +5,9 @@ import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
+import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.webSiteJsonLd
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
@@ -31,6 +33,11 @@ fun Route.homePage(
 
 			model["serverMessage"] = serverMessage
 			model["page_script"] = "/assets/js/home.js"
+			model["jsonLd"] = webSiteJsonLd(
+				name = "Hammer",
+				url = call.canonicalUrl("/"),
+				description = call.msg("home_whatishammer_subtitle"),
+			)
 
 			if (useWhiteList && contactEmail.isNotBlank() && !patreonActive) {
 				model["whitelistEnabled"] = useWhiteList
