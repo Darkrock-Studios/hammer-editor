@@ -9,11 +9,17 @@ plugins {
 	alias(libs.plugins.kotlin.serialization)
 	alias(libs.plugins.sqldelight)
 	alias(libs.plugins.jetbrains.kover)
+	alias(libs.plugins.koin.compiler)
 	`java-test-fixtures`
 }
 
 group = "com.darkrockstudios.apps.hammer"
 version = libs.versions.app.get()
+
+koinCompiler {
+	compileSafety = true
+}
+
 application {
 	mainClass.set("com.darkrockstudios.apps.hammer.ApplicationKt")
 
