@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import io.ktor.http.*
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
@@ -42,6 +43,8 @@ fun Route.authorsPage(
 			val model = call.withDefaults(
 				mapOf(
 					"page_stylesheet" to "/assets/css/authors.css",
+					"title" to "${call.msg("authors_page_title")} — Hammer",
+					"metaDescription" to call.msg("authors_page_subtitle"),
 					"authorsActive" to true,
 					"authors" to authorsForTemplate,
 					"hasAuthors" to authors.isNotEmpty(),

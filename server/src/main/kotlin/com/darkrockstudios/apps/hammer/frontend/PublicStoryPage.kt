@@ -7,6 +7,8 @@ import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
+import com.darkrockstudios.apps.hammer.frontend.utils.metaDescription
+import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
 import com.darkrockstudios.apps.hammer.frontend.utils.storyArticleJsonLd
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
@@ -157,6 +159,9 @@ fun Route.publicStoryPage(
 									"prevPageUrl" to "/a/$penNameForUrl/$projectNameForUrl?page=${data.prevPage}$passwordParam"
 								)
 							)
+							metaDescription(
+								call.msg("public_story_meta_description", data.projectName, resolved.penName),
+							)?.let { model["metaDescription"] = it }
 							if (indexable) {
 								model["jsonLd"] = storyArticleJsonLd(
 									title = data.projectName,

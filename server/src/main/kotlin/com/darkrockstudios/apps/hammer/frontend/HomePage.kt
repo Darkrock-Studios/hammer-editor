@@ -33,6 +33,8 @@ fun Route.homePage(
 
 			model["serverMessage"] = serverMessage
 			model["page_script"] = "/assets/js/home.js"
+			model["title"] = "Hammer — ${call.msg("home_masthead_subtitle")}"
+			model["metaDescription"] = call.msg("home_whatishammer_subtitle")
 			model["jsonLd"] = webSiteJsonLd(
 				name = "Hammer",
 				url = call.canonicalUrl("/"),
