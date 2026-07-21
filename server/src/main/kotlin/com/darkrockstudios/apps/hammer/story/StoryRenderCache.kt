@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.story
 
+import com.darkrockstudios.apps.hammer.CacheConfig
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.utilities.LruDiskCache
@@ -22,7 +23,7 @@ import kotlin.time.Duration
 class StoryRenderCache(
 	fileSystem: TouchableFileSystem,
 	cacheDirectory: Path,
-	maxCacheBytes: Long = DEFAULT_MAX_BYTES,
+	maxCacheBytes: Long = CacheConfig().maxSizeBytes,
 ) : PrunableCache {
 	private val cache = LruDiskCache(fileSystem, cacheDirectory, maxCacheBytes)
 	private val json = Json { ignoreUnknownKeys = true }
@@ -75,7 +76,6 @@ class StoryRenderCache(
 
 	companion object {
 		private const val RENDER_VERSION = "v1"
-		private const val DEFAULT_MAX_BYTES = 200L * 1024 * 1024
 
 		/**
 		 * Everything a render of this story depends on, collapsed to a string: the title heading

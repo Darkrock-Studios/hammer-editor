@@ -54,7 +54,8 @@ card — enable `richLinkPreviews`:
 richLinkPreviews = true
 ```
 
-Generated images are disk-cached under `~/hammer_data/cache/og/` and pruned automatically.
+Generated images are disk-cached and pruned automatically; see [Disk cache](#disk-cache) for where
+they live and how to move them.
 
 **Requirement:** rendering the text uses headless AWT, which needs native font libraries installed.
 On Debian/Ubuntu:
@@ -126,7 +127,7 @@ candidate for a scratch volume:
 [cache]
 # Defaults shown. Omit this whole block to accept them.
 directory = "/var/tmp/hammer-cache"   # default: <data dir>/cache
-maxSizeMb = 200                       # per cache, oldest entries evicted first
+maxSizeMb = 200                       # per cache, oldest entries evicted first (max 1048576)
 ```
 
 A relative `directory` is resolved against the config file's own directory. The path must be

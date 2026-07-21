@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer
 
+import com.darkrockstudios.apps.hammer.utilities.DiskCache
 import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import net.peanuuutz.tomlkt.Toml
@@ -187,7 +188,7 @@ class ServerConfigTest {
 		val config = parse("")
 
 		assertEquals(null, config.cache.directory)
-		assertEquals(getRootDataDirectory(fs) / "cache" / "og", cacheDirectory(config.cache, fs, "og"))
+		assertEquals(getRootDataDirectory(fs) / "cache" / "og", cacheDirectory(config.cache, fs, DiskCache.OG_IMAGES))
 	}
 
 	@Test
@@ -201,7 +202,7 @@ class ServerConfigTest {
 			""".trimIndent()
 		)
 
-		assertEquals("/var/tmp/hammer-cache/story-html".toPath(), cacheDirectory(config.cache, fs, "story-html"))
+		assertEquals("/var/tmp/hammer-cache/story-html".toPath(), cacheDirectory(config.cache, fs, DiskCache.STORY_HTML))
 	}
 
 	@Test
@@ -248,7 +249,66 @@ class ServerConfigTest {
 
 		resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
 
-		assertTrue(fs.metadataOrNull("/var/tmp/hammer-cache".toPath())?.isDirectory == true)
+		DiskCache.entries.forEach { cache ->
+			val directory = "/var/tmp/hammer-cache".toPath() / cache.dirName
+			assertTrue(fs.metadataOrNull(directory)?.isDirectory == true, "$directory should exist")
+		}
+	}
+
+	@Test
+	fun `resolve aborts when a single cache subdirectory is unusable`() {
+		val fs = FakeFileSystem()
+		// The root is a perfectly good directory; only one cache's subdirectory is occupied.
+		fs.createDirectories("/var/tmp/hammer-cache".toPath())
+		writeConfig(fs, "/var/tmp/hammer-cache/og".toPath(), "not a directory")
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(
+			fs, explicit,
+			"""
+			[cache]
+			directory = "/var/tmp/hammer-cache"
+			""".trimIndent()
+		)
+
+		val error = assertFailsWith<IllegalStateException> {
+			resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+		}
+		assertTrue(error.message.orEmpty().contains("og"), "the failing cache should be named")
+	}
+
+	@Test
+	fun `resolve aborts when the cache directory is blank`() {
+		val fs = FakeFileSystem()
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(
+			fs, explicit,
+			"""
+			[cache]
+			directory = ""
+			""".trimIndent()
+		)
+
+		// A blank directory must not be quietly resolved into the config file's own directory.
+		assertFailsWith<IllegalArgumentException> {
+			resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+		}
+	}
+
+	@Test
+	fun `resolve aborts when the cache directory is only whitespace`() {
+		val fs = FakeFileSystem()
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(
+			fs, explicit,
+			"""
+			[cache]
+			directory = "   "
+			""".trimIndent()
+		)
+
+		assertFailsWith<IllegalArgumentException> {
+			resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+		}
 	}
 
 	@Test
@@ -279,6 +339,24 @@ class ServerConfigTest {
 			"""
 			[cache]
 			maxSizeMb = 0
+			""".trimIndent()
+		)
+
+		assertFailsWith<IllegalArgumentException> {
+			resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+		}
+	}
+
+	@Test
+	fun `resolve aborts when maxSizeMb would overflow the byte conversion`() {
+		val fs = FakeFileSystem()
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		// A size given in bytes by mistake; positive, but it overflows Long once scaled to bytes.
+		writeConfig(
+			fs, explicit,
+			"""
+			[cache]
+			maxSizeMb = 9000000000000
 			""".trimIndent()
 		)
 

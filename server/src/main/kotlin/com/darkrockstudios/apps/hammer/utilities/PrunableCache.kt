@@ -12,13 +12,20 @@ fun interface PrunableCache {
 	fun prune(maxAge: Duration)
 }
 
-/**
- * Where the regenerable disk cache named [name] lives: under [CacheConfig.directory] when the
- * operator configured one, otherwise `cache/` in the server's data directory.
- */
-fun cacheDirectory(config: CacheConfig, fileSystem: FileSystem, name: String): Path =
-	cacheRoot(config, fileSystem) / name
+/** The regenerable disk caches, each in its own subdirectory of the cache root. */
+enum class DiskCache(val dirName: String) {
+	OG_IMAGES("og"),
+	STORY_HTML("story-html"),
+}
 
+/**
+ * Where [cache] stores its entries: under [CacheConfig.directory] when the operator configured
+ * one, otherwise `cache/` in the server's data directory.
+ */
+fun cacheDirectory(config: CacheConfig, fileSystem: FileSystem, cache: DiskCache): Path =
+	cacheRoot(config, fileSystem) / cache.dirName
+
+/** The directory holding every cache's subdirectory. */
 fun cacheRoot(config: CacheConfig, fileSystem: FileSystem): Path =
 	config.directory?.toPath() ?: (getRootDataDirectory(fileSystem) / DEFAULT_CACHE_DIR_NAME)
 

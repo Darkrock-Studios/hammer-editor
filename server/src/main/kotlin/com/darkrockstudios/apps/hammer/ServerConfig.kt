@@ -254,7 +254,15 @@ data class CacheConfig(
 
 	fun validate() {
 		directory?.let { require(it.isNotBlank()) { "cache.directory must not be blank" } }
-		require(maxSizeMb > 0) { "cache.maxSizeMb must be positive, was $maxSizeMb" }
+		// Upper bound as well as lower: a value given in bytes by mistake would overflow the
+		// conversion to a negative cap, which only surfaces as a failure to build the cache.
+		require(maxSizeMb in 1..MAX_SIZE_MB) {
+			"cache.maxSizeMb must be between 1 and $MAX_SIZE_MB, was $maxSizeMb"
+		}
+	}
+
+	private companion object {
+		const val MAX_SIZE_MB = 1024L * 1024
 	}
 }
 

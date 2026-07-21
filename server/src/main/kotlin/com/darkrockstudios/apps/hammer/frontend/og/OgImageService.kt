@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend.og
 
+import com.darkrockstudios.apps.hammer.CacheConfig
 import com.darkrockstudios.apps.hammer.utilities.LruDiskCache
 import com.darkrockstudios.apps.hammer.utilities.PrunableCache
 import com.darkrockstudios.apps.hammer.utilities.TouchableFileSystem
@@ -17,7 +18,7 @@ class OgImageService(
 	private val renderer: OgImageRenderer,
 	fileSystem: TouchableFileSystem,
 	cacheDirectory: Path,
-	maxCacheBytes: Long = DEFAULT_MAX_BYTES,
+	maxCacheBytes: Long = CacheConfig().maxSizeBytes,
 ) : PrunableCache {
 	private val cache = LruDiskCache(fileSystem, cacheDirectory, maxCacheBytes)
 
@@ -42,6 +43,5 @@ class OgImageService(
 
 	private companion object {
 		const val TEMPLATE_VERSION = "v1"
-		const val DEFAULT_MAX_BYTES = 200L * 1024 * 1024
 	}
 }

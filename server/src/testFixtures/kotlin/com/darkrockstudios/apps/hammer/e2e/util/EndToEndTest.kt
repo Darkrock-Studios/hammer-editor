@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.e2e.util
 
-import com.darkrockstudios.apps.hammer.CacheConfig
 import com.darkrockstudios.apps.hammer.EncryptionConfig
 import com.darkrockstudios.apps.hammer.EncryptionMode
 import com.darkrockstudios.apps.hammer.ServerConfig
@@ -16,6 +15,7 @@ import com.darkrockstudios.apps.hammer.utilities.FakeTouchableFileSystem
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import com.darkrockstudios.apps.hammer.utilities.TouchableFileSystem
+import com.darkrockstudios.apps.hammer.utilities.DiskCache
 import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
 import io.ktor.client.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -43,6 +43,12 @@ abstract class EndToEndTest {
 
 	protected lateinit var fileSystem: FakeFileSystem
 	private lateinit var server: ApplicationEngine
+
+	/**
+	 * The config the server under test runs on. These tests exercise the AES-at-rest path with a
+	 * known secret, so pin it explicitly rather than riding the plaintext default.
+	 */
+	protected open val serverConfig = ServerConfig(encryption = EncryptionConfig(EncryptionMode.AES))
 
 	/** The OS-assigned port the server bound to; valid after [doStartServer]. */
 	protected var serverPort: Int = 0
@@ -100,9 +106,9 @@ abstract class EndToEndTest {
 		server.stop(1000, 3000)
 	}
 
-	/** Files a named disk cache wrote during this test, e.g. `cachedFiles("story-html")`. */
-	protected fun cachedFiles(name: String): List<Path> =
-		fileSystem.listOrNull(cacheDirectory(CacheConfig(), fileSystem, name)).orEmpty()
+	/** Files [cache] wrote during this test, read from wherever [serverConfig] puts it. */
+	protected fun cachedFiles(cache: DiskCache): List<Path> =
+		fileSystem.listOrNull(cacheDirectory(serverConfig.cache, fileSystem, cache)).orEmpty()
 
 	protected fun route(path: String): String = "http://127.0.0.1:$serverPort/$path"
 	protected fun api(path: String): String = route("api/$path")
@@ -123,16 +129,12 @@ abstract class EndToEndTest {
 			single<TouchableFileSystem> { FakeTouchableFileSystem(fileSystem) }
 		}
 
-		// These tests exercise the AES-at-rest path with a known secret, so pin it
-		// explicitly rather than riding the plaintext default.
-		val config = ServerConfig(encryption = EncryptionConfig(EncryptionMode.AES))
-
 		val server = embeddedServer(
 			Jetty,
 			port = 0,
 			host = "0.0.0.0",
 			module = {
-				appMain(config, testModule)
+				appMain(serverConfig, testModule)
 			}
 		)
 		server.start()

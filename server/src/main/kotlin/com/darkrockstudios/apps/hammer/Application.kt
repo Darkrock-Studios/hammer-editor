@@ -22,7 +22,8 @@ import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.utilities.DevSelfSignedCert
-import com.darkrockstudios.apps.hammer.utilities.cacheRoot
+import com.darkrockstudios.apps.hammer.utilities.DiskCache
+import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
 import com.darkrockstudios.apps.hammer.utilities.configureDiskCachePruneJob
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utilities.loadPemAsKeyStore
@@ -196,10 +197,12 @@ internal fun resolveServerConfig(
 	}
 
 	val config = configFile?.let { loadConfig(fileSystem, it) } ?: ServerConfig()
+	// Validated before resolution: a blank directory resolves to the config file's own directory,
+	// which would look valid and quietly put the caches next to the database.
+	config.cache.validate()
 
 	val resolved = resolveCacheDirectory(resolveConfigFilePaths(config, configFile?.parent), configFile?.parent)
 	validateConfigFiles(resolved, fileSystem)
-	resolved.cache.validate()
 	validateCacheDirectory(resolved.cache, fileSystem)
 	return resolved
 }
@@ -266,15 +269,19 @@ private fun validateConfigFiles(config: ServerConfig, fileSystem: FileSystem) {
 private fun validateCacheDirectory(config: CacheConfig, fileSystem: FileSystem) {
 	if (config.directory == null) return
 
-	val root = cacheRoot(config, fileSystem)
-	val probe = root / ".write-probe"
-	try {
-		fileSystem.createDirectories(root)
-		fileSystem.write(probe) { writeUtf8("hammer") }
-	} catch (e: IOException) {
-		error("cache.directory \"${config.directory}\" is not writable: ${e.message}")
-	} finally {
-		runCatching { fileSystem.delete(probe, mustExist = false) }
+	// Probed per cache rather than on the root alone: a writable root can still hold a
+	// subdirectory left behind by another user, which is where the entries actually go.
+	for (cache in DiskCache.entries) {
+		val directory = cacheDirectory(config, fileSystem, cache)
+		val probe = directory / ".write-probe"
+		try {
+			fileSystem.createDirectories(directory)
+			fileSystem.write(probe) { writeUtf8("hammer") }
+		} catch (e: IOException) {
+			error("cache.directory \"${config.directory}\" is not writable: $directory (${e.message})")
+		} finally {
+			runCatching { fileSystem.delete(probe, mustExist = false) }
+		}
 	}
 }
 

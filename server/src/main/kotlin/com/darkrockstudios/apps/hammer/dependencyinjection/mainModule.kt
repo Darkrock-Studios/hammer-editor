@@ -100,6 +100,7 @@ import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.story.StoryRenderCache
 import com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
+import com.darkrockstudios.apps.hammer.utilities.DiskCache
 import com.darkrockstudios.apps.hammer.utilities.DiskCachePruneJob
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
@@ -205,11 +206,20 @@ fun mainModule(
 	single<OgImageRenderer>()
 	single {
 		val cacheConfig = get<ServerConfig>().cache
-		OgImageService(get(), get(), cacheDirectory(cacheConfig, get(), "og"), cacheConfig.maxSizeBytes)
+		OgImageService(
+			get(),
+			get(),
+			cacheDirectory(cacheConfig, get(), DiskCache.OG_IMAGES),
+			cacheConfig.maxSizeBytes,
+		)
 	}
 	single {
 		val cacheConfig = get<ServerConfig>().cache
-		StoryRenderCache(get(), cacheDirectory(cacheConfig, get(), "story-html"), cacheConfig.maxSizeBytes)
+		StoryRenderCache(
+			get(),
+			cacheDirectory(cacheConfig, get(), DiskCache.STORY_HTML),
+			cacheConfig.maxSizeBytes,
+		)
 	}
 	single<TouchableFileSystem> { SystemTouchableFileSystem() }
 	single { DiskCachePruneJob(listOf(get<OgImageService>(), get<StoryRenderCache>()), get()) }

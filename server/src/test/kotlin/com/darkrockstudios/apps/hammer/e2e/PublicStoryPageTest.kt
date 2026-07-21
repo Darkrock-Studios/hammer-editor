@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.e2e
 
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
+import com.darkrockstudios.apps.hammer.utilities.DiskCache
 import com.darkrockstudios.apps.hammer.e2e.util.TestAccount
 import com.darkrockstudios.apps.hammer.e2e.util.TestProject
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
@@ -117,7 +118,7 @@ class PublicStoryPageTest : EndToEndTest() {
 
 		client().get(storyPath())
 
-		assertEquals(1, cachedFiles("story-html").size, "a public render should be cached")
+		assertEquals(1, cachedFiles(DiskCache.STORY_HTML).size, "a public render should be cached")
 	}
 
 	@Test
@@ -134,7 +135,7 @@ class PublicStoryPageTest : EndToEndTest() {
 		// in a plaintext cache file.
 		assertEquals(
 			emptyList(),
-			cachedFiles("story-html"),
+			cachedFiles(DiskCache.STORY_HTML),
 			"a private share must leave no rendered prose on disk"
 		)
 	}
@@ -147,6 +148,6 @@ class PublicStoryPageTest : EndToEndTest() {
 		val response = client().get(storyPath())
 
 		assertEquals(HttpStatusCode.NotFound, response.status)
-		assertEquals(emptyList(), cachedFiles("story-html"))
+		assertEquals(emptyList(), cachedFiles(DiskCache.STORY_HTML))
 	}
 }
