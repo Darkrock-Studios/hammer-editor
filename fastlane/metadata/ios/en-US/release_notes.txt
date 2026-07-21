@@ -1,4 +1,28 @@
-- [New] Re-added translations
-- [New] iOS can now export logs
-- [Fix] Encyclopedia image selection
-- [Fix] Focus mode UI padding on Desktop
+[New]
+- Encyclopedia: search by #tag, combined with name search
+- Desktop: Ctrl+Q closes the app from the project selection window
+- Crash reports now include the full stack trace in the exported logs
+(Android, Desktop, and iOS)
+
+[Improve]
+- Server connections are now HTTPS-only. If you sync with a self-hosted
+server over plain HTTP, it must be put behind HTTPS before upgrading.
+- Web: story reader pages load faster and link previews now show a proper
+title, description, and image when shared
+- Web: sitemap and search engine discovery for public stories
+- Web: reader stats no longer count bounces as reads
+- Web: optional Terms of Service and Privacy Policy pages, with a
+two-tier footer
+
+[Fix]
+- Web: error when saving your bio
+- Client: Text editor crash
+
+[Server operators]
+- Optional Terms of Service acceptance gate on account creation
+- Whitelist invites can be given an expiry date
+- Configurable disk cache directory
+- Configurable extra navigation links
+
+Full changelog:
+https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.7.0

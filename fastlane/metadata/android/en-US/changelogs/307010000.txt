@@ -1,0 +1,15 @@
+[New]
+- Encyclopedia: search by #tag, combined with name search
+- Desktop: Ctrl+Q closes the app from the project selection window
+- Crash reports now include the full stack trace in the exported logs
+(Android, Desktop, and iOS)
+
+[Improve]
+- Server connections are now HTTPS-only. If you sync with a self-hosted
+server over plain HTTP, it must be put behind HTTPS before upgrading.
+two-tier footer
+
+[Fix]…
+
+Full changelog:
+https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.7.0
