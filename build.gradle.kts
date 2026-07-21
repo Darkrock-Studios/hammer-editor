@@ -1,8 +1,13 @@
+import com.darkrockstudios.build.APPLE_STORE_LIMIT
+import com.darkrockstudios.build.PLAY_STORE_LIMIT
 import com.darkrockstudios.build.configureRelease
 import com.darkrockstudios.build.extractLatestChangelog
+import com.darkrockstudios.build.formatStoreNotes
 import com.darkrockstudios.build.isPlatformReleaseTag
 import com.darkrockstudios.build.registerLinuxDistributionTasks
 import com.darkrockstudios.build.registerPublishTasks
+import com.darkrockstudios.build.releaseNotesUrl
+import com.darkrockstudios.build.storeNotesLength
 import com.darkrockstudios.build.updateFlatpakFiles
 import com.darkrockstudios.build.updateIosShortVersion
 import com.darkrockstudios.build.updateSnapcraftYaml
@@ -166,12 +171,10 @@ tasks.register("prepareForRelease") {
 		val versionsFile = project.rootDir.resolve(versionsPath)
 		writeSemvar(libs.versions.app.get(), releaseInfo.semVar, versionsFile)
 
-		// Google Play has a hard limit of 500 characters
-		val truncatedChangelog = if (releaseInfo.changeLog.length > 500) {
-			"${releaseInfo.changeLog.take(480)}... and more"
-		} else {
-			releaseInfo.changeLog
-		}
+		// Store notes carry a link to the GitHub release, which holds the untruncated text.
+		val fullNotesUrl = releaseNotesUrl(releaseInfo.tag)
+		val notesLength = storeNotesLength(releaseInfo.changeLog, fullNotesUrl)
+		val playChangelog = formatStoreNotes(releaseInfo.changeLog, PLAY_STORE_LIMIT, fullNotesUrl)
 
 		// Write the Fastlane changelog file
 		val rootDir: File = project.rootDir
@@ -179,14 +182,16 @@ tasks.register("prepareForRelease") {
 			"fastlane/metadata/android/en-US/changelogs".replace("/", File.separator)
 		val changeLogsDir = rootDir.resolve(changelogsPath)
 		val changeLogFile = File(changeLogsDir, "$versionCode.txt")
-		changeLogFile.writeText(truncatedChangelog)
+		changeLogFile.writeText(playChangelog)
 		println("Changelog for version ${releaseInfo.semVar} written to $changelogsPath/$versionCode.txt")
+		if (notesLength > PLAY_STORE_LIMIT) {
+			println("  Google Play notes truncated to $PLAY_STORE_LIMIT characters; full text at $fullNotesUrl")
+		}
 
-		// Apple App Store has a 4000 character limit for release notes
-		val truncatedAppleChangelog = if (releaseInfo.changeLog.length > 4000) {
-			"${releaseInfo.changeLog.take(3980)}... and more"
-		} else {
-			releaseInfo.changeLog
+		val appleChangelog =
+			formatStoreNotes(releaseInfo.changeLog, APPLE_STORE_LIMIT, fullNotesUrl)
+		if (notesLength > APPLE_STORE_LIMIT) {
+			println("App Store notes truncated to $APPLE_STORE_LIMIT characters; full text at $fullNotesUrl")
 		}
 
 		// Write the macOS App Store release notes
@@ -194,7 +199,7 @@ tasks.register("prepareForRelease") {
 		val macReleaseNotesDir = rootDir.resolve(macReleaseNotesPath)
 		macReleaseNotesDir.mkdirs()
 		val macReleaseNotesFile = File(macReleaseNotesDir, "release_notes.txt")
-		macReleaseNotesFile.writeText(truncatedAppleChangelog)
+		macReleaseNotesFile.writeText(appleChangelog)
 		println("macOS release notes written to $macReleaseNotesPath/release_notes.txt")
 
 		// Write the iOS App Store release notes
@@ -202,7 +207,7 @@ tasks.register("prepareForRelease") {
 		val iosReleaseNotesDir = rootDir.resolve(iosReleaseNotesPath)
 		iosReleaseNotesDir.mkdirs()
 		val iosReleaseNotesFile = File(iosReleaseNotesDir, "release_notes.txt")
-		iosReleaseNotesFile.writeText(truncatedAppleChangelog)
+		iosReleaseNotesFile.writeText(appleChangelog)
 		println("iOS release notes written to $iosReleaseNotesPath/release_notes.txt")
 
 		// Write the Global changelog file
