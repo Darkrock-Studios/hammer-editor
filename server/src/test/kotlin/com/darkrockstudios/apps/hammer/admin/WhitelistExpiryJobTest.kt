@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
@@ -25,7 +25,7 @@ import kotlin.time.Duration.Companion.days
 
 class WhitelistExpiryJobTest : BaseTest() {
 
-	private lateinit var db: SqliteTestDatabase
+	private lateinit var db: SharedPostgresTestDatabase
 	private lateinit var whiteListDao: WhiteListDao
 	private lateinit var accountDao: AccountDao
 	private lateinit var authTokenDao: AuthTokenDao
@@ -38,7 +38,7 @@ class WhitelistExpiryJobTest : BaseTest() {
 	override fun setup() {
 		super.setup()
 
-		db = SqliteTestDatabase()
+		db = SharedPostgresTestDatabase()
 		db.initialize()
 		whiteListDao = WhiteListDao(db)
 		accountDao = AccountDao(db)

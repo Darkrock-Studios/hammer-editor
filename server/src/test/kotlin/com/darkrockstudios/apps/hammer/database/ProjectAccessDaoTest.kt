@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.database
 
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -11,7 +11,7 @@ import kotlin.test.assertTrue
 
 class ProjectAccessDaoTest : BaseTest() {
 
-	private lateinit var db: SqliteTestDatabase
+	private lateinit var db: SharedPostgresTestDatabase
 	private lateinit var dao: ProjectAccessDao
 
 	private val attackerProjectId = 100L
@@ -20,7 +20,7 @@ class ProjectAccessDaoTest : BaseTest() {
 	@BeforeEach
 	override fun setup() {
 		super.setup()
-		db = SqliteTestDatabase()
+		db = SharedPostgresTestDatabase()
 		db.initialize()
 		dao = ProjectAccessDao(db)
 		setupKoin()

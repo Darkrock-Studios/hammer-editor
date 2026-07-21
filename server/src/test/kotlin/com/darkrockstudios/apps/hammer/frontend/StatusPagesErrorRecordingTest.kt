@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.database.ErrorLogDao
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
 import io.ktor.client.request.get
@@ -44,7 +44,7 @@ class StatusPagesErrorRecordingTest {
 				single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.IO }
 			})
 		}
-		val db = SqliteTestDatabase()
+		val db = SharedPostgresTestDatabase()
 		db.initialize()
 		errorRepository = ErrorRepository(ErrorLogDao(db), clock)
 	}

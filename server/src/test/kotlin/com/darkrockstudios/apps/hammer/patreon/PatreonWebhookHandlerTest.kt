@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.patreon
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -18,7 +18,7 @@ import kotlin.test.assertTrue
 
 class PatreonWebhookHandlerTest : BaseTest() {
 
-	private lateinit var db: SqliteTestDatabase
+	private lateinit var db: SharedPostgresTestDatabase
 	private lateinit var configDao: ServerConfigDao
 	private lateinit var configRepository: ConfigRepository
 	private lateinit var patreonApiClient: PatreonApiClient
@@ -29,7 +29,7 @@ class PatreonWebhookHandlerTest : BaseTest() {
 	override fun setup() {
 		super.setup()
 
-		db = SqliteTestDatabase()
+		db = SharedPostgresTestDatabase()
 		db.initialize()
 		configDao = ServerConfigDao(db)
 		configRepository = ConfigRepository(configDao)

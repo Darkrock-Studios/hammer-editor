@@ -34,7 +34,7 @@ object TestDataSetWithReferences {
 
 	val entities: List<ApiProjectEntity> = listOf(sceneWithRefs, entryWithAliases)
 
-	fun createFullDataset(database: SqliteTestDatabase, contentEncryptor: ContentEncryptor) {
+	fun createFullDataset(database: SharedPostgresTestDatabase, contentEncryptor: ContentEncryptor) {
 		createAccount(TestDataSet1.account1, database)
 		createProject(TestDataSet1.project1, database)
 

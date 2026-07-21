@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.monitoring
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.frontend.adminMonitoringPages
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
@@ -34,13 +34,13 @@ class MonitoringIgnoreRouteTest : BaseTest() {
 		override fun now() = fixedNow
 	}
 
-	private lateinit var db: SqliteTestDatabase
+	private lateinit var db: SharedPostgresTestDatabase
 	private lateinit var configRepository: ConfigRepository
 
 	@BeforeEach
 	override fun setup() {
 		super.setup()
-		db = SqliteTestDatabase()
+		db = SharedPostgresTestDatabase()
 		db.initialize()
 		setupKoin()
 		configRepository = ConfigRepository(ServerConfigDao(db))

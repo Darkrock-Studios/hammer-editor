@@ -228,9 +228,10 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 			// and rejects the pre-seeded auth token).
 			single<FileSystem> { sharedFileSystem }
 
-			// FakeFileSystem is not thread-safe, so bind IO and Default to the same single-threaded
-			// dispatcher as Main: this serializes all client-side filesystem work and keeps
-			// concurrent opens from corrupting its open-file list.
+			// Bind IO and Default to the same single-threaded dispatcher as Main so client-side work
+			// runs in a deterministic order. Test bodies still drive the pipeline from the JUnit
+			// thread via runBlocking, so this alone doesn't serialize filesystem access — the shared
+			// fake is wrapped in a SynchronizedFileSystem for that.
 			single<CoroutineContext>(named(DISPATCHER_MAIN)) { mainDispatcher }
 			single<CoroutineContext>(named(DISPATCHER_IO)) { mainDispatcher }
 			single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { mainDispatcher }

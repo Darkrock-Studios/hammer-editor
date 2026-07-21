@@ -23,7 +23,7 @@ object TestDataSet1 {
 		userId = 1,
 	)
 
-	fun createFullDataset(database: SqliteTestDatabase, contentEncryptor: ContentEncryptor) {
+	fun createFullDataset(database: SharedPostgresTestDatabase, contentEncryptor: ContentEncryptor) {
 		createAccount(account1, database)
 		createProject(project1, database)
 
@@ -61,7 +61,7 @@ object TestDataSet1 {
 		add(7)
 	}
 
-	fun createEmptyDataset(database: SqliteTestDatabase) {
+	fun createEmptyDataset(database: SharedPostgresTestDatabase) {
 		createAccount(account1, database)
 		createProject(project1, database)
 	}
