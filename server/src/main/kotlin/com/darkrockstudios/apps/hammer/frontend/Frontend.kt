@@ -39,7 +39,7 @@ import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
-import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
@@ -77,7 +77,7 @@ fun Route.frontend() {
 	val whiteListRepository: WhiteListRepository by inject()
 	val configRepository: ConfigRepository by inject()
 	val projectsRepository: ProjectsRepository by inject()
-	val storyExportService: StoryExportService by inject()
+	val storyRendererService: StoryRendererService by inject()
 	val projectAccessRepository: ProjectAccessRepository by inject()
 	val penNameService: PenNameService by inject()
 	val bioService: BioService by inject()
@@ -127,13 +127,17 @@ fun Route.frontend() {
 	passwordResetRoutes(passwordResetRepository)
 	dashboardPage(projectsRepository, accountsRepository, penNameService, bioService, serverConfig, markdownService)
 	storyPage(
-		storyExportService, projectAccessRepository, projectsRepository, accountsRepository, reviewRepository,
+		storyRendererService,
+		projectAccessRepository,
+		projectsRepository,
+		accountsRepository,
+		reviewRepository,
 		storyReaderRepository, projectDao, clock,
 	)
 	reviewFrontend(
 		reviewRepository = reviewRepository,
 		projectsRepository = projectsRepository,
-		storyExportService = storyExportService,
+		storyRendererService = storyRendererService,
 		accountsRepository = accountsRepository,
 		projectDao = projectDao,
 		markdownService = markdownService,
@@ -143,7 +147,7 @@ fun Route.frontend() {
 	)
 	authorPage(accountsRepository, projectAccessRepository, markdownService, serverConfig)
 	publicStoryPage(
-		storyExportService,
+		storyRendererService,
 		projectAccessRepository,
 		projectDao,
 		storyReaderCollector,

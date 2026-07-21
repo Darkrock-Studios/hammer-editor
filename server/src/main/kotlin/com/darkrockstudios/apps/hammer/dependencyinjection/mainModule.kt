@@ -96,8 +96,8 @@ import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
 import com.darkrockstudios.apps.hammer.secret.buildSecretProvider
-import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.story.StoryRenderCache
+import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.DiskCachePruneJob
@@ -208,7 +208,7 @@ fun mainModule(
 	single<TouchableFileSystem> { SystemTouchableFileSystem() }
 	single { DiskCachePruneJob(listOf(get<OgImageService>(), get<StoryRenderCache>()), get()) }
 	// Explicit ctor: renderCache defaults to null, which the constructor DSL would honor over injection.
-	single { StoryExportService(get(), get(), get()) }
+	single { StoryRendererService(get(), get(), get()) }
 	single<PenNameService>()
 	single<BioService>()
 	single<PasswordResetRepository>()

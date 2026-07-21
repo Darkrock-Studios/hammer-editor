@@ -5,10 +5,10 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ReaderDay
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
-import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
-import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.frontend.utils.Toast
 import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
+import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
+import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
@@ -16,12 +16,12 @@ import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.utilities.truncateToUtcDay
 import com.darkrockstudios.apps.hammer.story.SceneHierarchyResult
 import com.darkrockstudios.apps.hammer.story.SingleSceneExportResult
-import com.darkrockstudios.apps.hammer.story.StoryExportResult
-import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.story.StoryRenderResult
+import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.story.WordCountUtils
+import com.darkrockstudios.apps.hammer.utilities.truncateToUtcDay
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.htmx.hx
@@ -42,7 +42,7 @@ import kotlin.time.Duration.Companion.days
 import kotlin.time.Instant
 
 fun Route.storyPage(
-	storyExportService: StoryExportService,
+	storyRendererService: StoryRendererService,
 	projectAccessRepository: ProjectAccessRepository,
 	projectsRepository: ProjectsRepository,
 	accountsRepository: AccountsRepository,
@@ -72,7 +72,8 @@ fun Route.storyPage(
 				val projectNameForUrl = ProjectName.projectSegment(project.name, project.uuid)
 
 				// Get scene hierarchy first to determine what to show
-				val hierarchyResult = storyExportService.getSceneHierarchy(session.userId, projectId)
+				val hierarchyResult =
+					storyRendererService.getSceneHierarchy(session.userId, projectId)
 				val sceneHierarchyItems = when (hierarchyResult) {
 					is SceneHierarchyResult.Success -> hierarchyResult.scenes
 					else -> emptyList()
@@ -82,7 +83,11 @@ fun Route.storyPage(
 				val firstSceneId = sceneHierarchyItems.firstOrNull()?.id
 				val (storyHtml, hasContent) = if (firstSceneId != null) {
 					when (val sceneResult =
-						storyExportService.exportSceneAsHtml(session.userId, projectId, firstSceneId)) {
+						storyRendererService.renderSceneAsHtml(
+							session.userId,
+							projectId,
+							firstSceneId
+						)) {
 						is SingleSceneExportResult.Success -> sceneResult.html to sceneResult.hasContent
 						else -> "" to false
 					}
@@ -91,13 +96,13 @@ fun Route.storyPage(
 				}
 
 				// Get full story stats (for sidebar info)
-				val result = storyExportService.exportStoryAsHtml(
+				val result = storyRendererService.renderStoryAsHtml(
 					userId = session.userId,
 					projectId = projectId
 				)
 
 				when (result) {
-					is StoryExportResult.Success -> {
+					is StoryRenderResult.Success -> {
 						val account = accountsRepository.getAccount(session.userId)
 						val hasPenName = !account.pen_name.isNullOrBlank()
 
@@ -167,11 +172,11 @@ fun Route.storyPage(
 						call.respond(MustacheContent("story.mustache", model))
 					}
 
-					is StoryExportResult.ProjectNotFound -> {
+					is StoryRenderResult.ProjectNotFound -> {
 						call.respond(HttpStatusCode.NotFound)
 					}
 
-					is StoryExportResult.Error -> {
+					is StoryRenderResult.Error -> {
 						val model = call.withDefaults(
 							mapOf(
 								"page_stylesheet" to "/assets/css/story.css",
@@ -206,13 +211,13 @@ fun Route.storyPage(
 
 				// Handle "all" as a special case for full story view
 				if (sceneIdStr == "all") {
-					val result = storyExportService.exportStoryAsHtml(
+					val result = storyRendererService.renderStoryAsHtml(
 						userId = session.userId,
 						projectId = projectId
 					)
 
 					when (result) {
-						is StoryExportResult.Success -> {
+						is StoryRenderResult.Success -> {
 							val model = call.withDefaults(
 								mapOf(
 									"storyHtml" to result.html,
@@ -222,11 +227,11 @@ fun Route.storyPage(
 							call.respond(MustacheContent("partials/story-content.mustache", model))
 						}
 
-						is StoryExportResult.ProjectNotFound -> {
+						is StoryRenderResult.ProjectNotFound -> {
 							call.respond(HttpStatusCode.NotFound)
 						}
 
-						is StoryExportResult.Error -> {
+						is StoryRenderResult.Error -> {
 							call.respond(HttpStatusCode.InternalServerError, result.message)
 						}
 					}
@@ -240,7 +245,7 @@ fun Route.storyPage(
 					return@get
 				}
 
-				val result = storyExportService.exportSceneAsHtml(
+				val result = storyRendererService.renderSceneAsHtml(
 					userId = session.userId,
 					projectId = projectId,
 					sceneId = sceneId

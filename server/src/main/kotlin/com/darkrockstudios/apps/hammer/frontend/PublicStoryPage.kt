@@ -16,25 +16,30 @@ import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
 import com.darkrockstudios.apps.hammer.frontend.utils.storyArticleJsonLd
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
-import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.project.access.PublicProjectResult
+import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.PaginatedExportResult
-import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.story.WordCountUtils
-import io.ktor.http.*
-import io.ktor.server.htmx.*
-import io.ktor.server.mustache.*
-import io.ktor.server.plugins.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.htmx.hx
+import io.ktor.server.mustache.MustacheContent
+import io.ktor.server.plugins.origin
+import io.ktor.server.request.receiveParameters
+import io.ktor.server.request.userAgent
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondRedirect
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.route
 import io.ktor.server.sessions.get
 import io.ktor.server.sessions.sessions
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 fun Route.publicStoryPage(
-	storyExportService: StoryExportService,
+	storyRendererService: StoryRendererService,
 	projectAccessRepository: ProjectAccessRepository,
 	projectDao: ProjectDao,
 	storyReaderCollector: StoryReaderCollector,
@@ -138,7 +143,8 @@ fun Route.publicStoryPage(
 					)
 
 					// Resolved once and reused by the render below, so the ETag costs no extra queries.
-					val prepared = storyExportService.prepareExport(resolved.userId, resolved.projectUuid)
+					val prepared =
+						storyRendererService.prepareExport(resolved.userId, resolved.projectUuid)
 
 					// A reader who already holds this exact page is answered without rendering it.
 					// `indexable` is an explicit input: it gates the JSON-LD block but never reaches
@@ -159,7 +165,7 @@ fun Route.publicStoryPage(
 					val exportResult = if (prepared == null) {
 						PaginatedExportResult.ProjectNotFound
 					} else {
-						storyExportService.exportStoryAsHtmlPaginated(
+						storyRendererService.renderStoryAsHtmlPaginated(
 							prepared = prepared,
 							page = page,
 							// Only a publicly-reachable story may be written to disk; a private

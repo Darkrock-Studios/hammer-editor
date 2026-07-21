@@ -10,18 +10,18 @@ import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import kotlinx.serialization.Serializable
 
-class StoryExportService(
+class StoryRendererService(
 	private val projectEntityDatasource: ProjectEntityDatasource,
 	private val markdownService: MarkdownService,
 	private val renderCache: StoryRenderCache? = null,
 ) {
 
-	suspend fun exportStoryAsHtml(
+	suspend fun renderStoryAsHtml(
 		userId: Long,
 		projectId: ProjectId
-	): StoryExportResult {
+	): StoryRenderResult {
 		val projectDef = projectEntityDatasource.getProject(userId, projectId)
-			?: return StoryExportResult.ProjectNotFound
+			?: return StoryRenderResult.ProjectNotFound
 
 		return try {
 			val sceneDefs = projectEntityDatasource.getEntityDefsByType(
@@ -31,7 +31,7 @@ class StoryExportService(
 			)
 
 			if (sceneDefs.isEmpty()) {
-				return StoryExportResult.Success(
+				return StoryRenderResult.Success(
 					projectName = projectDef.name,
 					html = "",
 					hasContent = false,
@@ -59,7 +59,7 @@ class StoryExportService(
 				.filter { it.sceneType == ApiSceneType.Scene }
 				.sumOf { WordCountUtils.countWords(it.content) }
 
-			StoryExportResult.Success(
+			StoryRenderResult.Success(
 				projectName = projectDef.name,
 				html = html,
 				hasContent = true,
@@ -68,7 +68,7 @@ class StoryExportService(
 			)
 			// Export boundary: any failure becomes a StoryExportResult.Error.
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			StoryExportResult.Error(e.message ?: "Unknown error occurred")
+			StoryRenderResult.Error(e.message ?: "Unknown error occurred")
 		}
 	}
 
@@ -150,7 +150,7 @@ class StoryExportService(
 	 * without a password: a cached page is decrypted prose sitting in plaintext on disk, which is
 	 * harmless for a story anyone can already fetch over HTTP but not for a private share.
 	 */
-	suspend fun exportStoryAsHtmlPaginated(
+	suspend fun renderStoryAsHtmlPaginated(
 		userId: Long,
 		projectId: ProjectId,
 		page: Int = 1,
@@ -159,14 +159,14 @@ class StoryExportService(
 	): PaginatedExportResult {
 		val projectDef = projectEntityDatasource.getProject(userId, projectId)
 			?: return PaginatedExportResult.ProjectNotFound
-		// Hashes only identify a cache entry, so an uncached export never pays for them.
+		// Hashes only identify a cache entry, so an uncached render never pays for them.
 		val sceneHashes = if (cacheable) sceneHashes(userId, projectDef) else emptyList()
 
 		return renderOrCache(userId, projectId, projectDef, sceneHashes, page, wordsPerPage, cacheable)
 	}
 
-	/** As [exportStoryAsHtmlPaginated], reusing a [PreparedExport] the caller already resolved. */
-	suspend fun exportStoryAsHtmlPaginated(
+	/** As [renderStoryAsHtmlPaginated], reusing a [PreparedExport] the caller already resolved. */
+	suspend fun renderStoryAsHtmlPaginated(
 		prepared: PreparedExport,
 		page: Int = 1,
 		wordsPerPage: Int = DEFAULT_WORDS_PER_PAGE,
@@ -453,9 +453,9 @@ class StoryExportService(
 
 	/**
 	 * Export a single scene or group as HTML.
-	 * If sceneId is a group, exports all scenes within it.
+	 * If sceneId is a group, renders all scenes within it.
 	 */
-	suspend fun exportSceneAsHtml(
+	suspend fun renderSceneAsHtml(
 		userId: Long,
 		projectId: ProjectId,
 		sceneId: Int
@@ -555,18 +555,18 @@ class StoryExportService(
 	}
 }
 
-sealed class StoryExportResult {
+sealed class StoryRenderResult {
 	data class Success(
 		val projectName: String,
 		val html: String,
 		val hasContent: Boolean,
 		val sceneCount: Int,
 		val totalWordCount: Int
-	) : StoryExportResult()
+	) : StoryRenderResult()
 
-	data object ProjectNotFound : StoryExportResult()
+	data object ProjectNotFound : StoryRenderResult()
 
-	data class Error(val message: String) : StoryExportResult()
+	data class Error(val message: String) : StoryRenderResult()
 }
 
 /**
@@ -636,7 +636,7 @@ sealed class SceneHierarchyResult {
 }
 
 /**
- * Result of exporting a single scene or group.
+ * Result of rendering a single scene or group.
  */
 sealed class SingleSceneExportResult {
 	data class Success(

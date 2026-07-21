@@ -5,7 +5,13 @@ import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.ServerConfigKey
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
-import com.darkrockstudios.apps.hammer.base.http.*
+import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
+import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
+import com.darkrockstudios.apps.hammer.base.http.HEADER_CLIENT_VERSION
+import com.darkrockstudios.apps.hammer.base.http.HTTP_STATUS_TERMS_OF_SERVICE
+import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
+import com.darkrockstudios.apps.hammer.base.http.Token
+import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.plugins.configureLocalization
 import com.darkrockstudios.apps.hammer.plugins.configureRouting
 import com.darkrockstudios.apps.hammer.plugins.configureSecurity
@@ -15,18 +21,26 @@ import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.project.ServerWritingActivityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
-import io.ktor.client.plugins.contentnegotiation.*
-import io.ktor.client.request.*
-import io.ktor.client.request.forms.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.testing.*
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.HttpResponse
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.Parameters
+import io.ktor.http.isSuccess
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.testing.ApplicationTestBuilder
+import io.ktor.server.testing.testApplication
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.impl.annotations.MockK
@@ -70,7 +84,7 @@ class AccountRoutesTest : BaseTest() {
 	private lateinit var configRepository: ConfigRepository
 
 	@MockK
-	private lateinit var storyExportService: StoryExportService
+	private lateinit var storyRendererService: StoryRendererService
 
 	@MockK
 	private lateinit var penNameService: PenNameService
@@ -111,7 +125,7 @@ class AccountRoutesTest : BaseTest() {
 			single { adminComponent }
 			single { whiteListRepository }
 			single { configRepository }
-			single { storyExportService }
+			single { storyRendererService }
 			single { penNameService }
 			single { json }
 			single { passwordResetRepository }

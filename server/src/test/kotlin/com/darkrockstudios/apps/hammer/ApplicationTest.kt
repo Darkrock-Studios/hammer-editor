@@ -1,6 +1,10 @@
 package com.darkrockstudios.apps.hammer
 
-import com.darkrockstudios.apps.hammer.account.*
+import com.darkrockstudios.apps.hammer.account.AccountsComponent
+import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.BioService
+import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
+import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.ServerConfigKey
@@ -13,14 +17,14 @@ import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.project.ServerWritingActivityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.server.testing.*
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.testing.testApplication
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.impl.annotations.MockK
@@ -54,7 +58,7 @@ class ApplicationTest : BaseTest() {
 	@MockK
 	private lateinit var configRepository: ConfigRepository
 	@MockK
-	private lateinit var storyExportService: StoryExportService
+	private lateinit var storyRendererService: StoryRendererService
 
 	@MockK
 	protected lateinit var passwordResetRepository: PasswordResetRepository
@@ -87,7 +91,7 @@ class ApplicationTest : BaseTest() {
 			single { adminComponent }
 			single { whiteListRepository }
 			single { configRepository }
-			single { storyExportService }
+			single { storyRendererService }
 			single { penNameService }
 			single { passwordResetRepository }
 			single { bioService }

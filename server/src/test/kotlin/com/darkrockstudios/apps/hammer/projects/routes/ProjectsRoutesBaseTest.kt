@@ -1,6 +1,10 @@
 package com.darkrockstudios.apps.hammer.projects.routes
 
-import com.darkrockstudios.apps.hammer.account.*
+import com.darkrockstudios.apps.hammer.account.AccountsComponent
+import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.BioService
+import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
+import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
@@ -13,15 +17,15 @@ import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.project.ServerWritingActivityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
-import io.ktor.server.application.*
-import io.ktor.server.testing.*
+import io.ktor.server.application.Application
+import io.ktor.server.testing.ApplicationTestBuilder
 import io.mockk.MockKAnnotations
-import io.mockk.mockk
 import io.mockk.impl.annotations.MockK
+import io.mockk.mockk
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.BeforeEach
 import org.koin.dsl.module
@@ -59,7 +63,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 	protected lateinit var configRepository: ConfigRepository
 
 	@MockK(relaxed = true)
-	protected lateinit var storyExportService: StoryExportService
+	protected lateinit var storyRendererService: StoryRendererService
 
 	@MockK(relaxed = true)
 	protected lateinit var penNameService: PenNameService
@@ -97,7 +101,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 			single { accountsComponent }
 			single { adminComponent }
 			single { configRepository }
-			single { storyExportService }
+			single { storyRendererService }
 			single { penNameService }
 			single { bioService }
 			single { json }
