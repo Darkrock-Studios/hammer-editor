@@ -17,8 +17,8 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
-import java.nio.file.Path
+import com.darkrockstudios.apps.hammer.utilities.FakeTouchableFileSystem
+import okio.Path.Companion.toPath
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -29,8 +29,8 @@ import kotlin.test.assertTrue
  */
 class OgImageRoutesTest {
 
-	@TempDir
-	lateinit var cacheDir: Path
+	private val fileSystem = FakeTouchableFileSystem()
+	private val cacheDir = "/cache/og".toPath()
 
 	private fun fakeAccount(accountId: Long, penName: String?, isCommunity: Boolean): Account = mockk {
 		every { id } returns accountId
@@ -42,7 +42,7 @@ class OgImageRoutesTest {
 		accounts: AccountsRepository,
 		access: ProjectAccessRepository = mockk(),
 	) {
-		val service = OgImageService(OgImageRenderer(), cacheDir)
+		val service = OgImageService(OgImageRenderer(), fileSystem, cacheDir)
 		application { routing { ogImageRoutes(accounts, access, service) } }
 	}
 
@@ -92,7 +92,7 @@ class OgImageRoutesTest {
 		val uuid = "11111111-1111-1111-1111-111111111111"
 		val access = mockk<ProjectAccessRepository>()
 		coEvery { access.findPublicProjectByUuid(any()) } returns
-			PublicProjectResult.Success(1L, ProjectId(uuid), "My Story", "Jane Doe")
+			PublicProjectResult.Success(1L, ProjectId(uuid), "My Story", "Jane Doe", isPublic = true)
 		installRoutes(accounts = mockk(), access = access)
 
 		val response = client.get("/og/s/$uuid.png")

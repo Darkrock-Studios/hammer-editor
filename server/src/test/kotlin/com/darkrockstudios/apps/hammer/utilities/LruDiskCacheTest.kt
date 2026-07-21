@@ -1,25 +1,40 @@
 package com.darkrockstudios.apps.hammer.utilities
 
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
+import okio.Path.Companion.toOkioPath
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.attribute.FileTime
 import java.time.Instant
+import kotlin.time.toKotlinInstant
 import kotlin.test.assertContentEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
+/**
+ * Runs against the real filesystem so the platform's own modification-time behaviour is under test
+ * too — [age] going through [SystemTouchableFileSystem] means a host OS that refused to set one
+ * would fail here rather than silently degrading eviction in production.
+ */
 class LruDiskCacheTest {
 
 	@TempDir
 	lateinit var dir: Path
 
-	private fun cache(maxBytes: Long) = LruDiskCache(dir, maxBytes)
+	private val fileSystem = SystemTouchableFileSystem()
+
+	private fun cache(maxBytes: Long) = LruDiskCache(fileSystem, dir.toOkioPath(), maxBytes)
 
 	private fun age(cache: LruDiskCache, key: String, at: Instant) {
-		Files.setLastModifiedTime(cache.fileFor(key), FileTime.from(at))
+		val touched = fileSystem.setLastModified(cache.fileFor(key), at.toKotlinInstant())
+		assertTrue(touched, "the host filesystem should support setting a modification time")
 	}
 
 	@Test
@@ -81,6 +96,62 @@ class LruDiskCacheTest {
 	}
 
 	@Test
+	fun `getOrPutSuspending computes a hot key once under concurrent misses`() = runBlocking {
+		val c = cache(1_000_000)
+		val computeCount = java.util.concurrent.atomic.AtomicInteger(0)
+		val callers = 16
+
+		val results = (1..callers).map {
+			async(Dispatchers.IO) {
+				c.getOrPutSuspending("hot") {
+					computeCount.incrementAndGet()
+					delay(50) // hold the compute so racers pile up on the mutex
+					byteArrayOf(7)
+				}
+			}
+		}.awaitAll()
+
+		assertEquals(1, computeCount.get(), "a hot key should be computed exactly once")
+		assertEquals(callers, results.size)
+		results.forEach { assertContentEquals(byteArrayOf(7), it) }
+	}
+
+	@Test
+	fun `getOrPutSuspending computes only on a miss`() = runBlocking {
+		val c = cache(1_000)
+		var computeCount = 0
+		val first = c.getOrPutSuspending("k") { computeCount++; byteArrayOf(7) }
+		val second = c.getOrPutSuspending("k") { computeCount++; byteArrayOf(7) }
+		assertEquals(1, computeCount)
+		assertContentEquals(byteArrayOf(7), first)
+		assertContentEquals(byteArrayOf(7), second)
+	}
+
+	@Test
+	fun `getOrPutSuspending does not store a null value`() = runBlocking {
+		val c = cache(1_000)
+
+		val value = c.getOrPutSuspending("k") { null }
+
+		assertNull(value)
+		assertNull(c.get("k"), "a null compute must leave the cache empty")
+	}
+
+	@Test
+	fun `a value is still returned when the cache cannot be written`() = runBlocking {
+		val cacheDir = dir.resolve("evaporating")
+		val c = LruDiskCache(fileSystem, cacheDir.toOkioPath(), 1_000)
+		// Pull the directory out from under the cache so every write fails.
+		Files.delete(cacheDir)
+
+		val computed = c.getOrPutSuspending("k") { byteArrayOf(1, 2, 3) }
+		val direct = runCatching { c.put("k", byteArrayOf(4)) }
+
+		assertContentEquals(byteArrayOf(1, 2, 3), computed, "a failed write must not fail the caller")
+		assertTrue(direct.isSuccess, "put must swallow IO failures, was ${direct.exceptionOrNull()}")
+	}
+
+	@Test
 	fun `put evicts the least-recently-used entry when over capacity`() {
 		val c = cache(maxBytes = 250)
 		c.put("a", ByteArray(100))
@@ -133,8 +204,8 @@ class LruDiskCacheTest {
 		val c = cache(maxBytes = 150)
 		// Write straight into the cache dir, bypassing put()'s auto-prune, to simulate drift
 		// that a scheduled maintenance job would later reconcile.
-		Files.write(c.fileFor("a"), ByteArray(100))
-		Files.write(c.fileFor("b"), ByteArray(100))
+		Files.write(c.fileFor("a").toNioPath(), ByteArray(100))
+		Files.write(c.fileFor("b").toNioPath(), ByteArray(100))
 		age(c, "a", Instant.ofEpochMilli(1_000))
 		age(c, "b", Instant.ofEpochMilli(2_000))
 

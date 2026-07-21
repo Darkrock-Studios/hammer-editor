@@ -11,8 +11,11 @@ import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvid
 import com.darkrockstudios.apps.hammer.secret.FileSecretProvider
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
+import com.darkrockstudios.apps.hammer.utilities.FakeTouchableFileSystem
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
+import com.darkrockstudios.apps.hammer.utilities.TouchableFileSystem
+import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
 import io.ktor.client.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
@@ -20,6 +23,7 @@ import io.ktor.server.engine.*
 import io.ktor.server.jetty.jakarta.*
 import kotlinx.coroutines.runBlocking
 import okio.FileSystem
+import okio.Path
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -95,6 +99,10 @@ abstract class EndToEndTest {
 		server.stop(1000, 3000)
 	}
 
+	/** Files a named disk cache wrote during this test, e.g. `cachedFiles("story-html")`. */
+	protected fun cachedFiles(name: String): List<Path> =
+		fileSystem.listOrNull(cacheDirectory(fileSystem, name)).orEmpty()
+
 	protected fun route(path: String): String = "http://127.0.0.1:$serverPort/$path"
 	protected fun api(path: String): String = route("api/$path")
 
@@ -110,6 +118,8 @@ abstract class EndToEndTest {
 		val testModule = org.koin.dsl.module {
 			single { testDatabase } bind Database::class
 			single { fileSystem } bind FileSystem::class
+			// The disk caches need to set modification times; this keeps them on the same fake.
+			single<TouchableFileSystem> { FakeTouchableFileSystem(fileSystem) }
 		}
 
 		// These tests exercise the AES-at-rest path with a known secret, so pin it

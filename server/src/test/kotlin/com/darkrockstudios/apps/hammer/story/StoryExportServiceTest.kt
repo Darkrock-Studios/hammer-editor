@@ -8,12 +8,16 @@ import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.SResult
+import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import com.darkrockstudios.apps.hammer.utilities.FakeTouchableFileSystem
+import okio.Path.Companion.toPath
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -24,6 +28,10 @@ class StoryExportServiceTest {
 	private lateinit var datasource: ProjectEntityDatasource
 	private lateinit var markdownService: MarkdownService
 	private lateinit var service: StoryExportService
+	private lateinit var cachingService: StoryExportService
+
+	private val fileSystem = FakeTouchableFileSystem()
+	private val cacheDir = "/cache/story-html".toPath()
 
 	private val userId = 1L
 	private val projectId = ProjectId("test-project-uuid")
@@ -34,6 +42,8 @@ class StoryExportServiceTest {
 		datasource = mockk()
 		markdownService = MarkdownService()
 		service = StoryExportService(datasource, markdownService)
+		cachingService =
+			StoryExportService(datasource, markdownService, StoryRenderCache(fileSystem, cacheDir))
 	}
 
 	@Test
@@ -290,6 +300,10 @@ class StoryExportServiceTest {
 		val entityDefs = scenes.map { EntityDefinition(it.id, ApiProjectEntity.Type.SCENE) }
 		coEvery { datasource.getEntityDefsByType(userId, projectDef, ApiProjectEntity.Type.SCENE) } returns entityDefs
 
+		// Mirrors the real column: the stored hash covers the scene's content, so editing a scene
+		// here changes its hash the way a sync would.
+		stubSceneHashes(*scenes.map { EntityHash(it.id, "h${it.content.hashCode()}") }.toTypedArray())
+
 		val entityIdSlot = slot<Int>()
 		coEvery {
 			datasource.loadEntity(
@@ -303,6 +317,126 @@ class StoryExportServiceTest {
 			val scene = scenes.find { it.id == entityIdSlot.captured }
 			if (scene != null) SResult.success(scene) else SResult.failure("Scene not found")
 		}
+	}
+
+	private fun cachedFiles(): List<okio.Path> = fileSystem.listOrNull(cacheDir).orEmpty()
+
+	private fun stubSceneHashes(vararg hashes: EntityHash) {
+		coEvery {
+			datasource.getEntityHashes(userId, projectDef, ApiProjectEntity.Type.SCENE)
+		} returns hashes.toList()
+	}
+
+	// Render Cache Tests
+
+	@Test
+	fun `cached - an unchanged story is rendered once`() = runTest {
+		setupMocksForScenes(listOf(createScene(1, "Chapter One", "Hello world", 0)))
+		stubSceneHashes(EntityHash(1, "hash-one"))
+
+		val first = cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+		val second = cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+
+		assertIs<PaginatedExportResult.Success>(first)
+		assertIs<PaginatedExportResult.Success>(second)
+		assertEquals(first.data, second.data)
+		coVerify(exactly = 1) {
+			datasource.loadEntity(
+				userId,
+				projectDef,
+				1,
+				ApiProjectEntity.Type.SCENE,
+				ApiProjectEntity.SceneEntity.serializer()
+			)
+		}
+	}
+
+	@Test
+	fun `cached - a changed scene hash renders the new content`() = runTest {
+		setupMocksForScenes(listOf(createScene(1, "Chapter One", "Before the edit", 0)))
+		stubSceneHashes(EntityHash(1, "hash-before"))
+		cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+
+		setupMocksForScenes(listOf(createScene(1, "Chapter One", "After the edit", 0)))
+		stubSceneHashes(EntityHash(1, "hash-after"))
+		val result = cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		assertTrue(result.data.pageHtml.contains("After the edit"))
+	}
+
+	@Test
+	fun `cached - an added scene renders the new content`() = runTest {
+		setupMocksForScenes(listOf(createScene(1, "Chapter One", "First chapter", 0)))
+		stubSceneHashes(EntityHash(1, "hash-one"))
+		cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+
+		setupMocksForScenes(
+			listOf(
+				createScene(1, "Chapter One", "First chapter", 0),
+				createScene(2, "Chapter Two", "Second chapter", 1),
+			)
+		)
+		stubSceneHashes(EntityHash(1, "hash-one"), EntityHash(2, "hash-two"))
+		val result = cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		assertTrue(result.data.pageHtml.contains("Second chapter"))
+	}
+
+	@Test
+	fun `cached - a non-cacheable export writes nothing to disk`() = runTest {
+		setupMocksForScenes(listOf(createScene(1, "Chapter One", "Hello world", 0)))
+		stubSceneHashes(EntityHash(1, "hash-one"))
+
+		cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = false)
+		cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = false)
+
+		// The gate that keeps a password-protected story's decrypted prose off disk.
+		assertEquals(
+			emptyList(),
+			cachedFiles(),
+			"a non-cacheable export must leave no rendered prose on disk"
+		)
+		coVerify(exactly = 2) {
+			datasource.loadEntity(
+				userId,
+				projectDef,
+				1,
+				ApiProjectEntity.Type.SCENE,
+				ApiProjectEntity.SceneEntity.serializer()
+			)
+		}
+	}
+
+	@Test
+	fun `cached - a render missing a scene is served but not cached`() = runTest {
+		val scenes = listOf(
+			createScene(1, "Chapter One", "First chapter", 0),
+			createScene(2, "Chapter Two", "Second chapter", 1),
+		)
+		setupMocksForScenes(scenes)
+		stubSceneHashes(EntityHash(1, "hash-one"), EntityHash(2, "hash-two"))
+		// Scene 2 fails to load, the way a transient decrypt or DB failure would present.
+		coEvery {
+			datasource.loadEntity(
+				userId,
+				projectDef,
+				2,
+				ApiProjectEntity.Type.SCENE,
+				ApiProjectEntity.SceneEntity.serializer()
+			)
+		} returns SResult.failure("boom")
+
+		val result = cachingService.exportStoryAsHtmlPaginated(userId, projectId, cacheable = true)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		assertTrue(result.data.pageHtml.contains("First chapter"), "the readable part is still served")
+		assertEquals(
+			emptyList(),
+			cachedFiles(),
+			"a partial render must not outlive the failure that produced it"
+		)
 	}
 
 	// Paginated Export Tests

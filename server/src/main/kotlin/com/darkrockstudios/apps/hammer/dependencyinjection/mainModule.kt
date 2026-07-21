@@ -49,11 +49,14 @@ import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
 import com.darkrockstudios.apps.hammer.secret.buildSecretProvider
-import com.darkrockstudios.apps.hammer.frontend.og.OgImageCachePruneJob
 import com.darkrockstudios.apps.hammer.frontend.og.OgImageRenderer
 import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
 import com.darkrockstudios.apps.hammer.story.StoryExportService
-import com.darkrockstudios.apps.hammer.utilities.DATA_DIR
+import com.darkrockstudios.apps.hammer.story.StoryRenderCache
+import com.darkrockstudios.apps.hammer.utilities.DiskCachePruneJob
+import com.darkrockstudios.apps.hammer.utilities.SystemTouchableFileSystem
+import com.darkrockstudios.apps.hammer.utilities.TouchableFileSystem
+import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
@@ -154,9 +157,14 @@ fun mainModule(
 	single<TokenMaintenanceJob>()
 	single<WhitelistExpiryJob>()
 	single<OgImageRenderer>()
-	single { OgImageService(get(), java.nio.file.Path.of(System.getProperty("user.home"), DATA_DIR, "cache", "og")) }
-	single<OgImageCachePruneJob>()
-	single<StoryExportService>()
+	single { OgImageService(get(), get(), cacheDirectory(get(), "og")) }
+	single { StoryRenderCache(get(), cacheDirectory(get(), "story-html")) }
+	// The disk caches need to set modification times, which plain okio can't.
+	single<TouchableFileSystem> { SystemTouchableFileSystem() }
+	// Every disk cache shares one prune job, so retention policy lives in exactly one place.
+	single { DiskCachePruneJob(listOf(get<OgImageService>(), get<StoryRenderCache>()), get()) }
+	// Explicit ctor: renderCache defaults to null, which the constructor DSL would honor over injection.
+	single { StoryExportService(get(), get(), get()) }
 	single<PenNameService>()
 	single<BioService>()
 	single<PasswordResetRepository>()

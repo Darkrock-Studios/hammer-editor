@@ -34,6 +34,12 @@ FROM story_entity
 WHERE user_id = :userId AND project_id = :projectId
 ORDER BY id;
 
+getEntityHashesByType:
+SELECT id, hash
+FROM story_entity
+WHERE user_id = :userId AND project_id = :projectId AND type = :type
+ORDER BY id;
+
 getAllEntities:
 SELECT *
 FROM story_entity
