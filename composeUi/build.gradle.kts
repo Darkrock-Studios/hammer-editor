@@ -9,6 +9,7 @@ plugins {
 	alias(libs.plugins.jetbrains.kover)
 	//alias(libs.plugins.compose.report.generator)
 	id("ee.schimke.composeai.preview") version "0.16.44"
+	alias(libs.plugins.artboard)
 }
 
 group = "com.darkrockstudios.apps.hammer.composeui"
@@ -35,6 +36,13 @@ kotlin {
 		compilerOptions {
 			jvmTarget.set(JvmTarget.fromTarget(libs.versions.jvm.get()))
 		}
+	}
+
+	// Artboard preview gallery target. Artboard discovers @Preview functions that
+	// compile for this wasmJs browser target and renders them on a pan/zoom board.
+	@OptIn(org.jetbrains.kotlin.gradle.ExperimentalWasmDsl::class)
+	wasmJs {
+		browser()
 	}
 
 	listOf(
