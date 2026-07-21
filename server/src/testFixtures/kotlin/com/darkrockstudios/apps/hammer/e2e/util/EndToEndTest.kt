@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
+import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
 import com.darkrockstudios.apps.hammer.secret.FileSecretProvider
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
@@ -42,7 +43,8 @@ import kotlin.io.encoding.Base64
 abstract class EndToEndTest {
 
 	protected lateinit var fileSystem: FakeFileSystem
-	private lateinit var server: ApplicationEngine
+	private lateinit var server: EmbeddedServer<*, *>
+	private val taskRegistry = RecurringTaskRegistry()
 
 	/**
 	 * The config the server under test runs on. These tests exercise the AES-at-rest path with a
@@ -103,7 +105,18 @@ abstract class EndToEndTest {
 		// Close the per-test HttpClient before stopping the server so its engine threads and
 		// connection pool don't accumulate across the suite (a leak that grows test-to-test).
 		runCatching { client.close() }
+		// Stop the EmbeddedServer, not its engine: only the former destroys the
+		// application, and that is what fires the lifecycle event the recurring
+		// background jobs shut down on.
 		server.stop(1000, 3000)
+
+		// A job that outlives its test keeps writing to the shared database and
+		// corrupts whichever test is running when it next ticks. Fail here, on
+		// the test that leaked it, rather than somewhere downstream.
+		val leaked = taskRegistry.statuses().filter { it.running }
+		check(leaked.isEmpty()) {
+			"Background jobs still running after server stop: ${leaked.joinToString { it.name }}"
+		}
 	}
 
 	/** Files [cache] wrote during this test, read from wherever [serverConfig] puts it. */
@@ -117,16 +130,18 @@ abstract class EndToEndTest {
 		server = startServer()
 		// port = 0 bound an OS-assigned port; read back what we actually got so
 		// the client connects to the right place.
-		serverPort = runBlocking { server.resolvedConnectors().first().port }
+		serverPort = runBlocking { server.engine.resolvedConnectors().first().port }
 	}
 
-	private fun startServer(): ApplicationEngine {
+	private fun startServer(): EmbeddedServer<*, *> {
 		// Override the default database
 		val testModule = org.koin.dsl.module {
 			single { testDatabase } bind Database::class
 			single { fileSystem } bind FileSystem::class
 			// The disk caches need to set modification times; this keeps them on the same fake.
 			single<TouchableFileSystem> { FakeTouchableFileSystem(fileSystem) }
+			// Held by the test so tearDown can see which jobs the app started.
+			single { taskRegistry }
 		}
 
 		val server = embeddedServer(
@@ -138,6 +153,6 @@ abstract class EndToEndTest {
 			}
 		)
 		server.start()
-		return server.engine
+		return server
 	}
 }
