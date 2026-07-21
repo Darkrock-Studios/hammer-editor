@@ -2,14 +2,52 @@ package com.darkrockstudios.apps.hammer.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.StorageMode
-import com.darkrockstudios.apps.hammer.account.*
+import com.darkrockstudios.apps.hammer.account.AccountsComponent
+import com.darkrockstudios.apps.hammer.account.AccountsRepository
+import com.darkrockstudios.apps.hammer.account.BioService
+import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
+import com.darkrockstudios.apps.hammer.account.PenNameService
+import com.darkrockstudios.apps.hammer.account.PrivacyPolicyRepository
+import com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository
+import com.darkrockstudios.apps.hammer.account.TokenMaintenanceJob
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
+import com.darkrockstudios.apps.hammer.admin.WhitelistExpiryJob
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
-import com.darkrockstudios.apps.hammer.database.*
-import com.darkrockstudios.apps.hammer.email.*
+import com.darkrockstudios.apps.hammer.database.AccountDao
+import com.darkrockstudios.apps.hammer.database.ApiMetricDao
+import com.darkrockstudios.apps.hammer.database.AuthTokenDao
+import com.darkrockstudios.apps.hammer.database.Database
+import com.darkrockstudios.apps.hammer.database.DeletedEntityDao
+import com.darkrockstudios.apps.hammer.database.DeletedIdeaDao
+import com.darkrockstudios.apps.hammer.database.DeletedProjectDao
+import com.darkrockstudios.apps.hammer.database.EmbeddedPostgresDatabase
+import com.darkrockstudios.apps.hammer.database.ErrorLogDao
+import com.darkrockstudios.apps.hammer.database.LoginAttemptDao
+import com.darkrockstudios.apps.hammer.database.PasswordResetTokenDao
+import com.darkrockstudios.apps.hammer.database.ProjectAccessDao
+import com.darkrockstudios.apps.hammer.database.ProjectDao
+import com.darkrockstudios.apps.hammer.database.ProjectDataDao
+import com.darkrockstudios.apps.hammer.database.ProjectsDao
+import com.darkrockstudios.apps.hammer.database.PublishedStoryReaderDao
+import com.darkrockstudios.apps.hammer.database.RemotePostgresDatabase
+import com.darkrockstudios.apps.hammer.database.ReviewRequestDao
+import com.darkrockstudios.apps.hammer.database.ReviewSceneDao
+import com.darkrockstudios.apps.hammer.database.ReviewSuggestionDao
+import com.darkrockstudios.apps.hammer.database.ServerConfigDao
+import com.darkrockstudios.apps.hammer.database.StoryEntityDao
+import com.darkrockstudios.apps.hammer.database.StoryIdeaDao
+import com.darkrockstudios.apps.hammer.database.UserActivityDao
+import com.darkrockstudios.apps.hammer.database.WhiteListDao
+import com.darkrockstudios.apps.hammer.database.WritingActivityDao
+import com.darkrockstudios.apps.hammer.email.EmailProvider
+import com.darkrockstudios.apps.hammer.email.EmailService
+import com.darkrockstudios.apps.hammer.email.MailgunEmailService
+import com.darkrockstudios.apps.hammer.email.PostmarkEmailService
+import com.darkrockstudios.apps.hammer.email.SendGridEmailService
+import com.darkrockstudios.apps.hammer.email.SmtpEmailService
 import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.AesGcmKeyProvider
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
@@ -19,10 +57,11 @@ import com.darkrockstudios.apps.hammer.encryption.EncryptionBootstrap
 import com.darkrockstudios.apps.hammer.encryption.EncryptionConvergence
 import com.darkrockstudios.apps.hammer.encryption.PlaintextContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
+import com.darkrockstudios.apps.hammer.frontend.og.OgImageRenderer
+import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MetricsCollector
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
-import com.darkrockstudios.apps.hammer.account.TokenMaintenanceJob
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringMaintenanceJob
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
@@ -30,18 +69,26 @@ import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
-import com.darkrockstudios.apps.hammer.admin.WhitelistExpiryJob
 import com.darkrockstudios.apps.hammer.patreon.PatreonApiClient
 import com.darkrockstudios.apps.hammer.patreon.PatreonPollingJob
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
 import com.darkrockstudios.apps.hammer.patreon.PatreonWebhookHandler
-import com.darkrockstudios.apps.hammer.project.*
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatabaseDatasource
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
+import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
+import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
+import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
+import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
+import com.darkrockstudios.apps.hammer.project.ServerWritingActivityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
-import com.darkrockstudios.apps.hammer.project.synchronizers.*
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerEncyclopediaSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerNoteSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneDraftSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
+import com.darkrockstudios.apps.hammer.project.synchronizers.ServerTimelineSynchronizer
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatabaseDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.review.ReviewRepository
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
@@ -49,19 +96,18 @@ import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
 import com.darkrockstudios.apps.hammer.secret.ServerSecretProvider
 import com.darkrockstudios.apps.hammer.secret.buildSecretProvider
-import com.darkrockstudios.apps.hammer.frontend.og.OgImageRenderer
-import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.story.StoryRenderCache
-import com.darkrockstudios.apps.hammer.utilities.DiskCachePruneJob
-import com.darkrockstudios.apps.hammer.utilities.SystemTouchableFileSystem
-import com.darkrockstudios.apps.hammer.utilities.TouchableFileSystem
-import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
+import com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
+import com.darkrockstudios.apps.hammer.utilities.DiskCachePruneJob
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
+import com.darkrockstudios.apps.hammer.utilities.SystemTouchableFileSystem
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
-import io.ktor.util.logging.*
+import com.darkrockstudios.apps.hammer.utilities.TouchableFileSystem
+import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
+import io.ktor.util.logging.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
@@ -159,9 +205,7 @@ fun mainModule(
 	single<OgImageRenderer>()
 	single { OgImageService(get(), get(), cacheDirectory(get(), "og")) }
 	single { StoryRenderCache(get(), cacheDirectory(get(), "story-html")) }
-	// The disk caches need to set modification times, which plain okio can't.
 	single<TouchableFileSystem> { SystemTouchableFileSystem() }
-	// Every disk cache shares one prune job, so retention policy lives in exactly one place.
 	single { DiskCachePruneJob(listOf(get<OgImageService>(), get<StoryRenderCache>()), get()) }
 	// Explicit ctor: renderCache defaults to null, which the constructor DSL would honor over injection.
 	single { StoryExportService(get(), get(), get()) }
