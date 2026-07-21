@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ExtraLink
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
@@ -17,6 +18,7 @@ import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
 import com.darkrockstudios.apps.hammer.frontend.og.ogImageRoutes
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
+import com.darkrockstudios.apps.hammer.frontend.utils.getLocale
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import com.darkrockstudios.apps.hammer.monitoring.ActivityType
@@ -70,6 +72,7 @@ import org.koin.core.qualifier.named
 import org.koin.ktor.ext.get
 import org.koin.ktor.ext.inject
 import java.security.MessageDigest
+import java.util.Locale
 import kotlin.time.Duration.Companion.days
 
 fun Route.frontend() {
@@ -319,6 +322,13 @@ suspend fun sessionIsAuthorized(
 	}
 }
 
+private fun ExtraLink.toModel(locale: Locale): Map<String, Any> = mapOf(
+	"url" to url,
+	"icon" to icon,
+	"title" to title(locale),
+	"external" to isExternal,
+)
+
 fun MutableMap<String, Any>.addDefaults(): MutableMap<String, Any> {
 	this["version"] = BuildMetadata.APP_VERSION
 	return this
@@ -354,7 +364,12 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	model["hasAboutPage"] = hasAboutPage
 	model["hasTermsPage"] = hasTermsPage
 	model["hasPrivacyPage"] = hasPrivacyPage
-	model["hasFooterNav"] = hasAboutPage || hasTermsPage || hasPrivacyPage
+
+	val locale = getLocale()
+	val footerExtraLinks = serverConfig.extraLinks.filter { it.placement.inFooter }.map { it.toModel(locale) }
+	model["headerExtraLinks"] = serverConfig.extraLinks.filter { it.placement.inHeader }.map { it.toModel(locale) }
+	model["footerExtraLinks"] = footerExtraLinks
+	model["hasFooterNav"] = hasAboutPage || hasTermsPage || hasPrivacyPage || footerExtraLinks.isNotEmpty()
 
 	// Add Patreon link for footer if configured
 	if (serverConfig.patreonEnabled == true) {
