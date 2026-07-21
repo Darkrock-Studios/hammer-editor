@@ -1,0 +1,72 @@
+name: Announce Release
+# Manually post a release's Discord announcement. The automated `notify` job in
+# publish-release.yml is skipped whenever the publish run is cancelled or a
+# store job fails (its `if: !cancelled() && !failure()` gate). This lets you
+# send the announcement after the fact — for a given tag — without re-running
+# the publish jobs (which would re-upload to every store).
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to announce (e.g. v3.7.0)'
+        type: string
+        required: true
+
+jobs:
+  announce:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Send Discord announcement
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          # Tokens → human display names for the Discord audience. Mirrors the
+          # scope header in publish-release.yml so patch releases read the same.
+          to_display() {
+            case "$1" in
+              google-play)   echo "Google Play" ;;
+              fdroid)        echo "F-Droid" ;;
+              snap)          echo "Snap" ;;
+              ms-store)      echo "MS Store" ;;
+              mac-app-store) echo "Mac App Store" ;;
+              ios-app-store) echo "iOS App Store" ;;
+              server)        echo "Server" ;;
+              *)             echo "$1" ;;
+            esac
+          }
+
+          header=""
+          if [[ "$TAG" == *+* ]]; then
+            pretty=""
+            for token in $(echo "${TAG#*+}" | tr '+' ' '); do
+              display=$(to_display "$token")
+              if [ -z "$pretty" ]; then pretty="$display"; else pretty="$pretty, $display"; fi
+            done
+            header="🔧 Patch release — ${pretty} only"$'\n'
+          fi
+
+          # Pull the release metadata for the tag (name/body/url) so the message
+          # matches the automated one, which templates off the release payload.
+          release_json=$(gh api "repos/$REPO/releases/tags/$TAG")
+          name=$(echo "$release_json" | jq -r '.name // .tag_name')
+          url=$(echo "$release_json" | jq -r '.html_url')
+          body=$(echo "$release_json" | jq -r '.body // ""')
+
+          content=$(printf '%s**New release:** %s\n**Download Here:** %s\n\n**Changelog:**\n%s' \
+            "$header" "$name" "$url" "$body")
+
+          # Discord caps webhook content at 2000 chars; trim the changelog if a
+          # long body would push us over, rather than eating a 400 from Discord.
+          if [ "${#content}" -gt 2000 ]; then
+            content="${content:0:1997}..."
+          fi
+
+          jq -n --arg content "$content" '{content: $content}' \
+            | curl -fsSL -X POST -H "Content-Type: application/json" -d @- "$DISCORD_WEBHOOK"
