@@ -13,8 +13,13 @@ import java.time.Duration
  * Test database backed by a single, process-wide Zonky embedded Postgres
  * shared across every test in the JVM. The schema is created once for the
  * whole JVM; each instance just truncates the user tables to start clean.
+ *
+ * That truncate is the only isolation boundary, so it holds only while nothing
+ * else writes. Anything a test starts that can write on its own schedule — a
+ * background job, a detached coroutine — must be shut down before the test ends,
+ * or it will corrupt whichever test is running when it next fires.
  */
-class SqliteTestDatabase : Database {
+class SharedPostgresTestDatabase : Database {
 	private lateinit var _driver: SqlDriver
 	private lateinit var _serverDatabase: ServerDatabase
 	private var initialized = false
@@ -40,7 +45,7 @@ class SqliteTestDatabase : Database {
 
 	override fun close() {
 		// No-op. The shared embedded postgres outlives any single
-		// SqliteTestDatabase; it is shut down by SharedTestPostgres's JVM hook.
+		// SharedPostgresTestDatabase; it is shut down by SharedTestPostgres's JVM hook.
 	}
 }
 

@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.database
 
 import com.darkrockstudios.apps.hammer.base.http.Token
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -13,13 +13,13 @@ import kotlin.time.Duration.Companion.days
 
 class AuthTokenDaoTest : BaseTest() {
 
-	private lateinit var db: SqliteTestDatabase
+	private lateinit var db: SharedPostgresTestDatabase
 	private lateinit var dao: AuthTokenDao
 
 	@BeforeEach
 	override fun setup() {
 		super.setup()
-		db = SqliteTestDatabase()
+		db = SharedPostgresTestDatabase()
 		db.initialize()
 		dao = AuthTokenDao(db)
 		setupKoin()

@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
 import io.mockk.coEvery
@@ -26,7 +26,7 @@ import kotlin.time.Instant
 
 class PatreonSyncServiceTest : BaseTest() {
 
-	private lateinit var db: SqliteTestDatabase
+	private lateinit var db: SharedPostgresTestDatabase
 	private lateinit var whiteListDao: WhiteListDao
 	private lateinit var configDao: ServerConfigDao
 	private lateinit var configRepository: ConfigRepository
@@ -40,7 +40,7 @@ class PatreonSyncServiceTest : BaseTest() {
 	override fun setup() {
 		super.setup()
 
-		db = SqliteTestDatabase()
+		db = SharedPostgresTestDatabase()
 		db.initialize()
 		whiteListDao = WhiteListDao(db)
 		configDao = ServerConfigDao(db)

@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.database.UserActivityDao
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_MAIN
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.email.EmailResult
 import com.darkrockstudios.apps.hammer.email.EmailService
 import kotlinx.coroutines.CoroutineScope
@@ -44,7 +44,7 @@ import kotlin.time.Instant
  */
 class MonitoringMaintenanceJobLifecycleTest {
 
-	private lateinit var db: SqliteTestDatabase
+	private lateinit var db: SharedPostgresTestDatabase
 
 	@BeforeEach
 	fun setup() {
@@ -58,7 +58,7 @@ class MonitoringMaintenanceJobLifecycleTest {
 				}
 			)
 		}
-		db = SqliteTestDatabase()
+		db = SharedPostgresTestDatabase()
 		db.initialize()
 	}
 

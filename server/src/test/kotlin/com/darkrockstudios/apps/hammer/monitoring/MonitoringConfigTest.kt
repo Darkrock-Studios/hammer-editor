@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.monitoring
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -14,14 +14,14 @@ import kotlin.test.assertTrue
 
 class MonitoringConfigTest : BaseTest() {
 
-	private lateinit var db: SqliteTestDatabase
+	private lateinit var db: SharedPostgresTestDatabase
 	private lateinit var dao: ServerConfigDao
 
 	@BeforeEach
 	override fun setup() {
 		super.setup()
 
-		db = SqliteTestDatabase()
+		db = SharedPostgresTestDatabase()
 		db.initialize()
 		dao = ServerConfigDao(db)
 

@@ -8,7 +8,7 @@ import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.WritingActivityDao
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
 import com.darkrockstudios.apps.hammer.project.ServerWritingActivityRepository
@@ -25,7 +25,7 @@ import kotlin.time.Instant
 
 class ServerWritingActivityRepositoryTest : BaseTest() {
 
-	private lateinit var testDatabase: SqliteTestDatabase
+	private lateinit var testDatabase: SharedPostgresTestDatabase
 	private lateinit var repository: ServerWritingActivityRepository
 
 	private val userId = 1L
@@ -37,7 +37,7 @@ class ServerWritingActivityRepositoryTest : BaseTest() {
 		super.setup()
 		setupKoin()
 
-		testDatabase = SqliteTestDatabase()
+		testDatabase = SharedPostgresTestDatabase()
 		testDatabase.initialize()
 
 		seedAccountAndProject()

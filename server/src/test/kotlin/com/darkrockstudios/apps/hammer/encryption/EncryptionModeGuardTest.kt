@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.encryption
 
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -8,12 +8,12 @@ import kotlin.test.assertEquals
 
 class EncryptionModeGuardTest : BaseTest() {
 
-	private lateinit var testDatabase: SqliteTestDatabase
+	private lateinit var testDatabase: SharedPostgresTestDatabase
 
 	@BeforeEach
 	override fun setup() {
 		super.setup()
-		testDatabase = SqliteTestDatabase()
+		testDatabase = SharedPostgresTestDatabase()
 		testDatabase.initialize()
 	}
 

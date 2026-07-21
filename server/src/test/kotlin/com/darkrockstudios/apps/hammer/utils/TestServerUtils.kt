@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.utils
 
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.projects.ProjectsFileSystemDatasource
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import okio.Path
@@ -23,7 +23,7 @@ fun getUserDataDirectory(ffs: FakeFileSystem): Path {
 suspend fun createTestServer(
 	serverName: String,
 	ffs: FakeFileSystem,
-	testDatabase: SqliteTestDatabase
+	testDatabase: SharedPostgresTestDatabase
 ) {
 	val rootDir = getRootDataDirectory(ffs)
 	ffs.createDirectories(rootDir)

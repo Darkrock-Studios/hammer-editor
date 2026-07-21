@@ -56,7 +56,7 @@ abstract class EndToEndTest {
 	protected var serverPort: Int = 0
 		private set
 	private lateinit var client: HttpClient
-	private lateinit var testDatabase: SqliteTestDatabase
+	private lateinit var testDatabase: SharedPostgresTestDatabase
 	private lateinit var base64: Base64
 	private lateinit var contentEncryptor: AesGcmContentEncryptor
 	private lateinit var tokenHasher: TokenHasher
@@ -90,7 +90,7 @@ abstract class EndToEndTest {
 			SimpleFileBasedAesGcmKeyProvider(base64),
 			secureRandom,
 		)
-		testDatabase = SqliteTestDatabase()
+		testDatabase = SharedPostgresTestDatabase()
 		testDatabase.initialize()
 
 		client = HttpClient {

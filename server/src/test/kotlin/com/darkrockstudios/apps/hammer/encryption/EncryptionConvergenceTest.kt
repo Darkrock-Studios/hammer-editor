@@ -1,7 +1,7 @@
 package com.darkrockstudios.apps.hammer.encryption
 
 import com.darkrockstudios.apps.hammer.database.AccountDao
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -13,7 +13,7 @@ import kotlin.test.assertFailsWith
 
 class EncryptionConvergenceTest : BaseTest() {
 
-	private lateinit var testDatabase: SqliteTestDatabase
+	private lateinit var testDatabase: SharedPostgresTestDatabase
 	private lateinit var base64: Base64
 	private lateinit var secureRandom: SecureRandom
 	private lateinit var keyProvider: SimpleFileBasedAesGcmKeyProvider
@@ -34,7 +34,7 @@ class EncryptionConvergenceTest : BaseTest() {
 		secureRandom = SecureRandom()
 		setupKoin()
 
-		testDatabase = SqliteTestDatabase()
+		testDatabase = SharedPostgresTestDatabase()
 		testDatabase.initialize()
 
 		keyProvider = SimpleFileBasedAesGcmKeyProvider(base64)

@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.EncryptionMode
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.secret.Keyring
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
@@ -25,7 +25,7 @@ import kotlin.test.assertNotEquals
 
 class EncryptionBootstrapTest : BaseTest() {
 
-	private lateinit var testDatabase: SqliteTestDatabase
+	private lateinit var testDatabase: SharedPostgresTestDatabase
 	private lateinit var configDao: ServerConfigDao
 	private lateinit var convergence: EncryptionConvergence
 	private lateinit var contentEncryptors: ContentEncryptors
@@ -40,7 +40,7 @@ class EncryptionBootstrapTest : BaseTest() {
 	override fun setup() {
 		super.setup()
 		setupKoin()
-		testDatabase = SqliteTestDatabase()
+		testDatabase = SharedPostgresTestDatabase()
 		testDatabase.initialize()
 
 		val keyProvider = SimpleFileBasedAesGcmKeyProvider(Base64.Default)
