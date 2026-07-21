@@ -101,22 +101,40 @@ end
 platform :mac do
   desc "Build a sandboxed .pkg and upload to TestFlight only (beta; does not submit for review)."
   lane :desktop_testflight do
-    desktop_build_and_upload(wait: false)
+    desktop_build_and_upload
   end
 
-  desc "Full Mac App Store release: build, upload, wait for processing, submit for review, auto-release on approval."
+  desc "Full Mac App Store release: build, upload, submit for review, auto-release on approval."
   lane :desktop_release do
-    build_number = desktop_build_and_upload(wait: true)
+    build_number = desktop_build_and_upload
     desktop_submit(build_number: build_number)
   end
 
-  desc "Submit an already-processed TestFlight build for review + auto-release. build_number defaults to latest."
+  desc "Submit an already-uploaded build for review + auto-release. build_number defaults to the latest uploaded."
   lane :desktop_submit do |options|
+    api_key = appstore_api_key
+
+    # deliver only skips its build-processing wait when handed an explicit build
+    # number — it then selects that build directly. A nil/"latest" build number
+    # sends deliver into FastlaneCore::BuildWatcher, which hangs forever on macOS
+    # (the App Store Connect API never reports a macOS build's processingState as
+    # complete). So always resolve a concrete build number ourselves.
+    build_number = options[:build_number]
+    if build_number.nil? || build_number.to_s.empty?
+      build_number = latest_testflight_build_number(
+        api_key: api_key,
+        app_identifier: "com.darkrockstudios.apps.hammer",
+        platform: "osx",
+        initial_build_number: 0,
+      ).to_s
+    end
+
     params = {
-      api_key: appstore_api_key,
+      api_key: api_key,
       app_identifier: "com.darkrockstudios.apps.hammer",
       platform: "osx",
       app_version: app_marketing_version,
+      build_number: build_number,
       skip_binary_upload: true,
       skip_screenshots: true,
       metadata_path: "fastlane/metadata/osx",
@@ -125,14 +143,17 @@ platform :mac do
       run_precheck_before_submit: false,
       force: true,
     }
-    params[:build_number] = options[:build_number] if options[:build_number]
-    deliver_with_retry(params)
+    # In the release flow this runs right after upload, so the build can take a
+    # few minutes to become queryable/submittable — retry generously. deliver
+    # returns as soon as it succeeds, and submission_landed? guards false
+    # negatives; the retry budget stays well under the job's timeout-minutes.
+    deliver_with_retry(params, attempts: 30)
   end
 
   # Build number is the latest in TestFlight + 1 — per-platform, always above
   # what's shipped, and self-correcting on re-runs. Set BUILD_NUMBER to override.
   # Returns the build number so the release lane can submit that exact build.
-  private_lane :desktop_build_and_upload do |options|
+  private_lane :desktop_build_and_upload do
     api_key = appstore_api_key
 
     build_number = ENV["BUILD_NUMBER"]
@@ -153,14 +174,19 @@ platform :mac do
     UI.user_error!("Build produced no .pkg") unless pkg_path
     UI.message("Uploading #{pkg_path}")
 
-    # When releasing we must wait for App Store Connect to finish processing the
-    # build before deliver can attach it to the version and submit it.
+    # Do NOT wait for App Store Connect to "finish processing" the build: macOS
+    # builds' processingState never reliably flips to VALID via the App Store
+    # Connect API, so fastlane's BuildWatcher polls "Waiting for App Store Connect
+    # to finish processing…" forever even though the upload succeeded and the
+    # build is usable. desktop_release submits by explicit build number, and
+    # deliver's select_build looks that up directly (no processing poll) — so
+    # there is nothing to wait for here.
     upload_to_testflight(
       api_key: api_key,
       app_identifier: "com.darkrockstudios.apps.hammer",
       app_platform: "osx",
       pkg: pkg_path,
-      skip_waiting_for_build_processing: !options[:wait],
+      skip_waiting_for_build_processing: true,
     )
 
     build_number
@@ -244,7 +270,10 @@ platform :ios do
     )
 
     # When releasing we must wait for App Store Connect to finish processing the
-    # build before deliver can attach it to the version and submit it.
+    # build before deliver can attach it to the version and submit it. Unlike
+    # macOS, iOS builds' processingState reliably completes, so this returns
+    # normally; the job's timeout-minutes caps any pathological stall without
+    # cutting off a legitimately slow processing run at a tighter deadline.
     upload_to_testflight(
       api_key: api_key,
       app_identifier: "com.darkrockstudios.apps.hammer.ios",

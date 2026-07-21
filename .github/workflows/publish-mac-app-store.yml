@@ -1,11 +1,27 @@
 name: Publish — Mac App Store
 on:
   workflow_dispatch:
+    inputs:
+      lane:
+        description: 'Fastlane lane to run'
+        type: choice
+        default: desktop_release
+        options:
+          - desktop_release
+          - desktop_submit
+      build_number:
+        description: 'desktop_submit only: build to submit (defaults to latest processed)'
+        type: string
+        required: false
   workflow_call:
 
 jobs:
   publish-mac-app-store:
     runs-on: macos-latest
+    # Backstop against a hung publish holding an expensive macOS runner for the
+    # 6h default. A healthy release (build + upload + processing + submit) fits
+    # well within this; the fastlane processing wait is bounded tighter still.
+    timeout-minutes: 120
 
     steps:
       - name: Checkout code
@@ -78,10 +94,20 @@ jobs:
           printf '%s' "$API_KEY_P8" > desktop/secrets/AuthKey_F8BSZ7LC8Q.p8
 
       - name: Publish to App Store 🍎
-        # Builds, uploads, waits for processing, submits for review, and
-        # auto-releases on approval. Waiting for build processing can hold the
-        # runner for several minutes before the submit step.
-        run: bundle exec fastlane mac desktop_release
+        # desktop_release builds, uploads, waits for processing, submits for
+        # review, and auto-releases on approval. desktop_submit skips the build
+        # and submits an already-uploaded, already-processed build — use it to
+        # finish a stuck submit without a rebuild. workflow_call (the release
+        # orchestrator) has no inputs, so it falls back to desktop_release.
+        env:
+          LANE: ${{ inputs.lane || 'desktop_release' }}
+          SUBMIT_BUILD_NUMBER: ${{ inputs.build_number }}
+        run: |
+          if [ "$LANE" = "desktop_submit" ] && [ -n "$SUBMIT_BUILD_NUMBER" ]; then
+            bundle exec fastlane mac desktop_submit build_number:"$SUBMIT_BUILD_NUMBER"
+          else
+            bundle exec fastlane mac "$LANE"
+          fi
 
       - name: Upload Gradle problems report on failure
         if: failure()

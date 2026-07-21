@@ -1,0 +1,43 @@
+name: Announce Release
+# Manually post a release's Discord announcement. The automated `notify` job in
+# publish-release.yml is skipped whenever the publish run is cancelled or a
+# store job fails (its `if: !cancelled() && !failure()` gate). This lets you
+# send the announcement after the fact — for a given tag — without re-running
+# the publish jobs (which would re-upload to every store).
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to announce (e.g. v3.7.0)'
+        type: string
+        required: true
+
+jobs:
+  announce:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Send Discord announcement
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          # `gh release view` takes the tag as an argument and encodes it for us,
+          # so tags carrying a '+' subset suffix resolve correctly.
+          release_json="$(gh release view "$TAG" --repo "$REPO" --json name,tagName,body,url)"
+          RELEASE_NAME="$(echo "$release_json" | jq -r 'if (.name // "") == "" then .tagName else .name end')"
+          RELEASE_URL="$(echo "$release_json" | jq -r '.url')"
+          RELEASE_BODY="$(echo "$release_json" | jq -r '.body // ""')"
+          export RELEASE_NAME RELEASE_URL RELEASE_BODY
+
+          content="$(bash .github/scripts/discord-release-message.sh)"
+          jq -n --arg content "$content" '{content: $content}' \
+            | curl -fsSL -X POST -H "Content-Type: application/json" -d @- "$DISCORD_WEBHOOK"
