@@ -203,8 +203,14 @@ fun mainModule(
 	single<TokenMaintenanceJob>()
 	single<WhitelistExpiryJob>()
 	single<OgImageRenderer>()
-	single { OgImageService(get(), get(), cacheDirectory(get(), "og")) }
-	single { StoryRenderCache(get(), cacheDirectory(get(), "story-html")) }
+	single {
+		val cacheConfig = get<ServerConfig>().cache
+		OgImageService(get(), get(), cacheDirectory(cacheConfig, get(), "og"), cacheConfig.maxSizeBytes)
+	}
+	single {
+		val cacheConfig = get<ServerConfig>().cache
+		StoryRenderCache(get(), cacheDirectory(cacheConfig, get(), "story-html"), cacheConfig.maxSizeBytes)
+	}
 	single<TouchableFileSystem> { SystemTouchableFileSystem() }
 	single { DiskCachePruneJob(listOf(get<OgImageService>(), get<StoryRenderCache>()), get()) }
 	// Explicit ctor: renderCache defaults to null, which the constructor DSL would honor over injection.

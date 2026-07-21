@@ -22,6 +22,7 @@ import com.darkrockstudios.apps.hammer.plugins.configureSecurity
 import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.utilities.DevSelfSignedCert
+import com.darkrockstudios.apps.hammer.utilities.cacheRoot
 import com.darkrockstudios.apps.hammer.utilities.configureDiskCachePruneJob
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utilities.loadPemAsKeyStore
@@ -42,6 +43,7 @@ import io.ktor.util.logging.KtorSimpleLogger
 import kotlinx.coroutines.runBlocking
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.IOException
 import okio.Path
 import okio.Path.Companion.toPath
 import org.koin.core.module.Module
@@ -195,9 +197,18 @@ internal fun resolveServerConfig(
 
 	val config = configFile?.let { loadConfig(fileSystem, it) } ?: ServerConfig()
 
-	val resolved = resolveConfigFilePaths(config, configFile?.parent)
+	val resolved = resolveCacheDirectory(resolveConfigFilePaths(config, configFile?.parent), configFile?.parent)
 	validateConfigFiles(resolved, fileSystem)
+	resolved.cache.validate()
+	validateCacheDirectory(resolved.cache, fileSystem)
 	return resolved
+}
+
+/** [CacheConfig.directory] follows the same relative-to-the-config-file rule as the file settings. */
+private fun resolveCacheDirectory(config: ServerConfig, configDir: Path?): ServerConfig {
+	val path = config.cache.directory?.toPath() ?: return config
+	if (path.isAbsolute || configDir == null) return config
+	return config.copy(cache = config.cache.copy(directory = configDir.resolve(path).toString()))
 }
 
 /**
@@ -244,6 +255,26 @@ private fun validateConfigFiles(config: ServerConfig, fileSystem: FileSystem) {
 		check(fileSystem.read(path) { readUtf8() }.isNotBlank()) {
 			"${setting.name} file \"$raw\" is empty; provide the text or remove the setting."
 		}
+	}
+}
+
+/**
+ * A configured cache directory must be creatable and writable. The caches treat every IO failure as
+ * a miss, so an unusable directory would otherwise leave the server quietly re-rendering every page
+ * — a config mistake that presents as Hammer being slow.
+ */
+private fun validateCacheDirectory(config: CacheConfig, fileSystem: FileSystem) {
+	if (config.directory == null) return
+
+	val root = cacheRoot(config, fileSystem)
+	val probe = root / ".write-probe"
+	try {
+		fileSystem.createDirectories(root)
+		fileSystem.write(probe) { writeUtf8("hammer") }
+	} catch (e: IOException) {
+		error("cache.directory \"${config.directory}\" is not writable: ${e.message}")
+	} finally {
+		runCatching { fileSystem.delete(probe, mustExist = false) }
 	}
 }
 

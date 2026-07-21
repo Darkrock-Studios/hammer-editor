@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.e2e.util
 
+import com.darkrockstudios.apps.hammer.CacheConfig
 import com.darkrockstudios.apps.hammer.EncryptionConfig
 import com.darkrockstudios.apps.hammer.EncryptionMode
 import com.darkrockstudios.apps.hammer.ServerConfig
@@ -101,7 +102,7 @@ abstract class EndToEndTest {
 
 	/** Files a named disk cache wrote during this test, e.g. `cachedFiles("story-html")`. */
 	protected fun cachedFiles(name: String): List<Path> =
-		fileSystem.listOrNull(cacheDirectory(fileSystem, name)).orEmpty()
+		fileSystem.listOrNull(cacheDirectory(CacheConfig(), fileSystem, name)).orEmpty()
 
 	protected fun route(path: String): String = "http://127.0.0.1:$serverPort/$path"
 	protected fun api(path: String): String = route("api/$path")
