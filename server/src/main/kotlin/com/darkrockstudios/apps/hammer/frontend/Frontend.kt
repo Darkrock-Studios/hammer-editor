@@ -18,7 +18,6 @@ import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
 import com.darkrockstudios.apps.hammer.frontend.og.ogImageRoutes
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
-import com.darkrockstudios.apps.hammer.frontend.utils.getLocale
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import com.darkrockstudios.apps.hammer.monitoring.ActivityType
@@ -365,7 +364,9 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	model["hasTermsPage"] = hasTermsPage
 	model["hasPrivacyPage"] = hasPrivacyPage
 
-	val locale = getLocale()
+	// withMessages() already resolved the viewer's locale; re-resolving repeats its config
+	// lookup, which is an uncached query for a request with no cookie or Accept-Language.
+	val locale = (model["locale"] as? String)?.let(Locale::forLanguageTag) ?: Locale.ENGLISH
 	val footerExtraLinks = serverConfig.extraLinks.filter { it.placement.inFooter }.map { it.toModel(locale) }
 	model["headerExtraLinks"] = serverConfig.extraLinks.filter { it.placement.inHeader }.map { it.toModel(locale) }
 	model["footerExtraLinks"] = footerExtraLinks

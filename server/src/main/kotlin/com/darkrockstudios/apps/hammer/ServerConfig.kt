@@ -142,16 +142,12 @@ data class ExtraLink(
 		require(icon.isNotBlank()) { "extraLinks entry \"$title\" must have a non-blank icon" }
 
 		if (isExternal) {
-			val uri = try {
-				URI(url)
-			} catch (e: URISyntaxException) {
-				throw IllegalArgumentException("extraLinks entry \"$title\" has an invalid url: $url", e)
-			}
-			require(uri.host != null) { "extraLinks entry \"$title\" url is missing a host: $url" }
+			requireHttpUrl(url, "extraLinks entry \"$title\" url")
 		} else {
-			// A scheme-relative "//host" would leave the site despite looking local, and any other
-			// scheme (javascript:, data:) has no business in a nav href.
-			require(url.startsWith("/") && !url.startsWith("//")) {
+			// Browsers resolve both "//host" and "/\host" as protocol-relative, so either would
+			// leave the site despite looking local. Any other scheme (javascript:, data:) has no
+			// business in a nav href.
+			require(url.startsWith("/") && url.getOrNull(1) !in setOf('/', '\\')) {
 				"extraLinks entry \"$title\" url must be site-relative (start with \"/\") " +
 					"or an absolute http(s) URL: $url"
 			}
@@ -161,6 +157,27 @@ data class ExtraLink(
 
 /** Language tags compare case-insensitively and treat `pt_BR` and `pt-BR` as the same key. */
 private fun normalizeLanguageTag(tag: String): String = tag.replace('_', '-').lowercase()
+
+/**
+ * Requires [value] to be an absolute http(s) URL. With [bareOrigin], it must also carry no
+ * path, query, or fragment — a CSP `connect-src` entry emits verbatim into the header, and
+ * anything past the origin silently narrows what the browser allows.
+ */
+private fun requireHttpUrl(value: String, label: String, bareOrigin: Boolean = false) {
+	val uri = try {
+		URI(value)
+	} catch (e: URISyntaxException) {
+		throw IllegalArgumentException("$label is not a valid URL: $value", e)
+	}
+	require(uri.scheme?.lowercase() in setOf("http", "https") && uri.host != null) {
+		"$label must be an absolute http(s) URL: $value"
+	}
+	if (bareOrigin) {
+		require(uri.path.isNullOrEmpty() && uri.query == null && uri.fragment == null) {
+			"$label must be a bare origin (scheme://host[:port], no path): $value"
+		}
+	}
+}
 
 @Serializable(with = AnalyticsProviderType.Serializer::class)
 enum class AnalyticsProviderType(val serial: String) {
@@ -216,25 +233,7 @@ data class UmamiConfig(
 		require(websiteId.isNotBlank()) { "analytics.umami.websiteId must not be blank" }
 		require(scriptUrl.isNotBlank()) { "analytics.umami.scriptUrl must not be blank" }
 		requireHttpUrl(scriptUrl, "analytics.umami.scriptUrl")
-		// connect-src entries must be bare origins: a path/query/fragment would be emitted
-		// verbatim into the CSP header and silently narrow what the browser allows.
 		connectSrc.forEach { requireHttpUrl(it, "analytics.umami.connectSrc entry", bareOrigin = true) }
-	}
-
-	private fun requireHttpUrl(value: String, label: String, bareOrigin: Boolean = false) {
-		val uri = try {
-			URI(value)
-		} catch (e: URISyntaxException) {
-			throw IllegalArgumentException("$label is not a valid URL: $value", e)
-		}
-		require(uri.scheme?.lowercase() in setOf("http", "https") && uri.host != null) {
-			"$label must be an absolute http(s) URL: $value"
-		}
-		if (bareOrigin) {
-			require(uri.path.isNullOrEmpty() && uri.query == null && uri.fragment == null) {
-				"$label must be a bare origin (scheme://host[:port], no path): $value"
-			}
-		}
 	}
 }
 

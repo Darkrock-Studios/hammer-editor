@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.github.mustachejava.DefaultMustacheFactory
 import org.junit.jupiter.api.Test
 import java.io.StringWriter
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -72,13 +73,40 @@ class ExtraLinkRenderTest {
 		assertFalse(html.substringBefore("footer-social").contains("""target="_blank""""), html)
 	}
 
-	@Test
-	fun `no extra links renders no nav entries`() {
-		val header = render("header.mustache", mapOf("headerExtraLinks" to emptyList<Any>()))
-		val footer = render("footer.mustache", mapOf("footerExtraLinks" to emptyList<Any>()))
+	/** The nav between `<nav class="...">` and its `</nav>`, so link counts exclude social icons. */
+	private fun nav(html: String, cssClass: String): String =
+		html.substringAfter("""<nav class="$cssClass">""").substringBefore("</nav>")
 
-		assertFalse(header.contains("header-nav__link\" title=\"Blog"), header)
-		assertFalse(footer.contains("footer-nav"), footer)
+	@Test
+	fun `no extra links leaves the footer nav with only its built-in entries`() {
+		val html = render(
+			"footer.mustache",
+			mapOf("hasFooterNav" to true, "hasAboutPage" to true, "footerExtraLinks" to emptyList<Any>()),
+		)
+
+		val nav = nav(html, "footer-nav")
+		assertTrue(nav.contains("""href="/about""""), nav)
+		assertEquals(1, Regex("<a ").findAll(nav).count(), nav)
+	}
+
+	@Test
+	fun `an extra link adds exactly one footer nav entry`() {
+		val html = render(
+			"footer.mustache",
+			mapOf("hasFooterNav" to true, "hasAboutPage" to true, "footerExtraLinks" to listOf(link())),
+		)
+
+		val nav = nav(html, "footer-nav")
+		assertEquals(2, Regex("<a ").findAll(nav).count(), nav)
+	}
+
+	@Test
+	fun `no extra links leaves the header nav with only its built-in entries`() {
+		val html = render("header.mustache", mapOf("headerExtraLinks" to emptyList<Any>()))
+
+		val nav = nav(html, "header-nav\" id=\"header-nav")
+		assertTrue(nav.contains("""href="/login""""), nav)
+		assertEquals(1, Regex("<a ").findAll(nav).count(), nav)
 	}
 
 	@Test

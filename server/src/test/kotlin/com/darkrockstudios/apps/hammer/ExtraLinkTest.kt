@@ -214,6 +214,34 @@ class ExtraLinkTest {
 	}
 
 	@Test
+	fun `resolve aborts on a backslash protocol-relative url`() {
+		val error = assertFailsWith<IllegalArgumentException> {
+			resolveWith(
+				"""
+				[[extraLinks]]
+				url = "/\\evil.example.com"
+				title = "Blog"
+				"""
+			)
+		}
+		assertTrue(error.message.orEmpty().contains("must be site-relative"), error.message)
+		assertTrue(error.message.orEmpty().contains("evil.example.com"), error.message)
+	}
+
+	@Test
+	fun `resolve accepts the site root`() {
+		val config = resolveWith(
+			"""
+			[[extraLinks]]
+			url = "/"
+			title = "Home"
+			"""
+		)
+
+		assertEquals("/", config.extraLinks.single().url)
+	}
+
+	@Test
 	fun `resolve aborts on a non-http scheme`() {
 		assertFailsWith<IllegalArgumentException> {
 			resolveWith(
