@@ -42,7 +42,12 @@ import kotlin.io.encoding.Base64
  */
 abstract class EndToEndTest {
 
-	protected lateinit var fileSystem: FakeFileSystem
+	/**
+	 * Storage for both the server under test and anything the test drives against it. Wrapped in
+	 * [SynchronizedFileSystem] because the underlying fake is shared across the test thread, the
+	 * server's Jetty threads and any client the test spins up, and it is not thread-safe.
+	 */
+	protected lateinit var fileSystem: FileSystem
 	private lateinit var server: EmbeddedServer<*, *>
 	private val taskRegistry = RecurringTaskRegistry()
 
@@ -68,7 +73,7 @@ abstract class EndToEndTest {
 
 	@BeforeEach
 	open fun setup() {
-		fileSystem = FakeFileSystem()
+		fileSystem = SynchronizedFileSystem(FakeFileSystem())
 		base64 = createTokenBase64()
 		val secureRandom = SecureRandom()
 		val serverSecretManager = ServerSecretManager(fileSystem, secureRandom)
