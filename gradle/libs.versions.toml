@@ -91,7 +91,7 @@ postgresql_jdbc = "42.7.13"
 hikaricp = "7.1.0"
 embedded_postgres = "2.2.2"
 embedded_postgres_binaries = "18.4.0"
-testcontainers = "1.21.4"
+testcontainers = "2.0.5"
 buildconfig = "6.0.10"
 resources = "1.1.0"
 aboutlibraries = "15.0.4"
@@ -302,8 +302,8 @@ embedded_postgres_binaries_linux_arm64v8 = { group = "io.zonky.test.postgres", n
 embedded_postgres_binaries_windows_amd64 = { group = "io.zonky.test.postgres", name = "embedded-postgres-binaries-windows-amd64" }
 
 testcontainers_bom = { group = "org.testcontainers", name = "testcontainers-bom", version.ref = "testcontainers" }
-testcontainers_postgresql = { group = "org.testcontainers", name = "postgresql" }
-testcontainers_junit_jupiter = { group = "org.testcontainers", name = "junit-jupiter" }
+testcontainers_postgresql = { group = "org.testcontainers", name = "testcontainers-postgresql" }
+testcontainers_junit_jupiter = { group = "org.testcontainers", name = "testcontainers-junit-jupiter" }
 
 resources = { group = "io.herrera.kevin", name = "resource", version.ref = "resources" }
 aboutlibraries_core = { group = "com.mikepenz", name = "aboutlibraries-core", version.ref = "aboutlibraries" }
