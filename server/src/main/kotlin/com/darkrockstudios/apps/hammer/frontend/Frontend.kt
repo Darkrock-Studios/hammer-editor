@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ExtraLink
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
@@ -70,6 +71,7 @@ import org.koin.core.qualifier.named
 import org.koin.ktor.ext.get
 import org.koin.ktor.ext.inject
 import java.security.MessageDigest
+import java.util.Locale
 import kotlin.time.Duration.Companion.days
 
 fun Route.frontend() {
@@ -319,6 +321,13 @@ suspend fun sessionIsAuthorized(
 	}
 }
 
+private fun ExtraLink.toModel(locale: Locale): Map<String, Any> = mapOf(
+	"url" to url,
+	"icon" to icon,
+	"title" to title(locale),
+	"external" to isExternal,
+)
+
 fun MutableMap<String, Any>.addDefaults(): MutableMap<String, Any> {
 	this["version"] = BuildMetadata.APP_VERSION
 	return this
@@ -354,7 +363,14 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	model["hasAboutPage"] = hasAboutPage
 	model["hasTermsPage"] = hasTermsPage
 	model["hasPrivacyPage"] = hasPrivacyPage
-	model["hasFooterNav"] = hasAboutPage || hasTermsPage || hasPrivacyPage
+
+	// withMessages() already resolved the viewer's locale; re-resolving repeats its config
+	// lookup, which is an uncached query for a request with no cookie or Accept-Language.
+	val locale = (model["locale"] as? String)?.let(Locale::forLanguageTag) ?: Locale.ENGLISH
+	val footerExtraLinks = serverConfig.extraLinks.filter { it.placement.inFooter }.map { it.toModel(locale) }
+	model["headerExtraLinks"] = serverConfig.extraLinks.filter { it.placement.inHeader }.map { it.toModel(locale) }
+	model["footerExtraLinks"] = footerExtraLinks
+	model["hasFooterNav"] = hasAboutPage || hasTermsPage || hasPrivacyPage || footerExtraLinks.isNotEmpty()
 
 	// Add Patreon link for footer if configured
 	if (serverConfig.patreonEnabled == true) {

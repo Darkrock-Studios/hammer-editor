@@ -204,6 +204,7 @@ internal fun resolveServerConfig(
 	val resolved = resolveCacheDirectory(resolveConfigFilePaths(config, configFile?.parent), configFile?.parent)
 	validateConfigFiles(resolved, fileSystem)
 	validateCacheDirectory(resolved.cache, fileSystem)
+	resolved.extraLinks.forEach { it.validate() }
 	return resolved
 }
 

@@ -89,6 +89,12 @@
 					<span class="header-nav__label">{{msg.header_nav_community}}</span>
 				</a>
 			{{/communityEnabled}}
+			{{#headerExtraLinks}}
+				<a href="{{url}}" class="header-nav__link" title="{{title}}"{{#external}} target="_blank" rel="noopener noreferrer"{{/external}}>
+					<i class="{{icon}}"></i>
+					<span class="header-nav__label">{{title}}</span>
+				</a>
+			{{/headerExtraLinks}}
 			{{#isLoggedIn}}
 				<a href="/dashboard" class="header-nav__link header-nav__link--primary"
 				   title="{{msg.header_nav_dashboard}}">

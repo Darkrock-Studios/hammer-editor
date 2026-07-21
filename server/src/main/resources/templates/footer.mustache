@@ -20,6 +20,12 @@
 						<span>{{msg.footer_privacy}}</span>
 					</a>
 				{{/hasPrivacyPage}}
+				{{#footerExtraLinks}}
+					<a href="{{url}}"{{#external}} target="_blank" rel="noopener noreferrer"{{/external}}>
+						<i class="{{icon}}"></i>
+						<span>{{title}}</span>
+					</a>
+				{{/footerExtraLinks}}
 			</nav>
 		{{/hasFooterNav}}
 		<div class="footer-social">

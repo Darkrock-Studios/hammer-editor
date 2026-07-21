@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import java.net.URI
 import java.net.URISyntaxException
+import java.util.Locale
 
 @Serializable
 data class ServerConfig(
@@ -52,6 +53,7 @@ data class ServerConfig(
 	val privacyPolicy: String? = null,
 	val emailProvider: String? = null,
 	val communityEnabled: Boolean = false,
+	val extraLinks: List<ExtraLink> = emptyList(),
 	val storage: StorageConfig = StorageConfig(),
 	val cache: CacheConfig = CacheConfig(),
 	val analytics: AnalyticsConfig = AnalyticsConfig(),
@@ -65,6 +67,115 @@ data class ServerConfig(
 
 	companion object {
 		const val DEFAULT_SSL_PORT = 443
+	}
+}
+
+@Serializable(with = LinkPlacement.Serializer::class)
+enum class LinkPlacement(val serial: String) {
+	HEADER("header"),
+	FOOTER("footer"),
+	BOTH("both");
+
+	val inHeader: Boolean get() = this == HEADER || this == BOTH
+	val inFooter: Boolean get() = this == FOOTER || this == BOTH
+
+	object Serializer : CaseInsensitiveEnumSerializer<LinkPlacement>(
+		"LinkPlacement", entries.toTypedArray(), { it.serial }
+	)
+}
+
+/**
+ * An operator-defined nav link appended to the header and/or footer, for pointing a deployment at
+ * content that isn't part of Hammer itself. Each entry is a `[[extraLinks]]` block in `config.toml`:
+ *
+ * ```toml
+ * [[extraLinks]]
+ * url = "/blog"
+ * title = "Blog"
+ * translations = { de = "Blog", fr = "Blogue" }
+ * icon = "fa-solid fa-blog"
+ * placement = "header"
+ * ```
+ *
+ * [translations] is an inline table so each entry stays self-contained; the sub-table form
+ * (`[extraLinks.translations]`) binds to whichever `[[extraLinks]]` precedes it.
+ */
+@Serializable
+data class ExtraLink(
+	/** Site-relative (`/blog`) or an absolute http(s) URL. */
+	val url: String,
+	/** Label used when [translations] has no entry for the viewer's locale. */
+	val title: String,
+	/**
+	 * Labels keyed by language tag, matched against the full tag (`pt-BR`) then the bare
+	 * language (`pt`). Underscores are accepted, so a key copied from a bundle filename
+	 * (`pt_BR`) works as well as the canonical `pt-BR`.
+	 */
+	val translations: Map<String, String> = emptyMap(),
+	/** FontAwesome classes, e.g. `fa-solid fa-blog`. */
+	val icon: String = "fa-solid fa-link",
+	val placement: LinkPlacement = LinkPlacement.FOOTER,
+) {
+	val isExternal: Boolean
+		get() = url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)
+
+	fun title(locale: Locale): String {
+		val exact = normalizeLanguageTag(locale.toLanguageTag())
+		val language = normalizeLanguageTag(locale.language)
+		return translations.entries.firstOrNull { normalizeLanguageTag(it.key) == exact }?.value
+			?: translations.entries.firstOrNull { normalizeLanguageTag(it.key) == language }?.value
+			?: title
+	}
+
+	fun validate() {
+		require(title.isNotBlank()) { "extraLinks entry with url \"$url\" must have a non-blank title" }
+		translations.forEach { (tag, label) ->
+			require(label.isNotBlank()) { "extraLinks entry \"$title\" has a blank title for locale \"$tag\"" }
+			// A key the JVM can't round-trip would never match a viewer's locale, so it would
+			// silently render the fallback title forever.
+			val normalized = normalizeLanguageTag(tag)
+			require(Locale.forLanguageTag(normalized).toLanguageTag().lowercase() == normalized) {
+				"extraLinks entry \"$title\" has an unusable locale key \"$tag\"; " +
+					"use a language tag like \"de\" or \"pt-BR\""
+			}
+		}
+		require(icon.isNotBlank()) { "extraLinks entry \"$title\" must have a non-blank icon" }
+
+		if (isExternal) {
+			requireHttpUrl(url, "extraLinks entry \"$title\" url")
+		} else {
+			// Browsers resolve both "//host" and "/\host" as protocol-relative, so either would
+			// leave the site despite looking local. Any other scheme (javascript:, data:) has no
+			// business in a nav href.
+			require(url.startsWith("/") && url.getOrNull(1) !in setOf('/', '\\')) {
+				"extraLinks entry \"$title\" url must be site-relative (start with \"/\") " +
+					"or an absolute http(s) URL: $url"
+			}
+		}
+	}
+}
+
+/** Language tags compare case-insensitively and treat `pt_BR` and `pt-BR` as the same key. */
+private fun normalizeLanguageTag(tag: String): String = tag.replace('_', '-').lowercase()
+
+/**
+ * Requires [value] to be an absolute http(s) URL. With [bareOrigin], it must also carry no
+ * path, query, or fragment — a CSP `connect-src` entry emits verbatim into the header, and
+ * anything past the origin silently narrows what the browser allows.
+ */
+private fun requireHttpUrl(value: String, label: String, bareOrigin: Boolean = false) {
+	val uri = try {
+		URI(value)
+	} catch (e: URISyntaxException) {
+		throw IllegalArgumentException("$label is not a valid URL: $value", e)
+	}
+	require(uri.scheme?.lowercase() in setOf("http", "https") && uri.host != null) {
+		"$label must be an absolute http(s) URL: $value"
+	}
+	if (bareOrigin) {
+		require(uri.path.isNullOrEmpty() && uri.query == null && uri.fragment == null) {
+			"$label must be a bare origin (scheme://host[:port], no path): $value"
+		}
 	}
 }
 
@@ -122,25 +233,7 @@ data class UmamiConfig(
 		require(websiteId.isNotBlank()) { "analytics.umami.websiteId must not be blank" }
 		require(scriptUrl.isNotBlank()) { "analytics.umami.scriptUrl must not be blank" }
 		requireHttpUrl(scriptUrl, "analytics.umami.scriptUrl")
-		// connect-src entries must be bare origins: a path/query/fragment would be emitted
-		// verbatim into the CSP header and silently narrow what the browser allows.
 		connectSrc.forEach { requireHttpUrl(it, "analytics.umami.connectSrc entry", bareOrigin = true) }
-	}
-
-	private fun requireHttpUrl(value: String, label: String, bareOrigin: Boolean = false) {
-		val uri = try {
-			URI(value)
-		} catch (e: URISyntaxException) {
-			throw IllegalArgumentException("$label is not a valid URL: $value", e)
-		}
-		require(uri.scheme?.lowercase() in setOf("http", "https") && uri.host != null) {
-			"$label must be an absolute http(s) URL: $value"
-		}
-		if (bareOrigin) {
-			require(uri.path.isNullOrEmpty() && uri.query == null && uri.fragment == null) {
-				"$label must be a bare origin (scheme://host[:port], no path): $value"
-			}
-		}
 	}
 }
 
