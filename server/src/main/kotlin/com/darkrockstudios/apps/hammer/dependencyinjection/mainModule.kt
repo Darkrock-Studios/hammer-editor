@@ -54,6 +54,8 @@ import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
 import com.darkrockstudios.apps.hammer.story.StoryExportService
 import com.darkrockstudios.apps.hammer.story.StoryRenderCache
 import com.darkrockstudios.apps.hammer.utilities.DiskCachePruneJob
+import com.darkrockstudios.apps.hammer.utilities.SystemTouchableFileSystem
+import com.darkrockstudios.apps.hammer.utilities.TouchableFileSystem
 import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
@@ -157,6 +159,8 @@ fun mainModule(
 	single<OgImageRenderer>()
 	single { OgImageService(get(), get(), cacheDirectory(get(), "og")) }
 	single { StoryRenderCache(get(), cacheDirectory(get(), "story-html")) }
+	// The disk caches need to set modification times, which plain okio can't.
+	single<TouchableFileSystem> { SystemTouchableFileSystem() }
 	// Every disk cache shares one prune job, so retention policy lives in exactly one place.
 	single { DiskCachePruneJob(listOf(get<OgImageService>(), get<StoryRenderCache>()), get()) }
 	// Explicit ctor: renderCache defaults to null, which the constructor DSL would honor over injection.

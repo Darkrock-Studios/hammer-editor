@@ -4,14 +4,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import okio.FileSystem
 import okio.IOException
 import okio.Path
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.time.Clock
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.hours
 
 /**
  * A size-bounded, least-recently-used cache of byte blobs on disk. Entries are stored under
@@ -19,10 +17,8 @@ import kotlin.time.Duration.Companion.hours
  * pushes the total size over [maxBytes], the least-recently-used entries are deleted until it
  * fits again.
  *
- * "Least-recently-used" is approximated by each file's last-modified time. okio offers no way to
- * set that directly, so [get] refreshes it by rewriting the entry — throttled to [TOUCH_INTERVAL],
- * since the only thing recency has to survive is the size bound and an age-based sweep measured in
- * days. A frequently-read entry therefore rewrites a handful of times a day, not once per read.
+ * "Least-recently-used" is approximated by each file's last-modified time, which [get] refreshes on
+ * a hit — the reason this takes a [TouchableFileSystem] rather than a plain okio FileSystem.
  *
  * Values are meant to be regenerable, so eviction — and losing the whole cache — is harmless.
  * [maxBytes] should comfortably exceed the largest single value; the newest entry is never evicted,
@@ -36,7 +32,7 @@ import kotlin.time.Duration.Companion.hours
  * other IO failure degrades to a miss, so callers keep serving computed values.
  */
 class LruDiskCache(
-	private val fileSystem: FileSystem,
+	private val fileSystem: TouchableFileSystem,
 	private val directory: Path,
 	private val maxBytes: Long,
 	private val clock: Clock = Clock.System,
@@ -64,7 +60,7 @@ class LruDiskCache(
 		val file = fileFor(key)
 		return try {
 			val bytes = fileSystem.read(file) { readByteArray() }
-			touch(file, bytes)
+			fileSystem.setLastModified(file, clock.now())
 			bytes
 		} catch (_: IOException) {
 			null
@@ -129,16 +125,6 @@ class LruDiskCache(
 		}
 	}
 
-	/**
-	 * Refresh the entry's recency. okio can't set a modification time, so this rewrites the file,
-	 * which is only worth doing once the recorded time has actually gone stale.
-	 */
-	private fun touch(file: Path, bytes: ByteArray) {
-		val lastUsed = lastModified(file) ?: return
-		if (clock.now() - lastUsed < TOUCH_INTERVAL) return
-		write(file, bytes)
-	}
-
 	/** Atomically replace [file] with [value]. False when the write failed and was rolled back. */
 	private fun write(file: Path, value: ByteArray): Boolean {
 		val temp = directory / "put-${UUID.randomUUID()}$TEMP_SUFFIX"
@@ -199,6 +185,5 @@ class LruDiskCache(
 		const val TEMP_SUFFIX = ".tmp"
 		const val COMPUTE_STRIPES = 64
 		const val PRUNE_THRESHOLD_DIVISOR = 10
-		val TOUCH_INTERVAL = 6.hours
 	}
 }

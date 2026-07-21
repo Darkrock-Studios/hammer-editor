@@ -17,8 +17,8 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
+import com.darkrockstudios.apps.hammer.utilities.FakeTouchableFileSystem
 import okio.Path.Companion.toPath
-import okio.fakefilesystem.FakeFileSystem
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -29,7 +29,7 @@ import kotlin.test.assertTrue
  */
 class OgImageRoutesTest {
 
-	private val fileSystem = FakeFileSystem()
+	private val fileSystem = FakeTouchableFileSystem()
 	private val cacheDir = "/cache/og".toPath()
 
 	private fun fakeAccount(accountId: Long, penName: String?, isCommunity: Boolean): Account = mockk {

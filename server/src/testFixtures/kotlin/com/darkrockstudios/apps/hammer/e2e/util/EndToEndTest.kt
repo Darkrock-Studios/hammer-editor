@@ -11,8 +11,10 @@ import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvid
 import com.darkrockstudios.apps.hammer.secret.FileSecretProvider
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
+import com.darkrockstudios.apps.hammer.utilities.FakeTouchableFileSystem
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
+import com.darkrockstudios.apps.hammer.utilities.TouchableFileSystem
 import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
 import io.ktor.client.*
 import io.ktor.client.plugins.contentnegotiation.*
@@ -116,6 +118,8 @@ abstract class EndToEndTest {
 		val testModule = org.koin.dsl.module {
 			single { testDatabase } bind Database::class
 			single { fileSystem } bind FileSystem::class
+			// The disk caches need to set modification times; this keeps them on the same fake.
+			single<TouchableFileSystem> { FakeTouchableFileSystem(fileSystem) }
 		}
 
 		// These tests exercise the AES-at-rest path with a known secret, so pin it

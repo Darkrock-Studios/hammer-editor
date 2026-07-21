@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.frontend.og
 
 import com.darkrockstudios.apps.hammer.utilities.LruDiskCache
 import com.darkrockstudios.apps.hammer.utilities.PrunableCache
-import okio.FileSystem
+import com.darkrockstudios.apps.hammer.utilities.TouchableFileSystem
 import okio.Path
 import kotlin.time.Duration
 
@@ -15,7 +15,7 @@ import kotlin.time.Duration
  */
 class OgImageService(
 	private val renderer: OgImageRenderer,
-	fileSystem: FileSystem,
+	fileSystem: TouchableFileSystem,
 	cacheDirectory: Path,
 	maxCacheBytes: Long = DEFAULT_MAX_BYTES,
 ) : PrunableCache {

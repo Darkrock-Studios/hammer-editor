@@ -5,14 +5,13 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
-import okio.FileSystem
 import okio.Path.Companion.toOkioPath
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.attribute.FileTime
 import java.time.Instant
+import kotlin.time.toKotlinInstant
 import kotlin.test.assertContentEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
@@ -20,18 +19,22 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Runs against a real filesystem (through okio) rather than a fake, because the cache's recency
- * rules are expressed in file modification times and only a real one lets a test age an entry.
+ * Runs against the real filesystem so the platform's own modification-time behaviour is under test
+ * too — [age] going through [SystemTouchableFileSystem] means a host OS that refused to set one
+ * would fail here rather than silently degrading eviction in production.
  */
 class LruDiskCacheTest {
 
 	@TempDir
 	lateinit var dir: Path
 
-	private fun cache(maxBytes: Long) = LruDiskCache(FileSystem.SYSTEM, dir.toOkioPath(), maxBytes)
+	private val fileSystem = SystemTouchableFileSystem()
+
+	private fun cache(maxBytes: Long) = LruDiskCache(fileSystem, dir.toOkioPath(), maxBytes)
 
 	private fun age(cache: LruDiskCache, key: String, at: Instant) {
-		Files.setLastModifiedTime(cache.fileFor(key).toNioPath(), FileTime.from(at))
+		val touched = fileSystem.setLastModified(cache.fileFor(key), at.toKotlinInstant())
+		assertTrue(touched, "the host filesystem should support setting a modification time")
 	}
 
 	@Test
@@ -137,7 +140,7 @@ class LruDiskCacheTest {
 	@Test
 	fun `a value is still returned when the cache cannot be written`() = runBlocking {
 		val cacheDir = dir.resolve("evaporating")
-		val c = LruDiskCache(FileSystem.SYSTEM, cacheDir.toOkioPath(), 1_000)
+		val c = LruDiskCache(fileSystem, cacheDir.toOkioPath(), 1_000)
 		// Pull the directory out from under the cache so every write fails.
 		Files.delete(cacheDir)
 

@@ -16,8 +16,8 @@ import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import com.darkrockstudios.apps.hammer.utilities.FakeTouchableFileSystem
 import okio.Path.Companion.toPath
-import okio.fakefilesystem.FakeFileSystem
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -30,7 +30,7 @@ class StoryExportServiceTest {
 	private lateinit var service: StoryExportService
 	private lateinit var cachingService: StoryExportService
 
-	private val fileSystem = FakeFileSystem()
+	private val fileSystem = FakeTouchableFileSystem()
 	private val cacheDir = "/cache/story-html".toPath()
 
 	private val userId = 1L

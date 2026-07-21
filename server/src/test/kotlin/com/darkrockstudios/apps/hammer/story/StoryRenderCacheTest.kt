@@ -3,15 +3,15 @@ package com.darkrockstudios.apps.hammer.story
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import kotlinx.coroutines.test.runTest
+import com.darkrockstudios.apps.hammer.utilities.FakeTouchableFileSystem
 import okio.Path
 import okio.Path.Companion.toPath
-import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
 class StoryRenderCacheTest {
 
-	private val fileSystem = FakeFileSystem()
+	private val fileSystem = FakeTouchableFileSystem()
 	private val dir = "/cache/story-html".toPath()
 
 	private val projectId = ProjectId("test-project-uuid")
