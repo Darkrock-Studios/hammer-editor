@@ -5,7 +5,8 @@ import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import com.darkrockstudios.apps.hammer.utilities.LruDiskCache
 import com.darkrockstudios.apps.hammer.utilities.PrunableCache
 import kotlinx.serialization.json.Json
-import java.nio.file.Path
+import okio.FileSystem
+import okio.Path
 import kotlin.time.Duration
 
 /**
@@ -19,10 +20,11 @@ import kotlin.time.Duration
  * [RENDER_VERSION] to invalidate everything after a change to how markdown becomes HTML.
  */
 class StoryRenderCache(
+	fileSystem: FileSystem,
 	cacheDirectory: Path,
 	maxCacheBytes: Long = DEFAULT_MAX_BYTES,
 ) : PrunableCache {
-	private val cache = LruDiskCache(cacheDirectory, maxCacheBytes)
+	private val cache = LruDiskCache(fileSystem, cacheDirectory, maxCacheBytes)
 	private val json = Json { ignoreUnknownKeys = true }
 
 	/**

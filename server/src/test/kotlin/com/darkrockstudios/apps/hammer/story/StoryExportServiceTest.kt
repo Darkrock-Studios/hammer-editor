@@ -16,9 +16,8 @@ import io.mockk.slot
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
-import java.nio.file.Files
-import java.nio.file.Path
+import okio.Path.Companion.toPath
+import okio.fakefilesystem.FakeFileSystem
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
@@ -31,8 +30,8 @@ class StoryExportServiceTest {
 	private lateinit var service: StoryExportService
 	private lateinit var cachingService: StoryExportService
 
-	@TempDir
-	lateinit var cacheDir: Path
+	private val fileSystem = FakeFileSystem()
+	private val cacheDir = "/cache/story-html".toPath()
 
 	private val userId = 1L
 	private val projectId = ProjectId("test-project-uuid")
@@ -43,7 +42,8 @@ class StoryExportServiceTest {
 		datasource = mockk()
 		markdownService = MarkdownService()
 		service = StoryExportService(datasource, markdownService)
-		cachingService = StoryExportService(datasource, markdownService, StoryRenderCache(cacheDir))
+		cachingService =
+			StoryExportService(datasource, markdownService, StoryRenderCache(fileSystem, cacheDir))
 	}
 
 	@Test
@@ -319,6 +319,8 @@ class StoryExportServiceTest {
 		}
 	}
 
+	private fun cachedFiles(): List<okio.Path> = fileSystem.listOrNull(cacheDir).orEmpty()
+
 	private fun stubSceneHashes(vararg hashes: EntityHash) {
 		coEvery {
 			datasource.getEntityHashes(userId, projectDef, ApiProjectEntity.Type.SCENE)
@@ -392,8 +394,8 @@ class StoryExportServiceTest {
 
 		// The gate that keeps a password-protected story's decrypted prose off disk.
 		assertEquals(
-			0,
-			Files.list(cacheDir).use { it.count() }.toInt(),
+			emptyList(),
+			cachedFiles(),
 			"a non-cacheable export must leave no rendered prose on disk"
 		)
 		coVerify(exactly = 2) {
@@ -431,8 +433,8 @@ class StoryExportServiceTest {
 		assertIs<PaginatedExportResult.Success>(result)
 		assertTrue(result.data.pageHtml.contains("First chapter"), "the readable part is still served")
 		assertEquals(
-			0,
-			Files.list(cacheDir).use { it.count() }.toInt(),
+			emptyList(),
+			cachedFiles(),
 			"a partial render must not outlive the failure that produced it"
 		)
 	}

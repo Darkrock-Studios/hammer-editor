@@ -11,10 +11,9 @@ import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvid
 import com.darkrockstudios.apps.hammer.secret.FileSecretProvider
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
-import com.darkrockstudios.apps.hammer.utilities.CACHE_ROOT_PROPERTY
-import com.darkrockstudios.apps.hammer.utilities.DATA_DIR
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
+import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
 import io.ktor.client.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
@@ -22,12 +21,11 @@ import io.ktor.server.engine.*
 import io.ktor.server.jetty.jakarta.*
 import kotlinx.coroutines.runBlocking
 import okio.FileSystem
+import okio.Path
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.koin.dsl.bind
-import java.nio.file.Files
-import java.nio.file.Path
 import java.security.SecureRandom
 import kotlin.io.encoding.Base64
 
@@ -42,7 +40,6 @@ abstract class EndToEndTest {
 
 	protected lateinit var fileSystem: FakeFileSystem
 	private lateinit var server: ApplicationEngine
-	private lateinit var cacheRoot: Path
 
 	/** The OS-assigned port the server bound to; valid after [doStartServer]. */
 	protected var serverPort: Int = 0
@@ -60,11 +57,6 @@ abstract class EndToEndTest {
 
 	@BeforeEach
 	open fun setup() {
-		// Disk caches hold real files and so can't ride the FakeFileSystem. Point them at a temp
-		// directory per test, otherwise a booted server writes into the developer's home.
-		cacheRoot = Files.createTempDirectory("hammer-e2e-cache")
-		System.setProperty(CACHE_ROOT_PROPERTY, cacheRoot.toString())
-
 		fileSystem = FakeFileSystem()
 		base64 = createTokenBase64()
 		val secureRandom = SecureRandom()
@@ -103,17 +95,11 @@ abstract class EndToEndTest {
 		// connection pool don't accumulate across the suite (a leak that grows test-to-test).
 		runCatching { client.close() }
 		server.stop(1000, 3000)
-
-		System.clearProperty(CACHE_ROOT_PROPERTY)
-		runCatching { cacheRoot.toFile().deleteRecursively() }
 	}
 
 	/** Files a named disk cache wrote during this test, e.g. `cachedFiles("story-html")`. */
-	protected fun cachedFiles(name: String): List<Path> {
-		val dir = cacheRoot.resolve(DATA_DIR).resolve("cache").resolve(name)
-		if (!Files.isDirectory(dir)) return emptyList()
-		return Files.list(dir).use { it.toList() }
-	}
+	protected fun cachedFiles(name: String): List<Path> =
+		fileSystem.listOrNull(cacheDirectory(fileSystem, name)).orEmpty()
 
 	protected fun route(path: String): String = "http://127.0.0.1:$serverPort/$path"
 	protected fun api(path: String): String = route("api/$path")

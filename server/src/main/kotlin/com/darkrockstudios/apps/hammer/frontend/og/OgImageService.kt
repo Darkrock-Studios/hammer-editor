@@ -2,7 +2,8 @@ package com.darkrockstudios.apps.hammer.frontend.og
 
 import com.darkrockstudios.apps.hammer.utilities.LruDiskCache
 import com.darkrockstudios.apps.hammer.utilities.PrunableCache
-import java.nio.file.Path
+import okio.FileSystem
+import okio.Path
 import kotlin.time.Duration
 
 /**
@@ -14,10 +15,11 @@ import kotlin.time.Duration
  */
 class OgImageService(
 	private val renderer: OgImageRenderer,
+	fileSystem: FileSystem,
 	cacheDirectory: Path,
 	maxCacheBytes: Long = DEFAULT_MAX_BYTES,
 ) : PrunableCache {
-	private val cache = LruDiskCache(cacheDirectory, maxCacheBytes)
+	private val cache = LruDiskCache(fileSystem, cacheDirectory, maxCacheBytes)
 
 	fun authorCard(accountId: Long, penName: String, subtitle: String): ByteArray =
 		cache.getOrPut("author:$TEMPLATE_VERSION:$accountId:$penName:$subtitle") {

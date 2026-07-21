@@ -155,8 +155,8 @@ fun mainModule(
 	single<TokenMaintenanceJob>()
 	single<WhitelistExpiryJob>()
 	single<OgImageRenderer>()
-	single { OgImageService(get(), cacheDirectory("og")) }
-	single { StoryRenderCache(cacheDirectory("story-html")) }
+	single { OgImageService(get(), get(), cacheDirectory(get(), "og")) }
+	single { StoryRenderCache(get(), cacheDirectory(get(), "story-html")) }
 	// Every disk cache shares one prune job, so retention policy lives in exactly one place.
 	single { DiskCachePruneJob(listOf(get<OgImageService>(), get<StoryRenderCache>()), get()) }
 	// Explicit ctor: renderCache defaults to null, which the constructor DSL would honor over injection.

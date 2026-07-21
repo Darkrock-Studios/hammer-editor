@@ -17,8 +17,8 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
-import java.nio.file.Path
+import okio.Path.Companion.toPath
+import okio.fakefilesystem.FakeFileSystem
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -29,8 +29,8 @@ import kotlin.test.assertTrue
  */
 class OgImageRoutesTest {
 
-	@TempDir
-	lateinit var cacheDir: Path
+	private val fileSystem = FakeFileSystem()
+	private val cacheDir = "/cache/og".toPath()
 
 	private fun fakeAccount(accountId: Long, penName: String?, isCommunity: Boolean): Account = mockk {
 		every { id } returns accountId
@@ -42,7 +42,7 @@ class OgImageRoutesTest {
 		accounts: AccountsRepository,
 		access: ProjectAccessRepository = mockk(),
 	) {
-		val service = OgImageService(OgImageRenderer(), cacheDir)
+		val service = OgImageService(OgImageRenderer(), fileSystem, cacheDir)
 		application { routing { ogImageRoutes(accounts, access, service) } }
 	}
 

@@ -3,20 +3,22 @@ package com.darkrockstudios.apps.hammer.story
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
 import kotlinx.coroutines.test.runTest
+import okio.Path
+import okio.Path.Companion.toPath
+import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.io.TempDir
-import java.nio.file.Files
-import java.nio.file.Path
 import kotlin.test.assertEquals
 
 class StoryRenderCacheTest {
 
-	@TempDir
-	lateinit var dir: Path
+	private val fileSystem = FakeFileSystem()
+	private val dir = "/cache/story-html".toPath()
 
 	private val projectId = ProjectId("test-project-uuid")
 
-	private fun cache() = StoryRenderCache(dir)
+	private fun cache() = StoryRenderCache(fileSystem, dir)
+
+	private fun cachedFiles(): List<Path> = fileSystem.listOrNull(dir).orEmpty()
 
 	private fun result(html: String) = PaginatedStoryExportResult(
 		projectName = "Test Story",
@@ -123,7 +125,7 @@ class StoryRenderCacheTest {
 		assertEquals("<p>missing a scene</p>", first.pageHtml, "the caller still gets the render")
 		assertEquals("<p>missing a scene</p>", second.pageHtml)
 		assertEquals(2, renderCount, "an incomplete render must not be cached")
-		assertEquals(0, Files.list(dir).use { it.count() }.toInt(), "nothing should be written")
+		assertEquals(emptyList(), cachedFiles(), "nothing should be written")
 	}
 
 	@Test
@@ -143,8 +145,8 @@ class StoryRenderCacheTest {
 		val cache = cache()
 		cache.render { result("<p>original</p>") }
 
-		Files.list(dir).use { stream ->
-			stream.forEach { Files.write(it, "not json".toByteArray()) }
+		cachedFiles().forEach { file ->
+			fileSystem.write(file) { write("not json".toByteArray()) }
 		}
 
 		val recovered = cache.render { result("<p>re-rendered</p>") }

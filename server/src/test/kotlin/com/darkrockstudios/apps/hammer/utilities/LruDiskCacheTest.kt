@@ -5,6 +5,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
+import okio.FileSystem
+import okio.Path.Companion.toOkioPath
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Files
@@ -17,15 +19,19 @@ import kotlin.test.assertNull
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/**
+ * Runs against a real filesystem (through okio) rather than a fake, because the cache's recency
+ * rules are expressed in file modification times and only a real one lets a test age an entry.
+ */
 class LruDiskCacheTest {
 
 	@TempDir
 	lateinit var dir: Path
 
-	private fun cache(maxBytes: Long) = LruDiskCache(dir, maxBytes)
+	private fun cache(maxBytes: Long) = LruDiskCache(FileSystem.SYSTEM, dir.toOkioPath(), maxBytes)
 
 	private fun age(cache: LruDiskCache, key: String, at: Instant) {
-		Files.setLastModifiedTime(cache.fileFor(key), FileTime.from(at))
+		Files.setLastModifiedTime(cache.fileFor(key).toNioPath(), FileTime.from(at))
 	}
 
 	@Test
@@ -131,7 +137,7 @@ class LruDiskCacheTest {
 	@Test
 	fun `a value is still returned when the cache cannot be written`() = runBlocking {
 		val cacheDir = dir.resolve("evaporating")
-		val c = LruDiskCache(cacheDir, 1_000)
+		val c = LruDiskCache(FileSystem.SYSTEM, cacheDir.toOkioPath(), 1_000)
 		// Pull the directory out from under the cache so every write fails.
 		Files.delete(cacheDir)
 
@@ -195,8 +201,8 @@ class LruDiskCacheTest {
 		val c = cache(maxBytes = 150)
 		// Write straight into the cache dir, bypassing put()'s auto-prune, to simulate drift
 		// that a scheduled maintenance job would later reconcile.
-		Files.write(c.fileFor("a"), ByteArray(100))
-		Files.write(c.fileFor("b"), ByteArray(100))
+		Files.write(c.fileFor("a").toNioPath(), ByteArray(100))
+		Files.write(c.fileFor("b").toNioPath(), ByteArray(100))
 		age(c, "a", Instant.ofEpochMilli(1_000))
 		age(c, "b", Instant.ofEpochMilli(2_000))
 

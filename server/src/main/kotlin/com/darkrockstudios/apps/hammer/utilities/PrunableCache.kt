@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.utilities
 
-import java.nio.file.Path
+import okio.FileSystem
+import okio.Path
 import kotlin.time.Duration
 
 /** A disk cache that can reclaim entries older than a given age. */
@@ -9,19 +10,6 @@ fun interface PrunableCache {
 	fun prune(maxAge: Duration)
 }
 
-/**
- * Where a regenerable disk cache named [name] lives.
- *
- * These caches hold real files, so unlike the rest of the server's storage they can't be pointed at
- * a fake filesystem. [CACHE_ROOT_PROPERTY] lets a test redirect them to a temp directory instead of
- * scribbling in the developer's home.
- */
-fun cacheDirectory(name: String): Path =
-	Path.of(
-		System.getProperty(CACHE_ROOT_PROPERTY) ?: System.getProperty("user.home"),
-		DATA_DIR,
-		"cache",
-		name,
-	)
-
-const val CACHE_ROOT_PROPERTY = "hammer.cacheRoot"
+/** Where the regenerable disk cache named [name] lives, under the server's data directory. */
+fun cacheDirectory(fileSystem: FileSystem, name: String): Path =
+	getRootDataDirectory(fileSystem) / "cache" / name
