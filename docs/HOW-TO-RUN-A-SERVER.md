@@ -54,7 +54,8 @@ card — enable `richLinkPreviews`:
 richLinkPreviews = true
 ```
 
-Generated images are disk-cached under `~/hammer_data/cache/og/` and pruned automatically.
+Generated images are disk-cached and pruned automatically; see [Disk cache](#disk-cache) for where
+they live and how to move them.
 
 **Requirement:** rendering the text uses headless AWT, which needs native font libraries installed.
 On Debian/Ubuntu:
@@ -112,6 +113,29 @@ any reason, the SQLite file is left untouched and the server exits with an error
 start again.
 
 To rehearse the migration against a copy of production before flipping the live config, run with `--migrate-dry-run`: it does everything except commit and rename.
+
+## Disk cache
+
+The server caches two regenerable things on disk: rendered story HTML and the OpenGraph share
+images used for rich link previews. By default they live in `~/hammer_data/cache/`, one
+subdirectory per cache.
+
+Nothing in there is durable data — deleting it costs a re-render, never content — so it is a good
+candidate for a scratch volume:
+
+```toml
+[cache]
+# Defaults shown. Omit this whole block to accept them.
+directory = "/var/tmp/hammer-cache"   # default: <data dir>/cache
+maxSizeMb = 200                       # per cache, oldest entries evicted first (max 1048576)
+```
+
+A relative `directory` is resolved against the config file's own directory. The path must be
+creatable and writable at startup, or the server aborts rather than silently running with the
+caches disabled.
+
+Only publicly readable stories are ever written to the HTML cache, so a password-protected
+story's prose never lands on the cache volume.
 
 ## Encryption at rest
 

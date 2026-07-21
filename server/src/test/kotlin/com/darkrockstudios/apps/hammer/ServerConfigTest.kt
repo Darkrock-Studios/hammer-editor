@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer
 
+import com.darkrockstudios.apps.hammer.utilities.DiskCache
+import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import net.peanuuutz.tomlkt.Toml
 import okio.Path
@@ -177,6 +179,190 @@ class ServerConfigTest {
 		val config = resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
 
 		assertEquals((configDir / "privacy.txt").toString(), config.privacyPolicy)
+	}
+
+	@Test
+	fun `cache defaults to a directory under the data directory`() {
+		val fs = FakeFileSystem()
+
+		val config = parse("")
+
+		assertEquals(null, config.cache.directory)
+		assertEquals(getRootDataDirectory(fs) / "cache" / "og", cacheDirectory(config.cache, fs, DiskCache.OG_IMAGES))
+	}
+
+	@Test
+	fun `a configured cache directory holds each named cache`() {
+		val fs = FakeFileSystem()
+
+		val config = parse(
+			"""
+			[cache]
+			directory = "/var/tmp/hammer-cache"
+			""".trimIndent()
+		)
+
+		assertEquals("/var/tmp/hammer-cache/story-html".toPath(), cacheDirectory(config.cache, fs, DiskCache.STORY_HTML))
+	}
+
+	@Test
+	fun `maxSizeMb bounds each cache in bytes`() {
+		val config = parse(
+			"""
+			[cache]
+			maxSizeMb = 50
+			""".trimIndent()
+		)
+
+		assertEquals(50L * 1024 * 1024, config.cache.maxSizeBytes)
+	}
+
+	@Test
+	fun `a relative cache directory is resolved next to the config file`() {
+		val fs = FakeFileSystem()
+		val configDir = getRootDataDirectory(fs)
+		val explicit = configDir / "custom.toml"
+		writeConfig(
+			fs, explicit,
+			"""
+			[cache]
+			directory = "scratch"
+			""".trimIndent()
+		)
+
+		val config = resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+
+		assertEquals((configDir / "scratch").toString(), config.cache.directory)
+	}
+
+	@Test
+	fun `resolve creates a configured cache directory`() {
+		val fs = FakeFileSystem()
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(
+			fs, explicit,
+			"""
+			[cache]
+			directory = "/var/tmp/hammer-cache"
+			""".trimIndent()
+		)
+
+		resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+
+		DiskCache.entries.forEach { cache ->
+			val directory = "/var/tmp/hammer-cache".toPath() / cache.dirName
+			assertTrue(fs.metadataOrNull(directory)?.isDirectory == true, "$directory should exist")
+		}
+	}
+
+	@Test
+	fun `resolve aborts when a single cache subdirectory is unusable`() {
+		val fs = FakeFileSystem()
+		// The root is a perfectly good directory; only one cache's subdirectory is occupied.
+		fs.createDirectories("/var/tmp/hammer-cache".toPath())
+		writeConfig(fs, "/var/tmp/hammer-cache/og".toPath(), "not a directory")
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(
+			fs, explicit,
+			"""
+			[cache]
+			directory = "/var/tmp/hammer-cache"
+			""".trimIndent()
+		)
+
+		val error = assertFailsWith<IllegalStateException> {
+			resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+		}
+		assertTrue(error.message.orEmpty().contains("og"), "the failing cache should be named")
+	}
+
+	@Test
+	fun `resolve aborts when the cache directory is blank`() {
+		val fs = FakeFileSystem()
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(
+			fs, explicit,
+			"""
+			[cache]
+			directory = ""
+			""".trimIndent()
+		)
+
+		// A blank directory must not be quietly resolved into the config file's own directory.
+		assertFailsWith<IllegalArgumentException> {
+			resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+		}
+	}
+
+	@Test
+	fun `resolve aborts when the cache directory is only whitespace`() {
+		val fs = FakeFileSystem()
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(
+			fs, explicit,
+			"""
+			[cache]
+			directory = "   "
+			""".trimIndent()
+		)
+
+		assertFailsWith<IllegalArgumentException> {
+			resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+		}
+	}
+
+	@Test
+	fun `resolve aborts when the cache directory cannot be written`() {
+		val fs = FakeFileSystem()
+		writeConfig(fs, "/var/tmp/occupied".toPath(), "not a directory")
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(
+			fs, explicit,
+			"""
+			[cache]
+			directory = "/var/tmp/occupied"
+			""".trimIndent()
+		)
+
+		val error = assertFailsWith<IllegalStateException> {
+			resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+		}
+		assertTrue(error.message.orEmpty().contains("/var/tmp/occupied"))
+	}
+
+	@Test
+	fun `resolve aborts when maxSizeMb is not positive`() {
+		val fs = FakeFileSystem()
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		writeConfig(
+			fs, explicit,
+			"""
+			[cache]
+			maxSizeMb = 0
+			""".trimIndent()
+		)
+
+		assertFailsWith<IllegalArgumentException> {
+			resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+		}
+	}
+
+	@Test
+	fun `resolve aborts when maxSizeMb would overflow the byte conversion`() {
+		val fs = FakeFileSystem()
+		val explicit = getRootDataDirectory(fs) / "custom.toml"
+		// A size given in bytes by mistake; positive, but it overflows Long once scaled to bytes.
+		writeConfig(
+			fs, explicit,
+			"""
+			[cache]
+			maxSizeMb = 9000000000000
+			""".trimIndent()
+		)
+
+		assertFailsWith<IllegalArgumentException> {
+			resolveServerConfig(configPath = explicit.toString(), fileSystem = fs)
+		}
 	}
 
 	private fun writeConfig(fs: FakeFileSystem, path: Path, contents: String) {

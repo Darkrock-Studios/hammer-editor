@@ -53,6 +53,7 @@ data class ServerConfig(
 	val emailProvider: String? = null,
 	val communityEnabled: Boolean = false,
 	val storage: StorageConfig = StorageConfig(),
+	val cache: CacheConfig = CacheConfig(),
 	val analytics: AnalyticsConfig = AnalyticsConfig(),
 	val encryption: EncryptionConfig = EncryptionConfig(),
 	val secret: SecretConfig = SecretConfig(),
@@ -229,6 +230,39 @@ data class StorageConfig(
 		if (type == StorageMode.REMOTE) {
 			require(remote != null) { "storage.type=remote requires storage.remote config block" }
 		}
+	}
+}
+
+/**
+ * The regenerable disk caches: rendered story HTML and OpenGraph share cards. Nothing here is
+ * durable data — losing the whole directory costs a re-render, so it belongs on whatever volume
+ * has room for churn rather than alongside the database.
+ */
+@Serializable
+data class CacheConfig(
+	/**
+	 * Where the caches live, one subdirectory per cache. Defaults to `cache/` under the server's
+	 * data directory. Point it at a scratch volume (e.g. "/var/tmp/hammer-cache") to keep the churn
+	 * off the data partition. A relative path is resolved against the config file's own directory.
+	 */
+	val directory: String? = null,
+	/** Size bound for each cache, enforced by evicting least-recently-used entries. */
+	val maxSizeMb: Long = 200,
+) {
+	@Transient
+	val maxSizeBytes: Long = maxSizeMb * 1024 * 1024
+
+	fun validate() {
+		directory?.let { require(it.isNotBlank()) { "cache.directory must not be blank" } }
+		// Upper bound as well as lower: a value given in bytes by mistake would overflow the
+		// conversion to a negative cap, which only surfaces as a failure to build the cache.
+		require(maxSizeMb in 1..MAX_SIZE_MB) {
+			"cache.maxSizeMb must be between 1 and $MAX_SIZE_MB, was $maxSizeMb"
+		}
+	}
+
+	private companion object {
+		const val MAX_SIZE_MB = 1024L * 1024
 	}
 }
 
