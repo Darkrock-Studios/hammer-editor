@@ -1,8 +1,8 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository
+import com.darkrockstudios.apps.hammer.frontend.utils.respondPage
 import io.ktor.http.*
-import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
@@ -20,7 +20,7 @@ fun Route.termsOfServicePage() {
 			val model = call.withDefaults()
 			model["termsText"] = challenge.text
 
-			call.respond(MustacheContent("terms.mustache", model))
+			call.respondPage("terms.mustache", model)
 		}
 	}
 }

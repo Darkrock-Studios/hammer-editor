@@ -1,9 +1,9 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.account.PrivacyPolicyRepository
+import com.darkrockstudios.apps.hammer.frontend.utils.respondPage
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import io.ktor.http.*
-import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import org.koin.ktor.ext.inject
@@ -23,7 +23,7 @@ fun Route.privacyPolicyPage() {
 			model["page_stylesheet"] = "/assets/css/about.css"
 			model["privacyHtml"] = markdownService.markdownToSafeHtml(markdown)
 
-			call.respond(MustacheContent("privacy.mustache", model))
+			call.respondPage("privacy.mustache", model)
 		}
 	}
 }
