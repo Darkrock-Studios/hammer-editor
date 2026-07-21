@@ -6,6 +6,10 @@ on:
 jobs:
   publish-mac-app-store:
     runs-on: macos-latest
+    # Backstop against a hung publish holding an expensive macOS runner for the
+    # 6h default. A healthy release (build + upload + processing + submit) fits
+    # well within this; the fastlane processing wait is bounded tighter still.
+    timeout-minutes: 120
 
     steps:
       - name: Checkout code

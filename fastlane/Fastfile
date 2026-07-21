@@ -154,13 +154,18 @@ platform :mac do
     UI.message("Uploading #{pkg_path}")
 
     # When releasing we must wait for App Store Connect to finish processing the
-    # build before deliver can attach it to the version and submit it.
+    # build before deliver can attach it to the version and submit it. Bound that
+    # wait: macOS processing is routinely slower/flakier than iOS, and the wait
+    # loop is otherwise unbounded — a stuck build hangs the runner until the job's
+    # 6h ceiling. On timeout the lane fails fast; re-run `desktop_submit` once the
+    # build finishes processing to submit it without rebuilding.
     upload_to_testflight(
       api_key: api_key,
       app_identifier: "com.darkrockstudios.apps.hammer",
       app_platform: "osx",
       pkg: pkg_path,
       skip_waiting_for_build_processing: !options[:wait],
+      wait_processing_timeout_duration: 5400,
     )
 
     build_number
@@ -244,13 +249,17 @@ platform :ios do
     )
 
     # When releasing we must wait for App Store Connect to finish processing the
-    # build before deliver can attach it to the version and submit it.
+    # build before deliver can attach it to the version and submit it. Bound that
+    # wait so a stuck build fails fast instead of hanging the runner until the
+    # job's 6h ceiling. On timeout, re-run `ios_submit` once the build finishes
+    # processing to submit it without rebuilding.
     upload_to_testflight(
       api_key: api_key,
       app_identifier: "com.darkrockstudios.apps.hammer.ios",
       app_platform: "ios",
       ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
       skip_waiting_for_build_processing: !options[:wait],
+      wait_processing_timeout_duration: 5400,
     )
 
     build_number
