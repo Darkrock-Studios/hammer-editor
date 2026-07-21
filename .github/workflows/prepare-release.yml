@@ -143,6 +143,8 @@ jobs:
   linux:
     needs: tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -252,6 +254,8 @@ jobs:
   macos:
     needs: tests
     runs-on: macos-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -335,6 +339,8 @@ jobs:
   server:
     needs: tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -395,6 +401,8 @@ jobs:
   android:
     needs: tests
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -568,6 +576,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [ windows, linux, macos, android, server, snap, flatpak ]
     if: success()
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
