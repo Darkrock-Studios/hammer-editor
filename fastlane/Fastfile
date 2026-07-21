@@ -270,17 +270,16 @@ platform :ios do
     )
 
     # When releasing we must wait for App Store Connect to finish processing the
-    # build before deliver can attach it to the version and submit it. Bound that
-    # wait so a stuck build fails fast instead of hanging the runner until the
-    # job's 6h ceiling. On timeout, re-run `ios_submit` once the build finishes
-    # processing to submit it without rebuilding.
+    # build before deliver can attach it to the version and submit it. Unlike
+    # macOS, iOS builds' processingState reliably completes, so this returns
+    # normally; the job's timeout-minutes caps any pathological stall without
+    # cutting off a legitimately slow processing run at a tighter deadline.
     upload_to_testflight(
       api_key: api_key,
       app_identifier: "com.darkrockstudios.apps.hammer.ios",
       app_platform: "ios",
       ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
       skip_waiting_for_build_processing: !options[:wait],
-      wait_processing_timeout_duration: 5400,
     )
 
     build_number
