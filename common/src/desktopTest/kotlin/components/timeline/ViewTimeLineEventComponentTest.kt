@@ -12,6 +12,8 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Test
 import repositories.timeline.TimeLineTestBase
 import repositories.timeline.fakeEvents
+import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -25,7 +27,6 @@ class ViewTimeLineEventComponentTest : TimeLineTestBase() {
 
 		val originalEvents = fakeEvents()
 		val timeline = TimeLineContainer(originalEvents)
-		coEvery { timelineRepo.loadTimeline() } returns timeline
 
 		val component = ViewTimeLineEventComponent(
 			componentContext = context,
@@ -44,6 +45,11 @@ class ViewTimeLineEventComponentTest : TimeLineTestBase() {
 		advanceUntilIdle()
 
 		val event = originalEvents.first()
+		assertEquals(event, component.state.value.event, "Initial event did not load from the timeline")
+
+		component.beginEdit()
+		assertTrue(component.state.value.isEditing)
+
 		val date = "updated date"
 		val content = "updated content"
 		val updatedEvent = event.copy(
@@ -56,5 +62,7 @@ class ViewTimeLineEventComponentTest : TimeLineTestBase() {
 
 		// After the update, it should save back to repository
 		coVerify(exactly = 1) { timelineRepo.updateEvent(updatedEvent) }
+		assertFalse(component.state.value.isEditing, "storeEvent should exit edit mode")
+		assertEquals(updatedEvent, component.state.value.event, "State should refresh to the stored event")
 	}
 }

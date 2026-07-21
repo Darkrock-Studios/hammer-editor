@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 import java.net.URI
 import java.net.URISyntaxException
+import java.util.Locale
 
 @Serializable
 data class ServerConfig(
@@ -19,18 +20,42 @@ data class ServerConfig(
 	 */
 	val bindHosts: List<String> = listOf("0.0.0.0"),
 	val port: Int = 8080,
-	val sslPort: Int = 443,
+	val sslPort: Int = DEFAULT_SSL_PORT,
 	/**
 	 * The externally visible base URL (e.g. "https://hammer.example.com"), used for
 	 * links placed in emails. Set this when running behind a reverse proxy; otherwise
 	 * links are derived from each request's Host header.
 	 */
 	val publicUrl: String? = null,
+	val additionalSitemaps: List<String> = emptyList(),
+	/**
+	 * Generate per-page social share images (OpenGraph) on the fly for author and story pages.
+	 * Requires native font libraries for headless AWT text rendering — e.g. `fontconfig` and
+	 * `libfreetype6` on Debian/Ubuntu. When off (the default), share links fall back to branded
+	 * static cards, so the out-of-the-box setup needs nothing extra installed.
+	 */
+	val richLinkPreviews: Boolean = false,
 	val sslCert: SslCertConfig? = null,
 	val patreonEnabled: Boolean? = null,
+	/**
+	 * Path to a plaintext file whose contents are presented as a Terms of Service that
+	 * users must accept before an account is created. Null/absent disables the requirement.
+	 * A relative path is resolved against the config file's own directory, so `tos.txt` finds
+	 * a file sitting next to `config.toml`. A configured path that can't be read aborts startup.
+	 */
+	val termsOfService: String? = null,
+	/**
+	 * Path to a plaintext file whose contents are published at `/privacy` and linked from the
+	 * footer. Null/absent hides the page and the link. Resolution and startup validation mirror
+	 * [termsOfService]: a relative path resolves against the config file's directory, and a
+	 * configured path that can't be read aborts startup.
+	 */
+	val privacyPolicy: String? = null,
 	val emailProvider: String? = null,
 	val communityEnabled: Boolean = false,
+	val extraLinks: List<ExtraLink> = emptyList(),
 	val storage: StorageConfig = StorageConfig(),
+	val cache: CacheConfig = CacheConfig(),
 	val analytics: AnalyticsConfig = AnalyticsConfig(),
 	val encryption: EncryptionConfig = EncryptionConfig(),
 	val secret: SecretConfig = SecretConfig(),
@@ -38,6 +63,119 @@ data class ServerConfig(
 	@Transient
 	val emailProviderType: EmailProvider? = emailProvider?.let { provider ->
 		EmailProvider.entries.find { it.name.equals(provider, ignoreCase = true) }
+	}
+
+	companion object {
+		const val DEFAULT_SSL_PORT = 443
+	}
+}
+
+@Serializable(with = LinkPlacement.Serializer::class)
+enum class LinkPlacement(val serial: String) {
+	HEADER("header"),
+	FOOTER("footer"),
+	BOTH("both");
+
+	val inHeader: Boolean get() = this == HEADER || this == BOTH
+	val inFooter: Boolean get() = this == FOOTER || this == BOTH
+
+	object Serializer : CaseInsensitiveEnumSerializer<LinkPlacement>(
+		"LinkPlacement", entries.toTypedArray(), { it.serial }
+	)
+}
+
+/**
+ * An operator-defined nav link appended to the header and/or footer, for pointing a deployment at
+ * content that isn't part of Hammer itself. Each entry is a `[[extraLinks]]` block in `config.toml`:
+ *
+ * ```toml
+ * [[extraLinks]]
+ * url = "/blog"
+ * title = "Blog"
+ * translations = { de = "Blog", fr = "Blogue" }
+ * icon = "fa-solid fa-blog"
+ * placement = "header"
+ * ```
+ *
+ * [translations] is an inline table so each entry stays self-contained; the sub-table form
+ * (`[extraLinks.translations]`) binds to whichever `[[extraLinks]]` precedes it.
+ */
+@Serializable
+data class ExtraLink(
+	/** Site-relative (`/blog`) or an absolute http(s) URL. */
+	val url: String,
+	/** Label used when [translations] has no entry for the viewer's locale. */
+	val title: String,
+	/**
+	 * Labels keyed by language tag, matched against the full tag (`pt-BR`) then the bare
+	 * language (`pt`). Underscores are accepted, so a key copied from a bundle filename
+	 * (`pt_BR`) works as well as the canonical `pt-BR`.
+	 */
+	val translations: Map<String, String> = emptyMap(),
+	/** FontAwesome classes, e.g. `fa-solid fa-blog`. */
+	val icon: String = "fa-solid fa-link",
+	val placement: LinkPlacement = LinkPlacement.FOOTER,
+) {
+	val isExternal: Boolean
+		get() = url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)
+
+	fun title(locale: Locale): String {
+		val exact = normalizeLanguageTag(locale.toLanguageTag())
+		val language = normalizeLanguageTag(locale.language)
+		return translations.entries.firstOrNull { normalizeLanguageTag(it.key) == exact }?.value
+			?: translations.entries.firstOrNull { normalizeLanguageTag(it.key) == language }?.value
+			?: title
+	}
+
+	fun validate() {
+		require(title.isNotBlank()) { "extraLinks entry with url \"$url\" must have a non-blank title" }
+		translations.forEach { (tag, label) ->
+			require(label.isNotBlank()) { "extraLinks entry \"$title\" has a blank title for locale \"$tag\"" }
+			// A key the JVM can't round-trip would never match a viewer's locale, so it would
+			// silently render the fallback title forever.
+			val normalized = normalizeLanguageTag(tag)
+			require(Locale.forLanguageTag(normalized).toLanguageTag().lowercase() == normalized) {
+				"extraLinks entry \"$title\" has an unusable locale key \"$tag\"; " +
+					"use a language tag like \"de\" or \"pt-BR\""
+			}
+		}
+		require(icon.isNotBlank()) { "extraLinks entry \"$title\" must have a non-blank icon" }
+
+		if (isExternal) {
+			requireHttpUrl(url, "extraLinks entry \"$title\" url")
+		} else {
+			// Browsers resolve both "//host" and "/\host" as protocol-relative, so either would
+			// leave the site despite looking local. Any other scheme (javascript:, data:) has no
+			// business in a nav href.
+			require(url.startsWith("/") && url.getOrNull(1) !in setOf('/', '\\')) {
+				"extraLinks entry \"$title\" url must be site-relative (start with \"/\") " +
+					"or an absolute http(s) URL: $url"
+			}
+		}
+	}
+}
+
+/** Language tags compare case-insensitively and treat `pt_BR` and `pt-BR` as the same key. */
+private fun normalizeLanguageTag(tag: String): String = tag.replace('_', '-').lowercase()
+
+/**
+ * Requires [value] to be an absolute http(s) URL. With [bareOrigin], it must also carry no
+ * path, query, or fragment — a CSP `connect-src` entry emits verbatim into the header, and
+ * anything past the origin silently narrows what the browser allows.
+ */
+private fun requireHttpUrl(value: String, label: String, bareOrigin: Boolean = false) {
+	val uri = try {
+		URI(value)
+	} catch (e: URISyntaxException) {
+		throw IllegalArgumentException("$label is not a valid URL: $value", e)
+	}
+	require(uri.scheme?.lowercase() in setOf("http", "https") && uri.host != null) {
+		"$label must be an absolute http(s) URL: $value"
+	}
+	if (bareOrigin) {
+		require(uri.path.isNullOrEmpty() && uri.query == null && uri.fragment == null) {
+			"$label must be a bare origin (scheme://host[:port], no path): $value"
+		}
 	}
 }
 
@@ -95,25 +233,7 @@ data class UmamiConfig(
 		require(websiteId.isNotBlank()) { "analytics.umami.websiteId must not be blank" }
 		require(scriptUrl.isNotBlank()) { "analytics.umami.scriptUrl must not be blank" }
 		requireHttpUrl(scriptUrl, "analytics.umami.scriptUrl")
-		// connect-src entries must be bare origins: a path/query/fragment would be emitted
-		// verbatim into the CSP header and silently narrow what the browser allows.
 		connectSrc.forEach { requireHttpUrl(it, "analytics.umami.connectSrc entry", bareOrigin = true) }
-	}
-
-	private fun requireHttpUrl(value: String, label: String, bareOrigin: Boolean = false) {
-		val uri = try {
-			URI(value)
-		} catch (e: URISyntaxException) {
-			throw IllegalArgumentException("$label is not a valid URL: $value", e)
-		}
-		require(uri.scheme?.lowercase() in setOf("http", "https") && uri.host != null) {
-			"$label must be an absolute http(s) URL: $value"
-		}
-		if (bareOrigin) {
-			require(uri.path.isNullOrEmpty() && uri.query == null && uri.fragment == null) {
-				"$label must be a bare origin (scheme://host[:port], no path): $value"
-			}
-		}
 	}
 }
 
@@ -203,6 +323,39 @@ data class StorageConfig(
 		if (type == StorageMode.REMOTE) {
 			require(remote != null) { "storage.type=remote requires storage.remote config block" }
 		}
+	}
+}
+
+/**
+ * The regenerable disk caches: rendered story HTML and OpenGraph share cards. Nothing here is
+ * durable data — losing the whole directory costs a re-render, so it belongs on whatever volume
+ * has room for churn rather than alongside the database.
+ */
+@Serializable
+data class CacheConfig(
+	/**
+	 * Where the caches live, one subdirectory per cache. Defaults to `cache/` under the server's
+	 * data directory. Point it at a scratch volume (e.g. "/var/tmp/hammer-cache") to keep the churn
+	 * off the data partition. A relative path is resolved against the config file's own directory.
+	 */
+	val directory: String? = null,
+	/** Size bound for each cache, enforced by evicting least-recently-used entries. */
+	val maxSizeMb: Long = 200,
+) {
+	@Transient
+	val maxSizeBytes: Long = maxSizeMb * 1024 * 1024
+
+	fun validate() {
+		directory?.let { require(it.isNotBlank()) { "cache.directory must not be blank" } }
+		// Upper bound as well as lower: a value given in bytes by mistake would overflow the
+		// conversion to a negative cap, which only surfaces as a failure to build the cache.
+		require(maxSizeMb in 1..MAX_SIZE_MB) {
+			"cache.maxSizeMb must be between 1 and $MAX_SIZE_MB, was $maxSizeMb"
+		}
+	}
+
+	private companion object {
+		const val MAX_SIZE_MB = 1024L * 1024
 	}
 }
 

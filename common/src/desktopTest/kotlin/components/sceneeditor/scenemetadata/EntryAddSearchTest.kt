@@ -116,6 +116,7 @@ class EntryAddSearchTest {
 
 	@Test
 	fun `maxResults caps the returned list`() {
+		// 'b' matches Bob, Bobby, and Robert; the cap must keep the first two in sorted order.
 		val result = filterEntriesForAdd(
 			query = "b",
 			entries = entries,
@@ -123,7 +124,7 @@ class EntryAddSearchTest {
 			dismissedIds = emptySet(),
 			maxResults = 2,
 		)
-		assertEquals(2, result.size)
+		assertEquals(listOf(1, 2), result.map { it.entryDef.id })
 	}
 
 	@Test

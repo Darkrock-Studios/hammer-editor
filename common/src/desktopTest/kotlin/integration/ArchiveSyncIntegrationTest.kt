@@ -98,7 +98,7 @@ class ArchiveSyncIntegrationTest : BaseIntegrationTest() {
 		assertNotNull(scenePath, "Should be able to resolve archived scene path from filesystem")
 
 		val content = sceneEditorRepository.loadSceneMarkdownRaw(archivedScene, scenePath)
-		assertNotNull(content, "Should be able to load archived scene content")
+		assertEquals("Content of scene id 1", content, "Archived scene content should survive archiving")
 	}
 
 	@Test
@@ -128,6 +128,7 @@ class ArchiveSyncIntegrationTest : BaseIntegrationTest() {
 		assertEquals(1, entity.id)
 		assertTrue(entity.archived, "Entity should be marked as archived")
 		assertEquals(emptyList(), entity.path, "Archived entity should have empty path")
+		assertEquals("Content of scene id 1", entity.content, "Entity should carry the archived scene's content")
 	}
 
 	@Test
@@ -231,7 +232,7 @@ class ArchiveSyncIntegrationTest : BaseIntegrationTest() {
 		assertNotNull(scenePath, "Should resolve path for archived scene")
 
 		val content = sceneEditorRepository.loadSceneMarkdownRaw(local, scenePath)
-		assertNotNull(content, "Should load content for archived scene")
+		assertEquals("Content of scene id 1", content, "Should load content for archived scene")
 
 		// And path segments should be empty for archived scenes
 		val pathSegments = sceneEditorRepository.getPathSegments(local)

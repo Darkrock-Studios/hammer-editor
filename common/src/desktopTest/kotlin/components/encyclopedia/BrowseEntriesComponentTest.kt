@@ -10,12 +10,21 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityRef
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import getProject1Def
-import io.mockk.*
+import io.mockk.MockKAnnotations
+import io.mockk.Runs
+import io.mockk.every
 import io.mockk.impl.annotations.MockK
+import io.mockk.just
+import io.mockk.slot
 import korlibs.io.async.launch
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -41,6 +50,9 @@ class BrowseEntriesComponentTest : BaseTest() {
 	@MockK
 	private lateinit var encyclopediaService: EncyclopediaService
 
+	@MockK
+	private lateinit var tagIndexService: TagIndexService
+
 	private lateinit var entryListFlow: SharedFlow<List<EntryDef>>
 
 	@BeforeEach
@@ -51,6 +63,7 @@ class BrowseEntriesComponentTest : BaseTest() {
 
 		val testModule = module {
 			single { encyclopediaService } bind EncyclopediaService::class
+			single { tagIndexService } bind TagIndexService::class
 		}
 		setupKoin(testModule)
 
@@ -154,6 +167,22 @@ class BrowseEntriesComponentTest : BaseTest() {
 
 	@OptIn(ExperimentalCoroutinesApi::class)
 	@Test
+	fun `Test Search - Ignores Whitespace`() = runTest {
+		setupDefaultFlow()
+
+		val comp = BrowseEntriesComponent(context, getProject1Def())
+		comp.onCreate()
+
+		advanceUntilIdle()
+
+		comp.updateFilter(text = "bobrobert", type = null)
+		val entries = comp.getFilteredEntries()
+		assertEquals(1, entries.size)
+		assertEquals("Bob Robert", entries.first().name)
+	}
+
+	@OptIn(ExperimentalCoroutinesApi::class)
+	@Test
 	fun `Test Search - Tags`() = runTest {
 		setupDefaultFlow()
 
@@ -196,6 +225,22 @@ class BrowseEntriesComponentTest : BaseTest() {
 
 	@OptIn(ExperimentalCoroutinesApi::class)
 	@Test
+	fun `Test Search - Multiple Tags Match All`() = runTest {
+		setupDefaultFlow()
+
+		val comp = BrowseEntriesComponent(context, getProject1Def())
+		comp.onCreate()
+
+		advanceUntilIdle()
+
+		comp.updateFilter(text = "#two #three", type = null)
+		val entries = comp.getFilteredEntries()
+		assertEquals(1, entries.size)
+		assertEquals("123 Hj ss", entries.first().name)
+	}
+
+	@OptIn(ExperimentalCoroutinesApi::class)
+	@Test
 	fun `Test Search - Tags And Text`() = runTest {
 		setupDefaultFlow()
 
@@ -205,10 +250,28 @@ class BrowseEntriesComponentTest : BaseTest() {
 		advanceUntilIdle()
 
 		comp.updateFilter(text = "#three thing", type = null)
-		var entries = comp.getFilteredEntries()
+		val entries = comp.getFilteredEntries()
 		assertEquals(1, entries.size)
 		assertEquals("Big thing", entries.first().name)
+	}
 
+	@OptIn(ExperimentalCoroutinesApi::class)
+	@Test
+	fun `Test Add Tag To Search appends a hashtag token`() = runTest {
+		setupDefaultFlow()
+
+		val comp = BrowseEntriesComponent(context, getProject1Def())
+		comp.onCreate()
+
+		advanceUntilIdle()
+
+		comp.addTagToSearch("three")
+		assertEquals("#three", comp.filterText.value)
+		assertEquals(1, comp.getFilteredEntries().count { it.name == "123 Hj ss" })
+
+		// Already-present tags are not duplicated.
+		comp.addTagToSearch("three")
+		assertEquals("#three", comp.filterText.value)
 	}
 
 	private suspend fun setupDefaultFlow() {
@@ -239,6 +302,23 @@ class BrowseEntriesComponentTest : BaseTest() {
 		every { encyclopediaService.loadEntry(entryDef = capture(entryDefSlot)) } answers {
 			entries.find { it.entry.id == entryDefSlot.captured.id }!!
 		}
+
+		every { tagIndexService.tagIndex } returns MutableStateFlow(buildTagIndex(entries))
+	}
+
+	private fun buildTagIndex(entries: List<EntryContainer>): TagIndex {
+		val tagToEntities = mutableMapOf<String, MutableSet<TaggedEntityRef>>()
+		entries.forEach { container ->
+			container.entry.tags.forEach { tag ->
+				tagToEntities.getOrPut(tag) { mutableSetOf() }
+					.add(TaggedEntityRef(TaggedEntityType.Encyclopedia, container.entry.id))
+			}
+		}
+		val counts = tagToEntities.mapValues { it.value.size }
+		return TagIndex(
+			tagToEntities = tagToEntities,
+			countsByType = mapOf(TaggedEntityType.Encyclopedia to counts),
+		)
 	}
 
 	private fun createFakeEntries(vararg data: Triple<EntryType, String, Set<String>>): List<EntryContainer> {

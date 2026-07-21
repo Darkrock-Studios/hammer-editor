@@ -1,0 +1,12 @@
+rules:
+  - id: hammer-raw-sql-to-prepared-statement
+    languages: [kotlin]
+    severity: WARNING
+    message: >-
+      prepareStatement() is called with a non-literal SQL string. Build the SQL from a
+      compile-time literal and bind every value with `?` placeholders. If the string is
+      provably constant (e.g. assembled only from literals in this file), suppress with a
+      `// nosemgrep: hammer-raw-sql-to-prepared-statement` line and a one-line justification.
+    patterns:
+      - pattern: $CONN.prepareStatement($SQL)
+      - pattern-not: $CONN.prepareStatement("...")

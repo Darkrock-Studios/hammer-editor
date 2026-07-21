@@ -4,7 +4,6 @@ import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
-import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import io.ktor.util.*
 import kotlinx.serialization.Serializable
 import org.slf4j.Logger
@@ -22,7 +21,6 @@ class PatreonSyncService(
 	private val patreonApiClient: PatreonApiClient,
 	private val whiteListRepository: WhiteListRepository,
 	private val accountsRepository: AccountsRepository,
-	private val authTokenDao: AuthTokenDao,
 	private val configRepository: ConfigRepository,
 	private val clock: Clock,
 	private val logger: Logger
@@ -126,9 +124,7 @@ class PatreonSyncService(
 	}
 
 	suspend fun forceLogout(email: String) {
-		val account = accountsRepository.findAccount(email)
-		if (account != null) {
-			authTokenDao.deleteTokensByUserId(account.id)
+		if (accountsRepository.forceLogout(email)) {
 			logger.info("Force logged out user: $email")
 		}
 	}

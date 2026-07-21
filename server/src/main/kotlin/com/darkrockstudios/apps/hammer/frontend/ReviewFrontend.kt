@@ -4,7 +4,18 @@ import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
-import com.darkrockstudios.apps.hammer.frontend.utils.*
+import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.Toast
+import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
+import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
+import com.darkrockstudios.apps.hammer.frontend.utils.getLocale
+import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.publicBaseUrl
+import com.darkrockstudios.apps.hammer.frontend.utils.renderTemplate
+import com.darkrockstudios.apps.hammer.frontend.utils.requestBaseUrl
+import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
+import com.darkrockstudios.apps.hammer.frontend.utils.respondHtmlWithToast
+import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.review.ReviewInviteMailer
 import com.darkrockstudios.apps.hammer.review.ReviewParagraphs
@@ -16,20 +27,27 @@ import com.darkrockstudios.apps.hammer.review.ReviewSubmittedMailer
 import com.darkrockstudios.apps.hammer.review.ReviewSuggestion
 import com.darkrockstudios.apps.hammer.review.ReviewSuggestionStatus
 import com.darkrockstudios.apps.hammer.review.ReviewSuggestionType
-import kotlinx.serialization.Serializable
 import com.darkrockstudios.apps.hammer.story.SceneHierarchyResult
-import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
-import io.ktor.http.*
-import io.ktor.server.application.*
-import io.ktor.server.htmx.*
-import io.ktor.server.mustache.*
-import io.ktor.server.plugins.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
-import io.ktor.server.sessions.*
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.ApplicationCall
+import io.ktor.server.htmx.hx
+import io.ktor.server.mustache.MustacheContent
+import io.ktor.server.request.receiveParameters
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondRedirect
+import io.ktor.server.response.respondText
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.delete
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.route
+import io.ktor.server.sessions.get
+import io.ktor.server.sessions.sessions
+import kotlinx.serialization.Serializable
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import kotlin.time.Clock
@@ -40,7 +58,7 @@ import kotlin.time.toJavaInstant
 fun Route.reviewFrontend(
 	reviewRepository: ReviewRepository,
 	projectsRepository: ProjectsRepository,
-	storyExportService: StoryExportService,
+	storyRendererService: StoryRendererService,
 	accountsRepository: AccountsRepository,
 	projectDao: ProjectDao,
 	markdownService: MarkdownService,
@@ -56,7 +74,7 @@ fun Route.reviewFrontend(
 				val project = call.resolveProject(projectsRepository, session.userId) ?: return@get
 
 				val hierarchyResult =
-					storyExportService.getSceneHierarchy(session.userId, ProjectId(project.uuid))
+					storyRendererService.getSceneHierarchy(session.userId, ProjectId(project.uuid))
 				val scenes = when (hierarchyResult) {
 					is SceneHierarchyResult.Success -> hierarchyResult.scenes
 					else -> emptyList()

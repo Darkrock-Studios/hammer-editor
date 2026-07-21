@@ -126,18 +126,6 @@ fun ServerSetupDialogContent(
 					),
 				verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
 			) {
-				HdHairlineSegmentedPicker(
-					options = listOf(false, true),
-					selected = state.serverSsl,
-					onSelect = { ssl ->
-						if (!state.serverWorking && !existingServer) {
-							component.updateServerSsl(ssl)
-						}
-					},
-					label = { ssl -> if (ssl) "HTTPS" else "HTTP" },
-					title = "PROTOCOL",
-				)
-
 				HdHairlineField(
 					label = "URL",
 					value = state.serverUrl ?: "",
@@ -207,7 +195,6 @@ fun ServerSetupDialogContent(
 						confirmDeleteLocal = false
 					} else {
 						component.setupServer(
-							ssl = state.serverSsl,
 							url = state.serverUrl ?: "",
 							email = state.serverEmail ?: "",
 							password = state.serverPassword ?: "",
@@ -223,7 +210,6 @@ fun ServerSetupDialogContent(
 	confirmDeleteLocal?.let { create ->
 		fun setupServer(create: Boolean, removeLocal: Boolean) {
 			component.setupServer(
-				ssl = state.serverSsl,
 				url = state.serverUrl ?: "",
 				email = state.serverEmail ?: "",
 				password = state.serverPassword ?: "",

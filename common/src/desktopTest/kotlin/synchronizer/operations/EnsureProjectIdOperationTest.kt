@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.InitialSyncOperationState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.EnsureProjectIdOperation
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
@@ -33,6 +34,7 @@ import synchronizer.MockSynchronizers
 import synchronizer.addSynchronizers
 import utils.BaseTest
 import utils.TestStrRes
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Instant
@@ -186,7 +188,7 @@ class EnsureProjectIdOperationTest : BaseTest() {
 		)
 
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
-		val onLog = mockk<OnSyncLog>(relaxed = true)
+		val logs = mutableListOf<SyncLogMessage>()
 		val onConflict = mockk<EntityConflictHandler<ApiProjectEntity>>(relaxed = true)
 		val onComplete = mockk<suspend () -> Unit>(relaxed = true)
 
@@ -194,13 +196,15 @@ class EnsureProjectIdOperationTest : BaseTest() {
 		val result = op.execute(
 			state = initialState,
 			onProgress = onProgress,
-			onLog = onLog,
+			onLog = { logs.add(it) },
 			onConflict = onConflict,
 			onComplete = onComplete,
 		)
 
 		assertFalse(isSuccess(result))
-		coVerify { onLog(any()) }
+		assertEquals("Server error", result.exception?.message)
+		assertTrue(logs.any { it.level == SyncLogLevel.ERROR })
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
 		coVerify { serverProjectsApi.endProjectsSync(syncId) }
 	}
 
@@ -224,7 +228,7 @@ class EnsureProjectIdOperationTest : BaseTest() {
 		)
 
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
-		val onLog = mockk<OnSyncLog>(relaxed = true)
+		val logs = mutableListOf<SyncLogMessage>()
 		val onConflict = mockk<EntityConflictHandler<ApiProjectEntity>>(relaxed = true)
 		val onComplete = mockk<suspend () -> Unit>(relaxed = true)
 
@@ -232,13 +236,15 @@ class EnsureProjectIdOperationTest : BaseTest() {
 		val result = op.execute(
 			state = initialState,
 			onProgress = onProgress,
-			onLog = onLog,
+			onLog = { logs.add(it) },
 			onConflict = onConflict,
 			onComplete = onComplete,
 		)
 
 		assertFalse(isSuccess(result))
-		coVerify { onLog(any()) }
+		assertEquals("Begin sync error", result.exception?.message)
+		assertTrue(logs.any { it.level == SyncLogLevel.ERROR })
 		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
 	}
 }

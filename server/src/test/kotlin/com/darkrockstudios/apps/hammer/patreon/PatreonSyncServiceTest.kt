@@ -5,7 +5,6 @@ import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
-import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
 import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
@@ -20,6 +19,7 @@ import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
@@ -34,7 +34,6 @@ class PatreonSyncServiceTest : BaseTest() {
 	private lateinit var clock: TestClock
 	private lateinit var patreonApiClient: PatreonApiClient
 	private lateinit var accountsRepository: AccountsRepository
-	private lateinit var authTokenDao: AuthTokenDao
 	private val logger = LoggerFactory.getLogger(PatreonSyncServiceTest::class.java)
 
 	@BeforeEach
@@ -50,7 +49,6 @@ class PatreonSyncServiceTest : BaseTest() {
 		whiteListRepository = WhiteListRepository(whiteListDao, configRepository, clock)
 		patreonApiClient = mockk()
 		accountsRepository = mockk()
-		authTokenDao = mockk()
 
 		setupKoin()
 	}
@@ -59,7 +57,6 @@ class PatreonSyncServiceTest : BaseTest() {
 		patreonApiClient = patreonApiClient,
 		whiteListRepository = whiteListRepository,
 		accountsRepository = accountsRepository,
-		authTokenDao = authTokenDao,
 		configRepository = configRepository,
 		clock = clock,
 		logger = logger
@@ -100,6 +97,7 @@ class PatreonSyncServiceTest : BaseTest() {
 		val result = service.performFullSync()
 
 		assertTrue(result.isFailure)
+		assertIs<PatreonSyncException>(result.exceptionOrNull())
 	}
 
 	@Test
@@ -163,22 +161,7 @@ class PatreonSyncServiceTest : BaseTest() {
 			patreonApiClient.fetchAllQualifyingMembers("test-campaign", "test-token", 500)
 		} returns Result.success(emptyList())
 
-		// Mock account lookup
-		coEvery { accountsRepository.findAccount("lapsed@example.com") } returns Account(
-			id = 1L,
-			email = "lapsed@example.com",
-			password_hash = "hash",
-			cipher_secret = "secret",
-			created = Instant.parse("2024-01-01T00:00:00Z"),
-			is_admin = false,
-			pen_name = null,
-			bio = null,
-			last_sync = Instant.parse("2024-01-01T00:00:00Z"),
-			email_verified = true,
-			community_member = false,
-		)
-
-		coEvery { authTokenDao.deleteTokensByUserId(1L) } returns Unit
+		coEvery { accountsRepository.forceLogout("lapsed@example.com") } returns true
 
 		val service = createSyncService()
 		val result = service.performFullSync()
@@ -188,7 +171,7 @@ class PatreonSyncServiceTest : BaseTest() {
 		assertFalse(whiteListRepository.isOnWhiteList("lapsed@example.com"))
 
 		// Verify force logout was called
-		coVerify { authTokenDao.deleteTokensByUserId(1L) }
+		coVerify { accountsRepository.forceLogout("lapsed@example.com") }
 	}
 
 	@Test
@@ -234,37 +217,21 @@ class PatreonSyncServiceTest : BaseTest() {
 
 	@Test
 	fun `force logout works`() = runTest {
-		coEvery { accountsRepository.findAccount("user@example.com") } returns Account(
-			id = 42L,
-			email = "user@example.com",
-			password_hash = "hash",
-			cipher_secret = "secret",
-			created = Instant.parse("2024-01-01T00:00:00Z"),
-			is_admin = false,
-			pen_name = null,
-			bio = null,
-			last_sync = Instant.parse("2024-01-01T00:00:00Z"),
-			email_verified = true,
-			community_member = false,
-		)
-
-		coEvery { authTokenDao.deleteTokensByUserId(42L) } returns Unit
+		coEvery { accountsRepository.forceLogout("user@example.com") } returns true
 
 		val service = createSyncService()
 		service.forceLogout("user@example.com")
 
-		coVerify { authTokenDao.deleteTokensByUserId(42L) }
+		coVerify { accountsRepository.forceLogout("user@example.com") }
 	}
 
 	@Test
 	fun `force logout handles missing account gracefully`() = runTest {
-		coEvery { accountsRepository.findAccount("nonexistent@example.com") } returns null
+		coEvery { accountsRepository.forceLogout("nonexistent@example.com") } returns false
 
 		val service = createSyncService()
 		// Should not throw
 		service.forceLogout("nonexistent@example.com")
-
-		coVerify(exactly = 0) { authTokenDao.deleteTokensByUserId(any()) }
 	}
 
 	@Test
@@ -297,7 +264,7 @@ class PatreonSyncServiceTest : BaseTest() {
 		service.performFullSync()
 
 		val config = configRepository.get(AdminServerConfig.PATREON_CONFIG)
-		assertTrue(config.lastSync.isNotEmpty())
+		assertEquals(clock.now().toString(), config.lastSync)
 	}
 
 	@Test

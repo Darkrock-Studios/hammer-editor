@@ -12,3 +12,6 @@ const val HEADER_ORIGINAL_HASH = "X-Original-Hash"
 const val HEADER_ENTITY_TYPE = "X-Entity-Type"
 
 const val API_ROUTE_PREFIX = "api"
+
+/** HTTP 451: account creation is gated on accepting the server's Terms of Service. */
+const val HTTP_STATUS_TERMS_OF_SERVICE = 451

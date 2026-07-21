@@ -2,14 +2,35 @@ package com.darkrockstudios.build
 
 // Use legacy java.text date formatting to avoid Kotlin/Gradle embedded version or Android API constraints
 import com.formdev.flatlaf.FlatDarculaLaf
-import java.awt.*
+import java.awt.BorderLayout
+import java.awt.Color
+import java.awt.Component
+import java.awt.Dimension
+import java.awt.FlowLayout
+import java.awt.Font
+import java.awt.GridLayout
 import java.awt.event.WindowAdapter
 import java.awt.event.WindowEvent
 import java.io.File
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.concurrent.CountDownLatch
-import javax.swing.*
+import javax.swing.BorderFactory
+import javax.swing.Box
+import javax.swing.BoxLayout
+import javax.swing.ButtonGroup
+import javax.swing.JButton
+import javax.swing.JCheckBox
+import javax.swing.JComponent
+import javax.swing.JFrame
+import javax.swing.JLabel
+import javax.swing.JPanel
+import javax.swing.JRadioButton
+import javax.swing.JScrollPane
+import javax.swing.JSplitPane
+import javax.swing.JTextArea
+import javax.swing.SwingUtilities
+import javax.swing.UIManager
 import javax.swing.event.DocumentEvent
 import javax.swing.event.DocumentListener
 
@@ -86,7 +107,7 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 	SwingUtilities.invokeAndWait {
 		val frame = JFrame()
 		frame.defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
-		frame.setSize(620, 780)
+		frame.setSize(620, 900)
 
 		fun refreshTitle() {
 			frame.title = "Prepare Release — $curSemVar → $newSemVar"
@@ -105,9 +126,10 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 			alignmentX = Component.LEFT_ALIGNMENT
 		}
 
-		// --- Tag preview label + commit button declared early so refreshTagPreview can close over them ---
+		// --- Tag preview label + commit button declared early so refresh can close over them ---
 		val warningColor: Color = UIManager.getColor("Label.disabledForeground") ?: Color.GRAY
 		val normalColor: Color = UIManager.getColor("Label.foreground") ?: Color.LIGHT_GRAY
+		val truncateColor = Color(0xE0, 0x9B, 0x2B)
 		val tagFontBig = Font(Font.MONOSPACED, Font.BOLD, 18)
 		val tagFontWarn = Font(Font.MONOSPACED, Font.ITALIC, 14)
 
@@ -120,34 +142,66 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 			font = font.deriveFont(Font.BOLD, 14f)
 		}
 
-		fun refreshTagPreview() {
-			when {
-				scope == ReleaseScope.ALL -> {
-					tagLabel.text = "v$newSemVar"
-					tagLabel.font = tagFontBig
-					tagLabel.foreground = normalColor
-					commitButton.isEnabled = true
-				}
-				scope == ReleaseScope.SERVER_ONLY -> {
-					tagLabel.text = "v$newSemVar${tagSuffix(setOf(Platform.SERVER))}"
-					tagLabel.font = tagFontBig
-					tagLabel.foreground = normalColor
-					commitButton.isEnabled = true
-				}
-				selectedPlatforms.isEmpty() -> {
-					tagLabel.text = "(select at least one store)"
-					tagLabel.font = tagFontWarn
-					tagLabel.foreground = warningColor
-					commitButton.isEnabled = false
-				}
-				else -> {
-					tagLabel.text = "v$newSemVar${tagSuffix(selectedPlatforms)}"
-					tagLabel.font = tagFontBig
-					tagLabel.foreground = normalColor
-					commitButton.isEnabled = true
-				}
-			}
+		// Editor and store preview are declared up here so the refresh below can close
+		// over them; they are laid out in the Changelog section further down.
+		val changeLog = JTextArea().apply {
+			lineWrap = true
+			wrapStyleWord = true
+			rows = 12
 		}
+		val playPreview = JTextArea().apply {
+			isEditable = false
+			lineWrap = true
+			wrapStyleWord = true
+			rows = 6
+			font = Font(Font.MONOSPACED, Font.PLAIN, 12)
+		}
+		val characterCount = JLabel().apply {
+			font = font.deriveFont(font.size - 1f)
+			foreground = warningColor
+		}
+
+		/** The platforms the current scope selection targets, empty if the selection is incomplete. */
+		fun currentPlatforms(): Set<Platform> = when (scope) {
+			ReleaseScope.ALL -> Platform.ALL
+			ReleaseScope.TARGETED -> selectedPlatforms.toSet()
+			ReleaseScope.SERVER_ONLY -> setOf(Platform.SERVER)
+		}
+
+		fun refresh() {
+			val platforms = currentPlatforms()
+			// Without a full selection there is no tag yet, so the notes preview falls
+			// back to the bare version tag.
+			val tag =
+				if (platforms.isEmpty()) "v$newSemVar" else "v$newSemVar${tagSuffix(platforms)}"
+
+			if (platforms.isNotEmpty()) {
+				tagLabel.text = tag
+				tagLabel.font = tagFontBig
+				tagLabel.foreground = normalColor
+			} else {
+				tagLabel.text = "(select at least one store)"
+				tagLabel.font = tagFontWarn
+				tagLabel.foreground = warningColor
+			}
+
+			// Empty notes would publish a "What's new" that describes nothing, which
+			// App Store review rejects — after the tag has already been pushed.
+			commitButton.isEnabled = platforms.isNotEmpty() && changeLog.text.isNotBlank()
+
+			val url = releaseNotesUrl(tag)
+			val needed = storeNotesLength(changeLog.text, url)
+			playPreview.text = formatStoreNotes(changeLog.text, PLAY_STORE_LIMIT, url)
+			playPreview.caretPosition = 0
+			characterCount.text = if (needed > PLAY_STORE_LIMIT) {
+				"Characters: ${changeLog.document.length}  ·  Play: $needed/$PLAY_STORE_LIMIT — will truncate"
+			} else {
+				"Characters: ${changeLog.document.length}  ·  Play: $needed/$PLAY_STORE_LIMIT"
+			}
+			characterCount.foreground =
+				if (needed > PLAY_STORE_LIMIT) truncateColor else warningColor
+		}
+		changeLog.document.addDocumentListener(OnChangeListener { refresh() })
 
 		// --- Label-value row helper for the Version section ---
 		fun labelPair(label: String, value: JComponent): JPanel = JPanel().apply {
@@ -203,7 +257,7 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 				addActionListener {
 					if (isSelected) selectedPlatforms.add(platform)
 					else selectedPlatforms.remove(platform)
-					refreshTagPreview()
+					refresh()
 				}
 			}
 		}
@@ -220,7 +274,7 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 				cb.isSelected = false
 				cb.isEnabled = newScope == ReleaseScope.TARGETED
 			}
-			refreshTagPreview()
+			refresh()
 		}
 		scopeAll.addActionListener { setMode(ReleaseScope.ALL) }
 		scopeTargeted.addActionListener { setMode(ReleaseScope.TARGETED) }
@@ -231,27 +285,27 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 
 		// ============= Section: Changelog =============
 		val changelogSection = section("Changelog")
-		val changeLog = JTextArea().apply {
-			lineWrap = true
-			wrapStyleWord = true
-			rows = 12
-		}
 		val changeLogScroll = JScrollPane(changeLog).apply {
 			alignmentX = Component.LEFT_ALIGNMENT
-		}
-		changelogSection.add(changeLogScroll)
-		val characterCount = JLabel("Characters: 0").apply {
-			font = font.deriveFont(font.size - 1f)
-			foreground = warningColor
 		}
 		val counterRow = JPanel(FlowLayout(FlowLayout.RIGHT, 0, 4)).apply {
 			alignmentX = Component.LEFT_ALIGNMENT
 			add(characterCount)
 		}
-		changelogSection.add(counterRow)
-		changeLog.document.addDocumentListener(OnChangeListener {
-			characterCount.text = "Characters: ${changeLog.document.length}"
-		})
+		val editorPane = JPanel(BorderLayout()).apply {
+			add(changeLogScroll, BorderLayout.CENTER)
+			add(counterRow, BorderLayout.SOUTH)
+		}
+		val previewPane = JScrollPane(playPreview).apply {
+			border = BorderFactory.createTitledBorder("Google Play preview")
+		}
+
+		val splitPane = JSplitPane(JSplitPane.VERTICAL_SPLIT, editorPane, previewPane).apply {
+			resizeWeight = 0.6
+			border = null
+			alignmentX = Component.LEFT_ALIGNMENT
+		}
+		changelogSection.add(splitPane)
 
 		// ============= Release-type change listeners (after newVersionLabel exists) =============
 		// A patch carries the same notes as the release it patches, so pre-fill the
@@ -266,13 +320,13 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 			newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.MAJOR)
 			newVersionLabel.text = newSemVar.toString()
 			clearAutofill()
-			refreshTitle(); refreshTagPreview()
+			refreshTitle(); refresh()
 		}
 		optionMinor.addActionListener {
 			newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.MINOR)
 			newVersionLabel.text = newSemVar.toString()
 			clearAutofill()
-			refreshTitle(); refreshTagPreview()
+			refreshTitle(); refresh()
 		}
 		optionPatch.addActionListener {
 			newSemVar = curSemVar.incrementForRelease(SemVar.ReleaseType.PATCH)
@@ -280,20 +334,15 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 			if (lastReleaseChangelog != null && changeLog.text.isBlank()) {
 				changeLog.text = lastReleaseChangelog
 			}
-			refreshTitle(); refreshTagPreview()
+			refreshTitle(); refresh()
 		}
 
 		// ============= Commit handler =============
 		commitButton.addActionListener {
-			val platforms = when (scope) {
-				ReleaseScope.ALL -> Platform.ALL
-				ReleaseScope.TARGETED -> selectedPlatforms.toSet()
-				ReleaseScope.SERVER_ONLY -> setOf(Platform.SERVER)
-			}
 			result = ReleaseInfo(
 				semVar = newSemVar,
 				changeLog = changeLog.text,
-				platforms = platforms,
+				platforms = currentPlatforms(),
 			)
 			frame.dispose()
 		}
@@ -321,7 +370,7 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 			add(buttonBar, BorderLayout.SOUTH)
 		}
 
-		refreshTagPreview()  // initial state
+		refresh()  // initial state
 
 		frame.add(root)
 		frame.addWindowListener(object : WindowAdapter() {

@@ -4,7 +4,13 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
@@ -28,6 +34,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
 import com.darkrockstudios.apps.hammer.common.encyclopedia.CreateEntryUi
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaEntryItem
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
@@ -72,8 +79,11 @@ private val browseEntriesComponent: BrowseEntries = object : BrowseEntries {
 		)
 	override val filterText: Value<String>
 		get() = MutableValue("")
+	override val tagIndex: Value<TagIndex>
+		get() = MutableValue(TagIndex.EMPTY)
 
 	override fun updateFilter(text: String?, type: EntryType?) {}
+	override fun addTagToSearch(tag: String) {}
 	override fun getFilteredEntries(): List<EntryDef> = entryDefs
 
 	override suspend fun loadEntryContent(entryDef: EntryDef): EntryContent {
@@ -88,7 +98,6 @@ private val browseEntriesComponent: BrowseEntries = object : BrowseEntries {
 
 	override fun getImagePath(entryDef: EntryDef) = null
 	override suspend fun calculateEntryImageHash(entryDef: EntryDef) = null
-	override fun addTagToSearch(tag: String) {}
 	override fun clearFilterText() {}
 }
 

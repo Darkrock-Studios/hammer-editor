@@ -26,6 +26,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
@@ -82,12 +83,15 @@ actual fun EditorTopBar(
 
 				Spacer(modifier = Modifier.weight(1f))
 
-				IconButton(onClick = {
-					scope.launch {
-						component.storeSceneContent()
-						scope.launch { rootSnackbar.showSnackbar(strRes.get(Res.string.scene_editor_toast_save_successful)) }
-					}
-				}) {
+				IconButton(
+					onClick = {
+						scope.launch {
+							component.storeSceneContent()
+							scope.launch { rootSnackbar.showSnackbar(strRes.get(Res.string.scene_editor_toast_save_successful)) }
+						}
+					},
+					modifier = Modifier.testTag(SCENE_EDITOR_SAVE_TAG),
+				) {
 					Icon(
 						Icons.Filled.Save,
 						contentDescription = Res.string.scene_editor_save_button.get(),

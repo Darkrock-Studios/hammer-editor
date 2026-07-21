@@ -222,6 +222,16 @@ class AccountsRepository(
 		authTokenDao.deleteExpiredBefore(now - REFRESH_TOKEN_WINDOW)
 	}
 
+	/**
+	 * Revoke every session for [email], ending access immediately rather than at the
+	 * next token refresh. Returns false if no such account exists.
+	 */
+	suspend fun forceLogout(email: String): Boolean {
+		val account = accountDao.findAccount(email) ?: return false
+		authTokenDao.deleteTokensByUserId(account.id)
+		return true
+	}
+
 	suspend fun isAdmin(userId: Long): Boolean {
 		return accountDao.getAccount(userId)?.is_admin == true
 	}

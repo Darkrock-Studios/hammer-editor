@@ -63,6 +63,8 @@ class MigrationFullTableParityTest {
 		assertEquals("Writer.", author.bio)
 		assertTrue(author.community_member, "community_member flag preserved")
 		assertTrue(author.email_verified, "email_verified flag preserved")
+		// "2024-02-15 09:00:00" parsed as UTC; catches local-zone parsing of legacy timestamps.
+		assertEquals(1_707_987_600L, author.created.epochSeconds, "created should round-trip as UTC")
 
 		// Schema-level: confirm the email column actually is CITEXT (silent if
 		// missed — comparisons just stay case-sensitive).
@@ -121,7 +123,8 @@ class MigrationFullTableParityTest {
 		val public = all.single { it.access_password == null }
 		assertEquals(null, public.expires_at)
 		val priv = all.single { it.access_password == "let-me-in" }
-		assertNotNull(priv.expires_at)
+		// "2099-12-31 23:59:59" parsed as UTC.
+		assertEquals(4_102_444_799L, priv.expires_at?.epochSeconds)
 	}
 
 	private fun assertAuthTokens(db: EmbeddedPostgresDatabase) {
@@ -130,6 +133,10 @@ class MigrationFullTableParityTest {
 		assertEquals("active-token", active.token)
 		val expired = q.getTokenByInstallId(2, "device-B").executeAsOne()
 		assertEquals("expired-token", expired.token)
+		// "2019-01-01 00:00:00" / "2020-01-01 00:00:00" parsed as UTC — a token that
+		// migrates with a shifted expiry would wrongly extend or cut short its life.
+		assertEquals(1_546_300_800L, expired.created.epochSeconds)
+		assertEquals(1_577_836_800L, expired.expires.epochSeconds)
 	}
 
 	private fun assertPasswordResetToken(db: EmbeddedPostgresDatabase) {

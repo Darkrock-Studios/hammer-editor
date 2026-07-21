@@ -95,6 +95,7 @@ class AccountReauthUseCaseTest : BaseTest() {
 		assertEquals(existingServer.url, settingsSlot.captured.url)
 		assertEquals(existingServer.ssl, settingsSlot.captured.ssl)
 		assertEquals("new-auth", credentialsSlot.captured.accessToken)
+		assertEquals("new-refresh", credentialsSlot.captured.refreshToken)
 	}
 
 	@Test

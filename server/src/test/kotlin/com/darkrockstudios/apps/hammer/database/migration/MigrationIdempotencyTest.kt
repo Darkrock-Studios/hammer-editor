@@ -4,6 +4,7 @@ import okio.FileSystem
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import java.nio.file.Path
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
@@ -48,7 +49,7 @@ class MigrationIdempotencyTest {
 			)
 			// And we must not have re-renamed or removed the legacy file.
 			assertTrue(legacyDb.exists(), "server.db must not be re-renamed")
-			assertTrue(bak.exists(), "existing backup must not be touched")
+			assertEquals("legacy-bytes", bak.readText(), "existing backup must not be overwritten")
 		}
 	}
 }

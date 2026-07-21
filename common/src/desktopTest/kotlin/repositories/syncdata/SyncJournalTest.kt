@@ -76,11 +76,6 @@ class SyncJournalTest : BaseTest() {
 	}
 
 	@Test
-	fun `SyncJournal Init`() {
-		val repo = createRepository(getProject1Def())
-	}
-
-	@Test
 	fun `Check if server is synchronized`() {
 		every { globalSettingsStore.serverSettings } returns mockk()
 
@@ -482,7 +477,7 @@ class SyncJournalTest : BaseTest() {
 					lastId = 4,
 					newIds = listOf(5),
 					lastSync = Instant.DISTANT_PAST,
-					dirty = listOf(EntityOriginalState(1, "asd")),
+					dirty = emptyList(),
 					deletedIds = emptySet()
 				), true
 			),

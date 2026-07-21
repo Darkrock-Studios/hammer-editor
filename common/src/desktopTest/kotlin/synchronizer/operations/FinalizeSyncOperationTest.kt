@@ -2,6 +2,9 @@ package synchronizer.operations
 
 import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectContentHasher
+import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.id.IdAllocator
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -26,7 +29,9 @@ import utils.BaseTest
 import utils.TestClock
 import utils.TestStrRes
 import utils.sharedFlow
+import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.time.Clock
 
@@ -104,6 +109,14 @@ class FinalizeSyncOperationTest : BaseTest() {
 			coEvery { synchronizer.hashEntities(any()) } returns emptySet()
 		}
 		coEvery { projectDataDatasource.load() } returns StoredProjectData()
+		// Per-entity synced hashes were written to disk during transfer; finalize must reload
+		// them and prune the deleted ids (7, 8) rather than clobber them with its snapshot.
+		coEvery { syncDataDatasource.loadSyncData() } returns projectData.copy(
+			syncedHashes = mapOf(1 to "h1", 7 to "h7", 8 to "h8", 10 to "h10")
+		)
+		coEvery {
+			serverProjectApi.endProjectSync(any(), any(), any(), any(), any())
+		} returns Result.success("ok")
 
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val onLog = mockk<OnSyncLog>(relaxed = true)
@@ -137,7 +150,27 @@ class FinalizeSyncOperationTest : BaseTest() {
 		mockSynchronizers.synchronizers.forEach { synchronizer ->
 			coVerify { synchronizer.finalizeSync() }
 		}
-		coVerify { serverProjectApi.endProjectSync(any(), any(), any(), any(), any()) }
-		coVerify { syncDataDatasource.saveSyncData(any()) }
+		coVerify { serverProjectApi.endProjectSync(1L, projId, beganResponse.syncId, 12, clock.now()) }
+		// Downloaded ids may sit above the allocator's sync-start snapshot; it must re-derive.
+		coVerify { idAllocator.findNextId() }
+		coVerify { onComplete() }
+
+		val saved = slot<ProjectSynchronizationData>()
+		coVerify { syncDataDatasource.saveSyncData(capture(saved)) }
+		saved.captured.apply {
+			assertNull(currentSyncId)
+			assertEquals(12, lastId)
+			assertEquals(clock.now(), lastSync)
+			assertEquals(emptyList(), newIds)
+			assertEquals(emptyList(), dirty)
+			assertEquals(setOf(7, 8, 9), deletedIds)
+			// Reloaded from disk with the deleted ids (7, 8) pruned; 1 and 10 survive.
+			assertEquals(mapOf(1 to "h1", 10 to "h10"), syncedHashes)
+			assertEquals(
+				ProjectContentHasher.hash(emptySet(), ProjectDataHasher.hash(ProjectData())),
+				cachedProjectHash
+			)
+			assertEquals(ProjectContentHasher.ALGO_VERSION, hashAlgoVersion)
+		}
 	}
 }

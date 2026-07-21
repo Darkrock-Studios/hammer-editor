@@ -1,14 +1,15 @@
 package repositories
 
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
+import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
 import kotlinx.datetime.toInstant
 import kotlinx.datetime.toLocalDateTime
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.time.Duration.Companion.days
 
 class ExampleProjectActivityGeneratorTest {
 
@@ -30,11 +31,14 @@ class ExampleProjectActivityGeneratorTest {
 	@Test
 	fun `all sessions fall within the configured window`() {
 		val sessions = ExampleProjectRepository.generateExampleSessions(now, tz)
-		val earliest = now - ExampleProjectRepository.EXAMPLE_DAYS.days
+		val today = now.toLocalDateTime(tz).date
+		val earliestDay = today.minus(ExampleProjectRepository.EXAMPLE_DAYS - 1, DateTimeUnit.DAY)
+		val outliers = sessions.filterNot {
+			it.startedAt.toLocalDateTime(tz).date in earliestDay..today
+		}
 		assertTrue(
-			sessions.all { it.startedAt >= earliest && it.startedAt <= now },
-			"sessions outside ${ExampleProjectRepository.EXAMPLE_DAYS}-day window: " +
-				sessions.filter { it.startedAt < earliest || it.startedAt > now },
+			outliers.isEmpty(),
+			"sessions outside ${ExampleProjectRepository.EXAMPLE_DAYS}-day window: $outliers",
 		)
 	}
 

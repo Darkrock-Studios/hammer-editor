@@ -63,7 +63,7 @@ fun Route.adminPage(
 				emailFeatureEnabled
 			)
 			adminUsersPage(patreonFeatureEnabled, emailFeatureEnabled)
-			whiteListRoutes(whiteListRepository, configRepository, serverConfig)
+			whiteListRoutes(whiteListRepository, configRepository, serverConfig, clock)
 			serverSettingsRoutes(configRepository)
 			usersRoutes(accountsRepository, projectsRepository)
 			if (patreonFeatureEnabled && patreonSyncService != null) {

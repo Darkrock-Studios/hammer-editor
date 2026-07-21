@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
+import com.darkrockstudios.apps.hammer.base.di.dispatcherModule
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
@@ -122,12 +123,13 @@ import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path
 import okio.Path.Companion.toPath
-import org.koin.core.module.dsl.factoryOf
-import org.koin.core.module.dsl.scopedOf
-import org.koin.core.module.dsl.singleOf
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
+import org.koin.plugin.module.dsl.single
+import org.koin.plugin.module.dsl.factory
+import org.koin.plugin.module.dsl.scoped
+import org.koin.plugin.module.dsl.create
 import kotlin.time.Clock
 
 const val DISPATCHER_MAIN = "main-dispatcher"
@@ -145,9 +147,19 @@ val mainModule = module {
 	includes(authTokenStoreModule)
 	includes(exampleProjectModule)
 
-	single(named(DISPATCHER_MAIN)) { platformMainDispatcher }
-	single(named(DISPATCHER_DEFAULT)) { platformDefaultDispatcher }
-	single(named(DISPATCHER_IO)) { platformIoDispatcher }
+	// Dispatchers live in a plugin-less module (see dispatcherModule): three same-type
+	// qualified definitions would otherwise collapse to one K/N hint signature under
+	// compileSafety and break the iOS klib link.
+	includes(
+		dispatcherModule(
+			mainQualifier = DISPATCHER_MAIN,
+			defaultQualifier = DISPATCHER_DEFAULT,
+			ioQualifier = DISPATCHER_IO,
+			mainDispatcher = platformMainDispatcher,
+			defaultDispatcher = platformDefaultDispatcher,
+			ioDispatcher = platformIoDispatcher,
+		)
+	)
 
 	single { Clock.System } bind Clock::class
 
@@ -156,26 +168,26 @@ val mainModule = module {
 
 	includes(platformModule)
 
-	singleOf(::ProtocolMismatchRepository)
-	single { createHttpClient(get()) } bind HttpClient::class
-	singleOf(::ServerAccountApi)
-	singleOf(::ServerProjectApi)
-	singleOf(::ServerProjectsApi)
-	singleOf(::WritingActivityApi)
-	singleOf(::ProjectDataApi)
-	singleOf(::ServerIdeasApi)
-	singleOf(::ServerAdminApi)
+	single<ProtocolMismatchRepository>()
+	single { create(::createHttpClient) } bind HttpClient::class
+	single<ServerAccountApi>()
+	single<ServerProjectApi>()
+	single<ServerProjectsApi>()
+	single<WritingActivityApi>()
+	single<ProjectDataApi>()
+	single<ServerIdeasApi>()
+	single<ServerAdminApi>()
 
-	singleOf(::ServerSettingsFilesystemDatasource) bind ServerSettingsDatasource::class
-	singleOf(::GlobalSettingsFilesystemDatasource)
-	singleOf(::GlobalSettingsStore) bind GlobalSettingsStore::class
+	single<ServerSettingsFilesystemDatasource>() bind ServerSettingsDatasource::class
+	single<GlobalSettingsFilesystemDatasource>()
+	single<GlobalSettingsStore>()
 
-	singleOf(::GithubVersionCheckDataSource) bind VersionCheckDataSource::class
-	singleOf(::VersionCheckRepository)
-	factoryOf(::ShouldNotifyOfUpdateUseCase)
+	single<GithubVersionCheckDataSource>() bind VersionCheckDataSource::class
+	single<VersionCheckRepository>()
+	factory<ShouldNotifyOfUpdateUseCase>()
 
-	factory { AccountUseCase(get(), get(), get(), get()) }
-	factoryOf(::AccountReauthUseCase)
+	factory<AccountUseCase>()
+	factory<AccountReauthUseCase>()
 
 	single(named(RAW_FILESYSTEM)) { getPlatformFilesystem() } bind FileSystem::class
 
@@ -185,45 +197,45 @@ val mainModule = module {
 		ContainedFileSystem(getPlatformFilesystem()) { managedStorageRoots(koin) }
 	}
 
-	singleOf(::ProjectsRepository)
+	single<ProjectsRepository>()
 
-	singleOf(::StoryIdeaCodec)
-	singleOf(::IdeasDatasource)
-	singleOf(::IdeasSyncDatasource)
-	singleOf(::IdeasRepository)
-	factoryOf(::PromoteIdeaUseCase)
+	single<StoryIdeaCodec>()
+	single<IdeasDatasource>()
+	single<IdeasSyncDatasource>()
+	single<IdeasRepository>()
+	factory<PromoteIdeaUseCase>()
 
-	singleOf(::AccountTagService)
+	single<AccountTagService>()
 
-	singleOf(::createTomlSerializer) bind Toml::class
+	single { create(::createTomlSerializer) } bind Toml::class
 
-	singleOf(::createJsonSerializer) bind Json::class
+	single { create(::createJsonSerializer) } bind Json::class
 
-	singleOf(::ClientIdeasSynchronizer)
-	singleOf(::ClientAccountSynchronizer)
+	single<ClientIdeasSynchronizer>()
+	single<ClientAccountSynchronizer>()
 
-	singleOf(::ProjectBackupRepository)
+	single<ProjectBackupRepository>()
 
-	singleOf(::ProjectMetadataDatasource)
+	single<ProjectMetadataDatasource>()
 
-	singleOf(::ProjectStatisticsCacheReader)
+	single<ProjectStatisticsCacheReader>()
 
-	singleOf(::Settings) bind Settings::class
+	single { create(::Settings) } bind Settings::class
 
 	includes(migratorModule)
 
-	singleOf(::SpellCheckRepository)
+	single<SpellCheckRepository>()
 
 	single { StoryImporterRegistry(listOf(MarkdownStoryImporter(), RtfStoryImporter())) }
 
 	scope<ProjectDefScope> {
 		scoped<ProjectDef> { get<ProjectDefScope>().projectDef }
 
-		scopedOf(::SceneDatasource)
-		scopedOf(::SceneContentRepository)
-		scopedOf(::SceneRepository)
-		scopedOf(::SceneEditorService)
-		scopedOf(::ImportStoryUseCase)
+		scoped<SceneDatasource>()
+		scoped<SceneContentRepository>()
+		scoped<SceneRepository>()
+		scoped<SceneEditorService>()
+		scoped<ImportStoryUseCase>()
 		// Export writes to a user-chosen path, so it uses the unguarded filesystem.
 		scoped {
 			ExportStoryUseCase(
@@ -234,79 +246,79 @@ val mainModule = module {
 				strRes = get(),
 			)
 		}
-		scopedOf(::SceneDraftsDatasource)
-		scopedOf(::SceneDraftRepository)
-		scopedOf(::SceneMetadataDatasource)
-		scopedOf(::SceneMetadataRepository)
+		scoped<SceneDraftsDatasource>()
+		scoped<SceneDraftRepository>()
+		scoped<SceneMetadataDatasource>()
+		scoped<SceneMetadataRepository>()
 
-		factoryOf(::SceneIdDatasource)
-		factoryOf(::NotesIdDatasource)
-		factoryOf(::EncyclopediaIdDatasource)
-		factoryOf(::TimeLineEventIdDatasource)
-		factoryOf(::SceneDraftIdDatasource)
-		scopedOf(::IdAllocator)
+		factory<SceneIdDatasource>()
+		factory<NotesIdDatasource>()
+		factory<EncyclopediaIdDatasource>()
+		factory<TimeLineEventIdDatasource>()
+		factory<SceneDraftIdDatasource>()
+		scoped<IdAllocator>()
 
-		scopedOf(::NotesDatasource)
-		scopedOf(::NotesRepository)
+		scoped<NotesDatasource>()
+		scoped<NotesRepository>()
 
-		factoryOf(::EncyclopediaDatasource)
-		scopedOf(::EncyclopediaRepository)
-		scopedOf(::EncyclopediaService)
+		factory<EncyclopediaDatasource>()
+		scoped<EncyclopediaRepository>()
+		scoped<EncyclopediaService>()
 
-		scopedOf(::TimeLineDatasource)
-		scopedOf(::TimeLineRepository)
+		scoped<TimeLineDatasource>()
+		scoped<TimeLineRepository>()
 
-		scopedOf(::SearchProjectUseCase)
+		scoped<SearchProjectUseCase>()
 
-		scopedOf(::StatisticsDatasource)
-		scopedOf(::StatisticsRepository)
-		scopedOf(::StatisticsService)
+		scoped<StatisticsDatasource>()
+		scoped<StatisticsRepository>()
+		scoped<StatisticsService>()
 
-		scopedOf(::WritingActivityDatasource)
-		scopedOf(::WritingActivityRepository)
-		scopedOf(::WritingSessionTracker)
+		scoped<WritingActivityDatasource>()
+		scoped<WritingActivityRepository>()
+		scoped<WritingSessionTracker>()
 
-		scopedOf(::ProjectDataDatasource)
-		scopedOf(::ProjectDataRepository)
-		scopedOf(::ProjectDataConflictBroker)
+		scoped<ProjectDataDatasource>()
+		scoped<ProjectDataRepository>()
+		scoped<ProjectDataConflictBroker>()
 
-		scopedOf(::ReferenceIndexDatasource)
-		scopedOf(::ReferenceIndexRepository)
-		scopedOf(::ReferenceIndexService)
+		scoped<ReferenceIndexDatasource>()
+		scoped<ReferenceIndexRepository>()
+		scoped<ReferenceIndexService>()
 
-		scopedOf(::BuildTagIndexUseCase)
-		scopedOf(::TagIndexService)
-		scopedOf(::ScrubInvalidReferencesUseCase)
-		scopedOf(::AutoConfirmReferencesUseCase)
-		scopedOf(::BackfillEntryReferencesUseCase)
-		scopedOf(::CleanupReferencesOnEntryDeleteUseCase)
-		scopedOf(::SceneMetadataReferenceRemapper) bind ReferenceRemapper::class
+		scoped<BuildTagIndexUseCase>()
+		scoped<TagIndexService>()
+		scoped<ScrubInvalidReferencesUseCase>()
+		scoped<AutoConfirmReferencesUseCase>()
+		scoped<BackfillEntryReferencesUseCase>()
+		scoped<CleanupReferencesOnEntryDeleteUseCase>()
+		scoped<SceneMetadataReferenceRemapper>() bind ReferenceRemapper::class
 
-		scopedOf(::SyncDataDatasource)
+		scoped<SyncDataDatasource>()
 
-		scopedOf(::ClientSceneSynchronizer)
-		scopedOf(::ClientNoteSynchronizer)
-		scopedOf(::ClientTimelineSynchronizer)
-		scopedOf(::ClientEncyclopediaSynchronizer)
-		scopedOf(::ClientSceneDraftSynchronizer)
+		scoped<ClientSceneSynchronizer>()
+		scoped<ClientNoteSynchronizer>()
+		scoped<ClientTimelineSynchronizer>()
+		scoped<ClientEncyclopediaSynchronizer>()
+		scoped<ClientSceneDraftSynchronizer>()
 
-		factoryOf(::PrepareForSyncOperation)
-		factoryOf(::EnsureProjectIdOperation)
-		factoryOf(::FetchLocalDataOperation)
-		factoryOf(::FetchServerDataOperation)
-		factoryOf(::CollateIdsOperation)
-		factoryOf(::BackupOperation)
-		factoryOf(::IdConflictResolutionOperation)
-		factoryOf(::EntityDeleteOperation)
-		factoryOf(::EntityTransferOperation)
-		factoryOf(::WritingActivitySyncOperation)
-		factoryOf(::ProjectDataSyncOperation)
-		factoryOf(::FinalizeSyncOperation)
+		factory<PrepareForSyncOperation>()
+		factory<EnsureProjectIdOperation>()
+		factory<FetchLocalDataOperation>()
+		factory<FetchServerDataOperation>()
+		factory<CollateIdsOperation>()
+		factory<BackupOperation>()
+		factory<IdConflictResolutionOperation>()
+		factory<EntityDeleteOperation>()
+		factory<EntityTransferOperation>()
+		factory<WritingActivitySyncOperation>()
+		factory<ProjectDataSyncOperation>()
+		factory<FinalizeSyncOperation>()
 
-		scopedOf(::SyncJournal)
-		scopedOf(::ClientProjectSynchronizer)
+		scoped<SyncJournal>()
+		scoped<ClientProjectSynchronizer>()
 
-		scopedOf(::EntitySynchronizers)
+		scoped<EntitySynchronizers>()
 	}
 }
 

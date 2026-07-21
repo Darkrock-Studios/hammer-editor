@@ -3,21 +3,25 @@ package com.darkrockstudios.apps.hammer.story
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
+import com.darkrockstudios.apps.hammer.base.http.EntityHash
+import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
+import kotlinx.serialization.Serializable
 
-class StoryExportService(
+class StoryRendererService(
 	private val projectEntityDatasource: ProjectEntityDatasource,
 	private val markdownService: MarkdownService,
+	private val renderCache: StoryRenderCache? = null,
 ) {
 
-	suspend fun exportStoryAsHtml(
+	suspend fun renderStoryAsHtml(
 		userId: Long,
 		projectId: ProjectId
-	): StoryExportResult {
+	): StoryRenderResult {
 		val projectDef = projectEntityDatasource.getProject(userId, projectId)
-			?: return StoryExportResult.ProjectNotFound
+			?: return StoryRenderResult.ProjectNotFound
 
 		return try {
 			val sceneDefs = projectEntityDatasource.getEntityDefsByType(
@@ -27,7 +31,7 @@ class StoryExportService(
 			)
 
 			if (sceneDefs.isEmpty()) {
-				return StoryExportResult.Success(
+				return StoryRenderResult.Success(
 					projectName = projectDef.name,
 					html = "",
 					hasContent = false,
@@ -55,7 +59,7 @@ class StoryExportService(
 				.filter { it.sceneType == ApiSceneType.Scene }
 				.sumOf { WordCountUtils.countWords(it.content) }
 
-			StoryExportResult.Success(
+			StoryRenderResult.Success(
 				projectName = projectDef.name,
 				html = html,
 				hasContent = true,
@@ -64,7 +68,7 @@ class StoryExportService(
 			)
 			// Export boundary: any failure becomes a StoryExportResult.Error.
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			StoryExportResult.Error(e.message ?: "Unknown error occurred")
+			StoryRenderResult.Error(e.message ?: "Unknown error occurred")
 		}
 	}
 
@@ -124,97 +128,184 @@ class StoryExportService(
 		}
 	}
 
-	suspend fun exportStoryAsHtmlPaginated(
+	/**
+	 * Resolve a story once, so a caller that needs its [PreparedExport.version] before deciding to
+	 * render doesn't pay for the lookup twice. Costs one project lookup plus one indexed hash query
+	 * with no decryption. Null when the project doesn't exist.
+	 */
+	suspend fun prepareExport(userId: Long, projectId: ProjectId): PreparedExport? {
+		val projectDef = projectEntityDatasource.getProject(userId, projectId) ?: return null
+		val sceneHashes = sceneHashes(userId, projectDef)
+		return PreparedExport(
+			userId = userId,
+			projectId = projectId,
+			projectDef = projectDef,
+			sceneHashes = sceneHashes,
+			version = StoryRenderCache.fingerprint(projectDef.name, sceneHashes),
+		)
+	}
+
+	/**
+	 * [cacheable] opts this render into the disk cache. Only pass true for stories reachable
+	 * without a password: a cached page is decrypted prose sitting in plaintext on disk, which is
+	 * harmless for a story anyone can already fetch over HTTP but not for a private share.
+	 */
+	suspend fun renderStoryAsHtmlPaginated(
 		userId: Long,
 		projectId: ProjectId,
 		page: Int = 1,
-		wordsPerPage: Int = DEFAULT_WORDS_PER_PAGE
+		wordsPerPage: Int = DEFAULT_WORDS_PER_PAGE,
+		cacheable: Boolean = false,
 	): PaginatedExportResult {
 		val projectDef = projectEntityDatasource.getProject(userId, projectId)
 			?: return PaginatedExportResult.ProjectNotFound
+		// Hashes only identify a cache entry, so an uncached render never pays for them.
+		val sceneHashes = if (cacheable) sceneHashes(userId, projectDef) else emptyList()
+
+		return renderOrCache(userId, projectId, projectDef, sceneHashes, page, wordsPerPage, cacheable)
+	}
+
+	/** As [renderStoryAsHtmlPaginated], reusing a [PreparedExport] the caller already resolved. */
+	suspend fun renderStoryAsHtmlPaginated(
+		prepared: PreparedExport,
+		page: Int = 1,
+		wordsPerPage: Int = DEFAULT_WORDS_PER_PAGE,
+		cacheable: Boolean = false,
+	): PaginatedExportResult = renderOrCache(
+		userId = prepared.userId,
+		projectId = prepared.projectId,
+		projectDef = prepared.projectDef,
+		sceneHashes = prepared.sceneHashes,
+		page = page,
+		wordsPerPage = wordsPerPage,
+		cacheable = cacheable,
+	)
+
+	private suspend fun renderOrCache(
+		userId: Long,
+		projectId: ProjectId,
+		projectDef: ProjectDefinition,
+		sceneHashes: List<EntityHash>,
+		page: Int,
+		wordsPerPage: Int,
+		cacheable: Boolean,
+	): PaginatedExportResult {
+		val cache = renderCache.takeIf { cacheable }
 
 		return try {
-			val sceneDefs = projectEntityDatasource.getEntityDefsByType(
-				userId = userId,
-				projectDef = projectDef,
-				type = ApiProjectEntity.Type.SCENE
-			)
-
-			if (sceneDefs.isEmpty()) {
-				return PaginatedExportResult.Success(
-					PaginatedStoryExportResult(
-						projectName = projectDef.name,
-						pageHtml = "",
-						hasContent = false,
-						sceneCount = 0,
-						totalWordCount = 0,
-						currentPage = 1,
-						totalPages = 1,
-						hasNextPage = false,
-						hasPrevPage = false,
-						nextPage = 1,
-						prevPage = 1,
-						estimatedReadingTimeMinutes = 1
-					)
-				)
-			}
-
-			val scenes: List<ApiProjectEntity.SceneEntity> = sceneDefs.mapNotNull { def ->
-				val result = projectEntityDatasource.loadEntity(
-					userId = userId,
-					projectDef = projectDef,
-					entityId = def.id,
-					entityType = ApiProjectEntity.Type.SCENE,
-					serializer = ApiProjectEntity.SceneEntity.serializer()
-				)
-				if (isSuccess(result)) result.data else null
-			}
-
-			// Process all scenes with their word counts (only count actual scenes, not groups)
-			val processedScenes = scenes
-				.filter { it.sceneType == ApiSceneType.Scene }
-				.map { scene ->
-					ProcessedScene(
-						scene = scene,
-						wordCount = WordCountUtils.countWords(scene.content),
-						markdown = scene.content
-					)
-				}
-
-			val totalWordCount = processedScenes.sumOf { it.wordCount }
-			val estimatedReadingTime = WordCountUtils.estimateReadingTimeMinutes(totalWordCount)
-
-			// Group scenes into pages based on word count
-			val pages = paginateScenes(processedScenes, wordsPerPage)
-			val totalPages = pages.size.coerceAtLeast(1)
-			val currentPage = page.coerceIn(1, totalPages)
-
-			// Get scenes for the current page
-			val currentPageScenes = if (pages.isNotEmpty()) pages[currentPage - 1] else emptyList()
-
-			// Build markdown and HTML for current page only
-			val pageMarkdown = buildPaginatedMarkdown(projectDef.name, currentPageScenes, currentPage == 1)
-			val pageHtml = markdownService.markdownToSafeHtml(pageMarkdown)
-
-			PaginatedExportResult.Success(
-				PaginatedStoryExportResult(
+			val result = if (cache != null) {
+				cache.getOrRender(
+					projectId = projectId,
 					projectName = projectDef.name,
-					pageHtml = pageHtml,
-					hasContent = currentPageScenes.isNotEmpty(),
-					sceneCount = processedScenes.size,
-					totalWordCount = totalWordCount,
-					currentPage = currentPage,
-					totalPages = totalPages,
-					hasNextPage = currentPage < totalPages,
-					hasPrevPage = currentPage > 1,
-					nextPage = (currentPage + 1).coerceAtMost(totalPages),
-					prevPage = (currentPage - 1).coerceAtLeast(1),
-					estimatedReadingTimeMinutes = estimatedReadingTime
-				)
-			)
+					page = page,
+					wordsPerPage = wordsPerPage,
+					sceneHashes = sceneHashes,
+				) { renderPaginated(userId, projectDef, page, wordsPerPage) }
+			} else {
+				renderPaginated(userId, projectDef, page, wordsPerPage).result
+			}
+			PaginatedExportResult.Success(result)
 		} catch (e: Exception) {
 			PaginatedExportResult.Error(e.message ?: "Unknown error occurred")
 		}
+	}
+
+	private suspend fun sceneHashes(userId: Long, projectDef: ProjectDefinition): List<EntityHash> =
+		projectEntityDatasource.getEntityHashes(
+			userId = userId,
+			projectDef = projectDef,
+			type = ApiProjectEntity.Type.SCENE,
+		)
+
+	private suspend fun renderPaginated(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		page: Int,
+		wordsPerPage: Int,
+	): StoryRender {
+		val sceneDefs = projectEntityDatasource.getEntityDefsByType(
+			userId = userId,
+			projectDef = projectDef,
+			type = ApiProjectEntity.Type.SCENE
+		)
+
+		if (sceneDefs.isEmpty()) {
+			return StoryRender(
+				result = PaginatedStoryExportResult(
+					projectName = projectDef.name,
+					pageHtml = "",
+					hasContent = false,
+					sceneCount = 0,
+					totalWordCount = 0,
+					currentPage = 1,
+					totalPages = 1,
+					hasNextPage = false,
+					hasPrevPage = false,
+					nextPage = 1,
+					prevPage = 1,
+					estimatedReadingTimeMinutes = 1
+				),
+				complete = true,
+			)
+		}
+
+		val scenes: List<ApiProjectEntity.SceneEntity> = sceneDefs.mapNotNull { def ->
+			val result = projectEntityDatasource.loadEntity(
+				userId = userId,
+				projectDef = projectDef,
+				entityId = def.id,
+				entityType = ApiProjectEntity.Type.SCENE,
+				serializer = ApiProjectEntity.SceneEntity.serializer()
+			)
+			if (isSuccess(result)) result.data else null
+		}
+
+		// Process all scenes with their word counts (only count actual scenes, not groups)
+		val processedScenes = scenes
+			.filter { it.sceneType == ApiSceneType.Scene }
+			.map { scene ->
+				ProcessedScene(
+					scene = scene,
+					wordCount = WordCountUtils.countWords(scene.content),
+					markdown = scene.content
+				)
+			}
+
+		val totalWordCount = processedScenes.sumOf { it.wordCount }
+		val estimatedReadingTime = WordCountUtils.estimateReadingTimeMinutes(totalWordCount)
+
+		// Group scenes into pages based on word count
+		val pages = paginateScenes(processedScenes, wordsPerPage)
+		val totalPages = pages.size.coerceAtLeast(1)
+		val currentPage = page.coerceIn(1, totalPages)
+
+		// Get scenes for the current page
+		val currentPageScenes = if (pages.isNotEmpty()) pages[currentPage - 1] else emptyList()
+
+		// Build markdown and HTML for current page only
+		val pageMarkdown = buildPaginatedMarkdown(projectDef.name, currentPageScenes, currentPage == 1)
+		val pageHtml = markdownService.markdownToSafeHtml(pageMarkdown)
+
+		return StoryRender(
+			result = PaginatedStoryExportResult(
+				projectName = projectDef.name,
+				pageHtml = pageHtml,
+				hasContent = currentPageScenes.isNotEmpty(),
+				sceneCount = processedScenes.size,
+				totalWordCount = totalWordCount,
+				currentPage = currentPage,
+				totalPages = totalPages,
+				hasNextPage = currentPage < totalPages,
+				hasPrevPage = currentPage > 1,
+				nextPage = (currentPage + 1).coerceAtMost(totalPages),
+				prevPage = (currentPage - 1).coerceAtLeast(1),
+				estimatedReadingTimeMinutes = estimatedReadingTime
+			),
+			// A scene that failed to load is silently absent from the prose. Serve the page, but
+			// never persist it: a transient decrypt or DB failure must not outlive itself in the
+			// cache, where the key wouldn't change until the author next edits.
+			complete = scenes.size == sceneDefs.size,
+		)
 	}
 
 	private fun paginateScenes(
@@ -362,9 +453,9 @@ class StoryExportService(
 
 	/**
 	 * Export a single scene or group as HTML.
-	 * If sceneId is a group, exports all scenes within it.
+	 * If sceneId is a group, renders all scenes within it.
 	 */
-	suspend fun exportSceneAsHtml(
+	suspend fun renderSceneAsHtml(
 		userId: Long,
 		projectId: ProjectId,
 		sceneId: Int
@@ -464,20 +555,33 @@ class StoryExportService(
 	}
 }
 
-sealed class StoryExportResult {
+sealed class StoryRenderResult {
 	data class Success(
 		val projectName: String,
 		val html: String,
 		val hasContent: Boolean,
 		val sceneCount: Int,
 		val totalWordCount: Int
-	) : StoryExportResult()
+	) : StoryRenderResult()
 
-	data object ProjectNotFound : StoryExportResult()
+	data object ProjectNotFound : StoryRenderResult()
 
-	data class Error(val message: String) : StoryExportResult()
+	data class Error(val message: String) : StoryRenderResult()
 }
 
+/**
+ * A story resolved once and ready to render. [version] changes whenever anything a render depends
+ * on changes, so it serves as both the cache identity and the page's HTTP validator.
+ */
+class PreparedExport internal constructor(
+	internal val userId: Long,
+	internal val projectId: ProjectId,
+	internal val projectDef: ProjectDefinition,
+	internal val sceneHashes: List<EntityHash>,
+	val version: String,
+)
+
+@Serializable
 data class PaginatedStoryExportResult(
 	val projectName: String,
 	val pageHtml: String,
@@ -532,7 +636,7 @@ sealed class SceneHierarchyResult {
 }
 
 /**
- * Result of exporting a single scene or group.
+ * Result of rendering a single scene or group.
  */
 sealed class SingleSceneExportResult {
 	data class Success(

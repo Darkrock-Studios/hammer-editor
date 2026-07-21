@@ -57,7 +57,8 @@ class SpellCheckRepositoryTest : BaseTest() {
 	fun `loads a spell checker for the configured locale on init`() = scope.runTest {
 		val checker = mockk<PlatformSpellChecker>()
 		every { factory.hasLanguage(any()) } returns true
-		coEvery { factory.createSpellChecker(any()) } returns checker
+		// Locale-exact stub: loading any dictionary other than the configured "en" fails the test.
+		coEvery { factory.createSpellChecker(SpLocale("en")) } returns checker
 
 		val repo = SpellCheckRepository(settingsStore(Locale.forLanguageTag("en")), factory)
 
@@ -83,7 +84,9 @@ class SpellCheckRepositoryTest : BaseTest() {
 		val first = mockk<PlatformSpellChecker>()
 		val second = mockk<PlatformSpellChecker>()
 		every { factory.hasLanguage(any()) } returns true
-		coEvery { factory.createSpellChecker(any()) } returnsMany listOf(first, second)
+		// Locale-exact stubs: the reload must request the NEW locale, not re-load the old one.
+		coEvery { factory.createSpellChecker(SpLocale("en")) } returns first
+		coEvery { factory.createSpellChecker(SpLocale("fr")) } returns second
 		coEvery { globalSettingsDatasource.storeSettings(any()) } just Runs
 
 		val store = settingsStore(Locale.forLanguageTag("en"))
@@ -164,7 +167,7 @@ class SpellCheckRepositoryTest : BaseTest() {
 	fun `reloads the checker when spell check is re-enabled`() = scope.runTest {
 		val checker = mockk<PlatformSpellChecker>()
 		every { factory.hasLanguage(any()) } returns true
-		coEvery { factory.createSpellChecker(any()) } returns checker
+		coEvery { factory.createSpellChecker(SpLocale("en")) } returns checker
 		coEvery { globalSettingsDatasource.storeSettings(any()) } just Runs
 
 		val store = settingsStore(Locale.forLanguageTag("en"), enabled = false)

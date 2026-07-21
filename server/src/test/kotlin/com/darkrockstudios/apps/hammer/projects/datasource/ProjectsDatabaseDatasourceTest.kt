@@ -21,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.io.encoding.Base64
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.time.Instant
 import kotlin.uuid.Uuid
@@ -58,9 +59,26 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 	fun `Create User Data`() = runTest {
 		val userId = 1L
 
-		// This does almost nothing in the new database world, so just make sure it doesn't throw
+		testDatabase.serverDatabase.accountQueries.createAccount(
+			"test@test.com",
+			"hash",
+			cipherSecretGenerator.generateToken(),
+			true
+		)
+		testDatabase.serverDatabase.deletedProjectQueries.addDeletedProject(
+			userId = userId,
+			uuid = "00000000-0000-0000-0000-000000000001"
+		)
+
 		val datasource = createDatasource()
 		datasource.createUserData(userId)
+
+		val syncData = datasource.loadSyncData(userId)
+		assertEquals(emptySet<ProjectId>(), syncData.deletedProjects)
+		assertTrue(
+			syncData.lastSync < Instant.fromEpochSeconds(0),
+			"createUserData must reset lastSync to the distant-past default"
+		)
 	}
 
 	@Test
@@ -208,5 +226,6 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 		)
 
 		assertEquals(updatedSyncData, loadedSyncData)
+		assertEquals(updatedSyncData, datasource.loadSyncData(userId))
 	}
 }

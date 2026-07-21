@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.frontend.utils.publicBaseUrl
 import io.ktor.http.ContentType
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.response.header
@@ -124,7 +125,10 @@ internal fun buildRobotsTxt(sitemapUrl: String? = null): String {
 
 fun Route.robotsRoutes() {
 	get("/robots.txt") {
-		call.respondText(buildRobotsTxt(), ContentType.Text.Plain)
+		// Only advertise the sitemap when a public URL is configured — the line needs an
+		// absolute URL, and the request Host is untrusted (see publicBaseUrl).
+		val sitemapUrl = call.publicBaseUrl()?.let { "$it/sitemap.xml" }
+		call.respondText(buildRobotsTxt(sitemapUrl), ContentType.Text.Plain)
 	}
 }
 

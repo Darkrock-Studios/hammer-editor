@@ -8,17 +8,24 @@ import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.Database
 import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
+import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
 import com.darkrockstudios.apps.hammer.secret.FileSecretProvider
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
+import com.darkrockstudios.apps.hammer.utilities.FakeTouchableFileSystem
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
+import com.darkrockstudios.apps.hammer.utilities.TouchableFileSystem
+import com.darkrockstudios.apps.hammer.utilities.DiskCache
+import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
 import io.ktor.client.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.engine.*
 import io.ktor.server.jetty.jakarta.*
+import kotlinx.coroutines.runBlocking
 import okio.FileSystem
+import okio.Path
 import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
@@ -28,17 +35,26 @@ import kotlin.io.encoding.Base64
 
 /**
  * Base class for End to End Tests.
- * This will start up and tear down a server running on
- * port 54321, and writing to a FakeFileSystem.
+ * This will start up and tear down a server on an ephemeral port (assigned by
+ * the OS at bind time), and writing to a FakeFileSystem. Binding to a fixed port
+ * made the suite flaky: back-to-back tests reuse the same JVM and a server whose
+ * socket hadn't fully released yet could collide with the next test's bind.
  */
 abstract class EndToEndTest {
 
-	companion object {
-		const val TEST_PORT = 54321
-	}
-
 	protected lateinit var fileSystem: FakeFileSystem
-	private lateinit var server: ApplicationEngine
+	private lateinit var server: EmbeddedServer<*, *>
+	private val taskRegistry = RecurringTaskRegistry()
+
+	/**
+	 * The config the server under test runs on. These tests exercise the AES-at-rest path with a
+	 * known secret, so pin it explicitly rather than riding the plaintext default.
+	 */
+	protected open val serverConfig = ServerConfig(encryption = EncryptionConfig(EncryptionMode.AES))
+
+	/** The OS-assigned port the server bound to; valid after [doStartServer]. */
+	protected var serverPort: Int = 0
+		private set
 	private lateinit var client: HttpClient
 	private lateinit var testDatabase: SqliteTestDatabase
 	private lateinit var base64: Base64
@@ -89,36 +105,54 @@ abstract class EndToEndTest {
 		// Close the per-test HttpClient before stopping the server so its engine threads and
 		// connection pool don't accumulate across the suite (a leak that grows test-to-test).
 		runCatching { client.close() }
+		// Stop the EmbeddedServer, not its engine: only the former destroys the
+		// application, and that is what fires the lifecycle event the recurring
+		// background jobs shut down on.
 		server.stop(1000, 3000)
+
+		// A job that outlives its test keeps writing to the shared database and
+		// corrupts whichever test is running when it next ticks. Fail here, on
+		// the test that leaked it, rather than somewhere downstream.
+		val leaked = taskRegistry.statuses().filter { it.running }
+		check(leaked.isEmpty()) {
+			"Background jobs still running after server stop: ${leaked.joinToString { it.name }}"
+		}
 	}
 
-	protected fun route(path: String): String = "http://127.0.0.1:$TEST_PORT/$path"
+	/** Files [cache] wrote during this test, read from wherever [serverConfig] puts it. */
+	protected fun cachedFiles(cache: DiskCache): List<Path> =
+		fileSystem.listOrNull(cacheDirectory(serverConfig.cache, fileSystem, cache)).orEmpty()
+
+	protected fun route(path: String): String = "http://127.0.0.1:$serverPort/$path"
 	protected fun api(path: String): String = route("api/$path")
 
 	fun doStartServer() {
 		server = startServer()
+		// port = 0 bound an OS-assigned port; read back what we actually got so
+		// the client connects to the right place.
+		serverPort = runBlocking { server.engine.resolvedConnectors().first().port }
 	}
 
-	private fun startServer(): ApplicationEngine {
+	private fun startServer(): EmbeddedServer<*, *> {
 		// Override the default database
 		val testModule = org.koin.dsl.module {
 			single { testDatabase } bind Database::class
 			single { fileSystem } bind FileSystem::class
+			// The disk caches need to set modification times; this keeps them on the same fake.
+			single<TouchableFileSystem> { FakeTouchableFileSystem(fileSystem) }
+			// Held by the test so tearDown can see which jobs the app started.
+			single { taskRegistry }
 		}
-
-		// These tests exercise the AES-at-rest path with a known secret, so pin it
-		// explicitly rather than riding the plaintext default.
-		val config = ServerConfig(encryption = EncryptionConfig(EncryptionMode.AES))
 
 		val server = embeddedServer(
 			Jetty,
-			port = TEST_PORT,
+			port = 0,
 			host = "0.0.0.0",
 			module = {
-				appMain(config, testModule)
+				appMain(serverConfig, testModule)
 			}
 		)
 		server.start()
-		return server.engine
+		return server
 	}
 }

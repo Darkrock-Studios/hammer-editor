@@ -19,6 +19,7 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Instant
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class SecurityAlertEmailTest : BaseTest() {
 
@@ -124,6 +125,8 @@ class SecurityAlertEmailTest : BaseTest() {
 
 		maintenance.evaluateSecurityAlerts(config)
 		assertEquals(2, email.sentSubjects.size)
+		assertTrue(email.sentSubjects.any { it.contains("victim@example.com") }, "account alert names the hammered account")
+		assertTrue(email.sentSubjects.any { it.contains("203.0.113.88") }, "IP alert names the spraying IP")
 	}
 
 	@Test

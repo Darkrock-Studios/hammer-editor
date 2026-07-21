@@ -1,7 +1,11 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.authorProfileJsonLd
+import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
+import com.darkrockstudios.apps.hammer.frontend.utils.metaDescription
 import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
@@ -16,7 +20,8 @@ import kotlin.time.toJavaInstant
 fun Route.authorPage(
 	accountsRepository: AccountsRepository,
 	projectAccessRepository: ProjectAccessRepository,
-	markdownService: MarkdownService
+	markdownService: MarkdownService,
+	serverConfig: ServerConfig,
 ) {
 	route("/a/{penName}") {
 		get {
@@ -65,6 +70,15 @@ fun Route.authorPage(
 			val model = call.withDefaults(
 				mapOf(
 					"page_stylesheet" to "/assets/css/author.css",
+					"title" to "$penName — Hammer",
+					"ogType" to "profile",
+					// Dynamic card only when the OG route would actually serve it (community author);
+					// otherwise the static fallback, so the share preview is never a broken 404.
+					"ogImage" to if (serverConfig.richLinkPreviews && account.community_member) {
+						call.canonicalUrl("/og/a/${account.id}.png")
+					} else {
+						call.canonicalUrl("/assets/images/og-author.png")
+					},
 					"penName" to penName,
 					"urlPenName" to penNameForUrl,
 					"bio" to (account.bio ?: ""),
@@ -74,6 +88,15 @@ fun Route.authorPage(
 					"storyCount" to stories.size
 				)
 			)
+			metaDescription(account.bio)?.let { model["metaDescription"] = it }
+			// Structured data only for indexable (community) authors.
+			if (account.community_member) {
+				model["jsonLd"] = authorProfileJsonLd(
+					name = penName,
+					url = call.canonicalUrl("/a/$penNameForUrl"),
+					description = metaDescription(account.bio),
+				)
+			}
 			call.respond(MustacheContent("author.mustache", model))
 		}
 	}

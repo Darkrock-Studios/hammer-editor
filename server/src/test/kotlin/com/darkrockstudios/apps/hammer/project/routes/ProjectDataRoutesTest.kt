@@ -30,7 +30,7 @@ import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.project.ServerWritingActivityRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
-import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utils.BaseTest
@@ -70,7 +70,8 @@ class ProjectDataRoutesTest : BaseTest() {
 	@MockK(relaxed = true) private lateinit var accountsComponent: AccountsComponent
 	@MockK(relaxed = true) private lateinit var adminComponent: AdminComponent
 	@MockK(relaxed = true) private lateinit var configRepository: ConfigRepository
-	@MockK(relaxed = true) private lateinit var storyExportService: StoryExportService
+	@MockK(relaxed = true)
+	private lateinit var storyRendererService: StoryRendererService
 	@MockK(relaxed = true) private lateinit var penNameService: PenNameService
 	@MockK(relaxed = true) private lateinit var bioService: BioService
 	@MockK(relaxed = true) private lateinit var passwordResetRepository: PasswordResetRepository
@@ -114,7 +115,7 @@ class ProjectDataRoutesTest : BaseTest() {
 			single { accountsComponent }
 			single { adminComponent }
 			single { configRepository }
-			single { storyExportService }
+			single { storyRendererService }
 			single { penNameService }
 			single { bioService }
 			single { passwordResetRepository }
@@ -232,6 +233,7 @@ class ProjectDataRoutesTest : BaseTest() {
 
 		assertEquals(HttpStatusCode.OK, response.status)
 		val dto = response.body<ProjectDataDto>()
+		assertEquals(sampleData, dto.data)
 		assertEquals("hash-new", dto.hash)
 		coVerify {
 			serverProjectDataRepository.save(

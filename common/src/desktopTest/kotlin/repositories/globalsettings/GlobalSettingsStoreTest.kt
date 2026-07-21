@@ -199,7 +199,7 @@ class GlobalSettingsStoreTest : BaseTest() {
 
 	@Test
 	fun `Check if server setup when it is`() = runTest {
-		coEvery { serverSettings.serverIsSetup(any()) } returns true
+		coEvery { serverSettings.serverIsSetup(projectsDir()) } returns true
 
 		val repo = createDefaultRepository()
 		val isSetup = repo.serverIsSetup()
@@ -209,7 +209,7 @@ class GlobalSettingsStoreTest : BaseTest() {
 
 	@Test
 	fun `Check if server setup when it isn't setup`() = runTest {
-		coEvery { serverSettings.serverIsSetup(any()) } returns false
+		coEvery { serverSettings.serverIsSetup(projectsDir()) } returns false
 
 		val repo = createDefaultRepository()
 		val isSetup = repo.serverIsSetup()
@@ -238,6 +238,7 @@ class GlobalSettingsStoreTest : BaseTest() {
 
 		repo.deleteServerSettings()
 
+		coVerify { serverSettings.removeServerSettings(projectsDir()) }
 		assertNull(repo.serverSettings)
 		repo.serverSettingsUpdates.test {
 			assertNull(awaitItem())

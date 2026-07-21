@@ -3,14 +3,15 @@ package com.darkrockstudios.apps.hammer.account
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
+import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.SResult
-import com.darkrockstudios.apps.hammer.utilities.isFailure
-import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.verify
 import io.mockk.impl.annotations.MockK
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -32,6 +33,9 @@ class AccountsComponentCreateAccountTest {
 	@MockK
 	private lateinit var configRepository: ConfigRepository
 
+	@MockK
+	private lateinit var termsOfServiceRepository: TermsOfServiceRepository
+
 	private val serverConfig = ServerConfig()
 
 	private val validEmail = "test@test.com"
@@ -43,9 +47,19 @@ class AccountsComponentCreateAccountTest {
 		refresh = "abc"
 	)
 
+	private fun component() = AccountsComponent(
+		accountsRepository,
+		whiteListRepository,
+		projectsRepository,
+		configRepository,
+		termsOfServiceRepository,
+		serverConfig
+	)
+
 	@BeforeEach
 	fun begin() {
 		MockKAnnotations.init(this, relaxUnitFun = true)
+		every { termsOfServiceRepository.challenge() } returns null
 	}
 
 	@Test
@@ -61,21 +75,14 @@ class AccountsComponentCreateAccountTest {
 			)
 		} returns SResult.success(token)
 
-		val comp = AccountsComponent(
-			accountsRepository,
-			whiteListRepository,
-			projectsRepository,
-			configRepository,
-			serverConfig
-		)
-		val result = comp.createAccount(
+		val result = component().createAccount(
 			email = validEmail,
 			installId = installId,
 			password = validPassword,
 		)
 
-		assertTrue(isSuccess(result))
-		assertEquals(token, result.data)
+		assertTrue(result is CreateAccountResult.Success)
+		assertEquals(token, result.token)
 
 		coVerify(exactly = 0) { whiteListRepository.useWhiteList() }
 		coVerify(exactly = 0) { whiteListRepository.isOnWhiteList(any()) }
@@ -96,21 +103,14 @@ class AccountsComponentCreateAccountTest {
 			)
 		} returns SResult.success(token)
 
-		val comp = AccountsComponent(
-			accountsRepository,
-			whiteListRepository,
-			projectsRepository,
-			configRepository,
-			serverConfig
-		)
-		val result = comp.createAccount(
+		val result = component().createAccount(
 			email = validEmail,
 			installId = installId,
 			password = validPassword,
 		)
 
-		assertTrue(isSuccess(result))
-		assertEquals(token, result.data)
+		assertTrue(result is CreateAccountResult.Success)
+		assertEquals(token, result.token)
 
 		coVerify { projectsRepository.createUserData(token.userId) }
 	}
@@ -129,20 +129,16 @@ class AccountsComponentCreateAccountTest {
 			)
 		} returns SResult.success(token)
 
-		val comp = AccountsComponent(
-			accountsRepository,
-			whiteListRepository,
-			projectsRepository,
-			configRepository,
-			serverConfig
-		)
-		val result = comp.createAccount(
+		val result = component().createAccount(
 			email = validEmail,
 			installId = installId,
 			password = validPassword,
 		)
 
-		assertTrue(isFailure(result))
+		assertTrue(result is CreateAccountResult.Failure)
+		// A whitelist rejection must short-circuit: no account row, no user data.
+		coVerify(exactly = 0) { accountsRepository.createAccount(any(), any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.createUserData(any()) }
 	}
 
 	@Test
@@ -159,19 +155,102 @@ class AccountsComponentCreateAccountTest {
 			)
 		} returns SResult.success(token)
 
-		val comp = AccountsComponent(
-			accountsRepository,
-			whiteListRepository,
-			projectsRepository,
-			configRepository,
-			serverConfig
-		)
-		val result = comp.createAccount(
+		val result = component().createAccount(
 			email = validEmail,
 			installId = installId,
 			password = validPassword,
 		)
 
-		assertTrue(isSuccess(result))
+		assertTrue(result is CreateAccountResult.Success)
+		assertEquals(token, result.token)
+		coVerify { projectsRepository.createUserData(token.userId) }
+	}
+
+	@Test
+	fun `Create Account - TOS enforced, no acceptance - challenges`() = runTest {
+		val challenge = TermsOfServiceChallenge(text = "Be excellent to each other", version = "v1")
+		coEvery { accountsRepository.hasUsers() } returns true
+		coEvery { accountsRepository.findAccount(any()) } returns null
+		coEvery { whiteListRepository.useWhiteList() } returns false
+		every { termsOfServiceRepository.challenge() } returns challenge
+
+		val result = component().createAccount(
+			email = validEmail,
+			installId = installId,
+			password = validPassword,
+		)
+
+		assertTrue(result is CreateAccountResult.TermsRequired)
+		assertEquals(challenge, result.challenge)
+		// No account is created until the terms are accepted.
+		coVerify(exactly = 0) { accountsRepository.createAccount(any(), any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.createUserData(any()) }
+	}
+
+	@Test
+	fun `Create Account - TOS enforced, stale acceptance - challenges`() = runTest {
+		val challenge = TermsOfServiceChallenge(text = "Be excellent to each other", version = "v2")
+		coEvery { accountsRepository.hasUsers() } returns true
+		coEvery { accountsRepository.findAccount(any()) } returns null
+		coEvery { whiteListRepository.useWhiteList() } returns false
+		every { termsOfServiceRepository.challenge() } returns challenge
+
+		val result = component().createAccount(
+			email = validEmail,
+			installId = installId,
+			password = validPassword,
+			acceptedTosVersion = "v1",
+		)
+
+		assertTrue(result is CreateAccountResult.TermsRequired)
+		assertEquals(challenge, result.challenge)
+		coVerify(exactly = 0) { accountsRepository.createAccount(any(), any(), any()) }
+	}
+
+	@Test
+	fun `Create Account - TOS enforced, correct acceptance - succeeds`() = runTest {
+		val challenge = TermsOfServiceChallenge(text = "Be excellent to each other", version = "v1")
+		coEvery { accountsRepository.hasUsers() } returns true
+		coEvery { accountsRepository.findAccount(any()) } returns null
+		coEvery { whiteListRepository.useWhiteList() } returns false
+		every { termsOfServiceRepository.challenge() } returns challenge
+		coEvery {
+			accountsRepository.createAccount(
+				email = validEmail,
+				installId = installId,
+				password = validPassword
+			)
+		} returns SResult.success(token)
+
+		val result = component().createAccount(
+			email = validEmail,
+			installId = installId,
+			password = validPassword,
+			acceptedTosVersion = "v1",
+		)
+
+		assertTrue(result is CreateAccountResult.Success)
+		assertEquals(token, result.token)
+		coVerify { projectsRepository.createUserData(token.userId) }
+	}
+
+	@Test
+	fun `Create Account - Whitelist rejection precedes TOS challenge`() = runTest {
+		coEvery { accountsRepository.hasUsers() } returns true
+		coEvery { accountsRepository.findAccount(any()) } returns null
+		coEvery { whiteListRepository.useWhiteList() } returns true
+		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns false
+		every { termsOfServiceRepository.challenge() } returns
+			TermsOfServiceChallenge(text = "Be excellent to each other", version = "v1")
+
+		val result = component().createAccount(
+			email = validEmail,
+			installId = installId,
+			password = validPassword,
+		)
+
+		// Whitelist is checked first, so non-whitelisted emails never see the TOS.
+		assertTrue(result is CreateAccountResult.Failure)
+		verify(exactly = 0) { termsOfServiceRepository.challenge() }
 	}
 }

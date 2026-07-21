@@ -18,7 +18,7 @@ private fun previewState(
 	clientIsBehind: Boolean = true,
 	latestVersionTag: String? = "v9.9.9",
 	isNewVersionAvailable: Boolean = true,
-	releaseUrl: String? = "https://github.com/Wavesonics/hammer-editor/releases/tag/v9.9.9",
+	releaseUrl: String? = "https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v9.9.9",
 ) = ProtocolMismatch.State(
 	clientProtocolVersion = 3,
 	serverProtocolVersion = if (clientIsBehind) 5 else 2,

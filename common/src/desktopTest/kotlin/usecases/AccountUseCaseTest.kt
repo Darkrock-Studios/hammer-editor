@@ -1,14 +1,18 @@
 package usecases
 
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.base.http.Token
+import com.darkrockstudios.apps.hammer.common.data.ClientMessage
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
+import com.darkrockstudios.apps.hammer.common.data.account.ServerSetupResult
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
-import com.darkrockstudios.apps.hammer.common.data.isFailure
-import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.updateCredentials
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
+import com.darkrockstudios.apps.hammer.common.server.TermsOfServiceRequiredException
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.server_setup_error_unknown
 import io.ktor.client.*
 import io.ktor.client.plugins.auth.providers.*
 import io.mockk.*
@@ -20,7 +24,7 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import utils.BaseTest
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
+import kotlin.test.assertIs
 
 class AccountUseCaseTest : BaseTest() {
 
@@ -59,7 +63,6 @@ class AccountUseCaseTest : BaseTest() {
 	fun `Create account successfully`() = runTest {
 		val token = Token(1, "test-auth", "test-refresh")
 		val settings = ServerSettings(
-			ssl = false,
 			url = "hammer.ink",
 			email = "test@example.com",
 			userId = 1,
@@ -79,16 +82,18 @@ class AccountUseCaseTest : BaseTest() {
 		val usecase = createSut()
 
 		val result = usecase.setupServer(
-			ssl = false,
 			url = settings.url,
 			email = settings.email,
 			password = "password",
 			create = true
 		)
-		assertTrue(isSuccess(result))
+		assertIs<ServerSetupResult.Success>(result)
 
-		coVerify { accountApi.createAccount(any(), any(), any()) }
+		coVerify { accountApi.createAccount(settings.email, "password", "test-uuid", null) }
 		coVerify(exactly = 0) { accountApi.login(any(), any(), any()) }
+
+		assertEquals(token.auth, bearerTokenSlot.captured.accessToken)
+		assertEquals(token.refresh, bearerTokenSlot.captured.refreshToken)
 
 		coVerify { globalSettingsStore.updateServerSettings(any()) }
 		assertEquals(
@@ -110,7 +115,6 @@ class AccountUseCaseTest : BaseTest() {
 	fun `Create account failure`() = runTest {
 		val token = Token(1, "test-auth", "test-refresh")
 		val settings = ServerSettings(
-			ssl = false,
 			url = "hammer.ink",
 			email = "test@example.com",
 			userId = 1,
@@ -122,35 +126,80 @@ class AccountUseCaseTest : BaseTest() {
 			accountApi.createAccount(
 				any(),
 				any(),
+				any(),
 				any()
 			)
 		} returns Result.failure(IOException())
 		coEvery { accountApi.login(any(), any(), any()) } returns Result.failure(IOException())
+		coEvery { strRes.get(Res.string.server_setup_error_unknown) } returns "Unknown error message"
 
 		val usecase = createSut()
 
 		val result = usecase.setupServer(
-			ssl = false,
 			url = settings.url,
 			email = settings.email,
 			password = "password",
 			create = true
 		)
-		assertTrue(isFailure(result))
-		// Result should have a displayMessage from strRes fallback
-		kotlin.test.assertNotNull(result.displayMessage)
+		val failure = assertIs<ServerSetupResult.Failure>(result)
+		// Non-HTTP failures fall back to the localized unknown-error message.
+		val displayMessage = assertIs<ClientMessage.Literal>(failure.displayMessage)
+		assertEquals("Unknown error message", displayMessage.text())
 
-		coVerify { accountApi.createAccount(any(), any(), any()) }
+		coVerify { accountApi.createAccount(any(), any(), any(), any()) }
 		coVerify(exactly = 0) { accountApi.login(any(), any(), any()) }
 		coVerify(exactly = 0) { httpClient.updateCredentials(any()) }
 		coVerify { globalSettingsStore.deleteServerSettings() }
 	}
 
 	@Test
+	fun `Create account requiring terms of service`() = runTest {
+		val challenge = TermsOfServiceChallenge(text = "Be excellent to each other", version = "v1")
+		coEvery {
+			accountApi.createAccount(any(), any(), any(), acceptedTosVersion = null)
+		} returns Result.failure(TermsOfServiceRequiredException(challenge))
+
+		val usecase = createSut()
+
+		val result = usecase.setupServer(
+			url = "hammer.ink",
+			email = "test@example.com",
+			password = "password",
+			create = true,
+		)
+
+		val termsRequired = assertIs<ServerSetupResult.TermsRequired>(result)
+		assertEquals(challenge, termsRequired.challenge)
+		// The provisional server settings must survive so accepting the terms can retry.
+		coVerify(exactly = 0) { globalSettingsStore.deleteServerSettings() }
+	}
+
+	@Test
+	fun `Accepting terms of service resubmits with the accepted version`() = runTest {
+		val token = Token(1, "test-auth", "test-refresh")
+		coEvery {
+			accountApi.createAccount(any(), any(), any(), acceptedTosVersion = "v1")
+		} returns Result.success(token)
+		every { httpClient.updateCredentials(any()) } just Runs
+
+		val usecase = createSut()
+
+		val result = usecase.setupServer(
+			url = "hammer.ink",
+			email = "test@example.com",
+			password = "password",
+			create = true,
+			acceptedTosVersion = "v1",
+		)
+
+		assertIs<ServerSetupResult.Success>(result)
+		coVerify { accountApi.createAccount("test@example.com", "password", "test-uuid", "v1") }
+	}
+
+	@Test
 	fun `Login account successfully`() = runTest {
 		val token = Token(1, "test-auth", "test-refresh")
 		val settings = ServerSettings(
-			ssl = false,
 			url = "hammer.ink",
 			email = "test@example.com",
 			userId = 1,
@@ -170,16 +219,18 @@ class AccountUseCaseTest : BaseTest() {
 		val usecase = createSut()
 
 		val result = usecase.setupServer(
-			ssl = false,
 			url = settings.url,
 			email = settings.email,
 			password = "password",
 			create = false
 		)
-		assertTrue(isSuccess(result))
+		assertIs<ServerSetupResult.Success>(result)
 
-		coVerify(exactly = 0) { accountApi.createAccount(any(), any(), any()) }
-		coVerify { accountApi.login(any(), any(), any()) }
+		coVerify(exactly = 0) { accountApi.createAccount(any(), any(), any(), any()) }
+		coVerify { accountApi.login(settings.email, "password", "test-uuid") }
+
+		assertEquals(token.auth, bearerTokenSlot.captured.accessToken)
+		assertEquals(token.refresh, bearerTokenSlot.captured.refreshToken)
 
 		coVerify { globalSettingsStore.updateServerSettings(any()) }
 		assertEquals(

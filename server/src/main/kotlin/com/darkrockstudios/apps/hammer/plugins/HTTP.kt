@@ -5,8 +5,12 @@ import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SERVER_VERSION
+import io.ktor.http.CacheControl
+import io.ktor.http.ContentType
+import io.ktor.http.content.CachingOptions
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
+import io.ktor.server.plugins.cachingheaders.CachingHeaders
 import io.ktor.server.plugins.compression.Compression
 import io.ktor.server.plugins.compression.deflate
 import io.ktor.server.plugins.compression.gzip
@@ -15,6 +19,7 @@ import io.ktor.server.plugins.conditionalheaders.ConditionalHeaders
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
 import io.ktor.server.plugins.hsts.HSTS
 import io.ktor.server.plugins.httpsredirect.HttpsRedirect
+import io.ktor.server.request.path
 import io.ktor.server.routing.IgnoreTrailingSlash
 
 fun Application.configureHTTP(config: ServerConfig) {
@@ -55,10 +60,14 @@ fun Application.configureHTTP(config: ServerConfig) {
 		header("Content-Security-Policy", cspDirectives)
 	}
 	install(ConditionalHeaders)
+	install(CachingHeaders) {
+		options { call, content -> staticAssetCaching(call.request.path(), content.contentType) }
+	}
 	install(IgnoreTrailingSlash)
 	install(Compression) {
 		gzip {
 			priority = 1.0
+			minimumSize(1024)
 		}
 		deflate {
 			priority = 10.0
@@ -76,5 +85,39 @@ fun Application.configureHTTP(config: ServerConfig) {
 			maxAgeInSeconds = 31536000
 			includeSubDomains = true
 		}
+	}
+}
+
+/**
+ * Publicly cacheable `Cache-Control`, scoped by path so only content meant to be cached is:
+ *
+ * - Dynamic OG share cards under `/og/` cache for 30 days — the same window the disk cache prunes
+ *   on — since a card's URL is keyed to a stable subject.
+ * - Static files under `/assets` cache by type (CSS/JS one day, images/fonts a week).
+ * - Everything else — HTML pages, XML sitemaps, and any dynamic image outside those paths — gets
+ *   no caching header, so it stays fresh and never leaks session-varying content into a shared
+ *   cache.
+ *
+ * ETags (via ConditionalHeaders) still catch changes on revalidation once a max-age lapses.
+ */
+internal fun staticAssetCaching(path: String, contentType: ContentType?): CachingOptions? {
+	val type = contentType?.withoutParameters()
+	return when {
+		path.startsWith("/og/") ->
+			CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 2_592_000, visibility = CacheControl.Visibility.Public))
+
+		path.startsWith("/assets") && type != null -> when {
+			type.match(ContentType.Text.CSS) ||
+				type.match(ContentType.Application.JavaScript) ||
+				type.match(ContentType("text", "javascript")) ->
+				CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 86_400, visibility = CacheControl.Visibility.Public))
+
+			type.contentType == "image" || type.contentType == "font" ->
+				CachingOptions(CacheControl.MaxAge(maxAgeSeconds = 604_800, visibility = CacheControl.Visibility.Public))
+
+			else -> null
+		}
+
+		else -> null
 	}
 }

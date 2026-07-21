@@ -13,11 +13,18 @@ import kotlin.time.Instant
 import kotlin.time.toJavaInstant
 
 sealed class PublicProjectResult {
+	/**
+	 * [isPublic] records which door the caller came through: true for access granted with no
+	 * password at all, false for a private share unlocked by one. Callers must not re-derive this
+	 * from the request — a public story fetched with a stray `?p=` is still public, and the
+	 * distinction gates indexing and whether the render may be written to disk.
+	 */
 	data class Success(
 		val userId: Long,
 		val projectUuid: ProjectId,
 		val projectName: String,
-		val penName: String
+		val penName: String,
+		val isPublic: Boolean,
 	) : PublicProjectResult()
 
 	data object NotFound : PublicProjectResult()
@@ -138,7 +145,25 @@ class ProjectAccessRepository(
 			userId = info.userId,
 			projectUuid = ProjectId(info.projectUuid),
 			projectName = info.projectName,
-			penName = info.penName
+			penName = info.penName,
+			isPublic = true,
+		)
+	}
+
+	suspend fun findPublicProjectByUuid(projectUuid: ProjectId): PublicProjectResult {
+		val info = projectAccessDao.findPublicProjectByUuid(projectUuid.id)
+			?: return PublicProjectResult.NotFound
+
+		if (info.expiresAt != null && clock.now() > info.expiresAt) {
+			return PublicProjectResult.NotFound
+		}
+
+		return PublicProjectResult.Success(
+			userId = info.userId,
+			projectUuid = ProjectId(info.projectUuid),
+			projectName = info.projectName,
+			penName = info.penName,
+			isPublic = true,
 		)
 	}
 
@@ -156,7 +181,8 @@ class ProjectAccessRepository(
 					userId = publicInfo.userId,
 					projectUuid = ProjectId(publicInfo.projectUuid),
 					projectName = publicInfo.projectName,
-					penName = publicInfo.penName
+					penName = publicInfo.penName,
+					isPublic = true,
 				)
 			}
 			// Public access expired, continue to check password access
@@ -186,7 +212,8 @@ class ProjectAccessRepository(
 			userId = passwordInfo.userId,
 			projectUuid = ProjectId(passwordInfo.projectUuid),
 			projectName = passwordInfo.projectName,
-			penName = passwordInfo.penName
+			penName = passwordInfo.penName,
+			isPublic = false,
 		)
 	}
 

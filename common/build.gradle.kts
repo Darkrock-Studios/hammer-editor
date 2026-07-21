@@ -11,10 +11,15 @@ plugins {
 	alias(libs.plugins.jetbrains.compose)
 	alias(libs.plugins.compose.compiler)
 	alias(libs.plugins.buildconfig)
+	alias(libs.plugins.koin.compiler)
 }
 
 group = "com.darkrockstudios.apps.hammer"
 version = libs.versions.app.get()
+
+koinCompiler {
+	compileSafety = true
+}
 
 kotlin {
 	jvmToolchain {
@@ -65,6 +70,7 @@ kotlin {
 				api(libs.coroutines.core)
 				api(project.dependencies.platform(libs.koin.bom.get()))
 				api(libs.koin.core)
+				api(libs.koin.annotations)
 				api(libs.okio)
 
 				implementation(libs.bundles.ktor.client)

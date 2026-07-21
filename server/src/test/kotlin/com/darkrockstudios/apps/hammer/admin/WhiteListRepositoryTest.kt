@@ -12,6 +12,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 class WhiteListRepositoryTest : BaseTest() {
@@ -113,7 +115,7 @@ class WhiteListRepositoryTest : BaseTest() {
 		val repo = createRepo()
 		repo.addToWhiteList("  TEST@Example.com  ")
 
-		assertTrue(whiteListDao.isWhiteListed("test@example.com"))
+		assertTrue(whiteListDao.isWhiteListed("test@example.com", clock.now()))
 	}
 
 	@Test
@@ -123,7 +125,7 @@ class WhiteListRepositoryTest : BaseTest() {
 		val repo = createRepo()
 		repo.removeFromWhiteList("  TEST@Example.com  ")
 
-		assertFalse(whiteListDao.isWhiteListed("test@example.com"))
+		assertFalse(whiteListDao.isWhiteListed("test@example.com", clock.now()))
 	}
 
 	@Test
@@ -151,5 +153,131 @@ class WhiteListRepositoryTest : BaseTest() {
 	fun `validateReason - over 32 chars returns false`() = runTest {
 		val repo = createRepo()
 		assertFalse(repo.validateReason("A".repeat(33)))
+	}
+
+	@Test
+	fun `isOnWhiteList - entry with no expiry never expires`() = runTest {
+		val repo = createRepo()
+		repo.addToWhiteList("forever@example.com", "Test", expires = null)
+
+		clock.advanceTime(3650.days)
+
+		assertTrue(repo.isOnWhiteList("forever@example.com"))
+	}
+
+	@Test
+	fun `isOnWhiteList - entry is whitelisted until its expiry passes`() = runTest {
+		val repo = createRepo()
+		repo.addToWhiteList("temp@example.com", "Beta tester", expires = clock.now() + 7.days)
+
+		assertTrue(repo.isOnWhiteList("temp@example.com"), "Should be whitelisted before expiry")
+
+		clock.advanceTime(7.days + 1.minutes)
+
+		// No reaping job has run — enforcement must come from the query itself.
+		assertFalse(repo.isOnWhiteList("temp@example.com"), "Should not be whitelisted after expiry")
+	}
+
+	@Test
+	fun `isOnWhiteList - expired entry still exists until reaped`() = runTest {
+		val repo = createRepo()
+		repo.addToWhiteList("temp@example.com", "Beta tester", expires = clock.now() + 1.days)
+		clock.advanceTime(2.days)
+
+		assertEquals(1L, repo.getWhiteListCount(), "Row should survive until the job reaps it")
+		assertFalse(repo.isOnWhiteList("temp@example.com"), "But it must not authorize")
+	}
+
+	@Test
+	fun `addToWhiteList - re-adding an existing email renews its expiry`() = runTest {
+		val repo = createRepo()
+		repo.addToWhiteList("renew@example.com", "Beta tester", expires = clock.now() + 1.days)
+		clock.advanceTime(2.days)
+		assertFalse(repo.isOnWhiteList("renew@example.com"), "Lapsed before renewal")
+
+		repo.addToWhiteList("renew@example.com", "Beta tester", expires = clock.now() + 30.days)
+
+		assertTrue(repo.isOnWhiteList("renew@example.com"), "Re-adding should renew, not be ignored")
+		assertEquals(1L, repo.getWhiteListCount(), "Renewal must not duplicate the row")
+	}
+
+	@Test
+	fun `addToWhiteList - re-adding can clear an expiry`() = runTest {
+		val repo = createRepo()
+		repo.addToWhiteList("clear@example.com", "Beta tester", expires = clock.now() + 1.days)
+
+		repo.addToWhiteList("clear@example.com", "Friend", expires = null)
+		clock.advanceTime(365.days)
+
+		assertTrue(repo.isOnWhiteList("clear@example.com"), "Expiry should have been cleared")
+	}
+
+	@Test
+	fun `updateExpiry - sets and clears an expiry`() = runTest {
+		val repo = createRepo()
+		repo.addToWhiteList("edit@example.com", "Friend", expires = null)
+
+		repo.updateExpiry("  EDIT@Example.com  ", clock.now() + 1.days)
+		clock.advanceTime(2.days)
+		assertFalse(repo.isOnWhiteList("edit@example.com"), "Should honour the new expiry")
+
+		repo.updateExpiry("edit@example.com", null)
+		assertTrue(repo.isOnWhiteList("edit@example.com"), "Clearing the expiry should restore access")
+	}
+
+	@Test
+	fun `getExpiredEntries - returns only lapsed entries`() = runTest {
+		val repo = createRepo()
+		repo.addToWhiteList("lapsed@example.com", "Test", expires = clock.now() + 1.days)
+		repo.addToWhiteList("current@example.com", "Test", expires = clock.now() + 30.days)
+		repo.addToWhiteList("forever@example.com", "Test", expires = null)
+
+		clock.advanceTime(2.days)
+
+		assertEquals(listOf("lapsed@example.com"), repo.getExpiredEntries().map { it.email })
+	}
+
+	@Test
+	fun `removeExpired - deletes only lapsed entries`() = runTest {
+		val repo = createRepo()
+		repo.addToWhiteList("lapsed@example.com", "Test", expires = clock.now() + 1.days)
+		repo.addToWhiteList("current@example.com", "Test", expires = clock.now() + 30.days)
+		repo.addToWhiteList("forever@example.com", "Test", expires = null)
+
+		clock.advanceTime(2.days)
+		repo.removeExpired()
+
+		assertEquals(
+			listOf("current@example.com", "forever@example.com"),
+			repo.getWhiteList(),
+		)
+	}
+
+	@Test
+	fun `getEntry - returns the entry with its expiry, cleaning the email`() = runTest {
+		val repo = createRepo()
+		val expiry = clock.now() + 30.days
+		repo.addToWhiteList("entry@example.com", "Beta tester", expires = expiry)
+
+		val entry = repo.getEntry("  ENTRY@Example.com  ")
+
+		assertEquals("entry@example.com", entry?.email)
+		// Postgres stores microseconds, so compare at millisecond granularity.
+		assertEquals(expiry.toEpochMilliseconds(), entry?.expires?.toEpochMilliseconds())
+	}
+
+	@Test
+	fun `getEntry - returns null for an unknown email`() = runTest {
+		val repo = createRepo()
+		assertEquals(null, repo.getEntry("nobody@example.com"))
+	}
+
+	@Test
+	fun `validateExpiry - null is valid and past is not`() = runTest {
+		val repo = createRepo()
+
+		assertTrue(repo.validateExpiry(null), "Never-expires is valid")
+		assertTrue(repo.validateExpiry(clock.now() + 1.days))
+		assertFalse(repo.validateExpiry(clock.now() - 1.days), "A past expiry is meaningless")
 	}
 }

@@ -4,9 +4,43 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>{{title}}</title>
+	{{#metaDescription}}
+		<meta name="description" content="{{metaDescription}}">
+	{{/metaDescription}}
+	{{#canonicalUrl}}
+		<link rel="canonical" href="{{canonicalUrl}}">
+	{{/canonicalUrl}}
+	<meta property="og:site_name" content="Hammer">
+	<meta property="og:type" content="{{ogType}}">
+	<meta property="og:title" content="{{title}}">
+	{{#metaDescription}}
+		<meta property="og:description" content="{{metaDescription}}">
+	{{/metaDescription}}
+	{{#canonicalUrl}}
+		<meta property="og:url" content="{{canonicalUrl}}">
+	{{/canonicalUrl}}
+	{{#ogImage}}
+		<meta property="og:image" content="{{ogImage}}">
+	{{/ogImage}}
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title" content="{{title}}">
+	{{#metaDescription}}
+		<meta name="twitter:description" content="{{metaDescription}}">
+	{{/metaDescription}}
+	{{#ogImage}}
+		<meta name="twitter:image" content="{{ogImage}}">
+	{{/ogImage}}
+	{{#jsonLd}}
+		<script type="application/ld+json">{{{.}}}</script>
+	{{/jsonLd}}
 	<link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
-	<script src="https://unpkg.com/htmx.org@2.0.4"></script>
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+	<script src="https://unpkg.com/htmx.org@2.0.4"
+		integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+		crossorigin="anonymous"></script>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+		integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+		crossorigin="anonymous">
+
 	<link rel="stylesheet" href="/assets/css/base.css">
 	<link rel="stylesheet" href="/assets/css/error.css">
 	{{#page_stylesheet}}
@@ -55,6 +89,12 @@
 					<span class="header-nav__label">{{msg.header_nav_community}}</span>
 				</a>
 			{{/communityEnabled}}
+			{{#headerExtraLinks}}
+				<a href="{{url}}" class="header-nav__link" title="{{title}}"{{#external}} target="_blank" rel="noopener noreferrer"{{/external}}>
+					<i class="{{icon}}"></i>
+					<span class="header-nav__label">{{title}}</span>
+				</a>
+			{{/headerExtraLinks}}
 			{{#isLoggedIn}}
 				<a href="/dashboard" class="header-nav__link header-nav__link--primary"
 				   title="{{msg.header_nav_dashboard}}">

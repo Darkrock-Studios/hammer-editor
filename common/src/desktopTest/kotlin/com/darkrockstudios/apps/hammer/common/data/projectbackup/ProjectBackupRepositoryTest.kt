@@ -339,10 +339,16 @@ class ProjectBackupRepositoryTest {
 		fileSystem.write(projectDir / "scene.txt") { writeUtf8("once upon a time") }
 
 		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
-		val backupDef = realRepo().createBackup(projectDef)
+		val repo = realRepo()
+		val backupDef = repo.createBackup(projectDef)
 
 		assertNotNull(backupDef)
 		assertTrue(fileSystem.exists(backupDef.path.toOkioPath()))
+		assertEquals(
+			listOf(backupDef.path.name),
+			repo.getBackups(projectDef).map { it.path.name },
+			"The new backup should be recorded for the project",
+		)
 	}
 
 	@Test
@@ -366,7 +372,9 @@ class ProjectBackupRepositoryTest {
 		val restored = repo.restoreBackup(backupDef, target.toHPath())
 
 		assertTrue(restored)
-		assertTrue(fileSystem.exists(target))
+		val restoredScene = fileSystem.listRecursively(target).firstOrNull { it.name == "scene.txt" }
+		assertNotNull(restoredScene, "Restored project should contain its scene file")
+		assertEquals("once upon a time", fileSystem.read(restoredScene) { readUtf8() })
 	}
 
 	@Test

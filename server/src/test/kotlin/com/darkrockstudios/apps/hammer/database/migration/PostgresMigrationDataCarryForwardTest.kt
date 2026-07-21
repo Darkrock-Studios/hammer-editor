@@ -67,6 +67,8 @@ class PostgresMigrationDataCarryForwardTest {
 		assertEquals("Writer.", author.bio)
 		assertTrue(author.community_member, "community_member preserved")
 		assertTrue(author.email_verified, "email_verified preserved")
+		// Seeded as '2024-02-15 09:00:00Z' — value must survive the column migrations intact.
+		assertEquals(1_707_987_600L, author.created.epochSeconds, "created timestamp preserved")
 
 		// CITEXT promotion survived: case-insensitive email lookup still resolves.
 		val ci = sd.accountQueries.findAccount("AUTHOR@EXAMPLE.COM").executeAsOneOrNull()
@@ -100,7 +102,8 @@ class PostgresMigrationDataCarryForwardTest {
 		val all = sd.projectAccessQueries.getAllAccessForProject(1).executeAsList()
 		assertEquals(2, all.size)
 		assertEquals(1, all.count { it.access_password == null })
-		assertNotNull(all.single { it.access_password == "let-me-in" }.expires_at)
+		// Seeded as '2099-12-31 23:59:59Z'.
+		assertEquals(4_102_444_799L, all.single { it.access_password == "let-me-in" }.expires_at?.epochSeconds)
 	}
 
 	private fun assertAuthTokens(sd: ServerDatabase) {

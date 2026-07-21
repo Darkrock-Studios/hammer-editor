@@ -491,7 +491,7 @@ class SceneEditorComponentTest : ComponentTest() {
 		assertTrue(comp.state.value.menuItems.isNotEmpty())
 
 		comp.onStop()
-		assertEquals(1, removedMenuIds.size)
+		assertEquals(listOf(addedMenus.single().id), removedMenuIds)
 		assertTrue(comp.state.value.menuItems.isEmpty())
 	}
 }

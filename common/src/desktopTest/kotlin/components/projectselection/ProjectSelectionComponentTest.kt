@@ -132,7 +132,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 		tagName = tag,
 		name = "Release $tag",
 		body = "Notes for $tag",
-		htmlUrl = "https://github.com/Wavesonics/hammer-editor/releases/tag/$tag",
+		htmlUrl = "https://github.com/Darkrock-Studios/hammer-editor/releases/tag/$tag",
 	)
 
 	@Test
@@ -240,7 +240,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 		component.openReleaseUrl()
 
 		coVerify(exactly = 1) {
-			urlLauncher.openInBrowser("https://github.com/Wavesonics/hammer-editor/releases/tag/v99.0.0")
+			urlLauncher.openInBrowser("https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v99.0.0")
 		}
 	}
 }

@@ -43,7 +43,16 @@ jobs:
       # only run as a side-effect of koverXmlReport, which is fragile - a kover config change would
       # silently stop running them.
       - name: Run Server Unit Tests
+        id: server-tests
         run: ./gradlew :server:test
+      - name: Upload server test report on failure
+        if: failure() && steps.server-tests.outcome == 'failure'
+        uses: actions/upload-artifact@v7
+        with:
+          name: server-tests-report
+          path: |
+            server/build/reports/tests/test/
+            server/build/test-results/test/
       - name: Run JavaScript Unit Tests
         run: ./gradlew :server:jsTest
       - name: Run Server Migration Tests
@@ -59,6 +68,43 @@ jobs:
           path: |
             integrationTests/build/reports/tests/jvmTest/
             integrationTests/build/test-results/jvmTest/
+
+  static-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install Semgrep
+        run: pip install semgrep==1.170.0
+      # Self-contained code-pattern rules under .semgrep/ (no registry fetch, no account).
+      # Honors `// nosemgrep` comments. `--error` makes an unsuppressed finding fail the build.
+      - name: Run Semgrep (custom rules)
+        run: semgrep scan --config .semgrep --error --metrics off
+      # Pinned for reproducibility — a tool auto-update must never spontaneously fail an
+      # unrelated PR's gate. Bump deliberately to pick up new secret-detection rules.
+      - name: Install gitleaks
+        env:
+          GITLEAKS_VERSION: 8.30.1
+        run: |
+          curl -sSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | sudo tar -xz -C /usr/local/bin gitleaks
+          gitleaks version
+      # Fails the build on any committed secret. Known test fixtures are allowlisted in
+      # .gitleaks.toml; the JSON report is parsed so failures list rule + file:line.
+      - name: Run gitleaks
+        run: |
+          gitleaks dir . --config .gitleaks.toml --no-banner --redact \
+            --report-format json --report-path gitleaks-report.json --exit-code 2 || true
+          count=$(python3 -c "import json; print(len(json.load(open('gitleaks-report.json'))))")
+          if [ "$count" -gt 0 ]; then
+            echo "::error::gitleaks found $count secret(s):"
+            python3 -c "import json; [print(f\"  {x['RuleID']}  {x['File']}:{x['StartLine']}\") for x in json.load(open('gitleaks-report.json'))]"
+            exit 1
+          fi
+          echo "gitleaks: no leaks"
 
   android-instrumented-tests:
     runs-on: ubuntu-latest

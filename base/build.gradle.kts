@@ -43,6 +43,8 @@ kotlin {
 
 		val commonMain by getting {
 			dependencies {
+				api(project.dependencies.platform(libs.koin.bom.get()))
+				api(libs.koin.core)
 				implementation(libs.serialization.core)
 				implementation(libs.coroutines.core)
 				implementation(libs.kotlinx.datetime)

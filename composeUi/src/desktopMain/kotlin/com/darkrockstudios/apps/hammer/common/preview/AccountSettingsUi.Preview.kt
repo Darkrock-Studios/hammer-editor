@@ -32,7 +32,6 @@ internal fun ScreenAccountSettingsUiTabletPreview() {
 			serverIsLoggedIn = true,
 			currentEmail = "admin@example.com",
 			currentUrl = "https://hammer-server.com",
-			currentSsl = true,
 			serverWorking = false,
 		)
 	)
@@ -54,7 +53,6 @@ internal fun ScreenAccountSettingsUiServerConfiguredPreview() {
 			serverIsLoggedIn = true,
 			currentEmail = "admin@example.com",
 			currentUrl = "https://hammer-server.com",
-			currentSsl = true,
 			serverWorking = false,
 		)
 	)

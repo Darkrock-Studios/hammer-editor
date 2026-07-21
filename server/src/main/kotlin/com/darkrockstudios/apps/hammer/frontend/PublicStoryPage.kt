@@ -1,36 +1,51 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.applyRevalidationHeaders
+import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
+import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
+import com.darkrockstudios.apps.hammer.frontend.utils.matchesETag
+import com.darkrockstudios.apps.hammer.frontend.utils.metaDescription
+import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.pageETag
 import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
+import com.darkrockstudios.apps.hammer.frontend.utils.storyArticleJsonLd
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
-import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.project.access.PublicProjectResult
+import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.PaginatedExportResult
-import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.story.WordCountUtils
-import io.ktor.http.*
-import io.ktor.server.htmx.*
-import io.ktor.server.mustache.*
-import io.ktor.server.plugins.*
-import io.ktor.server.request.*
-import io.ktor.server.response.*
-import io.ktor.server.routing.*
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.htmx.hx
+import io.ktor.server.mustache.MustacheContent
+import io.ktor.server.plugins.origin
+import io.ktor.server.request.receiveParameters
+import io.ktor.server.request.userAgent
+import io.ktor.server.response.respond
+import io.ktor.server.response.respondRedirect
+import io.ktor.server.routing.Route
+import io.ktor.server.routing.get
+import io.ktor.server.routing.post
+import io.ktor.server.routing.route
 import io.ktor.server.sessions.get
 import io.ktor.server.sessions.sessions
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 fun Route.publicStoryPage(
-	storyExportService: StoryExportService,
+	storyRendererService: StoryRendererService,
 	projectAccessRepository: ProjectAccessRepository,
 	projectDao: ProjectDao,
 	storyReaderCollector: StoryReaderCollector,
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
+	serverConfig: ServerConfig,
 ) {
 	route("/a/{penName}/{projectName}") {
 		get {
@@ -56,9 +71,7 @@ fun Route.publicStoryPage(
 
 			// Resolve the project by the id embedded in its URL segment, scoped to this author's
 			// projects; the slug beside the id is decorative and ignored.
-			val projectId = ProjectName.idFromSegment(projectNameParam)
-			val projectName = projectsRepository.getProjectsWithSyncDate(account.id)
-				.find { ProjectName.shortId(it.uuid) == projectId }?.name
+			val projectName = projectsRepository.findProjectByUrlSegment(account.id, projectNameParam)?.name
 			if (projectName == null) {
 				call.respond(HttpStatusCode.NotFound)
 				return@get
@@ -92,47 +105,81 @@ fun Route.publicStoryPage(
 				}
 
 				is PublicProjectResult.Success -> {
-					// Only publicly-published stories (no password) by authors who participate in
-					// the community feature are indexable. A crawler never supplies a password, so a
-					// Success it reaches is necessarily public access; the password check keeps
-					// private shares (reached with a valid password) out of the index too.
-					val indexable = password.isNullOrBlank() && account.community_member
+					// Only publicly-published stories by authors who participate in the community
+					// feature are indexable. `isPublic` comes from the access layer, which knows
+					// whether it granted access with no password or unlocked a private share.
+					val indexable = resolved.isPublic && account.community_member
 					call.applyRobotsTag(indexable = indexable)
 
-					// Best-effort unique-reader count, skipping the author viewing their own story.
-					val viewerId = call.sessions.get<UserSession>()?.userId
-					if (viewerId != resolved.userId) {
-						projectDao.getProjectIdOrNull(resolved.userId, resolved.projectUuid)?.let { projectId ->
-							storyReaderCollector.record(
-								projectId = projectId,
-								clientIp = call.request.origin.remoteAddress,
-								userAgent = call.request.userAgent(),
-							)
-						}
+					val passwordParam = if (!password.isNullOrBlank()) {
+						"&p=${URLEncoder.encode(password, StandardCharsets.UTF_8)}"
+					} else {
+						""
 					}
 
-					val exportResult = storyExportService.exportStoryAsHtmlPaginated(
-						userId = resolved.userId,
-						projectId = resolved.projectUuid,
-						page = page
+					// The page shell — everything not derived from the story render. Built first so
+					// it can be hashed into the validator, then filled in with the render below.
+					val model = call.withDefaults(
+						mapOf(
+							"page_stylesheet" to "/assets/css/story.css",
+							"title" to "$projectName · ${resolved.penName} — Hammer",
+							// Self-referential canonical: each page is its own indexable URL. The
+							// password (?p) is never included — it's a secret and those pages are noindex.
+							"canonicalUrl" to (call.canonicalUrl() + if (page > 1) "?page=$page" else ""),
+							"ogType" to "article",
+							// Dynamic card only for public (password-free) access, matching the OG
+							// route; a private share falls back to the static card, never a 404.
+							"ogImage" to if (serverConfig.richLinkPreviews && resolved.isPublic) {
+								call.canonicalUrl("/og/s/${resolved.projectUuid.id}.png")
+							} else {
+								call.canonicalUrl("/assets/images/og-story.png")
+							},
+							"page_pre_script" to "/assets/js/story-reader-logic.js",
+							"page_script" to "/assets/js/story-reader.js",
+							"projectName" to projectName,
+							"authorPenName" to resolved.penName,
+							"authorPenNameUrl" to ProjectName.penNameForUrl(resolved.penName),
+						)
 					)
+
+					// Resolved once and reused by the render below, so the ETag costs no extra queries.
+					val prepared =
+						storyRendererService.prepareExport(resolved.userId, resolved.projectUuid)
+
+					// A reader who already holds this exact page is answered without rendering it.
+					// `indexable` is an explicit input: it gates the JSON-LD block but never reaches
+					// the shell model.
+					val etag = prepared?.let { pageETag(model, it.version, page, passwordParam, indexable) }
+					if (etag != null && call.matchesETag(etag)) {
+						call.applyRevalidationHeaders(etag)
+						call.respond(HttpStatusCode.NotModified)
+						return@get
+					}
+
+					// The unique-reader count is no longer recorded here on page load — that
+					// counts everyone who clicks, including bounces. Instead the page loads a
+					// tiny script that fires a beacon to POST .../read once the visitor has
+					// actually dwelt on the page for a few seconds (see story-reader.js). That
+					// beacon is what best-effort filters out drive-by clicks.
+
+					val exportResult = if (prepared == null) {
+						PaginatedExportResult.ProjectNotFound
+					} else {
+						storyRendererService.renderStoryAsHtmlPaginated(
+							prepared = prepared,
+							page = page,
+							// Only a publicly-reachable story may be written to disk; a private
+							// share's prose is encrypted at rest and must stay that way.
+							cacheable = resolved.isPublic,
+						)
+					}
 
 					when (exportResult) {
 						is PaginatedExportResult.Success -> {
 							val data = exportResult.data
-							val passwordParam = if (!password.isNullOrBlank()) "&p=${
-								URLEncoder.encode(
-									password,
-									StandardCharsets.UTF_8
-								)
-							}" else ""
 
-							val model = call.withDefaults(
+							model.putAll(
 								mapOf(
-									"page_stylesheet" to "/assets/css/story.css",
-									"projectName" to data.projectName,
-									"authorPenName" to resolved.penName,
-									"authorPenNameUrl" to ProjectName.penNameForUrl(resolved.penName),
 									"storyHtml" to data.pageHtml,
 									"hasContent" to data.hasContent,
 									"sceneCount" to data.sceneCount,
@@ -148,6 +195,19 @@ fun Route.publicStoryPage(
 									"prevPageUrl" to "/a/$penNameForUrl/$projectNameForUrl?page=${data.prevPage}$passwordParam"
 								)
 							)
+							metaDescription(
+								call.msg("public_story_meta_description", data.projectName, resolved.penName),
+							)?.let { model["metaDescription"] = it }
+							if (indexable) {
+								model["jsonLd"] = storyArticleJsonLd(
+									title = data.projectName,
+									url = call.canonicalUrl("/a/$penNameForUrl/$projectNameForUrl"),
+									authorName = resolved.penName,
+									authorUrl = call.canonicalUrl("/a/${ProjectName.penNameForUrl(resolved.penName)}"),
+									wordCount = data.totalWordCount.toLong(),
+								)
+							}
+							etag?.let { call.applyRevalidationHeaders(it) }
 							call.respond(MustacheContent("publicstory.mustache", model))
 						}
 
@@ -156,12 +216,7 @@ fun Route.publicStoryPage(
 						}
 
 						is PaginatedExportResult.Error -> {
-							val model = call.withDefaults(
-								mapOf(
-									"page_stylesheet" to "/assets/css/story.css",
-									"errorMessage" to exportResult.message,
-								)
-							)
+							model["errorMessage"] = exportResult.message
 							call.respond(
 								HttpStatusCode.InternalServerError,
 								MustacheContent("storyerror.mustache", model)
@@ -197,6 +252,54 @@ fun Route.publicStoryPage(
 			} else {
 				call.respondRedirect("/a/$penNameParam/$projectNameParam")
 			}
+		}
+
+		// Best-effort "reader" beacon. story-reader.js fires this only after the visitor
+		// has actually dwelt on the page for a few seconds, so drive-by clicks (bounces)
+		// never reach here. Resolution mirrors the GET exactly — including the author-skip
+		// and access checks — so a beacon can only record a read the visitor could load.
+		post("/read") {
+			val penNameParam = call.parameters["penName"]
+			val projectNameParam = call.parameters["projectName"]
+
+			// A beacon is fire-and-forget: always answer 204 and never leak resolution
+			// outcomes, so a bad beacon looks the same as a good one.
+			if (penNameParam.isNullOrBlank() || projectNameParam.isNullOrBlank()) {
+				call.respond(HttpStatusCode.NoContent)
+				return@post
+			}
+
+			val password = call.request.queryParameters["p"]
+
+			val account = resolveByPenName(penNameParam) { accountsRepository.findAccountByPenName(it) }
+			val penName = account?.pen_name
+			if (account == null || penName == null) {
+				call.respond(HttpStatusCode.NoContent)
+				return@post
+			}
+
+			val projectName = projectsRepository.findProjectByUrlSegment(account.id, projectNameParam)?.name
+			if (projectName == null) {
+				call.respond(HttpStatusCode.NoContent)
+				return@post
+			}
+
+			val resolved = projectAccessRepository.findAccessibleProject(penName, projectName, password)
+			if (resolved is PublicProjectResult.Success) {
+				// Skip the author reading their own story.
+				val viewerId = call.sessions.get<UserSession>()?.userId
+				if (viewerId != resolved.userId) {
+					projectDao.getProjectIdOrNull(resolved.userId, resolved.projectUuid)?.let { projectId ->
+						storyReaderCollector.record(
+							projectId = projectId,
+							clientIp = call.request.origin.remoteAddress,
+							userAgent = call.request.userAgent(),
+						)
+					}
+				}
+			}
+
+			call.respond(HttpStatusCode.NoContent)
 		}
 	}
 }

@@ -14,7 +14,6 @@ import io.mockk.coVerify
 import kotlinx.serialization.json.Json
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 
@@ -52,10 +51,7 @@ class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 			Json.decodeFromString<BeginProjectsSyncResponse>(responseBody).apply {
 				assertEquals(syncId, this.syncId)
 				assertEquals(syncData.projects.map { it.toApi() }.toSet(), this.projects)
-				syncData.deletedProjects.forEach { syncProject ->
-					val found = deletedProjects.any { it == syncProject }
-					assertTrue(found, "Deleted project not found: $syncProject")
-				}
+				assertEquals(syncData.deletedProjects, this.deletedProjects)
 			}
 
 			coVerify { projectsRepository.beginProjectsSync(userId, "test-install-id") }

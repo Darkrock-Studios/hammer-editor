@@ -12,6 +12,9 @@ import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntr
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityRef
+import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesUi
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
@@ -66,9 +69,21 @@ private val component = object : BrowseEntries {
 	override val state: Value<BrowseEntries.State> = MutableValue(
 		BrowseEntries.State()
 	)
-	override val filterText = MutableValue("asd")
+	override val filterText = MutableValue("asd #gothic")
+	override val tagIndex: Value<TagIndex> = MutableValue(
+		TagIndex(
+			tagToEntities = mapOf(
+				"gothic" to setOf(TaggedEntityRef(TaggedEntityType.Encyclopedia, 1)),
+				"coastal" to setOf(TaggedEntityRef(TaggedEntityType.Encyclopedia, 2)),
+			),
+			countsByType = mapOf(
+				TaggedEntityType.Encyclopedia to mapOf("gothic" to 1, "coastal" to 1),
+			),
+		)
+	)
 
 	override fun updateFilter(text: String?, type: EntryType?) {}
+	override fun addTagToSearch(tag: String) {}
 	override fun getFilteredEntries(): List<EntryDef> = emptyList()
 	override suspend fun loadEntryContent(entryDef: EntryDef) = EntryContent(
 		id = 1,
@@ -80,6 +95,5 @@ private val component = object : BrowseEntries {
 
 	override fun getImagePath(entryDef: EntryDef) = null
 	override suspend fun calculateEntryImageHash(entryDef: EntryDef) = null
-	override fun addTagToSearch(tag: String) {}
 	override fun clearFilterText() {}
 }

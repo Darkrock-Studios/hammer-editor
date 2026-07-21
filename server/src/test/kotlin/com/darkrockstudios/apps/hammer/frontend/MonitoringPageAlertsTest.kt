@@ -33,8 +33,10 @@ class MonitoringPageAlertsTest {
 		val alert = alerts.first()
 		assertEquals("warning", alert["severity"])
 		assertEquals("/api/route", alert["route"])
-		assertTrue(alert.containsKey("detail"))
-		assertTrue(alert.containsKey("href"))
+		// Rate formatting is locale-dependent ("30.0%" vs "30,0%"); assert the stable part.
+		val detail = alert["detail"] as String
+		assertTrue(detail.contains("of 20 requests failed"), detail)
+		assertEquals("/admin/monitoring/errors?route=%2Fapi%2Froute", alert["href"])
 	}
 
 	@Test
@@ -64,8 +66,6 @@ class MonitoringPageAlertsTest {
 	fun `href contains URL-encoded route`() {
 		val alerts = deriveAlerts(listOf(stat("/api/user/{id}/sync", 20L, 6L)))
 		val href = alerts.first()["href"] as String
-		// Braces are encoded; literal / may or may not be encoded depending on URLEncoder
-		assertTrue(href.contains("%7B") || href.contains("{"))
-		assertTrue(href.contains("route="))
+		assertEquals("/admin/monitoring/errors?route=%2Fapi%2Fuser%2F%7Bid%7D%2Fsync", href)
 	}
 }

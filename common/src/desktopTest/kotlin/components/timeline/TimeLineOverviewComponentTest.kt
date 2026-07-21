@@ -177,7 +177,7 @@ class TimeLineOverviewComponentTest : BaseTest() {
 		)
 
 		// 1 from decompose, 1 from our component
-		assertEquals(2, lifecycleCallbacks.size, "Three callbacks should be captured")
+		assertEquals(2, lifecycleCallbacks.size, "Two callbacks should be captured")
 
 		// First callback is from decompose
 		lifecycleCallbacks[1].onCreate()

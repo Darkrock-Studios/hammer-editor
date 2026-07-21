@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.frontend
 
+import com.darkrockstudios.apps.hammer.ExtraLink
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
@@ -14,6 +15,9 @@ import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
+import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
+import com.darkrockstudios.apps.hammer.frontend.og.ogImageRoutes
+import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import com.darkrockstudios.apps.hammer.monitoring.ActivityType
@@ -36,7 +40,7 @@ import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.secret.KeyringManager
-import com.darkrockstudios.apps.hammer.story.StoryExportService
+import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.ServerSecretManager
@@ -67,6 +71,7 @@ import org.koin.core.qualifier.named
 import org.koin.ktor.ext.get
 import org.koin.ktor.ext.inject
 import java.security.MessageDigest
+import java.util.Locale
 import kotlin.time.Duration.Companion.days
 
 fun Route.frontend() {
@@ -74,7 +79,7 @@ fun Route.frontend() {
 	val whiteListRepository: WhiteListRepository by inject()
 	val configRepository: ConfigRepository by inject()
 	val projectsRepository: ProjectsRepository by inject()
-	val storyExportService: StoryExportService by inject()
+	val storyRendererService: StoryRendererService by inject()
 	val projectAccessRepository: ProjectAccessRepository by inject()
 	val penNameService: PenNameService by inject()
 	val bioService: BioService by inject()
@@ -113,21 +118,28 @@ fun Route.frontend() {
 	}
 
 	robotsRoutes()
+	sitemapRoutes(serverConfig, accountsRepository, projectAccessRepository, configRepository)
 	setupPage(serverConfig)
 	homePage(whiteListRepository, configRepository, serverConfig, accountsRepository, projectAccessRepository)
 	aboutPage(configRepository, serverConfig, accountsRepository, projectAccessRepository, markdownService)
+	termsOfServicePage()
+	privacyPolicyPage()
 	localeRoutes()
 	authRoutes(accountsRepository, whiteListRepository, configRepository, serverConfig)
 	passwordResetRoutes(passwordResetRepository)
 	dashboardPage(projectsRepository, accountsRepository, penNameService, bioService, serverConfig, markdownService)
 	storyPage(
-		storyExportService, projectAccessRepository, projectsRepository, accountsRepository, reviewRepository,
+		storyRendererService,
+		projectAccessRepository,
+		projectsRepository,
+		accountsRepository,
+		reviewRepository,
 		storyReaderRepository, projectDao, clock,
 	)
 	reviewFrontend(
 		reviewRepository = reviewRepository,
 		projectsRepository = projectsRepository,
-		storyExportService = storyExportService,
+		storyRendererService = storyRendererService,
 		accountsRepository = accountsRepository,
 		projectDao = projectDao,
 		markdownService = markdownService,
@@ -135,15 +147,20 @@ fun Route.frontend() {
 		reviewSubmittedMailer = emailService?.let { com.darkrockstudios.apps.hammer.review.ReviewSubmittedMailer(it) },
 		clock = clock,
 	)
-	authorPage(accountsRepository, projectAccessRepository, markdownService)
+	authorPage(accountsRepository, projectAccessRepository, markdownService, serverConfig)
 	publicStoryPage(
-		storyExportService,
+		storyRendererService,
 		projectAccessRepository,
 		projectDao,
 		storyReaderCollector,
 		accountsRepository,
 		projectsRepository,
+		serverConfig,
 	)
+	if (serverConfig.richLinkPreviews) {
+		val ogImageService by inject<OgImageService>()
+		ogImageRoutes(accountsRepository, projectAccessRepository, ogImageService)
+	}
 	adminPage(
 		whiteListRepository,
 		configRepository,
@@ -304,6 +321,13 @@ suspend fun sessionIsAuthorized(
 	}
 }
 
+private fun ExtraLink.toModel(locale: Locale): Map<String, Any> = mapOf(
+	"url" to url,
+	"icon" to icon,
+	"title" to title(locale),
+	"external" to isExternal,
+)
+
 fun MutableMap<String, Any>.addDefaults(): MutableMap<String, Any> {
 	this["version"] = BuildMetadata.APP_VERSION
 	return this
@@ -312,6 +336,13 @@ fun MutableMap<String, Any>.addDefaults(): MutableMap<String, Any> {
 suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): MutableMap<String, Any> {
 	val model = withMessages(data).addDefaults()
 	model.putIfAbsent("title", msg("page_title"))
+	// Self-referential canonical from the request path (query stripped). Pages whose query
+	// params are content-bearing (e.g. story pagination) override this with their own value.
+	model.putIfAbsent("canonicalUrl", canonicalUrl())
+	// OpenGraph / Twitter card defaults; pages override ogType (profile/article) and may
+	// override ogImage. Title, description, and url reuse the fields set above.
+	model.putIfAbsent("ogType", "website")
+	model.putIfAbsent("ogImage", canonicalUrl("/assets/images/og-default.png"))
 	val session = sessions.get<UserSession>()
 	if (session != null) {
 		model["isLoggedIn"] = true
@@ -321,12 +352,27 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 		model["isLoggedIn"] = false
 	}
 
+	val serverConfig = get<ServerConfig>()
+
 	val configRepository = get<ConfigRepository>()
 	val aboutContent = configRepository.get(AdminServerConfig.ABOUT_SERVER)
-	model["hasAboutPage"] = aboutContent.isNotBlank()
+	val hasAboutPage = aboutContent.isNotBlank()
+	// Footer visibility keys off config, never a file read, so page renders stay off the filesystem.
+	val hasTermsPage = serverConfig.termsOfService != null
+	val hasPrivacyPage = serverConfig.privacyPolicy != null
+	model["hasAboutPage"] = hasAboutPage
+	model["hasTermsPage"] = hasTermsPage
+	model["hasPrivacyPage"] = hasPrivacyPage
+
+	// withMessages() already resolved the viewer's locale; re-resolving repeats its config
+	// lookup, which is an uncached query for a request with no cookie or Accept-Language.
+	val locale = (model["locale"] as? String)?.let(Locale::forLanguageTag) ?: Locale.ENGLISH
+	val footerExtraLinks = serverConfig.extraLinks.filter { it.placement.inFooter }.map { it.toModel(locale) }
+	model["headerExtraLinks"] = serverConfig.extraLinks.filter { it.placement.inHeader }.map { it.toModel(locale) }
+	model["footerExtraLinks"] = footerExtraLinks
+	model["hasFooterNav"] = hasAboutPage || hasTermsPage || hasPrivacyPage || footerExtraLinks.isNotEmpty()
 
 	// Add Patreon link for footer if configured
-	val serverConfig = get<ServerConfig>()
 	if (serverConfig.patreonEnabled == true) {
 		val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
 		if (patreonConfig.enabled && patreonConfig.patreonUrl.isNotBlank()) {

@@ -88,10 +88,18 @@ class TokenHasherTest : BaseTest() {
 	}
 
 	@Test
-	fun `with no keyring the auto-managed secret still produces a hash`() = runTest {
+	fun `with no keyring the auto-managed secret hashes stably across instances`() = runTest {
 		val hasher = TokenHasher(
 			managerNoKeyring("/absent".toPath()), ServerSecretManager(fileSystem, secureRandom), base64,
 		)
-		assertTrue(hasher.hashToken(token).isNotEmpty())
+		val hash = hasher.hashToken(token)
+		assertTrue(hash.isNotEmpty())
+
+		// A fresh instance over the same filesystem must reload the persisted secret and
+		// agree, or every stored token hash would break on server restart.
+		val secondInstance = TokenHasher(
+			managerNoKeyring("/absent".toPath()), ServerSecretManager(fileSystem, secureRandom), base64,
+		)
+		assertEquals(hash, secondInstance.hashToken(token))
 	}
 }

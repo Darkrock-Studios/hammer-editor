@@ -1,5 +1,7 @@
 package server
 
+import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.CreateProjectResponse
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
@@ -8,8 +10,11 @@ import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
+import io.ktor.http.headersOf
 import io.ktor.serialization.kotlinx.json.json
 import io.mockk.every
 import io.mockk.mockk
@@ -30,6 +35,7 @@ import kotlin.test.assertTrue
 class ServerProjectsApiLegacyFallbackTest : BaseTest() {
 
 	private val userId = 42L
+	private val json = Json { ignoreUnknownKeys = true }
 	private lateinit var globalSettingsStore: GlobalSettingsStore
 
 	@BeforeEach
@@ -63,7 +69,17 @@ class ServerProjectsApiLegacyFallbackTest : BaseTest() {
 
 	private fun legacyServer() = MockEngine { request ->
 		if (request.method == HttpMethod.Get) {
-			respond("Okay", HttpStatusCode.OK)
+			if (request.url.encodedPath.endsWith("/create")) {
+				respond(
+					content = json.encodeToString(
+						CreateProjectResponse(ProjectId("uuid-created"), alreadyExisted = false)
+					),
+					status = HttpStatusCode.OK,
+					headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString()),
+				)
+			} else {
+				respond("Okay", HttpStatusCode.OK)
+			}
 		} else {
 			respond("", HttpStatusCode.NotFound)
 		}
@@ -71,7 +87,7 @@ class ServerProjectsApiLegacyFallbackTest : BaseTest() {
 
 	private fun createApi(engine: MockEngine): ServerProjectsApi {
 		val client = HttpClient(engine) {
-			install(ContentNegotiation) { json(Json { ignoreUnknownKeys = true }) }
+			install(ContentNegotiation) { json(json) }
 		}
 		return ServerProjectsApi(client, globalSettingsStore, TestStrRes())
 	}
@@ -104,11 +120,18 @@ class ServerProjectsApiLegacyFallbackTest : BaseTest() {
 		val engine = legacyServer()
 		val api = createApi(engine)
 
-		assertTrue(api.deleteProject(com.darkrockstudios.apps.hammer.base.ProjectId("uuid-1"), "sync-1").isSuccess)
-		assertTrue(api.renameProject(com.darkrockstudios.apps.hammer.base.ProjectId("uuid-1"), "sync-1", "New Name").isSuccess)
+		assertTrue(api.deleteProject(ProjectId("uuid-1"), "sync-1").isSuccess)
+		assertTrue(api.renameProject(ProjectId("uuid-1"), "sync-1", "New Name").isSuccess)
+		val created = api.createProject("New Project", "sync-1")
+		assertTrue(created.isSuccess)
+		assertEquals(ProjectId("uuid-created"), created.getOrThrow().projectId)
 
 		assertEquals(
-			listOf(HttpMethod.Post, HttpMethod.Get, HttpMethod.Post, HttpMethod.Get),
+			listOf(
+				HttpMethod.Post, HttpMethod.Get,
+				HttpMethod.Post, HttpMethod.Get,
+				HttpMethod.Post, HttpMethod.Get,
+			),
 			engine.requestHistory.map { it.method },
 		)
 	}

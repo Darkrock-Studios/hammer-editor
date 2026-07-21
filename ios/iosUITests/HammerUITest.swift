@@ -99,15 +99,6 @@ class HammerUITest: XCTestCase {
         return el
     }
 
-    /// Assert an element disappears (e.g. the save affordance vanishing after a successful save).
-    func waitUntilGone(_ tag: String, timeout: TimeInterval = HammerUITest.defaultTimeout,
-                       file: StaticString = #file, line: UInt = #line) {
-        let gone = XCTNSPredicateExpectation(predicate: NSPredicate(format: "exists == false"),
-                                             object: element(tag))
-        XCTAssertEqual(XCTWaiter().wait(for: [gone], timeout: timeout), .completed,
-                       "Element still present after \(timeout)s: \(tag)", file: file, line: line)
-    }
-
     // MARK: - Interaction
 
     /// Tap a Compose element by its center point. Compose renders to a single surface, so most
@@ -120,6 +111,26 @@ class HammerUITest: XCTestCase {
         app.coordinate(withNormalizedOffset: .zero)
             .withOffset(CGVector(dx: frame.midX, dy: frame.midY))
             .tap()
+    }
+
+    /// Tap a Compose element by its center and re-tap on a short sub-timeout until `reaction`
+    /// becomes true. `tapCenter` synthesizes a best-effort *coordinate* tap onto Compose's single
+    /// surface, and an individual tap can be silently dropped (mid-relayout, under simulator load,
+    /// or while the software-keyboard geometry is shifting). A lone tap followed by one long wait is
+    /// the classic XCUITest flake — a single dropped tap costs the entire timeout and fails the
+    /// test — so re-tapping until the app demonstrably reacts converges instead. `reaction` is
+    /// checked first, so an already-satisfied state never taps and a tap that *did* land isn't
+    /// double-fired into a toggle.
+    func tapUntil(_ element: XCUIElement, until reaction: () -> Bool,
+                  timeout: TimeInterval = HammerUITest.defaultTimeout,
+                  file: StaticString = #file, line: UInt = #line) {
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            if reaction() { return }
+            tapCenter(element)
+            if poll(reaction, timeout: 3) { return }
+        } while Date() < deadline
+        XCTFail("App never reacted after re-tapping for \(timeout)s", file: file, line: line)
     }
 
     /// Tap near a field's top-leading edge to focus it. For multiline Compose editors (scene text,
@@ -137,20 +148,100 @@ class HammerUITest: XCTestCase {
         tapCenter(waitFor(tag, timeout: timeout, file: file, line: line))
     }
 
+    /// Tap the element tagged `tag`, re-tapping until the element tagged `expect` appears — i.e.
+    /// until the tap has demonstrably registered (a menu opened, a screen navigated). Robust
+    /// against dropped/stale Compose taps; see `tapUntil(_:until:)`. Use when a tap's effect is a
+    /// *new* element surfacing.
+    func tap(_ tag: String, expecting expect: String, timeout: TimeInterval = HammerUITest.defaultTimeout,
+             file: StaticString = #file, line: UInt = #line) {
+        let el = waitFor(tag, timeout: timeout, file: file, line: line)
+        tapUntil(el, until: { self.element(expect).exists }, timeout: timeout, file: file, line: line)
+    }
+
+    /// Tap the element tagged `tag` until it disappears — e.g. the scene-editor save affordance,
+    /// which is rendered only while the buffer is dirty and so vanishes once the save lands.
+    ///
+    /// The save button lives in the top bar, and right after the edit that surfaces it its
+    /// accessibility frame can be briefly *stale* — reported up under the status bar (a dead pixel)
+    /// before the layout settles. A blind coordinate tap there does nothing, and repeatedly tapping
+    /// that dead spot can even scroll/navigate the app away. So only tap when the button is actually
+    /// hittable (settled), using a hit-tested `tap()` that re-resolves its real position; otherwise
+    /// wait for it to settle. Re-tap until it's gone, which also covers a dropped tap or a late IME
+    /// keystroke re-dirtying the buffer right after a save.
+    func tapUntilGone(_ tag: String, timeout: TimeInterval = HammerUITest.defaultTimeout,
+                      file: StaticString = #file, line: UInt = #line) {
+        let el = waitFor(tag, timeout: timeout, file: file, line: line)
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            if !el.exists { return }
+            if el.isHittable {
+                el.tap()
+                if poll({ !el.exists }, timeout: 3) { return }
+            } else {
+                _ = poll({ el.isHittable || !el.exists }, timeout: 1)
+            }
+        } while Date() < deadline
+        XCTFail("Element still present after \(timeout)s: \(tag)", file: file, line: line)
+    }
+
     /// Tap a tagged field and type into it. Compose text fields don't report per-element keyboard
     /// focus, so `XCUIElement.typeText` fails with "Neither element nor any descendant has
     /// keyboard focus". Tapping focuses the Compose field (raising the keyboard); typing on the
     /// *application* then routes to whatever Compose has focused — the reliable path for
     /// Compose-on-iOS text entry.
+    ///
+    /// The focus tap is a best-effort coordinate tap and can be silently dropped (see `tapUntil`),
+    /// so re-focus on a short sub-timeout until the keyboard rises rather than betting the whole
+    /// test on one tap. If a hardware keyboard is "connected" on the simulator the software one
+    /// stays hidden and typing fails outright — the run script disables that (see ios/scripts).
     func type(_ text: String, into tag: String, timeout: TimeInterval = HammerUITest.defaultTimeout,
               file: StaticString = #file, line: UInt = #line) {
-        tapToFocus(waitFor(tag, timeout: timeout, file: file, line: line))
-        // The software keyboard must be up for typing to route to the focused Compose field.
-        // If a hardware keyboard is "connected" on the simulator it stays hidden and typeText
-        // fails with "no keyboard focus" — the run script disables that (see ios/scripts).
-        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 10),
-                      "Software keyboard never appeared after focusing \(tag)", file: file, line: line)
-        app.typeText(text)
+        let field = waitFor(tag, timeout: timeout, file: file, line: line)
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            tapToFocus(field)
+            if app.keyboards.firstMatch.waitForExistence(timeout: 3) {
+                app.typeText(text)
+                return
+            }
+        } while Date() < deadline
+        XCTFail("Software keyboard never appeared after focusing \(tag) within \(timeout)s",
+                file: file, line: line)
+    }
+
+    /// Type into a Compose rich-text editor (the scene body) and retry until the edit lands.
+    ///
+    /// Unlike the note body — whose `MarkdownEditField` is always enabled — the scene editor's
+    /// `SpellCheckingTextEditor` is gated `enabled = hasReceivedInitialBuffer`, so its platform IME
+    /// input session only starts once the scene buffer has loaded. Focusing/typing before that
+    /// silently drops the keystrokes, so a single injection can race the buffer load and never
+    /// dirty the buffer (leaving the save affordance hidden). Re-focus and re-inject until `until`
+    /// confirms the change, mirroring the Android `typeIntoEditor` retry loop.
+    func typeIntoEditor(_ text: String, into tag: String, until condition: () -> Bool,
+                        timeout: TimeInterval = HammerUITest.defaultTimeout,
+                        file: StaticString = #file, line: UInt = #line) {
+        let field = waitFor(tag, timeout: timeout, file: file, line: line)
+        let deadline = Date().addingTimeInterval(timeout)
+        repeat {
+            tapToFocus(field)
+            // The software keyboard only rises once the editor is enabled and focused; if it
+            // doesn't this round, loop and re-focus rather than failing outright.
+            if app.keyboards.firstMatch.waitForExistence(timeout: 3) {
+                app.typeText(text)
+            }
+            if poll(condition, timeout: 1) { return }
+        } while Date() < deadline
+        XCTFail("Editor input for \(tag) never propagated within \(timeout)s", file: file, line: line)
+    }
+
+    /// Poll `condition` until it's true or `timeout` elapses, pumping the run loop between checks.
+    private func poll(_ condition: () -> Bool, timeout: TimeInterval, interval: TimeInterval = 0.25) -> Bool {
+        let deadline = Date().addingTimeInterval(timeout)
+        while Date() < deadline {
+            if condition() { return true }
+            RunLoop.current.run(until: Date().addingTimeInterval(interval))
+        }
+        return condition()
     }
 
     // MARK: - Shared flows
@@ -173,22 +264,22 @@ class HammerUITest: XCTestCase {
         // FormField submits on the IME action; the keyboard return key triggers it.
         app.typeText("\n")
 
-        // The new project shows as a card on the list; tap the one we just made.
+        // The new project shows as a card on the list; tap the one we just made. openProjectCard
+        // re-taps until the project root's nav rail renders, so on return we're in the open project.
         openProjectCard(named: name, file: file, line: line)
-
-        // The project root renders its navigation rail once open.
-        waitFor(Tag.navHome, file: file, line: line)
         return name
     }
 
-    /// Tap the project card matching `name`, falling back to the first card if the label isn't
-    /// exposed (Compose may merge the card's text into the card node's label).
+    /// Tap the project card matching `name` to open it, falling back to the first card if the label
+    /// isn't exposed (Compose may merge the card's text into the card node's label). The card tap is
+    /// re-tried until the project root's nav rail renders — a single Compose coordinate tap can be
+    /// dropped, which would otherwise fail the whole test on one miss (see `tapUntil`).
     private func openProjectCard(named name: String, file: StaticString, line: UInt) {
         let cards = app.descendants(matching: .any).matching(identifier: Tag.projectCard)
         let named = cards.matching(NSPredicate(format: "label CONTAINS[c] %@", name)).firstMatch
         let card = named.waitForExistence(timeout: 5) ? named : cards.firstMatch
         XCTAssertTrue(card.waitForExistence(timeout: HammerUITest.defaultTimeout),
                       "No project card appeared for \(name)", file: file, line: line)
-        tapCenter(card)
+        tapUntil(card, until: { self.element(Tag.navHome).exists }, file: file, line: line)
     }
 }

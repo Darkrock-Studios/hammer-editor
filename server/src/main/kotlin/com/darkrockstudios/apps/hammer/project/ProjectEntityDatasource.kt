@@ -75,4 +75,11 @@ interface ProjectEntityDatasource {
 		userId: Long,
 		projectDef: ProjectDefinition,
 	): List<EntityHash>
+
+	/** As [getEntityHashes], but limited to a single entity type. */
+	suspend fun getEntityHashes(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		type: ApiProjectEntity.Type,
+	): List<EntityHash>
 }
