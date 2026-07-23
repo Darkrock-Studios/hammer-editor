@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.7.1] - 2026-7-23
+
+- Fix Mac app store metadata
+
+
 ## [3.7.0] - 2026-7-21
 
 [New]

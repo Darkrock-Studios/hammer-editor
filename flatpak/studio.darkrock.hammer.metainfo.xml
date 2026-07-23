@@ -32,6 +32,11 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.7.1" date="2026-07-23">
+            <description>
+                <p>- Fix Mac app store metadata</p>
+            </description>
+        </release>
         <release version="3.7.0" date="2026-07-21">
             <description>
                 <p>[New]</p>
