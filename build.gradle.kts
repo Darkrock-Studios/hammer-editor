@@ -171,10 +171,15 @@ tasks.register("prepareForRelease") {
 		val versionsFile = project.rootDir.resolve(versionsPath)
 		writeSemvar(libs.versions.app.get(), releaseInfo.semVar, versionsFile)
 
-		// Store notes carry a link to the GitHub release, which holds the untruncated text.
+		// Store listings carry the app-only notes plus a link to the GitHub release,
+		// which holds the full text including the web and server changes. A release
+		// that reaches no store has no store notes; leave the existing metadata alone
+		// rather than blanking the notes the last client release published.
 		val fullNotesUrl = releaseNotesUrl(releaseInfo.tag)
-		val notesLength = storeNotesLength(releaseInfo.changeLog, fullNotesUrl)
-		val playChangelog = formatStoreNotes(releaseInfo.changeLog, PLAY_STORE_LIMIT, fullNotesUrl)
+		val storeNotes = releaseInfo.storeChangeLog
+		val writeStoreNotes = storeNotes.isNotBlank()
+		val notesLength = storeNotesLength(storeNotes, fullNotesUrl)
+		val playChangelog = formatStoreNotes(storeNotes, PLAY_STORE_LIMIT, fullNotesUrl)
 
 		// Write the Fastlane changelog file
 		val rootDir: File = project.rootDir
@@ -182,15 +187,18 @@ tasks.register("prepareForRelease") {
 			"fastlane/metadata/android/en-US/changelogs".replace("/", File.separator)
 		val changeLogsDir = rootDir.resolve(changelogsPath)
 		val changeLogFile = File(changeLogsDir, "$versionCode.txt")
-		changeLogFile.writeText(playChangelog)
-		println("Changelog for version ${releaseInfo.semVar} written to $changelogsPath/$versionCode.txt")
-		if (notesLength > PLAY_STORE_LIMIT) {
-			println("  Google Play notes truncated to $PLAY_STORE_LIMIT characters; full text at $fullNotesUrl")
+		if (writeStoreNotes) {
+			changeLogFile.writeText(playChangelog)
+			println("Changelog for version ${releaseInfo.semVar} written to $changelogsPath/$versionCode.txt")
+			if (notesLength > PLAY_STORE_LIMIT) {
+				println("  Google Play notes truncated to $PLAY_STORE_LIMIT characters; full text at $fullNotesUrl")
+			}
+		} else {
+			println("No store notes for this release; store metadata left untouched")
 		}
 
-		val appleChangelog =
-			formatStoreNotes(releaseInfo.changeLog, APPLE_STORE_LIMIT, fullNotesUrl)
-		if (notesLength > APPLE_STORE_LIMIT) {
+		val appleChangelog = formatStoreNotes(storeNotes, APPLE_STORE_LIMIT, fullNotesUrl)
+		if (writeStoreNotes && notesLength > APPLE_STORE_LIMIT) {
 			println("App Store notes truncated to $APPLE_STORE_LIMIT characters; full text at $fullNotesUrl")
 		}
 
@@ -199,16 +207,20 @@ tasks.register("prepareForRelease") {
 		val macReleaseNotesDir = rootDir.resolve(macReleaseNotesPath)
 		macReleaseNotesDir.mkdirs()
 		val macReleaseNotesFile = File(macReleaseNotesDir, "release_notes.txt")
-		macReleaseNotesFile.writeText(appleChangelog)
-		println("macOS release notes written to $macReleaseNotesPath/release_notes.txt")
+		if (writeStoreNotes) {
+			macReleaseNotesFile.writeText(appleChangelog)
+			println("macOS release notes written to $macReleaseNotesPath/release_notes.txt")
+		}
 
 		// Write the iOS App Store release notes
 		val iosReleaseNotesPath = "fastlane/metadata/ios/en-US".replace("/", File.separator)
 		val iosReleaseNotesDir = rootDir.resolve(iosReleaseNotesPath)
 		iosReleaseNotesDir.mkdirs()
 		val iosReleaseNotesFile = File(iosReleaseNotesDir, "release_notes.txt")
-		iosReleaseNotesFile.writeText(appleChangelog)
-		println("iOS release notes written to $iosReleaseNotesPath/release_notes.txt")
+		if (writeStoreNotes) {
+			iosReleaseNotesFile.writeText(appleChangelog)
+			println("iOS release notes written to $iosReleaseNotesPath/release_notes.txt")
+		}
 
 		// Write the Global changelog file
 		val globalChangelogFile = File("${project.rootDir}/CHANGELOG.md")
@@ -225,7 +237,11 @@ tasks.register("prepareForRelease") {
 		val flatpakManifestFile = project.rootDir.resolve(flatpakManifestPath)
 		val flatpakMetainfoPath = "flatpak/studio.darkrock.hammer.metainfo.xml".replace("/", File.separator)
 		val flatpakMetainfoFile = project.rootDir.resolve(flatpakMetainfoPath)
-		updateFlatpakFiles(releaseInfo.semVar, jvmVersion, flatpakManifestFile, flatpakMetainfoFile, releaseInfo.changeLog)
+		// Flathub is a store listing, so it gets the app-only notes. A release with
+		// none of them is not going to Flathub, so it gets no release entry either.
+		if (writeStoreNotes) {
+			updateFlatpakFiles(releaseInfo.semVar, jvmVersion, flatpakManifestFile, flatpakMetainfoFile, storeNotes)
+		}
 
 		// Keep the iOS marketing version in sync with the semver. macOS pulls this
 		// from Compose's packageVersion automatically; iOS has no such hook.
@@ -248,14 +264,16 @@ tasks.register("prepareForRelease") {
 		}
 
 		// Commit the changes to the repo
-		git("add", changeLogFile.absolutePath)
-		git("add", macReleaseNotesFile.absolutePath)
-		git("add", iosReleaseNotesFile.absolutePath)
+		if (writeStoreNotes) {
+			git("add", changeLogFile.absolutePath)
+			git("add", macReleaseNotesFile.absolutePath)
+			git("add", iosReleaseNotesFile.absolutePath)
+			git("add", flatpakManifestFile.absolutePath)
+			git("add", flatpakMetainfoFile.absolutePath)
+		}
 		git("add", versionsFile.absolutePath)
 		git("add", globalChangelogFile.absolutePath)
 		git("add", snapcraftFile.absolutePath)
-		git("add", flatpakManifestFile.absolutePath)
-		git("add", flatpakMetainfoFile.absolutePath)
 		git("add", iosInfoPlistFile.absolutePath)
 		git("commit", "-m", "Prepared for release: v${releaseInfo.semVar}")
 
