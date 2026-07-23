@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.*
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.encryption.AesGcmContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
@@ -40,7 +40,7 @@ import kotlin.time.Instant
 class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 
 	private lateinit var fileSystem: FakeFileSystem
-	private lateinit var testDatabase: SqliteTestDatabase
+	private lateinit var testDatabase: SharedPostgresTestDatabase
 	private lateinit var json: Json
 	private lateinit var clock: TestClock
 	private lateinit var contentEncryptor: ContentEncryptor
@@ -76,7 +76,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		encryptorRegistry = ContentEncryptorRegistry(listOf(contentEncryptor, plaintextEncryptor))
 		cipherSecretGenerator = SecureTokenGenerator(AccountsRepository.CIPHER_SALT_LENGTH, base64)
 
-		testDatabase = SqliteTestDatabase()
+		testDatabase = SharedPostgresTestDatabase()
 		testDatabase.initialize()
 
 		setupKoin()
@@ -588,7 +588,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		return entity
 	}
 
-	private fun setupAccount(testDatabase: SqliteTestDatabase) {
+	private fun setupAccount(testDatabase: SharedPostgresTestDatabase) {
 		testDatabase.serverDatabase.accountQueries.createAccount(
 			email = "test@test.com",
 			password_hash = "hash",
@@ -597,7 +597,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		)
 	}
 
-	private fun setupEntities(testDatabase: SqliteTestDatabase, encryptor: ContentEncryptor) {
+	private fun setupEntities(testDatabase: SharedPostgresTestDatabase, encryptor: ContentEncryptor) {
 		setupAccount(testDatabase)
 
 		testDatabase.serverDatabase.projectQueries.insertProject(
@@ -631,7 +631,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 	}
 
 	private fun insertEntity(
-		testDatabase: SqliteTestDatabase,
+		testDatabase: SharedPostgresTestDatabase,
 		id: Long,
 		type: ApiProjectEntity.Type,
 		encryptor: ContentEncryptor
@@ -650,7 +650,7 @@ class ProjectEntityDatabaseDatasourceTest : BaseTest() {
 		)
 	}
 
-	private fun insertDeletedEntity(testDatabase: SqliteTestDatabase, id: Long) {
+	private fun insertDeletedEntity(testDatabase: SharedPostgresTestDatabase, id: Long) {
 		testDatabase.serverDatabase.deletedEntityQueries.markEntityDeleted(
 			userId = 1,
 			projectId = 1,

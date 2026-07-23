@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.admin
 
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
 import kotlinx.coroutines.test.runTest
@@ -18,7 +18,7 @@ import kotlin.time.Instant
 
 class WhiteListRepositoryTest : BaseTest() {
 
-	private lateinit var db: SqliteTestDatabase
+	private lateinit var db: SharedPostgresTestDatabase
 	private lateinit var whiteListDao: WhiteListDao
 	private lateinit var configDao: ServerConfigDao
 	private lateinit var configRepository: ConfigRepository
@@ -28,7 +28,7 @@ class WhiteListRepositoryTest : BaseTest() {
 	override fun setup() {
 		super.setup()
 
-		db = SqliteTestDatabase()
+		db = SharedPostgresTestDatabase()
 		db.initialize()
 		whiteListDao = WhiteListDao(db)
 		configDao = ServerConfigDao(db)

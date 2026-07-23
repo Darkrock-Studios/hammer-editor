@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.base.http.synchronizer.ProjectDataHasher
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ProjectDataDao
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.project.ProjectDataSaveResult
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
@@ -35,7 +35,7 @@ import kotlin.time.Instant
 
 class ServerProjectDataRepositoryTest : BaseTest() {
 
-	private lateinit var testDatabase: SqliteTestDatabase
+	private lateinit var testDatabase: SharedPostgresTestDatabase
 	private lateinit var repository: ServerProjectDataRepository
 
 	private val json = createJsonSerializer()
@@ -61,7 +61,7 @@ class ServerProjectDataRepositoryTest : BaseTest() {
 		super.setup()
 		setupKoin()
 
-		testDatabase = SqliteTestDatabase()
+		testDatabase = SharedPostgresTestDatabase()
 		testDatabase.initialize()
 
 		seedAccountAndProject()

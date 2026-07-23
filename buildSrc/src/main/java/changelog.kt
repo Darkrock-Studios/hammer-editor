@@ -28,6 +28,7 @@ import javax.swing.JPanel
 import javax.swing.JRadioButton
 import javax.swing.JScrollPane
 import javax.swing.JSplitPane
+import javax.swing.JTabbedPane
 import javax.swing.JTextArea
 import javax.swing.SwingUtilities
 import javax.swing.UIManager
@@ -69,9 +70,14 @@ fun writeChangelogMarkdown(releaseInfo: ReleaseInfo, changelogFile: File) {
 	println("CHANGELOG.md written")
 }
 
+/**
+ * @param changeLog The full release notes: CHANGELOG.md and the GitHub release.
+ * @param storeChangeLog The app-only subset every store listing carries.
+ */
 data class ReleaseInfo(
 	val semVar: SemVar,
 	val changeLog: String,
+	val storeChangeLog: String,
 	val platforms: Set<Platform>,
 ) {
 	init {
@@ -83,6 +89,34 @@ data class ReleaseInfo(
 
 	/** The git tag for this release: `vX.Y.Z` for full, `vX.Y.Z+token+token` for partial. */
 	val tag: String get() = "v$semVar${tagSuffix(platforms)}"
+}
+
+/**
+ * Wraps caption text in HTML so a JLabel wraps it. The explicit width is what makes
+ * the label report a tall enough preferred size; without it the text clips.
+ */
+private fun wrapped(text: String): String {
+	val escaped = text.replace("&", "&amp;").replace("<", "&lt;")
+	return "<html><div style='width: ${HINT_WIDTH}px;'>$escaped</div></html>"
+}
+
+private const val HINT_WIDTH = 400
+
+/** A dropped entry, shortened to something scannable in a one-line summary. */
+private fun droppedSummary(dropped: List<String>): String {
+	val shown = dropped.take(3).joinToString("  ·  ") { entry ->
+		val label = entry.removePrefix("-").trim()
+		if (label.length > 44) label.take(43).trimEnd() + "…" else label
+	}
+	val rest = dropped.size - 3
+	return if (rest > 0) "$shown  ·  +$rest more" else shown
+}
+
+/** Small muted caption above a changelog editor. */
+private fun tabHint(text: String): JLabel = JLabel(wrapped(text)).apply {
+	font = font.deriveFont(Font.ITALIC, font.size - 1f)
+	foreground = UIManager.getColor("Label.disabledForeground") ?: Color.GRAY
+	border = BorderFactory.createEmptyBorder(0, 2, 2, 2)
 }
 
 class OnChangeListener(
@@ -142,9 +176,14 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 			font = font.deriveFont(Font.BOLD, 14f)
 		}
 
-		// Editor and store preview are declared up here so the refresh below can close
+		// Editors and store preview are declared up here so the refresh below can close
 		// over them; they are laid out in the Changelog section further down.
 		val changeLog = JTextArea().apply {
+			lineWrap = true
+			wrapStyleWord = true
+			rows = 12
+		}
+		val storeNotes = JTextArea().apply {
 			lineWrap = true
 			wrapStyleWord = true
 			rows = 12
@@ -160,12 +199,35 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 			font = font.deriveFont(font.size - 1f)
 			foreground = warningColor
 		}
+		// What the filter took out, so nothing leaves the store listing unnoticed.
+		val storeStatus = tabHint("")
+		val resyncButton = JButton("Re-sync from full notes").apply {
+			font = font.deriveFont(font.size - 1f)
+		}
 
 		/** The platforms the current scope selection targets, empty if the selection is incomplete. */
 		fun currentPlatforms(): Set<Platform> = when (scope) {
 			ReleaseScope.ALL -> Platform.ALL
 			ReleaseScope.TARGETED -> selectedPlatforms.toSet()
 			ReleaseScope.SERVER_ONLY -> setOf(Platform.SERVER)
+		}
+
+		// The store editor mirrors a filtered copy of the full notes until it is
+		// edited by hand, after which it is left alone.
+		var storeNotesEdited = false
+		var syncingStoreNotes = false
+
+		fun syncStoreNotes() {
+			if (storeNotesEdited) return
+			syncingStoreNotes = true
+			storeNotes.text = deriveStoreNotes(changeLog.text).notes
+			storeNotes.caretPosition = 0
+			syncingStoreNotes = false
+		}
+
+		fun resyncStoreNotes() {
+			storeNotesEdited = false
+			syncStoreNotes()
 		}
 
 		fun refresh() {
@@ -186,22 +248,41 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 			}
 
 			// Empty notes would publish a "What's new" that describes nothing, which
-			// App Store review rejects — after the tag has already been pushed.
-			commitButton.isEnabled = platforms.isNotEmpty() && changeLog.text.isNotBlank()
+			// App Store review rejects — after the tag has already been pushed. A
+			// server-only release reaches no store, so it needs no store notes.
+			val needsStoreNotes = platforms.any { it in Platform.CLIENT_STORES }
+			commitButton.isEnabled = platforms.isNotEmpty() &&
+				changeLog.text.isNotBlank() &&
+				(!needsStoreNotes || storeNotes.text.isNotBlank())
+
+			val dropped = deriveStoreNotes(changeLog.text).dropped
+			storeStatus.text = wrapped(
+				when {
+					storeNotesEdited -> "Hand-edited, so it no longer follows the full notes."
+					dropped.isEmpty() -> "Nothing was removed."
+					else -> "Removed ${dropped.size}:  " + droppedSummary(dropped)
+				}
+			)
+			storeStatus.foreground = if (storeNotesEdited) truncateColor else warningColor
+			resyncButton.isEnabled = storeNotesEdited
 
 			val url = releaseNotesUrl(tag)
-			val needed = storeNotesLength(changeLog.text, url)
-			playPreview.text = formatStoreNotes(changeLog.text, PLAY_STORE_LIMIT, url)
+			val needed = storeNotesLength(storeNotes.text, url)
+			playPreview.text = formatStoreNotes(storeNotes.text, PLAY_STORE_LIMIT, url)
 			playPreview.caretPosition = 0
 			characterCount.text = if (needed > PLAY_STORE_LIMIT) {
-				"Characters: ${changeLog.document.length}  ·  Play: $needed/$PLAY_STORE_LIMIT — will truncate"
+				"Store notes: ${storeNotes.document.length}  ·  Play: $needed/$PLAY_STORE_LIMIT — will truncate"
 			} else {
-				"Characters: ${changeLog.document.length}  ·  Play: $needed/$PLAY_STORE_LIMIT"
+				"Store notes: ${storeNotes.document.length}  ·  Play: $needed/$PLAY_STORE_LIMIT"
 			}
 			characterCount.foreground =
 				if (needed > PLAY_STORE_LIMIT) truncateColor else warningColor
 		}
-		changeLog.document.addDocumentListener(OnChangeListener { refresh() })
+		changeLog.document.addDocumentListener(OnChangeListener { syncStoreNotes(); refresh() })
+		storeNotes.document.addDocumentListener(OnChangeListener {
+			if (!syncingStoreNotes) storeNotesEdited = true
+			refresh()
+		})
 
 		// --- Label-value row helper for the Version section ---
 		fun labelPair(label: String, value: JComponent): JPanel = JPanel().apply {
@@ -285,15 +366,44 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 
 		// ============= Section: Changelog =============
 		val changelogSection = section("Changelog")
-		val changeLogScroll = JScrollPane(changeLog).apply {
-			alignmentX = Component.LEFT_ALIGNMENT
+
+		val fullTab = JPanel(BorderLayout(0, 4)).apply {
+			border = BorderFactory.createEmptyBorder(8, 0, 0, 0)
+			add(tabHint("Goes to CHANGELOG.md and the GitHub release. Write everything here."), BorderLayout.NORTH)
+			add(JScrollPane(changeLog), BorderLayout.CENTER)
 		}
+		resyncButton.addActionListener { resyncStoreNotes(); refresh() }
+		val storeHeader = JPanel().apply {
+			layout = BoxLayout(this, BoxLayout.Y_AXIS)
+			add(
+				tabHint("Goes to every store listing. Entries tagged for the web or server are filtered out — stores reject notes about anything but the app.").apply {
+					alignmentX = Component.LEFT_ALIGNMENT
+				},
+			)
+			add(storeStatus.apply { alignmentX = Component.LEFT_ALIGNMENT })
+			add(
+				JPanel(FlowLayout(FlowLayout.LEFT, 0, 2)).apply {
+					alignmentX = Component.LEFT_ALIGNMENT
+					add(resyncButton)
+				},
+			)
+		}
+		val storeTab = JPanel(BorderLayout(0, 4)).apply {
+			border = BorderFactory.createEmptyBorder(8, 0, 0, 0)
+			add(storeHeader, BorderLayout.NORTH)
+			add(JScrollPane(storeNotes), BorderLayout.CENTER)
+		}
+		val changelogTabs = JTabbedPane().apply {
+			addTab("Full", fullTab)
+			addTab("App stores", storeTab)
+		}
+
 		val counterRow = JPanel(FlowLayout(FlowLayout.RIGHT, 0, 4)).apply {
 			alignmentX = Component.LEFT_ALIGNMENT
 			add(characterCount)
 		}
 		val editorPane = JPanel(BorderLayout()).apply {
-			add(changeLogScroll, BorderLayout.CENTER)
+			add(changelogTabs, BorderLayout.CENTER)
 			add(counterRow, BorderLayout.SOUTH)
 		}
 		val previewPane = JScrollPane(playPreview).apply {
@@ -311,6 +421,9 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 		// A patch carries the same notes as the release it patches, so pre-fill the
 		// changelog from the last release. Only clear it again on Major/Minor if the
 		// user hasn't edited the auto-filled text.
+		// Hand-written store notes survive: they are the user's text, and losing them
+		// to a radio button is unrecoverable. The store tab flags that they no longer
+		// track the full notes and offers a re-sync.
 		fun clearAutofill() {
 			if (lastReleaseChangelog != null && changeLog.text == lastReleaseChangelog) {
 				changeLog.text = ""
@@ -342,6 +455,7 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 			result = ReleaseInfo(
 				semVar = newSemVar,
 				changeLog = changeLog.text,
+				storeChangeLog = storeNotes.text,
 				platforms = currentPlatforms(),
 			)
 			frame.dispose()

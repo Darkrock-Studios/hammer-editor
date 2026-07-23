@@ -1,9 +1,9 @@
 package com.darkrockstudios.apps.hammer.utils
 
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import okio.Path
 import okio.Path.Companion.toOkioPath
-import okio.fakefilesystem.FakeFileSystem
+import okio.FileSystem
 import java.io.File
 import java.io.IOException
 
@@ -36,7 +36,7 @@ object FileResourcesUtils {
 	fun copyResourceFolderToFakeFileSystem(
 		from: Path,
 		to: Path,
-		ffs: FakeFileSystem,
+		ffs: FileSystem,
 		filterBlackList: List<String> = listOf(".gitkeep", ".sql"),
 		includeFromDir: Boolean = true
 	) {
@@ -73,7 +73,7 @@ object FileResourcesUtils {
 		}
 	}
 
-	suspend fun setupDatabase(from: Path, database: SqliteTestDatabase) {
+	suspend fun setupDatabase(from: Path, database: SharedPostgresTestDatabase) {
 		val clazz = FileResourcesUtils::class.java
 		val dbFiles = getResourceFiles(clazz, from.toString())
 			.filter { it.name.endsWith(".sql") }

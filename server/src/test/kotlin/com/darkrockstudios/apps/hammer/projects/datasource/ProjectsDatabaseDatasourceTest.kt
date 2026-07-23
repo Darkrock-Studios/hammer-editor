@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.ProjectsDao
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.projects.ProjectsDatabaseDatasource
 import com.darkrockstudios.apps.hammer.projects.ProjectsSyncData
@@ -28,7 +28,7 @@ import kotlin.uuid.Uuid
 
 class ProjectsDatabaseDatasourceTest : BaseTest() {
 
-	private lateinit var testDatabase: SqliteTestDatabase
+	private lateinit var testDatabase: SharedPostgresTestDatabase
 	private lateinit var json: Json
 	private lateinit var clock: TestClock
 	private lateinit var cipherSecretGenerator: SecureTokenGenerator
@@ -42,7 +42,7 @@ class ProjectsDatabaseDatasourceTest : BaseTest() {
 		base64 = createTokenBase64()
 		cipherSecretGenerator = SecureTokenGenerator(AccountsRepository.CIPHER_SALT_LENGTH, base64)
 
-		testDatabase = SqliteTestDatabase()
+		testDatabase = SharedPostgresTestDatabase()
 		testDatabase.initialize()
 
 		setupKoin()

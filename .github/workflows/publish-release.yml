@@ -53,51 +53,22 @@ jobs:
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') }}
     runs-on: ubuntu-latest
     steps:
-      - name: Compute scope header
-        id: scope
-        env:
-          TAG: ${{ github.event.release.tag_name }}
-        run: |
-          # Tokens → human display names for the Discord audience.
-          to_display() {
-            case "$1" in
-              google-play)   echo "Google Play" ;;
-              fdroid)        echo "F-Droid" ;;
-              snap)          echo "Snap" ;;
-              ms-store)      echo "MS Store" ;;
-              mac-app-store) echo "Mac App Store" ;;
-              ios-app-store) echo "iOS App Store" ;;
-              server)        echo "Server" ;;
-              *)             echo "$1" ;;
-            esac
-          }
-
-          # Emitted as a multi-line $GITHUB_OUTPUT (heredoc) so the trailing
-          # newline survives YAML parsing and reaches Discord as a real line
-          # break. Single-line `echo "header=...\\n"` would arrive as a
-          # literal backslash-n because the substitution happens after YAML
-          # has already finished interpreting escape sequences.
-          if [[ "$TAG" == *+* ]]; then
-            PRETTY=""
-            for token in $(echo "${TAG#*+}" | tr '+' ' '); do
-              display=$(to_display "$token")
-              if [ -z "$PRETTY" ]; then PRETTY="$display"; else PRETTY="$PRETTY, $display"; fi
-            done
-            {
-              echo "header<<HEADER_EOF"
-              echo "🔧 Patch release — ${PRETTY} only"
-              echo "HEADER_EOF"
-            } >> "$GITHUB_OUTPUT"
-          else
-            {
-              echo "header<<HEADER_EOF"
-              echo "HEADER_EOF"
-            } >> "$GITHUB_OUTPUT"
-          fi
+      - name: Checkout code
+        uses: actions/checkout@v7
 
       - name: Discord notification
+        # Message is built by the shared script so its token catalog, format,
+        # and length handling stay identical to the manual announcer
+        # (announce-release.yml). Untrusted release fields are passed via env,
+        # never interpolated into the run script.
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        uses: Ilshidur/action-discord@d2594079a10f1d6739ee50a2471f0ca57418b554 # 0.4.0
-        with:
-          args: "${{ steps.scope.outputs.header }}**New release:** {{ EVENT_PAYLOAD.release.name }}\n**Download Here:** {{ EVENT_PAYLOAD.release.html_url }}\n\n**Changelog:**\n{{ EVENT_PAYLOAD.release.body }}"
+          TAG: ${{ github.event.release.tag_name }}
+          RELEASE_NAME: ${{ github.event.release.name }}
+          RELEASE_URL: ${{ github.event.release.html_url }}
+          RELEASE_BODY: ${{ github.event.release.body }}
+        run: |
+          set -euo pipefail
+          content="$(bash .github/scripts/discord-release-message.sh)"
+          jq -n --arg content "$content" '{content: $content}' \
+            | curl -fsSL -X POST -H "Content-Type: application/json" -d @- "$DISCORD_WEBHOOK"

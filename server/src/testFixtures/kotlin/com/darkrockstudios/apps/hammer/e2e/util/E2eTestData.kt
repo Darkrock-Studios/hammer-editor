@@ -32,7 +32,7 @@ object E2eTestData {
 	val b64 = createTokenBase64()
 	val cipherSecretGenerator = SecureTokenGenerator(AccountsRepository.CIPHER_SALT_LENGTH, b64)
 
-	fun createAccount(account: TestAccount, database: SqliteTestDatabase) {
+	fun createAccount(account: TestAccount, database: SharedPostgresTestDatabase) {
 		database.serverDatabase.accountQueries.createAccount(
 			email = account.email,
 			password_hash = account.passwordHash,
@@ -43,7 +43,7 @@ object E2eTestData {
 
 	fun createProject(
 		project: TestProject,
-		database: SqliteTestDatabase,
+		database: SharedPostgresTestDatabase,
 	) {
 		database.serverDatabase.projectQueries.createProject(
 			userId = project.userId,
@@ -56,7 +56,7 @@ object E2eTestData {
 	fun addDeletedProject(
 		userId: Long,
 		uuid: Uuid,
-		database: SqliteTestDatabase
+		database: SharedPostgresTestDatabase
 	) {
 		database.serverDatabase.deletedProjectQueries.addDeletedProject(
 			userId = userId,
@@ -69,7 +69,7 @@ object E2eTestData {
 		userId: Long,
 		installId: String,
 		expires: Instant = Clock.System.now() + 30.days,
-		database: SqliteTestDatabase,
+		database: SharedPostgresTestDatabase,
 		tokenHasher: TokenHasher,
 	): Token {
 		val plainAuthToken = tokenGenerator.generateToken()
@@ -97,7 +97,7 @@ object E2eTestData {
 		userId: Long,
 		projectId: Long,
 		entity: ApiProjectEntity,
-		testDatabase: SqliteTestDatabase,
+		testDatabase: SharedPostgresTestDatabase,
 		contentEncryptor: ContentEncryptor,
 	) {
 		val cipherSecret = testDatabase.serverDatabase.accountQueries
@@ -123,7 +123,7 @@ object E2eTestData {
 		id: Long,
 		userId: Long,
 		projectId: Long,
-		testDatabase: SqliteTestDatabase,
+		testDatabase: SharedPostgresTestDatabase,
 	) {
 		testDatabase.serverDatabase.deletedEntityQueries.markEntityDeleted(
 			userId = userId,

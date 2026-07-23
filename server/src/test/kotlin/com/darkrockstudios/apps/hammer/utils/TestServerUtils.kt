@@ -1,18 +1,18 @@
 package com.darkrockstudios.apps.hammer.utils
 
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.projects.ProjectsFileSystemDatasource
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import okio.Path
 import okio.Path.Companion.toPath
-import okio.fakefilesystem.FakeFileSystem
+import okio.FileSystem
 
 const val SERVER_EMPTY_NO_WHITELIST = "EmptyServerNoWhitelist"
 const val SERVER_EMPTY_YES_WHITELIST = "EmptyServerYesWhitelist"
 const val SERVER_CONFIG_ONE = "ServerConfigOne"
 const val TEST_SERVER_1 = "Test Server 1"
 
-fun getUserDataDirectory(ffs: FakeFileSystem): Path {
+fun getUserDataDirectory(ffs: FileSystem): Path {
 	val rootDir = ProjectsFileSystemDatasource.getRootDirectory(ffs)
 	return rootDir
 }
@@ -22,8 +22,8 @@ fun getUserDataDirectory(ffs: FakeFileSystem): Path {
  */
 suspend fun createTestServer(
 	serverName: String,
-	ffs: FakeFileSystem,
-	testDatabase: SqliteTestDatabase
+	ffs: FileSystem,
+	testDatabase: SharedPostgresTestDatabase
 ) {
 	val rootDir = getRootDataDirectory(ffs)
 	ffs.createDirectories(rootDir)

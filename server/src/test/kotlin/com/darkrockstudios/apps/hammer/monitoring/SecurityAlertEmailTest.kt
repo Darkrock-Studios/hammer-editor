@@ -7,7 +7,7 @@ import com.darkrockstudios.apps.hammer.database.PublishedStoryReaderDao
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
 import com.darkrockstudios.apps.hammer.database.UserActivityDao
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
-import com.darkrockstudios.apps.hammer.e2e.util.SqliteTestDatabase
+import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.email.EmailResult
 import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.utils.BaseTest
@@ -23,7 +23,7 @@ import kotlin.test.assertTrue
 
 class SecurityAlertEmailTest : BaseTest() {
 
-	private lateinit var db: SqliteTestDatabase
+	private lateinit var db: SharedPostgresTestDatabase
 
 	private var nowValue = Instant.parse("2026-01-15T12:00:00Z")
 	private val clock = object : Clock {
@@ -43,7 +43,7 @@ class SecurityAlertEmailTest : BaseTest() {
 	@BeforeEach
 	override fun setup() {
 		super.setup()
-		db = SqliteTestDatabase()
+		db = SharedPostgresTestDatabase()
 		db.initialize()
 		setupKoin()
 	}

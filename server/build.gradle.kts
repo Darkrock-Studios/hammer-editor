@@ -156,7 +156,7 @@ dependencies {
 	testImplementation(libs.testcontainers.junit.jupiter)
 
 	// testFixtures exposes the reusable E2E harness (EndToEndTest, E2eTestData,
-	// SqliteTestDatabase) to both :server's own tests and the :integrationTests module.
+	// SharedPostgresTestDatabase) to both :server's own tests and the :integrationTests module.
 	testFixturesApi(project(":base"))
 	testFixturesApi(libs.bundles.ktor.client)
 	testFixturesApi(libs.ktor.serialization.kotlinx.json)
