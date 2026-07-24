@@ -13,6 +13,27 @@ import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
+/**
+ * The masthead is the home page's LCP element but is painted as a CSS background, so the browser
+ * can't discover it until home.css parses. These preloads pull it forward; the `media` queries are
+ * exact complements of the `.masthead` breakpoint so only one variant is ever fetched.
+ *
+ * Hrefs must match the CSS-issued request byte for byte — adding a cache-busting query here would
+ * make the browser download the image twice.
+ */
+private val MASTHEAD_PRELOADS = listOf(
+	mapOf(
+		"href" to "/assets/images/masthead-960.webp",
+		"type" to "image/webp",
+		"media" to "(max-width: 768px)",
+	),
+	mapOf(
+		"href" to "/assets/images/masthead-1920.webp",
+		"type" to "image/webp",
+		"media" to "not all and (max-width: 768px)",
+	),
+)
+
 fun Route.homePage(
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
@@ -24,6 +45,7 @@ fun Route.homePage(
 		get {
 			val model = call.withDefaults()
 			model["page_stylesheet"] = "/assets/css/home.css"
+			model["preloadImages"] = MASTHEAD_PRELOADS
 			val useWhiteList = whiteListRepository.useWhiteList()
 			val serverMessage = configRepository.get(AdminServerConfig.SERVER_MESSAGE)
 			val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)

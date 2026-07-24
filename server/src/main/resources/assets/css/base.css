@@ -1,12 +1,15 @@
 /* Modern Writer's Workspace Theme */
 
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&display=swap');
+/* Lora is linked from the page head, not imported here: an @import can't be discovered until this
+   stylesheet has downloaded, which pushes the font two round trips down the critical path. */
 
 @font-face {
 	font-family: 'Kingthings Typewriter';
-	src: url('/assets/Kingthings_Trypewriter_2.ttf') format('truetype');
+	src: url('/assets/Kingthings_Trypewriter_2.woff2') format('woff2'),
+	url('/assets/Kingthings_Trypewriter_2.ttf') format('truetype');
 	font-weight: normal;
 	font-style: normal;
+	font-display: swap;
 }
 
 :root {
@@ -174,6 +177,9 @@ a:focus-visible {
 .site-title {
 	font-family: 'Kingthings Typewriter', monospace;
 	font-size: 1.75rem;
+	font-weight: normal;
+	line-height: 1.2;
+	letter-spacing: 0.01em;
 	color: var(--text-primary);
 	margin: 0;
 }
@@ -429,7 +435,7 @@ a:focus-visible {
 
 .footer-version {
 	font-family: 'Kingthings Typewriter', monospace;
-	color: var(--neutral-500);
+	color: var(--neutral-400);
 	font-size: 0.9375rem;
 }
 

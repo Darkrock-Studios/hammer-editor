@@ -232,6 +232,9 @@ fun Application.configureFrontEnd() {
 	configureStatusPages(errorRepository, monitoringState)
 }
 
+/** Only the error and setup templates use error.css, so it is not part of the shared header. */
+internal val ERROR_PAGE_STYLE = mapOf("page_stylesheet" to "/assets/css/error.css")
+
 fun Application.configureStatusPages(
 	errorRepository: ErrorRepository,
 	monitoringState: MonitoringState,
@@ -243,14 +246,17 @@ fun Application.configureStatusPages(
 			if (call.request.isApiCall()) {
 				call.respond(HttpStatusCode.NotFound)
 			} else {
-				call.respond(HttpStatusCode.NotFound, MustacheContent("notfound.mustache", call.withDefaults()))
+				call.respond(HttpStatusCode.NotFound, MustacheContent("notfound.mustache", call.withDefaults(ERROR_PAGE_STYLE)))
 			}
 		}
 		status(HttpStatusCode.Unauthorized) { call, status ->
 			if (call.request.isApiCall()) {
 				call.respond(HttpStatusCode.Unauthorized)
 			} else {
-				call.respond(HttpStatusCode.Unauthorized, MustacheContent("unauthorized.mustache", call.withDefaults()))
+				call.respond(
+					HttpStatusCode.Unauthorized,
+					MustacheContent("unauthorized.mustache", call.withDefaults(ERROR_PAGE_STYLE))
+				)
 			}
 		}
 		exception<Throwable> { call, cause ->
@@ -280,7 +286,7 @@ fun Application.configureStatusPages(
 				)
 				call.respond(
 					HttpStatusCode.InternalServerError,
-					MustacheContent("servererror.mustache", call.withDefaults())
+					MustacheContent("servererror.mustache", call.withDefaults(ERROR_PAGE_STYLE))
 				)
 			}
 		}

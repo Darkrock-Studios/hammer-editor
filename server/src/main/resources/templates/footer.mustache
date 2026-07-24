@@ -73,12 +73,12 @@
 <!-- Toast Container for OOB swaps -->
 <div id="toast-container" aria-live="polite" aria-atomic="false"></div>
 
-<script src="/assets/js/toast.js"></script>
+<script src="/assets/js/toast.js?v={{version}}"></script>
 {{#page_pre_script}}
-	<script src="{{page_pre_script}}"></script>
+	<script src="{{page_pre_script}}?v={{version}}"></script>
 {{/page_pre_script}}
 {{#page_script}}
-	<script src="{{page_script}}"></script>
+	<script src="{{page_script}}?v={{version}}"></script>
 {{/page_script}}
 </body>
 </html>

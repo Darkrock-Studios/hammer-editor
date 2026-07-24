@@ -122,7 +122,7 @@ private fun Route.logout() {
 private fun Route.unauthorized() {
 	route("/unauthorized") {
 		get {
-			call.respond(MustacheContent("unauthorized.mustache", call.withDefaults()))
+			call.respond(MustacheContent("unauthorized.mustache", call.withDefaults(ERROR_PAGE_STYLE)))
 		}
 	}
 }

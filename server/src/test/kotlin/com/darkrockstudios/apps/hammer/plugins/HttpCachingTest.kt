@@ -11,6 +11,9 @@ class HttpCachingTest {
 	private fun maxAge(path: String, contentType: ContentType?): Int? =
 		(staticAssetCaching(path, contentType)?.cacheControl as? CacheControl.MaxAge)?.maxAgeSeconds
 
+	private fun header(path: String, contentType: ContentType?, versioned: Boolean): String? =
+		staticAssetCaching(path, contentType, versioned)?.cacheControl?.toString()
+
 	@Test
 	fun `asset css and js are cached for a day`() {
 		assertEquals(86_400, maxAge("/assets/css/base.css", ContentType.Text.CSS))
@@ -22,6 +25,30 @@ class HttpCachingTest {
 	fun `asset images and fonts are cached for a week`() {
 		assertEquals(604_800, maxAge("/assets/images/og-default.png", ContentType.Image.PNG))
 		assertEquals(604_800, maxAge("/assets/Kingthings.woff2", ContentType("font", "woff2")))
+	}
+
+	@Test
+	fun `version stamped assets are cached for a year and immutable`() {
+		val expected = "max-age=31536000, public, immutable"
+		assertEquals(expected, header("/assets/css/base.css", ContentType.Text.CSS, versioned = true))
+		assertEquals(expected, header("/assets/js/home.js", ContentType.Application.JavaScript, versioned = true))
+		assertEquals(expected, header("/assets/images/og-default.png", ContentType.Image.PNG, versioned = true))
+		assertEquals(expected, header("/assets/Kingthings.woff2", ContentType("font", "woff2"), versioned = true))
+	}
+
+	@Test
+	fun `assets referenced without a version keep the shorter windows`() {
+		assertEquals("max-age=86400, public", header("/assets/css/base.css", ContentType.Text.CSS, versioned = false))
+		assertEquals(
+			"max-age=604800, public",
+			header("/assets/images/masthead-1920.webp", ContentType("image", "webp"), versioned = false)
+		)
+	}
+
+	@Test
+	fun `a version stamp does not make uncacheable content cacheable`() {
+		assertNull(staticAssetCaching("/", ContentType.Text.Html, versioned = true))
+		assertNull(staticAssetCaching("/assets/data", null, versioned = true))
 	}
 
 	@Test
