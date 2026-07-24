@@ -46,13 +46,26 @@ details.
 ## Configuration
 
 The server auto-loads `config.toml` from its data directory
-(`/data/hammer_data/config.toml`). Provide one by either:
-
-- Mounting it (uncomment the bind mount in `docker-compose.yml`), or
-- Copying it into the volume after first boot.
+(`/data/hammer_data/config.toml`) — no `--config` flag needed. Anything the
+config points at (TLS certs, ToS/privacy text, the keyring) also resolves
+relative to that directory, so the whole server state lives under one volume.
 
 Start from [config.example.toml](config.example.toml). Everything in it is
 optional — the server runs with sane defaults out of the box.
+
+Two ways to provide it:
+
+- **Named volume (default):** uncomment the config bind mount in
+  `docker-compose.yml`
+  (`./config.toml:/data/hammer_data/config.toml:ro`). This works because the
+  image ships a `hammer`-owned `/data/hammer_data`, so the file mounts cleanly on
+  top. Alternatively, `docker cp` it into the running container's data dir.
+- **Host bind-mounted data dir:** if you mount a host directory at `/data`
+  instead of a named volume, just place `config.toml` at
+  `<hostdir>/hammer_data/config.toml` directly. Make sure the directory is owned
+  by uid/gid `1000` (see [Data & backups](#data--backups)) — don't rely on
+  bind-mounting the single file, since Docker would create the parent dir as
+  root.
 
 ## Data & backups
 

@@ -45,7 +45,11 @@ ENV JAVA_OPTS="-Duser.home=/data"
 ARG DIST_DIR=server/build/install/server
 COPY ${DIST_DIR}/ /opt/hammer/
 
-RUN mkdir -p /data \
+# Pre-create the data dir (not just /data) so that a named volume initializes
+# with it already owned by `hammer`. Without this, bind-mounting a config file at
+# /data/hammer_data/config.toml would make Docker create the parent dir as root,
+# leaving the unprivileged server unable to write pgdata into it.
+RUN mkdir -p /data/hammer_data \
 	&& chown -R hammer:hammer /data /opt/hammer
 
 USER hammer
