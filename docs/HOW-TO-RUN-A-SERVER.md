@@ -8,7 +8,48 @@ the internet, this is probably not for you._
 ## Getting Started
 So you want to run an Instance of the Hammer Server? Great!
 
-_Note: For now, the server is only available as a Java executable. Eventually we'll add Docker images._
+There are two ways to run it:
+
+- **Docker** (easiest) — a pre-built image that self-hosts with a single volume
+  and no external database. See [Docker](#docker) below.
+- **Java executable** — download the distribution and run it directly on Windows,
+  Linux, or macOS. Continue with the steps below.
+
+## Docker
+
+A slim, non-root image is published to GitHub Container Registry. It uses the
+embedded PostgreSQL database by default, so all you need is a volume for your
+data.
+
+```bash
+docker run -d --name hammer-server \
+  -p 8080:8080 \
+  -v hammer-data:/data \
+  ghcr.io/darkrock-studios/hammer-editor/server:latest
+```
+
+Or with Docker Compose (recommended — see [`docker/docker-compose.yml`](../docker/docker-compose.yml)):
+
+```bash
+cd docker
+docker compose up -d
+```
+
+The server auto-loads `config.toml` from `/data/hammer_data/config.toml` inside
+the volume, so everything documented in the rest of this guide applies — mount
+or drop your config there. A full quickstart, including TLS and backups, is in
+[`docker/README.md`](../docker/README.md).
+
+> Clients only speak HTTPS. With Docker, the common setup is to terminate TLS at
+> a reverse proxy in front of the container (see
+> [Reverse Proxy using Nginx](#reverse-proxy-using-nginx)) and forward plain HTTP
+> to port 8080. You can also have Hammer terminate TLS itself by mounting a
+> certificate and publishing 443 — see [Setting up SSL](#setting-up-ssl-required-for-direct-connections).
+
+After the server is up, **download a client and create an account** — the first
+account created becomes the admin account.
+
+## Running the Java executable
 
 The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 

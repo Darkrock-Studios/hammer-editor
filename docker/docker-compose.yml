@@ -1,0 +1,30 @@
+name: hammer
+
+services:
+  hammer:
+    # Pull the pre-built multi-arch image (recommended).
+    image: ghcr.io/darkrock-studios/hammer-editor/server:latest
+
+    # To build the image locally instead of pulling, first build the server
+    # distribution from the repo root (`./gradlew :server:installDist`), then
+    # comment out `image:` above and uncomment `build:` below.
+    # build:
+    #   context: ..
+    #   dockerfile: docker/Dockerfile
+
+    container_name: hammer-server
+    restart: unless-stopped
+
+    ports:
+      # host:container. Change the host side if 8080 is already in use.
+      - "8080:8080"
+
+    volumes:
+      # Durable state: embedded database, caches, keyring, and config.toml.
+      - hammer-data:/data
+      # Optional: manage the config on the host instead of inside the volume.
+      # Copy config.example.toml to ./config.toml first.
+      # - ./config.toml:/data/hammer_data/config.toml:ro
+
+volumes:
+  hammer-data:
