@@ -16,8 +16,10 @@ services:
     restart: unless-stopped
 
     ports:
-      # host:container. Change the host side if 8080 is already in use.
-      - "8080:8080"
+      # host:container. Override the host side without editing this file by
+      # setting HAMMER_HTTP_PORT (e.g. in a .env file next to this one, or
+      # `HAMMER_HTTP_PORT=8090 docker compose up -d`) if 8080 is already in use.
+      - "${HAMMER_HTTP_PORT:-8080}:8080"
 
     volumes:
       # Durable state: embedded database, caches, keyring, and config.toml.

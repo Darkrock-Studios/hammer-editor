@@ -67,6 +67,15 @@ Two ways to provide it:
   bind-mounting the single file, since Docker would create the parent dir as
   root.
 
+A bad config aborts startup rather than silently falling back to defaults, so
+check `docker logs` if the container exits immediately.
+
+> **Windows users:** save `config.toml` as UTF-8 **without** a BOM. Notepad and
+> PowerShell's `Out-File -Encoding utf8` add one, and the TOML parser rejects it
+> with a confusing `UnexpectedTokenException` on line 1. In PowerShell use
+> `[System.IO.File]::WriteAllText($path, $text)`, or pick "UTF-8" (not
+> "UTF-8 with BOM") in your editor.
+
 ## Data & backups
 
 Everything durable lives under the `/data` volume:
