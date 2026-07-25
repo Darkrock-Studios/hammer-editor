@@ -25,6 +25,8 @@ on:
         required: false
         default: "manual"
 
+# Required, not boilerplate: this repo's default workflow token is read-only, so
+# without this block the push to GHCR fails with a 403.
 permissions:
   contents: read
   packages: write
