@@ -1,10 +1,18 @@
 package com.darkrockstudios.apps.hammer.plugins
 
+import com.darkrockstudios.apps.hammer.ServerConfig
+import io.ktor.client.request.get
 import io.ktor.http.CacheControl
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.server.http.content.staticResources
+import io.ktor.server.routing.routing
+import io.ktor.server.testing.ApplicationTestBuilder
+import io.ktor.server.testing.testApplication
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class HttpCachingTest {
 
@@ -80,5 +88,43 @@ class HttpCachingTest {
 	@Test
 	fun `content-type parameters are ignored`() {
 		assertEquals(86_400, maxAge("/assets/css/base.css", ContentType.Text.CSS.withParameter("charset", "utf-8")))
+	}
+
+	private suspend fun ApplicationTestBuilder.cacheControlFor(url: String): String? {
+		application {
+			configureHTTP(ServerConfig())
+			routing {
+				staticResources("/assets", "/assets")
+			}
+		}
+		return client.get(url).headers[HttpHeaders.CacheControl]
+	}
+
+	@Test
+	fun `the asset stamp is a fingerprint of the asset tree`() {
+		assertTrue(AssetVersion.stamp.matches(Regex("[0-9a-f]{12}")))
+	}
+
+	@Test
+	fun `an asset carrying the minted stamp is immutable for a year`() = testApplication {
+		assertEquals(
+			"max-age=31536000, public, immutable",
+			cacheControlFor("/assets/css/base.css?v=${AssetVersion.stamp}"),
+		)
+	}
+
+	@Test
+	fun `a stamp the server did not mint keeps the short window`() = testApplication {
+		assertEquals("max-age=86400, public", cacheControlFor("/assets/css/base.css?v=3.7.1"))
+	}
+
+	@Test
+	fun `an empty stamp keeps the short window`() = testApplication {
+		assertEquals("max-age=86400, public", cacheControlFor("/assets/css/base.css?v="))
+	}
+
+	@Test
+	fun `an unstamped asset keeps the short window`() = testApplication {
+		assertEquals("max-age=86400, public", cacheControlFor("/assets/css/base.css"))
 	}
 }

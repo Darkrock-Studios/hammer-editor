@@ -88,6 +88,14 @@ body {
 	-moz-osx-font-smoothing: grayscale;
 }
 
+/* Font Awesome is fetched off the critical path, so its icons are zero-width boxes until
+   async-css.js promotes the stylesheet and drops fa-pending. Holding roughly a glyph's width
+   until then keeps the promotion from shoving adjacent label text sideways. */
+.fa-pending i[class*="fa-"] {
+	display: inline-block;
+	min-width: 1.25em;
+}
+
 /* Typography */
 h1, h2, h3, h4, h5, h6 {
 	font-family: 'Kingthings Typewriter', 'Courier New', monospace;

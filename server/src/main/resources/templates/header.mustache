@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{locale}}">
+<html lang="{{locale}}" class="fa-pending">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -38,13 +38,18 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
+	<!-- Every heading uses this face. Without the preload it isn't discovered until base.css parses,
+	     and font-display: swap then reflows the whole page once it lands. The href carries no
+	     version stamp so it matches the request base.css issues byte for byte. -->
+	<link rel="preload" as="font" type="font/woff2" href="/assets/Kingthings_Trypewriter_2.woff2" crossorigin>
 	{{#preloadImages}}
 		<link rel="preload" as="image" href="{{href}}" type="{{type}}" fetchpriority="high"{{#media}} media="{{media}}"{{/media}}>
 	{{/preloadImages}}
 
-	<link rel="stylesheet" href="/assets/css/base.css?v={{version}}">
+	<link rel="stylesheet" href="/assets/css/base.css?v={{assetVersion}}">
 	{{#page_stylesheet}}
-		<link rel="stylesheet" href="{{page_stylesheet}}?v={{version}}">
+		<link rel="stylesheet" href="{{page_stylesheet}}?v={{assetVersion}}">
 	{{/page_stylesheet}}
 	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&amp;display=swap">
 
@@ -58,7 +63,7 @@
 			integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
 			crossorigin="anonymous">
 	</noscript>
-	<script defer src="/assets/js/async-css.js?v={{version}}"></script>
+	<script defer src="/assets/js/async-css.js?v={{assetVersion}}"></script>
 
 	<script defer src="https://unpkg.com/htmx.org@2.0.4"
 		integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
@@ -66,7 +71,7 @@
 	{{#analyticsEnabled}}
 		{{{analyticsHead}}}
 		<script>{{{analyticsBridge}}}</script>
-		<script defer src="/assets/js/analytics.js?v={{version}}"></script>
+		<script defer src="/assets/js/analytics.js?v={{assetVersion}}"></script>
 	{{/analyticsEnabled}}
 </head>
 <body>
@@ -83,7 +88,7 @@
 	{{/isDev}}
 	<div class="header-container">
 		<a href="/" class="site-logo">
-			<img src="/assets/images/hammer_icon_sm.png?v={{version}}" alt="Hammer Editor" width="40" height="40">
+			<img src="/assets/images/hammer_icon_sm.png?v={{assetVersion}}" alt="Hammer Editor" width="40" height="40">
 			<span class="site-title">Hammer</span>
 		</a>
 
