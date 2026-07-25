@@ -102,13 +102,17 @@
 		const pre = wrap && wrap.querySelector('.mon-error__stack');
 		if (!pre) return;
 
-		const original = btn.innerHTML;
+		const original = Array.from(btn.childNodes);
 		const showCopied = function () {
+			const icon = document.createElement('i');
+			icon.className = 'fa-solid fa-check';
+			const label = document.createTextNode(' ' + (btn.dataset.copiedLabel || ''));
+
 			btn.classList.add('copied');
-			btn.innerHTML = '<i class="fa-solid fa-check"></i> ' + btn.dataset.copiedLabel;
+			btn.replaceChildren(icon, label);
 			setTimeout(function () {
 				btn.classList.remove('copied');
-				btn.innerHTML = original;
+				btn.replaceChildren(...original);
 			}, 2000);
 		};
 
