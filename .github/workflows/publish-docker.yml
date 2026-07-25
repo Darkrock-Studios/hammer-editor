@@ -6,6 +6,14 @@ name: Publish Docker Image
 # The distribution is built on GitHub's ubuntu-latest runner because the :server
 # module depends on :base, which needs the preinstalled Android SDK. The image
 # itself only packages that distribution (see docker/Dockerfile).
+#
+# FIRST RUN: the GHCR package is created automatically — nothing to register up
+# front. It may however be created *private*, which would break the anonymous
+# `docker pull` the docs tell self-hosters to use. After the first successful
+# publish, check the package page and, if needed, set Package settings ->
+# Danger Zone -> Change visibility -> Public. That is a one-way door: a public
+# package cannot be made private again, which is why it is left as a deliberate
+# manual step rather than automated here.
 
 on:
   release:
