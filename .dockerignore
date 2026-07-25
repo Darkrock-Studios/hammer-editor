@@ -1,0 +1,9 @@
+# Keep the Docker build context tiny: ignore everything, then re-include only the
+# pre-built server distribution that docker/Dockerfile copies in. The distribution
+# is produced by `./gradlew :server:installDist`.
+*
+!server
+server/*
+!server/build
+server/build/*
+!server/build/install

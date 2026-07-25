@@ -1,0 +1,59 @@
+name: hammer
+
+services:
+  hammer:
+    image: ghcr.io/darkrock-studios/hammer-editor/server:latest
+
+    # To build locally instead: run `./gradlew :server:installDist` from the repo
+    # root, then swap `image:` above for this.
+    # build:
+    #   context: ..
+    #   dockerfile: docker/Dockerfile
+
+    container_name: hammer-server
+    restart: unless-stopped
+
+    # The JVM handles SIGTERM itself; this only reaps orphans from the embedded
+    # PostgreSQL process tree.
+    init: true
+
+    ports:
+      # Loopback by default: this connector is plain HTTP, and published ports
+      # bypass host firewall rules. Set HAMMER_HTTP_BIND=0.0.0.0 only if nothing
+      # untrusted can reach the host. HAMMER_HTTP_PORT moves the host-side port.
+      - "${HAMMER_HTTP_BIND:-127.0.0.1}:${HAMMER_HTTP_PORT:-8080}:8080"
+
+    # Uncomment alongside the postgres service below.
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
+
+    volumes:
+      - hammer-data:/data
+      # Optional: manage the config on the host. Copy config.example.toml first.
+      # - ./config.toml:/data/hammer_data/config.toml:ro
+
+  # Only needed for `[storage] type = "remote"`; storage defaults to an
+  # in-process PostgreSQL. Uncomment the `depends_on` above alongside it.
+  # postgres:
+  #   image: postgres:18
+  #   container_name: hammer-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_DB: hammer
+  #     POSTGRES_USER: hammer
+  #     POSTGRES_PASSWORD: change-me
+  #   volumes:
+  #     # postgres 18+ keeps PGDATA in a versioned subdirectory of this path;
+  #     # mounting at /var/lib/postgresql/data instead aborts startup.
+  #     - hammer-pgdata:/var/lib/postgresql
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U hammer"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
+volumes:
+  hammer-data:
+  # Uncomment alongside the postgres service above.
+  # hammer-pgdata:
