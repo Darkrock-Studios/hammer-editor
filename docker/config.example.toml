@@ -3,40 +3,47 @@
 # Mount this file at /data/hammer_data/config.toml (see docker-compose.yml) or
 # leave it out entirely to run with defaults. Every value below is optional.
 #
-# Full reference: docs/HOW-TO-RUN-A-SERVER.md
+# Full reference: ../docs/HOW-TO-RUN-A-SERVER-DOCKER.md
 
 # Public name shown to users. Set this to the hostname clients will connect to.
 host = "hammer.example.com"
 
-# Plain HTTP port inside the container. Matches the port published in
-# docker-compose.yml and EXPOSE in the Dockerfile. Leave at 8080 unless you also
-# change those.
+# Plain HTTP port inside the container. The compose port mapping and the image's
+# HEALTHCHECK both assume 8080; changing it means changing those too.
 port = 8080
+
+# Do NOT set bindHosts under Docker. The main server guide recommends
+# ["127.0.0.1", "::1"] behind a reverse proxy, but inside a container that binds
+# the container's own loopback, so the published port reaches nothing and the
+# server is unreachable while still reporting healthy. Restrict exposure on the
+# host side instead, with HAMMER_HTTP_BIND in docker-compose.yml.
 
 # The externally visible base URL, used for links placed in emails. Set this when
 # running behind a reverse proxy so generated links use the right scheme/host.
 # publicUrl = "https://hammer.example.com"
 
 # TLS: the recommended Docker setup terminates TLS at a reverse proxy in front of
-# the container and forwards plain HTTP here. In that case leave sslCert unset and
-# do NOT publish 8080 to the public internet directly.
+# the container and forwards plain HTTP here. In that case leave sslCert unset.
 #
-# To have Hammer terminate TLS itself, mount your certificate into the container,
-# publish 443, and point at the PEM files (from e.g. Let's Encrypt):
+# To have Hammer terminate TLS itself, mount the host certificate directory into
+# the container and publish 443. Use absolute container paths: unlike
+# termsOfService and privacyPolicy, cert paths are NOT resolved relative to this
+# file, and a renewed cert is only picked up when the container restarts.
 # sslPort = 443
 # [sslCert]
-# certChainPath = "/data/hammer_data/certs/fullchain.pem"
-# privateKeyPath = "/data/hammer_data/certs/privkey.pem"
+# certChainPath = "/certs/live/hammer.example.com/fullchain.pem"
+# privateKeyPath = "/certs/live/hammer.example.com/privkey.pem"
 
 # Storage defaults to an in-process (embedded) PostgreSQL under
 # /data/hammer_data/pgdata — no external database needed. To use an external
-# PostgreSQL instead, uncomment and fill in:
+# PostgreSQL instead, uncomment this and the postgres service in
+# docker-compose.yml; host must match that service name.
 # [storage]
 # type = "remote"
 # [storage.remote]
-# host = "db"
+# host = "postgres"
 # port = 5432
 # database = "hammer"
 # user = "hammer"
 # password = "change-me"
-# useSsl = false
+# useSsl = false   # defaults to true; a plain postgres container serves no TLS

@@ -17,37 +17,23 @@ There are two ways to run it:
 
 ## Docker
 
-A slim, non-root image is published to GitHub Container Registry. It uses the
-embedded PostgreSQL database by default, so all you need is a volume for your
-data.
-
-```bash
-docker run -d --name hammer-server \
-  -p 8080:8080 \
-  -v hammer-data:/data \
-  ghcr.io/darkrock-studios/hammer-editor/server:latest
-```
-
-Or with Docker Compose (recommended — see [`docker/docker-compose.yml`](../docker/docker-compose.yml)):
+A slim, non-root image is published to GitHub Container Registry, using the
+embedded PostgreSQL database by default:
 
 ```bash
 cd docker
 docker compose up -d
 ```
 
-The server auto-loads `config.toml` from `/data/hammer_data/config.toml` inside
-the volume, so everything documented in the rest of this guide applies — mount
-or drop your config there. A full quickstart, including TLS and backups, is in
-[`docker/README.md`](../docker/README.md).
+**See [HOW-TO-RUN-A-SERVER-DOCKER.md](HOW-TO-RUN-A-SERVER-DOCKER.md) for the full
+Docker guide.** The feature sections below (whitelisting, email, community,
+analytics, encryption) apply to Docker too, since the server auto-loads
+`config.toml` from the mounted data directory.
 
-> Clients only speak HTTPS. With Docker, the common setup is to terminate TLS at
-> a reverse proxy in front of the container (see
-> [Reverse Proxy using Nginx](#reverse-proxy-using-nginx)) and forward plain HTTP
-> to port 8080. You can also have Hammer terminate TLS itself by mounting a
-> certificate and publishing 443 — see [Setting up SSL](#setting-up-ssl-required-for-direct-connections).
-
-After the server is up, **download a client and create an account** — the first
-account created becomes the admin account.
+> The **networking** guidance below — in particular the `bindHosts` setting in
+> the reverse-proxy section — does **not** apply to containers, where it makes
+> the server unreachable. Follow the Docker guide instead for anything about
+> ports, binding, or TLS.
 
 ## Running the Java executable
 

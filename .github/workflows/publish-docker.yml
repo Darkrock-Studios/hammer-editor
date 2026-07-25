@@ -1,32 +1,29 @@
 name: Publish Docker Image
 
 # Builds the server distribution and publishes a multi-arch (linux/amd64 +
-# linux/arm64) image to GitHub Container Registry.
+# linux/arm64) image to GHCR. The distribution is built on the runner because
+# :server depends on :base, which needs the preinstalled Android SDK.
 #
-# The distribution is built on GitHub's ubuntu-latest runner because the :server
-# module depends on :base, which needs the preinstalled Android SDK. The image
-# itself only packages that distribution (see docker/Dockerfile).
-#
-# FIRST RUN: the GHCR package is created automatically — nothing to register up
-# front. It may however be created *private*, which would break the anonymous
-# `docker pull` the docs tell self-hosters to use. After the first successful
-# publish, check the package page and, if needed, set Package settings ->
-# Danger Zone -> Change visibility -> Public. That is a one-way door: a public
-# package cannot be made private again, which is why it is left as a deliberate
-# manual step rather than automated here.
+# First run: the GHCR package is created automatically, but may be created
+# private, which breaks the anonymous `docker pull` the docs point people at.
+# Check the package page afterwards and set it Public if needed — that is a
+# one-way door, hence a deliberate manual step.
 
 on:
   release:
     types: [ published ]
   workflow_dispatch:
     inputs:
+      ref:
+        description: "Git ref to build (tag, branch, or SHA). Defaults to the branch this ran from."
+        required: false
       tag:
         description: "Image tag to publish (e.g. 3.7.1). Defaults to 'manual'."
         required: false
         default: "manual"
 
-# Required, not boilerplate: this repo's default workflow token is read-only, so
-# without this block the push to GHCR fails with a 403.
+# Required: this repo's default workflow token is read-only, so without this the
+# push to GHCR fails with a 403.
 permissions:
   contents: read
   packages: write
@@ -36,10 +33,16 @@ env:
 
 jobs:
   publish:
+    # Matches the tag-suffix convention in publish-release.yml: full releases
+    # (no suffix) and `+server` releases ship the image; client-store-only
+    # releases must not move the server tags.
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+server') }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.inputs.ref }}
 
       - name: Set up JDK 21
         uses: actions/setup-java@v5
@@ -72,8 +75,6 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE_NAME }}
-          # For releases: tag with the version and 'latest'. For manual runs: use
-          # the provided input tag. sha tags are always added for traceability.
           tags: |
             type=semver,pattern={{version}},enable=${{ github.event_name == 'release' }}
             type=raw,value=latest,enable=${{ github.event_name == 'release' && !github.event.release.prerelease }}

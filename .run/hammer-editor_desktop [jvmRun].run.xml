@@ -1,0 +1,27 @@
+<component name="ProjectRunConfigurationManager">
+	<configuration default="false" name="hammer-editor:desktop [jvmRun]" type="GradleRunConfiguration"
+				   factoryName="Gradle">
+		<ExternalSystemSettings>
+			<option name="executionName"/>
+			<option name="externalProjectPath" value="$PROJECT_DIR$/desktop"/>
+			<option name="externalSystemIdString" value="GRADLE"/>
+			<option name="scriptParameters"
+					value="-DmainClass=com.darkrockstudios.apps.hammer.desktop.MainKt --quiet"/>
+			<option name="taskDescriptions">
+				<list/>
+			</option>
+			<option name="taskNames">
+				<list>
+					<option value="jvmRun"/>
+					<option value="--args=&quot;--dev&quot;"/>
+				</list>
+			</option>
+			<option name="vmOptions"/>
+		</ExternalSystemSettings>
+		<ExternalSystemDebugServerProcess>false</ExternalSystemDebugServerProcess>
+		<ExternalSystemReattachDebugProcess>true</ExternalSystemReattachDebugProcess>
+		<DebugAllEnabled>false</DebugAllEnabled>
+		<ForceTestExec>false</ForceTestExec>
+		<method v="2"/>
+	</configuration>
+</component>
