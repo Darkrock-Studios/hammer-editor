@@ -33,7 +33,6 @@ import com.darkrockstudios.apps.hammer.monitoring.isClientAbort
 import com.darkrockstudios.apps.hammer.monitoring.recordMonitoredError
 import com.darkrockstudios.apps.hammer.monitoring.toMonitoredStatus
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
-import com.darkrockstudios.apps.hammer.plugins.AssetVersion
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
@@ -337,7 +336,6 @@ private fun ExtraLink.toModel(locale: Locale): Map<String, Any> = mapOf(
 
 fun MutableMap<String, Any>.addDefaults(): MutableMap<String, Any> {
 	this["version"] = BuildMetadata.APP_VERSION
-	this["assetVersion"] = AssetVersion.stamp
 	return this
 }
 

@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.plugins
 
 import com.darkrockstudios.apps.hammer.ServerConfig
+import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import io.ktor.client.request.get
 import io.ktor.http.CacheControl
 import io.ktor.http.ContentType
@@ -12,7 +13,6 @@ import io.ktor.server.testing.testApplication
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
-import kotlin.test.assertTrue
 
 class HttpCachingTest {
 
@@ -101,21 +101,16 @@ class HttpCachingTest {
 	}
 
 	@Test
-	fun `the asset stamp is a fingerprint of the asset tree`() {
-		assertTrue(AssetVersion.stamp.matches(Regex("[0-9a-f]{12}")))
-	}
-
-	@Test
-	fun `an asset carrying the minted stamp is immutable for a year`() = testApplication {
+	fun `an asset carrying the running version is immutable for a year`() = testApplication {
 		assertEquals(
 			"max-age=31536000, public, immutable",
-			cacheControlFor("/assets/css/base.css?v=${AssetVersion.stamp}"),
+			cacheControlFor("/assets/css/base.css?v=${BuildMetadata.APP_VERSION}"),
 		)
 	}
 
 	@Test
-	fun `a stamp the server did not mint keeps the short window`() = testApplication {
-		assertEquals("max-age=86400, public", cacheControlFor("/assets/css/base.css?v=3.7.1"))
+	fun `a version the server was not built at keeps the short window`() = testApplication {
+		assertEquals("max-age=86400, public", cacheControlFor("/assets/css/base.css?v=0.0.1-nope"))
 	}
 
 	@Test

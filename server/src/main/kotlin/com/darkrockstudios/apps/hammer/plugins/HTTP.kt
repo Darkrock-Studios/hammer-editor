@@ -68,7 +68,7 @@ fun Application.configureHTTP(config: ServerConfig) {
 			staticAssetCaching(
 				path = call.request.path(),
 				contentType = content.contentType,
-				versioned = call.request.queryParameters[ASSET_VERSION_PARAM] == AssetVersion.stamp,
+				versioned = call.request.queryParameters[ASSET_VERSION_PARAM] == BuildMetadata.APP_VERSION,
 			)
 		}
 	}
@@ -97,7 +97,7 @@ fun Application.configureHTTP(config: ServerConfig) {
 	}
 }
 
-/** Query parameter carrying [AssetVersion.stamp] on asset URLs the templates emit. */
+/** Query parameter carrying the app version on asset URLs the templates emit. */
 internal const val ASSET_VERSION_PARAM = "v"
 
 /**
@@ -106,8 +106,9 @@ internal const val ASSET_VERSION_PARAM = "v"
  * - Dynamic OG share cards under `/og/` cache for 30 days — the same window the disk cache prunes
  *   on — since a card's URL is keyed to a stable subject.
  * - Static files under `/assets` cache by type (CSS/JS one day, images/fonts a week), or for a year
- *   when [versioned] — the URL then carries [AssetVersion.stamp], so changing an asset mints a new
- *   URL rather than needing the old one to expire. References from inside a stylesheet carry no
+ *   when [versioned] — the URL then carries the current app version, so a release mints a new URL
+ *   rather than needing the old one to expire. Only the version the server was built at counts, so
+ *   an arbitrary `?v=` can't buy a year of `immutable`. References from inside a stylesheet carry no
  *   version and stay on the shorter windows, so nothing can be stuck stale.
  * - Everything else — HTML pages, XML sitemaps, and any dynamic image outside those paths — gets
  *   no caching header, so it stays fresh and never leaks session-varying content into a shared
