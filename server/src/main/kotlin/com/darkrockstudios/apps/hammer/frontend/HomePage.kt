@@ -7,10 +7,9 @@ import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.respondPage
 import com.darkrockstudios.apps.hammer.frontend.utils.webSiteJsonLd
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
-import io.ktor.server.mustache.*
-import io.ktor.server.response.*
 import io.ktor.server.routing.*
 
 /**
@@ -70,7 +69,7 @@ fun Route.homePage(
 
 			populateCommunityCalloutModel(serverConfig, model, accountsRepository, projectAccessRepository)
 
-			call.respond(MustacheContent("home.mustache", model))
+			call.respondPage("home.mustache", model)
 		}
 	}
 }

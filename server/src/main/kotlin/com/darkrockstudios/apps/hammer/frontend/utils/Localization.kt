@@ -61,7 +61,19 @@ suspend fun ApplicationCall.msg(data: MutableMap<String, Any>, key: String, vara
 	val message = msg(key, *args)
 	val msgData = data["msg"] as? MutableMap<String, String> ?: mutableMapOf()
 	msgData[key] = message
+
+	// Thar be dragons: pageETag skips the bulk `msg` bundle because the bundle is determined by
+	// `locale` and `version`. A message formatted here is not — it carries request or config data
+	// the bundle never saw. Mirroring it into a hashed key keeps such a value inside the validator;
+	// without this, changing the data behind a formatted message serves everyone a stale page.
+	@Suppress("UNCHECKED_CAST")
+	val formatted = data.getOrPut(FORMATTED_MSG_KEY) { sortedMapOf<String, String>() }
+			as SortedMap<String, String>
+	formatted[key] = message
 }
+
+/** Model key holding the runtime-formatted messages, mirrored out of `msg` so [pageETag] sees them. */
+const val FORMATTED_MSG_KEY = "msgFormatted"
 
 suspend fun ApplicationCall.withMessages(data: Map<String, Any> = emptyMap()): MutableMap<String, Any> {
 	val locale = getLocale()

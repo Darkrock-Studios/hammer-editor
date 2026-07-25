@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.authorProfileJsonLd
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.metaDescription
 import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
+import com.darkrockstudios.apps.hammer.frontend.utils.respondPage
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import io.ktor.http.*
@@ -97,7 +98,9 @@ fun Route.authorPage(
 					description = metaDescription(account.bio),
 				)
 			}
-			call.respond(MustacheContent("author.mustache", model))
+			// `community_member` is an explicit input: it gates the X-Robots-Tag header, which
+			// never reaches the model.
+			call.respondPage("author.mustache", model, account.community_member)
 		}
 	}
 }
