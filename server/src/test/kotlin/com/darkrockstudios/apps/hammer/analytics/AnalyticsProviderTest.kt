@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.UmamiConfig
 import org.junit.jupiter.api.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertNull
 
@@ -29,11 +30,9 @@ class AnalyticsProviderTest {
 	}
 
 	@Test
-	fun `umami event bridge forwards hammerTrack calls to umami track`() {
+	fun `umami client config names the provider for analytics js`() {
 		val provider = UmamiAnalyticsProvider(UmamiConfig(websiteId = "x"))
-		val bridge = provider.eventBridge()
-		assertContains(bridge, "window.hammerTrack")
-		assertContains(bridge, "umami.track(n,d)")
+		assertEquals(mapOf("provider" to "umami"), provider.clientConfig())
 	}
 
 	@Test
@@ -89,19 +88,34 @@ class AnalyticsProviderTest {
 	}
 
 	@Test
-	fun `google head snippet loads gtag and configures the measurement id`() {
+	fun `google head snippet loads gtag`() {
 		val provider = GoogleAnalyticsProvider(GoogleConfig(measurementId = "G-ABC123"))
 		val snippet = provider.headSnippet()
 		assertContains(snippet, """src="https://www.googletagmanager.com/gtag/js?id=G-ABC123"""")
-		assertContains(snippet, "gtag('config','G-ABC123')")
 	}
 
 	@Test
-	fun `google event bridge forwards hammerTrack calls to gtag`() {
+	fun `google client config carries the measurement id for analytics js`() {
 		val provider = GoogleAnalyticsProvider(GoogleConfig(measurementId = "G-ABC123"))
-		val bridge = provider.eventBridge()
-		assertContains(bridge, "window.hammerTrack")
-		assertContains(bridge, "gtag('event',n,d)")
+		assertEquals(
+			mapOf("provider" to "google", "measurement-id" to "G-ABC123"),
+			provider.clientConfig(),
+		)
+	}
+
+	@Test
+	fun `no head snippet carries an inline script body`() {
+		// The CSP has no 'unsafe-inline'; an inline vendor bootstrap would be silently blocked.
+		val providers = listOf(
+			UmamiAnalyticsProvider(UmamiConfig(websiteId = "x")),
+			GoogleAnalyticsProvider(GoogleConfig(measurementId = "G-ABC123")),
+		)
+		providers.forEach { provider ->
+			assertFalse(
+				Regex("""<script(?![^>]*\ssrc=)""").containsMatchIn(provider.headSnippet()),
+				"${provider::class.simpleName} emits a script tag with no src",
+			)
+		}
 	}
 
 	@Test

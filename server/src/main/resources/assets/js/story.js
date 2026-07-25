@@ -3,10 +3,10 @@
  * Handles settings panel interactions, copy URL functionality, and share dialog
  */
 
-// Top-level functions in this file are wired to HTML elements from mustache
-// templates (onclick=..., hx-* attributes) — ESLint can't see those references.
+// Top-level functions in this file are wired to HTML elements from mustache templates via
+// data-on-* attributes and hx-* attributes — ESLint can't see those references.
 /* eslint-disable no-unused-vars */
-/* global htmx, nextToggleState, allSelected, reviewCountLabel, canSendReview */
+/* global htmx, hammerActions, nextToggleState, allSelected, reviewCountLabel, canSendReview */
 
 document.addEventListener('DOMContentLoaded', function () {
 	initSettingsPanel();
@@ -398,3 +398,36 @@ function updateReviewFormState(form) {
 		sendBtn.disabled = !canSendReview(checked, email ? email.value : '');
 	}
 }
+
+// ========================================
+// Event wiring
+// ========================================
+
+// A "dismiss" action fires only when the click landed on the overlay itself, not on the dialog
+// inside it — the delegated equivalent of the old event.target/currentTarget check.
+function onOverlayItself(close) {
+	return function (element, event) {
+		if (event.target === element) close();
+	};
+}
+
+hammerActions({
+	'share-dialog-dismiss': onOverlayItself(closeShareDialog),
+	'share-dialog-close': () => closeShareDialog(),
+	'publish-warning-dismiss': onOverlayItself(closePublishWarning),
+	'publish-warning-close': () => closePublishWarning(),
+	'publish-confirm': confirmPublish,
+	'publish-toggle': handlePublishToggle,
+	'password-toggle': togglePasswordVisibility,
+	'review-dialog-dismiss': onOverlayItself(closeReviewDialog),
+	'review-dialog-close': () => closeReviewDialog(),
+	'review-link-select': (el) => el.select(),
+	'review-link-copy': copyReviewLink
+});
+
+// Replaces hx-on::after-request on the share form, which htmx compiles with new Function().
+document.body.addEventListener('htmx:afterRequest', function (evt) {
+	if (evt.target.closest('#share-dialog-overlay')) {
+		closeShareDialog();
+	}
+});

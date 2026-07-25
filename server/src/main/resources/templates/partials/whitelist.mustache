@@ -61,7 +61,7 @@
 						data-reason="{{reason}}"
 						data-page="{{currentPage}}"
 						data-sort-oldest-first="{{sortOldestFirst}}"
-						onclick="openEditReasonDialog(this)">
+						data-on-click="edit-reason-open">
 					<i class="fa-solid fa-pen"></i>
 					{{msg.admin_whitelist_edit_button}}
 				</button>
@@ -72,7 +72,7 @@
 							data-expires-raw="{{expiresRaw}}"
 							data-page="{{currentPage}}"
 							data-sort-oldest-first="{{sortOldestFirst}}"
-							onclick="openEditExpiryDialog(this)">
+							data-on-click="edit-expiry-open">
 						<i class="fa-solid fa-hourglass-half"></i>
 						{{msg.admin_whitelist_edit_expiry_button}}
 					</button>

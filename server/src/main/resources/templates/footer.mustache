@@ -73,6 +73,9 @@
 <!-- Toast Container for OOB swaps -->
 <div id="toast-container" aria-live="polite" aria-atomic="false"></div>
 
+<!-- actions.js first: page scripts register their handlers against it. -->
+<script src="/assets/js/actions.js?v={{version}}"></script>
+<script src="/assets/js/nav.js?v={{version}}"></script>
 <script src="/assets/js/toast.js?v={{version}}"></script>
 {{#page_pre_script}}
 	<script src="{{page_pre_script}}?v={{version}}"></script>

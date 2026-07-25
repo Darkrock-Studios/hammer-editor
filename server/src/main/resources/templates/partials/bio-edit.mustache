@@ -12,7 +12,7 @@
 						  rows="8"
 						  maxlength="1024"
 						  placeholder="{{msg.bio_edit_placeholder}}"
-						  oninput="onBioInput(this.value)">{{bio}}</textarea>
+						  data-on-input="bio-input">{{bio}}</textarea>
 				<span class="char-count" id="bio-char-count">0/1024</span>
 			</div>
 			<p class="bio-help-text">{{msg.bio_markdown_help}}</p>
@@ -22,7 +22,7 @@
 				<i class="fa-solid fa-check"></i>
 				{{msg.bio_save_button}}
 			</button>
-			<button type="button" class="cancel-btn" onclick="exitBioEditMode()">
+			<button type="button" class="cancel-btn" data-on-click="bio-edit-cancel">
 				{{msg.bio_cancel_button}}
 			</button>
 		</div>

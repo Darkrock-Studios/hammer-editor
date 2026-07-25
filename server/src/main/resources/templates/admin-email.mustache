@@ -315,7 +315,7 @@
 					  hx-post="/admin/email/test"
 					  hx-target="#email-result"
 					  hx-swap="innerHTML"
-					  hx-on::before-request="document.getElementById('email-result').innerHTML = '';">
+					  data-clears="#email-result">
 
 					<div class="form-group">
 						<label for="testRecipient" class="form-field__label">{{msg.admin_email_test_recipient}}</label>

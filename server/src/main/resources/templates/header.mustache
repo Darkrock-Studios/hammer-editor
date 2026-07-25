@@ -65,8 +65,8 @@
 		crossorigin="anonymous"></script>
 	{{#analyticsEnabled}}
 		{{{analyticsHead}}}
-		<script>{{{analyticsBridge}}}</script>
-		<script defer src="/assets/js/analytics.js?v={{version}}"></script>
+		<script defer id="hammer-analytics" src="/assets/js/analytics.js?v={{version}}"
+			{{#analyticsData}}data-{{name}}="{{value}}" {{/analyticsData}}></script>
 	{{/analyticsEnabled}}
 </head>
 <body>
@@ -129,45 +129,3 @@
 	</div>
 </header>
 <div class="nav-overlay" id="nav-overlay"></div>
-<script>
-	(function () {
-		const toggle = document.querySelector('.nav-toggle');
-		const nav = document.getElementById('header-nav');
-		const overlay = document.getElementById('nav-overlay');
-
-		function closeMenu() {
-			toggle.setAttribute('aria-expanded', 'false');
-			nav.classList.remove('is-open');
-			overlay.classList.remove('is-visible');
-			document.body.style.overflow = '';
-		}
-
-		function openMenu() {
-			toggle.setAttribute('aria-expanded', 'true');
-			nav.classList.add('is-open');
-			overlay.classList.add('is-visible');
-			document.body.style.overflow = 'hidden';
-		}
-
-		toggle.addEventListener('click', function () {
-			const isOpen = toggle.getAttribute('aria-expanded') === 'true';
-			if (isOpen) {
-				closeMenu();
-			} else {
-				openMenu();
-			}
-		});
-
-		overlay.addEventListener('click', closeMenu);
-
-		// Close menu when clicking a nav link
-		nav.querySelectorAll('.header-nav__link').forEach(function (link) {
-			link.addEventListener('click', closeMenu);
-		});
-
-		// Close on escape key
-		document.addEventListener('keydown', function (e) {
-			if (e.key === 'Escape') closeMenu();
-		});
-	})();
-</script>

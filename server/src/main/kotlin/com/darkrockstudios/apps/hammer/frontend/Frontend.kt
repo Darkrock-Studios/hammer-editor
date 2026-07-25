@@ -401,7 +401,9 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 		serverConfig.analytics.provider?.let { provider ->
 			model["analyticsEnabled"] = true
 			model["analyticsHead"] = provider.headSnippet()
-			model["analyticsBridge"] = provider.eventBridge()
+			model["analyticsData"] = provider.clientConfig().map { (name, value) ->
+				mapOf("name" to name, "value" to value)
+			}
 		}
 	}
 

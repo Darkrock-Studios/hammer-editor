@@ -17,7 +17,7 @@
 			{{> partials/monitoring-nav}}
 
 			<section class="paper-section">
-				<form class="mon-log-controls" id="logControls" onsubmit="return false">
+				<form class="mon-log-controls" id="logControls" data-on-submit="logs-controls-submit">
 					<div class="form-field">
 						<label class="form-field__label form-field__label--small" for="logLevel">{{msg.admin_mon_logs_level}}</label>
 						<select id="logLevel" name="level" class="form-select">
@@ -35,24 +35,14 @@
 						<input type="checkbox" id="logAutoRefresh" checked/>
 						{{msg.admin_mon_logs_autorefresh}}
 					</label>
-					<button class="mon-range__btn" onclick="exportLogs()">{{msg.admin_mon_logs_export}}</button>
+					<button class="mon-range__btn" data-on-click="logs-export">{{msg.admin_mon_logs_export}}</button>
 				</form>
-				<script>
-					function exportLogs() {
-						var params = new URLSearchParams();
-						var level = document.getElementById('logLevel').value;
-						var q = document.getElementById('logSearch').value;
-						if (level) params.set('level', level);
-						if (q) params.set('q', q);
-						var qs = params.toString();
-						window.location.href = '/admin/monitoring/logs/export' + (qs ? '?' + qs : '');
-					}
-				</script>
+				<script defer src="/assets/js/admin-monitoring-logs.js?v={{version}}"></script>
 
 				<div id="logTail"
 					 class="mon-log-tail"
 					 hx-get="/admin/monitoring/logs/tail"
-					 hx-trigger="load, every 3s [document.getElementById('logAutoRefresh').checked], submit from:#logControls, change from:#logControls"
+					 hx-trigger="load, refreshLogs, submit from:#logControls, change from:#logControls"
 					 hx-include="#logControls"
 					 hx-swap="innerHTML">
 				</div>
