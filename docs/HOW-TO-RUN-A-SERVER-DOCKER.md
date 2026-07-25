@@ -184,14 +184,77 @@ sudo chown -R 1000:1000 /path/to/your/data
 ## Admin CLI subcommands
 
 The image entrypoint is the server launcher, so subcommands work by appending
-them to `docker run`. Anything meant to persist must be written into the mounted
-volume — `generate-keyring` prints to stdout unless given `--out`:
+them to `docker run` with the data volume mounted:
 
 ```bash
 docker run --rm -v hammer-data:/data \
   ghcr.io/darkrock-studios/hammer-editor/server:latest \
   generate-keyring --out /data/hammer_data/server.keyring.json
 ```
+
+Two rules matter in a container:
+
+**Anything meant to persist needs `--out` pointing into the volume.** These
+commands print to stdout by default, and with `--rm` that output is all you get.
+
+**Commands that read the database need the server stopped** — but only with the
+default embedded storage. The embedded PostgreSQL holds an exclusive lock on
+`pgdata`, so a second container cannot open it while the server is running:
+
+```
+Could not read the database to verify which content keys are in use:
+could not lock /data/hammer_data/pgdata/epg-lock
+```
+
+This fails safely — nothing is written or corrupted — but the command does not
+run. Stop the server first, then start it again afterwards:
+
+```bash
+docker stop hammer-server
+docker run --rm -v hammer-data:/data \
+  ghcr.io/darkrock-studios/hammer-editor/server:latest \
+  prune-key --role content --config /data/hammer_data/config.toml --dry-run
+docker start hammer-server
+```
+
+| Command | Needs the database | Server must be stopped |
+|---------|--------------------|------------------------|
+| `generate-keyring` | no | no |
+| `rotate-key` | no | no |
+| `inspect-keyring` | no | no |
+| `migrate-secret` | no | no |
+| `prune-key --role tokenHmac` | no | no |
+| `prune-key --role content` | yes | yes (embedded storage) |
+| `--converge-dry-run` | yes | yes (embedded storage) |
+
+The lock is specific to the embedded database. With `[storage] type = "remote"`
+the database is a separate service, so these commands can run against a live
+server.
+
+### Rotating an encryption key
+
+Key rotation itself never touches the database. Rotate offline, write the result
+into the volume, then restart — the server reads its keyring only at startup, so
+a rotated keyring has no effect until the container restarts:
+
+```bash
+# Review the rotated keyring first (prints to stdout, writes nothing)
+docker run --rm -v hammer-data:/data \
+  ghcr.io/darkrock-studios/hammer-editor/server:latest rotate-key --role content
+
+# Then write it and restart to pick it up
+docker run --rm -v hammer-data:/data \
+  ghcr.io/darkrock-studios/hammer-editor/server:latest \
+  rotate-key --role content --out /data/hammer_data/server.keyring.json
+docker restart hammer-server
+```
+
+Back up the existing keyring before overwriting it. Losing key material means
+losing the content encrypted under it — see
+[SERVER-SECRET-STORAGE.md](SERVER-SECRET-STORAGE.md).
+
+Pruning old generations comes *after* the server has converged existing rows onto
+the new key, and needs the server stopped as described above.
 
 ## Building the image yourself
 
