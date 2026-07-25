@@ -76,6 +76,38 @@ check `docker logs` if the container exits immediately.
 > `[System.IO.File]::WriteAllText($path, $text)`, or pick "UTF-8" (not
 > "UTF-8 with BOM") in your editor.
 
+## Using an external PostgreSQL
+
+The default is an in-process PostgreSQL inside the container — nothing else to
+run, and the recommended setup for most self-hosters. To point at an
+externally-managed database instead, switch `config.toml` to remote storage:
+
+```toml
+[storage]
+type = "remote"
+
+[storage.remote]
+host = "postgres"
+port = 5432
+database = "hammer"
+user = "hammer"
+password = "change-me"
+useSsl = false
+```
+
+The schema is created and migrated automatically on first connect, so an empty
+database is all that's needed.
+
+`docker-compose.yml` contains a commented-out `postgres` service (plus the
+matching `depends_on`) to uncomment for this.
+
+> **`useSsl` defaults to `true`.** A stock `postgres` container serves no TLS, so
+> leaving it unset against one fails to connect. Set `useSsl = false` for a local
+> sidecar; keep it on for a managed database that terminates TLS.
+
+In remote mode the `/data` volume still holds the caches and keyring, but no
+`pgdata` — back up your PostgreSQL server instead.
+
 ## Data & backups
 
 Everything durable lives under the `/data` volume:

@@ -15,11 +15,21 @@ services:
     container_name: hammer-server
     restart: unless-stopped
 
+    # Reap orphaned processes. The JVM runs as PID 1 and handles SIGTERM itself
+    # (shutdown is graceful without this), but it does not reap orphans, and the
+    # embedded PostgreSQL is a native process tree. Equivalent to `docker run --init`.
+    init: true
+
     ports:
       # host:container. Override the host side without editing this file by
       # setting HAMMER_HTTP_PORT (e.g. in a .env file next to this one, or
       # `HAMMER_HTTP_PORT=8090 docker compose up -d`) if 8080 is already in use.
       - "${HAMMER_HTTP_PORT:-8080}:8080"
+
+    # Uncomment alongside the postgres service below.
+    # depends_on:
+    #   postgres:
+    #     condition: service_healthy
 
     volumes:
       # Durable state: embedded database, caches, keyring, and config.toml.
@@ -28,5 +38,31 @@ services:
       # Copy config.example.toml to ./config.toml first.
       # - ./config.toml:/data/hammer_data/config.toml:ro
 
+  # Storage defaults to an in-process PostgreSQL inside the hammer container, so
+  # no database service is needed. To use an external PostgreSQL instead,
+  # uncomment this service and the `depends_on` above, and switch config.toml to
+  # `[storage] type = "remote"` (see config.example.toml). Note that
+  # `useSsl = false` is required against a plain postgres container, since the
+  # setting defaults to true and this image serves no TLS.
+  # postgres:
+  #   image: postgres:18
+  #   container_name: hammer-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     POSTGRES_DB: hammer
+  #     POSTGRES_USER: hammer
+  #     POSTGRES_PASSWORD: change-me
+  #   volumes:
+  #     # Mount point for postgres 18+. Earlier images used
+  #     # /var/lib/postgresql/data; on 18+ that path aborts startup.
+  #     - hammer-pgdata:/var/lib/postgresql
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "pg_isready -U hammer"]
+  #     interval: 10s
+  #     timeout: 5s
+  #     retries: 5
+
 volumes:
   hammer-data:
+  # Uncomment alongside the postgres service above.
+  # hammer-pgdata:
