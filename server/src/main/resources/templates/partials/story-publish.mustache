@@ -18,7 +18,7 @@
 					   hx-indicator=".publish-loading"
 					   {{/isPublished}}
 					   {{^isPublished}}
-					   onchange="handlePublishToggle(this)"
+					   data-on-change="publish-toggle"
 					   {{/isPublished}}>
 				<span class="publish-toggle-track">
 					<span class="publish-toggle-thumb"></span>

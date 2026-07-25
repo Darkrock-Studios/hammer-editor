@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.Toast
 import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
 import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
+import com.darkrockstudios.apps.hammer.frontend.utils.messagesIsland
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.renderTemplate
 import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
@@ -36,6 +37,15 @@ import io.ktor.server.sessions.sessions
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.math.ceil
+
+/** Strings dashboard.js needs at runtime, delivered as a JSON island. */
+private val DASHBOARD_CLIENT_MESSAGES = mapOf(
+	"pennameCheckingAvailability" to "penname_checking_availability",
+	"pennameAvailable" to "penname_validation_available",
+	"pennameCheckFailed" to "penname_check_failed",
+	"pennameReleaseConfirm" to "penname_release_confirm_message",
+	"bioClearConfirm" to "bio_clear_confirm",
+)
 
 fun Route.dashboardPage(
 	projectsRepository: ProjectsRepository,
@@ -74,6 +84,7 @@ fun Route.dashboardPage(
 						"projects" to projects,
 						"communityEnabled" to serverConfig.communityEnabled,
 						"communityMember" to account.community_member,
+						"dashboardMessages" to call.messagesIsland(DASHBOARD_CLIENT_MESSAGES),
 					)
 				)
 

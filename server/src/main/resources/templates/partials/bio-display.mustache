@@ -8,11 +8,11 @@
 				</div>
 			</div>
 			<div class="bio-actions">
-				<button type="button" class="edit-bio-btn" onclick="enterBioEditMode()">
+				<button type="button" class="edit-bio-btn" data-on-click="bio-edit">
 					<i class="fa-solid fa-pencil"></i>
 					{{msg.bio_edit_button}}
 				</button>
-				<button type="button" class="clear-bio-btn" onclick="confirmClearBio()">
+				<button type="button" class="clear-bio-btn" data-on-click="bio-clear">
 					<i class="fa-solid fa-trash"></i>
 					{{msg.bio_clear_button}}
 				</button>
@@ -20,7 +20,7 @@
 		</div>
 	{{/bio}}
 	{{^bio}}
-		<button type="button" class="add-bio-btn" onclick="enterBioEditMode()">
+		<button type="button" class="add-bio-btn" data-on-click="bio-edit">
 			<i class="fa-solid fa-user-pen"></i>
 			{{msg.bio_add_button}}
 		</button>

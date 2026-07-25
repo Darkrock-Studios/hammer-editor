@@ -16,6 +16,7 @@ Writer's Desk" aesthetic with a unified component library using BEM naming conve
 - [Utility Classes](#utility-classes)
 - [Responsive Design](#responsive-design)
 - [Accessibility](#accessibility)
+- [Client-Side Scripting](#client-side-scripting)
 
 ---
 
@@ -865,6 +866,81 @@ All interactive elements have visible focus states:
 - Text colors meet WCAG AA contrast requirements
 - Interactive elements have clear hover/focus states
 - Error states use both color and icons for accessibility
+
+---
+
+## Client-Side Scripting
+
+The `Content-Security-Policy` allows **no `'unsafe-inline'` and no `'unsafe-eval'` in `script-src`**.
+Every script must be an external file under `/assets/js/`. Anything that violates this fails
+silently in the browser — the handler simply never runs — so `CspComplianceTest` fails the build
+instead.
+
+### Event handlers
+
+Declare handlers with `data-on-*` attributes and register them from your page script. `actions.js`
+dispatches from a document-level listener, so markup swapped in by HTMX is wired up with no
+re-binding.
+
+```html
+<button type="button" data-on-click="bio-edit">Edit</button>
+<input data-on-input="bio-input">
+<select data-on-change="expiry-preset" data-expiry-field="add-expiry-date-field">
+```
+
+```javascript
+hammerActions({
+	'bio-edit': enterBioEditMode,
+	'bio-input': (el) => updateBioCharCount(el.value),
+	'expiry-preset': (el) => toggleExpiryDate(el, el.dataset.expiryField)
+});
+```
+
+Handlers receive `(element, event)`, where `element` is the one carrying the attribute. Returning
+`false` calls `preventDefault()`. Supported events: `click`, `change`, `input`, `submit`.
+
+### Server-rendered values
+
+Pass data to a script through a JSON island, never by interpolating into a script body:
+
+```html
+<script type="application/json" id="dashboard-messages">{{{dashboardMessages}}}</script>
+```
+
+```javascript
+const MESSAGES = JSON.parse(document.getElementById('dashboard-messages').textContent);
+```
+
+Build the JSON with `jsonIsland()` or `messagesIsland()` from `frontend/utils/JsonIsland.kt` — they
+JSON-escape the values (Mustache would HTML-escape them) and neutralize a `</script>` in user
+content.
+
+### HTMX
+
+Avoid the htmx attributes that compile strings with `new Function()`:
+
+| Instead of | Use |
+|---|---|
+| `hx-on::after-request="..."` | an `htmx:afterRequest` listener on `document.body` |
+| `hx-on::before-request="el.innerHTML = ''"` | `data-clears="#target"` |
+| `hx-trigger="every 3s [cond]"` | a named trigger fired by `htmx.trigger()` from a JS interval |
+
+A gate on a request belongs in `htmx:confirm`, not a submit handler — htmx issues its request from
+a listener on the element itself, so cancelling the submit does not stop it:
+
+```javascript
+document.body.addEventListener('htmx:confirm', function (evt) {
+	if (evt.target.id !== 'release-form') return;
+	evt.preventDefault();
+	if (confirm(MESSAGES.releaseConfirm)) evt.detail.issueRequest();
+});
+```
+
+### Script order
+
+`footer.mustache` loads `actions.js` before `nav.js`, `toast.js` and the page scripts, so
+`hammerActions` is defined by the time a page script calls it. Page scripts added with
+`<script defer>` in a template body also run after it.
 
 ---
 

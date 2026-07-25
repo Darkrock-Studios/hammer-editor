@@ -64,8 +64,17 @@ class AnalyticsCspTest {
 	@Test
 	fun `csp is unchanged when analytics disabled`() = testApplication {
 		val csp = cspFor(ServerConfig())
-		assertContains(csp, "script-src 'self' https://unpkg.com 'unsafe-inline' 'unsafe-eval'")
+		assertContains(csp, "script-src 'self' https://unpkg.com")
 		assertContains(csp, "connect-src 'self'")
 		assertFalse(csp.contains("umami"))
+	}
+
+	@Test
+	fun `script-src allows neither inline scripts nor eval`() = testApplication {
+		// The whole point of the data-on-* wiring and the JSON islands: if either of these creeps
+		// back in, an XSS hole becomes executable again.
+		val scriptSrc = cspFor(ServerConfig()).split(";").first { it.trim().startsWith("script-src") }
+		assertFalse(scriptSrc.contains("'unsafe-inline'"), scriptSrc)
+		assertFalse(scriptSrc.contains("'unsafe-eval'"), scriptSrc)
 	}
 }

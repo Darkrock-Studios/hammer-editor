@@ -3,8 +3,7 @@
 	<form id="pen-name-form"
 		  hx-post="/dashboard/penname"
 		  hx-target="#pen-name-value"
-		  hx-swap="innerHTML"
-		  onsubmit="return validateBeforeSubmit()">
+		  hx-swap="innerHTML">
 		<div class="pen-name-input-wrapper">
 			<label for="pen-name-input" class="pen-name-edit-label">{{msg.penname_edit_label}}</label>
 			<div class="pen-name-input-row">
@@ -16,7 +15,7 @@
 						   placeholder="{{msg.penname_edit_placeholder}}"
 						   maxlength="32"
 						   autocomplete="off"
-						   oninput="onPenNameInput(this.value)">
+						   data-on-input="penname-input">
 					<span class="char-count" id="char-count">0/32</span>
 				</div>
 			</div>
@@ -29,7 +28,7 @@
 			<button type="submit" class="set-pen-name-btn" id="set-pen-name-btn" disabled>
 				{{msg.penname_set_button}}
 			</button>
-			<button type="button" class="cancel-btn" onclick="exitPenNameEditMode()">
+			<button type="button" class="cancel-btn" data-on-click="penname-edit-cancel">
 				{{msg.penname_cancel_button}}
 			</button>
 		</div>

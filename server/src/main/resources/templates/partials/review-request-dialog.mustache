@@ -1,10 +1,10 @@
 <!-- No stopPropagation here: the Select all / form-state handlers are delegated to
      document, and closeReviewDialog already ignores bubbled clicks from inside. -->
-<div class="dialog-overlay" id="review-dialog-overlay" onclick="closeReviewDialog(event)">
+<div class="dialog-overlay" id="review-dialog-overlay" data-on-click="review-dialog-dismiss">
 	<div class="dialog dialog--review">
 		<div class="dialog__header">
 			<h3>{{msg.review_dialog_title}}</h3>
-			<button type="button" class="dialog__close" onclick="closeReviewDialog()">
+			<button type="button" class="dialog__close" data-on-click="review-dialog-close">
 				<i class="fas fa-times"></i>
 			</button>
 		</div>
@@ -107,7 +107,7 @@
 				</div>
 			</div>
 			<div class="dialog__actions">
-				<button type="button" class="btn btn--ghost" onclick="closeReviewDialog()">
+				<button type="button" class="btn btn--ghost" data-on-click="review-dialog-close">
 					{{msg.review_dialog_cancel}}
 				</button>
 				<button type="submit" class="btn btn--accent" id="review-send-btn" disabled>

@@ -230,76 +230,10 @@
 </main>
 
 <script src="/assets/js/frappe-charts.min.js?v={{version}}"></script>
-<script>
-	(function () {
-		var data = {{{chartJson}}};
-		var el = document.getElementById("mon-requests-chart");
-		if (!el || !data.labels || !data.labels.length) {
-			if (el) el.innerHTML = '<p class="mon-chart__empty">{{msg.admin_mon_no_data}}</p>';
-			return;
-		}
-		var ChartCtor = (window.frappe && window.frappe.Chart) || window.Chart;
-		if (!ChartCtor) return;
-		new ChartCtor(el, {
-			data: {
-				labels: data.labels,
-				datasets: [
-					{ name: "{{msg.admin_mon_stat_requests}}", values: data.requests },
-					{ name: "{{msg.admin_mon_errors}}", values: data.errors }
-				]
-			},
-			type: "line",
-			height: 240,
-			colors: ["#d97706", "#ef4444"],
-			axisOptions: { xAxisMode: "tick", xIsSeries: true },
-			lineOptions: { hideDots: 0, regionFill: 0 }
-		});
-	})();
-
-	(function () {
-		var el = document.getElementById("mon-active-users-chart");
-		if (!el) return;
-		var data = {{{activeUsersChartJson}}};
-		if (!data.labels || !data.labels.length) return;
-		var ChartCtor = (window.frappe && window.frappe.Chart) || window.Chart;
-		if (!ChartCtor) return;
-		new ChartCtor(el, {
-			data: {
-				labels: data.labels,
-				datasets: [
-					{ name: "{{msg.admin_mon_active_users_sync}}", values: data.sync },
-					{ name: "{{msg.admin_mon_active_users_web}}", values: data.web }
-				]
-			},
-			type: "line",
-			height: 240,
-			colors: ["#d97706", "#2563eb"],
-			axisOptions: { xAxisMode: "tick", xIsSeries: true },
-			lineOptions: { hideDots: 0, regionFill: 0 }
-		});
-	})();
-
-	(function () {
-		var el = document.getElementById("mon-readers-chart");
-		if (!el) return;
-		var data = {{{readersChartJson}}};
-		if (!data.labels || !data.labels.length) return;
-		var ChartCtor = (window.frappe && window.frappe.Chart) || window.Chart;
-		if (!ChartCtor) return;
-		new ChartCtor(el, {
-			data: {
-				labels: data.labels,
-				datasets: [
-					{ name: "{{msg.admin_mon_readers_unique}}", values: data.readers }
-				]
-			},
-			type: "line",
-			height: 240,
-			colors: ["#d97706"],
-			axisOptions: { xAxisMode: "tick", xIsSeries: true },
-			lineOptions: { hideDots: 0, regionFill: 0 }
-		});
-	})();
-</script>
+<script type="application/json" id="mon-labels">{{{monitoringLabels}}}</script>
+<script type="application/json" id="mon-requests-data">{{{chartJson}}}</script>
+<script type="application/json" id="mon-active-users-data">{{{activeUsersChartJson}}}</script>
+<script type="application/json" id="mon-readers-data">{{{readersChartJson}}}</script>
+<script defer src="/assets/js/admin-monitoring.js?v={{version}}"></script>
 
 {{> footer}}

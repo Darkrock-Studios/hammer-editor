@@ -1,7 +1,10 @@
-// Top-level functions in this file are wired to HTML elements from mustache
-// templates (onclick=..., hx-* attributes) — ESLint can't see those references.
+// Top-level functions in this file are wired to HTML elements from mustache templates via
+// data-on-* attributes and hx-* attributes — ESLint can't see those references.
 /* eslint-disable no-unused-vars */
-/* global htmx, PEN_NAME_MAX_LENGTH, validateClientSide */
+/* global htmx, hammerActions, PEN_NAME_MAX_LENGTH, validateClientSide */
+
+// Localized strings from the #dashboard-messages island.
+const MESSAGES = JSON.parse(document.getElementById('dashboard-messages').textContent);
 
 // Pen Name validation state. Validation rules live in pen-name-logic.js,
 // loaded as a pre-script so its functions are globals here.
@@ -74,7 +77,7 @@ function updateSubmitButton() {
 
 function checkAvailability(penName) {
 	PenNameState.isChecking = true;
-	showValidationFeedback('checking', window.Messages.penname.checkingAvailability);
+	showValidationFeedback('checking', MESSAGES.pennameCheckingAvailability);
 	updateSubmitButton();
 
 	htmx.ajax('GET', `/dashboard/penname/check?penName=${encodeURIComponent(penName)}`, {
@@ -88,7 +91,7 @@ function checkAvailability(penName) {
 				PenNameState.isAvailable = data.available;
 
 				if (data.valid && data.available) {
-					showValidationFeedback('success', window.Messages.penname.available);
+					showValidationFeedback('success', MESSAGES.pennameAvailable);
 				} else {
 					showValidationFeedback('error', data.message);
 				}
@@ -96,7 +99,7 @@ function checkAvailability(penName) {
 				PenNameState.isChecking = false;
 				PenNameState.isValid = false;
 				PenNameState.isAvailable = false;
-				showValidationFeedback('error', window.Messages.penname.checkFailed);
+				showValidationFeedback('error', MESSAGES.pennameCheckFailed);
 			}
 
 			updateSubmitButton();
@@ -135,7 +138,7 @@ function onPenNameInput(value) {
 	}
 
 	// Debounce server check
-	showValidationFeedback('checking', window.Messages.penname.checkingAvailability);
+	showValidationFeedback('checking', MESSAGES.pennameCheckingAvailability);
 	PenNameState.checkTimeout = setTimeout(() => {
 		checkAvailability(trimmed);
 	}, 300);
@@ -172,7 +175,7 @@ function onReleaseConfirmInput(value) {
 
 function confirmRelease() {
 	const currentPenName = document.getElementById('pen-name-value').textContent.trim();
-	return confirm(window.Messages.penname.releaseConfirm.replace('{0}', currentPenName));
+	return confirm(MESSAGES.pennameReleaseConfirm.replace('{0}', currentPenName));
 }
 
 // Handle successful pen name update
@@ -306,7 +309,7 @@ function onBioInput(value) {
 }
 
 function confirmClearBio() {
-	if (confirm(window.Messages.bio.clearConfirm)) {
+	if (confirm(MESSAGES.bioClearConfirm)) {
 		htmx.ajax('DELETE', '/dashboard/bio', {
 			target: '#bio-section',
 			swap: 'innerHTML'
@@ -334,3 +337,34 @@ function toggleCommunityMembership(isJoining) {
 		swap: 'innerHTML'
 	});
 }
+// ========================================
+// Event wiring
+// ========================================
+
+hammerActions({
+	'penname-edit': enterPenNameEditMode,
+	'penname-edit-cancel': exitPenNameEditMode,
+	'penname-input': (el) => onPenNameInput(el.value),
+	'penname-release-start': enterReleaseMode,
+	'penname-release-cancel': exitReleaseMode,
+	'penname-release-input': (el) => onReleaseConfirmInput(el.value),
+	'bio-edit': enterBioEditMode,
+	'bio-edit-cancel': exitBioEditMode,
+	'bio-input': (el) => updateBioCharCount(el.value),
+	'bio-clear': confirmClearBio,
+	'community-toggle': (el) => toggleCommunityMembership(el.checked)
+});
+
+// htmx issues its request from a listener on the form itself, so a submit handler cannot cancel
+// it — htmx:confirm is the supported gate. Listening on body keeps this working after the
+// pen-name section is swapped.
+document.body.addEventListener('htmx:confirm', function (evt) {
+	if (evt.target.id === 'release-form') {
+		evt.preventDefault();
+		if (confirmRelease()) {
+			evt.detail.issueRequest();
+		}
+	} else if (evt.target.id === 'pen-name-form' && !validateBeforeSubmit()) {
+		evt.preventDefault();
+	}
+});

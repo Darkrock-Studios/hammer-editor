@@ -9,6 +9,8 @@ import com.darkrockstudios.apps.hammer.frontend.utils.Toast
 import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
 import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
 import com.darkrockstudios.apps.hammer.frontend.utils.getLocale
+import com.darkrockstudios.apps.hammer.frontend.utils.jsonIsland
+import com.darkrockstudios.apps.hammer.frontend.utils.messagesIsland
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.publicBaseUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.renderTemplate
@@ -695,12 +697,6 @@ private suspend fun notifyAuthorOfSubmission(
 
 private val reviewJson = kotlinx.serialization.json.Json { encodeDefaults = true }
 
-/**
- * JSON destined for an inline <script type="application/json"> island. Escapes `<`
- * so user content containing `</script>` can't break out of the element.
- */
-private fun jsonIsland(json: String): String = json.replace("<", "\\u003c")
-
 /** Editor UI strings as a JSON island, properly JSON-escaped (Mustache would HTML-escape). */
 private suspend fun ApplicationCall.buildReviewStringsJson(): String {
 	val keys = mapOf(
@@ -765,18 +761,7 @@ private suspend fun ApplicationCall.buildReviewStringsJson(): String {
 		"welcomeSubmitNote" to "review_welcome_submit_note",
 		"welcomeAction" to "review_welcome_action",
 	)
-	val strings = buildMap {
-		for ((jsonKey, msgKey) in keys) put(jsonKey, msg(msgKey))
-	}
-	return jsonIsland(
-		reviewJson.encodeToString(
-			kotlinx.serialization.builtins.MapSerializer(
-				kotlinx.serialization.serializer<String>(),
-				kotlinx.serialization.serializer<String>(),
-			),
-			strings,
-		)
-	)
+	return messagesIsland(keys)
 }
 
 @Serializable

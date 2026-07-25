@@ -1,15 +1,14 @@
-<div class="dialog-overlay" id="share-dialog-overlay" onclick="closeShareDialog(event)">
-	<div class="dialog" onclick="event.stopPropagation()">
+<div class="dialog-overlay" id="share-dialog-overlay" data-on-click="share-dialog-dismiss">
+	<div class="dialog">
 		<div class="dialog__header">
 			<h3>{{msg.story_share_private_title}}</h3>
-			<button type="button" class="dialog__close" onclick="closeShareDialog()">
+			<button type="button" class="dialog__close" data-on-click="share-dialog-close">
 				<i class="fas fa-times"></i>
 			</button>
 		</div>
 		<form hx-post="/story/{{projectNameForUrl}}/access"
 			  hx-target="#publish-section"
-			  hx-swap="outerHTML"
-			  hx-on::after-request="closeShareDialog()">
+			  hx-swap="outerHTML">
 			<div class="dialog__body">
 				<div class="form-field">
 					<label for="access-password" class="form-field__label">{{msg.story_access_password}}</label>
@@ -35,7 +34,7 @@
 				</div>
 			</div>
 			<div class="dialog__actions">
-				<button type="button" class="btn btn--ghost" onclick="closeShareDialog()">
+				<button type="button" class="btn btn--ghost" data-on-click="share-dialog-close">
 					{{msg.story_cancel}}
 				</button>
 				<button type="submit" class="btn btn--accent">

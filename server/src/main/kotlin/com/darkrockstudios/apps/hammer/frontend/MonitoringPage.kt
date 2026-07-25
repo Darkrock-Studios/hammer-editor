@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.database.ReaderDay
 import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
+import com.darkrockstudios.apps.hammer.frontend.utils.messagesIsland
 import com.darkrockstudios.apps.hammer.monitoring.DailyActiveUsers
 import com.darkrockstudios.apps.hammer.monitoring.EndpointStat
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
@@ -118,6 +119,7 @@ fun Route.adminMonitoringPages(
 				"topSlow" to topSlow,
 				"hasTopSlow" to topSlow.isNotEmpty(),
 				"chartJson" to chart,
+				"monitoringLabels" to call.messagesIsland(MONITORING_CHART_LABELS),
 				"hasActiveUsers" to hasActiveUsers,
 				"usersSync24h" to formatCount(activeUsers.sync.h24),
 				"usersSync7d" to formatCount(activeUsers.sync.d7),
@@ -156,6 +158,7 @@ fun Route.adminMonitoringPages(
 				"endpoints" to stats.map(::endpointRowModel),
 				"hasEndpoints" to stats.isNotEmpty(),
 				"latencyChartJson" to latencyChart,
+				"monitoringLabels" to call.messagesIsland(MONITORING_CHART_LABELS),
 			)
 
 			call.respond(MustacheContent("admin-monitoring-performance.mustache", call.withDefaults(model)))
@@ -211,6 +214,7 @@ fun Route.adminMonitoringPages(
 				"routeFilter" to (routeFilter ?: ""),
 				"routeFilterEnc" to (routeFilter?.let { URLEncoder.encode(it, "UTF-8") } ?: ""),
 				"errorRateChartJson" to errorRateChart,
+				"monitoringLabels" to call.messagesIsland(MONITORING_CHART_LABELS),
 				"errors" to errors,
 				"hasErrors" to errors.isNotEmpty(),
 				"currentPageDisplay" to currentPage + 1,
@@ -472,6 +476,18 @@ private fun buildLatencyChart(points: List<TimeSeriesPoint>, labelFormat: String
 	)
 	return Json.encodeToString(LatencyChartPayload.serializer(), payload)
 }
+
+/** Series names admin-monitoring.js needs; the charts are drawn client side. */
+private val MONITORING_CHART_LABELS = mapOf(
+	"noData" to "admin_mon_no_data",
+	"requests" to "admin_mon_stat_requests",
+	"errors" to "admin_mon_errors",
+	"activeUsersSync" to "admin_mon_active_users_sync",
+	"activeUsersWeb" to "admin_mon_active_users_web",
+	"readersUnique" to "admin_mon_readers_unique",
+	"errorRate" to "admin_mon_perf_error_rate_label",
+	"latency" to "admin_mon_perf_latency_label",
+)
 
 private fun buildActiveUsersChart(daily: List<DailyActiveUsers>): String {
 	val payload = ActiveUsersChartPayload(

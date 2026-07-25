@@ -19,7 +19,7 @@
 		<input type="checkbox"
 			   id="community-toggle-input"
 			   {{#communityMember}}checked{{/communityMember}}
-			   onchange="toggleCommunityMembership(this.checked)">
+			   data-on-change="community-toggle">
 		<span class="community-toggle__slider"></span>
 		<span class="community-toggle__label">{{msg.community_toggle_label}}</span>
 	</label>

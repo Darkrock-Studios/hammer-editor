@@ -44,9 +44,15 @@ fun Application.configureHTTP(config: ServerConfig) {
 		// Control referrer information to protect privacy
 		header("Referrer-Policy", "strict-origin-when-cross-origin")
 
-		// Content Security Policy - relaxed for compatibility
-		val scriptSrc = (listOf("'self'", "https://unpkg.com", "'unsafe-inline'", "'unsafe-eval'") + analyticsScriptHosts)
-			.joinToString(" ") // HTMX + inline scripts + dynamic eval + analytics
+		// Content Security Policy.
+		//
+		// script-src carries no 'unsafe-inline' or 'unsafe-eval': every page script is an external
+		// file, server-rendered values reach them through <script type="application/json"> islands,
+		// and DOM handlers are declared with data-on-* attributes that assets/js/actions.js
+		// dispatches. htmx features that compile strings (hx-on::*, bracketed hx-trigger filters)
+		// are avoided for the same reason — see docs/WEB-DESIGN-SYSTEM.md.
+		val scriptSrc = (listOf("'self'", "https://unpkg.com") + analyticsScriptHosts)
+			.joinToString(" ") // htmx + first-party scripts + analytics
 		val connectSrc = (listOf("'self'") + analyticsConnectHosts)
 			.joinToString(" ") // HTMX requests stay on same origin + analytics event endpoint
 		val imgSrc = (listOf("'self'", "data:") + analyticsImgHosts)
