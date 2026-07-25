@@ -4,7 +4,7 @@
 <section class="masthead">
 	<div class="masthead-content">
 		<h1>{{msg.home_masthead_title}}</h1>
-		<h2>{{msg.home_masthead_subtitle}}</h2>
+		<p class="masthead-tagline">{{msg.home_masthead_subtitle}}</p>
 	</div>
 </section>
 
@@ -16,7 +16,7 @@
 				<i class="fa-solid fa-info-circle"></i>
 			</div>
 			<div class="about-server-callout__content">
-				<h3 class="about-server-callout__title">{{msg.home_about_callout_title}}</h3>
+				<h2 class="about-server-callout__title">{{msg.home_about_callout_title}}</h2>
 				<p class="about-server-callout__text">{{msg.home_about_callout_text}}</p>
 			</div>
 			<span class="about-server-callout__link">
@@ -34,7 +34,7 @@
 	<!-- Server Message (if applicable) -->
 	{{#serverMessage}}
 		<div class="server-message">
-			<h3>{{msg.home_servermessage}}</h3>
+			<h2>{{msg.home_servermessage}}</h2>
 			<div>{{serverMessage}}</div>
 
 			{{#whitelistEnabled}}
@@ -48,7 +48,7 @@
 	<!-- What is Hammer Section -->
 	<section class="paper-section">
 		<div class="text-container">
-			<h1>{{msg.home_whatishammer_title}}</h1>
+			<h2>{{msg.home_whatishammer_title}}</h2>
 			<p>{{msg.home_whatishammer_subtitle}}</p>
 		</div>
 	</section>
@@ -161,7 +161,7 @@
 	<!-- Download Section -->
 	<section class="paper-section download-section">
 		<div class="text-container">
-			<h1>{{msg.home_download_header}}</h1>
+			<h2>{{msg.home_download_header}}</h2>
 		</div>
 
 		<div class="download-grid">
@@ -170,7 +170,8 @@
 				<span class="download-icon">🪟</span>
 				<h3>{{msg.home_download_windows}}</h3>
 				<div class="download-buttons download-selector">
-					<select id="windows-format-select" class="format-dropdown">
+					<select id="windows-format-select" class="format-dropdown"
+							aria-label="{{msg.home_download_format_windows}}">
 						<option value="store" data-icon="fa-brands fa-windows"
 								data-url="https://apps.microsoft.com/detail/9p84lm8qv5x6">
 							Microsoft Store
@@ -186,6 +187,7 @@
 					</select>
 					<a id="windows-download-btn"
 					   href="https://apps.microsoft.com/detail/9p84lm8qv5x6"
+					   aria-label="{{msg.home_download_link_windows}}"
 					   class="download-link download-btn"{{#analyticsEnabled}}
 					   data-track-event="download" data-track-platform="windows" data-track-format="store"{{/analyticsEnabled}}>
 						<i id="windows-download-icon" class="fa-brands fa-windows"></i>
@@ -198,7 +200,8 @@
 				<span class="download-icon">🍎</span>
 				<h3>{{msg.home_download_macos}}</h3>
 				<div class="download-buttons download-selector">
-					<select id="macos-format-select" class="format-dropdown">
+					<select id="macos-format-select" class="format-dropdown"
+							aria-label="{{msg.home_download_format_macos}}">
 						<option value="store" data-icon="fa-brands fa-app-store-ios"
 						        data-url="https://apps.apple.com/us/app/hammer-editor/id6770841038">
 							Mac App Store
@@ -210,6 +213,7 @@
 					</select>
 					<a id="macos-download-btn"
 					   href="https://apps.apple.com/us/app/hammer-editor/id6770841038"
+					   aria-label="{{msg.home_download_link_macos}}"
 					   class="download-link download-btn"{{#analyticsEnabled}}
 					   data-track-event="download" data-track-platform="macos" data-track-format="store"{{/analyticsEnabled}}>
 						<i id="macos-download-icon" class="fa-brands fa-app-store-ios"></i>
@@ -223,7 +227,8 @@
 				<span class="download-icon">🐧</span>
 				<h3>{{msg.home_download_linux}}</h3>
 				<div class="download-buttons download-selector">
-					<select id="linux-format-select" class="format-dropdown">
+					<select id="linux-format-select" class="format-dropdown"
+							aria-label="{{msg.home_download_format_linux}}">
 						<option value="deb" data-icon="fa-brands fa-debian"
 								data-url="https://github.com/Darkrock-Studios/hammer-editor/releases/latest/download/hammer.deb">
 							Debian / Ubuntu (.deb)
@@ -251,6 +256,7 @@
 					</select>
 					<a id="linux-download-btn"
 					   href="https://github.com/Darkrock-Studios/hammer-editor/releases/latest/download/hammer.deb"
+					   aria-label="{{msg.home_download_link_linux}}"
 					   class="download-link download-btn"{{#analyticsEnabled}}
 					   data-track-event="download" data-track-platform="linux" data-track-format="deb"{{/analyticsEnabled}}>
 						<i id="linux-download-icon" class="fa-brands fa-debian"></i>
@@ -264,7 +270,8 @@
 				<span class="download-icon">🤖</span>
 				<h3>{{msg.home_download_android}}</h3>
 				<div class="download-buttons download-selector">
-					<select id="android-format-select" class="format-dropdown">
+					<select id="android-format-select" class="format-dropdown"
+							aria-label="{{msg.home_download_format_android}}">
 						<option value="playstore" data-icon="fa-brands fa-google-play"
 								data-url="https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android">
 							Google Play
@@ -280,6 +287,7 @@
 					</select>
 					<a id="android-download-btn"
 					   href="https://play.google.com/store/apps/details?id=com.darkrockstudios.apps.hammer.android"
+					   aria-label="{{msg.home_download_link_android}}"
 					   class="download-link download-btn"{{#analyticsEnabled}}
 					   data-track-event="download" data-track-platform="android" data-track-format="playstore"{{/analyticsEnabled}}>
 						<i id="android-download-icon" class="fa-brands fa-google-play"></i>
@@ -293,6 +301,7 @@
 				<h3>iOS</h3>
 				<span class="download-source"><i class="fa-brands fa-app-store-ios"></i> App Store</span>
 				<a href="https://apps.apple.com/us/app/hammer-editor/id6771650681"
+				   aria-label="{{msg.home_download_link_ios}}"
 				   class="download-link download-btn"{{#analyticsEnabled}}
 				   data-track-event="download" data-track-platform="ios" data-track-format="appstore"{{/analyticsEnabled}}>
 					<i class="fa-brands fa-app-store-ios"></i>

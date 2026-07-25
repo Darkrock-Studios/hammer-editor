@@ -1,8 +1,12 @@
 /* Home Page Styles */
 
 /* Masthead/Hero Section */
+/* The plain url() declaration is the fallback for browsers that don't parse image-set()/type() and
+   would otherwise drop the whole declaration and paint no hero at all. */
 .masthead {
-	background: url('/assets/images/masthead.jpg') center center / cover no-repeat;
+	background: url('/assets/images/masthead-1920.jpg') center center / cover no-repeat;
+	background: image-set(url('/assets/images/masthead-1920.webp') type('image/webp'),
+	url('/assets/images/masthead-1920.jpg') type('image/jpeg')) center center / cover no-repeat;
 	color: white;
 	text-align: center;
 	padding: clamp(4rem, 10vw, 8rem) 2rem;
@@ -53,7 +57,7 @@
 		/* Depth shadow */ 4px 4px 8px rgba(0, 0, 0, 0.6);
 }
 
-.masthead h2 {
+.masthead-tagline {
 	color: rgba(255, 255, 255, 0.95);
 	font-family: 'Lora', serif;
 	font-style: italic;
@@ -358,7 +362,7 @@
 	animation: slideInDown 0.4s ease-out;
 }
 
-.server-message h3 {
+.server-message h2 {
 	color: #92400e;
 	margin-bottom: 0.75rem;
 	font-size: 1.5rem;
@@ -841,7 +845,7 @@
 	text-align: center;
 }
 
-.text-container h1 {
+.text-container h2 {
 	font-size: clamp(1.75rem, 4vw, 2.5rem);
 }
 
@@ -853,6 +857,9 @@
 
 	.masthead {
 		padding: 4rem 1.5rem;
+		background-image: url('/assets/images/masthead-960.jpg');
+		background-image: image-set(url('/assets/images/masthead-960.webp') type('image/webp'),
+		url('/assets/images/masthead-960.jpg') type('image/jpeg'));
 	}
 
 	.about-server-callout {
