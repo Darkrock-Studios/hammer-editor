@@ -2,10 +2,10 @@
 
 A slim, non-root image for self-hosting the Hammer sync server. By default it
 uses the in-process (embedded) PostgreSQL database, so no external services are
-required — just a volume for your data.
+required: just a volume for your data.
 
-This is the Docker-specific guide. For everything that is not Docker-specific —
-whitelisting, email, community, analytics, encryption at rest — see
+This is the Docker-specific guide. For everything that is not Docker-specific
+(whitelisting, email, community, analytics, encryption at rest) see
 [HOW-TO-RUN-A-SERVER.md](HOW-TO-RUN-A-SERVER.md). Where the two disagree about
 networking, **this document wins for containers**.
 
@@ -32,7 +32,7 @@ docker run -d --name hammer-server \
   ghcr.io/darkrock-studios/hammer-editor/server:latest
 ```
 
-Then **download a client and create an account** — the first account created
+Then **download a client and create an account**. The first account created
 becomes the admin account.
 
 ## Networking
@@ -47,7 +47,7 @@ HTTPS, so that port is never what clients talk to directly. Two supported shapes
 Both quick starts above publish to `127.0.0.1` deliberately. Docker installs its
 own iptables rules that **bypass host firewalls like ufw and firewalld**, so
 publishing to `0.0.0.0` puts the cleartext port on the public internet even when
-the host firewall says otherwise — exposing passwords, tokens, and sync traffic.
+the host firewall says otherwise, exposing passwords, tokens, and sync traffic.
 
 To change the host-side binding or port:
 
@@ -67,7 +67,7 @@ healthy. Leave `bindHosts` unset and restrict exposure on the host side instead.
 ## Configuration
 
 The server auto-loads `config.toml` from its data directory
-(`/data/hammer_data/config.toml`) — no `--config` flag needed. Start from
+(`/data/hammer_data/config.toml`), with no `--config` flag needed. Start from
 [config.example.toml](../docker/config.example.toml); everything in it is
 optional.
 
@@ -78,15 +78,15 @@ Two ways to provide it:
   `/data/hammer_data`, so the file mounts cleanly on top.
 - **Host bind-mounted data dir:** if you mount a host directory at `/data`
   instead, place the file at `<hostdir>/hammer_data/config.toml` directly. Don't
-  bind-mount the single file in that case — Docker would create the parent as
-  root. Make sure the directory is owned by uid/gid `1000`.
+  bind-mount the single file in that case, because Docker would create the parent
+  as root. Make sure the directory is owned by uid/gid `1000`.
 
 A bad config aborts startup rather than silently falling back to defaults, so
 check `docker logs` if the container exits immediately.
 
 Paths inside `config.toml` are resolved differently depending on the setting:
 `termsOfService` and `privacyPolicy` resolve relative to the config file, but
-**TLS certificate paths do not** — give those absolute container paths.
+**TLS certificate paths do not**, so give those absolute container paths.
 
 > **Windows users:** save `config.toml` as UTF-8 **without** a BOM. Notepad and
 > PowerShell's `Out-File -Encoding utf8` add one, and the TOML parser rejects it
@@ -117,7 +117,7 @@ privateKeyPath = "/certs/live/hammer.example.com/privkey.pem"
 **Renewals need a restart.** The server reads its certificate only at startup, so
 a renewed certificate is not picked up until the container restarts. Mount the
 live certificate directory (as above) rather than copying PEMs into the volume,
-and restart the container after each renewal — e.g. as a certbot deploy hook:
+and restart the container after each renewal, e.g. as a certbot deploy hook:
 
 ```ini
 # /etc/letsencrypt/renewal/hammer.example.com.conf, under [renewalparams]
@@ -132,7 +132,7 @@ CA store. Use a real certificate, or a reverse proxy holding one.
 
 ## Using an external PostgreSQL
 
-The default is an in-process PostgreSQL inside the container — nothing else to
+The default is an in-process PostgreSQL inside the container: nothing else to
 run, and the right choice for most self-hosters. To point at an externally
 managed database, switch `config.toml` to remote storage:
 
@@ -159,7 +159,7 @@ must match that service's name.
 > sidecar; keep it on for a managed database that terminates TLS.
 
 In remote mode the `/data` volume still holds the caches and keyring, but no
-`pgdata` — back up your PostgreSQL server instead.
+`pgdata`. Back up your PostgreSQL server instead.
 
 ## Data & backups
 
@@ -197,7 +197,7 @@ Two rules matter in a container:
 **Anything meant to persist needs `--out` pointing into the volume.** These
 commands print to stdout by default, and with `--rm` that output is all you get.
 
-**Commands that read the database need the server stopped** — but only with the
+**Commands that read the database need the server stopped**, but only with the
 default embedded storage. The embedded PostgreSQL holds an exclusive lock on
 `pgdata`, so a second container cannot open it while the server is running:
 
@@ -206,7 +206,7 @@ Could not read the database to verify which content keys are in use:
 could not lock /data/hammer_data/pgdata/epg-lock
 ```
 
-This fails safely — nothing is written or corrupted — but the command does not
+This fails safely (nothing is written or corrupted), but the command does not
 run. Stop the server first, then start it again afterwards:
 
 ```bash
@@ -234,8 +234,8 @@ server.
 ### Rotating an encryption key
 
 Key rotation itself never touches the database. Rotate offline, write the result
-into the volume, then restart — the server reads its keyring only at startup, so
-a rotated keyring has no effect until the container restarts:
+into the volume, then restart: the server reads its keyring only at startup, so
+a rotated keyring has no effect until the container restarts.
 
 ```bash
 # Review the rotated keyring first (prints to stdout, writes nothing)
@@ -250,7 +250,7 @@ docker restart hammer-server
 ```
 
 Back up the existing keyring before overwriting it. Losing key material means
-losing the content encrypted under it — see
+losing the content encrypted under it. See
 [SERVER-SECRET-STORAGE.md](SERVER-SECRET-STORAGE.md).
 
 Pruning old generations comes *after* the server has converged existing rows onto
