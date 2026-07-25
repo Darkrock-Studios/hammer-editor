@@ -33,9 +33,9 @@ env:
 
 jobs:
   publish:
-    # Matches the tag-suffix convention in publish-release.yml: full releases
-    # (no suffix) and `+server` releases ship the image; client-store-only
-    # releases must not move the server tags.
+    # Tag-suffix convention from publish-release.yml. `+server` has no per-store
+    # job there, but it is precisely when self-hosters need a new image, so it
+    # publishes here; client-store-only releases must not move the server tags.
     if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+server') }}
     runs-on: ubuntu-latest
     steps:
