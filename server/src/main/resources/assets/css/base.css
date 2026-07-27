@@ -624,6 +624,59 @@ a:focus-visible {
 
 /* Studio credit and version share a line: same size, same colour, both are
    "who and what this is" rather than navigation. */
+/* ========================================
+   Instance Band - Server Notice
+   ======================================== */
+
+.instance-band {
+	background: var(--sticky-yellow);
+	border-bottom: 2px solid var(--accent);
+}
+
+.instance-band__inner {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 1.1rem 2rem;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem 1.5rem;
+}
+
+.instance-band__label {
+	font-family: 'Kingthings Typewriter', 'Courier New', monospace;
+	font-size: 0.8rem;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--neutral-700);
+}
+
+.instance-band__text {
+	flex: 1 1 20rem;
+	color: var(--neutral-800);
+}
+
+.instance-band__text p:last-child {
+	margin-bottom: 0;
+}
+
+/* Only a separator when it actually follows a server message; a whitelisted server
+   with no message set shows this band on its own. */
+.instance-band__inner--whitelist:not(:first-child) {
+	padding-top: 0;
+	border-top: 1px dashed rgba(180, 83, 9, 0.4);
+}
+
+.instance-band__inner--whitelist p {
+	margin: 0;
+	font-size: 0.95rem;
+	color: var(--neutral-700);
+}
+
+.instance-band__inner--whitelist:not(:first-child) p {
+	margin-top: 0.9rem;
+}
+
 .footer-colophon {
 	display: flex;
 	align-items: center;
@@ -885,6 +938,11 @@ a:focus-visible {
 	}
 
 	/* In the drawer the nav is a column, so the badge sits at the end of its row. */
+	.instance-band__inner {
+		padding-left: 1.5rem;
+		padding-right: 1.5rem;
+	}
+
 	.header-nav__item .header-nav__link {
 		flex: 1;
 	}
