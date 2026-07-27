@@ -2,7 +2,10 @@ project_id_env: CROWDIN_PROJECT_ID
 api_token_env: CROWDIN_PERSONAL_TOKEN
 
 files:
-  - source: /common/src/commonMain/composeResources/values/strings*.xml
+  # Not strings*.xml: Crowdin's * requires at least one character, so that
+  # pattern silently skips strings.xml itself. This directory only ever holds
+  # value resources, so *.xml is the safe form.
+  - source: /common/src/commonMain/composeResources/values/*.xml
     translation: /common/src/commonMain/composeResources/values-%android_code%/%original_file_name%
     translate_attributes: 0
     content_segmentation: 0
