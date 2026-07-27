@@ -80,7 +80,7 @@ fun SplashScreen() {
 			Spacer(Modifier.height(2.dp))
 
 			Text(
-				text = stringResource(Res.string.splash_subtitle),
+				text = stringResource(Res.string.about_description),
 				fontFamily = mono,
 				fontSize = 15.sp,
 				color = SubtitleColor,

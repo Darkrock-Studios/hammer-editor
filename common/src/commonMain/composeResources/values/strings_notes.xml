@@ -3,9 +3,7 @@
 	<string name="notes_header">Notes</string>
 	<string name="notes_list_empty">No Notes Found</string>
 	<string name="notes_create_note_button">Create Note</string>
-	<string name="notes_note_item_action_rename">Rename</string>
 	<string name="notes_note_item_action_cancel">Cancel</string>
-	<string name="notes_note_item_action_delete">Delete</string>
 	<string name="notes_discard_dialog_title">Discard Changes?</string>
 	<string name="notes_discard_dialog_message">You will lose any changes you have made.</string>
 	<string name="notes_create_header">Create Note</string>
@@ -22,7 +20,7 @@
 	<string name="notes_create_tags_placeholder">idea, todo, follow-up…</string>
 	<string name="notes_delete_title">Delete Note?</string>
 	<string name="notes_delete_message">This action cannot be undone!</string>
-	<string name="notes_delete_toast_success">Note %1$s Deleted</string>
+	<string name="notes_delete_toast_success">Note Deleted</string>
 
 	<string name="notes_menu_group">Note</string>
 	<string name="notes_menu_delete">Delete</string>

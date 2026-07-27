@@ -1296,7 +1296,7 @@ private fun reportSaveResult(
 			)
 
 			EntryError.NAME_TOO_SHORT -> rootSnackbar.showSnackbar(
-				strRes.get(Res.string.encyclopedia_create_entry_toast_tag_too_short),
+				strRes.get(Res.string.encyclopedia_create_entry_toast_name_too_short),
 			)
 
 			EntryError.ALIAS_TOO_LONG -> rootSnackbar.showSnackbar(
