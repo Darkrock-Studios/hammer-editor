@@ -3,9 +3,7 @@
 	<string name="notes_header">Notizen</string>
 	<string name="notes_list_empty">Keine Notizen gefunden</string>
 	<string name="notes_create_note_button">Notiz erstellen</string>
-	<string name="notes_note_item_action_rename">Umbenennen</string>
 	<string name="notes_note_item_action_cancel">Abbruch</string>
-	<string name="notes_note_item_action_delete">Löschen</string>
 	<string name="notes_discard_dialog_title">Änderungen verwerfen?</string>
 	<string name="notes_discard_dialog_message">Alle vorgenommenen Änderungen gehen verloren.</string>
 	<string name="notes_create_header">Notiz erstellen</string>
@@ -22,7 +20,7 @@
 	<string name="notes_create_tags_placeholder">Idee, Aufgabe, Nachfassen…</string>
 	<string name="notes_delete_title">Notiz löschen?</string>
 	<string name="notes_delete_message">Diese Aktion kann nicht rückgängig gemacht werden!</string>
-	<string name="notes_delete_toast_success">Notiz %1$s gelöscht</string>
+	<string name="notes_delete_toast_success">Note Deleted</string>
 	<string name="notes_menu_group">Notiz</string>
 	<string name="notes_menu_delete">Löschen</string>
 	<string name="notes_view_header">Notiz</string>

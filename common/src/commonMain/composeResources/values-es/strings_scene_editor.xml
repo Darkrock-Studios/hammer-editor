@@ -15,7 +15,6 @@
 	<string name="scene_editor_save_button">Guardar</string>
 	<string name="scene_editor_metadata_button">Info de la escena</string>
 	<string name="scene_editor_toast_save_successful">Guardado</string>
-	<string name="scene_editor_body_placeholder">Empieza a escribir tu escena aquí</string>
 	<string name="scene_editor_menu_group">Escena</string>
 	<string name="scene_editor_menu_item_save_draft">Nuevo borrador</string>
 	<string name="scene_editor_menu_item_view_drafts">Ver borradores</string>
@@ -56,7 +55,6 @@
 	<string name="scene_editor_metadata_notes_placeholder">Notas para ti.</string>
 	<string name="scene_editor_metadata_draft_name_label">Nombre del borrador</string>
 	<string name="scene_editor_metadata_references_header">Referencias</string>
-	<string name="scene_editor_metadata_references_confirmed_label">Aparece en esta escena</string>
 	<string name="scene_editor_metadata_references_dismissed_label">Descartadas</string>
 	<string name="scene_editor_metadata_references_empty">Aún no hay referencias</string>
 	<string name="scene_editor_metadata_references_dismiss">Descartar</string>

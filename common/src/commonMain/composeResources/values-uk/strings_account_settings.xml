@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="settings_heading">⚙ Налаштування</string>
 	<string name="account_settings_breadcrumb">ОБЛІКОВИЙ ЗАПИС</string>
 	<string name="account_settings_subtitle_local_install">ЛОКАЛЬНЕ ВСТАНОВЛЕННЯ</string>
 	<string name="account_settings_folio_caption">НАЛАШТУВАННЯ ОБЛІКОВОГО ЗАПИСУ</string>
 	<string name="settings_backups_header">Резервні копії</string>
-	<string name="settings_backups_description">Керуйте резервними копіями ваших проєктів</string>
 	<string name="settings_backups_explainations">Ця система резервного копіювання призначена для захисту від втрати та пошкодження даних. Вона НЕ призначена для зберігання старіших версій ваших історій. Для цього використовуйте систему чернеток.</string>
 	<string name="settings_backups_manage_button">Керувати резервними копіями</string>
 	<string name="settings_theme_label">Тема інтерфейсу</string>
@@ -17,39 +15,26 @@
 	<string name="settings_initial_screen_editor">Редактор сцен</string>
 	<string name="settings_projects_directory">Тека проєктів</string>
 	<string name="settings_projects_directory_description">Укажіть теку, яку Hammer використовуватиме для зберігання даних проєктів.</string>
-	<string name="settings_projects_directory_hint">Шлях до теки проєктів</string>
 	<string name="settings_projects_directory_button">Вибрати теку</string>
 	<string name="settings_example_project_header">Приклад проєкту</string>
 	<string name="settings_example_project_description">Установіть приклад проєкту, щоб побачити, як використовуються різні функції.</string>
 	<string name="settings_example_project_button">Перевстановити</string>
 	<string name="settings_example_project_success_message">Приклад проєкту створено.</string>
-	<string name="settings_data_version">Дані: v%1$s</string>
-	<string name="settings_server_header">Сервер</string>
-	<string name="settings_server_status_connected">ПІД\'ЄДНАНО</string>
-	<string name="settings_server_status_not_connected">НЕ ПІД\'ЄДНАНО</string>
+	<string name="settings_server_status_connected">ПІД'ЄДНАНО</string>
+	<string name="settings_server_status_not_connected">НЕ ПІД'ЄДНАНО</string>
 	<string name="settings_server_url_greeble">URL</string>
 	<string name="settings_server_help_link">ДОВІДКА ↗</string>
 	<string name="settings_server_description">Налаштуйте синхронізацію даних</string>
-	<string name="settings_server_url_label">URL:</string>
-	<string name="settings_server_email_label">Ел. пошта:</string>
 	<string name="settings_server_setup_button">Налаштувати</string>
-	<string name="settings_server_modify_button">Змінити</string>
-	<string name="settings_server_unknown_error">помилка</string>
 	<string name="settings_server_auto_sync">Автосинхронізація</string>
 	<string name="settings_server_sync_backup">Резервна копія під час синхронізації</string>
 	<string name="settings_server_sync_auto_close">Закривати діалоги синхронізації в разі успіху</string>
 	<string name="settings_server_max_backups">Макс. резервних копій на проєкт</string>
 	<string name="settings_server_max_backups_error">Має бути від 1 до %1$d</string>
-	<string name="settings_server_test_auth_button">Перевірити вхід</string>
-	<string name="settings_server_reauth_button">Оновити вхід</string>
 	<string name="settings_server_remove_server_button">Вилучити сервер</string>
-	<string name="settings_server_authtest_toast_success">Перевірку автентифікації успішно пройдено</string>
-	<string name="settings_server_authtest_toast_failure">Перевірку автентифікації не пройдено</string>
 	<string name="settings_remove_server_dialog_title">Вилучити сервер</string>
 	<string name="settings_remove_server_dialog_message">Ви впевнені, що хочете вилучити сервер?</string>
 	<string name="settings_server_setup_title">Налаштувати сервер</string>
-	<string name="settings_server_setup_header">Налаштування сервера</string>
-	<string name="settings_server_setup_ssl_label">HTTPS?</string>
 	<string name="settings_server_setup_url_hint">URL сервера: hammer.ink</string>
 	<string name="settings_server_setup_email_hint">Ел. пошта: user@example.com</string>
 	<string name="settings_server_setup_password_hint">Пароль</string>
@@ -59,7 +44,7 @@
 	<string name="settings_server_setup_create_button">Створити</string>
 	<string name="settings_server_setup_cancel_button">Скасувати</string>
 	<string name="remove_local_dialog_title">Вилучити локальний вміст?</string>
-	<string name="remove_local_dialog_message">Чи вилучити ваш поточний локальний вміст перед синхронізацією? Якщо ні, ми спробуємо об\'єднати ваш локальний вміст із вмістом сервера. Якщо вміст не пов\'язаний, це може спричинити проблеми.</string>
+	<string name="remove_local_dialog_message">Чи вилучити ваш поточний локальний вміст перед синхронізацією? Якщо ні, ми спробуємо об'єднати ваш локальний вміст із вмістом сервера. Якщо вміст не пов'язаний, це може спричинити проблеми.</string>
 	<string name="settings_platform_settings_title">Налаштування платформи</string>
 	<string name="settings_platform_settings_empty">Немає налаштувань, специфічних для платформи.</string>
 	<string name="settings_keep_screen_on">Не вимикати екран</string>
@@ -79,10 +64,7 @@
 	<string name="settings_spellcheck_dictionary">Словник</string>
 	<string name="settings_spellcheck_dictionary_android_info_title">Мова перевірки правопису</string>
 	<string name="settings_spellcheck_dictionary_android_info_message">В Android мову перевірки правопису вибирає ваш пристрій, а не застосунок. Щоб змінити її, оновіть мови системи та клавіатури в налаштуваннях Android.</string>
-	<string name="settings_server_enable_sync_backup">Увімкнути синхронізацію та резервне копіювання</string>
 	<string name="settings_server_enable_sync_backup_desc">Налаштуйте сервер, щоб синхронізувати проєкти між пристроями та створювати безпечні резервні копії.</string>
-	<string name="settings_server_connection_header">З\'єднання з сервером</string>
-	<string name="settings_server_configured">Налаштовано</string>
 	<string name="settings_server_sync_backup_preferences">Параметри синхронізації та резервного копіювання</string>
 	<string name="settings_server_danger_zone">Небезпечна зона</string>
 	<!-- Backup Manager Dialog -->
@@ -94,13 +76,11 @@
 	<string name="backup_restore_dialog_confirm">Відновити</string>
 	<string name="backup_restore_dialog_cancel">Скасувати</string>
 	<string name="backup_manager_title">Керувати резервними копіями</string>
-	<string name="backup_manager_close_content_description">Закрити</string>
 	<string name="backup_manager_no_backups">Резервних копій не знайдено</string>
 	<string name="backup_manager_select_project_hint">Виберіть проєкт</string>
-	<string name="backup_manager_project_label">Проєкт</string>
 	<string name="backup_manager_no_backups_for_project">Немає резервних копій для цього проєкту</string>
 	<string name="backup_manager_restore_button">Відновити</string>
-	<string name="backup_manager_delete_content_description">Видалити резервну копію</string>
+	<string name="backup_manager_delete_button">Delete backup</string>
 	<string name="backup_manager_show_button">Показати в теці</string>
 	<string name="backup_manager_export_button">Експортувати</string>
 	<string name="account_sync_confirm_cancel_title">Скасувати синхронізацію?</string>
@@ -119,10 +99,15 @@
 	<!-- Server Setup Toast Messages -->
 	<string name="settings_server_setup_toast_success">Сервер успішно налаштовано!</string>
 	<string name="settings_server_setup_toast_failure">Не вдалося налаштувати сервер: %1$s</string>
-	<string name="settings_server_setup_toast_failure_unknown">Не вдалося налаштувати сервер. Перевірте з\'єднання та спробуйте ще раз.</string>
+	<string name="settings_server_setup_toast_failure_unknown">Не вдалося налаштувати сервер. Перевірте з'єднання та спробуйте ще раз.</string>
+	<!-- Terms of Service -->
+	<string name="settings_server_tos_title">Умови користування</string>
+	<string name="settings_server_tos_accept">Прийняти</string>
+	<string name="settings_server_tos_decline">Відхилити</string>
+	<string name="settings_server_tos_declined">Ви повинні прийняти Умови користування, щоб створити обліковий запис.</string>
 	<!-- Network Errors -->
-	<string name="server_error_connection_timeout">Не вдалося під\'єднатися до сервера. Переконайтеся, що сервер працює, а адреса правильна.</string>
+	<string name="server_error_connection_timeout">Не вдалося під'єднатися до сервера. Переконайтеся, що сервер працює, а адреса правильна.</string>
 	<string name="server_error_timeout">Сервер не відповідає. Перевірте підключення до Інтернету та спробуйте ще раз.</string>
 	<string name="server_error_dns">Сервер не знайдено. Перевірте адресу сервера та підключення до Інтернету.</string>
-	<string name="server_error_connection_generic">Помилка мережі під час під\'єднання до %1$s. Перевірте з\'єднання та спробуйте ще раз.</string>
+	<string name="server_error_connection_generic">Помилка мережі під час під'єднання до %1$s. Перевірте з'єднання та спробуйте ще раз.</string>
 </resources>

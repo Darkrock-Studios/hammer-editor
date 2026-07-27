@@ -1,11 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="settings_heading">⚙ Impostazioni</string>
 	<string name="account_settings_breadcrumb">ACCOUNT</string>
 	<string name="account_settings_subtitle_local_install">INSTALLAZIONE LOCALE</string>
 	<string name="account_settings_folio_caption">IMPOSTAZIONI DELL’ACCOUNT</string>
 	<string name="settings_backups_header">Backup</string>
-	<string name="settings_backups_description">Gestisci i backup dei tuoi progetti</string>
 	<string name="settings_backups_explainations">Questo sistema di backup è pensato per proteggere da perdita e corruzione dei dati. NON è pensato per conservare versioni precedenti delle tue storie. Per quello, usa il sistema delle bozze.</string>
 	<string name="settings_backups_manage_button">Gestisci i backup</string>
 	<string name="settings_theme_label">Tema dell’interfaccia</string>
@@ -17,39 +15,26 @@
 	<string name="settings_initial_screen_editor">Editor delle scene</string>
 	<string name="settings_projects_directory">Cartella dei progetti</string>
 	<string name="settings_projects_directory_description">Imposta la cartella che Hammer userà per archiviare i dati dei progetti.</string>
-	<string name="settings_projects_directory_hint">Percorso della cartella dei progetti</string>
 	<string name="settings_projects_directory_button">Scegli cartella</string>
 	<string name="settings_example_project_header">Progetto di esempio</string>
 	<string name="settings_example_project_description">Installa un progetto di esempio per vedere come si usano le varie funzioni.</string>
 	<string name="settings_example_project_button">Reinstalla</string>
 	<string name="settings_example_project_success_message">Progetto di esempio creato.</string>
-	<string name="settings_data_version">Dati: v%1$s</string>
-	<string name="settings_server_header">Server</string>
 	<string name="settings_server_status_connected">CONNESSO</string>
 	<string name="settings_server_status_not_connected">NON CONNESSO</string>
 	<string name="settings_server_url_greeble">URL</string>
 	<string name="settings_server_help_link">AIUTO ↗</string>
 	<string name="settings_server_description">Configura la sincronizzazione dei dati</string>
-	<string name="settings_server_url_label">URL:</string>
-	<string name="settings_server_email_label">E-mail:</string>
 	<string name="settings_server_setup_button">Configura</string>
-	<string name="settings_server_modify_button">Modifica</string>
-	<string name="settings_server_unknown_error">errore</string>
 	<string name="settings_server_auto_sync">Sincronizzazione automatica</string>
 	<string name="settings_server_sync_backup">Backup durante la sincronizzazione</string>
 	<string name="settings_server_sync_auto_close">Chiudi le finestre di sincronizzazione in caso di successo</string>
 	<string name="settings_server_max_backups">Backup max per progetto</string>
 	<string name="settings_server_max_backups_error">Deve essere tra 1 e %1$d</string>
-	<string name="settings_server_test_auth_button">Prova l’accesso</string>
-	<string name="settings_server_reauth_button">Aggiorna l’accesso</string>
 	<string name="settings_server_remove_server_button">Rimuovi server</string>
-	<string name="settings_server_authtest_toast_success">Prova di autenticazione riuscita</string>
-	<string name="settings_server_authtest_toast_failure">Prova di autenticazione non riuscita</string>
 	<string name="settings_remove_server_dialog_title">Rimuovi server</string>
 	<string name="settings_remove_server_dialog_message">Vuoi davvero rimuovere il server?</string>
 	<string name="settings_server_setup_title">Configura il server</string>
-	<string name="settings_server_setup_header">Configura il server</string>
-	<string name="settings_server_setup_ssl_label">HTTPS?</string>
 	<string name="settings_server_setup_url_hint">URL del server: hammer.ink</string>
 	<string name="settings_server_setup_email_hint">E-mail: user@example.com</string>
 	<string name="settings_server_setup_password_hint">Password</string>
@@ -79,10 +64,7 @@
 	<string name="settings_spellcheck_dictionary">Dizionario</string>
 	<string name="settings_spellcheck_dictionary_android_info_title">Lingua del controllo ortografico</string>
 	<string name="settings_spellcheck_dictionary_android_info_message">Su Android, la lingua del controllo ortografico viene scelta dal tuo dispositivo, non dall’app. Per cambiarla, aggiorna le lingue del sistema e della tastiera nelle impostazioni di Android.</string>
-	<string name="settings_server_enable_sync_backup">Attiva sincronizzazione e backup</string>
 	<string name="settings_server_enable_sync_backup_desc">Configura un server per sincronizzare i tuoi progetti tra dispositivi e creare backup sicuri.</string>
-	<string name="settings_server_connection_header">Connessione al server</string>
-	<string name="settings_server_configured">Configurato</string>
 	<string name="settings_server_sync_backup_preferences">Preferenze di sincronizzazione e backup</string>
 	<string name="settings_server_danger_zone">Zona pericolosa</string>
 	<!-- Backup Manager Dialog -->
@@ -94,13 +76,11 @@
 	<string name="backup_restore_dialog_confirm">Ripristina</string>
 	<string name="backup_restore_dialog_cancel">Annulla</string>
 	<string name="backup_manager_title">Gestisci i backup</string>
-	<string name="backup_manager_close_content_description">Chiudi</string>
 	<string name="backup_manager_no_backups">Nessun backup trovato</string>
 	<string name="backup_manager_select_project_hint">Seleziona un progetto</string>
-	<string name="backup_manager_project_label">Progetto</string>
 	<string name="backup_manager_no_backups_for_project">Nessun backup per questo progetto</string>
 	<string name="backup_manager_restore_button">Ripristina</string>
-	<string name="backup_manager_delete_content_description">Elimina backup</string>
+	<string name="backup_manager_delete_button">Delete backup</string>
 	<string name="backup_manager_show_button">Mostra nella cartella</string>
 	<string name="backup_manager_export_button">Esporta</string>
 	<string name="account_sync_confirm_cancel_title">Annullare la sincronizzazione?</string>
@@ -120,6 +100,11 @@
 	<string name="settings_server_setup_toast_success">Configurazione del server riuscita!</string>
 	<string name="settings_server_setup_toast_failure">Configurazione del server non riuscita: %1$s</string>
 	<string name="settings_server_setup_toast_failure_unknown">Configurazione del server non riuscita. Controlla la tua connessione e riprova.</string>
+	<!-- Terms of Service -->
+	<string name="settings_server_tos_title">Termini di servizio</string>
+	<string name="settings_server_tos_accept">Accetta</string>
+	<string name="settings_server_tos_decline">Rifiuta</string>
+	<string name="settings_server_tos_declined">Devi accettare i termini di servizio per creare un account.</string>
 	<!-- Network Errors -->
 	<string name="server_error_connection_timeout">Impossibile connettersi al server. Assicurati che il server sia in esecuzione e che l’indirizzo sia corretto.</string>
 	<string name="server_error_timeout">Il server non risponde. Controlla la tua connessione a internet e riprova.</string>

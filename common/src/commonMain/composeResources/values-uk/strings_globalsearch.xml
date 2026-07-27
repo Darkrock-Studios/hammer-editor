@@ -4,7 +4,6 @@
 	<string name="global_search_title">Пошук у проєкті</string>
 	<string name="global_search_placeholder">Введіть для пошуку, використовуйте #тег для фільтрації…</string>
 	<string name="global_search_clear">Очистити пошук</string>
-	<string name="global_search_close">Закрити пошук</string>
 	<string name="global_search_no_results">Немає результатів</string>
 	<string name="global_search_too_short">Введіть щонайменше 2 символи для пошуку</string>
 	<string name="global_search_results_count">%1$d результатів</string>
@@ -17,5 +16,4 @@
 	<string name="global_search_filter_notes">Нотатки</string>
 	<string name="global_search_filter_encyclopedia">Енциклопедія</string>
 	<string name="global_search_filter_timeline">Хронологія</string>
-	<string name="global_search_filter_toggle">Фільтрувати результати</string>
 </resources>

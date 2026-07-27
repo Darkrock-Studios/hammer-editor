@@ -1,14 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="settings_heading">Configurações</string>
 	<string name="account_settings_breadcrumb">CONTA</string>
 	<string name="account_settings_subtitle_local_install">INSTALAÇÃO LOCAL</string>
 	<string name="account_settings_folio_caption">CONFIGURAÇÕES DA CONTA</string>
-	<string name="settings_backups_header">\'Backups\'</string>
-	<string name="settings_backups_description">Gerencie os \'backups\' do seu projeto</string>
-	<string name="settings_backups_explainations">Este sistema de \"backup\" serve como proteção contra a perda e o corrompimento de dados. Ele NÃO serve como um modo de manter antigas revisões das suas histórias. Por favor, utilize o sistema de rascunhos para isso</string>
-	<string name="settings_backups_manage_button">Gerenciar \'Backups\'</string>
-	<string name="settings_theme_label">Tema de \'interface\' do usuário</string>
+	<string name="settings_backups_header">'Backups'</string>
+	<string name="settings_backups_explainations">Este sistema de "backup" serve como proteção contra a perda e o corrompimento de dados. Ele NÃO serve como um modo de manter antigas revisões das suas histórias. Por favor, utilize o sistema de rascunhos para isso</string>
+	<string name="settings_backups_manage_button">Gerenciar 'Backups'</string>
+	<string name="settings_theme_label">Tema de 'interface' do usuário</string>
 	<string name="settings_theme_light">CLARO</string>
 	<string name="settings_theme_dark">ESCURO</string>
 	<string name="settings_theme_followsystem">SISTEMA</string>
@@ -17,39 +15,26 @@
 	<string name="settings_initial_screen_editor">Editor de Cenas</string>
 	<string name="settings_projects_directory">Pasta de Projetos</string>
 	<string name="settings_projects_directory_description">Defina a pasta que o Hammer usará para armazenar os dados do projeto</string>
-	<string name="settings_projects_directory_hint">Caminho para a Pasta de Projetos</string>
 	<string name="settings_projects_directory_button">Selecionar diretório</string>
 	<string name="settings_example_project_header">Projeto de Exemplo</string>
 	<string name="settings_example_project_description">Instale um exemplo de projeto para ver como diferentes recursos são usados</string>
 	<string name="settings_example_project_button">Reinstalar</string>
 	<string name="settings_example_project_success_message">Exemplo de projeto criado.</string>
-	<string name="settings_data_version">Dados: v%1$s</string>
-	<string name="settings_server_header">Servidor</string>
 	<string name="settings_server_status_connected">CONECTADO</string>
 	<string name="settings_server_status_not_connected">NÃO CONECTADO</string>
 	<string name="settings_server_url_greeble">URL</string>
 	<string name="settings_server_help_link">AJUDA ↗</string>
 	<string name="settings_server_description">Configurar sincronização de dados</string>
-	<string name="settings_server_url_label">URL:</string>
-	<string name="settings_server_email_label">Endereço eletrônico:</string>
 	<string name="settings_server_setup_button">Configurar</string>
-	<string name="settings_server_modify_button">Modificar</string>
-	<string name="settings_server_unknown_error">erro</string>
 	<string name="settings_server_auto_sync">Sincronização automática</string>
-	<string name="settings_server_sync_backup">\"Backup\" ao sincronizar</string>
+	<string name="settings_server_sync_backup">"Backup" ao sincronizar</string>
 	<string name="settings_server_sync_auto_close">Fechar diálogos de sincronização com sucesso</string>
 	<string name="settings_server_max_backups">Máximo de Backups por Projeto</string>
 	<string name="settings_server_max_backups_error">Deve estar entre 1 e %1$d</string>
-	<string name="settings_server_test_auth_button">Testar \'login\'</string>
-	<string name="settings_server_reauth_button">Atualizar \'login\'</string>
 	<string name="settings_server_remove_server_button">Remover Servidor</string>
-	<string name="settings_server_authtest_toast_success">Teste de Autorização bem-sucedido</string>
-	<string name="settings_server_authtest_toast_failure">Falha ao testar autenticação</string>
 	<string name="settings_remove_server_dialog_title">Remover Servidor</string>
 	<string name="settings_remove_server_dialog_message">Tem certeza que deseja remover este servidor?</string>
 	<string name="settings_server_setup_title">Preparar Servidor</string>
-	<string name="settings_server_setup_header">Configurar servidor</string>
-	<string name="settings_server_setup_ssl_label">HTTPS?</string>
 	<string name="settings_server_setup_url_hint">URL do servidor: hammer.ink</string>
 	<string name="settings_server_setup_email_hint">E-mail: usuário@exemplo.com</string>
 	<string name="settings_server_setup_password_hint">Senha</string>
@@ -79,28 +64,23 @@
 	<string name="settings_spellcheck_dictionary">Dicionário</string>
 	<string name="settings_spellcheck_dictionary_android_info_title">Idioma do corretor ortográfico</string>
 	<string name="settings_spellcheck_dictionary_android_info_message">No Android, o idioma do corretor ortográfico é escolhido pelo seu dispositivo, não pelo app. Para alterá-lo, atualize os idiomas do sistema e do teclado nas configurações do Android.</string>
-	<string name="settings_server_enable_sync_backup">Habilitar Sincronização &amp; Backup</string>
-	<string name="settings_server_enable_sync_backup_desc">Prepare um servidor para sincronizar seus projetos entre dispositivos e criar \"backups\" seguros</string>
-	<string name="settings_server_connection_header">Conexão do Servidor</string>
-	<string name="settings_server_configured">Configurado</string>
+	<string name="settings_server_enable_sync_backup_desc">Prepare um servidor para sincronizar seus projetos entre dispositivos e criar "backups" seguros</string>
 	<string name="settings_server_sync_backup_preferences">Sincronizar &amp; Preferências de Backup</string>
 	<string name="settings_server_danger_zone">Zona de Perigo</string>
 	<!-- Backup Manager Dialog -->
-	<string name="backup_manager_error_load_backups">Falha ao carregar \'backups\': %1$s</string>
-	<string name="backup_manager_error_load_project_backups">Falha ao carregar \'backups\' para o projeto: %1$s</string>
-	<string name="backup_manager_error_delete_backup">Falha ao excluir \'backup\': %1$s</string>
-	<string name="backup_restore_dialog_title">Restaurar \'Backup\'</string>
-	<string name="backup_restore_dialog_message">Aviso: Restaurar este \'backup\' substituirá completamente o conteúdo atual do projeto. Todos os arquivos existentes serão apagados e substituídos pelos dados de \'backup\'. Esta ação não pode ser desfeita.</string>
+	<string name="backup_manager_error_load_backups">Falha ao carregar 'backups': %1$s</string>
+	<string name="backup_manager_error_load_project_backups">Falha ao carregar 'backups' para o projeto: %1$s</string>
+	<string name="backup_manager_error_delete_backup">Falha ao excluir 'backup': %1$s</string>
+	<string name="backup_restore_dialog_title">Restaurar 'Backup'</string>
+	<string name="backup_restore_dialog_message">Aviso: Restaurar este 'backup' substituirá completamente o conteúdo atual do projeto. Todos os arquivos existentes serão apagados e substituídos pelos dados de 'backup'. Esta ação não pode ser desfeita.</string>
 	<string name="backup_restore_dialog_confirm">Restaurar</string>
 	<string name="backup_restore_dialog_cancel">Cancelar</string>
-	<string name="backup_manager_title">Gerenciar \'Backups\'</string>
-	<string name="backup_manager_close_content_description">Fechar</string>
-	<string name="backup_manager_no_backups">Nenhum \'backup\' encontrado</string>
+	<string name="backup_manager_title">Gerenciar 'Backups'</string>
+	<string name="backup_manager_no_backups">Nenhum 'backup' encontrado</string>
 	<string name="backup_manager_select_project_hint">Selecione um projeto</string>
-	<string name="backup_manager_project_label">Projeto</string>
-	<string name="backup_manager_no_backups_for_project">Nenhum \'backup\' para este projeto</string>
+	<string name="backup_manager_no_backups_for_project">Nenhum 'backup' para este projeto</string>
 	<string name="backup_manager_restore_button">Restaurar</string>
-	<string name="backup_manager_delete_content_description">Excluir \'backup\'</string>
+	<string name="backup_manager_delete_button">Delete backup</string>
 	<string name="backup_manager_show_button">Mostrar na pasta</string>
 	<string name="backup_manager_export_button">Exportar</string>
 	<string name="account_sync_confirm_cancel_title">Cancelar a sincronização?</string>
@@ -108,7 +88,7 @@
 	<string name="account_sync_toast_canceled">Sincronização cancelada</string>
 	<!-- Server Setup Validation Errors -->
 	<string name="server_setup_error_unknown">Ocorreu um erro inesperado. Por favor, tente novamente.</string>
-	<string name="server_setup_error_invalid_url">Endereço de servidor inválido. Insira uma \'URL\' como \"hammer.ink\" ou um endereço IP.</string>
+	<string name="server_setup_error_invalid_url">Endereço de servidor inválido. Insira uma 'URL' como "hammer.ink" ou um endereço IP.</string>
 	<string name="server_setup_error_invalid_email">Por favor, insira um endereço de email válido.</string>
 	<string name="server_setup_error_password_too_short">A senha deve conter pelo menos 8 caracteres.</string>
 	<string name="server_setup_error_password_too_long">A senha deve conter 64 caracteres ou menos.</string>
@@ -120,9 +100,14 @@
 	<string name="settings_server_setup_toast_success">Servidor configurado com sucesso!</string>
 	<string name="settings_server_setup_toast_failure">Configuração do servidor falhou: %1$s</string>
 	<string name="settings_server_setup_toast_failure_unknown">Configuração do servidor falhou. Por favor, verifique sua conexão e tente novamente.</string>
+	<!-- Terms of Service -->
+	<string name="settings_server_tos_title">Termos de Serviço</string>
+	<string name="settings_server_tos_accept">Aceitar</string>
+	<string name="settings_server_tos_decline">Recusar</string>
+	<string name="settings_server_tos_declined">Você precisa aceitar os Termos de Serviço para criar uma conta.</string>
 	<!-- Network Errors -->
 	<string name="server_error_connection_timeout">Não foi possível conectar ao servidor. Verifique se o servidor está rodando e se o endereço está correto.</string>
-	<string name="server_error_timeout">O servidor não está respondendo. Verifique sua conexão com a \'internet\' e tente novamente.</string>
-	<string name="server_error_dns">Servidor não encontrado. Verifique o endereço do servidor e sua conexão de \'internet\'.</string>
+	<string name="server_error_timeout">O servidor não está respondendo. Verifique sua conexão com a 'internet' e tente novamente.</string>
+	<string name="server_error_dns">Servidor não encontrado. Verifique o endereço do servidor e sua conexão de 'internet'.</string>
 	<string name="server_error_connection_generic">Erro de rede ao conectar-se a %1$s. Verifique sua conexão e tente novamente.</string>
 </resources>

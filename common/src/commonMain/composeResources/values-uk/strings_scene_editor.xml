@@ -15,7 +15,6 @@
 	<string name="scene_editor_save_button">Зберегти</string>
 	<string name="scene_editor_metadata_button">Про сцену</string>
 	<string name="scene_editor_toast_save_successful">Збережено</string>
-	<string name="scene_editor_body_placeholder">Почніть писати вашу сцену тут</string>
 	<string name="scene_editor_menu_group">Сцена</string>
 	<string name="scene_editor_menu_item_save_draft">Нова чернетка</string>
 	<string name="scene_editor_menu_item_view_drafts">Переглянути чернетки</string>
@@ -45,7 +44,7 @@
 	<string name="scene_editor_metadata_word_count_label">Слів:</string>
 	<string name="scene_editor_metadata_advanced_header">Додатково</string>
 	<string name="scene_editor_metadata_entity_id">ID сутності:</string>
-	<string name="scene_editor_metadata_entity_filename">Ім\'я файлу:</string>
+	<string name="scene_editor_metadata_entity_filename">Ім'я файлу:</string>
 	<string name="scene_editor_metadata_entity_path">Шлях:</string>
 	<string name="scene_editor_metadata_created_label">Створено</string>
 	<string name="scene_editor_metadata_edited_label">Відредаговано</string>
@@ -56,7 +55,6 @@
 	<string name="scene_editor_metadata_notes_placeholder">Нотатки для себе.</string>
 	<string name="scene_editor_metadata_draft_name_label">Назва чернетки</string>
 	<string name="scene_editor_metadata_references_header">Посилання</string>
-	<string name="scene_editor_metadata_references_confirmed_label">З\'являється у цій сцені</string>
 	<string name="scene_editor_metadata_references_dismissed_label">Відхилено</string>
 	<string name="scene_editor_metadata_references_empty">Ще немає посилань</string>
 	<string name="scene_editor_metadata_references_dismiss">Відхилити</string>

@@ -15,7 +15,6 @@
 	<string name="scene_editor_save_button">Salva</string>
 	<string name="scene_editor_metadata_button">Info scena</string>
 	<string name="scene_editor_toast_save_successful">Salvato</string>
-	<string name="scene_editor_body_placeholder">Inizia a scrivere la tua scena qui</string>
 	<string name="scene_editor_menu_group">Scena</string>
 	<string name="scene_editor_menu_item_save_draft">Nuova bozza</string>
 	<string name="scene_editor_menu_item_view_drafts">Visualizza le bozze</string>
@@ -56,7 +55,6 @@
 	<string name="scene_editor_metadata_notes_placeholder">Note per te.</string>
 	<string name="scene_editor_metadata_draft_name_label">Nome della bozza</string>
 	<string name="scene_editor_metadata_references_header">Riferimenti</string>
-	<string name="scene_editor_metadata_references_confirmed_label">Appare in questa scena</string>
 	<string name="scene_editor_metadata_references_dismissed_label">Ignorati</string>
 	<string name="scene_editor_metadata_references_empty">Ancora nessun riferimento</string>
 	<string name="scene_editor_metadata_references_dismiss">Ignora</string>

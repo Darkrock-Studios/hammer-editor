@@ -4,7 +4,6 @@
 	<string name="global_search_title">Buscar en el proyecto</string>
 	<string name="global_search_placeholder">Escribe para buscar, usa #etiqueta para filtrar…</string>
 	<string name="global_search_clear">Borrar búsqueda</string>
-	<string name="global_search_close">Cerrar búsqueda</string>
 	<string name="global_search_no_results">Sin resultados</string>
 	<string name="global_search_too_short">Escribe al menos 2 caracteres para buscar</string>
 	<string name="global_search_results_count">%1$d resultados</string>
@@ -17,5 +16,4 @@
 	<string name="global_search_filter_notes">Notas</string>
 	<string name="global_search_filter_encyclopedia">Enciclopedia</string>
 	<string name="global_search_filter_timeline">Cronología</string>
-	<string name="global_search_filter_toggle">Filtrar resultados</string>
 </resources>

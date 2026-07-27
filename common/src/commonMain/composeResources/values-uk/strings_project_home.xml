@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="project_home_stat_header">Статистика:</string>
 	<string name="project_home_stat_created">Створено: %1$s</string>
 	<string name="project_home_loading_stats">Обчислення статистики…</string>
 	<string name="project_home_refresh_stats_button">Оновити статистику</string>
@@ -10,7 +9,6 @@
 	<string name="project_home_stat_encyclopedia_entries">Записи енциклопедії</string>
 	<string name="project_home_stat_chapter_words">Слова в розділах</string>
 	<string name="project_home_stat_chapter_words_x_axis">Розділ</string>
-	<string name="project_home_stat_chapter_words_y_axis">Слова</string>
 	<string name="project_home_stat_chapter_words_tooltip">%1$s: %2$s слів</string>
 	<string name="project_home_stat_avg_words_per_scene">Сер. слів / сцену</string>
 	<string name="project_home_stat_num_notes">Нотатки</string>
@@ -19,20 +17,12 @@
 	<string name="project_home_stat_longest_scene_words">%1$s слів</string>
 	<string name="project_home_stat_longest_scene_empty">Ще немає сцен</string>
 	<string name="project_home_stat_last_edited_scene">Востаннє відредаговано</string>
-	<string name="project_home_stat_scene_lengths">Довжина сцен</string>
 	<string name="project_home_stat_scene_median">Медіана</string>
-	<string name="project_home_stat_scene_shortest">Найкоротша</string>
-	<string name="project_home_stat_scene_longest">Найдовша</string>
-	<string name="project_home_stat_avg_scenes_per_chapter">Сцен / розділ</string>
 	<string name="project_home_stat_reading_time">≈ %1$d хв читання</string>
 	<string name="project_home_stat_pages">%1$d сторінок</string>
 	<string name="project_home_stat_daily_goal">Щоденна ціль</string>
 	<string name="project_home_stat_weekly_goal">Щотижнева ціль</string>
-	<string name="project_home_stat_goal_progress">%1$s / %2$s</string>
 	<string name="project_home_stat_this_week">Цього тижня</string>
-	<string name="project_home_stat_this_week_value">+%1$s слів</string>
-	<string name="project_home_stat_week_change_up">▲ %1$d%% від минулого тижня</string>
-	<string name="project_home_stat_week_change_down">▼ %1$d%% від минулого тижня</string>
 	<string name="project_home_stat_week_change_flat">без змін від минулого тижня</string>
 	<string name="project_home_stat_week_change_new">немає даних за минулий тиждень</string>
 	<string name="project_home_stat_today">Сьогодні</string>
@@ -44,7 +34,7 @@
 	<string name="project_home_stat_best_day">Найкращий день</string>
 	<string name="project_home_stat_best_day_value">%1$s · %2$s</string>
 	<string name="project_home_stat_characters_appearances">Персонажі за появами</string>
-	<string name="project_home_stat_connections">%1$d зв\'язків</string>
+	<string name="project_home_stat_connections">%1$d зв'язків</string>
 	<string name="project_home_stat_words_per_device">Слова за пристроєм</string>
 	<string name="project_home_stat_activity">Активність · %1$d тижнів</string>
 	<string name="project_home_stat_activity_tooltip">%1$s · %2$s слів</string>
@@ -57,9 +47,9 @@
 	<string name="project_home_stat_themes_title">Теми</string>
 	<string name="project_home_stat_themes_summary">%1$d тегів · %2$d використань</string>
 	<string name="project_home_stat_themes_breadth">%1$d/4</string>
-	<string name="project_home_stat_themes_most_connective">Найбільш зв\'язуюча</string>
-	<string name="project_home_stat_themes_all_four">З\'являється в усіх чотирьох типах · %1$d використань</string>
-	<string name="project_home_stat_themes_breadth_of_four">З\'являється в %1$d з 4 типів · %2$d використань</string>
+	<string name="project_home_stat_themes_most_connective">Найбільш зв'язуюча</string>
+	<string name="project_home_stat_themes_all_four">З'являється в усіх чотирьох типах · %1$d використань</string>
+	<string name="project_home_stat_themes_breadth_of_four">З'являється в %1$d з 4 типів · %2$d використань</string>
 	<string name="project_home_stat_themes_all_four_short">Усі 4 типи</string>
 	<string name="project_home_stat_themes_breadth_of_four_short">%1$d з 4 типів</string>
 	<string name="project_home_stat_themes_distribution">Розподіл</string>
@@ -69,7 +59,6 @@
 	<string name="project_home_stat_themes_source_notes">Нотатки</string>
 	<string name="project_home_stat_themes_source_encyclopedia">Енциклопедія</string>
 	<string name="project_home_stat_themes_source_events">Події</string>
-	<string name="project_home_actions_header">Дії:</string>
 	<string name="project_home_action_export">Експортувати історію</string>
 	<string name="project_home_action_sync">Синхронізувати історію</string>
 	<string name="project_home_action_backup">Резервна копія</string>
@@ -100,11 +89,9 @@
 	<string name="project_home_export_help_dismiss">Зрозуміло</string>
 	<string name="project_home_export_contents_title">Зміст</string>
 	<string name="project_home_export_byline">автор: %1$s</string>
-	<string name="project_home_action_import">Імпортувати історію</string>
 	<string name="project_home_action_import_toast_success">Історію імпортовано</string>
 	<string name="project_home_action_import_toast_failure">Не вдалося імпортувати</string>
 	<string name="project_home_import_dialog_title">Імпортувати історію</string>
-	<string name="project_home_import_format_label">Формат</string>
 	<string name="project_home_import_heading_label">Виявлення розділів</string>
 	<string name="project_home_import_heading_auto">Авто</string>
 	<string name="project_home_import_heading_h1">H1 (#)</string>
@@ -120,10 +107,6 @@
 	<string name="project_home_import_preview_count">Буде створено %1$d сцен</string>
 	<string name="project_home_import_cancel">Скасувати</string>
 	<string name="project_home_import_execute">Імпортувати</string>
-	<string name="project_home_destinations_header">Проєкт:</string>
-	<string name="project_home_action_stats_button">Статистика</string>
 	<string name="project_home_action_settings_button">Налаштування</string>
 	<string name="project_home_menu_button">Меню проєкту</string>
-	<string name="project_home_settings_title">Налаштування проєкту</string>
-	<string name="project_home_settings_close_button">Закрити налаштування</string>
 </resources>

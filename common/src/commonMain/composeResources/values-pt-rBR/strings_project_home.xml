@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="project_home_stat_header">Estatísticas:</string>
 	<string name="project_home_stat_created">Criado em: %1$s</string>
 	<string name="project_home_loading_stats">Calculando estatísticas...</string>
 	<string name="project_home_refresh_stats_button">Atualizar estatísticas</string>
@@ -10,7 +9,6 @@
 	<string name="project_home_stat_encyclopedia_entries">Verbetes da Enciclopédia</string>
 	<string name="project_home_stat_chapter_words">Palavras por Capítulo</string>
 	<string name="project_home_stat_chapter_words_x_axis">Capítulo</string>
-	<string name="project_home_stat_chapter_words_y_axis">Palavras</string>
 	<string name="project_home_stat_chapter_words_tooltip">%1$s: %2$s palavras</string>
 	<string name="project_home_stat_avg_words_per_scene">Média de Palavras / Cena</string>
 	<string name="project_home_stat_num_notes">Anotações</string>
@@ -19,20 +17,12 @@
 	<string name="project_home_stat_longest_scene_words">%1$s palavras</string>
 	<string name="project_home_stat_longest_scene_empty">Ainda não há cenas</string>
 	<string name="project_home_stat_last_edited_scene">Última Edição</string>
-	<string name="project_home_stat_scene_lengths">Tamanho das Cenas</string>
 	<string name="project_home_stat_scene_median">Mediana</string>
-	<string name="project_home_stat_scene_shortest">Mais curta</string>
-	<string name="project_home_stat_scene_longest">Mais longa</string>
-	<string name="project_home_stat_avg_scenes_per_chapter">Cenas / capítulo</string>
 	<string name="project_home_stat_reading_time">≈ %1$d min de leitura</string>
 	<string name="project_home_stat_pages">%1$d páginas</string>
 	<string name="project_home_stat_daily_goal">Meta diária</string>
 	<string name="project_home_stat_weekly_goal">Meta semanal</string>
-	<string name="project_home_stat_goal_progress">%1$s / %2$s</string>
 	<string name="project_home_stat_this_week">Esta semana</string>
-	<string name="project_home_stat_this_week_value">+%1$s palavras</string>
-	<string name="project_home_stat_week_change_up">▲ %1$d%% vs. semana passada</string>
-	<string name="project_home_stat_week_change_down">▼ %1$d%% vs. semana passada</string>
 	<string name="project_home_stat_week_change_flat">sem alteração vs. semana passada</string>
 	<string name="project_home_stat_week_change_new">sem dados na semana passada</string>
 	<string name="project_home_stat_today">Hoje</string>
@@ -69,12 +59,11 @@
 	<string name="project_home_stat_themes_source_notes">Anotações</string>
 	<string name="project_home_stat_themes_source_encyclopedia">Enciclopédia</string>
 	<string name="project_home_stat_themes_source_events">Eventos</string>
-	<string name="project_home_actions_header">Ações:</string>
 	<string name="project_home_action_export">Exportar História</string>
 	<string name="project_home_action_sync">Sincronizar História</string>
-	<string name="project_home_action_backup">Criar \'Backup\'</string>
-	<string name="project_home_action_backup_toast_success">\'Backup\' Criado: %1$s</string>
-	<string name="project_home_action_backup_toast_failure">Falha ao criar \'Backup\'</string>
+	<string name="project_home_action_backup">Criar 'Backup'</string>
+	<string name="project_home_action_backup_toast_success">'Backup' Criado: %1$s</string>
+	<string name="project_home_action_backup_toast_failure">Falha ao criar 'Backup'</string>
 	<string name="project_home_action_export_toast_success">História Exportada</string>
 	<string name="project_home_action_export_toast_failure">Falha na exportação</string>
 	<string name="project_home_export_dialog_title">Exportar História</string>
@@ -100,11 +89,9 @@
 	<string name="project_home_export_help_dismiss">Entendi</string>
 	<string name="project_home_export_contents_title">Sumário</string>
 	<string name="project_home_export_byline">por %1$s</string>
-	<string name="project_home_action_import">Importar História</string>
 	<string name="project_home_action_import_toast_success">História Importada</string>
 	<string name="project_home_action_import_toast_failure">Falha na importação</string>
 	<string name="project_home_import_dialog_title">Importar História</string>
-	<string name="project_home_import_format_label">Formato</string>
 	<string name="project_home_import_heading_label">Detecção de capítulos</string>
 	<string name="project_home_import_heading_auto">Automático</string>
 	<string name="project_home_import_heading_h1">H1 (#)</string>
@@ -120,10 +107,6 @@
 	<string name="project_home_import_preview_count">Criará %1$d cena(s)</string>
 	<string name="project_home_import_cancel">Cancelar</string>
 	<string name="project_home_import_execute">Importar</string>
-	<string name="project_home_destinations_header">Projeto:</string>
-	<string name="project_home_action_stats_button">Estatísticas</string>
 	<string name="project_home_action_settings_button">Configurações</string>
 	<string name="project_home_menu_button">Menu do projeto</string>
-	<string name="project_home_settings_title">Configurações do Projeto</string>
-	<string name="project_home_settings_close_button">Fechar Configurações</string>
 </resources>

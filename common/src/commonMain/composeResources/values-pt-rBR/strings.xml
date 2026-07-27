@@ -17,11 +17,9 @@
 	<string name="unsaved_entity_dialog_positive_button">Salvar</string>
 	<string name="close_dialog_button">Fechar</string>
 	<string name="more_menu_button">Mais</string>
-	<string name="network_request_failure_connection">Solicitação de rede falhou: %1$s</string>
 	<string name="network_request_failure_parse_body">Falha ao analisar o corpo da resposta: %1$s</string>
 	<string name="confirm_dialog_positive">Sim</string>
 	<string name="confirm_dialog_negative">Não</string>
-	<string name="image_failed_to_load">Erro de Imagem</string>
 	<string name="expand">Expandir</string>
 	<string name="collapse">Encolher</string>
 	<string name="markdown_format_bar_decrease_text_size">Diminuir o tamanho do texto</string>

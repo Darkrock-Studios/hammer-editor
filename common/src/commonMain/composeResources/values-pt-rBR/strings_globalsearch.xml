@@ -4,7 +4,6 @@
 	<string name="global_search_title">Pesquisar no projeto</string>
 	<string name="global_search_placeholder">Digite para pesquisar, use #tag para filtrar…</string>
 	<string name="global_search_clear">Limpar busca</string>
-	<string name="global_search_close">Fechar busca</string>
 	<string name="global_search_no_results">Nenhum resultado</string>
 	<string name="global_search_too_short">Digite ao menos 2 caracteres para pesquisar</string>
 	<string name="global_search_results_count">%1$d resultados</string>
@@ -17,5 +16,4 @@
 	<string name="global_search_filter_notes">Anotações</string>
 	<string name="global_search_filter_encyclopedia">Enciclopédia</string>
 	<string name="global_search_filter_timeline">Linha do Tempo</string>
-	<string name="global_search_filter_toggle">Filtrar resultados</string>
 </resources>
