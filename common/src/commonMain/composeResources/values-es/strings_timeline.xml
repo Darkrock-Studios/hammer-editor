@@ -1,20 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="timeline_title">Cronología</string>
 	<string name="timeline_no_events">Sin eventos</string>
 	<string name="timeline_create_event_button">Crear evento</string>
-	<string name="timeline_create_close_button">Cerrar</string>
-	<string name="timeline_create_title">Evento de cronología</string>
-	<string name="timeline_create_date_label">Fecha (opcional)</string>
-	<string name="timeline_create_content_label">Contenido</string>
-	<string name="timeline_create_create_event_button">Crear</string>
 	<string name="timeline_create_toast_success">Evento creado</string>
-	<string name="timeline_create_toast_failure">No se pudo crear el evento</string>
 	<string name="timeline_create_toast_tag_too_long">La etiqueta era demasiado larga (máx. %1$d)</string>
 	<string name="timeline_create_tags_label">Etiquetas</string>
 	<string name="timeline_create_tags_hint">↵ para añadir</string>
 	<string name="timeline_create_tags_placeholder">arco, presagio, conflicto…</string>
-	<string name="timeline_view_title">Evento</string>
 	<string name="timeline_view_header">Evento</string>
 	<string name="timeline_view_label_editing">Editando</string>
 	<string name="timeline_view_crumb_root">Cronología</string>
@@ -26,7 +18,6 @@
 	<string name="timeline_view_date_hint">opcional</string>
 	<string name="timeline_view_date_placeholder">p. ej. Primavera del año 3</string>
 	<string name="timeline_view_undated">SIN FECHA</string>
-	<string name="timeline_view_content_placeholder">Describe tu evento</string>
 	<string name="timeline_view_status_unsaved">SIN GUARDAR</string>
 	<string name="timeline_view_status_word_char">%1$d PAL · %2$d CAR</string>
 	<string name="timeline_view_status_hint">ESC PARA CANCELAR</string>
@@ -48,7 +39,7 @@
 	<string name="timeline_view_menu_delete">Eliminar</string>
 	<string name="timeline_view_confirm_delete_title">¿Eliminar el evento de cronología?</string>
 	<string name="timeline_view_confirm_delete_message">¡Esta acción no se puede deshacer!</string>
-	<string name="timeline_header">Cronología</string>
+	<string name="timeline_header">Timeline</string>
 	<string name="timeline_header_meta">%1$d ENTRADAS · %2$d ETIQUETAS</string>
 	<string name="timeline_search_button">Buscar en la cronología</string>
 	<string name="timeline_search_placeholder">Buscar en la cronología</string>

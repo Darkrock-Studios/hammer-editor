@@ -70,7 +70,7 @@
 	<string name="sync_log_ideas_deleted_server">Löschung der Idee an den Server übertragen: %1$s</string>
 	<string name="sync_log_ideas_delete_server_failed">Idee konnte auf dem Server nicht gelöscht werden: %1$s</string>
 	<string name="sync_log_ideas_uploaded">Idee hochgeladen: %1$s</string>
-	<string name="sync_log_ideas_upload_failed">Idee \"%1$s\" konnte nicht hochgeladen werden: %2$s</string>
+	<string name="sync_log_ideas_upload_failed">Idee "%1$s" konnte nicht hochgeladen werden: %2$s</string>
 	<string name="sync_log_ideas_downloaded">Idee heruntergeladen: %1$s</string>
 	<string name="sync_log_ideas_download_failed">Idee %1$s konnte nicht heruntergeladen werden: %2$s</string>
 	<string name="sync_log_ideas_conflict">Konflikt für Idee erkannt: %1$s</string>

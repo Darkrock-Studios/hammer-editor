@@ -8,7 +8,6 @@
 	<string name="about_community_github_link">Github</string>
 	<string name="about_attribution_header">Attribuzione</string>
 	<string name="about_attribution_libraries_button">Librerie</string>
-	<string name="about_version_new_available_title">Nuova versione disponibile!</string>
 	<string name="about_version_new_available_message">La versione %s è ora disponibile</string>
 	<string name="about_version_up_to_date">Aggiornato!</string>
 	<string name="about_version_view_update_button">Visualizza aggiornamento</string>

@@ -11,8 +11,6 @@
 	<string name="projects_list_card_words">%1$s palabras</string>
 	<string name="projects_list_card_by_author">por %1$s</string>
 	<string name="projects_list_card_created">Creado %1$s</string>
-	<string name="projects_list_card_opened">Abierto %1$s</string>
-	<string name="projects_list_card_never_opened">Nunca abierto</string>
 	<string name="projects_list_card_content_description">Proyecto %1$s</string>
 	<string name="projects_list_search_button">Buscar proyectos</string>
 	<string name="projects_list_search_close">Cerrar búsqueda</string>
@@ -42,9 +40,7 @@
 	<string name="projects_list_sort_glyph_created_asc">↑ CREADO</string>
 	<string name="projects_list_sort_glyph_words_desc">↓ PALABRAS</string>
 	<string name="projects_list_sort_glyph_words_asc">↑ PALABRAS</string>
-	<string name="account_sync_dialog_title">Sincronización</string>
 	<string name="account_sync_dialog_header">Sincronización de la cuenta</string>
-	<string name="account_sync_dialog_cancel_button">Cancelar</string>
 	<string name="account_sync_log_title">Registro de sincronización</string>
 	<string name="account_sync_log_filter_label">Proyecto</string>
 	<string name="account_sync_log_filter_all">Todos</string>

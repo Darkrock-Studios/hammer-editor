@@ -17,11 +17,9 @@
 	<string name="unsaved_entity_dialog_positive_button">Speichern</string>
 	<string name="close_dialog_button">Schließen</string>
 	<string name="more_menu_button">Mehr</string>
-	<string name="network_request_failure_connection">Netzwerkanfrage fehlgeschlagen: %1$s</string>
 	<string name="network_request_failure_parse_body">Fehler beim Analysieren der Antwort: %1$s</string>
 	<string name="confirm_dialog_positive">Ja</string>
 	<string name="confirm_dialog_negative">Nein</string>
-	<string name="image_failed_to_load">Bildfehler</string>
 	<string name="expand">Erweitern</string>
 	<string name="collapse">Einklappen</string>
 	<string name="markdown_format_bar_decrease_text_size">Textgröße verringern</string>

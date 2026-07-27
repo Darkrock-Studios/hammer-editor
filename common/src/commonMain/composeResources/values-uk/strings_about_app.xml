@@ -8,7 +8,6 @@
 	<string name="about_community_github_link">Github</string>
 	<string name="about_attribution_header">Атрибуція</string>
 	<string name="about_attribution_libraries_button">Бібліотеки</string>
-	<string name="about_version_new_available_title">Доступна нова версія!</string>
 	<string name="about_version_new_available_message">Тепер доступна версія %s</string>
 	<string name="about_version_up_to_date">Актуальна версія!</string>
 	<string name="about_version_view_update_button">Переглянути оновлення</string>

@@ -1,20 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="timeline_title">Cronologia</string>
 	<string name="timeline_no_events">Nessun evento</string>
 	<string name="timeline_create_event_button">Crea evento</string>
-	<string name="timeline_create_close_button">Chiudi</string>
-	<string name="timeline_create_title">Evento di cronologia</string>
-	<string name="timeline_create_date_label">Data (facoltativa)</string>
-	<string name="timeline_create_content_label">Contenuto</string>
-	<string name="timeline_create_create_event_button">Crea</string>
 	<string name="timeline_create_toast_success">Evento creato</string>
-	<string name="timeline_create_toast_failure">Impossibile creare l’evento</string>
 	<string name="timeline_create_toast_tag_too_long">Il tag era troppo lungo (max %1$d)</string>
 	<string name="timeline_create_tags_label">Tag</string>
 	<string name="timeline_create_tags_hint">↵ per aggiungere</string>
 	<string name="timeline_create_tags_placeholder">arco, presagio, conflitto…</string>
-	<string name="timeline_view_title">Evento</string>
 	<string name="timeline_view_header">Evento</string>
 	<string name="timeline_view_label_editing">Modifica</string>
 	<string name="timeline_view_crumb_root">Cronologia</string>
@@ -26,7 +18,6 @@
 	<string name="timeline_view_date_hint">facoltativa</string>
 	<string name="timeline_view_date_placeholder">es. Primavera dell’anno 3</string>
 	<string name="timeline_view_undated">SENZA DATA</string>
-	<string name="timeline_view_content_placeholder">Descrivi il tuo evento</string>
 	<string name="timeline_view_status_unsaved">NON SALVATO</string>
 	<string name="timeline_view_status_word_char">%1$d PAR · %2$d CAR</string>
 	<string name="timeline_view_status_hint">ESC PER ANNULLARE</string>
@@ -48,7 +39,7 @@
 	<string name="timeline_view_menu_delete">Elimina</string>
 	<string name="timeline_view_confirm_delete_title">Eliminare l’evento di cronologia?</string>
 	<string name="timeline_view_confirm_delete_message">Questa azione non può essere annullata!</string>
-	<string name="timeline_header">Cronologia</string>
+	<string name="timeline_header">Timeline</string>
 	<string name="timeline_header_meta">%1$d VOCI · %2$d TAG</string>
 	<string name="timeline_search_button">Cerca nella cronologia</string>
 	<string name="timeline_search_placeholder">Cerca nella cronologia</string>

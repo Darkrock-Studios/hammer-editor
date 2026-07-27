@@ -1,19 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="draft_compare_cancel_button">Annuler</string>
-	<string name="draft_compare_current_header">Fusionner avec l\'actuel</string>
+	<string name="draft_compare_current_header">Fusionner avec l'actuel</string>
 	<string name="draft_compare_current_subheader">Copiez ici des parties du brouillon</string>
 	<string name="draft_compare_current_accept_button">Prendre la fusion</string>
-	<string name="draft_compare_current_body_placeholder">Commencez à écrire votre scène ici</string>
 	<string name="draft_compare_draft_header">Brouillon : %1$s</string>
-	<string name="draft_compare_draft_subheader">Copiez les parties voulues dans l\'actuel, ou acceptez tout ceci.</string>
+	<string name="draft_compare_draft_subheader">Copiez les parties voulues dans l'actuel, ou acceptez tout ceci.</string>
 	<string name="draft_compare_draft_accept_button">Prendre tout ce brouillon</string>
-	<string name="draft_compare_draft_body_placeholder">Brouillon</string>
 	<string name="draft_compare_tab_title_draft">Brouillon</string>
 	<string name="draft_compare_tab_title_current">Actuel</string>
-	<string name="draft_list_close_button">Fermer les brouillons</string>
 	<string name="draft_list_header">Brouillons de %1$s :</string>
 	<string name="draft_list_empty">Aucun brouillon trouvé</string>
-	<string name="draft_list_item_created">Créé : %1$s</string>
 	<string name="scene_draft_invalid_name">Nom invalide</string>
 </resources>

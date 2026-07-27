@@ -34,7 +34,7 @@
 	<string name="ideas_view_close_button">Закрити ідею</string>
 	<string name="ideas_view_action_edit">Редагувати</string>
 	<string name="ideas_title_label">Назва</string>
-	<string name="ideas_title_placeholder">Необов\'язкова назва</string>
+	<string name="ideas_title_placeholder">Необов'язкова назва</string>
 	<string name="ideas_tags_label">Теги</string>
 	<string name="ideas_tags_hint">Enter або кома додає тег</string>
 	<string name="ideas_tags_placeholder">Додати тег…</string>

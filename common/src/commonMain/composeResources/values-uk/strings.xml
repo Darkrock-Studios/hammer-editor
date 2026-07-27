@@ -17,11 +17,9 @@
 	<string name="unsaved_entity_dialog_positive_button">Зберегти</string>
 	<string name="close_dialog_button">Закрити</string>
 	<string name="more_menu_button">Більше</string>
-	<string name="network_request_failure_connection">Помилка мережевого запиту: %1$s</string>
 	<string name="network_request_failure_parse_body">Не вдалося розібрати тіло відповіді: %1$s</string>
 	<string name="confirm_dialog_positive">Так</string>
 	<string name="confirm_dialog_negative">Ні</string>
-	<string name="image_failed_to_load">Помилка зображення</string>
 	<string name="expand">Розгорнути</string>
 	<string name="collapse">Згорнути</string>
 	<string name="markdown_format_bar_decrease_text_size">Зменшити розмір тексту</string>

@@ -70,7 +70,7 @@
 	<string name="sync_log_ideas_deleted_server">Exclusão da ideia propagada ao servidor: %1$s</string>
 	<string name="sync_log_ideas_delete_server_failed">Falha ao excluir a ideia no servidor: %1$s</string>
 	<string name="sync_log_ideas_uploaded">Ideia enviada: %1$s</string>
-	<string name="sync_log_ideas_upload_failed">Falha ao enviar a ideia \"%1$s\": %2$s</string>
+	<string name="sync_log_ideas_upload_failed">Falha ao enviar a ideia "%1$s": %2$s</string>
 	<string name="sync_log_ideas_downloaded">Ideia baixada: %1$s</string>
 	<string name="sync_log_ideas_download_failed">Falha ao baixar a ideia %1$s: %2$s</string>
 	<string name="sync_log_ideas_conflict">Conflito detectado para a ideia: %1$s</string>

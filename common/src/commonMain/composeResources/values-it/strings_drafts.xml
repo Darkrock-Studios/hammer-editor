@@ -1,19 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="draft_compare_cancel_button">Annulla</string>
 	<string name="draft_compare_current_header">Unisci con l’attuale</string>
 	<string name="draft_compare_current_subheader">Copia qui parti della bozza</string>
 	<string name="draft_compare_current_accept_button">Prendi l’unione</string>
-	<string name="draft_compare_current_body_placeholder">Inizia a scrivere la tua scena qui</string>
 	<string name="draft_compare_draft_header">Bozza: %1$s</string>
 	<string name="draft_compare_draft_subheader">Copia le parti desiderate nell’attuale, oppure accetta tutto questo.</string>
 	<string name="draft_compare_draft_accept_button">Prendi tutta questa bozza</string>
-	<string name="draft_compare_draft_body_placeholder">Bozza</string>
 	<string name="draft_compare_tab_title_draft">Bozza</string>
 	<string name="draft_compare_tab_title_current">Attuale</string>
-	<string name="draft_list_close_button">Chiudi le bozze</string>
 	<string name="draft_list_header">Bozze di %1$s:</string>
 	<string name="draft_list_empty">Nessuna bozza trovata</string>
-	<string name="draft_list_item_created">Creata: %1$s</string>
 	<string name="scene_draft_invalid_name">Nome non valido</string>
 </resources>
