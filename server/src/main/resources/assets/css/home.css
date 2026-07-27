@@ -739,6 +739,15 @@
 	border-top: 4px solid var(--accent);
 }
 
+/* These cards are the only substantial blocks on the page with no screenshot, so the
+   icon is the thing that lets the three rules be told apart at a glance. */
+.rule__icon {
+	display: block;
+	font-size: 1.6rem;
+	color: var(--accent);
+	margin-bottom: 0.8rem;
+}
+
 .rule h3 {
 	font-size: clamp(1.35rem, 2.2vw, 1.7rem);
 	margin-bottom: 0.75rem;
