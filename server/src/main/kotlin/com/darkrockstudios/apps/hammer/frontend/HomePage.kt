@@ -1,14 +1,12 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ServerConfig
-import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.webSiteJsonLd
-import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -38,8 +36,6 @@ fun Route.homePage(
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
 	serverConfig: ServerConfig,
-	accountsRepository: AccountsRepository,
-	projectAccessRepository: ProjectAccessRepository
 ) {
 	route("/") {
 		get {
@@ -55,20 +51,20 @@ fun Route.homePage(
 
 			model["serverMessage"] = serverMessage
 			model["page_script"] = "/assets/js/home.js"
-			model["title"] = "Hammer — ${call.msg("home_masthead_subtitle")}"
-			model["metaDescription"] = call.msg("home_whatishammer_subtitle")
+			model["title"] = "Hammer — ${call.msg("home_meta_tagline")}"
+			model["metaDescription"] = call.msg("home_meta_description")
 			model["jsonLd"] = webSiteJsonLd(
 				name = "Hammer",
 				url = call.canonicalUrl("/"),
-				description = call.msg("home_whatishammer_subtitle"),
+				description = call.msg("home_meta_description"),
 			)
 
-			if (useWhiteList && contactEmail.isNotBlank() && !patreonActive) {
-				model["whitelistEnabled"] = useWhiteList
+			val showWhitelist = useWhiteList && contactEmail.isNotBlank() && !patreonActive
+			if (showWhitelist) {
+				model["whitelistEnabled"] = true
 				call.msg(model, "home_servermessage_whitelist", contactEmail)
 			}
-
-			populateCommunityCalloutModel(serverConfig, model, accountsRepository, projectAccessRepository)
+			model["hasInstanceNotice"] = serverMessage.isNotBlank() || showWhitelist
 
 			call.respond(MustacheContent("home.mustache", model))
 		}

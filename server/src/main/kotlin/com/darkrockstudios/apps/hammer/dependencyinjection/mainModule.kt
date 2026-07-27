@@ -57,6 +57,7 @@ import com.darkrockstudios.apps.hammer.encryption.EncryptionBootstrap
 import com.darkrockstudios.apps.hammer.encryption.EncryptionConvergence
 import com.darkrockstudios.apps.hammer.encryption.PlaintextContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvider
+import com.darkrockstudios.apps.hammer.frontend.CommunityStatsProvider
 import com.darkrockstudios.apps.hammer.frontend.og.OgImageRenderer
 import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
@@ -191,6 +192,7 @@ fun mainModule(
 	single<MetricsRepository>()
 	single<ErrorRepository>()
 	single<SecurityRepository>()
+	single { CommunityStatsProvider(get(), get()) }
 	single<MetricsCollector>()
 	single<UserActivityCollector>()
 	single<UserActivityRepository>()
