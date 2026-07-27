@@ -34,6 +34,13 @@ private val MASTHEAD_PRELOADS = listOf(
 	),
 )
 
+/**
+ * The origin story's photograph is optional: the section renders as copy alone until the
+ * asset is added, rather than showing a broken image. Resolved once, not per request.
+ */
+private val ORIGIN_PHOTO_PRESENT: Boolean =
+	object {}.javaClass.getResource("/assets/images/origin-van-760.webp") != null
+
 fun Route.homePage(
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
@@ -55,12 +62,13 @@ fun Route.homePage(
 
 			model["serverMessage"] = serverMessage
 			model["page_script"] = "/assets/js/home.js"
-			model["title"] = "Hammer — ${call.msg("home_masthead_subtitle")}"
-			model["metaDescription"] = call.msg("home_whatishammer_subtitle")
+			model["title"] = "Hammer — ${call.msg("home_meta_tagline")}"
+			model["metaDescription"] = call.msg("home_meta_description")
+			model["hasOriginPhoto"] = ORIGIN_PHOTO_PRESENT
 			model["jsonLd"] = webSiteJsonLd(
 				name = "Hammer",
 				url = call.canonicalUrl("/"),
-				description = call.msg("home_whatishammer_subtitle"),
+				description = call.msg("home_meta_description"),
 			)
 
 			if (useWhiteList && contactEmail.isNotBlank() && !patreonActive) {

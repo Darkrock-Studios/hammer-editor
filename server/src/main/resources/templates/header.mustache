@@ -106,10 +106,37 @@
 				</a>
 			{{/hasAboutPage}}
 			{{#communityEnabled}}
-				<a href="/community/feed" class="header-nav__link" title="{{msg.header_nav_community}}">
-					<i class="fa-solid fa-users"></i>
-					<span class="header-nav__label">{{msg.header_nav_community}}</span>
-				</a>
+				<div class="header-nav__item">
+					<a href="/community/feed" class="header-nav__link" title="{{msg.header_nav_community}}">
+						<i class="fa-solid fa-users"></i>
+						<span class="header-nav__label">{{msg.header_nav_community}}</span>
+					</a>
+					{{#communityAuthorCount}}
+						<button type="button" class="community-badge" aria-expanded="false"
+								aria-controls="community-badge-pop" aria-label="{{msg.community_badge_label}}">
+							{{communityAuthorCount}}
+						</button>
+						<div class="community-badge__pop" id="community-badge-pop">
+							<p class="community-badge__title">{{msg.header_nav_community}}</p>
+							<div class="community-stats">
+								<div class="community-stat">
+									<i class="fa-solid fa-user-pen community-stat__icon"></i>
+									<span class="community-stat__value">{{communityAuthorCount}}</span>
+									<span class="community-stat__label">{{msg.community_badge_authors}}</span>
+								</div>
+								<div class="community-stat">
+									<i class="fa-solid fa-book-open community-stat__icon"></i>
+									<span class="community-stat__value">{{communityStoryCount}}</span>
+									<span class="community-stat__label">{{msg.community_badge_stories}}</span>
+								</div>
+							</div>
+							<a href="/community/feed" class="community-badge__link">
+								<span>{{msg.community_badge_visit}}</span>
+								<i class="fa-solid fa-arrow-right"></i>
+							</a>
+						</div>
+					{{/communityAuthorCount}}
+				</div>
 			{{/communityEnabled}}
 			{{#headerExtraLinks}}
 				<a href="{{url}}" class="header-nav__link" title="{{title}}"{{#external}} target="_blank" rel="noopener noreferrer"{{/external}}>
@@ -174,5 +201,29 @@
 		document.addEventListener('keydown', function (e) {
 			if (e.key === 'Escape') closeMenu();
 		});
+
+		// Community badge: pointer devices get it on hover from CSS, touch needs a tap.
+		const badge = document.querySelector('.community-badge');
+		if (badge) {
+			const item = badge.closest('.header-nav__item');
+
+			function closeBadge() {
+				badge.setAttribute('aria-expanded', 'false');
+			}
+
+			badge.addEventListener('click', function (e) {
+				e.stopPropagation();
+				const isOpen = badge.getAttribute('aria-expanded') === 'true';
+				badge.setAttribute('aria-expanded', String(!isOpen));
+			});
+
+			document.addEventListener('click', function (e) {
+				if (!item.contains(e.target)) closeBadge();
+			});
+
+			document.addEventListener('keydown', function (e) {
+				if (e.key === 'Escape') closeBadge();
+			});
+		}
 	})();
 </script>

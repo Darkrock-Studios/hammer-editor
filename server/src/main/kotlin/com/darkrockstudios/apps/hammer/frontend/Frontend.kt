@@ -389,6 +389,16 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	// Add community enabled flag for header nav
 	if (serverConfig.communityEnabled) {
 		model["communityEnabled"] = true
+
+		// The nav badge stays off an empty server rather than advertising a zero.
+		val stats = get<CommunityStatsProvider>().get()
+		if (stats.authors > 0) {
+			model["communityAuthorCount"] = stats.authors
+			model["communityStoryCount"] = stats.stories
+			msg(model, "community_badge_authors", stats.authors)
+			msg(model, "community_badge_stories", stats.stories)
+			msg(model, "community_badge_label", stats.authors)
+		}
 	}
 
 	// Add development mode flag for header banner

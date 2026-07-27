@@ -304,6 +304,176 @@ a:focus-visible {
 	/* Hidden on desktop, shown on mobile menu */
 }
 
+/* Community badge: the author count rides on the nav link, and the detail is a
+   disclosure rather than a card taking up room on the page. */
+.header-nav__item {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 0.35rem;
+}
+
+.community-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 1.45rem;
+	height: 1.45rem;
+	padding: 0 0.4rem;
+	border: 0;
+	border-radius: 999px;
+	background: var(--accent);
+	color: white;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.78rem;
+	line-height: 1;
+	font-variant-numeric: tabular-nums;
+	cursor: pointer;
+	transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.community-badge:hover {
+	background: var(--accent-light);
+	transform: translateY(-1px);
+}
+
+.community-badge:focus-visible {
+	outline: 2px solid var(--accent-dark);
+	outline-offset: 2px;
+}
+
+.community-badge__pop {
+	position: absolute;
+	top: calc(100% + 0.6rem);
+	right: 0;
+	z-index: 120;
+	width: max-content;
+	max-width: min(20rem, 78vw);
+	padding: 1rem;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-top: 3px solid var(--accent);
+	border-radius: 0.4rem;
+	box-shadow: var(--shadow-lg);
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(-0.25rem);
+	transition: opacity var(--transition-fast),
+	transform var(--transition-fast),
+	visibility var(--transition-fast);
+}
+
+/* Points back at the badge, and picks up the panel's accent top edge. The offset
+   centres it under the badge: the panel right-aligns to the item, whose right edge
+   is the badge's, so it is half the badge minus half the notch. */
+.community-badge__pop::before {
+	content: '';
+	position: absolute;
+	top: -0.45rem;
+	right: 0.28rem;
+	width: 0.9rem;
+	height: 0.45rem;
+	background: var(--accent);
+	clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+/* Pointer devices reveal it on hover; touch relies on the badge's own tap. */
+@media (hover: hover) {
+	.header-nav__item:hover .community-badge__pop,
+	.header-nav__item:focus-within .community-badge__pop {
+		opacity: 1;
+		visibility: visible;
+		transform: none;
+	}
+}
+
+.community-badge[aria-expanded="true"] + .community-badge__pop {
+	opacity: 1;
+	visibility: visible;
+	transform: none;
+}
+
+/* Neutral rather than accent: the panel already carries the accent on its top
+   edge, its icons and its link, and this is a container title, not a section label. */
+.community-badge__title {
+	margin: 0 0 0.85rem;
+	padding-bottom: 0.65rem;
+	border-bottom: 1px solid var(--border);
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.78rem;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--text-secondary);
+	text-align: center;
+}
+
+.community-stats {
+	display: flex;
+	align-items: stretch;
+}
+
+.community-stat {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.15rem;
+	padding: 0 0.9rem;
+	text-align: center;
+}
+
+.community-stat + .community-stat {
+	border-left: 1px solid var(--border);
+}
+
+.community-stat__icon {
+	color: var(--accent);
+	font-size: 0.95rem;
+	margin-bottom: 0.2rem;
+}
+
+.community-stat__value {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.6rem;
+	line-height: 1;
+	color: var(--text-primary);
+	font-variant-numeric: tabular-nums;
+}
+
+.community-stat__label {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.75rem;
+	letter-spacing: 0.03em;
+	color: var(--text-secondary);
+}
+
+.community-badge__link {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.45rem;
+	margin-top: 0.85rem;
+	padding-top: 0.7rem;
+	border-top: 1px solid var(--border);
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8rem;
+	color: var(--accent-dark);
+	text-decoration: none;
+}
+
+.community-badge__link i {
+	font-size: 0.7rem;
+	transition: transform var(--transition-fast);
+}
+
+.community-badge__link:hover {
+	color: var(--accent);
+}
+
+.community-badge__link:hover i {
+	transform: translateX(3px);
+}
+
 .btn {
 	padding: 0.625rem 1.5rem;
 	border: 2px solid var(--primary);
@@ -663,6 +833,22 @@ a:focus-visible {
 
 	.header-nav__link--primary {
 		justify-content: flex-start;
+	}
+
+	/* In the drawer the nav is a column, so the badge sits at the end of its row. */
+	.header-nav__item .header-nav__link {
+		flex: 1;
+	}
+
+	.community-badge {
+		margin-right: 0.5rem;
+	}
+
+	.community-badge__pop {
+		max-width: none;
+		width: auto;
+		left: 0;
+		right: 0;
 	}
 
 	/* Overlay when menu is open */
