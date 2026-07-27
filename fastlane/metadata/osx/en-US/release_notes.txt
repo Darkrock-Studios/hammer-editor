@@ -1,4 +1,6 @@
-- Fix Mac app store metadata
+[Improve]
+- Translations updated for German, Spanish, French, Italian,
+Portuguese (Brazil), and Ukrainian
 
 Full changelog:
-https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.7.1+mac-app-store
+https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.7.2
