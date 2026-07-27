@@ -64,9 +64,17 @@
 				<button type="submit">Change</button>
 			</noscript>
 		</form>
-		{{#version}}
-			<div class="footer-version">v{{version}}</div>
-		{{/version}}
+		<div class="footer-colophon">
+			<a class="footer-studio" href="https://darkrockstudios.com" target="_blank" rel="noopener noreferrer">
+				<img class="footer-studio__glider" src="/assets/images/glider.svg?v={{version}}"
+					 width="24" height="24" alt="" loading="lazy" decoding="async">
+				<span>{{msg.footer_studio}}</span>
+			</a>
+			{{#version}}
+				<span class="footer-colophon__sep" aria-hidden="true">&middot;</span>
+				<span class="footer-version">v{{version}}</span>
+			{{/version}}
+		</div>
 	</div>
 </footer>
 

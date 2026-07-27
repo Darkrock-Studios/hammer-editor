@@ -245,7 +245,9 @@ a:focus-visible {
 	z-index: 101;
 }
 
-.nav-toggle__icon--close {
+/* Scoped to the button so it outranks Font Awesome's own `.fa-solid { display }`,
+   which loads after this file and would otherwise un-hide the close icon. */
+.nav-toggle .nav-toggle__icon--close {
 	display: none;
 }
 
@@ -310,13 +312,22 @@ a:focus-visible {
 	position: relative;
 	display: flex;
 	align-items: center;
-	gap: 0.35rem;
+	gap: 0;
 }
 
+/* Hovering the badge lights the link too, so the pair reads as one control. */
+.header-nav__item:hover .header-nav__link {
+	color: var(--accent);
+	background: rgba(217, 119, 6, 0.08);
+}
+
+/* Pulled back into the link's own padding. Without this the badge sits 1.2rem from
+   its own label and 1.4rem from the next link, so it appears to belong to neither. */
 .community-badge {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
+	margin-left: -0.55rem;
 	min-width: 1.45rem;
 	height: 1.45rem;
 	padding: 0 0.4rem;
@@ -609,6 +620,44 @@ a:focus-visible {
 .footer-social a:focus-visible::after {
 	opacity: 1;
 	transform: translateX(-50%) translateY(0);
+}
+
+/* Studio credit and version share a line: same size, same colour, both are
+   "who and what this is" rather than navigation. */
+.footer-colophon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-wrap: wrap;
+	gap: 0.55rem;
+}
+
+.footer-colophon__sep {
+	color: var(--neutral-600);
+	line-height: 1;
+}
+
+.footer-studio {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.55rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	color: var(--neutral-400);
+	text-decoration: none;
+	transition: color var(--transition-fast);
+}
+
+.footer-studio:hover {
+	color: var(--accent);
+}
+
+/* The glider is a 3x3 board with cells drawn in it, so it needs more room than a
+   glyph would: below about 22px the grid lines and cells blur together. */
+.footer-studio__glider {
+	width: 24px;
+	height: 24px;
+	flex: none;
 }
 
 .footer-version {

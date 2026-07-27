@@ -19,20 +19,23 @@
 
 </section>
 
-<!-- Server Message: instance chrome, kept high on the page for every visitor -->
-{{#serverMessage}}
+<!-- Instance chrome, kept high on the page. The whitelist notice is a sibling of the
+     server message, not a child: a whitelisted server often sets no message at all. -->
+{{#hasInstanceNotice}}
 	<div class="instance-band">
-		<div class="instance-band__inner">
-			<span class="instance-band__label">{{msg.home_servermessage}}</span>
-			<div class="instance-band__text">{{serverMessage}}</div>
-		</div>
+		{{#serverMessage}}
+			<div class="instance-band__inner">
+				<span class="instance-band__label">{{msg.home_servermessage}}</span>
+				<div class="instance-band__text">{{serverMessage}}</div>
+			</div>
+		{{/serverMessage}}
 		{{#whitelistEnabled}}
 			<div class="instance-band__inner instance-band__inner--whitelist">
 				<p>{{msg.home_servermessage_whitelist}}</p>
 			</div>
 		{{/whitelistEnabled}}
 	</div>
-{{/serverMessage}}
+{{/hasInstanceNotice}}
 
 <main class="page-main">
 
@@ -46,15 +49,14 @@
 				<div class="feature-rows">
 					<div class="feature-row">
 						<div class="feature-row__copy">
-							<p class="eyebrow">{{msg.home_feature_editor_eyebrow}}</p>
 							<h3>{{msg.home_feature_editor_title}}</h3>
 							<p>{{msg.home_feature_editor_body1}}</p>
 							<p>{{msg.home_feature_editor_body2}}</p>
 						</div>
 						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/editor-760.webp"
-								 srcset="/assets/images/screenshots/editor-760.webp 760w,
-										 /assets/images/screenshots/editor-1520.webp 1520w"
+							<img class="shot" src="/assets/images/screenshots/editor-760.webp?v={{version}}"
+								 srcset="/assets/images/screenshots/editor-760.webp?v={{version}} 760w,
+										 /assets/images/screenshots/editor-1520.webp?v={{version}} 1520w"
 								 sizes="(max-width: 52rem) 92vw, 44vw"
 								 width="760" height="475" loading="lazy" decoding="async"
 								 alt="{{msg.home_feature_editor_alt}}">
@@ -63,16 +65,15 @@
 
 					<div class="feature-row feature-row--flip">
 						<div class="feature-row__copy">
-							<p class="eyebrow">{{msg.home_feature_encyclopedia_eyebrow}}</p>
 							<h3>{{msg.home_feature_encyclopedia_title}}</h3>
 							<p>{{msg.home_feature_encyclopedia_body1}}</p>
 							<p>{{msg.home_feature_encyclopedia_body2}}</p>
 							<p>{{msg.home_feature_encyclopedia_body3}}</p>
 						</div>
 						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/encyclopedia-760.webp"
-								 srcset="/assets/images/screenshots/encyclopedia-760.webp 760w,
-										 /assets/images/screenshots/encyclopedia-1520.webp 1520w"
+							<img class="shot" src="/assets/images/screenshots/encyclopedia-760.webp?v={{version}}"
+								 srcset="/assets/images/screenshots/encyclopedia-760.webp?v={{version}} 760w,
+										 /assets/images/screenshots/encyclopedia-1520.webp?v={{version}} 1520w"
 								 sizes="(max-width: 52rem) 92vw, 44vw"
 								 width="760" height="475" loading="lazy" decoding="async"
 								 alt="{{msg.home_feature_encyclopedia_alt}}">
@@ -81,14 +82,13 @@
 
 					<div class="feature-row">
 						<div class="feature-row__copy">
-							<p class="eyebrow">{{msg.home_feature_timeline_eyebrow}}</p>
 							<h3>{{msg.home_feature_timeline_title}}</h3>
 							<p>{{msg.home_feature_timeline_body1}}</p>
 						</div>
 						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/timeline-760.webp"
-								 srcset="/assets/images/screenshots/timeline-760.webp 760w,
-										 /assets/images/screenshots/timeline-1520.webp 1520w"
+							<img class="shot" src="/assets/images/screenshots/timeline-760.webp?v={{version}}"
+								 srcset="/assets/images/screenshots/timeline-760.webp?v={{version}} 760w,
+										 /assets/images/screenshots/timeline-1520.webp?v={{version}} 1520w"
 								 sizes="(max-width: 52rem) 92vw, 44vw"
 								 width="760" height="475" loading="lazy" decoding="async"
 								 alt="{{msg.home_feature_timeline_alt}}">
@@ -97,14 +97,13 @@
 
 					<div class="feature-row feature-row--flip">
 						<div class="feature-row__copy">
-							<p class="eyebrow">{{msg.home_feature_notes_eyebrow}}</p>
 							<h3>{{msg.home_feature_notes_title}}</h3>
 							<p>{{msg.home_feature_notes_body1}}</p>
 						</div>
 						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/notes-760.webp"
-								 srcset="/assets/images/screenshots/notes-760.webp 760w,
-										 /assets/images/screenshots/notes-1520.webp 1520w"
+							<img class="shot" src="/assets/images/screenshots/notes-760.webp?v={{version}}"
+								 srcset="/assets/images/screenshots/notes-760.webp?v={{version}} 760w,
+										 /assets/images/screenshots/notes-1520.webp?v={{version}} 1520w"
 								 sizes="(max-width: 52rem) 92vw, 44vw"
 								 width="760" height="475" loading="lazy" decoding="async"
 								 alt="{{msg.home_feature_notes_alt}}">
@@ -113,7 +112,6 @@
 
 					<div class="feature-row">
 						<div class="feature-row__copy">
-							<p class="eyebrow">{{msg.home_feature_activity_eyebrow}}</p>
 							<h3>{{msg.home_feature_activity_title}}</h3>
 							<p>{{msg.home_feature_activity_body1}}</p>
 							<p>{{msg.home_feature_activity_body2}}</p>
@@ -121,9 +119,9 @@
 							<p>{{msg.home_feature_activity_body4}}</p>
 						</div>
 						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/activity-760.webp"
-								 srcset="/assets/images/screenshots/activity-760.webp 760w,
-										 /assets/images/screenshots/activity-1520.webp 1520w"
+							<img class="shot" src="/assets/images/screenshots/activity-760.webp?v={{version}}"
+								 srcset="/assets/images/screenshots/activity-760.webp?v={{version}} 760w,
+										 /assets/images/screenshots/activity-1520.webp?v={{version}} 1520w"
 								 sizes="(max-width: 52rem) 92vw, 44vw"
 								 width="760" height="481" loading="lazy" decoding="async"
 								 alt="{{msg.home_feature_activity_alt}}">
@@ -143,15 +141,14 @@
 				<div class="feature-rows">
 					<div class="feature-row">
 						<div class="feature-row__copy">
-							<p class="eyebrow">{{msg.home_feature_review_eyebrow}}</p>
 							<h3>{{msg.home_feature_review_title}}</h3>
 							<p>{{msg.home_feature_review_body1}}</p>
 							<p>{{msg.home_feature_review_body2}}</p>
 						</div>
 						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/review-760.webp"
-								 srcset="/assets/images/screenshots/review-760.webp 760w,
-										 /assets/images/screenshots/review-1520.webp 1520w"
+							<img class="shot" src="/assets/images/screenshots/review-760.webp?v={{version}}"
+								 srcset="/assets/images/screenshots/review-760.webp?v={{version}} 760w,
+										 /assets/images/screenshots/review-1520.webp?v={{version}} 1520w"
 								 sizes="(max-width: 52rem) 92vw, 44vw"
 								 width="760" height="494" loading="lazy" decoding="async"
 								 alt="{{msg.home_feature_review_alt}}">
@@ -160,14 +157,13 @@
 
 					<div class="feature-row feature-row--flip">
 						<div class="feature-row__copy">
-							<p class="eyebrow">{{msg.home_feature_private_eyebrow}}</p>
 							<h3>{{msg.home_feature_private_title}}</h3>
 							<p>{{msg.home_feature_private_body1}}</p>
 						</div>
 						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/sharing-private-760.webp"
-								 srcset="/assets/images/screenshots/sharing-private-760.webp 760w,
-										 /assets/images/screenshots/sharing-private-1520.webp 1520w"
+							<img class="shot" src="/assets/images/screenshots/sharing-private-760.webp?v={{version}}"
+								 srcset="/assets/images/screenshots/sharing-private-760.webp?v={{version}} 760w,
+										 /assets/images/screenshots/sharing-private-1520.webp?v={{version}} 1520w"
 								 sizes="(max-width: 52rem) 92vw, 44vw"
 								 width="760" height="539" loading="lazy" decoding="async"
 								 alt="{{msg.home_feature_private_alt}}">
@@ -176,17 +172,15 @@
 
 					<div class="feature-row">
 						<div class="feature-row__copy">
-							<p class="eyebrow">{{msg.home_feature_publish_eyebrow}}</p>
 							<h3>{{msg.home_feature_publish_title}}</h3>
 							<p>{{msg.home_feature_publish_body1}}</p>
 							<p>{{msg.home_feature_publish_body2}}</p>
 							<p>{{msg.home_feature_publish_body3}}</p>
-							<blockquote class="pullquote">{{msg.story_publish_warning_content}}</blockquote>
 						</div>
 						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/sharing-public-760.webp"
-								 srcset="/assets/images/screenshots/sharing-public-760.webp 760w,
-										 /assets/images/screenshots/sharing-public-1520.webp 1520w"
+							<img class="shot" src="/assets/images/screenshots/sharing-public-760.webp?v={{version}}"
+								 srcset="/assets/images/screenshots/sharing-public-760.webp?v={{version}} 760w,
+										 /assets/images/screenshots/sharing-public-1520.webp?v={{version}} 1520w"
 								 sizes="(max-width: 52rem) 92vw, 44vw"
 								 width="760" height="554" loading="lazy" decoding="async"
 								 alt="{{msg.home_feature_publish_alt}}">
@@ -195,7 +189,6 @@
 
 					<div class="feature-row feature-row--flip">
 						<div class="feature-row__copy">
-							<p class="eyebrow">{{msg.home_feature_export_eyebrow}}</p>
 							<h3>{{msg.home_feature_export_title}}</h3>
 							<dl class="format-list">
 								<dt>{{msg.home_feature_export_markdown_name}}</dt>
@@ -212,9 +205,9 @@
 							<p>{{msg.home_feature_export_body1}}</p>
 						</div>
 						<div class="feature-row__media">
-							<img class="shot" src="/assets/images/screenshots/export-760.webp"
-								 srcset="/assets/images/screenshots/export-760.webp 760w,
-										 /assets/images/screenshots/export-1520.webp 1520w"
+							<img class="shot" src="/assets/images/screenshots/export-760.webp?v={{version}}"
+								 srcset="/assets/images/screenshots/export-760.webp?v={{version}} 760w,
+										 /assets/images/screenshots/export-1520.webp?v={{version}} 1520w"
 								 sizes="(max-width: 52rem) 92vw, 44vw"
 								 width="760" height="474" loading="lazy" decoding="async"
 								 alt="{{msg.home_feature_export_alt}}">
@@ -256,17 +249,15 @@
 				<p class="eyebrow">{{msg.home_origin_eyebrow}}</p>
 				<h2>{{msg.home_origin_title}}</h2>
 				<div class="origin">
-					{{#hasOriginPhoto}}
-						<figure class="origin__media">
-							<img class="shot" src="/assets/images/origin-van-760.webp"
-								 srcset="/assets/images/origin-van-760.webp 760w,
-										 /assets/images/origin-van-1520.webp 1520w"
+					<figure class="origin__media">
+							<img class="shot" src="/assets/images/origin-van-760.webp?v={{version}}"
+								 srcset="/assets/images/origin-van-760.webp?v={{version}} 760w,
+										 /assets/images/origin-van-1520.webp?v={{version}} 1520w"
 								 sizes="(max-width: 52rem) 92vw, 44vw"
 								 width="760" height="950" loading="lazy" decoding="async"
 								 alt="{{msg.home_origin_alt}}">
 							<figcaption class="origin__caption">{{msg.home_origin_caption}}</figcaption>
 						</figure>
-					{{/hasOriginPhoto}}
 					<div class="origin__copy">
 						<p>{{msg.home_origin_body1}}</p>
 						<p>{{msg.home_origin_body2}}</p>
@@ -283,7 +274,7 @@
 		<section class="showcase showcase--sunk">
 			<div class="showcase__inner price">
 				<p class="eyebrow">{{msg.home_price_eyebrow}}</p>
-				<div class="price__amount">{{msg.home_price_amount}}</div>
+				<h2 class="price__amount">{{msg.home_price_amount}}</h2>
 				<p class="price__body">{{msg.home_price_body}}</p>
 			</div>
 		</section>
@@ -331,7 +322,7 @@
 		<div class="divider"></div>
 
 		<!-- Download Section -->
-		<section class="paper-section download-section">
+		<section class="paper-section download-section" id="download">
 			<div class="text-container">
 				<h2>{{msg.home_download_header}}</h2>
 				<p>{{msg.home_download_lede}}</p>
@@ -339,7 +330,7 @@
 
 			<div class="download-grid">
 				<!-- Desktop Platforms - Row 1: Windows & macOS -->
-				<div class="download-card" id="download">
+				<div class="download-card">
 					<span class="download-icon">🪟</span>
 					<h3>{{msg.home_download_windows}}</h3>
 					<div class="download-buttons download-selector">

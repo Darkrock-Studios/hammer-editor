@@ -1,14 +1,12 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ServerConfig
-import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.webSiteJsonLd
-import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -34,19 +32,10 @@ private val MASTHEAD_PRELOADS = listOf(
 	),
 )
 
-/**
- * The origin story's photograph is optional: the section renders as copy alone until the
- * asset is added, rather than showing a broken image. Resolved once, not per request.
- */
-private val ORIGIN_PHOTO_PRESENT: Boolean =
-	object {}.javaClass.getResource("/assets/images/origin-van-760.webp") != null
-
 fun Route.homePage(
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
 	serverConfig: ServerConfig,
-	accountsRepository: AccountsRepository,
-	projectAccessRepository: ProjectAccessRepository
 ) {
 	route("/") {
 		get {
@@ -64,19 +53,18 @@ fun Route.homePage(
 			model["page_script"] = "/assets/js/home.js"
 			model["title"] = "Hammer — ${call.msg("home_meta_tagline")}"
 			model["metaDescription"] = call.msg("home_meta_description")
-			model["hasOriginPhoto"] = ORIGIN_PHOTO_PRESENT
 			model["jsonLd"] = webSiteJsonLd(
 				name = "Hammer",
 				url = call.canonicalUrl("/"),
 				description = call.msg("home_meta_description"),
 			)
 
-			if (useWhiteList && contactEmail.isNotBlank() && !patreonActive) {
-				model["whitelistEnabled"] = useWhiteList
+			val showWhitelist = useWhiteList && contactEmail.isNotBlank() && !patreonActive
+			if (showWhitelist) {
+				model["whitelistEnabled"] = true
 				call.msg(model, "home_servermessage_whitelist", contactEmail)
 			}
-
-			populateCommunityCalloutModel(serverConfig, model, accountsRepository, projectAccessRepository)
+			model["hasInstanceNotice"] = serverMessage.isNotBlank() || showWhitelist
 
 			call.respond(MustacheContent("home.mustache", model))
 		}
