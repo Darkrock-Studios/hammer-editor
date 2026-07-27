@@ -89,6 +89,6 @@ class ProjectLifecycleTest {
 	@After
 	fun deleteCreatedProject() {
 		val repository = getKoin().get<ProjectsRepository>()
-		repository.deleteProject(repository.getProjectDefinition(projectName))
+		EditorTestHarness.deleteProjectWhenSettled(repository.getProjectDefinition(projectName))
 	}
 }

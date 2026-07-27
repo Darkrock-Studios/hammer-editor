@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.ClientResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import org.koin.java.KoinJavaComponent.getKoin
+import java.io.IOException
 
 /**
  * Shared helpers for editor instrumented tests: seed a project through the real Koin graph,
@@ -43,8 +44,37 @@ object EditorTestHarness {
 		scenario.onActivity { it.finish() }
 		InstrumentationRegistry.getInstrumentation().waitForIdleSync()
 		scenario.close()
-		repository().deleteProject(projectDef)
+		deleteProjectWhenSettled(projectDef)
 	}
+
+	/**
+	 * Delete the project directory, tolerating writes that are still landing.
+	 *
+	 * finish() and waitForIdleSync() only drain the main thread, but the project-scope close
+	 * flushes scene buffers on IO coroutines after that. A straggler write can land between
+	 * deleteRecursively emptying the directory and removing it, so the final rmdir fails with
+	 * "failed to delete <project dir>". Each retry deletes whatever reappeared, so this
+	 * converges as soon as the flushes stop.
+	 */
+	fun deleteProjectWhenSettled(projectDef: ProjectDef, timeoutMillis: Long = 15_000L) {
+		val deadline = SystemClock.uptimeMillis() + timeoutMillis
+		var lastFailure: IOException? = null
+		while (SystemClock.uptimeMillis() < deadline) {
+			try {
+				repository().deleteProject(projectDef)
+				return
+			} catch (e: IOException) {
+				lastFailure = e
+				SystemClock.sleep(DELETE_RETRY_INTERVAL_MS)
+			}
+		}
+		throw AssertionError(
+			"Project directory was still being written to ${timeoutMillis}ms after teardown began",
+			lastFailure,
+		)
+	}
+
+	private const val DELETE_RETRY_INTERVAL_MS = 100L
 }
 
 /** Matches nodes whose testTag starts with [prefix] - for list items keyed by an unknown id. */
