@@ -44,7 +44,7 @@
 	<string name="project_home_stat_best_day">Найкращий день</string>
 	<string name="project_home_stat_best_day_value">%1$s · %2$s</string>
 	<string name="project_home_stat_characters_appearances">Персонажі за появами</string>
-	<string name="project_home_stat_connections">%1$d зв\'язків</string>
+	<string name="project_home_stat_connections">%1$d зв'язків</string>
 	<string name="project_home_stat_words_per_device">Слова за пристроєм</string>
 	<string name="project_home_stat_activity">Активність · %1$d тижнів</string>
 	<string name="project_home_stat_activity_tooltip">%1$s · %2$s слів</string>
@@ -57,9 +57,9 @@
 	<string name="project_home_stat_themes_title">Теми</string>
 	<string name="project_home_stat_themes_summary">%1$d тегів · %2$d використань</string>
 	<string name="project_home_stat_themes_breadth">%1$d/4</string>
-	<string name="project_home_stat_themes_most_connective">Найбільш зв\'язуюча</string>
-	<string name="project_home_stat_themes_all_four">З\'являється в усіх чотирьох типах · %1$d використань</string>
-	<string name="project_home_stat_themes_breadth_of_four">З\'являється в %1$d з 4 типів · %2$d використань</string>
+	<string name="project_home_stat_themes_most_connective">Найбільш зв'язуюча</string>
+	<string name="project_home_stat_themes_all_four">З'являється в усіх чотирьох типах · %1$d використань</string>
+	<string name="project_home_stat_themes_breadth_of_four">З'являється в %1$d з 4 типів · %2$d використань</string>
 	<string name="project_home_stat_themes_all_four_short">Усі 4 типи</string>
 	<string name="project_home_stat_themes_breadth_of_four_short">%1$d з 4 типів</string>
 	<string name="project_home_stat_themes_distribution">Розподіл</string>

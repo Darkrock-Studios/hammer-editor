@@ -10,11 +10,11 @@
 	<string name="scene_group_item_collapsed">Gruppe eingeklappt</string>
 	<string name="scene_group_item_expanded">Gruppe ausgeklappt</string>
 	<string name="scene_delete_dialog_title">Szene löschen</string>
-	<string name="scene_delete_dialog_message">Möchten Sie diese Szene wirklich löschen: \"%1$s\"</string>
+	<string name="scene_delete_dialog_message">Möchten Sie diese Szene wirklich löschen: "%1$s"</string>
 	<string name="scene_delete_dialog_delete_button">Löschen</string>
 	<string name="scene_delete_dialog_dismiss_button">Abbrechen</string>
 	<string name="group_cannot_delete_dialog_title">Gruppe kann nicht gelöscht werden</string>
-	<string name="group_cannot_delete_dialog_message">Sie können eine Gruppe nicht löschen, solange sie noch Elemente enthält: \"%1$s\"</string>
+	<string name="group_cannot_delete_dialog_message">Sie können eine Gruppe nicht löschen, solange sie noch Elemente enthält: "%1$s"</string>
 	<string name="create_sceneitem_dialog_create_button">Erstellen</string>
 	<string name="create_sceneitem_dialog_dismiss_button">Abbrechen</string>
 	<string name="scene_list_outline_overview_title">Gliederung</string>
@@ -36,7 +36,7 @@
 	<string name="scene_list_item_action_rename">Umbenennen</string>
 	<string name="scene_list_item_action_archive">Archivieren</string>
 	<string name="scene_archive_dialog_title">Szene archivieren</string>
-	<string name="scene_archive_dialog_message">Möchten Sie diese Szene wirklich archivieren: \"%1$s\"</string>
+	<string name="scene_archive_dialog_message">Möchten Sie diese Szene wirklich archivieren: "%1$s"</string>
 	<string name="scene_archive_dialog_archive_button">Archivieren</string>
 	<string name="scene_archive_dialog_dismiss_button">Abbrechen</string>
 	<string name="scene_rename_dialog_title">Szene umbenennen</string>

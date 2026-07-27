@@ -63,9 +63,9 @@
 	<string name="settings_platform_settings_title">Plattform-Einstellungen</string>
 	<string name="settings_platform_settings_empty">Keine plattformspezifischen Einstellungen.</string>
 	<string name="settings_keep_screen_on">Bildschirm nicht ausschalten</string>
-	<string name="settings_enable_dnd_focus_mode_title">\"Nicht stören\" im Fokus-Modus aktivieren</string>
-	<string name="settings_dnd_permission_button">\"Bitte nicht stören\"-Berechtigung gewähren</string>
-	<string name="settings_dnd_permission_explanation">Hammer benötigt die Berechtigung, um \"Nicht stören-Modus\" zu aktivieren, wenn du dich im Fokus-Modus befindest.</string>
+	<string name="settings_enable_dnd_focus_mode_title">"Nicht stören" im Fokus-Modus aktivieren</string>
+	<string name="settings_dnd_permission_button">"Bitte nicht stören"-Berechtigung gewähren</string>
+	<string name="settings_dnd_permission_explanation">Hammer benötigt die Berechtigung, um "Nicht stören-Modus" zu aktivieren, wenn du dich im Fokus-Modus befindest.</string>
 	<string name="settings_storage_public_label">Projekte im öffentlichen Speicher ablegen</string>
 	<string name="settings_storage_public_hint">Bewahren Sie Ihre Projekte im gemeinsamen Dokumente-Ordner auf, damit andere Apps und Ihr Dateimanager darauf zugreifen können.</string>
 	<string name="settings_storage_location_label">Speicherort der Projekte</string>
@@ -108,7 +108,7 @@
 	<string name="account_sync_toast_canceled">Synchronisation abgebrochen</string>
 	<!-- Server Setup Validation Errors -->
 	<string name="server_setup_error_unknown">Ein unerwarteter Fehler ist aufgetreten. Bitte versuchen Sie es erneut.</string>
-	<string name="server_setup_error_invalid_url">Ungültige Serveradresse. Geben Sie eine URL wie \"hammer.ink\" oder eine IP-Adresse ein.</string>
+	<string name="server_setup_error_invalid_url">Ungültige Serveradresse. Geben Sie eine URL wie "hammer.ink" oder eine IP-Adresse ein.</string>
 	<string name="server_setup_error_invalid_email">Bitte geben Sie eine gültige E-Mail-Adresse ein.</string>
 	<string name="server_setup_error_password_too_short">Das Passwort muss mindestens 8 Zeichen lang sein.</string>
 	<string name="server_setup_error_password_too_long">Das Passwort darf höchstens 64 Zeichen lang sein.</string>

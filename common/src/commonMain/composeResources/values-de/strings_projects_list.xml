@@ -55,7 +55,7 @@
 	<string name="account_sync_dialog_status_canceled">Abgebrochen</string>
 	<string name="delete_project_title">Gelöschte Projekte</string>
 	<string name="delete_project_warning">Diese Aktion kann nicht rückgängig gemacht werden. Alle Projektdaten werden permanent gelöscht.</string>
-	<string name="delete_project_confirm_hint">Zum Bestätigen \"%1$s\" eingeben</string>
+	<string name="delete_project_confirm_hint">Zum Bestätigen "%1$s" eingeben</string>
 	<string name="delete_project_confirm">Löschen</string>
 	<string name="delete_project_cancel">Abbruch</string>
 	<string name="rename_project_title">Ändern der Projektbezeichnung</string>

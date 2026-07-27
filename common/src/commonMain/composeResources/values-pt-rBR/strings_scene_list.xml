@@ -10,11 +10,11 @@
 	<string name="scene_group_item_collapsed">Grupo Recolhido</string>
 	<string name="scene_group_item_expanded">Grupo Expandido</string>
 	<string name="scene_delete_dialog_title">Excluir Cena</string>
-	<string name="scene_delete_dialog_message">Tem certeza que deseja excluir esta cena: \"%1$s\"</string>
+	<string name="scene_delete_dialog_message">Tem certeza que deseja excluir esta cena: "%1$s"</string>
 	<string name="scene_delete_dialog_delete_button">Excluir</string>
 	<string name="scene_delete_dialog_dismiss_button">Descartar</string>
 	<string name="group_cannot_delete_dialog_title">Não é Possível Excluir o Grupo</string>
-	<string name="group_cannot_delete_dialog_message">Você não pode excluir um grupo enquanto ele ainda contém elementos: \"%1$s\"</string>
+	<string name="group_cannot_delete_dialog_message">Você não pode excluir um grupo enquanto ele ainda contém elementos: "%1$s"</string>
 	<string name="create_sceneitem_dialog_create_button">Criar</string>
 	<string name="create_sceneitem_dialog_dismiss_button">Cancelar</string>
 	<string name="scene_list_outline_overview_title">Esboço da história</string>
@@ -36,7 +36,7 @@
 	<string name="scene_list_item_action_rename">Renomear</string>
 	<string name="scene_list_item_action_archive">Arquivar</string>
 	<string name="scene_archive_dialog_title">Arquivar Cena</string>
-	<string name="scene_archive_dialog_message">Tem certeza de que deseja arquivar esta cena: \"%1$s\"</string>
+	<string name="scene_archive_dialog_message">Tem certeza de que deseja arquivar esta cena: "%1$s"</string>
 	<string name="scene_archive_dialog_archive_button">Arquivar</string>
 	<string name="scene_archive_dialog_dismiss_button">Cancelar</string>
 	<string name="scene_rename_dialog_title">Renomear Cena</string>

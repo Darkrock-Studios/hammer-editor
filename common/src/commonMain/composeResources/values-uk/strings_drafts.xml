@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="draft_compare_cancel_button">Скасувати</string>
-	<string name="draft_compare_current_header">Об\'єднати з поточним</string>
+	<string name="draft_compare_current_header">Об'єднати з поточним</string>
 	<string name="draft_compare_current_subheader">Скопіюйте сюди частини чернетки</string>
-	<string name="draft_compare_current_accept_button">Узяти об\'єднане</string>
+	<string name="draft_compare_current_accept_button">Узяти об'єднане</string>
 	<string name="draft_compare_current_body_placeholder">Почніть писати вашу сцену тут</string>
 	<string name="draft_compare_draft_header">Чернетка: %1$s</string>
 	<string name="draft_compare_draft_subheader">Скопіюйте потрібні частини в поточне або прийміть усе це.</string>

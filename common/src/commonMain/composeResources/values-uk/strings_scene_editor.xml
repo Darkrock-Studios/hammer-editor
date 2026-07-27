@@ -45,7 +45,7 @@
 	<string name="scene_editor_metadata_word_count_label">Слів:</string>
 	<string name="scene_editor_metadata_advanced_header">Додатково</string>
 	<string name="scene_editor_metadata_entity_id">ID сутності:</string>
-	<string name="scene_editor_metadata_entity_filename">Ім\'я файлу:</string>
+	<string name="scene_editor_metadata_entity_filename">Ім'я файлу:</string>
 	<string name="scene_editor_metadata_entity_path">Шлях:</string>
 	<string name="scene_editor_metadata_created_label">Створено</string>
 	<string name="scene_editor_metadata_edited_label">Відредаговано</string>
@@ -56,7 +56,7 @@
 	<string name="scene_editor_metadata_notes_placeholder">Нотатки для себе.</string>
 	<string name="scene_editor_metadata_draft_name_label">Назва чернетки</string>
 	<string name="scene_editor_metadata_references_header">Посилання</string>
-	<string name="scene_editor_metadata_references_confirmed_label">З\'являється у цій сцені</string>
+	<string name="scene_editor_metadata_references_confirmed_label">З'являється у цій сцені</string>
 	<string name="scene_editor_metadata_references_dismissed_label">Відхилено</string>
 	<string name="scene_editor_metadata_references_empty">Ще немає посилань</string>
 	<string name="scene_editor_metadata_references_dismiss">Відхилити</string>

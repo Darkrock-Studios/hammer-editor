@@ -20,7 +20,7 @@
 	<string name="sync_conflict">Конфлікт</string>
 	<string name="sync_conflict_local_entry">Локальний запис:</string>
 	<string name="sync_conflict_local_use_button">Використати локальну</string>
-	<string name="sync_conflict_merge_explained">Ви можете взяти локальну або віддалену копію як є, або вручну об\'єднати їх, скопіювавши частини віддаленої у свою локальну копію, а потім узявши її.</string>
+	<string name="sync_conflict_merge_explained">Ви можете взяти локальну або віддалену копію як є, або вручну об'єднати їх, скопіювавши частини віддаленої у свою локальну копію, а потім узявши її.</string>
 	<string name="sync_conflict_remote_entry">Віддалений запис:</string>
 	<string name="sync_conflict_remote_use_button">Використати віддалену</string>
 	<string name="sync_conflict_encyclopedia_title">Конфлікт запису енциклопедії</string>
@@ -56,7 +56,7 @@
 	<string name="project_settings_folio_section_count">§§ %1$d</string>
 	<string name="sync_conflict_project_data_title">Конфлікт налаштувань проєкту</string>
 	<string name="sync_conflict_project_data_explanation">Виберіть версію для кожного поля. «Локальна» — це те, що у вас на цьому пристрої; «Сервер» — те, що синхронізовано з іншого пристрою.</string>
-	<string name="sync_conflict_project_data_field_author">Ім\'я автора</string>
+	<string name="sync_conflict_project_data_field_author">Ім'я автора</string>
 	<string name="sync_conflict_project_data_field_theme">Тема проєкту</string>
 	<string name="sync_conflict_project_data_field_word_goal">Ціль за кількістю слів</string>
 	<string name="sync_conflict_project_data_field_tags">Теги</string>

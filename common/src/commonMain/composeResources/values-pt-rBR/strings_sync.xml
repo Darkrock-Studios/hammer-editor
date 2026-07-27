@@ -4,7 +4,7 @@
 	<string name="sync_conflict_scene_title">Conflito de cena</string>
 	<string name="sync_conflict_scene_draft_title">Conflito de rascunho da cena</string>
 	<string name="sync_conflict_note_title">Conflito de Notas</string>
-	<string name="sync_conflict_timeline_title">Conflito de Evento da \"Timeline\"</string>
+	<string name="sync_conflict_timeline_title">Conflito de Evento da "Timeline"</string>
 	<string name="sync_conflict_draft_title">Conflito de rascunho</string>
 	<string name="sync_conflict_timeline_event_missing_date">Nenhuma  Data</string>
 	<string name="sync_conflict_tab_local">Local</string>
@@ -141,9 +141,9 @@
 	<string name="sync_log_entity_delete_success">ID %1$d excluído no servidor</string>
 	<string name="sync_log_entity_conflict">Encontrado um conflito para a nova Entidade, isso não deveria ser possível! ID: %1$d TYPE: %2$s</string>
 	<string name="sync_log_entity_failed">Sincronização falhou: %1$s</string>
-	<string name="sync_log_stale_hash_detected">O hash em cache no servidor está desatualizado para a entidade %1$d. Corrigindo através do \'upload\' forçado.</string>
-	<string name="sync_log_stale_hash_healed">Cache do servidor para a entidade %1$d corrigido com sucesso através do \'upload\' forçado</string>
-	<string name="sync_log_stale_hash_heal_failed">Falha ao corrigir a cache do servidor para a entidade%1$d , \'upload\' forçado falhou .</string>
+	<string name="sync_log_stale_hash_detected">O hash em cache no servidor está desatualizado para a entidade %1$d. Corrigindo através do 'upload' forçado.</string>
+	<string name="sync_log_stale_hash_healed">Cache do servidor para a entidade %1$d corrigido com sucesso através do 'upload' forçado</string>
+	<string name="sync_log_stale_hash_heal_failed">Falha ao corrigir a cache do servidor para a entidade%1$d , 'upload' forçado falhou .</string>
 	<string name="sync_log_entities_transferred">Entidades transferidas</string>
 	<string name="sync_log_finalized">Sincronização finalizada</string>
 	<string name="sync_log_data_saved">Dados da sincronização salvos</string>
@@ -194,9 +194,9 @@
 	<string name="server_setup_help_registration_header">Registro</string>
 	<string name="server_setup_help_registration_body">Por padrão, os servidores têm registro fechado, o que significa que você precisa ser adicionado à lista de permissões desse servidor para poder criar uma conta</string>
 	<string name="server_setup_help_setup_header">Configurar</string>
-	<string name="server_setup_help_setup_step1">Digite a URL do servidor, como \"hammer.ink\" para o servidor oficial</string>
-	<string name="server_setup_help_setup_step2">Digite seu e-mail e senha e, em seguida, clique em \"Criar\" para criar sua conta</string>
-	<string name="server_setup_help_setup_step3">No futuro, e em outros dispositivos, você simplesmente vai tocar em \"Entrar\"</string>
+	<string name="server_setup_help_setup_step1">Digite a URL do servidor, como "hammer.ink" para o servidor oficial</string>
+	<string name="server_setup_help_setup_step2">Digite seu e-mail e senha e, em seguida, clique em "Criar" para criar sua conta</string>
+	<string name="server_setup_help_setup_step3">No futuro, e em outros dispositivos, você simplesmente vai tocar em "Entrar"</string>
 	<string name="server_setup_help_note_header">Nota importante</string>
 	<string name="server_setup_help_note_body">Sincronização no Hammer é diferente das primeiras aplicações como o Google Docs. A sincronização não é em tempo real. Normalmente acontece quando você abre ou fecha o aplicativo. Certifique-se de que você está sincronizado com as versões mais recentes de seus projetos antes de sair desconectado. O Hammer faz sincronização automática, mas é sempre bom verificar se você vai ficar offline por um tempo</string>
 	<string name="server_setup_help_dismiss_button">Entendi</string>

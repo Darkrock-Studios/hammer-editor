@@ -55,7 +55,7 @@
 	<string name="account_sync_dialog_status_canceled">Cancelado</string>
 	<string name="delete_project_title">Excluir Projeto</string>
 	<string name="delete_project_warning">Esta ação não pode ser desfeita. Todos os dados do projeto serão excluídos permanentemente.</string>
-	<string name="delete_project_confirm_hint">Digite \"%1$s\" para confirmar</string>
+	<string name="delete_project_confirm_hint">Digite "%1$s" para confirmar</string>
 	<string name="delete_project_confirm">Excluir</string>
 	<string name="delete_project_cancel">Cancelar</string>
 	<string name="rename_project_title">Renomear Projeto</string>

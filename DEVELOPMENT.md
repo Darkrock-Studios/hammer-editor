@@ -309,6 +309,25 @@ to (re)build everything.
 See [ASSET-GENERATION.md](docs/ASSET-GENERATION.md) for the manifest schema,
 dependencies, asset types, and how to add or modify outputs.
 
+## Translations
+
+Translations live in Crowdin and land in the repo via `crowdin download`. **Run the
+escape sanitizer after every download:**
+
+```
+powershell scripts/Fix-CrowdinEscapes.ps1
+```
+
+Crowdin parses `common/src/commonMain/composeResources` as file type `android`, so its
+exporter injects `\'` and `\"` into every translation containing an apostrophe or a
+quote. Compose Resources unescapes `\n` and `\uXXXX` only, so those backslashes render
+on screen. The escaping is added at export, not stored in Crowdin, so it returns on
+every download; there is no setting to disable it (see
+`docs/crowdin-support-request.md` for the server-side fix Crowdin support can apply).
+
+The script only touches `composeResources/values-*/`. `android/src/main/res` keeps its
+escapes because AAPT requires them. Pass `-Check` to report and exit 1 without writing.
+
 ## Translation Screenshots
 
 We give Crowdin translators visual context by uploading screenshots of our screens

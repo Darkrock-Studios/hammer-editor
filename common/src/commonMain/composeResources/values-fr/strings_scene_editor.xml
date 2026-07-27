@@ -44,7 +44,7 @@
 	<string name="scene_editor_metadata_hide_button">Masquer les infos</string>
 	<string name="scene_editor_metadata_word_count_label">Mots :</string>
 	<string name="scene_editor_metadata_advanced_header">Avancé</string>
-	<string name="scene_editor_metadata_entity_id">ID de l\'entité :</string>
+	<string name="scene_editor_metadata_entity_id">ID de l'entité :</string>
 	<string name="scene_editor_metadata_entity_filename">Nom du fichier :</string>
 	<string name="scene_editor_metadata_entity_path">Chemin :</string>
 	<string name="scene_editor_metadata_created_label">Créé</string>
@@ -58,7 +58,7 @@
 	<string name="scene_editor_metadata_references_header">Références</string>
 	<string name="scene_editor_metadata_references_confirmed_label">Apparaît dans cette scène</string>
 	<string name="scene_editor_metadata_references_dismissed_label">Ignorées</string>
-	<string name="scene_editor_metadata_references_empty">Aucune référence pour l\'instant</string>
+	<string name="scene_editor_metadata_references_empty">Aucune référence pour l'instant</string>
 	<string name="scene_editor_metadata_references_dismiss">Ignorer</string>
 	<string name="scene_editor_metadata_references_restore">Restaurer</string>
 	<string name="scene_editor_metadata_references_add_dismissed_hint">(ignorée)</string>
@@ -74,7 +74,7 @@
 	<string name="scene_editor_metadata_references_add_dialog_empty">Aucune entrée correspondante.</string>
 	<string name="scene_editor_metadata_references_add_dialog_close">Fermer la boîte de dialogue</string>
 	<string name="scene_editor_metadata_tags_header">Tags</string>
-	<string name="scene_editor_metadata_tags_empty">Aucun tag pour l\'instant</string>
+	<string name="scene_editor_metadata_tags_empty">Aucun tag pour l'instant</string>
 	<string name="scene_editor_metadata_tags_add_button">+ Ajouter un tag</string>
 	<string name="scene_editor_metadata_tags_add_dialog_title">Ajouter des tags</string>
 	<string name="scene_editor_metadata_tags_add_dialog_placeholder">tag1 tag2 …</string>

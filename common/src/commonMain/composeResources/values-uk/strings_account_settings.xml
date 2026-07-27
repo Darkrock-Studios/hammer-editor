@@ -25,8 +25,8 @@
 	<string name="settings_example_project_success_message">Приклад проєкту створено.</string>
 	<string name="settings_data_version">Дані: v%1$s</string>
 	<string name="settings_server_header">Сервер</string>
-	<string name="settings_server_status_connected">ПІД\'ЄДНАНО</string>
-	<string name="settings_server_status_not_connected">НЕ ПІД\'ЄДНАНО</string>
+	<string name="settings_server_status_connected">ПІД'ЄДНАНО</string>
+	<string name="settings_server_status_not_connected">НЕ ПІД'ЄДНАНО</string>
 	<string name="settings_server_url_greeble">URL</string>
 	<string name="settings_server_help_link">ДОВІДКА ↗</string>
 	<string name="settings_server_description">Налаштуйте синхронізацію даних</string>
@@ -59,7 +59,7 @@
 	<string name="settings_server_setup_create_button">Створити</string>
 	<string name="settings_server_setup_cancel_button">Скасувати</string>
 	<string name="remove_local_dialog_title">Вилучити локальний вміст?</string>
-	<string name="remove_local_dialog_message">Чи вилучити ваш поточний локальний вміст перед синхронізацією? Якщо ні, ми спробуємо об\'єднати ваш локальний вміст із вмістом сервера. Якщо вміст не пов\'язаний, це може спричинити проблеми.</string>
+	<string name="remove_local_dialog_message">Чи вилучити ваш поточний локальний вміст перед синхронізацією? Якщо ні, ми спробуємо об'єднати ваш локальний вміст із вмістом сервера. Якщо вміст не пов'язаний, це може спричинити проблеми.</string>
 	<string name="settings_platform_settings_title">Налаштування платформи</string>
 	<string name="settings_platform_settings_empty">Немає налаштувань, специфічних для платформи.</string>
 	<string name="settings_keep_screen_on">Не вимикати екран</string>
@@ -81,7 +81,7 @@
 	<string name="settings_spellcheck_dictionary_android_info_message">В Android мову перевірки правопису вибирає ваш пристрій, а не застосунок. Щоб змінити її, оновіть мови системи та клавіатури в налаштуваннях Android.</string>
 	<string name="settings_server_enable_sync_backup">Увімкнути синхронізацію та резервне копіювання</string>
 	<string name="settings_server_enable_sync_backup_desc">Налаштуйте сервер, щоб синхронізувати проєкти між пристроями та створювати безпечні резервні копії.</string>
-	<string name="settings_server_connection_header">З\'єднання з сервером</string>
+	<string name="settings_server_connection_header">З'єднання з сервером</string>
 	<string name="settings_server_configured">Налаштовано</string>
 	<string name="settings_server_sync_backup_preferences">Параметри синхронізації та резервного копіювання</string>
 	<string name="settings_server_danger_zone">Небезпечна зона</string>
@@ -119,10 +119,10 @@
 	<!-- Server Setup Toast Messages -->
 	<string name="settings_server_setup_toast_success">Сервер успішно налаштовано!</string>
 	<string name="settings_server_setup_toast_failure">Не вдалося налаштувати сервер: %1$s</string>
-	<string name="settings_server_setup_toast_failure_unknown">Не вдалося налаштувати сервер. Перевірте з\'єднання та спробуйте ще раз.</string>
+	<string name="settings_server_setup_toast_failure_unknown">Не вдалося налаштувати сервер. Перевірте з'єднання та спробуйте ще раз.</string>
 	<!-- Network Errors -->
-	<string name="server_error_connection_timeout">Не вдалося під\'єднатися до сервера. Переконайтеся, що сервер працює, а адреса правильна.</string>
+	<string name="server_error_connection_timeout">Не вдалося під'єднатися до сервера. Переконайтеся, що сервер працює, а адреса правильна.</string>
 	<string name="server_error_timeout">Сервер не відповідає. Перевірте підключення до Інтернету та спробуйте ще раз.</string>
 	<string name="server_error_dns">Сервер не знайдено. Перевірте адресу сервера та підключення до Інтернету.</string>
-	<string name="server_error_connection_generic">Помилка мережі під час під\'єднання до %1$s. Перевірте з\'єднання та спробуйте ще раз.</string>
+	<string name="server_error_connection_generic">Помилка мережі під час під'єднання до %1$s. Перевірте з'єднання та спробуйте ще раз.</string>
 </resources>

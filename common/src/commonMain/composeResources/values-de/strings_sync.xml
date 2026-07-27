@@ -194,9 +194,9 @@
 	<string name="server_setup_help_registration_header">Registrierung</string>
 	<string name="server_setup_help_registration_body">Standardmäßig ist die Registrierung auf Servern geschlossen, das heißt, Sie müssen zur Whitelist des jeweiligen Servers hinzugefügt werden, um ein Konto erstellen zu können.</string>
 	<string name="server_setup_help_setup_header">Einrichtung</string>
-	<string name="server_setup_help_setup_step1">Geben Sie die URL des Servers ein, etwa \"hammer.ink\" für den offiziellen Server.</string>
-	<string name="server_setup_help_setup_step2">Geben Sie Ihre E-Mail und Ihr Passwort ein und tippen Sie dann auf \"Erstellen\", um Ihr Konto zu erstellen.</string>
-	<string name="server_setup_help_setup_step3">Künftig und auf anderen Geräten tippen Sie einfach auf \"Anmelden\".</string>
+	<string name="server_setup_help_setup_step1">Geben Sie die URL des Servers ein, etwa "hammer.ink" für den offiziellen Server.</string>
+	<string name="server_setup_help_setup_step2">Geben Sie Ihre E-Mail und Ihr Passwort ein und tippen Sie dann auf "Erstellen", um Ihr Konto zu erstellen.</string>
+	<string name="server_setup_help_setup_step3">Künftig und auf anderen Geräten tippen Sie einfach auf "Anmelden".</string>
 	<string name="server_setup_help_note_header">Wichtiger Hinweis</string>
 	<string name="server_setup_help_note_body">Die Synchronisierung in Hammer unterscheidet sich von Online-first-Anwendungen wie Google Docs. Die Synchronisierung erfolgt nicht in Echtzeit. Sie geschieht normalerweise beim Öffnen oder Schließen der App. Stellen Sie sicher, dass Sie mit den neuesten Versionen Ihrer Projekte synchronisiert sind, bevor Sie offline gehen. Hammer synchronisiert automatisch, aber es ist immer gut zu prüfen, wenn Sie längere Zeit offline sein werden.</string>
 	<string name="server_setup_help_dismiss_button">Verstanden</string>

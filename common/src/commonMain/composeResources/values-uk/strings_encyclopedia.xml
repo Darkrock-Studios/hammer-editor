@@ -44,7 +44,7 @@
 	<string name="encyclopedia_entry_add_alias_dialog_title">Додати псевдонім</string>
 	<string name="encyclopedia_entry_add_alias_button">Додати</string>
 	<string name="encyclopedia_entry_alias_hint">Прізвисько або інша назва</string>
-	<string name="encyclopedia_entry_appears_in_label">З\'являється у сценах</string>
+	<string name="encyclopedia_entry_appears_in_label">З'являється у сценах</string>
 	<string name="encyclopedia_entry_appears_in_empty">Ще не згадується в жодній сцені</string>
 	<string name="encyclopedia_create_entry_toast_tag_too_short">Тег закороткий</string>
 	<string name="encyclopedia_create_entry_discard_title">Відхилити новий запис?</string>
