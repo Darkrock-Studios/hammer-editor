@@ -11,8 +11,6 @@
 	<string name="projects_list_card_words">%1$s слів</string>
 	<string name="projects_list_card_by_author">автор: %1$s</string>
 	<string name="projects_list_card_created">Створено %1$s</string>
-	<string name="projects_list_card_opened">Відкрито %1$s</string>
-	<string name="projects_list_card_never_opened">Ніколи не відкривалося</string>
 	<string name="projects_list_card_content_description">Проєкт %1$s</string>
 	<string name="projects_list_search_button">Пошук проєктів</string>
 	<string name="projects_list_search_close">Закрити пошук</string>
@@ -42,9 +40,7 @@
 	<string name="projects_list_sort_glyph_created_asc">↑ СТВОРЕНО</string>
 	<string name="projects_list_sort_glyph_words_desc">↓ СЛОВА</string>
 	<string name="projects_list_sort_glyph_words_asc">↑ СЛОВА</string>
-	<string name="account_sync_dialog_title">Синхронізація</string>
 	<string name="account_sync_dialog_header">Синхронізація облікового запису</string>
-	<string name="account_sync_dialog_cancel_button">Скасувати</string>
 	<string name="account_sync_log_title">Журнал синхронізації</string>
 	<string name="account_sync_log_filter_label">Проєкт</string>
 	<string name="account_sync_log_filter_all">Усі</string>

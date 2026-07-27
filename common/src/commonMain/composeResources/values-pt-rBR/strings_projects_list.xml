@@ -11,8 +11,6 @@
 	<string name="projects_list_card_words">%1$s palavras</string>
 	<string name="projects_list_card_by_author">por %1$s</string>
 	<string name="projects_list_card_created">Criado %1$s</string>
-	<string name="projects_list_card_opened">Aberto %1$s</string>
-	<string name="projects_list_card_never_opened">Nunca aberto</string>
 	<string name="projects_list_card_content_description">Projeto %1$s</string>
 	<string name="projects_list_search_button">Pesquisar projetos</string>
 	<string name="projects_list_search_close">Fechar busca</string>
@@ -42,9 +40,7 @@
 	<string name="projects_list_sort_glyph_created_asc">↑ CRIADO</string>
 	<string name="projects_list_sort_glyph_words_desc">↓ PALAVRAS</string>
 	<string name="projects_list_sort_glyph_words_asc">↑ PALAVRAS</string>
-	<string name="account_sync_dialog_title">Sincronização</string>
 	<string name="account_sync_dialog_header">Sincronização de Conta</string>
-	<string name="account_sync_dialog_cancel_button">Cancelar</string>
 	<string name="account_sync_log_title">Registro de Sincronização</string>
 	<string name="account_sync_log_filter_label">Projeto</string>
 	<string name="account_sync_log_filter_all">Todos</string>
@@ -55,7 +51,7 @@
 	<string name="account_sync_dialog_status_canceled">Cancelado</string>
 	<string name="delete_project_title">Excluir Projeto</string>
 	<string name="delete_project_warning">Esta ação não pode ser desfeita. Todos os dados do projeto serão excluídos permanentemente.</string>
-	<string name="delete_project_confirm_hint">Digite \"%1$s\" para confirmar</string>
+	<string name="delete_project_confirm_hint">Digite "%1$s" para confirmar</string>
 	<string name="delete_project_confirm">Excluir</string>
 	<string name="delete_project_cancel">Cancelar</string>
 	<string name="rename_project_title">Renomear Projeto</string>

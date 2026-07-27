@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="{{locale}}">
+<html lang="{{locale}}" class="fa-pending">
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -34,22 +34,44 @@
 		<script type="application/ld+json">{{{.}}}</script>
 	{{/jsonLd}}
 	<link rel="icon" type="image/x-icon" href="/assets/favicon.ico">
-	<script src="https://unpkg.com/htmx.org@2.0.4"
-		integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
-		crossorigin="anonymous"></script>
+
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
+
+	<!-- Every heading uses this face. Without the preload it isn't discovered until base.css parses,
+	     and font-display: swap then reflows the whole page once it lands. The href carries no
+	     version stamp so it matches the request base.css issues byte for byte. -->
+	<link rel="preload" as="font" type="font/woff2" href="/assets/Kingthings_Trypewriter_2.woff2" crossorigin>
+	{{#preloadImages}}
+		<link rel="preload" as="image" href="{{href}}" type="{{type}}" fetchpriority="high"{{#media}} media="{{media}}"{{/media}}>
+	{{/preloadImages}}
+
+	<link rel="stylesheet" href="/assets/css/base.css?v={{version}}">
+	{{#page_stylesheet}}
+		<link rel="stylesheet" href="{{page_stylesheet}}?v={{version}}">
+	{{/page_stylesheet}}
+	<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&amp;display=swap">
+
+	<!-- Font Awesome is decorative: fetched at print media so it can't block render, then switched
+	     to all media by async-css.js once it lands. -->
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
 		integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
-		crossorigin="anonymous">
+		crossorigin="anonymous" media="print" data-async-css>
+	<noscript>
+		<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
+			integrity="sha512-Evv84Mr4kqVGRNSgIGL/F/aIDqQb7xQ2vcrdIwxfjThSH8CSR7PBEakCr51Ck+w+/U6swU2Im1vVX0SVk9ABhg=="
+			crossorigin="anonymous">
+	</noscript>
+	<script defer src="/assets/js/async-css.js?v={{version}}"></script>
 
-	<link rel="stylesheet" href="/assets/css/base.css">
-	<link rel="stylesheet" href="/assets/css/error.css">
-	{{#page_stylesheet}}
-		<link rel="stylesheet" href="{{page_stylesheet}}">
-	{{/page_stylesheet}}
+	<script defer src="https://unpkg.com/htmx.org@2.0.4"
+		integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+		crossorigin="anonymous"></script>
 	{{#analyticsEnabled}}
 		{{{analyticsHead}}}
 		<script>{{{analyticsBridge}}}</script>
-		<script defer src="/assets/js/analytics.js"></script>
+		<script defer src="/assets/js/analytics.js?v={{version}}"></script>
 	{{/analyticsEnabled}}
 </head>
 <body>
@@ -66,8 +88,8 @@
 	{{/isDev}}
 	<div class="header-container">
 		<a href="/" class="site-logo">
-			<img src="/assets/images/hammer_icon_sm.png" alt="Hammer Editor">
-			<h1 class="site-title">Hammer</h1>
+			<img src="/assets/images/hammer_icon_sm.png?v={{version}}" alt="Hammer Editor" width="40" height="40">
+			<span class="site-title">Hammer</span>
 		</a>
 
 		<!-- Mobile hamburger button -->
@@ -84,10 +106,37 @@
 				</a>
 			{{/hasAboutPage}}
 			{{#communityEnabled}}
-				<a href="/community/feed" class="header-nav__link" title="{{msg.header_nav_community}}">
-					<i class="fa-solid fa-users"></i>
-					<span class="header-nav__label">{{msg.header_nav_community}}</span>
-				</a>
+				<div class="header-nav__item">
+					<a href="/community/feed" class="header-nav__link" title="{{msg.header_nav_community}}">
+						<i class="fa-solid fa-users"></i>
+						<span class="header-nav__label">{{msg.header_nav_community}}</span>
+					</a>
+					{{#communityAuthorCount}}
+						<button type="button" class="community-badge" aria-expanded="false"
+								aria-controls="community-badge-pop" aria-label="{{msg.community_badge_label}}">
+							{{communityAuthorCount}}
+						</button>
+						<div class="community-badge__pop" id="community-badge-pop">
+							<p class="community-badge__title">{{msg.header_nav_community}}</p>
+							<div class="community-stats">
+								<div class="community-stat">
+									<i class="fa-solid fa-user-pen community-stat__icon"></i>
+									<span class="community-stat__value">{{communityAuthorCount}}</span>
+									<span class="community-stat__label">{{msg.community_badge_authors}}</span>
+								</div>
+								<div class="community-stat">
+									<i class="fa-solid fa-book-open community-stat__icon"></i>
+									<span class="community-stat__value">{{communityStoryCount}}</span>
+									<span class="community-stat__label">{{msg.community_badge_stories}}</span>
+								</div>
+							</div>
+							<a href="/community/feed" class="community-badge__link">
+								<span>{{msg.community_badge_visit}}</span>
+								<i class="fa-solid fa-arrow-right"></i>
+							</a>
+						</div>
+					{{/communityAuthorCount}}
+				</div>
 			{{/communityEnabled}}
 			{{#headerExtraLinks}}
 				<a href="{{url}}" class="header-nav__link" title="{{title}}"{{#external}} target="_blank" rel="noopener noreferrer"{{/external}}>
@@ -152,5 +201,29 @@
 		document.addEventListener('keydown', function (e) {
 			if (e.key === 'Escape') closeMenu();
 		});
+
+		// Community badge: pointer devices get it on hover from CSS, touch needs a tap.
+		const badge = document.querySelector('.community-badge');
+		if (badge) {
+			const item = badge.closest('.header-nav__item');
+
+			function closeBadge() {
+				badge.setAttribute('aria-expanded', 'false');
+			}
+
+			badge.addEventListener('click', function (e) {
+				e.stopPropagation();
+				const isOpen = badge.getAttribute('aria-expanded') === 'true';
+				badge.setAttribute('aria-expanded', String(!isOpen));
+			});
+
+			document.addEventListener('click', function (e) {
+				if (!item.contains(e.target)) closeBadge();
+			});
+
+			document.addEventListener('keydown', function (e) {
+				if (e.key === 'Escape') closeBadge();
+			});
+		}
 	})();
 </script>

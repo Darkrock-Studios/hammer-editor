@@ -378,7 +378,7 @@ private fun BackupRow(
 			)
 			BackupExportAction(onExport = onExport)
 			HdHairlineButton(
-				label = Res.string.backup_manager_delete_content_description.get(),
+				label = Res.string.backup_manager_delete_button.get(),
 				onClick = onDelete,
 				danger = true,
 			)

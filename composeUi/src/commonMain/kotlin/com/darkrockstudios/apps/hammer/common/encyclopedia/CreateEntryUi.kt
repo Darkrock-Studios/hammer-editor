@@ -81,9 +81,9 @@ import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_placeholder
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_alias_too_long
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_invalid_name
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_name_too_short
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_success
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_tag_too_long
-import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_tag_too_short
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_too_long
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
@@ -276,7 +276,7 @@ internal fun CreateEntryUi(
 							)
 
 							EntryError.NAME_TOO_SHORT -> strRes.get(
-								Res.string.encyclopedia_create_entry_toast_tag_too_short
+								Res.string.encyclopedia_create_entry_toast_name_too_short
 							)
 
 							EntryError.ALIAS_TOO_LONG -> strRes.get(

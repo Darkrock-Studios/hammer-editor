@@ -32,6 +32,13 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.7.2" date="2026-07-27">
+            <description>
+                <p>[Improve]</p>
+                <p>- Translations updated for German, Spanish, French, Italian,</p>
+                <p>Portuguese (Brazil), and Ukrainian</p>
+            </description>
+        </release>
         <release version="3.7.1" date="2026-07-23">
             <description>
                 <p>- Fix Mac app store metadata</p>

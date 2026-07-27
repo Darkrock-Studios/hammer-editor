@@ -21,5 +21,4 @@
 	<string name="sandbox_retry_message">Hammer needs a folder to store your projects.\nChoose a folder now, or quit.
 	</string>
 
-	<string name="splash_subtitle">A simple tool for building stories.</string>
 </resources>

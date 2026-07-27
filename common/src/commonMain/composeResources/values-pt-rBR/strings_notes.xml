@@ -3,9 +3,7 @@
 	<string name="notes_header">Anotações</string>
 	<string name="notes_list_empty">Nenhuma Anotação Encontrada</string>
 	<string name="notes_create_note_button">Criar Anotação</string>
-	<string name="notes_note_item_action_rename">Renomear</string>
 	<string name="notes_note_item_action_cancel">Cancelar</string>
-	<string name="notes_note_item_action_delete">Excluir</string>
 	<string name="notes_discard_dialog_title">Descartar Alterações?</string>
 	<string name="notes_discard_dialog_message">Você perderá todas as alterações que fez.</string>
 	<string name="notes_create_header">Criar Anotação</string>
@@ -22,7 +20,7 @@
 	<string name="notes_create_tags_placeholder">ideia, tarefa, acompanhamento…</string>
 	<string name="notes_delete_title">Excluir Anotação?</string>
 	<string name="notes_delete_message">Esta ação não pode ser desfeita!</string>
-	<string name="notes_delete_toast_success">Anotação %1$s Excluída</string>
+	<string name="notes_delete_toast_success">Note Deleted</string>
 	<string name="notes_menu_group">Anotação</string>
 	<string name="notes_menu_delete">Excluir</string>
 	<string name="notes_view_header">Anotação</string>

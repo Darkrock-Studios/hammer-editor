@@ -1,20 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="timeline_title">Linha do Tempo</string>
 	<string name="timeline_no_events">Sem Eventos</string>
 	<string name="timeline_create_event_button">Criar Evento</string>
-	<string name="timeline_create_close_button">Fechar</string>
-	<string name="timeline_create_title">Evento da Linha do Tempo</string>
-	<string name="timeline_create_date_label">Data (opcional)</string>
-	<string name="timeline_create_content_label">Conteúdo</string>
-	<string name="timeline_create_create_event_button">Criar</string>
 	<string name="timeline_create_toast_success">Evento Criado</string>
-	<string name="timeline_create_toast_failure">Falha ao criar Evento</string>
 	<string name="timeline_create_toast_tag_too_long">A etiqueta estava muito longa (máx. %1$d)</string>
 	<string name="timeline_create_tags_label">Etiquetas</string>
 	<string name="timeline_create_tags_hint">↵ para adicionar</string>
 	<string name="timeline_create_tags_placeholder">arco, prenúncio, conflito…</string>
-	<string name="timeline_view_title">Evento</string>
 	<string name="timeline_view_header">Evento</string>
 	<string name="timeline_view_label_editing">Editando</string>
 	<string name="timeline_view_crumb_root">Linha do Tempo</string>
@@ -26,7 +18,6 @@
 	<string name="timeline_view_date_hint">opcional</string>
 	<string name="timeline_view_date_placeholder">ex. Primavera do ano 3</string>
 	<string name="timeline_view_undated">SEM DATA</string>
-	<string name="timeline_view_content_placeholder">Descreva seu evento</string>
 	<string name="timeline_view_status_unsaved">NÃO SALVO</string>
 	<string name="timeline_view_status_word_char">%1$d PAL · %2$d CAR</string>
 	<string name="timeline_view_status_hint">ESC PARA CANCELAR</string>
@@ -48,7 +39,7 @@
 	<string name="timeline_view_menu_delete">Excluir</string>
 	<string name="timeline_view_confirm_delete_title">Excluir Evento da Linha do Tempo?</string>
 	<string name="timeline_view_confirm_delete_message">Isso não pode ser desfeito!</string>
-	<string name="timeline_header">Linha do Tempo</string>
+	<string name="timeline_header">Timeline</string>
 	<string name="timeline_header_meta">%1$d ENTRADAS · %2$d ETIQUETAS</string>
 	<string name="timeline_search_button">Pesquisar na linha do tempo</string>
 	<string name="timeline_search_placeholder">Pesquisar na linha do tempo</string>

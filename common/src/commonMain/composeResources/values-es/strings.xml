@@ -17,11 +17,9 @@
 	<string name="unsaved_entity_dialog_positive_button">Guardar</string>
 	<string name="close_dialog_button">Cerrar</string>
 	<string name="more_menu_button">Más</string>
-	<string name="network_request_failure_connection">Error en la solicitud de red: %1$s</string>
 	<string name="network_request_failure_parse_body">Error al analizar el cuerpo de la respuesta: %1$s</string>
 	<string name="confirm_dialog_positive">Sí</string>
 	<string name="confirm_dialog_negative">No</string>
-	<string name="image_failed_to_load">Error de imagen</string>
 	<string name="expand">Expandir</string>
 	<string name="collapse">Contraer</string>
 	<string name="markdown_format_bar_decrease_text_size">Reducir el tamaño del texto</string>

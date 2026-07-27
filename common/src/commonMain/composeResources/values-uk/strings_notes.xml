@@ -3,9 +3,7 @@
 	<string name="notes_header">Нотатки</string>
 	<string name="notes_list_empty">Нотаток не знайдено</string>
 	<string name="notes_create_note_button">Створити нотатку</string>
-	<string name="notes_note_item_action_rename">Перейменувати</string>
 	<string name="notes_note_item_action_cancel">Скасувати</string>
-	<string name="notes_note_item_action_delete">Видалити</string>
 	<string name="notes_discard_dialog_title">Відхилити зміни?</string>
 	<string name="notes_discard_dialog_message">Ви втратите всі внесені зміни.</string>
 	<string name="notes_create_header">Створити нотатку</string>
@@ -22,7 +20,7 @@
 	<string name="notes_create_tags_placeholder">ідея, справа, нагадування…</string>
 	<string name="notes_delete_title">Видалити нотатку?</string>
 	<string name="notes_delete_message">Цю дію неможливо скасувати!</string>
-	<string name="notes_delete_toast_success">Нотатку %1$s видалено</string>
+	<string name="notes_delete_toast_success">Note Deleted</string>
 	<string name="notes_menu_group">Нотатка</string>
 	<string name="notes_menu_delete">Видалити</string>
 	<string name="notes_view_header">Нотатка</string>

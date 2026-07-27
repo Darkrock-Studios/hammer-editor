@@ -13,5 +13,4 @@
 	<string name="sandbox_choose_folder_button">Escolher Pasta</string>
 	<string name="sandbox_quit_button">Sair</string>
 	<string name="sandbox_retry_message">O Hammer precisa de uma pasta para armazenar seus projetos.\nEscolha uma pasta agora ou saia.</string>
-	<string name="splash_subtitle">Uma ferramenta simples para construir histórias.</string>
 </resources>

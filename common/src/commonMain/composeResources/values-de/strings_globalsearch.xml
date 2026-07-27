@@ -4,7 +4,6 @@
 	<string name="global_search_title">Projekt durchsuchen</string>
 	<string name="global_search_placeholder">Zum Suchen tippen, mit #Tag filtern…</string>
 	<string name="global_search_clear">Suche leeren</string>
-	<string name="global_search_close">Suche schließen</string>
 	<string name="global_search_no_results">Keine Ergebnisse</string>
 	<string name="global_search_too_short">Geben Sie mindestens 2 Zeichen ein</string>
 	<string name="global_search_results_count">%1$d Ergebnisse</string>
@@ -17,5 +16,4 @@
 	<string name="global_search_filter_notes">Notizen</string>
 	<string name="global_search_filter_encyclopedia">Lexikon</string>
 	<string name="global_search_filter_timeline">Zeitstrahl</string>
-	<string name="global_search_filter_toggle">Ergebnisse filtern</string>
 </resources>

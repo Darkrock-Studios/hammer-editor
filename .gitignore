@@ -88,3 +88,8 @@ fastlane/README.md
 /appimage-runtime-x86_64
 /nul
 /.claude/
+
+# Home page screenshot tooling: the generated webp assets under
+# server/src/main/resources/assets/images/ are committed, their sources are not
+/scripts/build-home-screenshots.py
+/scripts/home-screenshot-sources/

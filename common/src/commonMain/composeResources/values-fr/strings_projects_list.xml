@@ -11,8 +11,6 @@
 	<string name="projects_list_card_words">%1$s mots</string>
 	<string name="projects_list_card_by_author">par %1$s</string>
 	<string name="projects_list_card_created">Créé %1$s</string>
-	<string name="projects_list_card_opened">Ouvert %1$s</string>
-	<string name="projects_list_card_never_opened">Jamais ouvert</string>
 	<string name="projects_list_card_content_description">Projet %1$s</string>
 	<string name="projects_list_search_button">Rechercher des projets</string>
 	<string name="projects_list_search_close">Fermer la recherche</string>
@@ -42,9 +40,7 @@
 	<string name="projects_list_sort_glyph_created_asc">↑ CRÉÉ</string>
 	<string name="projects_list_sort_glyph_words_desc">↓ MOTS</string>
 	<string name="projects_list_sort_glyph_words_asc">↑ MOTS</string>
-	<string name="account_sync_dialog_title">Synchronisation</string>
 	<string name="account_sync_dialog_header">Synchronisation du compte</string>
-	<string name="account_sync_dialog_cancel_button">Annuler</string>
 	<string name="account_sync_log_title">Journal de synchronisation</string>
 	<string name="account_sync_log_filter_label">Projet</string>
 	<string name="account_sync_log_filter_all">Tous</string>
@@ -69,9 +65,9 @@
 	<string name="create_project_button">Créer un projet</string>
 	<string name="create_project_cancel_button">Annuler</string>
 	<string name="create_project_import_button">Importer</string>
-	<string name="create_project_import_help_icon_description">En savoir plus sur l\'importation d\'une histoire</string>
-	<string name="create_project_import_help_title">Créer à partir d\'une histoire existante</string>
-	<string name="create_project_import_help_intro">Vous avez déjà un manuscrit ? Importez-le pour créer un nouveau projet. Hammer nomme le projet d\'après votre fichier et découpe automatiquement le texte en scènes.</string>
+	<string name="create_project_import_help_icon_description">En savoir plus sur l'importation d'une histoire</string>
+	<string name="create_project_import_help_title">Créer à partir d'une histoire existante</string>
+	<string name="create_project_import_help_intro">Vous avez déjà un manuscrit ? Importez-le pour créer un nouveau projet. Hammer nomme le projet d'après votre fichier et découpe automatiquement le texte en scènes.</string>
 	<string name="create_project_import_help_formats_header">Formats pris en charge</string>
 	<string name="create_project_import_help_format_markdown">Markdown (.md)</string>
 	<string name="create_project_import_help_format_rtf">Texte enrichi (.rtf)</string>

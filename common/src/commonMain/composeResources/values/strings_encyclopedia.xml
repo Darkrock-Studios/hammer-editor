@@ -4,8 +4,6 @@
 
 	<string name="encyclopedia_search_hint">Search</string>
 	<string name="encyclopedia_search_clear_button">Clear</string>
-	<string name="encyclopedia_filter_by_category">Filter By</string>
-	<string name="encyclopedia_category_all">All</string>
 
 	<string name="encyclopedia_category_person">Person</string>
 	<string name="encyclopedia_category_place">Place</string>
@@ -18,14 +16,12 @@
 	<string name="encyclopedia_create_entry_header">Create entry</string>
 	<string name="encyclopedia_create_entry_section_marker">New</string>
 	<string name="encyclopedia_create_entry_draft_marker">Draft</string>
-	<string name="encyclopedia_create_entry_type_label">Type</string>
 	<string name="encyclopedia_create_entry_name_label">Name</string>
 	<string name="encyclopedia_create_entry_name_placeholder">e.g. Cheshire Cat</string>
 	<string name="encyclopedia_create_entry_tags_label">Tags</string>
 	<string name="encyclopedia_create_entry_tags_hint">↵ to add</string>
 	<string name="encyclopedia_create_entry_tags_placeholder">ritual, magical, recurring…</string>
 	<string name="encyclopedia_create_entry_description_label">Description</string>
-	<string name="encyclopedia_create_entry_body_hint">A short defining note…</string>
 	<string name="encyclopedia_create_entry_cover_art_label">Cover Art</string>
 	<string name="encyclopedia_create_entry_image_drop_hint">Drop image · or</string>
 	<string name="encyclopedia_create_entry_image_browse_button">Browse files</string>
@@ -33,8 +29,6 @@
 	<string name="encyclopedia_create_entry_image_replace">Replace</string>
 	<string name="encyclopedia_create_entry_image_too_large">Image is too large. Maximum size is %1$d MB.</string>
 	<string name="encyclopedia_create_entry_image_load_failed">Could not read the selected image.</string>
-	<string name="encyclopedia_create_entry_remove_image_button">Remove Image</string>
-	<string name="encyclopedia_create_entry_select_image_button">Select Image</string>
 	<string name="encyclopedia_create_entry_create_button">Create entry</string>
 	<string name="encyclopedia_create_entry_cancel_button">Cancel</string>
 	<string name="encyclopedia_create_entry_toast_success">Entry Created</string>
@@ -43,16 +37,14 @@
 	<string name="encyclopedia_create_entry_toast_tag_too_long">Tag is too long. Max %1$d</string>
 	<string name="encyclopedia_create_entry_toast_alias_too_long">Alias is too long. Max %1$d</string>
 	<string name="encyclopedia_entry_aliases_label">Aliases</string>
-	<string name="encyclopedia_entry_add_alias">Add alias</string>
 	<string name="encyclopedia_entry_add_alias_dialog_title">Add Alias</string>
 	<string name="encyclopedia_entry_add_alias_button">Add</string>
 	<string name="encyclopedia_entry_alias_hint">Nickname or other name</string>
 	<string name="encyclopedia_entry_appears_in_label">Appears in scenes</string>
 	<string name="encyclopedia_entry_appears_in_empty">Not yet referenced in any scene</string>
-	<string name="encyclopedia_create_entry_toast_tag_too_short">Tag is too short</string>
+	<string name="encyclopedia_create_entry_toast_name_too_short">Entry name cannot be empty</string>
 	<string name="encyclopedia_create_entry_discard_title">Discard New Entry?</string>
 	<string name="encyclopedia_entry_load_error">Error: Failed to load entry!</string>
-	<string name="encyclopedia_entry_body_empty_placeholder">Describe your entry</string>
 	<string name="encyclopedia_entry_body_empty_label">Click to enter description</string>
 	<string name="encyclopedia_entry_edit_cancel_button">Cancel</string>
 	<string name="encyclopedia_entry_edit_save_button">Save</string>
@@ -72,7 +64,6 @@
 	<string name="encyclopedia_entry_menu_remove_image">Remove Image</string>
 	<string name="encyclopedia_entry_menu_add_image">Add Image</string>
 	<string name="encyclopedia_entry_add_tags_dialog_title">Add Tags</string>
-	<string name="encyclopedia_entry_add_tag">Add</string>
 	<string name="encyclopedia_entry_add_tags_button">Add Tags</string>
 
 	<string name="encyclopedia_entry_crumb_root">Encyclopedia</string>

@@ -1,6 +1,6 @@
 {{> header}}
 
-<link rel="stylesheet" href="/assets/css/monitoring.css">
+<link rel="stylesheet" href="/assets/css/monitoring.css?v={{version}}">
 
 <main class="page">
 	<div class="admin-layout">
@@ -75,7 +75,7 @@
 	</div>
 </main>
 
-<script src="/assets/js/frappe-charts.min.js"></script>
+<script src="/assets/js/frappe-charts.min.js?v={{version}}"></script>
 <script>
 	(function () {
 		var ChartCtor = (window.frappe && window.frappe.Chart) || window.Chart;

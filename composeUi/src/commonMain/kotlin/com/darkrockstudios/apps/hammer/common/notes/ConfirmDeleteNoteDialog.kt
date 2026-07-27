@@ -33,10 +33,7 @@ internal fun ConfirmDeleteNoteDialog(
 			component.dismissConfirmDelete()
 			scope.launch {
 				rootSnackbar.showSnackbar(
-					strRes.get(
-						Res.string.notes_delete_toast_success,
-						note.id
-					)
+					strRes.get(Res.string.notes_delete_toast_success)
 				)
 			}
 		}

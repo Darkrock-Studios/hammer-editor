@@ -1,0 +1,92 @@
+name: Publish Docker Image
+
+# Builds the server distribution and publishes a multi-arch (linux/amd64 +
+# linux/arm64) image to GHCR. The distribution is built on the runner because
+# :server depends on :base, which needs the preinstalled Android SDK.
+#
+# First run: the GHCR package is created automatically, but may be created
+# private, which breaks the anonymous `docker pull` the docs point people at.
+# Check the package page afterwards and set it Public if needed — that is a
+# one-way door, hence a deliberate manual step.
+
+on:
+  release:
+    types: [ published ]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to build (tag, branch, or SHA). Defaults to the branch this ran from."
+        required: false
+      tag:
+        description: "Image tag to publish (e.g. 3.7.1). Defaults to 'manual'."
+        required: false
+        default: "manual"
+
+# Required: this repo's default workflow token is read-only, so without this the
+# push to GHCR fails with a 403.
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE_NAME: ghcr.io/${{ github.repository }}/server
+
+jobs:
+  publish:
+    # Tag-suffix convention from publish-release.yml. `+server` has no per-store
+    # job there, but it is precisely when self-hosters need a new image, so it
+    # publishes here; client-store-only releases must not move the server tags.
+    if: ${{ github.event_name == 'workflow_dispatch' || !contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+server') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.inputs.ref }}
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+
+      - name: Build server distribution
+        run: ./gradlew :server:installDist
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract image metadata
+        id: meta
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
+        with:
+          images: ${{ env.IMAGE_NAME }}
+          tags: |
+            type=semver,pattern={{version}},enable=${{ github.event_name == 'release' }}
+            type=raw,value=latest,enable=${{ github.event_name == 'release' && !github.event.release.prerelease }}
+            type=raw,value=${{ github.event.inputs.tag }},enable=${{ github.event_name == 'workflow_dispatch' }}
+            type=sha
+
+      - name: Build and push image
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
+        with:
+          context: .
+          file: docker/Dockerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}

@@ -57,6 +57,15 @@ suspend fun ApplicationCall.msg(key: String, vararg args: Any): String {
 	return if (args.isEmpty()) message else MessageFormat.format(message, *args)
 }
 
+/**
+ * For callers that already resolved the locale. [ApplicationCall.msg] re-resolves it per call,
+ * which costs an uncached config lookup for requests carrying no locale hint.
+ */
+fun localizedMsg(locale: Locale, key: String, vararg args: Any): String {
+	val message = localizedString(messagesBundle(locale), key)
+	return if (args.isEmpty()) message else MessageFormat(message, locale).format(args)
+}
+
 suspend fun ApplicationCall.msg(data: MutableMap<String, Any>, key: String, vararg args: Any) {
 	val message = msg(key, *args)
 	val msgData = data["msg"] as? MutableMap<String, String> ?: mutableMapOf()

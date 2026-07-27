@@ -1,11 +1,17 @@
 /* Home Page Styles */
 
 /* Masthead/Hero Section */
+/* The plain url() declaration is the fallback for browsers that don't parse image-set()/type() and
+   would otherwise drop the whole declaration and paint no hero at all. */
 .masthead {
-	background: url('/assets/images/masthead.jpg') center center / cover no-repeat;
+	background: url('/assets/images/masthead-1920.jpg') center center / cover no-repeat;
+	background: image-set(url('/assets/images/masthead-1920.webp') type('image/webp'),
+	url('/assets/images/masthead-1920.jpg') type('image/jpeg')) center center / cover no-repeat;
 	color: white;
 	text-align: center;
-	padding: clamp(4rem, 10vw, 8rem) 2rem;
+	/* Short enough that the first content section shows above a 900px fold, so the
+	   page reads as continuing rather than ending at the hero. */
+	padding: clamp(2.5rem, 5vw, 3.25rem) 2rem;
 	position: relative;
 	overflow: hidden;
 	border-bottom: 3px solid var(--accent);
@@ -23,8 +29,10 @@
 	pointer-events: none;
 }
 
+/* Wide enough that each clause of the two-clause headline holds its own line
+   rather than orphaning the last word onto a third. */
 .masthead-content {
-	max-width: 900px;
+	max-width: 1120px;
 	margin: 0 auto;
 	position: relative;
 	z-index: 1;
@@ -44,8 +52,8 @@
 
 .masthead h1 {
 	color: white;
-	margin-bottom: 1.5rem;
-	font-size: clamp(3.5rem, 8vw, 6rem);
+	margin-bottom: 1.1rem;
+	font-size: clamp(3rem, 7vw, 5rem);
 	text-shadow: /* Outline effect */ -2px -2px 0 rgba(0, 0, 0, 0.8),
 	2px -2px 0 rgba(0, 0, 0, 0.8),
 	-2px 2px 0 rgba(0, 0, 0, 0.8),
@@ -53,12 +61,20 @@
 		/* Depth shadow */ 4px 4px 8px rgba(0, 0, 0, 0.6);
 }
 
-.masthead h2 {
+/* Each clause stays whole: the line breaks between the spans or not at all. */
+.masthead-line {
+	display: inline-block;
+}
+
+.masthead-tagline {
 	color: rgba(255, 255, 255, 0.95);
 	font-family: 'Lora', serif;
 	font-style: italic;
 	font-weight: 400;
-	font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+	max-width: 62ch;
+	margin-left: auto;
+	margin-right: auto;
+	font-size: clamp(1.1rem, 2vw, 1.4rem);
 	opacity: 0;
 	animation: fadeInUp 0.8s ease-out 0.2s forwards;
 	text-shadow: /* Outline effect */ -1px -1px 0 rgba(0, 0, 0, 0.8),
@@ -66,241 +82,6 @@
 	-1px 1px 0 rgba(0, 0, 0, 0.8),
 	1px 1px 0 rgba(0, 0, 0, 0.8),
 		/* Depth shadow */ 3px 3px 6px rgba(0, 0, 0, 0.5);
-}
-
-/* About Server Callout - Pinned Note Style */
-.about-server-callout {
-	max-width: 420px;
-	margin: -1.5rem auto 0;
-	position: relative;
-	z-index: 10;
-	animation: noteFloat 0.6s ease-out;
-}
-
-@keyframes noteFloat {
-	from {
-		opacity: 0;
-		transform: translateY(-20px) rotate(-2deg);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0) rotate(-1deg);
-	}
-}
-
-.about-server-callout__inner {
-	background: linear-gradient(145deg, #fffef7 0%, #fdfbf2 100%);
-	border: 1px solid rgba(217, 119, 6, 0.25);
-	border-radius: 0.25rem;
-	padding: 1rem 1.5rem;
-	box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08),
-	0 2px 4px rgba(0, 0, 0, 0.04),
-	inset 0 1px 0 rgba(255, 255, 255, 0.8);
-	transform: rotate(-1deg);
-	position: relative;
-	display: flex;
-	align-items: center;
-	gap: 1rem;
-	transition: all var(--transition-base);
-}
-
-.about-server-callout__inner::before {
-	content: '';
-	position: absolute;
-	top: -8px;
-	left: 50%;
-	transform: translateX(-50%);
-	width: 24px;
-	height: 24px;
-	background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-	border-radius: 50%;
-	box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2),
-	inset 0 1px 2px rgba(255, 255, 255, 0.3);
-}
-
-.about-server-callout__inner::after {
-	content: '';
-	position: absolute;
-	top: -4px;
-	left: 50%;
-	transform: translateX(-50%);
-	width: 8px;
-	height: 8px;
-	background: rgba(255, 255, 255, 0.4);
-	border-radius: 50%;
-}
-
-.about-server-callout:hover .about-server-callout__inner {
-	transform: rotate(0deg) translateY(-2px);
-	box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12),
-	0 4px 8px rgba(0, 0, 0, 0.06),
-	inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.about-server-callout__icon {
-	flex-shrink: 0;
-	width: 2.5rem;
-	height: 2.5rem;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: linear-gradient(135deg, var(--accent) 0%, var(--accent-light) 100%);
-	color: white;
-	border-radius: 0.375rem;
-	font-size: 1.125rem;
-	box-shadow: 0 2px 4px rgba(217, 119, 6, 0.25);
-	transition: transform var(--transition-base);
-}
-
-.about-server-callout:hover .about-server-callout__icon {
-	transform: scale(1.1);
-}
-
-.about-server-callout__content {
-	flex: 1;
-	min-width: 0;
-}
-
-.about-server-callout__title {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 0.9375rem;
-	color: var(--text-primary);
-	margin: 0 0 0.125rem 0;
-	font-weight: 600;
-}
-
-.about-server-callout__text {
-	font-family: 'Lora', Georgia, serif;
-	font-size: 0.8125rem;
-	color: var(--text-secondary);
-	margin: 0;
-	font-style: italic;
-}
-
-.about-server-callout__link {
-	flex-shrink: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 2rem;
-	height: 2rem;
-	background: var(--neutral-100);
-	color: var(--text-secondary);
-	border-radius: 50%;
-	font-size: 0.875rem;
-	transition: all var(--transition-base);
-}
-
-.about-server-callout:hover .about-server-callout__link {
-	background: var(--accent);
-	color: white;
-	transform: translateX(2px);
-}
-
-/* ========================================
-   Community Callout
-   ======================================== */
-
-.community-callout {
-	max-width: 480px;
-	margin: 1.5rem auto 0;
-	position: relative;
-	z-index: 10;
-	animation: communityFloat 0.7s ease-out;
-}
-
-@keyframes communityFloat {
-	from {
-		opacity: 0;
-		transform: translateY(-15px) rotate(1deg);
-	}
-	to {
-		opacity: 1;
-		transform: translateY(0) rotate(0.5deg);
-	}
-}
-
-.community-callout__inner {
-	background: linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%);
-	border: 2px solid rgba(34, 197, 94, 0.3);
-	border-radius: 0.5rem;
-	padding: 1.25rem 1.5rem;
-	box-shadow: 0 4px 12px rgba(34, 197, 94, 0.15),
-	0 2px 4px rgba(0, 0, 0, 0.04);
-	transform: rotate(0.5deg);
-	position: relative;
-	display: flex;
-	align-items: center;
-	gap: 1rem;
-	text-decoration: none;
-	transition: all var(--transition-base);
-}
-
-.community-callout:hover .community-callout__inner {
-	transform: rotate(0deg) translateY(-3px);
-	box-shadow: 0 8px 24px rgba(34, 197, 94, 0.2),
-	0 4px 8px rgba(0, 0, 0, 0.06);
-	border-color: rgba(34, 197, 94, 0.5);
-}
-
-.community-callout__icon {
-	flex-shrink: 0;
-	width: 3rem;
-	height: 3rem;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
-	color: white;
-	border-radius: 0.5rem;
-	font-size: 1.25rem;
-	box-shadow: 0 3px 8px rgba(34, 197, 94, 0.35);
-	transition: transform var(--transition-base);
-}
-
-.community-callout:hover .community-callout__icon {
-	transform: scale(1.1) rotate(-5deg);
-}
-
-.community-callout__content {
-	flex: 1;
-	min-width: 0;
-}
-
-.community-callout__title {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 1rem;
-	color: #166534;
-	margin: 0 0 0.25rem 0;
-	font-weight: 600;
-}
-
-.community-callout__text {
-	font-family: 'Lora', Georgia, serif;
-	font-size: 0.875rem;
-	color: #15803d;
-	margin: 0;
-	line-height: 1.4;
-}
-
-.community-callout__arrow {
-	flex-shrink: 0;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	width: 2.25rem;
-	height: 2.25rem;
-	background: rgba(34, 197, 94, 0.15);
-	color: #16a34a;
-	border-radius: 50%;
-	font-size: 0.9rem;
-	transition: all var(--transition-base);
-}
-
-.community-callout:hover .community-callout__arrow {
-	background: #22c55e;
-	color: white;
-	transform: translateX(3px);
 }
 
 /* Main Content Container */
@@ -345,82 +126,6 @@
 .paper-section:hover {
 	box-shadow: var(--shadow-xl);
 	transform: translateY(-2px);
-}
-
-/* Server Message/Warning */
-.server-message {
-	background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
-	border-left: 4px solid var(--warning);
-	padding: 2rem;
-	margin: 2rem 0;
-	border-radius: 0.5rem;
-	box-shadow: var(--shadow-md);
-	animation: slideInDown 0.4s ease-out;
-}
-
-.server-message h3 {
-	color: #92400e;
-	margin-bottom: 0.75rem;
-	font-size: 1.5rem;
-}
-
-.server-message div,
-.server-message p {
-	color: #78350f;
-}
-
-.whitelist-message {
-	background: rgba(255, 255, 255, 0.7);
-	border: 2px solid rgba(146, 64, 14, 0.3);
-	border-radius: 0.5rem;
-	padding: 1.5rem;
-	margin-top: 1.5rem;
-	box-shadow: var(--shadow-sm);
-	position: relative;
-}
-
-.whitelist-message::before {
-	content: '🔒';
-	position: absolute;
-	top: -12px;
-	left: 1.5rem;
-	background: #fef3c7;
-	padding: 0 0.5rem;
-	font-size: 1.25rem;
-}
-
-.whitelist-message p {
-	margin: 0;
-	color: #92400e;
-	font-weight: 500;
-}
-
-/* Section Dividers */
-.section-divider {
-	display: flex;
-	align-items: center;
-	gap: 1.5rem;
-	margin: 3rem 0 2.5rem;
-}
-
-.section-label {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 1.5rem;
-	color: var(--text-secondary);
-	white-space: nowrap;
-	letter-spacing: 0.025em;
-	text-transform: uppercase;
-	font-weight: 600;
-}
-
-.section-line {
-	flex: 1;
-	height: 1px;
-	background: linear-gradient(to right,
-	rgba(0, 0, 0, 0.15) 0%,
-	rgba(0, 0, 0, 0.05) 50%,
-	transparent 100%
-	);
 }
 
 /* Feature Grid - Sticky Notes! */
@@ -499,92 +204,6 @@
 	color: rgba(28, 25, 23, 0.8);
 	line-height: 1.7;
 	font-size: 1rem;
-}
-
-/* Detailed Features Section */
-.detailed-features {
-	background: var(--surface);
-	padding: 4rem 0;
-	margin: 3rem 0;
-	border-radius: 0.5rem;
-	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-	position: relative;
-}
-
-.detailed-features::before {
-	content: '';
-	position: absolute;
-	inset: 0;
-	background-image: repeating-linear-gradient(
-		0deg,
-		transparent,
-		transparent 31px,
-		rgba(0, 0, 0, 0.015) 31px,
-		rgba(0, 0, 0, 0.015) 32px
-	);
-	pointer-events: none;
-	border-radius: 0.5rem;
-}
-
-.detailed-features-container {
-	display: grid;
-	grid-template-columns: repeat(2, 1fr);
-	gap: 2.5rem 3rem;
-	max-width: 1280px;
-	margin: 0 auto;
-	padding: 0 2rem;
-	position: relative;
-	z-index: 1;
-}
-
-.feature-detail {
-	display: flex;
-	gap: 1.25rem;
-	align-items: flex-start;
-	transition: transform var(--transition-base);
-}
-
-.feature-detail:hover {
-	transform: translateX(8px);
-}
-
-.feature-detail-icon {
-	flex-shrink: 0;
-	width: 3rem;
-	height: 3rem;
-	display: flex;
-	align-items: center;
-	justify-content: center;
-	background: linear-gradient(135deg, var(--accent) 0%, #f59e0b 100%);
-	color: white;
-	border-radius: 0.5rem;
-	font-size: 1.5rem;
-	box-shadow: 0 4px 6px rgba(217, 119, 6, 0.2);
-	transition: all var(--transition-base);
-}
-
-.feature-detail:hover .feature-detail-icon {
-	transform: scale(1.1) rotate(5deg);
-	box-shadow: 0 6px 12px rgba(217, 119, 6, 0.3);
-}
-
-.feature-detail-content {
-	flex: 1;
-}
-
-.feature-detail-content h3 {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 1.25rem;
-	color: var(--text-primary);
-	margin: 0 0 0.5rem 0;
-	line-height: 1.3;
-}
-
-.feature-detail-content p {
-	color: var(--text-secondary);
-	line-height: 1.6;
-	margin: 0;
-	font-size: 0.95rem;
 }
 
 /* Download Section */
@@ -841,68 +460,382 @@
 	text-align: center;
 }
 
-.text-container h1 {
+.text-container h2 {
 	font-size: clamp(1.75rem, 4vw, 2.5rem);
 }
 
+/* Full-bleed sections manage their own width, so the page wrapper only takes
+   over .main-content's job of pushing the footer down. */
+.page-main {
+	flex: 1;
+	width: 100%;
+}
+
+/* ========================================
+   Hero Actions
+   ======================================== */
+
+.hero-actions {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 1rem;
+	justify-content: center;
+	margin-top: 1.75rem;
+	position: relative;
+	z-index: 1;
+}
+
+.hero-btn {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.6rem;
+	font-family: 'Kingthings Typewriter', 'Courier New', monospace;
+	font-size: 1.15rem;
+	padding: 0.9rem 1.9rem;
+	border-radius: 0.4rem;
+	text-decoration: none;
+	transition: background var(--transition-fast),
+	transform var(--transition-fast),
+	box-shadow var(--transition-fast);
+}
+
+.hero-btn--primary {
+	background: var(--accent);
+	color: white;
+	box-shadow: var(--shadow-lg);
+}
+
+.hero-btn--primary:hover {
+	background: var(--accent-light);
+	color: white;
+	transform: translateY(-2px);
+}
+
+.hero-platforms {
+	margin-top: 1.5rem;
+	color: rgba(255, 255, 255, 0.85);
+	font-size: 0.9rem;
+	letter-spacing: 0.06em;
+	position: relative;
+	z-index: 1;
+	text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.6);
+}
+
+/* ========================================
+   Showcase Bands
+   ======================================== */
+
+.showcase {
+	padding: clamp(3rem, 7vw, 5.5rem) 2rem;
+}
+
+.showcase--surface {
+	background: var(--surface);
+	border-top: 1px solid var(--border);
+	border-bottom: 1px solid var(--border);
+}
+
+.showcase--sunk {
+	background: var(--neutral-100);
+	border-top: 1px solid var(--border);
+	border-bottom: 1px solid var(--border);
+}
+
+.showcase__inner {
+	max-width: 1200px;
+	margin: 0 auto;
+}
+
+.showcase__inner h2 {
+	text-wrap: balance;
+}
+
+/* Bound to the heading it labels: sized up, pulled tight, and marked with a rule.
+   Detached and set small, it read as unrelated furniture and testers missed it. */
+.eyebrow {
+	display: flex;
+	align-items: center;
+	gap: 0.55rem;
+	font-family: 'Kingthings Typewriter', 'Courier New', monospace;
+	font-size: 0.95rem;
+	letter-spacing: 0.1em;
+	text-transform: uppercase;
+	color: var(--accent-dark);
+	margin-bottom: 0.4rem;
+}
+
+.eyebrow::before {
+	content: '';
+	flex: none;
+	width: 1.5rem;
+	height: 3px;
+	background: var(--accent);
+}
+
+/* The rule cards already carry an accent bar across the top. */
+.rule .eyebrow::before {
+	display: none;
+}
+
+.lede {
+	font-size: 1.15rem;
+	color: var(--text-secondary);
+	max-width: 62ch;
+}
+
+/* ========================================
+   Feature Rows
+   ======================================== */
+
+.feature-rows {
+	margin-top: clamp(2.5rem, 6vw, 3.5rem);
+}
+
+/* A row with only a copy column collapses to one full-width column, so rows
+   whose screenshot does not exist yet still read correctly. */
+.feature-row {
+	display: grid;
+	gap: clamp(1.5rem, 4vw, 3.5rem);
+	align-items: center;
+	grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+	margin-bottom: clamp(3rem, 7vw, 5rem);
+}
+
+.feature-row:last-child {
+	margin-bottom: 0;
+}
+
+.feature-row--flip .feature-row__media {
+	order: -1;
+}
+
+/* Without a second column the row would stretch its heading to the full band
+   width while the paragraphs stayed at their measure. */
+.feature-row--copy-only {
+	grid-template-columns: minmax(0, 72ch);
+}
+
+.feature-row__copy h3 {
+	font-size: clamp(1.6rem, 3vw, 2.3rem);
+	margin-bottom: 0.9rem;
+	text-wrap: balance;
+}
+
+.feature-row__copy p {
+	color: var(--text-secondary);
+	margin-bottom: 0.85rem;
+	max-width: 62ch;
+}
+
+.feature-row__copy p:last-child {
+	margin-bottom: 0;
+}
+
+.shot {
+	width: 100%;
+	height: auto;
+	display: block;
+	border-radius: 0.6rem;
+	box-shadow: var(--shadow-xl);
+	border: 1px solid var(--neutral-300);
+}
+
+/* ========================================
+   Export Format List
+   ======================================== */
+
+.format-list {
+	margin: 0 0 1.25rem;
+	max-width: 62ch;
+}
+
+.format-list dt {
+	font-family: 'Kingthings Typewriter', 'Courier New', monospace;
+	font-size: 1.1rem;
+	color: var(--text-primary);
+	margin-top: 0.85rem;
+}
+
+.format-list dt:first-child {
+	margin-top: 0;
+}
+
+.format-list dd {
+	margin: 0.15rem 0 0;
+	padding-left: 1.25rem;
+	border-left: 2px solid var(--border);
+	color: var(--text-secondary);
+}
+
+/* ========================================
+   The Three Rules
+   ======================================== */
+
+.rules {
+	display: grid;
+	gap: clamp(1.5rem, 3vw, 2.5rem);
+	grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+	margin-top: 3rem;
+}
+
+.rule {
+	background: var(--surface);
+	border-radius: 0.5rem;
+	padding: 2rem;
+	box-shadow: var(--shadow-md);
+	border-top: 4px solid var(--accent);
+}
+
+/* Sits on the rule name's line, in place of the eyebrow's dash. Set larger than the
+   label it accompanies so it still reads as an icon rather than a bullet. */
+.rule__icon {
+	font-size: 1.25rem;
+	line-height: 1;
+	color: var(--accent);
+}
+
+.rule h3 {
+	font-size: clamp(1.35rem, 2.2vw, 1.7rem);
+	margin-bottom: 0.75rem;
+}
+
+.rule p {
+	color: var(--text-secondary);
+	margin-bottom: 0;
+}
+
+/* ========================================
+   Origin Story
+   ======================================== */
+
+/* The photograph is much taller than the copy beside it, so the text sits against
+   the middle of the frame rather than stranded at the top. */
+.origin {
+	display: grid;
+	gap: clamp(1.5rem, 4vw, 3rem);
+	align-items: center;
+	grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+	margin-top: 2.5rem;
+}
+
+.origin__media {
+	margin: 0;
+}
+
+.origin__caption {
+	margin-top: 0.75rem;
+	font-size: 0.85rem;
+	color: var(--text-tertiary);
+	font-family: 'Kingthings Typewriter', 'Courier New', monospace;
+	letter-spacing: 0.04em;
+}
+
+.origin__copy p {
+	color: var(--text-secondary);
+	max-width: 62ch;
+}
+
+.origin__link a {
+	font-family: 'Kingthings Typewriter', 'Courier New', monospace;
+	color: var(--accent-dark);
+	text-decoration: none;
+	border-bottom: 1px solid var(--accent);
+}
+
+.origin__link a:hover {
+	color: var(--accent);
+}
+
+/* ========================================
+   Price
+   ======================================== */
+
+.price {
+	text-align: center;
+}
+
+.price__amount {
+	font-family: 'Kingthings Typewriter', 'Courier New', monospace;
+	font-size: clamp(4rem, 12vw, 7rem);
+	line-height: 1;
+	color: var(--accent-dark);
+	margin-bottom: 1rem;
+}
+
+.price__body {
+	max-width: 54ch;
+	margin: 0 auto;
+	color: var(--text-secondary);
+	font-size: 1.1rem;
+}
+
+/* ========================================
+   FAQ
+   ======================================== */
+
+.faq__heading {
+	text-align: center;
+}
+
+.faq {
+	max-width: 52rem;
+	margin: 3rem auto 0;
+}
+
+.faq__item {
+	border-top: 1px solid var(--border);
+	padding: 1.5rem 0;
+}
+
+.faq__item:last-child {
+	border-bottom: 1px solid var(--border);
+}
+
+.faq__q {
+	font-family: 'Kingthings Typewriter', 'Courier New', monospace;
+	font-size: 1.2rem;
+	margin-bottom: 0.5rem;
+}
+
+.faq__a {
+	color: var(--text-secondary);
+	max-width: 62ch;
+	margin-bottom: 0;
+}
+
+/* ========================================
+   Under the Hood
+   ======================================== */
+
+.hood .feature-grid {
+	margin-bottom: 0;
+}
+
 /* Responsive Design */
+@media only screen and (max-width: 832px) {
+	/* Below two columns the flipped row would push its screenshot above the
+	   heading it belongs to. */
+	.feature-row--flip .feature-row__media {
+		order: 0;
+	}
+}
+
 @media only screen and (max-width: 768px) {
 	.main-content {
 		padding: 0 1.5rem;
 	}
 
+	.showcase,
+	.instance-strip {
+		padding-left: 1.5rem;
+		padding-right: 1.5rem;
+	}
+
 	.masthead {
-		padding: 4rem 1.5rem;
-	}
-
-	.about-server-callout {
-		margin: -1rem 1rem 0;
-		max-width: none;
-	}
-
-	.about-server-callout__inner {
-		padding: 0.875rem 1rem;
-		transform: rotate(0deg);
-		gap: 0.75rem;
-	}
-
-	.about-server-callout__icon {
-		width: 2rem;
-		height: 2rem;
-		font-size: 0.95rem;
-	}
-
-	.about-server-callout__title {
-		font-size: 0.875rem;
-	}
-
-	.about-server-callout__text {
-		font-size: 0.75rem;
-	}
-
-	.community-callout {
-		margin: 1rem 1rem 0;
-		max-width: none;
-	}
-
-	.community-callout__inner {
-		padding: 1rem;
-		transform: rotate(0deg);
-		gap: 0.75rem;
-	}
-
-	.community-callout__icon {
-		width: 2.5rem;
-		height: 2.5rem;
-		font-size: 1rem;
-	}
-
-	.community-callout__title {
-		font-size: 0.9375rem;
-	}
-
-	.community-callout__text {
-		font-size: 0.8125rem;
+		padding: 2.5rem 1.5rem;
+		background-image: url('/assets/images/masthead-960.jpg');
+		background-image: image-set(url('/assets/images/masthead-960.webp') type('image/webp'),
+		url('/assets/images/masthead-960.jpg') type('image/jpeg'));
 	}
 
 	.paper-section {
@@ -931,30 +864,6 @@
 		transform: translateY(-4px);
 	}
 
-	.section-divider {
-		margin: 2rem 0 1.5rem;
-		gap: 1rem;
-	}
-
-	.section-label {
-		font-size: 0.95rem;
-	}
-
-	.detailed-features {
-		padding: 3rem 0;
-		margin: 2rem 0;
-	}
-
-	.detailed-features-container {
-		grid-template-columns: 1fr;
-		gap: 2rem;
-		padding: 0 1.5rem;
-	}
-
-	.feature-detail:hover {
-		transform: translateX(4px);
-	}
-
 	.download-grid {
 		grid-template-columns: 1fr;
 		gap: 1.25rem;
@@ -980,19 +889,15 @@
 		transform: rotate(0deg) !important;
 	}
 
-	.about-server-callout {
+	/* The tagline starts at opacity 0 and is revealed by its animation, so the
+	   animation cannot simply be dropped without leaving it invisible. */
+	.masthead-content,
+	.masthead-tagline {
 		animation: none;
+		opacity: 1;
 	}
 
-	.about-server-callout__inner {
-		transform: rotate(0deg);
-	}
-
-	.community-callout {
-		animation: none;
-	}
-
-	.community-callout__inner {
-		transform: rotate(0deg);
+	.hero-btn--primary:hover {
+		transform: none;
 	}
 }

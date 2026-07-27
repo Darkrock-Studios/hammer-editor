@@ -1,12 +1,15 @@
 /* Modern Writer's Workspace Theme */
 
-@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;1,400&display=swap');
+/* Lora is linked from the page head, not imported here: an @import can't be discovered until this
+   stylesheet has downloaded, which pushes the font two round trips down the critical path. */
 
 @font-face {
 	font-family: 'Kingthings Typewriter';
-	src: url('/assets/Kingthings_Trypewriter_2.ttf') format('truetype');
+	src: url('/assets/Kingthings_Trypewriter_2.woff2') format('woff2'),
+	url('/assets/Kingthings_Trypewriter_2.ttf') format('truetype');
 	font-weight: normal;
 	font-style: normal;
+	font-display: swap;
 }
 
 :root {
@@ -83,6 +86,14 @@ body {
 	flex-direction: column;
 	-webkit-font-smoothing: antialiased;
 	-moz-osx-font-smoothing: grayscale;
+}
+
+/* Font Awesome is fetched off the critical path, so its icons are zero-width boxes until
+   async-css.js promotes the stylesheet and drops fa-pending. Holding roughly a glyph's width
+   until then keeps the promotion from shoving adjacent label text sideways. */
+.fa-pending i[class*="fa-"] {
+	display: inline-block;
+	min-width: 1.25em;
 }
 
 /* Typography */
@@ -174,6 +185,9 @@ a:focus-visible {
 .site-title {
 	font-family: 'Kingthings Typewriter', monospace;
 	font-size: 1.75rem;
+	font-weight: normal;
+	line-height: 1.2;
+	letter-spacing: 0.01em;
 	color: var(--text-primary);
 	margin: 0;
 }
@@ -231,7 +245,9 @@ a:focus-visible {
 	z-index: 101;
 }
 
-.nav-toggle__icon--close {
+/* Scoped to the button so it outranks Font Awesome's own `.fa-solid { display }`,
+   which loads after this file and would otherwise un-hide the close icon. */
+.nav-toggle .nav-toggle__icon--close {
 	display: none;
 }
 
@@ -288,6 +304,185 @@ a:focus-visible {
 
 .header-nav__label {
 	/* Hidden on desktop, shown on mobile menu */
+}
+
+/* Community badge: the author count rides on the nav link, and the detail is a
+   disclosure rather than a card taking up room on the page. */
+.header-nav__item {
+	position: relative;
+	display: flex;
+	align-items: center;
+	gap: 0;
+}
+
+/* Hovering the badge lights the link too, so the pair reads as one control. */
+.header-nav__item:hover .header-nav__link {
+	color: var(--accent);
+	background: rgba(217, 119, 6, 0.08);
+}
+
+/* Pulled back into the link's own padding. Without this the badge sits 1.2rem from
+   its own label and 1.4rem from the next link, so it appears to belong to neither. */
+.community-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	margin-left: -0.55rem;
+	min-width: 1.45rem;
+	height: 1.45rem;
+	padding: 0 0.4rem;
+	border: 0;
+	border-radius: 999px;
+	background: var(--accent);
+	color: white;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.78rem;
+	line-height: 1;
+	font-variant-numeric: tabular-nums;
+	cursor: pointer;
+	transition: background var(--transition-fast), transform var(--transition-fast);
+}
+
+.community-badge:hover {
+	background: var(--accent-light);
+	transform: translateY(-1px);
+}
+
+.community-badge:focus-visible {
+	outline: 2px solid var(--accent-dark);
+	outline-offset: 2px;
+}
+
+.community-badge__pop {
+	position: absolute;
+	top: calc(100% + 0.6rem);
+	right: 0;
+	z-index: 120;
+	width: max-content;
+	max-width: min(20rem, 78vw);
+	padding: 1rem;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-top: 3px solid var(--accent);
+	border-radius: 0.4rem;
+	box-shadow: var(--shadow-lg);
+	opacity: 0;
+	visibility: hidden;
+	transform: translateY(-0.25rem);
+	transition: opacity var(--transition-fast),
+	transform var(--transition-fast),
+	visibility var(--transition-fast);
+}
+
+/* Points back at the badge, and picks up the panel's accent top edge. The offset
+   centres it under the badge: the panel right-aligns to the item, whose right edge
+   is the badge's, so it is half the badge minus half the notch. */
+.community-badge__pop::before {
+	content: '';
+	position: absolute;
+	top: -0.45rem;
+	right: 0.28rem;
+	width: 0.9rem;
+	height: 0.45rem;
+	background: var(--accent);
+	clip-path: polygon(50% 0, 100% 100%, 0 100%);
+}
+
+/* Pointer devices reveal it on hover; touch relies on the badge's own tap. */
+@media (hover: hover) {
+	.header-nav__item:hover .community-badge__pop,
+	.header-nav__item:focus-within .community-badge__pop {
+		opacity: 1;
+		visibility: visible;
+		transform: none;
+	}
+}
+
+.community-badge[aria-expanded="true"] + .community-badge__pop {
+	opacity: 1;
+	visibility: visible;
+	transform: none;
+}
+
+/* Neutral rather than accent: the panel already carries the accent on its top
+   edge, its icons and its link, and this is a container title, not a section label. */
+.community-badge__title {
+	margin: 0 0 0.85rem;
+	padding-bottom: 0.65rem;
+	border-bottom: 1px solid var(--border);
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.78rem;
+	letter-spacing: 0.14em;
+	text-transform: uppercase;
+	color: var(--text-secondary);
+	text-align: center;
+}
+
+.community-stats {
+	display: flex;
+	align-items: stretch;
+}
+
+.community-stat {
+	flex: 1;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 0.15rem;
+	padding: 0 0.9rem;
+	text-align: center;
+}
+
+.community-stat + .community-stat {
+	border-left: 1px solid var(--border);
+}
+
+.community-stat__icon {
+	color: var(--accent);
+	font-size: 0.95rem;
+	margin-bottom: 0.2rem;
+}
+
+.community-stat__value {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.6rem;
+	line-height: 1;
+	color: var(--text-primary);
+	font-variant-numeric: tabular-nums;
+}
+
+.community-stat__label {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.75rem;
+	letter-spacing: 0.03em;
+	color: var(--text-secondary);
+}
+
+.community-badge__link {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.45rem;
+	margin-top: 0.85rem;
+	padding-top: 0.7rem;
+	border-top: 1px solid var(--border);
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8rem;
+	color: var(--accent-dark);
+	text-decoration: none;
+}
+
+.community-badge__link i {
+	font-size: 0.7rem;
+	transition: transform var(--transition-fast);
+}
+
+.community-badge__link:hover {
+	color: var(--accent);
+}
+
+.community-badge__link:hover i {
+	transform: translateX(3px);
 }
 
 .btn {
@@ -427,9 +622,100 @@ a:focus-visible {
 	transform: translateX(-50%) translateY(0);
 }
 
+/* Studio credit and version share a line: same size, same colour, both are
+   "who and what this is" rather than navigation. */
+/* ========================================
+   Instance Band - Server Notice
+   ======================================== */
+
+.instance-band {
+	background: var(--sticky-yellow);
+	border-bottom: 2px solid var(--accent);
+}
+
+.instance-band__inner {
+	max-width: 1200px;
+	margin: 0 auto;
+	padding: 1.1rem 2rem;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 0.5rem 1.5rem;
+}
+
+.instance-band__label {
+	font-family: 'Kingthings Typewriter', 'Courier New', monospace;
+	font-size: 0.8rem;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--neutral-700);
+}
+
+.instance-band__text {
+	flex: 1 1 20rem;
+	color: var(--neutral-800);
+}
+
+.instance-band__text p:last-child {
+	margin-bottom: 0;
+}
+
+/* Only a separator when it actually follows a server message; a whitelisted server
+   with no message set shows this band on its own. */
+.instance-band__inner--whitelist:not(:first-child) {
+	padding-top: 0;
+	border-top: 1px dashed rgba(180, 83, 9, 0.4);
+}
+
+.instance-band__inner--whitelist p {
+	margin: 0;
+	font-size: 0.95rem;
+	color: var(--neutral-700);
+}
+
+.instance-band__inner--whitelist:not(:first-child) p {
+	margin-top: 0.9rem;
+}
+
+.footer-colophon {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	flex-wrap: wrap;
+	gap: 0.55rem;
+}
+
+.footer-colophon__sep {
+	color: var(--neutral-600);
+	line-height: 1;
+}
+
+.footer-studio {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.55rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375rem;
+	color: var(--neutral-400);
+	text-decoration: none;
+	transition: color var(--transition-fast);
+}
+
+.footer-studio:hover {
+	color: var(--accent);
+}
+
+/* The glider is a 3x3 board with cells drawn in it, so it needs more room than a
+   glyph would: below about 22px the grid lines and cells blur together. */
+.footer-studio__glider {
+	width: 24px;
+	height: 24px;
+	flex: none;
+}
+
 .footer-version {
 	font-family: 'Kingthings Typewriter', monospace;
-	color: var(--neutral-500);
+	color: var(--neutral-400);
 	font-size: 0.9375rem;
 }
 
@@ -649,6 +935,27 @@ a:focus-visible {
 
 	.header-nav__link--primary {
 		justify-content: flex-start;
+	}
+
+	/* In the drawer the nav is a column, so the badge sits at the end of its row. */
+	.instance-band__inner {
+		padding-left: 1.5rem;
+		padding-right: 1.5rem;
+	}
+
+	.header-nav__item .header-nav__link {
+		flex: 1;
+	}
+
+	.community-badge {
+		margin-right: 0.5rem;
+	}
+
+	.community-badge__pop {
+		max-width: none;
+		width: auto;
+		left: 0;
+		right: 0;
 	}
 
 	/* Overlay when menu is open */

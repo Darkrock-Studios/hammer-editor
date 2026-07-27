@@ -1,20 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="timeline_title">Zeitstrahl</string>
 	<string name="timeline_no_events">Kein Ereignis</string>
 	<string name="timeline_create_event_button">Ereignis erstellen</string>
-	<string name="timeline_create_close_button">Schließen</string>
-	<string name="timeline_create_title">Ereignis</string>
-	<string name="timeline_create_date_label">Datum (optional)</string>
-	<string name="timeline_create_content_label">Inhalt</string>
-	<string name="timeline_create_create_event_button">Erstellen</string>
 	<string name="timeline_create_toast_success">Ereignis erstellt</string>
-	<string name="timeline_create_toast_failure">Ereignis konnte nicht erstellt werden</string>
 	<string name="timeline_create_toast_tag_too_long">Tag war zu lang (max. %1$d)</string>
 	<string name="timeline_create_tags_label">Tags</string>
 	<string name="timeline_create_tags_hint">↵ zum Hinzufügen</string>
 	<string name="timeline_create_tags_placeholder">Handlungsbogen, Vorausdeutung, Konflikt…</string>
-	<string name="timeline_view_title">Ereignis</string>
 	<string name="timeline_view_header">Ereignis</string>
 	<string name="timeline_view_label_editing">Bearbeitung</string>
 	<string name="timeline_view_crumb_root">Zeitstrahl</string>
@@ -26,7 +18,6 @@
 	<string name="timeline_view_date_hint">optional</string>
 	<string name="timeline_view_date_placeholder">z. B. Frühling von J3</string>
 	<string name="timeline_view_undated">UNDATIERT</string>
-	<string name="timeline_view_content_placeholder">Beschreiben Sie das Ereignis</string>
 	<string name="timeline_view_status_unsaved">UNGESPEICHERT</string>
 	<string name="timeline_view_status_word_char">%1$d W · %2$d Z</string>
 	<string name="timeline_view_status_hint">ESC ZUM ABBRECHEN</string>
@@ -48,7 +39,7 @@
 	<string name="timeline_view_menu_delete">Löschen</string>
 	<string name="timeline_view_confirm_delete_title">Ereignis löschen?</string>
 	<string name="timeline_view_confirm_delete_message">Dies kann nicht rückgängig gemacht werden!</string>
-	<string name="timeline_header">Zeitstrahl</string>
+	<string name="timeline_header">Timeline</string>
 	<string name="timeline_header_meta">%1$d EINTRÄGE · %2$d TAGS</string>
 	<string name="timeline_search_button">Zeitstrahl durchsuchen</string>
 	<string name="timeline_search_placeholder">Zeitstrahl durchsuchen</string>

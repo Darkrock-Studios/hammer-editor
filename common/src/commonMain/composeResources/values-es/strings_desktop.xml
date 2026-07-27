@@ -15,5 +15,4 @@
 	<string name="sandbox_choose_folder_button">Elegir carpeta</string>
 	<string name="sandbox_quit_button">Salir</string>
 	<string name="sandbox_retry_message">Hammer needs a folder to store your projects.\nChoose a folder now, or quit.</string>
-	<string name="splash_subtitle">Una herramienta sencilla para crear historias.</string>
 </resources>

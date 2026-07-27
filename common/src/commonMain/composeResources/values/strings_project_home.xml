@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <resources>
-	<string name="project_home_stat_header">Stats:</string>
 	<string name="project_home_stat_created">Created: %1$s</string>
 	<string name="project_home_loading_stats">Calculating statistics...</string>
 	<string name="project_home_refresh_stats_button">Refresh statistics</string>
@@ -11,7 +10,6 @@
 
 	<string name="project_home_stat_chapter_words">Words in Chapters</string>
 	<string name="project_home_stat_chapter_words_x_axis">Chapter</string>
-	<string name="project_home_stat_chapter_words_y_axis">Words</string>
 	<string name="project_home_stat_chapter_words_tooltip">%1$s: %2$s words</string>
 
 	<string name="project_home_stat_avg_words_per_scene">Avg Words / Scene</string>
@@ -21,23 +19,15 @@
 	<string name="project_home_stat_longest_scene_words">%1$s words</string>
 	<string name="project_home_stat_longest_scene_empty">No scenes yet</string>
 	<string name="project_home_stat_last_edited_scene">Last Edited</string>
-	<string name="project_home_stat_scene_lengths">Scene Lengths</string>
 	<string name="project_home_stat_scene_median">Median</string>
-	<string name="project_home_stat_scene_shortest">Shortest</string>
-	<string name="project_home_stat_scene_longest">Longest</string>
-	<string name="project_home_stat_avg_scenes_per_chapter">Scenes / chapter</string>
 
 	<string name="project_home_stat_reading_time">≈ %1$d min reading</string>
 	<string name="project_home_stat_pages">%1$d pages</string>
 
 	<string name="project_home_stat_daily_goal">Daily goal</string>
 	<string name="project_home_stat_weekly_goal">Weekly goal</string>
-	<string name="project_home_stat_goal_progress">%1$s / %2$s</string>
 
 	<string name="project_home_stat_this_week">This week</string>
-	<string name="project_home_stat_this_week_value">+%1$s words</string>
-	<string name="project_home_stat_week_change_up">▲ %1$d%% vs last week</string>
-	<string name="project_home_stat_week_change_down">▼ %1$d%% vs last week</string>
 	<string name="project_home_stat_week_change_flat">no change vs last week</string>
 	<string name="project_home_stat_week_change_new">no data last week</string>
 	<string name="project_home_stat_today">Today</string>
@@ -81,7 +71,6 @@
 	<string name="project_home_stat_themes_source_encyclopedia">Encyclopedia</string>
 	<string name="project_home_stat_themes_source_events">Events</string>
 
-	<string name="project_home_actions_header">Actions:</string>
 	<string name="project_home_action_export">Export Story</string>
 	<string name="project_home_action_sync">Sync Story</string>
 	<string name="project_home_action_backup">Backup</string>
@@ -117,11 +106,9 @@
 	<string name="project_home_export_contents_title">Contents</string>
 	<string name="project_home_export_byline">by %1$s</string>
 
-	<string name="project_home_action_import">Import Story</string>
 	<string name="project_home_action_import_toast_success">Story Imported</string>
 	<string name="project_home_action_import_toast_failure">Import failed</string>
 	<string name="project_home_import_dialog_title">Import Story</string>
-	<string name="project_home_import_format_label">Format</string>
 	<string name="project_home_import_heading_label">Chapter detection</string>
 	<string name="project_home_import_heading_auto">Auto</string>
 	<string name="project_home_import_heading_h1">H1 (#)</string>
@@ -138,11 +125,7 @@
 	<string name="project_home_import_cancel">Cancel</string>
 	<string name="project_home_import_execute">Import</string>
 
-	<string name="project_home_destinations_header">Project:</string>
-	<string name="project_home_action_stats_button">Stats</string>
 	<string name="project_home_action_settings_button">Settings</string>
 
 	<string name="project_home_menu_button">Project menu</string>
-	<string name="project_home_settings_title">Project Settings</string>
-	<string name="project_home_settings_close_button">Close settings</string>
 </resources>

@@ -8,7 +8,34 @@ the internet, this is probably not for you._
 ## Getting Started
 So you want to run an Instance of the Hammer Server? Great!
 
-_Note: For now, the server is only available as a Java executable. Eventually we'll add Docker images._
+There are two ways to run it:
+
+- **Docker** (easiest): a pre-built image that self-hosts with a single volume
+  and no external database. See [Docker](#docker) below.
+- **Java executable**: download the distribution and run it directly on Windows,
+  Linux, or macOS. Continue with the steps below.
+
+## Docker
+
+A slim, non-root image is published to GitHub Container Registry, using the
+embedded PostgreSQL database by default:
+
+```bash
+cd docker
+docker compose up -d
+```
+
+**See [HOW-TO-RUN-A-SERVER-DOCKER.md](HOW-TO-RUN-A-SERVER-DOCKER.md) for the full
+Docker guide.** The feature sections below (whitelisting, email, community,
+analytics, encryption) apply to Docker too, since the server auto-loads
+`config.toml` from the mounted data directory.
+
+> The **networking** guidance below, in particular the `bindHosts` setting in
+> the reverse-proxy section, does **not** apply to containers, where it makes
+> the server unreachable. Follow the Docker guide instead for anything about
+> ports, binding, or TLS.
+
+## Running the Java executable
 
 The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 
@@ -32,8 +59,8 @@ The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 ## Network binding
 
 By default the server binds to all IPv4 interfaces (`0.0.0.0`), so it accepts connections from the
-network. To isolate it — for example when a reverse proxy on the same host is the only thing that
-should reach it — restrict the bind to loopback with `bindHosts`:
+network. To isolate it (for example when a reverse proxy on the same host is the only thing that
+should reach it) restrict the bind to loopback with `bindHosts`:
 
 ```toml
 # Accept loopback connections only (IPv4 and IPv6). Default is ["0.0.0.0"].
@@ -47,8 +74,8 @@ SSL cert is configured).
 ## Rich link previews (optional)
 
 By default, sharing an author or story link on social media shows a branded static preview card.
-To instead generate a **per-page** share image — the story title or author name rendered onto the
-card — enable `richLinkPreviews`:
+To instead generate a **per-page** share image (the story title or author name rendered onto the
+card) enable `richLinkPreviews`:
 
 ```toml
 richLinkPreviews = true
@@ -72,7 +99,7 @@ cards, so the out-of-the-box setup needs nothing extra.
 The server persists its data in a PostgreSQL database. It supports two modes:
 
 - **Embedded (default):** An in-process PostgreSQL server is started automatically. Data lives under
-  `~/hammer_data/pgdata/`. No external services required — drop the JAR on a box and run it.
+  `~/hammer_data/pgdata/`. No external services required: drop the JAR on a box and run it.
 - **Remote:** Point at an externally-managed PostgreSQL server. Use this when you outgrow embedded
   or want managed backups.
 
@@ -109,7 +136,7 @@ useSsl = true
 Older releases (prior to v3.1.0) used SQLite (`~/hammer_data/server.db`). The first run after
 upgrading auto-detects the file and migrates its contents into PostgreSQL inside a single
 transaction, then renames the source to `server.db.migrated-<timestamp>.bak`. If migration fails for
-any reason, the SQLite file is left untouched and the server exits with an error — fix the cause and
+any reason, the SQLite file is left untouched and the server exits with an error. Fix the cause and
 start again.
 
 To rehearse the migration against a copy of production before flipping the live config, run with `--migrate-dry-run`: it does everything except commit and rename.
@@ -120,7 +147,7 @@ The server caches two regenerable things on disk: rendered story HTML and the Op
 images used for rich link previews. By default they live in `~/hammer_data/cache/`, one
 subdirectory per cache.
 
-Nothing in there is durable data — deleting it costs a re-render, never content — so it is a good
+Nothing in there is durable data (deleting it costs a re-render, never content) so it is a good
 candidate for a scratch volume:
 
 ```toml
@@ -139,7 +166,7 @@ story's prose never lands on the cache volume.
 
 ## Encryption at rest
 
-Content encryption at rest is **optional** — a fresh server stores in plaintext and
+Content encryption at rest is **optional**: a fresh server stores in plaintext and
 needs no key material. This is recommended for most self-hosters. Encryption is
 slower, and carries the possibility of total data loss if key material is mishandled.
 
@@ -249,7 +276,7 @@ Run the server:
 
 **Hammer clients only speak `https`.** A client will never connect over plain HTTP, so a
 server that clients reach **directly** must terminate TLS. The only deployment that can run
-Hammer on plain HTTP is one sitting **behind a reverse proxy** — the proxy holds the
+Hammer on plain HTTP is one sitting **behind a reverse proxy**: the proxy holds the
 certificate and forwards plain HTTP to Hammer on the same host.
 
 There are two ways to serve Hammer over `https`. Pick **one**:
@@ -262,7 +289,7 @@ There are two ways to serve Hammer over `https`. Pick **one**:
   [Reverse Proxy using Nginx](#reverse-proxy-using-nginx) instead.
 
 > The plain HTTP connector (`port`, default 8080) still exists solely for the reverse-proxy
-> case. Do not expose it directly to clients — they won't use it.
+> case. Do not expose it directly to clients; they won't use it.
 
 If you want Hammer to terminate SSL itself, you'll first need to edit your server config file and
 add these lines:
@@ -277,8 +304,8 @@ forceHttps = true # Optional, defualts to true
 #### Self-signed certs are not supported in production
 
 Don't use a self-signed certificate for a real deployment. The mobile clients trust only the
-system CA store — Android won't trust user-added or self-signed CAs by default, and iOS rejects
-them too — so they'll fail the TLS handshake with no way to override it. The desktop client also
+system CA store (Android won't trust user-added or self-signed CAs by default, and iOS rejects
+them too) so they'll fail the TLS handshake with no way to override it. The desktop client also
 rejects self-signed certs outside development mode. Use a real certificate from **Let's Encrypt**
 below (or put Hammer behind a reverse proxy that holds one).
 
@@ -291,7 +318,7 @@ port 443 (which needs root on Linux/macOS), the dev connector listens on **8443*
 set `sslPort` to override. Point the client at `localhost:8443` or `127.0.0.1:8443`.
 
 The desktop client run with `--dev` trusts this self-signed cert, but **only for loopback hosts**
-(localhost / 127.0.0.1) — a `--dev` client talking to any other host still does full certificate
+(localhost / 127.0.0.1): a `--dev` client talking to any other host still does full certificate
 and hostname validation, so pointing a dev build at a real server is not silently insecure.
 
 This path never activates without `--dev`; a production server with no `sslCert` serves plain HTTP
@@ -305,7 +332,7 @@ and [relatively easy to setup](https://letsencrypt.org/getting-started/).
 
 Hammer can accept certificates in two formats:
 
-- PEM - _Privacy Enhanced Mail_ (recommended — what certbot/Let's Encrypt produces directly)
+- PEM - _Privacy Enhanced Mail_ (recommended; what certbot/Let's Encrypt produces directly)
 - JKS - _Java Key Store_ (legacy)
 
 #### PEM (recommended)
@@ -314,7 +341,7 @@ Once you've set it up, Let's Encrypt will give you a directory of PEM files such
 `/etc/letsencrypt/live/example.com`. The two files we care about are `fullchain.pem` and
 `privkey.pem`.
 
-Point **Hammer** straight at them in your `config.toml` — no conversion needed:
+Point **Hammer** straight at them in your `config.toml`, no conversion needed:
 
 ```toml
 [sslCert]
@@ -375,13 +402,13 @@ when a new cert is genuinely being issued.
 
 > **Note:** You can also pass `--pre-hook`/`--post-hook` on the command line, but certbot only
 > persists them into the
-> config when a renewal actually occurs — so setting them while no renewal is due (the common case)
+> config when a renewal actually occurs, so setting them while no renewal is due (the common case)
 > silently does
 > nothing. Editing the config directly, as above, always works.
 
 When Hammer points at the PEM files directly (recommended), the `post_hook` restart is all that's
 needed to pick up
-the new cert — there's no conversion step.
+the new cert; there's no conversion step.
 
 Renewals fire automatically on a timer that certbot installs. Confirm it's active:
 
@@ -389,14 +416,14 @@ Renewals fire automatically on a timer that certbot installs. Confirm it's activ
 systemctl list-timers | grep certbot
 ```
 
-The timer's unit name depends on how certbot was installed — `certbot.timer` (apt/dnf) or
-`snap.certbot.renew.timer` (snap) — which is why grepping `list-timers` is the reliable check.
+The timer's unit name depends on how certbot was installed, either `certbot.timer` (apt/dnf) or
+`snap.certbot.renew.timer` (snap), which is why grepping `list-timers` is the reliable check.
 
 ## Reverse Proxy using Nginx
 
 Instead of having Hammer terminate TLS itself (the [Setting up SSL](#setting-up-ssl-optional)
 section above), you can put it behind a reverse proxy that terminates TLS and forwards plain HTTP to
-Hammer. This is good practice — especially when other services share the host — and is documented
+Hammer. This is good practice, especially when other services share the host, and is documented
 here for Nginx. Use **either** this approach **or** Java SSL, not both.
 
 ### Changes to config.toml

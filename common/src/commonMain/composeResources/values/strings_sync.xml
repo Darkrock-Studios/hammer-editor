@@ -6,14 +6,12 @@
 	<string name="sync_conflict_scene_draft_title">Scene Draft Conflict</string>
 	<string name="sync_conflict_note_title">Note Conflict</string>
 	<string name="sync_conflict_timeline_title">Timeline Event Conflict</string>
-	<string name="sync_conflict_draft_title">Draft Conflict</string>
 
 	<string name="sync_conflict_timeline_event_missing_date">No Date</string>
 
 	<string name="sync_conflict_tab_local">Local</string>
 	<string name="sync_conflict_tab_remote">Remote</string>
 
-	<string name="sync_conflict_icon_description">conflict</string>
 	<string name="sync_conflict_header_title">%1$s Conflict</string>
 	<string name="sync_conflict_entity_label_scene">Scene</string>
 	<string name="sync_conflict_entity_label_note">Note</string>
@@ -22,20 +20,14 @@
 	<string name="sync_conflict_entity_label_scene_draft">Scene Draft</string>
 	<string name="sync_conflict_entity_label_project_data">Project Settings</string>
 
-	<string name="sync_conflict">Conflict</string>
-	<string name="sync_conflict_local_entry">Local Entry:</string>
-	<string name="sync_conflict_local_use_button">Use Local</string>
 
 	<string
 		name="sync_conflict_merge_explained">You can take either the local or remote copy as is, or you can manually merge the two by copying parts of the remote into your local copy, and then taking that.
 	</string>
 
-	<string name="sync_conflict_remote_entry">Remote Entry:</string>
-	<string name="sync_conflict_remote_use_button">Use Remote</string>
 
 	<string name="sync_conflict_encyclopedia_title">Encyclopedia Entry Conflict</string>
 
-	<string name="project_info_section_title">Project Info</string>
 	<string name="project_info_author_label">Author</string>
 	<string name="project_info_theme_section_title">Custom theme</string>
 	<string name="project_info_theme_enable_label">Use a custom theme for this project</string>
@@ -73,13 +65,10 @@
 	<string name="sync_conflict_project_data_field_word_goal">Word Count Goal</string>
 	<string name="sync_conflict_project_data_field_tags">Tags</string>
 	<string name="sync_conflict_project_data_value_unset">(not set)</string>
-	<string name="sync_conflict_project_data_word_goal_value">%1$d / %2$s</string>
 	<string name="sync_conflict_project_data_cadence_day">day</string>
 	<string name="sync_conflict_project_data_cadence_week">week</string>
 	<string name="sync_conflict_project_data_resolve_button">Resolve</string>
-	<string name="sync_conflict_encyclopedia_local">Local Event: %1$s</string>
 
-	<string name="sync_conflict_encyclopedia_remote">Remote Event: %1$s</string>
 
 	<string name="sync_conflict_encyclopedia_label_name">Name:</string>
 	<string name="sync_conflict_encyclopedia_label_type">Type:</string>
@@ -88,10 +77,7 @@
 	<string name="sync_conflict_encyclopedia_label_tags">Tags:</string>
 
 	<string name="sync_conflict_encyclopedia_has_image">Has Image</string>
-	<string name="sync_conflict_encyclopedia_no_image">No Image</string>
 
-	<string name="sync_conflict_title_scene_remote">Remote Scene:</string>
-	<string name="sync_conflict_title_scene_local">Local Scene:</string>
 	<string name="sync_conflict_title_scene_field_name">Name</string>
 	<string name="sync_conflict_title_scene_field_content">Scene Content</string>
 	<string name="sync_conflict_title_scene_field_outline">Outline</string>
@@ -104,17 +90,11 @@
 	<string name="sync_conflict_references_empty">None</string>
 	<string name="sync_conflict_encyclopedia_label_aliases">Aliases:</string>
 
-	<string name="sync_conflict_title_scene_draft_remote">Remote Draft:</string>
-	<string name="sync_conflict_title_scene_draft_local">Local Draft:</string>
 	<string name="sync_conflict_title_scene_draft_field_name">Name</string>
 	<string name="sync_conflict_title_scene_draft_field_content">Scene Content</string>
 
-	<string name="sync_conflict_title_note_remote">Remote Note:</string>
-	<string name="sync_conflict_title_note_local">Local Note:</string>
 	<string name="sync_conflict_title_note_field_name">Note Content</string>
 
-	<string name="sync_conflict_title_timeline_event_remote">Remote Event:</string>
-	<string name="sync_conflict_title_timeline_event_local">Local Event:</string>
 	<string name="sync_conflict_title_timeline_event_field_date">Date</string>
 	<string name="sync_conflict_title_timeline_event_field_content">Event Content</string>
 
@@ -125,7 +105,6 @@
 	<string name="sync_status_failed">Sync Failed</string>
 	<string name="sync_status_success">Sync Complete</string>
 
-	<string name="sync_cancel_button">Cancel</string>
 
 	<string name="sync_toast_success">Project Sync Complete</string>
 	<string name="sync_toast_failed">Project Sync Failed</string>
@@ -240,7 +219,6 @@
 	<string name="reauth_server_email">E-Mail</string>
 
 	<string name="server_setup_help_title">About Sync Servers</string>
-	<string name="server_setup_help_icon_description">Learn more about sync servers</string>
 	<string
 		name="server_setup_help_intro">Sync Servers for Hammer allow you to work on your projects from multiple devices. They will sync your work across whatever devices you configure with the same server.
 	</string>

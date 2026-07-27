@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="project_home_stat_header">Statistiche:</string>
 	<string name="project_home_stat_created">Creato: %1$s</string>
 	<string name="project_home_loading_stats">Calcolo delle statistiche…</string>
 	<string name="project_home_refresh_stats_button">Aggiorna le statistiche</string>
@@ -10,7 +9,6 @@
 	<string name="project_home_stat_encyclopedia_entries">Voci di enciclopedia</string>
 	<string name="project_home_stat_chapter_words">Parole per capitolo</string>
 	<string name="project_home_stat_chapter_words_x_axis">Capitolo</string>
-	<string name="project_home_stat_chapter_words_y_axis">Parole</string>
 	<string name="project_home_stat_chapter_words_tooltip">%1$s: %2$s parole</string>
 	<string name="project_home_stat_avg_words_per_scene">Parole medie / scena</string>
 	<string name="project_home_stat_num_notes">Note</string>
@@ -19,20 +17,12 @@
 	<string name="project_home_stat_longest_scene_words">%1$s parole</string>
 	<string name="project_home_stat_longest_scene_empty">Ancora nessuna scena</string>
 	<string name="project_home_stat_last_edited_scene">Ultima modifica</string>
-	<string name="project_home_stat_scene_lengths">Lunghezza delle scene</string>
 	<string name="project_home_stat_scene_median">Mediana</string>
-	<string name="project_home_stat_scene_shortest">Più corta</string>
-	<string name="project_home_stat_scene_longest">Più lunga</string>
-	<string name="project_home_stat_avg_scenes_per_chapter">Scene / capitolo</string>
 	<string name="project_home_stat_reading_time">≈ %1$d min di lettura</string>
 	<string name="project_home_stat_pages">%1$d pagine</string>
 	<string name="project_home_stat_daily_goal">Obiettivo giornaliero</string>
 	<string name="project_home_stat_weekly_goal">Obiettivo settimanale</string>
-	<string name="project_home_stat_goal_progress">%1$s / %2$s</string>
 	<string name="project_home_stat_this_week">Questa settimana</string>
-	<string name="project_home_stat_this_week_value">+%1$s parole</string>
-	<string name="project_home_stat_week_change_up">▲ %1$d%% vs settimana scorsa</string>
-	<string name="project_home_stat_week_change_down">▼ %1$d%% vs settimana scorsa</string>
 	<string name="project_home_stat_week_change_flat">nessuna variazione vs settimana scorsa</string>
 	<string name="project_home_stat_week_change_new">nessun dato la settimana scorsa</string>
 	<string name="project_home_stat_today">Oggi</string>
@@ -69,7 +59,6 @@
 	<string name="project_home_stat_themes_source_notes">Note</string>
 	<string name="project_home_stat_themes_source_encyclopedia">Enciclopedia</string>
 	<string name="project_home_stat_themes_source_events">Eventi</string>
-	<string name="project_home_actions_header">Azioni:</string>
 	<string name="project_home_action_export">Esporta storia</string>
 	<string name="project_home_action_sync">Sincronizza storia</string>
 	<string name="project_home_action_backup">Backup</string>
@@ -100,11 +89,9 @@
 	<string name="project_home_export_help_dismiss">Ho capito</string>
 	<string name="project_home_export_contents_title">Sommario</string>
 	<string name="project_home_export_byline">di %1$s</string>
-	<string name="project_home_action_import">Importa storia</string>
 	<string name="project_home_action_import_toast_success">Storia importata</string>
 	<string name="project_home_action_import_toast_failure">Importazione non riuscita</string>
 	<string name="project_home_import_dialog_title">Importa storia</string>
-	<string name="project_home_import_format_label">Formato</string>
 	<string name="project_home_import_heading_label">Rilevamento dei capitoli</string>
 	<string name="project_home_import_heading_auto">Auto</string>
 	<string name="project_home_import_heading_h1">H1 (#)</string>
@@ -120,10 +107,6 @@
 	<string name="project_home_import_preview_count">Creerà %1$d scene</string>
 	<string name="project_home_import_cancel">Annulla</string>
 	<string name="project_home_import_execute">Importa</string>
-	<string name="project_home_destinations_header">Progetto:</string>
-	<string name="project_home_action_stats_button">Statistiche</string>
 	<string name="project_home_action_settings_button">Impostazioni</string>
 	<string name="project_home_menu_button">Menu del progetto</string>
-	<string name="project_home_settings_title">Impostazioni del progetto</string>
-	<string name="project_home_settings_close_button">Chiudi le impostazioni</string>
 </resources>

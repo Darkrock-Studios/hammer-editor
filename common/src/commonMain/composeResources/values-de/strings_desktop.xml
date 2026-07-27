@@ -13,5 +13,4 @@
 	<string name="sandbox_choose_folder_button">Ordner wählen</string>
 	<string name="sandbox_quit_button">Beenden</string>
 	<string name="sandbox_retry_message">Hammer benötigt einen Ordner zum Speichern Ihrer Projekte.\nWählen Sie jetzt einen Ordner oder beenden Sie.</string>
-	<string name="splash_subtitle">Ein einfaches Werkzeug zum Erstellen von Geschichten.</string>
 </resources>

@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
 import com.darkrockstudios.apps.hammer.frontend.og.ogImageRoutes
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
+import com.darkrockstudios.apps.hammer.frontend.utils.localizedMsg
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
 import com.darkrockstudios.apps.hammer.monitoring.ActivityType
@@ -120,7 +121,7 @@ fun Route.frontend() {
 	robotsRoutes()
 	sitemapRoutes(serverConfig, accountsRepository, projectAccessRepository, configRepository)
 	setupPage(serverConfig)
-	homePage(whiteListRepository, configRepository, serverConfig, accountsRepository, projectAccessRepository)
+	homePage(whiteListRepository, configRepository, serverConfig)
 	aboutPage(configRepository, serverConfig, accountsRepository, projectAccessRepository, markdownService)
 	termsOfServicePage()
 	privacyPolicyPage()
@@ -232,6 +233,9 @@ fun Application.configureFrontEnd() {
 	configureStatusPages(errorRepository, monitoringState)
 }
 
+/** Only the error and setup templates use error.css, so it is not part of the shared header. */
+internal val ERROR_PAGE_STYLE = mapOf("page_stylesheet" to "/assets/css/error.css")
+
 fun Application.configureStatusPages(
 	errorRepository: ErrorRepository,
 	monitoringState: MonitoringState,
@@ -243,14 +247,17 @@ fun Application.configureStatusPages(
 			if (call.request.isApiCall()) {
 				call.respond(HttpStatusCode.NotFound)
 			} else {
-				call.respond(HttpStatusCode.NotFound, MustacheContent("notfound.mustache", call.withDefaults()))
+				call.respond(HttpStatusCode.NotFound, MustacheContent("notfound.mustache", call.withDefaults(ERROR_PAGE_STYLE)))
 			}
 		}
 		status(HttpStatusCode.Unauthorized) { call, status ->
 			if (call.request.isApiCall()) {
 				call.respond(HttpStatusCode.Unauthorized)
 			} else {
-				call.respond(HttpStatusCode.Unauthorized, MustacheContent("unauthorized.mustache", call.withDefaults()))
+				call.respond(
+					HttpStatusCode.Unauthorized,
+					MustacheContent("unauthorized.mustache", call.withDefaults(ERROR_PAGE_STYLE))
+				)
 			}
 		}
 		exception<Throwable> { call, cause ->
@@ -280,7 +287,7 @@ fun Application.configureStatusPages(
 				)
 				call.respond(
 					HttpStatusCode.InternalServerError,
-					MustacheContent("servererror.mustache", call.withDefaults())
+					MustacheContent("servererror.mustache", call.withDefaults(ERROR_PAGE_STYLE))
 				)
 			}
 		}
@@ -383,6 +390,22 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	// Add community enabled flag for header nav
 	if (serverConfig.communityEnabled) {
 		model["communityEnabled"] = true
+
+		// This runs for every page on the server, so a database problem must cost the
+		// nav badge and nothing else. The counts are decorative; the page is not.
+		val stats = runCatching { get<CommunityStatsProvider>().get() }
+			.onFailure { application.log.warn("Community stats unavailable for nav badge", it) }
+			.getOrNull()
+
+		// The badge stays off an empty server rather than advertising a zero.
+		if (stats != null && stats.authors > 0) {
+			val badgeMessages = model["msg"] as? MutableMap<String, Any>
+			model["communityAuthorCount"] = stats.authors
+			model["communityStoryCount"] = stats.stories
+			badgeMessages?.put("community_badge_authors", localizedMsg(locale, "community_badge_authors", stats.authors))
+			badgeMessages?.put("community_badge_stories", localizedMsg(locale, "community_badge_stories", stats.stories))
+			badgeMessages?.put("community_badge_label", localizedMsg(locale, "community_badge_label", stats.authors))
+		}
 	}
 
 	// Add development mode flag for header banner
