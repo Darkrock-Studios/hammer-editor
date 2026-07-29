@@ -164,21 +164,40 @@ class HammerUITest: XCTestCase {
     /// The save button lives in the top bar, and right after the edit that surfaces it its
     /// accessibility frame can be briefly *stale* — reported up under the status bar (a dead pixel)
     /// before the layout settles. A blind coordinate tap there does nothing, and repeatedly tapping
-    /// that dead spot can even scroll/navigate the app away. So only tap when the button is actually
-    /// hittable (settled), using a hit-tested `tap()` that re-resolves its real position; otherwise
-    /// wait for it to settle. Re-tap until it's gone, which also covers a dropped tap or a late IME
-    /// keystroke re-dirtying the buffer right after a save.
+    /// that dead spot can even scroll/navigate the app away. So never tap the stale frame: tap only
+    /// once the button has *settled*.
+    ///
+    /// `isHittable` is the fast settled-signal and the preferred path (a hit-tested `tap()`
+    /// re-resolves the real position). But under simulator/CI load it can never flip true within the
+    /// timeout, which would leave a purely-`isHittable`-gated loop waiting out the whole budget
+    /// without ever tapping. So fall back to a coordinate `tapCenter` once the frame is demonstrably
+    /// settled by geometry — fully below the status bar (ruling out the dead-pixel position) and
+    /// stable across two samples. Re-tap until it's gone, which also covers a dropped tap or a late
+    /// IME keystroke re-dirtying the buffer right after a save.
     func tapUntilGone(_ tag: String, timeout: TimeInterval = HammerUITest.defaultTimeout,
                       file: StaticString = #file, line: UInt = #line) {
         let el = waitFor(tag, timeout: timeout, file: file, line: line)
         let deadline = Date().addingTimeInterval(timeout)
+        var lastFrame = CGRect.null
         repeat {
             if !el.exists { return }
             if el.isHittable {
                 el.tap()
                 if poll({ !el.exists }, timeout: 3) { return }
             } else {
-                _ = poll({ el.isHittable || !el.exists }, timeout: 1)
+                // Geometry fallback for when `isHittable` never settles under load. A settled top-bar
+                // button sits fully below the status bar and holds a stable frame; the transient
+                // dead-pixel frame reads under the status bar and is discarded here.
+                let frame = el.frame
+                let statusBarMaxY = app.statusBars.firstMatch.frame.maxY
+                let settled = frame.height > 0 && frame.minY >= statusBarMaxY && frame == lastFrame
+                lastFrame = frame
+                if settled {
+                    tapCenter(el)
+                    if poll({ !el.exists }, timeout: 3) { return }
+                } else {
+                    _ = poll({ el.isHittable || !el.exists }, timeout: 0.5)
+                }
             }
         } while Date() < deadline
         XCTFail("Element still present after \(timeout)s: \(tag)", file: file, line: line)
