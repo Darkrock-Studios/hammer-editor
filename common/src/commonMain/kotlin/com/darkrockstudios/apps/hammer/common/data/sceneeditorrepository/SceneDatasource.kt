@@ -35,15 +35,16 @@ class SceneDatasource(
 
 	fun resolveScenePathFromFilesystem(id: Int): HPath? = scenePathIndex.pathFor(id)
 
-	/** Number of scenes/groups directly inside [parentPath]. */
-	fun countScenePathsIn(parentPath: HPath): Int = scenePathIndex.childCount(parentPath)
+	/**
+	 * Number of scenes/groups directly inside [parentPath]. Directories the scan holds no entry for
+	 * are counted from disk: an empty group reads the same to the index as one it never reached,
+	 * and order numbers are derived from this, so guessing zero would mis-number a real directory.
+	 */
+	fun countScenePathsIn(parentPath: HPath): Int =
+		scenePathIndex.childCountOrNull(parentPath) ?: listChildScenePaths(parentPath).size
 
-	fun getPathFromFilesystem(sceneItem: SceneItem): HPath? {
-		return getAllScenePathsOkio()
-			.filterScenePathsOkio().firstOrNull { path ->
-				sceneItem.id == getSceneFromFilename(path).id
-			}
-	}
+	private fun listChildScenePaths(parentPath: HPath): List<HPath> =
+		fileSystem.list(parentPath.toOkioPath()).filterScenePathsOkio()
 
 	private fun getAllScenePathsOkio(): List<Path> = getAllScenePaths().map { it.toOkioPath() }
 

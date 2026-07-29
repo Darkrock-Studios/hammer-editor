@@ -37,9 +37,14 @@ internal class ScenePathIndex(private val scan: () -> List<HPath>) {
 
 	fun pathFor(id: Int): HPath? = synchronized(lock) { pathsByIdLocked()[id] }
 
-	/** Number of scenes and groups directly inside [parent]. */
-	fun childCount(parent: HPath): Int = synchronized(lock) {
-		childCountsLocked()[parent.toOkioPath()] ?: 0
+	/**
+	 * Number of scenes and groups directly inside [parent], or null when the scan holds no entry
+	 * for that directory. Null means unknown, not empty: a directory the scan never reached is
+	 * indistinguishable here from one that is genuinely empty, and only the caller can tell them
+	 * apart by looking at the disk.
+	 */
+	fun childCountOrNull(parent: HPath): Int? = synchronized(lock) {
+		childCountsLocked()[parent.toOkioPath()]
 	}
 
 	fun invalidate() = synchronized(lock) { invalidateLocked() }
@@ -89,10 +94,21 @@ internal class ScenePathIndex(private val scan: () -> List<HPath>) {
 		val survivors = if (displacedAt < 0) remaining else remaining.withIndexRemoved(displacedAt)
 		paths = if (targetIsIndexed) survivors.withPathInserted(targetPath) else survivors
 
-		// Re-IDing moves a scene to a filename carrying a different id, so retire the old one.
+		// Re-IDing moves a scene to a filename carrying a different id, so retire the old one. If
+		// that id is already claimed elsewhere the move has created a duplicate, which name order
+		// decides across the whole project, so hand it to the re-scan.
 		pathsById?.let { byId ->
 			byId.remove(sceneIdOf(current[removeAt]))
-			if (targetIsIndexed) byId[sceneIdOf(targetPath)] = targetPath
+			if (targetIsIndexed) {
+				val targetId = sceneIdOf(targetPath)
+				val claimant = byId[targetId]
+				if (claimant != null && claimant.toOkioPath() != target) {
+					// The rebuilt index re-detects the duplicate and latches the flag itself.
+					invalidateLocked()
+					return@synchronized
+				}
+				byId[targetId] = targetPath
+			}
 		}
 		childCounts?.let { counts ->
 			counts.decrement(source.parent)

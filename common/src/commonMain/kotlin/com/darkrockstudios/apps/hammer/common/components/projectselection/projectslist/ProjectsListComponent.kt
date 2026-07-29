@@ -390,7 +390,6 @@ class ProjectsListComponent(
 
 	override fun updateImportOptions(options: ImportOptions) {
 		val current = _state.value
-		// Show the new selection immediately; the re-parsed preview follows.
 		_state.getAndUpdate { it.copy(importOptions = options) }
 
 		launchPreview {
@@ -465,6 +464,11 @@ class ProjectsListComponent(
 		importPreviewJob?.join()
 		val projectName = _state.value.importProjectName
 		val previewToImport = _state.value.importPreview
+		// That re-parse may have emptied the preview, and the button was enabled against the old one.
+		if (previewToImport.isEmpty) {
+			Napier.w("Import: nothing to import for '$projectName'")
+			return
+		}
 
 		val result = projectsRepository.createProject(projectName)
 		if (!isSuccess(result)) {
