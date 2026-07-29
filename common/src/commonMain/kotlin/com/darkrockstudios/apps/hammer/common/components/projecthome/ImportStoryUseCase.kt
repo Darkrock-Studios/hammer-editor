@@ -14,7 +14,7 @@ class ImportStoryUseCase(
 	 * Creates the scenes/groups described by [preview] at the project root.
 	 * Returns the number of scenes successfully created.
 	 */
-	suspend fun execute(preview: ImportPreview): Int = sceneEditorRepository.withCoalescedReloads {
+	suspend fun execute(preview: ImportPreview): Int {
 		var created = 0
 		for (item in preview.items) {
 			when (item) {
@@ -34,7 +34,7 @@ class ImportStoryUseCase(
 				}
 			}
 		}
-		created
+		return created
 	}
 
 	private suspend fun createSceneWithContent(

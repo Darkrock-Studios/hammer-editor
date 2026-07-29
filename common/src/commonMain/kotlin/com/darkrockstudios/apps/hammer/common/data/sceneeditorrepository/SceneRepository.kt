@@ -15,8 +15,6 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.numDigits
 import io.github.aakira.napier.Napier
-import kotlinx.atomicfu.locks.SynchronizedObject
-import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -118,30 +116,7 @@ class SceneRepository(
 	}
 
 	fun reloadScenes() {
-		if (isCoalescing()) return
 		_sceneTreeUpdates.tryEmit(getSceneTree())
-	}
-
-	// Guarded rather than plain fields: the repository is driven from many coroutines on the
-	// multi-threaded default dispatcher, and a lost update here would drop a tree emission.
-	private val coalesceLock = SynchronizedObject()
-	private var coalescedReloads = 0
-
-	private fun isCoalescing(): Boolean = synchronized(coalesceLock) { coalescedReloads > 0 }
-
-	/**
-	 * Runs [block] with structural tree emissions coalesced into a single emission at the end, for
-	 * bulk work such as story import where only the final tree matters. The trailing emission is
-	 * unconditional, so a reload raised concurrently by another coroutine is never dropped.
-	 */
-	suspend fun <T> withCoalescedReloads(block: suspend () -> T): T {
-		synchronized(coalesceLock) { coalescedReloads++ }
-		return try {
-			block()
-		} finally {
-			val last = synchronized(coalesceLock) { --coalescedReloads == 0 }
-			if (last) reloadScenes()
-		}
 	}
 
 	private fun willNextSceneIncreaseMagnitude(parentId: Int?): Boolean {

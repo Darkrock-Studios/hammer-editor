@@ -394,8 +394,7 @@ class ProjectsListComponent(
 		_state.getAndUpdate { it.copy(importOptions = options) }
 
 		launchPreview {
-			// Free-text options (the RTF chapter pattern) change per keystroke; settle first so a
-			// burst of edits costs one parse rather than one per character.
+			// debounce: options update as you type
 			delay(PREVIEW_DEBOUNCE_MS)
 			val preview = buildPreview(
 				sourceName = current.importSourceName,

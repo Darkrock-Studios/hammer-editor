@@ -11,8 +11,6 @@ import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import io.github.aakira.napier.Napier
-import kotlinx.atomicfu.locks.SynchronizedObject
-import kotlinx.atomicfu.locks.synchronized
 import okio.FileSystem
 import okio.IOException
 import okio.Path
@@ -22,55 +20,11 @@ class SceneDatasource(
 	private val fileSystem: FileSystem,
 ) {
 
-	// Cached recursive scan of the (non-archived) scenes directory; invalidated on structural mutation.
-	private val scenePathCacheLock = SynchronizedObject()
-	private var cachedScenePaths: List<HPath>? = null
+	private val scenePathIndex = ScenePathIndex(::scanScenePaths)
 
-	// Indexes over the same scan: scene id -> path, and parent directory -> direct-child count.
-	// Neither is ever handed out, so both are mutated in place under the lock.
-	private var cachedScenePathsById: MutableMap<Int, HPath>? = null
-	private var cachedChildCounts: MutableMap<Path, Int>? = null
+	private fun invalidateScenePathCache() = scenePathIndex.invalidate()
 
-	// True when two files on disk claim the same scene id. The id index resolves that by name order
-	// (see [validateScenePaths]), which incremental updates can't maintain, so they bail out to a
-	// full rescan instead.
-	private var hasDuplicateSceneIds = false
-
-	private fun invalidateScenePathCache() = synchronized(scenePathCacheLock) { invalidateLocked() }
-
-	// Must be called while holding [scenePathCacheLock].
-	private fun invalidateLocked() {
-		cachedScenePaths = null
-		cachedScenePathsById = null
-		cachedChildCounts = null
-		hasDuplicateSceneIds = false
-	}
-
-	private fun addScenePathToCache(scenePath: HPath) = synchronized(scenePathCacheLock) {
-		val paths = cachedScenePaths ?: return@synchronized
-		// Insert in name order rather than re-sorting the whole list on every create.
-		val insertAt = paths.upperBoundByName(scenePath.name)
-		cachedScenePaths = buildList(paths.size + 1) {
-			addAll(paths.subList(0, insertAt))
-			add(scenePath)
-			addAll(paths.subList(insertAt, paths.size))
-		}
-		// First path wins for a given id, matching the duplicate-id policy in [validateScenePaths].
-		cachedScenePathsById?.let { byId ->
-			val id = getSceneIdFromPath(scenePath)
-			val existing = byId[id]
-			if (existing == null) {
-				byId[id] = scenePath
-			} else {
-				hasDuplicateSceneIds = true
-				if (scenePath.name < existing.name) byId[id] = scenePath
-			}
-		}
-		cachedChildCounts?.let { counts ->
-			val parent = scenePath.toOkioPath().parent
-			if (parent != null) counts[parent] = (counts[parent] ?: 0) + 1
-		}
-	}
+	private fun addScenePathToCache(scenePath: HPath) = scenePathIndex.onCreated(scenePath)
 
 	fun getSceneDirectory(): HPath = getSceneDirectory(projectDef, fileSystem)
 
@@ -79,39 +33,10 @@ class SceneDatasource(
 		return getSceneIdFromFilename(fileName)
 	}
 
-	fun resolveScenePathFromFilesystem(id: Int): HPath? = synchronized(scenePathCacheLock) {
-		scenePathsById()[id]
-	}
+	fun resolveScenePathFromFilesystem(id: Int): HPath? = scenePathIndex.pathFor(id)
 
-	// Must be called while holding [scenePathCacheLock].
-	private fun scenePathsById(): Map<Int, HPath> {
-		cachedScenePathsById?.let { return it }
-
-		val byId = HashMap<Int, HPath>()
-		// First path wins, matching [validateScenePaths]; the list is already name-sorted.
-		for (path in getAllScenePathsLocked()) {
-			val id = getSceneIdFromPath(path)
-			if (byId.containsKey(id)) hasDuplicateSceneIds = true else byId[id] = path
-		}
-		return byId.also { cachedScenePathsById = it }
-	}
-
-	/** Number of scenes/groups directly inside [parentPath], from the cached scan. */
-	fun countScenePathsIn(parentPath: HPath): Int = synchronized(scenePathCacheLock) {
-		childCountsLocked()[parentPath.toOkioPath()] ?: 0
-	}
-
-	// Must be called while holding [scenePathCacheLock].
-	private fun childCountsLocked(): MutableMap<Path, Int> {
-		cachedChildCounts?.let { return it }
-
-		val counts = HashMap<Path, Int>()
-		for (path in getAllScenePathsLocked()) {
-			val parent = path.toOkioPath().parent ?: continue
-			counts[parent] = (counts[parent] ?: 0) + 1
-		}
-		return counts.also { cachedChildCounts = it }
-	}
+	/** Number of scenes/groups directly inside [parentPath]. */
+	fun countScenePathsIn(parentPath: HPath): Int = scenePathIndex.childCount(parentPath)
 
 	fun getPathFromFilesystem(sceneItem: SceneItem): HPath? {
 		return getAllScenePathsOkio()
@@ -122,21 +47,13 @@ class SceneDatasource(
 
 	private fun getAllScenePathsOkio(): List<Path> = getAllScenePaths().map { it.toOkioPath() }
 
-	// Scan runs inside the lock so an invalidation can't interleave between scan and store and
-	// resurrect a stale list. The scan is blocking, not suspending, so holding the lock is safe.
-	fun getAllScenePaths(): List<HPath> = synchronized(scenePathCacheLock) { getAllScenePathsLocked() }
+	fun getAllScenePaths(): List<HPath> = scenePathIndex.paths()
 
-	// Must be called while holding [scenePathCacheLock].
-	private fun getAllScenePathsLocked(): List<HPath> {
-		cachedScenePaths?.let { return it }
-
-		val sceneDirPath = getSceneDirectory().toOkioPath()
-		return fileSystem.listRecursively(sceneDirPath)
+	private fun scanScenePaths(): List<HPath> =
+		fileSystem.listRecursively(getSceneDirectory().toOkioPath())
 			.filterScenePathsOkio()
 			.sortedBy { it.name }
 			.toList()
-			.also { cachedScenePaths = it }
-	}
 
 	fun getAllScenes(): List<SceneItem> {
 		return getAllScenePathsOkio()
@@ -277,74 +194,7 @@ class SceneDatasource(
 
 	fun moveScene(sourcePath: HPath, targetPath: HPath) {
 		fileSystem.atomicMove(sourcePath.toOkioPath(), targetPath.toOkioPath())
-		onScenePathMoved(sourcePath, targetPath)
-	}
-
-	/**
-	 * Keeps the path cache in step with a move rather than dropping it, so re-padding a directory's
-	 * order digits does not cost a full recursive rescan per renamed sibling. Three cases the flat
-	 * cache cannot rewrite fall back to a rescan: moving a group, which carries its subtree; a
-	 * source that was never cached, such as unarchiving; and duplicate scene ids, whose index entry
-	 * is decided by name order across the whole project.
-	 */
-	private fun onScenePathMoved(sourcePath: HPath, targetPath: HPath) = synchronized(scenePathCacheLock) {
-		val paths = cachedScenePaths
-		val source = sourcePath.toOkioPath()
-		if (paths == null || hasDuplicateSceneIds || childCountsLocked()[source] != null) {
-			invalidateLocked()
-			return@synchronized
-		}
-
-		val removeAt = paths.indexOfPath(source)
-		if (removeAt < 0) {
-			invalidateLocked()
-			return@synchronized
-		}
-
-		val target = targetPath.toOkioPath()
-		// Archiving moves a scene out of the cache's scope entirely, so drop it rather than re-add it.
-		val targetIsCached = validateSceneFilename(targetPath.name) && !target.isInArchivedDirectory()
-
-		val remaining = buildList(paths.size - 1) {
-			addAll(paths.subList(0, removeAt))
-			addAll(paths.subList(removeAt + 1, paths.size))
-		}
-		// atomicMove replaces an existing target, so the path it displaced leaves the cache with it.
-		val displacedAt = if (targetIsCached) remaining.indexOfPath(target) else -1
-		val survivors = if (displacedAt < 0) {
-			remaining
-		} else {
-			buildList(remaining.size - 1) {
-				addAll(remaining.subList(0, displacedAt))
-				addAll(remaining.subList(displacedAt + 1, remaining.size))
-			}
-		}
-		cachedScenePaths = if (targetIsCached) {
-			val insertAt = survivors.upperBoundByName(targetPath.name)
-			buildList(survivors.size + 1) {
-				addAll(survivors.subList(0, insertAt))
-				add(targetPath)
-				addAll(survivors.subList(insertAt, survivors.size))
-			}
-		} else {
-			survivors
-		}
-
-		// Re-IDing moves a scene to a filename carrying a different id, so retire the old one.
-		cachedScenePathsById?.let { byId ->
-			byId.remove(getSceneIdFromPath(paths[removeAt]))
-			if (targetIsCached) byId[getSceneIdFromPath(targetPath)] = targetPath
-		}
-		cachedChildCounts?.let { counts ->
-			source.parent?.let { parent ->
-				val next = (counts[parent] ?: 0) - 1
-				if (next > 0) counts[parent] = next else counts.remove(parent)
-			}
-			// A displaced target leaves as the moved file arrives, so the count there is unchanged.
-			if (targetIsCached && displacedAt < 0) {
-				target.parent?.let { parent -> counts[parent] = (counts[parent] ?: 0) + 1 }
-			}
-		}
+		scenePathIndex.onMoved(sourcePath, targetPath)
 	}
 
 	fun getSceneBufferDirectory(): HPath {
@@ -676,7 +526,7 @@ class SceneDatasource(
 	}
 }
 
-private fun Path.isInArchivedDirectory(): Boolean {
+internal fun Path.isInArchivedDirectory(): Boolean {
 	val pathStr = this.toString()
 	return pathStr.contains("${Path.DIRECTORY_SEPARATOR}${SceneDatasource.ARCHIVED_DIRECTORY}${Path.DIRECTORY_SEPARATOR}") ||
 		pathStr.contains("${Path.DIRECTORY_SEPARATOR}${SceneDatasource.ARCHIVED_DIRECTORY}") && this.parent?.name == SceneDatasource.ARCHIVED_DIRECTORY
@@ -684,35 +534,6 @@ private fun Path.isInArchivedDirectory(): Boolean {
 
 private fun HPath.isInArchivedDirectory(): Boolean {
 	return this.toOkioPath().isInArchivedDirectory()
-}
-
-/**
- * Index of [target] in a list already sorted by name, or -1. Names carry the scene id so they are
- * unique in practice, but the equal-name run is scanned rather than assumed to be one entry.
- */
-private fun List<HPath>.indexOfPath(target: Path): Int {
-	val name = target.name
-	var index = upperBoundByName(name) - 1
-	while (index >= 0 && this[index].name == name) {
-		if (this[index].toOkioPath() == target) return index
-		index--
-	}
-	return -1
-}
-
-/**
- * Index just past the last path whose name is `<= name`, for a list already sorted by name.
- * Inserting there keeps the list in the order [Collection.filterScenePaths] would produce, without
- * re-sorting it on every insert.
- */
-private fun List<HPath>.upperBoundByName(name: String): Int {
-	var low = 0
-	var high = size
-	while (low < high) {
-		val mid = (low + high) ushr 1
-		if (this[mid].name <= name) low = mid + 1 else high = mid
-	}
-	return low
 }
 
 fun Collection<Path>.filterScenePathsOkio() =
