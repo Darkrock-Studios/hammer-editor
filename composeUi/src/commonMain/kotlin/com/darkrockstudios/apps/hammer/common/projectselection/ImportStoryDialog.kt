@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.Folder
@@ -279,23 +281,32 @@ private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modif
 					HdMonoLabel(Res.string.project_home_import_preview_empty.get())
 				}
 			} else {
-				Column(
-					modifier = Modifier
-						.verticalScroll(rememberScrollState())
-						.padding(Ui.Padding.M),
-				) {
-					preview.items.forEach { item ->
-						when (item) {
-							is PreviewItem.Scene -> PreviewSceneRow(item.name, indented = false)
-							is PreviewItem.Group -> {
-								PreviewGroupRow(item.name)
-								item.scenes.forEach { childScene ->
-									PreviewSceneRow(childScene.name, indented = true)
-								}
-							}
+				// A manuscript can split into thousands of scenes; only compose the visible rows.
+				val rows = remember(preview) { preview.toRows() }
+				LazyColumn(contentPadding = PaddingValues(Ui.Padding.M)) {
+					items(rows) { row ->
+						if (row.isGroup) {
+							PreviewGroupRow(row.name)
+						} else {
+							PreviewSceneRow(row.name, indented = row.indented)
 						}
 					}
 				}
+			}
+		}
+	}
+}
+
+/** One flat row of the preview tree: a group header, or a scene at top level or inside a group. */
+private class PreviewRow(val name: String, val isGroup: Boolean, val indented: Boolean)
+
+private fun ImportPreview.toRows(): List<PreviewRow> = buildList {
+	items.forEach { item ->
+		when (item) {
+			is PreviewItem.Scene -> add(PreviewRow(item.name, isGroup = false, indented = false))
+			is PreviewItem.Group -> {
+				add(PreviewRow(item.name, isGroup = true, indented = false))
+				item.scenes.forEach { add(PreviewRow(it.name, isGroup = false, indented = true)) }
 			}
 		}
 	}

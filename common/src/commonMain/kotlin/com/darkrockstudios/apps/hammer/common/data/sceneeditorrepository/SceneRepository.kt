@@ -116,7 +116,32 @@ class SceneRepository(
 	}
 
 	fun reloadScenes() {
+		if (coalescedReloads > 0) {
+			pendingReload = true
+			return
+		}
 		_sceneTreeUpdates.tryEmit(getSceneTree())
+	}
+
+	private var coalescedReloads = 0
+	private var pendingReload = false
+
+	/**
+	 * Runs [block] with structural tree emissions coalesced into a single emission at the end.
+	 * Bulk work (story import) otherwise deep-copies and re-emits the entire tree once per created
+	 * scene, which is quadratic in the number of scenes.
+	 */
+	suspend fun <T> withCoalescedReloads(block: suspend () -> T): T {
+		coalescedReloads++
+		return try {
+			block()
+		} finally {
+			coalescedReloads--
+			if (coalescedReloads == 0 && pendingReload) {
+				pendingReload = false
+				reloadScenes()
+			}
+		}
 	}
 
 	private fun willNextSceneIncreaseMagnitude(parentId: Int?): Boolean {

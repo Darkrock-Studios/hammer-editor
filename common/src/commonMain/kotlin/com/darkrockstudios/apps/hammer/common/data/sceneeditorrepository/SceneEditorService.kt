@@ -90,6 +90,14 @@ class SceneEditorService(
 		sceneMetadataRepository.initialize()
 	}
 
+	/**
+	 * Runs [block] as one structural edit: the scene tree is emitted once at the end rather than
+	 * after every create. For bulk work such as story import, where the caller only cares about the
+	 * final tree.
+	 */
+	suspend fun <T> withCoalescedReloads(block: suspend () -> T): T =
+		sceneEditorRepository.withCoalescedReloads(block)
+
 	suspend fun createScene(
 		parent: SceneItem?,
 		sceneName: String,

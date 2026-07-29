@@ -227,6 +227,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			val comp = newComponent()
 
 			comp.selectImportFile("The Wreck.md", "# Chapter One\n\nText\n\n# Chapter Two\n\nMore".encodeToByteArray())
+			advanceUntilIdle()
 
 			assertEquals("The Wreck", comp.state.value.importProjectName)
 			assertTrue(comp.state.value.showImportDialog)
@@ -243,6 +244,7 @@ class ProjectsListComponentTest : ComponentTest() {
 				"alice.md",
 				"# Alice in Wonderland\n\n## Chapter One\n\nText".encodeToByteArray(),
 			)
+			advanceUntilIdle()
 
 			assertEquals("Alice in Wonderland", comp.state.value.importProjectName)
 		}
@@ -260,6 +262,8 @@ class ProjectsListComponentTest : ComponentTest() {
 	fun `cancelImportDialog clears the import state`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 		comp.selectImportFile("Draft.md", "# One\n\nText".encodeToByteArray())
+		advanceUntilIdle()
+		assertTrue(comp.state.value.showImportDialog)
 
 		comp.cancelImportDialog()
 

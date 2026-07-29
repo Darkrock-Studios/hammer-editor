@@ -11,12 +11,21 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
 class ImportStoryUseCaseTest {
 
 	private val service: SceneEditorService = mockk(relaxed = true)
+
+	@BeforeEach
+	fun passCoalescedReloadsThrough() {
+		// The use case wraps the whole import in one structural edit; run the block for real.
+		coEvery { service.withCoalescedReloads<Int>(any()) } coAnswers {
+			firstArg<suspend () -> Int>().invoke()
+		}
+	}
 
 	private fun sceneItem(id: Int): SceneItem = mockk { every { this@mockk.id } returns id }
 

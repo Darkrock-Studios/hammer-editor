@@ -101,6 +101,7 @@ class ProjectsListComponent(
 
 	private var loadProjectsJob: Job? = null
 	private var syncProjectsJob: Job? = null
+	private var importPreviewJob: Job? = null
 	private var syncScope: CoroutineScope? = null
 
 	private val modalRouter = ProjectListModalRouter(
@@ -350,23 +351,33 @@ class ProjectsListComponent(
 		_state.getAndUpdate { it.copy(showImportFilePicker = false) }
 	}
 
+	// Parsing a full manuscript is not instant, and both entry points are called from the UI
+	// thread, so the preview is always built off it and applied when it lands.
 	override fun selectImportFile(name: String, content: ByteArray) {
 		val sourceName = name.substringBeforeLast('.')
 		val format = importerRegistry.formatForFileName(name)
 		val initialOptions = ImportOptions(format = format)
-		val preview =
-			importerRegistry.forFormat(format).preview(sourceName, content, initialOptions)
-		val projectName = preview.title?.takeIf { it.isNotBlank() } ?: sourceName
-		_state.getAndUpdate {
-			it.copy(
-				showImportFilePicker = false,
-				showImportDialog = true,
-				importOptions = initialOptions,
-				importSourceName = sourceName,
-				importProjectName = projectName,
-				importFileContent = content,
-				importPreview = preview,
-			)
+
+		_state.getAndUpdate { it.copy(showImportFilePicker = false) }
+
+		importPreviewJob?.cancel()
+		importPreviewJob = scope.launch {
+			val preview = withContext(dispatcherDefault) {
+				importerRegistry.forFormat(format).preview(sourceName, content, initialOptions)
+			}
+			val projectName = preview.title?.takeIf { it.isNotBlank() } ?: sourceName
+			withContext(mainDispatcher) {
+				_state.getAndUpdate {
+					it.copy(
+						showImportDialog = true,
+						importOptions = initialOptions,
+						importSourceName = sourceName,
+						importProjectName = projectName,
+						importFileContent = content,
+						importPreview = preview,
+					)
+				}
+			}
 		}
 	}
 
@@ -376,17 +387,26 @@ class ProjectsListComponent(
 
 	override fun updateImportOptions(options: ImportOptions) {
 		val current = _state.value
-		val preview = importerRegistry.forFormat(options.format).preview(
-			sourceName = current.importSourceName,
-			content = current.importFileContent,
-			options = options,
-		)
-		_state.getAndUpdate {
-			it.copy(importOptions = options, importPreview = preview)
+		// Show the new selection immediately; the re-parsed preview follows.
+		_state.getAndUpdate { it.copy(importOptions = options) }
+
+		importPreviewJob?.cancel()
+		importPreviewJob = scope.launch {
+			val preview = withContext(dispatcherDefault) {
+				importerRegistry.forFormat(options.format).preview(
+					sourceName = current.importSourceName,
+					content = current.importFileContent,
+					options = options,
+				)
+			}
+			withContext(mainDispatcher) {
+				_state.getAndUpdate { it.copy(importPreview = preview) }
+			}
 		}
 	}
 
 	override fun cancelImportDialog() {
+		importPreviewJob?.cancel()
 		_state.getAndUpdate {
 			it.copy(
 				showImportDialog = false,
@@ -399,6 +419,8 @@ class ProjectsListComponent(
 	}
 
 	override suspend fun confirmImportDialog() {
+		// A re-parse triggered by a last-moment option change must not land after we snapshot.
+		importPreviewJob?.join()
 		val projectName = _state.value.importProjectName
 		val previewToImport = _state.value.importPreview
 
