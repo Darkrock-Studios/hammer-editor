@@ -26,17 +26,15 @@ class SceneDatasource(
 	private val scenePathCacheLock = SynchronizedObject()
 	private var cachedScenePaths: List<HPath>? = null
 
-	// Two indexes derived from the same scan. Neither is ever handed out, so both are mutated in
-	// place under the lock rather than copied on every insert.
-	//
-	// Scene id -> path: resolving a path by id used to parse every filename in the project with a
-	// regex until it hit a match, so anything that walks every scene (import, sync) was quadratic.
+	// Indexes over the same scan: scene id -> path, and parent directory -> direct-child count.
+	// Neither is ever handed out, so both are mutated in place under the lock.
 	private var cachedScenePathsById: MutableMap<Int, HPath>? = null
-
-	// Parent directory -> direct-child count: creating one scene asks for its parent's child count
-	// several times over, and re-listing plus re-validating the directory each time is the other
-	// half of what made bulk creates quadratic.
 	private var cachedChildCounts: MutableMap<Path, Int>? = null
+
+	// True when two files on disk claim the same scene id. The id index resolves that by name order
+	// (see [validateScenePaths]), which incremental updates can't maintain, so they bail out to a
+	// full rescan instead.
+	private var hasDuplicateSceneIds = false
 
 	private fun invalidateScenePathCache() = synchronized(scenePathCacheLock) { invalidateLocked() }
 
@@ -45,6 +43,7 @@ class SceneDatasource(
 		cachedScenePaths = null
 		cachedScenePathsById = null
 		cachedChildCounts = null
+		hasDuplicateSceneIds = false
 	}
 
 	private fun addScenePathToCache(scenePath: HPath) = synchronized(scenePathCacheLock) {
@@ -60,7 +59,12 @@ class SceneDatasource(
 		cachedScenePathsById?.let { byId ->
 			val id = getSceneIdFromPath(scenePath)
 			val existing = byId[id]
-			if (existing == null || scenePath.name < existing.name) byId[id] = scenePath
+			if (existing == null) {
+				byId[id] = scenePath
+			} else {
+				hasDuplicateSceneIds = true
+				if (scenePath.name < existing.name) byId[id] = scenePath
+			}
 		}
 		cachedChildCounts?.let { counts ->
 			val parent = scenePath.toOkioPath().parent
@@ -87,7 +91,7 @@ class SceneDatasource(
 		// First path wins, matching [validateScenePaths]; the list is already name-sorted.
 		for (path in getAllScenePathsLocked()) {
 			val id = getSceneIdFromPath(path)
-			if (!byId.containsKey(id)) byId[id] = path
+			if (byId.containsKey(id)) hasDuplicateSceneIds = true else byId[id] = path
 		}
 		return byId.also { cachedScenePathsById = it }
 	}
@@ -277,48 +281,56 @@ class SceneDatasource(
 	}
 
 	/**
-	 * Keeps the path cache in step with a move rather than dropping it. Re-padding a directory's
-	 * order digits renames every sibling in turn, and dropping the whole cache on each rename meant
-	 * a full recursive rescan per rename — quadratic in the number of scenes. Moving a group carries
-	 * its whole subtree with it, which the flat cache can't rewrite cheaply, so that still
-	 * invalidates.
+	 * Keeps the path cache in step with a move rather than dropping it, so re-padding a directory's
+	 * order digits does not cost a full recursive rescan per renamed sibling. Three cases the flat
+	 * cache cannot rewrite fall back to a rescan: moving a group, which carries its subtree; a
+	 * source that was never cached, such as unarchiving; and duplicate scene ids, whose index entry
+	 * is decided by name order across the whole project.
 	 */
 	private fun onScenePathMoved(sourcePath: HPath, targetPath: HPath) = synchronized(scenePathCacheLock) {
 		val paths = cachedScenePaths
 		val source = sourcePath.toOkioPath()
-		if (paths == null || childCountsLocked()[source] != null) {
+		if (paths == null || hasDuplicateSceneIds || childCountsLocked()[source] != null) {
 			invalidateLocked()
 			return@synchronized
 		}
 
 		val removeAt = paths.indexOfPath(source)
 		if (removeAt < 0) {
-			// The move didn't touch anything we had cached (e.g. unarchiving); rescan instead.
 			invalidateLocked()
 			return@synchronized
 		}
 
 		val target = targetPath.toOkioPath()
-		// Archiving moves a scene out of the cache's scope entirely — drop it rather than re-add it.
+		// Archiving moves a scene out of the cache's scope entirely, so drop it rather than re-add it.
 		val targetIsCached = validateSceneFilename(targetPath.name) && !target.isInArchivedDirectory()
 
 		val remaining = buildList(paths.size - 1) {
 			addAll(paths.subList(0, removeAt))
 			addAll(paths.subList(removeAt + 1, paths.size))
 		}
+		// atomicMove replaces an existing target, so the path it displaced leaves the cache with it.
+		val displacedAt = if (targetIsCached) remaining.indexOfPath(target) else -1
+		val survivors = if (displacedAt < 0) {
+			remaining
+		} else {
+			buildList(remaining.size - 1) {
+				addAll(remaining.subList(0, displacedAt))
+				addAll(remaining.subList(displacedAt + 1, remaining.size))
+			}
+		}
 		cachedScenePaths = if (targetIsCached) {
-			val insertAt = remaining.upperBoundByName(targetPath.name)
-			buildList(remaining.size + 1) {
-				addAll(remaining.subList(0, insertAt))
+			val insertAt = survivors.upperBoundByName(targetPath.name)
+			buildList(survivors.size + 1) {
+				addAll(survivors.subList(0, insertAt))
 				add(targetPath)
-				addAll(remaining.subList(insertAt, remaining.size))
+				addAll(survivors.subList(insertAt, survivors.size))
 			}
 		} else {
-			remaining
+			survivors
 		}
 
-		// Usually only the path changes, but re-IDing a scene moves it to a filename carrying a
-		// different id, so retire the old id and index the new one.
+		// Re-IDing moves a scene to a filename carrying a different id, so retire the old one.
 		cachedScenePathsById?.let { byId ->
 			byId.remove(getSceneIdFromPath(paths[removeAt]))
 			if (targetIsCached) byId[getSceneIdFromPath(targetPath)] = targetPath
@@ -328,7 +340,8 @@ class SceneDatasource(
 				val next = (counts[parent] ?: 0) - 1
 				if (next > 0) counts[parent] = next else counts.remove(parent)
 			}
-			if (targetIsCached) {
+			// A displaced target leaves as the moved file arrives, so the count there is unchanged.
+			if (targetIsCached && displacedAt < 0) {
 				target.parent?.let { parent -> counts[parent] = (counts[parent] ?: 0) + 1 }
 			}
 		}

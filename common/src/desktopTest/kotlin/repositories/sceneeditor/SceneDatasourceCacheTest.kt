@@ -156,9 +156,8 @@ class SceneDatasourceCacheTest : BaseTest() {
 
 	@Test
 	fun `renaming a leaf scene updates the warm cache without re-scanning`() = runTest {
-		// Re-padding a directory's order digits renames every sibling in turn. Dropping the whole
-		// cache on each rename made that a full recursive re-scan per rename, which is what turned
-		// a large story import into a multi-minute freeze.
+		// Re-padding a directory's order digits renames every sibling in turn, so a rename must
+		// cost an in-place cache update rather than a recursive re-scan.
 		val sourceId = 1
 		val sourcePath = sceneDatasource.resolveScenePathFromFilesystem(sourceId)
 		assertNotNull(sourcePath)
@@ -203,6 +202,33 @@ class SceneDatasourceCacheTest : BaseTest() {
 			null,
 			sceneDatasource.resolveScenePathFromFilesystem(oldId),
 			"The retired id must no longer resolve",
+		)
+	}
+
+	@Test
+	fun `moving one of two files sharing a scene id keeps the winner resolvable`() = runTest {
+		// Duplicate ids on disk are tolerated, and the id resolves to the name-first of them. An
+		// incremental cache update cannot maintain that, so a move must fall back to a re-scan.
+		val sharedId = 1
+		val winner = sceneDatasource.resolveScenePathFromFilesystem(sharedId)
+		assertNotNull(winner)
+		val loser = sceneDatasource.getSceneDirectory().toOkioPath()
+			.div("9~Duplicate~$sharedId.md").toHPath()
+		sceneDatasource.createNewGroup(loser)
+		assertEquals(
+			winner.toOkioPath(),
+			sceneDatasource.resolveScenePathFromFilesystem(sharedId)?.toOkioPath(),
+			"The name-first path owns the id",
+		)
+
+		val renamedLoser = sceneDatasource.getSceneDirectory().toOkioPath()
+			.div("09~Duplicate~$sharedId.md").toHPath()
+		sceneDatasource.moveScene(loser, renamedLoser)
+
+		assertEquals(
+			winner.toOkioPath(),
+			sceneDatasource.resolveScenePathFromFilesystem(sharedId)?.toOkioPath(),
+			"Moving the duplicate must not steal the id from the winner",
 		)
 	}
 
