@@ -160,18 +160,26 @@ class SceneRepository(
 			sceneDatasource.getLastOrderNumber(parentPath).numDigits()
 		}
 
+		return sceneFileName(sceneDef, orderDigits)
+	}
+
+	/** The `order~name~id` filename itself, given how wide the order field is in its directory. */
+	private fun sceneFileName(sceneDef: SceneItem, orderDigits: Int): String {
 		val order = sceneDef.order.toString().padStart(orderDigits, '0')
 		val delim = ProjectsRepository.FILENAME_DELIMITER
 		val encodedName = ProjectsRepository.encodeForFilename(sceneDef.name)
 		val bareName = "$order$delim$encodedName$delim${sceneDef.id}"
 
-		val filename = if (sceneDef.type == SceneItem.Type.Scene) {
+		return if (sceneDef.type == SceneItem.Type.Scene) {
 			"$bareName${SceneDatasource.SCENE_FILENAME_EXTENSION}"
 		} else {
 			bareName
 		}
-		return filename
 	}
+
+	/** How wide the order field is for items directly inside [parentPath]. */
+	private fun orderDigitsIn(parentPath: HPath): Int =
+		sceneDatasource.getLastOrderNumber(parentPath).numDigits()
 
 	fun getSceneItemFromId(id: Int): SceneItem? {
 		return sceneTree.findValueOrNull { it.id == id }
@@ -346,11 +354,14 @@ class SceneRepository(
 				?: error("Could not find parent on filesystem: ${parent.value.id}")
 		}
 		val existingSceneFiles = sceneDatasource.getGroupChildPathsById(parentPath)
+		val orderDigits = orderDigitsIn(parentPath)
 
 		parent.children().forEach { childNode ->
 			val existingPath = existingSceneFiles[childNode.value.id]
 				?: error("Scene wasn't present in directory")
-			val newPath = getSceneFilePath(childNode.value.id)
+			val newPath = parentPath.toOkioPath()
+				.div(sceneFileName(childNode.value, orderDigits))
+				.toHPath()
 
 			if (existingPath != newPath) {
 				try {
@@ -489,12 +500,18 @@ class SceneRepository(
 			null
 		}
 
+		// Renaming siblings changes none of this, so it is read once rather than per child. That
+		// also keeps the loop off the path cache, so the renames cost one re-scan between them all.
+		val orderDigits = orderDigitsIn(parentPath)
+
 		parent.children().forEachIndexed { index, childNode ->
 			childNode.value = childNode.value.copy(order = index)
 
 			val existingPath = existingSceneFiles[childNode.value.id]
 				?: error("Scene wasn't present in directory")
-			val newPath = getSceneFilePath(childNode.value.id)
+			val newPath = parentPath.toOkioPath()
+				.div(sceneFileName(childNode.value, orderDigits))
+				.toHPath()
 
 			if (existingPath != newPath) {
 				try {

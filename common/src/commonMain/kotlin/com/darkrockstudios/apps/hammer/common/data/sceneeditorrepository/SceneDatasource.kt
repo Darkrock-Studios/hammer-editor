@@ -195,7 +195,7 @@ class SceneDatasource(
 
 	fun moveScene(sourcePath: HPath, targetPath: HPath) {
 		fileSystem.atomicMove(sourcePath.toOkioPath(), targetPath.toOkioPath())
-		scenePathIndex.onMoved(sourcePath, targetPath)
+		scenePathIndex.invalidate()
 	}
 
 	fun getSceneBufferDirectory(): HPath {

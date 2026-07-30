@@ -155,32 +155,6 @@ class SceneDatasourceCacheTest : BaseTest() {
 	}
 
 	@Test
-	fun `renaming a leaf scene updates the warm cache without re-scanning`() = runTest {
-		// Re-padding a directory's order digits renames every sibling in turn, so a rename must
-		// cost an in-place cache update rather than a recursive re-scan.
-		val sourceId = 1
-		val sourcePath = sceneDatasource.resolveScenePathFromFilesystem(sourceId)
-		assertNotNull(sourcePath)
-		val before = sceneDatasource.getAllScenePaths()
-		val scansBefore = countingFs.listRecursivelyCount
-
-		val targetPath = sceneDatasource.getSceneDirectory().toOkioPath()
-			.div("09~Renamed~$sourceId.md").toHPath()
-		sceneDatasource.moveScene(sourcePath, targetPath)
-
-		assertNotNull(
-			sceneDatasource.resolveScenePathFromFilesystem(sourceId),
-			"Renamed scene must still resolve",
-		)
-		assertEquals(before.size, sceneDatasource.getAllScenePaths().size, "Scene count must not change")
-		assertEquals(
-			scansBefore,
-			countingFs.listRecursivelyCount,
-			"Renaming a leaf scene must not trigger a recursive re-scan",
-		)
-	}
-
-	@Test
 	fun `moving a scene to a new id re-indexes it`() = runTest {
 		// reIdScene moves a scene to a filename carrying a different id; the cached id index has to
 		// retire the old id rather than keep pointing it at the moved file.
