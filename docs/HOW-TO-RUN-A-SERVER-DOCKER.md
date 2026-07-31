@@ -32,8 +32,14 @@ docker run -d --name hammer-server \
   ghcr.io/darkrock-studios/hammer-editor/server:latest
 ```
 
-Then **download a client and create an account**. The first account created
-becomes the admin account.
+That gets the server running, but **a client cannot talk to it yet**. Hammer
+clients only speak HTTPS, and the container serves plain HTTP, so put TLS in
+front of it first: see [Networking](#networking) below. A client pointed at the
+cleartext port fails its TLS handshake and reports that it could not make a
+secure connection.
+
+Once TLS is in place, **download a client and create an account**. The first
+account created becomes the admin account.
 
 ## Networking
 
@@ -54,6 +60,18 @@ To change the host-side binding or port:
 ```bash
 HAMMER_HTTP_BIND=0.0.0.0 HAMMER_HTTP_PORT=8090 docker compose up -d
 ```
+
+### A client that will not connect
+
+If a client reports that it could not make a secure connection, it reached the
+cleartext port and got no TLS. Add a reverse proxy or a certificate as above.
+
+The server log is misleading here. A client's TLS handshake is rejected by the
+HTTP parser before any route runs, so nothing about it appears in the
+application log. What you will see instead are `UnsupportedProtocolVersionException`
+entries from your own browser or `curl` hitting `/api/...`, since only Hammer
+clients send the `X-Hammer-Protocol-Version` header. Those are unrelated to the
+client's failure.
 
 ### Do not set `bindHosts`
 

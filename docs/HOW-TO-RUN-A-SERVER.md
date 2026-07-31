@@ -53,7 +53,10 @@ The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 4. Run the server (_see platform-specific instructions below_)
 5. If everything worked, you should be able to access your server at your server's IP or at the host name you set in your config file and DNS configuration, such as:
    `http://example.com`
-6. **IMPORTANT!** You must now download one of the clients and create an account on the server. The first account
+6. **Set up HTTPS before going any further.** Clients only speak `https` and will not connect to a
+   plain HTTP server, so it needs either its own certificate or a reverse proxy holding one. See
+   [Setting up SSL](#setting-up-ssl-required-for-direct-connections).
+7. **IMPORTANT!** You must now download one of the clients and create an account on the server. The first account
    created will be the admin account.
 
 ## Network binding

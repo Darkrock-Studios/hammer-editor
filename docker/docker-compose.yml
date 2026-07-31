@@ -21,6 +21,9 @@ services:
       # Loopback by default: this connector is plain HTTP, and published ports
       # bypass host firewall rules. Set HAMMER_HTTP_BIND=0.0.0.0 only if nothing
       # untrusted can reach the host. HAMMER_HTTP_PORT moves the host-side port.
+      #
+      # Clients only speak HTTPS and will not connect to this port. Terminate TLS
+      # at a reverse proxy in front of it, or configure sslCert and publish 443.
       - "${HAMMER_HTTP_BIND:-127.0.0.1}:${HAMMER_HTTP_PORT:-8080}:8080"
 
     # Uncomment alongside the postgres service below.
