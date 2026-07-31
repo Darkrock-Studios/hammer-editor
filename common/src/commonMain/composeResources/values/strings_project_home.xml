@@ -121,6 +121,7 @@
 	<string name="project_home_import_create_groups_label">Create chapter groups</string>
 	<string name="project_home_import_preview_label">Preview</string>
 	<string name="project_home_import_preview_empty">Nothing to import</string>
+	<string name="project_home_import_preview_reading">Reading your manuscript</string>
 	<string name="project_home_import_preview_count">Will create %1$d scene(s)</string>
 	<string name="project_home_import_cancel">Cancel</string>
 	<string name="project_home_import_execute">Import</string>

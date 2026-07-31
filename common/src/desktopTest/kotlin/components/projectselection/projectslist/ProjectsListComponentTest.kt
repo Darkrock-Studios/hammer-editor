@@ -278,6 +278,24 @@ class ProjectsListComponentTest : ComponentTest() {
 		"# Part One\n\n## Chapter A\n\nText\n\n## Chapter B\n\nMore".encodeToByteArray()
 
 	@Test
+	fun `the dialog opens busy and clears when the parse lands`() =
+		runTest(mainTestDispatcher) {
+			val comp = newComponent()
+
+			comp.selectImportFile("The Wreck.md", twoLevelDoc)
+
+			// The picker has closed, so the dialog carries the wait rather than the projects list.
+			assertTrue(comp.state.value.showImportDialog, "Dialog opens before the parse finishes")
+			assertTrue(comp.state.value.isParsingImport, "It opens in the busy state")
+			assertTrue(comp.state.value.importPreview.isEmpty, "With nothing to show yet")
+
+			advanceUntilIdle()
+
+			assertFalse(comp.state.value.isParsingImport, "Busy clears once the preview lands")
+			assertFalse(comp.state.value.importPreview.isEmpty)
+		}
+
+	@Test
 	fun `a burst of option changes costs one parse and settles on the last`() =
 		runTest(mainTestDispatcher) {
 			val comp = newComponent()

@@ -364,7 +364,20 @@ class ProjectsListComponent(
 		val format = importerRegistry.formatForFileName(name)
 		val initialOptions = ImportOptions(format = format)
 
-		_state.getAndUpdate { it.copy(showImportFilePicker = false) }
+		// Open on the picker closing rather than when the parse lands, so the dialog itself carries
+		// the wait instead of the projects list sitting there looking like nothing happened.
+		_state.getAndUpdate {
+			it.copy(
+				showImportFilePicker = false,
+				showImportDialog = true,
+				importOptions = initialOptions,
+				importSourceName = sourceName,
+				importProjectName = sourceName,
+				importFileContent = content,
+				importPreview = ImportPreview(emptyList()),
+				isParsingImport = true,
+			)
+		}
 
 		launchPreview {
 			val preview = buildPreview(sourceName, content, initialOptions) ?: return@launchPreview
@@ -372,12 +385,9 @@ class ProjectsListComponent(
 			withContext(mainDispatcher) {
 				_state.getAndUpdate {
 					it.copy(
-						showImportDialog = true,
-						importOptions = initialOptions,
-						importSourceName = sourceName,
 						importProjectName = projectName,
-						importFileContent = content,
 						importPreview = preview,
+						isParsingImport = false,
 					)
 				}
 			}
@@ -390,7 +400,7 @@ class ProjectsListComponent(
 
 	override fun updateImportOptions(options: ImportOptions) {
 		val current = _state.value
-		_state.getAndUpdate { it.copy(importOptions = options) }
+		_state.getAndUpdate { it.copy(importOptions = options, isParsingImport = true) }
 
 		launchPreview {
 			// debounce: options update as you type
@@ -401,7 +411,7 @@ class ProjectsListComponent(
 				options = options,
 			) ?: return@launchPreview
 			withContext(mainDispatcher) {
-				_state.getAndUpdate { it.copy(importPreview = preview) }
+				_state.getAndUpdate { it.copy(importPreview = preview, isParsingImport = false) }
 			}
 		}
 	}
@@ -439,7 +449,9 @@ class ProjectsListComponent(
 		}
 		if (preview == null) {
 			withContext(mainDispatcher) {
-				_state.getAndUpdate { it.copy(importPreview = ImportPreview(emptyList())) }
+				_state.getAndUpdate {
+					it.copy(importPreview = ImportPreview(emptyList()), isParsingImport = false)
+				}
 				showToast(scope, Res.string.project_home_action_import_toast_failure)
 			}
 		}
@@ -455,6 +467,7 @@ class ProjectsListComponent(
 				importSourceName = "",
 				importProjectName = "",
 				importPreview = ImportPreview(emptyList()),
+				isParsingImport = false,
 			)
 		}
 	}

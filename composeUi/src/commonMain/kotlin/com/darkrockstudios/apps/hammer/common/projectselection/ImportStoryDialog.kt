@@ -40,6 +40,7 @@ fun ImportStoryDialog(
 	projectName: String,
 	options: ImportOptions,
 	preview: ImportPreview,
+	isParsing: Boolean,
 	onProjectNameChange: (String) -> Unit,
 	onCancel: () -> Unit,
 	onOptionsChange: (ImportOptions) -> Unit,
@@ -60,6 +61,7 @@ fun ImportStoryDialog(
 				projectName = projectName,
 				options = options,
 				preview = preview,
+				isParsing = isParsing,
 				onProjectNameChange = onProjectNameChange,
 				onCancel = onCancel,
 				onOptionsChange = onOptionsChange,
@@ -74,6 +76,7 @@ internal fun ImportStoryContent(
 	projectName: String,
 	options: ImportOptions,
 	preview: ImportPreview,
+	isParsing: Boolean,
 	onProjectNameChange: (String) -> Unit,
 	onCancel: () -> Unit,
 	onOptionsChange: (ImportOptions) -> Unit,
@@ -100,6 +103,7 @@ internal fun ImportStoryContent(
 			ImportMasthead(
 				options = options,
 				preview = preview,
+				isParsing = isParsing,
 				onClose = onCancel,
 			)
 			HdFolioDivider()
@@ -170,13 +174,13 @@ internal fun ImportStoryContent(
 
 				Spacer(modifier = Modifier.height(Ui.Padding.XL))
 
-				ImportPreviewPane(preview, Modifier.weight(1f))
+				ImportPreviewPane(preview, isParsing, Modifier.weight(1f))
 			}
 
 			ImportFooter(
 				onCancel = onCancel,
 				onConfirm = onConfirm,
-				confirmEnabled = !preview.isEmpty && nameValidation.isValid,
+				confirmEnabled = !isParsing && !preview.isEmpty && nameValidation.isValid,
 			)
 		}
 	}
@@ -186,16 +190,19 @@ internal fun ImportStoryContent(
 private fun ImportMasthead(
 	options: ImportOptions,
 	preview: ImportPreview,
+	isParsing: Boolean,
 	onClose: () -> Unit,
 ) {
-	val meta = remember(options, preview.totalScenes, preview.isEmpty) {
+	val meta = remember(options, preview.totalScenes, preview.isEmpty, isParsing) {
 		buildList {
 			add(options.format.metaLabel())
 			when (options.format) {
 				ImportFormat.Markdown -> add(options.chapterHeadingLevel.name.uppercase())
 				ImportFormat.Rtf -> add(options.rtfSplitStrategy.name.uppercase())
 			}
-			if (!preview.isEmpty) {
+			if (isParsing) {
+				add("READING")
+			} else if (!preview.isEmpty) {
 				add("${preview.totalScenes} SCENES")
 			}
 		}
@@ -244,7 +251,11 @@ private fun ImportFooter(
 }
 
 @Composable
-private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modifier) {
+private fun ImportPreviewPane(
+	preview: ImportPreview,
+	isParsing: Boolean,
+	modifier: Modifier = Modifier,
+) {
 	Column(modifier) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
@@ -252,7 +263,7 @@ private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modif
 			verticalAlignment = Alignment.CenterVertically,
 		) {
 			HdMonoLabel(Res.string.project_home_import_preview_label.get())
-			if (!preview.isEmpty) {
+			if (!isParsing && !preview.isEmpty) {
 				HdMonoLabel(
 					Res.string.project_home_import_preview_count.get(
 						preview.totalScenes,
@@ -271,7 +282,20 @@ private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modif
 					shape = RectangleShape,
 				),
 		) {
-			if (preview.isEmpty) {
+			if (isParsing) {
+				Row(
+					modifier = Modifier.fillMaxWidth().padding(Ui.Padding.L),
+					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.CenterHorizontally),
+					verticalAlignment = Alignment.CenterVertically,
+				) {
+					CircularProgressIndicator(
+						modifier = Modifier.size(18.dp),
+						strokeWidth = 2.dp,
+						color = MaterialTheme.colorScheme.primary,
+					)
+					HdMonoLabel(Res.string.project_home_import_preview_reading.get())
+				}
+			} else if (preview.isEmpty) {
 				Box(
 					modifier = Modifier
 						.fillMaxWidth()
