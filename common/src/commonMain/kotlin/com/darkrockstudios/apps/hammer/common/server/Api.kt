@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.server_error_connection_generic
 import com.darkrockstudios.apps.hammer.server_error_connection_timeout
 import com.darkrockstudios.apps.hammer.server_error_dns
 import com.darkrockstudios.apps.hammer.server_error_timeout
+import com.darkrockstudios.apps.hammer.server_error_tls
 import com.darkrockstudios.apps.hammer.sync_general_error
 import com.darkrockstudios.apps.hammer.sync_unauthorized
 import io.github.aakira.napier.Napier
@@ -151,17 +152,30 @@ abstract class Api(
 				)
 			)
 		} catch (e: IOException) {
-			// Generic network error (connection refused, SSL errors, etc.)
-			Napier.e("Network Error", e)
-			Result.failure(
-				HttpFailureException(
-					statusCode = outerResponse?.status ?: HttpStatusCode.RequestTimeout,
-					error = HttpResponseError(
-						error = e.message ?: "Network Error",
-						displayMessage = strRes.get(Res.string.server_error_connection_generic, path),
+			if (e.isTlsFailure()) {
+				Napier.e("TLS Error", e)
+				Result.failure(
+					HttpFailureException(
+						statusCode = outerResponse?.status ?: HttpStatusCode.BadGateway,
+						error = HttpResponseError(
+							error = e.message ?: "TLS Error",
+							displayMessage = strRes.get(Res.string.server_error_tls, server.url),
+						)
 					)
 				)
-			)
+			} else {
+				// Generic network error (connection refused, etc.)
+				Napier.e("Network Error", e)
+				Result.failure(
+					HttpFailureException(
+						statusCode = outerResponse?.status ?: HttpStatusCode.RequestTimeout,
+						error = HttpResponseError(
+							error = e.message ?: "Network Error",
+							displayMessage = strRes.get(Res.string.server_error_connection_generic, path),
+						)
+					)
+				)
+			}
 		}
 	}
 
