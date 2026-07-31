@@ -93,3 +93,6 @@ fastlane/README.md
 # server/src/main/resources/assets/images/ are committed, their sources are not
 /scripts/build-home-screenshots.py
 /scripts/home-screenshot-sources/
+
+# Local working area: marketing renders, one-off scripts, anything not shipped
+/scratch/

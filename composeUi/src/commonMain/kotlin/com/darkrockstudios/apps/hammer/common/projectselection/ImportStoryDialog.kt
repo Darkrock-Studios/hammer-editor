@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.Folder
@@ -38,6 +40,7 @@ fun ImportStoryDialog(
 	projectName: String,
 	options: ImportOptions,
 	preview: ImportPreview,
+	isParsing: Boolean,
 	onProjectNameChange: (String) -> Unit,
 	onCancel: () -> Unit,
 	onOptionsChange: (ImportOptions) -> Unit,
@@ -58,6 +61,7 @@ fun ImportStoryDialog(
 				projectName = projectName,
 				options = options,
 				preview = preview,
+				isParsing = isParsing,
 				onProjectNameChange = onProjectNameChange,
 				onCancel = onCancel,
 				onOptionsChange = onOptionsChange,
@@ -72,6 +76,7 @@ internal fun ImportStoryContent(
 	projectName: String,
 	options: ImportOptions,
 	preview: ImportPreview,
+	isParsing: Boolean,
 	onProjectNameChange: (String) -> Unit,
 	onCancel: () -> Unit,
 	onOptionsChange: (ImportOptions) -> Unit,
@@ -98,6 +103,7 @@ internal fun ImportStoryContent(
 			ImportMasthead(
 				options = options,
 				preview = preview,
+				isParsing = isParsing,
 				onClose = onCancel,
 			)
 			HdFolioDivider()
@@ -168,13 +174,13 @@ internal fun ImportStoryContent(
 
 				Spacer(modifier = Modifier.height(Ui.Padding.XL))
 
-				ImportPreviewPane(preview, Modifier.weight(1f))
+				ImportPreviewPane(preview, isParsing, Modifier.weight(1f))
 			}
 
 			ImportFooter(
 				onCancel = onCancel,
 				onConfirm = onConfirm,
-				confirmEnabled = !preview.isEmpty && nameValidation.isValid,
+				confirmEnabled = !isParsing && !preview.isEmpty && nameValidation.isValid,
 			)
 		}
 	}
@@ -184,16 +190,19 @@ internal fun ImportStoryContent(
 private fun ImportMasthead(
 	options: ImportOptions,
 	preview: ImportPreview,
+	isParsing: Boolean,
 	onClose: () -> Unit,
 ) {
-	val meta = remember(options, preview.totalScenes, preview.isEmpty) {
+	val meta = remember(options, preview.totalScenes, preview.isEmpty, isParsing) {
 		buildList {
 			add(options.format.metaLabel())
 			when (options.format) {
 				ImportFormat.Markdown -> add(options.chapterHeadingLevel.name.uppercase())
 				ImportFormat.Rtf -> add(options.rtfSplitStrategy.name.uppercase())
 			}
-			if (!preview.isEmpty) {
+			if (isParsing) {
+				add("READING")
+			} else if (!preview.isEmpty) {
 				add("${preview.totalScenes} SCENES")
 			}
 		}
@@ -242,7 +251,11 @@ private fun ImportFooter(
 }
 
 @Composable
-private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modifier) {
+private fun ImportPreviewPane(
+	preview: ImportPreview,
+	isParsing: Boolean,
+	modifier: Modifier = Modifier,
+) {
 	Column(modifier) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
@@ -250,7 +263,7 @@ private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modif
 			verticalAlignment = Alignment.CenterVertically,
 		) {
 			HdMonoLabel(Res.string.project_home_import_preview_label.get())
-			if (!preview.isEmpty) {
+			if (!isParsing && !preview.isEmpty) {
 				HdMonoLabel(
 					Res.string.project_home_import_preview_count.get(
 						preview.totalScenes,
@@ -269,7 +282,20 @@ private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modif
 					shape = RectangleShape,
 				),
 		) {
-			if (preview.isEmpty) {
+			if (isParsing) {
+				Row(
+					modifier = Modifier.fillMaxWidth().padding(Ui.Padding.L),
+					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.CenterHorizontally),
+					verticalAlignment = Alignment.CenterVertically,
+				) {
+					CircularProgressIndicator(
+						modifier = Modifier.size(18.dp),
+						strokeWidth = 2.dp,
+						color = MaterialTheme.colorScheme.primary,
+					)
+					HdMonoLabel(Res.string.project_home_import_preview_reading.get())
+				}
+			} else if (preview.isEmpty) {
 				Box(
 					modifier = Modifier
 						.fillMaxWidth()
@@ -279,23 +305,32 @@ private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modif
 					HdMonoLabel(Res.string.project_home_import_preview_empty.get())
 				}
 			} else {
-				Column(
-					modifier = Modifier
-						.verticalScroll(rememberScrollState())
-						.padding(Ui.Padding.M),
-				) {
-					preview.items.forEach { item ->
-						when (item) {
-							is PreviewItem.Scene -> PreviewSceneRow(item.name, indented = false)
-							is PreviewItem.Group -> {
-								PreviewGroupRow(item.name)
-								item.scenes.forEach { childScene ->
-									PreviewSceneRow(childScene.name, indented = true)
-								}
-							}
+				// A manuscript can split into thousands of scenes; only compose the visible rows.
+				val rows = remember(preview) { preview.toRows() }
+				LazyColumn(contentPadding = PaddingValues(Ui.Padding.M)) {
+					items(rows) { row ->
+						if (row.isGroup) {
+							PreviewGroupRow(row.name)
+						} else {
+							PreviewSceneRow(row.name, indented = row.indented)
 						}
 					}
 				}
+			}
+		}
+	}
+}
+
+/** One flat row of the preview tree: a group header, or a scene at top level or inside a group. */
+private class PreviewRow(val name: String, val isGroup: Boolean, val indented: Boolean)
+
+private fun ImportPreview.toRows(): List<PreviewRow> = buildList {
+	items.forEach { item ->
+		when (item) {
+			is PreviewItem.Scene -> add(PreviewRow(item.name, isGroup = false, indented = false))
+			is PreviewItem.Group -> {
+				add(PreviewRow(item.name, isGroup = true, indented = false))
+				item.scenes.forEach { add(PreviewRow(it.name, isGroup = false, indented = true)) }
 			}
 		}
 	}

@@ -38,6 +38,34 @@ fun ImportStoryDialogPreview() {
 					projectName = "Alice In Wonderland 2",
 					options = ImportOptions(),
 					preview = preview,
+					isParsing = false,
+					onProjectNameChange = {},
+					onCancel = {},
+					onOptionsChange = {},
+					onConfirm = {},
+				)
+			}
+		}
+	}
+}
+
+/** The window between the file picker closing and the parse landing. */
+@Preview(widthDp = 640, heightDp = 560)
+@Composable
+fun ImportStoryDialogParsingPreview() {
+	KoinApplicationPreview {
+		AppTheme(globalSettingsPreview, true) {
+			Box(
+				modifier = Modifier
+					.fillMaxSize()
+					.background(MaterialTheme.colorScheme.background),
+				contentAlignment = Alignment.Center,
+			) {
+				ImportStoryContent(
+					projectName = "Alice In Wonderland 2",
+					options = ImportOptions(),
+					preview = ImportPreview(items = emptyList()),
+					isParsing = true,
 					onProjectNameChange = {},
 					onCancel = {},
 					onOptionsChange = {},

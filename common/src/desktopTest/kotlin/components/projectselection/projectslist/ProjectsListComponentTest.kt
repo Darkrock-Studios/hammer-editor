@@ -6,6 +6,8 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.projec
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.CResult
+import com.darkrockstudios.apps.hammer.common.data.ChapterHeadingLevel
+import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
@@ -13,8 +15,10 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSettings
+import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
+import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -72,6 +76,22 @@ class ProjectsListComponentTest : ComponentTest() {
 
 	private var selectedProject: ProjectDef? = null
 
+	private var previewsParsed = 0
+
+	/** Counts parses so a test can tell one debounced parse from a burst of them. */
+	private inner class CountingImporter(private val delegate: StoryImporter) : StoryImporter {
+		override val format = delegate.format
+
+		override fun preview(
+			sourceName: String,
+			content: ByteArray,
+			options: ImportOptions,
+		): ImportPreview {
+			previewsParsed++
+			return delegate.preview(sourceName, content, options)
+		}
+	}
+
 	private val projectDefA = ProjectDef("Alpha", HPath("/projects/Alpha", "Alpha", false))
 
 	private val fixedNow = Instant.fromEpochSeconds(1_000_000)
@@ -114,7 +134,11 @@ class ProjectsListComponentTest : ComponentTest() {
 			single<Toml> { createTomlSerializer() }
 			single<StrRes> { TestStrRes() }
 			single<Clock> { object : Clock { override fun now(): Instant = fixedNow } }
-			single { StoryImporterRegistry(listOf(MarkdownStoryImporter(), RtfStoryImporter())) }
+			single {
+				StoryImporterRegistry(
+					listOf(CountingImporter(MarkdownStoryImporter()), CountingImporter(RtfStoryImporter()))
+				)
+			}
 			single<UrlLauncher> { mockk(relaxed = true) }
 			single<VersionCheckDataSource> { mockk(relaxed = true) }
 			single { VersionCheckRepository(get()) }
@@ -227,6 +251,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			val comp = newComponent()
 
 			comp.selectImportFile("The Wreck.md", "# Chapter One\n\nText\n\n# Chapter Two\n\nMore".encodeToByteArray())
+			advanceUntilIdle()
 
 			assertEquals("The Wreck", comp.state.value.importProjectName)
 			assertTrue(comp.state.value.showImportDialog)
@@ -243,8 +268,64 @@ class ProjectsListComponentTest : ComponentTest() {
 				"alice.md",
 				"# Alice in Wonderland\n\n## Chapter One\n\nText".encodeToByteArray(),
 			)
+			advanceUntilIdle()
 
 			assertEquals("Alice in Wonderland", comp.state.value.importProjectName)
+		}
+
+	// Auto keeps two H2 scenes; H1 collapses the document to one, so the preview shows which won.
+	private val twoLevelDoc =
+		"# Part One\n\n## Chapter A\n\nText\n\n## Chapter B\n\nMore".encodeToByteArray()
+
+	@Test
+	fun `the dialog opens busy and clears when the parse lands`() =
+		runTest(mainTestDispatcher) {
+			val comp = newComponent()
+
+			comp.selectImportFile("The Wreck.md", twoLevelDoc)
+
+			// The picker has closed, so the dialog carries the wait rather than the projects list.
+			assertTrue(comp.state.value.showImportDialog, "Dialog opens before the parse finishes")
+			assertTrue(comp.state.value.isParsingImport, "It opens in the busy state")
+			assertTrue(comp.state.value.importPreview.isEmpty, "With nothing to show yet")
+
+			advanceUntilIdle()
+
+			assertFalse(comp.state.value.isParsingImport, "Busy clears once the preview lands")
+			assertFalse(comp.state.value.importPreview.isEmpty)
+		}
+
+	@Test
+	fun `a burst of option changes costs one parse and settles on the last`() =
+		runTest(mainTestDispatcher) {
+			val comp = newComponent()
+			comp.selectImportFile("Draft.md", twoLevelDoc)
+			advanceUntilIdle()
+			assertEquals(2, comp.state.value.importPreview.totalScenes, "Auto splits on H2")
+			previewsParsed = 0
+
+			comp.updateImportOptions(ImportOptions(chapterHeadingLevel = ChapterHeadingLevel.H2))
+			comp.updateImportOptions(ImportOptions(chapterHeadingLevel = ChapterHeadingLevel.Auto))
+			comp.updateImportOptions(ImportOptions(chapterHeadingLevel = ChapterHeadingLevel.H1))
+			advanceUntilIdle()
+
+			assertEquals(1, previewsParsed, "Superseded options must be dropped before they parse")
+			assertEquals(ChapterHeadingLevel.H1, comp.state.value.importOptions.chapterHeadingLevel)
+			assertEquals(1, comp.state.value.importPreview.totalScenes, "H1 keeps it as one scene")
+		}
+
+	@Test
+	fun `confirming an empty preview creates nothing`() =
+		runTest(mainTestDispatcher) {
+			val comp = newComponent()
+			comp.selectImportFile("Blank.md", "   \n\n  \n".encodeToByteArray())
+			advanceUntilIdle()
+			assertTrue(comp.state.value.importPreview.isEmpty, "A blank document previews as nothing")
+
+			comp.confirmImportDialog()
+			advanceUntilIdle()
+
+			verify(exactly = 0) { projectsRepository.createProject(any()) }
 		}
 
 	@Test
@@ -260,6 +341,8 @@ class ProjectsListComponentTest : ComponentTest() {
 	fun `cancelImportDialog clears the import state`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 		comp.selectImportFile("Draft.md", "# One\n\nText".encodeToByteArray())
+		advanceUntilIdle()
+		assertTrue(comp.state.value.showImportDialog)
 
 		comp.cancelImportDialog()
 

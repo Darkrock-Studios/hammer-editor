@@ -64,9 +64,13 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.yield
 import net.peanuuutz.tomlkt.Toml
@@ -75,6 +79,7 @@ import okio.IOException
 import okio.Path.Companion.toPath
 import org.koin.core.component.inject
 import org.koin.core.parameter.parametersOf
+import kotlin.coroutines.coroutineContext
 import kotlin.time.Clock
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData as StoredData
 
@@ -101,6 +106,8 @@ class ProjectsListComponent(
 
 	private var loadProjectsJob: Job? = null
 	private var syncProjectsJob: Job? = null
+	private var importPreviewJob: Job? = null
+	private val importPreviewLock = Mutex()
 	private var syncScope: CoroutineScope? = null
 
 	private val modalRouter = ProjectListModalRouter(
@@ -350,23 +357,40 @@ class ProjectsListComponent(
 		_state.getAndUpdate { it.copy(showImportFilePicker = false) }
 	}
 
+	// Parsing a full manuscript is not instant, and both entry points are called from the UI
+	// thread, so the preview is always built off it and applied when it lands.
 	override fun selectImportFile(name: String, content: ByteArray) {
 		val sourceName = name.substringBeforeLast('.')
 		val format = importerRegistry.formatForFileName(name)
 		val initialOptions = ImportOptions(format = format)
-		val preview =
-			importerRegistry.forFormat(format).preview(sourceName, content, initialOptions)
-		val projectName = preview.title?.takeIf { it.isNotBlank() } ?: sourceName
+
+		// Open on the picker closing rather than when the parse lands, so the dialog itself carries
+		// the wait instead of the projects list sitting there looking like nothing happened.
 		_state.getAndUpdate {
 			it.copy(
 				showImportFilePicker = false,
 				showImportDialog = true,
 				importOptions = initialOptions,
 				importSourceName = sourceName,
-				importProjectName = projectName,
+				importProjectName = sourceName,
 				importFileContent = content,
-				importPreview = preview,
+				importPreview = ImportPreview(emptyList()),
+				isParsingImport = true,
 			)
+		}
+
+		launchPreview {
+			val preview = buildPreview(sourceName, content, initialOptions) ?: return@launchPreview
+			val projectName = preview.title?.takeIf { it.isNotBlank() } ?: sourceName
+			withContext(mainDispatcher) {
+				_state.getAndUpdate {
+					it.copy(
+						importProjectName = projectName,
+						importPreview = preview,
+						isParsingImport = false,
+					)
+				}
+			}
 		}
 	}
 
@@ -376,17 +400,66 @@ class ProjectsListComponent(
 
 	override fun updateImportOptions(options: ImportOptions) {
 		val current = _state.value
-		val preview = importerRegistry.forFormat(options.format).preview(
-			sourceName = current.importSourceName,
-			content = current.importFileContent,
-			options = options,
-		)
-		_state.getAndUpdate {
-			it.copy(importOptions = options, importPreview = preview)
+		_state.getAndUpdate { it.copy(importOptions = options, isParsingImport = true) }
+
+		launchPreview {
+			// debounce: options update as you type
+			delay(PREVIEW_DEBOUNCE_MS)
+			val preview = buildPreview(
+				sourceName = current.importSourceName,
+				content = current.importFileContent,
+				options = options,
+			) ?: return@launchPreview
+			withContext(mainDispatcher) {
+				_state.getAndUpdate { it.copy(importPreview = preview, isParsingImport = false) }
+			}
 		}
 	}
 
+	private fun launchPreview(block: suspend CoroutineScope.() -> Unit) {
+		importPreviewJob?.cancel()
+		importPreviewJob = scope.launch(block = block)
+	}
+
+	/**
+	 * Parses off the UI thread, returning null when the import fails or the caller was cancelled.
+	 * The importers hand off to third-party parsers that can throw on a malformed file, and an
+	 * escaping throw would take the component's whole scope down with it.
+	 */
+	private suspend fun buildPreview(
+		sourceName: String,
+		content: ByteArray,
+		options: ImportOptions,
+	): ImportPreview? {
+		// The parse never suspends, so cancelling only takes effect around it; hold the lock so a
+		// superseded parse can't run alongside its replacement.
+		val preview = importPreviewLock.withLock {
+			coroutineContext.ensureActive()
+			withContext(dispatcherDefault) {
+				try {
+					importerRegistry.forFormat(options.format).preview(sourceName, content, options)
+				} catch (e: CancellationException) {
+					throw e
+					// Import can fail many ways (parse, malformed file); report and show failure toast.
+				} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+					Napier.e("Import: failed to parse '$sourceName'", e)
+					null
+				}
+			}
+		}
+		if (preview == null) {
+			withContext(mainDispatcher) {
+				_state.getAndUpdate {
+					it.copy(importPreview = ImportPreview(emptyList()), isParsingImport = false)
+				}
+				showToast(scope, Res.string.project_home_action_import_toast_failure)
+			}
+		}
+		return preview
+	}
+
 	override fun cancelImportDialog() {
+		importPreviewJob?.cancel()
 		_state.getAndUpdate {
 			it.copy(
 				showImportDialog = false,
@@ -394,13 +467,21 @@ class ProjectsListComponent(
 				importSourceName = "",
 				importProjectName = "",
 				importPreview = ImportPreview(emptyList()),
+				isParsingImport = false,
 			)
 		}
 	}
 
 	override suspend fun confirmImportDialog() {
+		// A re-parse triggered by a last-moment option change must not land after we snapshot.
+		importPreviewJob?.join()
 		val projectName = _state.value.importProjectName
 		val previewToImport = _state.value.importPreview
+		// That re-parse may have emptied the preview, and the button was enabled against the old one.
+		if (previewToImport.isEmpty) {
+			Napier.w("Import: nothing to import for '$projectName'")
+			return
+		}
 
 		val result = projectsRepository.createProject(projectName)
 		if (!isSuccess(result)) {
@@ -834,5 +915,9 @@ class ProjectsListComponent(
 
 	override fun dismissProjectDelete() {
 		modalRouter.dismissProjectDelete()
+	}
+
+	private companion object {
+		const val PREVIEW_DEBOUNCE_MS = 150L
 	}
 }

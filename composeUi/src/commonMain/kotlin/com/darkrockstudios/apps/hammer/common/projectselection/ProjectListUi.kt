@@ -312,6 +312,7 @@ fun ProjectListUi(
 		projectName = state.importProjectName,
 		options = state.importOptions,
 		preview = state.importPreview,
+		isParsing = state.isParsingImport,
 		onProjectNameChange = component::updateImportProjectName,
 		onCancel = component::cancelImportDialog,
 		onOptionsChange = component::updateImportOptions,
