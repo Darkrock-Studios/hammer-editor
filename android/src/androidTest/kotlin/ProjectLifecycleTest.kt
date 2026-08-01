@@ -3,10 +3,10 @@ import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -44,10 +44,8 @@ class ProjectLifecycleTest {
 	@Test
 	fun createProjectThenOpenIt() {
 		// 1. Open the create dialog (masthead button when wide, bottom bar when narrow).
-		composeRule.onNodeWithTag(CreateProjectButtonTestTag).performClick()
-
 		// 2. Type the project name into the dialog's only editable field, then confirm.
-		composeRule.waitUntil(timeoutMillis = 5_000) {
+		composeRule.clickUntil(hasTestTag(CreateProjectButtonTestTag)) {
 			composeRule.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().isNotEmpty()
 		}
 		composeRule.onNode(hasSetTextAction()).performTextInput(projectName)

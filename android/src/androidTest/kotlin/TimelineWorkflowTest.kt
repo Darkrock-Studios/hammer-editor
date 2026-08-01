@@ -1,4 +1,5 @@
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -42,14 +43,8 @@ class TimelineWorkflowTest {
 	fun createEventThenOpenIt() {
 		composeRule.navigateTo(NAV_TIMELINE_TAG)
 
-		// Open the create screen via the FAB.
-		composeRule.waitUntil(10_000) {
-			composeRule.onAllNodesWithTag(TIME_LINE_CREATE_TAG).fetchSemanticsNodes().isNotEmpty()
-		}
-		composeRule.onNodeWithTag(TIME_LINE_CREATE_TAG).performClick()
-
-		// Content is optional, so a date alone persists an event.
-		composeRule.waitUntil(10_000) {
+		// Open the create screen via the FAB. Content is optional, so a date alone persists an event.
+		composeRule.clickUntil(hasTestTag(TIME_LINE_CREATE_TAG)) {
 			composeRule.onAllNodesWithTag(TIME_LINE_CREATE_DATE_TAG).fetchSemanticsNodes().isNotEmpty()
 		}
 		composeRule.onNodeWithTag(TIME_LINE_CREATE_DATE_TAG).performTextInput("Year One")
@@ -62,8 +57,7 @@ class TimelineWorkflowTest {
 		composeRule.onAllNodesWithTag(EVENT_CARD_TAG)[0].assertIsDisplayed()
 
 		// Opening the event leaves the overview - the create FAB only shows there.
-		composeRule.onAllNodesWithTag(EVENT_CARD_TAG)[0].performClick()
-		composeRule.waitUntil(10_000) {
+		composeRule.clickUntil(hasTestTag(EVENT_CARD_TAG)) {
 			composeRule.onAllNodesWithTag(TIME_LINE_CREATE_TAG).fetchSemanticsNodes().isEmpty()
 		}
 	}
