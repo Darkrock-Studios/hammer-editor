@@ -1,3 +1,14 @@
+// htmx throws away the body of a 4xx/5xx response, which would take the toast with it. Responses
+// built by the server's toast helpers say they are swap payloads; swap those and leave the rest
+// to htmx's default handling.
+document.body.addEventListener('htmx:beforeSwap', function (evt) {
+	const xhr = evt.detail.xhr;
+	if (xhr && xhr.status >= 400 && xhr.getResponseHeader('X-Hammer-Swap-Error') === 'true') {
+		evt.detail.shouldSwap = true;
+		evt.detail.isError = false;
+	}
+});
+
 // Toast auto-dismiss and manual dismiss handling
 function initToast(toast) {
 	const duration = 5000;

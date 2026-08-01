@@ -321,10 +321,13 @@ fun Route.dashboardPage(
 				val typedEmail = call.receiveParameters()["confirmEmail"]?.trim() ?: ""
 
 				// The JS arming of the button is UX only; the typed email is the
-				// real confirmation and must be verified here. Errors respond OK
-				// because htmx does not swap OOB toasts on 4xx responses.
+				// real confirmation and must be verified here.
 				if (!typedEmail.equals(account.email, ignoreCase = true)) {
-					respondToast(call.msg("account_delete_error_email_mismatch"), Toast.Error)
+					respondToast(
+						call.msg("account_delete_error_email_mismatch"),
+						Toast.Error,
+						HttpStatusCode.BadRequest
+					)
 					return@post
 				}
 
@@ -336,7 +339,8 @@ fun Route.dashboardPage(
 				} else {
 					respondToast(
 						result.displayMessageText(call) ?: call.msg("account_delete_error_generic"),
-						Toast.Error
+						Toast.Error,
+						HttpStatusCode.BadRequest
 					)
 				}
 			}
