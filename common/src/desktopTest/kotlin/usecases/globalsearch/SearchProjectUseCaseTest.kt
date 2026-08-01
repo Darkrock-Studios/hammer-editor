@@ -357,6 +357,127 @@ class SearchProjectUseCaseTest : BaseTest() {
 	}
 
 	@Test
+	fun `search matches across a backslash escape`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "A well\\-known secret"))
+
+		val results = createUseCase().search("well-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+	}
+
+	@Test
+	fun `snippets render escaped text the way it reads on screen`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "A well\\-known garden\\! at dusk"))
+
+		val results = createUseCase().search("well-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		val snippet = results.first().snippet
+		assertEquals("A well-known garden! at dusk", snippet.text)
+		assertEquals("well-known", snippet.text.substring(snippet.matchStart, snippet.matchEnd))
+	}
+
+	@Test
+	fun `escaped markers are searchable as literal characters`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "the \\_shape\\_ of it"))
+
+		val results = createUseCase().search("_shape_", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertTrue(results.first().snippet.text.contains("_shape_"))
+	}
+
+	@Test
+	fun `searching for a literal backslash escape still finds it`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "raw well\\-known marker"))
+
+		val results = createUseCase().search("well\\-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+	}
+
+	@Test
+	fun `unescaped markup is left alone so literal text is not rewritten`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			note(1, "The cost is 5*4"),
+			note(2, "the user_name field"),
+		)
+
+		val math = createUseCase().search("5*4", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+		val identifier = createUseCase().search("user_name", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, math.size)
+		assertEquals("The cost is 5*4", math.first().snippet.text)
+		assertEquals(1, identifier.size)
+		assertTrue(identifier.first().snippet.text.contains("user_name"))
+	}
+
+	@Test
+	fun `scene bodies match across a backslash escape`() = runTest {
+		val scene = SceneItem(
+			projectDef = projectDef,
+			type = SceneItem.Type.Scene,
+			id = 7,
+			name = "Opening",
+			order = 0,
+		)
+		every { sceneEditor.getScenes() } returns listOf(scene)
+		every { sceneContentRepository.getSceneBuffer(scene) } returns null
+		every { sceneEditor.loadSceneMarkdownRaw(scene, any()) } returns "A well\\-known road"
+
+		val results = createUseCase().search("well-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Scene>()
+
+		assertEquals(1, results.size)
+		assertEquals("A well-known road", results.first().snippet.text)
+	}
+
+	@Test
+	fun `timeline dates are not unescaped`() = runTest {
+		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(
+			listOf(TimeLineEvent(id = 21, order = 0, date = "1990\\-2000", content = "A long war")),
+		)
+
+		val verbatim = createUseCase().search("1990\\-2000", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.TimelineEvent>()
+		val resolvedForm = createUseCase().search("1990-2000", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.TimelineEvent>()
+
+		assertEquals(1, verbatim.size)
+		// Unescaping the date would make this hit and would show a date the event does not have.
+		assertEquals(0, resolvedForm.size)
+	}
+
+	@Test
+	fun `tag-only search previews escaped text as it reads`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			NoteContainer(
+				NoteContent(
+					id = 1,
+					created = Clock.System.now(),
+					content = "A well\\-known secret",
+					tags = setOf("fantasy"),
+				)
+			),
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals("A well-known secret", results.first().snippet.text)
+	}
+
+	private fun note(id: Int, content: String) =
+		NoteContainer(NoteContent(id = id, created = Clock.System.now(), content = content))
+
+	@Test
 	fun `search honors filter to a single source`() = runTest {
 		every { notes.getNotes() } returns listOf(
 			NoteContainer(NoteContent(id = 1, created = Clock.System.now(), content = "dragon note")),
