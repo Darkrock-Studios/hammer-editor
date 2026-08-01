@@ -757,6 +757,12 @@ For displaying when lists have no content.
 
 **Variants:** `.toast-success`, `.toast-warning`, `.toast-error`, `.toast-info`
 
+Send toasts with the `respondToast` / `respondHtmlWithToast` / `respondTemplateWithToast` helpers
+rather than hand-writing the markup. An endpoint that rejects a request should answer with its real
+error status: the helpers mark error responses with `X-Hammer-Swap-Error`, which is what makes htmx
+swap a body it would otherwise discard, and toast-only errors also reswap to `none` so the request's
+target keeps its content. A raw `call.respond(HttpStatusCode.BadRequest, ...)` gets no toast.
+
 ---
 
 ## Form Components
