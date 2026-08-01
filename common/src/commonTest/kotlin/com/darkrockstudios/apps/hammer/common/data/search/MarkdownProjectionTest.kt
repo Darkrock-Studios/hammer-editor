@@ -84,10 +84,44 @@ class MarkdownProjectionTest {
 	}
 
 	@Test
-	fun `block level markers are left alone`() {
-		assertEquals("# Chapter One", projectMarkdownToPlainText("# Chapter One"))
-		assertEquals("> a quote", projectMarkdownToPlainText("> a quote"))
-		assertEquals("- a bullet", projectMarkdownToPlainText("- a bullet"))
+	fun `leading block markers are stripped from each line`() {
+		assertEquals("Chapter One", projectMarkdownToPlainText("# Chapter One"))
+		assertEquals("a quote", projectMarkdownToPlainText("> a quote"))
+		assertEquals("a bullet", projectMarkdownToPlainText("- a bullet"))
+		assertEquals("Chapter One\n\nThe body", projectMarkdownToPlainText("# Chapter One\n\nThe body"))
+	}
+
+	@Test
+	fun `ordered list markers are left alone so years survive`() {
+		assertEquals("1984. The year everything changed", projectMarkdownToPlainText("1984. The year everything changed"))
+		assertEquals("3) Meet at the docks", projectMarkdownToPlainText("3) Meet at the docks"))
+	}
+
+	@Test
+	fun `a marker that is not followed by a space is prose`() {
+		assertEquals("-15 degrees", projectMarkdownToPlainText("-15 degrees"))
+		assertEquals("#hashtag here", projectMarkdownToPlainText("#hashtag here"))
+	}
+
+	@Test
+	fun `code delimiters do not pair across a paragraph break`() {
+		assertEquals(
+			"It`s here.\n\nThe Chapter One part.\n\nDon`t stop.",
+			projectMarkdownToPlainText("It`s here.\n\nThe **Chapter** One part.\n\nDon`t stop."),
+		)
+	}
+
+	@Test
+	fun `emphasis does not pair across a paragraph break`() {
+		assertEquals(
+			"See note *below\n\nThe rate is 5* higher",
+			projectMarkdownToPlainText("See note *below\n\nThe rate is 5* higher"),
+		)
+	}
+
+	@Test
+	fun `emphasis still pairs across a soft line break`() {
+		assertEquals("The long\ntitle here", projectMarkdownToPlainText("The **long\ntitle** here"))
 	}
 
 	@Test
@@ -103,7 +137,16 @@ class MarkdownProjectionTest {
 		assertEquals("Chapter One", markdownTitleLine("# **Chapter** One\n\nbody"))
 		assertEquals("A quoted thought", markdownTitleLine("> A quoted thought"))
 		assertEquals("First item", markdownTitleLine("- First item\n- Second"))
-		assertEquals("First item", markdownTitleLine("1. First item"))
+	}
+
+	@Test
+	fun `title line keeps a leading number`() {
+		assertEquals("1984. The year everything changed", markdownTitleLine("1984. The year everything changed"))
+	}
+
+	@Test
+	fun `title line pairs emphasis that closes on the next line`() {
+		assertEquals("The long", markdownTitleLine("The **long\ntitle** here"))
 	}
 
 	@Test
