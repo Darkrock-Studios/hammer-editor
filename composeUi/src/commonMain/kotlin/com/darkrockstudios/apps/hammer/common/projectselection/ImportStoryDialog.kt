@@ -22,9 +22,9 @@ import com.darkrockstudios.apps.hammer.common.compose.NameKind
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
-import com.darkrockstudios.apps.hammer.common.data.ChapterHeadingLevel
 import com.darkrockstudios.apps.hammer.common.data.ImportFormat
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
+import com.darkrockstudios.apps.hammer.common.data.MarkdownSplitStrategy
 import com.darkrockstudios.apps.hammer.common.data.RtfSplitStrategy
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.PreviewItem
@@ -137,13 +137,22 @@ internal fun ImportStoryContent(
 				Spacer(modifier = Modifier.height(Ui.Padding.XL))
 
 				when (options.format) {
-					ImportFormat.Markdown -> HdHairlineSegmentedPicker(
-						title = Res.string.project_home_import_heading_label.get(),
-						options = ChapterHeadingLevel.entries,
-						selected = options.chapterHeadingLevel,
-						onSelect = { onOptionsChange(options.copy(chapterHeadingLevel = it)) },
-						label = { (it.labelRes()).get() },
-					)
+					ImportFormat.Markdown -> {
+						HdHairlineSegmentedPicker(
+							title = Res.string.project_home_import_heading_label.get(),
+							options = MarkdownSplitStrategy.entries,
+							selected = options.markdownSplitStrategy,
+							onSelect = { onOptionsChange(options.copy(markdownSplitStrategy = it)) },
+							label = { (it.labelRes()).get() },
+						)
+						if (options.markdownSplitStrategy == MarkdownSplitStrategy.Pattern) {
+							Spacer(modifier = Modifier.height(Ui.Padding.L))
+							ChapterPatternField(
+								pattern = options.markdownChapterPattern,
+								onPatternChange = { onOptionsChange(options.copy(markdownChapterPattern = it)) },
+							)
+						}
+					}
 
 					ImportFormat.Rtf -> {
 						HdHairlineSegmentedPicker(
@@ -155,10 +164,9 @@ internal fun ImportStoryContent(
 						)
 						if (options.rtfSplitStrategy == RtfSplitStrategy.Pattern) {
 							Spacer(modifier = Modifier.height(Ui.Padding.L))
-							FormField(
-								value = options.rtfChapterPattern,
-								onValueChange = { onOptionsChange(options.copy(rtfChapterPattern = it)) },
-								label = Res.string.project_home_import_pattern_label.get(),
+							ChapterPatternField(
+								pattern = options.rtfChapterPattern,
+								onPatternChange = { onOptionsChange(options.copy(rtfChapterPattern = it)) },
 							)
 						}
 					}
@@ -187,6 +195,15 @@ internal fun ImportStoryContent(
 }
 
 @Composable
+private fun ChapterPatternField(pattern: String, onPatternChange: (String) -> Unit) {
+	FormField(
+		value = pattern,
+		onValueChange = onPatternChange,
+		label = Res.string.project_home_import_pattern_label.get(),
+	)
+}
+
+@Composable
 private fun ImportMasthead(
 	options: ImportOptions,
 	preview: ImportPreview,
@@ -197,7 +214,7 @@ private fun ImportMasthead(
 		buildList {
 			add(options.format.metaLabel())
 			when (options.format) {
-				ImportFormat.Markdown -> add(options.chapterHeadingLevel.name.uppercase())
+				ImportFormat.Markdown -> add(options.markdownSplitStrategy.name.uppercase())
 				ImportFormat.Rtf -> add(options.rtfSplitStrategy.name.uppercase())
 			}
 			if (isParsing) {
@@ -385,10 +402,11 @@ private fun ImportFormat.metaLabel(): String = when (this) {
 	ImportFormat.Rtf -> "RTF"
 }
 
-private fun ChapterHeadingLevel.labelRes(): StringResource = when (this) {
-	ChapterHeadingLevel.Auto -> Res.string.project_home_import_heading_auto
-	ChapterHeadingLevel.H1 -> Res.string.project_home_import_heading_h1
-	ChapterHeadingLevel.H2 -> Res.string.project_home_import_heading_h2
+private fun MarkdownSplitStrategy.labelRes(): StringResource = when (this) {
+	MarkdownSplitStrategy.Auto -> Res.string.project_home_import_heading_auto
+	MarkdownSplitStrategy.H1 -> Res.string.project_home_import_heading_h1
+	MarkdownSplitStrategy.H2 -> Res.string.project_home_import_heading_h2
+	MarkdownSplitStrategy.Pattern -> Res.string.project_home_import_split_pattern
 }
 
 private fun RtfSplitStrategy.labelRes(): StringResource = when (this) {

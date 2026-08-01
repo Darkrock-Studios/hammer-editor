@@ -6,8 +6,8 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.projec
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Info
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.CResult
-import com.darkrockstudios.apps.hammer.common.data.ChapterHeadingLevel
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
+import com.darkrockstudios.apps.hammer.common.data.MarkdownSplitStrategy
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SyncedProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
@@ -304,13 +304,13 @@ class ProjectsListComponentTest : ComponentTest() {
 			assertEquals(2, comp.state.value.importPreview.totalScenes, "Auto splits on H2")
 			previewsParsed = 0
 
-			comp.updateImportOptions(ImportOptions(chapterHeadingLevel = ChapterHeadingLevel.H2))
-			comp.updateImportOptions(ImportOptions(chapterHeadingLevel = ChapterHeadingLevel.Auto))
-			comp.updateImportOptions(ImportOptions(chapterHeadingLevel = ChapterHeadingLevel.H1))
+			comp.updateImportOptions(ImportOptions(markdownSplitStrategy = MarkdownSplitStrategy.H2))
+			comp.updateImportOptions(ImportOptions(markdownSplitStrategy = MarkdownSplitStrategy.Auto))
+			comp.updateImportOptions(ImportOptions(markdownSplitStrategy = MarkdownSplitStrategy.H1))
 			advanceUntilIdle()
 
 			assertEquals(1, previewsParsed, "Superseded options must be dropped before they parse")
-			assertEquals(ChapterHeadingLevel.H1, comp.state.value.importOptions.chapterHeadingLevel)
+			assertEquals(MarkdownSplitStrategy.H1, comp.state.value.importOptions.markdownSplitStrategy)
 			assertEquals(1, comp.state.value.importPreview.totalScenes, "H1 keeps it as one scene")
 		}
 

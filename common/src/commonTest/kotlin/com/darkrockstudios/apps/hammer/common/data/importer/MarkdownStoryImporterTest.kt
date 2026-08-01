@@ -1,7 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.data.importer
 
-import com.darkrockstudios.apps.hammer.common.data.ChapterHeadingLevel
+import com.darkrockstudios.apps.hammer.common.data.DEFAULT_CHAPTER_PATTERN
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
+import com.darkrockstudios.apps.hammer.common.data.MarkdownSplitStrategy
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -12,15 +13,17 @@ class MarkdownStoryImporterTest {
 
 	private fun preview(
 		content: String,
-		level: ChapterHeadingLevel = ChapterHeadingLevel.H1,
+		strategy: MarkdownSplitStrategy = MarkdownSplitStrategy.H1,
 		groups: Boolean = false,
 		sourceName: String = "story",
+		pattern: String = DEFAULT_CHAPTER_PATTERN,
 	) = importer.preview(
 		sourceName = sourceName,
 		content = content.encodeToByteArray(),
 		options = ImportOptions(
-			chapterHeadingLevel = level,
+			markdownSplitStrategy = strategy,
 			createChapterGroups = groups,
+			markdownChapterPattern = pattern,
 		),
 	)
 
@@ -76,7 +79,7 @@ class MarkdownStoryImporterTest {
 			## Real Chapter
 			Chapter body.
 		""".trimIndent()
-		val result = preview(md, level = ChapterHeadingLevel.H2)
+		val result = preview(md, strategy = MarkdownSplitStrategy.H2)
 		assertEquals(1, result.items.size)
 		val group = result.items[0] as PreviewItem.Group
 		assertEquals("Outer Title", group.name)
@@ -93,7 +96,7 @@ class MarkdownStoryImporterTest {
 			## Real Chapter
 			Chapter body.
 		""".trimIndent()
-		val result = preview(md, level = ChapterHeadingLevel.H2)
+		val result = preview(md, strategy = MarkdownSplitStrategy.H2)
 		assertEquals(1, result.items.size)
 		val group = result.items[0] as PreviewItem.Group
 		assertEquals("Outer Title", group.name)
@@ -112,7 +115,7 @@ class MarkdownStoryImporterTest {
 			### A subsection
 			More text.
 		""".trimIndent()
-		val result = preview(md, level = ChapterHeadingLevel.H2)
+		val result = preview(md, strategy = MarkdownSplitStrategy.H2)
 		assertEquals(1, result.items.size)
 		val scene = result.items[0] as PreviewItem.Scene
 		assertEquals("Chapter One", scene.name)
@@ -132,7 +135,7 @@ class MarkdownStoryImporterTest {
 			## Chapter C
 			c body
 		""".trimIndent()
-		val result = preview(md, level = ChapterHeadingLevel.H2)
+		val result = preview(md, strategy = MarkdownSplitStrategy.H2)
 		assertEquals(2, result.items.size)
 		val partOne = result.items[0] as PreviewItem.Group
 		assertEquals("Part One", partOne.name)
@@ -151,7 +154,7 @@ class MarkdownStoryImporterTest {
 			## Chapter B
 			b body
 		""".trimIndent()
-		val result = preview(md, level = ChapterHeadingLevel.H2)
+		val result = preview(md, strategy = MarkdownSplitStrategy.H2)
 		assertEquals(2, result.items.size)
 		val sceneA = result.items[0] as PreviewItem.Scene
 		assertEquals("Chapter A", sceneA.name)
@@ -168,7 +171,7 @@ class MarkdownStoryImporterTest {
 			# Chapter Two
 			b
 		""".trimIndent()
-		val result = preview(md, level = ChapterHeadingLevel.H1)
+		val result = preview(md, strategy = MarkdownSplitStrategy.H1)
 		assertEquals(2, result.items.size)
 		assertTrue(result.items.all { it is PreviewItem.Scene })
 		assertEquals(listOf("Chapter One", "Chapter Two"), result.items.map { it.name })
@@ -311,7 +314,7 @@ class MarkdownStoryImporterTest {
 
 			Chapter two body.
 		""".trimIndent()
-		val result = preview(md, level = ChapterHeadingLevel.H2)
+		val result = preview(md, strategy = MarkdownSplitStrategy.H2)
 		assertEquals(1, result.items.size)
 		val group = result.items[0] as PreviewItem.Group
 		assertEquals("My Novel", group.name)
@@ -333,7 +336,7 @@ class MarkdownStoryImporterTest {
 			## Chapter Two
 			Second.
 		""".trimIndent()
-		val result = preview(md, level = ChapterHeadingLevel.Auto)
+		val result = preview(md, strategy = MarkdownSplitStrategy.Auto)
 		assertEquals("My Novel", result.title)
 		assertEquals(2, result.items.size)
 		assertTrue(result.items.all { it is PreviewItem.Scene })
@@ -349,7 +352,7 @@ class MarkdownStoryImporterTest {
 			# Chapter Two
 			b
 		""".trimIndent()
-		val result = preview(md, level = ChapterHeadingLevel.Auto)
+		val result = preview(md, strategy = MarkdownSplitStrategy.Auto)
 		assertEquals(null, result.title)
 		assertEquals(2, result.items.size)
 		assertEquals(listOf("Chapter One", "Chapter Two"), result.items.map { it.name })
@@ -368,7 +371,7 @@ class MarkdownStoryImporterTest {
 			### Chapter C
 			c
 		""".trimIndent()
-		val result = preview(md, level = ChapterHeadingLevel.Auto)
+		val result = preview(md, strategy = MarkdownSplitStrategy.Auto)
 		assertEquals("My Novel", result.title)
 		assertEquals(2, result.items.size)
 		val partOne = result.items[0] as PreviewItem.Group
@@ -385,11 +388,347 @@ class MarkdownStoryImporterTest {
 			Just prose, no chapters.
 			More prose.
 		""".trimIndent()
-		val result = preview(md, level = ChapterHeadingLevel.Auto)
+		val result = preview(md, strategy = MarkdownSplitStrategy.Auto)
 		assertEquals("My Novel", result.title)
 		assertEquals(1, result.items.size)
 		val scene = result.items[0] as PreviewItem.Scene
 		assertTrue(scene.markdown.contains("Just prose, no chapters."))
+	}
+
+	@Test
+	fun `Setext equals underline is an H1 chapter`() {
+		val md = """
+			Chapter One
+			===========
+			First.
+
+			Chapter Two
+			===
+			Second.
+		""".trimIndent()
+		val result = preview(md)
+		assertEquals(2, result.items.size)
+		assertEquals(listOf("Chapter One", "Chapter Two"), result.items.map { it.name })
+		assertEquals("First.", (result.items[0] as PreviewItem.Scene).markdown)
+		assertEquals("Second.", (result.items[1] as PreviewItem.Scene).markdown)
+	}
+
+	@Test
+	fun `Setext dash underline is an H2 chapter`() {
+		val md = """
+			Chapter One
+			-----------
+			First.
+
+			Chapter Two
+			-----------
+			Second.
+		""".trimIndent()
+		val result = preview(md, strategy = MarkdownSplitStrategy.H2)
+		assertEquals(2, result.items.size)
+		assertEquals(listOf("Chapter One", "Chapter Two"), result.items.map { it.name })
+	}
+
+	@Test
+	fun `Setext underline is dropped from the scene body`() {
+		val md = "Chapter One\n===\nFirst."
+		val result = preview(md)
+		val scene = result.items[0] as PreviewItem.Scene
+		assertEquals("First.", scene.markdown)
+	}
+
+	@Test
+	fun `Dash rule with no paragraph above it is a thematic break not a heading`() {
+		val md = """
+			Scene one ends.
+
+			---
+
+			Scene two begins.
+		""".trimIndent()
+		val result = preview(md, sourceName = "story")
+		assertEquals(1, result.items.size)
+		val scene = result.items[0] as PreviewItem.Scene
+		assertEquals("story", scene.name)
+		assertTrue(scene.markdown.contains("---"))
+	}
+
+	@Test
+	fun `Front matter fence is not a heading`() {
+		val md = """
+			---
+			title: My Novel
+			---
+
+			# Chapter One
+			First.
+		""".trimIndent()
+		val result = preview(md)
+		assertEquals(2, result.items.size)
+		assertEquals("Untitled", result.items[0].name)
+		assertTrue((result.items[0] as PreviewItem.Scene).markdown.contains("title: My Novel"))
+		assertEquals("Chapter One", result.items[1].name)
+	}
+
+	@Test
+	fun `Auto treats a Setext equals title above Setext dash chapters as the story title`() {
+		val md = """
+			My Novel
+			========
+
+			Chapter One
+			-----------
+			First.
+
+			Chapter Two
+			-----------
+			Second.
+		""".trimIndent()
+		val result = preview(md, strategy = MarkdownSplitStrategy.Auto)
+		assertEquals("My Novel", result.title)
+		assertEquals(listOf("Chapter One", "Chapter Two"), result.items.map { it.name })
+	}
+
+	@Test
+	fun `Mixed Setext and ATX headings share the same level space`() {
+		val md = """
+			# Chapter One
+			First.
+			Chapter Two
+			===========
+			Second.
+		""".trimIndent()
+		val result = preview(md)
+		assertEquals(listOf("Chapter One", "Chapter Two"), result.items.map { it.name })
+	}
+
+	@Test
+	fun `Setext CRLF line endings are normalized`() {
+		val md = "Chapter One\r\n===\r\nFirst.\r\n\r\nChapter Two\r\n===\r\nSecond.\r\n"
+		val result = preview(md)
+		assertEquals(listOf("Chapter One", "Chapter Two"), result.items.map { it.name })
+		assertEquals("First.", (result.items[0] as PreviewItem.Scene).markdown)
+	}
+
+	@Test
+	fun `A Setext title indented four spaces is not a heading`() {
+		val md = "    Chapter One\n===\nFirst."
+		val result = preview(md, sourceName = "story")
+		assertEquals(1, result.items.size)
+		assertEquals("story", result.items[0].name)
+	}
+
+	@Test
+	fun `Bold-only lines split a document that has no markdown headings`() {
+		val md = """
+			**Chapter One**
+
+			First.
+
+			**Chapter Two**
+
+			Second.
+		""".trimIndent()
+		val result = preview(md, strategy = MarkdownSplitStrategy.Auto)
+		assertEquals(null, result.title)
+		assertEquals(2, result.items.size)
+		assertEquals(listOf("Chapter One", "Chapter Two"), result.items.map { it.name })
+		assertEquals("First.", (result.items[0] as PreviewItem.Scene).markdown)
+	}
+
+	@Test
+	fun `Underscore bold-only lines are chapters too`() {
+		val md = "__Chapter One__\nFirst.\n__Chapter Two__\nSecond."
+		val result = preview(md, strategy = MarkdownSplitStrategy.Auto)
+		assertEquals(listOf("Chapter One", "Chapter Two"), result.items.map { it.name })
+	}
+
+	@Test
+	fun `Bold chapters below a heading title keep the title out of the scenes`() {
+		val md = """
+			# My Novel
+
+			**Chapter One**
+
+			First.
+
+			**Chapter Two**
+
+			Second.
+		""".trimIndent()
+		val result = preview(md, strategy = MarkdownSplitStrategy.Auto)
+		assertEquals("My Novel", result.title)
+		assertEquals(listOf("Chapter One", "Chapter Two"), result.items.map { it.name })
+	}
+
+	@Test
+	fun `Bold chapters can be wrapped in chapter groups`() {
+		val md = "**Chapter One**\nFirst.\n**Chapter Two**\nSecond."
+		val result = preview(md, strategy = MarkdownSplitStrategy.Auto, groups = true)
+		assertEquals(2, result.items.size)
+		val group = result.items[0] as PreviewItem.Group
+		assertEquals("Chapter One", group.name)
+		assertEquals(listOf("Chapter One"), group.scenes.map { it.name })
+	}
+
+	@Test
+	fun `Bold text with prose on the same line is not a chapter`() {
+		val md = """
+			**Chapter One**
+
+			**She** ran, and the world went quiet.
+
+			**Chapter Two**
+
+			Second.
+		""".trimIndent()
+		val result = preview(md, strategy = MarkdownSplitStrategy.Auto)
+		assertEquals(2, result.items.size)
+		val scene = result.items[0] as PreviewItem.Scene
+		assertEquals("Chapter One", scene.name)
+		assertTrue(scene.markdown.contains("**She** ran"))
+	}
+
+	@Test
+	fun `A long bold-only line is prose not a chapter`() {
+		val md = """
+			**Chapter One**
+
+			**And then she said all of the many things she had been holding back for years and years.**
+
+			**Chapter Two**
+
+			Second.
+		""".trimIndent()
+		val result = preview(md, strategy = MarkdownSplitStrategy.Auto)
+		assertEquals(2, result.items.size)
+		assertEquals(listOf("Chapter One", "Chapter Two"), result.items.map { it.name })
+		assertTrue((result.items[0] as PreviewItem.Scene).markdown.contains("**And then she said"))
+	}
+
+	@Test
+	fun `A lone bold-only line is prose not a chapter`() {
+		val md = """
+			# Chapter One
+			First.
+
+			**A bolded aside**
+
+			More.
+
+			# Chapter Two
+			Second.
+		""".trimIndent()
+		val result = preview(md, strategy = MarkdownSplitStrategy.Auto)
+		assertEquals(2, result.items.size)
+		val scene = result.items[0] as PreviewItem.Scene
+		assertEquals("Chapter One", scene.name)
+		assertTrue(scene.markdown.contains("**A bolded aside**"))
+	}
+
+	@Test
+	fun `Explicitly choosing H1 does not fall back to bold lines`() {
+		val md = "**Chapter One**\nFirst.\n**Chapter Two**\nSecond."
+		val result = preview(md, strategy = MarkdownSplitStrategy.H1, sourceName = "story")
+		assertEquals(1, result.items.size)
+		assertEquals("story", result.items[0].name)
+	}
+
+	@Test
+	fun `Pattern strategy splits on lines matching the user regex`() {
+		val md = """
+			Chapter One
+
+			First.
+
+			Chapter Two
+
+			Second.
+		""".trimIndent()
+		val result = preview(md, strategy = MarkdownSplitStrategy.Pattern)
+		assertEquals(2, result.items.size)
+		assertEquals(listOf("Chapter One", "Chapter Two"), result.items.map { it.name })
+		assertEquals("First.", (result.items[0] as PreviewItem.Scene).markdown)
+	}
+
+	@Test
+	fun `Pattern strategy sees through bold and heading markers`() {
+		val md = """
+			**Chapter One**
+
+			First.
+
+			## Chapter Two
+
+			Second.
+		""".trimIndent()
+		val result = preview(md, strategy = MarkdownSplitStrategy.Pattern)
+		assertEquals(listOf("Chapter One", "Chapter Two"), result.items.map { it.name })
+	}
+
+	@Test
+	fun `Pattern strategy ignores lines the regex does not match`() {
+		val md = """
+			Scene Break
+
+			First.
+		""".trimIndent()
+		val result = preview(md, strategy = MarkdownSplitStrategy.Pattern, sourceName = "story")
+		assertEquals(1, result.items.size)
+		assertEquals("story", result.items[0].name)
+	}
+
+	@Test
+	fun `Pattern strategy with an invalid regex falls back to a single scene`() {
+		val md = "Chapter One\n\nFirst."
+		val result = preview(
+			md,
+			strategy = MarkdownSplitStrategy.Pattern,
+			pattern = "[",
+			sourceName = "story",
+		)
+		assertEquals(1, result.items.size)
+		assertEquals("story", result.items[0].name)
+	}
+
+	@Test
+	fun `Pattern strategy keeps a Setext underline out of the scene body`() {
+		val md = """
+			Chapter One
+			===========
+			First.
+		""".trimIndent()
+		val result = preview(md, strategy = MarkdownSplitStrategy.Pattern)
+		assertEquals(1, result.items.size)
+		assertEquals("Chapter One", result.items[0].name)
+		assertEquals("First.", (result.items[0] as PreviewItem.Scene).markdown)
+	}
+
+	@Test
+	fun `Pattern strategy with a blank pattern falls back to a single scene`() {
+		val md = "Chapter One\n\nFirst."
+		val result = preview(
+			md,
+			strategy = MarkdownSplitStrategy.Pattern,
+			pattern = "",
+			sourceName = "story",
+		)
+		assertEquals(1, result.items.size)
+		assertEquals("story", result.items[0].name)
+	}
+
+	@Test
+	fun `Pattern strategy overrides markdown headings`() {
+		val md = """
+			# Foreword
+			Front matter prose.
+			# Chapter One
+			First.
+		""".trimIndent()
+		val result = preview(md, strategy = MarkdownSplitStrategy.Pattern)
+		assertEquals(2, result.items.size)
+		assertEquals("Untitled", result.items[0].name)
+		assertEquals("Chapter One", result.items[1].name)
 	}
 
 	@Test
