@@ -32,11 +32,14 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.outlineoverview.OutlineOverview
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedFullScreenDialog
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.romanNumeral
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import kotlinx.coroutines.launch
 
@@ -324,15 +327,27 @@ private fun ChapterRail(
 				bottom = Ui.Padding.M,
 			),
 		)
-		LazyColumn(modifier = Modifier.fillMaxSize()) {
-			itemsIndexed(chapters, key = { idx, _ -> "rail-$idx" }) { index, ch ->
-				ChapterRailItem(
-					index = index,
-					chapter = ch,
-					selected = index == activeChapterIndex,
-					onClick = { onJumpTo(index) },
-				)
+		val railState = rememberLazyListState()
+		Box {
+			LazyColumn(
+				modifier = Modifier.fillMaxSize(),
+				state = railState,
+				contentPadding = PaddingValues(end = MpScrollBarGutter),
+			) {
+				itemsIndexed(chapters, key = { idx, _ -> "rail-$idx" }) { index, ch ->
+					ChapterRailItem(
+						index = index,
+						chapter = ch,
+						selected = index == activeChapterIndex,
+						onClick = { onJumpTo(index) },
+					)
+				}
 			}
+
+			MpScrollBarList(
+				modifier = scrollBarOverlay(),
+				state = railState,
+			)
 		}
 	}
 }
@@ -519,31 +534,38 @@ private fun ReadingColumn(
 	modifier: Modifier = Modifier,
 ) {
 	val horizontalPad = if (wide) Ui.Padding.XXL else Ui.Padding.XL
-	LazyColumn(
-		modifier = modifier,
-		state = listState,
-		contentPadding = PaddingValues(
-			start = horizontalPad,
-			end = horizontalPad,
-			top = Ui.Padding.XXL,
-			bottom = Ui.Padding.XXL,
-		),
-	) {
-		item(key = "frontispiece") {
-			Frontispiece(projectName = projectName)
+	Box(modifier = modifier) {
+		LazyColumn(
+			modifier = Modifier.fillMaxSize(),
+			state = listState,
+			contentPadding = PaddingValues(
+				start = horizontalPad,
+				end = horizontalPad,
+				top = Ui.Padding.XXL,
+				bottom = Ui.Padding.XXL,
+			),
+		) {
+			item(key = "frontispiece") {
+				Frontispiece(projectName = projectName)
+			}
+			itemsIndexed(chapters, key = { idx, _ -> "ch-$idx" }) { index, ch ->
+				ChapterBlock(
+					chapterIndex = index,
+					chapter = ch,
+					showSeparator = index < chapters.size - 1,
+					wide = wide,
+					onSceneClick = onSceneClick,
+				)
+			}
+			item(key = "end") {
+				EndOfOutline()
+			}
 		}
-		itemsIndexed(chapters, key = { idx, _ -> "ch-$idx" }) { index, ch ->
-			ChapterBlock(
-				chapterIndex = index,
-				chapter = ch,
-				showSeparator = index < chapters.size - 1,
-				wide = wide,
-				onSceneClick = onSceneClick,
-			)
-		}
-		item(key = "end") {
-			EndOfOutline()
-		}
+
+		MpScrollBarList(
+			modifier = scrollBarOverlay(),
+			state = listState,
+		)
 	}
 }
 

@@ -136,146 +136,157 @@ internal fun ViewEntryUi(
 	} else {
 		Modifier.fillMaxSize().verticalScroll(outerScrollState)
 	}
-	Column(
-		modifier = outerModifier,
-		horizontalAlignment = Alignment.CenterHorizontally,
-	) {
-		with(sharedTransitionScope) {
-			Column(
-				modifier = modifier
-					.padding(
-						start = Ui.Padding.M,
-						end = Ui.Padding.M,
-					)
-					.widthIn(max = Ui.MaxWidth.CatalogueCard)
-					.fillMaxWidth()
-					.then(if (editing) Modifier.fillMaxHeight() else Modifier)
-					.background(MaterialTheme.colorScheme.surface)
-					.border(width = Dp.Hairline, color = ruleColor, shape = RectangleShape)
-					.sharedElement(
-						sharedContentState = rememberSharedContentState(
-							key = "encyclopedia-card-${state.entryDef.id}",
+	Box {
+		Column(
+			modifier = outerModifier,
+			horizontalAlignment = Alignment.CenterHorizontally,
+		) {
+			with(sharedTransitionScope) {
+				Column(
+					modifier = modifier
+						.padding(
+							start = Ui.Padding.M,
+							end = Ui.Padding.M,
+						)
+						.widthIn(max = Ui.MaxWidth.CatalogueCard)
+						.fillMaxWidth()
+						.then(if (editing) Modifier.fillMaxHeight() else Modifier)
+						.background(MaterialTheme.colorScheme.surface)
+						.border(width = Dp.Hairline, color = ruleColor, shape = RectangleShape)
+						.sharedElement(
+							sharedContentState = rememberSharedContentState(
+								key = "encyclopedia-card-${state.entryDef.id}",
+							),
+							animatedVisibilityScope = animatedVisibilityScope,
 						),
-						animatedVisibilityScope = animatedVisibilityScope,
-					),
-			) {
-				CollapseWhileTyping(enabled = editing) {
-					Column {
-						CrumbRow(
-							title = entryNameText.ifBlank { state.entryDef.name }.uppercase(),
-							menuSlot = { DetailViewDropdownMenu(menuItems = state.menuItems) },
-							onClose = {
-								val isDirty = content != null &&
-									(entryNameText != content.name || entryText != content.text)
-								when {
-									editing && isDirty -> component.confirmClose()
-									editing -> {
-										component.finishNameEdit()
-										component.finishTextEdit()
-										closeEntry()
+				) {
+					CollapseWhileTyping(enabled = editing) {
+						Column {
+							CrumbRow(
+								title = entryNameText.ifBlank { state.entryDef.name }.uppercase(),
+								menuSlot = { DetailViewDropdownMenu(menuItems = state.menuItems) },
+								onClose = {
+									val isDirty = content != null &&
+										(entryNameText != content.name || entryText != content.text)
+									when {
+										editing && isDirty -> component.confirmClose()
+										editing -> {
+											component.finishNameEdit()
+											component.finishTextEdit()
+											closeEntry()
+										}
+
+										else -> closeEntry()
 									}
+								},
+							)
 
-									else -> closeEntry()
-								}
-							},
-						)
-
-						HorizontalDivider(thickness = Dp.Hairline, color = ruleColor)
-					}
-				}
-
-				StampRow(
-					entryDef = state.entryDef,
-					editing = editing,
-					onEdit = {
-						component.startNameEdit()
-						component.startTextEdit()
-					},
-					onSave = saveChanges,
-					onCancel = {
-						val isDirty = content != null &&
-							(entryNameText != content.name || entryText != content.text)
-						if (isDirty) {
-							discardConfirm = true
-						} else {
-							discardChanges()
+							HorizontalDivider(thickness = Dp.Hairline, color = ruleColor)
 						}
-					},
-				)
+					}
 
-				HorizontalDivider(thickness = 2.dp, color = ruleStrong)
-
-				// The big name collapses while the body editor has focus; kept visible while the name
-				// field itself holds focus so it stays reachable.
-				var nameFocused by remember { mutableStateOf(false) }
-				CollapseWhileTyping(keepVisible = nameFocused) {
-					NameZone(
-						entryNameText = entryNameText,
-						onNameChange = { entryNameText = it },
-						editName = state.editName,
-						onStartEdit = component::startNameEdit,
-						onFocusChanged = { nameFocused = it },
-						compact = isCompact,
-						sharedKey = "encyclopedia-title-${state.entryDef.id}",
-						sharedTransitionScope = sharedTransitionScope,
-						animatedVisibilityScope = animatedVisibilityScope,
+					StampRow(
+						entryDef = state.entryDef,
+						editing = editing,
+						onEdit = {
+							component.startNameEdit()
+							component.startTextEdit()
+						},
+						onSave = saveChanges,
+						onCancel = {
+							val isDirty = content != null &&
+								(entryNameText != content.name || entryText != content.text)
+							if (isDirty) {
+								discardConfirm = true
+							} else {
+								discardChanges()
+							}
+						},
 					)
-				}
 
-				val bodyOuterModifier = if (editing) Modifier.weight(1f) else Modifier
-				if (isCompact) {
-					CompactBody(
-						state = state,
-						entryText = entryText,
-						setEntryText = { entryText = it },
-						onStartTextEdit = component::startTextEdit,
-						onShowDeleteImage = component::showDeleteImageDialog,
-						onAddImage = component::showAddImageDialog,
-						outerModifier = bodyOuterModifier,
-						sharedTransitionScope = sharedTransitionScope,
-						animatedVisibilityScope = animatedVisibilityScope,
-					)
-				} else {
-					WideBody(
-						state = state,
-						entryText = entryText,
-						setEntryText = { entryText = it },
-						onStartTextEdit = component::startTextEdit,
-						onShowDeleteImage = component::showDeleteImageDialog,
-						onAddImage = component::showAddImageDialog,
-						outerModifier = bodyOuterModifier,
-						sharedTransitionScope = sharedTransitionScope,
-						animatedVisibilityScope = animatedVisibilityScope,
-					)
-				}
+					HorizontalDivider(thickness = 2.dp, color = ruleStrong)
 
-				if (!editing) {
-					if (content != null) {
-						ParticularsLedger(
-							state = state,
-							modifier = Modifier
-								.padding(horizontal = Ui.Padding.XXL)
-								.padding(top = 28.dp),
+					// The big name collapses while the body editor has focus; kept visible while the name
+					// field itself holds focus so it stays reachable.
+					var nameFocused by remember { mutableStateOf(false) }
+					CollapseWhileTyping(keepVisible = nameFocused) {
+						NameZone(
+							entryNameText = entryNameText,
+							onNameChange = { entryNameText = it },
+							editName = state.editName,
+							onStartEdit = component::startNameEdit,
+							onFocusChanged = { nameFocused = it },
+							compact = isCompact,
+							sharedKey = "encyclopedia-title-${state.entryDef.id}",
+							sharedTransitionScope = sharedTransitionScope,
+							animatedVisibilityScope = animatedVisibilityScope,
 						)
 					}
 
-					TagsAndAliasesZone(
-						state = state,
-						component = component,
-						compact = isCompact,
-					)
+					val bodyOuterModifier = if (editing) Modifier.weight(1f) else Modifier
+					if (isCompact) {
+						CompactBody(
+							state = state,
+							entryText = entryText,
+							setEntryText = { entryText = it },
+							onStartTextEdit = component::startTextEdit,
+							onShowDeleteImage = component::showDeleteImageDialog,
+							onAddImage = component::showAddImageDialog,
+							outerModifier = bodyOuterModifier,
+							sharedTransitionScope = sharedTransitionScope,
+							animatedVisibilityScope = animatedVisibilityScope,
+						)
+					} else {
+						WideBody(
+							state = state,
+							entryText = entryText,
+							setEntryText = { entryText = it },
+							onStartTextEdit = component::startTextEdit,
+							onShowDeleteImage = component::showDeleteImageDialog,
+							onAddImage = component::showAddImageDialog,
+							outerModifier = bodyOuterModifier,
+							sharedTransitionScope = sharedTransitionScope,
+							animatedVisibilityScope = animatedVisibilityScope,
+						)
+					}
 
-					AppearsInZone(
-						state = state,
-						component = component,
-					)
+					if (!editing) {
+						if (content != null) {
+							ParticularsLedger(
+								state = state,
+								modifier = Modifier
+									.padding(horizontal = Ui.Padding.XXL)
+									.padding(top = 28.dp),
+							)
+						}
 
-					FooterColophon(
-						compact = isCompact,
-						ruleSoft = ruleSoft,
-					)
+						TagsAndAliasesZone(
+							state = state,
+							component = component,
+							compact = isCompact,
+						)
+
+						AppearsInZone(
+							state = state,
+							component = component,
+						)
+
+						FooterColophon(
+							compact = isCompact,
+							ruleSoft = ruleSoft,
+						)
+					}
 				}
 			}
+		}
+
+		// Editing swaps in a non-scrolling layout, leaving outerScrollState detached but still
+		// reporting its last measured extent, so only the screen knows the bar is stale.
+		if (!editing) {
+			MpScrollBarColumn(
+				modifier = scrollBarOverlay(),
+				state = outerScrollState,
+			)
 		}
 	}
 

@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -67,6 +68,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDragHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
@@ -78,6 +80,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
@@ -340,18 +343,27 @@ fun TimeLineOverviewUi(
 			}
 
 			else -> {
-				LazyColumn(
-					modifier = Modifier
-						.fillMaxSize()
-						.testTag(TIME_LINE_LIST_TAG),
-					contentPadding = listContentPadding,
-				) {
-					items(
-						items = visibleEvents,
-						key = { event -> event.id },
-					) { event ->
-						eventRow(event, false)
+				val listState = rememberLazyListState()
+				Box {
+					LazyColumn(
+						state = listState,
+						modifier = Modifier
+							.fillMaxSize()
+							.testTag(TIME_LINE_LIST_TAG),
+						contentPadding = listContentPadding,
+					) {
+						items(
+							items = visibleEvents,
+							key = { event -> event.id },
+						) { event ->
+							eventRow(event, false)
+						}
 					}
+
+					MpScrollBarList(
+						modifier = scrollBarOverlay(),
+						state = listState,
+					)
 				}
 			}
 		}

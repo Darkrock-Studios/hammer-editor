@@ -11,9 +11,9 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -58,6 +58,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.filterProjects
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
@@ -71,6 +72,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortOption
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdToolButton
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
 import com.darkrockstudios.apps.hammer.common.protocolmismatch.ProtocolMismatchDialog
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
@@ -254,6 +256,7 @@ fun ProjectListUi(
 					.fillMaxSize()
 					.nestedScroll(scrollConnection),
 				state = listState,
+				contentPadding = PaddingValues(end = MpScrollBarGutter),
 			) {
 				if (visibleProjects.isEmpty()) {
 					item(key = "empty") {
@@ -281,7 +284,7 @@ fun ProjectListUi(
 				}
 			}
 			MpScrollBarList(
-				modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+				modifier = scrollBarOverlay(),
 				state = listState,
 			)
 		}
@@ -507,7 +510,7 @@ private fun ColumnHeader(showLastOpen: Boolean) {
 				.fillMaxWidth()
 				.padding(
 					start = 4.dp + Ui.Padding.XL,
-					end = Ui.Padding.L,
+					end = Ui.Padding.L + MpScrollBarGutter,
 					top = Ui.Padding.M,
 					bottom = Ui.Padding.M,
 				),
