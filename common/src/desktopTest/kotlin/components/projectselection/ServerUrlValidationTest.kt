@@ -30,6 +30,16 @@ class ServerUrlValidationTest {
 	}
 
 	@Test
+	fun `a mixed case host is lowercased`() {
+		assertEquals("hammer.example.com", cleanUpUrl("Hammer.Example.COM"))
+	}
+
+	@Test
+	fun `an uppercase scheme is stripped`() {
+		assertEquals("hammer.example.com", cleanUpUrl("HTTPS://Hammer.Example.com"))
+	}
+
+	@Test
 	fun `a cleaned pasted url validates`() {
 		assertTrue(validateUrl(cleanUpUrl("http://192.168.1.50:8080")))
 	}

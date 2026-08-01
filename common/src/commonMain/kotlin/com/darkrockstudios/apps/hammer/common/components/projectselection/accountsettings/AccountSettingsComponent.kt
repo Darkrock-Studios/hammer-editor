@@ -473,7 +473,7 @@ class AccountSettingsComponent(
 		}
 
 		fun cleanUpUrl(url: String): String {
-			var cleanUrl: String = url.trim()
+			var cleanUrl: String = url.trim().lowercase()
 			cleanUrl = cleanUrl.removePrefix("http://")
 			cleanUrl = cleanUrl.removePrefix("https://")
 			cleanUrl = cleanUrl.removeSuffix("/")
