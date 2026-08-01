@@ -505,6 +505,27 @@ class SearchProjectUseCaseTest : BaseTest() {
 	}
 
 	@Test
+	fun `a heading does not leak into the title or the snippet`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			NoteContainer(
+				NoteContent(
+					id = 1,
+					created = Clock.System.now(),
+					content = "# Chapter One\n\nThe body text",
+					tags = setOf("fantasy"),
+				)
+			),
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals("Chapter One", results.first().title)
+		assertEquals("Chapter One The body text", results.first().snippet.text)
+	}
+
+	@Test
 	fun `a note whose first line is only markers is not titled empty`() = runTest {
 		every { notes.getNotes() } returns listOf(note(1, "***\nThe real body text"))
 
@@ -518,14 +539,18 @@ class SearchProjectUseCaseTest : BaseTest() {
 	@Test
 	fun `timeline dates are not projected`() = runTest {
 		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(
-			listOf(TimeLineEvent(id = 21, order = 0, date = "1990_2000", content = "A long war")),
+			listOf(TimeLineEvent(id = 21, order = 0, date = "1990 _to_ 2000", content = "A long war")),
 		)
 
-		val results = createUseCase().search("1990_2000", GlobalSearchFilter.All)
+		val verbatim = createUseCase().search("1990 _to_ 2000", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.TimelineEvent>()
+		val projectedForm = createUseCase().search("1990 to 2000", GlobalSearchFilter.All)
 			.filterIsInstance<SearchResult.TimelineEvent>()
 
-		assertEquals(1, results.size)
-		assertTrue(results.first().snippet.text.contains("1990_2000"))
+		assertEquals(1, verbatim.size)
+		assertTrue(verbatim.first().snippet.text.contains("1990 _to_ 2000"))
+		// Projecting the date would make this hit and would show a date the event does not have.
+		assertEquals(0, projectedForm.size)
 	}
 
 	@Test

@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneCo
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.search.ParsedQuery
+import com.darkrockstudios.apps.hammer.common.data.search.containsMarkdownSyntax
 import com.darkrockstudios.apps.hammer.common.data.search.markdownTitleLine
 import com.darkrockstudios.apps.hammer.common.data.search.matchesAllTags
 import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
@@ -311,7 +312,7 @@ class SearchProjectUseCase(
 			if (markdown.isEmpty() || query.isEmpty()) return null
 			val projected = projectMarkdownToPlainText(markdown)
 			findMatch(projected, query)?.let { return it }
-			if (projected !== markdown) return findMatch(markdown, query)
+			if (containsMarkdownSyntax(query)) return findMatch(markdown, query)
 			return null
 		}
 

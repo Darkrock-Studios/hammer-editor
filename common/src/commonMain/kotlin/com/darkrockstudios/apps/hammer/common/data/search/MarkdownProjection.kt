@@ -2,14 +2,13 @@ package com.darkrockstudios.apps.hammer.common.data.search
 
 private const val ASCII_PUNCTUATION = "!\"#\$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 
-/** Leading blockquote, heading, bullet and ordered-list markers, none of which read as prose. */
-private val BLOCK_PREFIX = Regex("""^\s*(?:>\s*)*(?:#{1,6}\s+|[-*+]\s+|\d{1,9}[.)]\s+)?""")
-
 /**
  * Compared directly rather than via set or string membership: this runs once per character of every
  * document scanned, and `in` on a CharSequence costs a call per character.
  */
 private fun Char.isDelimiter(): Boolean = this == '*' || this == '_' || this == '`'
+
+private fun Char.isSpaceOrTab(): Boolean = this == ' ' || this == '\t'
 
 private fun Char?.isBlankOrEdge(): Boolean = this == null || isWhitespace()
 
@@ -20,7 +19,7 @@ private fun Char?.isPunctuation(): Boolean = this != null && this in ASCII_PUNCT
  * pairs off from the end of the opener and the start of the closer, so the surviving characters are
  * always the middle of the run.
  */
-private class DelimiterRun(val char: Char, val start: Int, val end: Int) {
+private class DelimiterRun(val char: Char, val start: Int, val end: Int, val paragraph: Int) {
 	var canOpen = false
 	var canClose = false
 
@@ -33,28 +32,20 @@ private class DelimiterRun(val char: Char, val start: Int, val end: Int) {
 }
 
 /**
- * Flattens stored Markdown into the prose a reader sees, so a query can match across storage syntax.
- * Backslash escapes resolve to their literal character (`well\-known` becomes `well-known`) and
- * *paired* emphasis or code delimiters are dropped (`**Chapter** One` becomes `Chapter One`).
+ * Flattens stored Markdown into the prose a reader sees. Backslash escapes resolve to their literal
+ * character (`well\-known` becomes `well-known`), paired emphasis and code delimiters are dropped
+ * (`**Chapter** One` becomes `Chapter One`), and leading blockquote, heading and bullet markers are
+ * removed from each line.
  *
- * Pairing follows CommonMark's flanking rules, which is what keeps literal markers intact:
- * `user_name`, `2 * 3` and a bare `***` divider all survive because neither side of the delimiter
- * can open or close emphasis. That matters for content the escaping editor did not write, such as
- * imports, synced documents and hand-edited files.
+ * Delimiters pair only within a paragraph, and only where CommonMark's flanking rules allow, so
+ * literal markers survive: `user_name`, `2 * 3`, a bare `***` divider and a stray apostrophe-backtick
+ * are all left intact.
  *
- * Known limits, accepted so a full-project scan stays inside the search debounce: link and image
- * syntax is left intact, so imported content can show a URL in a snippet; punctuation is tested
- * against ASCII only; and escapes resolve inside code spans, because everything the editor saves is
- * escaped throughout. Parsing properly would cover all of these but costs roughly four times as
- * much per scan, which only becomes affordable once projections are cached per document.
- *
- * Block structure is left alone; see [markdownTitleLine] for the leading-marker case.
+ * Link and image syntax is left as written. Punctuation is tested against ASCII only, and escapes
+ * resolve inside code spans as well as outside them.
  */
 fun projectMarkdownToPlainText(markdown: String): String {
-	if (!containsDelimiter(markdown)) {
-		// The editor escapes punctuation on every save, so plain paragraphs still reach this far.
-		return if (containsEscape(markdown)) unescape(markdown) else markdown
-	}
+	if (!containsMarkdownSyntax(markdown)) return markdown
 
 	val runs = scanDelimiterRuns(markdown)
 	resolveCodeSpans(runs)
@@ -63,35 +54,70 @@ fun projectMarkdownToPlainText(markdown: String): String {
 }
 
 /**
- * The prose title for [markdown]: its first non-blank line with block markers stripped and inline
- * markup flattened. A line that projects to nothing falls back to itself, so a marker-only line
- * still yields a title rather than reading as an empty document.
+ * The prose title for [markdown]: the first non-blank line of its projection. Falls back to the raw
+ * first line when the projection of it is blank, so a marker-only line still yields a title rather
+ * than reading as an empty document.
  */
 fun markdownTitleLine(markdown: String): String {
-	val line = markdown.lineSequence().firstOrNull { it.isNotBlank() } ?: return ""
-	val body = line.replaceFirst(BLOCK_PREFIX, "")
-	val projected = projectMarkdownToPlainText(body).trim()
-	return projected.ifBlank { line.trim() }
+	val projected = projectMarkdownToPlainText(markdown)
+	val title = projected.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
+	if (title.isNotEmpty()) return title
+	return markdown.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
 }
 
-private fun containsDelimiter(text: String): Boolean {
+/**
+ * True when [text] holds a character the projection can remove. A query without one that misses the
+ * projection cannot match the raw source either, because the projection only ever deletes.
+ */
+internal fun containsMarkdownSyntax(text: String): Boolean {
 	var i = 0
-	val length = text.length
-	while (i < length) {
-		if (text[i].isDelimiter()) return true
+	while (i < text.length) {
+		val c = text[i]
+		if (c.isDelimiter() || c == '\\' || c == '#' || c == '>' || c == '-' || c == '+') return true
 		i++
 	}
 	return false
 }
 
-private fun containsEscape(text: String): Boolean {
-	var i = 0
-	val length = text.length
-	while (i < length) {
-		if (text[i] == '\\') return true
+/**
+ * The offset after any blockquote, heading or bullet marker opening the line at [start], or [start]
+ * itself when the line opens with prose. Ordered-list markers are left alone: a single line cannot
+ * distinguish "1. Draft opening" from "1984. The year everything changed".
+ */
+private fun skipBlockPrefix(markdown: String, start: Int): Int {
+	val length = markdown.length
+	var i = start
+	var found = false
+
+	while (i < length && markdown[i].isSpaceOrTab()) i++
+
+	while (i < length && markdown[i] == '>') {
 		i++
+		found = true
+		while (i < length && markdown[i].isSpaceOrTab()) i++
 	}
-	return false
+
+	if (i < length && markdown[i] == '#') {
+		var j = i
+		var hashes = 0
+		while (j < length && markdown[j] == '#') {
+			j++
+			hashes++
+		}
+		if (hashes <= 6 && j < length && markdown[j].isSpaceOrTab()) {
+			i = j
+			found = true
+		}
+	} else if (i < length && (markdown[i] == '-' || markdown[i] == '*' || markdown[i] == '+')) {
+		if (i + 1 < length && markdown[i + 1].isSpaceOrTab()) {
+			i++
+			found = true
+		}
+	}
+
+	if (!found) return start
+	while (i < length && markdown[i].isSpaceOrTab()) i++
+	return i
 }
 
 /** Appends the character at [i], resolving a backslash escape, and returns the next index. */
@@ -105,22 +131,22 @@ private fun StringBuilder.appendResolved(markdown: String, i: Int): Int {
 	return i + 1
 }
 
-/** Resolves escapes alone, for the common document that carries no emphasis at all. */
-private fun unescape(markdown: String): String {
-	val sb = StringBuilder(markdown.length)
-	var i = 0
-	while (i < markdown.length) i = sb.appendResolved(markdown, i)
-	return sb.toString()
-}
-
 private fun scanDelimiterRuns(markdown: String): List<DelimiterRun> {
 	val runs = mutableListOf<DelimiterRun>()
 	val length = markdown.length
 	var i = 0
+	var paragraph = 0
 	while (i < length) {
 		val c = markdown[i]
 		if (c == '\\' && i + 1 < length && markdown[i + 1] in ASCII_PUNCTUATION) {
 			i += 2
+			continue
+		}
+		if (c == '\n') {
+			var k = i + 1
+			while (k < length && (markdown[k].isSpaceOrTab() || markdown[k] == '\r')) k++
+			if (k >= length || markdown[k] == '\n') paragraph++
+			i++
 			continue
 		}
 		if (!c.isDelimiter()) {
@@ -154,7 +180,7 @@ private fun scanDelimiterRuns(markdown: String): List<DelimiterRun> {
 			if (!canOpen && !canClose) continue
 		}
 
-		val run = DelimiterRun(c, start, end)
+		val run = DelimiterRun(c, start, end, paragraph)
 		run.canOpen = canOpen
 		run.canClose = canClose
 		runs.add(run)
@@ -174,26 +200,35 @@ private fun resolveCodeSpans(runs: List<DelimiterRun>) {
 
 		val width = opener.end - opener.start
 		var j = i + 1
-		while (j < runs.size) {
+		var closer = -1
+		while (j < runs.size && runs[j].paragraph == opener.paragraph) {
 			val candidate = runs[j]
-			if (candidate.char == '`' && candidate.end - candidate.start == width) break
+			if (candidate.char == '`' && candidate.end - candidate.start == width) {
+				closer = j
+				break
+			}
 			j++
 		}
-		if (j == runs.size) {
+		if (closer < 0) {
 			i++
 			continue
 		}
 
 		opener.dropBack = width
-		runs[j].dropFront = width
-		for (k in i + 1 until j) runs[k].inert = true
-		i = j + 1
+		runs[closer].dropFront = width
+		for (k in i + 1 until closer) runs[k].inert = true
+		i = closer + 1
 	}
 }
 
 private fun resolveEmphasis(runs: List<DelimiterRun>) {
 	val open = mutableListOf<DelimiterRun>()
+	var paragraph = -1
 	for (run in runs) {
+		if (run.paragraph != paragraph) {
+			open.clear()
+			paragraph = run.paragraph
+		}
 		if (run.char == '`' || run.inert) continue
 
 		if (run.canClose) {
@@ -220,7 +255,18 @@ private fun render(markdown: String, runs: List<DelimiterRun>): String {
 	val length = markdown.length
 	var i = 0
 	var r = 0
+	var atLineStart = true
 	while (i < length) {
+		if (atLineStart) {
+			atLineStart = false
+			val afterPrefix = skipBlockPrefix(markdown, i)
+			if (afterPrefix > i) {
+				i = afterPrefix
+				while (r < runs.size && runs[r].start < i) r++
+				continue
+			}
+		}
+
 		if (r < runs.size && i == runs[r].start) {
 			val run = runs[r]
 			sb.append(markdown, run.start + run.dropFront, run.end - run.dropBack)
@@ -229,6 +275,7 @@ private fun render(markdown: String, runs: List<DelimiterRun>): String {
 			continue
 		}
 
+		if (markdown[i] == '\n') atLineStart = true
 		i = sb.appendResolved(markdown, i)
 	}
 	return sb.toString()
