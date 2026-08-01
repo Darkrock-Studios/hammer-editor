@@ -5,16 +5,22 @@ import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.adminOnly
+import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
 import io.ktor.client.request.cookie
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
+import io.ktor.htmx.HxRequestHeaders
+import io.ktor.htmx.HxResponseHeaders
+import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.parseServerSetCookieHeader
 import io.ktor.server.application.install
 import io.ktor.server.auth.Authentication
+import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.response.respondText
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
@@ -29,6 +35,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import org.junit.jupiter.api.Test
 import org.koin.dsl.module
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.time.Clock
 
@@ -100,6 +107,93 @@ class AdminSecurityTest : BaseTest() {
 
 		assertEquals(HttpStatusCode.Found, response.status)
 		assertEquals("/unauthorized", response.headers["Location"])
+	}
+
+	@Test
+	fun `an htmx request from a non-admin is redirected like any other`() = testApplication {
+		coEvery { accountRepo.getAccount(7) } returns account(admin = false)
+		coEvery { whitelistRepo.useWhiteList() } returns false
+		coEvery { accountRepo.isAdmin(7) } returns false
+
+		configureApp()
+		val noRedirect = createClient { followRedirects = false }
+		val (name, value) = adminClaimingCookie()
+
+		val response = noRedirect.get("/admin-area") {
+			cookie(name, value)
+			header(HxRequestHeaders.Request, "true")
+		}
+
+		assertEquals(HttpStatusCode.Forbidden, response.status)
+		assertEquals("/unauthorized", response.headers[HxResponseHeaders.Redirect])
+	}
+
+	/**
+	 * StatusPages answers a 401 with the whole unauthorized page, replacing whatever the plugin
+	 * wrote. Redirecting by header rather than by body is what makes the denial survive that, so
+	 * this pins both halves: the page comes back, and the redirect still reaches htmx.
+	 */
+	@Test
+	fun `an htmx request with no session is redirected even though StatusPages rewrites the body`() =
+		testApplication {
+			application {
+				setupKtorTestKoin(
+					this@AdminSecurityTest,
+					module {
+						single { accountRepo }
+						single { whitelistRepo }
+					}
+				)
+				install(Sessions) { cookie<UserSession>(COOKIE_USER_SESSION) }
+				install(Authentication) { frontendAuthentication(accountRepo, whitelistRepo) }
+				install(StatusPages) {
+					status(HttpStatusCode.Unauthorized) { call, _ ->
+						call.respondText(
+							"FULL-UNAUTHORIZED-PAGE",
+							ContentType.Text.Html,
+							HttpStatusCode.Unauthorized
+						)
+					}
+				}
+				routing {
+					authenticatedOnly {
+						get("/private") { call.respondText("private ok") }
+					}
+				}
+			}
+
+			val noRedirect = createClient { followRedirects = false }
+			val response = noRedirect.get("/private") { header(HxRequestHeaders.Request, "true") }
+
+			assertEquals(HttpStatusCode.Unauthorized, response.status)
+			assertEquals("/login", response.headers[HxResponseHeaders.Redirect])
+			assertContains(response.bodyAsText(), "FULL-UNAUTHORIZED-PAGE")
+		}
+
+	@Test
+	fun `a browser request with no session is redirected to login`() = testApplication {
+		application {
+			setupKtorTestKoin(
+				this@AdminSecurityTest,
+				module {
+					single { accountRepo }
+					single { whitelistRepo }
+				}
+			)
+			install(Sessions) { cookie<UserSession>(COOKIE_USER_SESSION) }
+			install(Authentication) { frontendAuthentication(accountRepo, whitelistRepo) }
+			routing {
+				authenticatedOnly {
+					get("/private") { call.respondText("private ok") }
+				}
+			}
+		}
+
+		val noRedirect = createClient { followRedirects = false }
+		val response = noRedirect.get("/private")
+
+		assertEquals(HttpStatusCode.Found, response.status)
+		assertEquals("/login", response.headers["Location"])
 	}
 
 	@Test
