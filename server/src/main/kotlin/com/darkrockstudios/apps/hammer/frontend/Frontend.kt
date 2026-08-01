@@ -324,7 +324,7 @@ fun AuthenticationConfig.frontendAuthentication(accountRepo: AccountsRepository,
  * be on it. Admin status is read from the account row, not the cookie, so a revoked
  * admin can't ride a stale session past the gate; the deletion check precedes the
  * admin allowance for the same reason. Must match the redirect gate in the login
- * page — if the two disagree, a logged-in but unauthorized user loops between
+ * page: if the two disagree, a logged-in but unauthorized user loops between
  * /login and /dashboard.
  */
 suspend fun sessionIsAuthorized(

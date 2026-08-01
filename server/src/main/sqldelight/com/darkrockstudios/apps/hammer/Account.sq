@@ -120,9 +120,13 @@ ORDER BY CASE WHEN :ascending = 1 THEN COALESCE((SELECT COUNT(*) FROM project p 
 LIMIT :limit OFFSET :offset;
 
 -- Admin accounts can never be soft-deleted; the guard lives in the query as
--- well as the service so no caller can mark one deleted by mistake.
+-- well as the service so no caller can mark one deleted by mistake. An
+-- already-deleted row is left untouched, so a retry that heals a partially
+-- failed softDelete never extends the retention window.
 markDeleted:
-UPDATE account SET deleted_at = :deletedAt WHERE id = :userId AND is_admin = FALSE;
+UPDATE account
+SET deleted_at = :deletedAt
+WHERE id = :userId AND is_admin = FALSE AND deleted_at IS NULL;
 
 restoreDeleted:
 UPDATE account SET deleted_at = NULL WHERE id = :userId;

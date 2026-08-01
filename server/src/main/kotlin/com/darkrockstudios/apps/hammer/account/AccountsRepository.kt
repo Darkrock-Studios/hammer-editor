@@ -95,11 +95,21 @@ class AccountsRepository(
 				// Hash anyway so the existing-account path costs the same Argon2 time as
 				// creating a new account — no timing oracle for account enumeration.
 				hashPassword(password)
-				SResult.failure(
-					"account already exists",
-					Msg.r("api_accounts_create_error_accountexists"),
-					CreateFailed("Account already exists")
-				)
+				if (existingAccount.deleted_at != null) {
+					// The row must survive so the account can be restored, which
+					// keeps the email reserved until the retention window ends.
+					SResult.failure(
+						"account pending deletion",
+						Msg.r("api_accounts_login_error_pending_deletion"),
+						CreateFailed("Account pending deletion")
+					)
+				} else {
+					SResult.failure(
+						"account already exists",
+						Msg.r("api_accounts_create_error_accountexists"),
+						CreateFailed("Account already exists")
+					)
+				}
 			}
 
 			!EmailValidator.validate(email) -> SResult.failure(

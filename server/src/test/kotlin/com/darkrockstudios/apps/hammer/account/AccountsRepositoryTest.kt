@@ -179,6 +179,19 @@ class AccountsRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `CreateAccount - soft-deleted existing account gets the pending-deletion failure`() = runTest {
+		coEvery { accountDao.findAccount(any()) } returns account.copy(deleted_at = Clock.System.now())
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val result = accountsRepository.createAccount(email, installId, password)
+
+		assertTrue(result.isFailure)
+		result as ServerResult.Failure
+		assertEquals("account pending deletion", result.error)
+	}
+
+	@Test
 	fun `Login - unknown account and wrong password are indistinguishable`() = runTest {
 		coEvery { accountDao.findAccount(email) } returns account
 		coEvery { accountDao.findAccount("no@account.com") } returns null

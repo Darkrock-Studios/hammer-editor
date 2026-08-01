@@ -42,8 +42,6 @@ class AccountDeletionService(
 		val account = accountsRepository.getAccountOrNull(userId)
 			?: return SResult.failure("Account not found", Msg.r("api_error_unknown"))
 
-		if (account.deleted_at != null) return SResult.success(Unit)
-
 		if (account.is_admin) {
 			return SResult.failure(
 				"Admin accounts cannot be deleted",
@@ -52,7 +50,20 @@ class AccountDeletionService(
 		}
 
 		// Flag first so every auth gate closes before anything else happens.
+		// The destructive steps only run once the flag is confirmed set: the
+		// markDeleted query refuses admin rows, so a zero-row update must not
+		// strip a still-active account.
 		accountsRepository.markDeleted(userId, clock.now())
+		val flagged = accountsRepository.getAccountOrNull(userId)?.deleted_at != null
+		if (!flagged) {
+			return SResult.failure(
+				"Account could not be flagged for deletion",
+				Msg.r("account_delete_error_generic")
+			)
+		}
+
+		// An already-flagged account runs these again on purpose: each step is
+		// idempotent, so a retry heals a previously interrupted attempt.
 		accountsRepository.forceLogout(account.email)
 		projectsSyncManager.terminateSession(userId)
 		projectSyncManager.terminateSessions { it.userId == userId }

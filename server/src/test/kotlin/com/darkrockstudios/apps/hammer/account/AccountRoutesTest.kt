@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.account
 
-import com.darkrockstudios.apps.hammer.Account
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.ServerConfigKey
@@ -299,11 +298,13 @@ class AccountRoutesTest : BaseTest() {
 		}
 	}
 
+	// The soft-deleted gate lives in the token query itself (AuthToken.sq hides
+	// tokens of deleted accounts), so at the route level a deleted account is a
+	// failed checkToken; the data-layer behavior is covered in AccountDaoSoftDeleteTest.
 	@Test
-	fun `Account - Test Auth - soft-deleted account is rejected at the bearer gate`() = testApplication {
-		coEvery { accountsRepository.checkToken(USER_ID, "bearer-token") } returns SResult.success(USER_ID)
-		coEvery { accountsRepository.getAccountOrNull(USER_ID) } returns
-			testAccount(deletedAt = kotlin.time.Clock.System.now())
+	fun `Account - Test Auth - invisible token is rejected at the bearer gate`() = testApplication {
+		coEvery { accountsRepository.checkToken(USER_ID, "bearer-token") } returns
+			SResult.failure("No valid token found", null)
 		coEvery { whiteListRepository.useWhiteList() } returns false
 
 		application {
@@ -323,7 +324,6 @@ class AccountRoutesTest : BaseTest() {
 	@Test
 	fun `Account - Test Auth - active account passes the bearer gate`() = testApplication {
 		coEvery { accountsRepository.checkToken(USER_ID, "bearer-token") } returns SResult.success(USER_ID)
-		coEvery { accountsRepository.getAccountOrNull(USER_ID) } returns testAccount(deletedAt = null)
 		coEvery { whiteListRepository.useWhiteList() } returns false
 
 		application {
@@ -339,21 +339,6 @@ class AccountRoutesTest : BaseTest() {
 			assertTrue(status.isSuccess())
 		}
 	}
-
-	private fun testAccount(deletedAt: kotlin.time.Instant?) = Account(
-		id = USER_ID,
-		email = "test@test.com",
-		pen_name = null,
-		password_hash = "hash",
-		cipher_secret = "secret",
-		created = kotlin.time.Clock.System.now(),
-		is_admin = false,
-		last_sync = kotlin.time.Clock.System.now(),
-		bio = null,
-		email_verified = true,
-		community_member = false,
-		deleted_at = deletedAt,
-	)
 
 	private suspend fun ApplicationTestBuilder.makeTestAuthCall(userId: Long): HttpResponse =
 		client.get("/api/account/test_auth/$userId") {

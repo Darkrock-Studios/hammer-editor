@@ -1,9 +1,9 @@
 package com.darkrockstudios.apps.hammer.account
 
-import com.darkrockstudios.apps.hammer.Account
 import com.darkrockstudios.apps.hammer.AccountDeletionConfig
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.utils.TestClock
+import com.darkrockstudios.apps.hammer.utils.testAccount
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -26,21 +26,6 @@ class AccountDeletionJobTest {
 	private lateinit var clock: TestClock
 	private val logger = LoggerFactory.getLogger(AccountDeletionJobTest::class.java)
 
-	private fun account(id: Long, deletedAt: Instant) = Account(
-		id = id,
-		email = "user$id@example.com",
-		pen_name = null,
-		password_hash = "hash",
-		cipher_secret = "secret",
-		created = Clock.System.now() - 365.days,
-		is_admin = false,
-		last_sync = Clock.System.now(),
-		bio = null,
-		email_verified = true,
-		community_member = false,
-		deleted_at = deletedAt,
-	)
-
 	@BeforeEach
 	fun setup() {
 		MockKAnnotations.init(this, relaxUnitFun = true)
@@ -58,8 +43,8 @@ class AccountDeletionJobTest {
 	fun `tick - hard-deletes every account past the retention window`() = runTest {
 		val cutoff = slot<Instant>()
 		val due = listOf(
-			account(1, clock.now() - 40.days),
-			account(2, clock.now() - 31.days),
+			testAccount(userId = 1, deletedAt = clock.now() - 40.days),
+			testAccount(userId = 2, deletedAt = clock.now() - 31.days),
 		)
 		coEvery { accountDeletionService.findAccountsPastRetention(capture(cutoff)) } returns due
 
@@ -73,8 +58,8 @@ class AccountDeletionJobTest {
 	@Test
 	fun `tick - one failing account does not starve the rest`() = runTest {
 		val due = listOf(
-			account(1, clock.now() - 40.days),
-			account(2, clock.now() - 31.days),
+			testAccount(userId = 1, deletedAt = clock.now() - 40.days),
+			testAccount(userId = 2, deletedAt = clock.now() - 31.days),
 		)
 		coEvery { accountDeletionService.findAccountsPastRetention(any()) } returns due
 		coEvery { accountDeletionService.hardDelete(1) } throws IllegalStateException("boom")

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.database
 
+import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.e2e.util.SharedPostgresTestDatabase
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import kotlinx.coroutines.test.runTest
@@ -15,6 +16,7 @@ class AccountDaoSoftDeleteTest : BaseTest() {
 
 	private lateinit var db: SharedPostgresTestDatabase
 	private lateinit var accountDao: AccountDao
+	private lateinit var authTokenDao: AuthTokenDao
 
 	@BeforeEach
 	override fun setup() {
@@ -23,6 +25,7 @@ class AccountDaoSoftDeleteTest : BaseTest() {
 		db = SharedPostgresTestDatabase()
 		db.initialize()
 		accountDao = AccountDao(db)
+		authTokenDao = AuthTokenDao(db)
 
 		setupKoin()
 	}
@@ -46,6 +49,37 @@ class AccountDaoSoftDeleteTest : BaseTest() {
 			accountDao.getAccount(userId)?.deleted_at,
 			"The markDeleted query itself must refuse admin rows",
 		)
+	}
+
+	@Test
+	fun `markDeleted - retry keeps the original deletion time`() = runTest {
+		val userId = accountDao.createAccount("retry@example.com", "hash", "secret", isAdmin = false)
+		// Millisecond precision so the value round-trips Postgres' microsecond columns exactly.
+		val now = Clock.System.now()
+		val firstDeletion = kotlin.time.Instant.fromEpochMilliseconds(now.toEpochMilliseconds()) - 5.days
+
+		accountDao.markDeleted(userId, firstDeletion)
+		accountDao.markDeleted(userId, Clock.System.now())
+
+		assertEquals(firstDeletion, accountDao.getAccount(userId)?.deleted_at)
+	}
+
+	@Test
+	fun `auth tokens of a soft-deleted account are invisible to the bearer gate`() = runTest {
+		val userId = accountDao.createAccount("locked-out@example.com", "hash", "secret", isAdmin = false)
+		authTokenDao.setToken(
+			userId = userId,
+			installId = "install-1",
+			token = Token(userId = userId, auth = "auth-locked", refresh = "refresh-locked"),
+			expires = Clock.System.now() + 30.days,
+		)
+		assertNotNull(authTokenDao.getTokenByAuthToken("auth-locked"))
+
+		accountDao.markDeleted(userId, Clock.System.now())
+		assertNull(authTokenDao.getTokenByAuthToken("auth-locked"))
+
+		accountDao.restoreDeleted(userId)
+		assertNotNull(authTokenDao.getTokenByAuthToken("auth-locked"))
 	}
 
 	@Test

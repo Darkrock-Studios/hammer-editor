@@ -87,7 +87,8 @@ class AccountDeletionServiceTest {
 
 	@Test
 	fun `softDelete - locks the account out then releases its public presence`() = runTest {
-		coEvery { accountsRepository.getAccountOrNull(userId) } returns account()
+		coEvery { accountsRepository.getAccountOrNull(userId) } returns
+			account() andThen account(deletedAt = clock.now())
 
 		val result = service.softDelete(userId)
 
@@ -113,14 +114,26 @@ class AccountDeletionServiceTest {
 	}
 
 	@Test
-	fun `softDelete - already deleted account is a no-op success`() = runTest {
+	fun `softDelete - retry on an already-deleted account re-runs the idempotent cleanup`() = runTest {
 		coEvery { accountsRepository.getAccountOrNull(userId) } returns
 			account(deletedAt = clock.now() - 1.days)
 
 		val result = service.softDelete(userId)
 
 		assertTrue(isSuccess(result))
-		coVerify(exactly = 0) { accountsRepository.markDeleted(any(), any()) }
+		coVerify { penNameService.releasePenName(userId) }
+		coVerify { accountsRepository.forceLogout(email) }
+	}
+
+	@Test
+	fun `softDelete - aborts before destructive steps when the flag did not land`() = runTest {
+		coEvery { accountsRepository.getAccountOrNull(userId) } returns
+			account() andThen account(deletedAt = null)
+
+		val result = service.softDelete(userId)
+
+		assertTrue(result.isFailure)
+		coVerify(exactly = 0) { accountsRepository.forceLogout(any()) }
 		coVerify(exactly = 0) { penNameService.releasePenName(any()) }
 	}
 
