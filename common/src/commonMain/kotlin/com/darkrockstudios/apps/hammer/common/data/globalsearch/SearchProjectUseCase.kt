@@ -11,9 +11,10 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneCo
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.search.ParsedQuery
+import com.darkrockstudios.apps.hammer.common.data.search.markdownTitleLine
 import com.darkrockstudios.apps.hammer.common.data.search.matchesAllTags
 import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
-import com.darkrockstudios.apps.hammer.common.data.search.unescapeMarkdown
+import com.darkrockstudios.apps.hammer.common.data.search.projectMarkdownToPlainText
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
@@ -227,24 +228,32 @@ class SearchProjectUseCase(
 	}
 
 	/**
-	 * Both callers pass stored Markdown, so escapes are resolved before matching. With no free text
-	 * the item already matched on its tags, so a blank body falls back to [fallback] and then to an
-	 * empty snippet rather than discarding the result.
+	 * Both callers pass stored Markdown, so both paths go through the prose projection. With no free
+	 * text the item already matched on its tags, so a blank body falls back to [fallback] and then to
+	 * an empty snippet rather than discarding the result.
 	 */
 	private fun matchOrPreview(content: String, query: String, fallback: String = ""): AnnotatedSnippet? {
 		if (query.isEmpty()) {
-			return previewSnippet(unescapeMarkdown(content))
+			return markdownPreviewSnippet(content)
 				?: previewSnippet(fallback)
 				?: EMPTY_SNIPPET
 		}
 		return findMarkdownMatch(content, query)
 	}
 
-	/** The date is a plain-text field, so only the event body is unescaped. */
+	/**
+	 * The date is a plain-text field, so only the body is projected. Both halves are searched as one
+	 * string so a query can span the separator.
+	 */
 	private fun matchTimelineEvent(date: String?, content: String, query: String): AnnotatedSnippet? {
-		val resolved = withDate(date, unescapeMarkdown(content))
-		if (query.isEmpty()) return previewSnippet(resolved) ?: EMPTY_SNIPPET
-		return findMatch(resolved, query)
+		val projected = withDate(date, projectMarkdownToPlainText(content))
+		if (query.isEmpty()) {
+			return previewSnippet(projected)
+				?: previewSnippet(withDate(date, content))
+				?: EMPTY_SNIPPET
+		}
+		findMatch(projected, query)?.let { return it }
+		return findMatch(withDate(date, content), query)
 	}
 
 	private fun withDate(date: String?, content: String): String =
@@ -257,17 +266,13 @@ class SearchProjectUseCase(
 		return runCatching { sceneEditor.loadSceneMarkdownRaw(scene) }.getOrNull()
 	}
 
-	/** [content] is stored Markdown, so the title resolves escapes the way its snippet does. */
+	/** [content] is stored Markdown, so the derived title is projected the same way the UI does. */
 	private fun firstLineTitle(content: String, fallback: String): String {
-		val firstLine = content.lineSequence()
-			.firstOrNull { it.isNotBlank() }
-			?.let { unescapeMarkdown(it) }
-			?.trim()
-			.orEmpty()
+		val title = markdownTitleLine(content)
 		return when {
-			firstLine.isEmpty() -> fallback
-			firstLine.length > TITLE_MAX -> firstLine.take(TITLE_MAX).trimEnd() + "…"
-			else -> firstLine
+			title.isEmpty() -> fallback
+			title.length > TITLE_MAX -> title.take(TITLE_MAX).trimEnd() + "…"
+			else -> title
 		}
 	}
 
@@ -290,22 +295,29 @@ class SearchProjectUseCase(
 			return AnnotatedSnippet(text = truncated, matchStart = 0, matchEnd = 0)
 		}
 
-		/**
-		 * Matches stored Markdown with its escapes resolved, so a query matches the prose on screen
-		 * and the snippet renders the same way. The resolved text is the only thing searched, so a
-		 * snippet can never disagree with the title derived from it.
-		 */
-		internal fun findMarkdownMatch(markdown: String, query: String): AnnotatedSnippet? {
-			if (markdown.isEmpty() || query.isEmpty()) return null
-			return findMatch(unescapeMarkdown(markdown), query)
-		}
-
 		internal fun findMatch(text: String, query: String): AnnotatedSnippet? {
 			if (text.isEmpty() || query.isEmpty()) return null
 			val pos = text.indexOf(query, ignoreCase = true)
 			if (pos < 0) return null
 			return buildSnippet(text, pos, query.length)
 		}
+
+		/**
+		 * Matches against the prose projection of stored Markdown, so queries spanning storage
+		 * syntax still hit and the snippet reads the way the document does. The raw source is
+		 * searched as a fallback, which keeps queries for literal markup working.
+		 */
+		internal fun findMarkdownMatch(markdown: String, query: String): AnnotatedSnippet? {
+			if (markdown.isEmpty() || query.isEmpty()) return null
+			val projected = projectMarkdownToPlainText(markdown)
+			findMatch(projected, query)?.let { return it }
+			if (projected !== markdown) return findMatch(markdown, query)
+			return null
+		}
+
+		/** Falls back to the raw source so a document made only of markup still previews. */
+		internal fun markdownPreviewSnippet(markdown: String): AnnotatedSnippet? =
+			previewSnippet(projectMarkdownToPlainText(markdown)) ?: previewSnippet(markdown)
 
 		internal fun buildSnippet(text: String, matchPos: Int, queryLen: Int): AnnotatedSnippet {
 			val windowStart = (matchPos - SNIPPET_BEFORE).coerceAtLeast(0)

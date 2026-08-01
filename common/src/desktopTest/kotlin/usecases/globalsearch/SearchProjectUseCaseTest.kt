@@ -380,6 +380,174 @@ class SearchProjectUseCaseTest : BaseTest() {
 		assertEquals(7, results.first().sceneItem.id)
 	}
 
+	private fun note(id: Int, content: String) =
+		NoteContainer(NoteContent(id = id, created = Clock.System.now(), content = content))
+
+	@Test
+	fun `search matches across a backslash escape`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "A well\\-known secret"))
+
+		val results = createUseCase().search("well-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+	}
+
+	@Test
+	fun `search matches a phrase spanning an emphasis boundary`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "**Chapter** One begins"))
+
+		val results = createUseCase().search("Chapter One", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+	}
+
+	@Test
+	fun `search matches a phrase spanning italics and code spans`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			note(1, "the _quick_ brown fox"),
+			note(2, "run the `build` script"),
+		)
+
+		val italic = createUseCase().search("quick brown", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+		val code = createUseCase().search("the build script", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, italic.size)
+		assertEquals(1, code.size)
+	}
+
+	@Test
+	fun `snippets render prose without markdown syntax`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "A well\\-known **Chapter** One secret"))
+
+		val results = createUseCase().search("well-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		val snippet = results.first().snippet
+		assertEquals("A well-known Chapter One secret", snippet.text)
+		assertEquals("well-known", snippet.text.substring(snippet.matchStart, snippet.matchEnd))
+	}
+
+	@Test
+	fun `escaped literals survive the projection`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "the \\_shape\\_ of it"))
+
+		val results = createUseCase().search("_shape_", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertTrue(results.first().snippet.text.contains("_shape_"))
+	}
+
+	@Test
+	fun `searching for literal markdown syntax still finds it`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "raw **bold** marker"))
+
+		val results = createUseCase().search("**bold**", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+	}
+
+	@Test
+	fun `scene bodies match across an emphasis boundary`() = runTest {
+		val scene = SceneItem(
+			projectDef = projectDef,
+			type = SceneItem.Type.Scene,
+			id = 7,
+			name = "Opening",
+			order = 0,
+		)
+		every { sceneEditor.getScenes() } returns listOf(scene)
+		every { sceneContentRepository.getSceneBuffer(scene) } returns null
+		every { sceneEditor.loadSceneMarkdownRaw(scene, any()) } returns "**Chapter** One begins"
+
+		val results = createUseCase().search("Chapter One", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Scene>()
+
+		assertEquals(1, results.size)
+		assertEquals("Chapter One begins", results.first().snippet.text)
+	}
+
+	@Test
+	fun `literal underscores in imported content are left alone`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "the user_name field and my_table_name"))
+
+		val results = createUseCase().search("user_name", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertTrue(results.first().snippet.text.contains("my_table_name"))
+	}
+
+	@Test
+	fun `a body of only markdown markers still previews in a tag search`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			NoteContainer(
+				NoteContent(
+					id = 1,
+					created = Clock.System.now(),
+					content = "***",
+					tags = setOf("fantasy"),
+				)
+			),
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals("***", results.first().snippet.text)
+	}
+
+	@Test
+	fun `a note whose first line is only markers is not titled empty`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "***\nThe real body text"))
+
+		val results = createUseCase().search("real body", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals("***", results.first().title)
+	}
+
+	@Test
+	fun `timeline dates are not projected`() = runTest {
+		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(
+			listOf(TimeLineEvent(id = 21, order = 0, date = "1990_2000", content = "A long war")),
+		)
+
+		val results = createUseCase().search("1990_2000", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.TimelineEvent>()
+
+		assertEquals(1, results.size)
+		assertTrue(results.first().snippet.text.contains("1990_2000"))
+	}
+
+	@Test
+	fun `tag-only search previews prose without markdown syntax`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			NoteContainer(
+				NoteContent(
+					id = 1,
+					created = Clock.System.now(),
+					content = "A well\\-known **Chapter** One secret",
+					tags = setOf("fantasy"),
+				)
+			),
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals("A well-known Chapter One secret", results.first().snippet.text)
+	}
+
 	@Test
 	fun `search matches across a backslash escape`() = runTest {
 		every { notes.getNotes() } returns listOf(note(1, "A well\\-known secret"))
