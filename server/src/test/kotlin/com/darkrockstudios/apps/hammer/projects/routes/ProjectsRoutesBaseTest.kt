@@ -21,9 +21,11 @@ import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
+import com.darkrockstudios.apps.hammer.utils.testAccount
 import io.ktor.server.application.Application
 import io.ktor.server.testing.ApplicationTestBuilder
 import io.mockk.MockKAnnotations
+import io.mockk.coEvery
 import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
 import kotlinx.serialization.json.Json
@@ -90,6 +92,9 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 
 		MockKAnnotations.init(this, relaxUnitFun = true)
 
+		// The bearer gate loads the account after token validation; default to an active one.
+		coEvery { accountsRepository.getAccountOrNull(any()) } returns testAccount()
+
 		testModule = module {
 			single { accountsRepository }
 			single { whiteListRepository }
@@ -110,6 +115,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
+			single { mockk<com.darkrockstudios.apps.hammer.account.AccountDeletionService>(relaxed = true) }
 		}
 	}
 

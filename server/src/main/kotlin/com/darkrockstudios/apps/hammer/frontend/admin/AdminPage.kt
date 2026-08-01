@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ServerConfig
+import com.darkrockstudios.apps.hammer.account.AccountDeletionService
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.SortDirection
 import com.darkrockstudios.apps.hammer.account.UserSortField
@@ -9,10 +10,12 @@ import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.frontend.admin.*
+import com.darkrockstudios.apps.hammer.frontend.utils.Toast
 import com.darkrockstudios.apps.hammer.frontend.utils.adminOnly
 import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.respondToast
 import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.ResUtils
@@ -30,6 +33,7 @@ fun Route.adminPage(
 	configRepository: ConfigRepository,
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
+	accountDeletionService: AccountDeletionService,
 	serverConfig: ServerConfig,
 	patreonSyncService: PatreonSyncService?,
 	emailService: EmailService?,
@@ -65,7 +69,7 @@ fun Route.adminPage(
 			adminUsersPage(patreonFeatureEnabled, emailFeatureEnabled)
 			whiteListRoutes(whiteListRepository, configRepository, serverConfig, clock)
 			serverSettingsRoutes(configRepository)
-			usersRoutes(accountsRepository, projectsRepository)
+			usersRoutes(accountsRepository, projectsRepository, accountDeletionService)
 			if (patreonFeatureEnabled && patreonSyncService != null) {
 				adminPatreonPage(configRepository, patreonSyncService, emailFeatureEnabled)
 				patreonSettingsRoutes(configRepository, patreonSyncService, serverConfig)
@@ -174,9 +178,29 @@ private fun Route.adminUsersPage(patreonFeatureEnabled: Boolean, emailFeatureEna
 	}
 }
 
-private fun Route.usersRoutes(accountsRepository: AccountsRepository, projectsRepository: ProjectsRepository) {
+private fun Route.usersRoutes(
+	accountsRepository: AccountsRepository,
+	projectsRepository: ProjectsRepository,
+	accountDeletionService: AccountDeletionService,
+) {
 	route("/users") {
 		usersFragment(accountsRepository, projectsRepository)
+
+		hx.post("/restore") {
+			val userId = call.receiveParameters()["userId"]?.toLongOrNull()
+			if (userId == null) {
+				call.respond(io.ktor.http.HttpStatusCode.BadRequest, "")
+				return@post
+			}
+
+			if (accountDeletionService.restore(userId)) {
+				call.response.header(HxResponseHeaders.Refresh, "true")
+				call.respond(io.ktor.http.HttpStatusCode.OK, "")
+			} else {
+				// The account was already hard-deleted; a refresh would lose the toast.
+				respondToast(call.msg("admin_users_restore_failed"), Toast.Error)
+			}
+		}
 	}
 }
 
@@ -212,12 +236,14 @@ private suspend fun getUsersModel(
 	val accounts = accountsRepository.getAccountsPaginated(currentPage, pageSize, actualSortBy, actualSortDirection)
 	val usersList = accounts.map { account ->
 		mutableMapOf<String, Any?>(
+			"id" to account.id,
 			"email" to account.email,
 			"created" to formatDate(account.created),
 			"lastSync" to (formatLastSync(account.most_recent_sync) ?: call.msg("admin_patreon_last_sync_never")),
 			"penName" to account.pen_name,
 			"hasPenName" to (account.pen_name != null),
-			"projectCount" to account.project_count
+			"projectCount" to account.project_count,
+			"pendingDeletion" to (account.deleted_at != null)
 		)
 	}
 

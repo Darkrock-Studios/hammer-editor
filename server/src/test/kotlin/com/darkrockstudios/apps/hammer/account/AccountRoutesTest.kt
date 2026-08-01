@@ -28,6 +28,7 @@ import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -134,6 +135,7 @@ class AccountRoutesTest : BaseTest() {
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
+			single { mockk<AccountDeletionService>(relaxed = true) }
 		}
 	}
 
@@ -141,7 +143,7 @@ class AccountRoutesTest : BaseTest() {
 	fun `Account - Refresh Token - No User`() = testApplication {
 		coEvery {
 			accountsComponent.refreshToken(USER_ID, any(), any())
-		} returns SResult.failure("No valid token not found", mockk())
+		} returns SResult.failure("No valid token not found", null)
 
 		val mockRefreshToken = "invalid_refresh_token"
 		application {
@@ -162,6 +164,36 @@ class AccountRoutesTest : BaseTest() {
 		// Test invalid refresh token scenario
 		makeRefreshCall(USER_ID, mockRefreshToken).apply {
 			assertEquals(HttpStatusCode.Unauthorized, status)
+		}
+	}
+
+	@Test
+	fun `Account - Refresh Token - pending-deletion message reaches the client`() = testApplication {
+		coEvery {
+			accountsComponent.refreshToken(USER_ID, any(), any())
+		} returns SResult.failure(
+			"Account pending deletion",
+			com.darkrockstudios.apps.hammer.utilities.Msg.r("api_accounts_login_error_pending_deletion")
+		)
+
+		application {
+			setupKtorTestKoin(this@AccountRoutesTest, testModule)
+
+			configureSerialization()
+			configureLocalization()
+			configureSecurity()
+			configureRouting()
+		}
+
+		createClient {
+			install(ContentNegotiation) {
+				json(json)
+			}
+		}
+
+		makeRefreshCall(USER_ID, "any-refresh-token").apply {
+			assertEquals(HttpStatusCode.Unauthorized, status)
+			assertTrue(bodyAsText().contains("pending deletion"))
 		}
 	}
 
@@ -265,6 +297,56 @@ class AccountRoutesTest : BaseTest() {
 			assertEquals(expectedToken.auth, body.auth)
 		}
 	}
+
+	// The soft-deleted gate lives in the token query itself (AuthToken.sq hides
+	// tokens of deleted accounts), so at the route level a deleted account is a
+	// failed checkToken; the data-layer behavior is covered in AccountDaoSoftDeleteTest.
+	@Test
+	fun `Account - Test Auth - invisible token is rejected at the bearer gate`() = testApplication {
+		coEvery { accountsRepository.checkToken(USER_ID, "bearer-token") } returns
+			SResult.failure("No valid token found", null)
+		coEvery { whiteListRepository.useWhiteList() } returns false
+
+		application {
+			setupKtorTestKoin(this@AccountRoutesTest, testModule)
+
+			configureSerialization()
+			configureLocalization()
+			configureSecurity()
+			configureRouting()
+		}
+
+		makeTestAuthCall(USER_ID).apply {
+			assertEquals(HttpStatusCode.Unauthorized, status)
+		}
+	}
+
+	@Test
+	fun `Account - Test Auth - active account passes the bearer gate`() = testApplication {
+		coEvery { accountsRepository.checkToken(USER_ID, "bearer-token") } returns SResult.success(USER_ID)
+		coEvery { whiteListRepository.useWhiteList() } returns false
+
+		application {
+			setupKtorTestKoin(this@AccountRoutesTest, testModule)
+
+			configureSerialization()
+			configureLocalization()
+			configureSecurity()
+			configureRouting()
+		}
+
+		makeTestAuthCall(USER_ID).apply {
+			assertTrue(status.isSuccess())
+		}
+	}
+
+	private suspend fun ApplicationTestBuilder.makeTestAuthCall(userId: Long): HttpResponse =
+		client.get("/api/account/test_auth/$userId") {
+			header(HttpHeaders.Authorization, "Bearer bearer-token")
+			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION)
+			header(HEADER_CLIENT_VERSION, BuildMetadata.APP_VERSION)
+			header(HttpHeaders.Accept, ContentType.Application.Json.toString())
+		}
 
 	private suspend fun ApplicationTestBuilder.makeCreateCall(acceptedTosVersion: String?): HttpResponse =
 		client.post("/api/account/create") {

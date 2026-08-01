@@ -99,6 +99,7 @@ class ApplicationTest : BaseTest() {
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
+			single { mockk<com.darkrockstudios.apps.hammer.account.AccountDeletionService>(relaxed = true) }
 			single { mockk<Json>() }
 		}
 	}

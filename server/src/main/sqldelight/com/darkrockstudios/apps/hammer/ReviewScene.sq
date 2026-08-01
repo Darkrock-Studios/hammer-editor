@@ -67,3 +67,7 @@ SELECT review_request_id,
 FROM review_scene
 WHERE review_request_id IN :reviewRequestIds
 GROUP BY review_request_id;
+
+deleteAllForUser:
+DELETE FROM review_scene
+WHERE review_request_id IN (SELECT id FROM review_request WHERE user_id = :userId);

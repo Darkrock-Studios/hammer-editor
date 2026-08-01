@@ -31,6 +31,7 @@ fun buildServerDatabase(driver: SqlDriver): ServerDatabase {
 		accountAdapter = Account.Adapter(
 			createdAdapter = instant,
 			last_syncAdapter = instant,
+			deleted_atAdapter = instant,
 		),
 		auth_tokenAdapter = Auth_token.Adapter(
 			createdAdapter = instant,

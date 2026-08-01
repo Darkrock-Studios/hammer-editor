@@ -95,11 +95,21 @@ class AccountsRepository(
 				// Hash anyway so the existing-account path costs the same Argon2 time as
 				// creating a new account — no timing oracle for account enumeration.
 				hashPassword(password)
-				SResult.failure(
-					"account already exists",
-					Msg.r("api_accounts_create_error_accountexists"),
-					CreateFailed("Account already exists")
-				)
+				if (existingAccount.deleted_at != null) {
+					// The row must survive so the account can be restored, which
+					// keeps the email reserved until the retention window ends.
+					SResult.failure(
+						"account pending deletion",
+						Msg.r("api_accounts_login_error_pending_deletion"),
+						CreateFailed("Account pending deletion")
+					)
+				} else {
+					SResult.failure(
+						"account already exists",
+						Msg.r("api_accounts_create_error_accountexists"),
+						CreateFailed("Account already exists")
+					)
+				}
 			}
 
 			!EmailValidator.validate(email) -> SResult.failure(
@@ -172,8 +182,17 @@ class AccountsRepository(
 		}
 
 		return if (account != null && passwordValid) {
-			val token = createToken(account.id, installId)
-			SResult.success(token)
+			if (account.deleted_at != null) {
+				// Only reachable with valid credentials, so this reveals account
+				// state to its owner and nothing to password guessers.
+				SResult.failure(
+					"Account pending deletion",
+					Msg.r("api_accounts_login_error_pending_deletion")
+				)
+			} else {
+				val token = createToken(account.id, installId)
+				SResult.success(token)
+			}
 		} else {
 			// One message for both unknown-account and wrong-password so the
 			// response body doesn't reveal whether the account exists.
@@ -234,6 +253,18 @@ class AccountsRepository(
 
 	suspend fun isAdmin(userId: Long): Boolean {
 		return accountDao.getAccount(userId)?.is_admin == true
+	}
+
+	suspend fun markDeleted(userId: Long, deletedAt: Instant = clock.now()) {
+		accountDao.markDeleted(userId, deletedAt)
+	}
+
+	suspend fun restoreDeleted(userId: Long) {
+		accountDao.restoreDeleted(userId)
+	}
+
+	suspend fun getSoftDeletedBefore(cutoff: Instant): List<Account> {
+		return accountDao.getSoftDeletedBefore(cutoff)
 	}
 
 	suspend fun findAccount(email: String): Account? {

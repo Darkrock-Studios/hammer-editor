@@ -67,6 +67,14 @@ class AccountsComponent(
 		// a bad token does — never surface AccountNotFound as a 500, since the status
 		// difference would reveal whether the account exists.
 		val account = accountsRepository.getAccountOrNull(userId)
+		if (account?.deleted_at != null) {
+			// Real tokens were revoked at soft delete, so anyone reaching this
+			// held a valid refresh token; the explicit message is safe.
+			return SResult.failure(
+				"Account pending deletion",
+				Msg.r("api_accounts_login_error_pending_deletion")
+			)
+		}
 		if (account != null && checkIfWhiteListRejected(account)) {
 			return whiteListRejectedFailure()
 		}

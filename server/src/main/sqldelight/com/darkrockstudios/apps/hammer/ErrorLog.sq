@@ -67,3 +67,6 @@ UPDATE error_log SET notified_at = ? WHERE id = ?;
 
 deleteErrorsBefore:
 DELETE FROM error_log WHERE last_seen < ?;
+
+deleteAllForUser:
+DELETE FROM error_log WHERE user_id = :userId;

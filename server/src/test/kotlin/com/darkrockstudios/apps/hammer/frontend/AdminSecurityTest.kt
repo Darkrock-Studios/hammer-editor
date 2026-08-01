@@ -49,6 +49,7 @@ class AdminSecurityTest : BaseTest() {
 		bio = null,
 		email_verified = true,
 		community_member = false,
+		deleted_at = null,
 	)
 
 	private fun ApplicationTestBuilder.configureApp() {

@@ -28,3 +28,6 @@ ON CONFLICT (user_id, uuid) DO NOTHING;
 
 hasDeletedIdea:
 SELECT EXISTS(SELECT 1 FROM deleted_idea WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID));
+
+deleteAllForUser:
+DELETE FROM deleted_idea WHERE user_id = :userId;

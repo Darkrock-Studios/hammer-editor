@@ -1,0 +1,43 @@
+<div class="dialog-overlay" id="delete-account-dialog-overlay" onclick="closeDeleteAccountDialog(event)">
+	<div class="dialog dialog--warning" onclick="event.stopPropagation()">
+		<div class="dialog__header dialog__header--warning">
+			<h3>{{msg.account_delete_dialog_title}}</h3>
+			<button type="button" class="dialog__close" onclick="closeDeleteAccountDialog()">
+				<i class="fas fa-times"></i>
+			</button>
+		</div>
+		<form hx-post="/dashboard/delete-account" hx-swap="none">
+			<div class="dialog__body">
+				<p class="danger-warning">{{msg.account_delete_dialog_devices_note}}</p>
+				<p class="danger-warning">{{retentionNote}}</p>
+				<p class="danger-warning">{{msg.account_delete_dialog_email_note}}</p>
+				<p class="danger-warning"><strong>{{msg.account_delete_dialog_permanent_note}}</strong></p>
+				<div class="current-pen-name-display">
+					<span class="current-label">{{msg.account_delete_dialog_project_count_label}}</span>
+					<span class="current-value">{{projectCount}}</span>
+				</div>
+				<div class="release-confirm-input">
+					<label for="delete-account-confirm-field">{{msg.account_delete_confirm_label}}</label>
+					<input type="text"
+						   id="delete-account-confirm-field"
+						   name="confirmEmail"
+						   data-email="{{email}}"
+						   placeholder="{{email}}"
+						   autocomplete="off"
+						   oninput="onDeleteAccountConfirmInput(this)">
+				</div>
+			</div>
+			<div class="dialog__actions">
+				<button type="button" class="btn btn--ghost" onclick="closeDeleteAccountDialog()">
+					{{msg.account_delete_cancel}}
+				</button>
+				<button type="submit"
+						class="release-btn"
+						id="delete-account-btn"
+						disabled>
+					{{msg.account_delete_confirm_button}}
+				</button>
+			</div>
+		</form>
+	</div>
+</div>

@@ -1,0 +1,10 @@
+-- Migration 7 -> 8: soft-delete timestamp for the account-deletion retention
+-- window. Mirrors Account.sq for already-deployed v7 databases; fresh installs
+-- get this from Schema.create.
+--
+-- The column is nullable with no default, so every existing row reads as NULL:
+-- not deleted, preserving current behaviour.
+
+ALTER TABLE account ADD COLUMN deleted_at TIMESTAMPTZ;
+
+CREATE INDEX account_deleted_at_idx ON account (deleted_at) WHERE deleted_at IS NOT NULL;

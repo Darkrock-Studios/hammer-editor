@@ -52,3 +52,11 @@ countSuggestionsForRequest:
 SELECT COUNT(*) FROM review_suggestion
 JOIN review_scene ON review_suggestion.review_scene_id = review_scene.id
 WHERE review_scene.review_request_id = :reviewRequestId;
+
+deleteAllForUser:
+DELETE FROM review_suggestion
+WHERE review_scene_id IN (
+    SELECT rs.id FROM review_scene rs
+    JOIN review_request rr ON rr.id = rs.review_request_id
+    WHERE rr.user_id = :userId
+);

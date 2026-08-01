@@ -92,6 +92,7 @@ class AccountsRepositoryTest : BaseTest() {
 			bio = null,
 			email_verified = true,
 			community_member = false,
+			deleted_at = null,
 		)
 	}
 
@@ -141,6 +142,53 @@ class AccountsRepositoryTest : BaseTest() {
 			password = "power1234"
 		)
 		assertTrue(result.isFailure)
+	}
+
+	@Test
+	fun `Login - soft-deleted account with correct password gets the pending-deletion failure`() = runTest {
+		coEvery { accountDao.findAccount(any()) } returns account.copy(deleted_at = Clock.System.now())
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val result =
+			accountsRepository.login(email = email, installId = installId, password = password)
+
+		assertTrue(result.isFailure)
+		result as ServerResult.Failure
+		assertEquals("Account pending deletion", result.error)
+		// A locked-out account must never be issued a token.
+		coVerify(exactly = 0) { authTokenDao.setToken(any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `Login - soft-deleted account with wrong password gets the generic failure`() = runTest {
+		coEvery { accountDao.findAccount(any()) } returns account.copy(deleted_at = Clock.System.now())
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val result = accountsRepository.login(
+			email = email,
+			installId = installId,
+			password = password + "wrong"
+		)
+
+		assertTrue(result.isFailure)
+		result as ServerResult.Failure
+		// The account's deletion state must not leak to a password guesser.
+		assertEquals("Invalid credentials", result.error)
+	}
+
+	@Test
+	fun `CreateAccount - soft-deleted existing account gets the pending-deletion failure`() = runTest {
+		coEvery { accountDao.findAccount(any()) } returns account.copy(deleted_at = Clock.System.now())
+		val accountsRepository =
+			AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val result = accountsRepository.createAccount(email, installId, password)
+
+		assertTrue(result.isFailure)
+		result as ServerResult.Failure
+		assertEquals("account pending deletion", result.error)
 	}
 
 	@Test

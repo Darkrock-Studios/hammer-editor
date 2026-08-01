@@ -27,3 +27,6 @@ ON CONFLICT (user_id, project_id) DO UPDATE SET
     content = EXCLUDED.content,
     hash = EXCLUDED.hash,
     updated_at = EXCLUDED.updated_at;
+
+deleteAllForUser:
+DELETE FROM project_data WHERE user_id = :userId;
