@@ -183,7 +183,7 @@ class MarkdownStoryImporter : StoryImporter {
 				trimmed.startsWith(marker) &&
 				trimmed.endsWith(marker) &&
 				trimmed.substring(marker.length, trimmed.length - marker.length).let {
-					it.isNotBlank() && !it.contains(marker) && wordCount(it) <= HEADING_MAX_WORDS
+					it.isNotBlank() && !it.contains(marker) && it.trim().split(WHITESPACE).size <= HEADING_MAX_WORDS
 				}
 		}
 	}
@@ -204,8 +204,12 @@ class MarkdownStoryImporter : StoryImporter {
 		private const val MAX_HEADING_INDENT = 3
 		private const val MIN_MARKUP_HEADINGS = 2
 		private const val MIN_BOLD_HEADINGS = 2
+
+		/** Beyond this a bolded line is prose, not a chapter title. */
+		private const val HEADING_MAX_WORDS = 12
 		private const val BOM = "﻿"
 		private val BOLD_MARKERS = listOf("**", "__")
 		private val EMPHASIS_MARKERS = listOf("**", "__", "*", "_")
+		private val WHITESPACE = Regex("\\s+")
 	}
 }
