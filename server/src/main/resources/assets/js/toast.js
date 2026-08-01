@@ -1,9 +1,11 @@
 // Lets the toast on an error response through; see shouldSwapErrorResponse in toast-logic.js.
+// Only shouldSwap is flipped: the request did fail, so isError stays true and htmx keeps
+// reporting it as failed to htmx:responseError and to detail.successful listeners. The cost is
+// a console error per rejection, which beats a listener treating a rejection as a success.
 document.body.addEventListener('htmx:beforeSwap', function (evt) {
 	const xhr = evt.detail.xhr;
 	if (xhr && shouldSwapErrorResponse(xhr.status, xhr.getResponseHeader(SWAP_ERROR_HEADER))) {
 		evt.detail.shouldSwap = true;
-		evt.detail.isError = false;
 	}
 });
 
