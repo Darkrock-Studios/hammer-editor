@@ -4,9 +4,16 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 
 internal const val UNTITLED = "Untitled"
 
+/** Beyond this a short styled line is prose, not a chapter title. */
+internal const val HEADING_MAX_WORDS = 12
+
+private val WHITESPACE = Regex("\\s+")
+
 /** Cleans an imported heading/source name into something storable, falling back to [UNTITLED]. */
 internal fun sanitizeImportName(raw: String): String =
 	ProjectsRepository.sanitizeFileName(raw).ifEmpty { UNTITLED }
+
+internal fun wordCount(text: String): Int = if (text.isBlank()) 0 else text.trim().split(WHITESPACE).size
 
 /**
  * A single unit of an import stream. A [Heading] opens a group or scene depending on its [level]

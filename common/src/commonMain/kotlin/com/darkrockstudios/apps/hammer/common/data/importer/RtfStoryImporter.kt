@@ -117,7 +117,7 @@ class RtfStoryImporter : StoryImporter {
 	private fun RtfParagraph.isHeading(bodySize: Int?): Boolean {
 		if (isBlank) return false
 		if (isOutlineHeading) return true
-		if (wordCount > HEADING_MAX_WORDS) return false
+		if (wordCount(plainText) > HEADING_MAX_WORDS) return false
 		if (bodySize != null && dominantFontSize != null && dominantFontSize > bodySize) return true
 		return mostlyBold
 	}
@@ -133,7 +133,6 @@ class RtfStoryImporter : StoryImporter {
 		get() = outlineLevel != null && outlineLevel in 0..MAX_OUTLINE_HEADING_LEVEL
 
 	private companion object {
-		const val HEADING_MAX_WORDS = 12
 		const val MAX_OUTLINE_HEADING_LEVEL = 8
 		const val SIZE_TIER_BASE = 1000
 		const val BOLD_TIER = 10_000
@@ -147,11 +146,6 @@ class RtfStoryImporter : StoryImporter {
 		val outlineLevel: Int?,
 	) {
 		val isBlank: Boolean get() = plainText.isBlank()
-		val wordCount: Int get() = if (isBlank) 0 else plainText.trim().split(WHITESPACE).size
-
-		private companion object {
-			val WHITESPACE = Regex("\\s+")
-		}
 	}
 
 	/**

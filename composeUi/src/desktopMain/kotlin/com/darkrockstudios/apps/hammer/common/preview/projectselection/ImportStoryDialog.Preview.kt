@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
+import com.darkrockstudios.apps.hammer.common.data.MarkdownSplitStrategy
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.PreviewItem
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
@@ -37,6 +38,39 @@ fun ImportStoryDialogPreview() {
 				ImportStoryContent(
 					projectName = "Alice In Wonderland 2",
 					options = ImportOptions(),
+					preview = preview,
+					isParsing = false,
+					onProjectNameChange = {},
+					onCancel = {},
+					onOptionsChange = {},
+					onConfirm = {},
+				)
+			}
+		}
+	}
+}
+
+/**
+ * Markdown import at phone width with the regex escape hatch selected: the chapter pattern field is
+ * showing and the four-cell detection picker is at its tightest.
+ */
+@Preview(widthDp = 400, heightDp = 800)
+@Composable
+fun ImportStoryDialogMarkdownPatternPreview() {
+	val preview = ImportPreview(
+		items = List(6) { i -> PreviewItem.Scene(name = "Chapter ${i + 1}", markdown = "") },
+	)
+	KoinApplicationPreview {
+		AppTheme(globalSettingsPreview, true) {
+			Box(
+				modifier = Modifier
+					.fillMaxSize()
+					.background(MaterialTheme.colorScheme.background),
+				contentAlignment = Alignment.Center,
+			) {
+				ImportStoryContent(
+					projectName = "Alice In Wonderland 2",
+					options = ImportOptions(markdownSplitStrategy = MarkdownSplitStrategy.Pattern),
 					preview = preview,
 					isParsing = false,
 					onProjectNameChange = {},
