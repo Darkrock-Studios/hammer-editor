@@ -11,8 +11,10 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneCo
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.search.ParsedQuery
+import com.darkrockstudios.apps.hammer.common.data.search.markdownTitleLine
 import com.darkrockstudios.apps.hammer.common.data.search.matchesAllTags
 import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
+import com.darkrockstudios.apps.hammer.common.data.search.projectMarkdownToPlainText
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
@@ -95,12 +97,8 @@ class SearchProjectUseCase(
 		return timeline.events
 			.filter { it.tags.matchesAllTags(parsed.tags) }
 			.mapNotNull { event ->
-				val combined = if (event.date.isNullOrBlank()) {
-					event.content
-				} else {
-					"${event.date} — ${event.content}"
-				}
-				val snippet = matchOrPreview(combined, parsed.text) ?: return@mapNotNull null
+				val snippet = matchTimelineEvent(event.date, event.content, parsed.text)
+					?: return@mapNotNull null
 				SearchResult.TimelineEvent(
 					eventId = event.id,
 					title = event.date?.takeIf { it.isNotBlank() }
@@ -165,7 +163,7 @@ class SearchProjectUseCase(
 			)
 		}
 
-		val textMatch = findMatch(entry.text, freeText) ?: return null
+		val textMatch = findMarkdownMatch(entry.text, freeText) ?: return null
 		return SearchResult.EncyclopediaEntry(
 			entryDef = def,
 			title = def.name,
@@ -197,7 +195,7 @@ class SearchProjectUseCase(
 				return SearchResult.Scene(sceneItem = scene, title = scene.name, snippet = nameMatch)
 			}
 			val text = withContext(dispatcherIo) { loadSceneText(scene) } ?: return null
-			val bodyMatch = findMatch(text, query) ?: return null
+			val bodyMatch = findMarkdownMatch(text, query) ?: return null
 			return SearchResult.Scene(sceneItem = scene, title = scene.name, snippet = bodyMatch)
 		}
 
@@ -220,14 +218,31 @@ class SearchProjectUseCase(
 			return SearchResult.Scene(sceneItem = scene, title = title, snippet = nameMatch)
 		}
 		val text = withContext(dispatcherIo) { loadSceneText(scene) } ?: return null
-		val bodyMatch = findMatch(text, query) ?: return null
+		val bodyMatch = findMarkdownMatch(text, query) ?: return null
 		return SearchResult.Scene(sceneItem = scene, title = title, snippet = bodyMatch)
 	}
 
+	/** Both callers pass stored Markdown, so both paths go through the prose projection. */
 	private fun matchOrPreview(content: String, query: String): AnnotatedSnippet? {
-		if (query.isEmpty()) return previewSnippet(content)
-		return findMatch(content, query)
+		if (query.isEmpty()) return markdownPreviewSnippet(content)
+		return findMarkdownMatch(content, query)
 	}
+
+	/**
+	 * The date is a plain-text field, so only the body is projected. Both halves are searched as one
+	 * string so a query can span the separator.
+	 */
+	private fun matchTimelineEvent(date: String?, content: String, query: String): AnnotatedSnippet? {
+		val projected = withDate(date, projectMarkdownToPlainText(content))
+		if (query.isEmpty()) {
+			return previewSnippet(projected) ?: previewSnippet(withDate(date, content))
+		}
+		findMatch(projected, query)?.let { return it }
+		return findMatch(withDate(date, content), query)
+	}
+
+	private fun withDate(date: String?, content: String): String =
+		if (date.isNullOrBlank()) content else "$date — $content"
 
 	private fun loadSceneText(scene: SceneItem): String? {
 		val buffer = sceneContentRepository.getSceneBuffer(scene)
@@ -236,12 +251,13 @@ class SearchProjectUseCase(
 		return runCatching { sceneEditor.loadSceneMarkdownRaw(scene) }.getOrNull()
 	}
 
+	/** [content] is stored Markdown, so the derived title is projected the same way the UI does. */
 	private fun firstLineTitle(content: String, fallback: String): String {
-		val firstLine = content.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
+		val title = markdownTitleLine(content)
 		return when {
-			firstLine.isEmpty() -> fallback
-			firstLine.length > TITLE_MAX -> firstLine.take(TITLE_MAX).trimEnd() + "…"
-			else -> firstLine
+			title.isEmpty() -> fallback
+			title.length > TITLE_MAX -> title.take(TITLE_MAX).trimEnd() + "…"
+			else -> title
 		}
 	}
 
@@ -270,6 +286,23 @@ class SearchProjectUseCase(
 			if (pos < 0) return null
 			return buildSnippet(text, pos, query.length)
 		}
+
+		/**
+		 * Matches against the prose projection of stored Markdown, so queries spanning storage
+		 * syntax still hit and the snippet reads the way the document does. The raw source is
+		 * searched as a fallback, which keeps queries for literal markup working.
+		 */
+		internal fun findMarkdownMatch(markdown: String, query: String): AnnotatedSnippet? {
+			if (markdown.isEmpty() || query.isEmpty()) return null
+			val projected = projectMarkdownToPlainText(markdown)
+			findMatch(projected, query)?.let { return it }
+			if (projected !== markdown) return findMatch(markdown, query)
+			return null
+		}
+
+		/** Falls back to the raw source so a document made only of markup still previews. */
+		internal fun markdownPreviewSnippet(markdown: String): AnnotatedSnippet? =
+			previewSnippet(projectMarkdownToPlainText(markdown)) ?: previewSnippet(markdown)
 
 		internal fun buildSnippet(text: String, matchPos: Int, queryLen: Int): AnnotatedSnippet {
 			val windowStart = (matchPos - SNIPPET_BEFORE).coerceAtLeast(0)
