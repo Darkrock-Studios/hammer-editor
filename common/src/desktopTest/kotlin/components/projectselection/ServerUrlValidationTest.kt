@@ -60,6 +60,16 @@ class ServerUrlValidationTest {
 	}
 
 	@Test
+	fun `a hyphen in a subdomain validates`() {
+		assertTrue(validateUrl("my-sub.example.com"))
+	}
+
+	@Test
+	fun `a hyphen in a middle label validates`() {
+		assertTrue(validateUrl("machine.tailnet-name.ts.net"))
+	}
+
+	@Test
 	fun `a mixed case hostname validates`() {
 		assertTrue(validateUrl("Hammer.Example.com"))
 	}
@@ -97,5 +107,20 @@ class ServerUrlValidationTest {
 	@Test
 	fun `a host with a trailing hyphen does not validate`() {
 		assertFalse(validateUrl("hammer-.example.com"))
+	}
+
+	@Test
+	fun `a host with a leading hyphen does not validate`() {
+		assertFalse(validateUrl("-hammer.example.com"))
+	}
+
+	@Test
+	fun `a host with an empty label does not validate`() {
+		assertFalse(validateUrl("hammer..com"))
+	}
+
+	@Test
+	fun `a host with an underscore does not validate`() {
+		assertFalse(validateUrl("hammer_example.com"))
 	}
 }
