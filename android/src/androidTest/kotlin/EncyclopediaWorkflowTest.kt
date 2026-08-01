@@ -66,8 +66,7 @@ class EncyclopediaWorkflowTest {
 		composeRule.onAllNodes(hasTestTagPrefix("encyclopedia-entry-")).onFirst().assertIsDisplayed()
 
 		// Opening it leaves the browse list - the create FAB only shows there.
-		composeRule.onAllNodes(hasTestTagPrefix("encyclopedia-entry-")).onFirst().performClick()
-		composeRule.waitUntil(10_000) {
+		composeRule.clickUntil(hasTestTagPrefix("encyclopedia-entry-")) {
 			composeRule.onAllNodesWithTag(ENCYCLOPEDIA_CREATE_FAB_TAG).fetchSemanticsNodes().isEmpty()
 		}
 	}

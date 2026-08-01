@@ -6,6 +6,7 @@ import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
@@ -95,6 +96,39 @@ fun ComposeTestRule.navigateTo(navTag: String) {
 		onAllNodesWithTag(navTag).fetchSemanticsNodes().isNotEmpty()
 	}
 	onNodeWithTag(navTag).performClick()
+}
+
+/**
+ * Click the first node matching [matcher] and wait for [landed] to confirm the click took effect.
+ *
+ * A single injected tap is occasionally dropped before `clickable` resolves it into an onClick,
+ * which leaves the screen unchanged and reports no error. Re-inject until the expected outcome
+ * appears rather than trusting one injection.
+ */
+fun ComposeTestRule.clickUntil(
+	matcher: SemanticsMatcher,
+	timeoutMillis: Long = 10_000L,
+	landed: () -> Boolean,
+) {
+	val deadline = SystemClock.uptimeMillis() + timeoutMillis
+	while (true) {
+		// Only re-click while the target is still on screen; once it's gone the click did land and
+		// the screen is mid-change, so clicking again would hit whatever replaced it.
+		if (onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty()) {
+			onAllNodes(matcher).onFirst().performClick()
+		}
+		try {
+			waitUntil(timeoutMillis = 1_000L) { landed() }
+			return
+		} catch (e: ComposeTimeoutException) {
+			if (SystemClock.uptimeMillis() >= deadline) {
+				throw AssertionError(
+					"Click on '${matcher.description}' never took effect within ${timeoutMillis}ms",
+					e,
+				)
+			}
+		}
+	}
 }
 
 /**
