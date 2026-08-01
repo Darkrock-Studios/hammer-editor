@@ -90,9 +90,12 @@ fun SceneEditorUi(
 	val editorSpellChecker = remember(state.spellChecker) {
 		state.spellChecker.toEditorSpellChecker()
 	}
+	// Only read once, but unremembered it rebuilds the whole document's AnnotatedString on the UI
+	// thread every recomposition, and the buffer republishes every 500ms while typing.
+	val initialEditorContent = remember { getInitialEditorContent(state.sceneBuffer?.content, markdownConfig) }
 	val textEditorState = rememberSpellCheckState(
 		spellChecker = editorSpellChecker,
-		initialText = getInitialEditorContent(state.sceneBuffer?.content, markdownConfig),
+		initialText = initialEditorContent,
 		enableSpellChecking = state.spellCheckingEnabled,
 		spellCheckMode = SpellCheckMode.Word,
 	)
