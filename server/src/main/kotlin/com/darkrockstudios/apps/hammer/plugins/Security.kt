@@ -36,18 +36,17 @@ fun Application.configureSecurity() {
 				val userId = parameters["userId"]?.toLongOrNull() ?: INVALID_USER_ID
 				val result = accountRepo.checkToken(userId, tokenCredential.token)
 				if (isSuccess(result)) {
-					val okay = if (whitelistRepo.useWhiteList()) {
-						val account = accountRepo.getAccount(userId)
-						account.is_admin || whitelistRepo.isOnWhiteList(account.email)
-					} else {
-						true
-					}
-
-					val dbUserId = result.data
-					ServerUserIdPrincipal(dbUserId)
+					// deleted_at is checked before any admin allowance so a
+					// soft-deleted admin is locked out like anyone else.
+					val account = accountRepo.getAccountOrNull(result.data)
+					val okay = account != null &&
+						account.deleted_at == null &&
+						(!whitelistRepo.useWhiteList() ||
+							account.is_admin ||
+							whitelistRepo.isOnWhiteList(account.email))
 
 					if (okay) {
-						ServerUserIdPrincipal(dbUserId)
+						ServerUserIdPrincipal(result.data)
 					} else {
 						null
 					}

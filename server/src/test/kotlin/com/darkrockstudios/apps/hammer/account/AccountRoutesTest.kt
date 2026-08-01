@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.account
 
+import com.darkrockstudios.apps.hammer.Account
 import com.darkrockstudios.apps.hammer.admin.AdminComponent
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.ServerConfigKey
@@ -28,6 +29,7 @@ import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.forms.FormDataContent
+import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -134,6 +136,7 @@ class AccountRoutesTest : BaseTest() {
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
+			single { mockk<AccountDeletionService>(relaxed = true) }
 		}
 	}
 
@@ -141,7 +144,7 @@ class AccountRoutesTest : BaseTest() {
 	fun `Account - Refresh Token - No User`() = testApplication {
 		coEvery {
 			accountsComponent.refreshToken(USER_ID, any(), any())
-		} returns SResult.failure("No valid token not found", mockk())
+		} returns SResult.failure("No valid token not found", null)
 
 		val mockRefreshToken = "invalid_refresh_token"
 		application {
@@ -162,6 +165,36 @@ class AccountRoutesTest : BaseTest() {
 		// Test invalid refresh token scenario
 		makeRefreshCall(USER_ID, mockRefreshToken).apply {
 			assertEquals(HttpStatusCode.Unauthorized, status)
+		}
+	}
+
+	@Test
+	fun `Account - Refresh Token - pending-deletion message reaches the client`() = testApplication {
+		coEvery {
+			accountsComponent.refreshToken(USER_ID, any(), any())
+		} returns SResult.failure(
+			"Account pending deletion",
+			com.darkrockstudios.apps.hammer.utilities.Msg.r("api_accounts_login_error_pending_deletion")
+		)
+
+		application {
+			setupKtorTestKoin(this@AccountRoutesTest, testModule)
+
+			configureSerialization()
+			configureLocalization()
+			configureSecurity()
+			configureRouting()
+		}
+
+		createClient {
+			install(ContentNegotiation) {
+				json(json)
+			}
+		}
+
+		makeRefreshCall(USER_ID, "any-refresh-token").apply {
+			assertEquals(HttpStatusCode.Unauthorized, status)
+			assertTrue(bodyAsText().contains("pending deletion"))
 		}
 	}
 
@@ -265,6 +298,70 @@ class AccountRoutesTest : BaseTest() {
 			assertEquals(expectedToken.auth, body.auth)
 		}
 	}
+
+	@Test
+	fun `Account - Test Auth - soft-deleted account is rejected at the bearer gate`() = testApplication {
+		coEvery { accountsRepository.checkToken(USER_ID, "bearer-token") } returns SResult.success(USER_ID)
+		coEvery { accountsRepository.getAccountOrNull(USER_ID) } returns
+			testAccount(deletedAt = kotlin.time.Clock.System.now())
+		coEvery { whiteListRepository.useWhiteList() } returns false
+
+		application {
+			setupKtorTestKoin(this@AccountRoutesTest, testModule)
+
+			configureSerialization()
+			configureLocalization()
+			configureSecurity()
+			configureRouting()
+		}
+
+		makeTestAuthCall(USER_ID).apply {
+			assertEquals(HttpStatusCode.Unauthorized, status)
+		}
+	}
+
+	@Test
+	fun `Account - Test Auth - active account passes the bearer gate`() = testApplication {
+		coEvery { accountsRepository.checkToken(USER_ID, "bearer-token") } returns SResult.success(USER_ID)
+		coEvery { accountsRepository.getAccountOrNull(USER_ID) } returns testAccount(deletedAt = null)
+		coEvery { whiteListRepository.useWhiteList() } returns false
+
+		application {
+			setupKtorTestKoin(this@AccountRoutesTest, testModule)
+
+			configureSerialization()
+			configureLocalization()
+			configureSecurity()
+			configureRouting()
+		}
+
+		makeTestAuthCall(USER_ID).apply {
+			assertTrue(status.isSuccess())
+		}
+	}
+
+	private fun testAccount(deletedAt: kotlin.time.Instant?) = Account(
+		id = USER_ID,
+		email = "test@test.com",
+		pen_name = null,
+		password_hash = "hash",
+		cipher_secret = "secret",
+		created = kotlin.time.Clock.System.now(),
+		is_admin = false,
+		last_sync = kotlin.time.Clock.System.now(),
+		bio = null,
+		email_verified = true,
+		community_member = false,
+		deleted_at = deletedAt,
+	)
+
+	private suspend fun ApplicationTestBuilder.makeTestAuthCall(userId: Long): HttpResponse =
+		client.get("/api/account/test_auth/$userId") {
+			header(HttpHeaders.Authorization, "Bearer bearer-token")
+			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION)
+			header(HEADER_CLIENT_VERSION, BuildMetadata.APP_VERSION)
+			header(HttpHeaders.Accept, ContentType.Application.Json.toString())
+		}
 
 	private suspend fun ApplicationTestBuilder.makeCreateCall(acceptedTosVersion: String?): HttpResponse =
 		client.post("/api/account/create") {

@@ -134,3 +134,6 @@ WHERE user_id = :userId AND project_id = :projectId AND id = :id;
 deleteAllForProject:
 DELETE FROM story_entity
 WHERE user_id = :userId AND project_id = :projectId;
+
+deleteAllForUser:
+DELETE FROM story_entity WHERE user_id = :userId;

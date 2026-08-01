@@ -48,6 +48,9 @@ deleteIdea:
 DELETE FROM story_idea
 WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID);
 
+deleteAllForUser:
+DELETE FROM story_idea WHERE user_id = :userId;
+
 countEncrypted:
 SELECT COUNT(*) FROM story_idea WHERE cipher IS NOT NULL AND cipher != 'none';
 

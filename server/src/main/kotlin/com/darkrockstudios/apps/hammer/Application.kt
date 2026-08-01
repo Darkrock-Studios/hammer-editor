@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer
 
+import com.darkrockstudios.apps.hammer.account.configureAccountDeletionJob
 import com.darkrockstudios.apps.hammer.account.configureTokenMaintenanceJob
 import com.darkrockstudios.apps.hammer.admin.configureWhitelistExpiryJob
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
@@ -205,6 +206,7 @@ internal fun resolveServerConfig(
 	validateConfigFiles(resolved, fileSystem)
 	validateCacheDirectory(resolved.cache, fileSystem)
 	resolved.extraLinks.forEach { it.validate() }
+	resolved.accountDeletion.validate()
 	return resolved
 }
 
@@ -423,6 +425,7 @@ fun Application.appMain(
 	configureMonitoringJob()
 	configureTokenMaintenanceJob()
 	configureWhitelistExpiryJob()
+	configureAccountDeletionJob()
 	configureDiskCachePruneJob()
 }
 

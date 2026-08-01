@@ -20,3 +20,6 @@ INSERT INTO writing_activity(user_id, project_id, device_id, content)
 VALUES (:userId, :projectId, :deviceId, :content)
 ON CONFLICT (user_id, project_id, device_id) DO UPDATE SET
     content = EXCLUDED.content;
+
+deleteAllForUser:
+DELETE FROM writing_activity WHERE user_id = :userId;

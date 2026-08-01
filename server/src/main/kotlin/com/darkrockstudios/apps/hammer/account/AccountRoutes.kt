@@ -119,7 +119,7 @@ private fun Route.refreshToken() {
 				status = HttpStatusCode.Unauthorized,
 				HttpResponseError(
 					error = "Unauthorized",
-					displayMessage = call.t(R("api_accounts_tokenrefresh_error"))
+					displayMessage = result.displayMessageText(call, R("api_accounts_tokenrefresh_error"))
 				)
 			)
 		}

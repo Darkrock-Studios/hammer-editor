@@ -59,6 +59,7 @@ class AccountsComponentLoginTest {
 		bio = null,
 		email_verified = true,
 		community_member = false,
+		deleted_at = null,
 	)
 
 	@BeforeEach
@@ -191,6 +192,28 @@ class AccountsComponentLoginTest {
 		val result = comp.refreshToken(unknownUserId, installId, "bad-refresh")
 
 		assertTrue(isFailure(result))
+	}
+
+	@Test
+	fun `Refresh - soft-deleted account is rejected with the pending-deletion failure`() = runTest {
+		coEvery { accountsRepository.getAccountOrNull(token.userId) } returns
+			account.copy(deleted_at = Instant.parse("2026-07-01T00:00:00Z"))
+
+		val comp = AccountsComponent(
+			accountsRepository,
+			whiteListRepository,
+			projectsRepository,
+			configRepository,
+			termsOfServiceRepository,
+			serverConfig
+		)
+
+		val result = comp.refreshToken(token.userId, installId, "some-refresh")
+
+		assertTrue(isFailure(result))
+		assertEquals("Account pending deletion", result.error)
+		// The gate must short-circuit before a token could be refreshed.
+		coVerify(exactly = 0) { accountsRepository.refreshToken(any(), any(), any()) }
 	}
 
 	@Test

@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.StorageMode
+import com.darkrockstudios.apps.hammer.account.AccountDeletionJob
+import com.darkrockstudios.apps.hammer.account.AccountDeletionService
 import com.darkrockstudios.apps.hammer.account.AccountsComponent
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
@@ -40,6 +42,7 @@ import com.darkrockstudios.apps.hammer.database.ServerConfigDao
 import com.darkrockstudios.apps.hammer.database.StoryEntityDao
 import com.darkrockstudios.apps.hammer.database.StoryIdeaDao
 import com.darkrockstudios.apps.hammer.database.UserActivityDao
+import com.darkrockstudios.apps.hammer.database.UserDataPurgeDao
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
 import com.darkrockstudios.apps.hammer.database.WritingActivityDao
 import com.darkrockstudios.apps.hammer.email.EmailProvider
@@ -177,6 +180,7 @@ fun mainModule(
 	single<LoginAttemptDao>()
 	single<UserActivityDao>()
 	single<PublishedStoryReaderDao>()
+	single<UserDataPurgeDao>()
 
 	single<AccountsRepository>()
 	single<TermsOfServiceRepository>()
@@ -205,6 +209,7 @@ fun mainModule(
 	single<MonitoringMaintenanceJob>()
 	single<TokenMaintenanceJob>()
 	single<WhitelistExpiryJob>()
+	single<AccountDeletionJob>()
 	single<OgImageRenderer>()
 	single {
 		val cacheConfig = get<ServerConfig>().cache
@@ -229,6 +234,18 @@ fun mainModule(
 	single { StoryRendererService(get(), get(), get()) }
 	single<PenNameService>()
 	single<BioService>()
+	// Explicit ctor: the two sync managers are named qualifiers.
+	single {
+		AccountDeletionService(
+			accountsRepository = get(),
+			penNameService = get(),
+			whiteListRepository = get(),
+			userDataPurgeDao = get(),
+			projectsSyncManager = get(named(PROJECTS_SYNC_MANAGER)),
+			projectSyncManager = get(named(PROJECT_SYNC_MANAGER)),
+			clock = get(),
+		)
+	}
 	single<PasswordResetRepository>()
 	single<ReviewRepository>()
 

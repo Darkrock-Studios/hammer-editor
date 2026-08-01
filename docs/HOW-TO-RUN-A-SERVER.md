@@ -167,6 +167,22 @@ caches disabled.
 Only publicly readable stories are ever written to the HTML cache, so a password-protected
 story's prose never lands on the cache volume.
 
+## Account deletion retention
+
+Users can delete their own account from the web dashboard. A deleted account is locked out
+immediately (no login, no sync, everything unpublished, pen name released), but its data is
+retained on the server for a grace window so you can restore it from **Admin → Users** if the
+user changes their mind. A daily job permanently deletes accounts once the window elapses.
+
+```toml
+[accountDeletion]
+# Defaults shown. Omit this whole block to accept them.
+retentionDays = 30   # days before a deleted account is purged for good (1 to 3650)
+```
+
+The window is evaluated against each account's deletion time on every job run, so lowering
+the value also purges accounts that are already past the new, shorter window.
+
 ## Encryption at rest
 
 Content encryption at rest is **optional**: a fresh server stores in plaintext and

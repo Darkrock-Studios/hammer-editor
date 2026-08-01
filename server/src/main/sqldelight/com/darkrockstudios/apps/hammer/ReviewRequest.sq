@@ -25,8 +25,13 @@ createRequest:
 INSERT INTO review_request(user_id, project_id, token, reviewer_email, label, note, status, expires)
 VALUES (:userId, :projectId, :token, :reviewerEmail, :label, :note, :status, :expires);
 
+-- Excludes requests whose author is soft-deleted, so every tokenized reviewer
+-- path stops serving a deleted account's prose immediately; the links come
+-- back if the account is restored.
 getRequestByToken:
-SELECT * FROM review_request WHERE token = :token;
+SELECT * FROM review_request
+WHERE token = :token
+  AND user_id IN (SELECT id FROM account WHERE deleted_at IS NULL);
 
 getRequest:
 SELECT * FROM review_request WHERE id = :id AND user_id = :userId;
@@ -62,3 +67,6 @@ WHERE id = :id AND status IN :allowed;
 markResolved:
 UPDATE review_request SET status = :status, resolved_at = :at
 WHERE id = :id AND status = :expected;
+
+deleteAllForUser:
+DELETE FROM review_request WHERE user_id = :userId;

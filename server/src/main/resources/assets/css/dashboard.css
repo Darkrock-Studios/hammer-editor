@@ -613,6 +613,19 @@
 	box-shadow: none;
 }
 
+/* Account-level danger zone sits below the account info card */
+.account-danger-zone {
+	margin-top: 1.5rem;
+}
+
+.account-admin-delete-note {
+	margin-top: 1.5rem;
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9375rem;
+	font-style: italic;
+	color: var(--neutral-500);
+}
+
 /* Projects and Account containers */
 .projects-container {
 	margin-top: 1.5rem;
