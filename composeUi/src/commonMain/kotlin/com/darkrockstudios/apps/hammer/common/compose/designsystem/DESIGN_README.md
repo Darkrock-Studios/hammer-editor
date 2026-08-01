@@ -235,6 +235,11 @@ The handwriting of the system. Reach for these instead of styling
   `LocalHammerColors`.
 - **[`HdDailyGoalProgress`](HdDailyGoalProgress.kt)** — daily-goal
   pair with thin progress bar.
+- **[`HdWarningNotice`](HdWarningNotice.kt)** — amber hairline callout:
+  `HdWarnGlyph` + mono label over a body message. For a condition the
+  user should see before acting on it, where an error dialog would be
+  too much and silence too little. Non-blocking by design — the action
+  it warns about stays available.
 
 ### Buttons & inputs
 

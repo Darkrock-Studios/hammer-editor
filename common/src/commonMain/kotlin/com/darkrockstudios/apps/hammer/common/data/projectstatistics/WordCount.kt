@@ -1,8 +1,16 @@
 package com.darkrockstudios.apps.hammer.common.data.projectstatistics
 
-private val whitespaceRun = Regex("""\s+""")
-
+/** Counts runs of non-whitespace. Single pass: a whole manuscript is one string, not a word list. */
 fun countWords(text: String): Int {
-	val trimmed = text.trim()
-	return if (trimmed.isEmpty()) 0 else trimmed.split(whitespaceRun).size
+	var count = 0
+	var inWord = false
+	for (char in text) {
+		if (char.isWhitespace()) {
+			inWord = false
+		} else if (!inWord) {
+			inWord = true
+			count++
+		}
+	}
+	return count
 }

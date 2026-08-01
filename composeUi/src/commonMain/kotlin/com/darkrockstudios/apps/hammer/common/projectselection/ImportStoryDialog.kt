@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -22,12 +23,15 @@ import com.darkrockstudios.apps.hammer.common.compose.NameKind
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.ImportFormat
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.MarkdownSplitStrategy
 import com.darkrockstudios.apps.hammer.common.data.RtfSplitStrategy
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
+import com.darkrockstudios.apps.hammer.common.data.importer.LARGE_SCENE_WORD_COUNT
 import com.darkrockstudios.apps.hammer.common.data.importer.PreviewItem
+import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import org.jetbrains.compose.resources.StringResource
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
@@ -289,6 +293,9 @@ private fun ImportPreviewPane(
 			}
 		}
 		Spacer(modifier = Modifier.height(Ui.Padding.S))
+		if (!isParsing) {
+			LargeSceneWarning(remember(preview) { preview.oversizedScenes })
+		}
 		Box(
 			modifier = Modifier
 				.fillMaxWidth()
@@ -326,10 +333,9 @@ private fun ImportPreviewPane(
 				val rows = remember(preview) { preview.toRows() }
 				LazyColumn(contentPadding = PaddingValues(Ui.Padding.M)) {
 					items(rows) { row ->
-						if (row.isGroup) {
-							PreviewGroupRow(row.name)
-						} else {
-							PreviewSceneRow(row.name, indented = row.indented)
+						when (row) {
+							is PreviewRow.Group -> PreviewGroupRow(row.name)
+							is PreviewRow.Scene -> PreviewSceneRow(row)
 						}
 					}
 				}
@@ -338,16 +344,42 @@ private fun ImportPreviewPane(
 	}
 }
 
+/** Amber notice when the import would produce a scene over [LARGE_SCENE_WORD_COUNT]. Never blocks the import. */
+@Composable
+private fun LargeSceneWarning(oversized: List<PreviewItem.Scene>) {
+	if (oversized.isEmpty()) return
+
+	val message = if (oversized.size == 1) {
+		Res.string.project_home_import_large_scene_one.get(
+			oversized.first().wordCount.formatDecimalSeparator(),
+		)
+	} else {
+		Res.string.project_home_import_large_scene_many.get(
+			oversized.size,
+			oversized.minOf { it.wordCount }.formatDecimalSeparator(),
+		)
+	}
+
+	HdWarningNotice(
+		label = Res.string.project_home_import_large_scene_label.get(),
+		message = message,
+	)
+	Spacer(modifier = Modifier.height(Ui.Padding.S))
+}
+
 /** One flat row of the preview tree: a group header, or a scene at top level or inside a group. */
-private class PreviewRow(val name: String, val isGroup: Boolean, val indented: Boolean)
+private sealed interface PreviewRow {
+	class Group(val name: String) : PreviewRow
+	class Scene(val item: PreviewItem.Scene, val indented: Boolean) : PreviewRow
+}
 
 private fun ImportPreview.toRows(): List<PreviewRow> = buildList {
 	items.forEach { item ->
 		when (item) {
-			is PreviewItem.Scene -> add(PreviewRow(item.name, isGroup = false, indented = false))
+			is PreviewItem.Scene -> add(PreviewRow.Scene(item, indented = false))
 			is PreviewItem.Group -> {
-				add(PreviewRow(item.name, isGroup = true, indented = false))
-				item.scenes.forEach { add(PreviewRow(it.name, isGroup = false, indented = true)) }
+				add(PreviewRow.Group(item.name))
+				item.scenes.forEach { add(PreviewRow.Scene(it, indented = true)) }
 			}
 		}
 	}
@@ -375,25 +407,41 @@ private fun PreviewGroupRow(name: String) {
 }
 
 @Composable
-private fun PreviewSceneRow(name: String, indented: Boolean) {
+private fun PreviewSceneRow(row: PreviewRow.Scene) {
+	val oversized = row.item.isOversized
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(start = if (indented) Ui.Padding.L else 0.dp, top = 2.dp, bottom = 2.dp),
+			.padding(start = if (row.indented) Ui.Padding.L else 0.dp, top = 2.dp, bottom = 2.dp),
 		verticalAlignment = Alignment.CenterVertically,
 	) {
+		val amber = LocalHammerColors.current.warning
 		Icon(
 			Icons.AutoMirrored.Filled.Article,
 			contentDescription = null,
-			tint = MaterialTheme.colorScheme.onSurfaceVariant,
+			tint = if (oversized) amber else MaterialTheme.colorScheme.onSurfaceVariant,
 			modifier = Modifier.size(18.dp),
 		)
 		Spacer(modifier = Modifier.width(Ui.Padding.S))
 		Text(
-			name,
+			row.item.name,
 			style = MaterialTheme.typography.bodyMedium,
 			color = MaterialTheme.colorScheme.onSurface,
+			maxLines = 1,
+			overflow = TextOverflow.Ellipsis,
+			modifier = Modifier.weight(1f),
 		)
+		if (oversized) {
+			Spacer(modifier = Modifier.width(Ui.Padding.S))
+			HdMonoLabel(
+				text = Res.string.project_home_import_scene_word_count.get(
+					row.item.wordCount.formatDecimalSeparator(),
+				),
+				color = amber,
+				maxLines = 1,
+				softWrap = false,
+			)
+		}
 	}
 }
 
