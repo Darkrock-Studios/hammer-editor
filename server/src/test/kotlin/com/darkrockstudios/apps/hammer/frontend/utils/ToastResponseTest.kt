@@ -57,6 +57,27 @@ class ToastResponseTest {
 	}
 
 	@Test
+	fun `an error response of only whitespace leaves the target alone`() = testApplication {
+		application {
+			routing {
+				get("/error-toast") {
+					// What a template of all-conditional sections renders to when none of them match.
+					respondHtmlWithToast(
+						content = "\n",
+						message = "nope",
+						toast = Toast.Error,
+						status = HttpStatusCode.BadRequest
+					)
+				}
+			}
+		}
+
+		val response = client.get("/error-toast")
+
+		assertEquals("none", response.headers["HX-Reswap"])
+	}
+
+	@Test
 	fun `an error response carrying content still swaps into the target`() = testApplication {
 		application {
 			routing {
@@ -98,6 +119,19 @@ class ToastResponseTest {
 			assertNull(response.headers[SWAP_ERROR_HEADER], path)
 			assertNull(response.headers["HX-Reswap"], path)
 		}
+	}
+
+	/**
+	 * The client half of the contract is a string literal in a JS asset, so a rename here would
+	 * leave every Kotlin test passing while error toasts silently stopped appearing again.
+	 */
+	@Test
+	fun `the client keys off the same header name`() {
+		val script = checkNotNull(javaClass.getResource("/assets/js/toast-logic.js")) {
+			"toast-logic.js is not on the classpath"
+		}.readText()
+
+		assertContains(script, "'$SWAP_ERROR_HEADER'")
 	}
 
 	@Test

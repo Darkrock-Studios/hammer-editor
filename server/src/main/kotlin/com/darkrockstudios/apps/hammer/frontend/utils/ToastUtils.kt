@@ -74,8 +74,10 @@ suspend fun RoutingContext.respondToast(
 /**
  * The single exit for htmx swap payloads: content, its toast, and the headers that decide what
  * htmx does with an error response. Error statuses are marked with [SWAP_ERROR_HEADER] so the
- * client swaps them at all, and those with no content reswap to `none` so the toast lands without
- * emptying the request's target.
+ * client swaps them at all, and those with nothing to show reswap to `none` so the toast lands
+ * without emptying the request's target. Whitespace counts as nothing to show: a template of
+ * all-conditional sections renders to a stray newline, which would blank the target just as
+ * thoroughly as an empty body.
  */
 private suspend fun RoutingContext.respondSwap(
 	content: String,
@@ -85,7 +87,7 @@ private suspend fun RoutingContext.respondSwap(
 ) {
 	if (status.value >= 400) {
 		call.response.header(SWAP_ERROR_HEADER, "true")
-		if (content.isEmpty()) {
+		if (content.isBlank()) {
 			call.response.header(HxResponseHeaders.Reswap, HxSwap.none)
 		}
 	}

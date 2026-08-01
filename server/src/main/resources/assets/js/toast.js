@@ -1,9 +1,7 @@
-// htmx throws away the body of a 4xx/5xx response, which would take the toast with it. Responses
-// built by the server's toast helpers say they are swap payloads; swap those and leave the rest
-// to htmx's default handling.
+// Lets the toast on an error response through; see shouldSwapErrorResponse in toast-logic.js.
 document.body.addEventListener('htmx:beforeSwap', function (evt) {
 	const xhr = evt.detail.xhr;
-	if (xhr && xhr.status >= 400 && xhr.getResponseHeader('X-Hammer-Swap-Error') === 'true') {
+	if (xhr && shouldSwapErrorResponse(xhr.status, xhr.getResponseHeader(SWAP_ERROR_HEADER))) {
 		evt.detail.shouldSwap = true;
 		evt.detail.isError = false;
 	}
