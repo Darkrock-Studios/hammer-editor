@@ -62,9 +62,6 @@ class SceneListWorkflowTest {
 
 	// Open the add menu, pick scene/group, type a name, submit via the IME action.
 	private fun addItem(menuItemTag: String, name: String) {
-		composeRule.waitUntil(10_000) {
-			composeRule.onAllNodesWithTag(SCENE_LIST_ADD_BUTTON_TAG).fetchSemanticsNodes().isNotEmpty()
-		}
 		composeRule.clickUntil(hasTestTag(SCENE_LIST_ADD_BUTTON_TAG)) {
 			composeRule.onAllNodesWithTag(menuItemTag).fetchSemanticsNodes().isNotEmpty()
 		}

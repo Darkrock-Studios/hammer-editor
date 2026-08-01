@@ -44,9 +44,6 @@ class SceneEditorWorkflowTest {
 		composeRule.navigateTo(NAV_EDITOR_TAG)
 
 		// Create a scene and open it.
-		composeRule.waitUntil(10_000) {
-			composeRule.onAllNodesWithTag(SCENE_LIST_ADD_BUTTON_TAG).fetchSemanticsNodes().isNotEmpty()
-		}
 		composeRule.clickUntil(hasTestTag(SCENE_LIST_ADD_BUTTON_TAG)) {
 			composeRule.onAllNodesWithTag(SCENE_LIST_ADD_SCENE_TAG).fetchSemanticsNodes().isNotEmpty()
 		}

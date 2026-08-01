@@ -44,10 +44,11 @@ class ProjectLifecycleTest {
 	@Test
 	fun createProjectThenOpenIt() {
 		// 1. Open the create dialog (masthead button when wide, bottom bar when narrow).
-		// 2. Type the project name into the dialog's only editable field, then confirm.
 		composeRule.clickUntil(hasTestTag(CreateProjectButtonTestTag)) {
 			composeRule.onAllNodes(hasSetTextAction()).fetchSemanticsNodes().isNotEmpty()
 		}
+
+		// 2. Type the project name into the dialog's only editable field, then confirm.
 		composeRule.onNode(hasSetTextAction()).performTextInput(projectName)
 
 		// The confirm button and the dialog title both read "Create Project";
