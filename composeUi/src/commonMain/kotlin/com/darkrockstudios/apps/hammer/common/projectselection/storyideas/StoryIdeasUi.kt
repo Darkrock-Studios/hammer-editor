@@ -40,6 +40,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Search
@@ -75,6 +76,8 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.storyi
 import com.darkrockstudios.apps.hammer.common.compose.CollapseWhileTyping
 import com.darkrockstudios.apps.hammer.common.compose.DetailViewDropdownMenu
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarStaggeredGrid
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -102,6 +105,7 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.saveShortcutModifier
+import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeaError
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
@@ -450,47 +454,56 @@ private fun IdeasBrowse(
 				)
 			}
 
-			LazyVerticalStaggeredGrid(
-				columns = StaggeredGridCells.Adaptive(400.dp),
-				modifier = Modifier.fillMaxSize(),
-				contentPadding = PaddingValues(
-					horizontal = Ui.Padding.XL,
-					vertical = Ui.Padding.L,
-				),
-				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-			) {
-				if (visibleIdeas.isEmpty()) {
-					item(span = StaggeredGridItemSpan.FullLine) {
-						Box(
-							modifier = Modifier
-								.fillMaxWidth()
-								.padding(vertical = Ui.Padding.XXL),
-							contentAlignment = Alignment.Center,
-						) {
-							Text(
-								text = (if (showArchived) Res.string.ideas_list_empty_archived
-									else Res.string.ideas_list_empty).get(),
-								style = MaterialTheme.typography.headlineSmall,
-								color = MaterialTheme.colorScheme.onSurfaceVariant,
-							)
+			val gridState = rememberLazyStaggeredGridState()
+			Box(modifier = Modifier.weight(1f)) {
+				LazyVerticalStaggeredGrid(
+					state = gridState,
+					columns = StaggeredGridCells.Adaptive(400.dp),
+					modifier = Modifier.fillMaxSize(),
+					contentPadding = PaddingValues(
+						horizontal = Ui.Padding.XL,
+						vertical = Ui.Padding.L,
+					),
+					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+				) {
+					if (visibleIdeas.isEmpty()) {
+						item(span = StaggeredGridItemSpan.FullLine) {
+							Box(
+								modifier = Modifier
+									.fillMaxWidth()
+									.padding(vertical = Ui.Padding.XXL),
+								contentAlignment = Alignment.Center,
+							) {
+								Text(
+									text = (if (showArchived) Res.string.ideas_list_empty_archived
+										else Res.string.ideas_list_empty).get(),
+									style = MaterialTheme.typography.headlineSmall,
+									color = MaterialTheme.colorScheme.onSurfaceVariant,
+								)
+							}
 						}
+					}
+
+					staggeredItems(
+						items = visibleIdeas,
+						key = { idea -> idea.id.id },
+					) { idea ->
+						IdeaCard(
+							idea = idea,
+							activeTags = activeTags,
+							onTagClick = toggleTag,
+							sharedTransitionScope = sharedTransitionScope,
+							animatedVisibilityScope = animatedVisibilityScope,
+							modifier = Modifier.padding(bottom = Ui.Padding.L),
+							onClick = { component.editIdea(idea.id) },
+						)
 					}
 				}
 
-				staggeredItems(
-					items = visibleIdeas,
-					key = { idea -> idea.id.id },
-				) { idea ->
-					IdeaCard(
-						idea = idea,
-						activeTags = activeTags,
-						onTagClick = toggleTag,
-						sharedTransitionScope = sharedTransitionScope,
-						animatedVisibilityScope = animatedVisibilityScope,
-						modifier = Modifier.padding(bottom = Ui.Padding.L),
-						onClick = { component.editIdea(idea.id) },
-					)
-				}
+				MpScrollBarStaggeredGrid(
+					modifier = scrollBarOverlay(),
+					state = gridState,
+				)
 			}
 		}
 
@@ -1073,77 +1086,84 @@ private fun ViewBody(
 	modifier: Modifier = Modifier,
 ) = with(sharedTransitionScope) {
 	val scrollState = rememberScrollState()
-	Column(
-		modifier = modifier
-			.fillMaxWidth()
-			.verticalScroll(scrollState)
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.XL),
-	) {
-		title?.let {
-			Text(
-				text = it,
-				style = MaterialTheme.typography.headlineSmall,
-				color = MaterialTheme.colorScheme.onSurface,
+	Box(modifier = modifier) {
+		Column(
+			modifier = Modifier
+				.fillMaxWidth()
+				.verticalScroll(scrollState)
+				.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.XL),
+		) {
+			title?.let {
+				Text(
+					text = it,
+					style = MaterialTheme.typography.headlineSmall,
+					color = MaterialTheme.colorScheme.onSurface,
+					modifier = Modifier
+						.padding(bottom = Ui.Padding.M)
+						.then(
+							if (idea != null) {
+								Modifier.sharedElement(
+									sharedContentState = rememberSharedContentState(
+										key = "idea-title-${idea.id.id}",
+									),
+									animatedVisibilityScope = animatedVisibilityScope,
+								)
+							} else {
+								Modifier
+							}
+						),
+				)
+			}
+
+			idea?.let { IdeaStamps(it) }
+
+			if (tags.isNotEmpty()) {
+				FlowRow(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(top = Ui.Padding.M, bottom = Ui.Padding.L),
+					horizontalArrangement = Arrangement.spacedBy(6.dp),
+					verticalArrangement = Arrangement.spacedBy(6.dp),
+				) {
+					tags.sorted().forEach { tag ->
+						HdTagChip(
+							label = tag,
+							active = true,
+							onClick = {},
+						)
+					}
+				}
+
+				HorizontalDivider(
+					thickness = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+					modifier = Modifier.padding(bottom = Ui.Padding.L),
+				)
+			}
+
+			MarkdownView(
+				markdown = markdown,
 				modifier = Modifier
-					.padding(bottom = Ui.Padding.M)
+					.fillMaxWidth()
 					.then(
 						if (idea != null) {
 							Modifier.sharedElement(
 								sharedContentState = rememberSharedContentState(
-									key = "idea-title-${idea.id.id}",
+									key = "idea-content-${idea.id.id}",
 								),
 								animatedVisibilityScope = animatedVisibilityScope,
 							)
 						} else {
 							Modifier
 						}
-					),
-			)
-		}
-
-		idea?.let { IdeaStamps(it) }
-
-		if (tags.isNotEmpty()) {
-			FlowRow(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(top = Ui.Padding.M, bottom = Ui.Padding.L),
-				horizontalArrangement = Arrangement.spacedBy(6.dp),
-				verticalArrangement = Arrangement.spacedBy(6.dp),
-			) {
-				tags.sorted().forEach { tag ->
-					HdTagChip(
-						label = tag,
-						active = true,
-						onClick = {},
 					)
-				}
-			}
-
-			HorizontalDivider(
-				thickness = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-				modifier = Modifier.padding(bottom = Ui.Padding.L),
+					.clickable(onClick = onEnterEdit),
 			)
 		}
 
-		MarkdownView(
-			markdown = markdown,
-			modifier = Modifier
-				.fillMaxWidth()
-				.then(
-					if (idea != null) {
-						Modifier.sharedElement(
-							sharedContentState = rememberSharedContentState(
-								key = "idea-content-${idea.id.id}",
-							),
-							animatedVisibilityScope = animatedVisibilityScope,
-						)
-					} else {
-						Modifier
-					}
-				)
-				.clickable(onClick = onEnterEdit),
+		MpScrollBarColumn(
+			modifier = scrollBarOverlay(),
+			state = scrollState,
 		)
 	}
 }

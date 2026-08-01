@@ -4,7 +4,9 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.gestures.scrollBy
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.runtime.Composable
@@ -20,6 +22,9 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.zIndex
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
+import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
@@ -64,58 +69,67 @@ fun <T> DragDropList(
 		})
 
 	val hapticFeedback = LocalHapticFeedback.current
-	LazyColumn(
-		modifier = modifier
-			.pointerInput(Unit) {
-				detectDragGesturesAfterLongPress(
-					onDrag = { change, offset ->
-						change.consume()
-						dragDropListState.onDrag(offset)
+	Box(modifier = modifier) {
+		LazyColumn(
+			modifier = Modifier
+				.fillMaxSize()
+				.padding(end = MpScrollBarGutter)
+				.pointerInput(Unit) {
+					detectDragGesturesAfterLongPress(
+						onDrag = { change, offset ->
+							change.consume()
+							dragDropListState.onDrag(offset)
 
-						if (overscrollJob?.isActive == true)
-							return@detectDragGesturesAfterLongPress
+							if (overscrollJob?.isActive == true)
+								return@detectDragGesturesAfterLongPress
 
-						dragDropListState.checkForOverScroll()
-							.takeIf { it != 0f }
-							?.let { overscrollJob = scope.launch { dragDropListState.lazyListState.scrollBy(it) } }
-							?: run { overscrollJob?.cancel() }
-					},
-					onDragStart = { offset ->
-						if (dragDropListState.onDragStart(offset)) {
-							hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-						}
-					},
-					onDragEnd = { dragDropListState.onDragEnd() },
-					onDragCancel = { dragDropListState.onDragInterrupted() }
-				)
-			},
-		state = dragDropListState.lazyListState,
-		contentPadding = contentPadding
-	) {
-		itemsIndexed(data, key) { index, item ->
-			val isDragging = index == dragDropListState.currentIndexOfDraggedItem
-			val isReordering = dragDropListState.currentIndexOfDraggedItem != null
-			val zIndex = if (isDragging) {
-				1f
-			} else {
-				0f
-			}
-			// Animate placement only while reordering, so the displaced items
-			// slide into place; otherwise plain scrolling would animate them too.
-			val itemModifier = when {
-				isDragging -> Modifier.graphicsLayer {
-					translationY = dragDropListState.elementDisplacement ?: 0f
+							dragDropListState.checkForOverScroll()
+								.takeIf { it != 0f }
+								?.let { overscrollJob = scope.launch { dragDropListState.lazyListState.scrollBy(it) } }
+								?: run { overscrollJob?.cancel() }
+						},
+						onDragStart = { offset ->
+							if (dragDropListState.onDragStart(offset)) {
+								hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+							}
+						},
+						onDragEnd = { dragDropListState.onDragEnd() },
+						onDragCancel = { dragDropListState.onDragInterrupted() }
+					)
+				},
+			state = dragDropListState.lazyListState,
+			contentPadding = contentPadding
+		) {
+			itemsIndexed(data, key) { index, item ->
+				val isDragging = index == dragDropListState.currentIndexOfDraggedItem
+				val isReordering = dragDropListState.currentIndexOfDraggedItem != null
+				val zIndex = if (isDragging) {
+					1f
+				} else {
+					0f
 				}
-				isReordering -> Modifier.animateItem()
-				else -> Modifier
-			}
-			Box(
-				modifier = Modifier
-					.zIndex(zIndex)
-					.then(itemModifier)
-			) {
-				itemContent(item, isDragging)
+				// Animate placement only while reordering, so the displaced items
+				// slide into place; otherwise plain scrolling would animate them too.
+				val itemModifier = when {
+					isDragging -> Modifier.graphicsLayer {
+						translationY = dragDropListState.elementDisplacement ?: 0f
+					}
+					isReordering -> Modifier.animateItem()
+					else -> Modifier
+				}
+				Box(
+					modifier = Modifier
+						.zIndex(zIndex)
+						.then(itemModifier)
+				) {
+					itemContent(item, isDragging)
+				}
 			}
 		}
+
+		MpScrollBarList(
+			modifier = scrollBarOverlay(),
+			state = dragDropListState.lazyListState,
+		)
 	}
 }

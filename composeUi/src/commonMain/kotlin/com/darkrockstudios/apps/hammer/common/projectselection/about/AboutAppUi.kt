@@ -20,6 +20,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutApp
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.icons.AboutIcons
@@ -27,6 +28,7 @@ import com.darkrockstudios.apps.hammer.common.compose.icons.Discord
 import com.darkrockstudios.apps.hammer.common.compose.icons.Github
 import com.darkrockstudios.apps.hammer.common.compose.icons.Reddit
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import korlibs.io.lang.format
 import org.jetbrains.compose.resources.painterResource
 
@@ -51,76 +53,87 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 		Breadcrumb(isCompact = isCompact)
 		HdFolioDivider()
 
-		Column(
+		val scrollState = rememberScrollState()
+		Box(
 			modifier = Modifier
 				.weight(1f)
-				.fillMaxWidth()
-				.verticalScroll(rememberScrollState())
-				.padding(horizontal = outerHorizontal, vertical = outerVertical),
+				.fillMaxWidth(),
 		) {
-			Box(
+			Column(
 				modifier = Modifier
-					.widthIn(max = MaxColumnWidth)
-					.fillMaxWidth()
-					.align(Alignment.CenterHorizontally),
+					.fillMaxSize()
+					.verticalScroll(scrollState)
+					.padding(horizontal = outerHorizontal, vertical = outerVertical),
 			) {
-				Column(verticalArrangement = Arrangement.spacedBy(64.dp)) {
-					Hero(isCompact = isCompact)
+				Box(
+					modifier = Modifier
+						.widthIn(max = MaxColumnWidth)
+						.fillMaxWidth()
+						.align(Alignment.CenterHorizontally),
+				) {
+					Column(verticalArrangement = Arrangement.spacedBy(64.dp)) {
+						Hero(isCompact = isCompact)
 
-					HdHairlineSection(
-						section = 1,
-						title = "MANUSCRIPT",
-						contentSpacing = 12.dp,
-					) {
-						Text(
-							text = Res.string.about_description_line_two.get(),
-							style = MaterialTheme.typography.bodyLarge,
-							color = MaterialTheme.colorScheme.onSurface,
-						)
+						HdHairlineSection(
+							section = 1,
+							title = "MANUSCRIPT",
+							contentSpacing = 12.dp,
+						) {
+							Text(
+								text = Res.string.about_description_line_two.get(),
+								style = MaterialTheme.typography.bodyLarge,
+								color = MaterialTheme.colorScheme.onSurface,
+							)
+						}
+
+						HdHairlineSection(
+							section = 2,
+							title = Res.string.about_community_header.get(),
+							contentSpacing = 0.dp,
+						) {
+							CommunityLink(
+								label = Res.string.about_community_discord_link.get(),
+								icon = AboutIcons.Discord,
+								onClick = component::openDiscord,
+							)
+							CommunityRowDivider()
+							CommunityLink(
+								label = Res.string.about_community_reddit_link.get(),
+								icon = AboutIcons.Reddit,
+								onClick = component::openReddit,
+							)
+							CommunityRowDivider()
+							CommunityLink(
+								label = Res.string.about_community_github_link.get(),
+								icon = AboutIcons.Github,
+								onClick = component::openGithub,
+							)
+						}
+
+						VersionCard(state, onViewReleaseDetails = component::viewReleaseDetails)
+
+						HdHairlineSection(
+							section = 4,
+							title = Res.string.about_attribution_header.get(),
+							contentSpacing = 14.dp,
+						) {
+							HdHairlineButton(
+								label = Res.string.about_attribution_libraries_button.get(),
+								onClick = { showLibraries = true },
+							)
+						}
+
+						PlatformAboutSection(component, section = 5)
+
+						Spacer(Modifier.height(8.dp))
 					}
-
-					HdHairlineSection(
-						section = 2,
-						title = Res.string.about_community_header.get(),
-						contentSpacing = 0.dp,
-					) {
-						CommunityLink(
-							label = Res.string.about_community_discord_link.get(),
-							icon = AboutIcons.Discord,
-							onClick = component::openDiscord,
-						)
-						CommunityRowDivider()
-						CommunityLink(
-							label = Res.string.about_community_reddit_link.get(),
-							icon = AboutIcons.Reddit,
-							onClick = component::openReddit,
-						)
-						CommunityRowDivider()
-						CommunityLink(
-							label = Res.string.about_community_github_link.get(),
-							icon = AboutIcons.Github,
-							onClick = component::openGithub,
-						)
-					}
-
-					VersionCard(state, onViewReleaseDetails = component::viewReleaseDetails)
-
-					HdHairlineSection(
-						section = 4,
-						title = Res.string.about_attribution_header.get(),
-						contentSpacing = 14.dp,
-					) {
-						HdHairlineButton(
-							label = Res.string.about_attribution_libraries_button.get(),
-							onClick = { showLibraries = true },
-						)
-					}
-
-					PlatformAboutSection(component, section = 5)
-
-					Spacer(Modifier.height(8.dp))
 				}
 			}
+
+			MpScrollBarColumn(
+				modifier = scrollBarOverlay(),
+				state = scrollState,
+			)
 		}
 
 		FolioCaption(

@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridItemSpan
+import androidx.compose.foundation.lazy.staggeredgrid.rememberLazyStaggeredGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Search
@@ -51,6 +52,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.notes.BrowseNotes
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarStaggeredGrid
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdActiveFiltersStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCollapsingStrip
@@ -66,6 +68,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortOption
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagFilterBar
 import com.darkrockstudios.apps.hammer.common.compose.firstNonBlankLine
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.notes_create_note_button
@@ -326,46 +329,55 @@ fun BrowseNotesUi(
 			)
 		}
 
-		LazyVerticalStaggeredGrid(
-			columns = StaggeredGridCells.Adaptive(400.dp),
-			modifier = Modifier.fillMaxSize(),
-			contentPadding = PaddingValues(
-				horizontal = Ui.Padding.XL,
-				vertical = Ui.Padding.L,
-			),
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-		) {
-			if (visibleNotes.isEmpty()) {
-				item(span = StaggeredGridItemSpan.FullLine) {
-					Box(
-						modifier = Modifier
-							.fillMaxWidth()
-							.padding(vertical = Ui.Padding.XXL),
-						contentAlignment = Alignment.Center,
-					) {
-						Text(
-							text = Res.string.notes_list_empty.get(),
-							style = MaterialTheme.typography.headlineSmall,
-							color = MaterialTheme.colorScheme.onSurfaceVariant,
-						)
+		val gridState = rememberLazyStaggeredGridState()
+		Box(modifier = Modifier.weight(1f)) {
+			LazyVerticalStaggeredGrid(
+				state = gridState,
+				columns = StaggeredGridCells.Adaptive(400.dp),
+				modifier = Modifier.fillMaxSize(),
+				contentPadding = PaddingValues(
+					horizontal = Ui.Padding.XL,
+					vertical = Ui.Padding.L,
+				),
+				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
+			) {
+				if (visibleNotes.isEmpty()) {
+					item(span = StaggeredGridItemSpan.FullLine) {
+						Box(
+							modifier = Modifier
+								.fillMaxWidth()
+								.padding(vertical = Ui.Padding.XXL),
+							contentAlignment = Alignment.Center,
+						) {
+							Text(
+								text = Res.string.notes_list_empty.get(),
+								style = MaterialTheme.typography.headlineSmall,
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
+							)
+						}
 					}
+				}
+
+				staggeredItems(
+					items = visibleNotes,
+					key = { note -> note.id },
+				) { note ->
+					NoteCard(
+						note = note,
+						activeTags = activeTags,
+						onTagClick = toggleTag,
+						sharedTransitionScope = sharedTransitionScope,
+						animatedVisibilityScope = animatedVisibilityScope,
+						modifier = Modifier.padding(bottom = Ui.Padding.L),
+						onClick = { component.viewNote(note.id) },
+					)
 				}
 			}
 
-			staggeredItems(
-				items = visibleNotes,
-				key = { note -> note.id },
-			) { note ->
-				NoteCard(
-					note = note,
-					activeTags = activeTags,
-					onTagClick = toggleTag,
-					sharedTransitionScope = sharedTransitionScope,
-					animatedVisibilityScope = animatedVisibilityScope,
-					modifier = Modifier.padding(bottom = Ui.Padding.L),
-					onClick = { component.viewNote(note.id) },
-				)
-			}
+			MpScrollBarStaggeredGrid(
+				modifier = scrollBarOverlay(),
+				state = gridState,
+			)
 		}
 	}
 }

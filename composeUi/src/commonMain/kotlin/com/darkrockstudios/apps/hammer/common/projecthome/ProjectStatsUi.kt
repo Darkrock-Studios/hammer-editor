@@ -36,8 +36,10 @@ import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.components.projecthome.TagBreakdown
 import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -70,52 +72,60 @@ fun ProjectStatsUi(
 	val state by component.state.subscribeAsState()
 	val isWide = LocalScreenCharacteristic.current.isWide
 
-	Column(
-		modifier = modifier
-			.testTag(PROJECT_STATS_TAG)
-			.fillMaxSize()
-			.verticalScroll(rememberScrollState())
-			.padding(horizontal = 24.dp, vertical = 16.dp),
-		verticalArrangement = Arrangement.spacedBy(20.dp),
-	) {
-		DashboardHeader(
-			state = state,
-			component = component,
-			scope = scope,
-		)
+	val scrollState = rememberScrollState()
+	Box(modifier = modifier.fillMaxSize()) {
+		Column(
+			modifier = Modifier
+				.testTag(PROJECT_STATS_TAG)
+				.fillMaxSize()
+				.verticalScroll(scrollState)
+				.padding(horizontal = 24.dp, vertical = 16.dp),
+			verticalArrangement = Arrangement.spacedBy(20.dp),
+		) {
+			DashboardHeader(
+				state = state,
+				component = component,
+				scope = scope,
+			)
 
-		if (state.isLoadingStats) {
-			LoadingRow()
-		}
+			if (state.isLoadingStats) {
+				LoadingRow()
+			}
 
-		StatsStrip(state = state, isWide = isWide)
+			StatsStrip(state = state, isWide = isWide)
 
-		StructureSection(
-			state = state,
-			isWide = isWide,
-			onShowLongestScene = component::showLongestScene,
-			onShowLastEditedScene = component::showLastEditedScene,
-		)
-
-		if (state.dailyWordTotals.isNotEmpty() || state.encyclopediaEntriesByType.isNotEmpty() || state.topAppearances.isNotEmpty()) {
-			InhabitantsSection(
+			StructureSection(
 				state = state,
 				isWide = isWide,
-				onShowEntry = component::showEntry,
+				onShowLongestScene = component::showLongestScene,
+				onShowLastEditedScene = component::showLastEditedScene,
 			)
+
+			if (state.dailyWordTotals.isNotEmpty() || state.encyclopediaEntriesByType.isNotEmpty() || state.topAppearances.isNotEmpty()) {
+				InhabitantsSection(
+					state = state,
+					isWide = isWide,
+					onShowEntry = component::showEntry,
+				)
+			}
+
+			if (state.tagBreakdowns.isNotEmpty()) {
+				ThemesSection(
+					state = state,
+					isWide = isWide,
+					onTagClick = component::showGlobalSearchForTag,
+				)
+			}
+
+			if (state.wordsPerDevice.size >= 2) {
+				DevicesSection(state = state)
+			}
 		}
 
-		if (state.tagBreakdowns.isNotEmpty()) {
-			ThemesSection(
-				state = state,
-				isWide = isWide,
-				onTagClick = component::showGlobalSearchForTag,
-			)
-		}
-
-		if (state.wordsPerDevice.size >= 2) {
-			DevicesSection(state = state)
-		}
+		MpScrollBarColumn(
+			modifier = scrollBarOverlay(),
+			state = scrollState,
+		)
 	}
 
 	ExportOptionsDialog(
