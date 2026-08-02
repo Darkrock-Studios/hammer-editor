@@ -23,7 +23,7 @@ class MarkdownContainsTest {
 	}
 
 	@Test
-	fun `the query is taken literally, not as markdown`() {
+	fun `the query is taken literally rather than as markdown`() {
 		// Searching the storage form is deliberately unsupported: readers type what they see.
 		assertFalse(markdownContains("A well\\-known secret", "well\\-known"))
 	}
