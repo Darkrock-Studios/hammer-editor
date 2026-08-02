@@ -70,6 +70,7 @@ import com.darkrockstudios.apps.hammer.common.compose.firstNonBlankLine
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
+import com.darkrockstudios.apps.hammer.common.data.search.unescapeMarkdown
 import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.notes_create_note_button
 import com.darkrockstudios.apps.hammer.notes_filter_all
@@ -161,7 +162,9 @@ fun BrowseNotesUi(
 			val byText = if (searchQuery.isBlank()) {
 				state.notes
 			} else {
-				state.notes.filter { it.content.contains(searchQuery.trim(), ignoreCase = true) }
+				state.notes.filter {
+					unescapeMarkdown(it.content).contains(searchQuery.trim(), ignoreCase = true)
+				}
 			}
 			val byTags = if (activeTags.isEmpty()) {
 				byText

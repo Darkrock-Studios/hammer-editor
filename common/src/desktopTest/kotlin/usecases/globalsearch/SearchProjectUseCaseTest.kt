@@ -380,6 +380,18 @@ class SearchProjectUseCaseTest : BaseTest() {
 	}
 
 	@Test
+	fun `the title reads the same way as the snippet under it`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "Alice \\(the elder\\) is well\\-known\\!"))
+
+		val results = createUseCase().search("well-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals("Alice (the elder) is well-known!", results.first().title)
+		assertEquals("Alice (the elder) is well-known!", results.first().snippet.text)
+	}
+
+	@Test
 	fun `escaped markers are searchable as literal characters`() = runTest {
 		every { notes.getNotes() } returns listOf(note(1, "the \\_shape\\_ of it"))
 

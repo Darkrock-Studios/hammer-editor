@@ -3,22 +3,24 @@ package com.darkrockstudios.apps.hammer.common.data.search
 private const val ASCII_PUNCTUATION = "!\"#\$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
 
 /**
- * Resolves the backslash escapes stored in [markdown] so text reads the way it does on screen:
- * `well\-known` becomes `well-known`. Returns [markdown] itself when there is nothing to resolve.
+ * Resolves CommonMark backslash escapes (`\*` becomes `*`) to their bare ASCII punctuation, so text
+ * reads the way it does on screen rather than the way it is stored. Allocates only when [text]
+ * actually holds a backslash.
  *
- * Nothing else is touched. Emphasis, code, link and block markers are left exactly as stored,
- * because telling syntax apart from a literal character requires parsing, and guessing wrong
- * silently rewrites the author's words.
+ * Escapes are resolved everywhere, including inside code spans and fenced blocks where CommonMark
+ * keeps them literal. Telling those apart needs a parser, and no marker is added or removed either
+ * way, so the text is never rewritten beyond dropping a backslash.
  */
-fun unescapeMarkdownText(markdown: String): String {
-	if (!containsBackslash(markdown)) return markdown
+fun unescapeMarkdown(text: CharSequence): String {
+	if (!text.contains('\\')) return text.toString()
 
-	val sb = StringBuilder(markdown.length)
+	val sb = StringBuilder(text.length)
 	var i = 0
-	while (i < markdown.length) {
-		val c = markdown[i]
-		if (c == '\\' && i + 1 < markdown.length && markdown[i + 1] in ASCII_PUNCTUATION) {
-			sb.append(markdown[i + 1])
+	while (i < text.length) {
+		val c = text[i]
+		val next = if (i + 1 < text.length) text[i + 1] else null
+		if (c == '\\' && next != null && next in ASCII_PUNCTUATION) {
+			sb.append(next)
 			i += 2
 		} else {
 			sb.append(c)
@@ -26,13 +28,4 @@ fun unescapeMarkdownText(markdown: String): String {
 		}
 	}
 	return sb.toString()
-}
-
-private fun containsBackslash(text: String): Boolean {
-	var i = 0
-	while (i < text.length) {
-		if (text[i] == '\\') return true
-		i++
-	}
-	return false
 }
