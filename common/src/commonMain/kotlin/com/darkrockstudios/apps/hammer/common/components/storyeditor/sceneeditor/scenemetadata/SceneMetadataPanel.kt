@@ -36,9 +36,8 @@ interface SceneMetadataPanel : HammerComponent, TagSuggesting {
 	fun searchEntriesForAdd(query: String, maxResults: Int = 20): List<AddSuggestion>
 
 	/**
-	 * Adds one or more tags from a free-form space-separated string. Input is
-	 * normalized (trim, strip `#`, regex `[\w-]+`); invalid pieces are dropped.
-	 * Tags already on the scene are silently no-ops.
+	 * Adds one or more tags from a free-form space-separated string. Input is normalized by
+	 * `parseTagInput`; invalid pieces are dropped. Tags already on the scene are silently no-ops.
 	 */
 	fun addTags(input: String)
 
