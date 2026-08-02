@@ -26,6 +26,9 @@ import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import kotlin.coroutines.CoroutineContext
 
+/** A tag match with nothing to preview: the result stands on the tag alone. */
+private val EMPTY_SNIPPET = AnnotatedSnippet(text = "", matchStart = 0, matchEnd = 0)
+
 /**
  * Stateless cross-repo project search. Given a query and a filter it fans out across the
  * scene/notes/encyclopedia/timeline repositories and returns the matched results. Holds no state.
@@ -275,9 +278,6 @@ class SearchProjectUseCase(
 		const val TITLE_MAX = 60
 		const val SNIPPET_BEFORE = 40
 		const val SNIPPET_AFTER = 80
-
-		/** A tag match with nothing to preview: the result stands on the tag alone. */
-		internal val EMPTY_SNIPPET = AnnotatedSnippet(text = "", matchStart = 0, matchEnd = 0)
 
 		internal fun previewSnippet(content: String): AnnotatedSnippet? {
 			if (content.isEmpty()) return null
