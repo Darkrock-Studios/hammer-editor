@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneCo
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -77,6 +78,29 @@ class SearchProjectUseCaseTest : BaseTest() {
 		encyclopedia = encyclopedia,
 		timeLine = timeLine,
 	)
+
+	@Test
+	fun `global search agrees with the shared match rule`() {
+		// Global search needs offsets so it resolves separately; the two must not drift apart.
+		val cases = listOf(
+			"A well\\-known secret" to "well-known",
+			"A well\\-known secret" to "well\\-known",
+			"A well\\-known secret" to "unrelated",
+			"the user_name field" to "user_name",
+			"The cost is 5\\*4" to "5*4",
+			"a **Chapter** heading" to "**Chapter**",
+			"a **Chapter** heading" to "Chapter heading",
+			"path C:\\temp here" to "C:\\temp",
+		)
+
+		for ((content, query) in cases) {
+			assertEquals(
+				markdownContains(content, query),
+				SearchProjectUseCase.findMarkdownMatch(content, query) != null,
+				"disagreement on content=<$content> query=<$query>",
+			)
+		}
+	}
 
 	@Test
 	fun `findMatch returns null for empty text or query`() {
@@ -411,7 +435,6 @@ class SearchProjectUseCaseTest : BaseTest() {
 		val asRead = createUseCase().search("well-known", GlobalSearchFilter.All)
 			.filterIsInstance<SearchResult.Note>()
 
-		// Readers type what they see; supporting the escaped form cost precision everywhere else.
 		assertEquals(0, asStored.size)
 		assertEquals(1, asRead.size)
 	}

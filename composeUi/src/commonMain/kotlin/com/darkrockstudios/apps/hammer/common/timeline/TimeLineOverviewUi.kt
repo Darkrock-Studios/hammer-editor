@@ -107,6 +107,7 @@ internal fun eventMatchesQuery(event: TimeLineEvent, query: String): Boolean =
 
 const val TIME_LINE_CREATE_TAG = "Timeline Overview Create"
 const val TIME_LINE_LIST_TAG = "Timeline Overview List"
+const val TIME_LINE_SEARCH_TAG = "Timeline Overview Search"
 const val EVENT_CARD_TAG = "Timeline Event Card"
 const val EVENT_CARD_DATE_TAG = "Timeline Event Card Date"
 const val EVENT_CARD_CONTENT_TAG = "Timeline Event Card Content"
@@ -193,6 +194,7 @@ fun TimeLineOverviewUi(
 					},
 					collapseContentDescription = Res.string.timeline_search_close.get(),
 					modifier = Modifier.fillMaxSize(),
+					testTag = TIME_LINE_SEARCH_TAG,
 				)
 			} else {
 				Row(

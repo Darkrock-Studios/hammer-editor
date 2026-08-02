@@ -39,11 +39,15 @@ fun parseQuery(query: String): ParsedQuery {
 }
 
 /**
- * True when [query] appears in [content], comparing the prose a reader sees rather than the
- * Markdown it is stored as, so `well-known` finds text stored as `well\-known`.
+ * True when [query] appears in [content] once the stored backslash escapes are resolved, so
+ * `well-known` finds text stored as `well\-known`.
  *
- * The query is taken literally. Markdown syntax typed into a search box is not interpreted, because
- * nobody searches for the storage form of their own text.
+ * Only escapes are resolved. Emphasis, code and link markers are compared as stored, so a phrase
+ * spanning them does not match; see #811. The query is taken literally, so the escaped storage form
+ * of a phrase does not match either.
+ *
+ * Global search needs offsets rather than a boolean, so it resolves and matches separately in
+ * `SearchProjectUseCase.findMarkdownMatch`. `MarkdownContainsTest` pins the two to the same answer.
  */
 fun markdownContains(content: String, query: String): Boolean =
 	unescapeMarkdown(content).contains(query, ignoreCase = true)

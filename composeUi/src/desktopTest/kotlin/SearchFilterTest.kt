@@ -12,9 +12,11 @@ import kotlin.time.Clock
 import kotlin.time.Instant
 
 /**
- * The in-screen filters must agree with global search, which matches the prose a reader sees. These
- * pin each screen's own composition of that rule, since a screen matching one of its fields the
- * wrong way is invisible to the shared helper's own tests.
+ * Each screen's match predicate, covering which fields it consults and how. A screen matching one of
+ * its own fields the wrong way is invisible to the shared helper's tests.
+ *
+ * These assert the predicates, not the composables that call them; `TimeLineOverviewUiTest` drives a
+ * screen's search field end to end.
  */
 class SearchFilterTest {
 
