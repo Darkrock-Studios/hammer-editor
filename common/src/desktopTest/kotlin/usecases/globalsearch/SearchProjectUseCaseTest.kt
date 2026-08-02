@@ -486,6 +486,85 @@ class SearchProjectUseCaseTest : BaseTest() {
 		assertEquals("A well-known secret", results.first().snippet.text)
 	}
 
+	@Test
+	fun `tag-only search returns a note with no content`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			NoteContainer(
+				NoteContent(
+					id = 1,
+					created = Clock.System.now(),
+					content = "",
+					tags = setOf("fantasy"),
+				)
+			),
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals(1, results.first().noteId)
+	}
+
+	@Test
+	fun `tag-only search returns an encyclopedia entry with no body text`() = runTest {
+		val def = EntryDef(projectDef = projectDef, id = 13, type = EntryType.PERSON, name = "Alice")
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(def)
+		every { encyclopedia.loadEntry(def) } returns EntryContainer(
+			EntryContent(
+				id = 13,
+				name = "Alice",
+				type = EntryType.PERSON,
+				text = "",
+				tags = setOf("fantasy"),
+			)
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.EncyclopediaEntry>()
+
+		assertEquals(1, results.size)
+		assertEquals(13, results.first().entryDef.id)
+		assertTrue(results.first().title.contains("Alice"))
+	}
+
+	@Test
+	fun `tag-only search returns a timeline event with no content`() = runTest {
+		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(
+			listOf(
+				TimeLineEvent(id = 21, order = 0, date = null, content = "", tags = setOf("fantasy")),
+			)
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.TimelineEvent>()
+
+		assertEquals(1, results.size)
+		assertEquals(21, results.first().eventId)
+	}
+
+	@Test
+	fun `tag search combined with free text matches an encyclopedia entry name`() = runTest {
+		val def = EntryDef(projectDef = projectDef, id = 14, type = EntryType.PERSON, name = "Alice")
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(def)
+		every { encyclopedia.loadEntry(def) } returns EntryContainer(
+			EntryContent(
+				id = 14,
+				name = "Alice",
+				type = EntryType.PERSON,
+				text = "A traveler from the north.",
+				tags = setOf("fantasy"),
+			)
+		)
+
+		val results = createUseCase().search("#fantasy alice", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.EncyclopediaEntry>()
+
+		assertEquals(1, results.size)
+		assertEquals(14, results.first().entryDef.id)
+		assertTrue(results.first().snippet.text.contains("Alice"))
+	}
+
 	private fun note(id: Int, content: String) =
 		NoteContainer(NoteContent(id = id, created = Clock.System.now(), content = content))
 

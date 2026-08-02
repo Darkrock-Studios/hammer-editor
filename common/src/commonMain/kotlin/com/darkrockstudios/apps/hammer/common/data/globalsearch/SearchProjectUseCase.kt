@@ -142,7 +142,9 @@ class SearchProjectUseCase(
 				parsed.tags.any { tag.contains(it, ignoreCase = true) }
 			}
 			val title = if (matchedTag != null) "${def.name}  •  #$matchedTag" else def.name
-			val snippet = matchOrPreview(entry.text, freeText) ?: return null
+			val snippet = findMatch(def.name, freeText)
+				?: matchOrPreview(entry.text, freeText, fallback = def.name)
+				?: return null
 			return SearchResult.EncyclopediaEntry(
 				entryDef = def,
 				title = title,
@@ -209,7 +211,7 @@ class SearchProjectUseCase(
 		val title = if (matchedTag != null) "${scene.name}  •  #$matchedTag" else scene.name
 
 		if (query.isEmpty()) {
-			val snippet = previewSnippet(scene.name) ?: return null
+			val snippet = previewSnippet(scene.name) ?: EMPTY_SNIPPET
 			return SearchResult.Scene(sceneItem = scene, title = title, snippet = snippet)
 		}
 		val nameMatch = findMatch(scene.name, query)
@@ -221,16 +223,24 @@ class SearchProjectUseCase(
 		return SearchResult.Scene(sceneItem = scene, title = title, snippet = bodyMatch)
 	}
 
-	/** Both callers pass stored Markdown, so escapes are resolved before matching. */
-	private fun matchOrPreview(content: String, query: String): AnnotatedSnippet? {
-		if (query.isEmpty()) return previewSnippet(unescapeMarkdown(content))
+	/**
+	 * Both callers pass stored Markdown, so escapes are resolved before matching. With no free text
+	 * the item already matched on its tags, so a blank body falls back to [fallback] and then to an
+	 * empty snippet rather than discarding the result.
+	 */
+	private fun matchOrPreview(content: String, query: String, fallback: String = ""): AnnotatedSnippet? {
+		if (query.isEmpty()) {
+			return previewSnippet(unescapeMarkdown(content))
+				?: previewSnippet(fallback)
+				?: EMPTY_SNIPPET
+		}
 		return findMarkdownMatch(content, query)
 	}
 
 	/** The date is a plain-text field, so only the event body is unescaped. */
 	private fun matchTimelineEvent(date: String?, content: String, query: String): AnnotatedSnippet? {
 		val resolved = withDate(date, unescapeMarkdown(content))
-		if (query.isEmpty()) return previewSnippet(resolved)
+		if (query.isEmpty()) return previewSnippet(resolved) ?: EMPTY_SNIPPET
 		findMatch(resolved, query)?.let { return it }
 		if (query.contains('\\')) return findMatch(withDate(date, content), query)
 		return null
@@ -265,6 +275,9 @@ class SearchProjectUseCase(
 		const val TITLE_MAX = 60
 		const val SNIPPET_BEFORE = 40
 		const val SNIPPET_AFTER = 80
+
+		/** A tag match with nothing to preview: the result stands on the tag alone. */
+		internal val EMPTY_SNIPPET = AnnotatedSnippet(text = "", matchStart = 0, matchEnd = 0)
 
 		internal fun previewSnippet(content: String): AnnotatedSnippet? {
 			if (content.isEmpty()) return null
