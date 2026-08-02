@@ -486,6 +486,147 @@ class SearchProjectUseCaseTest : BaseTest() {
 		assertEquals("A well-known secret", results.first().snippet.text)
 	}
 
+	@Test
+	fun `tag-only search returns a note with no content`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			NoteContainer(
+				NoteContent(
+					id = 1,
+					created = Clock.System.now(),
+					content = "",
+					tags = setOf("fantasy"),
+				)
+			),
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals(1, results.first().noteId)
+	}
+
+	@Test
+	fun `tag-only search returns an encyclopedia entry with no body text`() = runTest {
+		val def = EntryDef(projectDef = projectDef, id = 13, type = EntryType.PERSON, name = "Alice")
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(def)
+		every { encyclopedia.loadEntry(def) } returns EntryContainer(
+			EntryContent(
+				id = 13,
+				name = "Alice",
+				type = EntryType.PERSON,
+				text = "",
+				tags = setOf("fantasy"),
+			)
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.EncyclopediaEntry>()
+
+		assertEquals(1, results.size)
+		assertEquals(13, results.first().entryDef.id)
+		assertTrue(results.first().title.contains("Alice"))
+		assertEquals("Alice", results.first().snippet.text)
+	}
+
+	@Test
+	fun `tag-only search returns timeline events with and without content`() = runTest {
+		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(
+			listOf(
+				TimeLineEvent(id = 21, order = 0, date = null, content = "", tags = setOf("fantasy")),
+				TimeLineEvent(id = 22, order = 1, date = "Year 3", content = "Coronation", tags = setOf("fantasy")),
+			)
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.TimelineEvent>()
+
+		assertEquals(listOf(21, 22), results.map { it.eventId })
+		assertTrue(results.last().snippet.text.contains("Coronation"))
+	}
+
+	@Test
+	fun `tag search combined with free text matches an encyclopedia entry name`() = runTest {
+		val def = EntryDef(projectDef = projectDef, id = 14, type = EntryType.PERSON, name = "Alice")
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(def)
+		every { encyclopedia.loadEntry(def) } returns EntryContainer(
+			EntryContent(
+				id = 14,
+				name = "Alice",
+				type = EntryType.PERSON,
+				text = "A traveler from the north.",
+				tags = setOf("fantasy"),
+			)
+		)
+
+		val results = createUseCase().search("#fantasy alice", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.EncyclopediaEntry>()
+
+		assertEquals(1, results.size)
+		assertEquals(14, results.first().entryDef.id)
+		assertTrue(results.first().snippet.text.contains("Alice"))
+	}
+
+	@Test
+	fun `tag search with free text falls through to the encyclopedia entry body`() = runTest {
+		val def = EntryDef(projectDef = projectDef, id = 15, type = EntryType.PLACE, name = "Mordor")
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(def)
+		every { encyclopedia.loadEntry(def) } returns EntryContainer(
+			EntryContent(
+				id = 15,
+				name = "Mordor",
+				type = EntryType.PLACE,
+				text = "Sauron rules here.",
+				tags = setOf("fantasy"),
+			)
+		)
+
+		val results = createUseCase().search("#fantasy sauron", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.EncyclopediaEntry>()
+
+		assertEquals(1, results.size)
+		assertTrue(results.first().snippet.text.contains("Sauron"))
+	}
+
+	@Test
+	fun `tag search drops an encyclopedia entry when the free text matches neither name nor body`() = runTest {
+		val def = EntryDef(projectDef = projectDef, id = 16, type = EntryType.PERSON, name = "Alice")
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(def)
+		every { encyclopedia.loadEntry(def) } returns EntryContainer(
+			EntryContent(
+				id = 16,
+				name = "Alice",
+				type = EntryType.PERSON,
+				text = "A traveler from the north.",
+				tags = setOf("fantasy"),
+			)
+		)
+
+		val results = createUseCase().search("#fantasy dragon", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.EncyclopediaEntry>()
+
+		assertEquals(0, results.size)
+	}
+
+	@Test
+	fun `tag-only search returns a scene with a blank name`() = runTest {
+		val scene = SceneItem(
+			projectDef = projectDef,
+			type = SceneItem.Type.Scene,
+			id = 7,
+			name = "  ",
+			order = 0,
+		)
+		every { sceneEditor.getScenes() } returns listOf(scene)
+		coEvery { sceneMetadataRepository.loadSceneMetadata(7) } returns SceneMetadata(tags = setOf("plot"))
+
+		val results = createUseCase().search("#plot", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Scene>()
+
+		assertEquals(1, results.size)
+		assertEquals(7, results.first().sceneItem.id)
+	}
+
 	private fun note(id: Int, content: String) =
 		NoteContainer(NoteContent(id = id, created = Clock.System.now(), content = content))
 
