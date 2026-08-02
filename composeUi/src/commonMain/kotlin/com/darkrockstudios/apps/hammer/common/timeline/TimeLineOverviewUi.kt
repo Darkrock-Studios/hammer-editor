@@ -82,7 +82,7 @@ import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
-import com.darkrockstudios.apps.hammer.common.data.search.unescapeMarkdown
+import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.timeline_filter_all
@@ -99,6 +99,11 @@ import com.darkrockstudios.apps.hammer.timeline_view_undated
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+
+/** An event matches on its body read as prose, or on its plain-text date. */
+internal fun eventMatchesQuery(event: TimeLineEvent, query: String): Boolean =
+	markdownContains(event.content, query) ||
+		event.date?.contains(query, ignoreCase = true) == true
 
 const val TIME_LINE_CREATE_TAG = "Timeline Overview Create"
 const val TIME_LINE_LIST_TAG = "Timeline Overview List"
@@ -137,10 +142,8 @@ fun TimeLineOverviewUi(
 			val byText = if (searchQuery.isBlank()) {
 				events
 			} else {
-				events.filter { event ->
-					unescapeMarkdown(event.content).contains(searchQuery.trim(), ignoreCase = true) ||
-						event.date?.contains(searchQuery.trim(), ignoreCase = true) == true
-				}
+				val query = searchQuery.trim()
+				events.filter { eventMatchesQuery(it, query) }
 			}
 			val byTags = if (activeTags.isEmpty()) {
 				byText

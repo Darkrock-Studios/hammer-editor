@@ -403,13 +403,29 @@ class SearchProjectUseCaseTest : BaseTest() {
 	}
 
 	@Test
-	fun `searching for a literal backslash escape still finds it`() = runTest {
+	fun `searching the storage form of text is not supported`() = runTest {
 		every { notes.getNotes() } returns listOf(note(1, "raw well\\-known marker"))
 
-		val results = createUseCase().search("well\\-known", GlobalSearchFilter.All)
+		val asStored = createUseCase().search("well\\-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+		val asRead = createUseCase().search("well-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		// Readers type what they see; supporting the escaped form cost precision everywhere else.
+		assertEquals(0, asStored.size)
+		assertEquals(1, asRead.size)
+	}
+
+	@Test
+	fun `title and snippet render the same way`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "Alice \\(the elder\\) is well\\-known"))
+
+		val results = createUseCase().search("well-known", GlobalSearchFilter.All)
 			.filterIsInstance<SearchResult.Note>()
 
 		assertEquals(1, results.size)
+		assertEquals("Alice (the elder) is well-known", results.first().title)
+		assertEquals("Alice (the elder) is well-known", results.first().snippet.text)
 	}
 
 	@Test

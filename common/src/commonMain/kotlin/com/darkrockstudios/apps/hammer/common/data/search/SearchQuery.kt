@@ -38,6 +38,16 @@ fun parseQuery(query: String): ParsedQuery {
 	return ParsedQuery(text = text, tags = tags)
 }
 
+/**
+ * True when [query] appears in [content], comparing the prose a reader sees rather than the
+ * Markdown it is stored as, so `well-known` finds text stored as `well\-known`.
+ *
+ * The query is taken literally. Markdown syntax typed into a search box is not interpreted, because
+ * nobody searches for the storage form of their own text.
+ */
+fun markdownContains(content: String, query: String): Boolean =
+	unescapeMarkdown(content).contains(query, ignoreCase = true)
+
 /** True when every needle is contained (case-insensitively) in at least one tag. */
 fun Set<String>.matchesAllTags(needles: List<String>): Boolean {
 	if (needles.isEmpty()) return true

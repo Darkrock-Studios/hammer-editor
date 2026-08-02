@@ -70,7 +70,7 @@ import com.darkrockstudios.apps.hammer.common.compose.firstNonBlankLine
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.data.search.unescapeMarkdown
+import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
 import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.notes_create_note_button
 import com.darkrockstudios.apps.hammer.notes_filter_all
@@ -113,6 +113,10 @@ private enum class NotesSortMode(
 	WordsAsc(Res.string.notes_sort_shortest, Res.string.notes_sort_glyph_words_asc),
 	TitleAsc(Res.string.notes_sort_title_az, Res.string.notes_sort_glyph_title_az),
 }
+
+/** A note matches on its body, read as prose rather than as stored Markdown. */
+internal fun noteMatchesQuery(note: NoteContent, query: String): Boolean =
+	markdownContains(note.content, query)
 
 private fun NoteContent.wordCount(): Int =
 	content.split(Regex("\\s+")).count { it.isNotBlank() }
@@ -162,9 +166,8 @@ fun BrowseNotesUi(
 			val byText = if (searchQuery.isBlank()) {
 				state.notes
 			} else {
-				state.notes.filter {
-					unescapeMarkdown(it.content).contains(searchQuery.trim(), ignoreCase = true)
-				}
+				val query = searchQuery.trim()
+				state.notes.filter { noteMatchesQuery(it, query) }
 			}
 			val byTags = if (activeTags.isEmpty()) {
 				byText
