@@ -104,6 +104,9 @@ fun ComposeTestRule.navigateTo(navTag: String) {
  * A single injected tap is occasionally dropped before `clickable` resolves it into an onClick,
  * which leaves the screen unchanged and reports no error. Re-inject until the expected outcome
  * appears rather than trusting one injection.
+ *
+ * Fails if [matcher] never resolves, and never reports success without having clicked: a [landed]
+ * that is already true on entry would otherwise pass the step without touching the target.
  */
 fun ComposeTestRule.clickUntil(
 	matcher: SemanticsMatcher,
@@ -111,12 +114,25 @@ fun ComposeTestRule.clickUntil(
 	landed: () -> Boolean,
 ) {
 	val deadline = SystemClock.uptimeMillis() + timeoutMillis
+	var clicked = false
 	while (true) {
 		// Only re-click while the target is still on screen; once it's gone the click did land and
 		// the screen is mid-change, so clicking again would hit whatever replaced it.
 		if (onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty()) {
 			onAllNodes(matcher).onFirst().performClick()
+			clicked = true
 		}
+
+		if (!clicked) {
+			if (SystemClock.uptimeMillis() >= deadline) {
+				throw AssertionError(
+					"'${matcher.description}' never appeared within ${timeoutMillis}ms, so it was never clicked",
+				)
+			}
+			SystemClock.sleep(CLICK_RETRY_INTERVAL_MS)
+			continue
+		}
+
 		try {
 			waitUntil(timeoutMillis = 1_000L) { landed() }
 			return
@@ -130,6 +146,8 @@ fun ComposeTestRule.clickUntil(
 		}
 	}
 }
+
+private const val CLICK_RETRY_INTERVAL_MS = 100L
 
 /**
  * Type into the tagged markdown/scene editor and wait for the edit to land.
