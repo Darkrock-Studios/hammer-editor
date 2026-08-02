@@ -82,6 +82,7 @@ import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.common.data.search.unescapeMarkdown
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.timeline_filter_all
@@ -137,7 +138,7 @@ fun TimeLineOverviewUi(
 				events
 			} else {
 				events.filter { event ->
-					event.content.contains(searchQuery.trim(), ignoreCase = true) ||
+					unescapeMarkdown(event.content).contains(searchQuery.trim(), ignoreCase = true) ||
 						event.date?.contains(searchQuery.trim(), ignoreCase = true) == true
 				}
 			}

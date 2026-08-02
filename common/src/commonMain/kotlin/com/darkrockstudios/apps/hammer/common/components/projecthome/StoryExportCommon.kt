@@ -28,27 +28,6 @@ internal fun chapterBookmark(index: Int): String = "chapter${index + 1}"
 
 // Shared markdown text helpers used when turning the parsed prose model into export output.
 
-private const val ASCII_PUNCTUATION = "!\"#\$%&'()*+,-./:;<=>?@[\\]^_`{|}~"
-
-/** Resolves CommonMark backslash escapes (`\*` → `*`) to their bare ASCII punctuation. */
-internal fun unescapeMarkdown(text: CharSequence): String {
-	if (!text.contains('\\')) return text.toString()
-	val sb = StringBuilder(text.length)
-	var i = 0
-	while (i < text.length) {
-		val c = text[i]
-		val next = if (i + 1 < text.length) text[i + 1] else null
-		if (c == '\\' && next != null && next in ASCII_PUNCTUATION) {
-			sb.append(next)
-			i += 2
-		} else {
-			sb.append(c)
-			i++
-		}
-	}
-	return sb.toString()
-}
-
 /** Splits a code block's text into lines, trimming leading and trailing blank lines. */
 internal fun codeBlockLines(code: String): List<String> =
 	code.split("\n").dropWhile { it.isBlank() }.dropLastWhile { it.isBlank() }

@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRe
 import com.darkrockstudios.apps.hammer.common.data.search.ParsedQuery
 import com.darkrockstudios.apps.hammer.common.data.search.matchesAllTags
 import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
+import com.darkrockstudios.apps.hammer.common.data.search.unescapeMarkdown
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
@@ -95,12 +96,8 @@ class SearchProjectUseCase(
 		return timeline.events
 			.filter { it.tags.matchesAllTags(parsed.tags) }
 			.mapNotNull { event ->
-				val combined = if (event.date.isNullOrBlank()) {
-					event.content
-				} else {
-					"${event.date} — ${event.content}"
-				}
-				val snippet = matchOrPreview(combined, parsed.text) ?: return@mapNotNull null
+				val snippet = matchTimelineEvent(event.date, event.content, parsed.text)
+					?: return@mapNotNull null
 				SearchResult.TimelineEvent(
 					eventId = event.id,
 					title = event.date?.takeIf { it.isNotBlank() }
@@ -165,7 +162,7 @@ class SearchProjectUseCase(
 			)
 		}
 
-		val textMatch = findMatch(entry.text, freeText) ?: return null
+		val textMatch = findMarkdownMatch(entry.text, freeText) ?: return null
 		return SearchResult.EncyclopediaEntry(
 			entryDef = def,
 			title = def.name,
@@ -197,7 +194,7 @@ class SearchProjectUseCase(
 				return SearchResult.Scene(sceneItem = scene, title = scene.name, snippet = nameMatch)
 			}
 			val text = withContext(dispatcherIo) { loadSceneText(scene) } ?: return null
-			val bodyMatch = findMatch(text, query) ?: return null
+			val bodyMatch = findMarkdownMatch(text, query) ?: return null
 			return SearchResult.Scene(sceneItem = scene, title = scene.name, snippet = bodyMatch)
 		}
 
@@ -220,14 +217,27 @@ class SearchProjectUseCase(
 			return SearchResult.Scene(sceneItem = scene, title = title, snippet = nameMatch)
 		}
 		val text = withContext(dispatcherIo) { loadSceneText(scene) } ?: return null
-		val bodyMatch = findMatch(text, query) ?: return null
+		val bodyMatch = findMarkdownMatch(text, query) ?: return null
 		return SearchResult.Scene(sceneItem = scene, title = title, snippet = bodyMatch)
 	}
 
+	/** Both callers pass stored Markdown, so escapes are resolved before matching. */
 	private fun matchOrPreview(content: String, query: String): AnnotatedSnippet? {
-		if (query.isEmpty()) return previewSnippet(content)
-		return findMatch(content, query)
+		if (query.isEmpty()) return previewSnippet(unescapeMarkdown(content))
+		return findMarkdownMatch(content, query)
 	}
+
+	/** The date is a plain-text field, so only the event body is unescaped. */
+	private fun matchTimelineEvent(date: String?, content: String, query: String): AnnotatedSnippet? {
+		val resolved = withDate(date, unescapeMarkdown(content))
+		if (query.isEmpty()) return previewSnippet(resolved)
+		findMatch(resolved, query)?.let { return it }
+		if (query.contains('\\')) return findMatch(withDate(date, content), query)
+		return null
+	}
+
+	private fun withDate(date: String?, content: String): String =
+		if (date.isNullOrBlank()) content else "$date — $content"
 
 	private fun loadSceneText(scene: SceneItem): String? {
 		val buffer = sceneContentRepository.getSceneBuffer(scene)
@@ -236,8 +246,13 @@ class SearchProjectUseCase(
 		return runCatching { sceneEditor.loadSceneMarkdownRaw(scene) }.getOrNull()
 	}
 
+	/** [content] is stored Markdown, so the title resolves escapes the way its snippet does. */
 	private fun firstLineTitle(content: String, fallback: String): String {
-		val firstLine = content.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
+		val firstLine = content.lineSequence()
+			.firstOrNull { it.isNotBlank() }
+			?.let { unescapeMarkdown(it) }
+			?.trim()
+			.orEmpty()
 		return when {
 			firstLine.isEmpty() -> fallback
 			firstLine.length > TITLE_MAX -> firstLine.take(TITLE_MAX).trimEnd() + "…"
@@ -262,6 +277,19 @@ class SearchProjectUseCase(
 				flattened
 			}
 			return AnnotatedSnippet(text = truncated, matchStart = 0, matchEnd = 0)
+		}
+
+		/**
+		 * Matches stored Markdown with its escapes resolved, so a query matches the prose on screen
+		 * and the snippet renders the same way. A query holding a backslash also tries the raw
+		 * source, so searching for a literal escape keeps working.
+		 */
+		internal fun findMarkdownMatch(markdown: String, query: String): AnnotatedSnippet? {
+			if (markdown.isEmpty() || query.isEmpty()) return null
+			val resolved = unescapeMarkdown(markdown)
+			findMatch(resolved, query)?.let { return it }
+			if (query.contains('\\')) return findMatch(markdown, query)
+			return null
 		}
 
 		internal fun findMatch(text: String, query: String): AnnotatedSnippet? {
