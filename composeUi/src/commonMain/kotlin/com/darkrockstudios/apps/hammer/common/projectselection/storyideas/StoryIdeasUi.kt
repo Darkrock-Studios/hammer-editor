@@ -111,6 +111,7 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeaError
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
+import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.util.format
 import com.darkrockstudios.apps.hammer.ideas_archive_button
@@ -203,6 +204,11 @@ private enum class IdeasSortMode(
 private fun StoryIdea.wordCount(): Int =
 	content.split(Regex("\\s+")).count { it.isNotBlank() }
 
+/** An idea matches on its body read as prose, or on its plain-text title. */
+internal fun ideaMatchesQuery(idea: StoryIdea, query: String): Boolean =
+	markdownContains(idea.content, query) ||
+		idea.title?.contains(query, ignoreCase = true) == true
+
 private fun StoryIdea.displayTitle(): String = title ?: content.firstNonBlankLine()
 
 private fun applySort(ideas: List<StoryIdea>, mode: IdeasSortMode): List<StoryIdea> = when (mode) {
@@ -288,10 +294,7 @@ private fun IdeasBrowse(
 			val byText = if (query.isBlank()) {
 				scopedIdeas
 			} else {
-				scopedIdeas.filter { idea ->
-					idea.content.contains(query, ignoreCase = true) ||
-						idea.title?.contains(query, ignoreCase = true) == true
-				}
+				scopedIdeas.filter { ideaMatchesQuery(it, query) }
 			}
 			val byTags = if (activeTags.isEmpty()) {
 				byText

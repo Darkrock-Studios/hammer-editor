@@ -244,9 +244,7 @@ class SearchProjectUseCase(
 	private fun matchTimelineEvent(date: String?, content: String, query: String): AnnotatedSnippet? {
 		val resolved = withDate(date, unescapeMarkdown(content))
 		if (query.isEmpty()) return previewSnippet(resolved) ?: EMPTY_SNIPPET
-		findMatch(resolved, query)?.let { return it }
-		if (query.contains('\\')) return findMatch(withDate(date, content), query)
-		return null
+		return findMatch(resolved, query)
 	}
 
 	private fun withDate(date: String?, content: String): String =
@@ -294,15 +292,12 @@ class SearchProjectUseCase(
 
 		/**
 		 * Matches stored Markdown with its escapes resolved, so a query matches the prose on screen
-		 * and the snippet renders the same way. A query holding a backslash also tries the raw
-		 * source, so searching for a literal escape keeps working.
+		 * and the snippet renders the same way. The resolved text is the only thing searched, so a
+		 * snippet can never disagree with the title derived from it.
 		 */
 		internal fun findMarkdownMatch(markdown: String, query: String): AnnotatedSnippet? {
 			if (markdown.isEmpty() || query.isEmpty()) return null
-			val resolved = unescapeMarkdown(markdown)
-			findMatch(resolved, query)?.let { return it }
-			if (query.contains('\\')) return findMatch(markdown, query)
-			return null
+			return findMatch(unescapeMarkdown(markdown), query)
 		}
 
 		internal fun findMatch(text: String, query: String): AnnotatedSnippet? {

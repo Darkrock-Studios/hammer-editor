@@ -136,6 +136,42 @@ class TimeLineOverviewUiTest : BaseTest() {
 	}
 	*/
 
+	@OptIn(ExperimentalTestApi::class, ExperimentalSharedTransitionApi::class)
+	@Test
+	fun `Search filters the list on the prose a reader sees`() {
+		val data = TimeLineOverview.State(
+			timeLine = TimeLineContainer(
+				events = listOf(
+					TimeLineEvent(id = 0, order = 0, date = null, content = "A well\\-known road"),
+					TimeLineEvent(id = 1, order = 1, date = null, content = "An unrelated event"),
+				)
+			)
+		)
+		val component = componentSetup(data)
+
+		compose.setContent {
+			SharedTransitionLayout {
+				AnimatedVisibility(visible = true) {
+					TimeLineOverviewUi(
+						component = component,
+						scope = scope,
+						showCreate = {},
+						viewEvent = {},
+						sharedTransitionScope = this@SharedTransitionLayout,
+						animatedVisibilityScope = this@AnimatedVisibility,
+					)
+				}
+			}
+		}
+
+		compose.onNodeWithContentDescription("Search timeline").performClick()
+		compose.onNodeWithTag(TIME_LINE_SEARCH_TAG).performTextInput("well-known")
+
+		// The query never contains the stored escape, so only resolving the content can match it.
+		compose.onAllNodesWithTag(EVENT_CARD_TAG).assertCountEquals(1)
+		compose.onNodeWithText("An unrelated event").assertDoesNotExist()
+	}
+
 	@OptIn(ExperimentalSharedTransitionApi::class)
 	@Test
 	fun `Event Card Click`() {
