@@ -526,6 +526,7 @@ class SearchProjectUseCaseTest : BaseTest() {
 		assertEquals(1, results.size)
 		assertEquals(13, results.first().entryDef.id)
 		assertTrue(results.first().title.contains("Alice"))
+		assertEquals("Alice", results.first().snippet.text)
 	}
 
 	@Test
