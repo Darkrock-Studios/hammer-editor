@@ -208,6 +208,16 @@ These set up the page. Use them before reaching for raw `Column` /
       │ └─[ KTOR · HTTPS ]─────────[ LAST SYNC 14:32 ]┘  │
       └──────────────────────────────────────────────────┘
 
+- **[`HdScrollAwayFooter`](HdScrollAwayFooter.kt)**: hairline action
+  strip that floats over the bottom of a scrolling pane and slides away
+  once the reader has scrolled down past its own height. It is an **overlay**, never a sibling in
+  a `Column`: host it in the same `Box` as the list, wire
+  `state.nestedScrollConnection` to the list, and pass `state.height`
+  as the list's bottom `contentPadding` so the last row clears the
+  strip. A footer that takes layout space changes what the list can
+  scroll, which flips any visibility rule keyed off scroll position and
+  flickers the strip on and off.
+
 ### Mono & numeric labels
 
 The handwriting of the system. Reach for these instead of styling
