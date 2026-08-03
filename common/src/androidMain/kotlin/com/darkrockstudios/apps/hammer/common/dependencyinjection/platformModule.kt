@@ -19,6 +19,7 @@ actual val platformModule = module {
 	single<NetworkConnectivity>()
 	single<StrResImpl>() bind StrRes::class
 	single<DeviceLocaleResolver>()
+	single<AvailableLocalesProvider>()
 	single<UrlLauncherAndroid>() bind UrlLauncher::class
 	single<LanguageUtil>()
 	factory { params ->

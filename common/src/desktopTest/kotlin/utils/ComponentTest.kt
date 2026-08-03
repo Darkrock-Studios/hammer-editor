@@ -10,7 +10,10 @@ import com.arkivanov.essenty.statekeeper.StateKeeperDispatcher
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
+import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.emptyFlow
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.koin.core.module.Module
@@ -93,12 +96,21 @@ open class ComponentTest : BaseTest() {
 	/**
 	 * Like [setupKoin] but also registers the dependencies every project-scoped component injects
 	 * via [com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase] — currently a
-	 * relaxed [TagIndexService] (lazy, so harmless when a component never uses it). A test that
-	 * needs to control TagIndexService should register its own via plain [setupKoin] instead.
+	 * relaxed [TagIndexService] and a [ProjectSpellCheckRepository] whose flows never emit (both
+	 * lazy, so harmless when a component never uses them). A test that needs to control either
+	 * should register its own via plain [setupKoin] instead.
 	 */
 	protected fun setupComponentKoin(module: Module) {
 		setupKoin(
-			module { single<TagIndexService> { mockk(relaxed = true) } },
+			module {
+				single<TagIndexService> { mockk(relaxed = true) }
+				single<ProjectSpellCheckRepository> {
+					mockk(relaxed = true) {
+						every { spellCheckAllowed } returns emptyFlow()
+						every { dictionaryFlow } returns emptyFlow()
+					}
+				}
+			},
 			module,
 		)
 	}

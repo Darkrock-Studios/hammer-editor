@@ -115,6 +115,7 @@ fun CreateNoteUi(
 					MarkdownEditField(
 						initialMarkdown = noteText,
 						onMarkdownChanged = { component.onTextChanged(it) },
+						enableSpellChecking = state.spellCheckAllowed,
 						contentPadding = PaddingValues(Ui.Padding.XL),
 						testTag = NOTES_CREATE_BODY_TAG,
 						modifier = Modifier

@@ -62,6 +62,10 @@ class ViewEntryComponent(
 			backButtonHandler.isEnabled = it.editName || it.editText
 		}
 
+		watchSpellCheckAllowed { allowed ->
+			_state.getAndUpdate { it.copy(spellCheckAllowed = allowed) }
+		}
+
 		// Trigger an initial recompute so the index reflects current data
 		scope.launch { referenceIndexService.loadIndex() }
 

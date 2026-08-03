@@ -135,6 +135,7 @@ fun ViewTimeLineEventUi(
 						eventText = eventText,
 						onEventTextChanged = { component.onEventTextChanged(it) },
 						suggestTags = component::suggestTags,
+						enableSpellChecking = state.spellCheckAllowed,
 						modifier = Modifier.weight(1f),
 					)
 
@@ -386,6 +387,7 @@ private fun EditBody(
 	eventText: String,
 	onEventTextChanged: (String) -> Unit,
 	suggestTags: (prefix: String) -> List<String>,
+	enableSpellChecking: Boolean,
 	modifier: Modifier = Modifier,
 ) {
 	// Date hides while the body editor has focus, like the tags; kept visible while it holds focus
@@ -431,6 +433,7 @@ private fun EditBody(
 		MarkdownEditField(
 			initialMarkdown = eventText,
 			onMarkdownChanged = onEventTextChanged,
+			enableSpellChecking = enableSpellChecking,
 			contentPadding = PaddingValues(Ui.Padding.XL),
 			modifier = Modifier
 				.fillMaxWidth()

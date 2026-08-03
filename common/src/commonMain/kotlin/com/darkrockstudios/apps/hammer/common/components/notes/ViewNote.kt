@@ -19,6 +19,7 @@ interface ViewNote : TagSuggesting {
 		val confirmDelete: Boolean = false,
 		val isEditing: Boolean = false,
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
+		val spellCheckAllowed: Boolean = true,
 	)
 
 	fun discardEdit()

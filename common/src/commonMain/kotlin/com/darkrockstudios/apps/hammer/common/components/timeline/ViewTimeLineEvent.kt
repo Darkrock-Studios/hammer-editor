@@ -29,7 +29,8 @@ interface ViewTimeLineEvent : TagSuggesting {
 		val confirmDelete: Boolean = false,
 		val confirmClose: Boolean = false,
 		val confirmDiscard: Boolean = false,
-		val isEditing: Boolean = false
+		val isEditing: Boolean = false,
+		val spellCheckAllowed: Boolean = true,
 	)
 
 	val dateText: Value<String>

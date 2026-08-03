@@ -24,5 +24,6 @@ interface CreateTimeLineEvent : TagSuggesting {
 	data class State(
 		val projectDef: ProjectDef,
 		val confirmDiscard: Boolean = false,
+		val spellCheckAllowed: Boolean = true,
 	)
 }

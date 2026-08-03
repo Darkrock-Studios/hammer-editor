@@ -21,7 +21,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
-import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -48,7 +48,7 @@ class SceneEditorComponent(
 	private val draftsRepository: SceneDraftRepository by projectInject()
 	private val autoConfirmReferences: AutoConfirmReferencesUseCase by projectInject()
 
-	private val spellCheckRepository: SpellCheckRepository by inject()
+	private val spellCheckRepository: ProjectSpellCheckRepository by projectInject()
 
 	private val _state = MutableValue(
 		SceneEditor.State(

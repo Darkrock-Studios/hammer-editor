@@ -62,8 +62,8 @@ private val fakeSpellCheckSettings = object : SpellCheckSettings {
 		SpellCheckSettings.State(
 			spellCheckingEnabled = true,
 			spellCheckingInFocusEnabled = false,
-			spellCheckingLanguage = Locale.root,
-			spellCheckLanguages = listOf(Locale.root),
+			spellCheckingLanguage = Locale.forLanguage("en", "US"),
+			spellCheckLanguages = listOf(Locale.forLanguage("en", "US")),
 		)
 	)
 
@@ -72,20 +72,47 @@ private val fakeSpellCheckSettings = object : SpellCheckSettings {
 	override suspend fun setSpellCheckLanguage(language: Locale) {}
 }
 
-private val component = object : ProjectSettings {
+private fun fakeComponent(language: String?) = object : ProjectSettings {
 	override val projectName: String = "The Lighthouse"
 	override val spellCheckSettings: SpellCheckSettings = fakeSpellCheckSettings
 	override val projectInfoState: Value<ProjectSettings.ProjectInfoState> = MutableValue(
 		ProjectSettings.ProjectInfoState(
-			data = ProjectData(authorName = "A. Writer", tags = setOf("fantasy", "draft")),
+			data = ProjectData(
+				authorName = "A. Writer",
+				tags = setOf("fantasy", "draft"),
+				language = language,
+			),
 			isLoaded = true,
 		)
+	)
+	override val availableLanguages: List<ProjectSettings.LanguageOption> = listOf(
+		ProjectSettings.LanguageOption("en-US", "English (United States)"),
+		ProjectSettings.LanguageOption("fr-FR", "French (France)"),
+		ProjectSettings.LanguageOption("pt-BR", "Portuguese (Brazil)"),
 	)
 
 	override fun setAuthorName(name: String?) {}
 	override fun setTheme(theme: ProjectTheme?) {}
 	override fun setWordCountGoal(goal: WordCountGoal?) {}
 	override fun setTags(tags: Set<String>) {}
+	override fun setProjectLanguage(tag: String?) {}
 	override fun suggestProjectTags(prefix: String): List<String> =
 		listOf("fantasy", "sci-fi", "nanowrimo").filter { it.startsWith(prefix, ignoreCase = true) }
+}
+
+private val component = fakeComponent(language = "en-US")
+
+/** Project language (fr-FR) mismatched against the en-US dictionary: the caption shows. Tall enough to reach the spell-check section. */
+@Preview(widthDp = TABLET_WIDTH_DP, heightDp = 2600)
+@Composable
+fun ScreenProjectSettingsUiLanguageMismatchPreview() {
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			ProjectSettingsUi(
+				modifier = Modifier,
+				component = fakeComponent(language = "fr-FR"),
+				onClose = {},
+			)
+		}
+	}
 }

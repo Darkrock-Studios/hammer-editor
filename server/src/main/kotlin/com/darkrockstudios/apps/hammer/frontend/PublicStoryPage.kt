@@ -15,6 +15,8 @@ import com.darkrockstudios.apps.hammer.frontend.utils.pageETag
 import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
 import com.darkrockstudios.apps.hammer.frontend.utils.storyArticleJsonLd
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
+import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.project.access.PublicProjectResult
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
@@ -45,6 +47,7 @@ fun Route.publicStoryPage(
 	storyReaderCollector: StoryReaderCollector,
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
+	serverProjectDataRepository: ServerProjectDataRepository,
 	serverConfig: ServerConfig,
 ) {
 	route("/a/{penName}/{projectName}") {
@@ -117,8 +120,18 @@ fun Route.publicStoryPage(
 						""
 					}
 
+					// The story's declared language, when set, becomes the page's
+					// content language: <html lang> via the `locale` model key and the
+					// Article JSON-LD `inLanguage` below.
+					val storyLanguage = serverProjectDataRepository.loadProjectLanguage(
+						userId = resolved.userId,
+						projectDef = ProjectDefinition(name = projectName, uuid = resolved.projectUuid),
+					)
+
 					// The page shell — everything not derived from the story render. Built first so
 					// it can be hashed into the validator, then filled in with the render below.
+					// `locale` must be in this map, not added later: withDefaults applies it over
+					// the viewer-locale default, and pageETag below hashes the whole model.
 					val model = call.withDefaults(
 						mapOf(
 							"page_stylesheet" to "/assets/css/story.css",
@@ -139,7 +152,7 @@ fun Route.publicStoryPage(
 							"projectName" to projectName,
 							"authorPenName" to resolved.penName,
 							"authorPenNameUrl" to ProjectName.penNameForUrl(resolved.penName),
-						)
+						) + listOfNotNull(storyLanguage?.let { "locale" to it })
 					)
 
 					// Resolved once and reused by the render below, so the ETag costs no extra queries.
@@ -205,6 +218,7 @@ fun Route.publicStoryPage(
 									authorName = resolved.penName,
 									authorUrl = call.canonicalUrl("/a/${ProjectName.penNameForUrl(resolved.penName)}"),
 									wordCount = data.totalWordCount.toLong(),
+									inLanguage = storyLanguage,
 								)
 							}
 							etag?.let { call.applyRevalidationHeaders(it) }

@@ -9,10 +9,12 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteCont
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndex
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
@@ -55,6 +57,11 @@ class NotesComponentTest : ComponentTest() {
 			scope<ProjectDefScope> {
 				scoped { notesRepository }
 				scoped { tagIndexService }
+			}
+			single<ProjectSpellCheckRepository> {
+				mockk(relaxed = true) {
+					every { spellCheckAllowed } returns emptyFlow()
+				}
 			}
 		})
 

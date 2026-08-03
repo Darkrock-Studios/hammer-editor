@@ -14,6 +14,9 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
+import com.darkrockstudios.apps.hammer.common.spellcheck.displayName
+import com.darkrockstudios.apps.hammer.common.util.AvailableLocalesProvider
+import com.darkrockstudios.apps.hammer.common.util.Locale
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.koin.core.component.inject
@@ -26,6 +29,7 @@ class ProjectSettingsComponent(
 	private val mainDispatcher by injectMainDispatcher()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
 	private val accountTagService: AccountTagService by inject()
+	private val availableLocalesProvider: AvailableLocalesProvider by inject()
 
 	override val projectName: String = projectDef.name
 
@@ -73,6 +77,21 @@ class ProjectSettingsComponent(
 		val cleaned = ProjectSettings.cleanProjectTags(tags)
 		scope.launch {
 			projectDataRepository.updateData { it.copy(tags = cleaned) }
+		}
+	}
+
+	override val availableLanguages: List<ProjectSettings.LanguageOption> by lazy {
+		availableLocalesProvider.allLocales()
+			.map { ProjectSettings.LanguageOption(tag = it.toLanguageTag(), displayName = it.displayName()) }
+			.sortedBy { it.displayName.lowercase() }
+	}
+
+	override fun setProjectLanguage(tag: String?) {
+		val cleaned = tag?.takeIf { it.isNotBlank() }
+			?.let { Locale.forLanguageTag(it).toLanguageTag() }
+			?.takeIf { it.isNotBlank() }
+		scope.launch {
+			projectDataRepository.updateData { it.copy(language = cleaned) }
 		}
 	}
 

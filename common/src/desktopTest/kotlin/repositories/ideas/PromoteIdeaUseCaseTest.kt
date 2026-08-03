@@ -17,6 +17,8 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
+import com.darkrockstudios.apps.hammer.common.util.Locale
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -58,10 +60,14 @@ class PromoteIdeaUseCaseTest : BaseTest() {
 
 		setupKoin()
 
+		val deviceLocaleResolver = mockk<DeviceLocaleResolver>()
+		every { deviceLocaleResolver.getCurrentLocale() } returns Locale.forLanguage("en", "US")
 		projectsRepository = ProjectsRepository(
 			fileSystem = ffs,
 			globalSettingsStore = globalSettingsStore,
 			projectsMetadataDatasource = ProjectMetadataDatasource(ffs, toml),
+			toml = toml,
+			deviceLocaleResolver = deviceLocaleResolver,
 		)
 		val ideasDatasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), globalSettingsStore)
 		ideasRepository = IdeasRepository(

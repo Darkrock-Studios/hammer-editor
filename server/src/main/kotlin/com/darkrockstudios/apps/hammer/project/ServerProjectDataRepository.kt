@@ -42,6 +42,14 @@ class ServerProjectDataRepository(
 		return SResult.success(RawProjectDataDto(data = data, hash = row.hash))
 	}
 
+	/** The project's declared BCP-47 language for public-page metadata; null when unset or unreadable. */
+	suspend fun loadProjectLanguage(userId: Long, projectDef: ProjectDefinition): String? {
+		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid) ?: return null
+		val row = projectDataDao.get(userId, projectId) ?: return null
+		val data = parseContent(row.content, userId, projectDef) ?: return null
+		return decodeAsProjectData(data)?.language?.takeIf { it.isNotBlank() }
+	}
+
 	suspend fun save(
 		userId: Long,
 		projectDef: ProjectDefinition,

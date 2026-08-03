@@ -53,6 +53,21 @@ class SeoJsonLdTest {
 	}
 
 	@Test
+	fun `story article carries inLanguage when set`() {
+		val obj = parse(
+			storyArticleJsonLd(
+				title = "Untitled",
+				url = "https://hammer.ink/a/x/y",
+				authorName = "X",
+				authorUrl = "https://hammer.ink/a/x",
+				inLanguage = "fr",
+			),
+		)
+
+		assertEquals("fr", obj["inLanguage"]!!.jsonPrimitive.content)
+	}
+
+	@Test
 	fun `website node carries name and url`() {
 		val obj = parse(webSiteJsonLd(name = "Hammer", url = "https://hammer.ink/", description = "A writing tool."))
 
@@ -75,6 +90,7 @@ class SeoJsonLdTest {
 			),
 		)
 		assertNull(article["wordCount"])
+		assertNull(article["inLanguage"])
 	}
 
 	@Test

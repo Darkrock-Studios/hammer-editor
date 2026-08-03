@@ -13,10 +13,21 @@ interface ProjectSettings : HammerComponent {
 	val spellCheckSettings: SpellCheckSettings
 	val projectInfoState: Value<ProjectInfoState>
 
+	/** Every language the platform offers, sorted by display name, for the language picker. */
+	val availableLanguages: List<LanguageOption>
+
 	fun setAuthorName(name: String?)
 	fun setTheme(theme: ProjectTheme?)
 	fun setWordCountGoal(goal: WordCountGoal?)
 	fun setTags(tags: Set<String>)
+
+	/** [tag] is a BCP-47 tag; null or blank clears the project language. */
+	fun setProjectLanguage(tag: String?)
+
+	data class LanguageOption(
+		val tag: String,
+		val displayName: String,
+	)
 
 	/** Suggests from the account-level tag vocabulary (project + story-idea tags, via [com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService]) — distinct from [com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting.suggestTags], which suggests in-project entity tags. */
 	fun suggestProjectTags(prefix: String): List<String>

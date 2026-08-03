@@ -46,6 +46,13 @@ object ProjectDataHasher {
 			data.tags.sorted().forEach { tag -> d.update(tag, buf) }
 		}
 
+		// Zero bytes when null, same rule as tags: pre-language hashes must stay identical.
+		// The leading 1 keeps null and empty-string distinct.
+		if (data.language != null) {
+			d.update(1, buf)
+			d.update(data.language, buf)
+		}
+
 		return d.digest().base64Url
 	}
 }

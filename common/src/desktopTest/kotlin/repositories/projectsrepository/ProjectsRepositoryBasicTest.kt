@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.Pr
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectDefinition
 import com.darkrockstudios.apps.hammer.common.data.isFailure
+import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectCreationFailedException
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -31,7 +32,7 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 	fun `ProjectsRepository init`() = scope.runTest {
 		val projDir = getProjectsDirectory()
 		assertFalse(ffs.exists(projDir), "Dir should not have existed already")
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 		assertTrue(ffs.exists(projDir), "Init did not create project dir")
 	}
 
@@ -93,7 +94,7 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 	@Test
 	fun `Get Projects Directory`() = scope.runTest {
 		val actualProjDir = getProjectsDirectory().toHPath()
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 		val projectDir = repo.getProjectsDirectory()
 		assertEquals(actualProjDir, projectDir)
 	}
@@ -101,7 +102,7 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 	@Test
 	fun `Ensure Projects Directory`() = scope.runTest {
 		val actualProjDir = getProjectsDirectory()
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		ffs.deleteRecursively(actualProjDir)
 		assertFalse(ffs.exists(actualProjDir))
@@ -113,7 +114,7 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 	fun `Get Projects`() = scope.runTest {
 		createProjectDirectories(ffs)
 
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 		val projects = repo.getProjects()
 
 		assertEquals(projectNames.size, projects.size)
@@ -140,7 +141,7 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 		// Stray file at the top level
 		ffs.write(projDir.div("stray.txt")) { writeUtf8("") }
 
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 		val projects = repo.getProjects()
 
 		assertEquals(projectNames.toSet(), projects.map { it.name }.toSet())
@@ -153,7 +154,7 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 		ffs.createDirectories(projDir.div(encodedName))
 		ffs.write(projDir.div(encodedName).div(ProjectMetadata.FILENAME)) { writeUtf8("") }
 
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 		val projects = repo.getProjects()
 
 		assertEquals(listOf("Chapter 3: The Fall?"), projects.map { it.name })
@@ -162,7 +163,7 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 	@Test
 	fun `Get Project Directory`() = scope.runTest {
 		createProjectDirectories(ffs)
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		val projectName = projectNames[0]
 		val projectDir = repo.getProjectDirectory(projectName)
@@ -173,7 +174,7 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 
 	@Test
 	fun `Create Project`() = scope.runTest {
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		val projectName = projectNames[0]
 		val result = repo.createProject(projectName)
@@ -195,8 +196,21 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 	}
 
 	@Test
+	fun `Create Project defaults the project language to the device locale`() = scope.runTest {
+		val repo = projectsRepository()
+
+		val projectName = projectNames[0]
+		assertTrue(repo.createProject(projectName).isSuccess)
+
+		val newDef = ProjectDef(projectName, getProjectsDirectory().div(projectName).toHPath())
+		val stored = loadStoredProjectData(newDef, ffs, toml)
+		assertEquals("en-US", stored.data.language)
+		assertEquals(null, stored.lastSyncedHash)
+	}
+
+	@Test
 	fun `Create Project failure with invalid name`() = scope.runTest {
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		val projectName = "!@/Invalid Name"
 		val result = repo.createProject(projectName)
@@ -211,7 +225,7 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 	@Test
 	fun `Delete Project`() = scope.runTest {
 		createProjectDirectories(ffs)
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		val projectName = projectNames[0]
 		val projPath = getProjectsDirectory().div(projectName)

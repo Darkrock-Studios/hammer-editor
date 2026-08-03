@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidationResult
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidator
 import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
@@ -13,6 +15,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.MAX_FILENAME_LENGTH
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.RECOVERED_PROJECT_NAME
@@ -21,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.validateFileName
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -32,6 +37,7 @@ import com.darkrockstudios.apps.hammer.create_project_error_too_long
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.IOException
 import okio.Path.Companion.toPath
@@ -45,7 +51,9 @@ import kotlin.time.Clock
 class ProjectsRepository(
 	private val fileSystem: FileSystem,
 	globalSettingsStore: GlobalSettingsStore,
-	private val projectsMetadataDatasource: ProjectMetadataDatasource
+	private val projectsMetadataDatasource: ProjectMetadataDatasource,
+	private val toml: Toml,
+	private val deviceLocaleResolver: DeviceLocaleResolver,
 ) : KoinComponent {
 
 	private val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
@@ -179,6 +187,15 @@ class ProjectsRepository(
 					)
 				)
 				projectsMetadataDatasource.saveMetadata(metadata, newDef)
+
+				// New projects start declared in the device's language; the user can
+				// clear or change it in project settings.
+				val languageTag = deviceLocaleResolver.getCurrentLocale().toLanguageTag().ifBlank { null }
+				fileSystem.writeToml(
+					newProjectDir / ProjectDataDatasource.FILENAME,
+					toml,
+					StoredProjectData(data = ProjectData(language = languageTag)),
+				)
 
 				CResult.success(newDef)
 			}
