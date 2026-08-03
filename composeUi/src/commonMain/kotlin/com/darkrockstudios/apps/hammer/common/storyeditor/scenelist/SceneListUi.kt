@@ -1,10 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist
 
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,14 +41,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.archived_scenes_restored_snackbar
@@ -63,6 +55,8 @@ import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooter
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -101,6 +95,7 @@ const val SCENE_LIST_ADD_BUTTON_TAG = "scene-list-add"
 const val SCENE_LIST_ADD_SCENE_TAG = "scene-list-add-scene"
 const val SCENE_LIST_ADD_GROUP_TAG = "scene-list-add-group"
 const val CREATE_ITEM_NAME_FIELD_TAG = "create-item-name-field"
+const val SCENE_LIST_TREE_TAG = "scene-list-tree"
 
 @OptIn(
 	ExperimentalMaterialApi::class,
@@ -151,26 +146,19 @@ fun SceneListUi(
 	// TODO implement a real NUX system
 	val shouldNux = remember { Random.nextInt(0, 9) == 0 }
 
-	var hiddenByScroll by remember { mutableStateOf(false) }
-	val scrollConnection = remember {
-		object : NestedScrollConnection {
-			override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-				if (available.y < -1f) hiddenByScroll = true
-				else if (available.y > 1f) hiddenByScroll = false
-				return Offset.Zero
-			}
-		}
-	}
+	val footerState = rememberHdScrollAwayFooterState()
 	// Always reachable when the list can't scroll down to it (e.g. all groups collapsed).
-	val footerVisible = !treeState.listState.canScrollForward || !hiddenByScroll
+	val footerVisible = !treeState.listState.canScrollForward || !footerState.isHiddenByScroll
+
+	val surfaceColor = if (inSplitPane) {
+		MaterialTheme.colorScheme.surfaceContainerLow
+	} else {
+		MaterialTheme.colorScheme.surface
+	}
 
 	Surface(
 		modifier = modifier,
-		color = if (inSplitPane) {
-			MaterialTheme.colorScheme.surfaceContainerLow
-		} else {
-			MaterialTheme.colorScheme.surface
-		},
+		color = surfaceColor,
 	) {
 		Column(modifier = Modifier.fillMaxSize()) {
 			val (sceneCount, groupCount) = remember(state.sceneSummary) {
@@ -200,9 +188,10 @@ fun SceneListUi(
 				color = MaterialTheme.colorScheme.outlineVariant,
 			)
 
-			Box(modifier = Modifier.weight(1f)) {
+			Box(modifier = Modifier.weight(1f).clipToBounds()) {
 				SceneTree(
-					modifier = Modifier.fillMaxSize().nestedScroll(scrollConnection),
+					modifier = Modifier.fillMaxSize().testTag(SCENE_LIST_TREE_TAG)
+						.nestedScroll(footerState.nestedScrollConnection),
 					state = treeState,
 					itemUi = { node: TreeValue<SceneItem>,
 					           toggleExpanded: (nodeId: Int) -> Unit,
@@ -234,76 +223,62 @@ fun SceneListUi(
 							createGroup = { parent -> showCreateGroupDialog = parent },
 						)
 					},
-					contentPadding = PaddingValues(bottom = 80.dp)
+					contentPadding = PaddingValues(bottom = footerState.height)
 				)
-			}
 
-			AnimatedVisibility(
-				visible = footerVisible,
-				enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-				exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-			) {
-				Column {
-					HorizontalDivider(
-						thickness = Dp.Hairline,
-						color = MaterialTheme.colorScheme.outlineVariant,
+				HdScrollAwayFooter(
+					state = footerState,
+					visible = footerVisible,
+					containerColor = surfaceColor,
+				) {
+					HdHairlineButton(
+						label = Res.string.scene_list_outline_overview_button.get(),
+						onClick = component::showOutlineOverview,
+						modifier = Modifier.weight(1f),
 					)
-					Row(
-						modifier = Modifier
-							.fillMaxWidth()
-							.padding(horizontal = Ui.Padding.M, vertical = Ui.Padding.M),
-						verticalAlignment = Alignment.CenterVertically,
-						horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-					) {
-						HdHairlineButton(
-							label = Res.string.scene_list_outline_overview_button.get(),
-							onClick = component::showOutlineOverview,
-							modifier = Modifier.weight(1f),
-						)
-						Box {
-							IconButton(
-								onClick = { addMenuOpen = true },
-								modifier = Modifier.testTag(SCENE_LIST_ADD_BUTTON_TAG),
-							) {
-								Icon(
-									imageVector = Icons.Filled.Add,
-									contentDescription = Res.string.scene_list_add_button.get(),
-									tint = MaterialTheme.colorScheme.onSurfaceVariant,
-								)
-							}
-							DropdownMenu(
-								expanded = addMenuOpen,
-								onDismissRequest = { addMenuOpen = false },
-							) {
-								DropdownMenuItem(
-									modifier = Modifier.testTag(SCENE_LIST_ADD_SCENE_TAG),
-									text = { Text(Res.string.scene_list_create_menu_scene.get()) },
-									leadingIcon = {
-										Icon(
-											imageVector = Icons.Filled.PostAdd,
-											contentDescription = null,
-										)
-									},
-									onClick = {
-										addMenuOpen = false
-										showCreateSceneDialog = treeState.summary.sceneTree.root.value
-									},
-								)
-								DropdownMenuItem(
-									modifier = Modifier.testTag(SCENE_LIST_ADD_GROUP_TAG),
-									text = { Text(Res.string.scene_list_create_menu_group.get()) },
-									leadingIcon = {
-										Icon(
-											imageVector = Icons.Filled.CreateNewFolder,
-											contentDescription = null,
-										)
-									},
-									onClick = {
-										addMenuOpen = false
-										showCreateGroupDialog = treeState.summary.sceneTree.root.value
-									},
-								)
-							}
+					Box {
+						IconButton(
+							onClick = { addMenuOpen = true },
+							modifier = Modifier.testTag(SCENE_LIST_ADD_BUTTON_TAG),
+						) {
+							Icon(
+								imageVector = Icons.Filled.Add,
+								contentDescription = Res.string.scene_list_add_button.get(),
+								tint = MaterialTheme.colorScheme.onSurfaceVariant,
+							)
+						}
+						DropdownMenu(
+							expanded = addMenuOpen,
+							onDismissRequest = { addMenuOpen = false },
+						) {
+							DropdownMenuItem(
+								modifier = Modifier.testTag(SCENE_LIST_ADD_SCENE_TAG),
+								text = { Text(Res.string.scene_list_create_menu_scene.get()) },
+								leadingIcon = {
+									Icon(
+										imageVector = Icons.Filled.PostAdd,
+										contentDescription = null,
+									)
+								},
+								onClick = {
+									addMenuOpen = false
+									showCreateSceneDialog = treeState.summary.sceneTree.root.value
+								},
+							)
+							DropdownMenuItem(
+								modifier = Modifier.testTag(SCENE_LIST_ADD_GROUP_TAG),
+								text = { Text(Res.string.scene_list_create_menu_group.get()) },
+								leadingIcon = {
+									Icon(
+										imageVector = Icons.Filled.CreateNewFolder,
+										contentDescription = null,
+									)
+								},
+								onClick = {
+									addMenuOpen = false
+									showCreateGroupDialog = treeState.summary.sceneTree.root.value
+								},
+							)
 						}
 					}
 				}
