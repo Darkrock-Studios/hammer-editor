@@ -68,8 +68,17 @@ suspend fun loadStoredProjectData(
 	fileSystem: FileSystem,
 	toml: Toml,
 ): StoredProjectData = withContext(Dispatchers.IO) {
+	readStoredProjectData(projectDef, fileSystem, toml)
+}
+
+/** Blocking twin of [loadStoredProjectData] for callers that already own their threading (parallel mappers, IO-dispatched code). */
+fun readStoredProjectData(
+	projectDef: ProjectDef,
+	fileSystem: FileSystem,
+	toml: Toml,
+): StoredProjectData {
 	val path = projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME
-	fileSystem.readTomlOrNull<StoredProjectData>(path, toml) { e ->
+	return fileSystem.readTomlOrNull<StoredProjectData>(path, toml) { e ->
 		Napier.d("No project_data.toml at $path (${e.message})")
 	} ?: StoredProjectData()
 }

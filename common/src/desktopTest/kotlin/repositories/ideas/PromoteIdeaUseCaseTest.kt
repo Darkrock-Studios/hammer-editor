@@ -116,6 +116,8 @@ class PromoteIdeaUseCaseTest : BaseTest() {
 			ffs.read(projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME) { readUtf8() },
 		)
 		assertEquals(setOf("gothic", "coastal"), storedProjectData.data.tags)
+		// The tags write must merge onto the seeded default language, not replace the file.
+		assertEquals("en", storedProjectData.data.language)
 
 		val promoted = ideasRepository.getIdeaById(idea.id)
 		assertNotNull(promoted?.promoted)

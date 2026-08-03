@@ -1,8 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.ideasrepository
 
 import com.darkrockstudios.apps.hammer.base.IdeaId
-import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
-import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ClientResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -10,11 +8,10 @@ import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
-import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectdata.loadStoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectdata.saveStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcherNow
-import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import kotlinx.coroutines.withContext
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
@@ -61,14 +58,16 @@ class PromoteIdeaUseCase(
 		)
 
 		if (idea.tags.isNotEmpty()) {
-			// Written directly rather than through ProjectDataDatasource to avoid opening a
-			// per-project Koin scope for a project that isn't loaded. The project is brand new,
-			// so there is no existing blob to merge with.
+			// The datasource's scope-less helpers, because the project isn't loaded (no
+			// per-project Koin scope yet). Read-modify-write, not a fresh blob: createProject
+			// already seeded the default language and it must survive.
+			val stored = loadStoredProjectData(projectDef, fileSystem, toml)
 			withContext(ioDispatcher) {
-				fileSystem.writeToml(
-					projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME,
+				saveStoredProjectData(
+					projectDef,
+					fileSystem,
 					toml,
-					StoredProjectData(data = ProjectData(tags = idea.tags)),
+					stored.copy(data = stored.data.copy(tags = idea.tags)),
 				)
 			}
 		}
