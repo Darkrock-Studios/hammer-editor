@@ -5,6 +5,8 @@ import com.darkrockstudios.apps.hammer.common.util.Locale
 /**
  * Lenient locale match: languages must be equal; regions are compared only when
  * both sides have one. So "en" matches "en-US", but "en-US" does not match "en-GB".
+ * Scripts are ignored: spell-check dictionaries are keyed by language+region only,
+ * so a zh-Hant project must still match a zh dictionary.
  */
 fun localesMatchLeniently(a: Locale, b: Locale): Boolean {
 	if (a.language == null || b.language == null) return false

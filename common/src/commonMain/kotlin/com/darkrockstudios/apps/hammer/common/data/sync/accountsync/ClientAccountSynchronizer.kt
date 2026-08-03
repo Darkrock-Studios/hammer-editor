@@ -451,7 +451,7 @@ class ClientAccountSynchronizer(
 					)
 				)
 			} else {
-				val createResult = projectsRepository.createProject(localName)
+				val createResult = projectsRepository.createProject(localName, seedDefaultLanguage = false)
 				if (isSuccess(createResult)) {
 					val projectDef = createResult.data
 					projectsRepository.setProjectId(projectDef, serverProject.uuid)

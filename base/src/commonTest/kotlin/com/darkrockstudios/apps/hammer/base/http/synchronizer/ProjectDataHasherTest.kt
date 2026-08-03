@@ -71,6 +71,17 @@ class ProjectDataHasherTest {
 	}
 
 	@Test
+	fun `language block does not collide with a one-element tags block`() {
+		val tagged = ProjectData(tags = setOf("en"))
+		val languaged = ProjectData(language = "en")
+		assertNotEquals(
+			ProjectDataHasher.hash(tagged),
+			ProjectDataHasher.hash(languaged),
+			"tags=[x] and language=x must hash differently",
+		)
+	}
+
+	@Test
 	fun `null vs empty language distinguishable`() {
 		val nullLanguage = ProjectData(language = null)
 		val emptyLanguage = ProjectData(language = "")

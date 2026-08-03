@@ -289,7 +289,7 @@ class ProjectsListComponent(
 	}
 
 	override fun createProject(projectName: String) {
-		val result = projectsRepository.createProject(projectName)
+		val result = projectsRepository.createProject(projectName, seedDefaultLanguage = true)
 		if (isSuccess(result)) {
 			if (projectsSynchronizer.isServerSynchronized()) {
 				projectsSynchronizer.createProject(projectName)
@@ -483,7 +483,7 @@ class ProjectsListComponent(
 			return
 		}
 
-		val result = projectsRepository.createProject(projectName)
+		val result = projectsRepository.createProject(projectName, seedDefaultLanguage = true)
 		if (!isSuccess(result)) {
 			result.displayMessage?.let { msg -> showToast(scope, msg) }
 			Napier.e("Import: failed to create project '$projectName'")

@@ -20,6 +20,12 @@ SELECT content, hash, updated_at
 FROM project_data
 WHERE user_id = :userId AND project_id = :projectId;
 
+-- Hash-only lookup for HTTP validators: no content transfer, no JSON parse.
+getHashForProject:
+SELECT hash
+FROM project_data
+WHERE user_id = :userId AND project_id = :projectId;
+
 upsert:
 INSERT INTO project_data(user_id, project_id, content, hash, updated_at)
 VALUES (:userId, :projectId, :content, :hash, :updatedAt)

@@ -45,7 +45,7 @@ private fun DialogPreviewSurface(query: String) {
 				onDismissRequest = {},
 				closeContentDescription = "Close",
 				searchPlaceholder = "Search languages",
-				clearLabel = "Clear — not set",
+				clearLabel = "Clear (not set)",
 				onClear = {},
 				emptyLabel = "No languages match",
 			)

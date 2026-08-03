@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 abstract class ProjectComponentBase(
 	val projectDef: ProjectDef,
@@ -22,10 +23,14 @@ abstract class ProjectComponentBase(
 	override fun suggestTags(prefix: String, limit: Int): List<String> =
 		tagIndexService.suggest(prefix, limit).map { it.tag }
 
-	/** Collects whether the project's language allows spell check; call from onCreate. */
+	/** Collects whether the project's language allows spell check; call from onCreate. [onChange] runs on the main dispatcher. */
 	protected fun watchSpellCheckAllowed(onChange: (Boolean) -> Unit) {
 		scope.launch {
-			projectSpellCheck.spellCheckAllowed.collect(onChange)
+			projectSpellCheck.spellCheckAllowed.collect { allowed ->
+				withContext(dispatcherMain) {
+					onChange(allowed)
+				}
+			}
 		}
 	}
 }

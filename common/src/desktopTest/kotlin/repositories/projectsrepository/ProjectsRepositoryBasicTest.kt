@@ -177,13 +177,13 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 		val repo = projectsRepository()
 
 		val projectName = projectNames[0]
-		val result = repo.createProject(projectName)
+		val result = repo.createProject(projectName, seedDefaultLanguage = true)
 		assertTrue(result.isSuccess)
 
 		val actualProjDir = getProjectsDirectory().div(projectName)
 		assertTrue(ffs.exists(actualProjDir))
 
-		val result2 = repo.createProject(projectName)
+		val result2 = repo.createProject(projectName, seedDefaultLanguage = true)
 		assertFalse(result2.isSuccess)
 
 		val newDef = ProjectDef(projectName, actualProjDir.toHPath())
@@ -196,16 +196,29 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 	}
 
 	@Test
-	fun `Create Project defaults the project language to the device locale`() = scope.runTest {
+	fun `Create Project defaults the project language to the device language without region`() = scope.runTest {
 		val repo = projectsRepository()
 
 		val projectName = projectNames[0]
-		assertTrue(repo.createProject(projectName).isSuccess)
+		assertTrue(repo.createProject(projectName, seedDefaultLanguage = true).isSuccess)
 
 		val newDef = ProjectDef(projectName, getProjectsDirectory().div(projectName).toHPath())
 		val stored = loadStoredProjectData(newDef, ffs, toml)
-		assertEquals("en-US", stored.data.language)
+		// Region deliberately dropped from the en-US device locale: the auto-default must
+		// never gate spell check against a same-language dictionary of another region.
+		assertEquals("en", stored.data.language)
 		assertEquals(null, stored.lastSyncedHash)
+	}
+
+	@Test
+	fun `Create Project without seeding leaves no project_data file`() = scope.runTest {
+		val repo = projectsRepository()
+
+		val projectName = projectNames[0]
+		assertTrue(repo.createProject(projectName, seedDefaultLanguage = false).isSuccess)
+
+		// Server-materialized shells must keep the never-synced baseline: no file at all.
+		assertFalse(ffs.exists(getProjectsDirectory().div(projectName).div("project_data.toml")))
 	}
 
 	@Test
@@ -213,7 +226,7 @@ class ProjectsRepositoryBasicTest : ProjectsRepositoryBaseTest() {
 		val repo = projectsRepository()
 
 		val projectName = "!@/Invalid Name"
-		val result = repo.createProject(projectName)
+		val result = repo.createProject(projectName, seedDefaultLanguage = true)
 		assertTrue(isFailure(result))
 		assertTrue(result.exception is ProjectCreationFailedException)
 		assertTrue(

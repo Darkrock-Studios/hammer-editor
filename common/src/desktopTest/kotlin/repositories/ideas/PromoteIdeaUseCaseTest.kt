@@ -137,7 +137,7 @@ class PromoteIdeaUseCaseTest : BaseTest() {
 	@Test
 	fun `Promotion suffixes the project name when it already exists`() = runTest {
 		advanceUntilIdle()
-		projectsRepository.createProject("Tides").let { assertTrue(isSuccess(it)) }
+		projectsRepository.createProject("Tides", seedDefaultLanguage = true).let { assertTrue(isSuccess(it)) }
 		val idea = ideasRepository.createIdea(content = "waves", title = "Tides")
 			.let { assertTrue(isSuccess(it)); it.data }
 

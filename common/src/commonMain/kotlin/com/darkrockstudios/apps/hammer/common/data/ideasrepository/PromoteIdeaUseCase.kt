@@ -79,10 +79,10 @@ class PromoteIdeaUseCase(
 	}
 
 	private fun createWithUniqueName(baseName: String): CResult<ProjectDef> {
-		var result = projectsRepository.createProject(baseName)
+		var result = projectsRepository.createProject(baseName, seedDefaultLanguage = true)
 		var suffix = 2
 		while (result.isFailure && suffix <= MAX_NAME_ATTEMPTS) {
-			result = projectsRepository.createProject("$baseName $suffix")
+			result = projectsRepository.createProject("$baseName $suffix", seedDefaultLanguage = true)
 			suffix++
 		}
 		return result

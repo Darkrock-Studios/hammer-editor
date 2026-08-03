@@ -309,7 +309,7 @@ The handwriting of the system. Reach for these instead of styling
 - **[`HdSearchableListDialog`](HdSearchableListDialog.kt)** — hairline
   dialog with an `HdSearchField` over a lazy row list, each row a label
   plus optional mono greeble (`English (United States)     EN-US`).
-  Use where a dropdown would be unwieldy — dozens to hundreds of
+  Use where a dropdown would be unwieldy: dozens to hundreds of
   options, e.g. every platform locale. Optional muted clear row above
   the list resets the selection.
 

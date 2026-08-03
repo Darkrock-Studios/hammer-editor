@@ -42,12 +42,26 @@ class ServerProjectDataRepository(
 		return SResult.success(RawProjectDataDto(data = data, hash = row.hash))
 	}
 
+	/**
+	 * The stored project-data hash, for HTTP validators: it changes with any project-data
+	 * edit (including the declared language) without transferring or parsing the content.
+	 * Null when the project has no data row.
+	 */
+	suspend fun loadDataHash(userId: Long, projectDef: ProjectDefinition): String? {
+		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid) ?: return null
+		return projectDataDao.getHash(userId, projectId)
+	}
+
 	/** The project's declared BCP-47 language for public-page metadata; null when unset or unreadable. */
 	suspend fun loadProjectLanguage(userId: Long, projectDef: ProjectDefinition): String? {
 		val projectId = projectDao.getProjectIdOrNull(userId, projectDef.uuid) ?: return null
 		val row = projectDataDao.get(userId, projectId) ?: return null
-		val data = parseContent(row.content, userId, projectDef) ?: return null
-		return decodeAsProjectData(data)?.language?.takeIf { it.isNotBlank() }
+		val element = try {
+			json.parseToJsonElement(row.content)
+		} catch (e: SerializationException) {
+			return null
+		}
+		return decodeAsProjectData(element)?.language?.takeIf { it.isNotBlank() }
 	}
 
 	suspend fun save(

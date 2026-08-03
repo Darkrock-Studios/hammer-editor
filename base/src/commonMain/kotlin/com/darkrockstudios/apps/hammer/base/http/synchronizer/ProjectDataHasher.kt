@@ -47,9 +47,12 @@ object ProjectDataHasher {
 		}
 
 		// Zero bytes when null, same rule as tags: pre-language hashes must stay identical.
-		// The leading 1 keeps null and empty-string distinct.
+		// The -1 marker can never be a tags size and the length prefix bounds the string,
+		// so a language block cannot be read as a continuation of the tags block
+		// (tags=["x"] and language="x" must not collide).
 		if (data.language != null) {
-			d.update(1, buf)
+			d.update(-1, buf)
+			d.update(data.language.length, buf)
 			d.update(data.language, buf)
 		}
 

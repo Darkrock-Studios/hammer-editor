@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
-import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidationResult
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidator
 import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
@@ -15,8 +14,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
-import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectdata.saveStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.MAX_FILENAME_LENGTH
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.RECOVERED_PROJECT_NAME
@@ -163,7 +162,13 @@ class ProjectsRepository(
 		return ProjectDef(projectName, projectDir.toHPath())
 	}
 
-	fun createProject(projectName: String): CResult<ProjectDef> {
+	/**
+	 * [seedDefaultLanguage] must be false when materializing a project that already exists
+	 * on the server (account sync): a fresh local shell has to keep the never-synced
+	 * ProjectData baseline (empty data, null lastSyncedHash), or the first project sync
+	 * reads the seed as a phantom local edit and raises a spurious conflict.
+	 */
+	fun createProject(projectName: String, seedDefaultLanguage: Boolean): CResult<ProjectDef> {
 		val strippedName = projectName.trim()
 		val result = validateFileName(strippedName)
 		return if (isSuccess(result)) {
@@ -188,14 +193,19 @@ class ProjectsRepository(
 				)
 				projectsMetadataDatasource.saveMetadata(metadata, newDef)
 
-				// New projects start declared in the device's language; the user can
-				// clear or change it in project settings.
-				val languageTag = deviceLocaleResolver.getCurrentLocale().toLanguageTag().ifBlank { null }
-				fileSystem.writeToml(
-					newProjectDir / ProjectDataDatasource.FILENAME,
-					toml,
-					StoredProjectData(data = ProjectData(language = languageTag)),
-				)
+				if (seedDefaultLanguage) {
+					// New projects start declared in the device's language, without a region:
+					// the auto-default must never gate spell check against a same-language
+					// dictionary of another region (en vs en-GB). Users can pick a full tag
+					// in project settings.
+					val languageTag = deviceLocaleResolver.getCurrentLocale().language
+					saveStoredProjectData(
+						newDef,
+						fileSystem,
+						toml,
+						StoredProjectData(data = ProjectData(language = languageTag)),
+					)
+				}
 
 				CResult.success(newDef)
 			}

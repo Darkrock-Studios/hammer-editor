@@ -36,10 +36,30 @@ class LocaleTest {
 	}
 
 	@Test
-	fun forLanguageTag_skipsScriptSubtag() {
+	fun forLanguageTag_retainsScriptSubtag() {
 		val locale = Locale.forLanguageTag("zh-Hant-TW")
 		assertEquals("zh", locale.language)
+		assertEquals("Hant", locale.script)
 		assertEquals("TW", locale.region)
+		assertEquals("zh-Hant-TW", locale.toLanguageTag())
+	}
+
+	@Test
+	fun forLanguageTag_normalizesScriptCase() {
+		assertEquals("Hans", Locale.forLanguageTag("zh-hans").script)
+		assertEquals("Hans", Locale.forLanguageTag("zh-HANS").script)
+	}
+
+	@Test
+	fun forLanguageTag_scriptDistinguishesLocales() {
+		assertTrue(Locale.forLanguageTag("zh-Hans-HK") != Locale.forLanguageTag("zh-Hant-HK"))
+	}
+
+	@Test
+	fun forLanguageTag_underscoreScriptSeparator() {
+		// iOS availableLocaleIdentifiers uses underscores: "zh_Hant_HK".
+		val locale = Locale.forLanguageTag("zh_Hant_HK")
+		assertEquals("zh-Hant-HK", locale.toLanguageTag())
 	}
 
 	@Test

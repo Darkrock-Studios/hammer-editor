@@ -132,6 +132,24 @@ internal fun <T> HdSearchableListDialogContent(
 
 		SpacerL()
 
+		// Pinned above the scrolling list so it stays reachable even when the
+		// search matches nothing.
+		if (clearLabel != null && onClear != null) {
+			PickerRow(
+				label = clearLabel,
+				trailing = null,
+				muted = true,
+				onClick = {
+					onClear()
+					onDismissRequest()
+				},
+			)
+			HorizontalDivider(
+				thickness = Dp.Hairline,
+				color = MaterialTheme.colorScheme.outlineVariant,
+			)
+		}
+
 		Box(
 			modifier = Modifier
 				.fillMaxWidth()
@@ -152,23 +170,6 @@ internal fun <T> HdSearchableListDialogContent(
 				}
 			} else {
 				LazyColumn(modifier = Modifier.fillMaxWidth()) {
-					if (clearLabel != null && onClear != null) {
-						item {
-							PickerRow(
-								label = clearLabel,
-								trailing = null,
-								muted = true,
-								onClick = {
-									onClear()
-									onDismissRequest()
-								},
-							)
-							HorizontalDivider(
-								thickness = Dp.Hairline,
-								color = MaterialTheme.colorScheme.outlineVariant,
-							)
-						}
-					}
 					items(filtered, key = itemKey) { item ->
 						PickerRow(
 							label = itemLabel(item),

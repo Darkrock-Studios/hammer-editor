@@ -50,7 +50,7 @@
 	<string name="project_info_language_dialog_title">Choose a language</string>
 	<string name="project_info_language_dialog_close">Close</string>
 	<string name="project_info_language_search_hint">Search languages</string>
-	<string name="project_info_language_clear">Clear — not set</string>
+	<string name="project_info_language_clear">Clear (not set)</string>
 	<string name="project_info_language_empty">No languages match</string>
 	<string name="project_info_color_picker_edit">Edit</string>
 	<string name="project_info_color_picker_cancel">Cancel</string>
