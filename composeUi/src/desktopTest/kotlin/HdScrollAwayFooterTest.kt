@@ -9,12 +9,12 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
@@ -36,10 +36,6 @@ class HdScrollAwayFooterTest {
 	@get:Rule
 	val compose = createComposeRule()
 
-	/**
-	 * [rowCount] * [RowHeight] at [PaneHeight] makes the list scrollable only by
-	 * the footer's own bottom padding; well over it makes it genuinely scrollable.
-	 */
 	private fun showFooter(rowCount: Int) {
 		compose.setContent {
 			val footerState = rememberHdScrollAwayFooterState()
@@ -67,28 +63,21 @@ class HdScrollAwayFooterTest {
 	}
 
 	@Test
-	fun `Footer stays put when the only scroll room is its own padding`() {
-		// 10 * 30dp fills the 300dp pane exactly, so every scrollable pixel comes
-		// from the footer's own bottom padding.
-		showFooter(rowCount = 10)
-
-		// Held mid-drag, scrolled but short of the bottom: the resting state is
-		// pinned either way, so only the mid-drag frame shows the strip blinking.
-		compose.onNodeWithTag(LIST_TAG).performTouchInput {
-			down(center)
-			moveBy(Offset(0f, -height * 0.15f))
-		}
-
-		compose.onNodeWithTag(ACTION_TAG).assertIsDisplayed()
-	}
-
-	@Test
-	fun `Footer hides once the list scrolls past the footer height`() {
+	fun `Footer hides on a downward scroll`() {
 		showFooter(rowCount = 40)
 
 		compose.onNodeWithTag(LIST_TAG).performTouchInput { swipeUp() }
 
 		compose.onNodeWithTag(ACTION_TAG).assertDoesNotExist()
+	}
+
+	@Test
+	fun `Footer is pinned once the list bottoms out`() {
+		showFooter(rowCount = 40)
+
+		compose.onNodeWithTag(LIST_TAG).performScrollToIndex(39)
+
+		compose.onNodeWithTag(ACTION_TAG).assertIsDisplayed()
 	}
 
 	@Test

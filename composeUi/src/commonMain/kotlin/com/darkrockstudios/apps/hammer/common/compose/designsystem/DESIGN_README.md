@@ -210,7 +210,7 @@ These set up the page. Use them before reaching for raw `Column` /
 
 - **[`HdScrollAwayFooter`](HdScrollAwayFooter.kt)**: hairline action
   strip that floats over the bottom of a scrolling pane and slides away
-  once the reader has scrolled down past its own height. It is an **overlay**, never a sibling in
+  as the reader scrolls down. It is an **overlay**, never a sibling in
   a `Column`: host it in the same `Box` as the list, wire
   `state.nestedScrollConnection` to the list, and pass `state.height`
   as the list's bottom `contentPadding` so the last row clears the

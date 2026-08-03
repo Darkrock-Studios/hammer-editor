@@ -51,30 +51,15 @@ class HdScrollAwayFooterState internal constructor() {
 	var height by mutableStateOf(0.dp)
 		internal set
 
-	internal var heightPx = 0f
-
-	private var scrolledDown = 0f
-
 	/**
-	 * Hides on scrolled-past distance rather than direction alone, and counts
-	 * only what the list actually consumed. A list whose sole scroll room is
-	 * this strip's own bottom padding can never reach the threshold, so the
-	 * strip stays put instead of hiding and immediately re-pinning at the
-	 * bottom.
+	 * Reacts to raw scroll direction, not accumulated distance. Any
+	 * distance threshold has to survive the jitter in a real drag, and
+	 * the reveal has to feel immediate, so direction wins here.
 	 */
 	val nestedScrollConnection: NestedScrollConnection = object : NestedScrollConnection {
-		override fun onPostScroll(
-			consumed: Offset,
-			available: Offset,
-			source: NestedScrollSource,
-		): Offset {
-			if (consumed.y < -1f) {
-				scrolledDown -= consumed.y
-				if (scrolledDown > heightPx) isHiddenByScroll = true
-			} else if (consumed.y > 1f) {
-				scrolledDown = 0f
-				isHiddenByScroll = false
-			}
+		override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+			if (available.y < -1f) isHiddenByScroll = true
+			else if (available.y > 1f) isHiddenByScroll = false
 			return Offset.Zero
 		}
 	}
@@ -85,7 +70,7 @@ fun rememberHdScrollAwayFooterState(): HdScrollAwayFooterState = remember { HdSc
 
 /**
  * Hairline action strip that floats over the bottom of a scrolling pane and
- * slides away once the reader has scrolled down past the strip's own height.
+ * slides away as the reader scrolls down.
  *
  *     ┌───────────────────────┐
  *     │ list row              │
@@ -132,7 +117,6 @@ fun BoxScope.HdScrollAwayFooter(
 				.onSizeChanged { size ->
 					if (size.height > 0) {
 						state.height = with(density) { size.height.toDp() }
-						state.heightPx = size.height.toFloat()
 					}
 				},
 		) {
