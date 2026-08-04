@@ -26,7 +26,7 @@
 	<string name="project_home_stat_week_change_flat">aucun changement vs semaine dernière</string>
 	<string name="project_home_stat_week_change_new">aucune donnée la semaine dernière</string>
 	<string name="project_home_stat_today">Aujourd'hui</string>
-	<string name="project_home_stat_daily_avg">Moy. quotidienne</string>
+	<string name="project_home_stat_daily_avg">Moy. quot.</string>
 	<string name="project_home_stat_streak">Série</string>
 	<string name="project_home_stat_streak_days">%1$d jours</string>
 	<string name="project_home_stat_longest_streak">Plus longue : %1$d</string>
@@ -104,11 +104,11 @@
 	<string name="project_home_import_create_groups_label">Créer des groupes de chapitres</string>
 	<string name="project_home_import_preview_label">Aperçu</string>
 	<string name="project_home_import_preview_empty">Rien à importer</string>
-	<string name="project_home_import_preview_reading">Reading your manuscript</string>
+	<string name="project_home_import_preview_reading">Lecture de votre manuscrit</string>
 	<string name="project_home_import_preview_count">Créera %1$d scène(s)</string>
-	<string name="project_home_import_large_scene_label">Large scene</string>
-	<string name="project_home_import_large_scene_one">One scene holds %1$s words, so chapter detection probably missed your chapter titles. Try another detection setting.</string>
-	<string name="project_home_import_large_scene_many">%1$d scenes hold %2$s words or more, so chapter detection probably missed some chapter titles. Try another detection setting.</string>
+	<string name="project_home_import_large_scene_label">Scène large</string>
+	<string name="project_home_import_large_scene_one">Une scène contient %1$s mots, donc la détection de chapitre a probablement manqué les titres de votre chapitre. Essayez un autre paramètre de détection</string>
+	<string name="project_home_import_large_scene_many">Les scènes %1$d contiennent des mots %2$s ou plus, donc la détection de chapitre a probablement manqué certains titres de chapitre. Essayez un autre paramètre de détection</string>
 	<string name="project_home_import_scene_word_count">%1$s S</string>
 	<string name="project_home_import_cancel">Annuler</string>
 	<string name="project_home_import_execute">Importer</string>
