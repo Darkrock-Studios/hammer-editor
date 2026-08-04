@@ -1,4 +1,4 @@
-import kotlinx.datetime.Instant;
+import kotlin.time.Instant;
 
 -- One auth_token row per (user_id, install_id) pair. The token itself is a
 -- separately UNIQUE credential. This restructure (vs SQLite's PK-on-token) lets
