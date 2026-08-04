@@ -1,1 +1,1 @@
-A simple tool for building stories.
+Una herramienta sencilla para crear historias.
