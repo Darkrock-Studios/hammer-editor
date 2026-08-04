@@ -32,7 +32,10 @@ object EditorTestHarness {
 
 	/** Create a uniquely-named project so re-runs don't collide; returns its def. */
 	fun seedProject(baseName: String): ProjectDef {
-		val result = repository().createProject("$baseName ${System.currentTimeMillis()}")
+		val result = repository().createProject(
+			"$baseName ${System.currentTimeMillis()}",
+			seedDefaultLanguage = true,
+		)
 		check(result is ClientResult.Success) { "Failed to seed project: $result" }
 		return result.data
 	}
