@@ -104,12 +104,7 @@
 	<string name="project_home_import_create_groups_label">Crea gruppi di capitoli</string>
 	<string name="project_home_import_preview_label">Anteprima</string>
 	<string name="project_home_import_preview_empty">Niente da importare</string>
-	<string name="project_home_import_preview_reading">Reading your manuscript</string>
 	<string name="project_home_import_preview_count">Creerà %1$d scene</string>
-	<string name="project_home_import_large_scene_label">Large scene</string>
-	<string name="project_home_import_large_scene_one">One scene holds %1$s words, so chapter detection probably missed your chapter titles. Try another detection setting.</string>
-	<string name="project_home_import_large_scene_many">%1$d scenes hold %2$s words or more, so chapter detection probably missed some chapter titles. Try another detection setting.</string>
-	<string name="project_home_import_scene_word_count">%1$s W</string>
 	<string name="project_home_import_cancel">Annulla</string>
 	<string name="project_home_import_execute">Importa</string>
 	<string name="project_home_action_settings_button">Impostazioni</string>
