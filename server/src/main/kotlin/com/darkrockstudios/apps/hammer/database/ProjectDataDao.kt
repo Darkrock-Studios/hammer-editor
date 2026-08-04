@@ -19,6 +19,11 @@ class ProjectDataDao(
 				?.let { ProjectDataRow(content = it.content, hash = it.hash, updatedAt = it.updated_at) }
 		}
 
+	suspend fun getHash(userId: Long, projectId: Long): String? =
+		withContext(ioDispatcher) {
+			queries.getHashForProject(userId, projectId).executeAsOneOrNull()
+		}
+
 	suspend fun upsert(
 		userId: Long,
 		projectId: Long,

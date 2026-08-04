@@ -18,6 +18,7 @@ actual val platformModule = module {
 	single<NetworkConnectivity>()
 	single<StrResImpl>() bind StrRes::class
 	single<DeviceLocaleResolver>()
+	single<AvailableLocalesProvider>()
 	single<UrlLauncherDesktop>() bind UrlLauncher::class
 	single<LanguageUtil>()
 	factory { params -> DesktopPlatformSettingsComponent(componentContext = params.get()) } bind PlatformSettings::class

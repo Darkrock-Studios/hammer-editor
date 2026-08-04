@@ -34,8 +34,7 @@ class WritingActivityDatasource(
 	override val projectScope = ProjectDefScope(projectDef)
 	private val dispatcherIo by injectIoDispatcher()
 
-	fun getDirectory(): Path =
-		projectDef.path.toOkioPath() / SceneDatasource.SCENE_DIRECTORY / ACTIVITY_DIRECTORY
+	fun getDirectory(): Path = activityDirectory(projectDef.path.toOkioPath())
 
 	fun getDeviceLogPath(deviceId: String): Path = getDirectory() / "$deviceId$FILE_SUFFIX"
 
@@ -62,12 +61,32 @@ class WritingActivityDatasource(
 	}
 
 	suspend fun saveDeviceLog(deviceId: String, log: DeviceLog): Unit = withContext(dispatcherIo) {
-		fileSystem.createDirectories(getDirectory())
-		fileSystem.writeToml(getDeviceLogPath(deviceId), toml, log)
+		writeDeviceLog(projectDef.path.toOkioPath(), deviceId, log, fileSystem, toml)
 	}
 
 	companion object {
 		const val ACTIVITY_DIRECTORY = ".activity"
 		const val FILE_SUFFIX = ".toml"
 	}
+}
+
+/** The `.activity` directory under [projectRoot]; the single owner of the path convention. */
+fun activityDirectory(projectRoot: Path): Path =
+	projectRoot / SceneDatasource.SCENE_DIRECTORY / WritingActivityDatasource.ACTIVITY_DIRECTORY
+
+/**
+ * Blocking, scope-less write of a device's activity log under [projectRoot]; callers own
+ * their threading. [WritingActivityDatasource.saveDeviceLog] delegates here; the
+ * example-project installer uses it directly because the project isn't loaded.
+ */
+fun writeDeviceLog(
+	projectRoot: Path,
+	deviceId: String,
+	log: DeviceLog,
+	fileSystem: FileSystem,
+	toml: Toml,
+) {
+	val dir = activityDirectory(projectRoot)
+	fileSystem.createDirectories(dir)
+	fileSystem.writeToml(dir / "$deviceId${WritingActivityDatasource.FILE_SUFFIX}", toml, log)
 }

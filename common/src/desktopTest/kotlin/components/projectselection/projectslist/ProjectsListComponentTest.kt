@@ -189,14 +189,14 @@ class ProjectsListComponentTest : ComponentTest() {
 	fun `createProject success on a synced account creates locally and on the server then clears the dialog`() =
 		runTest(mainTestDispatcher) {
 			every { synchronizer.isServerSynchronized() } returns true
-			every { projectsRepository.createProject("Novel") } returns CResult.success(projectDefA)
+			every { projectsRepository.createProject("Novel", any()) } returns CResult.success(projectDefA)
 			val comp = newComponent()
 			comp.onProjectNameUpdate("Novel")
 
 			comp.createProject("Novel")
 			advanceUntilIdle()
 
-			verify { projectsRepository.createProject("Novel") }
+			verify { projectsRepository.createProject("Novel", any()) }
 			verify { synchronizer.createProject("Novel") }
 			assertEquals("", comp.state.value.createDialogProjectName)
 		}
@@ -205,7 +205,7 @@ class ProjectsListComponentTest : ComponentTest() {
 	fun `createProject success on a non-synced account does not touch the synchronizer`() =
 		runTest(mainTestDispatcher) {
 			every { synchronizer.isServerSynchronized() } returns false
-			every { projectsRepository.createProject("Novel") } returns CResult.success(projectDefA)
+			every { projectsRepository.createProject("Novel", any()) } returns CResult.success(projectDefA)
 			val comp = newComponent()
 
 			comp.createProject("Novel")
@@ -217,7 +217,7 @@ class ProjectsListComponentTest : ComponentTest() {
 	@Test
 	fun `createProject failure leaves the dialog open and does not reload or sync`() =
 		runTest(mainTestDispatcher) {
-			every { projectsRepository.createProject("bad/name") } returns
+			every { projectsRepository.createProject("bad/name", any()) } returns
 				CResult.failure(error = "invalid", displayMessage = "Bad name".toMsg())
 			val comp = newComponent()
 			comp.onProjectNameUpdate("bad/name")
@@ -325,7 +325,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			comp.confirmImportDialog()
 			advanceUntilIdle()
 
-			verify(exactly = 0) { projectsRepository.createProject(any()) }
+			verify(exactly = 0) { projectsRepository.createProject(any(), any()) }
 		}
 
 	@Test
@@ -355,7 +355,7 @@ class ProjectsListComponentTest : ComponentTest() {
 	fun `confirmImportDialog leaves the dialog open and does not sync when project creation fails`() =
 		runTest(mainTestDispatcher) {
 			every { synchronizer.isServerSynchronized() } returns true
-			every { projectsRepository.createProject("Draft") } returns
+			every { projectsRepository.createProject("Draft", any()) } returns
 				CResult.failure(error = "exists", displayMessage = "Project already exists".toMsg())
 			val comp = newComponent()
 			comp.selectImportFile("Draft.md", "# One\n\nText\n\n# Two\n\nMore".encodeToByteArray())

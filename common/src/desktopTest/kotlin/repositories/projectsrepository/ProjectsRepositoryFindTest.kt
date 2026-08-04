@@ -21,7 +21,7 @@ class ProjectsRepositoryFindTest : ProjectsRepositoryBaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		createProject(ffs, OUT_OF_ORDER_PROJECT_NAME)
 
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		val projectDef = repo.findProject(PROJECT_2_NAME)
 
@@ -33,7 +33,7 @@ class ProjectsRepositoryFindTest : ProjectsRepositoryBaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 		createProject(ffs, OUT_OF_ORDER_PROJECT_NAME)
 
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		val projectDef = repo.findProject(PROJECT_2_NAME)
 
@@ -49,7 +49,7 @@ class ProjectsRepositoryFindTest : ProjectsRepositoryBaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		createProject(ffs, OUT_OF_ORDER_PROJECT_NAME)
 
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		val projectDef = repo.findProject(proj1Id)
 
@@ -64,7 +64,7 @@ class ProjectsRepositoryFindTest : ProjectsRepositoryBaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		createProject(ffs, OUT_OF_ORDER_PROJECT_NAME)
 
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		val projectDef = repo.findProject(fakeId)
 
@@ -78,7 +78,7 @@ class ProjectsRepositoryFindTest : ProjectsRepositoryBaseTest() {
 		createProject(ffs, PROJECT_2_NAME)
 		createProject(ffs, OUT_OF_ORDER_PROJECT_NAME)
 
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		val projectDef = repo.getProjectDefinition(PROJECT_1_NAME)
 
@@ -93,7 +93,7 @@ class ProjectsRepositoryFindTest : ProjectsRepositoryBaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 		createProject(ffs, PROJECT_2_NAME)
 
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		val known = repo.getProjects().firstOrNull { it.name == PROJECT_1_NAME }
 		val forged = repo.getProjects().firstOrNull { it.name == "../../attacker/controlled" }

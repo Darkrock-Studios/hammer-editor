@@ -27,6 +27,7 @@ interface ViewEntry : TagSuggesting {
 		val showAliasAdd: Boolean = false,
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
 		val appearsIn: List<Appearance> = emptyList(),
+		val spellCheckAllowed: Boolean = true,
 	)
 
 	data class Appearance(

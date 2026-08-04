@@ -44,6 +44,10 @@ class CreateTimeLineEventComponent(
 		contentText.subscribe(lifecycle) {
 			backButtonHandler.isEnabled = it.isNotBlank()
 		}
+
+		watchSpellCheckAllowed { allowed ->
+			_state.getAndUpdate { it.copy(spellCheckAllowed = allowed) }
+		}
 	}
 
 	override fun onContentChanged(newText: String) {

@@ -76,6 +76,10 @@ class ViewNoteComponent(
 			backButtonHandler.isEnabled = it.isEditing
 		}
 
+		watchSpellCheckAllowed { allowed ->
+			_state.getAndUpdate { it.copy(spellCheckAllowed = allowed) }
+		}
+
 		loadInitialContent()
 	}
 

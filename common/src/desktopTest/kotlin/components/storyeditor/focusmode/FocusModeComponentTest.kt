@@ -10,7 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
-import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -70,7 +70,7 @@ class FocusModeComponentTest : ComponentTest() {
 			sceneEditor.subscribeToBufferUpdates(any(), any(), capture(bufferCallback))
 		} returns mockk(relaxed = true)
 
-		val spellCheckRepository = mockk<SpellCheckRepository>(relaxed = true)
+		val spellCheckRepository = mockk<ProjectSpellCheckRepository>(relaxed = true)
 		every { spellCheckRepository.dictionaryFlow } returns MutableSharedFlow()
 
 		setupComponentKoin(module {

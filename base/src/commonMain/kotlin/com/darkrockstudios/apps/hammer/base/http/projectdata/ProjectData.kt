@@ -9,6 +9,8 @@ data class ProjectData(
 	val wordCountGoal: WordCountGoal? = null,
 	/** Picked as a unit during conflict resolution — the whole set comes from one side, never a merge. */
 	val tags: Set<String> = emptySet(),
+	/** BCP-47 tag of the language the project is written in (e.g. "en", "pt-BR"); null when unset. */
+	val language: String? = null,
 )
 
 /** Picked as a unit during conflict resolution — one device's primary paired with another's secondary is undesigned. */

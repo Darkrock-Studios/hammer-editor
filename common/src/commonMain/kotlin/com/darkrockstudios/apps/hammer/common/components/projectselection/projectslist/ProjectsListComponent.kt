@@ -4,7 +4,6 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.base.http.readTomlOrNull
 import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.ComponentToasterImpl
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
@@ -20,8 +19,7 @@ import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
-import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
-import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectdata.readStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
@@ -251,16 +249,13 @@ class ProjectsListComponent(
 	}
 
 	/**
-	 * Reads `project_data.toml` (author, theme, word-count goal) without
-	 * opening a per-project Koin scope — the projects list previews many
-	 * projects and a full scope per row would be wasteful.
+	 * Reads `project_data.toml` (author, theme, word-count goal) via the datasource's
+	 * scope-less helper — the projects list previews many projects and a full
+	 * per-project Koin scope per row would be wasteful. Blocking variant because
+	 * [loadProjectList]'s parallelMap workers are not a coroutine context.
 	 */
-	private fun loadStoredProjectData(projectDef: ProjectDef): StoredData {
-		val path = projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME
-		return fileSystem.readTomlOrNull<StoredProjectData>(path, toml) { e ->
-			//Napier.d("Failed to read stored project data for ${projectDef.name}, using defaults", e)
-		}?.data ?: StoredData()
-	}
+	private fun loadStoredProjectData(projectDef: ProjectDef): StoredData =
+		readStoredProjectData(projectDef, fileSystem, toml).data
 
 	private fun updateLastAccessed(projectDef: ProjectDef) {
 		projectMetadataDatasource.updateMetadata(projectDef) { metadata ->
@@ -289,7 +284,7 @@ class ProjectsListComponent(
 	}
 
 	override fun createProject(projectName: String) {
-		val result = projectsRepository.createProject(projectName)
+		val result = projectsRepository.createProject(projectName, seedDefaultLanguage = true)
 		if (isSuccess(result)) {
 			if (projectsSynchronizer.isServerSynchronized()) {
 				projectsSynchronizer.createProject(projectName)
@@ -483,7 +478,7 @@ class ProjectsListComponent(
 			return
 		}
 
-		val result = projectsRepository.createProject(projectName)
+		val result = projectsRepository.createProject(projectName, seedDefaultLanguage = true)
 		if (!isSuccess(result)) {
 			result.displayMessage?.let { msg -> showToast(scope, msg) }
 			Napier.e("Import: failed to create project '$projectName'")

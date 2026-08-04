@@ -82,7 +82,12 @@ class HeadlessClient private constructor(
 			val projectsRepository: ProjectsRepository = koin.get<ProjectsRepository>()
 			val globalSettings: GlobalSettingsStore = koin.get<GlobalSettingsStore>()
 
-			val createResult = projectsRepository.createProject(projectName)
+			// A second device opening an existing server project must keep the never-synced
+			// ProjectData baseline; only a genuinely new project gets the language seed.
+			val createResult = projectsRepository.createProject(
+				projectName,
+				seedDefaultLanguage = serverProjectId == null,
+			)
 			check(isSuccess(createResult)) { "Failed to create local project: $createResult" }
 			val projectDef: ProjectDef = createResult.data
 

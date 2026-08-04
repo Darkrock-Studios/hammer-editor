@@ -128,6 +128,7 @@ fun ViewNoteUi(
 						noteText = noteText,
 						onNoteTextChanged = { component.onContentChanged(it) },
 						suggestTags = component::suggestTags,
+						enableSpellChecking = state.spellCheckAllowed,
 						modifier = Modifier.weight(1f),
 					)
 
@@ -377,6 +378,7 @@ private fun EditBody(
 	noteText: String,
 	onNoteTextChanged: (String) -> Unit,
 	suggestTags: (prefix: String) -> List<String>,
+	enableSpellChecking: Boolean,
 	modifier: Modifier = Modifier,
 ) {
 	Column(modifier = modifier.fillMaxWidth()) {
@@ -403,6 +405,7 @@ private fun EditBody(
 		MarkdownEditField(
 			initialMarkdown = noteText,
 			onMarkdownChanged = onNoteTextChanged,
+			enableSpellChecking = enableSpellChecking,
 			contentPadding = PaddingValues(Ui.Padding.XL),
 			modifier = Modifier
 				.fillMaxWidth()

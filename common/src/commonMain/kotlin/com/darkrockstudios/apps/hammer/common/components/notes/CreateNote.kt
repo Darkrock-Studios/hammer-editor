@@ -12,6 +12,7 @@ interface CreateNote : TagSuggesting {
 	@Serializable
 	data class State(
 		val confirmDiscard: Boolean = false,
+		val spellCheckAllowed: Boolean = true,
 	)
 
 	suspend fun createNote(noteText: String, tags: Set<String>): NoteError

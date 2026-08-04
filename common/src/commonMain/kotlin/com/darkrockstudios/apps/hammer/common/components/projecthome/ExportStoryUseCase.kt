@@ -98,8 +98,10 @@ class ExportStoryUseCase(
 			}
 			val projectData =
 				if (options.format == ExportFormat.Markdown) null else projectDataDatasource.load().data
-			val language =
-				localeResolver.getCurrentLocale().language?.takeIf { it.isNotBlank() } ?: "en"
+			// The project's declared language wins; the device locale is only a fallback.
+			val language = projectData?.language?.takeIf { it.isNotBlank() }
+				?: localeResolver.getCurrentLocale().language?.takeIf { it.isNotBlank() }
+				?: "en"
 			ExportSource(perNodeChapters, projectData, language)
 		}
 

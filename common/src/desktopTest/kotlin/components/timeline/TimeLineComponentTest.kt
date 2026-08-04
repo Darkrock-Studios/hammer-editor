@@ -47,7 +47,7 @@ class TimeLineComponentTest : ComponentTest() {
 		every { tagIndexService.tagIndex } returns MutableStateFlow(mockk(relaxed = true))
 		every { tagIndexService.getRankedTags(any<TaggedEntityType>(), any()) } returns emptyList()
 
-		setupKoin(module {
+		setupComponentKoin(module {
 			single { timelineRepo } bind TimeLineRepository::class
 			single { tagIndexService } bind TagIndexService::class
 		})

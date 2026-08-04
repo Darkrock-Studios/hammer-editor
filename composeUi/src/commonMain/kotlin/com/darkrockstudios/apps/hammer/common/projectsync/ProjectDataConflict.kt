@@ -39,7 +39,10 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_cadence_day
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_cadence_week
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_explanation
+import com.darkrockstudios.apps.hammer.common.spellcheck.displayName
+import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_author
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_language
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_tags
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_theme
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_word_goal
@@ -60,11 +63,13 @@ internal fun ProjectDataConflict(
 	var themeChoice by remember { mutableStateOf(DataChoice.LOCAL) }
 	var goalChoice by remember { mutableStateOf(DataChoice.LOCAL) }
 	var tagsChoice by remember { mutableStateOf(DataChoice.LOCAL) }
+	var languageChoice by remember { mutableStateOf(DataChoice.LOCAL) }
 
 	val authorConflict = conflictState.local.authorName != conflictState.server.authorName
 	val themeConflict = conflictState.local.theme != conflictState.server.theme
 	val goalConflict = conflictState.local.wordCountGoal != conflictState.server.wordCountGoal
 	val tagsConflict = conflictState.local.tags != conflictState.server.tags
+	val languageConflict = conflictState.local.language != conflictState.server.language
 
 	val unsetLabel = Res.string.sync_conflict_project_data_value_unset.get()
 	val localLabel = Res.string.sync_conflict_tab_local.get()
@@ -134,6 +139,18 @@ internal fun ProjectDataConflict(
 			stackVertical = stackVertical,
 		)
 
+		PerFieldChoice(
+			label = Res.string.sync_conflict_project_data_field_language.get(),
+			conflict = languageConflict,
+			localValue = displayLanguage(conflictState.local.language, unsetLabel),
+			serverValue = displayLanguage(conflictState.server.language, unsetLabel),
+			selected = languageChoice,
+			onSelect = { languageChoice = it },
+			localLabel = localLabel,
+			remoteLabel = remoteLabel,
+			stackVertical = stackVertical,
+		)
+
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.End,
@@ -149,6 +166,7 @@ internal fun ProjectDataConflict(
 							themeChoice = themeChoice,
 							goalChoice = goalChoice,
 							tagsChoice = tagsChoice,
+							languageChoice = languageChoice,
 						)
 					)
 				},
@@ -251,11 +269,13 @@ private fun buildResolved(
 	themeChoice: DataChoice,
 	goalChoice: DataChoice,
 	tagsChoice: DataChoice,
+	languageChoice: DataChoice,
 ): ProjectData = ProjectData(
 	authorName = if (authorChoice == DataChoice.LOCAL) local.authorName else server.authorName,
 	theme = if (themeChoice == DataChoice.LOCAL) local.theme else server.theme,
 	wordCountGoal = if (goalChoice == DataChoice.LOCAL) local.wordCountGoal else server.wordCountGoal,
 	tags = if (tagsChoice == DataChoice.LOCAL) local.tags else server.tags,
+	language = if (languageChoice == DataChoice.LOCAL) local.language else server.language,
 )
 
 private fun displayString(value: String?, unsetLabel: String): String =
@@ -266,6 +286,9 @@ private fun displayTheme(theme: ProjectTheme?, unsetLabel: String): String =
 
 private fun displayTags(tags: Set<String>, unsetLabel: String): String =
 	if (tags.isEmpty()) unsetLabel else tags.sorted().joinToString("  ") { "#$it" }
+
+private fun displayLanguage(tag: String?, unsetLabel: String): String =
+	if (tag.isNullOrBlank()) unsetLabel else Locale.forLanguageTag(tag).displayName()
 
 private fun displayWordGoal(goal: WordCountGoal?, unsetLabel: String, dayLabel: String, weekLabel: String): String {
 	if (goal == null) return unsetLabel

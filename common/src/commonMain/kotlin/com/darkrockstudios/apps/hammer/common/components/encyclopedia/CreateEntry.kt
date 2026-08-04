@@ -12,7 +12,8 @@ interface CreateEntry : TagSuggesting {
 
 	data class State(
 		val projectDef: ProjectDef,
-		val showConfirmClose: Boolean = false
+		val showConfirmClose: Boolean = false,
+		val spellCheckAllowed: Boolean = true,
 	)
 
 	suspend fun createEntry(

@@ -17,6 +17,8 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
+import com.darkrockstudios.apps.hammer.common.util.Locale
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -58,10 +60,14 @@ class PromoteIdeaUseCaseTest : BaseTest() {
 
 		setupKoin()
 
+		val deviceLocaleResolver = mockk<DeviceLocaleResolver>()
+		every { deviceLocaleResolver.getCurrentLocale() } returns Locale.forLanguage("en", "US")
 		projectsRepository = ProjectsRepository(
 			fileSystem = ffs,
 			globalSettingsStore = globalSettingsStore,
 			projectsMetadataDatasource = ProjectMetadataDatasource(ffs, toml),
+			toml = toml,
+			deviceLocaleResolver = deviceLocaleResolver,
 		)
 		val ideasDatasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), globalSettingsStore)
 		ideasRepository = IdeasRepository(
@@ -110,6 +116,8 @@ class PromoteIdeaUseCaseTest : BaseTest() {
 			ffs.read(projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME) { readUtf8() },
 		)
 		assertEquals(setOf("gothic", "coastal"), storedProjectData.data.tags)
+		// The tags write must merge onto the seeded default language, not replace the file.
+		assertEquals("en", storedProjectData.data.language)
 
 		val promoted = ideasRepository.getIdeaById(idea.id)
 		assertNotNull(promoted?.promoted)
@@ -131,7 +139,7 @@ class PromoteIdeaUseCaseTest : BaseTest() {
 	@Test
 	fun `Promotion suffixes the project name when it already exists`() = runTest {
 		advanceUntilIdle()
-		projectsRepository.createProject("Tides").let { assertTrue(isSuccess(it)) }
+		projectsRepository.createProject("Tides", seedDefaultLanguage = true).let { assertTrue(isSuccess(it)) }
 		val idea = ideasRepository.createIdea(content = "waves", title = "Tides")
 			.let { assertTrue(isSuccess(it)); it.data }
 

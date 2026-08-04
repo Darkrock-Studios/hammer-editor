@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -45,6 +47,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSeg
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchableListDialog
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.parseHexColor
 import com.darkrockstudios.apps.hammer.common.compose.theme.toArgbHex
@@ -52,6 +55,13 @@ import com.darkrockstudios.apps.hammer.project_info_author_label
 import com.darkrockstudios.apps.hammer.project_info_color_picker_cancel
 import com.darkrockstudios.apps.hammer.project_info_color_picker_confirm
 import com.darkrockstudios.apps.hammer.project_info_color_picker_edit
+import com.darkrockstudios.apps.hammer.project_info_language_clear
+import com.darkrockstudios.apps.hammer.project_info_language_dialog_close
+import com.darkrockstudios.apps.hammer.project_info_language_dialog_title
+import com.darkrockstudios.apps.hammer.project_info_language_empty
+import com.darkrockstudios.apps.hammer.project_info_language_label
+import com.darkrockstudios.apps.hammer.project_info_language_search_hint
+import com.darkrockstudios.apps.hammer.project_info_language_unset
 import com.darkrockstudios.apps.hammer.project_info_tags_hint
 import com.darkrockstudios.apps.hammer.project_info_tags_label
 import com.darkrockstudios.apps.hammer.project_info_tags_placeholder
@@ -94,6 +104,78 @@ internal fun AuthorField(
 		},
 		imeAction = ImeAction.Done,
 		capitalization = KeyboardCapitalization.Words,
+	)
+}
+
+@Composable
+internal fun LanguageField(
+	languageTag: String?,
+	options: List<ProjectSettings.LanguageOption>,
+	onChange: (String?) -> Unit,
+	modifier: Modifier = Modifier,
+) {
+	var showPicker by remember { mutableStateOf(false) }
+	val selected = options.firstOrNull { it.tag == languageTag }
+	val displayName = selected?.displayName ?: languageTag
+
+	Column(
+		modifier = modifier,
+		verticalArrangement = Arrangement.spacedBy(8.dp),
+	) {
+		HdMonoLabel(text = Res.string.project_info_language_label.get())
+		Row(
+			modifier = Modifier
+				.fillMaxWidth()
+				.heightIn(min = 36.dp)
+				.border(
+					width = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+					shape = RectangleShape,
+				)
+				.clickable { showPicker = true }
+				.padding(horizontal = Ui.Padding.M, vertical = 6.dp),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.S),
+		) {
+			Text(
+				text = displayName ?: Res.string.project_info_language_unset.get(),
+				style = MaterialTheme.typography.bodyMedium,
+				color = if (displayName != null) {
+					MaterialTheme.colorScheme.onSurface
+				} else {
+					MaterialTheme.colorScheme.onSurfaceVariant
+				},
+				maxLines = 1,
+				overflow = TextOverflow.Ellipsis,
+				modifier = Modifier.weight(1f),
+			)
+			if (languageTag != null) {
+				HdMonoLabel(
+					text = languageTag.uppercase(),
+					color = MaterialTheme.colorScheme.onSurfaceVariant,
+				)
+			}
+			HdMonoLabel(
+				text = "▾",
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
+	}
+
+	HdSearchableListDialog(
+		visible = showPicker,
+		title = Res.string.project_info_language_dialog_title.get(),
+		items = options,
+		itemLabel = { it.displayName },
+		itemTrailing = { it.tag.uppercase() },
+		itemKey = { it.tag },
+		onSelect = { onChange(it.tag) },
+		onDismiss = { showPicker = false },
+		closeContentDescription = Res.string.project_info_language_dialog_close.get(),
+		searchPlaceholder = Res.string.project_info_language_search_hint.get(),
+		clearLabel = Res.string.project_info_language_clear.get(),
+		onClear = { onChange(null) },
+		emptyLabel = Res.string.project_info_language_empty.get(),
 	)
 }
 
@@ -429,6 +511,11 @@ fun ProjectInfoSettingsUi(component: ProjectSettings) {
 		AuthorField(
 			initial = state.data.authorName.orEmpty(),
 			onChange = component::setAuthorName,
+		)
+		LanguageField(
+			languageTag = state.data.language,
+			options = component.availableLanguages,
+			onChange = component::setProjectLanguage,
 		)
 		CustomThemeSection(
 			section = 1,

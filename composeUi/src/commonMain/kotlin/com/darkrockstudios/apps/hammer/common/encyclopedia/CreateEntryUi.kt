@@ -207,6 +207,7 @@ internal fun CreateEntryUi(
 				MarkdownEditField(
 					initialMarkdown = description,
 					onMarkdownChanged = { description = it },
+					enableSpellChecking = state.spellCheckAllowed,
 					contentPadding = PaddingValues(Ui.Padding.XL),
 					modifier = Modifier.fillMaxWidth().heightIn(min = 160.dp),
 				)

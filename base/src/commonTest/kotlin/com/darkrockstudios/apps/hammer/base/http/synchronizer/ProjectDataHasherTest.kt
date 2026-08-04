@@ -57,6 +57,42 @@ class ProjectDataHasherTest {
 	}
 
 	@Test
+	fun `language affects hash`() {
+		val unset = ProjectData(authorName = "Pat")
+		val set = unset.copy(language = "en-US")
+		assertNotEquals(ProjectDataHasher.hash(unset), ProjectDataHasher.hash(set))
+	}
+
+	@Test
+	fun `language region affects hash`() {
+		val en = ProjectData(language = "en")
+		val enUs = ProjectData(language = "en-US")
+		assertNotEquals(ProjectDataHasher.hash(en), ProjectDataHasher.hash(enUs))
+	}
+
+	@Test
+	fun `language block does not collide with a one-element tags block`() {
+		val tagged = ProjectData(tags = setOf("en"))
+		val languaged = ProjectData(language = "en")
+		assertNotEquals(
+			ProjectDataHasher.hash(tagged),
+			ProjectDataHasher.hash(languaged),
+			"tags=[x] and language=x must hash differently",
+		)
+	}
+
+	@Test
+	fun `null vs empty language distinguishable`() {
+		val nullLanguage = ProjectData(language = null)
+		val emptyLanguage = ProjectData(language = "")
+		assertNotEquals(
+			ProjectDataHasher.hash(nullLanguage),
+			ProjectDataHasher.hash(emptyLanguage),
+			"null and empty-string language must hash differently",
+		)
+	}
+
+	@Test
 	fun `same input produces same hash`() {
 		val data = ProjectData(
 			authorName = "Pat",

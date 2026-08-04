@@ -617,6 +617,7 @@ private fun WideBody(
 			entryText = entryText,
 			setEntryText = setEntryText,
 			onStartTextEdit = onStartTextEdit,
+			enableSpellChecking = state.spellCheckAllowed,
 			modifier = Modifier.weight(1f).fillMaxHeight(),
 			sharedKey = "encyclopedia-text-${state.entryDef.id}",
 			animatedVisibilityScope = animatedVisibilityScope,
@@ -685,6 +686,7 @@ private fun CompactBody(
 			entryText = entryText,
 			setEntryText = setEntryText,
 			onStartTextEdit = onStartTextEdit,
+			enableSpellChecking = state.spellCheckAllowed,
 			modifier = if (editing) Modifier.fillMaxWidth().weight(1f) else Modifier.fillMaxWidth(),
 			sharedKey = "encyclopedia-text-${state.entryDef.id}",
 			animatedVisibilityScope = animatedVisibilityScope,
@@ -700,6 +702,7 @@ private fun BodyTextZone(
 	entryText: String,
 	setEntryText: (String) -> Unit,
 	onStartTextEdit: () -> Unit,
+	enableSpellChecking: Boolean,
 	modifier: Modifier,
 	sharedKey: String,
 	animatedVisibilityScope: AnimatedVisibilityScope,
@@ -716,6 +719,7 @@ private fun BodyTextZone(
 			MarkdownEditField(
 				initialMarkdown = entryText,
 				onMarkdownChanged = setEntryText,
+				enableSpellChecking = enableSpellChecking,
 				contentPadding = PaddingValues(Ui.Padding.XL),
 				modifier = Modifier
 					.fillMaxWidth()

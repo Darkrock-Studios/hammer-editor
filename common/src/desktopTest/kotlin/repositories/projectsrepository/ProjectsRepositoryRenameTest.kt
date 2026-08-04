@@ -22,7 +22,7 @@ class ProjectsRepositoryRenameTest : ProjectsRepositoryBaseTest() {
 	@Test
 	fun `Rename Project, success`() = scope.runTest {
 		createProjectDirectories(ffs)
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		val projectName = projectNames[0]
 		val newProjectName = "New Project Name"
@@ -40,7 +40,7 @@ class ProjectsRepositoryRenameTest : ProjectsRepositoryBaseTest() {
 	@Test
 	fun `Rename Project, invalid name`() = scope.runTest {
 		createProjectDirectories(ffs)
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		val projectName = projectNames[0]
 		val newProjectName = "@invalid Project Name"
@@ -65,7 +65,7 @@ class ProjectsRepositoryRenameTest : ProjectsRepositoryBaseTest() {
 	@Test
 	fun `Rename Project, project does not exist`() = scope.runTest {
 		createProjectDirectories(ffs)
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		val projectName = "None Existent Project"
 		val newProjectName = "New Project Name"
@@ -90,7 +90,7 @@ class ProjectsRepositoryRenameTest : ProjectsRepositoryBaseTest() {
 	@Test
 	fun `Rename Project, already exists`() = scope.runTest {
 		createProjectDirectories(ffs)
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		val projectName = projectNames[0]
 		val newProjectName = projectNames[1]

@@ -60,6 +60,59 @@ class PublicStoryPageTest : EndToEndTest() {
 		)
 	}
 
+	private fun seedProjectData(content: String) {
+		database().serverDatabase.projectDataQueries.upsert(
+			userId = userId,
+			projectId = projectRowId(),
+			content = content,
+			hash = "test-hash",
+			updatedAt = kotlin.time.Clock.System.now(),
+		)
+	}
+
+	@Test
+	fun `a story with a declared language is served with that language`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+		seedProjectData("""{"language":"fr"}""")
+		// JSON-LD is only emitted for indexable pages, which require a community author.
+		database().serverDatabase.accountQueries.updateCommunityMember(community_member = true, id = userId)
+
+		val body = client().get(storyPath()).bodyAsText()
+
+		assertTrue(body.contains("<html lang=\"fr\""), "html lang should be the story's language")
+		assertTrue(body.contains("\"inLanguage\":\"fr\""), "the Article JSON-LD should carry inLanguage")
+	}
+
+	@Test
+	fun `a story without a declared language keeps the viewer locale`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+		seedProjectData("""{"authorName":"Jane"}""")
+
+		val body = client().get(storyPath()).bodyAsText()
+
+		assertTrue(body.contains("<html lang=\"en\""), "html lang should fall back to the viewer locale")
+		assertTrue(!body.contains("inLanguage"), "no inLanguage without a declared language")
+	}
+
+	@Test
+	fun `declaring a language changes the validator`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = null)
+
+		val before = assertNotNull(client().get(storyPath()).headers[HttpHeaders.ETag])
+
+		seedProjectData("""{"language":"fr"}""")
+		val response = client().get(storyPath()) { header(HttpHeaders.IfNoneMatch, before) }
+
+		assertEquals(HttpStatusCode.OK, response.status, "a language change must not answer 304")
+		assertNotEquals(before, response.headers[HttpHeaders.ETag])
+	}
+
 	@Test
 	fun `a published story is served with a revalidation validator`(): Unit = runBlocking {
 		doStartServer()

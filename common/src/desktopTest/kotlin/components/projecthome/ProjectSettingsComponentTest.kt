@@ -18,6 +18,8 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.common.util.AvailableLocalesProvider
+import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import io.mockk.every
 import io.mockk.mockk
@@ -69,6 +71,14 @@ class ProjectSettingsComponentTest : ComponentTest() {
 			single { AccountTagService(ideasRepository, projectsRepository, ffs, toml) }
 			single<PlatformSpellCheckerFactory> {
 				mockk { every { availableLocales() } returns emptyList() }
+			}
+			single<AvailableLocalesProvider> {
+				mockk {
+					every { allLocales() } returns listOf(
+						Locale.forLanguage("fr", "FR"),
+						Locale.forLanguage("en", "US"),
+					)
+				}
 			}
 			scope<ProjectDefScope> {
 				scoped { ProjectDataRepository(datasource, projectDef) }
@@ -186,6 +196,45 @@ class ProjectSettingsComponentTest : ComponentTest() {
 
 		assertEquals(setOf("gothic", "haunted"), comp.projectInfoState.value.data.tags)
 		assertEquals(setOf("gothic", "haunted"), datasource.load().data.tags)
+	}
+
+	@Test
+	fun `setProjectLanguage persists a normalized tag`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.setProjectLanguage("EN-us")
+		advanceUntilIdle()
+
+		assertEquals("en-US", comp.projectInfoState.value.data.language)
+		assertEquals("en-US", datasource.load().data.language)
+	}
+
+	@Test
+	fun `setProjectLanguage with null or blank clears the language`() = runTest(mainTestDispatcher) {
+		datasource.save(StoredProjectData(data = ProjectData(language = "fr")))
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.setProjectLanguage("   ")
+		advanceUntilIdle()
+
+		assertNull(comp.projectInfoState.value.data.language)
+		assertNull(datasource.load().data.language)
+	}
+
+	@Test
+	fun `availableLanguages are sorted by display name`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		val names = comp.availableLanguages.map { it.displayName }
+		assertEquals(names.sortedBy { it.lowercase() }, names)
+		assertEquals(setOf("fr-FR", "en-US"), comp.availableLanguages.map { it.tag }.toSet())
 	}
 
 	@Test
