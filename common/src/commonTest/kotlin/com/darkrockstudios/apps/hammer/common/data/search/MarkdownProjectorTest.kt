@@ -63,7 +63,7 @@ class MarkdownProjectorTest {
 	}
 
 	@Test
-	fun `substring returns the projected prose, not the source`() {
+	fun `substring returns the projected prose rather than the source`() {
 		projector.project("the **big** dog")
 		assertEquals("big", projector.substring(4, 7))
 	}
