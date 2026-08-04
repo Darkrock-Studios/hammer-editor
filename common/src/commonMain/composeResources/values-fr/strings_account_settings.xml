@@ -111,5 +111,4 @@ Des conflits peuvent se déclarer et causer des erreurs si les contenus ne corre
 	<string name="server_error_timeout">Le serveur ne répond pas. Vérifiez votre connexion Internet et réessayez.</string>
 	<string name="server_error_dns">Serveur introuvable. Vérifiez l'adresse du serveur et votre connexion Internet.</string>
 	<string name="server_error_connection_generic">Erreur réseau lors de la connexion à %1$s. Vérifiez votre connexion et réessayez.</string>
-	<string name="server_error_tls">Could not make a secure connection to %1$s. Hammer only connects over HTTPS, so the server needs a valid TLS certificate of its own or a reverse proxy that provides one.</string>
 </resources>
