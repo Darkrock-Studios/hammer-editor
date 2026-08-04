@@ -34,13 +34,6 @@
 	<string name="project_info_tags_label">Tag</string>
 	<string name="project_info_tags_hint">↵ per aggiungere</string>
 	<string name="project_info_tags_placeholder">fantasy, bozza, nanowrimo…</string>
-	<string name="project_info_language_label">Language</string>
-	<string name="project_info_language_unset">Not set</string>
-	<string name="project_info_language_dialog_title">Choose a language</string>
-	<string name="project_info_language_dialog_close">Chiudi</string>
-	<string name="project_info_language_search_hint">Search languages</string>
-	<string name="project_info_language_clear">Clear (not set)</string>
-	<string name="project_info_language_empty">No languages match</string>
 	<string name="project_info_color_picker_edit">Modifica</string>
 	<string name="project_info_color_picker_cancel">Annulla</string>
 	<string name="project_info_color_picker_confirm">OK</string>
@@ -51,7 +44,6 @@
 	<string name="project_settings_hero_by">di %1$s</string>
 	<string name="project_settings_hero_no_author">di (nessun autore impostato)</string>
 	<string name="project_settings_spellcheck_section_title">Controllo ortografico</string>
-	<string name="project_settings_spellcheck_mismatch_caption">Spell check is off: the project language (%1$s) doesn’t match your dictionary (%2$s). Change either to re-enable it.</string>
 	<string name="project_settings_folio_caption">Impostazioni del progetto · %1$s</string>
 	<string name="project_settings_folio_section_count">§§ %1$d</string>
 	<string name="sync_conflict_project_data_title">Conflitto di impostazioni del progetto</string>
@@ -60,7 +52,6 @@
 	<string name="sync_conflict_project_data_field_theme">Tema del progetto</string>
 	<string name="sync_conflict_project_data_field_word_goal">Obiettivo di conteggio parole</string>
 	<string name="sync_conflict_project_data_field_tags">Tag</string>
-	<string name="sync_conflict_project_data_field_language">Language</string>
 	<string name="sync_conflict_project_data_value_unset">(non impostato)</string>
 	<string name="sync_conflict_project_data_cadence_day">giorno</string>
 	<string name="sync_conflict_project_data_cadence_week">settimana</string>
