@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.tagindex.tagPrefixOf
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EntryRefChipLabel
 import com.darkrockstudios.apps.hammer.common.util.format
 import kotlinx.datetime.TimeZone
@@ -626,7 +627,7 @@ private fun AddTagDialog(
 	LaunchedEffect(visible) { if (!visible) draft = "" }
 
 	val suggestions = remember(draft, existingTags) {
-		val prefix = draft.substringAfterLast(' ').trim().removePrefix("#")
+		val prefix = tagPrefixOf(draft)
 		if (prefix.isEmpty()) emptyList()
 		else component.suggestTags(prefix).filter { it !in existingTags }
 	}

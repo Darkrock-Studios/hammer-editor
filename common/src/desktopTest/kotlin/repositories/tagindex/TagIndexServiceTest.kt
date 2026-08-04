@@ -262,6 +262,31 @@ class TagIndexServiceTest : BaseTest() {
 			assertTrue(empty.isEmpty())
 		}
 
+	/** Text entered on iOS/macOS can arrive decomposed: base letter plus a combining mark. */
+	@Test
+	fun `suggest matches a decomposed accented prefix`() = runTest(mainTestDispatcher) {
+		stubNotes(note(1, "th\u00e8me"))
+		stubTimeline()
+		stubEntries()
+
+		val service = makeService()
+		advanceUntilIdle()
+
+		assertEquals(listOf("th\u00e8me" to 1), service.suggest("the\u0300").map { it.tag to it.count })
+	}
+
+	@Test
+	fun `suggest ignores a leading hash`() = runTest(mainTestDispatcher) {
+		stubNotes(note(1, "arwen"))
+		stubTimeline()
+		stubEntries()
+
+		val service = makeService()
+		advanceUntilIdle()
+
+		assertEquals(listOf("arwen" to 1), service.suggest("#ar").map { it.tag to it.count })
+	}
+
 	@Test
 	fun `rebuild fires when a content-changed signal is emitted`() = runTest(mainTestDispatcher) {
 		stubNotes(note(1, "alpha"))

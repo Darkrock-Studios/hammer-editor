@@ -34,6 +34,23 @@ class SearchQueryTest {
 		assertEquals("alice in wonderland", parsed.text)
 	}
 
+	/** Text entered on iOS/macOS can arrive decomposed: base letter plus a combining mark. */
+	@Test
+	fun `parseQuery composes decomposed accents in tags`() {
+		val parsed = parseQuery("#the\u0300me")
+
+		assertEquals(listOf("th\u00e8me"), parsed.tags)
+		assertTrue(setOf("th\u00e8me").matchesAllTags(parsed.tags))
+	}
+
+	@Test
+	fun `parseQuery starts a tag on a fullwidth hash`() {
+		val parsed = parseQuery("\uff03\u4eba\u7269")
+
+		assertEquals(listOf("\u4eba\u7269"), parsed.tags)
+		assertEquals("", parsed.text)
+	}
+
 	@Test
 	fun `isUsable requires a tag or two text chars`() {
 		assertFalse(parseQuery("a").isUsable())

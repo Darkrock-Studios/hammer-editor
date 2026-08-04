@@ -108,6 +108,16 @@ class AccountTagServiceTest : BaseTest() {
 		assertEquals(listOf(TagCount("gothic", 1)), service.suggest("#go"))
 	}
 
+	/** Text entered on iOS/macOS can arrive decomposed: base letter plus a combining mark. */
+	@Test
+	fun `Prefix matching composes decomposed accents`() = runTest {
+		advanceUntilIdle()
+		ideasRepository.createIdea(content = "a", tags = setOf("th\u00e8me"))
+		advanceUntilIdle()
+
+		assertEquals(listOf(TagCount("th\u00e8me", 1)), service.suggest("the\u0300"))
+	}
+
 	@Test
 	fun `Blank prefix suggests nothing`() = runTest {
 		advanceUntilIdle()

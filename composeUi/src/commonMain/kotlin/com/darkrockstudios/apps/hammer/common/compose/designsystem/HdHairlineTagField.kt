@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.CollapseWhileTyping
 import com.darkrockstudios.apps.hammer.common.data.tagindex.isTagSeparator
 import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
+import com.darkrockstudios.apps.hammer.common.data.tagindex.tagPrefixOf
 
 /**
  * Tag chip field — labeled hairline-underline input that keeps its
@@ -73,7 +74,7 @@ fun HdHairlineTagField(
 	}
 
 	val suggestions = remember(draft, tags, suggestTags) {
-		val prefix = draft.trim().removePrefix("#")
+		val prefix = tagPrefixOf(draft)
 		if (prefix.isEmpty()) emptyList()
 		else suggestTags(prefix).filter { it !in tags }
 	}

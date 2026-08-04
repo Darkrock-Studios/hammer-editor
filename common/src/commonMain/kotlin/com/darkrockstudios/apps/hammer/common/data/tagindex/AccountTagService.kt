@@ -64,7 +64,7 @@ class AccountTagService(
 		exclude: Set<String> = emptySet(),
 		limit: Int = MAX_SUGGESTIONS,
 	): List<TagCount> {
-		val needle = prefix.trim().removePrefix("#")
+		val needle = normalizeTagNeedle(prefix)
 		if (needle.isEmpty()) return emptyList()
 
 		val merged = ideaTagCounts.value.toMutableMap()
