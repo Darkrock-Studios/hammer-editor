@@ -75,6 +75,12 @@ class SceneTreeState(
 		visibleSceneNodes(summary.sceneTree, collapsedNodes)
 	}
 
+	/**
+	 * Row under the pointer, recorded by the rows themselves so it follows the drawn position.
+	 * Deliberately not snapshot state: it changes on every press and must not recompose the tree.
+	 */
+	internal var pressedRowId: Int = NO_SELECTION
+
 	private var scrollJob by mutableStateOf<Job?>(null)
 	private var treeHash by mutableStateOf(sceneSummary.sceneTree.hashCode())
 
