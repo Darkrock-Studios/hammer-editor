@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteCont
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.util.ScanBuffers
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
@@ -183,8 +184,8 @@ class SearchProjectUseCaseTest : BaseTest() {
 			content = SceneContent(scene = scene, markdown = "Unsaved dragon attack"),
 			source = UpdateSource.Editor,
 		)
-		// loadSceneMarkdownRaw should not be consulted because buffer wins
-		every { sceneEditor.loadSceneMarkdownRaw(scene, any()) } returns "On-disk text"
+		// The on-disk read should not be consulted because the buffer wins
+		stubSceneMarkdown(scene, "On-disk text")
 
 		val results = createUseCase().search("dragon", GlobalSearchFilter.All)
 			.filterIsInstance<SearchResult.Scene>()
@@ -210,6 +211,19 @@ class SearchProjectUseCaseTest : BaseTest() {
 
 		assertEquals(1, results.size)
 		assertEquals(9, results.first().sceneItem.id)
+	}
+
+	/**
+	 * Stubs the on-disk read for [scene]. Search decodes a scene into a buffer it owns rather than
+	 * taking a string back, so the stub fills the buffer the use case handed in.
+	 */
+	private fun stubSceneMarkdown(scene: SceneItem, markdown: String) {
+		every { sceneEditor.readSceneMarkdownInto(eq(scene), any(), any()) } answers {
+			val sink = secondArg<ScanBuffers>()
+			val buffer = sink.charBuffer(markdown.length)
+			markdown.forEachIndexed { index, char -> buffer[index] = char }
+			markdown.length
+		}
 	}
 
 	@Test
@@ -464,7 +478,7 @@ class SearchProjectUseCaseTest : BaseTest() {
 		)
 		every { sceneEditor.getScenes() } returns listOf(scene)
 		every { sceneContentRepository.getSceneBuffer(scene) } returns null
-		every { sceneEditor.loadSceneMarkdownRaw(scene, any()) } returns "**Chapter** One begins"
+		stubSceneMarkdown(scene, "**Chapter** One begins")
 
 		val results = createUseCase().search("Chapter One", GlobalSearchFilter.All)
 			.filterIsInstance<SearchResult.Scene>()
