@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="about_description">Un outil simple pour construire des histoires.</string>
+	<string name="about_description">Un outil pour rédiger des histoires.</string>
 	<string name="about_description_line_two">Un projet libre et open source.</string>
 	<string name="about_community_header">Communauté</string>
 	<string name="about_community_discord_link">Discord</string>
@@ -15,7 +15,7 @@
 	<string name="update_dialog_title">Une nouvelle version de Hammer est disponible</string>
 	<string name="update_dialog_title_current">Notes de version pour %s</string>
 	<string name="update_dialog_release_notes_section">Notes de version</string>
-	<string name="update_dialog_release_notes_empty">Aucune note de version fournie.</string>
+	<string name="update_dialog_release_notes_empty">Aucune note de version publiée.</string>
 	<string name="update_dialog_open_release_button">Ouvrir la version</string>
 	<string name="update_dialog_dismiss_button">Ignorer</string>
 	<string name="about_logs_header">Journaux de l'application</string>
