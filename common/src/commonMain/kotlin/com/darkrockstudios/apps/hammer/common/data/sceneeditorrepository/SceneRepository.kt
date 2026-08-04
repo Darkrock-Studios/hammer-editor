@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.tree.Tree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.util.ScanBuffers
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.numDigits
@@ -757,6 +758,17 @@ class SceneRepository(
 		scenePath: HPath = getSceneFilePath(sceneItem)
 	): String =
 		sceneDatasource.loadSceneMarkdownRaw(sceneItem, scenePath)
+
+	/**
+	 * Reads the scene's Markdown into a caller-owned buffer and returns its length in chars. Global
+	 * search scans every scene on each keystroke, so it reuses one buffer rather than taking a
+	 * string per file.
+	 */
+	fun readSceneMarkdownInto(
+		sceneItem: SceneItem,
+		sink: ScanBuffers,
+		scenePath: HPath = getSceneFilePath(sceneItem),
+	): Int = sceneDatasource.readSceneMarkdownInto(sceneItem, scenePath, sink)
 
 	/**
 	 * This should only be used for server syncing

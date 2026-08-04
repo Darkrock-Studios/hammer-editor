@@ -29,9 +29,17 @@ class MarkdownContainsTest {
 	}
 
 	@Test
-	fun `unescaped markup is matched as it is stored`() {
+	fun `markers that survive the projection are matched where they sit`() {
 		assertTrue(markdownContains("The cost is 5*4 today", "5*4"))
-		assertTrue(markdownContains("a **Chapter** heading", "**Chapter**"))
+		assertTrue(markdownContains("the user_name field", "user_name"))
+	}
+
+	@Test
+	fun `markers the projection removes are not findable by typing them`() {
+		// The query is literal text matched against the prose on screen, which has no asterisks in it.
+		assertFalse(markdownContains("a **Chapter** heading", "**Chapter**"))
+		assertFalse(markdownContains("a `code` span", "`code`"))
+		assertTrue(markdownContains("a **Chapter** heading", "Chapter heading"))
 	}
 
 	@Test

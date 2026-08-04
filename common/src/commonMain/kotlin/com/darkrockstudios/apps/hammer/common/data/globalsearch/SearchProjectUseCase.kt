@@ -10,10 +10,11 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesReposito
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.search.MarkdownProjector
+import com.darkrockstudios.apps.hammer.common.data.search.MarkdownProjectorPool
 import com.darkrockstudios.apps.hammer.common.data.search.ParsedQuery
 import com.darkrockstudios.apps.hammer.common.data.search.matchesAllTags
 import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
-import com.darkrockstudios.apps.hammer.common.data.search.unescapeMarkdown
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
@@ -44,6 +45,9 @@ class SearchProjectUseCase(
 
 	private val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
 	private val dispatcherIo: CoroutineContext by inject(named(DISPATCHER_IO))
+
+	// Outlives a single search so the buffers one scan grew are still sized for the next keystroke.
+	private val projectors = MarkdownProjectorPool()
 
 	suspend fun search(query: String, filter: GlobalSearchFilter): List<SearchResult> {
 		val parsed = parseQuery(query)
@@ -79,46 +83,51 @@ class SearchProjectUseCase(
 	private val GlobalSearchFilter.includesTimeline: Boolean
 		get() = this == GlobalSearchFilter.All || this == GlobalSearchFilter.Timeline
 
-	private fun searchNotes(parsed: ParsedQuery): List<SearchResult> {
-		return notes.getNotes()
-			.filter { it.note.tags.matchesAllTags(parsed.tags) }
-			.mapNotNull { container ->
-				val snippet = matchOrPreview(container.note.content, parsed.text)
-					?: return@mapNotNull null
-				SearchResult.Note(
-					noteId = container.note.id,
-					title = firstLineTitle(container.note.content, fallback = "(empty note)"),
-					snippet = snippet,
-				)
-			}
-			.take(PER_SOURCE_CAP)
-	}
+	private suspend fun searchNotes(parsed: ParsedQuery): List<SearchResult> =
+		projectors.borrow { projector ->
+			notes.getNotes()
+				.filter { it.note.tags.matchesAllTags(parsed.tags) }
+				.mapNotNull { container ->
+					val snippet = matchOrPreview(projector, container.note.content, parsed.text)
+						?: return@mapNotNull null
+					SearchResult.Note(
+						noteId = container.note.id,
+						title = firstLineTitle(projector, container.note.content, fallback = "(empty note)"),
+						snippet = snippet,
+					)
+				}
+				.take(PER_SOURCE_CAP)
+		}
 
-	private suspend fun searchTimeline(parsed: ParsedQuery): List<SearchResult> {
+	private suspend fun searchTimeline(parsed: ParsedQuery): List<SearchResult> = projectors.borrow { projector ->
 		val timeline = timeLine.loadTimeline()
-		return timeline.events
+		timeline.events
 			.filter { it.tags.matchesAllTags(parsed.tags) }
 			.mapNotNull { event ->
-				val snippet = matchTimelineEvent(event.date, event.content, parsed.text)
+				val snippet = matchTimelineEvent(projector, event.date, event.content, parsed.text)
 					?: return@mapNotNull null
 				SearchResult.TimelineEvent(
 					eventId = event.id,
 					title = event.date?.takeIf { it.isNotBlank() }
-						?: firstLineTitle(event.content, fallback = "(empty event)"),
+						?: firstLineTitle(projector, event.content, fallback = "(empty event)"),
 					snippet = snippet,
 				)
 			}
 			.take(PER_SOURCE_CAP)
 	}
 
-	private suspend fun searchEncyclopedia(parsed: ParsedQuery): List<SearchResult> {
-		val entries = collectEntryDefs()
-		return entries
-			.mapNotNull { def -> matchEncyclopediaEntry(def, parsed) }
-			.take(PER_SOURCE_CAP)
-	}
+	private suspend fun searchEncyclopedia(parsed: ParsedQuery): List<SearchResult> =
+		projectors.borrow { projector ->
+			collectEntryDefs()
+				.mapNotNull { def -> matchEncyclopediaEntry(projector, def, parsed) }
+				.take(PER_SOURCE_CAP)
+		}
 
-	private suspend fun matchEncyclopediaEntry(def: EntryDef, parsed: ParsedQuery): SearchResult? {
+	private suspend fun matchEncyclopediaEntry(
+		projector: MarkdownProjector,
+		def: EntryDef,
+		parsed: ParsedQuery,
+	): SearchResult? {
 		val needTags = parsed.tags.isNotEmpty()
 		val freeText = parsed.text
 
@@ -146,7 +155,7 @@ class SearchProjectUseCase(
 			}
 			val title = if (matchedTag != null) "${def.name}  •  #$matchedTag" else def.name
 			val snippet = findMatch(def.name, freeText)
-				?: matchOrPreview(entry.text, freeText, fallback = def.name)
+				?: matchOrPreview(projector, entry.text, freeText, fallback = def.name)
 				?: return null
 			return SearchResult.EncyclopediaEntry(
 				entryDef = def,
@@ -167,7 +176,7 @@ class SearchProjectUseCase(
 			)
 		}
 
-		val textMatch = findMarkdownMatch(entry.text, freeText) ?: return null
+		val textMatch = findMarkdownMatch(projector, entry.text, freeText) ?: return null
 		return SearchResult.EncyclopediaEntry(
 			entryDef = def,
 			title = def.name,
@@ -177,16 +186,18 @@ class SearchProjectUseCase(
 
 	private suspend fun collectEntryDefs(): List<EntryDef> = encyclopedia.ensureEntriesLoaded()
 
-	private suspend fun searchScenes(parsed: ParsedQuery): List<SearchResult> {
-		val query = parsed.text
-		val needTags = parsed.tags.isNotEmpty()
-		val scenes = sceneEditor.getScenes().filter { it.type == SceneItem.Type.Scene }
-		return scenes
-			.mapNotNull { scene -> matchScene(scene, query, needTags, parsed.tags) }
-			.take(PER_SOURCE_CAP)
-	}
+	private suspend fun searchScenes(parsed: ParsedQuery): List<SearchResult> =
+		projectors.borrow { projector ->
+			val query = parsed.text
+			val needTags = parsed.tags.isNotEmpty()
+			sceneEditor.getScenes()
+				.filter { it.type == SceneItem.Type.Scene }
+				.mapNotNull { scene -> matchScene(projector, scene, query, needTags, parsed.tags) }
+				.take(PER_SOURCE_CAP)
+		}
 
 	private suspend fun matchScene(
+		projector: MarkdownProjector,
 		scene: SceneItem,
 		query: String,
 		needTags: Boolean,
@@ -198,8 +209,9 @@ class SearchProjectUseCase(
 			if (nameMatch != null) {
 				return SearchResult.Scene(sceneItem = scene, title = scene.name, snippet = nameMatch)
 			}
-			val text = withContext(dispatcherIo) { loadSceneText(scene) } ?: return null
-			val bodyMatch = findMarkdownMatch(text, query) ?: return null
+			val loaded = withContext(dispatcherIo) { projectScene(projector, scene) }
+			if (!loaded) return null
+			val bodyMatch = findProjectedMatch(projector, query) ?: return null
 			return SearchResult.Scene(sceneItem = scene, title = scene.name, snippet = bodyMatch)
 		}
 
@@ -221,53 +233,89 @@ class SearchProjectUseCase(
 		if (nameMatch != null) {
 			return SearchResult.Scene(sceneItem = scene, title = title, snippet = nameMatch)
 		}
-		val text = withContext(dispatcherIo) { loadSceneText(scene) } ?: return null
-		val bodyMatch = findMarkdownMatch(text, query) ?: return null
+		val loaded = withContext(dispatcherIo) { projectScene(projector, scene) }
+		if (!loaded) return null
+		val bodyMatch = findProjectedMatch(projector, query) ?: return null
 		return SearchResult.Scene(sceneItem = scene, title = title, snippet = bodyMatch)
 	}
 
 	/**
-	 * Both callers pass stored Markdown, so escapes are resolved before matching. With no free text
-	 * the item already matched on its tags, so a blank body falls back to [fallback] and then to an
-	 * empty snippet rather than discarding the result.
+	 * Both callers pass stored Markdown, so both paths go through the prose projection. With no free
+	 * text the item already matched on its tags, so a blank body falls back to [fallback] and then to
+	 * an empty snippet rather than discarding the result.
 	 */
-	private fun matchOrPreview(content: String, query: String, fallback: String = ""): AnnotatedSnippet? {
+	private fun matchOrPreview(
+		projector: MarkdownProjector,
+		content: String,
+		query: String,
+		fallback: String = "",
+	): AnnotatedSnippet? {
 		if (query.isEmpty()) {
-			return previewSnippet(unescapeMarkdown(content))
+			return markdownPreviewSnippet(projector, content)
 				?: previewSnippet(fallback)
 				?: EMPTY_SNIPPET
 		}
-		return findMarkdownMatch(content, query)
+		return findMarkdownMatch(projector, content, query)
 	}
 
-	/** The date is a plain-text field, so only the event body is unescaped. */
-	private fun matchTimelineEvent(date: String?, content: String, query: String): AnnotatedSnippet? {
-		val resolved = withDate(date, unescapeMarkdown(content))
-		if (query.isEmpty()) return previewSnippet(resolved) ?: EMPTY_SNIPPET
-		return findMatch(resolved, query)
+	/**
+	 * The date is a plain-text field, so only the body is projected. Both halves are searched as one
+	 * string so a query can span the separator.
+	 */
+	private fun matchTimelineEvent(
+		projector: MarkdownProjector,
+		date: String?,
+		content: String,
+		query: String,
+	): AnnotatedSnippet? {
+		projector.project(content)
+		val projected = withDate(date, projector.projected())
+		if (query.isEmpty()) {
+			return previewSnippet(projected)
+				?: previewSnippet(withDate(date, content))
+				?: EMPTY_SNIPPET
+		}
+		findMatch(projected, query)?.let { return it }
+		return findMatch(withDate(date, content), query)
 	}
 
 	private fun withDate(date: String?, content: String): String =
 		if (date.isNullOrBlank()) content else "$date — $content"
 
-	private fun loadSceneText(scene: SceneItem): String? {
-		val buffer = sceneContentRepository.getSceneBuffer(scene)
-		val bufferText = buffer?.content?.markdown
-		if (bufferText != null) return bufferText
-		return runCatching { sceneEditor.loadSceneMarkdownRaw(scene) }.getOrNull()
+	/**
+	 * Loads the scene into [projector] and returns whether there is anything to match. An unsaved
+	 * scene is already in memory as a string; a saved one is decoded straight off disk into the
+	 * projector's own buffer, so scanning a project takes no string per file.
+	 */
+	private fun projectScene(projector: MarkdownProjector, scene: SceneItem): Boolean {
+		val bufferText = sceneContentRepository.getSceneBuffer(scene)?.content?.markdown
+		if (bufferText != null) {
+			if (bufferText.isEmpty()) return false
+			projector.project(bufferText)
+			return true
+		}
+		val chars = runCatching {
+			sceneEditor.readSceneMarkdownInto(scene, projector)
+		}.getOrDefault(0)
+		if (chars <= 0) return false
+		projector.projectSource(chars)
+		return true
 	}
 
-	/** [content] is stored Markdown, so the title resolves escapes the way its snippet does. */
-	private fun firstLineTitle(content: String, fallback: String): String {
-		val firstLine = content.lineSequence()
-			.firstOrNull { it.isNotBlank() }
-			?.let { unescapeMarkdown(it) }
-			?.trim()
-			.orEmpty()
+	/** [content] is stored Markdown, so the derived title is projected the same way the UI does. */
+	private fun firstLineTitle(
+		projector: MarkdownProjector,
+		content: String,
+		fallback: String,
+	): String {
+		projector.project(content)
+		val title = projector.firstNonBlankLine().ifEmpty {
+			content.lineSequence().firstOrNull { it.isNotBlank() }?.trim().orEmpty()
+		}
 		return when {
-			firstLine.isEmpty() -> fallback
-			firstLine.length > TITLE_MAX -> firstLine.take(TITLE_MAX).trimEnd() + "…"
-			else -> firstLine
+			title.isEmpty() -> fallback
+			title.length > TITLE_MAX -> title.take(TITLE_MAX).trimEnd() + "…"
+			else -> title
 		}
 	}
 
@@ -277,9 +325,12 @@ class SearchProjectUseCase(
 		const val SNIPPET_BEFORE = 40
 		const val SNIPPET_AFTER = 80
 
+		/** Compiled once: snippet assembly runs per result, and `Regex(…)` rebuilds the pattern. */
+		private val WHITESPACE_RUN = Regex("\\s+")
+
 		internal fun previewSnippet(content: String): AnnotatedSnippet? {
 			if (content.isEmpty()) return null
-			val flattened = content.replace(Regex("\\s+"), " ").trim()
+			val flattened = content.replace(WHITESPACE_RUN, " ").trim()
 			if (flattened.isEmpty()) return null
 			val maxLen = SNIPPET_BEFORE + SNIPPET_AFTER
 			val truncated = if (flattened.length > maxLen) {
@@ -290,16 +341,6 @@ class SearchProjectUseCase(
 			return AnnotatedSnippet(text = truncated, matchStart = 0, matchEnd = 0)
 		}
 
-		/**
-		 * Matches stored Markdown with its escapes resolved, so a query matches the prose on screen
-		 * and the snippet renders the same way. The resolved text is the only thing searched, so a
-		 * snippet can never disagree with the title derived from it.
-		 */
-		internal fun findMarkdownMatch(markdown: String, query: String): AnnotatedSnippet? {
-			if (markdown.isEmpty() || query.isEmpty()) return null
-			return findMatch(unescapeMarkdown(markdown), query)
-		}
-
 		internal fun findMatch(text: String, query: String): AnnotatedSnippet? {
 			if (text.isEmpty() || query.isEmpty()) return null
 			val pos = text.indexOf(query, ignoreCase = true)
@@ -307,17 +348,91 @@ class SearchProjectUseCase(
 			return buildSnippet(text, pos, query.length)
 		}
 
-		internal fun buildSnippet(text: String, matchPos: Int, queryLen: Int): AnnotatedSnippet {
-			val windowStart = (matchPos - SNIPPET_BEFORE).coerceAtLeast(0)
-			val windowEnd = (matchPos + queryLen + SNIPPET_AFTER).coerceAtMost(text.length)
-			val rawWindow = text.substring(windowStart, windowEnd)
-			val flattened = rawWindow.replace(Regex("\\s+"), " ").trim()
+		/**
+		 * Matches against the prose projection of stored Markdown, so queries spanning storage
+		 * syntax still hit and the snippet reads the way the document does. The raw source is
+		 * searched as a fallback, which keeps queries for literal markup working.
+		 *
+		 * The projection is matched inside [projector]'s buffer, so a document that does not match
+		 * costs nothing but the scan.
+		 */
+		internal fun findMarkdownMatch(
+			projector: MarkdownProjector,
+			markdown: String,
+			query: String,
+		): AnnotatedSnippet? {
+			if (markdown.isEmpty() || query.isEmpty()) return null
+			projector.project(markdown)
+			return findProjectedMatch(projector, query)
+		}
 
-			val matchedTerm = text.substring(matchPos, matchPos + queryLen)
+		/**
+		 * Matches a document [projector] already holds, whether it was copied in or read straight
+		 * off disk. The raw fallback searches the source buffer, so neither path needs the document
+		 * as a string.
+		 */
+		internal fun findProjectedMatch(
+			projector: MarkdownProjector,
+			query: String,
+		): AnnotatedSnippet? {
+			if (query.isEmpty()) return null
+			val pos = projector.indexOf(query)
+			if (pos >= 0) {
+				return buildSnippetFrom(projector.length, pos, query.length, projector::substring)
+			}
+			return null
+		}
+
+		/** Falls back to the raw source so a document made only of markup still previews. */
+		internal fun markdownPreviewSnippet(
+			projector: MarkdownProjector,
+			markdown: String,
+		): AnnotatedSnippet? {
+			if (markdown.isEmpty()) return null
+			projector.project(markdown)
+			val preview = projector.collapsedPreview(SNIPPET_BEFORE + SNIPPET_AFTER)
+			if (preview.isNotEmpty()) {
+				return AnnotatedSnippet(text = preview, matchStart = 0, matchEnd = 0)
+			}
+			return previewSnippet(markdown)
+		}
+
+		internal fun buildSnippet(text: String, matchPos: Int, queryLen: Int): AnnotatedSnippet =
+			buildSnippetFrom(text.length, matchPos, queryLen, text::substring)
+
+		/**
+		 * Only the snippet window is copied out of [slice], so a hit costs a line rather than a
+		 * document, whether the text lives in a String or in a scan buffer.
+		 */
+		private fun buildSnippetFrom(
+			totalLength: Int,
+			matchPos: Int,
+			queryLen: Int,
+			slice: (Int, Int) -> String,
+		): AnnotatedSnippet {
+			val windowStart = (matchPos - SNIPPET_BEFORE).coerceAtLeast(0)
+			val windowEnd = (matchPos + queryLen + SNIPPET_AFTER).coerceAtMost(totalLength)
+			return assembleSnippet(
+				rawWindow = slice(windowStart, windowEnd),
+				matchedTerm = slice(matchPos, matchPos + queryLen),
+				hasPrefix = windowStart > 0,
+				hasSuffix = windowEnd < totalLength,
+				queryLen = queryLen,
+			)
+		}
+
+		private fun assembleSnippet(
+			rawWindow: String,
+			matchedTerm: String,
+			hasPrefix: Boolean,
+			hasSuffix: Boolean,
+			queryLen: Int,
+		): AnnotatedSnippet {
+			val flattened = rawWindow.replace(WHITESPACE_RUN, " ").trim()
 			val matchInFlattened = flattened.indexOf(matchedTerm, ignoreCase = true)
 
-			val prefix = if (windowStart > 0) "…" else ""
-			val suffix = if (windowEnd < text.length) "…" else ""
+			val prefix = if (hasPrefix) "…" else ""
+			val suffix = if (hasSuffix) "…" else ""
 			val snippet = prefix + flattened + suffix
 
 			val highlightStart = if (matchInFlattened >= 0) prefix.length + matchInFlattened else prefix.length

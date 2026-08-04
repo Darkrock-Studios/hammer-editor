@@ -39,18 +39,21 @@ fun parseQuery(query: String): ParsedQuery {
 }
 
 /**
- * True when [query] appears in [content] once the stored backslash escapes are resolved, so
- * `well-known` finds text stored as `well\-known`.
+ * True when [query] appears, as literal text, in the prose [content] displays as: escapes resolved
+ * and paired emphasis, code and block markers dropped. So `well-known` finds `well\-known`, and
+ * `Chapter One` finds `**Chapter** One`.
  *
- * Only escapes are resolved. Emphasis, code and link markers are compared as stored, so a phrase
- * spanning them does not match; see #811. The query is taken literally, so the escaped storage form
- * of a phrase does not match either.
+ * The query is never read as Markdown, and the storage form is never searched. `**Chapter**` finds
+ * nothing, because those asterisks are not on screen to be found; `well\-known` finds nothing for
+ * the same reason, while text stored as `well\\-known` renders a real backslash and is found by
+ * typing one. Markers the projection leaves alone, `5*4` and `user_name`, match where they sit,
+ * because there they are prose.
  *
- * Global search needs offsets rather than a boolean, so it resolves and matches separately in
+ * Global search needs offsets rather than a boolean, so it projects and matches separately in
  * `SearchProjectUseCase.findMarkdownMatch`. `MarkdownContainsTest` pins the two to the same answer.
  */
 fun markdownContains(content: String, query: String): Boolean =
-	unescapeMarkdown(content).contains(query, ignoreCase = true)
+	projectMarkdownToPlainText(content).contains(query, ignoreCase = true)
 
 /** True when every needle is contained (case-insensitively) in at least one tag. */
 fun Set<String>.matchesAllTags(needles: List<String>): Boolean {

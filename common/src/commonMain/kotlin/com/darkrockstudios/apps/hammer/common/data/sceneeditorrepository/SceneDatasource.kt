@@ -10,6 +10,8 @@ import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.common.util.ScanBuffers
+import com.darkrockstudios.apps.hammer.common.util.readUtf8Into
 import io.github.aakira.napier.Napier
 import okio.FileSystem
 import okio.IOException
@@ -237,6 +239,28 @@ class SceneDatasource(
 		}
 
 		return content
+	}
+
+	/**
+	 * Decodes the scene's Markdown into a buffer from [sink] and returns how many chars it holds,
+	 * so a caller scanning every scene can reuse one buffer instead of taking a string per file.
+	 * Returns 0 for a missing, empty or unreadable scene, and for anything that is not a scene.
+	 */
+	fun readSceneMarkdownInto(
+		sceneItem: SceneItem,
+		scenePath: HPath,
+		sink: ScanBuffers,
+	): Int {
+		if (sceneItem.type != SceneItem.Type.Scene) return 0
+		val path = scenePath.toOkioPath()
+		return try {
+			val byteCount = fileSystem.metadata(path).size ?: return 0
+			if (byteCount <= 0L || byteCount > Int.MAX_VALUE) return 0
+			fileSystem.read(path) { readUtf8Into(sink, byteCount.toInt()) }
+		} catch (e: IOException) {
+			Napier.e("Failed to read Scene markdown (${sceneItem.name})")
+			0
+		}
 	}
 
 	suspend fun storeSceneMarkdownRaw(sceneItem: SceneContent, scenePath: HPath): Boolean {
