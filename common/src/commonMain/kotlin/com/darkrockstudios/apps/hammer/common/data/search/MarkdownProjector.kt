@@ -114,28 +114,16 @@ class MarkdownProjector(initialCapacity: Int = INITIAL_OUT) : ScanBuffers {
 		return outLength
 	}
 
-	/** Length of the source the current projection came from. */
-	val sourceLength: Int get() = srcLength
-
 	/**
 	 * Index of [query] in the projected prose, or -1. Compares against the buffer directly so a scan
 	 * that finds nothing never builds a string.
 	 */
-	fun indexOf(query: String, ignoreCase: Boolean = true): Int =
-		indexOfIn(out, outLength, query, ignoreCase)
-
-	/**
-	 * Index of [query] in the unprojected source, or -1. Backs the fallback for queries that spell
-	 * out storage syntax, which the projection has by definition removed.
-	 */
-	fun indexOfInSource(query: String, ignoreCase: Boolean = true): Int =
-		indexOfIn(src, srcLength, query, ignoreCase)
-
-	private fun indexOfIn(buffer: CharArray, length: Int, query: String, ignoreCase: Boolean): Int {
+	fun indexOf(query: String, ignoreCase: Boolean = true): Int {
 		val queryLength = query.length
-		if (queryLength == 0 || queryLength > length) return -1
+		if (queryLength == 0 || queryLength > outLength) return -1
+		val buffer = out
 		val first = query[0]
-		val last = length - queryLength
+		val last = outLength - queryLength
 		var i = 0
 		outer@ while (i <= last) {
 			if (!buffer[i].equals(first, ignoreCase)) {
@@ -160,13 +148,6 @@ class MarkdownProjector(initialCapacity: Int = INITIAL_OUT) : ScanBuffers {
 		val from = startIndex.coerceIn(0, outLength)
 		val to = endIndex.coerceIn(from, outLength)
 		return out.concatToString(from, to)
-	}
-
-	/** The unprojected source as a String. Allocates, so reserve it for a hit. */
-	fun sourceSubstring(startIndex: Int, endIndex: Int): String {
-		val from = startIndex.coerceIn(0, srcLength)
-		val to = endIndex.coerceIn(from, srcLength)
-		return src.concatToString(from, to)
 	}
 
 	fun projected(): String = substring(0, outLength)

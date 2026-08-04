@@ -68,6 +68,8 @@ class SearchFilterTest {
 	fun `literal markup is not rewritten by any screen filter`() {
 		assertTrue(noteMatchesQuery(note("The cost is 5*4"), "5*4"))
 		assertTrue(eventMatchesQuery(event("the user_name field"), "user_name"))
-		assertTrue(ideaMatchesQuery(idea("a **Chapter** heading"), "**Chapter**"))
+		// Paired markers are gone from the prose on screen, so typing them finds nothing.
+		assertFalse(ideaMatchesQuery(idea("a **Chapter** heading"), "**Chapter**"))
+		assertTrue(ideaMatchesQuery(idea("a **Chapter** heading"), "Chapter heading"))
 	}
 }

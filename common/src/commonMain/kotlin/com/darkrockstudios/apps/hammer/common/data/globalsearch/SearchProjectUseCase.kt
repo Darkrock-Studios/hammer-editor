@@ -13,7 +13,6 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRe
 import com.darkrockstudios.apps.hammer.common.data.search.MarkdownProjector
 import com.darkrockstudios.apps.hammer.common.data.search.MarkdownProjectorPool
 import com.darkrockstudios.apps.hammer.common.data.search.ParsedQuery
-import com.darkrockstudios.apps.hammer.common.data.search.containsInlineMarkup
 import com.darkrockstudios.apps.hammer.common.data.search.matchesAllTags
 import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -380,17 +379,6 @@ class SearchProjectUseCase(
 			val pos = projector.indexOf(query)
 			if (pos >= 0) {
 				return buildSnippetFrom(projector.length, pos, query.length, projector::substring)
-			}
-			if (containsInlineMarkup(query)) {
-				val rawPos = projector.indexOfInSource(query)
-				if (rawPos >= 0) {
-					return buildSnippetFrom(
-						projector.sourceLength,
-						rawPos,
-						query.length,
-						projector::sourceSubstring,
-					)
-				}
 			}
 			return null
 		}

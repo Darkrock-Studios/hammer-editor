@@ -19,14 +19,14 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteCont
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
-import com.darkrockstudios.apps.hammer.common.data.search.MarkdownProjector
-import com.darkrockstudios.apps.hammer.common.util.ScanBuffers
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.data.search.MarkdownProjector
 import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.util.ScanBuffers
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -459,13 +459,18 @@ class SearchProjectUseCaseTest : BaseTest() {
 	}
 
 	@Test
-	fun `searching for literal markdown syntax still finds it`() = runTest {
+	fun `typing markdown syntax does not find the markup it renders away`() = runTest {
+		// The query is literal text matched against the prose on screen; that prose reads "raw bold
+		// marker", so the asterisks are not there to be found.
 		every { notes.getNotes() } returns listOf(note(1, "raw **bold** marker"))
 
-		val results = createUseCase().search("**bold**", GlobalSearchFilter.All)
+		val asTyped = createUseCase().search("**bold**", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+		val asRead = createUseCase().search("raw bold marker", GlobalSearchFilter.All)
 			.filterIsInstance<SearchResult.Note>()
 
-		assertEquals(1, results.size)
+		assertEquals(0, asTyped.size)
+		assertEquals(1, asRead.size)
 	}
 
 	@Test

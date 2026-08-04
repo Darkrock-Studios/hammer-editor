@@ -40,26 +40,8 @@ fun markdownTitleLine(markdown: String): String {
 }
 
 /**
- * True when [text] holds an inline marker the projection pairs off and removes.
- *
- * Gates the raw-source fallback, and deliberately excludes escapes and block markers. A query
- * spelling out `**Chapter**` is someone hunting for markup and wants the source searched; a query
- * holding a backslash or a dash is prose, and its storage form (`well\-known`) is not something a
- * reader ever types. One predicate over every removable character cannot tell those apart.
- */
-internal fun containsInlineMarkup(text: CharSequence): Boolean {
-	var i = 0
-	while (i < text.length) {
-		val c = text[i]
-		if (c == '*' || c == '_' || c == '`') return true
-		i++
-	}
-	return false
-}
-
-/**
- * True when [text] holds a character the projection can remove. A query without one that misses the
- * projection cannot match the raw source either, because the projection only ever deletes.
+ * True when [text] holds a character the projection can remove. Text without one projects to itself,
+ * so the scan can be skipped entirely.
  */
 internal fun containsMarkdownSyntax(text: CharSequence): Boolean {
 	var i = 0
