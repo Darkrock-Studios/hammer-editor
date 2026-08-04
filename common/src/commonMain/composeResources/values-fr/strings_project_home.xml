@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="project_home_stat_created">Créé : %1$s</string>
-	<string name="project_home_loading_stats">Calcul des statistiques…</string>
+	<string name="project_home_loading_stats">Calcul des statistiques...</string>
 	<string name="project_home_refresh_stats_button">Actualiser les statistiques</string>
 	<string name="project_home_stats_dirty_indicator">Les statistiques peuvent être obsolètes</string>
 	<string name="project_home_stat_num_scenes">Scènes</string>
@@ -10,7 +10,7 @@
 	<string name="project_home_stat_chapter_words">Mots par chapitre</string>
 	<string name="project_home_stat_chapter_words_x_axis">Chapitre</string>
 	<string name="project_home_stat_chapter_words_tooltip">%1$s : %2$s mots</string>
-	<string name="project_home_stat_avg_words_per_scene">Mots moy. / scène</string>
+	<string name="project_home_stat_avg_words_per_scene">Mots moyens / scène</string>
 	<string name="project_home_stat_num_notes">Notes</string>
 	<string name="project_home_stat_num_timeline_events">Événements de chronologie</string>
 	<string name="project_home_stat_longest_scene">Scène la plus longue</string>
@@ -54,7 +54,7 @@
 	<string name="project_home_stat_themes_breadth_of_four_short">%1$d des 4 types</string>
 	<string name="project_home_stat_themes_distribution">Distribution</string>
 	<string name="project_home_stat_themes_showing">Affichage de %1$d sur %2$d</string>
-	<string name="project_home_stat_themes_columns_legend">Rang · Tag · Portée · Utilisations</string>
+	<string name="project_home_stat_themes_columns_legend">Rang · Étiquette · Portée · Utilisations</string>
 	<string name="project_home_stat_themes_source_scenes">Scènes</string>
 	<string name="project_home_stat_themes_source_notes">Notes</string>
 	<string name="project_home_stat_themes_source_encyclopedia">Encyclopédie</string>
@@ -104,7 +104,12 @@
 	<string name="project_home_import_create_groups_label">Créer des groupes de chapitres</string>
 	<string name="project_home_import_preview_label">Aperçu</string>
 	<string name="project_home_import_preview_empty">Rien à importer</string>
+	<string name="project_home_import_preview_reading">Reading your manuscript</string>
 	<string name="project_home_import_preview_count">Créera %1$d scène(s)</string>
+	<string name="project_home_import_large_scene_label">Large scene</string>
+	<string name="project_home_import_large_scene_one">One scene holds %1$s words, so chapter detection probably missed your chapter titles. Try another detection setting.</string>
+	<string name="project_home_import_large_scene_many">%1$d scenes hold %2$s words or more, so chapter detection probably missed some chapter titles. Try another detection setting.</string>
+	<string name="project_home_import_scene_word_count">%1$s S</string>
 	<string name="project_home_import_cancel">Annuler</string>
 	<string name="project_home_import_execute">Importer</string>
 	<string name="project_home_action_settings_button">Paramètres</string>
