@@ -7,13 +7,13 @@
     <string name="overflow_menu_button">More Menu</string>
     <string name="navdrawer_button">Navigation Drawer</string>
     <string name="note_widget_dialog_title">Add Note to:</string>
-    <string name="note_widget_dialog_save_button">Save</string>
-    <string name="note_widget_dialog_cancel_button">Cancel</string>
-    <string name="note_widget_dialog_projects_dropdown">Projects</string>
+    <string name="note_widget_dialog_save_button">Salva</string>
+    <string name="note_widget_dialog_cancel_button">Annulla</string>
+    <string name="note_widget_dialog_projects_dropdown">Progetti</string>
     <string name="note_widget_dialog_failure_bad_project">Project not found: %1$s</string>
     <string name="note_widget_confirm_cancel_title">Discard Note?</string>
-    <string name="note_widget_confirm_cancel_positive">Discard</string>
-    <string name="note_widget_confirm_cancel_negative">Cancel</string>
+    <string name="note_widget_confirm_cancel_positive">Scarta</string>
+    <string name="note_widget_confirm_cancel_negative">Annulla</string>
     <string name="note_widget_button_description">Add Note</string>
     <string name="note_widget_toast_no_projects">No projects</string>
     <string name="note_widget_toast_success">Note Added</string>
@@ -30,7 +30,7 @@
     <string name="title_activity_story_info_widget_config">Configure Story Info Widget</string>
     <string name="story_info_widget_unconfigured">Tap to configure</string>
     <string name="story_info_widget_folio_header">§ %1$s · STORY</string>
-    <string name="story_info_widget_byline">by %1$s</string>
+    <string name="story_info_widget_byline">di %1$s</string>
     <string name="story_info_widget_words_label">WORDS</string>
     <string name="story_info_widget_goal_summary">%1$d%% OF %2$s %3$s</string>
     <string name="story_info_widget_cadence_today">TODAY</string>

@@ -38,7 +38,7 @@
 	<string name="archived_scenes_restored_snackbar">« %1$s » a été restaurée</string>
 	<string name="scene_archived_snackbar">« %1$s » a été archivée</string>
 	<string name="view_archived_scenes_button">Voir les archives</string>
-	<string name="scene_editor_focus_mode_button">Mode concentration</string>
+	<string name="scene_editor_focus_mode_button">Mode Focus</string>
 	<string name="scene_editor_metadata_title">Métadonnées</string>
 	<string name="scene_editor_metadata_hide_button">Masquer les infos</string>
 	<string name="scene_editor_metadata_word_count_label">Mots :</string>
@@ -71,11 +71,11 @@
 	<string name="scene_editor_metadata_references_add_dialog_search_other">Rechercher des entrées…</string>
 	<string name="scene_editor_metadata_references_add_dialog_empty">Aucune entrée correspondante.</string>
 	<string name="scene_editor_metadata_references_add_dialog_close">Fermer la boîte de dialogue</string>
-	<string name="scene_editor_metadata_tags_header">Tags</string>
+	<string name="scene_editor_metadata_tags_header">Étiquettes</string>
 	<string name="scene_editor_metadata_tags_empty">Aucun tag pour l'instant</string>
 	<string name="scene_editor_metadata_tags_add_button">+ Ajouter un tag</string>
 	<string name="scene_editor_metadata_tags_add_dialog_title">Ajouter des tags</string>
-	<string name="scene_editor_metadata_tags_add_dialog_placeholder">tag1 tag2 …</string>
+	<string name="scene_editor_metadata_tags_add_dialog_placeholder">étiquette1 étiquette2 …</string>
 	<string name="scene_editor_metadata_tags_add_dialog_done">Terminé</string>
 	<string name="scene_editor_no_scene_selected">Sélectionnez une scène à modifier</string>
 	<string name="default_draft_name">Nouveau brouillon</string>

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="app_name">Hammer</string>
-	<string name="save_all_toast">Toutes les scènes enregistrées</string>
+	<string name="save_all_toast">Scènes enregistrées</string>
 	<string name="unsaved_scenes_dialog_title">Scènes non enregistrées</string>
 	<string name="unsaved_scenes_dialog_message">Que faire des scènes non enregistrées ?</string>
 	<string name="unsaved_encyclopedia_dialog_title">Entrée d'encyclopédie non enregistrée</string>
@@ -28,13 +28,13 @@
 	<string name="markdown_format_bar_find_replace">Rechercher et remplacer</string>
 	<string name="markdown_format_bar_bold">Gras</string>
 	<string name="markdown_format_bar_italic">Italique</string>
-	<string name="markdown_format_bar_strikethrough">Barré</string>
-	<string name="markdown_format_bar_heading">Titre</string>
+	<string name="markdown_format_bar_strikethrough">Barrer</string>
+	<string name="markdown_format_bar_heading">En-tête</string>
 	<string name="markdown_format_bar_blockquote">Citation</string>
 	<string name="markdown_format_bar_bullet_list">Liste à puces</string>
 	<string name="markdown_format_bar_numbered_list">Liste numérotée</string>
-	<string name="markdown_format_bar_horizontal_rule">Ligne horizontale</string>
+	<string name="markdown_format_bar_horizontal_rule">Règle horizontale</string>
 	<string name="markdown_format_bar_undo">Annuler</string>
 	<string name="markdown_format_bar_redo">Rétablir</string>
-	<string name="form_dialog_keyboard_hint">ESC annuler</string>
+	<string name="form_dialog_keyboard_hint">ECHAP annuler</string>
 </resources>

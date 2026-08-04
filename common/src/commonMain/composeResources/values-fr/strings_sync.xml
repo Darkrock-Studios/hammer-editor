@@ -15,7 +15,7 @@
 	<string name="sync_conflict_entity_label_encyclopedia_entry">Entrée d'encyclopédie</string>
 	<string name="sync_conflict_entity_label_scene_draft">Brouillon de scène</string>
 	<string name="sync_conflict_entity_label_project_data">Paramètres du projet</string>
-	<string name="sync_conflict_merge_explained">Vous pouvez prendre la copie locale ou distante telle quelle, ou fusionner les deux manuellement en copiant des parties de la version distante dans votre copie locale, puis en la retenant.</string>
+	<string name="sync_conflict_merge_explained">Vous pouvez prendre la copie locale ou distante telle quelle, ou fusionner les deux manuellement en copiant des parties de la version distante dans votre copie locale</string>
 	<string name="sync_conflict_encyclopedia_title">Conflit d'entrée d'encyclopédie</string>
 	<string name="project_info_author_label">Auteur</string>
 	<string name="project_info_theme_section_title">Thème personnalisé</string>
@@ -30,10 +30,10 @@
 	<string name="project_info_word_goal_cadence_week">Semaine</string>
 	<string name="project_info_word_goal_effective_label">Effectif</string>
 	<string name="project_info_word_goal_effective_unit">M / jour</string>
-	<string name="project_info_tags_section_title">Tags</string>
-	<string name="project_info_tags_label">Tags</string>
-	<string name="project_info_tags_hint">↵ pour ajouter</string>
-	<string name="project_info_tags_placeholder">fantasy, brouillon, nanowrimo…</string>
+	<string name="project_info_tags_section_title">Étiquettes</string>
+	<string name="project_info_tags_label">Étiquettes</string>
+	<string name="project_info_tags_hint">↵ ajouter</string>
+	<string name="project_info_tags_placeholder">fantaisie, brouillon, nanowrimo…</string>
 	<string name="project_info_color_picker_edit">Modifier</string>
 	<string name="project_info_color_picker_cancel">Annuler</string>
 	<string name="project_info_color_picker_confirm">OK</string>
@@ -51,7 +51,7 @@
 	<string name="sync_conflict_project_data_field_author">Nom de l'auteur</string>
 	<string name="sync_conflict_project_data_field_theme">Thème du projet</string>
 	<string name="sync_conflict_project_data_field_word_goal">Objectif de nombre de mots</string>
-	<string name="sync_conflict_project_data_field_tags">Tags</string>
+	<string name="sync_conflict_project_data_field_tags">Étiquettes</string>
 	<string name="sync_conflict_project_data_value_unset">(non défini)</string>
 	<string name="sync_conflict_project_data_cadence_day">jour</string>
 	<string name="sync_conflict_project_data_cadence_week">semaine</string>

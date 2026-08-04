@@ -39,7 +39,7 @@
 	<string name="timeline_view_menu_delete">Excluir</string>
 	<string name="timeline_view_confirm_delete_title">Excluir Evento da Linha do Tempo?</string>
 	<string name="timeline_view_confirm_delete_message">Isso não pode ser desfeito!</string>
-	<string name="timeline_header">Timeline</string>
+	<string name="timeline_header">Linha do Tempo</string>
 	<string name="timeline_header_meta">%1$d ENTRADAS · %2$d ETIQUETAS</string>
 	<string name="timeline_search_button">Pesquisar na linha do tempo</string>
 	<string name="timeline_search_placeholder">Pesquisar na linha do tempo</string>
