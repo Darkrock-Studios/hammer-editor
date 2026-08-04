@@ -1,6 +1,6 @@
 Please join our Discord to report issues! https://discord.gg/GTmgjZcupk
 
-Multi-platform
+Multipiattaforma
 
 This app is where ever you are. Your phone, tablet, desktop, laptop, this program can be installed and run, not simply a website-in-a-box, but instead using native client side technologies to provide the best experience possible.
 
@@ -8,7 +8,7 @@ Offline first
 
 I was frustrated with most of the story writing software I was finding as they were using web technologies (aka: Web Page in a box) which always seems to run into problems while being used offline for long periods of time. Hammer is designed from the ground up to be entirely local, no internet connection required, ever.
 
-Transparent Data
+Dati trasparenti
 
 Your data is yours. It's not stored in the cloud, or some opaque database. It is stored in simple, human readable files, just using files and folders to define the project structure. You can open your OSes file browser and take a look for your self. If this program went away today you would be able to easily interact with your data.
 
