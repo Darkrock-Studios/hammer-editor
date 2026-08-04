@@ -4,7 +4,7 @@
 	<string name="timeline_create_event_button">Créer un événement</string>
 	<string name="timeline_create_toast_success">Événement créé</string>
 	<string name="timeline_create_toast_tag_too_long">Le tag était trop long (max %1$d)</string>
-	<string name="timeline_create_tags_label">Tags</string>
+	<string name="timeline_create_tags_label">Étiquettes</string>
 	<string name="timeline_create_tags_hint">↵ pour ajouter</string>
 	<string name="timeline_create_tags_placeholder">arc, préfiguration, conflit…</string>
 	<string name="timeline_view_header">Événement</string>
@@ -22,7 +22,7 @@
 	<string name="timeline_view_status_word_char">%1$d M · %2$d C</string>
 	<string name="timeline_view_status_hint">ESC POUR ANNULER</string>
 	<string name="timeline_view_word_count_short">%1$d M</string>
-	<string name="timeline_view_tag_count_short">%1$d TAGS</string>
+	<string name="timeline_view_tag_count_short">%1$d ÉTIQUETTES</string>
 	<string name="timeline_view_toast_save_success">Enregistré</string>
 	<string name="timeline_view_toast_save_failure">Échec de l'enregistrement</string>
 	<string name="timeline_create_header">Créer un événement</string>
@@ -39,7 +39,7 @@
 	<string name="timeline_view_menu_delete">Supprimer</string>
 	<string name="timeline_view_confirm_delete_title">Supprimer l'événement de chronologie ?</string>
 	<string name="timeline_view_confirm_delete_message">Cette action est irréversible !</string>
-	<string name="timeline_header">Timeline</string>
+	<string name="timeline_header">Chronologie</string>
 	<string name="timeline_header_meta">%1$d ENTRÉES · %2$d TAGS</string>
 	<string name="timeline_search_button">Rechercher dans la chronologie</string>
 	<string name="timeline_search_placeholder">Rechercher dans la chronologie</string>
