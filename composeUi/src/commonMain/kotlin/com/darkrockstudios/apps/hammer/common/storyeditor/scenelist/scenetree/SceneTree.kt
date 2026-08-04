@@ -18,6 +18,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
@@ -26,6 +27,8 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -58,6 +61,7 @@ fun SceneTree(
 				LazyColumn(
 					state = state.listState,
 					modifier = modifier.reorderableModifier(state)
+						.onGloballyPositioned { state.listTopInRoot = it.positionInRoot().y }
 						.weight(1f),
 					contentPadding = contentPadding
 				) {
@@ -68,6 +72,9 @@ fun SceneTree(
 					) { node ->
 						val nodeCollapsesChildren =
 							state.collapsedNodes[node.value.id] ?: false
+						val id = node.value.id
+
+						DisposableEffect(id) { onDispose { state.removeRowCoordinates(id) } }
 
 						SceneTreeNode(
 							node = node,
@@ -77,7 +84,8 @@ fun SceneTree(
 							modifier = Modifier.wrapContentHeight()
 								.fillMaxWidth()
 								.animateItem()
-								.pressCandidate(state, node.value.id),
+								.onGloballyPositioned { state.setRowCoordinates(id, it) }
+								.pressCandidate(state, id),
 							itemUi = itemUi
 						)
 					}
@@ -90,12 +98,11 @@ fun SceneTree(
 }
 
 /**
- * Records this row as the drag candidate while it is pressed.
+ * Claims this row as the drag target for as long as it is pressed.
  *
- * Thar be dragons: resolving the row from [LazyListLayoutInfo] instead looks equivalent but is
- * not. Its offsets are where items are headed, not where they are drawn, so a press landing
- * during a placement animation grabs whichever row now owns that target slot. Compose's own hit
- * test uses the drawn position, so it stays right mid-animation.
+ * The row is settled at touch-down, not when the long press expires, so a list still settling
+ * under a stationary finger hands back the row the user aimed at rather than whichever row has
+ * since slid beneath them.
  */
 private fun Modifier.pressCandidate(state: SceneTreeState, id: Int): Modifier =
 	pointerInput(id) {
@@ -140,7 +147,7 @@ private fun Modifier.reorderableModifier(state: SceneTreeState): Modifier {
 				val layoutInfo: LazyListLayoutInfo = listState.layoutInfo
 				val insertPosition = findInsertPosition(
 					dragOffset = change.position,
-					layouts = layoutInfo.visibleItemsInfo,
+					layouts = rowLayouts,
 					collapsedGroups = collapsedNodes,
 					tree = summary.sceneTree,
 					visibleNodes = visibleNodes,
@@ -196,17 +203,13 @@ private fun drawInsertLine(
 			return@Canvas
 		}
 
-		val visibleItems = state.listState.layoutInfo.visibleItemsInfo
-		val anchorLayout = visibleItems.find { it.key == node.value.id }
+		val visibleItems = state.rowLayouts
+		val anchorLayout = visibleItems.find { it.id == node.value.id }
 
-		val lineY: Int
+		val lineY: Float
 		val nestingDept: Int
 		if (anchorLayout != null) {
-			lineY = if (insertPos.before) {
-				anchorLayout.offset
-			} else {
-				anchorLayout.offset + anchorLayout.size
-			}
+			lineY = if (insertPos.before) anchorLayout.top else anchorLayout.bottom
 
 			val isGroup = node.value.type.isCollection
 			val isCollapsed = (state.collapsedNodes[node.value.id] == true)
@@ -224,8 +227,8 @@ private fun drawInsertLine(
 				.any { state.collapsedNodes[it.value.id] == true }
 			if (!hiddenByCollapse) return@Canvas
 			val parentNode = tree[node.parent]
-			val parentLayout = visibleItems.find { it.key == parentNode.value.id } ?: return@Canvas
-			lineY = parentLayout.offset + parentLayout.size
+			val parentLayout = visibleItems.find { it.id == parentNode.value.id } ?: return@Canvas
+			lineY = parentLayout.bottom
 			nestingDept = parentNode.depth + 1
 		}
 
@@ -233,8 +236,8 @@ private fun drawInsertLine(
 		val endX = size.width - NESTING_INSET.toPx()
 
 		drawLine(
-			start = Offset(x = insetSize, y = lineY.toFloat()),
-			end = Offset(x = endX, y = lineY.toFloat()),
+			start = Offset(x = insetSize, y = lineY),
+			end = Offset(x = endX, y = lineY),
 			color = color,
 			strokeWidth = 5f.dp.toPx(),
 			cap = StrokeCap.Round

@@ -147,6 +147,35 @@ class SceneTreeDragTest {
 	}
 
 	@Test
+	fun `dropping onto a settling list anchors to the row the user sees`() {
+		showTree()
+		compose.mainClock.autoAdvance = false
+
+		compose.onNodeWithTag(TREE_TAG)
+			.performMouseInput { moveTo(visualCenterOf(Ids.PREFACE)); press() }
+		compose.mainClock.advanceTimeBy(1_000)
+
+		// A sync re-flows the list while the drag is already under way.
+		summary = buildSummary(camerasAtRoot = true)
+		compose.mainClock.advanceTimeByFrame()
+		compose.mainClock.advanceTimeByFrame()
+
+		compose.onNodeWithTag(TREE_TAG)
+			.performMouseInput { moveTo(visualCenterOf(Ids.VERIFICATION)) }
+		compose.mainClock.advanceTimeByFrame()
+		compose.onNodeWithTag(TREE_TAG).performMouseInput { release() }
+		compose.mainClock.advanceTimeBy(1_000)
+
+		val request = moveRequest
+		assertNotNull(request, "No move was requested")
+		assertEquals(
+			Ids.VERIFICATION,
+			treeState.getTree()[request.toPosition.coords.globalIndex].value.id,
+			"Anchored to a row's destination instead of where it is drawn",
+		)
+	}
+
+	@Test
 	fun `a row disposed while pressed does not stay grabbable`() {
 		showTree()
 
