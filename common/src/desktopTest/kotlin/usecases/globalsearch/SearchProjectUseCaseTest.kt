@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteCont
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneContentRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.search.MarkdownProjector
 import com.darkrockstudios.apps.hammer.common.util.ScanBuffers
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
@@ -97,7 +98,7 @@ class SearchProjectUseCaseTest : BaseTest() {
 		for ((content, query) in cases) {
 			assertEquals(
 				markdownContains(content, query),
-				SearchProjectUseCase.findMarkdownMatch(content, query) != null,
+				SearchProjectUseCase.findMarkdownMatch(MarkdownProjector(), content, query) != null,
 				"disagreement on content=<$content> query=<$query>",
 			)
 		}
@@ -588,16 +589,6 @@ class SearchProjectUseCaseTest : BaseTest() {
 	}
 
 	@Test
-	fun `search matches across a backslash escape`() = runTest {
-		every { notes.getNotes() } returns listOf(note(1, "A well\\-known secret"))
-
-		val results = createUseCase().search("well-known", GlobalSearchFilter.All)
-			.filterIsInstance<SearchResult.Note>()
-
-		assertEquals(1, results.size)
-	}
-
-	@Test
 	fun `snippets render escaped text the way it reads on screen`() = runTest {
 		every { notes.getNotes() } returns listOf(note(1, "A well\\-known garden\\! at dusk"))
 
@@ -687,7 +678,7 @@ class SearchProjectUseCaseTest : BaseTest() {
 		)
 		every { sceneEditor.getScenes() } returns listOf(scene)
 		every { sceneContentRepository.getSceneBuffer(scene) } returns null
-		every { sceneEditor.loadSceneMarkdownRaw(scene, any()) } returns "A well\\-known road"
+		stubSceneMarkdown(scene, "A well\\-known road")
 
 		val results = createUseCase().search("well-known", GlobalSearchFilter.All)
 			.filterIsInstance<SearchResult.Scene>()
@@ -872,9 +863,6 @@ class SearchProjectUseCaseTest : BaseTest() {
 		assertEquals(1, results.size)
 		assertEquals(7, results.first().sceneItem.id)
 	}
-
-	private fun note(id: Int, content: String) =
-		NoteContainer(NoteContent(id = id, created = Clock.System.now(), content = content))
 
 	@Test
 	fun `search honors filter to a single source`() = runTest {
