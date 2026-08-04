@@ -127,11 +127,13 @@ private fun Modifier.reorderableModifier(state: SceneTreeState): Modifier {
 	state.apply {
 		return pointerInput(Unit) {
 			detectDragGesturesAfterLongPress(
-				onDragStart = {
+				onDragStart = { offset ->
 					val id = pressedRowId
 					if (id != SceneTreeState.NO_SELECTION) {
 						hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
 						startDragging(id)
+						updateDragPosition(offset)
+						autoScrollForDrag()
 					}
 				},
 				onDragCancel = {
@@ -142,31 +144,8 @@ private fun Modifier.reorderableModifier(state: SceneTreeState): Modifier {
 				}
 			) { change, _ ->
 				change.consume()
-
-				val layoutInfo: LazyListLayoutInfo = listState.layoutInfo
-				val insertPosition = findInsertPosition(
-					dragOffset = change.position,
-					layouts = rowLayouts,
-					collapsedGroups = collapsedNodes,
-					tree = summary.sceneTree,
-					visibleNodes = visibleNodes,
-					selectedNode = selectedNode,
-				)
-
-				if (insertAt != insertPosition) {
-					insertAt = insertPosition
-				}
-
-				// Auto scroll
-				val height = layoutInfo.viewportSize.height - layoutInfo.viewportStartOffset
-				val bottomTenPercent: Float = height * .9f
-				val topTenPercent: Float = height * .1f
-
-				if (change.position.y >= bottomTenPercent) {
-					autoScroll(false)
-				} else if (change.position.y <= topTenPercent) {
-					autoScroll(true)
-				}
+				updateDragPosition(change.position)
+				autoScrollForDrag()
 			}
 		}
 	}

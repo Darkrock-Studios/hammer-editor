@@ -71,11 +71,32 @@ class SceneTreeState(
 	internal var summary by mutableStateOf(sceneSummary)
 	var selectedId by mutableStateOf(NO_SELECTION)
 	var selectedNode by mutableStateOf<TreeValue<SceneItem>?>(null)
-	var insertAt by mutableStateOf<InsertPosition?>(null)
 
 	/** The rows the tree renders, in display order — also the drag handler's id → node lookup. */
 	val visibleNodes: List<TreeValue<SceneItem>> by derivedStateOf {
 		visibleSceneNodes(summary.sceneTree, collapsedNodes)
+	}
+
+	var dragPosition by mutableStateOf<Offset?>(null)
+		private set
+
+	/**
+	 * Derived rather than assigned from the drag handler, because the pointer is only half of it:
+	 * autoscroll slides the rows out from under a finger that never moves and so never delivers
+	 * another event. Recomputing whenever either side changes keeps the drop target under the
+	 * finger, and [rowLayouts] re-reads on every placement pass to make that happen.
+	 */
+	val insertAt: InsertPosition? by derivedStateOf {
+		val position = dragPosition ?: return@derivedStateOf null
+
+		findInsertPosition(
+			dragOffset = position,
+			layouts = rowLayouts,
+			collapsedGroups = collapsedNodes,
+			tree = summary.sceneTree,
+			visibleNodes = visibleNodes,
+			selectedNode = selectedNode,
+		)
 	}
 
 	/**
@@ -157,7 +178,6 @@ class SceneTreeState(
 		rows.remove(id)
 	}
 
-
 	private var scrollJob by mutableStateOf<Job?>(null)
 	private var treeHash by mutableStateOf(sceneSummary.sceneTree.hashCode())
 
@@ -195,19 +215,42 @@ class SceneTreeState(
 		collapsedNodes.clear()
 	}
 
-	fun autoScroll(up: Boolean) {
+	/** True to scroll up, false to scroll down, null when the drag is clear of both edges. */
+	private fun dragScrollDirection(): Boolean? {
+		val position = dragPosition ?: return null
+		val layoutInfo = listState.layoutInfo
+		val height = layoutInfo.viewportSize.height - layoutInfo.viewportStartOffset
+		if (height <= 0) return null
+
+		return when {
+			position.y >= height * AUTO_SCROLL_ZONE_END -> false
+			position.y <= height * AUTO_SCROLL_ZONE_START -> true
+			else -> null
+		}
+	}
+
+	/**
+	 * Scrolls a row at a time while the drag is held near either edge.
+	 *
+	 * The job keeps stepping on its own until the pointer leaves the edge or the list runs out,
+	 * because a drag parked in the hot zone delivers no further pointer events to step it along.
+	 */
+	internal fun autoScrollForDrag() {
 		if (scrollJob?.isActive == true) return
+		if (dragScrollDirection() == null) return
 
 		scrollJob = coroutineScope.launch {
-			if (up) {
-				val targetIndex = (listState.firstVisibleItemIndex - 1).coerceAtLeast(0)
-				listState.animateScrollToItem(targetIndex)
-			} else {
-				val visibleItems = listState.layoutInfo.visibleItemsInfo
-				if (visibleItems.isNotEmpty()) {
-					val nextIndex = listState.firstVisibleItemIndex + 1
-					listState.animateScrollToItem(nextIndex)
+			while (true) {
+				val up = dragScrollDirection() ?: break
+				if (up && !listState.canScrollBackward) break
+				if (!up && !listState.canScrollForward) break
+
+				val target = if (up) {
+					(listState.firstVisibleItemIndex - 1).coerceAtLeast(0)
+				} else {
+					listState.firstVisibleItemIndex + 1
 				}
+				listState.animateScrollToItem(target)
 			}
 		}
 	}
@@ -217,6 +260,10 @@ class SceneTreeState(
 			selectedId = id
 			selectedNode = summary.sceneTree.findBy { it.id == id }
 		}
+	}
+
+	internal fun updateDragPosition(position: Offset) {
+		dragPosition = position
 	}
 
 	fun stopDragging() {
@@ -231,7 +278,8 @@ class SceneTreeState(
 
 		selectedId = NO_SELECTION
 		selectedNode = null
-		insertAt = null
+		dragPosition = null
+		scrollJob?.cancel()
 	}
 
 	fun toggleExpanded(nodeId: Int) {
@@ -241,5 +289,8 @@ class SceneTreeState(
 
 	companion object {
 		const val NO_SELECTION = -1
+
+		private const val AUTO_SCROLL_ZONE_START = .1f
+		private const val AUTO_SCROLL_ZONE_END = .9f
 	}
 }
