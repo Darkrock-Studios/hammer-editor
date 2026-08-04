@@ -39,7 +39,7 @@
 	<string name="timeline_view_menu_delete">Elimina</string>
 	<string name="timeline_view_confirm_delete_title">Eliminare l’evento di cronologia?</string>
 	<string name="timeline_view_confirm_delete_message">Questa azione non può essere annullata!</string>
-	<string name="timeline_header">Timeline</string>
+	<string name="timeline_header">Cronologia</string>
 	<string name="timeline_header_meta">%1$d VOCI · %2$d TAG</string>
 	<string name="timeline_search_button">Cerca nella cronologia</string>
 	<string name="timeline_search_placeholder">Cerca nella cronologia</string>
