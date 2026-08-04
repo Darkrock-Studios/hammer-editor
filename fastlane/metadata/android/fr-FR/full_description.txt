@@ -1,21 +1,21 @@
-Please join our Discord to report issues! https://discord.gg/GTmgjZcupk
+Rejoignez notre Discord pour signaler les bugs ! https://discord.gg/GTmgjZcupk
 
-Multi-platform
+Multiplateforme
 
-This app is where ever you are. Your phone, tablet, desktop, laptop, this program can be installed and run, not simply a website-in-a-box, but instead using native client side technologies to provide the best experience possible.
+Cette application est utilisable peu importe l'endroit où vous vous trouvez. Votre smartphone, tablette, ordinateur de bureau et ordinateur portable sera en mesure de pouvoir installer et utiliser ce programme, ce n'est pas une application web de poche, mais une véritable application client afin de fournir la meilleure expérience possible.
 
-Offline first
+Hors ligne avant tout
 
-I was frustrated with most of the story writing software I was finding as they were using web technologies (aka: Web Page in a box) which always seems to run into problems while being used offline for long periods of time. Hammer is designed from the ground up to be entirely local, no internet connection required, ever.
+J'ai été frustré par la plupart des logiciels de rédaction d'histoire que je trouvais puisqu'ils utilisaient tous des technologies web (ex : page web déguisé en application) qui semblent toujours rencontrer des problèmes lorsqu'ils sont utilisés hors ligne trop longtemps. Hammer a été conçu dans le but d'être entièrement fonctionnel en local, sans aucune connexion internet nécessaire, pour toujours.
 
-Transparent Data
+Transparence des données
 
-Your data is yours. It's not stored in the cloud, or some opaque database. It is stored in simple, human readable files, just using files and folders to define the project structure. You can open your OSes file browser and take a look for your self. If this program went away today you would be able to easily interact with your data.
+Vos données vous appartiennent. Ils ne sont pas stockés dans le cloud, ou dans une obscure base de données. Tout est stocké dans des fichiers humainement lisibles, utilisant uniquement des fichiers et des dossiers pour définir la structure du projet. Vous pouvez donc y jeter un œil par vous-même en naviguant dans vos fichiers. Si ce programme disparaissait aujourd'hui, vous serez en mesure d'interagir facilement avec vos données.
 
-Intelligent Syncing between devices
+Synchronisation intelligente entre vos appareils
 
-Your data can be synchronized between devices allowing you to work on your story from anywhere, and have no fear of a change on one device, overwriting a change on another device.
+Vos données peuvent être synchronisées entre plusieurs appareils vous permettant de poursuivre l'écriture de votre histoire là où vous le souhaitez, sans avoir la crainte qu'une édition faite sur l'un de vos appareils n'en écrase une faite sur un autre.
 
-Optional and Self hosted Syncing
+Synchronisation optionnelle et auto-hébergée
 
-Syncing is entirely optional, you can install the client and use it on one device, or you can install the server and sync your data between devices.
+La synchronisation est entièrement optionnelle, vous pouvez installer le client et l'utiliser sur votre appareil sans aucune action supplémentaire, ou vous pouvez installer un serveur pour la synchronisation entre vos appareils.
