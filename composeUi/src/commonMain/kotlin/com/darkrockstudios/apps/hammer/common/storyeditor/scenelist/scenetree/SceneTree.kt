@@ -71,9 +71,12 @@ fun SceneTree(
 							nodeCollapsesChildren = nodeCollapsesChildren,
 							selectedId = state.selectedId,
 							toggleExpanded = state::toggleExpanded,
+							// Placement stays un-animated: drag/drop hit-tests against
+							// LazyListLayoutInfo, which reports target offsets, so a sliding
+							// row would be grabbed by whatever now owns the spot it left.
 							modifier = Modifier.wrapContentHeight()
 								.fillMaxWidth()
-								.animateItem(),
+								.animateItem(placementSpec = null),
 							itemUi = itemUi
 						)
 					}
