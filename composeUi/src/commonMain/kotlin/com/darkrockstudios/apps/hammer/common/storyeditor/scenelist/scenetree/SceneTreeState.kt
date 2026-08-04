@@ -14,6 +14,7 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.ui.input.pointer.PointerId
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -73,6 +74,35 @@ class SceneTreeState(
 	/** The rows the tree renders, in display order — also the drag handler's id → node lookup. */
 	val visibleNodes: List<TreeValue<SceneItem>> by derivedStateOf {
 		visibleSceneNodes(summary.sceneTree, collapsedNodes)
+	}
+
+	/**
+	 * Row this press started on, recorded by the rows themselves so it reflects the drawn
+	 * position rather than a layout target.
+	 * Deliberately not snapshot state: it changes on every press and must not recompose the tree.
+	 */
+	internal var pressedRowId: Int = NO_SELECTION
+		private set
+
+	private var pressedPointer: PointerId? = null
+
+	/**
+	 * Records [rowId] as the press target, but only for the first pointer down. The drag detector
+	 * follows that same pointer, so later fingers must not be able to retarget the drag.
+	 */
+	internal fun claimPress(pointer: PointerId, rowId: Int): Boolean {
+		if (pressedPointer != null) return false
+
+		pressedPointer = pointer
+		pressedRowId = rowId
+		return true
+	}
+
+	internal fun releasePress(pointer: PointerId) {
+		if (pressedPointer != pointer) return
+
+		pressedPointer = null
+		pressedRowId = NO_SELECTION
 	}
 
 	private var scrollJob by mutableStateOf<Job?>(null)

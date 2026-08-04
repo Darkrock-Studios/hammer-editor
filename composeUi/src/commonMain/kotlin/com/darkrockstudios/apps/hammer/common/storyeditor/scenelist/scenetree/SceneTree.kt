@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -22,6 +24,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
@@ -73,7 +76,8 @@ fun SceneTree(
 							toggleExpanded = state::toggleExpanded,
 							modifier = Modifier.wrapContentHeight()
 								.fillMaxWidth()
-								.animateItem(),
+								.animateItem()
+								.pressCandidate(state, node.value.id),
 							itemUi = itemUi
 						)
 					}
@@ -85,20 +89,43 @@ fun SceneTree(
 	}
 }
 
+/**
+ * Records this row as the drag candidate while it is pressed.
+ *
+ * Thar be dragons: resolving the row from [LazyListLayoutInfo] instead looks equivalent but is
+ * not. Its offsets are where items are headed, not where they are drawn, so a press landing
+ * during a placement animation grabs whichever row now owns that target slot. Compose's own hit
+ * test uses the drawn position, so it stays right mid-animation.
+ */
+private fun Modifier.pressCandidate(state: SceneTreeState, id: Int): Modifier =
+	pointerInput(id) {
+		awaitEachGesture {
+			val down = awaitFirstDown(requireUnconsumed = false)
+			if (!state.claimPress(down.id, id)) return@awaitEachGesture
+
+			// The release must survive this row being disposed mid-press, which cancels us.
+			try {
+				var change: PointerInputChange?
+				do {
+					change = awaitPointerEvent().changes.firstOrNull { it.id == down.id }
+				} while (change?.pressed == true)
+			} finally {
+				state.releasePress(down.id)
+			}
+		}
+	}
+
 @Composable
 private fun Modifier.reorderableModifier(state: SceneTreeState): Modifier {
 	val hapticFeedback = LocalHapticFeedback.current
 	state.apply {
 		return pointerInput(Unit) {
 			detectDragGesturesAfterLongPress(
-				onDragStart = { offset ->
-					for (itemInfo in listState.layoutInfo.visibleItemsInfo) {
-						if (offset.y >= itemInfo.offset && offset.y <= (itemInfo.offset + itemInfo.size)) {
-							hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
-							val id = itemInfo.key as Int
-							startDragging(id)
-							break
-						}
+				onDragStart = {
+					val id = pressedRowId
+					if (id != SceneTreeState.NO_SELECTION) {
+						hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+						startDragging(id)
 					}
 				},
 				onDragCancel = {
