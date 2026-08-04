@@ -30,7 +30,7 @@
     <string name="title_activity_story_info_widget_config">Configure Story Info Widget</string>
     <string name="story_info_widget_unconfigured">Tap to configure</string>
     <string name="story_info_widget_folio_header">§ %1$s · STORY</string>
-    <string name="story_info_widget_byline">by %1$s</string>
+    <string name="story_info_widget_byline">por %1$s</string>
     <string name="story_info_widget_words_label">WORDS</string>
     <string name="story_info_widget_goal_summary">%1$d%% OF %2$s %3$s</string>
     <string name="story_info_widget_cadence_today">TODAY</string>
