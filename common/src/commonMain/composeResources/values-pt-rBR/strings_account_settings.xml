@@ -110,4 +110,5 @@
 	<string name="server_error_timeout">O servidor não está respondendo. Verifique sua conexão com a 'internet' e tente novamente.</string>
 	<string name="server_error_dns">Servidor não encontrado. Verifique o endereço do servidor e sua conexão de 'internet'.</string>
 	<string name="server_error_connection_generic">Erro de rede ao conectar-se a %1$s. Verifique sua conexão e tente novamente.</string>
+	<string name="server_error_tls">Could not make a secure connection to %1$s. Hammer only connects over HTTPS, so the server needs a valid TLS certificate of its own or a reverse proxy that provides one.</string>
 </resources>
