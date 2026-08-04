@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.CommunityAuthor
 import com.darkrockstudios.apps.hammer.utilities.*
+import org.slf4j.LoggerFactory
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
@@ -100,13 +101,13 @@ class AccountsRepository(
 					SResult.failure(
 						"account pending deletion",
 						Msg.r("api_accounts_login_error_pending_deletion"),
-						CreateFailed("Account pending deletion")
+						AccountPendingDeletion()
 					)
 				} else {
 					SResult.failure(
 						"account already exists",
 						Msg.r("api_accounts_create_error_accountexists"),
-						CreateFailed("Account already exists")
+						AccountAlreadyExists()
 					)
 				}
 			}
@@ -114,7 +115,7 @@ class AccountsRepository(
 			!EmailValidator.validate(email) -> SResult.failure(
 				"invalid email",
 				Msg.r("api_accounts_create_error_invalidemail"),
-				CreateFailed("Invalid email")
+				InvalidEmail()
 			)
 
 			passwordResult != PasswordValidationResult.VALID -> SResult.failure(
@@ -181,16 +182,27 @@ class AccountsRepository(
 				// state to its owner and nothing to password guessers.
 				SResult.failure(
 					"Account pending deletion",
-					Msg.r("api_accounts_login_error_pending_deletion")
+					Msg.r("api_accounts_login_error_pending_deletion"),
+					AccountPendingDeletion()
 				)
 			} else {
 				val token = createToken(account.id, installId)
 				SResult.success(token)
 			}
 		} else {
-			// One message for both unknown-account and wrong-password so the
-			// response body doesn't reveal whether the account exists.
-			SResult.failure("Invalid credentials", Msg.r("api_accounts_login_error_invalid"))
+			// The response can't distinguish these two — that would let anyone
+			// enumerate accounts — but the operator's log can, and without it a
+			// failing login is undiagnosable from the server side.
+			if (account == null) {
+				log.info("Login rejected: no account for the submitted email")
+			} else {
+				log.info("Login rejected: password mismatch for user ${account.id}")
+			}
+			SResult.failure(
+				"Invalid credentials",
+				Msg.r("api_accounts_login_error_invalid"),
+				LoginFailed("Invalid credentials")
+			)
 		}
 	}
 
@@ -323,6 +335,8 @@ class AccountsRepository(
 	}
 
 	companion object {
+		private val log = LoggerFactory.getLogger(AccountsRepository::class.java)
+
 		const val CIPHER_SALT_LENGTH = 16
 
 		// A refresh token stays valid until this long past its access token's expiry.

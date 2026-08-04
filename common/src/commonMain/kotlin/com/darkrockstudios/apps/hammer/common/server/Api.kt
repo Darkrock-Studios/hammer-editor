@@ -339,44 +339,28 @@ class TermsOfServiceRequiredException(
 
 typealias FailureHandler = suspend (HttpResponse) -> Throwable
 
-private suspend fun unparseableErrorBody(
-	status: HttpStatusCode,
-	strRes: StrRes,
-	cause: Throwable,
-): HttpFailureException {
-	Napier.w("Error response body unable to be parsed", cause)
+suspend fun defaultFailureHandler(response: HttpResponse, strRes: StrRes): Throwable {
+	val error = try {
+		response.body<HttpResponseError>()
+	} catch (e: NoTransformationFoundException) {
+		null.also { Napier.w("Error response body unable to be parsed", e) }
+	} catch (e: ContentConvertException) {
+		null.also { Napier.w("Error response body unable to be parsed", e) }
+	}
+
+	if (error != null) return HttpFailureException(statusCode = response.status, error = error)
+
+	// Only when the server said nothing usable. A 401 carrying "invalid email or
+	// password" must reach the user as that, not as the generic sync message.
 	return HttpFailureException(
-		statusCode = status,
+		statusCode = response.status,
 		error = HttpResponseError(
-			error = "Unhandled error body",
-			displayMessage = strRes.get(Res.string.sync_general_error),
+			error = if (response.status == HttpStatusCode.Unauthorized) "Unauthorized" else "Unhandled error body",
+			displayMessage = if (response.status == HttpStatusCode.Unauthorized) {
+				strRes.get(Res.string.sync_unauthorized)
+			} else {
+				strRes.get(Res.string.sync_general_error)
+			},
 		)
 	)
-}
-
-suspend fun defaultFailureHandler(response: HttpResponse, strRes: StrRes): Throwable {
-	return when(response.status) {
-		HttpStatusCode.Unauthorized -> {
-			HttpFailureException(
-				statusCode = response.status,
-				error = HttpResponseError(
-					error = "Unauthorized",
-					displayMessage = strRes.get(Res.string.sync_unauthorized),
-				)
-			)
-		}
-		else -> {
-			try {
-				val error = response.body<HttpResponseError>()
-				HttpFailureException(
-					statusCode = response.status,
-					error = error
-				)
-			} catch (e: NoTransformationFoundException) {
-				unparseableErrorBody(response.status, strRes, e)
-			} catch (e: ContentConvertException) {
-				unparseableErrorBody(response.status, strRes, e)
-			}
-		}
-	}
 }
