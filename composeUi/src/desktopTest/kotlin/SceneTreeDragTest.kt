@@ -147,6 +147,22 @@ class SceneTreeDragTest {
 	}
 
 	@Test
+	fun `rows are reported in display order`() {
+		// A tree whose display order is not ascending by id: "More Cameras" (9) sits near the
+		// bottom, so anything ordered by id or by hash disagrees with what is on screen.
+		summary = buildSummary(camerasAtRoot = true)
+		showTree()
+
+		// findInsertPosition takes the first row whose bounds contain the pointer, and row
+		// bounds share seams, so anything but display order makes a drop on a seam a coin toss.
+		assertEquals(
+			treeState.visibleNodes.map { it.value.id },
+			treeState.rowLayouts.map { it.id },
+			"Row order does not match the rendered tree",
+		)
+	}
+
+	@Test
 	fun `dropping onto a settling list anchors to the row the user sees`() {
 		showTree()
 		compose.mainClock.autoAdvance = false

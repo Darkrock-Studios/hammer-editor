@@ -14,9 +14,9 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.PointerId
 import androidx.compose.ui.layout.LayoutCoordinates
-import androidx.compose.ui.layout.positionInRoot
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -106,37 +106,51 @@ class SceneTreeState(
 		pressedRowId = NO_SELECTION
 	}
 
-	private val rows = mutableStateMapOf<Int, LayoutCoordinates>()
+	private data class RowEntry(val coordinates: LayoutCoordinates, val placement: Int)
+
+	private val rows = mutableStateMapOf<Int, RowEntry>()
+	private var placementCount = 0
+	private var listCoordinates: LayoutCoordinates? = null
 
 	/**
-	 * Where the rows are actually drawn, which is what every drag decision must be made against.
+	 * Where the rows are actually drawn, in display order, which is what every drag decision has
+	 * to be made against.
 	 *
 	 * Thar be dragons: [LazyListLayoutInfo] looks like the obvious source and is not. Its offsets
 	 * are where items are headed, so while a placement animation runs it reports a row at a slot
 	 * it has not reached, and drags land on the neighbour instead (issue #837).
 	 */
-	internal val rowLayouts: Collection<RowLayout>
-		get() = rows.entries.mapNotNull { (id, coords) ->
-			if (!coords.isAttached) return@mapNotNull null
+	internal val rowLayouts: List<RowLayout>
+		get() {
+			val list = listCoordinates?.takeIf { it.isAttached } ?: return emptyList()
 
-			RowLayout(
-				id = id,
-				top = coords.positionInRoot().y - listTopInRoot,
-				height = coords.size.height.toFloat(),
-			)
+			return rows.entries.mapNotNull { (id, entry) ->
+				if (!entry.coordinates.isAttached) return@mapNotNull null
+
+				RowLayout(
+					id = id,
+					top = list.localPositionOf(entry.coordinates, Offset.Zero).y,
+					height = entry.coordinates.size.height.toFloat(),
+				)
+			}.sortedBy { it.top }
 		}
 
-	/** Root-space top of the list, so row positions share the drag gesture's coordinates. */
-	internal var listTopInRoot: Float = 0f
+	internal fun setListCoordinates(coordinates: LayoutCoordinates) {
+		listCoordinates = coordinates
+	}
 
 	/**
-	 * Held live rather than sampled: item placement animations move a row by translating its
-	 * layer every frame, without a new layout pass, so a position read during
-	 * [androidx.compose.ui.layout.onGloballyPositioned] is the row's destination. Asking the
-	 * coordinates where they are at the moment of the drag sees through that translation.
+	 * Coordinates are held live rather than sampled: item placement animations move a row by
+	 * translating its layer every frame, without a new layout pass, so a position read during
+	 * [androidx.compose.ui.layout.onGloballyPositioned] is the row's destination rather than
+	 * where it is drawn. Resolving them against the list at drag time sees through that.
+	 *
+	 * [RowEntry.placement] makes every call a distinct map value. Re-putting equal coordinates
+	 * is a no-op the snapshot system does not report, which would leave the insert line with
+	 * nothing to invalidate it as rows scroll.
 	 */
 	internal fun setRowCoordinates(id: Int, coordinates: LayoutCoordinates) {
-		rows[id] = coordinates
+		rows[id] = RowEntry(coordinates, placementCount++)
 	}
 
 	internal fun removeRowCoordinates(id: Int) {

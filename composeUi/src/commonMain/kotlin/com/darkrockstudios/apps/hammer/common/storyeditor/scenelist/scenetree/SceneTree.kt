@@ -28,7 +28,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -61,7 +60,7 @@ fun SceneTree(
 				LazyColumn(
 					state = state.listState,
 					modifier = modifier.reorderableModifier(state)
-						.onGloballyPositioned { state.listTopInRoot = it.positionInRoot().y }
+						.onGloballyPositioned { state.setListCoordinates(it) }
 						.weight(1f),
 					contentPadding = contentPadding
 				) {
