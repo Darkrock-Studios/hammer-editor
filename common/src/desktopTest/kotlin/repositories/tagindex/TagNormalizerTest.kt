@@ -2,6 +2,7 @@ package repositories.tagindex
 
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
+import com.darkrockstudios.apps.hammer.common.data.tagindex.replaceTagPrefix
 import com.darkrockstudios.apps.hammer.common.data.tagindex.tagPrefixOf
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
@@ -115,6 +116,15 @@ class TagNormalizerTest {
 		assertEquals("", tagPrefixOf("guerre "))
 		assertEquals("", tagPrefixOf(""))
 		assertEquals("", tagPrefixOf("#"))
+	}
+
+	@Test
+	fun `Replace tag prefix swaps only the tag being typed`() {
+		assertEquals("alice bob", replaceTagPrefix("alice bo", "bob"))
+		assertEquals("alice,bob", replaceTagPrefix("alice,bo", "bob"))
+		assertEquals("alice bob", replaceTagPrefix("alice ", "bob"))
+		assertEquals("bob", replaceTagPrefix("", "bob"))
+		assertEquals("bob", replaceTagPrefix("#bo", "bob"))
 	}
 
 	@Test

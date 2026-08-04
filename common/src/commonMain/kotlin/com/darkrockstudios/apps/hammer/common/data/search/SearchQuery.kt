@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.search
 
 import com.darkrockstudios.apps.hammer.common.data.tagindex.isTagPrefix
+import com.darkrockstudios.apps.hammer.common.data.tagindex.isTagSeparator
 import com.darkrockstudios.apps.hammer.common.data.tagindex.normalizeTagNeedle
 
 /** Parsed search query: free text plus any `#tags` pulled out of it. */
@@ -21,23 +22,26 @@ data class ParsedQuery(
 }
 
 /**
- * A `#` starts a tag that runs to the next whitespace; everything else is free text. Tags come out
- * in the same normalized form they are stored in, so a needle typed decomposed still matches.
+ * A `#` opening a word starts a tag; everything else is free text. Tags are split and normalized
+ * the way tag input splits them on save, so a needle typed decomposed, or joined to the next by a
+ * comma, still matches what is stored. A `#` inside a word (`C#`) is part of the word.
  */
 fun parseQuery(query: String): ParsedQuery {
-	val tags = mutableListOf<String>()
+	val tags = LinkedHashSet<String>()
 	val textBuilder = StringBuilder()
 	var i = 0
 	while (i < query.length) {
 		val c = query[i]
-		if (c.isTagPrefix()) {
+		if (c.isTagPrefix() && (i == 0 || query[i - 1].isTagSeparator())) {
 			i++
-			val tagStart = i
-			while (i < query.length && !query[i].isWhitespace()) i++
-			if (i > tagStart) {
+			// A comma chains straight into the next tag; whitespace ends tag context entirely.
+			while (i < query.length) {
+				val tagStart = i
+				while (i < query.length && !query[i].isTagSeparator()) i++
 				normalizeTagNeedle(query.substring(tagStart, i))
 					.takeIf { it.isNotEmpty() }
 					?.let(tags::add)
+				if (i < query.length && !query[i].isWhitespace()) i++ else break
 			}
 		} else {
 			textBuilder.append(c)
@@ -45,7 +49,7 @@ fun parseQuery(query: String): ParsedQuery {
 		}
 	}
 	val text = textBuilder.toString().replace(Regex("\\s+"), " ").trim()
-	return ParsedQuery(text = text, tags = tags)
+	return ParsedQuery(text = text, tags = tags.toList())
 }
 
 /**

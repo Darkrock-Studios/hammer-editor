@@ -275,6 +275,24 @@ class TagIndexServiceTest : BaseTest() {
 		assertEquals(listOf("th\u00e8me" to 1), service.suggest("the\u0300").map { it.tag to it.count })
 	}
 
+	/** A tag can reach disk unnormalized (hand-edited project file, import); the index composes it. */
+	@Test
+	fun `index keys are normalized so an unnormalized stored tag is still found`() =
+		runTest(mainTestDispatcher) {
+			stubNotes(note(1, "the\u0300me"))
+			stubTimeline()
+			stubEntries()
+
+			val service = makeService()
+			advanceUntilIdle()
+
+			assertEquals(
+				setOf(TaggedEntityRef(TaggedEntityType.Note, 1)),
+				service.getEntitiesWithTag("th\u00e8me"),
+			)
+			assertEquals(listOf("th\u00e8me" to 1), service.suggest("th\u00e8me").map { it.tag to it.count })
+		}
+
 	@Test
 	fun `suggest ignores a leading hash`() = runTest(mainTestDispatcher) {
 		stubNotes(note(1, "arwen"))

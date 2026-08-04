@@ -87,6 +87,8 @@ class BuildTagIndexUseCase(
 		)
 	}
 
+	// Normalized on the way in rather than trusting every writer to have called cleanTags: a tag
+	// that reached disk decomposed would otherwise be a key no typed needle can ever match.
 	private fun accumulate(
 		tagToEntities: MutableMap<String, MutableSet<TaggedEntityRef>>,
 		countsByType: MutableMap<TaggedEntityType, MutableMap<String, Int>>,
@@ -94,8 +96,10 @@ class BuildTagIndexUseCase(
 		tag: String,
 		ref: TaggedEntityRef,
 	) {
-		tagToEntities.getOrPut(tag) { mutableSetOf() }.add(ref)
+		val key = normalizeTagNeedle(tag)
+		if (key.isEmpty()) return
+		tagToEntities.getOrPut(key) { mutableSetOf() }.add(ref)
 		val perType = countsByType.getOrPut(type) { mutableMapOf() }
-		perType[tag] = (perType[tag] ?: 0) + 1
+		perType[key] = (perType[key] ?: 0) + 1
 	}
 }

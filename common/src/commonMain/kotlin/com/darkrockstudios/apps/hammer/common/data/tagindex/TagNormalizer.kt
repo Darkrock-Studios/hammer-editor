@@ -80,9 +80,16 @@ fun normalizeTagNeedle(text: String): String = normalizeTagForm(text.trim()).rem
 fun tagPrefixOf(input: String): String =
 	normalizeTagNeedle(input.takeLastWhile { !it.isTagSeparator() })
 
+/**
+ * [input] with the tag being typed at its end swapped for [tag], leaving any earlier tags in the
+ * field untouched. Pairs with [tagPrefixOf]: what that offers a suggestion for, this replaces.
+ */
+fun replaceTagPrefix(input: String, tag: String): String =
+	input.dropLast(input.takeLastWhile { !it.isTagSeparator() }.length) + tag
+
 fun cleanTags(tags: Set<String>): Set<String> =
 	tags.asSequence()
-		.map { normalizeTagForm(it.trim()).removeTagPrefix() }
+		.map(::normalizeTagNeedle)
 		.filter(::isValidTag)
 		.toSet()
 
