@@ -8,11 +8,9 @@
 	<string name="jump_list_recent_projects">Projets récents</string>
 	<!-- Sandbox first-run projects-directory flow (Mac App Store builds) -->
 	<string name="sandbox_intro_title">Bienvenue dans Hammer</string>
-	<string name="sandbox_intro_message">Hammer stores your projects in a folder you choose, so your writing stays in
-		your hands.\n\nOn the next screen, pick an existing hammer projects folder or create a new one. You can change
-		this later in Settings.</string>
+	<string name="sandbox_intro_message">Hammer range vos projets à l'intérieur du dossier que vous avez défini, vos écrits restes entre vos mains.\n\nSur le prochain écran, sélectionnez un dossier de projet Hammer existant ou créez en un nouveau. Vous pourrez effectuer des modifications plus tard dans les Paramètres de l'application.</string>
 	<string name="sandbox_picker_title">Choisissez où stocker vos projets Hammer</string>
 	<string name="sandbox_choose_folder_button">Choisir un dossier</string>
 	<string name="sandbox_quit_button">Quitter</string>
-	<string name="sandbox_retry_message">Hammer needs a folder to store your projects.\nChoose a folder now, or quit.</string>
+	<string name="sandbox_retry_message">Hammer a besoin d'un dossier pour ranger vos projets.\nChoisissez un dossier maintenant, ou quittez l'application</string>
 </resources>
