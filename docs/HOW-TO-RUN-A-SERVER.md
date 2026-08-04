@@ -456,6 +456,31 @@ bindHosts = ["127.0.0.1", "::1"]
 
 Make sure to update your DNS with your desired URL to be able to use LetsEncrypt and the like.
 
+### Behind a proxy, every request looks like it came from the proxy
+
+Hammer reads the connecting address to rate-limit logins, to record login attempts, and to count
+story readers. Behind a proxy that address is the proxy's, identically for every visitor, so:
+
+- the login rate limiter (10 attempts per minute) becomes **one bucket shared by the whole
+  server** instead of one per client, and a burst from anywhere locks everyone out
+- recorded login IPs are all the proxy's, so the audit trail says nothing
+- public story reader counts collapse to a single visitor
+
+The `X-Forwarded-For` and `X-Forwarded-Proto` headers your proxy already sends (both are in the
+Nginx config below) carry the real values. Tell Hammer to trust them:
+
+```toml
+# Default false. Only enable when clients cannot reach the server directly.
+behindProxy = true
+```
+
+> [!WARNING]
+> Only set this when the server is genuinely unreachable except through your proxy — which is
+> what `bindHosts = ["127.0.0.1", "::1"]` above ensures. `X-Forwarded-For` is just a request
+> header: anything that can connect to Hammer directly can invent one, and with `behindProxy`
+> on, that means inventing a fresh identity for every request and walking straight through the
+> login rate limiter. Directly-reachable server: leave it `false` and accept the shared bucket.
+
 ### Base Nginx Config
 
 Create your base file. Make sure to change `hammer.example.com` to your domain!

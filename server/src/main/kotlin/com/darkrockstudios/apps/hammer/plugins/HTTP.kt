@@ -17,12 +17,20 @@ import io.ktor.server.plugins.compression.gzip
 import io.ktor.server.plugins.compression.minimumSize
 import io.ktor.server.plugins.conditionalheaders.ConditionalHeaders
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
+import io.ktor.server.plugins.forwardedheaders.XForwardedHeaders
 import io.ktor.server.plugins.hsts.HSTS
 import io.ktor.server.plugins.httpsredirect.HttpsRedirect
 import io.ktor.server.request.path
 import io.ktor.server.routing.IgnoreTrailingSlash
 
 fun Application.configureHTTP(config: ServerConfig) {
+	// Off by default: X-Forwarded-* are client-supplied, so trusting them on a directly
+	// reachable server lets anyone forge a per-request identity and walk past the login
+	// rate limiter that keys on it.
+	if (config.behindProxy) {
+		install(XForwardedHeaders)
+	}
+
 	val analyticsProvider = config.analytics.provider
 	val analyticsScriptHosts = analyticsProvider?.scriptSrcHosts().orEmpty()
 	val analyticsConnectHosts = analyticsProvider?.connectSrcHosts().orEmpty()

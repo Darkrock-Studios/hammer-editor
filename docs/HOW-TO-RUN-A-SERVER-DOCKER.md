@@ -61,6 +61,21 @@ To change the host-side binding or port:
 HAMMER_HTTP_BIND=0.0.0.0 HAMMER_HTTP_PORT=8090 docker compose up -d
 ```
 
+### Reverse proxy: set `behindProxy`
+
+With a proxy in front, every request reaches the container from the proxy's address, so the
+login rate limiter treats the whole server as one client and the login audit trail records one
+address for everyone. Setting `behindProxy = true` in `config.toml` makes Hammer read the real
+client from `X-Forwarded-For`. See
+[Behind a proxy](HOW-TO-RUN-A-SERVER.md#behind-a-proxy-every-request-looks-like-it-came-from-the-proxy)
+for the full picture and the warning that goes with it.
+
+That warning matters more in a container than anywhere else: the flag is only safe while the
+proxy is the *only* route in. Publishing the container port to `0.0.0.0` (above) reopens a
+direct path, and with `behindProxy` on, anything reaching it can forge a client address per
+request and walk through the rate limiter. Keep the publish on `127.0.0.1`, or on a Docker
+network only the proxy shares.
+
 ### A client that will not connect
 
 If a client reports that it could not make a secure connection, it reached the

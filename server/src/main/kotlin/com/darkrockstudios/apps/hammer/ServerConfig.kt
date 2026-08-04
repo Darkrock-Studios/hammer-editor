@@ -29,6 +29,16 @@ data class ServerConfig(
 	 * links are derived from each request's Host header.
 	 */
 	val publicUrl: String? = null,
+	/**
+	 * Trust the `X-Forwarded-*` headers for each request's client address and scheme, so the
+	 * login rate limiter, the login audit trail and story reader counts see real clients rather
+	 * than the proxy.
+	 *
+	 * Only enable this when clients cannot reach the server directly (pair it with
+	 * [bindHosts] on loopback). These are ordinary request headers: anything able to connect
+	 * directly can forge one, and a forged address per request defeats the rate limiter it feeds.
+	 */
+	val behindProxy: Boolean = false,
 	val additionalSitemaps: List<String> = emptyList(),
 	/**
 	 * Generate per-page social share images (OpenGraph) on the fly for author and story pages.
