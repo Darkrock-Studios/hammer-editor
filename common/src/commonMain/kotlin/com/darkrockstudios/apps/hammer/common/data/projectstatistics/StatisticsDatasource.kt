@@ -22,14 +22,7 @@ class StatisticsDatasource(
 	private val dispatcherIo by injectIoDispatcher()
 
 	suspend fun loadStatistics(): ProjectStatistics? = withContext(dispatcherIo) {
-		val file = StatisticsCachePaths.statsFile(projectDef)
-		return@withContext if (fileSystem.exists(file)) {
-			fileSystem.readTomlOrNull<ProjectStatistics>(file, toml) { e ->
-				Napier.e("Failed to load statistics cache", e)
-			}
-		} else {
-			null
-		}
+		readProjectStatistics(projectDef, fileSystem, toml)
 	}
 
 	suspend fun saveStatistics(stats: ProjectStatistics) = withContext(dispatcherIo) {
@@ -66,5 +59,22 @@ class StatisticsDatasource(
 		if (!path.isWithin(cacheRoot)) {
 			error("Refusing to access statistics cache outside the cache root: $path")
 		}
+	}
+}
+
+/**
+ * Blocking, scope-less read of the statistics cache; callers own their threading.
+ * [StatisticsDatasource.loadStatistics] and the root-scoped
+ * [ProjectStatisticsCacheReader] both delegate here so the format has one reader.
+ */
+fun readProjectStatistics(
+	projectDef: ProjectDef,
+	fileSystem: FileSystem,
+	toml: Toml,
+): ProjectStatistics? {
+	val file = StatisticsCachePaths.statsFile(projectDef)
+	if (!fileSystem.exists(file)) return null
+	return fileSystem.readTomlOrNull<ProjectStatistics>(file, toml) { e ->
+		Napier.d("Failed to read statistics cache for ${projectDef.name}", e)
 	}
 }

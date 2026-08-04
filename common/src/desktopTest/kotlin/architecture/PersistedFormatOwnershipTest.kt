@@ -13,46 +13,30 @@ import kotlin.test.assertTrue
  * each other exactly this way). Code that cannot reach a datasource instance must use
  * or add a scope-less helper in the datasource's own file, like
  * `loadStoredProjectData`/`saveStoredProjectData` in `ProjectDataDatasource.kt`.
+ *
+ * The only exemption is the migrator package: migrations transform historical on-disk
+ * layouts that predate the current datasources, so raw access to old formats is their job.
  */
 class PersistedFormatOwnershipTest {
 
-	// Known pre-rule offenders, to be burned down. Do not add to this list: extend the
-	// owning datasource's file with a helper instead.
-	private val legacyOffenders = setOf(
-		// Writes fabricated writing-activity logs owned by WritingActivityDatasource.
-		"com/darkrockstudios/apps/hammer/common/data/ExampleProjectRepository.kt",
-		// Second reader of the statistics cache format owned by StatisticsDatasource.
-		"com/darkrockstudios/apps/hammer/common/data/projectstatistics/ProjectStatisticsCacheReader.kt",
-	)
-
 	private val tomlIo = Regex("""\.(writeToml|readToml|readTomlOrNull)\s*[<(]""")
 
-	private fun sourceRoot(): File {
+	@Test
+	fun `raw TOML file IO stays inside datasource files`() {
 		val root = File("src/commonMain/kotlin")
 		assertTrue(
 			root.isDirectory,
 			"Expected the test working directory to be the :common module (got ${File("").absolutePath})",
 		)
-		return root
-	}
 
-	private fun filesWithTomlIo(): Map<String, File> {
-		val root = sourceRoot()
-		return root.walkTopDown()
+		val offenders = root.walkTopDown()
 			.filter { it.isFile && it.extension == "kt" }
 			.filter { tomlIo.containsMatchIn(it.readText()) }
-			.associateBy { it.relativeTo(root).invariantSeparatorsPath }
-	}
-
-	@Test
-	fun `raw TOML file IO stays inside datasource files`() {
-		val offenders = filesWithTomlIo().keys
+			.map { it.relativeTo(root).invariantSeparatorsPath }
 			.filterNot { it.substringAfterLast('/').contains("Datasource") }
-			// Migrators transform historical on-disk layouts that predate the current
-			// datasources; raw access to old formats is their job.
 			.filterNot { it.startsWith("com/darkrockstudios/apps/hammer/common/data/migrator/") }
-			.filterNot { it in legacyOffenders }
 			.sorted()
+			.toList()
 
 		assertEquals(
 			emptyList(),
@@ -60,17 +44,6 @@ class PersistedFormatOwnershipTest {
 			"These files serialize a persisted format outside its owning Data Source. " +
 				"Route through the datasource, or add a scope-less helper in the datasource's " +
 				"file (see loadStoredProjectData/saveStoredProjectData).",
-		)
-	}
-
-	@Test
-	fun `legacy offender list only shrinks`() {
-		val current = filesWithTomlIo().keys
-		val stale = legacyOffenders.filterNot { it in current }
-		assertEquals(
-			emptyList(),
-			stale,
-			"These legacy offenders no longer do raw TOML I/O; remove them from the list so it can't regress.",
 		)
 	}
 }
