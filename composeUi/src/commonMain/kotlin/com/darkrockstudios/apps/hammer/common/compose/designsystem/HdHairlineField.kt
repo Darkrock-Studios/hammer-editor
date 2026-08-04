@@ -47,6 +47,7 @@ fun HdHairlineField(
 	maxLines: Int = if (singleLine) 1 else Int.MAX_VALUE,
 	imeAction: ImeAction = if (singleLine) ImeAction.Next else ImeAction.Default,
 	capitalization: KeyboardCapitalization = KeyboardCapitalization.Sentences,
+	autoCorrectEnabled: Boolean? = null,
 	keyboardType: KeyboardType = KeyboardType.Text,
 	visualTransformation: VisualTransformation = VisualTransformation.None,
 	enabled: Boolean = true,
@@ -107,6 +108,7 @@ fun HdHairlineField(
 					keyboardOptions = KeyboardOptions(
 						imeAction = imeAction,
 						capitalization = capitalization,
+						autoCorrectEnabled = autoCorrectEnabled,
 						keyboardType = keyboardType,
 					),
 				)

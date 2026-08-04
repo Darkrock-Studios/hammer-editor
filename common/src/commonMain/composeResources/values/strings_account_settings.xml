@@ -43,6 +43,7 @@
 	<string name="settings_server_setup_url_hint">Server URL: hammer.ink</string>
 	<string name="settings_server_setup_email_hint">E-Mail: user@example.com</string>
 	<string name="settings_server_setup_password_hint">Password</string>
+	<string name="settings_server_setup_password_requirements">%1$d-%2$d characters</string>
 	<string name="settings_server_setup_password_show">Show password</string>
 	<string name="settings_server_setup_password_hide">Hide password</string>
 	<string name="settings_server_setup_login_button">Log In</string>
