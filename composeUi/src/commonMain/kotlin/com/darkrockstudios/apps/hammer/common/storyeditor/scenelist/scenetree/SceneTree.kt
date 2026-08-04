@@ -24,7 +24,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.input.pointer.PointerEvent
+import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.style.TextAlign
@@ -100,15 +100,18 @@ fun SceneTree(
 private fun Modifier.pressCandidate(state: SceneTreeState, id: Int): Modifier =
 	pointerInput(id) {
 		awaitEachGesture {
-			awaitFirstDown(requireUnconsumed = false)
-			state.pressedRowId = id
+			val down = awaitFirstDown(requireUnconsumed = false)
+			if (!state.claimPress(down.id, id)) return@awaitEachGesture
 
-			var event: PointerEvent
-			do {
-				event = awaitPointerEvent()
-			} while (event.changes.any { it.pressed })
-
-			if (state.pressedRowId == id) state.pressedRowId = SceneTreeState.NO_SELECTION
+			// The release must survive this row being disposed mid-press, which cancels us.
+			try {
+				var change: PointerInputChange?
+				do {
+					change = awaitPointerEvent().changes.firstOrNull { it.id == down.id }
+				} while (change?.pressed == true)
+			} finally {
+				state.releasePress(down.id)
+			}
 		}
 	}
 

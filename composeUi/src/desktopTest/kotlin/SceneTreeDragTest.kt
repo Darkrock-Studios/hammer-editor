@@ -17,6 +17,7 @@ import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -109,6 +110,12 @@ class SceneTreeDragTest {
 		}
 	}
 
+	/** The tree is taller than its rows, so this lands on the list but on no row. */
+	private fun emptySpaceBelowRows(): Offset {
+		val lastRow = compose.onNodeWithTag(rowTag(Ids.OVERVIEW)).getBoundsInRoot()
+		return with(compose.density) { Offset(50f, (lastRow.bottom + 20.dp).toPx()) }
+	}
+
 	private fun longPressAt(offset: Offset) {
 		compose.onNodeWithTag(TREE_TAG).performMouseInput { moveTo(offset); press() }
 		compose.mainClock.advanceTimeBy(1_000)
@@ -140,6 +147,39 @@ class SceneTreeDragTest {
 	}
 
 	@Test
+	fun `a row disposed while pressed does not stay grabbable`() {
+		showTree()
+
+		// Press a row, then have it deleted out from under the finger.
+		compose.onNodeWithTag(TREE_TAG)
+			.performMouseInput { moveTo(visualCenterOf(Ids.MORE_CAMERAS)); press() }
+		summary = buildSummary(camerasAtRoot = false, keepCameras = false)
+		compose.mainClock.advanceTimeBy(1_000)
+		compose.onNodeWithTag(TREE_TAG).performMouseInput { release() }
+
+		longPressAt(emptySpaceBelowRows())
+
+		assertEquals(
+			SceneTreeState.NO_SELECTION,
+			treeState.selectedId,
+			"Empty space grabbed a scene",
+		)
+	}
+
+	@Test
+	fun `a second finger cannot retarget the drag`() {
+		showTree()
+
+		compose.onNodeWithTag(TREE_TAG).performTouchInput {
+			down(0, visualCenterOf(Ids.CH3))
+			down(1, visualCenterOf(Ids.OVERVIEW))
+		}
+		compose.mainClock.advanceTimeBy(1_000)
+
+		assertEquals(Ids.CH3, treeState.selectedId, "The second finger retargeted the drag")
+	}
+
+	@Test
 	fun `dragging a scene to the bottom of the list moves the scene that was grabbed`() {
 		showTree()
 
@@ -158,18 +198,21 @@ class SceneTreeDragTest {
 	}
 }
 
-/** [camerasAtRoot] models "More Cameras" having been dragged out of Chapter 3 to the root. */
-private fun buildSummary(camerasAtRoot: Boolean): SceneSummary {
+/**
+ * [camerasAtRoot] models "More Cameras" having been dragged out of Chapter 3 to the root, and
+ * [keepCameras] models it having been deleted outright.
+ */
+private fun buildSummary(camerasAtRoot: Boolean, keepCameras: Boolean = true): SceneSummary {
 	val moreCameras = sceneItem(Ids.MORE_CAMERAS, SceneItem.Type.Scene, "More Cameras")
 	val chapter3Children = mutableListOf<TreeNode<SceneItem>>(
 		sceneNode(sceneItem(Ids.VERIFICATION, SceneItem.Type.Scene, "Verification")),
 		sceneNode(sceneItem(Ids.MOUSE_TRAP, SceneItem.Type.Scene, "Mouse Trap")),
 	)
 	val rootTail = mutableListOf<TreeNode<SceneItem>>()
-	if (camerasAtRoot) rootTail.add(sceneNode(moreCameras)) else chapter3Children.add(
-		0,
-		sceneNode(moreCameras)
-	)
+	if (keepCameras) {
+		if (camerasAtRoot) rootTail.add(sceneNode(moreCameras))
+		else chapter3Children.add(0, sceneNode(moreCameras))
+	}
 
 	val tree = Tree<SceneItem>()
 	tree.setRoot(
