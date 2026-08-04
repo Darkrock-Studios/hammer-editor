@@ -104,7 +104,12 @@
 	<string name="project_home_import_create_groups_label">Створювати групи розділів</string>
 	<string name="project_home_import_preview_label">Попередній перегляд</string>
 	<string name="project_home_import_preview_empty">Немає що імпортувати</string>
+	<string name="project_home_import_preview_reading">Reading your manuscript</string>
 	<string name="project_home_import_preview_count">Буде створено %1$d сцен</string>
+	<string name="project_home_import_large_scene_label">Large scene</string>
+	<string name="project_home_import_large_scene_one">One scene holds %1$s words, so chapter detection probably missed your chapter titles. Try another detection setting.</string>
+	<string name="project_home_import_large_scene_many">%1$d scenes hold %2$s words or more, so chapter detection probably missed some chapter titles. Try another detection setting.</string>
+	<string name="project_home_import_scene_word_count">%1$s W</string>
 	<string name="project_home_import_cancel">Скасувати</string>
 	<string name="project_home_import_execute">Імпортувати</string>
 	<string name="project_home_action_settings_button">Налаштування</string>
