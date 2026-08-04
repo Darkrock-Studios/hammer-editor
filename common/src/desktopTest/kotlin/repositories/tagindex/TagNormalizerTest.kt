@@ -2,6 +2,8 @@ package repositories.tagindex
 
 import com.darkrockstudios.apps.hammer.common.data.tagindex.cleanTags
 import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
+import com.darkrockstudios.apps.hammer.common.data.tagindex.replaceTagPrefix
+import com.darkrockstudios.apps.hammer.common.data.tagindex.tagPrefixOf
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 
@@ -95,6 +97,34 @@ class TagNormalizerTest {
 		val input = "\u4eba\u7269\u3000\u5834\u6240\u3001\u9b54\u6cd5"
 
 		assertEquals(setOf("\u4eba\u7269", "\u5834\u6240", "\u9b54\u6cd5"), parseTagInput(input))
+	}
+
+	@Test
+	fun `Tag prefix is the run after the last separator`() {
+		assertEquals("\u00e9t\u00e9", tagPrefixOf("guerre,\u00e9t\u00e9"))
+		assertEquals("\u9b54\u6cd5", tagPrefixOf("\u4eba\u7269\u3001\u9b54\u6cd5"))
+		assertEquals("\u5834\u6240", tagPrefixOf("\u4eba\u7269\u3000\u5834\u6240"))
+	}
+
+	@Test
+	fun `Tag prefix composes decomposed accents`() {
+		assertEquals("th\u00e8", tagPrefixOf("guerre #the\u0300"))
+	}
+
+	@Test
+	fun `Tag prefix is empty when the input ends on a separator`() {
+		assertEquals("", tagPrefixOf("guerre "))
+		assertEquals("", tagPrefixOf(""))
+		assertEquals("", tagPrefixOf("#"))
+	}
+
+	@Test
+	fun `Replace tag prefix swaps only the tag being typed`() {
+		assertEquals("alice bob", replaceTagPrefix("alice bo", "bob"))
+		assertEquals("alice,bob", replaceTagPrefix("alice,bo", "bob"))
+		assertEquals("alice bob", replaceTagPrefix("alice ", "bob"))
+		assertEquals("bob", replaceTagPrefix("", "bob"))
+		assertEquals("bob", replaceTagPrefix("#bo", "bob"))
 	}
 
 	@Test

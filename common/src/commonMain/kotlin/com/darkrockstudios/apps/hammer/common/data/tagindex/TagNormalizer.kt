@@ -16,6 +16,9 @@ internal expect fun normalizeTagForm(text: String): String
 /** True when the supplementary-plane [codePoint] is a letter or a digit. */
 internal expect fun isSupplementaryLetterOrDigit(codePoint: Int): Boolean
 
+/** Opens a `#tag`, in ASCII or fullwidth form. */
+fun Char.isTagPrefix(): Boolean = this == '#' || this == FULLWIDTH_NUMBER_SIGN
+
 /** Separates one tag from the next in free-form input, in any script's punctuation. */
 fun Char.isTagSeparator(): Boolean =
 	isWhitespace() ||
@@ -61,11 +64,32 @@ private fun codePointOf(high: Char, low: Char): Int =
 	0x10000 + ((high.code - 0xD800) shl 10) + (low.code - 0xDC00)
 
 private fun String.removeTagPrefix(): String =
-	if (startsWith('#') || startsWith(FULLWIDTH_NUMBER_SIGN)) substring(1) else this
+	if (isNotEmpty() && this[0].isTagPrefix()) substring(1) else this
+
+/**
+ * Put a tag the user typed into the form stored tags are held in, so searching and suggesting can
+ * compare the two: composed, trimmed, and without a leading `#`.
+ */
+fun normalizeTagNeedle(text: String): String = normalizeTagForm(text.trim()).removeTagPrefix()
+
+/**
+ * The tag the user is part-way through typing at the end of [input]: whatever follows the last
+ * separator, ready to match against stored tags. Splits on the same separators [parseTagInput]
+ * does, so the suggestions offered agree with the tags that would be saved.
+ */
+fun tagPrefixOf(input: String): String =
+	normalizeTagNeedle(input.takeLastWhile { !it.isTagSeparator() })
+
+/**
+ * [input] with the tag being typed at its end swapped for [tag], leaving any earlier tags in the
+ * field untouched. Pairs with [tagPrefixOf]: what that offers a suggestion for, this replaces.
+ */
+fun replaceTagPrefix(input: String, tag: String): String =
+	input.dropLast(input.takeLastWhile { !it.isTagSeparator() }.length) + tag
 
 fun cleanTags(tags: Set<String>): Set<String> =
 	tags.asSequence()
-		.map { normalizeTagForm(it.trim()).removeTagPrefix() }
+		.map(::normalizeTagNeedle)
 		.filter(::isValidTag)
 		.toSet()
 

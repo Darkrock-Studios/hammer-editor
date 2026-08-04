@@ -52,6 +52,7 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.tagindex.replaceTagPrefix
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitType
@@ -1130,11 +1131,7 @@ private fun TagAddDialog(
 	) {
 		var newTagsText by rememberSaveable { mutableStateOf("") }
 		val existingTags = state.content?.tags.orEmpty()
-		val suggestions = remember(newTagsText, existingTags) {
-			val prefix = newTagsText.substringAfterLast(' ').trim().removePrefix("#")
-			if (prefix.isEmpty()) emptyList()
-			else component.suggestTags(prefix).filter { it !in existingTags }
-		}
+		val suggestions = rememberTagSuggestions(newTagsText, existingTags, component::suggestTags)
 		Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.L)) {
 			HdHairlineField(
 				label = Res.string.encyclopedia_create_entry_tags_label.get(),
@@ -1145,7 +1142,7 @@ private fun TagAddDialog(
 				suggestions = suggestions,
 				onSelect = { tag ->
 					scope.launch {
-						component.addTags(tag)
+						component.addTags(replaceTagPrefix(newTagsText, tag))
 						withContext(mainDispatcher) { newTagsText = "" }
 					}
 				},
