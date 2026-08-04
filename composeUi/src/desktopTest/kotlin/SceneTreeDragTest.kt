@@ -17,7 +17,9 @@ import androidx.compose.ui.test.getBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performMouseInput
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -29,6 +31,7 @@ import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 
 private const val TREE_TAG = "tree"
 private val RowHeight = 30.dp
@@ -77,7 +80,7 @@ class SceneTreeDragTest {
 	private lateinit var treeState: SceneTreeState
 	private var summary by mutableStateOf(buildSummary(camerasAtRoot = false))
 
-	private fun showTree() {
+	private fun showTree(height: Dp = 800.dp) {
 		compose.setContent {
 			val state = rememberReorderableLazyListState(
 				summary = summary,
@@ -86,7 +89,7 @@ class SceneTreeDragTest {
 			treeState = state
 			LaunchedEffect(summary) { state.updateSummary(summary) }
 
-			Box(modifier = Modifier.size(400.dp, 800.dp)) {
+			Box(modifier = Modifier.size(400.dp, height)) {
 				SceneTree(
 					state = state,
 					modifier = Modifier.fillMaxSize().testTag(TREE_TAG),
@@ -144,6 +147,36 @@ class SceneTreeDragTest {
 		longPressAt(visualCenterOf(Ids.VERIFICATION))
 
 		assertEquals(Ids.VERIFICATION, treeState.selectedId, "Grabbed the wrong row")
+	}
+
+	@Test
+	fun `the drop target follows the list when it scrolls under a still pointer`() {
+		showTree(height = 200.dp)
+
+		longPressAt(visualCenterOf(Ids.PREFACE))
+		val holdAt = visualCenterOf(Ids.CH2)
+		compose.onNodeWithTag(TREE_TAG).performMouseInput { moveTo(holdAt) }
+		compose.waitForIdle()
+
+		// Autoscroll moves the list without the pointer moving, so no drag event arrives.
+		compose.onNodeWithTag(TREE_TAG).performScrollToIndex(12)
+		compose.waitForIdle()
+
+		compose.onNodeWithTag(TREE_TAG).performMouseInput { release() }
+		compose.waitForIdle()
+
+		val request = moveRequest
+		assertNotNull(request, "No move was requested")
+		val anchorId = treeState.getTree()[request.toPosition.coords.globalIndex].value.id
+		val anchor = compose.onNodeWithTag(rowTag(anchorId)).getBoundsInRoot()
+		val top = with(compose.density) { anchor.top.toPx() }
+		val bottom = with(compose.density) { anchor.bottom.toPx() }
+
+		assertTrue(
+			holdAt.y in top..bottom,
+			"Anchored to a row that is not under the pointer: $anchorId spans $top..$bottom, " +
+				"pointer at ${holdAt.y}",
+		)
 	}
 
 	@Test
