@@ -147,6 +147,51 @@ class SceneTreeDragTest {
 	}
 
 	@Test
+	fun `rows are reported in display order`() {
+		// A tree whose display order is not ascending by id: "More Cameras" (9) sits near the
+		// bottom, so anything ordered by id or by hash disagrees with what is on screen.
+		summary = buildSummary(camerasAtRoot = true)
+		showTree()
+
+		// findInsertPosition takes the first row whose bounds contain the pointer, and row
+		// bounds share seams, so anything but display order makes a drop on a seam a coin toss.
+		assertEquals(
+			treeState.visibleNodes.map { it.value.id },
+			treeState.rowLayouts.map { it.id },
+			"Row order does not match the rendered tree",
+		)
+	}
+
+	@Test
+	fun `dropping onto a settling list anchors to the row the user sees`() {
+		showTree()
+		compose.mainClock.autoAdvance = false
+
+		compose.onNodeWithTag(TREE_TAG)
+			.performMouseInput { moveTo(visualCenterOf(Ids.PREFACE)); press() }
+		compose.mainClock.advanceTimeBy(1_000)
+
+		// A sync re-flows the list while the drag is already under way.
+		summary = buildSummary(camerasAtRoot = true)
+		compose.mainClock.advanceTimeByFrame()
+		compose.mainClock.advanceTimeByFrame()
+
+		compose.onNodeWithTag(TREE_TAG)
+			.performMouseInput { moveTo(visualCenterOf(Ids.VERIFICATION)) }
+		compose.mainClock.advanceTimeByFrame()
+		compose.onNodeWithTag(TREE_TAG).performMouseInput { release() }
+		compose.mainClock.advanceTimeBy(1_000)
+
+		val request = moveRequest
+		assertNotNull(request, "No move was requested")
+		assertEquals(
+			Ids.VERIFICATION,
+			treeState.getTree()[request.toPosition.coords.globalIndex].value.id,
+			"Anchored to a row's destination instead of where it is drawn",
+		)
+	}
+
+	@Test
 	fun `a row disposed while pressed does not stay grabbable`() {
 		showTree()
 
