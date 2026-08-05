@@ -57,17 +57,27 @@ fun extractLatestChangelog(changelogFile: File): String? {
 	return body.trim().ifEmpty { null }
 }
 
-fun writeChangelogMarkdown(releaseInfo: ReleaseInfo, changelogFile: File) {
+/** Prepends this release's entry to CHANGELOG.md and returns the entry text. */
+fun writeChangelogMarkdown(releaseInfo: ReleaseInfo, changelogFile: File): String {
 	val currentChangelog = changelogFile.readText()
 	val withoutHeader = currentChangelog.substring(currentChangelog.indexOf('\n') + 1)
 
 	val headerDate = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-M-d"))
-	val newEntry = "## [${releaseInfo.semVar}] - $headerDate\n\n" + releaseInfo.changeLog + "\n\n"
+	val entry = "## [${releaseInfo.semVar}] - $headerDate\n\n" + releaseInfo.changeLog + "\n"
 
-	val newChangeLog = "# Changelog\n\n" + newEntry + withoutHeader
+	val newChangeLog = "# Changelog\n\n" + entry + "\n" + withoutHeader
 
 	changelogFile.writeText(newChangeLog)
 	println("CHANGELOG.md written")
+
+	return entry
+}
+
+/** The same entry, baked into the app so the client can show it without calling GitHub. */
+fun writeBakedChangelog(entry: String, bakedFile: File) {
+	bakedFile.parentFile.mkdirs()
+	bakedFile.writeText(entry)
+	println("Baked changelog written to ${bakedFile.path}")
 }
 
 /**

@@ -113,7 +113,7 @@ fun ProjectSelectionUi(
 				modifier = Modifier.fillMaxWidth().align(Alignment.BottomCenter)
 			)
 
-			UpdateAvailableDialog(component)
+			ChangelogDialog(component)
 		}
 	}
 }

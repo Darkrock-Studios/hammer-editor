@@ -92,8 +92,10 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
+import com.darkrockstudios.apps.hammer.common.data.changelog.ChangelogDatasource
+import com.darkrockstudios.apps.hammer.common.data.changelog.ChangelogRepository
+import com.darkrockstudios.apps.hammer.common.data.changelog.ResourceChangelogDatasource
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubVersionCheckDataSource
-import com.darkrockstudios.apps.hammer.common.data.versioncheck.ShouldNotifyOfUpdateUseCase
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDataSource
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
@@ -183,9 +185,13 @@ val mainModule = module {
 	single<GlobalSettingsFilesystemDatasource>()
 	single<GlobalSettingsStore>()
 
+	// Only the protocol mismatch dialog checks GitHub, and only once the user has already
+	// connected to a sync server. Nothing on the app-load path may use this.
 	single<GithubVersionCheckDataSource>() bind VersionCheckDataSource::class
 	single<VersionCheckRepository>()
-	factory<ShouldNotifyOfUpdateUseCase>()
+
+	single<ResourceChangelogDatasource>() bind ChangelogDatasource::class
+	single<ChangelogRepository>()
 
 	factory<AccountUseCase>()
 	factory<AccountReauthUseCase>()

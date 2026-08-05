@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.globalsettings
 
+import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.ServerSettingsDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -147,7 +148,10 @@ class GlobalSettingsStore(
 				spellCheckSettings = SpellCheckerSettings(
 					enabled = (hasSpForLang != null),
 					locale = language.toLocale()
-				)
+				),
+				// A brand new install has nothing to catch up on, so seed the changelog as seen.
+				// Upgrading users have no such key in their TOML and get the popup.
+				lastSeenChangelogVersion = BuildMetadata.APP_VERSION,
 			)
 		}
 	}

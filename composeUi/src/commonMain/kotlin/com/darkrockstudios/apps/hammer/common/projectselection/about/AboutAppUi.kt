@@ -29,7 +29,6 @@ import com.darkrockstudios.apps.hammer.common.compose.icons.Github
 import com.darkrockstudios.apps.hammer.common.compose.icons.Reddit
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
-import korlibs.io.lang.format
 import org.jetbrains.compose.resources.painterResource
 
 private val MaxColumnWidth = 880.dp
@@ -110,7 +109,11 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 							)
 						}
 
-						VersionCard(state, onViewReleaseDetails = component::viewReleaseDetails)
+						VersionCard(
+							state = state,
+							onViewChangelog = component::viewChangelog,
+							onOpenLatestRelease = component::openLatestRelease,
+						)
 
 						HdHairlineSection(
 							section = 4,
@@ -243,46 +246,31 @@ private fun CommunityRowDivider() {
 	)
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun VersionCard(state: AboutApp.State, onViewReleaseDetails: () -> Unit) {
-	val statusGreeble = if (state.newVersionAvailable) "UPDATE AVAILABLE" else "UP TO DATE"
-	val latestGreeble = state.latestVersion?.let { "LATEST $it" }
-	val latest = state.latestVersion
-	val message = if (state.newVersionAvailable && latest != null) {
-		Res.string.about_version_new_available_message.get().format(latest)
-	} else {
-		Res.string.about_version_up_to_date.get()
-	}
-	val messageColor = if (state.newVersionAvailable) {
-		MaterialTheme.colorScheme.primary
-	} else {
-		MaterialTheme.colorScheme.onSurface
-	}
-	val buttonLabel = if (state.newVersionAvailable) {
-		Res.string.about_version_view_update_button.get()
-	} else {
-		Res.string.about_version_view_notes_button.get()
-	}
-
+private fun VersionCard(
+	state: AboutApp.State,
+	onViewChangelog: () -> Unit,
+	onOpenLatestRelease: () -> Unit,
+) {
 	HdCatalogueCard(
 		topStart = "§ III · VERSION",
-		topEnd = statusGreeble,
+		topEnd = "INSTALLED",
 		bottomStart = state.currentVersion,
-		bottomEnd = latestGreeble,
 	) {
-		Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-			Text(
-				text = message,
-				style = MaterialTheme.typography.bodyMedium,
-				color = messageColor,
+		// FlowRow, not Row: the two labels wrap instead of clipping on a narrow screen.
+		FlowRow(
+			horizontalArrangement = Arrangement.spacedBy(14.dp),
+			verticalArrangement = Arrangement.spacedBy(14.dp),
+		) {
+			HdHairlineButton(
+				label = Res.string.about_version_changes_button.get(),
+				onClick = onViewChangelog,
 			)
-			if (latest != null) {
-				HdHairlineButton(
-					label = buttonLabel,
-					onClick = onViewReleaseDetails,
-					emphasised = state.newVersionAvailable,
-				)
-			}
+			HdHairlineButton(
+				label = Res.string.about_version_github_button.get(),
+				onClick = onOpenLatestRelease,
+			)
 		}
 	}
 }
