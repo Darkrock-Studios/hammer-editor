@@ -80,7 +80,6 @@ dependencies {
 	implementation(libs.coroutines.core)
 	implementation(libs.coroutines.jdk8)
 	implementation(libs.serialization.jvm)
-	implementation(libs.kotlinx.datetime)
 	implementation(libs.clikt)
 
 	implementation(libs.bundles.ktor.server)
@@ -169,7 +168,6 @@ dependencies {
 	testFixturesApi(libs.bundles.junit.jupiter)
 	testFixturesApi(libs.coroutines.core)
 	testFixturesApi(libs.serialization.json)
-	testFixturesApi(libs.kotlinx.datetime)
 	testFixturesApi(project.dependencies.platform(libs.koin.bom))
 	testFixturesApi(libs.koin.core)
 	testFixturesApi(libs.embedded.postgres)
