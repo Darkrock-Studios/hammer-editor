@@ -32,6 +32,25 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.8.0" date="2026-08-04">
+            <description>
+                <p>https://hammer.ink/blog/news/hammer-3-8-0</p>
+                <p>New:</p>
+                <p>- Set the language a project is written in, and have spell check follow it</p>
+                <p>- Text editor: faster typing and relayout, word-wise undo with a much deeper history, and rich copy and paste that preserves formatting between apps</p>
+                <p>- Large Markdown imports are dramatically faster</p>
+                <p>- Search matches the rendered prose, resolving Markdown escapes and formatting</p>
+                <p>- Tag search matches accented and non-latin characters, and searches entry names as well as bodies</p>
+                <p>- Chapter detection on Markdown import understands Setext-style and bold titles</p>
+                <p>- Visible scrollbars on scrolling screens, and scroll-away footers float over their lists</p>
+                <p>Fixes:</p>
+                <p>- importing a very large story no longer freezes the app</p>
+                <p>- scene drag could grab the wrong row</p>
+                <p>- literal `**` and `_` left around emphasis imported from RTF</p>
+                <p>- a number of text editor crashes around undo, paste, and joined paragraphs</p>
+                <p>- Scene drag and drop stays accurate while the list autoscrolls</p>
+            </description>
+        </release>
         <release version="3.7.2" date="2026-07-27">
             <description>
                 <p>[Improve]</p>
