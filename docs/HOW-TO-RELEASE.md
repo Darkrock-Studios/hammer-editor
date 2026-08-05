@@ -7,6 +7,9 @@
 		- Increment app version `app` in `libs.versions.toml`
 		- Add new changelog in `fastlane\metadata\android\en-US\changelogs` called `n.txt` where `n` is
 		  the android version code
+		- Bake the release notes into the app at
+		  `common/src/commonMain/composeResources/files/changelog.md` — this is what the in-app
+		  "What's New" dialog shows, so never edit it by hand
 		- Merge `develop` into `release`
 		- Tag the latest commit to make the release from in the [semvar](https://semver.org) format
 		  of `v1.1.1`
