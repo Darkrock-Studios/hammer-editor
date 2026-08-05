@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.testTag
@@ -212,10 +213,13 @@ fun HdTagSuggestionStrip(
 		verticalArrangement = Arrangement.spacedBy(6.dp),
 	) {
 		suggestions.forEach { tag ->
+			// A focusable chip takes focus on press, which commits the raw draft as a tag and
+			// removes the strip before the release ever reaches onSelect.
 			HdTagChip(
 				label = tag,
 				active = false,
 				onClick = { onSelect(tag) },
+				modifier = Modifier.focusProperties { canFocus = false },
 			)
 		}
 	}
