@@ -16,9 +16,9 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.storyi
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubReleaseInfo
-import com.darkrockstudios.apps.hammer.common.data.versioncheck.ShouldNotifyOfUpdateUseCase
-import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
+import com.darkrockstudios.apps.hammer.base.RELEASES_LATEST_URL
+import com.darkrockstudios.apps.hammer.common.data.changelog.Changelog
+import com.darkrockstudios.apps.hammer.common.data.changelog.ChangelogRepository
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -32,8 +32,7 @@ class ProjectSelectionComponent(
 	private val exampleProjectRepository: ExampleProjectRepository by inject()
 	private val urlLauncher: UrlLauncher by inject()
 	private val settingsRepository: GlobalSettingsStore by inject()
-	private val versionCheckRepository: VersionCheckRepository by inject()
-	private val shouldNotifyOfUpdate: ShouldNotifyOfUpdateUseCase by inject()
+	private val changelogRepository: ChangelogRepository by inject()
 
 	private val navigation = StackNavigation<ProjectSelection.Config>()
 	override val stack = childStack(
@@ -49,8 +48,8 @@ class ProjectSelectionComponent(
 	)
 	override val navRailState: Value<ProjectSelection.NavRailState> = _navRailState
 
-	private val _updateNotification = MutableValue(ProjectSelection.UpdateNotificationState())
-	override val updateNotification: Value<ProjectSelection.UpdateNotificationState> = _updateNotification
+	private val _changelog = MutableValue(ProjectSelection.ChangelogState())
+	override val changelog: Value<ProjectSelection.ChangelogState> = _changelog
 
 	init {
 		if (exampleProjectRepository.shouldInstallFirstTime()) {
@@ -67,45 +66,31 @@ class ProjectSelectionComponent(
 			}
 		}
 
+		// Read from the changelog baked in at release time — nothing here touches the network.
 		scope.launch {
-			val result = versionCheckRepository.checkForUpdate()
-			val dismissed = settingsRepository.globalSettings.lastDismissedUpdateVersion
-			if (shouldNotifyOfUpdate(result, dismissed)) {
-				val release = result.latestRelease ?: return@launch
+			if (changelogRepository.hasUnseenChangelog()) {
+				val changelog = changelogRepository.getChangelog() ?: return@launch
 				withContext(dispatcherMain) {
-					_updateNotification.update {
-						release.toNotificationState(
-							isNewVersionAvailable = result.isNewVersionAvailable,
-							manuallyTriggered = false,
-						)
-					}
+					_changelog.update { changelog.toState() }
 				}
 			}
 		}
 	}
 
-	override fun showCurrentReleaseDetails() {
-		val result = versionCheckRepository.currentResult() ?: return
-		val release = result.latestRelease ?: return
-		val next = release.toNotificationState(
-			isNewVersionAvailable = result.isNewVersionAvailable,
-			manuallyTriggered = true,
-		)
-		if (next == _updateNotification.value) return
-		_updateNotification.update { next }
+	override fun showChangelog() {
+		scope.launch {
+			val changelog = changelogRepository.getChangelog() ?: return@launch
+			withContext(dispatcherMain) {
+				_changelog.update { changelog.toState() }
+			}
+		}
 	}
 
-	private fun GithubReleaseInfo.toNotificationState(
-		isNewVersionAvailable: Boolean,
-		manuallyTriggered: Boolean,
-	) = ProjectSelection.UpdateNotificationState(
+	private fun Changelog.toState() = ProjectSelection.ChangelogState(
 		visible = true,
-		latestVersionTag = bareVersion,
-		releaseName = name,
-		releaseBody = body,
-		releaseUrl = htmlUrl,
-		isNewVersionAvailable = isNewVersionAvailable,
-		manuallyTriggered = manuallyTriggered,
+		version = version,
+		date = date,
+		notes = notes,
 	)
 
 	override fun toggleNavRailExpanded() {
@@ -114,18 +99,13 @@ class ProjectSelectionComponent(
 		}
 	}
 
-	override fun openReleaseUrl() {
-		_updateNotification.value.releaseUrl?.let { urlLauncher.openInBrowser(it) }
+	override fun openLatestRelease() {
+		urlLauncher.openInBrowser(RELEASES_LATEST_URL)
 	}
 
-	override fun dismissUpdateNotification(remember: Boolean) {
-		val tag = _updateNotification.value.latestVersionTag
-		_updateNotification.update { it.copy(visible = false) }
-		if (remember && tag != null) {
-			scope.launch {
-				settingsRepository.updateSettings { it.copy(lastDismissedUpdateVersion = tag) }
-			}
-		}
+	override fun dismissChangelog() {
+		_changelog.update { it.copy(visible = false) }
+		scope.launch { changelogRepository.markSeen() }
 	}
 
 	private fun createChild(
@@ -164,8 +144,7 @@ class ProjectSelectionComponent(
 						componentContext = componentContext,
 						urlLauncher = urlLauncher,
 						updateShouldClose = { navigation.pop() },
-						versionCheckRepository = versionCheckRepository,
-						onShowReleaseDetails = ::showCurrentReleaseDetails,
+						onShowChangelog = ::showChangelog,
 					)
 				)
 			}

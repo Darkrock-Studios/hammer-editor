@@ -2,8 +2,8 @@ package com.darkrockstudios.apps.hammer.common.data.projectstatistics
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.WordCountGoal
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
-import kotlinx.datetime.Instant
 import kotlinx.serialization.Serializable
+import kotlin.time.Instant
 
 @Serializable
 data class EntryAppearance(

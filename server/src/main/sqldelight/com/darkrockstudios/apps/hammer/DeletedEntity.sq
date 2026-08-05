@@ -1,4 +1,4 @@
-import kotlinx.datetime.Instant;
+import kotlin.time.Instant;
 
 -- Audit trail of entities that have been deleted; sync clients consult it to
 -- know what to drop locally.

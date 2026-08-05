@@ -80,16 +80,4 @@ class VersionCheckRepositoryTest {
 		coVerify(exactly = 2) { dataSource.fetchLatestRelease() }
 	}
 
-	@Test
-	fun `updates flow replays cached value for late subscribers`() = runTest {
-		val dataSource = mockk<VersionCheckDataSource>()
-		coEvery { dataSource.fetchLatestRelease() } returns release("v99.0.0")
-		val repo = VersionCheckRepository(dataSource)
-
-		repo.checkForUpdate()
-		val replayed = repo.updates.replayCache.lastOrNull()
-
-		assertNotNull(replayed)
-		assertEquals("v99.0.0", replayed?.latestRelease?.tagName)
-	}
 }

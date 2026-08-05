@@ -1,4 +1,4 @@
-import kotlinx.datetime.Instant;
+import kotlin.time.Instant;
 
 -- date_added was Unix-seconds INTEGER in SQLite; promoted to TIMESTAMPTZ here.
 -- email is declared TEXT for SqlDelight's parser; PostgresSchemaPostInit

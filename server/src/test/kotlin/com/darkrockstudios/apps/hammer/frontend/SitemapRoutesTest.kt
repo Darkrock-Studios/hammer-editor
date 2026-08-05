@@ -4,15 +4,15 @@ import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.database.CommunityAuthor
 import com.darkrockstudios.apps.hammer.database.CommunityFeedStory
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
-import io.ktor.client.request.get
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.routing.routing
-import io.ktor.server.testing.testApplication
+import io.ktor.client.request.*
+import io.ktor.http.*
+import io.ktor.server.routing.*
+import io.ktor.server.testing.*
 import io.mockk.mockk
-import kotlinx.datetime.Instant
 import org.junit.jupiter.api.Test
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
+import kotlin.time.Instant
 
 class SitemapRoutesTest {
 

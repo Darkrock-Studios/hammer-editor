@@ -499,9 +499,93 @@
 	}
 }
 
+/* Setup Admin Account Form */
+.setup-form {
+	max-width: 400px;
+	margin: 0 auto 1.5rem;
+	text-align: left;
+}
+
+.setup-form__error {
+	background: rgba(239, 68, 68, 0.12);
+	border: 2px solid #ef4444;
+	border-radius: 0.5rem;
+	padding: 0.75rem 1rem;
+	margin-bottom: 1rem;
+}
+
+.setup-form__error p {
+	color: #991b1b;
+	font-weight: 500;
+	margin: 0;
+	font-size: 0.9375rem;
+}
+
+.setup-form__actions {
+	margin-top: 1.25rem;
+}
+
+.setup-form__submit {
+	width: 100%;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.125rem;
+	padding: 1rem 2rem;
+	background: #14532d;
+	color: white;
+	border: none;
+	border-radius: 0.5rem;
+	cursor: pointer;
+	transition: all var(--transition-base);
+	box-shadow: var(--shadow-md);
+}
+
+.setup-form__submit:hover {
+	background: #166534;
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-lg);
+}
+
+.setup-form__submit:active {
+	transform: translateY(0);
+	box-shadow: var(--shadow-sm);
+}
+
+.setup-form__submit:focus-visible {
+	outline: 2px solid #22c55e;
+	outline-offset: 4px;
+}
+
+/* Secondary "set up from the app" section */
+.setup-alt {
+	margin-top: 1.5rem;
+	padding-top: 1.5rem;
+	border-top: 1px dashed rgba(20, 83, 45, 0.3);
+}
+
+.setup-alt__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1rem;
+	color: #166534;
+	margin-bottom: 1rem;
+}
+
+@media only screen and (max-width: 600px) {
+	.setup-form__submit {
+		font-size: 1rem;
+		padding: 0.875rem 1.75rem;
+	}
+}
+
 /* Reduced motion for setup */
 @media (prefers-reduced-motion: reduce) {
 	.error-card.setup .error-icon {
 		animation: none;
+	}
+
+	.setup-form__submit,
+	.setup-form__submit:hover,
+	.setup-form__submit:active {
+		transition: none;
+		transform: none;
 	}
 }

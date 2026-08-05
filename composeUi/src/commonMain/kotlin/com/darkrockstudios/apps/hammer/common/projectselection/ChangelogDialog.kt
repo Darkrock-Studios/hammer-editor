@@ -12,7 +12,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -26,20 +28,18 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAct
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
-import korlibs.io.lang.format
 
 /**
- * GitHub release `body` is rendered verbatim as plain text — if a future
- * contributor wants markdown rendering, add a real renderer rather than
- * swapping in an unstyled drop-in.
+ * The release notes baked into the app by `prepareForRelease`. Never hits the network.
+ * Notes render as plain monospace text apart from links, which [linkifyChangelog] makes
+ * clickable — see that function for why this isn't a markdown renderer.
  */
 @Composable
-fun UpdateAvailableDialog(component: ProjectSelection) {
-	val state by component.updateNotification.subscribeAsState()
-	val tag = state.latestVersionTag
+fun ChangelogDialog(component: ProjectSelection) {
+	val state by component.changelog.subscribeAsState()
 	AnimatedDialog(
-		visible = state.visible && tag != null,
-		onCloseRequest = { component.dismissUpdateNotification(remember = false) },
+		visible = state.visible && state.notes != null,
+		onCloseRequest = component::dismissChangelog,
 		modifier = Modifier.fillMaxSize(),
 		contentAlignment = Alignment.Center,
 	) {
@@ -55,54 +55,35 @@ fun UpdateAvailableDialog(component: ProjectSelection) {
 		) {
 			Column {
 				HdMasthead(
-					section = "UPDATE",
-					leadingMeta = listOfNotNull(tag),
+					section = "CHANGES",
+					leadingMeta = listOfNotNull(state.version, state.date),
 					trailing = {
 						HdMastheadAction(
 							label = "× CLOSE",
-							onClick = { component.dismissUpdateNotification(remember = false) },
+							onClick = component::dismissChangelog,
 						)
 					},
 				)
 				HdFolioDivider()
-				Body(
-					isNewVersionAvailable = state.isNewVersionAvailable,
-					tag = tag.orEmpty(),
-					releaseName = state.releaseName,
-					releaseBody = state.releaseBody,
-				)
+				Body(notes = state.notes)
 				HorizontalDivider(
 					color = MaterialTheme.colorScheme.outlineVariant,
 					thickness = 1.dp,
 				)
-				Footer(
-					onOpenRelease = component::openReleaseUrl,
-					onDismiss = { component.dismissUpdateNotification(remember = true) },
-					manuallyTriggered = state.manuallyTriggered,
-				)
+				Footer(onOpenRelease = component::openLatestRelease)
 			}
 		}
 	}
 }
 
 @Composable
-private fun Body(
-	isNewVersionAvailable: Boolean,
-	tag: String,
-	releaseName: String?,
-	releaseBody: String?,
-) {
-	val title = if (isNewVersionAvailable) {
-		Res.string.update_dialog_title.get()
-	} else {
-		Res.string.update_dialog_title_current.get().format(tag)
-	}
+private fun Body(notes: String?) {
 	Column(
 		modifier = Modifier.padding(start = 26.dp, end = 26.dp, top = 22.dp, bottom = 22.dp),
 		verticalArrangement = Arrangement.spacedBy(16.dp),
 	) {
 		Text(
-			text = title,
+			text = Res.string.changelog_dialog_title.get(),
 			style = MaterialTheme.typography.headlineSmall.copy(
 				fontWeight = FontWeight.Normal,
 				letterSpacing = (-0.26).sp,
@@ -110,21 +91,18 @@ private fun Body(
 			),
 			color = MaterialTheme.colorScheme.onSurface,
 		)
-		if (!releaseName.isNullOrBlank()) {
-			Text(
-				text = releaseName,
-				style = MaterialTheme.typography.bodyMedium,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-			)
-		}
-		ReleaseNotesSection(releaseBody = releaseBody)
+		ReleaseNotesSection(notes = notes)
 	}
 }
 
 @Composable
-private fun ReleaseNotesSection(releaseBody: String?) {
+private fun ReleaseNotesSection(notes: String?) {
 	var expanded by remember { mutableStateOf(true) }
 	val scroll = rememberScrollState()
+	val linkStyle = SpanStyle(
+		color = MaterialTheme.colorScheme.primary,
+		textDecoration = TextDecoration.Underline,
+	)
 	Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
 		Row(
 			modifier = Modifier
@@ -138,10 +116,10 @@ private fun ReleaseNotesSection(releaseBody: String?) {
 			HdMonoLabel(text = Res.string.update_dialog_release_notes_section.get())
 		}
 		AnimatedVisibility(visible = expanded) {
-			val text = releaseBody?.takeIf { it.isNotBlank() }
+			val text = notes?.takeIf { it.isNotBlank() }
 				?: Res.string.update_dialog_release_notes_empty.get()
 			Text(
-				text = text,
+				text = linkifyChangelog(text, linkStyle),
 				fontFamily = hammerMonoFontFamily(),
 				fontSize = 12.sp,
 				lineHeight = 18.sp,
@@ -158,11 +136,7 @@ private fun ReleaseNotesSection(releaseBody: String?) {
 }
 
 @Composable
-private fun Footer(
-	onOpenRelease: () -> Unit,
-	onDismiss: () -> Unit,
-	manuallyTriggered: Boolean,
-) {
+private fun Footer(onOpenRelease: () -> Unit) {
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
@@ -172,14 +146,6 @@ private fun Footer(
 		horizontalArrangement = Arrangement.spacedBy(10.dp),
 	) {
 		Spacer(modifier = Modifier.weight(1f))
-		if (!manuallyTriggered) {
-			TextButton(
-				onClick = onDismiss,
-				shape = RoundedCornerShape(4.dp),
-			) {
-				Text(Res.string.update_dialog_dismiss_button.get())
-			}
-		}
 		OutlinedButton(
 			onClick = onOpenRelease,
 			shape = RoundedCornerShape(4.dp),

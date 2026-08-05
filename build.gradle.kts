@@ -11,6 +11,7 @@ import com.darkrockstudios.build.storeNotesLength
 import com.darkrockstudios.build.updateFlatpakFiles
 import com.darkrockstudios.build.updateIosShortVersion
 import com.darkrockstudios.build.updateSnapcraftYaml
+import com.darkrockstudios.build.writeBakedChangelog
 import com.darkrockstudios.build.writeChangelogMarkdown
 import com.darkrockstudios.build.writeSemvar
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
@@ -224,7 +225,14 @@ tasks.register("prepareForRelease") {
 
 		// Write the Global changelog file
 		val globalChangelogFile = File("${project.rootDir}/CHANGELOG.md")
-		writeChangelogMarkdown(releaseInfo, globalChangelogFile)
+		val changelogEntry = writeChangelogMarkdown(releaseInfo, globalChangelogFile)
+
+		// Bake the same entry into the app. Written for every release, including server-only
+		// ones, so the resource never drifts from the version in libs.versions.toml.
+		val bakedChangelogPath =
+			"common/src/commonMain/composeResources/files/changelog.md".replace("/", File.separator)
+		val bakedChangelogFile = project.rootDir.resolve(bakedChangelogPath)
+		writeBakedChangelog(changelogEntry, bakedChangelogFile)
 
 		// Update snapcraft.yaml with new version and JVM version
 		val snapcraftPath = "snap/snapcraft.yaml".replace("/", File.separator)
@@ -273,6 +281,7 @@ tasks.register("prepareForRelease") {
 		}
 		git("add", versionsFile.absolutePath)
 		git("add", globalChangelogFile.absolutePath)
+		git("add", bakedChangelogFile.absolutePath)
 		git("add", snapcraftFile.absolutePath)
 		git("add", iosInfoPlistFile.absolutePath)
 		git("commit", "-m", "Prepared for release: v${releaseInfo.semVar}")

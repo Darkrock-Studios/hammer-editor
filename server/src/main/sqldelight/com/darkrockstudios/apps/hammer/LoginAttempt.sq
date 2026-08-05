@@ -1,4 +1,4 @@
-import kotlinx.datetime.Instant;
+import kotlin.time.Instant;
 
 -- Raw login attempts, used for brute-force visibility on the Security page.
 -- `email` is stored lower-cased by the repository for stable counting; it may

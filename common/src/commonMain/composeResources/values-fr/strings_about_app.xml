@@ -8,9 +8,9 @@
 	<string name="about_community_github_link">GitHub</string>
 	<string name="about_attribution_header">Attribution</string>
 	<string name="about_attribution_libraries_button">Bibliothèques</string>
-	<string name="about_version_changes_button">Changes</string>
-	<string name="about_version_github_button">GitHub Release</string>
-	<string name="changelog_dialog_title">What's New</string>
+	<string name="about_version_changes_button">Modifications</string>
+	<string name="about_version_github_button">Version GitHub</string>
+	<string name="changelog_dialog_title">Nouveautés</string>
 	<string name="update_dialog_release_notes_section">Notes de version</string>
 	<string name="update_dialog_release_notes_empty">Aucune note de version publiée.</string>
 	<string name="update_dialog_open_release_button">Ouvrir la version</string>

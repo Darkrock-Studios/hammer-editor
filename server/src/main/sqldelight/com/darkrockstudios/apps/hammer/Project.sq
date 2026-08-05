@@ -1,4 +1,4 @@
-import kotlinx.datetime.Instant;
+import kotlin.time.Instant;
 
 -- uuid is declared TEXT for SqlDelight's parser; PostgresSchemaInitializer
 -- ALTERs it to UUID at runtime for 16-byte storage and validation. The

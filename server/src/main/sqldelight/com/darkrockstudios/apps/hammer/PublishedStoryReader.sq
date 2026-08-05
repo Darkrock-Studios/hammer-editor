@@ -1,4 +1,4 @@
-import kotlinx.datetime.Instant;
+import kotlin.time.Instant;
 
 -- Deduplicated record of anonymous reads of published / privately-shared stories,
 -- backing the best-effort "unique readers" counter. There is no reader account, so

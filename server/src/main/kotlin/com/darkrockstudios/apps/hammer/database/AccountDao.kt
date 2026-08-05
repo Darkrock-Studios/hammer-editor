@@ -6,8 +6,8 @@ import com.darkrockstudios.apps.hammer.account.SortDirection
 import com.darkrockstudios.apps.hammer.account.UserSortField
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Instant
 import org.koin.core.component.KoinComponent
+import kotlin.time.Instant
 
 class AccountDao(
 	database: Database,
