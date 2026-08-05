@@ -4,7 +4,7 @@
 	<string name="account_settings_subtitle_local_install">INSTALLATION LOCALE</string>
 	<string name="account_settings_folio_caption">PARAMÈTRES DU COMPTE</string>
 	<string name="settings_backups_header">Sauvegardes</string>
-	<string name="settings_backups_explainations">Ce système de sauvegarde est destiné à protéger contre la perte et la corruption des données. Il n'est PAS conçu pour conserver d'anciennes versions de vos histoires. Utilisez le système de brouillons pour conserver vos données.</string>
+	<string name="settings_backups_explainations">Ce système de sauvegarde est destiné à protéger contre la perte et la corruption des données. Il n'est PAS conçu pour conserver d'anciennes versions de vos histoires. Utilisez le système de brouillons pour conserver vos données</string>
 	<string name="settings_backups_manage_button">Gérer les sauvegardes</string>
 	<string name="settings_theme_label">Thème de l'interface</string>
 	<string name="settings_theme_light">CLAIR</string>
@@ -17,7 +17,7 @@
 	<string name="settings_projects_directory_description">Définissez le dossier que Hammer utilisera pour stocker les données de vos projets.</string>
 	<string name="settings_projects_directory_button">Sélectionnez un dossier</string>
 	<string name="settings_example_project_header">Projet de démonstration</string>
-	<string name="settings_example_project_description">Installez un projet de démonstration pour voir comment les différentes fonctionnalités sont utilisées.</string>
+	<string name="settings_example_project_description">Installez un projet de démonstration pour voir comment les différentes fonctionnalités sont utilisées</string>
 	<string name="settings_example_project_button">Réinstaller</string>
 	<string name="settings_example_project_success_message">Projet de démonstration créé.</string>
 	<string name="settings_server_status_connected">CONNECTÉ</string>
@@ -111,4 +111,5 @@ Des conflits peuvent se déclarer et causer des erreurs si les contenus ne corre
 	<string name="server_error_timeout">Le serveur ne répond pas. Vérifiez votre connexion Internet et réessayez.</string>
 	<string name="server_error_dns">Serveur introuvable. Vérifiez l'adresse du serveur et votre connexion Internet.</string>
 	<string name="server_error_connection_generic">Erreur réseau lors de la connexion à %1$s. Vérifiez votre connexion et réessayez.</string>
+	<string name="server_error_tls">Impossible d'établir une connection sécurisée à %1$s. Hammer se connecte uniquement via HTTPS, le serveur a besoin de son propre certificat TLS ou d'un proxy inverse qui lui en fournit un</string>
 </resources>
