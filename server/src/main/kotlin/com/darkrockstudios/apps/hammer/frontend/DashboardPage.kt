@@ -1,10 +1,12 @@
 package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ServerConfig
+import com.darkrockstudios.apps.hammer.account.AccountDeletionService
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PenNameService
 import com.darkrockstudios.apps.hammer.account.PenNameService.PenNameResult
+import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.Toast
 import com.darkrockstudios.apps.hammer.frontend.utils.authenticatedOnly
@@ -17,6 +19,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.respondToast
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import io.ktor.htmx.HxResponseHeaders
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
@@ -32,6 +35,7 @@ import io.ktor.server.routing.delete
 import io.ktor.server.routing.get
 import io.ktor.server.routing.post
 import io.ktor.server.routing.route
+import io.ktor.server.sessions.clear
 import io.ktor.server.sessions.sessions
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -42,6 +46,7 @@ fun Route.dashboardPage(
 	accountsRepository: AccountsRepository,
 	penNameService: PenNameService,
 	bioService: BioService,
+	accountDeletionService: AccountDeletionService,
 	serverConfig: ServerConfig,
 	markdownService: MarkdownService
 ) {
@@ -290,6 +295,54 @@ fun Route.dashboardPage(
 					message = call.msg("community_toast_joined"),
 					toast = Toast.Success
 				)
+			}
+
+			hx.get("/delete-account-dialog") {
+				val session = call.sessions.requireUser()
+				val account = accountsRepository.getAccount(session.userId)
+
+				val model = call.withDefaults(
+					mapOf(
+						"email" to account.email,
+						"projectCount" to projectsRepository.getProjectsCount(session.userId),
+						"retentionNote" to call.msg(
+							"account_delete_dialog_retention_note",
+							serverConfig.accountDeletion.retentionDays
+						),
+					)
+				)
+
+				call.respond(MustacheContent("partials/delete-account-dialog.mustache", model))
+			}
+
+			hx.post("/delete-account") {
+				val session = call.sessions.requireUser()
+				val account = accountsRepository.getAccount(session.userId)
+				val typedEmail = call.receiveParameters()["confirmEmail"]?.trim() ?: ""
+
+				// The JS arming of the button is UX only; the typed email is the
+				// real confirmation and must be verified here.
+				if (!typedEmail.equals(account.email, ignoreCase = true)) {
+					respondToast(
+						call.msg("account_delete_error_email_mismatch"),
+						Toast.Error,
+						HttpStatusCode.BadRequest
+					)
+					return@post
+				}
+
+				val result = accountDeletionService.softDelete(session.userId)
+				if (isSuccess(result)) {
+					call.sessions.clear<UserSession>()
+					call.response.header(HxResponseHeaders.Redirect, "/")
+					call.respond(HttpStatusCode.NoContent)
+				} else {
+					respondToast(
+						result.displayMessageText(call) ?: call.msg("account_delete_error_generic"),
+						Toast.Error,
+						HttpStatusCode.BadRequest
+					)
+				}
 			}
 
 			hx.post("/community/leave") {

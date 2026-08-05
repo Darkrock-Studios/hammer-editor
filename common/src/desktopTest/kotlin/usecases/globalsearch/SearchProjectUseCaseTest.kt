@@ -20,10 +20,13 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneCo
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
+import com.darkrockstudios.apps.hammer.common.data.search.MarkdownProjector
+import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineContainer
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
+import com.darkrockstudios.apps.hammer.common.util.ScanBuffers
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -77,6 +80,29 @@ class SearchProjectUseCaseTest : BaseTest() {
 		encyclopedia = encyclopedia,
 		timeLine = timeLine,
 	)
+
+	@Test
+	fun `global search agrees with the shared match rule`() {
+		// Global search needs offsets so it resolves separately; the two must not drift apart.
+		val cases = listOf(
+			"A well\\-known secret" to "well-known",
+			"A well\\-known secret" to "well\\-known",
+			"A well\\-known secret" to "unrelated",
+			"the user_name field" to "user_name",
+			"The cost is 5\\*4" to "5*4",
+			"a **Chapter** heading" to "**Chapter**",
+			"a **Chapter** heading" to "Chapter heading",
+			"path C:\\temp here" to "C:\\temp",
+		)
+
+		for ((content, query) in cases) {
+			assertEquals(
+				markdownContains(content, query),
+				SearchProjectUseCase.findMarkdownMatch(MarkdownProjector(), content, query) != null,
+				"disagreement on content=<$content> query=<$query>",
+			)
+		}
+	}
 
 	@Test
 	fun `findMatch returns null for empty text or query`() {
@@ -159,8 +185,8 @@ class SearchProjectUseCaseTest : BaseTest() {
 			content = SceneContent(scene = scene, markdown = "Unsaved dragon attack"),
 			source = UpdateSource.Editor,
 		)
-		// loadSceneMarkdownRaw should not be consulted because buffer wins
-		every { sceneEditor.loadSceneMarkdownRaw(scene, any()) } returns "On-disk text"
+		// The on-disk read should not be consulted because the buffer wins
+		stubSceneMarkdown(scene, "On-disk text")
 
 		val results = createUseCase().search("dragon", GlobalSearchFilter.All)
 			.filterIsInstance<SearchResult.Scene>()
@@ -186,6 +212,19 @@ class SearchProjectUseCaseTest : BaseTest() {
 
 		assertEquals(1, results.size)
 		assertEquals(9, results.first().sceneItem.id)
+	}
+
+	/**
+	 * Stubs the on-disk read for [scene]. Search decodes a scene into a buffer it owns rather than
+	 * taking a string back, so the stub fills the buffer the use case handed in.
+	 */
+	private fun stubSceneMarkdown(scene: SceneItem, markdown: String) {
+		every { sceneEditor.readSceneMarkdownInto(eq(scene), any(), any()) } answers {
+			val sink = secondArg<ScanBuffers>()
+			val buffer = sink.charBuffer(markdown.length)
+			markdown.forEachIndexed { index, char -> buffer[index] = char }
+			markdown.length
+		}
 	}
 
 	@Test
@@ -350,6 +389,480 @@ class SearchProjectUseCaseTest : BaseTest() {
 		coEvery { sceneMetadataRepository.loadSceneMetadata(8) } returns SceneMetadata(tags = setOf("fantasy"))
 
 		val results = createUseCase().search("#fantasy dragon", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Scene>()
+
+		assertEquals(1, results.size)
+		assertEquals(7, results.first().sceneItem.id)
+	}
+
+	private fun note(id: Int, content: String) =
+		NoteContainer(NoteContent(id = id, created = Clock.System.now(), content = content))
+
+	@Test
+	fun `search matches across a backslash escape`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "A well\\-known secret"))
+
+		val results = createUseCase().search("well-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+	}
+
+	@Test
+	fun `search matches a phrase spanning an emphasis boundary`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "**Chapter** One begins"))
+
+		val results = createUseCase().search("Chapter One", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+	}
+
+	@Test
+	fun `search matches a phrase spanning italics and code spans`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			note(1, "the _quick_ brown fox"),
+			note(2, "run the `build` script"),
+		)
+
+		val italic = createUseCase().search("quick brown", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+		val code = createUseCase().search("the build script", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, italic.size)
+		assertEquals(1, code.size)
+	}
+
+	@Test
+	fun `snippets render prose without markdown syntax`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "A well\\-known **Chapter** One secret"))
+
+		val results = createUseCase().search("well-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		val snippet = results.first().snippet
+		assertEquals("A well-known Chapter One secret", snippet.text)
+		assertEquals("well-known", snippet.text.substring(snippet.matchStart, snippet.matchEnd))
+	}
+
+	@Test
+	fun `escaped literals survive the projection`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "the \\_shape\\_ of it"))
+
+		val results = createUseCase().search("_shape_", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertTrue(results.first().snippet.text.contains("_shape_"))
+	}
+
+	@Test
+	fun `typing markdown syntax does not find the markup it renders away`() = runTest {
+		// The query is literal text matched against the prose on screen; that prose reads "raw bold
+		// marker", so the asterisks are not there to be found.
+		every { notes.getNotes() } returns listOf(note(1, "raw **bold** marker"))
+
+		val asTyped = createUseCase().search("**bold**", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+		val asRead = createUseCase().search("raw bold marker", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(0, asTyped.size)
+		assertEquals(1, asRead.size)
+	}
+
+	@Test
+	fun `scene bodies match across an emphasis boundary`() = runTest {
+		val scene = SceneItem(
+			projectDef = projectDef,
+			type = SceneItem.Type.Scene,
+			id = 7,
+			name = "Opening",
+			order = 0,
+		)
+		every { sceneEditor.getScenes() } returns listOf(scene)
+		every { sceneContentRepository.getSceneBuffer(scene) } returns null
+		stubSceneMarkdown(scene, "**Chapter** One begins")
+
+		val results = createUseCase().search("Chapter One", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Scene>()
+
+		assertEquals(1, results.size)
+		assertEquals("Chapter One begins", results.first().snippet.text)
+	}
+
+	@Test
+	fun `literal underscores in imported content are left alone`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "the user_name field and my_table_name"))
+
+		val results = createUseCase().search("user_name", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertTrue(results.first().snippet.text.contains("my_table_name"))
+	}
+
+	@Test
+	fun `a body of only markdown markers still previews in a tag search`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			NoteContainer(
+				NoteContent(
+					id = 1,
+					created = Clock.System.now(),
+					content = "***",
+					tags = setOf("fantasy"),
+				)
+			),
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals("***", results.first().snippet.text)
+	}
+
+	@Test
+	fun `a heading does not leak into the title or the snippet`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			NoteContainer(
+				NoteContent(
+					id = 1,
+					created = Clock.System.now(),
+					content = "# Chapter One\n\nThe body text",
+					tags = setOf("fantasy"),
+				)
+			),
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals("Chapter One", results.first().title)
+		assertEquals("Chapter One The body text", results.first().snippet.text)
+	}
+
+	@Test
+	fun `a note whose first line is only markers is not titled empty`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "***\nThe real body text"))
+
+		val results = createUseCase().search("real body", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals("***", results.first().title)
+	}
+
+	@Test
+	fun `timeline dates are not projected`() = runTest {
+		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(
+			listOf(TimeLineEvent(id = 21, order = 0, date = "1990 _to_ 2000", content = "A long war")),
+		)
+
+		val verbatim = createUseCase().search("1990 _to_ 2000", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.TimelineEvent>()
+		val projectedForm = createUseCase().search("1990 to 2000", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.TimelineEvent>()
+
+		assertEquals(1, verbatim.size)
+		assertTrue(verbatim.first().snippet.text.contains("1990 _to_ 2000"))
+		// Projecting the date would make this hit and would show a date the event does not have.
+		assertEquals(0, projectedForm.size)
+	}
+
+	@Test
+	fun `tag-only search previews prose without markdown syntax`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			NoteContainer(
+				NoteContent(
+					id = 1,
+					created = Clock.System.now(),
+					content = "A well\\-known **Chapter** One secret",
+					tags = setOf("fantasy"),
+				)
+			),
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals("A well-known Chapter One secret", results.first().snippet.text)
+	}
+
+	@Test
+	fun `snippets render escaped text the way it reads on screen`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "A well\\-known garden\\! at dusk"))
+
+		val results = createUseCase().search("well-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		val snippet = results.first().snippet
+		assertEquals("A well-known garden! at dusk", snippet.text)
+		assertEquals("well-known", snippet.text.substring(snippet.matchStart, snippet.matchEnd))
+	}
+
+	@Test
+	fun `the title reads the same way as the snippet under it`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "Alice \\(the elder\\) is well\\-known\\!"))
+
+		val results = createUseCase().search("well-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals("Alice (the elder) is well-known!", results.first().title)
+		assertEquals("Alice (the elder) is well-known!", results.first().snippet.text)
+	}
+
+	@Test
+	fun `escaped markers are searchable as literal characters`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "the \\_shape\\_ of it"))
+
+		val results = createUseCase().search("_shape_", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertTrue(results.first().snippet.text.contains("_shape_"))
+	}
+
+	@Test
+	fun `searching the storage form of text is not supported`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "raw well\\-known marker"))
+
+		val asStored = createUseCase().search("well\\-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+		val asRead = createUseCase().search("well-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(0, asStored.size)
+		assertEquals(1, asRead.size)
+	}
+
+	@Test
+	fun `title and snippet render the same way`() = runTest {
+		every { notes.getNotes() } returns listOf(note(1, "Alice \\(the elder\\) is well\\-known"))
+
+		val results = createUseCase().search("well-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals("Alice (the elder) is well-known", results.first().title)
+		assertEquals("Alice (the elder) is well-known", results.first().snippet.text)
+	}
+
+	@Test
+	fun `unescaped markup is left alone so literal text is not rewritten`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			note(1, "The cost is 5*4"),
+			note(2, "the user_name field"),
+		)
+
+		val math = createUseCase().search("5*4", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+		val identifier = createUseCase().search("user_name", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, math.size)
+		assertEquals("The cost is 5*4", math.first().snippet.text)
+		assertEquals(1, identifier.size)
+		assertTrue(identifier.first().snippet.text.contains("user_name"))
+	}
+
+	@Test
+	fun `scene bodies match across a backslash escape`() = runTest {
+		val scene = SceneItem(
+			projectDef = projectDef,
+			type = SceneItem.Type.Scene,
+			id = 7,
+			name = "Opening",
+			order = 0,
+		)
+		every { sceneEditor.getScenes() } returns listOf(scene)
+		every { sceneContentRepository.getSceneBuffer(scene) } returns null
+		stubSceneMarkdown(scene, "A well\\-known road")
+
+		val results = createUseCase().search("well-known", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Scene>()
+
+		assertEquals(1, results.size)
+		assertEquals("A well-known road", results.first().snippet.text)
+	}
+
+	@Test
+	fun `timeline dates are not unescaped`() = runTest {
+		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(
+			listOf(TimeLineEvent(id = 21, order = 0, date = "1990\\-2000", content = "A long war")),
+		)
+
+		val verbatim = createUseCase().search("1990\\-2000", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.TimelineEvent>()
+		val resolvedForm = createUseCase().search("1990-2000", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.TimelineEvent>()
+
+		assertEquals(1, verbatim.size)
+		// Unescaping the date would make this hit and would show a date the event does not have.
+		assertEquals(0, resolvedForm.size)
+	}
+
+	@Test
+	fun `tag-only search previews escaped text as it reads`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			NoteContainer(
+				NoteContent(
+					id = 1,
+					created = Clock.System.now(),
+					content = "A well\\-known secret",
+					tags = setOf("fantasy"),
+				)
+			),
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals("A well-known secret", results.first().snippet.text)
+	}
+
+	@Test
+	fun `tag-only search returns a note with no content`() = runTest {
+		every { notes.getNotes() } returns listOf(
+			NoteContainer(
+				NoteContent(
+					id = 1,
+					created = Clock.System.now(),
+					content = "",
+					tags = setOf("fantasy"),
+				)
+			),
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.Note>()
+
+		assertEquals(1, results.size)
+		assertEquals(1, results.first().noteId)
+	}
+
+	@Test
+	fun `tag-only search returns an encyclopedia entry with no body text`() = runTest {
+		val def = EntryDef(projectDef = projectDef, id = 13, type = EntryType.PERSON, name = "Alice")
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(def)
+		every { encyclopedia.loadEntry(def) } returns EntryContainer(
+			EntryContent(
+				id = 13,
+				name = "Alice",
+				type = EntryType.PERSON,
+				text = "",
+				tags = setOf("fantasy"),
+			)
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.EncyclopediaEntry>()
+
+		assertEquals(1, results.size)
+		assertEquals(13, results.first().entryDef.id)
+		assertTrue(results.first().title.contains("Alice"))
+		assertEquals("Alice", results.first().snippet.text)
+	}
+
+	@Test
+	fun `tag-only search returns timeline events with and without content`() = runTest {
+		coEvery { timeLine.loadTimeline() } returns TimeLineContainer(
+			listOf(
+				TimeLineEvent(id = 21, order = 0, date = null, content = "", tags = setOf("fantasy")),
+				TimeLineEvent(id = 22, order = 1, date = "Year 3", content = "Coronation", tags = setOf("fantasy")),
+			)
+		)
+
+		val results = createUseCase().search("#fantasy", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.TimelineEvent>()
+
+		assertEquals(listOf(21, 22), results.map { it.eventId })
+		assertTrue(results.last().snippet.text.contains("Coronation"))
+	}
+
+	@Test
+	fun `tag search combined with free text matches an encyclopedia entry name`() = runTest {
+		val def = EntryDef(projectDef = projectDef, id = 14, type = EntryType.PERSON, name = "Alice")
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(def)
+		every { encyclopedia.loadEntry(def) } returns EntryContainer(
+			EntryContent(
+				id = 14,
+				name = "Alice",
+				type = EntryType.PERSON,
+				text = "A traveler from the north.",
+				tags = setOf("fantasy"),
+			)
+		)
+
+		val results = createUseCase().search("#fantasy alice", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.EncyclopediaEntry>()
+
+		assertEquals(1, results.size)
+		assertEquals(14, results.first().entryDef.id)
+		assertTrue(results.first().snippet.text.contains("Alice"))
+	}
+
+	@Test
+	fun `tag search with free text falls through to the encyclopedia entry body`() = runTest {
+		val def = EntryDef(projectDef = projectDef, id = 15, type = EntryType.PLACE, name = "Mordor")
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(def)
+		every { encyclopedia.loadEntry(def) } returns EntryContainer(
+			EntryContent(
+				id = 15,
+				name = "Mordor",
+				type = EntryType.PLACE,
+				text = "Sauron rules here.",
+				tags = setOf("fantasy"),
+			)
+		)
+
+		val results = createUseCase().search("#fantasy sauron", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.EncyclopediaEntry>()
+
+		assertEquals(1, results.size)
+		assertTrue(results.first().snippet.text.contains("Sauron"))
+	}
+
+	@Test
+	fun `tag search drops an encyclopedia entry when the free text matches neither name nor body`() = runTest {
+		val def = EntryDef(projectDef = projectDef, id = 16, type = EntryType.PERSON, name = "Alice")
+		coEvery { encyclopedia.ensureEntriesLoaded() } returns listOf(def)
+		every { encyclopedia.loadEntry(def) } returns EntryContainer(
+			EntryContent(
+				id = 16,
+				name = "Alice",
+				type = EntryType.PERSON,
+				text = "A traveler from the north.",
+				tags = setOf("fantasy"),
+			)
+		)
+
+		val results = createUseCase().search("#fantasy dragon", GlobalSearchFilter.All)
+			.filterIsInstance<SearchResult.EncyclopediaEntry>()
+
+		assertEquals(0, results.size)
+	}
+
+	@Test
+	fun `tag-only search returns a scene with a blank name`() = runTest {
+		val scene = SceneItem(
+			projectDef = projectDef,
+			type = SceneItem.Type.Scene,
+			id = 7,
+			name = "  ",
+			order = 0,
+		)
+		every { sceneEditor.getScenes() } returns listOf(scene)
+		coEvery { sceneMetadataRepository.loadSceneMetadata(7) } returns SceneMetadata(tags = setOf("plot"))
+
+		val results = createUseCase().search("#plot", GlobalSearchFilter.All)
 			.filterIsInstance<SearchResult.Scene>()
 
 		assertEquals(1, results.size)

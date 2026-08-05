@@ -2,7 +2,7 @@
 <resources>
 	<string name="global_search_button">Rechercher dans le projet</string>
 	<string name="global_search_title">Rechercher dans le projet</string>
-	<string name="global_search_placeholder">Saisissez pour rechercher, utilisez #tag pour filtrer…</string>
+	<string name="global_search_placeholder">Saisissez pour rechercher, utilisez #étiquette pour filtrer…</string>
 	<string name="global_search_clear">Effacer la recherche</string>
 	<string name="global_search_no_results">Aucun résultat</string>
 	<string name="global_search_too_short">Saisissez au moins 2 caractères pour rechercher</string>

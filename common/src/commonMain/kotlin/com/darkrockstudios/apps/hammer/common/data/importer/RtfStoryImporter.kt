@@ -157,7 +157,9 @@ class RtfStoryImporter : StoryImporter {
 	/**
 	 * Walks the body destinations of an RTF document, emitting one [RtfParagraph] per `\par`. Tracks
 	 * group-scoped character formatting (bold/italic/font size) and paragraph properties (outline
-	 * level), wrapping bold/italic runs in Markdown the way the library's own converter does.
+	 * level), wrapping bold/italic runs in Markdown. Delimiters hug the emphasized text: RTF writers
+	 * routinely put the surrounding spaces inside the run, and CommonMark rejects emphasis with
+	 * whitespace immediately inside the markers.
 	 */
 	private class RtfParagraphCollector : com.darkrockstudios.libs.rtfparserkmp.parser.RtfListener {
 		val paragraphs = mutableListOf<RtfParagraph>()
@@ -195,9 +197,8 @@ class RtfStoryImporter : StoryImporter {
 
 		override fun processString(string: String) {
 			if (!isBodyDestination()) return
-			openEmphasis()
 			plain.append(string)
-			markdown.append(escape(string))
+			appendMarkdown(string)
 			for (ch in string) {
 				if (ch.isWhitespace()) continue
 				totalChars++
@@ -241,7 +242,7 @@ class RtfStoryImporter : StoryImporter {
 
 		private fun endParagraph() {
 			closeEmphasis()
-			val md = markdown.toString().trim()
+			val md = escapeOrderedListMarkers(markdown.toString().trim())
 			val text = plain.toString().trim()
 			val dominantSize = sizeCounts.maxByOrNull { it.value }?.key
 			val mostlyBold = totalChars > 0 && boldChars.toDouble() / totalChars >= BOLD_RATIO
@@ -287,6 +288,21 @@ class RtfStoryImporter : StoryImporter {
 			Marker.ITALIC -> italic
 		}
 
+		/**
+		 * Opens pending emphasis at the first non-whitespace character, so a run's leading whitespace
+		 * stays outside the delimiters and an all-whitespace run opens nothing.
+		 */
+		private fun appendMarkdown(text: String) {
+			val firstVisible = text.indexOfFirst { !it.isWhitespace() }
+			if (firstVisible < 0) {
+				markdown.append(text)
+				return
+			}
+			markdown.append(text.substring(0, firstVisible))
+			openEmphasis()
+			markdown.append(escape(text.substring(firstVisible)))
+		}
+
 		private fun openEmphasis() {
 			if (bold && Marker.BOLD !in openMarkers) {
 				markdown.append(Marker.BOLD.text)
@@ -298,27 +314,35 @@ class RtfStoryImporter : StoryImporter {
 			}
 		}
 
+		/**
+		 * Closes every marker down to the shallowest inactive one. Still-active markers come off the
+		 * stack too and are reopened by [openEmphasis] at the next non-whitespace character.
+		 */
 		private fun closeDisabledMarkers() {
 			val deepestDisabled = openMarkers.indexOfFirst { !isActive(it) }
 			if (deepestDisabled < 0) return
-			val reopen = ArrayDeque<Marker>()
 			while (openMarkers.size > deepestDisabled) {
-				val top = openMarkers.removeLast()
-				markdown.append(top.text)
-				if (isActive(top)) reopen.addLast(top)
-			}
-			while (reopen.isNotEmpty()) {
-				val m = reopen.removeLast()
-				markdown.append(m.text)
-				openMarkers.addLast(m)
+				closeMarker(openMarkers.removeLast())
 			}
 		}
 
 		private fun closeEmphasis() {
 			while (openMarkers.isNotEmpty()) {
-				markdown.append(openMarkers.removeLast().text)
+				closeMarker(openMarkers.removeLast())
 			}
 		}
+
+		/** Emits [marker] ahead of any trailing whitespace, keeping the delimiter against the text. */
+		private fun closeMarker(marker: Marker) {
+			markdown.insert(markdown.length - trailingWhitespaceLength(), marker.text)
+		}
+
+		private fun trailingWhitespaceLength(): Int =
+			markdown.length - (markdown.indexOfLast { !it.isWhitespace() } + 1)
+
+		/** Keeps an imported paragraph that starts with "1." from parsing as an ordered list. */
+		private fun escapeOrderedListMarkers(text: String): String =
+			text.replace(ORDERED_LIST_MARKER, "$1\\\\.")
 
 		private fun escape(text: String): String {
 			val out = StringBuilder(text.length)
@@ -333,12 +357,15 @@ class RtfStoryImporter : StoryImporter {
 
 		private enum class Marker(val text: String) {
 			BOLD("**"),
-			ITALIC("_"),
+			ITALIC("*"),
 		}
 
 		private companion object {
 			const val BOLD_RATIO = 0.8
-			val MARKDOWN_SPECIAL = "\\`*_{}[]<>#".toSet()
+
+			/** Mirrors `MARKDOWN_SPECIAL_CHARS` in ComposeTextEditor's Markdown escaper. */
+			val MARKDOWN_SPECIAL = "\\`*_{}[]()<>#+-!|".toSet()
+			val ORDERED_LIST_MARKER = Regex("^(\\d+)\\.", RegexOption.MULTILINE)
 		}
 	}
 }

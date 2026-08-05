@@ -6,8 +6,8 @@ import com.darkrockstudios.apps.hammer.account.SortDirection
 import com.darkrockstudios.apps.hammer.account.UserSortField
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
-import kotlinx.datetime.Instant
 import org.koin.core.component.KoinComponent
+import kotlin.time.Instant
 
 class AccountDao(
 	database: Database,
@@ -98,6 +98,7 @@ class AccountDao(
 							pen_name = it.pen_name,
 							created = it.created,
 							last_sync = it.last_sync,
+							deleted_at = it.deleted_at,
 							most_recent_sync = it.most_recent_sync,
 							project_count = it.project_count
 						)
@@ -114,12 +115,27 @@ class AccountDao(
 						pen_name = it.pen_name,
 						created = it.created,
 						last_sync = it.last_sync,
+						deleted_at = it.deleted_at,
 						most_recent_sync = it.most_recent_sync,
 						project_count = it.project_count
 					)
 				}
 			}
 		}
+
+	suspend fun markDeleted(userId: Long, deletedAt: Instant) = withContext(ioDispatcher) {
+		queries.markDeleted(deletedAt = deletedAt, userId = userId)
+	}
+
+	suspend fun restoreDeleted(userId: Long) = withContext(ioDispatcher) {
+		queries.restoreDeleted(userId)
+	}
+
+	suspend fun getSoftDeletedBefore(cutoff: Instant): List<Account> = withContext(ioDispatcher) {
+		// The IS NOT NULL predicate narrows deleted_at in the generated row type,
+		// so map back to the plain Account shape.
+		queries.getSoftDeletedBefore(cutoff, ::Account).executeAsList()
+	}
 
 	suspend fun updatePassword(userId: Long, hashedPassword: String) = withContext(ioDispatcher) {
 		queries.updatePassword(hashedPassword, userId)

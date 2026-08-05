@@ -29,15 +29,21 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectSettings
+import com.darkrockstudios.apps.hammer.common.components.spellchecksettings.SpellCheckSettings
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCrumbBackLink
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.SpellCheckSettingsContent
+import com.darkrockstudios.apps.hammer.common.spellcheck.displayName
+import com.darkrockstudios.apps.hammer.common.spellcheck.isSpellCheckAllowedForProject
+import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.apps.hammer.project_settings_autosaved
 import com.darkrockstudios.apps.hammer.project_settings_breadcrumb_home
 import com.darkrockstudios.apps.hammer.project_settings_breadcrumb_root
@@ -46,6 +52,7 @@ import com.darkrockstudios.apps.hammer.project_settings_folio_section_count
 import com.darkrockstudios.apps.hammer.project_settings_hero_by
 import com.darkrockstudios.apps.hammer.project_settings_hero_marker
 import com.darkrockstudios.apps.hammer.project_settings_hero_no_author
+import com.darkrockstudios.apps.hammer.project_settings_spellcheck_mismatch_caption
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_section_title
 
 private val MaxColumnWidth = 880.dp
@@ -75,41 +82,56 @@ fun ProjectSettingsUi(
 		)
 		HdFolioDivider()
 
-		Column(
+		val scrollState = rememberScrollState()
+		Box(
 			modifier = Modifier
 				.weight(1f)
-				.fillMaxWidth()
-				.verticalScroll(rememberScrollState())
-				.padding(horizontal = outerHorizontal, vertical = outerVertical),
+				.fillMaxWidth(),
 		) {
-			Box(
+			Column(
 				modifier = Modifier
-					.widthIn(max = MaxColumnWidth)
-					.fillMaxWidth()
-					.align(Alignment.CenterHorizontally),
+					.fillMaxSize()
+					.verticalScroll(scrollState)
+					.padding(horizontal = outerHorizontal, vertical = outerVertical),
 			) {
-				Column(verticalArrangement = Arrangement.spacedBy(64.dp)) {
-					Hero(
-						projectName = component.projectName,
-						authorName = state.data.authorName,
-						isCompact = isCompact,
-					)
+				Box(
+					modifier = Modifier
+						.widthIn(max = MaxColumnWidth)
+						.fillMaxWidth()
+						.align(Alignment.CenterHorizontally),
+				) {
+					Column(verticalArrangement = Arrangement.spacedBy(64.dp)) {
+						Hero(
+							projectName = component.projectName,
+							authorName = state.data.authorName,
+							isCompact = isCompact,
+						)
 
-					if (state.isLoaded) {
-						ProjectInfoSettingsUi(component)
+						if (state.isLoaded) {
+							ProjectInfoSettingsUi(component)
 
-						HdHairlineSection(
-							section = 4,
-							title = Res.string.project_settings_spellcheck_section_title.get(),
-							contentSpacing = 18.dp,
-						) {
-							SpellCheckSettingsContent(component.spellCheckSettings)
+							HdHairlineSection(
+								section = 4,
+								title = Res.string.project_settings_spellcheck_section_title.get(),
+								contentSpacing = 18.dp,
+							) {
+								SpellCheckSettingsContent(component.spellCheckSettings)
+								SpellCheckMismatchCaption(
+									projectLanguageTag = state.data.language,
+									spellCheckSettings = component.spellCheckSettings,
+								)
+							}
 						}
-					}
 
-					Spacer(Modifier.height(8.dp))
+						Spacer(Modifier.height(8.dp))
+					}
 				}
 			}
+
+			MpScrollBarColumn(
+				modifier = scrollBarOverlay(),
+				state = scrollState,
+			)
 		}
 
 		FolioCaption(
@@ -118,6 +140,27 @@ fun ProjectSettingsUi(
 			horizontalPadding = outerHorizontal,
 		)
 	}
+}
+
+/** Explains why spell check isn't running when the project's language gates it off. */
+@Composable
+private fun SpellCheckMismatchCaption(
+	projectLanguageTag: String?,
+	spellCheckSettings: SpellCheckSettings,
+) {
+	val spellCheckState by spellCheckSettings.state.subscribeAsState()
+	if (!spellCheckState.spellCheckingEnabled) return
+	if (projectLanguageTag == null) return
+	if (isSpellCheckAllowedForProject(projectLanguageTag, spellCheckState.spellCheckingLanguage)) return
+
+	Text(
+		text = Res.string.project_settings_spellcheck_mismatch_caption.get(
+			Locale.forLanguageTag(projectLanguageTag).displayName(),
+			spellCheckState.spellCheckingLanguage.displayName(),
+		),
+		style = MaterialTheme.typography.bodySmall,
+		color = MaterialTheme.colorScheme.onSurfaceVariant,
+	)
 }
 
 @Composable

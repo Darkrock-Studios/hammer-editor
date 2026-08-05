@@ -12,16 +12,13 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSettings
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubReleaseInfo
-import com.darkrockstudios.apps.hammer.common.data.versioncheck.ShouldNotifyOfUpdateUseCase
-import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
+import com.darkrockstudios.apps.hammer.common.data.changelog.Changelog
+import com.darkrockstudios.apps.hammer.common.data.changelog.ChangelogRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
 import getProjectsDirectory
 import io.mockk.*
-import kotlinx.coroutines.channels.BufferOverflow
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -51,8 +48,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 	lateinit var projectsRepository: ProjectsRepository
 	lateinit var exampleProjectRepository: ExampleProjectRepository
 	lateinit var projectsSynchronizer: ClientAccountSynchronizer
-	lateinit var versionCheckRepository: VersionCheckRepository
-	lateinit var versionCheckUpdates: MutableSharedFlow<VersionCheckRepository.VersionCheckResult>
+	lateinit var changelogRepository: ChangelogRepository
 	lateinit var urlLauncher: UrlLauncher
 
 	private var globalSettings: GlobalSettings = GlobalSettings(
@@ -75,24 +71,16 @@ class ProjectSelectionComponentTest : BaseTest() {
 		projectsRepository = mockk()
 		exampleProjectRepository = mockk()
 		projectsSynchronizer = mockk()
-		versionCheckRepository = mockk()
+		changelogRepository = mockk(relaxed = true)
 		urlLauncher = mockk(relaxed = true)
-
-		versionCheckUpdates = MutableSharedFlow(
-			extraBufferCapacity = 1,
-			replay = 1,
-			onBufferOverflow = BufferOverflow.DROP_OLDEST,
-		)
-		every { versionCheckRepository.updates } returns versionCheckUpdates
 
 		val testModule = module {
 			single { globalSettingsStore } bind GlobalSettingsStore::class
 			single { projectsRepository } bind ProjectsRepository::class
 			single { exampleProjectRepository } bind ExampleProjectRepository::class
 			single { projectsSynchronizer }
-			single { versionCheckRepository }
+			single { changelogRepository }
 			single { urlLauncher } bind UrlLauncher::class
-			factory { ShouldNotifyOfUpdateUseCase() }
 		}
 		setupKoin(testModule)
 		lifecycle.resume()
@@ -128,119 +116,90 @@ class ProjectSelectionComponentTest : BaseTest() {
 			onProjectSelected = {},
 		)
 
-	private fun release(tag: String) = GithubReleaseInfo(
-		tagName = tag,
-		name = "Release $tag",
-		body = "Notes for $tag",
-		htmlUrl = "https://github.com/Darkrock-Studios/hammer-editor/releases/tag/$tag",
+	private val changelog = Changelog(
+		version = "99.0.0",
+		date = "2026-8-4",
+		notes = "[New]\n- A thing",
 	)
 
 	@Test
-	fun `Dialog visible on launch when new version available and not previously dismissed`() = runTest {
-		coEvery { versionCheckRepository.checkForUpdate(any()) } answers {
-			val result = VersionCheckRepository.VersionCheckResult(
-				latestRelease = release("v99.0.0"),
-				isNewVersionAvailable = true,
-				currentVersion = "v1.0.0",
-			)
-			versionCheckUpdates.tryEmit(result)
-			result
-		}
+	fun `Dialog visible on launch when the baked changelog has not been seen`() = runTest {
+		coEvery { changelogRepository.hasUnseenChangelog() } returns true
+		coEvery { changelogRepository.getChangelog() } returns changelog
 
 		val component = newComponent()
 		advanceUntilIdle()
 
-		val state = component.updateNotification.value
+		val state = component.changelog.value
 		assertTrue(state.visible)
-		assertEquals("v99.0.0", state.latestVersionTag)
-		assertEquals("Notes for v99.0.0", state.releaseBody)
+		assertEquals("99.0.0", state.version)
+		assertEquals("2026-8-4", state.date)
+		assertEquals("[New]\n- A thing", state.notes)
 	}
 
 	@Test
-	fun `Dialog hidden when latest tag matches lastDismissedUpdateVersion`() = runTest {
-		globalSettings = globalSettings.copy(lastDismissedUpdateVersion = "v99.0.0")
-		coEvery { versionCheckRepository.checkForUpdate(any()) } returns
-			VersionCheckRepository.VersionCheckResult(
-				latestRelease = release("v99.0.0"),
-				isNewVersionAvailable = true,
-				currentVersion = "v1.0.0",
-			)
+	fun `Dialog hidden on launch when the changelog has already been seen`() = runTest {
+		coEvery { changelogRepository.hasUnseenChangelog() } returns false
 
 		val component = newComponent()
 		advanceUntilIdle()
 
-		assertFalse(component.updateNotification.value.visible)
+		assertFalse(component.changelog.value.visible)
+		coVerify(exactly = 0) { changelogRepository.getChangelog() }
 	}
 
 	@Test
-	fun `Dialog hidden when no new version is available`() = runTest {
-		coEvery { versionCheckRepository.checkForUpdate(any()) } returns
-			VersionCheckRepository.VersionCheckResult(
-				latestRelease = release("v1.0.0"),
-				isNewVersionAvailable = false,
-				currentVersion = "v1.0.0",
-			)
+	fun `Launch never checks GitHub for a version`() = runTest {
+		coEvery { changelogRepository.hasUnseenChangelog() } returns true
+		coEvery { changelogRepository.getChangelog() } returns changelog
 
-		val component = newComponent()
+		newComponent()
 		advanceUntilIdle()
 
-		assertFalse(component.updateNotification.value.visible)
+		// The whole point of baking the changelog in: startup makes no network request.
+		coVerify(exactly = 0) { urlLauncher.openInBrowser(any()) }
 	}
 
 	@Test
-	fun `dismissUpdateNotification with remember writes lastDismissedUpdateVersion`() = runTest {
-		coEvery { versionCheckRepository.checkForUpdate(any()) } returns
-			VersionCheckRepository.VersionCheckResult(
-				latestRelease = release("v99.0.0"),
-				isNewVersionAvailable = true,
-				currentVersion = "v1.0.0",
-			)
-		val captured = slot<(GlobalSettings) -> GlobalSettings>()
-		coEvery { globalSettingsStore.updateSettings(capture(captured)) } just Runs
+	fun `dismissChangelog hides the dialog and marks it seen`() = runTest {
+		coEvery { changelogRepository.hasUnseenChangelog() } returns true
+		coEvery { changelogRepository.getChangelog() } returns changelog
 
 		val component = newComponent()
 		advanceUntilIdle()
-		component.dismissUpdateNotification(remember = true)
+		component.dismissChangelog()
 		advanceUntilIdle()
 
-		assertFalse(component.updateNotification.value.visible)
-		val updated = captured.captured(globalSettings)
-		assertEquals("v99.0.0", updated.lastDismissedUpdateVersion)
+		assertFalse(component.changelog.value.visible)
+		coVerify(exactly = 1) { changelogRepository.markSeen() }
 	}
 
 	@Test
-	fun `dismissUpdateNotification without remember does not write settings`() = runTest {
-		coEvery { versionCheckRepository.checkForUpdate(any()) } returns
-			VersionCheckRepository.VersionCheckResult(
-				latestRelease = release("v99.0.0"),
-				isNewVersionAvailable = true,
-				currentVersion = "v1.0.0",
-			)
+	fun `showChangelog reopens the dialog after it was dismissed`() = runTest {
+		coEvery { changelogRepository.hasUnseenChangelog() } returns false
+		coEvery { changelogRepository.getChangelog() } returns changelog
 
 		val component = newComponent()
 		advanceUntilIdle()
-		component.dismissUpdateNotification(remember = false)
+		assertFalse(component.changelog.value.visible)
+
+		component.showChangelog()
 		advanceUntilIdle()
 
-		assertFalse(component.updateNotification.value.visible)
-		coVerify(exactly = 0) { globalSettingsStore.updateSettings(any()) }
+		assertTrue(component.changelog.value.visible)
+		assertEquals("99.0.0", component.changelog.value.version)
 	}
 
 	@Test
-	fun `openReleaseUrl launches the release URL`() = runTest {
-		coEvery { versionCheckRepository.checkForUpdate(any()) } returns
-			VersionCheckRepository.VersionCheckResult(
-				latestRelease = release("v99.0.0"),
-				isNewVersionAvailable = true,
-				currentVersion = "v1.0.0",
-			)
+	fun `openLatestRelease launches the releases page`() = runTest {
+		coEvery { changelogRepository.hasUnseenChangelog() } returns false
 
 		val component = newComponent()
 		advanceUntilIdle()
-		component.openReleaseUrl()
+		component.openLatestRelease()
 
 		coVerify(exactly = 1) {
-			urlLauncher.openInBrowser("https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v99.0.0")
+			urlLauncher.openInBrowser("https://github.com/Darkrock-Studios/hammer-editor/releases/latest")
 		}
 	}
 }

@@ -14,6 +14,9 @@ import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.PointerId
+import androidx.compose.ui.layout.LayoutCoordinates
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
 import com.darkrockstudios.apps.hammer.common.data.MoveRequest
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -68,11 +71,111 @@ class SceneTreeState(
 	internal var summary by mutableStateOf(sceneSummary)
 	var selectedId by mutableStateOf(NO_SELECTION)
 	var selectedNode by mutableStateOf<TreeValue<SceneItem>?>(null)
-	var insertAt by mutableStateOf<InsertPosition?>(null)
 
 	/** The rows the tree renders, in display order — also the drag handler's id → node lookup. */
 	val visibleNodes: List<TreeValue<SceneItem>> by derivedStateOf {
 		visibleSceneNodes(summary.sceneTree, collapsedNodes)
+	}
+
+	var dragPosition by mutableStateOf<Offset?>(null)
+		private set
+
+	/**
+	 * Derived rather than assigned from the drag handler, because the pointer is only half of it:
+	 * autoscroll slides the rows out from under a finger that never moves and so never delivers
+	 * another event. Recomputing whenever either side changes keeps the drop target under the
+	 * finger, and [rowLayouts] re-reads on every placement pass to make that happen.
+	 */
+	val insertAt: InsertPosition? by derivedStateOf {
+		val position = dragPosition ?: return@derivedStateOf null
+
+		findInsertPosition(
+			dragOffset = position,
+			layouts = rowLayouts,
+			collapsedGroups = collapsedNodes,
+			tree = summary.sceneTree,
+			visibleNodes = visibleNodes,
+			selectedNode = selectedNode,
+		)
+	}
+
+	/**
+	 * Row this press started on, claimed by the row itself so it is the row the user aimed at.
+	 * Deliberately not snapshot state: it changes on every press and must not recompose the tree.
+	 */
+	internal var pressedRowId: Int = NO_SELECTION
+		private set
+
+	private var pressedPointer: PointerId? = null
+
+	/**
+	 * Records [rowId] as the press target, but only for the first pointer down. The drag detector
+	 * follows that same pointer, so later fingers must not be able to retarget the drag.
+	 */
+	internal fun claimPress(pointer: PointerId, rowId: Int): Boolean {
+		if (pressedPointer != null) return false
+
+		pressedPointer = pointer
+		pressedRowId = rowId
+		return true
+	}
+
+	internal fun releasePress(pointer: PointerId) {
+		if (pressedPointer != pointer) return
+
+		pressedPointer = null
+		pressedRowId = NO_SELECTION
+	}
+
+	private data class RowEntry(val coordinates: LayoutCoordinates, val placement: Int)
+
+	private val rows = mutableStateMapOf<Int, RowEntry>()
+	private var placementCount = 0
+	private var listCoordinates: LayoutCoordinates? = null
+
+	/**
+	 * Where the rows are actually drawn, in display order, which is what every drag decision has
+	 * to be made against.
+	 *
+	 * Thar be dragons: [LazyListLayoutInfo] looks like the obvious source and is not. Its offsets
+	 * are where items are headed, so while a placement animation runs it reports a row at a slot
+	 * it has not reached, and drags land on the neighbour instead (issue #837).
+	 */
+	internal val rowLayouts: List<RowLayout>
+		get() {
+			val list = listCoordinates?.takeIf { it.isAttached } ?: return emptyList()
+
+			return rows.entries.mapNotNull { (id, entry) ->
+				if (!entry.coordinates.isAttached) return@mapNotNull null
+
+				RowLayout(
+					id = id,
+					top = list.localPositionOf(entry.coordinates, Offset.Zero).y,
+					height = entry.coordinates.size.height.toFloat(),
+				)
+			}.sortedBy { it.top }
+		}
+
+	internal fun setListCoordinates(coordinates: LayoutCoordinates) {
+		listCoordinates = coordinates
+	}
+
+	/**
+	 * Coordinates are held live rather than sampled: item placement animations move a row by
+	 * translating its layer every frame, without a new layout pass, so a position read during
+	 * [androidx.compose.ui.layout.onGloballyPositioned] is the row's destination rather than
+	 * where it is drawn. Resolving them against the list at drag time sees through that.
+	 *
+	 * [RowEntry.placement] makes every call a distinct map value. Re-putting equal coordinates
+	 * is a no-op the snapshot system does not report, which would leave the insert line with
+	 * nothing to invalidate it as rows scroll.
+	 */
+	internal fun setRowCoordinates(id: Int, coordinates: LayoutCoordinates) {
+		rows[id] = RowEntry(coordinates, placementCount++)
+	}
+
+	internal fun removeRowCoordinates(id: Int) {
+		rows.remove(id)
 	}
 
 	private var scrollJob by mutableStateOf<Job?>(null)
@@ -112,19 +215,42 @@ class SceneTreeState(
 		collapsedNodes.clear()
 	}
 
-	fun autoScroll(up: Boolean) {
+	/** True to scroll up, false to scroll down, null when the drag is clear of both edges. */
+	private fun dragScrollDirection(): Boolean? {
+		val position = dragPosition ?: return null
+		val layoutInfo = listState.layoutInfo
+		val height = layoutInfo.viewportSize.height - layoutInfo.viewportStartOffset
+		if (height <= 0) return null
+
+		return when {
+			position.y >= height * AUTO_SCROLL_ZONE_END -> false
+			position.y <= height * AUTO_SCROLL_ZONE_START -> true
+			else -> null
+		}
+	}
+
+	/**
+	 * Scrolls a row at a time while the drag is held near either edge.
+	 *
+	 * The job keeps stepping on its own until the pointer leaves the edge or the list runs out,
+	 * because a drag parked in the hot zone delivers no further pointer events to step it along.
+	 */
+	internal fun autoScrollForDrag() {
 		if (scrollJob?.isActive == true) return
+		if (dragScrollDirection() == null) return
 
 		scrollJob = coroutineScope.launch {
-			if (up) {
-				val targetIndex = (listState.firstVisibleItemIndex - 1).coerceAtLeast(0)
-				listState.animateScrollToItem(targetIndex)
-			} else {
-				val visibleItems = listState.layoutInfo.visibleItemsInfo
-				if (visibleItems.isNotEmpty()) {
-					val nextIndex = listState.firstVisibleItemIndex + 1
-					listState.animateScrollToItem(nextIndex)
+			while (true) {
+				val up = dragScrollDirection() ?: break
+				if (up && !listState.canScrollBackward) break
+				if (!up && !listState.canScrollForward) break
+
+				val target = if (up) {
+					(listState.firstVisibleItemIndex - 1).coerceAtLeast(0)
+				} else {
+					listState.firstVisibleItemIndex + 1
 				}
+				listState.animateScrollToItem(target)
 			}
 		}
 	}
@@ -134,6 +260,10 @@ class SceneTreeState(
 			selectedId = id
 			selectedNode = summary.sceneTree.findBy { it.id == id }
 		}
+	}
+
+	internal fun updateDragPosition(position: Offset) {
+		dragPosition = position
 	}
 
 	fun stopDragging() {
@@ -148,7 +278,8 @@ class SceneTreeState(
 
 		selectedId = NO_SELECTION
 		selectedNode = null
-		insertAt = null
+		dragPosition = null
+		scrollJob?.cancel()
 	}
 
 	fun toggleExpanded(nodeId: Int) {
@@ -158,5 +289,8 @@ class SceneTreeState(
 
 	companion object {
 		const val NO_SELECTION = -1
+
+		private const val AUTO_SCROLL_ZONE_START = .1f
+		private const val AUTO_SCROLL_ZONE_END = .9f
 	}
 }

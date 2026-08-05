@@ -234,6 +234,14 @@ ViewModels/Components and renders them.
    that use them. They are the only stateful components that may reference their own tier, and only
    acyclically (see
    Foundation primitives). A foundation primitive must never reference a Repository or higher.
+7. **One owner per persisted format.** Every on-disk file format is owned by exactly one Data
+   Source; only that file serializes or deserializes it. Code that cannot reach the datasource
+   instance (no per-project Koin scope yet, wrong lifecycle) does not fall back to raw
+   `fileSystem.writeToml`/`readToml` — it uses or adds a **scope-less helper in the datasource's
+   own file** (pattern: `loadStoredProjectData`/`saveStoredProjectData` in
+   `ProjectDataDatasource.kt`). A second inline writer forks the format and clobbers sibling
+   fields on write: two independent writers of `project_data.toml` once each erased the other's
+   field. Enforced by `PersistedFormatOwnershipTest` in `common/src/desktopTest`.
 
 ## DI conventions
 

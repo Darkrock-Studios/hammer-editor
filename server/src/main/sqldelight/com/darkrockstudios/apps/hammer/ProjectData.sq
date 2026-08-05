@@ -1,4 +1,4 @@
-import kotlinx.datetime.Instant;
+import kotlin.time.Instant;
 
 -- updated_at was a Unix-seconds INTEGER in SQLite; promoted to TIMESTAMPTZ here.
 -- The migrator converts INTEGER seconds → Instant during the data copy.
@@ -20,6 +20,12 @@ SELECT content, hash, updated_at
 FROM project_data
 WHERE user_id = :userId AND project_id = :projectId;
 
+-- Hash-only lookup for HTTP validators: no content transfer, no JSON parse.
+getHashForProject:
+SELECT hash
+FROM project_data
+WHERE user_id = :userId AND project_id = :projectId;
+
 upsert:
 INSERT INTO project_data(user_id, project_id, content, hash, updated_at)
 VALUES (:userId, :projectId, :content, :hash, :updatedAt)
@@ -27,3 +33,6 @@ ON CONFLICT (user_id, project_id) DO UPDATE SET
     content = EXCLUDED.content,
     hash = EXCLUDED.hash,
     updated_at = EXCLUDED.updated_at;
+
+deleteAllForUser:
+DELETE FROM project_data WHERE user_id = :userId;

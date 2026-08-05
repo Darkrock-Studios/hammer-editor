@@ -2,6 +2,9 @@ package com.darkrockstudios.apps.hammer.common.data.importer
 
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.RtfSplitStrategy
+import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
+import org.intellij.markdown.html.HtmlGenerator
+import org.intellij.markdown.parser.MarkdownParser
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -28,6 +31,16 @@ class RtfStoryImporterTest {
 			createChapterGroups = groups,
 		),
 	)
+
+	/** Imports [body] as one unsplit scene, so assertions see the paragraph Markdown verbatim. */
+	private fun singleScene(body: String): PreviewItem.Scene =
+		preview(body, strategy = RtfSplitStrategy.SingleScene).items[0] as PreviewItem.Scene
+
+	private fun renderHtml(markdown: String): String {
+		val flavour = GFMFlavourDescriptor()
+		val parsed = MarkdownParser(flavour).buildMarkdownTreeFromString(markdown)
+		return HtmlGenerator(markdown, parsed, flavour).generateHtml()
+	}
 
 	@Test
 	fun `Formatting splits chapters by outline level into groups and scenes`() {
@@ -109,6 +122,106 @@ class RtfStoryImporterTest {
 
 		val scene = result.items[0] as PreviewItem.Scene
 		assertTrue(scene.markdown.contains("**strong**"), "Expected bold markdown, was: ${scene.markdown}")
+	}
+
+	@Test
+	fun `Bold run whose whitespace is inside the run keeps the delimiters tight`() {
+		val scene = singleScene("""\fs24 A\b  strong \b0 word.\par""")
+
+		assertEquals("A **strong** word.", scene.markdown)
+	}
+
+	@Test
+	fun `Bold run with trailing space before the paragraph end keeps the delimiters tight`() {
+		val scene = singleScene("""\fs24 She said \b run \b0\par""")
+
+		assertEquals("She said **run**", scene.markdown)
+	}
+
+	@Test
+	fun `Emphasis run of only whitespace emits no delimiters`() {
+		val scene = singleScene("""\fs24 word\b  \b0 next.\par""")
+
+		assertEquals("word next.", scene.markdown)
+	}
+
+	@Test
+	fun `Bold spanning a tab keeps the delimiters against the text`() {
+		val scene = singleScene("""\fs24 A\b  strong\tab\tab\b0 word.\par""")
+
+		assertEquals("A **strong**\t\tword.", scene.markdown)
+	}
+
+	@Test
+	fun `Bold ended by a group close keeps the delimiters tight`() {
+		val scene = singleScene("""\fs24 A {\b strong }word.\par""")
+
+		assertEquals("A **strong** word.", scene.markdown)
+	}
+
+	@Test
+	fun `Emphasis is closed at a hard line break`() {
+		val scene = singleScene("""\fs24 \b first\line second \b0 last.\par""")
+
+		assertEquals("**first**  \n**second** last.", scene.markdown)
+	}
+
+	@Test
+	fun `Overlapping bold and italic runs stay balanced`() {
+		val scene = singleScene("""\fs24 \i one \b two \i0 three \b0 four.\par""")
+
+		assertEquals("*one **two*** **three** four.", scene.markdown)
+	}
+
+	@Test
+	fun `Italic uses asterisks so intra-word emphasis renders`() {
+		val scene = singleScene("""\fs24 foo\i bar\i0 baz.\par""")
+
+		assertEquals("foo*bar*baz.", scene.markdown)
+	}
+
+	@Test
+	fun `Nested bold and italic close inside the trailing whitespace`() {
+		val scene = singleScene("""\fs24 A \b\i very loud \i0\b0 word.\par""")
+
+		assertEquals("A ***very loud*** word.", scene.markdown)
+	}
+
+	@Test
+	fun `Emphasis that ends with the paragraph is still closed`() {
+		val scene = singleScene("""\fs24 He was \i gone\par""")
+
+		assertEquals("He was *gone*", scene.markdown)
+	}
+
+	@Test
+	fun `A paragraph starting with a dash is escaped instead of importing as a list`() {
+		val scene = singleScene("""\fs24 - a spoken line.\par""")
+
+		assertEquals("\\- a spoken line.", scene.markdown)
+	}
+
+	@Test
+	fun `A paragraph starting with a number is escaped instead of importing as a list`() {
+		val scene = singleScene("""\fs24 1. Never speak of it.\par""")
+
+		assertEquals("1\\. Never speak of it.", scene.markdown)
+	}
+
+	@Test
+	fun `Markdown special characters in prose are escaped`() {
+		val scene = singleScene("""\fs24 Wait! (really) 1+1 a|b\par""")
+
+		assertEquals("Wait\\! \\(really\\) 1\\+1 a\\|b", scene.markdown)
+	}
+
+	@Test
+	fun `Emphasis with whitespace inside the run renders as emphasis`() {
+		val scene = singleScene("""\fs24 She said \b run \b0 and\i then\i0 fled.\par""")
+
+		val html = renderHtml(scene.markdown)
+		assertTrue(html.contains("<strong>run</strong>"), "Expected bold to render, was: $html")
+		assertTrue(html.contains("<em>then</em>"), "Expected italics to render, was: $html")
 	}
 
 	@Test

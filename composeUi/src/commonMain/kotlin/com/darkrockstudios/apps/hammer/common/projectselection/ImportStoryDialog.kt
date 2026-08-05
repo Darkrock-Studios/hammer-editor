@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.Folder
@@ -10,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -20,12 +23,15 @@ import com.darkrockstudios.apps.hammer.common.compose.NameKind
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.rememberNameValidation
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
-import com.darkrockstudios.apps.hammer.common.data.ChapterHeadingLevel
+import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.ImportFormat
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
+import com.darkrockstudios.apps.hammer.common.data.MarkdownSplitStrategy
 import com.darkrockstudios.apps.hammer.common.data.RtfSplitStrategy
 import com.darkrockstudios.apps.hammer.common.data.importer.ImportPreview
+import com.darkrockstudios.apps.hammer.common.data.importer.LARGE_SCENE_WORD_COUNT
 import com.darkrockstudios.apps.hammer.common.data.importer.PreviewItem
+import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
 import org.jetbrains.compose.resources.StringResource
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 
@@ -38,6 +44,7 @@ fun ImportStoryDialog(
 	projectName: String,
 	options: ImportOptions,
 	preview: ImportPreview,
+	isParsing: Boolean,
 	onProjectNameChange: (String) -> Unit,
 	onCancel: () -> Unit,
 	onOptionsChange: (ImportOptions) -> Unit,
@@ -58,6 +65,7 @@ fun ImportStoryDialog(
 				projectName = projectName,
 				options = options,
 				preview = preview,
+				isParsing = isParsing,
 				onProjectNameChange = onProjectNameChange,
 				onCancel = onCancel,
 				onOptionsChange = onOptionsChange,
@@ -72,6 +80,7 @@ internal fun ImportStoryContent(
 	projectName: String,
 	options: ImportOptions,
 	preview: ImportPreview,
+	isParsing: Boolean,
 	onProjectNameChange: (String) -> Unit,
 	onCancel: () -> Unit,
 	onOptionsChange: (ImportOptions) -> Unit,
@@ -98,6 +107,7 @@ internal fun ImportStoryContent(
 			ImportMasthead(
 				options = options,
 				preview = preview,
+				isParsing = isParsing,
 				onClose = onCancel,
 			)
 			HdFolioDivider()
@@ -131,13 +141,22 @@ internal fun ImportStoryContent(
 				Spacer(modifier = Modifier.height(Ui.Padding.XL))
 
 				when (options.format) {
-					ImportFormat.Markdown -> HdHairlineSegmentedPicker(
-						title = Res.string.project_home_import_heading_label.get(),
-						options = ChapterHeadingLevel.entries,
-						selected = options.chapterHeadingLevel,
-						onSelect = { onOptionsChange(options.copy(chapterHeadingLevel = it)) },
-						label = { (it.labelRes()).get() },
-					)
+					ImportFormat.Markdown -> {
+						HdHairlineSegmentedPicker(
+							title = Res.string.project_home_import_heading_label.get(),
+							options = MarkdownSplitStrategy.entries,
+							selected = options.markdownSplitStrategy,
+							onSelect = { onOptionsChange(options.copy(markdownSplitStrategy = it)) },
+							label = { (it.labelRes()).get() },
+						)
+						if (options.markdownSplitStrategy == MarkdownSplitStrategy.Pattern) {
+							Spacer(modifier = Modifier.height(Ui.Padding.L))
+							ChapterPatternField(
+								pattern = options.markdownChapterPattern,
+								onPatternChange = { onOptionsChange(options.copy(markdownChapterPattern = it)) },
+							)
+						}
+					}
 
 					ImportFormat.Rtf -> {
 						HdHairlineSegmentedPicker(
@@ -149,10 +168,9 @@ internal fun ImportStoryContent(
 						)
 						if (options.rtfSplitStrategy == RtfSplitStrategy.Pattern) {
 							Spacer(modifier = Modifier.height(Ui.Padding.L))
-							FormField(
-								value = options.rtfChapterPattern,
-								onValueChange = { onOptionsChange(options.copy(rtfChapterPattern = it)) },
-								label = Res.string.project_home_import_pattern_label.get(),
+							ChapterPatternField(
+								pattern = options.rtfChapterPattern,
+								onPatternChange = { onOptionsChange(options.copy(rtfChapterPattern = it)) },
 							)
 						}
 					}
@@ -168,32 +186,44 @@ internal fun ImportStoryContent(
 
 				Spacer(modifier = Modifier.height(Ui.Padding.XL))
 
-				ImportPreviewPane(preview, Modifier.weight(1f))
+				ImportPreviewPane(preview, isParsing, Modifier.weight(1f))
 			}
 
 			ImportFooter(
 				onCancel = onCancel,
 				onConfirm = onConfirm,
-				confirmEnabled = !preview.isEmpty && nameValidation.isValid,
+				confirmEnabled = !isParsing && !preview.isEmpty && nameValidation.isValid,
 			)
 		}
 	}
 }
 
 @Composable
+private fun ChapterPatternField(pattern: String, onPatternChange: (String) -> Unit) {
+	FormField(
+		value = pattern,
+		onValueChange = onPatternChange,
+		label = Res.string.project_home_import_pattern_label.get(),
+	)
+}
+
+@Composable
 private fun ImportMasthead(
 	options: ImportOptions,
 	preview: ImportPreview,
+	isParsing: Boolean,
 	onClose: () -> Unit,
 ) {
-	val meta = remember(options, preview.totalScenes, preview.isEmpty) {
+	val meta = remember(options, preview.totalScenes, preview.isEmpty, isParsing) {
 		buildList {
 			add(options.format.metaLabel())
 			when (options.format) {
-				ImportFormat.Markdown -> add(options.chapterHeadingLevel.name.uppercase())
+				ImportFormat.Markdown -> add(options.markdownSplitStrategy.name.uppercase())
 				ImportFormat.Rtf -> add(options.rtfSplitStrategy.name.uppercase())
 			}
-			if (!preview.isEmpty) {
+			if (isParsing) {
+				add("READING")
+			} else if (!preview.isEmpty) {
 				add("${preview.totalScenes} SCENES")
 			}
 		}
@@ -242,7 +272,11 @@ private fun ImportFooter(
 }
 
 @Composable
-private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modifier) {
+private fun ImportPreviewPane(
+	preview: ImportPreview,
+	isParsing: Boolean,
+	modifier: Modifier = Modifier,
+) {
 	Column(modifier) {
 		Row(
 			modifier = Modifier.fillMaxWidth(),
@@ -250,7 +284,7 @@ private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modif
 			verticalAlignment = Alignment.CenterVertically,
 		) {
 			HdMonoLabel(Res.string.project_home_import_preview_label.get())
-			if (!preview.isEmpty) {
+			if (!isParsing && !preview.isEmpty) {
 				HdMonoLabel(
 					Res.string.project_home_import_preview_count.get(
 						preview.totalScenes,
@@ -259,6 +293,9 @@ private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modif
 			}
 		}
 		Spacer(modifier = Modifier.height(Ui.Padding.S))
+		if (!isParsing) {
+			LargeSceneWarning(remember(preview) { preview.oversizedScenes })
+		}
 		Box(
 			modifier = Modifier
 				.fillMaxWidth()
@@ -269,7 +306,20 @@ private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modif
 					shape = RectangleShape,
 				),
 		) {
-			if (preview.isEmpty) {
+			if (isParsing) {
+				Row(
+					modifier = Modifier.fillMaxWidth().padding(Ui.Padding.L),
+					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M, Alignment.CenterHorizontally),
+					verticalAlignment = Alignment.CenterVertically,
+				) {
+					CircularProgressIndicator(
+						modifier = Modifier.size(18.dp),
+						strokeWidth = 2.dp,
+						color = MaterialTheme.colorScheme.primary,
+					)
+					HdMonoLabel(Res.string.project_home_import_preview_reading.get())
+				}
+			} else if (preview.isEmpty) {
 				Box(
 					modifier = Modifier
 						.fillMaxWidth()
@@ -279,23 +329,57 @@ private fun ImportPreviewPane(preview: ImportPreview, modifier: Modifier = Modif
 					HdMonoLabel(Res.string.project_home_import_preview_empty.get())
 				}
 			} else {
-				Column(
-					modifier = Modifier
-						.verticalScroll(rememberScrollState())
-						.padding(Ui.Padding.M),
-				) {
-					preview.items.forEach { item ->
-						when (item) {
-							is PreviewItem.Scene -> PreviewSceneRow(item.name, indented = false)
-							is PreviewItem.Group -> {
-								PreviewGroupRow(item.name)
-								item.scenes.forEach { childScene ->
-									PreviewSceneRow(childScene.name, indented = true)
-								}
-							}
+				// A manuscript can split into thousands of scenes; only compose the visible rows.
+				val rows = remember(preview) { preview.toRows() }
+				LazyColumn(contentPadding = PaddingValues(Ui.Padding.M)) {
+					items(rows) { row ->
+						when (row) {
+							is PreviewRow.Group -> PreviewGroupRow(row.name)
+							is PreviewRow.Scene -> PreviewSceneRow(row)
 						}
 					}
 				}
+			}
+		}
+	}
+}
+
+/** Amber notice when the import would produce a scene over [LARGE_SCENE_WORD_COUNT]. Never blocks the import. */
+@Composable
+private fun LargeSceneWarning(oversized: List<PreviewItem.Scene>) {
+	if (oversized.isEmpty()) return
+
+	val message = if (oversized.size == 1) {
+		Res.string.project_home_import_large_scene_one.get(
+			oversized.first().wordCount.formatDecimalSeparator(),
+		)
+	} else {
+		Res.string.project_home_import_large_scene_many.get(
+			oversized.size,
+			oversized.minOf { it.wordCount }.formatDecimalSeparator(),
+		)
+	}
+
+	HdWarningNotice(
+		label = Res.string.project_home_import_large_scene_label.get(),
+		message = message,
+	)
+	Spacer(modifier = Modifier.height(Ui.Padding.S))
+}
+
+/** One flat row of the preview tree: a group header, or a scene at top level or inside a group. */
+private sealed interface PreviewRow {
+	class Group(val name: String) : PreviewRow
+	class Scene(val item: PreviewItem.Scene, val indented: Boolean) : PreviewRow
+}
+
+private fun ImportPreview.toRows(): List<PreviewRow> = buildList {
+	items.forEach { item ->
+		when (item) {
+			is PreviewItem.Scene -> add(PreviewRow.Scene(item, indented = false))
+			is PreviewItem.Group -> {
+				add(PreviewRow.Group(item.name))
+				item.scenes.forEach { add(PreviewRow.Scene(it, indented = true)) }
 			}
 		}
 	}
@@ -323,25 +407,41 @@ private fun PreviewGroupRow(name: String) {
 }
 
 @Composable
-private fun PreviewSceneRow(name: String, indented: Boolean) {
+private fun PreviewSceneRow(row: PreviewRow.Scene) {
+	val oversized = row.item.isOversized
 	Row(
 		modifier = Modifier
 			.fillMaxWidth()
-			.padding(start = if (indented) Ui.Padding.L else 0.dp, top = 2.dp, bottom = 2.dp),
+			.padding(start = if (row.indented) Ui.Padding.L else 0.dp, top = 2.dp, bottom = 2.dp),
 		verticalAlignment = Alignment.CenterVertically,
 	) {
+		val amber = LocalHammerColors.current.warning
 		Icon(
 			Icons.AutoMirrored.Filled.Article,
 			contentDescription = null,
-			tint = MaterialTheme.colorScheme.onSurfaceVariant,
+			tint = if (oversized) amber else MaterialTheme.colorScheme.onSurfaceVariant,
 			modifier = Modifier.size(18.dp),
 		)
 		Spacer(modifier = Modifier.width(Ui.Padding.S))
 		Text(
-			name,
+			row.item.name,
 			style = MaterialTheme.typography.bodyMedium,
 			color = MaterialTheme.colorScheme.onSurface,
+			maxLines = 1,
+			overflow = TextOverflow.Ellipsis,
+			modifier = Modifier.weight(1f),
 		)
+		if (oversized) {
+			Spacer(modifier = Modifier.width(Ui.Padding.S))
+			HdMonoLabel(
+				text = Res.string.project_home_import_scene_word_count.get(
+					row.item.wordCount.formatDecimalSeparator(),
+				),
+				color = amber,
+				maxLines = 1,
+				softWrap = false,
+			)
+		}
 	}
 }
 
@@ -350,10 +450,11 @@ private fun ImportFormat.metaLabel(): String = when (this) {
 	ImportFormat.Rtf -> "RTF"
 }
 
-private fun ChapterHeadingLevel.labelRes(): StringResource = when (this) {
-	ChapterHeadingLevel.Auto -> Res.string.project_home_import_heading_auto
-	ChapterHeadingLevel.H1 -> Res.string.project_home_import_heading_h1
-	ChapterHeadingLevel.H2 -> Res.string.project_home_import_heading_h2
+private fun MarkdownSplitStrategy.labelRes(): StringResource = when (this) {
+	MarkdownSplitStrategy.Auto -> Res.string.project_home_import_heading_auto
+	MarkdownSplitStrategy.H1 -> Res.string.project_home_import_heading_h1
+	MarkdownSplitStrategy.H2 -> Res.string.project_home_import_heading_h2
+	MarkdownSplitStrategy.Pattern -> Res.string.project_home_import_split_pattern
 }
 
 private fun RtfSplitStrategy.labelRes(): StringResource = when (this) {

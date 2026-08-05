@@ -34,6 +34,49 @@ class SearchQueryTest {
 		assertEquals("alice in wonderland", parsed.text)
 	}
 
+	/** Text entered on iOS/macOS can arrive decomposed: base letter plus a combining mark. */
+	@Test
+	fun `parseQuery composes decomposed accents in tags`() {
+		val parsed = parseQuery("#the\u0300me")
+
+		assertEquals(listOf("th\u00e8me"), parsed.tags)
+		assertTrue(setOf("th\u00e8me").matchesAllTags(parsed.tags))
+	}
+
+	@Test
+	fun `parseQuery starts a tag on a fullwidth hash`() {
+		val parsed = parseQuery("\uff03\u4eba\u7269")
+
+		assertEquals(listOf("\u4eba\u7269"), parsed.tags)
+		assertEquals("", parsed.text)
+	}
+
+	@Test
+	fun `parseQuery drops duplicate tags`() {
+		assertEquals(listOf("epic"), parseQuery("##epic #epic").tags)
+		assertEquals(listOf("th\u00e8me"), parseQuery("#th\u00e8me #the\u0300me").tags)
+	}
+
+	/** A hash mid-word is part of the word: `C#` is a search term, not an empty tag. */
+	@Test
+	fun `parseQuery keeps a hash inside a word as free text`() {
+		val ascii = parseQuery("C#")
+		assertTrue(ascii.tags.isEmpty())
+		assertEquals("C#", ascii.text)
+
+		val fullwidth = parseQuery("\uff23\uff03")
+		assertTrue(fullwidth.tags.isEmpty())
+		assertEquals("\uff23\uff03", fullwidth.text)
+	}
+
+	@Test
+	fun `parseQuery splits a comma-joined tag run the way tag input does`() {
+		val parsed = parseQuery("#\u4eba\u7269\u3001\u9b54\u6cd5")
+
+		assertEquals(listOf("\u4eba\u7269", "\u9b54\u6cd5"), parsed.tags)
+		assertEquals("", parsed.text)
+	}
+
 	@Test
 	fun `isUsable requires a tag or two text chars`() {
 		assertFalse(parseQuery("a").isUsable())

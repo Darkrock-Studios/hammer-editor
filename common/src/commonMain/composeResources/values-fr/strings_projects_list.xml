@@ -14,7 +14,7 @@
 	<string name="projects_list_card_content_description">Projet %1$s</string>
 	<string name="projects_list_search_button">Rechercher des projets</string>
 	<string name="projects_list_search_close">Fermer la recherche</string>
-	<string name="projects_list_search_placeholder">filtrer par nom ou #tag</string>
+	<string name="projects_list_search_placeholder">filtrer par nom ou #étiquette</string>
 	<string name="projects_list_search_clear">Effacer le filtre</string>
 	<string name="projects_list_no_matches">Aucun projet ne correspond à votre filtre</string>
 	<string name="projects_list_masthead_title">Hammer · Bibliothèque</string>

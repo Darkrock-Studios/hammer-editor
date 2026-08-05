@@ -1,4 +1,4 @@
-import kotlinx.datetime.Instant;
+import kotlin.time.Instant;
 
 -- One auth_token row per (user_id, install_id) pair. The token itself is a
 -- separately UNIQUE credential. This restructure (vs SQLite's PK-on-token) lets
@@ -26,10 +26,13 @@ SELECT *
 FROM auth_token
 WHERE user_id = ?;
 
+-- Tokens of soft-deleted accounts are invisible here, so the bearer auth gate
+-- rejects them in the same round trip that validates the token.
 getTokenByToken:
 SELECT *
 FROM auth_token
-WHERE token = ?;
+WHERE token = ?
+  AND user_id IN (SELECT id FROM account WHERE deleted_at IS NULL);
 
 getTokenByInstallId:
 SELECT *

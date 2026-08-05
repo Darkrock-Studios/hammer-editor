@@ -78,7 +78,7 @@ class TagIndexService(
 		_tagIndex.value.tagToEntities[tag].orEmpty()
 
 	fun suggest(prefix: String, limit: Int = 10): List<TagCount> {
-		val needle = prefix.trim()
+		val needle = normalizeTagNeedle(prefix)
 		if (needle.isEmpty()) return getRankedTags(limit)
 		return _tagIndex.value.tagToEntities
 			.filterKeys { it.startsWith(needle, ignoreCase = true) }

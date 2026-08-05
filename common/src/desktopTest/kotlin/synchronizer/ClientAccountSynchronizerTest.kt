@@ -496,13 +496,13 @@ class ClientAccountSynchronizerTest {
 		coEvery { serverProjectsApi.deleteProject(id, "sync-1") } returns Result.success("ok")
 		every { projectsRepository.getProjects(any()) } returns emptyList()
 		every { projectsRepository.findProject(any<String>()) } returns null
-		every { projectsRepository.createProject(any()) } returns CResult.success(projectDef("DeadNovel"))
+		every { projectsRepository.createProject(any(), any()) } returns CResult.success(projectDef("DeadNovel"))
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
 		coVerify { serverProjectsApi.deleteProject(id, "sync-1") }
-		verify(exactly = 0) { projectsRepository.createProject(any()) }
+		verify(exactly = 0) { projectsRepository.createProject(any(), any()) }
 		verify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
 	}
 
@@ -517,12 +517,12 @@ class ClientAccountSynchronizerTest {
 			Result.success(emptyServerResponse().copy(projects = setOf(serverProject)))
 		every { projectsRepository.getProjects(any()) } returns emptyList()
 		every { projectsRepository.findProject("ServerNovel") } returns null
-		every { projectsRepository.createProject("ServerNovel") } returns CResult.success(createdDef)
+		every { projectsRepository.createProject("ServerNovel", any()) } returns CResult.success(createdDef)
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
-		verify { projectsRepository.createProject("ServerNovel") }
+		verify { projectsRepository.createProject("ServerNovel", any()) }
 		verify { projectsRepository.setProjectId(createdDef, serverId) }
 	}
 
@@ -539,13 +539,13 @@ class ClientAccountSynchronizerTest {
 			Result.success(emptyServerResponse().copy(projects = setOf(serverProject)))
 		every { projectsRepository.getProjects(any()) } returns emptyList()
 		every { projectsRepository.findProject(safeName) } returns null
-		every { projectsRepository.createProject(safeName) } returns CResult.success(createdDef)
+		every { projectsRepository.createProject(safeName, any()) } returns CResult.success(createdDef)
 
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
-		verify { projectsRepository.createProject(safeName) }
-		verify(exactly = 0) { projectsRepository.createProject(mangledName) }
+		verify { projectsRepository.createProject(safeName, any()) }
+		verify(exactly = 0) { projectsRepository.createProject(mangledName, any()) }
 		verify { projectsRepository.setProjectId(createdDef, serverId) }
 	}
 }

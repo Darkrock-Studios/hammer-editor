@@ -29,6 +29,15 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import org.jetbrains.compose.resources.StringResource
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData as StoredData
 
+@Preview
+@Composable
+fun ScreenProjectListUiPreview() {
+	val rootSnackbar = rememberRootSnackbarHostState()
+	KoinApplicationPreview {
+		ProjectListUi(previewComponent, rootSnackbar)
+	}
+}
+
 @Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
 @Composable
 fun ScreenProjectListUiTabletPreview() {
@@ -40,22 +49,31 @@ fun ScreenProjectListUiTabletPreview() {
 	}
 }
 
-private fun previewProject(name: String) = ProjectData(
+fun previewProject(name: String, tags: Set<String> = setOf("fantasy", "draft")) = ProjectData(
 	definition = ProjectDef(name = name, path = HPath(name = name, path = "/$name", isAbsolute = true)),
 	metadata = fakeProjectMetadata(),
-	storedData = StoredData(authorName = "A. Writer", tags = setOf("fantasy", "draft")),
+	storedData = StoredData(authorName = "A. Writer", tags = tags),
 )
 
-private val previewComponent = object : ProjectsList {
+private val previewComponent = fakeProjectsList(
+	listOf(
+		previewProject("The Lighthouse"),
+		previewProject("Wonderland"),
+		previewProject("Salt & Ash"),
+	),
+	isServerSynced = true,
+)
+
+/** Shared by the previews above and the composeUi footer tests. */
+fun fakeProjectsList(
+	projects: List<ProjectData>,
+	isServerSynced: Boolean = false,
+) = object : ProjectsList {
 	override val state: Value<ProjectsList.State> = MutableValue(
 		ProjectsList.State(
-			projects = listOf(
-				previewProject("The Lighthouse"),
-				previewProject("Wonderland"),
-				previewProject("Salt & Ash"),
-			),
+			projects = projects,
 			projectsPath = fakeProjectDef().path,
-			isServerSynced = true,
+			isServerSynced = isServerSynced,
 		)
 	)
 	override val modalRouterState: Value<ChildSlot<ProjectListModalRouter.Config, ProjectsList.ModalDestination>> =

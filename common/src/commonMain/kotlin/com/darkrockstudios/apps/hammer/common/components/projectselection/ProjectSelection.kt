@@ -15,7 +15,7 @@ import org.jetbrains.compose.resources.StringResource
 interface ProjectSelection : HammerComponent, BackHandlerOwner {
 	val stack: Value<ChildStack<Config, Destination>>
 	val navRailState: Value<NavRailState>
-	val updateNotification: Value<UpdateNotificationState>
+	val changelog: Value<ChangelogState>
 
 	fun isAtRoot(): Boolean
 	fun onBack()
@@ -23,20 +23,17 @@ interface ProjectSelection : HammerComponent, BackHandlerOwner {
 	fun showLocation(location: Locations)
 	fun toggleNavRailExpanded()
 
-	fun openReleaseUrl()
-	fun dismissUpdateNotification(remember: Boolean)
-	fun showCurrentReleaseDetails()
+	fun openLatestRelease()
+	fun dismissChangelog()
+	fun showChangelog()
 
 	data class NavRailState(val expanded: Boolean)
 
-	data class UpdateNotificationState(
+	data class ChangelogState(
 		val visible: Boolean = false,
-		val latestVersionTag: String? = null,
-		val releaseName: String? = null,
-		val releaseBody: String? = null,
-		val releaseUrl: String? = null,
-		val isNewVersionAvailable: Boolean = false,
-		val manuallyTriggered: Boolean = false,
+		val version: String? = null,
+		val date: String? = null,
+		val notes: String? = null,
 	)
 
 	enum class Locations(val text: StringResource, val shortText: StringResource) {

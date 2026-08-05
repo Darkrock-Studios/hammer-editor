@@ -28,6 +28,14 @@ class CreateEntryComponent(
 	// Note: Back handler is disabled to allow predictive back animation.
 	// The UI handles close confirmation via confirmClose()/dismissConfirmClose().
 
+	override fun onCreate() {
+		super.onCreate()
+
+		watchSpellCheckAllowed { allowed ->
+			_state.getAndUpdate { it.copy(spellCheckAllowed = allowed) }
+		}
+	}
+
 	override fun confirmClose() {
 		_state.getAndUpdate {
 			it.copy(showConfirmClose = true)

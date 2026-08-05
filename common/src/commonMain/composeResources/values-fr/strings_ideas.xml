@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-	<string name="project_select_nav_story_ideas">Idées d'histoire</string>
+	<string name="project_select_nav_story_ideas">Mes idées</string>
 	<string name="project_select_nav_story_ideas_short">IDÉE</string>
-	<string name="ideas_header">Idées d'histoire</string>
-	<string name="ideas_header_meta">%1$d IDÉES · %2$d TAGS</string>
-	<string name="ideas_list_empty">Aucune idée d'histoire pour l'instant. Capturez votre première étincelle.</string>
+	<string name="ideas_header">Mes idées</string>
+	<string name="ideas_header_meta">%1$d IDÉES · %2$d ÉTIQUETTES</string>
+	<string name="ideas_list_empty">Vous n'avez déposé aucune de vos idées pour le moment. Une petite étincelle peut être le début de toutes choses.</string>
 	<string name="ideas_list_empty_archived">Aucune idée archivée.</string>
 	<string name="ideas_word_count_short">%1$d M</string>
-	<string name="ideas_tag_count_short">%1$d TAGS</string>
-	<string name="ideas_search_placeholder">Rechercher des idées</string>
-	<string name="ideas_search_button">Rechercher des idées</string>
+	<string name="ideas_tag_count_short">%1$d Étiquettes</string>
+	<string name="ideas_search_placeholder">Rechercher mes idées</string>
+	<string name="ideas_search_button">Rechercher mes idées</string>
 	<string name="ideas_search_clear">Effacer la recherche</string>
 	<string name="ideas_search_close">Fermer la recherche</string>
-	<string name="ideas_filter_all">Toutes</string>
+	<string name="ideas_filter_all">Tous</string>
 	<string name="ideas_filter_archived">Archivées</string>
 	<string name="ideas_filter_filtered">FILTRÉ %1$d / %2$d</string>
 	<string name="ideas_filter_clear_all">Tout effacer</string>
@@ -30,14 +30,14 @@
 	<string name="ideas_view_header">Idée d'histoire</string>
 	<string name="ideas_view_label_editing">Modification</string>
 	<string name="ideas_view_status_unsaved">NON ENREGISTRÉ</string>
-	<string name="ideas_view_crumb_root">IDÉES D'HISTOIRE</string>
+	<string name="ideas_view_crumb_root">MES IDÉES</string>
 	<string name="ideas_view_close_button">Fermer l'idée</string>
 	<string name="ideas_view_action_edit">Modifier</string>
 	<string name="ideas_title_label">Titre</string>
 	<string name="ideas_title_placeholder">Titre facultatif</string>
-	<string name="ideas_tags_label">Tags</string>
-	<string name="ideas_tags_hint">Entrée ou virgule ajoute un tag</string>
-	<string name="ideas_tags_placeholder">Ajouter un tag…</string>
+	<string name="ideas_tags_label">Étiquettes</string>
+	<string name="ideas_tags_hint">Entrée ou virgule ajoute une étiquette</string>
+	<string name="ideas_tags_placeholder">Ajouter une étiquette…</string>
 	<string name="ideas_editor_counter">%1$d / %2$d C</string>
 	<string name="ideas_create_button">Créer</string>
 	<string name="ideas_save_button">Enregistrer</string>
@@ -78,6 +78,6 @@
 	<string name="sync_log_ideas_conflict_skipped">Conflit laissé non résolu pour l'idée : %1$s</string>
 	<string name="ideas_conflict_title">Conflit d'idée d'histoire</string>
 	<string name="ideas_conflict_field_title">Titre</string>
-	<string name="ideas_conflict_field_tags">Tags</string>
+	<string name="ideas_conflict_field_tags">Étiquettes</string>
 	<string name="ideas_conflict_field_content">Contenu</string>
 </resources>

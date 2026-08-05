@@ -10,6 +10,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
@@ -22,6 +23,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Create
@@ -51,6 +53,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntries
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGrid
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCollapsingStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryFilterBar
@@ -63,6 +66,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
@@ -224,37 +228,46 @@ fun BrowseEntriesUi(
 		// Card grid — adaptive 320dp min cell so on wide screens we get
 		// 3-4 columns and on narrow screens cards stack into a single
 		// column.
-		LazyVerticalGrid(
-			columns = GridCells.Adaptive(minSize = 320.dp),
-			modifier = Modifier.fillMaxSize(),
-			contentPadding = PaddingValues(Ui.Padding.XL),
-			verticalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
-		) {
-			if (filteredEntries.isEmpty()) {
-				item {
-					Text(
-						text = Res.string.encyclopedia_browse_list_empty.get(),
-						style = MaterialTheme.typography.headlineSmall,
-						color = MaterialTheme.colorScheme.onBackground,
-						modifier = Modifier.padding(Ui.Padding.XL),
-					)
-				}
-			} else {
-				items(filteredEntries.size) { index ->
-					EncyclopediaEntryItem(
-						entryDef = filteredEntries[index],
-						component = component,
-						viewEntry = viewEntry,
-						scope = scope,
-						sharedTransitionScope = sharedTransitionScope,
-						animatedVisibilityScope = animatedVisibilityScope,
-						activeTags = activeTags.toSet(),
-						tagsScrollHorizontally = !isWide,
-						filterByType = onSelectType,
-					)
+		val gridState = rememberLazyGridState()
+		Box(modifier = Modifier.weight(1f)) {
+			LazyVerticalGrid(
+				state = gridState,
+				columns = GridCells.Adaptive(minSize = 320.dp),
+				modifier = Modifier.fillMaxSize(),
+				contentPadding = PaddingValues(Ui.Padding.XL),
+				verticalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
+				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.XL),
+			) {
+				if (filteredEntries.isEmpty()) {
+					item {
+						Text(
+							text = Res.string.encyclopedia_browse_list_empty.get(),
+							style = MaterialTheme.typography.headlineSmall,
+							color = MaterialTheme.colorScheme.onBackground,
+							modifier = Modifier.padding(Ui.Padding.XL),
+						)
+					}
+				} else {
+					items(filteredEntries.size) { index ->
+						EncyclopediaEntryItem(
+							entryDef = filteredEntries[index],
+							component = component,
+							viewEntry = viewEntry,
+							scope = scope,
+							sharedTransitionScope = sharedTransitionScope,
+							animatedVisibilityScope = animatedVisibilityScope,
+							activeTags = activeTags.toSet(),
+							tagsScrollHorizontally = !isWide,
+							filterByType = onSelectType,
+						)
+					}
 				}
 			}
+
+			MpScrollBarGrid(
+				modifier = scrollBarOverlay(),
+				state = gridState,
+			)
 		}
 	}
 }

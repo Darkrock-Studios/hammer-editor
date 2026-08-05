@@ -1,12 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.data
 
-import com.darkrockstudios.apps.hammer.base.http.writeToml
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.DeviceLog
 import com.darkrockstudios.apps.hammer.base.http.writingactivity.WritingSession
 import com.darkrockstudios.apps.hammer.common.data.ExampleProjectRepository.Companion.EXAMPLE_DAYS
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
-import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
+import com.darkrockstudios.apps.hammer.common.data.writingactivity.writeDeviceLog
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import io.github.aakira.napier.Napier
@@ -65,13 +63,10 @@ abstract class ExampleProjectRepository(
 
 	@Suppress("TooGenericExceptionCaught") // Best-effort fabrication; any failure is logged
 	private fun fabricateExampleActivity() {
-		val activityDir = projectsDir() / PROJECT_NAME /
-			SceneDatasource.SCENE_DIRECTORY / WritingActivityDatasource.ACTIVITY_DIRECTORY
 		try {
-			fileSystem.createDirectories(activityDir)
 			val sessions = generateExampleSessions(clock.now(), TimeZone.currentSystemDefault())
 			val log = DeviceLog(deviceLabel = FABRICATED_DEVICE_LABEL, sessions = sessions)
-			fileSystem.writeToml(activityDir / "$FABRICATED_DEVICE_ID.toml", toml, log)
+			writeDeviceLog(projectsDir() / PROJECT_NAME, FABRICATED_DEVICE_ID, log, fileSystem, toml)
 		} catch (e: Exception) {
 			Napier.e("Failed to fabricate example writing activity", e)
 		}

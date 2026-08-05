@@ -29,13 +29,13 @@ RUN groupadd --gid 1000 hammer \
 ENV SERVER_OPTS="-Duser.home=/data"
 
 ARG DIST_DIR=server/build/install/server
-COPY ${DIST_DIR}/ /opt/hammer/
+COPY --chown=1000:1000 ${DIST_DIR}/ /opt/hammer/
 
 # hammer_data itself must exist and be owned here: bind-mounting a config file
 # into it would otherwise have Docker create the parent as root, leaving the
 # unprivileged server unable to write pgdata.
 RUN mkdir -p /data/hammer_data \
-	&& chown -R hammer:hammer /data /opt/hammer
+	&& chown -R hammer:hammer /data
 
 USER hammer
 WORKDIR /opt/hammer

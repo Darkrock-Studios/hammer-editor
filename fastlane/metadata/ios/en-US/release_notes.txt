@@ -1,6 +1,20 @@
-[Improve]
-- Translations updated for German, Spanish, French, Italian,
-Portuguese (Brazil), and Ukrainian
+https://hammer.ink/blog/news/hammer-3-8-0
+
+New:
+- Set the language a project is written in, and have spell check follow it
+- Text editor: faster typing and relayout, word-wise undo with a much deeper history, and rich copy and paste that preserves formatting between apps
+- Large Markdown imports are dramatically faster 
+- Search matches the rendered prose, resolving Markdown escapes and formatting
+- Tag search matches accented and non-latin characters, and searches entry names as well as bodies
+- Chapter detection on Markdown import understands Setext-style and bold titles
+- Visible scrollbars on scrolling screens, and scroll-away footers float over their lists
+
+Fixes:
+- importing a very large story no longer freezes the app
+- scene drag could grab the wrong row
+- literal `**` and `_` left around emphasis imported from RTF
+- a number of text editor crashes around undo, paste, and joined paragraphs
+- Scene drag and drop stays accurate while the list autoscrolls
 
 Full changelog:
-https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.7.2
+https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.8.0

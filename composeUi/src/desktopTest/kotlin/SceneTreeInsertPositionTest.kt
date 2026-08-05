@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree
 
-import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.geometry.Offset
@@ -25,15 +24,7 @@ import kotlin.test.assertNotNull
  */
 class SceneTreeInsertPositionTest {
 
-	private val rowHeight = 30
-
-	private class FakeItemInfo(
-		override val index: Int,
-		override val key: Any,
-		override val offset: Int,
-		override val size: Int,
-		override val contentType: Any? = null,
-	) : LazyListItemInfo
+	private val rowHeight = 30f
 
 	private fun dropAt(
 		tree: ImmutableTree<SceneItem>,
@@ -43,16 +34,15 @@ class SceneTreeInsertPositionTest {
 		fractionIntoRow: Float,
 	): InsertPosition? {
 		val visibleNodes = visibleSceneNodes(tree, collapsed)
-		val layouts: List<LazyListItemInfo> = visibleNodes.mapIndexed { index, node ->
-			FakeItemInfo(
-				index = index,
-				key = node.value.id,
-				offset = index * rowHeight,
-				size = rowHeight,
+		val layouts = visibleNodes.mapIndexed { index, node ->
+			RowLayout(
+				id = node.value.id,
+				top = index * rowHeight,
+				height = rowHeight,
 			)
 		}
-		val targetLayout = layouts.first { it.key == targetId }
-		val dragY = targetLayout.offset + (rowHeight * fractionIntoRow)
+		val targetLayout = layouts.first { it.id == targetId }
+		val dragY = targetLayout.top + (rowHeight * fractionIntoRow)
 		return findInsertPosition(
 			dragOffset = Offset(0f, dragY),
 			layouts = layouts,

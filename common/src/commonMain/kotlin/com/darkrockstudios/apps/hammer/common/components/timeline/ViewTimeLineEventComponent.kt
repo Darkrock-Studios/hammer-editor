@@ -81,6 +81,10 @@ class ViewTimeLineEventComponent(
 
 		loadInitialEvent()
 		watchTimeLine()
+
+		watchSpellCheckAllowed { allowed ->
+			_state.getAndUpdate { it.copy(spellCheckAllowed = allowed) }
+		}
 	}
 
 	private fun watchTimeLine() {

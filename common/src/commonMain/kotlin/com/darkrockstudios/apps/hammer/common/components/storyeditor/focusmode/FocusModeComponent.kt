@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
-import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -27,7 +27,7 @@ class FocusModeComponent(
 ) : ProjectComponentBase(projectDef, componentContext), FocusMode {
 
 	private val settingsRepository: GlobalSettingsStore by inject()
-	private val spellCheckRepository: SpellCheckRepository by inject()
+	private val spellCheckRepository: ProjectSpellCheckRepository by projectInject()
 	private val focusModeService: FocusModeService by inject()
 	private val sceneEditor: SceneEditorService by projectInject()
 

@@ -3,12 +3,8 @@ package com.darkrockstudios.apps.hammer.e2e
 import ch.qos.logback.classic.Level
 import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.AppenderBase
-import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData
-import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
-import com.darkrockstudios.apps.hammer.e2e.util.TestAccount
-import io.ktor.client.HttpClient
+import com.darkrockstudios.apps.hammer.e2e.util.WebEndToEndTest
 import io.ktor.client.plugins.compression.ContentEncoding
-import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -25,7 +21,6 @@ import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
-import kotlin.time.Clock
 
 /**
  * Saving a bio renders a fragment large enough for the Compression plugin to rewrite the response,
@@ -34,7 +29,7 @@ import kotlin.time.Clock
  * The failure this guards against surfaces only in the log: the response is already written by the
  * time the handler's coroutine resumes, so a crash there leaves the client with a healthy 200.
  */
-class DashboardBioTest : EndToEndTest() {
+class DashboardBioTest : WebEndToEndTest() {
 
 	private val email = "author@test.com"
 	private val password = "password123!@#"
@@ -59,35 +54,12 @@ class DashboardBioTest : EndToEndTest() {
 		errorCollector.stop()
 	}
 
-	private fun seed() = runBlocking {
-		E2eTestData.createAccount(TestAccount(email, password), database())
-		database().serverDatabase.whiteListQueries
-			.addToWhiteList(email, Clock.System.now(), "Test author", null)
-		val account = database().serverDatabase.accountQueries.findAccount(email).executeAsOne()
-		database().serverDatabase.accountQueries.updatePenName("Test Author", account.id)
-	}
-
-	private suspend fun login(): HttpClient {
-		val authed = HttpClient {
-			install(HttpCookies)
-			install(ContentEncoding) { gzip() }
-		}
-		val response = authed.post(route("login")) {
-			contentType(ContentType.Application.FormUrlEncoded)
-			setBody(
-				"email=${URLEncoder.encode(email, "UTF-8")}" +
-					"&password=${URLEncoder.encode(password, "UTF-8")}"
-			)
-		}
-		assertEquals(HttpStatusCode.Found, response.status)
-		return authed
-	}
-
 	@Test
 	fun `saving a bio renders the section and a toast without failing the handler`(): Unit = runBlocking {
 		doStartServer()
-		seed()
-		val authed = login()
+		seedWhitelistedAccount(email, password, penName = "Test Author")
+		// Compression is what makes the send pipeline suspend, which is the point of this test.
+		val authed = login(email, password) { install(ContentEncoding) { gzip() } }
 		collectServerErrors()
 
 		val bio = "I write stories about the sea. ".repeat(30)

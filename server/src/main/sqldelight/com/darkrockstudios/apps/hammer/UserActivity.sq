@@ -1,4 +1,4 @@
-import kotlinx.datetime.Instant;
+import kotlin.time.Instant;
 
 -- Deduplicated record of which logged-in users were active, used for the
 -- "Active Users" dashboard metric. One row per (user, activity type, hour) so
@@ -36,3 +36,6 @@ WHERE hour_bucket >= ?;
 
 deleteActivityBefore:
 DELETE FROM user_activity WHERE hour_bucket < ?;
+
+deleteAllForUser:
+DELETE FROM user_activity WHERE user_id = :userId;

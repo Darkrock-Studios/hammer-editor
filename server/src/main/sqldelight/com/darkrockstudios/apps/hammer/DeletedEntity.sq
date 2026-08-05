@@ -1,4 +1,4 @@
-import kotlinx.datetime.Instant;
+import kotlin.time.Instant;
 
 -- Audit trail of entities that have been deleted; sync clients consult it to
 -- know what to drop locally.
@@ -27,3 +27,6 @@ SELECT EXISTS(
 markEntityDeleted:
 INSERT INTO deleted_entity(user_id, project_id, entity_id)
 VALUES (:userId, :projectId, :id);
+
+deleteAllForUser:
+DELETE FROM deleted_entity WHERE user_id = :userId;

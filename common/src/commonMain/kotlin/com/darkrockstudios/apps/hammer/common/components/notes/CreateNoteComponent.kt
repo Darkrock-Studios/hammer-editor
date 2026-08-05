@@ -52,6 +52,10 @@ class CreateNoteComponent(
 		noteText.subscribe(lifecycle) {
 			backButtonHandler.isEnabled = it.isNotBlank()
 		}
+
+		watchSpellCheckAllowed { allowed ->
+			_state.getAndUpdate { it.copy(spellCheckAllowed = allowed) }
+		}
 	}
 
 	override fun onTextChanged(newText: String) {

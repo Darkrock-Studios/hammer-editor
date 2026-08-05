@@ -18,6 +18,7 @@ actual val platformModule = module {
 	single<NetworkConnectivity>()
 	single<StrResImpl>() bind StrRes::class
 	single<DeviceLocaleResolver>()
+	single<AvailableLocalesProvider>()
 	single<UrlLauncherDarwin>() bind UrlLauncher::class
 	single<LanguageUtil>()
 	factory { params -> IosSettingsComponent(componentContext = params.get()) } bind PlatformSettings::class

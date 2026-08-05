@@ -34,20 +34,23 @@ fun Application.configureSecurity() {
 			realm = AUTH_REALM
 			authenticate { tokenCredential ->
 				val userId = parameters["userId"]?.toLongOrNull() ?: INVALID_USER_ID
+				// checkToken's query already refuses tokens of soft-deleted
+				// accounts, so the whitelist-off path stays a single round trip.
 				val result = accountRepo.checkToken(userId, tokenCredential.token)
 				if (isSuccess(result)) {
 					val okay = if (whitelistRepo.useWhiteList()) {
-						val account = accountRepo.getAccount(userId)
-						account.is_admin || whitelistRepo.isOnWhiteList(account.email)
+						// deleted_at is checked before the admin allowance so a
+						// soft-deleted admin is locked out like anyone else.
+						val account = accountRepo.getAccountOrNull(result.data)
+						account != null &&
+							account.deleted_at == null &&
+							(account.is_admin || whitelistRepo.isOnWhiteList(account.email))
 					} else {
 						true
 					}
 
-					val dbUserId = result.data
-					ServerUserIdPrincipal(dbUserId)
-
 					if (okay) {
-						ServerUserIdPrincipal(dbUserId)
+						ServerUserIdPrincipal(result.data)
 					} else {
 						null
 					}

@@ -1,0 +1,9 @@
+https://hammer.ink/blog/news/hammer-3-8-0
+New:
+- Set the language a project is written in, and have spell check follow it
+- Text editor: faster typing and relayout, word-wise undo with a much deeper history, and rich copy and paste that preserves formatting between apps
+- Large Markdown imports are dramatically faster 
+- Search matches the rendered prose, resolving Markdown escapes and formatting…
+
+Full changelog:
+https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.8.0

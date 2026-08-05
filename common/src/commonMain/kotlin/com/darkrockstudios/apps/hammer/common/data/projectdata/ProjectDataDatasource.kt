@@ -42,7 +42,7 @@ class ProjectDataDatasource(
 	}
 
 	suspend fun save(stored: StoredProjectData): Unit = withContext(dispatcherIo) {
-		fileSystem.writeToml(getPath(), toml, stored)
+		saveStoredProjectData(projectDef, fileSystem, toml, stored)
 	}
 
 	companion object {
@@ -68,8 +68,31 @@ suspend fun loadStoredProjectData(
 	fileSystem: FileSystem,
 	toml: Toml,
 ): StoredProjectData = withContext(Dispatchers.IO) {
+	readStoredProjectData(projectDef, fileSystem, toml)
+}
+
+/** Blocking twin of [loadStoredProjectData] for callers that already own their threading (parallel mappers, IO-dispatched code). */
+fun readStoredProjectData(
+	projectDef: ProjectDef,
+	fileSystem: FileSystem,
+	toml: Toml,
+): StoredProjectData {
 	val path = projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME
-	fileSystem.readTomlOrNull<StoredProjectData>(path, toml) { e ->
+	return fileSystem.readTomlOrNull<StoredProjectData>(path, toml) { e ->
 		Napier.d("No project_data.toml at $path (${e.message})")
 	} ?: StoredProjectData()
+}
+
+/**
+ * The single writer for `project_data.toml`. [ProjectDataDatasource.save] delegates here;
+ * scope-less callers (project creation, before a per-project Koin scope exists) use it
+ * directly so the on-disk format has exactly one owner.
+ */
+fun saveStoredProjectData(
+	projectDef: ProjectDef,
+	fileSystem: FileSystem,
+	toml: Toml,
+	stored: StoredProjectData,
+) {
+	fileSystem.writeToml(projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME, toml, stored)
 }

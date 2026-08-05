@@ -21,7 +21,7 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 		createProject(ffs, PROJECT_2_NAME)
 
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		assertEquals(ProjectId("5f1d7446-1f08-4909-a81e-cdc7470a2f63"), repo.getProjectId(proj1Def))
 		assertNull(repo.getProjectId(proj2Def))
@@ -35,7 +35,7 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 		createProject(ffs, PROJECT_2_NAME)
 
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		assertNull(repo.getProjectId(proj2Def))
 
@@ -52,7 +52,7 @@ class ProjectsRepositoryIdTest : ProjectsRepositoryBaseTest() {
 		createProject(ffs, PROJECT_1_NAME)
 		createProject(ffs, PROJECT_2_NAME)
 
-		val repo = ProjectsRepository(ffs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository()
 
 		assertNotNull(repo.getProjectId(proj1Def))
 

@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.scenetree
 
-import androidx.compose.foundation.lazy.LazyListItemInfo
 import androidx.compose.runtime.snapshots.SnapshotStateMap
 import androidx.compose.ui.geometry.Offset
 import com.darkrockstudios.apps.hammer.common.data.InsertPosition
@@ -31,9 +30,14 @@ internal fun visibleSceneNodes(
 	return visible
 }
 
+/** A row as it is drawn, in coordinates shared with the drag gesture. */
+internal data class RowLayout(val id: Int, val top: Float, val height: Float) {
+	val bottom: Float get() = top + height
+}
+
 internal fun findInsertPosition(
 	dragOffset: Offset,
-	layouts: List<LazyListItemInfo>,
+	layouts: Collection<RowLayout>,
 	collapsedGroups: SnapshotStateMap<Int, Boolean>,
 	tree: ImmutableTree<SceneItem>,
 	visibleNodes: List<TreeValue<SceneItem>>,
@@ -45,9 +49,9 @@ internal fun findInsertPosition(
 	val selectedId = selectedNode.value.id
 	var foundItemId: InsertPosition? = null
 	for (layout in layouts) {
-		val id = layout.key as Int
-		val size = layout.size
-		val itemPos = layout.offset
+		val id = layout.id
+		val size = layout.height
+		val itemPos = layout.top
 
 		if (id != selectedId
 			&& dragY >= itemPos

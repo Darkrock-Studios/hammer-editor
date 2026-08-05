@@ -47,7 +47,6 @@ kotlin {
 				api(libs.koin.core)
 				implementation(libs.serialization.core)
 				implementation(libs.coroutines.core)
-				implementation(libs.kotlinx.datetime)
 				implementation(libs.serialization.json)
 				//implementation("org.kotlincrypto.endians:endians:0.1.0")
 				//api("io.getstream:stream-result:1.1.0")

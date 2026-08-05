@@ -15,6 +15,8 @@ import com.darkrockstudios.apps.hammer.frontend.utils.pageETag
 import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
 import com.darkrockstudios.apps.hammer.frontend.utils.storyArticleJsonLd
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
+import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.project.access.PublicProjectResult
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
@@ -45,6 +47,7 @@ fun Route.publicStoryPage(
 	storyReaderCollector: StoryReaderCollector,
 	accountsRepository: AccountsRepository,
 	projectsRepository: ProjectsRepository,
+	serverProjectDataRepository: ServerProjectDataRepository,
 	serverConfig: ServerConfig,
 ) {
 	route("/a/{penName}/{projectName}") {
@@ -117,6 +120,8 @@ fun Route.publicStoryPage(
 						""
 					}
 
+					val projectDef = ProjectDefinition(name = projectName, uuid = resolved.projectUuid)
+
 					// The page shell — everything not derived from the story render. Built first so
 					// it can be hashed into the validator, then filled in with the render below.
 					val model = call.withDefaults(
@@ -146,10 +151,17 @@ fun Route.publicStoryPage(
 					val prepared =
 						storyRendererService.prepareExport(resolved.userId, resolved.projectUuid)
 
+					// Stands in for everything project-data carries (notably the declared story
+					// language rendered below): a hash-only lookup, so the revalidation path never
+					// transfers or parses the data blob.
+					val projectDataHash = serverProjectDataRepository.loadDataHash(resolved.userId, projectDef)
+
 					// A reader who already holds this exact page is answered without rendering it.
 					// `indexable` is an explicit input: it gates the JSON-LD block but never reaches
 					// the shell model.
-					val etag = prepared?.let { pageETag(model, it.version, page, passwordParam, indexable) }
+					val etag = prepared?.let {
+						pageETag(model, it.version, page, passwordParam, indexable, projectDataHash)
+					}
 					if (etag != null && call.matchesETag(etag)) {
 						call.applyRevalidationHeaders(etag)
 						call.respond(HttpStatusCode.NotModified)
@@ -178,6 +190,19 @@ fun Route.publicStoryPage(
 						is PaginatedExportResult.Success -> {
 							val data = exportResult.data
 
+							// The story's declared language, when set, becomes the page's content
+							// language: <html lang> via the `locale` model key and the JSON-LD
+							// `inLanguage` below. Overridden only now, after withDefaults, so the
+							// header/footer extra links stay localized to the viewer's UI locale;
+							// the ETag covers it through projectDataHash above.
+							val storyLanguage = serverProjectDataRepository.loadProjectLanguage(
+								userId = resolved.userId,
+								projectDef = projectDef,
+							)
+							if (storyLanguage != null) {
+								model["locale"] = storyLanguage
+							}
+
 							model.putAll(
 								mapOf(
 									"storyHtml" to data.pageHtml,
@@ -205,6 +230,7 @@ fun Route.publicStoryPage(
 									authorName = resolved.penName,
 									authorUrl = call.canonicalUrl("/a/${ProjectName.penNameForUrl(resolved.penName)}"),
 									wordCount = data.totalWordCount.toLong(),
+									inLanguage = storyLanguage,
 								)
 							}
 							etag?.let { call.applyRevalidationHeaders(it) }

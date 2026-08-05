@@ -8,6 +8,8 @@ import kotlinx.serialization.Transient
 import java.net.URI
 import java.net.URISyntaxException
 import java.util.Locale
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 
 @Serializable
 data class ServerConfig(
@@ -54,6 +56,7 @@ data class ServerConfig(
 	val emailProvider: String? = null,
 	val communityEnabled: Boolean = false,
 	val extraLinks: List<ExtraLink> = emptyList(),
+	val accountDeletion: AccountDeletionConfig = AccountDeletionConfig(),
 	val storage: StorageConfig = StorageConfig(),
 	val cache: CacheConfig = CacheConfig(),
 	val analytics: AnalyticsConfig = AnalyticsConfig(),
@@ -323,6 +326,32 @@ data class StorageConfig(
 		if (type == StorageMode.REMOTE) {
 			require(remote != null) { "storage.type=remote requires storage.remote config block" }
 		}
+	}
+}
+
+/**
+ * Self-service account deletion. A deleted account is soft-deleted first: locked out of
+ * login and sync, unpublished, pen name released, but its data is retained so an operator
+ * can restore it. A daily job permanently deletes accounts soft-deleted longer than
+ * [retentionDays]. The window is evaluated against each account's deletion time on every
+ * job run, so lowering it also hard-deletes accounts already past the new window.
+ */
+@Serializable
+data class AccountDeletionConfig(
+	/** Days a soft-deleted account is retained before permanent deletion. */
+	val retentionDays: Int = 30,
+) {
+	@Transient
+	val retention: Duration = retentionDays.days
+
+	fun validate() {
+		require(retentionDays in 1..MAX_RETENTION_DAYS) {
+			"accountDeletion.retentionDays must be between 1 and $MAX_RETENTION_DAYS, was $retentionDays"
+		}
+	}
+
+	private companion object {
+		const val MAX_RETENTION_DAYS = 3650
 	}
 }
 

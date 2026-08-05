@@ -202,6 +202,51 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	@Test
+	fun `epub export uses the project language when set`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(language = "fr"))
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = ExportFormat.Epub, treatTopLevelAsChapters = true),
+		)
+
+		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
+		assertTrue(
+			zipEntryText(bytes, ".opf").contains(">fr<"),
+			"EPUB metadata should carry the project language, not the device locale",
+		)
+	}
+
+	@Test
+	fun `epub export falls back to the device locale when the project language is unset`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData())
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = ExportFormat.Epub, treatTopLevelAsChapters = true),
+		)
+
+		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
+		assertTrue(
+			zipEntryText(bytes, ".opf").contains(">en<"),
+			"EPUB metadata should fall back to the device locale's language",
+		)
+	}
+
+	private fun zipEntryText(bytes: ByteArray, nameSuffix: String): String {
+		java.util.zip.ZipInputStream(bytes.inputStream()).use { zin ->
+			var entry = zin.nextEntry
+			while (entry != null) {
+				if (entry.name.endsWith(nameSuffix)) return zin.readBytes().decodeToString()
+				entry = zin.nextEntry
+			}
+		}
+		error("No zip entry ending with $nameSuffix")
+	}
+
+	@Test
 	fun `epub export still produces a valid file when treatTopLevelAsChapters is false`() = runTest {
 		initRepo()
 

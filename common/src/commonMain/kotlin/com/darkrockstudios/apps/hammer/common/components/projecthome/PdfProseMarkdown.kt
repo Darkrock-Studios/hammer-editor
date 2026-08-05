@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.projecthome
 
 import com.conamobile.pdfkmp.dsl.ContainerScope
+import com.darkrockstudios.apps.hammer.common.data.search.unescapeMarkdown
 import com.conamobile.pdfkmp.dsl.TextScope
 import com.conamobile.pdfkmp.geometry.Padding
 import com.conamobile.pdfkmp.layout.BoxAlignment

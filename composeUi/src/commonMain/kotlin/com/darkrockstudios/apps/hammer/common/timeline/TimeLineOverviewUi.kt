@@ -30,6 +30,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -67,6 +68,7 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.timeline.TimeLineOverview
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDragHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
@@ -78,7 +80,9 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.reorderable.DragDropList
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.common.data.search.markdownContains
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagCount
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEvent
 import com.darkrockstudios.apps.hammer.timeline_filter_all
@@ -96,8 +100,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
+/** An event matches on its body read as prose, or on its plain-text date. */
+internal fun eventMatchesQuery(event: TimeLineEvent, query: String): Boolean =
+	markdownContains(event.content, query) ||
+		event.date?.contains(query, ignoreCase = true) == true
+
 const val TIME_LINE_CREATE_TAG = "Timeline Overview Create"
 const val TIME_LINE_LIST_TAG = "Timeline Overview List"
+const val TIME_LINE_SEARCH_TAG = "Timeline Overview Search"
 const val EVENT_CARD_TAG = "Timeline Event Card"
 const val EVENT_CARD_DATE_TAG = "Timeline Event Card Date"
 const val EVENT_CARD_CONTENT_TAG = "Timeline Event Card Content"
@@ -133,10 +143,8 @@ fun TimeLineOverviewUi(
 			val byText = if (searchQuery.isBlank()) {
 				events
 			} else {
-				events.filter { event ->
-					event.content.contains(searchQuery.trim(), ignoreCase = true) ||
-						event.date?.contains(searchQuery.trim(), ignoreCase = true) == true
-				}
+				val query = searchQuery.trim()
+				events.filter { eventMatchesQuery(it, query) }
 			}
 			val byTags = if (activeTags.isEmpty()) {
 				byText
@@ -186,6 +194,7 @@ fun TimeLineOverviewUi(
 					},
 					collapseContentDescription = Res.string.timeline_search_close.get(),
 					modifier = Modifier.fillMaxSize(),
+					testTag = TIME_LINE_SEARCH_TAG,
 				)
 			} else {
 				Row(
@@ -340,18 +349,27 @@ fun TimeLineOverviewUi(
 			}
 
 			else -> {
-				LazyColumn(
-					modifier = Modifier
-						.fillMaxSize()
-						.testTag(TIME_LINE_LIST_TAG),
-					contentPadding = listContentPadding,
-				) {
-					items(
-						items = visibleEvents,
-						key = { event -> event.id },
-					) { event ->
-						eventRow(event, false)
+				val listState = rememberLazyListState()
+				Box {
+					LazyColumn(
+						state = listState,
+						modifier = Modifier
+							.fillMaxSize()
+							.testTag(TIME_LINE_LIST_TAG),
+						contentPadding = listContentPadding,
+					) {
+						items(
+							items = visibleEvents,
+							key = { event -> event.id },
+						) { event ->
+							eventRow(event, false)
+						}
 					}
+
+					MpScrollBarList(
+						modifier = scrollBarOverlay(),
+						state = listState,
+					)
 				}
 			}
 		}

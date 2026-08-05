@@ -39,7 +39,7 @@
 	<string name="timeline_view_menu_delete">Löschen</string>
 	<string name="timeline_view_confirm_delete_title">Ereignis löschen?</string>
 	<string name="timeline_view_confirm_delete_message">Dies kann nicht rückgängig gemacht werden!</string>
-	<string name="timeline_header">Timeline</string>
+	<string name="timeline_header">Zeitstrahl</string>
 	<string name="timeline_header_meta">%1$d EINTRÄGE · %2$d TAGS</string>
 	<string name="timeline_search_button">Zeitstrahl durchsuchen</string>
 	<string name="timeline_search_placeholder">Zeitstrahl durchsuchen</string>

@@ -123,6 +123,33 @@ class ProjectDataRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `updateData persists the language and it round-trips through TOML`() = runTest {
+		datasource.save(StoredProjectData(ProjectData(authorName = "Pat"), "synced-hash"))
+
+		repository.updateData { it.copy(language = "pt-BR") }
+
+		val onDisk = datasource.load()
+		assertEquals("pt-BR", onDisk.data.language)
+		assertEquals("Pat", onDisk.data.authorName)
+	}
+
+	@Test
+	fun `pre-language project_data toml loads with null language`() = runTest {
+		val legacyToml = """
+			|[data]
+			|authorName = "Legacy"
+			|
+		""".trimMargin()
+		fileSystem.write("/projects/Test Project/project_data.toml".toPath()) {
+			writeUtf8(legacyToml)
+		}
+
+		val loaded = repository.load()
+
+		assertNull(loaded.data.language)
+	}
+
+	@Test
 	fun `pre-tags project_data toml loads with empty tags`() = runTest {
 		// A file written before the tags field existed.
 		val legacyToml = """

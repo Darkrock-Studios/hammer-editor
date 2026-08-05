@@ -1,4 +1,4 @@
-import kotlinx.datetime.Instant;
+import kotlin.time.Instant;
 
 -- Deduplicated record of anonymous reads of published / privately-shared stories,
 -- backing the best-effort "unique readers" counter. There is no reader account, so
@@ -76,3 +76,11 @@ ON CONFLICT (project_id) DO UPDATE SET total = published_story_reader_total.tota
 
 deleteReadersBefore:
 DELETE FROM published_story_reader WHERE day_bucket < ?;
+
+deleteAllForUser:
+DELETE FROM published_story_reader
+WHERE project_id IN (SELECT id FROM project WHERE user_id = :userId);
+
+deleteAllTotalsForUser:
+DELETE FROM published_story_reader_total
+WHERE project_id IN (SELECT id FROM project WHERE user_id = :userId);

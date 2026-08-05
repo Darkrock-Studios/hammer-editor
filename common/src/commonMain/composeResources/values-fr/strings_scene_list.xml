@@ -45,7 +45,7 @@
 	<string name="scene_list_item_action_move">Déplacer vers</string>
 	<string name="scene_move_dialog_destination_label">Destination</string>
 	<string name="scene_move_dialog_search_placeholder">Rechercher des groupes</string>
-	<string name="scene_move_dialog_top_level">Niveau supérieur</string>
+	<string name="scene_move_dialog_top_level">Niveau Haut</string>
 	<string name="scene_move_dialog_no_results">Aucun groupe correspondant</string>
 	<string name="scene_move_dialog_position_label">Position (1–%1$d)</string>
 	<string name="scene_move_dialog_invalid_position">Saisissez une position entre 1 et %1$d</string>

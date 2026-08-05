@@ -1,4 +1,4 @@
-import kotlinx.datetime.Instant;
+import kotlin.time.Instant;
 
 -- Deduplicated server-side errors. Rather than a row per occurrence, errors are
 -- grouped by `fingerprint` (a hash of exception type + route, optionally + user)
@@ -67,3 +67,6 @@ UPDATE error_log SET notified_at = ? WHERE id = ?;
 
 deleteErrorsBefore:
 DELETE FROM error_log WHERE last_seen < ?;
+
+deleteAllForUser:
+DELETE FROM error_log WHERE user_id = :userId;

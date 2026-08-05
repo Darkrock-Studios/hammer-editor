@@ -28,7 +28,7 @@ class ProjectsRepositoryConcurrencyTest : ProjectsRepositoryBaseTest() {
 				if (dir == getProjectsDirectory()) super.list(dir) + phantom else super.list(dir)
 		}
 
-		val repo = ProjectsRepository(racingFs, settingsRepo, projectsMetaDatasource)
+		val repo = projectsRepository(racingFs)
 		val projects = repo.getProjects()
 
 		assertEquals(projectNames.size, projects.size)

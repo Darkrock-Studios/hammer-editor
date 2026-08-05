@@ -1,10 +1,18 @@
 package com.darkrockstudios.apps.hammer.frontend.utils
 
 import com.github.mustachejava.DefaultMustacheFactory
+import io.ktor.htmx.HxResponseHeaders
+import io.ktor.htmx.HxSwap
 import io.ktor.http.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import java.io.StringWriter
+
+/**
+ * Marks an error response whose body is an htmx swap payload. htmx discards 4xx and 5xx bodies by
+ * default; toast.js swaps the ones carrying this header so their toast reaches the user.
+ */
+const val SWAP_ERROR_HEADER = "X-Hammer-Swap-Error"
 
 /**
  * Toast notification types for server-driven OOB swaps
@@ -48,12 +56,7 @@ suspend fun RoutingContext.respondHtmlWithToast(
 	toast: Toast = Toast.Success,
 	status: HttpStatusCode = HttpStatusCode.OK
 ) {
-	val toastHtml = toastHtml(message, toast)
-	call.respondText(
-		text = "$content$toastHtml",
-		contentType = ContentType.Text.Html,
-		status = status
-	)
+	respondSwap(content, message, toast, status)
 }
 
 /**
@@ -65,8 +68,32 @@ suspend fun RoutingContext.respondToast(
 	toast: Toast = Toast.Success,
 	status: HttpStatusCode = HttpStatusCode.OK
 ) {
+	respondSwap(content = "", message = message, toast = toast, status = status)
+}
+
+/**
+ * The single exit for htmx swap payloads: content, its toast, and the headers that decide what
+ * htmx does with an error response. Error statuses are marked with [SWAP_ERROR_HEADER] so the
+ * client swaps them at all, and those with nothing to show reswap to `none` so the toast lands
+ * without emptying the request's target. Whitespace counts as nothing to show: a template of
+ * all-conditional sections renders to a stray newline, which would blank the target just as
+ * thoroughly as an empty body.
+ */
+private suspend fun RoutingContext.respondSwap(
+	content: String,
+	message: String,
+	toast: Toast,
+	status: HttpStatusCode
+) {
+	if (status.value >= 400) {
+		call.response.header(SWAP_ERROR_HEADER, "true")
+		if (content.isBlank()) {
+			call.response.header(HxResponseHeaders.Reswap, HxSwap.none)
+		}
+	}
+
 	call.respondText(
-		text = toastHtml(message, toast),
+		text = content + toastHtml(message, toast),
 		contentType = ContentType.Text.Html,
 		status = status
 	)
@@ -97,11 +124,5 @@ suspend fun RoutingContext.respondTemplateWithToast(
 	toast: Toast = Toast.Success,
 	status: HttpStatusCode = HttpStatusCode.OK
 ) {
-	val content = renderTemplate(templatePath, model)
-	val toastHtml = toastHtml(message, toast)
-	call.respondText(
-		text = "$content$toastHtml",
-		contentType = ContentType.Text.Html,
-		status = status
-	)
+	respondSwap(renderTemplate(templatePath, model), message, toast, status)
 }

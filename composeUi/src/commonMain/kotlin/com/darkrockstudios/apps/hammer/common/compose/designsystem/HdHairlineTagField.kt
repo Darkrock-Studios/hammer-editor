@@ -19,6 +19,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.CollapseWhileTyping
+import com.darkrockstudios.apps.hammer.common.data.tagindex.isTagSeparator
+import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
+import com.darkrockstudios.apps.hammer.common.data.tagindex.replaceTagPrefix
+import com.darkrockstudios.apps.hammer.common.data.tagindex.tagPrefixOf
 
 /**
  * Tag chip field — labeled hairline-underline input that keeps its
@@ -50,15 +54,17 @@ fun HdHairlineTagField(
 		onDraftChange(it)
 	}
 
+	// Parsed with the same rule that persistence uses, so a chip is never shown for input
+	// that would be dropped on save.
 	val addTag: (String) -> Unit = { raw ->
-		val candidate = raw.trim().removePrefix("#")
-		if (candidate.isNotEmpty() && !tags.contains(candidate)) {
-			onTagsChange(tags + candidate)
+		val candidates = parseTagInput(raw).filter { it !in tags }
+		if (candidates.isNotEmpty()) {
+			onTagsChange(tags + candidates)
 		}
 		updateDraft("")
 	}
 	val addCurrent: () -> Boolean = add@{
-		if (draft.trim().removePrefix("#").isEmpty()) return@add false
+		if (parseTagInput(draft).isEmpty()) return@add false
 		addTag(draft)
 		true
 	}
@@ -68,11 +74,7 @@ fun HdHairlineTagField(
 		true
 	}
 
-	val suggestions = remember(draft, tags, suggestTags) {
-		val prefix = draft.trim().removePrefix("#")
-		if (prefix.isEmpty()) emptyList()
-		else suggestTags(prefix).filter { it !in tags }
-	}
+	val suggestions = rememberTagSuggestions(draft, tags, suggestTags)
 
 	val onSurface = MaterialTheme.colorScheme.onSurface
 	val muted = MaterialTheme.colorScheme.onSurfaceVariant
@@ -126,7 +128,7 @@ fun HdHairlineTagField(
 						value = draft,
 						onValueChange = { next ->
 							val last = next.lastOrNull()
-							if (last == ',' || last == ' ') {
+							if (last != null && last.isTagSeparator()) {
 								updateDraft(next.dropLast(1))
 								addCurrent()
 							} else {
@@ -174,11 +176,26 @@ fun HdHairlineTagField(
 
 			HdTagSuggestionStrip(
 				suggestions = suggestions,
-				onSelect = { addTag(it) },
+				onSelect = { addTag(replaceTagPrefix(draft, it)) },
 				modifier = Modifier.padding(top = 6.dp),
 			)
 		}
 	}
+}
+
+/**
+ * Suggestions for the tag being typed at the end of [draft], minus the ones in [applied]. Pair the
+ * strip's `onSelect` with [replaceTagPrefix] so picking one keeps the tags typed before it.
+ */
+@Composable
+fun rememberTagSuggestions(
+	draft: String,
+	applied: Collection<String>,
+	suggestTags: (prefix: String) -> List<String>,
+): List<String> = remember(draft, applied, suggestTags) {
+	val prefix = tagPrefixOf(draft)
+	if (prefix.isEmpty()) emptyList()
+	else suggestTags(prefix).filter { it !in applied }
 }
 
 @OptIn(ExperimentalLayoutApi::class)

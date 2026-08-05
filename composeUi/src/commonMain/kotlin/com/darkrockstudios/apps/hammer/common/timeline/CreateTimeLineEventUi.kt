@@ -137,6 +137,7 @@ fun CreateTimeLineEventUi(
 					MarkdownEditField(
 						initialMarkdown = contentText,
 						onMarkdownChanged = { component.onContentChanged(it) },
+						enableSpellChecking = state.spellCheckAllowed,
 						contentPadding = PaddingValues(Ui.Padding.XL),
 						testTag = TIME_LINE_CREATE_CONTENT_TAG,
 						modifier = Modifier

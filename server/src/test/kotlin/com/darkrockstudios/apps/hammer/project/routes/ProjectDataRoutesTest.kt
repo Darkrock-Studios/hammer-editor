@@ -35,6 +35,7 @@ import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
+import com.darkrockstudios.apps.hammer.utils.testAccount
 import io.ktor.client.call.body
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
@@ -100,6 +101,9 @@ class ProjectDataRoutesTest : BaseTest() {
 		super.setup()
 		MockKAnnotations.init(this, relaxUnitFun = true)
 
+		// The bearer gate loads the account after token validation; default to an active one.
+		coEvery { accountsRepository.getAccountOrNull(any()) } returns testAccount()
+
 		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns
 			ProjectDefinition(projectName, projectId)
 
@@ -123,6 +127,7 @@ class ProjectDataRoutesTest : BaseTest() {
 			single { mockk<com.darkrockstudios.apps.hammer.review.ReviewRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
+			single { mockk<com.darkrockstudios.apps.hammer.account.AccountDeletionService>(relaxed = true) }
 			single { json }
 		}
 	}

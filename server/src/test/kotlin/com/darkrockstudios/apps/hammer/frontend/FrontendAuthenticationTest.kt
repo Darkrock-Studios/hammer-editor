@@ -39,7 +39,12 @@ class FrontendAuthenticationTest {
 	private val accountRepo: AccountsRepository = mockk()
 	private val whitelistRepo: WhiteListRepository = mockk()
 
-	private fun account(userId: Long, email: String, isAdmin: Boolean = false) = Account(
+	private fun account(
+		userId: Long,
+		email: String,
+		isAdmin: Boolean = false,
+		deletedAt: kotlin.time.Instant? = null,
+	) = Account(
 		id = userId,
 		email = email,
 		password_hash = "hash",
@@ -51,6 +56,7 @@ class FrontendAuthenticationTest {
 		bio = null,
 		email_verified = true,
 		community_member = false,
+		deleted_at = deletedAt,
 	)
 
 	private fun ApplicationTestBuilder.configureApp() {
@@ -161,6 +167,26 @@ class FrontendAuthenticationTest {
 
 		val session = UserSession(userId = 7, username = "admin@example.com", isAdmin = true)
 		assertTrue(sessionIsAuthorized(session, accountRepo, whitelistRepo))
+	}
+
+	@Test
+	fun `session is unauthorized when account is pending deletion`() = runBlocking {
+		coEvery { accountRepo.getAccount(7) } returns
+			account(7, "user@example.com", deletedAt = Clock.System.now())
+		coEvery { whitelistRepo.useWhiteList() } returns false
+
+		val session = UserSession(userId = 7, username = "user@example.com", isAdmin = false)
+		assertFalse(sessionIsAuthorized(session, accountRepo, whitelistRepo))
+	}
+
+	@Test
+	fun `soft-deleted admin session is unauthorized despite admin bypass`() = runBlocking {
+		coEvery { accountRepo.getAccount(7) } returns
+			account(7, "admin@example.com", isAdmin = true, deletedAt = Clock.System.now())
+		coEvery { whitelistRepo.useWhiteList() } returns false
+
+		val session = UserSession(userId = 7, username = "admin@example.com", isAdmin = true)
+		assertFalse(sessionIsAuthorized(session, accountRepo, whitelistRepo))
 	}
 
 	@Test

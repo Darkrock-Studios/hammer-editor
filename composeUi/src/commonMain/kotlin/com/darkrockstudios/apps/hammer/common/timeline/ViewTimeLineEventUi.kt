@@ -135,6 +135,7 @@ fun ViewTimeLineEventUi(
 						eventText = eventText,
 						onEventTextChanged = { component.onEventTextChanged(it) },
 						suggestTags = component::suggestTags,
+						enableSpellChecking = state.spellCheckAllowed,
 						modifier = Modifier.weight(1f),
 					)
 
@@ -321,52 +322,59 @@ private fun ViewBody(
 	modifier: Modifier = Modifier,
 ) {
 	val scrollState = rememberScrollState()
-	Column(
-		modifier = modifier
-			.fillMaxWidth()
-			.verticalScroll(scrollState)
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.XL),
-	) {
-		val eventTags = event?.tags
-		if (!eventTags.isNullOrEmpty()) {
-			FlowRow(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(bottom = Ui.Padding.L),
-				horizontalArrangement = Arrangement.spacedBy(6.dp),
-				verticalArrangement = Arrangement.spacedBy(6.dp),
-			) {
-				eventTags.sorted().forEach { tag ->
-					HdTagChip(
-						label = tag,
-						active = true,
-						onClick = { onTagClick(tag) },
-						onRemove = { onTagRemove(tag) },
-					)
+	Box(modifier = modifier) {
+		Column(
+			modifier = Modifier
+				.fillMaxWidth()
+				.verticalScroll(scrollState)
+				.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.XL),
+		) {
+			val eventTags = event?.tags
+			if (!eventTags.isNullOrEmpty()) {
+				FlowRow(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(bottom = Ui.Padding.L),
+					horizontalArrangement = Arrangement.spacedBy(6.dp),
+					verticalArrangement = Arrangement.spacedBy(6.dp),
+				) {
+					eventTags.sorted().forEach { tag ->
+						HdTagChip(
+							label = tag,
+							active = true,
+							onClick = { onTagClick(tag) },
+							onRemove = { onTagRemove(tag) },
+						)
+					}
 				}
+
+				HorizontalDivider(
+					thickness = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+					modifier = Modifier.padding(bottom = Ui.Padding.L),
+				)
 			}
 
-			HorizontalDivider(
-				thickness = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-				modifier = Modifier.padding(bottom = Ui.Padding.L),
-			)
+			with(sharedTransitionScope) {
+				MarkdownView(
+					markdown = eventText,
+					modifier = Modifier
+						.fillMaxWidth()
+						.sharedElement(
+							sharedContentState = rememberSharedContentState(
+								key = "timeline-content-${event?.id}",
+							),
+							animatedVisibilityScope = animatedVisibilityScope,
+						)
+						.clickable(onClick = onEnterEdit),
+				)
+			}
 		}
 
-		with(sharedTransitionScope) {
-			MarkdownView(
-				markdown = eventText,
-				modifier = Modifier
-					.fillMaxWidth()
-					.sharedElement(
-						sharedContentState = rememberSharedContentState(
-							key = "timeline-content-${event?.id}",
-						),
-						animatedVisibilityScope = animatedVisibilityScope,
-					)
-					.clickable(onClick = onEnterEdit),
-			)
-		}
+		MpScrollBarColumn(
+			modifier = scrollBarOverlay(),
+			state = scrollState,
+		)
 	}
 }
 
@@ -379,6 +387,7 @@ private fun EditBody(
 	eventText: String,
 	onEventTextChanged: (String) -> Unit,
 	suggestTags: (prefix: String) -> List<String>,
+	enableSpellChecking: Boolean,
 	modifier: Modifier = Modifier,
 ) {
 	// Date hides while the body editor has focus, like the tags; kept visible while it holds focus
@@ -424,6 +433,7 @@ private fun EditBody(
 		MarkdownEditField(
 			initialMarkdown = eventText,
 			onMarkdownChanged = onEventTextChanged,
+			enableSpellChecking = enableSpellChecking,
 			contentPadding = PaddingValues(Ui.Padding.XL),
 			modifier = Modifier
 				.fillMaxWidth()

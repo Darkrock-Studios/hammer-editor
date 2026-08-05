@@ -21,11 +21,13 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
@@ -60,104 +62,115 @@ internal fun AccountSettingsUi(
 		Breadcrumb(isCompact = isCompact)
 		HdFolioDivider()
 
-		Column(
+		val scrollState = rememberScrollState()
+		Box(
 			modifier = Modifier
 				.weight(1f)
-				.fillMaxWidth()
-				.verticalScroll(rememberScrollState())
-				.padding(horizontal = outerHorizontal, vertical = outerVertical),
+				.fillMaxWidth(),
 		) {
-			Box(
+			Column(
 				modifier = Modifier
-					.widthIn(max = MaxColumnWidth)
-					.fillMaxWidth()
-					.align(Alignment.CenterHorizontally),
+					.fillMaxSize()
+					.verticalScroll(scrollState)
+					.padding(horizontal = outerHorizontal, vertical = outerVertical),
 			) {
-				Column(verticalArrangement = Arrangement.spacedBy(64.dp)) {
-					Hero(
-						loggedIn = state.serverIsLoggedIn,
-						email = state.currentEmail,
-						isCompact = isCompact,
-					)
-
-					HdHairlineSection(
-						section = 1,
-						title = Res.string.settings_theme_label.get(),
-						headerTrailing = {
-							HdMonoLabel(text = uiThemeLabel(state.uiTheme))
-						},
-						contentSpacing = 12.dp,
-					) {
-						HdHairlineSegmentedPicker(
-							options = UiTheme.entries,
-							selected = state.uiTheme,
-							onSelect = { component.setUiTheme(it) },
-							label = { uiThemeLabel(it) },
+				Box(
+					modifier = Modifier
+						.widthIn(max = MaxColumnWidth)
+						.fillMaxWidth()
+						.align(Alignment.CenterHorizontally),
+				) {
+					Column(verticalArrangement = Arrangement.spacedBy(64.dp)) {
+						Hero(
+							loggedIn = state.serverIsLoggedIn,
+							email = state.currentEmail,
+							isCompact = isCompact,
 						)
-					}
 
-					HdHairlineSection(
-						section = 2,
-						title = Res.string.settings_initial_screen_label.get(),
-						headerTrailing = {
-							HdMonoLabel(text = initialScreenLabel(state.initialProjectScreen))
-						},
-						contentSpacing = 12.dp,
-					) {
-						HdHairlineSegmentedPicker(
-							options = InitialProjectScreen.entries,
-							selected = state.initialProjectScreen,
-							onSelect = { component.setInitialProjectScreen(it) },
-							label = { initialScreenLabel(it) },
-						)
-					}
-
-					HdHairlineSection(
-						section = 3,
-						title = Res.string.settings_spellcheck_heading.get(),
-						contentSpacing = 18.dp,
-					) {
-						SpellCheckSettingsContent(component.spellCheckSettings)
-					}
-
-					ServerSettingsUi(
-						component = component,
-						scope = scope,
-						rootSnackbar = rootSnackbar,
-					)
-
-					HdHairlineSection(
-						section = 5,
-						title = Res.string.settings_backups_header.get(),
-						headerTrailing = {
-							HdMonoLabel(
-								text = "${state.maxBackups} / ${GlobalSettings.MAX_BACKUPS}",
+						HdHairlineSection(
+							section = 1,
+							title = Res.string.settings_theme_label.get(),
+							headerTrailing = {
+								HdMonoLabel(text = uiThemeLabel(state.uiTheme))
+							},
+							contentSpacing = 12.dp,
+						) {
+							HdHairlineSegmentedPicker(
+								options = UiTheme.entries,
+								selected = state.uiTheme,
+								onSelect = { component.setUiTheme(it) },
+								label = { uiThemeLabel(it) },
 							)
-						},
-						contentSpacing = 16.dp,
-					) {
-						BackupsSettingsUi(component, scope)
-					}
+						}
 
-					HdHairlineSection(
-						section = 6,
-						title = Res.string.settings_platform_settings_title.get(),
-						contentSpacing = 16.dp,
-					) {
-						PlatformSettingsUi(component.platformSettings)
-					}
+						HdHairlineSection(
+							section = 2,
+							title = Res.string.settings_initial_screen_label.get(),
+							headerTrailing = {
+								HdMonoLabel(text = initialScreenLabel(state.initialProjectScreen))
+							},
+							contentSpacing = 12.dp,
+						) {
+							HdHairlineSegmentedPicker(
+								options = InitialProjectScreen.entries,
+								selected = state.initialProjectScreen,
+								onSelect = { component.setInitialProjectScreen(it) },
+								label = { initialScreenLabel(it) },
+							)
+						}
 
-					HdHairlineSection(
-						section = 7,
-						title = Res.string.settings_example_project_header.get(),
-						contentSpacing = 14.dp,
-					) {
-						ExampleProjectSection(component, rootSnackbar)
-					}
+						HdHairlineSection(
+							section = 3,
+							title = Res.string.settings_spellcheck_heading.get(),
+							contentSpacing = 18.dp,
+						) {
+							SpellCheckSettingsContent(component.spellCheckSettings)
+						}
 
-					Spacer(Modifier.height(8.dp))
+						ServerSettingsUi(
+							component = component,
+							scope = scope,
+							rootSnackbar = rootSnackbar,
+						)
+
+						HdHairlineSection(
+							section = 5,
+							title = Res.string.settings_backups_header.get(),
+							headerTrailing = {
+								HdMonoLabel(
+									text = "${state.maxBackups} / ${GlobalSettings.MAX_BACKUPS}",
+								)
+							},
+							contentSpacing = 16.dp,
+						) {
+							BackupsSettingsUi(component, scope)
+						}
+
+						HdHairlineSection(
+							section = 6,
+							title = Res.string.settings_platform_settings_title.get(),
+							contentSpacing = 16.dp,
+						) {
+							PlatformSettingsUi(component.platformSettings)
+						}
+
+						HdHairlineSection(
+							section = 7,
+							title = Res.string.settings_example_project_header.get(),
+							contentSpacing = 14.dp,
+						) {
+							ExampleProjectSection(component, rootSnackbar)
+						}
+
+						Spacer(Modifier.height(8.dp))
+					}
 				}
 			}
+
+			MpScrollBarColumn(
+				modifier = scrollBarOverlay(),
+				state = scrollState,
+			)
 		}
 
 		FolioCaption(

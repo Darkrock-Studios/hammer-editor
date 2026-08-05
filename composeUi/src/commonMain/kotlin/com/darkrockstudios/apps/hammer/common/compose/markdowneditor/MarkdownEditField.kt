@@ -51,8 +51,11 @@ fun MarkdownEditField(
 	val spellCheckRepository = rememberKoinInject<SpellCheckRepository>()
 	val platformSpellChecker by spellCheckRepository.dictionaryFlow.collectAsState(initial = null)
 
+	// rememberSpellCheckState re-scans the whole document whenever this instance changes identity.
+	val editorSpellChecker = remember(platformSpellChecker) { platformSpellChecker.toEditorSpellChecker() }
+
 	val textEditorState = rememberSpellCheckState(
-		spellChecker = platformSpellChecker.toEditorSpellChecker(),
+		spellChecker = editorSpellChecker,
 		initialText = null,
 		// The repository only emits a dictionary while spell checking is globally enabled,
 		// so a null checker also means "disabled" — clear decorations rather than keep checking.

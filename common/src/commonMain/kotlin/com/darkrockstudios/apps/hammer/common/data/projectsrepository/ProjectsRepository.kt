@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.projectsrepository
 
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidationResult
 import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidator
 import com.darkrockstudios.apps.hammer.base.validate.validateProjectName
@@ -13,6 +14,8 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
+import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectdata.saveStoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.MAX_FILENAME_LENGTH
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.RECOVERED_PROJECT_NAME
@@ -21,6 +24,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.validateFileName
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
@@ -32,6 +36,7 @@ import com.darkrockstudios.apps.hammer.create_project_error_too_long
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.IOException
 import okio.Path.Companion.toPath
@@ -45,7 +50,9 @@ import kotlin.time.Clock
 class ProjectsRepository(
 	private val fileSystem: FileSystem,
 	globalSettingsStore: GlobalSettingsStore,
-	private val projectsMetadataDatasource: ProjectMetadataDatasource
+	private val projectsMetadataDatasource: ProjectMetadataDatasource,
+	private val toml: Toml,
+	private val deviceLocaleResolver: DeviceLocaleResolver,
 ) : KoinComponent {
 
 	private val dispatcherDefault: CoroutineContext by inject(named(DISPATCHER_DEFAULT))
@@ -155,7 +162,13 @@ class ProjectsRepository(
 		return ProjectDef(projectName, projectDir.toHPath())
 	}
 
-	fun createProject(projectName: String): CResult<ProjectDef> {
+	/**
+	 * [seedDefaultLanguage] must be false when materializing a project that already exists
+	 * on the server (account sync): a fresh local shell has to keep the never-synced
+	 * ProjectData baseline (empty data, null lastSyncedHash), or the first project sync
+	 * reads the seed as a phantom local edit and raises a spurious conflict.
+	 */
+	fun createProject(projectName: String, seedDefaultLanguage: Boolean): CResult<ProjectDef> {
 		val strippedName = projectName.trim()
 		val result = validateFileName(strippedName)
 		return if (isSuccess(result)) {
@@ -179,6 +192,20 @@ class ProjectsRepository(
 					)
 				)
 				projectsMetadataDatasource.saveMetadata(metadata, newDef)
+
+				if (seedDefaultLanguage) {
+					// New projects start declared in the device's language, without a region:
+					// the auto-default must never gate spell check against a same-language
+					// dictionary of another region (en vs en-GB). Users can pick a full tag
+					// in project settings.
+					val languageTag = deviceLocaleResolver.getCurrentLocale().language
+					saveStoredProjectData(
+						newDef,
+						fileSystem,
+						toml,
+						StoredProjectData(data = ProjectData(language = languageTag)),
+					)
+				}
 
 				CResult.success(newDef)
 			}

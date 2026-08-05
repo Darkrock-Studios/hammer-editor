@@ -53,7 +53,10 @@ The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 4. Run the server (_see platform-specific instructions below_)
 5. If everything worked, you should be able to access your server at your server's IP or at the host name you set in your config file and DNS configuration, such as:
    `http://example.com`
-6. **IMPORTANT!** You must now download one of the clients and create an account on the server. The first account
+6. **Set up HTTPS before going any further.** Clients only speak `https` and will not connect to a
+   plain HTTP server, so it needs either its own certificate or a reverse proxy holding one. See
+   [Setting up SSL](#setting-up-ssl-required-for-direct-connections).
+7. **IMPORTANT!** You must now download one of the clients and create an account on the server. The first account
    created will be the admin account.
 
 ## Network binding
@@ -163,6 +166,22 @@ caches disabled.
 
 Only publicly readable stories are ever written to the HTML cache, so a password-protected
 story's prose never lands on the cache volume.
+
+## Account deletion retention
+
+Users can delete their own account from the web dashboard. A deleted account is locked out
+immediately (no login, no sync, everything unpublished, pen name released), but its data is
+retained on the server for a grace window so you can restore it from **Admin → Users** if the
+user changes their mind. A daily job permanently deletes accounts once the window elapses.
+
+```toml
+[accountDeletion]
+# Defaults shown. Omit this whole block to accept them.
+retentionDays = 30   # days before a deleted account is purged for good (1 to 3650)
+```
+
+The window is evaluated against each account's deletion time on every job run, so lowering
+the value also purges accounts that are already past the new, shorter window.
 
 ## Encryption at rest
 

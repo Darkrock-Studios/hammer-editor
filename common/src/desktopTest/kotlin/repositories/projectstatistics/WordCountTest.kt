@@ -46,4 +46,9 @@ class WordCountTest {
 	fun `mixed whitespace runs collapse to single separator`() {
 		assertEquals(3, countWords("one \t two\n\n three"))
 	}
+
+	@Test
+	fun `a non-breaking space separates words`() {
+		assertEquals(2, countWords("hello world"))
+	}
 }

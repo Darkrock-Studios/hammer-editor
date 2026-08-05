@@ -10,9 +10,9 @@ import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.common.util.ScanBuffers
+import com.darkrockstudios.apps.hammer.common.util.readUtf8Into
 import io.github.aakira.napier.Napier
-import kotlinx.atomicfu.locks.SynchronizedObject
-import kotlinx.atomicfu.locks.synchronized
 import okio.FileSystem
 import okio.IOException
 import okio.Path
@@ -22,15 +22,11 @@ class SceneDatasource(
 	private val fileSystem: FileSystem,
 ) {
 
-	// Cached recursive scan of the (non-archived) scenes directory; invalidated on structural mutation.
-	private val scenePathCacheLock = SynchronizedObject()
-	private var cachedScenePaths: List<HPath>? = null
+	private val scenePathIndex = ScenePathIndex(::scanScenePaths)
 
-	private fun invalidateScenePathCache() = synchronized(scenePathCacheLock) { cachedScenePaths = null }
+	private fun invalidateScenePathCache() = scenePathIndex.invalidate()
 
-	private fun addScenePathToCache(scenePath: HPath) = synchronized(scenePathCacheLock) {
-		cachedScenePaths = cachedScenePaths?.let { (it + scenePath).sortedBy { path -> path.name } }
-	}
+	private fun addScenePathToCache(scenePath: HPath) = scenePathIndex.onCreated(scenePath)
 
 	fun getSceneDirectory(): HPath = getSceneDirectory(projectDef, fileSystem)
 
@@ -39,31 +35,28 @@ class SceneDatasource(
 		return getSceneIdFromFilename(fileName)
 	}
 
-	fun resolveScenePathFromFilesystem(id: Int, paths: List<HPath> = getAllScenePaths()): HPath? {
-		return paths.find { path -> getSceneIdFromPath(path) == id }
-	}
+	fun resolveScenePathFromFilesystem(id: Int): HPath? = scenePathIndex.pathFor(id)
 
-	fun getPathFromFilesystem(sceneItem: SceneItem): HPath? {
-		return getAllScenePathsOkio()
-			.filterScenePathsOkio().firstOrNull { path ->
-				sceneItem.id == getSceneFromFilename(path).id
-			}
-	}
+	/**
+	 * Number of scenes/groups directly inside [parentPath]. Directories the scan holds no entry for
+	 * are counted from disk: an empty group reads the same to the index as one it never reached,
+	 * and order numbers are derived from this, so guessing zero would mis-number a real directory.
+	 */
+	fun countScenePathsIn(parentPath: HPath): Int =
+		scenePathIndex.childCountOrNull(parentPath) ?: listChildScenePaths(parentPath).size
+
+	private fun listChildScenePaths(parentPath: HPath): List<HPath> =
+		fileSystem.list(parentPath.toOkioPath()).filterScenePathsOkio()
 
 	private fun getAllScenePathsOkio(): List<Path> = getAllScenePaths().map { it.toOkioPath() }
 
-	// Scan runs inside the lock so an invalidation can't interleave between scan and store and
-	// resurrect a stale list. The scan is blocking, not suspending, so holding the lock is safe.
-	fun getAllScenePaths(): List<HPath> = synchronized(scenePathCacheLock) {
-		cachedScenePaths ?: run {
-			val sceneDirPath = getSceneDirectory().toOkioPath()
-			fileSystem.listRecursively(sceneDirPath)
-				.filterScenePathsOkio()
-				.sortedBy { it.name }
-				.toList()
-				.also { cachedScenePaths = it }
-		}
-	}
+	fun getAllScenePaths(): List<HPath> = scenePathIndex.paths()
+
+	private fun scanScenePaths(): List<HPath> =
+		fileSystem.listRecursively(getSceneDirectory().toOkioPath())
+			.filterScenePathsOkio()
+			.sortedBy { it.name }
+			.toList()
 
 	fun getAllScenes(): List<SceneItem> {
 		return getAllScenePathsOkio()
@@ -204,7 +197,7 @@ class SceneDatasource(
 
 	fun moveScene(sourcePath: HPath, targetPath: HPath) {
 		fileSystem.atomicMove(sourcePath.toOkioPath(), targetPath.toOkioPath())
-		invalidateScenePathCache()
+		scenePathIndex.invalidate()
 	}
 
 	fun getSceneBufferDirectory(): HPath {
@@ -224,12 +217,7 @@ class SceneDatasource(
 
 	fun getSceneFilename(path: HPath) = path.toOkioPath().name
 
-	fun getLastOrderNumber(parentPath: HPath): Int {
-		val numScenes = fileSystem.list(parentPath.toOkioPath())
-			.filterScenePathsOkio()
-			.count()
-		return numScenes
-	}
+	fun getLastOrderNumber(parentPath: HPath): Int = countScenePathsIn(parentPath)
 
 	fun clearTempScene(sceneItem: SceneItem) {
 		val path = getSceneBufferTempPath(sceneItem).toOkioPath()
@@ -251,6 +239,28 @@ class SceneDatasource(
 		}
 
 		return content
+	}
+
+	/**
+	 * Decodes the scene's Markdown into a buffer from [sink] and returns how many chars it holds,
+	 * so a caller scanning every scene can reuse one buffer instead of taking a string per file.
+	 * Returns 0 for a missing, empty or unreadable scene, and for anything that is not a scene.
+	 */
+	fun readSceneMarkdownInto(
+		sceneItem: SceneItem,
+		scenePath: HPath,
+		sink: ScanBuffers,
+	): Int {
+		if (sceneItem.type != SceneItem.Type.Scene) return 0
+		val path = scenePath.toOkioPath()
+		return try {
+			val byteCount = fileSystem.metadata(path).size ?: return 0
+			if (byteCount <= 0L || byteCount > Int.MAX_VALUE) return 0
+			fileSystem.read(path) { readUtf8Into(sink, byteCount.toInt()) }
+		} catch (e: IOException) {
+			Napier.e("Failed to read Scene markdown (${sceneItem.name})")
+			0
+		}
 	}
 
 	suspend fun storeSceneMarkdownRaw(sceneItem: SceneContent, scenePath: HPath): Boolean {
@@ -279,11 +289,7 @@ class SceneDatasource(
 		}
 	}
 
-	fun countScenes(parentPath: HPath): Int {
-		return fileSystem.list(parentPath.toOkioPath())
-			.filterScenePathsOkio()
-			.count() - 1
-	}
+	fun countScenes(parentPath: HPath): Int = countScenePathsIn(parentPath) - 1
 
 	fun storeTempSceneBuffer(buffer: SceneBuffer): Boolean {
 		val scenePath = getSceneBufferTempPath(buffer.content.scene).toOkioPath()
@@ -545,7 +551,7 @@ class SceneDatasource(
 	}
 }
 
-private fun Path.isInArchivedDirectory(): Boolean {
+internal fun Path.isInArchivedDirectory(): Boolean {
 	val pathStr = this.toString()
 	return pathStr.contains("${Path.DIRECTORY_SEPARATOR}${SceneDatasource.ARCHIVED_DIRECTORY}${Path.DIRECTORY_SEPARATOR}") ||
 		pathStr.contains("${Path.DIRECTORY_SEPARATOR}${SceneDatasource.ARCHIVED_DIRECTORY}") && this.parent?.name == SceneDatasource.ARCHIVED_DIRECTORY

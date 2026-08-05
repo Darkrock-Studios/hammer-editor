@@ -275,6 +275,41 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 // ========================================
+// Account Deletion Functions
+// ========================================
+
+function onDeleteAccountConfirmInput(input) {
+	const expected = (input.dataset.email || '').trim().toLowerCase();
+	const matches = input.value.trim().toLowerCase() === expected;
+	document.getElementById('delete-account-btn').disabled = !matches;
+}
+
+function closeDeleteAccountDialog(event) {
+	// If event is provided and it's not on the overlay itself, ignore
+	if (event && event.target !== event.currentTarget) {
+		return;
+	}
+
+	const overlay = document.getElementById('delete-account-dialog-overlay');
+	if (overlay) {
+		overlay.classList.add('closing');
+		setTimeout(function () {
+			const container = document.getElementById('delete-account-dialog-container');
+			if (container) {
+				container.innerHTML = '';
+			}
+		}, 200);
+	}
+}
+
+// Close the delete-account dialog on Escape
+document.addEventListener('keydown', function (e) {
+	if (e.key === 'Escape') {
+		closeDeleteAccountDialog();
+	}
+});
+
+// ========================================
 // Bio Management Functions
 // ========================================
 

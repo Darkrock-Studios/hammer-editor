@@ -6,6 +6,7 @@ import androidx.compose.ui.test.ComposeTimeoutException
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ActivityScenario
@@ -15,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.data.ClientResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import org.koin.java.KoinJavaComponent.getKoin
+import java.io.IOException
 
 /**
  * Shared helpers for editor instrumented tests: seed a project through the real Koin graph,
@@ -30,7 +32,10 @@ object EditorTestHarness {
 
 	/** Create a uniquely-named project so re-runs don't collide; returns its def. */
 	fun seedProject(baseName: String): ProjectDef {
-		val result = repository().createProject("$baseName ${System.currentTimeMillis()}")
+		val result = repository().createProject(
+			"$baseName ${System.currentTimeMillis()}",
+			seedDefaultLanguage = true,
+		)
 		check(result is ClientResult.Success) { "Failed to seed project: $result" }
 		return result.data
 	}
@@ -43,8 +48,37 @@ object EditorTestHarness {
 		scenario.onActivity { it.finish() }
 		InstrumentationRegistry.getInstrumentation().waitForIdleSync()
 		scenario.close()
-		repository().deleteProject(projectDef)
+		deleteProjectWhenSettled(projectDef)
 	}
+
+	/**
+	 * Delete the project directory, tolerating writes that are still landing.
+	 *
+	 * finish() and waitForIdleSync() only drain the main thread, but the project-scope close
+	 * flushes scene buffers on IO coroutines after that. A straggler write can land between
+	 * deleteRecursively emptying the directory and removing it, so the final rmdir fails with
+	 * "failed to delete <project dir>". Each retry deletes whatever reappeared, so this
+	 * converges as soon as the flushes stop.
+	 */
+	fun deleteProjectWhenSettled(projectDef: ProjectDef, timeoutMillis: Long = 15_000L) {
+		val deadline = SystemClock.uptimeMillis() + timeoutMillis
+		var lastFailure: IOException? = null
+		while (SystemClock.uptimeMillis() < deadline) {
+			try {
+				repository().deleteProject(projectDef)
+				return
+			} catch (e: IOException) {
+				lastFailure = e
+				SystemClock.sleep(DELETE_RETRY_INTERVAL_MS)
+			}
+		}
+		throw AssertionError(
+			"Project directory was still being written to ${timeoutMillis}ms after teardown began",
+			lastFailure,
+		)
+	}
+
+	private const val DELETE_RETRY_INTERVAL_MS = 100L
 }
 
 /** Matches nodes whose testTag starts with [prefix] - for list items keyed by an unknown id. */
@@ -66,6 +100,57 @@ fun ComposeTestRule.navigateTo(navTag: String) {
 	}
 	onNodeWithTag(navTag).performClick()
 }
+
+/**
+ * Click the first node matching [matcher] and wait for [landed] to confirm the click took effect.
+ *
+ * A single injected tap is occasionally dropped before `clickable` resolves it into an onClick,
+ * which leaves the screen unchanged and reports no error. Re-inject until the expected outcome
+ * appears rather than trusting one injection.
+ *
+ * Fails if [matcher] never resolves, and never reports success without having clicked: a [landed]
+ * that is already true on entry would otherwise pass the step without touching the target.
+ */
+fun ComposeTestRule.clickUntil(
+	matcher: SemanticsMatcher,
+	timeoutMillis: Long = 10_000L,
+	landed: () -> Boolean,
+) {
+	val deadline = SystemClock.uptimeMillis() + timeoutMillis
+	var clicked = false
+	while (true) {
+		// Only re-click while the target is still on screen; once it's gone the click did land and
+		// the screen is mid-change, so clicking again would hit whatever replaced it.
+		if (onAllNodes(matcher).fetchSemanticsNodes().isNotEmpty()) {
+			onAllNodes(matcher).onFirst().performClick()
+			clicked = true
+		}
+
+		if (!clicked) {
+			if (SystemClock.uptimeMillis() >= deadline) {
+				throw AssertionError(
+					"'${matcher.description}' never appeared within ${timeoutMillis}ms, so it was never clicked",
+				)
+			}
+			SystemClock.sleep(CLICK_RETRY_INTERVAL_MS)
+			continue
+		}
+
+		try {
+			waitUntil(timeoutMillis = 1_000L) { landed() }
+			return
+		} catch (e: ComposeTimeoutException) {
+			if (SystemClock.uptimeMillis() >= deadline) {
+				throw AssertionError(
+					"Click on '${matcher.description}' never took effect within ${timeoutMillis}ms",
+					e,
+				)
+			}
+		}
+	}
+}
+
+private const val CLICK_RETRY_INTERVAL_MS = 100L
 
 /**
  * Type into the tagged markdown/scene editor and wait for the edit to land.

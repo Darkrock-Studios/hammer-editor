@@ -208,6 +208,16 @@ These set up the page. Use them before reaching for raw `Column` /
       │ └─[ KTOR · HTTPS ]─────────[ LAST SYNC 14:32 ]┘  │
       └──────────────────────────────────────────────────┘
 
+- **[`HdScrollAwayFooter`](HdScrollAwayFooter.kt)**: hairline action
+  strip that floats over the bottom of a scrolling pane and slides away
+  as the reader scrolls down. It is an **overlay**, never a sibling in
+  a `Column`: host it in the same `Box` as the list, wire
+  `state.nestedScrollConnection` to the list, and pass `state.height`
+  as the list's bottom `contentPadding` so the last row clears the
+  strip. A footer that takes layout space changes what the list can
+  scroll, which flips any visibility rule keyed off scroll position and
+  flickers the strip on and off.
+
 ### Mono & numeric labels
 
 The handwriting of the system. Reach for these instead of styling
@@ -235,6 +245,11 @@ The handwriting of the system. Reach for these instead of styling
   `LocalHammerColors`.
 - **[`HdDailyGoalProgress`](HdDailyGoalProgress.kt)** — daily-goal
   pair with thin progress bar.
+- **[`HdWarningNotice`](HdWarningNotice.kt)** — amber hairline callout:
+  `HdWarnGlyph` + mono label over a body message. For a condition the
+  user should see before acting on it, where an error dialog would be
+  too much and silence too little. Non-blocking by design — the action
+  it warns about stays available.
 
 ### Buttons & inputs
 
@@ -291,6 +306,12 @@ The handwriting of the system. Reach for these instead of styling
   `DropdownMenu`. Same signature as `HdHairlineSegmentedPicker`, so
   swapping is one-for-one. Use for enums of 4+ values where a
   segmented row would crowd.
+- **[`HdSearchableListDialog`](HdSearchableListDialog.kt)** — hairline
+  dialog with an `HdSearchField` over a lazy row list, each row a label
+  plus optional mono greeble (`English (United States)     EN-US`).
+  Use where a dropdown would be unwieldy: dozens to hundreds of
+  options, e.g. every platform locale. Optional muted clear row above
+  the list resets the selection.
 
 ### Categorization
 
@@ -683,6 +704,59 @@ Applied across all six editing screens (Create/View × Notes, Timeline,
 Encyclopedia). Tag collapse lives inside `HdHairlineTagField` so it
 works wherever the field is used; date and crumb rows are wrapped at
 their call sites.
+
+### Scrollbar rail
+
+Desktop scrollbars are drawn as a **hatched rail** rather than a bare
+thumb: a vertical `outlineVariant` hairline marking the scrollable edge,
+with 45° hairline hatching filling the track behind an opaque square
+thumb.
+
+```
+│╱╱╱│
+│███│  <- thumb, masking the hatch
+│╱╱╱│
+ ^ edge rule
+```
+
+The hatch is [greeble](#greebles) logic applied to texture — it means
+something. The thumb masks it as it travels, so the hatching that
+remains is exactly the part of the document you haven't reached. It also
+follows rule 1: the edge rule is the same vertical hairline
+`HdHairlineSection` uses to group content, so a scrolling screen reads
+as bounded rather than cut off.
+
+Both the rule and the hatch are drawn **only while there is somewhere to
+scroll**, so a screen whose content fits gets no chrome at all. The
+thumb rests at `outlineVariant` and promotes to `outline` on hover —
+Compose's default is 12% black, which vanishes on a dark surface.
+
+Screens don't build any of this. Overlay the bar on its scrolling
+sibling inside a `Box`:
+
+```kotlin
+Box(Modifier.weight(1f)) {
+    LazyColumn(state = listState) { … }
+    MpScrollBarList(modifier = scrollBarOverlay(), state = listState)
+}
+```
+
+- **[`scrollBarOverlay()`](../ScrollBarOverlay.kt)** is the only correct
+  placement — `matchParentSize()`, so the bar never contributes to the
+  parent's size. `fillMaxHeight()` would stretch the wrap-content boxes
+  the detail screens use.
+- **[`MpScrollBarGutter`](../MpScrollBar.kt)** is the width to reserve
+  when content runs *edge to edge* (a full-bleed row that paints its own
+  background, or a drag surface). Screens with normal horizontal padding
+  need nothing — the rail sits in the padding they already have.
+
+**Platform caveat, and a known exception to cross-platform parity.** The
+rail is `desktopMain` only. Android draws a transient fading thumb and
+iOS uses its native inline indicators, so `MpScrollBarGutter` is `0.dp`
+on both. This is the one piece of visual vocabulary that isn't
+`commonMain`; a persistent hatched rail is right for a pointer and wrong
+for a touch screen. If it ever needs to be shared, the drawing belongs
+in an `Hd*` here and the platform files should supply only the thumb.
 
 ---
 

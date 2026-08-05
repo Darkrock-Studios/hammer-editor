@@ -37,6 +37,7 @@ private data class ArticleLd(
 	val url: String,
 	val author: PersonLd,
 	val wordCount: Long? = null,
+	val inLanguage: String? = null,
 )
 
 @Serializable
@@ -73,6 +74,7 @@ fun storyArticleJsonLd(
 	authorName: String,
 	authorUrl: String,
 	wordCount: Long? = null,
+	inLanguage: String? = null,
 ): String =
 	jsonLdEncoder.encodeToString(
 		ArticleLd(
@@ -80,6 +82,7 @@ fun storyArticleJsonLd(
 			url = url,
 			author = PersonLd(name = authorName, url = authorUrl),
 			wordCount = wordCount,
+			inLanguage = inLanguage,
 		),
 	).escapeForScript()
 

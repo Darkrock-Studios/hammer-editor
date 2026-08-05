@@ -1,7 +1,7 @@
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.test.core.app.ActivityScenario
@@ -44,12 +44,10 @@ class SceneEditorWorkflowTest {
 		composeRule.navigateTo(NAV_EDITOR_TAG)
 
 		// Create a scene and open it.
-		composeRule.waitUntil(10_000) {
-			composeRule.onAllNodesWithTag(SCENE_LIST_ADD_BUTTON_TAG).fetchSemanticsNodes().isNotEmpty()
+		composeRule.clickUntil(hasTestTag(SCENE_LIST_ADD_BUTTON_TAG)) {
+			composeRule.onAllNodesWithTag(SCENE_LIST_ADD_SCENE_TAG).fetchSemanticsNodes().isNotEmpty()
 		}
-		composeRule.onNodeWithTag(SCENE_LIST_ADD_BUTTON_TAG).performClick()
-		composeRule.onNodeWithTag(SCENE_LIST_ADD_SCENE_TAG).performClick()
-		composeRule.waitUntil(10_000) {
+		composeRule.clickUntil(hasTestTag(SCENE_LIST_ADD_SCENE_TAG)) {
 			composeRule.onAllNodesWithTag(CREATE_ITEM_NAME_FIELD_TAG).fetchSemanticsNodes().isNotEmpty()
 		}
 		composeRule.onNodeWithTag(CREATE_ITEM_NAME_FIELD_TAG).performTextInput("Opening")
@@ -65,8 +63,7 @@ class SceneEditorWorkflowTest {
 		}
 
 		// Saving clears the dirty buffer, so the save action disappears.
-		composeRule.onNodeWithTag(SCENE_EDITOR_SAVE_TAG).performClick()
-		composeRule.waitUntil(10_000) {
+		composeRule.clickUntil(hasTestTag(SCENE_EDITOR_SAVE_TAG)) {
 			composeRule.onAllNodesWithTag(SCENE_EDITOR_SAVE_TAG).fetchSemanticsNodes().isEmpty()
 		}
 	}

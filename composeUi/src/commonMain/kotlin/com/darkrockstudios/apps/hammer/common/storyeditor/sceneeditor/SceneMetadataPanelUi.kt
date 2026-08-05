@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.tagindex.replaceTagPrefix
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EntryRefChipLabel
 import com.darkrockstudios.apps.hammer.common.util.format
 import kotlinx.datetime.TimeZone
@@ -72,191 +73,199 @@ fun SceneMetadataPanelUi(
 		color = MaterialTheme.colorScheme.surfaceContainerLow,
 		tonalElevation = 0.dp,
 	) {
-		Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+		val scrollState = rememberScrollState()
+		Box {
+			Column(modifier = Modifier.verticalScroll(scrollState)) {
 
-			Row(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(start = Ui.Padding.M, end = Ui.Padding.L, top = Ui.Padding.S, bottom = Ui.Padding.S),
-				verticalAlignment = Alignment.CenterVertically,
-			) {
-				IconButton(
-					onClick = closeMetadata,
-					modifier = Modifier.size(36.dp),
+				Row(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(start = Ui.Padding.M, end = Ui.Padding.L, top = Ui.Padding.S, bottom = Ui.Padding.S),
+					verticalAlignment = Alignment.CenterVertically,
 				) {
-					Icon(
-						imageVector = Icons.Default.Close,
-						contentDescription = Res.string.scene_editor_metadata_hide_button.get(),
-						tint = MaterialTheme.colorScheme.onSurface,
-					)
-				}
-				Spacer(Modifier.width(Ui.Padding.S))
-				Text(
-					text = Res.string.scene_editor_metadata_title.get(),
-					style = MaterialTheme.typography.titleMedium,
-					color = MaterialTheme.colorScheme.onSurface,
-				)
-			}
-			HorizontalDivider(
-				thickness = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-			)
-
-			Row(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-				verticalAlignment = Alignment.Bottom,
-			) {
-				Column(modifier = Modifier.weight(1f).padding(end = Ui.Padding.M)) {
+					IconButton(
+						onClick = closeMetadata,
+						modifier = Modifier.size(36.dp),
+					) {
+						Icon(
+							imageVector = Icons.Default.Close,
+							contentDescription = Res.string.scene_editor_metadata_hide_button.get(),
+							tint = MaterialTheme.colorScheme.onSurface,
+						)
+					}
+					Spacer(Modifier.width(Ui.Padding.S))
 					Text(
-						text = state.sceneItem.name,
-						style = MaterialTheme.typography.titleLarge,
-						color = MaterialTheme.colorScheme.onSurface,
-					)
-					HdEntityId(
-						prefix = "SCN",
-						id = state.sceneItem.id,
-						modifier = Modifier.padding(top = 2.dp),
-					)
-				}
-				Row(verticalAlignment = Alignment.Bottom) {
-					HdMonoLabel(
-						text = Res.string.scene_editor_metadata_word_count_label.get().removeSuffix(":"),
-						modifier = Modifier.padding(end = 6.dp, bottom = 2.dp),
-					)
-					Text(
-						text = "${state.wordCount}",
+						text = Res.string.scene_editor_metadata_title.get(),
 						style = MaterialTheme.typography.titleMedium,
 						color = MaterialTheme.colorScheme.onSurface,
 					)
 				}
-			}
-			TimestampStrip(
-				created = state.metadata.created,
-				edited = state.metadata.lastEdited,
-			)
-			HorizontalDivider(
-				thickness = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-			)
-
-			Column(modifier = Modifier.padding(Ui.Padding.XL)) {
-
-				HdHairlineField(
-					label = Res.string.scene_editor_metadata_outline_label.get(),
-					value = state.metadata.outline,
-					onValueChange = component::updateOutline,
-					placeholder = Res.string.scene_editor_metadata_outline_placeholder.get(),
-					singleLine = false,
-					minLines = 3,
+				HorizontalDivider(
+					thickness = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
 				)
 
-				SpacerXL()
-
-				HdHairlineField(
-					label = Res.string.scene_editor_metadata_notes_label.get(),
-					value = state.metadata.notes,
-					onValueChange = component::updateNotes,
-					placeholder = Res.string.scene_editor_metadata_notes_placeholder.get(),
-					singleLine = false,
-					minLines = 3,
-				)
-
-				SpacerXL()
-
-				var isDraftNameValid by remember(state.metadata.currentDraftName) {
-					mutableStateOf(component.validateDraftName(state.metadata.currentDraftName))
-				}
-				HdHairlineField(
-					label = Res.string.scene_editor_metadata_draft_name_label.get(),
-					value = state.metadata.currentDraftName,
-					onValueChange = { newName ->
-						isDraftNameValid = component.validateDraftName(newName)
-						component.updateDraftName(newName)
-					},
-					singleLine = true,
-				)
-				if (!isDraftNameValid) {
-					SpacerM()
-					Text(
-						Res.string.scene_draft_invalid_name.get(),
-						style = MaterialTheme.typography.bodySmall,
-						color = MaterialTheme.colorScheme.error,
-					)
-				}
-
-				SpacerXL()
-
-				CollapsableSection(
-					startExpanded = true,
-					header = {
+				Row(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
+					verticalAlignment = Alignment.Bottom,
+				) {
+					Column(modifier = Modifier.weight(1f).padding(end = Ui.Padding.M)) {
+						Text(
+							text = state.sceneItem.name,
+							style = MaterialTheme.typography.titleLarge,
+							color = MaterialTheme.colorScheme.onSurface,
+						)
+						HdEntityId(
+							prefix = "SCN",
+							id = state.sceneItem.id,
+							modifier = Modifier.padding(top = 2.dp),
+						)
+					}
+					Row(verticalAlignment = Alignment.Bottom) {
 						HdMonoLabel(
-							text = Res.string.scene_editor_metadata_references_header.get(),
-							modifier = Modifier.padding(end = Ui.Padding.M),
+							text = Res.string.scene_editor_metadata_word_count_label.get().removeSuffix(":"),
+							modifier = Modifier.padding(end = 6.dp, bottom = 2.dp),
 						)
-					},
-					trailingAction = {
-						HdHairlineButton(
-							label = Res.string.scene_editor_metadata_references_add_button.get(),
-							onClick = { showAddDialog = true },
+						Text(
+							text = "${state.wordCount}",
+							style = MaterialTheme.typography.titleMedium,
+							color = MaterialTheme.colorScheme.onSurface,
 						)
-					},
-					body = { ReferencesBody(state, component) }
+					}
+				}
+				TimestampStrip(
+					created = state.metadata.created,
+					edited = state.metadata.lastEdited,
+				)
+				HorizontalDivider(
+					thickness = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
 				)
 
-				if (state.dismissedRefs.isNotEmpty()) {
+				Column(modifier = Modifier.padding(Ui.Padding.XL)) {
+
+					HdHairlineField(
+						label = Res.string.scene_editor_metadata_outline_label.get(),
+						value = state.metadata.outline,
+						onValueChange = component::updateOutline,
+						placeholder = Res.string.scene_editor_metadata_outline_placeholder.get(),
+						singleLine = false,
+						minLines = 3,
+					)
+
 					SpacerXL()
-					CollapsableSection(
-						startExpanded = false,
-						header = {
-							Row(verticalAlignment = Alignment.CenterVertically) {
-								HdMonoLabel(
-									text = Res.string.scene_editor_metadata_references_dismissed_label.get(),
-								)
-								Text(
-									text = " · ${state.dismissedRefs.size}",
-									style = MaterialTheme.typography.labelSmall,
-									color = MaterialTheme.colorScheme.onSurfaceVariant,
-									modifier = Modifier.padding(start = 4.dp, end = Ui.Padding.M),
-								)
-							}
+
+					HdHairlineField(
+						label = Res.string.scene_editor_metadata_notes_label.get(),
+						value = state.metadata.notes,
+						onValueChange = component::updateNotes,
+						placeholder = Res.string.scene_editor_metadata_notes_placeholder.get(),
+						singleLine = false,
+						minLines = 3,
+					)
+
+					SpacerXL()
+
+					var isDraftNameValid by remember(state.metadata.currentDraftName) {
+						mutableStateOf(component.validateDraftName(state.metadata.currentDraftName))
+					}
+					HdHairlineField(
+						label = Res.string.scene_editor_metadata_draft_name_label.get(),
+						value = state.metadata.currentDraftName,
+						onValueChange = { newName ->
+							isDraftNameValid = component.validateDraftName(newName)
+							component.updateDraftName(newName)
 						},
-						body = { DismissedBody(state, component) }
+						singleLine = true,
+					)
+					if (!isDraftNameValid) {
+						SpacerM()
+						Text(
+							Res.string.scene_draft_invalid_name.get(),
+							style = MaterialTheme.typography.bodySmall,
+							color = MaterialTheme.colorScheme.error,
+						)
+					}
+
+					SpacerXL()
+
+					CollapsableSection(
+						startExpanded = true,
+						header = {
+							HdMonoLabel(
+								text = Res.string.scene_editor_metadata_references_header.get(),
+								modifier = Modifier.padding(end = Ui.Padding.M),
+							)
+						},
+						trailingAction = {
+							HdHairlineButton(
+								label = Res.string.scene_editor_metadata_references_add_button.get(),
+								onClick = { showAddDialog = true },
+							)
+						},
+						body = { ReferencesBody(state, component) }
+					)
+
+					if (state.dismissedRefs.isNotEmpty()) {
+						SpacerXL()
+						CollapsableSection(
+							startExpanded = false,
+							header = {
+								Row(verticalAlignment = Alignment.CenterVertically) {
+									HdMonoLabel(
+										text = Res.string.scene_editor_metadata_references_dismissed_label.get(),
+									)
+									Text(
+										text = " · ${state.dismissedRefs.size}",
+										style = MaterialTheme.typography.labelSmall,
+										color = MaterialTheme.colorScheme.onSurfaceVariant,
+										modifier = Modifier.padding(start = 4.dp, end = Ui.Padding.M),
+									)
+								}
+							},
+							body = { DismissedBody(state, component) }
+						)
+					}
+
+					SpacerXL()
+
+					CollapsableSection(
+						startExpanded = true,
+						header = {
+							HdMonoLabel(
+								text = Res.string.scene_editor_metadata_tags_header.get(),
+								modifier = Modifier.padding(end = Ui.Padding.M),
+							)
+						},
+						trailingAction = {
+							HdHairlineButton(
+								label = Res.string.scene_editor_metadata_tags_add_button.get(),
+								onClick = { showAddTagDialog = true },
+							)
+						},
+						body = { TagsBody(state, component) }
+					)
+
+					SpacerXL()
+
+					CollapsableSection(
+						header = {
+							HdMonoLabel(
+								text = Res.string.scene_editor_metadata_advanced_header.get(),
+								modifier = Modifier.padding(end = Ui.Padding.M),
+							)
+						},
+						body = { AdvancedBody(state) }
 					)
 				}
-
-				SpacerXL()
-
-				CollapsableSection(
-					startExpanded = true,
-					header = {
-						HdMonoLabel(
-							text = Res.string.scene_editor_metadata_tags_header.get(),
-							modifier = Modifier.padding(end = Ui.Padding.M),
-						)
-					},
-					trailingAction = {
-						HdHairlineButton(
-							label = Res.string.scene_editor_metadata_tags_add_button.get(),
-							onClick = { showAddTagDialog = true },
-						)
-					},
-					body = { TagsBody(state, component) }
-				)
-
-				SpacerXL()
-
-				CollapsableSection(
-					header = {
-						HdMonoLabel(
-							text = Res.string.scene_editor_metadata_advanced_header.get(),
-							modifier = Modifier.padding(end = Ui.Padding.M),
-						)
-					},
-					body = { AdvancedBody(state) }
-				)
 			}
+
+			MpScrollBarColumn(
+				modifier = scrollBarOverlay(),
+				state = scrollState,
+			)
 		}
 	}
 
@@ -617,11 +626,7 @@ private fun AddTagDialog(
 	var draft by rememberSaveable { mutableStateOf("") }
 	LaunchedEffect(visible) { if (!visible) draft = "" }
 
-	val suggestions = remember(draft, existingTags) {
-		val prefix = draft.substringAfterLast(' ').trim().removePrefix("#")
-		if (prefix.isEmpty()) emptyList()
-		else component.suggestTags(prefix).filter { it !in existingTags }
-	}
+	val suggestions = rememberTagSuggestions(draft, existingTags, component::suggestTags)
 
 	AnimatedDialog(
 		visible = visible,
@@ -650,7 +655,7 @@ private fun AddTagDialog(
 			HdTagSuggestionStrip(
 				suggestions = suggestions,
 				onSelect = { tag ->
-					component.addTags(tag)
+					component.addTags(replaceTagPrefix(draft, tag))
 					draft = ""
 				},
 			)

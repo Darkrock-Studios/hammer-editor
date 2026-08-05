@@ -39,7 +39,7 @@
 	<string name="timeline_view_menu_delete">Видалити</string>
 	<string name="timeline_view_confirm_delete_title">Видалити подію хронології?</string>
 	<string name="timeline_view_confirm_delete_message">Цю дію неможливо скасувати!</string>
-	<string name="timeline_header">Timeline</string>
+	<string name="timeline_header">Хронологія</string>
 	<string name="timeline_header_meta">%1$d ЗАПИСІВ · %2$d ТЕГІВ</string>
 	<string name="timeline_search_button">Пошук у хронології</string>
 	<string name="timeline_search_placeholder">Пошук у хронології</string>

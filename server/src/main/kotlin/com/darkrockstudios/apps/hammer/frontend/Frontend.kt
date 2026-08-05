@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.ExtraLink
 import com.darkrockstudios.apps.hammer.ServerConfig
+import com.darkrockstudios.apps.hammer.account.AccountDeletionService
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.account.BioService
 import com.darkrockstudios.apps.hammer.account.PasswordResetRepository
@@ -84,6 +85,7 @@ fun Route.frontend() {
 	val projectAccessRepository: ProjectAccessRepository by inject()
 	val penNameService: PenNameService by inject()
 	val bioService: BioService by inject()
+	val accountDeletionService: AccountDeletionService by inject()
 	val serverConfig: ServerConfig by inject()
 	val passwordResetRepository: PasswordResetRepository by inject()
 	val markdownService: MarkdownService by inject()
@@ -95,6 +97,7 @@ fun Route.frontend() {
 	val userActivityRepository: UserActivityRepository by inject()
 	val storyReaderRepository: StoryReaderRepository by inject()
 	val storyReaderCollector: StoryReaderCollector by inject()
+	val serverProjectDataRepository: com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository by inject()
 	val recurringTaskRegistry: com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry by inject()
 	val clock: kotlin.time.Clock by inject()
 	val projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(named(PROJECTS_SYNC_MANAGER))
@@ -128,7 +131,15 @@ fun Route.frontend() {
 	localeRoutes()
 	authRoutes(accountsRepository, whiteListRepository, configRepository, serverConfig)
 	passwordResetRoutes(passwordResetRepository)
-	dashboardPage(projectsRepository, accountsRepository, penNameService, bioService, serverConfig, markdownService)
+	dashboardPage(
+		projectsRepository,
+		accountsRepository,
+		penNameService,
+		bioService,
+		accountDeletionService,
+		serverConfig,
+		markdownService,
+	)
 	storyPage(
 		storyRendererService,
 		projectAccessRepository,
@@ -156,6 +167,7 @@ fun Route.frontend() {
 		storyReaderCollector,
 		accountsRepository,
 		projectsRepository,
+		serverProjectDataRepository,
 		serverConfig,
 	)
 	if (serverConfig.richLinkPreviews) {
@@ -167,6 +179,7 @@ fun Route.frontend() {
 		configRepository,
 		accountsRepository,
 		projectsRepository,
+		accountDeletionService,
 		serverConfig,
 		patreonSyncService,
 		emailService,
@@ -308,11 +321,13 @@ fun AuthenticationConfig.frontendAuthentication(accountRepo: AccountsRepository,
 }
 
 /**
- * Whether [session] should reach whitelist-protected pages: the account must exist
- * and either be an admin or, when the whitelist is active, be on it. Admin status is
- * read from the account row, not the cookie, so a revoked admin can't ride a stale
- * session past the gate. Must match the redirect gate in the login page — if the two
- * disagree, a logged-in but unauthorized user loops between /login and /dashboard.
+ * Whether [session] should reach whitelist-protected pages: the account must exist,
+ * not be pending deletion, and either be an admin or, when the whitelist is active,
+ * be on it. Admin status is read from the account row, not the cookie, so a revoked
+ * admin can't ride a stale session past the gate; the deletion check precedes the
+ * admin allowance for the same reason. Must match the redirect gate in the login
+ * page: if the two disagree, a logged-in but unauthorized user loops between
+ * /login and /dashboard.
  */
 suspend fun sessionIsAuthorized(
 	session: UserSession,
@@ -322,6 +337,7 @@ suspend fun sessionIsAuthorized(
 	val account = runCatching { accountRepo.getAccount(session.userId) }.getOrNull()
 	return when {
 		account == null -> false
+		account.deleted_at != null -> false
 		account.is_admin -> true
 		whitelistRepo.useWhiteList() -> whitelistRepo.isOnWhiteList(account.email)
 		else -> true

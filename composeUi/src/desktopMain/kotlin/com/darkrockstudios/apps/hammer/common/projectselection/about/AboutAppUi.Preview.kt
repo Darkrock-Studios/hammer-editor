@@ -31,15 +31,12 @@ fun ScreenAboutAppUiTabletPreview() {
 
 private val previewComponent = object : AboutApp {
 	override val state = MutableValue(
-		AboutApp.State(
-			latestVersion = "v9.9.9",
-			currentVersion = "v1.0.0",
-			newVersionAvailable = true
-		)
+		AboutApp.State(currentVersion = "v1.0.0")
 	)
 
 	override fun openDiscord() {}
 	override fun openReddit() {}
 	override fun openGithub() {}
-	override fun viewReleaseDetails() {}
+	override fun viewChangelog() {}
+	override fun openLatestRelease() {}
 }

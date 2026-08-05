@@ -1,4 +1,4 @@
-import kotlinx.datetime.Instant;
+import kotlin.time.Instant;
 
 -- Permanent deletion tombstones for story ideas: written when a delete lands, never
 -- pruned, so a stale device holding a deleted idea cannot resurrect it on sync.
@@ -28,3 +28,6 @@ ON CONFLICT (user_id, uuid) DO NOTHING;
 
 hasDeletedIdea:
 SELECT EXISTS(SELECT 1 FROM deleted_idea WHERE user_id = :userId AND uuid = CAST(:uuid AS UUID));
+
+deleteAllForUser:
+DELETE FROM deleted_idea WHERE user_id = :userId;

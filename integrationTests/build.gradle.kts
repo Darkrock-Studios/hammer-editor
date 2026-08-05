@@ -39,7 +39,6 @@ kotlin {
 				implementation("org.jetbrains.compose.components:components-resources:${libs.versions.jetbrains.compose.get()}")
 				implementation(libs.okio)
 				implementation(libs.ktor.client.java)
-				implementation(libs.kotlinx.datetime)
 				implementation(libs.serialization.json)
 
 				implementation(project.dependencies.platform(libs.koin.bom))

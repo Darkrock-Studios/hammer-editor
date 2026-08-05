@@ -2,17 +2,17 @@ package com.darkrockstudios.apps.hammer.database
 
 import app.cash.sqldelight.ColumnAdapter
 import com.darkrockstudios.apps.hammer.utilities.coerceToStorableRange
+import org.slf4j.LoggerFactory
 import java.time.OffsetDateTime
 import java.time.ZoneOffset
 import kotlin.time.Instant
 import kotlin.time.toJavaInstant
 import kotlin.time.toKotlinInstant
-import org.slf4j.LoggerFactory
 
 /**
  * Adapts the JDBC Postgres `TIMESTAMPTZ` column type (`OffsetDateTime`) to
  * `kotlin.time.Instant` so DAOs and downstream code can stay in the
- * kotlinx-datetime / kotlin.time world.
+ * kotlin.time world.
  */
 internal object InstantColumnAdapter : ColumnAdapter<Instant, OffsetDateTime> {
 	private val logger = LoggerFactory.getLogger(InstantColumnAdapter::class.java)

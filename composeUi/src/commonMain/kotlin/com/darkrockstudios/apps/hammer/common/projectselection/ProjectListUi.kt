@@ -1,19 +1,16 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -40,10 +37,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontStyle
@@ -58,6 +53,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.filterProjects
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
@@ -65,12 +61,16 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooter
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortMenu
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSortOption
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdToolButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.data.search.parseQuery
 import com.darkrockstudios.apps.hammer.common.protocolmismatch.ProtocolMismatchDialog
 import com.darkrockstudios.apps.hammer.common.reauthentication.ReauthenticationUi
@@ -114,6 +114,7 @@ private val NarrowContentPadding: Dp = Ui.Padding.XL
 
 /** Tags the "Create Project" affordance (masthead button when wide, bottom bar when narrow). */
 const val CreateProjectButtonTestTag = "create-project-button"
+const val ProjectListTestTag = "project-list"
 
 internal enum class ProjectsSortMode(
 	override val labelRes: StringResource,
@@ -189,18 +190,11 @@ fun ProjectListUi(
 		}
 	}
 
-	// Same scroll-away pattern as the scene list outline button: hide the
-	// bar when the user scrolls down, reveal it on any upward scroll.
-	var createBarVisible by remember { mutableStateOf(true) }
-	val scrollConnection = remember {
-		object : NestedScrollConnection {
-			override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-				if (available.y < -1f) createBarVisible = false
-				else if (available.y > 1f) createBarVisible = true
-				return Offset.Zero
-			}
-		}
-	}
+	val listState: LazyListState = rememberLazyListState()
+	val createBarState = rememberHdScrollAwayFooterState()
+	// Always reachable when the list can't scroll down to it.
+	val createBarVisible =
+		!isWide && (!listState.canScrollForward || !createBarState.isHiddenByScroll)
 
 	Column(
 		modifier = modifier.fillMaxSize(),
@@ -247,13 +241,17 @@ fun ProjectListUi(
 
 		ColumnHeader(showLastOpen = isWide)
 
-		Box(modifier = Modifier.weight(1f)) {
-			val listState: LazyListState = rememberLazyListState()
+		Box(modifier = Modifier.weight(1f).clipToBounds()) {
 			LazyColumn(
 				modifier = Modifier
 					.fillMaxSize()
-					.nestedScroll(scrollConnection),
+					.testTag(ProjectListTestTag)
+					.nestedScroll(createBarState.nestedScrollConnection),
 				state = listState,
+				contentPadding = PaddingValues(
+					end = MpScrollBarGutter,
+					bottom = if (isWide) 0.dp else createBarState.height,
+				),
 			) {
 				if (visibleProjects.isEmpty()) {
 					item(key = "empty") {
@@ -281,22 +279,16 @@ fun ProjectListUi(
 				}
 			}
 			MpScrollBarList(
-				modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+				modifier = scrollBarOverlay(),
 				state = listState,
 			)
-		}
 
-		if (!isWide) {
-			AnimatedVisibility(
+			BottomCreateBar(
+				state = createBarState,
 				visible = createBarVisible,
-				enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-				exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
-			) {
-				BottomCreateBar(
-					onCreate = component::showCreate,
-					horizontalPadding = horizontalPadding,
-				)
-			}
+				onCreate = component::showCreate,
+				horizontalPadding = horizontalPadding,
+			)
 		}
 
 		FooterFolio(
@@ -312,6 +304,7 @@ fun ProjectListUi(
 		projectName = state.importProjectName,
 		options = state.importOptions,
 		preview = state.importPreview,
+		isParsing = state.isParsingImport,
 		onProjectNameChange = component::updateImportProjectName,
 		onCancel = component::cancelImportDialog,
 		onOptionsChange = component::updateImportOptions,
@@ -506,7 +499,7 @@ private fun ColumnHeader(showLastOpen: Boolean) {
 				.fillMaxWidth()
 				.padding(
 					start = 4.dp + Ui.Padding.XL,
-					end = Ui.Padding.L,
+					end = Ui.Padding.L + MpScrollBarGutter,
 					top = Ui.Padding.M,
 					bottom = Ui.Padding.M,
 				),
@@ -599,25 +592,25 @@ private fun FooterFolio(
 }
 
 @Composable
-private fun BottomCreateBar(
+private fun BoxScope.BottomCreateBar(
+	state: HdScrollAwayFooterState,
+	visible: Boolean,
 	onCreate: () -> Unit,
 	horizontalPadding: Dp,
 ) {
-	HorizontalDivider(
-		modifier = Modifier.fillMaxWidth(),
-		thickness = Dp.Hairline,
-		color = MaterialTheme.colorScheme.outline,
-	)
-	Box(
-		modifier = Modifier
-			.fillMaxWidth()
-			.background(MaterialTheme.colorScheme.surfaceContainerLow)
-			.padding(horizontal = horizontalPadding, vertical = Ui.Padding.L),
-		contentAlignment = Alignment.Center,
+	HdScrollAwayFooter(
+		state = state,
+		visible = visible,
+		containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+		dividerColor = MaterialTheme.colorScheme.outline,
+		contentPadding = PaddingValues(
+			horizontal = horizontalPadding,
+			vertical = Ui.Padding.L,
+		),
 	) {
 		Box(
 			modifier = Modifier
-				.fillMaxWidth()
+				.weight(1f)
 				.height(44.dp)
 				.testTag(CreateProjectButtonTestTag)
 				.background(MaterialTheme.colorScheme.primary)

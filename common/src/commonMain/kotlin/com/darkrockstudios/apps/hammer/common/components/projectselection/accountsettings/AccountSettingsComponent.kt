@@ -454,19 +454,28 @@ class AccountSettingsComponent(
 	}
 
 	companion object {
-		// regex to validate url with port number
-		private val urlWithPortRegex =
-			Regex("""^([a-z0-9]+\.)*([a-z0-9]+)(\.[a-z]+)(:[0-9]{1,5})?$""")
-		private val ipWithPortRegex = Regex("""^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}(?::\d+)?$""")
+		/** A host name or IPv4 address: dot-separated labels of letters, digits and inner hyphens. */
+		private val hostRegex =
+			Regex("""^[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?(\.[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?)*$""")
 
 		fun validateUrl(url: String): Boolean {
-			return url.isNotBlank() && (urlWithPortRegex.matches(url) || ipWithPortRegex.matches(url))
+			if (url.isBlank()) return false
+
+			val host = url.substringBefore(':')
+			if (hostRegex.matches(host).not()) return false
+
+			if (url.contains(':')) {
+				val port = url.substringAfter(':').toIntOrNull() ?: return false
+				if (port !in 1..65535) return false
+			}
+
+			return true
 		}
 
 		fun cleanUpUrl(url: String): String {
-			var cleanUrl: String = url.trim()
-			cleanUrl = cleanUrl.removeSuffix("http://")
-			cleanUrl = cleanUrl.removeSuffix("https://")
+			var cleanUrl: String = url.trim().lowercase()
+			cleanUrl = cleanUrl.removePrefix("http://")
+			cleanUrl = cleanUrl.removePrefix("https://")
 			cleanUrl = cleanUrl.removeSuffix("/")
 
 			return cleanUrl

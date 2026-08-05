@@ -64,6 +64,8 @@ interface ProjectsList : HammerComponent, ComponentToaster {
 		val importProjectName: String = "",
 		val importFileContent: ByteArray = ByteArray(0),
 		val importPreview: ImportPreview = ImportPreview(emptyList()),
+		// A parse in flight is meaningless after a process death; don't restore it.
+		@Transient val isParsingImport: Boolean = false,
 	)
 
 	@Serializable

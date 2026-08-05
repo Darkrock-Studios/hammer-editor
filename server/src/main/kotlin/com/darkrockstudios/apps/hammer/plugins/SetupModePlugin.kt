@@ -12,7 +12,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Plugin that redirects frontend requests to the setup page when no users exist in the database.
- * This allows admins to see instructions for creating their first account via the Hammer app.
+ * The setup page lets the admin create the first account directly, or shows instructions for
+ * creating it via the Hammer app.
  *
  * API routes are NOT blocked - they must remain accessible so the Hammer app can create the first account.
  */

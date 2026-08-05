@@ -169,6 +169,17 @@
 	border: 1px solid var(--neutral-300);
 }
 
+.status-badge--danger {
+	background: rgba(239, 68, 68, 0.12);
+	color: #991b1b;
+	border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.user-restore-btn {
+	padding: 0.25rem 0.75rem;
+	font-size: 0.875rem;
+}
+
 /* ========================================
    Form Styling
    ======================================== */

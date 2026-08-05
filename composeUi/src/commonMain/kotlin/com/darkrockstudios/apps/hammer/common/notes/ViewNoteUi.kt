@@ -128,6 +128,7 @@ fun ViewNoteUi(
 						noteText = noteText,
 						onNoteTextChanged = { component.onContentChanged(it) },
 						suggestTags = component::suggestTags,
+						enableSpellChecking = state.spellCheckAllowed,
 						modifier = Modifier.weight(1f),
 					)
 
@@ -314,52 +315,59 @@ private fun ViewBody(
 	modifier: Modifier = Modifier,
 ) {
 	val scrollState = rememberScrollState()
-	Column(
-		modifier = modifier
-			.fillMaxWidth()
-			.verticalScroll(scrollState)
-			.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.XL),
-	) {
-		val noteTags = note?.tags
-		if (!noteTags.isNullOrEmpty()) {
-			FlowRow(
-				modifier = Modifier
-					.fillMaxWidth()
-					.padding(bottom = Ui.Padding.L),
-				horizontalArrangement = Arrangement.spacedBy(6.dp),
-				verticalArrangement = Arrangement.spacedBy(6.dp),
-			) {
-				noteTags.sorted().forEach { tag ->
-					HdTagChip(
-						label = tag,
-						active = true,
-						onClick = { onTagClick(tag) },
-						onRemove = { onTagRemove(tag) },
-					)
+	Box(modifier = modifier) {
+		Column(
+			modifier = Modifier
+				.fillMaxWidth()
+				.verticalScroll(scrollState)
+				.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.XL),
+		) {
+			val noteTags = note?.tags
+			if (!noteTags.isNullOrEmpty()) {
+				FlowRow(
+					modifier = Modifier
+						.fillMaxWidth()
+						.padding(bottom = Ui.Padding.L),
+					horizontalArrangement = Arrangement.spacedBy(6.dp),
+					verticalArrangement = Arrangement.spacedBy(6.dp),
+				) {
+					noteTags.sorted().forEach { tag ->
+						HdTagChip(
+							label = tag,
+							active = true,
+							onClick = { onTagClick(tag) },
+							onRemove = { onTagRemove(tag) },
+						)
+					}
 				}
+
+				HorizontalDivider(
+					thickness = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+					modifier = Modifier.padding(bottom = Ui.Padding.L),
+				)
 			}
 
-			HorizontalDivider(
-				thickness = Dp.Hairline,
-				color = MaterialTheme.colorScheme.outlineVariant,
-				modifier = Modifier.padding(bottom = Ui.Padding.L),
-			)
+			with(sharedTransitionScope) {
+				MarkdownView(
+					markdown = noteText,
+					modifier = Modifier
+						.fillMaxWidth()
+						.sharedElement(
+							sharedContentState = rememberSharedContentState(
+								key = "note-content-${note?.id}",
+							),
+							animatedVisibilityScope = animatedVisibilityScope,
+						)
+						.clickable(onClick = onEnterEdit),
+				)
+			}
 		}
 
-		with(sharedTransitionScope) {
-			MarkdownView(
-				markdown = noteText,
-				modifier = Modifier
-					.fillMaxWidth()
-					.sharedElement(
-						sharedContentState = rememberSharedContentState(
-							key = "note-content-${note?.id}",
-						),
-						animatedVisibilityScope = animatedVisibilityScope,
-					)
-					.clickable(onClick = onEnterEdit),
-			)
-		}
+		MpScrollBarColumn(
+			modifier = scrollBarOverlay(),
+			state = scrollState,
+		)
 	}
 }
 
@@ -370,6 +378,7 @@ private fun EditBody(
 	noteText: String,
 	onNoteTextChanged: (String) -> Unit,
 	suggestTags: (prefix: String) -> List<String>,
+	enableSpellChecking: Boolean,
 	modifier: Modifier = Modifier,
 ) {
 	Column(modifier = modifier.fillMaxWidth()) {
@@ -396,6 +405,7 @@ private fun EditBody(
 		MarkdownEditField(
 			initialMarkdown = noteText,
 			onMarkdownChanged = onNoteTextChanged,
+			enableSpellChecking = enableSpellChecking,
 			contentPadding = PaddingValues(Ui.Padding.XL),
 			modifier = Modifier
 				.fillMaxWidth()

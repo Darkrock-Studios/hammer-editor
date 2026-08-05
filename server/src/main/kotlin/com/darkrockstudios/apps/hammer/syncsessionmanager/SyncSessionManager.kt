@@ -19,6 +19,11 @@ class SyncSessionManager<K : Any, T : SynchronizationSession>(
 
 	fun terminateSession(key: K): Boolean = synchronizationSessions.remove(key) != null
 
+	/** Removes every session whose key matches [predicate]. */
+	fun terminateSessions(predicate: (K) -> Boolean) {
+		synchronizationSessions.keys.removeAll { predicate(it) }
+	}
+
 	suspend fun createNewSession(key: K, createSession: (key: K, syncId: String) -> T): String {
 		val newSyncId = syncIdGenerator.nextString()
 		val newSession = createSession(key, newSyncId)

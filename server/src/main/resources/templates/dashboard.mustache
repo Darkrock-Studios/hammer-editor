@@ -60,6 +60,34 @@
 					{{/communityEnabled}}
 				</div>
 			</div>
+
+			<!-- Danger Zone (admin accounts cannot be deleted) -->
+			{{^isAdmin}}
+				<div class="account-danger-zone">
+					<div class="danger-zone">
+						<div class="danger-zone-header">
+							<span class="danger-icon">&#9888;</span>
+							<h3>{{msg.account_delete_title}}</h3>
+						</div>
+						<div class="danger-zone-content">
+							<p class="danger-warning">{{msg.account_delete_warning}}</p>
+						</div>
+						<div class="danger-zone-actions">
+							<button type="button"
+									class="btn btn--danger"
+									hx-get="/dashboard/delete-account-dialog"
+									hx-target="#delete-account-dialog-container"
+									hx-swap="innerHTML">
+								{{msg.account_delete_button}}
+							</button>
+						</div>
+					</div>
+				</div>
+				<div id="delete-account-dialog-container"></div>
+			{{/isAdmin}}
+			{{#isAdmin}}
+				<p class="account-admin-delete-note">{{msg.account_delete_error_admin}}</p>
+			{{/isAdmin}}
 		</section>
 	</div>
 </main>

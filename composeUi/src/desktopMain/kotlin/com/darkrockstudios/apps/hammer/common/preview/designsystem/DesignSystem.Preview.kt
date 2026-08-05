@@ -4,21 +4,27 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdAttributionItem
@@ -54,6 +60,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPlainSectio
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChipVariant
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResponsiveStrip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooter
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdStatBlock
@@ -61,6 +68,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTypeStamp
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTypographicHero
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdUnsavedBadge
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdScrollAwayFooterState
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -577,6 +585,45 @@ fun BottomBarPreview() {
 			selectedId = "home",
 			onSelect = {},
 		)
+	}
+}
+
+@Preview(widthDp = 360, heightDp = 280)
+@Composable
+fun ScrollAwayFooterPreview() {
+	AppTheme(globalSettingsPreview, useDarkTheme = true) {
+		val footerState = rememberHdScrollAwayFooterState()
+		Box(
+			modifier = Modifier
+				.fillMaxSize()
+				.background(MaterialTheme.colorScheme.surface)
+				.clipToBounds(),
+		) {
+			LazyColumn(
+				modifier = Modifier
+					.fillMaxSize()
+					.nestedScroll(footerState.nestedScrollConnection),
+				contentPadding = PaddingValues(bottom = footerState.height),
+			) {
+				items(12) { index ->
+					Text(
+						text = "Scene ${index + 1}",
+						style = MaterialTheme.typography.bodyLarge,
+						color = MaterialTheme.colorScheme.onSurface,
+						modifier = Modifier.fillMaxWidth().padding(16.dp),
+					)
+				}
+			}
+
+			HdScrollAwayFooter(state = footerState) {
+				HdHairlineButton(
+					label = "Outline Overview",
+					onClick = {},
+					modifier = Modifier.weight(1f),
+				)
+				HdHairlineButton(label = "+", onClick = {})
+			}
+		}
 	}
 }
 

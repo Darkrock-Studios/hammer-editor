@@ -33,10 +33,17 @@ class SceneDatasourceCacheTest : BaseTest() {
 	private class CountingFileSystem(delegate: FakeFileSystem) : ForwardingFileSystem(delegate) {
 		var listRecursivelyCount = 0
 			private set
+		var listCount = 0
+			private set
 
 		override fun listRecursively(dir: Path, followSymlinks: Boolean): Sequence<Path> {
 			listRecursivelyCount++
 			return super.listRecursively(dir, followSymlinks)
+		}
+
+		override fun list(dir: Path): List<Path> {
+			listCount++
+			return super.list(dir)
 		}
 	}
 
@@ -126,7 +133,7 @@ class SceneDatasourceCacheTest : BaseTest() {
 	}
 
 	@Test
-	fun `moveScene invalidates the cache`() = runTest {
+	fun `moveScene keeps the cache in step`() = runTest {
 		val sourceId = 1
 		val sourcePath = sceneDatasource.resolveScenePathFromFilesystem(sourceId)
 		assertNotNull(sourcePath)
@@ -140,5 +147,80 @@ class SceneDatasourceCacheTest : BaseTest() {
 		val paths = sceneDatasource.getAllScenePaths().map { it.toOkioPath() }
 		assertTrue(paths.contains(targetPath.toOkioPath()), "Moved-to path must be present")
 		assertTrue(!paths.contains(sourcePath.toOkioPath()), "Moved-from path must be gone")
+		assertEquals(
+			targetPath.toOkioPath(),
+			sceneDatasource.resolveScenePathFromFilesystem(sourceId)?.toOkioPath(),
+			"Moved scene must resolve to its new path",
+		)
+	}
+
+	@Test
+	fun `moving a scene to a new id re-indexes it`() = runTest {
+		// reIdScene moves a scene to a filename carrying a different id; the cached id index has to
+		// retire the old id rather than keep pointing it at the moved file.
+		val oldId = 1
+		val newId = 997
+		val sourcePath = sceneDatasource.resolveScenePathFromFilesystem(oldId)
+		assertNotNull(sourcePath)
+
+		val targetPath = sourcePath.toOkioPath().parent!!
+			.div("1~Re-IDed~$newId.md").toHPath()
+		sceneDatasource.moveScene(sourcePath, targetPath)
+
+		assertEquals(
+			targetPath.toOkioPath(),
+			sceneDatasource.resolveScenePathFromFilesystem(newId)?.toOkioPath(),
+			"Scene must resolve under its new id",
+		)
+		assertEquals(
+			null,
+			sceneDatasource.resolveScenePathFromFilesystem(oldId),
+			"The retired id must no longer resolve",
+		)
+	}
+
+	@Test
+	fun `moving one of two files sharing a scene id keeps the winner resolvable`() = runTest {
+		// Duplicate ids on disk are tolerated, and the id resolves to the name-first of them. An
+		// incremental cache update cannot maintain that, so a move must fall back to a re-scan.
+		val sharedId = 1
+		val winner = sceneDatasource.resolveScenePathFromFilesystem(sharedId)
+		assertNotNull(winner)
+		val loser = sceneDatasource.getSceneDirectory().toOkioPath()
+			.div("9~Duplicate~$sharedId.md").toHPath()
+		sceneDatasource.createNewGroup(loser)
+		assertEquals(
+			winner.toOkioPath(),
+			sceneDatasource.resolveScenePathFromFilesystem(sharedId)?.toOkioPath(),
+			"The name-first path owns the id",
+		)
+
+		val renamedLoser = sceneDatasource.getSceneDirectory().toOkioPath()
+			.div("09~Duplicate~$sharedId.md").toHPath()
+		sceneDatasource.moveScene(loser, renamedLoser)
+
+		assertEquals(
+			winner.toOkioPath(),
+			sceneDatasource.resolveScenePathFromFilesystem(sharedId)?.toOkioPath(),
+			"Moving the duplicate must not steal the id from the winner",
+		)
+	}
+
+	@Test
+	fun `countScenes stays correct without re-listing the directory`() = runTest {
+		val sceneDir = sceneDatasource.getSceneDirectory()
+		val before = sceneDatasource.countScenes(sceneDir)
+		val listsBefore = countingFs.listCount
+
+		val newId = 998
+		val newPath = sceneDir.toOkioPath().div("6~Counted~$newId.md").toHPath()
+		sceneDatasource.createNewGroup(newPath)
+
+		assertEquals(before + 1, sceneDatasource.countScenes(sceneDir), "New scene must be counted")
+		assertEquals(
+			listsBefore,
+			countingFs.listCount,
+			"Counting children must come from the cached scan, not a fresh directory listing",
+		)
 	}
 }
