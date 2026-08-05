@@ -13,29 +13,64 @@
 				<span>{{msg.setup_admin_note}}</span>
 			</div>
 
-			<div class="setup-steps">
-				<div class="setup-step">
-					<span class="setup-step__number">1</span>
-					<span class="setup-step__text">{{msg.setup_step1}}</span>
+			<form action="/setup" method="post" class="setup-form">
+				<div class="form-field">
+					<label for="email" class="form-field__label">{{msg.login_email_label}}</label>
+					<input type="email" id="email" name="email" class="form-input" required autofocus
+						   value="{{email}}" placeholder="{{msg.login_email_placeholder}}" autocomplete="email">
 				</div>
-				<div class="setup-step">
-					<span class="setup-step__number">2</span>
-					<span class="setup-step__text">{{msg.setup_step2}}</span>
-				</div>
-				<div class="setup-step setup-step--highlight">
-					<span class="setup-step__number">
-						<i class="fa-solid fa-server"></i>
-					</span>
-					<span class="setup-step__text setup-step__address">{{serverAddress}}</span>
-				</div>
-				<div class="setup-step">
-					<span class="setup-step__number">3</span>
-					<span class="setup-step__text">{{msg.setup_step3}}</span>
-				</div>
-			</div>
 
-			<div class="error-note">
-				<p>{{msg.setup_return_note}}</p>
+				<div class="form-field">
+					<label for="password" class="form-field__label">{{msg.setup_form_password_label}}</label>
+					<input type="password" id="password" name="password" class="form-input" required
+						   placeholder="{{msg.login_password_placeholder}}" autocomplete="new-password">
+					<p class="form-field__help">{{msg.password_reset_requirements}}</p>
+				</div>
+
+				<div class="form-field">
+					<label for="confirmPassword" class="form-field__label">{{msg.setup_form_confirm_password_label}}</label>
+					<input type="password" id="confirmPassword" name="confirmPassword" class="form-input" required
+						   placeholder="{{msg.login_password_placeholder}}" autocomplete="new-password">
+				</div>
+
+				{{#error}}
+					<div class="setup-form__error">
+						<p>{{error}}</p>
+					</div>
+				{{/error}}
+
+				<div class="setup-form__actions">
+					<button type="submit" class="setup-form__submit">{{msg.setup_form_submit}}</button>
+				</div>
+			</form>
+
+			<div class="setup-alt">
+				<h2 class="setup-alt__title">{{msg.setup_alt_title}}</h2>
+
+				<div class="setup-steps">
+					<div class="setup-step">
+						<span class="setup-step__number">1</span>
+						<span class="setup-step__text">{{msg.setup_step1}}</span>
+					</div>
+					<div class="setup-step">
+						<span class="setup-step__number">2</span>
+						<span class="setup-step__text">{{msg.setup_step2}}</span>
+					</div>
+					<div class="setup-step setup-step--highlight">
+						<span class="setup-step__number">
+							<i class="fa-solid fa-server"></i>
+						</span>
+						<span class="setup-step__text setup-step__address">{{serverAddress}}</span>
+					</div>
+					<div class="setup-step">
+						<span class="setup-step__number">3</span>
+						<span class="setup-step__text">{{msg.setup_step3}}</span>
+					</div>
+				</div>
+
+				<div class="error-note">
+					<p>{{msg.setup_return_note}}</p>
+				</div>
 			</div>
 		</div>
 	</div>
