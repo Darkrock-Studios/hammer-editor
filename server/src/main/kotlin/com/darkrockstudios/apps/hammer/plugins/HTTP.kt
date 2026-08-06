@@ -24,14 +24,10 @@ import io.ktor.server.request.path
 import io.ktor.server.routing.IgnoreTrailingSlash
 
 fun Application.configureHTTP(config: ServerConfig) {
-	// Off by default: X-Forwarded-* are client-supplied, so trusting them on a directly
-	// reachable server lets anyone forge a per-request identity and walk past the login
-	// rate limiter that keys on it.
 	if (config.trustProxyForwarding) {
 		install(XForwardedHeaders) {
-			// Ktor defaults to the first X-Forwarded-For entry, which a client can supply:
-			// proxies append rather than replace, so only the last entry is the adjacent
-			// proxy's own observation of who connected.
+			// Ktor defaults to the first X-Forwarded-For entry, which the client supplies.
+			// Only the last is the adjacent proxy's own observation of who connected.
 			useLastProxy()
 		}
 	}
