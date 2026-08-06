@@ -159,4 +159,70 @@ class MarkdownServiceTest {
 
 		assertFalse(result.contains("data:"))
 	}
+
+	@Test
+	fun `markdownToSafeHtml keeps a single blank line as a plain paragraph break`() {
+		val markdown = "First paragraph.\n\nSecond paragraph."
+		val result = markdownService.markdownToSafeHtml(markdown)
+
+		assertEquals(0, countBreaks(result))
+		assertTrue(result.contains("First paragraph."))
+		assertTrue(result.contains("Second paragraph."))
+	}
+
+	@Test
+	fun `markdownToSafeHtml renders each extra blank line as a break`() {
+		val markdown = "First paragraph.\n\n\n\nSecond paragraph."
+		val result = markdownService.markdownToSafeHtml(markdown)
+
+		assertEquals(2, countBreaks(result))
+		assertTrue(result.contains("First paragraph."))
+		assertTrue(result.contains("Second paragraph."))
+	}
+
+	@Test
+	fun `markdownToSafeHtml caps a runaway run of blank lines`() {
+		val markdown = "First paragraph." + "\n".repeat(40) + "Second paragraph."
+		val result = markdownService.markdownToSafeHtml(markdown)
+
+		assertEquals(MarkdownService.MAX_CONSECUTIVE_BREAKS, countBreaks(result))
+	}
+
+	@Test
+	fun `markdownToSafeHtml ignores blank lines before the first paragraph`() {
+		val markdown = "\n\n\n\nFirst paragraph."
+		val result = markdownService.markdownToSafeHtml(markdown)
+
+		assertEquals(0, countBreaks(result))
+	}
+
+	@Test
+	fun `markdownToSafeHtml ignores trailing blank lines`() {
+		val markdown = "First paragraph." + "\n".repeat(6)
+		val result = markdownService.markdownToSafeHtml(markdown)
+
+		assertEquals(0, countBreaks(result))
+	}
+
+	@Test
+	fun `markdownToSafeHtml leaves blank lines inside fenced code untouched`() {
+		val markdown = "```\nfirst\n\n\n\nsecond\n```"
+		val result = markdownService.markdownToSafeHtml(markdown)
+
+		assertEquals(0, countBreaks(result))
+		assertTrue(result.contains("first"))
+		assertTrue(result.contains("second"))
+	}
+
+	@Test
+	fun `markdownToSafeHtml keeps a list intact when extra blank lines follow it`() {
+		val markdown = "- item 1\n- item 2\n\n\nAfter the list."
+		val result = markdownService.markdownToSafeHtml(markdown)
+
+		assertTrue(result.contains("<ul>"))
+		assertEquals(1, countBreaks(result))
+		assertTrue(result.contains("After the list."))
+	}
+
+	private fun countBreaks(html: String) = Regex("<br\\s*/?>").findAll(html).count()
 }

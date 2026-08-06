@@ -513,6 +513,23 @@ h3 {
 }
 ```
 
+### Story Prose
+
+`.story-content` (in `story.css`) styles the sanitized HTML that `MarkdownService` produces from an
+author's scenes. It is the one place where the page renders text the site did not write, so every
+element markdown can emit has a rule:
+
+| Element      | Treatment                                                                       |
+|--------------|---------------------------------------------------------------------------------|
+| `p`          | 2em first-line indent, justified; flush left after a heading, rule, list or quote |
+| `ul` / `ol`  | 3.5em indent so markers sit inside the prose indent, 0.75em between items, accent markers |
+| `hr`         | Centered short rule with an amber diamond, 3rem of air above and below           |
+| `blockquote` | Tinted panel, amber left rule, italic, with `em` flipped upright inside          |
+| `br`         | The break `MarkdownService` emits for each blank line past the first             |
+
+Below 600px the column is too narrow to justify without opening rivers, so paragraphs go ragged
+right and hyphenation is off.
+
 ---
 
 ## Shared Animations

@@ -94,8 +94,7 @@ class StoryRendererService(
 			if (scene.sceneType == ApiSceneType.Scene) {
 				// Write scene content directly
 				if (scene.content.isNotBlank()) {
-					builder.append(scene.content)
-					builder.append("\n")
+					builder.appendScene(scene.content)
 				}
 			} else {
 				// It's a Group - write all child scenes' content
@@ -118,14 +117,23 @@ class StoryRendererService(
 		for (child in children) {
 			if (child.sceneType == ApiSceneType.Scene) {
 				if (child.content.isNotBlank()) {
-					builder.append(child.content)
-					builder.append("\n")
+					builder.appendScene(child.content)
 				}
 			} else {
 				// Recursively process nested groups
 				writeGroupChildren(builder, child.id, scenesByParent)
 			}
 		}
+	}
+
+	/**
+	 * Scenes are separate passages. Without the blank line the last paragraph of one scene and the
+	 * first of the next parse as a single paragraph; the trim keeps a scene that already ends in
+	 * newlines from gaining a spurious break.
+	 */
+	private fun StringBuilder.appendScene(content: String) {
+		append(content.trimEnd())
+		append("\n\n")
 	}
 
 	/**
@@ -354,8 +362,7 @@ class StoryRendererService(
 			if (scene.markdown.isNotBlank()) {
 				// Add scene name as chapter header
 				builder.append("## ${scene.scene.name}\n\n")
-				builder.append(scene.markdown)
-				builder.append("\n\n")
+				builder.appendScene(scene.markdown)
 			}
 		}
 
@@ -491,7 +498,7 @@ class StoryRendererService(
 			val (markdown, wordCount) = if (targetScene.sceneType == ApiSceneType.Scene) {
 				// Single scene - just its content
 				val content = if (targetScene.content.isNotBlank()) {
-					"## ${targetScene.name}\n\n${targetScene.content}\n"
+					"## ${targetScene.name}\n\n${targetScene.content.trimEnd()}\n"
 				} else {
 					"## ${targetScene.name}\n"
 				}
@@ -533,8 +540,7 @@ class StoryRendererService(
 			for (child in children) {
 				if (child.sceneType == ApiSceneType.Scene) {
 					if (child.content.isNotBlank()) {
-						builder.append(child.content)
-						builder.append("\n")
+						builder.appendScene(child.content)
 						totalWordCount += WordCountUtils.countWords(child.content)
 					}
 				} else {
