@@ -534,9 +534,47 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
+	fun `syncProjects drops a rename queued against an id the server never knew`() = runTest {
+		val deadId = ProjectId.randomUUID()
+		writeSyncData(emptySyncData().copy(projectsToRename = setOf(RenamedProject(deadId, "NewName"))))
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		// Attempting it would fail every session forever and log an error each time.
+		coVerify(exactly = 0) { serverProjectsApi.renameProject(any(), any(), any()) }
+		assertTrue(readSyncData().projectsToRename.isEmpty())
+	}
+
+	@Test
+	fun `syncProjects withdraws a queued creation whose local project is gone`() = runTest {
+		writeSyncData(emptySyncData().copy(projectsToCreate = setOf("DeletedBeforeSync")))
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
+		assertTrue(readSyncData().projectsToCreate.isEmpty())
+	}
+
+	@Test
+	fun `deleteUnsyncedProject withdraws the queued creation`() {
+		writeSyncData(emptySyncData().copy(projectsToCreate = setOf("Draft", "Keeper")))
+
+		createSynchronizer().deleteUnsyncedProject("Draft")
+
+		assertEquals(setOf("Keeper"), readSyncData().projectsToCreate)
+	}
+
+	@Test
 	fun `syncProjects renames a project on the server`() = runTest {
 		val id = ProjectId.randomUUID()
 		writeSyncData(emptySyncData().copy(projectsToRename = setOf(RenamedProject(id, "NewName"))))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("OldName", id)))
+		)
 		every { projectsRepository.getProjects(any()) } returns emptyList()
 		coEvery { serverProjectsApi.renameProject(id, "sync-1", "NewName") } returns Result.success("ok")
 

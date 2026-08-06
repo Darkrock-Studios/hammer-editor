@@ -35,6 +35,15 @@ deletion is filtered out of the working copy of that list, but it is still known
 judging it against the filtered list would recreate what the user just deleted. A tombstoned ID is
 likewise not dead: it means a real server-side delete, which propagates as a local deletion instead.
 
+Replacing an ID strands anything else queued against the old one, so the queues are withdrawn
+rather than retried:
+
+- A **rename** queued against an ID the server does not know is dropped without being sent. The
+  server cannot rename an ID it never issued, so retrying only logs an error every session;
+  recreation already covers it, because the project is created under its current local name.
+- A **creation** queued for a name with no local project is dropped. The project was deleted before
+  it ever reached the server, so creating it would push an empty project out to every device.
+
 Any given user account may only have one sync in progress at a time. Attempting to start a sync when
 one is already in progress will result in a failure to begin the sync (`400 Bad Request`).
 

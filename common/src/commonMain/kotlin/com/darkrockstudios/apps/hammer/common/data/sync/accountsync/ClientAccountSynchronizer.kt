@@ -81,10 +81,11 @@ class ClientAccountSynchronizer(
 				syncId = serverSyncData.syncId
 
 				val clientSyncData = loadSyncData()
+				val serverKnownIds = serverSyncData.knownProjectIds()
 
 				yield()
 
-				syncRenamedProjects(clientSyncData, serverSyncData, onLog, onUnauthorized)
+				syncRenamedProjects(clientSyncData, serverSyncData, serverKnownIds, onLog, onUnauthorized)
 
 				yield()
 
@@ -98,7 +99,7 @@ class ClientAccountSynchronizer(
 				syncCreatedProjects(
 					clientSyncData,
 					updatedServerSyncData,
-					serverSyncData.knownProjectIds(),
+					serverKnownIds,
 					localProjects,
 					onLog,
 					onUnauthorized,
@@ -280,11 +281,20 @@ class ClientAccountSynchronizer(
 	private suspend fun syncRenamedProjects(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
+		serverKnownIds: Set<ProjectId>,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
 		// Rename projects on the server
 		clientSyncData.projectsToRename.forEach { (projectId, newName) ->
+			// The server can't rename an id it never issued, and would fail this every session
+			// forever. Recreation covers the rename anyway: it creates under the local name,
+			// which a local rename has already updated.
+			if (projectId !in serverKnownIds) {
+				dropQueuedRename(projectId)
+				return@forEach
+			}
+
 			val result = serverProjectsApi.renameProject(projectId, serverSyncData.syncId, newName)
 			if (result.isSuccess) {
 				onLog(
@@ -295,12 +305,7 @@ class ClientAccountSynchronizer(
 						)
 					)
 				)
-				updateSyncData { syncData ->
-					syncData.copy(
-						projectsToRename = syncData.projectsToRename
-							.filterNot { it.projectId == projectId }.toSet(),
-					)
-				}
+				dropQueuedRename(projectId)
 			} else {
 				val exception = result.exceptionOrNull()
 				Napier.e("Failed to rename project: $projectId", exception)
@@ -318,6 +323,15 @@ class ClientAccountSynchronizer(
 					onUnauthorized()
 				}
 			}
+		}
+	}
+
+	private fun dropQueuedRename(projectId: ProjectId) {
+		updateSyncData { syncData ->
+			syncData.copy(
+				projectsToRename = syncData.projectsToRename
+					.filterNot { it.projectId == projectId }.toSet(),
+			)
 		}
 	}
 
@@ -509,7 +523,18 @@ class ClientAccountSynchronizer(
 			uuid == null || uuid !in serverKnownIds
 		}.map { it.first.name }
 
-		val newLocalProjects = clientSyncData.projectsToCreate + localOnly
+		// A queued name with no local project was deleted before it ever reached the server.
+		// Creating it would push an empty project to every device, and resolving its definition
+		// would point at a directory that is gone, so drop it instead.
+		val localNames = localProjectsWithIds.mapTo(mutableSetOf()) { it.first.name }
+		val staleCreates = clientSyncData.projectsToCreate - localNames
+		if (staleCreates.isNotEmpty()) {
+			updateSyncData { syncData ->
+				syncData.copy(projectsToCreate = syncData.projectsToCreate - staleCreates)
+			}
+		}
+
+		val newLocalProjects = (clientSyncData.projectsToCreate - staleCreates) + localOnly
 		// Create projects on the server
 		newLocalProjects.forEach { projectName ->
 			val result = serverProjectsApi.createProject(projectName, serverSyncData.syncId)
@@ -639,6 +664,19 @@ class ClientAccountSynchronizer(
 		updateSyncData { syncData ->
 			syncData.copy(
 				projectsToCreate = syncData.projectsToCreate + projectName,
+			)
+		}
+	}
+
+	/**
+	 * A project deleted before it ever synced has no id to tombstone, only a queued creation to
+	 * withdraw. Left queued, the next sync would create it on the server and push it back to
+	 * every device.
+	 */
+	fun deleteUnsyncedProject(projectName: String) {
+		updateSyncData { syncData ->
+			syncData.copy(
+				projectsToCreate = syncData.projectsToCreate - projectName,
 			)
 		}
 	}
