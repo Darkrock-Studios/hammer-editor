@@ -17,12 +17,21 @@ import io.ktor.server.plugins.compression.gzip
 import io.ktor.server.plugins.compression.minimumSize
 import io.ktor.server.plugins.conditionalheaders.ConditionalHeaders
 import io.ktor.server.plugins.defaultheaders.DefaultHeaders
+import io.ktor.server.plugins.forwardedheaders.XForwardedHeaders
 import io.ktor.server.plugins.hsts.HSTS
 import io.ktor.server.plugins.httpsredirect.HttpsRedirect
 import io.ktor.server.request.path
 import io.ktor.server.routing.IgnoreTrailingSlash
 
 fun Application.configureHTTP(config: ServerConfig) {
+	if (config.trustProxyForwarding) {
+		install(XForwardedHeaders) {
+			// Ktor defaults to the first X-Forwarded-For entry, which the client supplies.
+			// Only the last is the adjacent proxy's own observation of who connected.
+			useLastProxy()
+		}
+	}
+
 	val analyticsProvider = config.analytics.provider
 	val analyticsScriptHosts = analyticsProvider?.scriptSrcHosts().orEmpty()
 	val analyticsConnectHosts = analyticsProvider?.connectSrcHosts().orEmpty()

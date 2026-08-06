@@ -29,6 +29,12 @@ data class ServerConfig(
 	 * links are derived from each request's Host header.
 	 */
 	val publicUrl: String? = null,
+	/**
+	 * Trust the `X-Forwarded-*` headers for each request's client address and scheme. Only safe
+	 * when the proxy is the only route in, since anything reaching the server directly can forge
+	 * them. Assumes a single proxy: the address comes from the last `X-Forwarded-For` entry.
+	 */
+	val trustProxyForwarding: Boolean = false,
 	val additionalSitemaps: List<String> = emptyList(),
 	/**
 	 * Generate per-page social share images (OpenGraph) on the fly for author and story pages.

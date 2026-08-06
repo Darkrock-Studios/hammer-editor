@@ -456,6 +456,43 @@ bindHosts = ["127.0.0.1", "::1"]
 
 Make sure to update your DNS with your desired URL to be able to use LetsEncrypt and the like.
 
+### Behind a proxy, every request looks like it came from the proxy
+
+If nothing proxies your server, skip this section: Hammer already sees each visitor's real
+address, and nothing needs configuring.
+
+Behind a proxy it sees the proxy instead, identically for every visitor. That breaks three
+things: the login rate limiter (10 attempts per minute) becomes one bucket shared by the whole
+server rather than one per client, so a burst from anywhere locks everyone out; recorded login
+IPs all read as the proxy; and public story reader counts collapse to a single visitor.
+
+Your proxy already sends the real values in `X-Forwarded-For` and `X-Forwarded-Proto` (both are
+in the Nginx config below). Tell Hammer to trust them:
+
+```toml
+# Default false. Only enable when clients cannot reach the server directly.
+trustProxyForwarding = true
+```
+
+> [!WARNING]
+> Only set this when the proxy is the *only* route to the server, which is what
+> `bindHosts = ["127.0.0.1", "::1"]` above ensures. `X-Forwarded-For` is just a request header:
+> anything that can reach Hammer directly can forge one, and with this on that means a fresh
+> identity per request and a free pass through the login rate limiter. If your server is
+> reachable both through the proxy and directly, leave it `false`.
+
+**One proxy only.** Hammer trusts the last `X-Forwarded-For` entry, which is the one your proxy
+added. Put a CDN in front of Nginx (Cloudflare, Fastly) and that entry becomes the CDN's edge
+node rather than the visitor, so have Nginx replace the header with the address the CDN reports:
+
+```nginx
+# Cloudflare example. Keep set_real_ip_from restricted to the CDN's ranges,
+# or anything can supply its own CF-Connecting-IP.
+set_real_ip_from 173.245.48.0/20;   # ...and the rest of Cloudflare's published ranges
+real_ip_header CF-Connecting-IP;
+proxy_set_header X-Forwarded-For $remote_addr;
+```
+
 ### Base Nginx Config
 
 Create your base file. Make sure to change `hammer.example.com` to your domain!

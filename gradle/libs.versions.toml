@@ -262,6 +262,7 @@ ktor_server_mustache = { group = "io.ktor", name = "ktor-server-mustache", versi
 ktor_server_html_builder = { group = "io.ktor", name = "ktor-server-html-builder", version.ref = "ktor" }
 ktor_server_status_pages = { group = "io.ktor", name = "ktor-server-status-pages", version.ref = "ktor" }
 ktor_server_hsts = { group = "io.ktor", name = "ktor-server-hsts", version.ref = "ktor" }
+ktor_server_forwarded_header = { group = "io.ktor", name = "ktor-server-forwarded-header", version.ref = "ktor" }
 
 # HTMX for Ktor
 ktor_htmx = { group = "io.ktor", name = "ktor-htmx", version.ref = "ktor" }
