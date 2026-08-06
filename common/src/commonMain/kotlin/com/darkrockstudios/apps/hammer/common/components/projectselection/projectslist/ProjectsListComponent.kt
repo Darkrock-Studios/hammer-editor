@@ -313,6 +313,8 @@ class ProjectsListComponent(
 			Napier.i("Project deleted: ${projectDef.name}")
 			if (syncedProject != null) {
 				projectsSynchronizer.deleteProject(syncedProject)
+			} else if (projectsSynchronizer.isServerSynchronized()) {
+				projectsSynchronizer.deleteUnsyncedProject(projectDef.name)
 			}
 
 			loadProjectList()

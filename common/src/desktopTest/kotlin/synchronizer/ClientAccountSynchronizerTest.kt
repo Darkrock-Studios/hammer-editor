@@ -439,6 +439,69 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
+	fun `syncProjects recreates a project whose cached id the server neither holds nor tombstoned`() = runTest {
+		writeSyncData(emptySyncData())
+		val staleId = ProjectId.randomUUID()
+		val freshId = ProjectId.randomUUID()
+		val def = projectDef("ResetServerNovel")
+
+		// The server has no record of this id at all: not a live project, not a tombstone.
+		// This is what a client sees after syncing against a different or since-reset server.
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns staleId
+		every { projectsRepository.getProjectDefinition("ResetServerNovel") } returns def
+		coEvery { serverProjectsApi.createProject("ResetServerNovel", "sync-1") } returns
+			Result.success(CreateProjectResponse(freshId, alreadyExisted = false))
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify { serverProjectsApi.createProject("ResetServerNovel", "sync-1") }
+		verify { projectsRepository.setProjectId(def, freshId) }
+	}
+
+	@Test
+	fun `syncProjects does not recreate a project whose cached id the server still lists`() = runTest {
+		writeSyncData(emptySyncData())
+		val id = ProjectId.randomUUID()
+		val def = projectDef("KnownNovel")
+
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("KnownNovel", id)))
+		)
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns id
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
+	}
+
+	@Test
+	fun `syncProjects does not resurrect a project queued for deletion that is still on disk`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("DoomedNovel")
+		writeSyncData(emptySyncData().copy(projectsToDelete = setOf(id)))
+
+		// processProjectSyncData strips a queued-for-deletion project out of the server list, so
+		// liveness has to be judged against the raw begin_sync response. The local folder is still
+		// present here (restored by a file-sync tool), which is what puts it back in getProjects.
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("DoomedNovel", id)))
+		)
+		coEvery { serverProjectsApi.deleteProject(id, "sync-1") } returns Result.success("ok")
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns id
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify { serverProjectsApi.deleteProject(id, "sync-1") }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
+	}
+
+	@Test
 	fun `syncProjects deletes a server project this client marked for deletion`() = runTest {
 		val id = ProjectId.randomUUID()
 		writeSyncData(emptySyncData().copy(projectsToDelete = setOf(id)))
@@ -471,9 +534,47 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
+	fun `syncProjects drops a rename queued against an id the server never knew`() = runTest {
+		val deadId = ProjectId.randomUUID()
+		writeSyncData(emptySyncData().copy(projectsToRename = setOf(RenamedProject(deadId, "NewName"))))
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		// Attempting it would fail every session forever and log an error each time.
+		coVerify(exactly = 0) { serverProjectsApi.renameProject(any(), any(), any()) }
+		assertTrue(readSyncData().projectsToRename.isEmpty())
+	}
+
+	@Test
+	fun `syncProjects withdraws a queued creation whose local project is gone`() = runTest {
+		writeSyncData(emptySyncData().copy(projectsToCreate = setOf("DeletedBeforeSync")))
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
+		assertTrue(readSyncData().projectsToCreate.isEmpty())
+	}
+
+	@Test
+	fun `deleteUnsyncedProject withdraws the queued creation`() {
+		writeSyncData(emptySyncData().copy(projectsToCreate = setOf("Draft", "Keeper")))
+
+		createSynchronizer().deleteUnsyncedProject("Draft")
+
+		assertEquals(setOf("Keeper"), readSyncData().projectsToCreate)
+	}
+
+	@Test
 	fun `syncProjects renames a project on the server`() = runTest {
 		val id = ProjectId.randomUUID()
 		writeSyncData(emptySyncData().copy(projectsToRename = setOf(RenamedProject(id, "NewName"))))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("OldName", id)))
+		)
 		every { projectsRepository.getProjects(any()) } returns emptyList()
 		coEvery { serverProjectsApi.renameProject(id, "sync-1", "NewName") } returns Result.success("ok")
 
