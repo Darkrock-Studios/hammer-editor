@@ -162,6 +162,7 @@
 	</string>
 
 	<string name="sync_log_client_data_computed">Client Entity data calculated</string>
+	<string name="sync_log_project_id_stale">The server no longer has this project. It will be recreated the next time you sync.</string>
 	<string name="sync_log_server_data_loaded">Server data received</string>
 	<string name="sync_log_client_data_loaded">Client data loaded</string>
 	<string name="sync_log_backup_made">Local Backup made: %1$s</string>

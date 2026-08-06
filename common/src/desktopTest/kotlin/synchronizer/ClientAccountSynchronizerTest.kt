@@ -461,6 +461,47 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
+	fun `syncProjects does not recreate a project whose cached id the server still lists`() = runTest {
+		writeSyncData(emptySyncData())
+		val id = ProjectId.randomUUID()
+		val def = projectDef("KnownNovel")
+
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("KnownNovel", id)))
+		)
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns id
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
+	}
+
+	@Test
+	fun `syncProjects does not resurrect a project queued for deletion that is still on disk`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("DoomedNovel")
+		writeSyncData(emptySyncData().copy(projectsToDelete = setOf(id)))
+
+		// processProjectSyncData strips a queued-for-deletion project out of the server list, so
+		// liveness has to be judged against the raw begin_sync response. The local folder is still
+		// present here (restored by a file-sync tool), which is what puts it back in getProjects.
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(projects = setOf(ApiProjectDefinition("DoomedNovel", id)))
+		)
+		coEvery { serverProjectsApi.deleteProject(id, "sync-1") } returns Result.success("ok")
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns id
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify { serverProjectsApi.deleteProject(id, "sync-1") }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
+	}
+
+	@Test
 	fun `syncProjects deletes a server project this client marked for deletion`() = runTest {
 		val id = ProjectId.randomUUID()
 		writeSyncData(emptySyncData().copy(projectsToDelete = setOf(id)))

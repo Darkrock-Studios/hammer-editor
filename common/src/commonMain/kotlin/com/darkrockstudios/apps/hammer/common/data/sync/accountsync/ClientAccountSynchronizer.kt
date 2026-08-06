@@ -95,7 +95,14 @@ class ClientAccountSynchronizer(
 				val updatedServerSyncData = processProjectSyncData(serverSyncData, clientSyncData)
 
 				val localProjects = projectsRepository.getProjects()
-				syncCreatedProjects(clientSyncData, updatedServerSyncData, localProjects, onLog, onUnauthorized)
+				syncCreatedProjects(
+					clientSyncData,
+					updatedServerSyncData,
+					serverSyncData.knownProjectIds(),
+					localProjects,
+					onLog,
+					onUnauthorized,
+				)
 
 				yield()
 
@@ -402,6 +409,7 @@ class ClientAccountSynchronizer(
 	private suspend fun syncCreatedProjects(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
+		serverKnownIds: Set<ProjectId>,
 		localProjects: List<ProjectDef>,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
@@ -425,7 +433,14 @@ class ClientAccountSynchronizer(
 			onLog
 		)
 
-		createProjectsOnServer(localProjectsWithIds, clientSyncData, serverSyncData, onLog, onUnauthorized)
+		createProjectsOnServer(
+			localProjectsWithIds,
+			clientSyncData,
+			serverSyncData,
+			serverKnownIds,
+			onLog,
+			onUnauthorized,
+		)
 
 		createLocalProjectsFromServer(newServerProjects, onLog)
 	}
@@ -478,20 +493,18 @@ class ClientAccountSynchronizer(
 	}
 
 	/**
-	 * Create projects on the server which this client has created locally. A cached [ProjectId] the
-	 * server neither holds nor has tombstoned is dead (the client last synced against a different or
+	 * Create projects on the server which this client has created locally. A cached [ProjectId]
+	 * absent from [serverKnownIds] is dead (the client last synced against a different or
 	 * since-reset server): recreate it, or per-project sync gets an id it can only 410 on.
 	 */
 	private suspend fun createProjectsOnServer(
 		localProjectsWithIds: List<Pair<ProjectDef, ProjectId?>>,
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
+		serverKnownIds: Set<ProjectId>,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
-		val serverKnownIds = serverSyncData.projects.mapTo(mutableSetOf()) { it.uuid } +
-			serverSyncData.deletedProjects
-
 		val localOnly = localProjectsWithIds.filter { (_, uuid) ->
 			uuid == null || uuid !in serverKnownIds
 		}.map { it.first.name }
@@ -714,3 +727,11 @@ private data class ProjectPair(
 
 private fun Throwable?.isAuthenticationFailure(): Boolean =
 	(this is HttpFailureException && statusCode == HttpStatusCode.Unauthorized)
+
+/**
+ * Every project id the server accounted for, live or tombstoned. Must be read from the raw
+ * begin_sync response: `processProjectSyncData` drops projects this client has queued for
+ * deletion, and a project missing for that reason is still known to the server, not dead.
+ */
+private fun BeginProjectsSyncResponse.knownProjectIds(): Set<ProjectId> =
+	projects.mapTo(mutableSetOf()) { it.uuid } + deletedProjects

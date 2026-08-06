@@ -2,22 +2,27 @@ package synchronizer.operations
 
 import PROJECT_2_NAME
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.*
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.operations.FetchServerDataOperation
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import getProjectDef
+import io.ktor.http.HttpStatusCode
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.impl.annotations.MockK
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -44,6 +49,9 @@ class FetchServerDataOperationTest : BaseTest() {
 
 	@MockK(relaxed = true)
 	private lateinit var serverProjectApi: ServerProjectApi
+
+	@MockK(relaxed = true)
+	private lateinit var projectsRepository: ProjectsRepository
 
 	private lateinit var strRes: TestStrRes
 
@@ -73,6 +81,7 @@ class FetchServerDataOperationTest : BaseTest() {
 			strRes = strRes,
 			projectMetadataDatasource = projectMetadataDatasource,
 			globalSettingsStore = globalSettingsStore,
+			projectsRepository = projectsRepository,
 			serverProjectApi = serverProjectApi,
 		)
 	}
@@ -177,4 +186,67 @@ class FetchServerDataOperationTest : BaseTest() {
 
 		assertFalse(isSuccess(result))
 	}
+
+	@Test
+	fun `A generic failure leaves the cached project id alone`() = runTest {
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		val op = createOperation(projectDef)
+
+		stubSettingsAndMetadata()
+		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns
+			Result.failure(Exception("Test Failure"))
+
+		val result = execute(op)
+
+		assertFalse(isSuccess(result))
+		// Only a 410 proves the id is dead; a transient failure must not discard it.
+		verify(exactly = 0) { projectsRepository.removeProjectId(any()) }
+	}
+
+	@Test
+	fun `A 410 Gone drops the dead project id so the next sync can recreate it`() = runTest {
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		val op = createOperation(projectDef)
+
+		stubSettingsAndMetadata()
+		coEvery { serverProjectApi.beginProjectSync(any(), any(), any(), any()) } returns
+			Result.failure(
+				HttpFailureException(
+					statusCode = HttpStatusCode.Gone,
+					error = HttpResponseError(
+						error = "Project Not Found",
+						displayMessage = "Project does not exist",
+					),
+				)
+			)
+
+		val result = execute(op)
+
+		assertFalse(isSuccess(result))
+		verify { projectsRepository.removeProjectId(projectDef) }
+	}
+
+	private suspend fun stubSettingsAndMetadata() {
+		coEvery { globalSettingsStore.serverSettingsUpdates } returns sharedFlow {
+			emit(
+				mockk<ServerSettings>().apply {
+					every { userId } returns 1L
+				}
+			)
+		}
+		coEvery { projectMetadataDatasource.loadMetadata(any()) } returns metadata
+	}
+
+	private suspend fun execute(op: FetchServerDataOperation) = op.execute(
+		state = FetchLocalDataState(
+			onlyNew = false,
+			clientSyncData = projectData,
+			entityState = entityState,
+			serverProjectId = projId,
+		),
+		onProgress = mockk(relaxed = true),
+		onLog = mockk(relaxed = true),
+		onConflict = mockk(relaxed = true),
+		onComplete = mockk(relaxed = true),
+	)
 }
