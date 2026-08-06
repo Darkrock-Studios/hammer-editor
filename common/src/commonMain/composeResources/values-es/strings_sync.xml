@@ -116,6 +116,7 @@
 	<string name="sync_log_begin_project">Sincronizando el proyecto: %1$s</string>
 	<string name="sync_log_project_conflict">Hay un conflicto en el proyecto: %1$s. Abre ese proyecto y sincroniza para resolverlo.</string>
 	<string name="sync_log_client_data_computed">Datos de entidades del cliente calculados</string>
+	<string name="sync_log_project_id_stale">The server no longer has this project. It will be recreated the next time you sync.</string>
 	<string name="sync_log_server_data_loaded">Datos del servidor recibidos</string>
 	<string name="sync_log_client_data_loaded">Datos del cliente cargados</string>
 	<string name="sync_log_backup_made">Copia de seguridad local creada: %1$s</string>
