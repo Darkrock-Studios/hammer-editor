@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.desktop
 
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -9,7 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -27,7 +29,9 @@ import androidx.compose.ui.window.rememberWindowState
 import com.darkrockstudios.apps.hammer.*
 import dev.nucleusframework.application.DecoratedWindow
 import dev.nucleusframework.application.NucleusApplicationScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -40,9 +44,11 @@ private val TitleColor = Color(0xFFEDE0DB)
 private val SubtitleColor = Color(0xFFB9ACA6)
 private val TrackColor = Color(0x33FFFFFF)
 
+private const val SplashDurationMs = 600
+
 /**
  * Borderless splash window shown while the main window spins up. Fills the
- * progress bar over roughly a second, then calls [onFinished].
+ * progress bar over [SplashDurationMs], then calls [onFinished].
  */
 @Composable
 internal fun NucleusApplicationScope.SplashWindow(onFinished: () -> Unit) {
@@ -58,17 +64,17 @@ internal fun NucleusApplicationScope.SplashWindow(onFinished: () -> Unit) {
 		undecorated = true,
 		resizable = false,
 	) {
-		var progress by remember { mutableFloatStateOf(0f) }
+		var filling by remember { mutableStateOf(false) }
 
+		// One wall-clock wait, timed off the UI thread: a stalled renderer must not be
+		// able to stretch the hand-off, and the hand-off must not ride the frame clock.
 		LaunchedEffect(Unit) {
-			repeat(100) {
-				progress += 0.01f
-				delay(10)
-			}
+			filling = true
+			withContext(Dispatchers.Default) { delay(SplashDurationMs.toLong()) }
 			onFinished()
 		}
 
-		SplashScreen(progress)
+		SplashScreen(if (filling) 1f else 0f)
 	}
 }
 
@@ -77,7 +83,10 @@ private fun SplashScreen(progress: Float) {
 	val typewriter = FontFamily(Font(Res.font.Kingthings_Trypewriter_2))
 	val mono = FontFamily(Font(Res.font.IBMPlexMono_SemiBold))
 
-	val animatedProgress by animateFloatAsState(targetValue = progress)
+	val animatedProgress by animateFloatAsState(
+		targetValue = progress,
+		animationSpec = tween(durationMillis = SplashDurationMs, easing = LinearEasing),
+	)
 
 	Box(
 		modifier = Modifier

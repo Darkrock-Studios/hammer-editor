@@ -217,15 +217,16 @@ fun main(args: Array<String>) {
 				when (val windowState = applicationState.windows.value) {
 					is WindowState.ProjectSectionWindow -> {
 						var showSplash by remember { mutableStateOf(true) }
+						// The splash is additive, never a gate: the real window exists from the
+						// start, so no way the splash can fail is a way the app fails to appear.
+						ProjectSelectionWindow(
+							settings = settingsState,
+							darkMode = darkMode,
+						) { project ->
+							applicationState.openProject(project)
+						}
 						if (showSplash) {
 							SplashWindow(onFinished = { showSplash = false })
-						} else {
-							ProjectSelectionWindow(
-								settings = settingsState,
-								darkMode = darkMode,
-							) { project ->
-								applicationState.openProject(project)
-							}
 						}
 					}
 

@@ -12,7 +12,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
 import androidx.compose.material3.windowsizeclass.WindowSizeClass
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import com.darkrockstudios.apps.hammer.common.compose.rememberWindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -59,14 +59,15 @@ internal fun ProjectSynchronization(
 		onClosed = { component.endSync() },
 		properties = DialogProperties(usePlatformDefaultWidth = false),
 	) {
-		val screenCharacteristics = calculateWindowSizeClass()
-		ProjectSynchronizationContent(
-			component = component,
-			showSnackbar = showSnackbar,
-			screenCharacteristics = screenCharacteristics,
-			modifier = Modifier.predictiveBackTransform(),
-			onClose = requestClose,
-		)
+		BoxWithConstraints {
+			ProjectSynchronizationContent(
+				component = component,
+				showSnackbar = showSnackbar,
+				screenCharacteristics = rememberWindowSizeClass(constraints),
+				modifier = Modifier.predictiveBackTransform(),
+				onClose = requestClose,
+			)
+		}
 	}
 
 	if (confirmCancel) {
