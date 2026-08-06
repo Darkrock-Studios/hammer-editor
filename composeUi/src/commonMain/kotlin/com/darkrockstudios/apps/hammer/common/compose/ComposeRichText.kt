@@ -22,14 +22,6 @@ data class ComposeRichText(
 		}
 	}
 
-	fun getAnnotatedString(): AnnotatedString {
-		return when {
-			snapshot != null -> snapshot
-			state != null -> state.editorState.getAllText()
-			else -> error("ComposeRichText must contain non-null data ")
-		}
-	}
-
 	override fun stateCompare(text: PlatformRichText?): Boolean {
 		text as ComposeRichText
 		return (snapshot != null && text.snapshot === snapshot)
