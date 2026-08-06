@@ -471,15 +471,45 @@ Nginx config below) carry the real values. Tell Hammer to trust them:
 
 ```toml
 # Default false. Only enable when clients cannot reach the server directly.
-behindProxy = true
+trustProxyForwarding = true
 ```
 
 > [!WARNING]
-> Only set this when the server is genuinely unreachable except through your proxy — which is
+> Only set this when the server is genuinely unreachable except through your proxy, which is
 > what `bindHosts = ["127.0.0.1", "::1"]` above ensures. `X-Forwarded-For` is just a request
-> header: anything that can connect to Hammer directly can invent one, and with `behindProxy`
-> on, that means inventing a fresh identity for every request and walking straight through the
-> login rate limiter. Directly-reachable server: leave it `false` and accept the shared bucket.
+> header: anything that can connect to Hammer directly can invent one, and with
+> `trustProxyForwarding` on, that means inventing a fresh identity for every request and walking
+> straight through the login rate limiter.
+>
+> So if your server is reachable *both* through the proxy and directly, leave this `false`.
+> Proxied visitors then share one bucket, which is worse than per-client but still bounded;
+> turning it on removes the bound entirely for anyone who finds the open port.
+
+If nothing proxies your server at all, you do not need this setting. The address Hammer sees is
+already the visitor's, and everything above works correctly with it left `false`.
+
+#### Exactly one proxy
+
+`X-Forwarded-For` is a list, and proxies *append* to it rather than replacing it. So a request
+that arrives at Hammer carrying `9.9.9.9, 203.0.113.10` is telling you two different things: the
+last entry is the address your Nginx watched connect, and everything before it arrived with the
+request. A client that sends its own `X-Forwarded-For` gets it preserved verbatim at the front of
+the list.
+
+Hammer therefore reads the **last** entry, which assumes your proxy is the only one. If you put a
+CDN in front of Nginx (Cloudflare, Fastly), the last entry becomes the CDN's edge node rather
+than the visitor, and you would rate-limit per edge node. Fix that at the proxy by overwriting
+the header with the address the CDN reports, so Hammer sees one authoritative value:
+
+```nginx
+# Cloudflare example. Restore the visitor's address, then send only that.
+set_real_ip_from 173.245.48.0/20;   # ...and the rest of Cloudflare's published ranges
+real_ip_header CF-Connecting-IP;
+proxy_set_header X-Forwarded-For $remote_addr;
+```
+
+Restricting `set_real_ip_from` to the CDN's ranges is what makes this safe: it stops anything
+that is not the CDN from supplying its own `CF-Connecting-IP`.
 
 ### Base Nginx Config
 

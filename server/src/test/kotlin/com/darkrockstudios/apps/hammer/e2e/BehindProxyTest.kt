@@ -17,13 +17,14 @@ import kotlin.test.assertEquals
 
 /**
  * The login rate limiter keys on the connecting address. Behind a proxy every request carries
- * the proxy's, so `behindProxy` decides whether one client can exhaust the bucket for everyone.
+ * the proxy's, so `trustProxyForwarding` decides whether one client can exhaust the bucket for
+ * everyone.
  */
 class BehindProxyTest : EndToEndTest() {
 
 	override val serverConfig = ServerConfig(
 		encryption = EncryptionConfig(EncryptionMode.AES),
-		behindProxy = true,
+		trustProxyForwarding = true,
 	)
 
 	@Test
@@ -50,6 +51,29 @@ class BehindProxyTest : EndToEndTest() {
 			HttpStatusCode.Unauthorized,
 			failedLogin(forwardedFor = "203.0.113.99").status,
 			"A different forwarded address must not inherit the first one's exhausted bucket",
+		)
+	}
+
+	@Test
+	fun `a client-supplied entry ahead of the proxy's cannot claim a fresh bucket`(): Unit = runBlocking {
+		createTestServer(SERVER_CONFIG_ONE, fileSystem, database())
+		doStartServer()
+
+		// The proxy appends what it saw to whatever arrived, so only the trailing entry is
+		// its own observation. Everything before it is the client's to invent.
+		repeat(RATE_LIMIT) { attempt ->
+			val response = failedLogin(forwardedFor = "9.9.9.$attempt, 203.0.113.10")
+			assertEquals(
+				HttpStatusCode.Unauthorized,
+				response.status,
+				"Attempt ${attempt + 1} should still be inside the window",
+			)
+		}
+
+		assertEquals(
+			HttpStatusCode.TooManyRequests,
+			failedLogin(forwardedFor = "1.1.1.1, 203.0.113.10").status,
+			"A forged leading entry must not escape the bucket the proxy's entry earned",
 		)
 	}
 

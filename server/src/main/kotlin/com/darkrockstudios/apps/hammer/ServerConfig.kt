@@ -34,11 +34,16 @@ data class ServerConfig(
 	 * login rate limiter, the login audit trail and story reader counts see real clients rather
 	 * than the proxy.
 	 *
+	 * The client address is read from the *last* `X-Forwarded-For` entry, which is the only one
+	 * the adjacent proxy wrote itself; earlier entries arrived with the request and are the
+	 * client's to invent. This means exactly one trusted proxy: with a second one in front
+	 * (a CDN), have the adjacent proxy overwrite the header with the address the CDN reports.
+	 *
 	 * Only enable this when clients cannot reach the server directly (pair it with
 	 * [bindHosts] on loopback). These are ordinary request headers: anything able to connect
 	 * directly can forge one, and a forged address per request defeats the rate limiter it feeds.
 	 */
-	val behindProxy: Boolean = false,
+	val trustProxyForwarding: Boolean = false,
 	val additionalSitemaps: List<String> = emptyList(),
 	/**
 	 * Generate per-page social share images (OpenGraph) on the fly for author and story pages.
