@@ -199,10 +199,10 @@
         },
         {
             "uniqueId": "androidx.lifecycle:lifecycle-common-jvm",
-            "artifactVersion": "2.10.0",
+            "artifactVersion": "2.11.0",
             "name": "Lifecycle-Common",
             "description": "Android Lifecycle-Common",
-            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.10.0",
+            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0",
             "developers": [
                 {
                     "name": "The Android Open Source Project"
@@ -224,10 +224,10 @@
         },
         {
             "uniqueId": "androidx.lifecycle:lifecycle-runtime-compose-desktop",
-            "artifactVersion": "2.10.0",
+            "artifactVersion": "2.11.0",
             "name": "Lifecycle Runtime Compose",
             "description": "Compose integration with Lifecycle",
-            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.10.0",
+            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0",
             "developers": [
                 {
                     "name": "The Android Open Source Project"
@@ -249,10 +249,10 @@
         },
         {
             "uniqueId": "androidx.lifecycle:lifecycle-runtime-desktop",
-            "artifactVersion": "2.10.0",
+            "artifactVersion": "2.11.0",
             "name": "Lifecycle Runtime",
             "description": "Android Lifecycle Runtime",
-            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.10.0",
+            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0",
             "developers": [
                 {
                     "name": "The Android Open Source Project"
@@ -274,10 +274,10 @@
         },
         {
             "uniqueId": "androidx.lifecycle:lifecycle-viewmodel-desktop",
-            "artifactVersion": "2.10.0",
+            "artifactVersion": "2.11.0",
             "name": "Lifecycle ViewModel",
             "description": "Android Lifecycle ViewModel",
-            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.10.0",
+            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0",
             "developers": [
                 {
                     "name": "The Android Open Source Project"
@@ -299,10 +299,10 @@
         },
         {
             "uniqueId": "androidx.lifecycle:lifecycle-viewmodel-savedstate-desktop",
-            "artifactVersion": "2.10.0",
+            "artifactVersion": "2.11.0",
             "name": "Lifecycle ViewModel with SavedState",
             "description": "Android Lifecycle ViewModel",
-            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.10.0",
+            "website": "https://developer.android.com/jetpack/androidx/releases/lifecycle#2.11.0",
             "developers": [
                 {
                     "name": "The Android Open Source Project"
@@ -537,7 +537,7 @@
         },
         {
             "uniqueId": "com.darkrockstudios:composetexteditor-desktop",
-            "artifactVersion": "2.3.1",
+            "artifactVersion": "2.4.0",
             "name": "Compose Text Editor",
             "description": "A Kotlin Multiplatform Text Editor.",
             "website": "https://github.com/Darkrock-Studios/ComposeTextEditor",
@@ -560,7 +560,7 @@
         },
         {
             "uniqueId": "com.darkrockstudios:composetexteditor-find-desktop",
-            "artifactVersion": "2.3.1",
+            "artifactVersion": "2.4.0",
             "name": "Compose Text Editor Find",
             "description": "Find functionality addon for Compose Text Editor.",
             "website": "https://github.com/Darkrock-Studios/ComposeTextEditor",
@@ -583,7 +583,7 @@
         },
         {
             "uniqueId": "com.darkrockstudios:composetexteditor-spellcheck-desktop",
-            "artifactVersion": "2.3.1",
+            "artifactVersion": "2.4.0",
             "name": "Compose Text Editor Spell Check",
             "description": "Spell checking addon for Compose Text Editor.",
             "website": "https://github.com/Darkrock-Studios/ComposeTextEditor",
@@ -629,19 +629,19 @@
         },
         {
             "uniqueId": "com.darkrockstudios:platform-spellcheckerkt-desktop",
-            "artifactVersion": "1.3.1",
+            "artifactVersion": "1.3.2",
             "name": "PlatformSpellChecker",
             "description": "A Kotlin Multiplatform library providing spell checking functionality for Android, iOS, and Desktop platforms",
-            "website": "https://github.com/Wavesonics/PlatformSpellCheckerKt",
+            "website": "https://github.com/Darkrock-Studios/PlatformSpellCheckerKt",
             "developers": [
                 {
                     "name": "Adam Brown"
                 }
             ],
             "scm": {
-                "connection": "scm:git:git://github.com/Wavesonics/PlatformSpellCheckerKt.git",
-                "developerConnection": "scm:git:ssh://github.com/Wavesonics/PlatformSpellCheckerKt.git",
-                "url": "https://github.com/Wavesonics/PlatformSpellCheckerKt"
+                "connection": "scm:git:git://github.com/Darkrock-Studios/PlatformSpellCheckerKt.git",
+                "developerConnection": "scm:git:ssh://github.com/Darkrock-Studios/PlatformSpellCheckerKt.git",
+                "url": "https://github.com/Darkrock-Studios/PlatformSpellCheckerKt"
             },
             "licenses": [
                 "MIT"
@@ -714,6 +714,72 @@
             },
             "licenses": [
                 "Apache-2.0"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "com.fleeksoft.charset:charset-jvm",
+            "artifactVersion": "0.0.8",
+            "name": "charset",
+            "description": "Kotlin Multiplatform Charsets",
+            "website": "https://github.com/fleeksoft/charset",
+            "developers": [
+                {
+                    "name": "Sabeeh Ul Hussnain Anjum"
+                }
+            ],
+            "scm": {
+                "connection": "https://github.com/fleeksoft/charset.git",
+                "url": "https://github.com/fleeksoft/charset"
+            },
+            "licenses": [
+                "Apache-2.0"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "com.fleeksoft.io:io-core-jvm",
+            "artifactVersion": "0.0.8",
+            "name": "io-core",
+            "description": "Kotlin Multiplatform IO",
+            "website": "https://github.com/fleeksoft/fleeksoft-io",
+            "developers": [
+                {
+                    "name": "Sabeeh Ul Hussnain Anjum"
+                }
+            ],
+            "scm": {
+                "connection": "https://github.com/fleeksoft/fleeksoft-io.git",
+                "url": "https://github.com/fleeksoft/fleeksoft-io"
+            },
+            "licenses": [
+                "Apache-2.0"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "com.fleeksoft.ksoup:ksoup-jvm",
+            "artifactVersion": "0.2.6",
+            "name": "ksoup",
+            "description": "Ksoup is a Kotlin Multiplatform library for working with HTML and XML, and offers an easy-to-use API for URL fetching, data parsing, extraction, and manipulation using DOM and CSS selectors.",
+            "website": "https://github.com/fleeksoft/ksoup",
+            "developers": [
+                {
+                    "name": "Sabeeh Ul Hussnain Anjum"
+                }
+            ],
+            "scm": {
+                "connection": "https://github.com/fleeksoft/ksoup.git",
+                "url": "https://github.com/fleeksoft/ksoup"
+            },
+            "licenses": [
+                "MIT"
             ],
             "funding": [
                 
@@ -1299,19 +1365,19 @@
         },
         {
             "uniqueId": "com.squareup.okio:okio-jvm",
-            "artifactVersion": "3.17.0",
+            "artifactVersion": "3.18.1",
             "name": "okio",
             "description": "A modern I/O library for Android, Java, and Kotlin Multiplatform.",
-            "website": "https://github.com/square/okio/",
+            "website": "https://github.com/lysine-dev/okio/",
             "developers": [
                 {
                     "name": "Square, Inc."
                 }
             ],
             "scm": {
-                "connection": "scm:git:git://github.com/square/okio.git",
-                "developerConnection": "scm:git:ssh://git@github.com/square/okio.git",
-                "url": "https://github.com/square/okio/"
+                "connection": "scm:git:git://github.com/lysine-dev/okio.git",
+                "developerConnection": "scm:git:ssh://git@github.com/lysine-dev/okio.git",
+                "url": "https://github.com/lysine-dev/okio/"
             },
             "licenses": [
                 "Apache-2.0"
@@ -1428,6 +1494,328 @@
             },
             "licenses": [
                 "Apache-2.0"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "dev.nucleusframework:nucleus.aot-runtime",
+            "artifactVersion": "2.1.9",
+            "name": "Nucleus AOT Runtime",
+            "description": "AOT runtime library for the Nucleus Gradle plugin",
+            "website": "https://github.com/NucleusFramework/Nucleus",
+            "developers": [
+                {
+                    "name": "NucleusFramework"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git:git://github.com/NucleusFramework/Nucleus.git",
+                "developerConnection": "scm:git:ssh://git@github.com/NucleusFramework/Nucleus.git",
+                "url": "https://github.com/NucleusFramework/Nucleus"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "dev.nucleusframework:nucleus.core-runtime",
+            "artifactVersion": "2.1.9",
+            "name": "Nucleus Core Runtime",
+            "description": "Core runtime library for the Nucleus Gradle plugin",
+            "website": "https://github.com/NucleusFramework/Nucleus",
+            "developers": [
+                {
+                    "name": "NucleusFramework"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git:git://github.com/NucleusFramework/Nucleus.git",
+                "developerConnection": "scm:git:ssh://git@github.com/NucleusFramework/Nucleus.git",
+                "url": "https://github.com/NucleusFramework/Nucleus"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "dev.nucleusframework:nucleus.darkmode-detector",
+            "artifactVersion": "2.1.9",
+            "name": "Nucleus Dark Mode Detector",
+            "description": "Reactive dark mode detection for Compose Desktop across Windows, macOS and Linux",
+            "website": "https://github.com/NucleusFramework/Nucleus",
+            "developers": [
+                {
+                    "name": "NucleusFramework"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git:git://github.com/NucleusFramework/Nucleus.git",
+                "developerConnection": "scm:git:ssh://git@github.com/NucleusFramework/Nucleus.git",
+                "url": "https://github.com/NucleusFramework/Nucleus"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "dev.nucleusframework:nucleus.decorated-window-awt",
+            "artifactVersion": "2.1.9",
+            "name": "Nucleus Decorated Window AWT",
+            "description": "AWT/Compose Desktop integration of Nucleus Decorated Window (consumed by JBR and JNI backends)",
+            "website": "https://github.com/NucleusFramework/Nucleus",
+            "developers": [
+                {
+                    "name": "NucleusFramework"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git:git://github.com/NucleusFramework/Nucleus.git",
+                "developerConnection": "scm:git:ssh://git@github.com/NucleusFramework/Nucleus.git",
+                "url": "https://github.com/NucleusFramework/Nucleus"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "dev.nucleusframework:nucleus.decorated-window-core",
+            "artifactVersion": "2.1.9",
+            "name": "Nucleus Decorated Window Core",
+            "description": "Shared types, layout, styling, and resources for Nucleus Decorated Window",
+            "website": "https://github.com/NucleusFramework/Nucleus",
+            "developers": [
+                {
+                    "name": "NucleusFramework"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git:git://github.com/NucleusFramework/Nucleus.git",
+                "developerConnection": "scm:git:ssh://git@github.com/NucleusFramework/Nucleus.git",
+                "url": "https://github.com/NucleusFramework/Nucleus"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "dev.nucleusframework:nucleus.decorated-window-material3",
+            "artifactVersion": "2.1.9",
+            "name": "Nucleus Material Decorated Window",
+            "description": "Material 3 integration for Nucleus Decorated Window",
+            "website": "https://github.com/NucleusFramework/Nucleus",
+            "developers": [
+                {
+                    "name": "NucleusFramework"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git:git://github.com/NucleusFramework/Nucleus.git",
+                "developerConnection": "scm:git:ssh://git@github.com/NucleusFramework/Nucleus.git",
+                "url": "https://github.com/NucleusFramework/Nucleus"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "dev.nucleusframework:nucleus.decorated-window-tao",
+            "artifactVersion": "2.1.9",
+            "name": "Nucleus Decorated Window Tao",
+            "description": "Experimental no-AWT decorated window backend for Compose Desktop, powered by Tao via direct JNI for macOS, Windows, and Linux.",
+            "website": "https://github.com/NucleusFramework/Nucleus",
+            "developers": [
+                {
+                    "name": "NucleusFramework"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git:git://github.com/NucleusFramework/Nucleus.git",
+                "developerConnection": "scm:git:ssh://git@github.com/NucleusFramework/Nucleus.git",
+                "url": "https://github.com/NucleusFramework/Nucleus"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "dev.nucleusframework:nucleus.freedesktop-icons",
+            "artifactVersion": "2.1.9",
+            "name": "Nucleus Freedesktop Icons",
+            "description": "Type-safe freedesktop icon naming specification constants for JVM desktop applications",
+            "website": "https://github.com/NucleusFramework/Nucleus",
+            "developers": [
+                {
+                    "name": "NucleusFramework"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git:git://github.com/NucleusFramework/Nucleus.git",
+                "developerConnection": "scm:git:ssh://git@github.com/NucleusFramework/Nucleus.git",
+                "url": "https://github.com/NucleusFramework/Nucleus"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "dev.nucleusframework:nucleus.graalvm-runtime",
+            "artifactVersion": "2.1.9",
+            "name": "Nucleus GraalVM Runtime",
+            "description": "GraalVM native-image runtime initialization and font manager substitutions",
+            "website": "https://github.com/NucleusFramework/Nucleus",
+            "developers": [
+                {
+                    "name": "NucleusFramework"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git:git://github.com/NucleusFramework/Nucleus.git",
+                "developerConnection": "scm:git:ssh://git@github.com/NucleusFramework/Nucleus.git",
+                "url": "https://github.com/NucleusFramework/Nucleus"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "dev.nucleusframework:nucleus.launcher-linux",
+            "artifactVersion": "2.1.9",
+            "name": "Nucleus Launcher Linux",
+            "description": "Unity Launcher API (com.canonical.Unity.LauncherEntry) for JVM desktop applications via JNI",
+            "website": "https://github.com/NucleusFramework/Nucleus",
+            "developers": [
+                {
+                    "name": "NucleusFramework"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git:git://github.com/NucleusFramework/Nucleus.git",
+                "developerConnection": "scm:git:ssh://git@github.com/NucleusFramework/Nucleus.git",
+                "url": "https://github.com/NucleusFramework/Nucleus"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "dev.nucleusframework:nucleus.launcher-macos",
+            "artifactVersion": "2.1.9",
+            "name": "Nucleus Launcher macOS",
+            "description": "macOS dock context menu for JVM desktop applications via JNI",
+            "website": "https://github.com/NucleusFramework/Nucleus",
+            "developers": [
+                {
+                    "name": "NucleusFramework"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git:git://github.com/NucleusFramework/Nucleus.git",
+                "developerConnection": "scm:git:ssh://git@github.com/NucleusFramework/Nucleus.git",
+                "url": "https://github.com/NucleusFramework/Nucleus"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "dev.nucleusframework:nucleus.launcher-windows",
+            "artifactVersion": "2.1.9",
+            "name": "Nucleus Launcher Windows",
+            "description": "Windows Launcher API (Badge Notifications) for JVM desktop applications via JNI",
+            "website": "https://github.com/NucleusFramework/Nucleus",
+            "developers": [
+                {
+                    "name": "NucleusFramework"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git:git://github.com/NucleusFramework/Nucleus.git",
+                "developerConnection": "scm:git:ssh://git@github.com/NucleusFramework/Nucleus.git",
+                "url": "https://github.com/NucleusFramework/Nucleus"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "dev.nucleusframework:nucleus.linux-hidpi",
+            "artifactVersion": "2.1.9",
+            "name": "Nucleus Linux HiDPI",
+            "description": "Native HiDPI scale factor detection for Compose Desktop on Linux (GSettings, GDK_SCALE, Xft.dpi)",
+            "website": "https://github.com/NucleusFramework/Nucleus",
+            "developers": [
+                {
+                    "name": "NucleusFramework"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git:git://github.com/NucleusFramework/Nucleus.git",
+                "developerConnection": "scm:git:ssh://git@github.com/NucleusFramework/Nucleus.git",
+                "url": "https://github.com/NucleusFramework/Nucleus"
+            },
+            "licenses": [
+                "MIT"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "dev.nucleusframework:nucleus.nucleus-application",
+            "artifactVersion": "2.1.9",
+            "name": "Nucleus Application",
+            "description": "Unified entry point picking the decorated-window backend (JBR/JNI AWT or no-AWT Tao) and exposing a backend-agnostic window handle.",
+            "website": "https://github.com/NucleusFramework/Nucleus",
+            "developers": [
+                {
+                    "name": "NucleusFramework"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git:git://github.com/NucleusFramework/Nucleus.git",
+                "developerConnection": "scm:git:ssh://git@github.com/NucleusFramework/Nucleus.git",
+                "url": "https://github.com/NucleusFramework/Nucleus"
+            },
+            "licenses": [
+                "MIT"
             ],
             "funding": [
                 
@@ -1594,213 +1982,6 @@
             ]
         },
         {
-            "uniqueId": "io.github.kdroidfilter:nucleus.core-runtime",
-            "artifactVersion": "1.15.7",
-            "name": "Nucleus Core Runtime",
-            "description": "Core runtime library for the Nucleus Gradle plugin",
-            "website": "https://github.com/kdroidFilter/Nucleus",
-            "developers": [
-                {
-                    "name": "kdroidFilter"
-                }
-            ],
-            "scm": {
-                "connection": "scm:git:git://github.com/kdroidFilter/Nucleus.git",
-                "developerConnection": "scm:git:ssh://git@github.com/kdroidFilter/Nucleus.git",
-                "url": "https://github.com/kdroidFilter/Nucleus"
-            },
-            "licenses": [
-                "MIT"
-            ],
-            "funding": [
-                
-            ]
-        },
-        {
-            "uniqueId": "io.github.kdroidfilter:nucleus.darkmode-detector",
-            "artifactVersion": "1.15.7",
-            "name": "Nucleus Dark Mode Detector",
-            "description": "Reactive dark mode detection for Compose Desktop across Windows, macOS and Linux",
-            "website": "https://github.com/kdroidFilter/Nucleus",
-            "developers": [
-                {
-                    "name": "kdroidFilter"
-                }
-            ],
-            "scm": {
-                "connection": "scm:git:git://github.com/kdroidFilter/Nucleus.git",
-                "developerConnection": "scm:git:ssh://git@github.com/kdroidFilter/Nucleus.git",
-                "url": "https://github.com/kdroidFilter/Nucleus"
-            },
-            "licenses": [
-                "MIT"
-            ],
-            "funding": [
-                
-            ]
-        },
-        {
-            "uniqueId": "io.github.kdroidfilter:nucleus.decorated-window-core",
-            "artifactVersion": "1.15.7",
-            "name": "Nucleus Decorated Window Core",
-            "description": "Shared types, layout, styling, and resources for Nucleus Decorated Window",
-            "website": "https://github.com/kdroidFilter/Nucleus",
-            "developers": [
-                {
-                    "name": "kdroidFilter"
-                }
-            ],
-            "scm": {
-                "connection": "scm:git:git://github.com/kdroidFilter/Nucleus.git",
-                "developerConnection": "scm:git:ssh://git@github.com/kdroidFilter/Nucleus.git",
-                "url": "https://github.com/kdroidFilter/Nucleus"
-            },
-            "licenses": [
-                "MIT"
-            ],
-            "funding": [
-                
-            ]
-        },
-        {
-            "uniqueId": "io.github.kdroidfilter:nucleus.decorated-window-jbr",
-            "artifactVersion": "1.15.7",
-            "name": "Nucleus Decorated Window JBR",
-            "description": "JBR-based custom decorated window with native title bar for Compose Desktop",
-            "website": "https://github.com/kdroidFilter/Nucleus",
-            "developers": [
-                {
-                    "name": "kdroidFilter"
-                }
-            ],
-            "scm": {
-                "connection": "scm:git:git://github.com/kdroidFilter/Nucleus.git",
-                "developerConnection": "scm:git:ssh://git@github.com/kdroidFilter/Nucleus.git",
-                "url": "https://github.com/kdroidFilter/Nucleus"
-            },
-            "licenses": [
-                "MIT"
-            ],
-            "funding": [
-                
-            ]
-        },
-        {
-            "uniqueId": "io.github.kdroidfilter:nucleus.decorated-window-material3",
-            "artifactVersion": "1.15.7",
-            "name": "Nucleus Material Decorated Window",
-            "description": "Material 3 integration for Nucleus Decorated Window",
-            "website": "https://github.com/kdroidFilter/Nucleus",
-            "developers": [
-                {
-                    "name": "kdroidFilter"
-                }
-            ],
-            "scm": {
-                "connection": "scm:git:git://github.com/kdroidFilter/Nucleus.git",
-                "developerConnection": "scm:git:ssh://git@github.com/kdroidFilter/Nucleus.git",
-                "url": "https://github.com/kdroidFilter/Nucleus"
-            },
-            "licenses": [
-                "MIT"
-            ],
-            "funding": [
-                
-            ]
-        },
-        {
-            "uniqueId": "io.github.kdroidfilter:nucleus.freedesktop-icons",
-            "artifactVersion": "1.15.7",
-            "name": "Nucleus Freedesktop Icons",
-            "description": "Type-safe freedesktop icon naming specification constants for JVM desktop applications",
-            "website": "https://github.com/kdroidFilter/Nucleus",
-            "developers": [
-                {
-                    "name": "kdroidFilter"
-                }
-            ],
-            "scm": {
-                "connection": "scm:git:git://github.com/kdroidFilter/Nucleus.git",
-                "developerConnection": "scm:git:ssh://git@github.com/kdroidFilter/Nucleus.git",
-                "url": "https://github.com/kdroidFilter/Nucleus"
-            },
-            "licenses": [
-                "MIT"
-            ],
-            "funding": [
-                
-            ]
-        },
-        {
-            "uniqueId": "io.github.kdroidfilter:nucleus.launcher-linux",
-            "artifactVersion": "1.15.7",
-            "name": "Nucleus Launcher Linux",
-            "description": "Unity Launcher API (com.canonical.Unity.LauncherEntry) for JVM desktop applications via JNI",
-            "website": "https://github.com/kdroidFilter/Nucleus",
-            "developers": [
-                {
-                    "name": "kdroidFilter"
-                }
-            ],
-            "scm": {
-                "connection": "scm:git:git://github.com/kdroidFilter/Nucleus.git",
-                "developerConnection": "scm:git:ssh://git@github.com/kdroidFilter/Nucleus.git",
-                "url": "https://github.com/kdroidFilter/Nucleus"
-            },
-            "licenses": [
-                "MIT"
-            ],
-            "funding": [
-                
-            ]
-        },
-        {
-            "uniqueId": "io.github.kdroidfilter:nucleus.launcher-macos",
-            "artifactVersion": "1.15.7",
-            "name": "Nucleus Launcher macOS",
-            "description": "macOS dock context menu for JVM desktop applications via JNI",
-            "website": "https://github.com/kdroidFilter/Nucleus",
-            "developers": [
-                {
-                    "name": "kdroidFilter"
-                }
-            ],
-            "scm": {
-                "connection": "scm:git:git://github.com/kdroidFilter/Nucleus.git",
-                "developerConnection": "scm:git:ssh://git@github.com/kdroidFilter/Nucleus.git",
-                "url": "https://github.com/kdroidFilter/Nucleus"
-            },
-            "licenses": [
-                "MIT"
-            ],
-            "funding": [
-                
-            ]
-        },
-        {
-            "uniqueId": "io.github.kdroidfilter:nucleus.launcher-windows",
-            "artifactVersion": "1.15.7",
-            "name": "Nucleus Launcher Windows",
-            "description": "Windows Launcher API (Badge Notifications) for JVM desktop applications via JNI",
-            "website": "https://github.com/kdroidFilter/Nucleus",
-            "developers": [
-                {
-                    "name": "kdroidFilter"
-                }
-            ],
-            "scm": {
-                "connection": "scm:git:git://github.com/kdroidFilter/Nucleus.git",
-                "developerConnection": "scm:git:ssh://git@github.com/kdroidFilter/Nucleus.git",
-                "url": "https://github.com/kdroidFilter/Nucleus"
-            },
-            "licenses": [
-                "MIT"
-            ],
-            "funding": [
-                
-            ]
-        },
-        {
             "uniqueId": "io.github.koalaplot:koalaplot-core-desktop",
             "artifactVersion": "0.11.2",
             "name": "koalaplot-core",
@@ -1892,29 +2073,6 @@
             ]
         },
         {
-            "uniqueId": "io.github.sudarshanmhasrup.splashify:splashify-desktop",
-            "artifactVersion": "1.0.0-alpha1",
-            "name": "Splashify",
-            "description": "A Kotlin Multiplatform library for effortless, customizable splash screens in Compose Multiplatform desktop apps.",
-            "website": "https://github.com/sudarshanmhasrup/splashify",
-            "developers": [
-                {
-                    "name": "Sudarshan Mhasrup"
-                }
-            ],
-            "scm": {
-                "connection": "scm:git:https://github.com/sudarshanmhasrup/splashify.git",
-                "developerConnection": "scm:git:ssh://git@github.com/sudarshanmhasrup/splashify.git",
-                "url": "https://github.com/sudarshanmhasrup/splashify"
-            },
-            "licenses": [
-                "Apache-2.0"
-            ],
-            "funding": [
-                
-            ]
-        },
-        {
             "uniqueId": "io.github.vinceglb:filekit-core-jvm",
             "artifactVersion": "0.14.2",
             "name": "FileKit",
@@ -1961,7 +2119,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-client-auth-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-client-auth",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -1983,7 +2141,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-client-content-negotiation-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-client-content-negotiation",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2005,7 +2163,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-client-core-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-client-core",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2027,7 +2185,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-client-encoding-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-client-encoding",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2049,7 +2207,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-client-java-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-client-java",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2071,7 +2229,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-client-logging-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-client-logging",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2093,7 +2251,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-events-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-events",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2115,7 +2273,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-http-cio-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-http-cio",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2137,7 +2295,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-http-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-http",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2159,7 +2317,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-io-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-io",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2181,7 +2339,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-network-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-network",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2203,7 +2361,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-serialization-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-serialization",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2225,7 +2383,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-serialization-kotlinx-json-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-serialization-kotlinx-json",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2247,7 +2405,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-serialization-kotlinx-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-serialization-kotlinx",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2269,7 +2427,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-sse-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-sse",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2291,7 +2449,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-utils-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-utils",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2313,7 +2471,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-websocket-serialization-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-websocket-serialization",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2335,7 +2493,7 @@
         },
         {
             "uniqueId": "io.ktor:ktor-websockets-jvm",
-            "artifactVersion": "3.5.1",
+            "artifactVersion": "3.5.2",
             "name": "ktor-websockets",
             "description": "Ktor is a framework for quickly creating web applications in Kotlin with minimal effort.",
             "website": "https://github.com/ktorio/ktor",
@@ -2780,11 +2938,11 @@
             ]
         },
         {
-            "uniqueId": "org.jetbrains.androidx.lifecycle:lifecycle-common",
-            "artifactVersion": "2.10.0",
+            "uniqueId": "org.jetbrains.androidx.lifecycle:lifecycle-common-jvm",
+            "artifactVersion": "2.11.0",
             "name": "Lifecycle-Common",
             "description": "Android Lifecycle-Common",
-            "website": "https://github.com/JetBrains/compose-jb",
+            "website": "https://github.com/JetBrains/compose-multiplatform",
             "developers": [
                 {
                     "name": "Compose Multiplatform Team",
@@ -2792,33 +2950,9 @@
                 }
             ],
             "scm": {
-                "connection": "scm:git:https://github.com/JetBrains/compose-jb.git",
-                "developerConnection": "scm:git:https://github.com/JetBrains/compose-jb.git",
-                "url": "https://github.com/JetBrains/compose-jb"
-            },
-            "licenses": [
-                "Apache-2.0"
-            ],
-            "funding": [
-                
-            ]
-        },
-        {
-            "uniqueId": "org.jetbrains.androidx.lifecycle:lifecycle-runtime",
-            "artifactVersion": "2.10.0",
-            "name": "Lifecycle Runtime",
-            "description": "Android Lifecycle Runtime",
-            "website": "https://github.com/JetBrains/compose-jb",
-            "developers": [
-                {
-                    "name": "Compose Multiplatform Team",
-                    "organisationUrl": "https://www.jetbrains.com"
-                }
-            ],
-            "scm": {
-                "connection": "scm:git:https://github.com/JetBrains/compose-jb.git",
-                "developerConnection": "scm:git:https://github.com/JetBrains/compose-jb.git",
-                "url": "https://github.com/JetBrains/compose-jb"
+                "connection": "scm:git:https://github.com/JetBrains/compose-multiplatform.git",
+                "developerConnection": "scm:git:https://github.com/JetBrains/compose-multiplatform.git",
+                "url": "https://github.com/JetBrains/compose-multiplatform"
             },
             "licenses": [
                 "Apache-2.0"
@@ -2829,10 +2963,10 @@
         },
         {
             "uniqueId": "org.jetbrains.androidx.lifecycle:lifecycle-runtime-compose-desktop",
-            "artifactVersion": "2.10.0",
+            "artifactVersion": "2.11.0",
             "name": "Lifecycle Runtime Compose",
             "description": "Compose integration with Lifecycle",
-            "website": "https://github.com/JetBrains/compose-jb",
+            "website": "https://github.com/JetBrains/compose-multiplatform",
             "developers": [
                 {
                     "name": "Compose Multiplatform Team",
@@ -2840,9 +2974,9 @@
                 }
             ],
             "scm": {
-                "connection": "scm:git:https://github.com/JetBrains/compose-jb.git",
-                "developerConnection": "scm:git:https://github.com/JetBrains/compose-jb.git",
-                "url": "https://github.com/JetBrains/compose-jb"
+                "connection": "scm:git:https://github.com/JetBrains/compose-multiplatform.git",
+                "developerConnection": "scm:git:https://github.com/JetBrains/compose-multiplatform.git",
+                "url": "https://github.com/JetBrains/compose-multiplatform"
             },
             "licenses": [
                 "Apache-2.0"
@@ -2852,11 +2986,35 @@
             ]
         },
         {
-            "uniqueId": "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel",
-            "artifactVersion": "2.10.0",
+            "uniqueId": "org.jetbrains.androidx.lifecycle:lifecycle-runtime-desktop",
+            "artifactVersion": "2.11.0",
+            "name": "Lifecycle Runtime",
+            "description": "Android Lifecycle Runtime",
+            "website": "https://github.com/JetBrains/compose-multiplatform",
+            "developers": [
+                {
+                    "name": "Compose Multiplatform Team",
+                    "organisationUrl": "https://www.jetbrains.com"
+                }
+            ],
+            "scm": {
+                "connection": "scm:git:https://github.com/JetBrains/compose-multiplatform.git",
+                "developerConnection": "scm:git:https://github.com/JetBrains/compose-multiplatform.git",
+                "url": "https://github.com/JetBrains/compose-multiplatform"
+            },
+            "licenses": [
+                "Apache-2.0"
+            ],
+            "funding": [
+                
+            ]
+        },
+        {
+            "uniqueId": "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-desktop",
+            "artifactVersion": "2.11.0",
             "name": "Lifecycle ViewModel",
             "description": "Android Lifecycle ViewModel",
-            "website": "https://github.com/JetBrains/compose-jb",
+            "website": "https://github.com/JetBrains/compose-multiplatform",
             "developers": [
                 {
                     "name": "Compose Multiplatform Team",
@@ -2864,9 +3022,9 @@
                 }
             ],
             "scm": {
-                "connection": "scm:git:https://github.com/JetBrains/compose-jb.git",
-                "developerConnection": "scm:git:https://github.com/JetBrains/compose-jb.git",
-                "url": "https://github.com/JetBrains/compose-jb"
+                "connection": "scm:git:https://github.com/JetBrains/compose-multiplatform.git",
+                "developerConnection": "scm:git:https://github.com/JetBrains/compose-multiplatform.git",
+                "url": "https://github.com/JetBrains/compose-multiplatform"
             },
             "licenses": [
                 "Apache-2.0"
@@ -2876,11 +3034,11 @@
             ]
         },
         {
-            "uniqueId": "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-savedstate",
-            "artifactVersion": "2.9.6",
+            "uniqueId": "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-savedstate-desktop",
+            "artifactVersion": "2.11.0",
             "name": "Lifecycle ViewModel with SavedState",
             "description": "Android Lifecycle ViewModel",
-            "website": "https://github.com/JetBrains/compose-jb",
+            "website": "https://github.com/JetBrains/compose-multiplatform",
             "developers": [
                 {
                     "name": "Compose Multiplatform Team",
@@ -2888,9 +3046,9 @@
                 }
             ],
             "scm": {
-                "connection": "scm:git:https://github.com/JetBrains/compose-jb.git",
-                "developerConnection": "scm:git:https://github.com/JetBrains/compose-jb.git",
-                "url": "https://github.com/JetBrains/compose-jb"
+                "connection": "scm:git:https://github.com/JetBrains/compose-multiplatform.git",
+                "developerConnection": "scm:git:https://github.com/JetBrains/compose-multiplatform.git",
+                "url": "https://github.com/JetBrains/compose-multiplatform"
             },
             "licenses": [
                 "Apache-2.0"
@@ -4000,7 +4158,7 @@
         },
         {
             "uniqueId": "org.jetbrains.kotlinx:kotlinx-io-bytestring-jvm",
-            "artifactVersion": "0.9.0",
+            "artifactVersion": "0.9.1",
             "name": "kotlinx-io-bytestring",
             "description": "IO support for Kotlin",
             "website": "https://github.com/Kotlin/kotlinx-io",
@@ -4022,7 +4180,7 @@
         },
         {
             "uniqueId": "org.jetbrains.kotlinx:kotlinx-io-core-jvm",
-            "artifactVersion": "0.9.0",
+            "artifactVersion": "0.9.1",
             "name": "kotlinx-io-core",
             "description": "IO support for Kotlin",
             "website": "https://github.com/Kotlin/kotlinx-io",
@@ -4132,7 +4290,7 @@
         },
         {
             "uniqueId": "org.jetbrains.runtime:jbr-api",
-            "artifactVersion": "1.10.1",
+            "artifactVersion": "1.9.0",
             "name": "jbr-api",
             "description": "Interface for the functionality specific to https://github.com/JetBrains/JetBrainsRuntime",
             "website": "https://github.com/JetBrains/JetBrainsRuntimeApi",
@@ -4275,7 +4433,7 @@
         },
         {
             "uniqueId": "org.jetbrains:markdown-jvm",
-            "artifactVersion": "0.7.7",
+            "artifactVersion": "0.7.8",
             "name": "markdown",
             "description": "Markdown parser in Kotlin",
             "website": "https://github.com/JetBrains/markdown",

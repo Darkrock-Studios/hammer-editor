@@ -3,17 +3,17 @@ package com.darkrockstudios.apps.hammer.desktop.shortcuts
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import io.github.aakira.napier.Napier
-import io.github.kdroidfilter.nucleus.freedesktop.icons.FreedesktopIcon
-import io.github.kdroidfilter.nucleus.launcher.linux.DbusmenuItem
-import io.github.kdroidfilter.nucleus.launcher.linux.LauncherProperties
-import io.github.kdroidfilter.nucleus.launcher.linux.LinuxLauncherEntry
+import dev.nucleusframework.freedesktop.icons.FreedesktopIcon
+import dev.nucleusframework.launcher.linux.DbusmenuItem
+import dev.nucleusframework.launcher.linux.LauncherProperties
+import dev.nucleusframework.launcher.linux.LinuxLauncherEntry
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.withContext
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.CoroutineContext
-import io.github.kdroidfilter.nucleus.launcher.linux.LinuxQuicklist as NucleusQuicklist
+import dev.nucleusframework.launcher.linux.LinuxQuicklist as NucleusQuicklist
 
 class LinuxQuicklist(
 	private val projectsRepository: ProjectsRepository,

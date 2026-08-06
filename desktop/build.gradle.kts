@@ -60,12 +60,12 @@ kotlin {
 				implementation(compose.desktop.currentOs)
 				implementation(libs.clikt)
 				implementation(libs.nucleus.darkmode.detector)
-				implementation(libs.nucleus.decorated.window.jbr)
+				implementation(libs.nucleus.application)
+				implementation(libs.nucleus.decorated.window.tao)
 				implementation(libs.nucleus.decorated.window.material3)
 				implementation(libs.nucleus.launcher.windows)
 				implementation(libs.nucleus.launcher.linux)
 				implementation(libs.nucleus.launcher.macos)
-				implementation(libs.splashify)
 			}
 		}
 		val jvmTest by getting {
@@ -193,10 +193,15 @@ val extractMacosNativeLibs = tasks.register("extractMacosNativeLibs") {
 
 	val nativeLibs = listOf(
 		Triple("net.java.dev.jna", "jna", "com/sun/jna/darwin-aarch64/libjnidispatch.jnilib"),
-		Triple("io.github.kdroidfilter", "nucleus.launcher-macos", "nucleus/native/darwin-aarch64/libnucleus_launcher_macos.dylib"),
-		Triple("io.github.kdroidfilter", "nucleus.darkmode-detector", "nucleus/native/darwin-aarch64/libnucleus_darkmode.dylib"),
-		Triple("io.github.kdroidfilter", "nucleus.decorated-window-core", "nucleus/native/darwin-aarch64/libnucleus_layout_direction.dylib"),
-		Triple("io.github.kdroidfilter", "nucleus.decorated-window-jbr", "nucleus/native/darwin-aarch64/libnucleus_macos.dylib"),
+		Triple("dev.nucleusframework", "nucleus.launcher-macos", "nucleus/native/darwin-aarch64/libnucleus_launcher_macos.dylib"),
+		Triple("dev.nucleusframework", "nucleus.darkmode-detector", "nucleus/native/darwin-aarch64/libnucleus_darkmode.dylib"),
+		Triple("dev.nucleusframework", "nucleus.decorated-window-core", "nucleus/native/darwin-aarch64/libnucleus_layout_direction.dylib"),
+		Triple("dev.nucleusframework", "nucleus.decorated-window-tao", "nucleus/native/darwin-aarch64/libnucleus_tao.dylib"),
+		Triple("dev.nucleusframework", "nucleus.decorated-window-tao", "nucleus/native/darwin-aarch64/libnucleus_tao_dnd.dylib"),
+		Triple("dev.nucleusframework", "nucleus.decorated-window-tao", "nucleus/native/darwin-aarch64/libnucleus_tao_macos_deco.dylib"),
+		Triple("dev.nucleusframework", "nucleus.decorated-window-tao", "nucleus/native/darwin-aarch64/libnucleus_tao_macos_native_view.dylib"),
+		Triple("dev.nucleusframework", "nucleus.decorated-window-tao", "nucleus/native/darwin-aarch64/libnucleus_tao_macos_popup.dylib"),
+		Triple("dev.nucleusframework", "nucleus.decorated-window-tao", "nucleus/native/darwin-aarch64/libnucleus_tao_metal.dylib"),
 	)
 
 	val runtime = configurations.named("jvmRuntimeClasspath")

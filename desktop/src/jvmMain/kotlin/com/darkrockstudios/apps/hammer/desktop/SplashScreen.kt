@@ -1,13 +1,19 @@
 package com.darkrockstudios.apps.hammer.desktop
 
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -15,12 +21,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.WindowPosition
+import androidx.compose.ui.window.rememberWindowState
 import com.darkrockstudios.apps.hammer.*
-import io.github.sudarshanmhasrup.splashify.ui.config.SplashScreenSize
-import io.github.sudarshanmhasrup.splashify.ui.config.SplashScreenStyle
-import io.github.sudarshanmhasrup.splashify.ui.splashscreen.SimpleSplashScreen
+import dev.nucleusframework.application.DecoratedWindow
+import dev.nucleusframework.application.NucleusApplicationScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.withContext
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -33,27 +44,50 @@ private val TitleColor = Color(0xFFEDE0DB)
 private val SubtitleColor = Color(0xFFB9ACA6)
 private val TrackColor = Color(0x33FFFFFF)
 
+internal const val SplashDurationMs = 600
+
+/**
+ * Borderless splash window shown over the main window while it spins up. Purely
+ * cosmetic: it owns no timer and gates nothing, so no way it can fail is a way the
+ * app fails to appear. The caller decides when it goes away.
+ */
 @Composable
-fun SplashScreen() {
-	val size = SplashScreenSize(
-		width = 600.dp,
-		height = 380.dp
+internal fun NucleusApplicationScope.SplashWindow() {
+	val windowState = rememberWindowState(
+		size = DpSize(600.dp, 380.dp),
+		position = WindowPosition(Alignment.Center),
 	)
 
-	val style = SplashScreenStyle(
-		backgroundColor = SplashBackground,
-		cornerRadius = 16.dp
-	)
+	DecoratedWindow(
+		onCloseRequest = {},
+		state = windowState,
+		title = "",
+		undecorated = true,
+		resizable = false,
+	) {
+		var filling by remember { mutableStateOf(false) }
+		LaunchedEffect(Unit) { filling = true }
 
+		SplashScreen(if (filling) 1f else 0f)
+	}
+}
+
+@Composable
+private fun SplashScreen(progress: Float) {
 	val typewriter = FontFamily(Font(Res.font.Kingthings_Trypewriter_2))
 	val mono = FontFamily(Font(Res.font.IBMPlexMono_SemiBold))
 
-	SimpleSplashScreen(
-		size = size,
-		style = style
-	) { progress ->
-		val animatedProgress by animateFloatAsState(targetValue = progress)
+	val animatedProgress by animateFloatAsState(
+		targetValue = progress,
+		animationSpec = tween(durationMillis = SplashDurationMs, easing = LinearEasing),
+	)
 
+	Box(
+		modifier = Modifier
+			.fillMaxSize()
+			.background(SplashBackground),
+		contentAlignment = Alignment.Center,
+	) {
 		Column(
 			modifier = Modifier
 				.fillMaxWidth()
