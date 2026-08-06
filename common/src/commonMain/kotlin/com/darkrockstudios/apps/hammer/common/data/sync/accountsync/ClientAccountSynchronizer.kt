@@ -478,7 +478,9 @@ class ClientAccountSynchronizer(
 	}
 
 	/**
-	 * Create projects on the server which this client has created locally
+	 * Create projects on the server which this client has created locally. A cached [ProjectId] the
+	 * server neither holds nor has tombstoned is dead (the client last synced against a different or
+	 * since-reset server): recreate it, or per-project sync gets an id it can only 410 on.
 	 */
 	private suspend fun createProjectsOnServer(
 		localProjectsWithIds: List<Pair<ProjectDef, ProjectId?>>,
@@ -487,8 +489,11 @@ class ClientAccountSynchronizer(
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
+		val serverKnownIds = serverSyncData.projects.mapTo(mutableSetOf()) { it.uuid } +
+			serverSyncData.deletedProjects
+
 		val localOnly = localProjectsWithIds.filter { (_, uuid) ->
-			uuid == null
+			uuid == null || uuid !in serverKnownIds
 		}.map { it.first.name }
 
 		val newLocalProjects = clientSyncData.projectsToCreate + localOnly

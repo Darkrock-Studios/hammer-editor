@@ -439,6 +439,28 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
+	fun `syncProjects recreates a project whose cached id the server neither holds nor tombstoned`() = runTest {
+		writeSyncData(emptySyncData())
+		val staleId = ProjectId.randomUUID()
+		val freshId = ProjectId.randomUUID()
+		val def = projectDef("ResetServerNovel")
+
+		// The server has no record of this id at all: not a live project, not a tombstone.
+		// This is what a client sees after syncing against a different or since-reset server.
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns staleId
+		every { projectsRepository.getProjectDefinition("ResetServerNovel") } returns def
+		coEvery { serverProjectsApi.createProject("ResetServerNovel", "sync-1") } returns
+			Result.success(CreateProjectResponse(freshId, alreadyExisted = false))
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		coVerify { serverProjectsApi.createProject("ResetServerNovel", "sync-1") }
+		verify { projectsRepository.setProjectId(def, freshId) }
+	}
+
+	@Test
 	fun `syncProjects deletes a server project this client marked for deletion`() = runTest {
 		val id = ProjectId.randomUUID()
 		writeSyncData(emptySyncData().copy(projectsToDelete = setOf(id)))
