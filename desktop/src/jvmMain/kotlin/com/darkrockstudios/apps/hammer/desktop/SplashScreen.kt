@@ -44,35 +44,29 @@ private val TitleColor = Color(0xFFEDE0DB)
 private val SubtitleColor = Color(0xFFB9ACA6)
 private val TrackColor = Color(0x33FFFFFF)
 
-private const val SplashDurationMs = 600
+internal const val SplashDurationMs = 600
 
 /**
- * Borderless splash window shown while the main window spins up. Fills the
- * progress bar over [SplashDurationMs], then calls [onFinished].
+ * Borderless splash window shown over the main window while it spins up. Purely
+ * cosmetic: it owns no timer and gates nothing, so no way it can fail is a way the
+ * app fails to appear. The caller decides when it goes away.
  */
 @Composable
-internal fun NucleusApplicationScope.SplashWindow(onFinished: () -> Unit) {
+internal fun NucleusApplicationScope.SplashWindow() {
 	val windowState = rememberWindowState(
 		size = DpSize(600.dp, 380.dp),
 		position = WindowPosition(Alignment.Center),
 	)
 
 	DecoratedWindow(
-		onCloseRequest = onFinished,
+		onCloseRequest = {},
 		state = windowState,
 		title = "",
 		undecorated = true,
 		resizable = false,
 	) {
 		var filling by remember { mutableStateOf(false) }
-
-		// One wall-clock wait, timed off the UI thread: a stalled renderer must not be
-		// able to stretch the hand-off, and the hand-off must not ride the frame clock.
-		LaunchedEffect(Unit) {
-			filling = true
-			withContext(Dispatchers.Default) { delay(SplashDurationMs.toLong()) }
-			onFinished()
-		}
+		LaunchedEffect(Unit) { filling = true }
 
 		SplashScreen(if (filling) 1f else 0f)
 	}

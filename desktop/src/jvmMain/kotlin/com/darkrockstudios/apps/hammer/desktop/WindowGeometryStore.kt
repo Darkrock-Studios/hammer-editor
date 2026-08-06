@@ -61,12 +61,14 @@ class WindowGeometryStore(private val settings: Settings) {
 fun rememberPersistedWindowState(
 	window: WindowGeometryStore.Window,
 	defaultSize: DpSize,
+	startMinimized: Boolean = false,
 ): WindowState {
 	val store = remember { getKoin().get<WindowGeometryStore>() }
 	val initial = remember { store.load(window, defaultSize) }
 	val windowState = rememberWindowState(
 		size = initial.size,
 		placement = if (initial.maximized) WindowPlacement.Maximized else WindowPlacement.Floating,
+		isMinimized = startMinimized,
 	)
 
 	LaunchedEffect(windowState) {

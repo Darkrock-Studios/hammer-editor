@@ -48,6 +48,7 @@ import io.github.vinceglb.filekit.FileKit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
@@ -217,16 +218,22 @@ fun main(args: Array<String>) {
 				when (val windowState = applicationState.windows.value) {
 					is WindowState.ProjectSectionWindow -> {
 						var showSplash by remember { mutableStateOf(true) }
-						// The splash is additive, never a gate: the real window exists from the
-						// start, so no way the splash can fail is a way the app fails to appear.
+						// The real window always exists, merely minimized behind the splash, and
+						// the hand-off is timed here rather than inside either window: a window
+						// that fails to render can neither stall it nor swallow the app.
+						LaunchedEffect(Unit) {
+							withContext(Dispatchers.Default) { delay(SplashDurationMs.toLong()) }
+							showSplash = false
+						}
 						ProjectSelectionWindow(
 							settings = settingsState,
 							darkMode = darkMode,
+							minimized = showSplash,
 						) { project ->
 							applicationState.openProject(project)
 						}
 						if (showSplash) {
-							SplashWindow(onFinished = { showSplash = false })
+							SplashWindow()
 						}
 					}
 

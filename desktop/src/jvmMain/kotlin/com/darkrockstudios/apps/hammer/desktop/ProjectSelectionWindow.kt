@@ -10,6 +10,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -53,6 +54,7 @@ import dev.nucleusframework.window.material.MaterialTitleBar
 internal fun NucleusApplicationScope.ProjectSelectionWindow(
 	settings: GlobalSettings,
 	darkMode: Boolean,
+	minimized: Boolean = false,
 	onProjectSelected: (projectDef: ProjectDef) -> Unit
 ) {
 	val backDispatcher = BackDispatcher()
@@ -61,7 +63,14 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 	val windowState = rememberPersistedWindowState(
 		WindowGeometryStore.Window.ProjectSelect,
 		defaultSize = coerceWindowSize(900.dp, 800.dp),
+		startMinimized = minimized,
 	)
+
+	// Restore once the splash is done. One-way on purpose: a later user-initiated
+	// minimize must stick.
+	LaunchedEffect(minimized) {
+		if (!minimized) windowState.isMinimized = false
+	}
 	val component = remember {
 		ProjectSelectionComponent(
 			componentContext = compContext,
