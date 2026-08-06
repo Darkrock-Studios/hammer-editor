@@ -3,9 +3,9 @@ package com.darkrockstudios.apps.hammer.desktop.shortcuts
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import io.github.aakira.napier.Napier
-import io.github.kdroidfilter.nucleus.launcher.macos.DockMenuItem
-import io.github.kdroidfilter.nucleus.launcher.macos.DockMenuListener
-import io.github.kdroidfilter.nucleus.launcher.macos.MacOsDockMenu
+import dev.nucleusframework.launcher.macos.DockMenuItem
+import dev.nucleusframework.launcher.macos.DockMenuListener
+import dev.nucleusframework.launcher.macos.MacOsDockMenu
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow

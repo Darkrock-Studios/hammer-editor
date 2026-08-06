@@ -4,11 +4,12 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.ui.window.ApplicationScope
-import androidx.compose.ui.window.application
+import androidx.compose.runtime.setValue
 import coil3.ImageLoader
 import coil3.compose.setSingletonImageLoaderFactory
+import com.arkivanov.decompose.DecomposeSettings
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
@@ -36,11 +37,13 @@ import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
 import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModule
 import com.darkrockstudios.apps.hammer.desktop.sandbox.SandboxStartup
 import com.darkrockstudios.apps.hammer.desktop.shortcuts.QuickShortcuts
+import dev.nucleusframework.application.NucleusApplicationScope
+import dev.nucleusframework.application.NucleusBackend
+import dev.nucleusframework.application.nucleusApplication
+import dev.nucleusframework.darkmodedetector.isSystemInDarkMode
+import dev.nucleusframework.window.NucleusDecoratedWindowTheme
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
-import io.github.kdroidfilter.nucleus.darkmodedetector.isSystemInDarkMode
-import io.github.kdroidfilter.nucleus.window.NucleusDecoratedWindowTheme
-import io.github.sudarshanmhasrup.splashify.SplashifyApp
 import io.github.vinceglb.filekit.FileKit
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -175,8 +178,16 @@ fun main(args: Array<String>) {
 		}
 	}
 
+	// Decompose's ServiceLoader-provided checker only knows the AWT EDT, but the
+	// Tao backend drives the UI (and Dispatchers.Main) from Tao's own main thread.
+	DecomposeSettings.update { it.copy(mainThreadCheckEnabled = false) }
+
 	Napier.i("Startup: entering Compose application")
-	application {
+	nucleusApplication(
+		args = args,
+		backend = NucleusBackend.Tao,
+		enableSingleInstance = false,
+	) {
 		LaunchedEffect(Unit) { Napier.i("Startup: first composition") }
 		val applicationState = remember {
 			ApplicationState(
@@ -205,17 +216,26 @@ fun main(args: Array<String>) {
 			AppTheme(useDarkTheme = darkMode, settings = settingsState) {
 				when (val windowState = applicationState.windows.value) {
 					is WindowState.ProjectSectionWindow -> {
-						SplashifyApp(
-							splashScreen = { SplashScreen() }
-						) {
-							ProjectSelectionWindow { project ->
+						var showSplash by remember { mutableStateOf(true) }
+						if (showSplash) {
+							SplashWindow(onFinished = { showSplash = false })
+						} else {
+							ProjectSelectionWindow(
+								settings = settingsState,
+								darkMode = darkMode,
+							) { project ->
 								applicationState.openProject(project)
 							}
 						}
 					}
 
 					is WindowState.ProjectWindow -> {
-						ProjectEditorWindow(applicationState, windowState.projectDef)
+						ProjectEditorWindow(
+							app = applicationState,
+							projectDef = windowState.projectDef,
+							settings = settingsState,
+							darkMode = darkMode,
+						)
 					}
 				}
 			}
@@ -234,7 +254,7 @@ internal enum class ConfirmCloseResult {
 	Cancel
 }
 
-internal fun ApplicationScope.performClose(
+internal fun NucleusApplicationScope.performClose(
 	app: ApplicationState,
 	closeType: ApplicationState.CloseType
 ) {
@@ -250,7 +270,7 @@ internal fun ApplicationScope.performClose(
 	}
 }
 
-internal fun ApplicationScope.onRequestClose(
+internal fun NucleusApplicationScope.onRequestClose(
 	component: AppCloseManager,
 	app: ApplicationState,
 	closeType: ApplicationState.CloseType

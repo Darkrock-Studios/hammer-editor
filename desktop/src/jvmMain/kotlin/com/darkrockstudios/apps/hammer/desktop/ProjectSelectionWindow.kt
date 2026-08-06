@@ -22,7 +22,6 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.ApplicationScope
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
@@ -37,18 +36,23 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.darkrockstudios.apps.hammer.common.projectselection.toHdNavRailDestination
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
-import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedWindow
-import io.github.kdroidfilter.nucleus.window.material.MaterialTitleBar
+import dev.nucleusframework.application.NucleusApplicationScope
+import dev.nucleusframework.window.material.MaterialDecoratedWindow
+import dev.nucleusframework.window.material.MaterialTitleBar
 
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 @ExperimentalDecomposeApi
 @Composable
-internal fun ApplicationScope.ProjectSelectionWindow(
+internal fun NucleusApplicationScope.ProjectSelectionWindow(
+	settings: GlobalSettings,
+	darkMode: Boolean,
 	onProjectSelected: (projectDef: ProjectDef) -> Unit
 ) {
 	val backDispatcher = BackDispatcher()
@@ -97,7 +101,11 @@ internal fun ApplicationScope.ProjectSelectionWindow(
 				modifier = Modifier.align(Alignment.CenterHorizontally),
 			)
 		}
-		Content(component)
+		// Tao windows are their own ComposeScene: locals provided outside the
+		// window (AppTheme in Main.kt) don't reach this content, so re-apply.
+		AppTheme(useDarkTheme = darkMode, settings = settings) {
+			Content(component)
+		}
 	}
 }
 

@@ -58,14 +58,21 @@
 # NUCLEUS LAUNCHER (JNI bridge classes — JNI invokes static on*(...) callbacks)
 # Windows launcher ships its own keep rules via the Nucleus Gradle plugin.
 ################################################################################
--keep class io.github.kdroidfilter.nucleus.launcher.linux.NativeLinuxLauncherBridge {
+-keep class dev.nucleusframework.launcher.linux.NativeLinuxLauncherBridge {
     native <methods>;
     static ** on*(...);
 }
--keep class io.github.kdroidfilter.nucleus.launcher.macos.NativeMacOsDockMenuBridge {
+-keep class dev.nucleusframework.launcher.macos.NativeMacOsDockMenuBridge {
     native <methods>;
     static ** on*(...);
 }
+
+################################################################################
+# NUCLEUS TAO BACKEND (native window layer: JNI bridges call back into these,
+# and the Tao main dispatcher is discovered reflectively via ServiceLoader)
+################################################################################
+-keep class dev.nucleusframework.window.tao.** { *; }
+-keep class kotlinx.coroutines.internal.MainDispatcherFactory
 
 ################################################################################
 # LIBRARIES (Broad Keeps for Stability)

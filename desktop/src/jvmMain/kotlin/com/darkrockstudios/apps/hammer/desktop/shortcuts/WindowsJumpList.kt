@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.desktop.PROJECT_FLAG
 import com.darkrockstudios.apps.hammer.jump_list_recent_projects
 import io.github.aakira.napier.Napier
-import io.github.kdroidfilter.nucleus.launcher.windows.*
+import dev.nucleusframework.launcher.windows.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow

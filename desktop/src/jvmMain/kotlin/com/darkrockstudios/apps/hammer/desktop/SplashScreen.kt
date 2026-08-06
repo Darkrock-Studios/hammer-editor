@@ -7,7 +7,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -15,12 +19,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.WindowPosition
+import androidx.compose.ui.window.rememberWindowState
 import com.darkrockstudios.apps.hammer.*
-import io.github.sudarshanmhasrup.splashify.ui.config.SplashScreenSize
-import io.github.sudarshanmhasrup.splashify.ui.config.SplashScreenStyle
-import io.github.sudarshanmhasrup.splashify.ui.splashscreen.SimpleSplashScreen
+import dev.nucleusframework.application.DecoratedWindow
+import dev.nucleusframework.application.NucleusApplicationScope
+import kotlinx.coroutines.delay
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -33,27 +40,51 @@ private val TitleColor = Color(0xFFEDE0DB)
 private val SubtitleColor = Color(0xFFB9ACA6)
 private val TrackColor = Color(0x33FFFFFF)
 
+/**
+ * Borderless splash window shown while the main window spins up. Fills the
+ * progress bar over roughly a second, then calls [onFinished].
+ */
 @Composable
-fun SplashScreen() {
-	val size = SplashScreenSize(
-		width = 600.dp,
-		height = 380.dp
+internal fun NucleusApplicationScope.SplashWindow(onFinished: () -> Unit) {
+	val windowState = rememberWindowState(
+		size = DpSize(600.dp, 380.dp),
+		position = WindowPosition(Alignment.Center),
 	)
 
-	val style = SplashScreenStyle(
-		backgroundColor = SplashBackground,
-		cornerRadius = 16.dp
-	)
+	DecoratedWindow(
+		onCloseRequest = onFinished,
+		state = windowState,
+		title = "",
+		undecorated = true,
+		resizable = false,
+	) {
+		var progress by remember { mutableFloatStateOf(0f) }
 
+		LaunchedEffect(Unit) {
+			repeat(100) {
+				progress += 0.01f
+				delay(10)
+			}
+			onFinished()
+		}
+
+		SplashScreen(progress)
+	}
+}
+
+@Composable
+private fun SplashScreen(progress: Float) {
 	val typewriter = FontFamily(Font(Res.font.Kingthings_Trypewriter_2))
 	val mono = FontFamily(Font(Res.font.IBMPlexMono_SemiBold))
 
-	SimpleSplashScreen(
-		size = size,
-		style = style
-	) { progress ->
-		val animatedProgress by animateFloatAsState(targetValue = progress)
+	val animatedProgress by animateFloatAsState(targetValue = progress)
 
+	Box(
+		modifier = Modifier
+			.fillMaxSize()
+			.background(SplashBackground),
+		contentAlignment = Alignment.Center,
+	) {
 		Column(
 			modifier = Modifier
 				.fillMaxWidth()
