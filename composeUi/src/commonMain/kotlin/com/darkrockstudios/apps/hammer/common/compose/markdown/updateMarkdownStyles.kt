@@ -48,6 +48,9 @@ internal fun updateMarkdownStyles(
 	state.processLines { _: Int, line: AnnotatedString ->
 		buildAnnotatedString {
 			append(line.text)
+			// Block lines carry their indent as a ParagraphStyle, which the raw text
+			// append above drops.
+			line.paragraphStyles.forEach { addStyle(it.item, it.start, it.end) }
 			if (line.spanStyles.isEmpty()) {
 				addStyle(newConfig.defaultTextStyle, 0, line.length)
 			} else {
