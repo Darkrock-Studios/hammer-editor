@@ -30,12 +30,6 @@ fun Modifier.findShortcutModifier(showFindBar: () -> Unit): Modifier =
 fun Modifier.saveShortcutModifier(onSave: () -> Unit): Modifier =
 	onKeyShortcut(Key.S, ctrl = true, action = onSave)
 
-fun Modifier.saveAllShortcutModifier(onSaveAll: () -> Unit): Modifier =
-	onKeyShortcut(Key.S, ctrl = true, alt = true, action = onSaveAll)
-
-fun Modifier.syncShortcutModifier(onSync: () -> Unit): Modifier =
-	onKeyShortcut(Key.F3, action = onSync)
-
 fun Modifier.boldShortcutModifier(onBold: () -> Unit): Modifier =
 	onKeyShortcut(Key.B, ctrl = true, action = onBold)
 

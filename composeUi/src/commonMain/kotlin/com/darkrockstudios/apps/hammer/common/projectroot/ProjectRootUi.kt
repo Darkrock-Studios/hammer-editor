@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -26,10 +25,7 @@ import com.darkrockstudios.apps.hammer.common.compose.SetScreenCharacteristics
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBarDestination
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailDestination
-import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.saveAllShortcutModifier
-import com.darkrockstudios.apps.hammer.common.compose.syncShortcutModifier
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesFab
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
 import com.darkrockstudios.apps.hammer.common.globalsearch.GlobalSearchUi
@@ -48,8 +44,6 @@ import com.darkrockstudios.apps.hammer.ic_encyclopedia
 import com.darkrockstudios.apps.hammer.ic_home
 import com.darkrockstudios.apps.hammer.ic_notes
 import com.darkrockstudios.apps.hammer.ic_timeline
-import com.darkrockstudios.apps.hammer.save_all_toast
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.vectorResource
 
 private val WIDE_SCREEN_THRESHOLD = 650.dp
@@ -90,20 +84,9 @@ fun ProjectRootUi(
 	navWidth: Dp = Dp.Unspecified,
 	modifier: Modifier = Modifier,
 ) {
-	val scope = rememberCoroutineScope()
-	val strRes = rememberStrRes()
-
 	SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
 		FeatureContent(
-			modifier
-				.fillMaxSize()
-				.saveAllShortcutModifier {
-					scope.launch {
-						component.storeDirtyBuffers()
-						rootSnackbar.showSnackbar(strRes.get(Res.string.save_all_toast))
-					}
-				}
-				.syncShortcutModifier { component.showProjectSync() },
+			modifier.fillMaxSize(),
 			component,
 			rootSnackbar,
 			navWidth,

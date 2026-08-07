@@ -20,6 +20,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.isShiftPressed
@@ -41,6 +42,7 @@ import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
@@ -58,6 +60,7 @@ import com.darkrockstudios.apps.hammer.project_window_menu_file
 import com.darkrockstudios.apps.hammer.project_window_menu_item_close
 import com.darkrockstudios.apps.hammer.project_window_menu_item_exit
 import com.darkrockstudios.apps.hammer.project_window_title
+import com.darkrockstudios.apps.hammer.save_all_toast
 import dev.nucleusframework.application.NucleusApplicationScope
 import dev.nucleusframework.window.material.MaterialDecoratedWindow
 import dev.nucleusframework.window.material.MaterialTitleBar
@@ -105,6 +108,10 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 	}
 
 	val windowTitle = Res.string.project_window_title.get(projectDef.name)
+	val saveAllToast = Res.string.save_all_toast.get()
+	val windowScope = rememberCoroutineScope()
+	val rootSnackbar = rememberRootSnackbarHostState()
+
 	MaterialDecoratedWindow(
 		title = windowTitle,
 		state = windowState,
@@ -122,6 +129,22 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 					component.showGlobalSearch()
 					true
 				}
+				event.type == KeyEventType.KeyDown && event.key == Key.F3 -> {
+					component.startProjectSync()
+					true
+				}
+
+				event.type == KeyEventType.KeyDown &&
+					event.key == Key.S &&
+					event.isAltPressed &&
+					(event.isCtrlPressed || event.isMetaPressed) -> {
+					windowScope.launch {
+						component.storeDirtyBuffers()
+						rootSnackbar.showSnackbar(saveAllToast)
+					}
+					true
+				}
+
 				event.type == KeyEventType.KeyDown &&
 					event.key == Key.W &&
 					(event.isCtrlPressed || event.isMetaPressed) -> {
@@ -139,7 +162,6 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 			}
 		}
 	) {
-		val scope = rememberCoroutineScope()
 		val mainDispatcher = rememberMainDispatcher()
 
 		MaterialTitleBar {
@@ -153,7 +175,7 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 		// Tao windows are their own ComposeScene: locals provided outside the
 		// window (AppTheme in Main.kt) don't reach this content, so re-apply.
 		AppTheme(useDarkTheme = darkMode, settings = settings) {
-			AppContent(component)
+			AppContent(component, rootSnackbar)
 
 			LaunchedEffect(closeRequest) {
 				if (closeRequest != ApplicationState.CloseType.None) {
@@ -166,7 +188,7 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 				when (item) {
 					CloseConfirm.Scenes -> {
 						confirmCloseUnsavedScenesDialog(closeRequest) { result, closeType ->
-							scope.launch {
+							windowScope.launch {
 								if (result == ConfirmCloseResult.SaveAll) {
 									component.storeDirtyBuffers()
 								}
@@ -263,11 +285,10 @@ private fun FrameWindowScope.EditorMenuBar(
 }
 
 @Composable
-private fun AppContent(component: ProjectRoot) {
+private fun AppContent(component: ProjectRoot, rootSnackbar: RootSnackbarHostState) {
 	val router by component.routerState.subscribeAsState()
 	val themeState by component.projectTheme.subscribeAsState()
 	val navRailState by component.navRailState.subscribeAsState()
-	val rootSnackbar = rememberRootSnackbarHostState()
 
 	val destinations = ProjectRoot.DestinationTypes.entries.map { it.toHdNavRailDestination() }
 
