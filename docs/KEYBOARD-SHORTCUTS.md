@@ -17,14 +17,19 @@ macOS-specific `Cmd` bindings, they work with either key on every platform.
 
 ## Project (while a project is open)
 
-Both are handled on the window, so they fire regardless of what is focused. Modifier
-shortcuts (the editor ones below) only fire when focus sits inside the composable they
-are attached to, because Compose routes key events along the focus path.
+Both are handled on the window's `onPreviewKeyEvent`, which runs before the focus path,
+so a focused editor cannot swallow them. The application shortcuts above use the
+window's `onKeyEvent` instead and yield to a focused component that consumes the key.
+Modifier shortcuts (the editor ones below) only fire when focus sits inside the
+composable they are attached to, because Compose routes key events along the focus path.
 
-| Shortcut     | Action                                       | Source                                  |
-|--------------|----------------------------------------------|-----------------------------------------|
-| `Ctrl+Alt+S` | Save all dirty buffers (scenes, notes, etc.) | `ProjectEditorWindow.kt` (`onKeyEvent`) |
-| `F3`         | Start project sync (server-linked only)      | `ProjectEditorWindow.kt` (`onKeyEvent`) |
+Modifiers match exactly: `F3` means F3 with nothing held, so `Ctrl+F3` and `Shift+F3` do
+not start a sync.
+
+| Shortcut     | Action                                       | Source                                         |
+|--------------|----------------------------------------------|------------------------------------------------|
+| `Ctrl+Alt+S` | Save all dirty buffers (scenes, notes, etc.) | `ProjectEditorWindow.kt` (`onPreviewKeyEvent`) |
+| `F3`         | Start project sync (server-linked only)      | `ProjectEditorWindow.kt` (`onPreviewKeyEvent`) |
 
 ## Editors (scene, note, timeline event, story idea)
 

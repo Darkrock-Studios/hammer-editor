@@ -3,6 +3,21 @@ package com.darkrockstudios.apps.hammer.common.compose
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.*
 
+/** Matches a key-down with exactly these modifiers: extra ones do not count as a match. */
+fun KeyEvent.matchesShortcut(
+	key: Key,
+	ctrl: Boolean = false,
+	shift: Boolean = false,
+	alt: Boolean = false,
+): Boolean {
+	val ctrlOrMeta = isCtrlPressed || isMetaPressed
+	return type == KeyEventType.KeyDown &&
+		this.key == key &&
+		ctrlOrMeta == ctrl &&
+		isShiftPressed == shift &&
+		isAltPressed == alt
+}
+
 internal fun Modifier.onKeyShortcut(
 	key: Key,
 	ctrl: Boolean = false,
@@ -10,13 +25,7 @@ internal fun Modifier.onKeyShortcut(
 	alt: Boolean = false,
 	action: () -> Unit,
 ): Modifier = onPreviewKeyEvent { event ->
-	val ctrlOrMeta = event.isCtrlPressed || event.isMetaPressed
-	if (event.type == KeyEventType.KeyDown &&
-		event.key == key &&
-		ctrlOrMeta == ctrl &&
-		event.isShiftPressed == shift &&
-		event.isAltPressed == alt
-	) {
+	if (event.matchesShortcut(key, ctrl, shift, alt)) {
 		action()
 		true
 	} else {

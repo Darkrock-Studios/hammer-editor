@@ -20,7 +20,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.isAltPressed
 import androidx.compose.ui.input.key.isCtrlPressed
 import androidx.compose.ui.input.key.isMetaPressed
 import androidx.compose.ui.input.key.isShiftPressed
@@ -46,6 +45,7 @@ import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
+import com.darkrockstudios.apps.hammer.common.compose.matchesShortcut
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -117,6 +117,25 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 		state = windowState,
 		icon = painterResource("icon.png"),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) },
+		// These two run pre-focus so a focused editor can't swallow them.
+		onPreviewKeyEvent = { event ->
+			when {
+				event.matchesShortcut(Key.F3) -> {
+					component.startProjectSync()
+					true
+				}
+
+				event.matchesShortcut(Key.S, ctrl = true, alt = true) -> {
+					windowScope.launch {
+						component.storeDirtyBuffers()
+						rootSnackbar.showSnackbar(saveAllToast)
+					}
+					true
+				}
+
+				else -> false
+			}
+		},
 		onKeyEvent = { event ->
 			when {
 				event.key == Key.Escape && event.type == KeyEventType.KeyUp -> {
@@ -129,22 +148,6 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 					component.showGlobalSearch()
 					true
 				}
-				event.type == KeyEventType.KeyDown && event.key == Key.F3 -> {
-					component.startProjectSync()
-					true
-				}
-
-				event.type == KeyEventType.KeyDown &&
-					event.key == Key.S &&
-					event.isAltPressed &&
-					(event.isCtrlPressed || event.isMetaPressed) -> {
-					windowScope.launch {
-						component.storeDirtyBuffers()
-						rootSnackbar.showSnackbar(saveAllToast)
-					}
-					true
-				}
-
 				event.type == KeyEventType.KeyDown &&
 					event.key == Key.W &&
 					(event.isCtrlPressed || event.isMetaPressed) -> {
