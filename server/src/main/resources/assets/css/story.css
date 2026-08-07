@@ -148,22 +148,6 @@
 	text-align: justify;
 }
 
-/* Standard typographic rule: a paragraph opening a passage, or resuming after an
-   interrupting block, sits flush left rather than indented */
-.story-content h1 + p,
-.story-content h2 + p,
-.story-content h3 + p,
-.story-content h4 + p,
-.story-content h5 + p,
-.story-content h6 + p,
-.story-content hr + p,
-.story-content ul + p,
-.story-content ol + p,
-.story-content pre + p,
-.story-content blockquote + p {
-	text-indent: 0;
-}
-
 /* ----------------------------------------
    Lists
    ---------------------------------------- */

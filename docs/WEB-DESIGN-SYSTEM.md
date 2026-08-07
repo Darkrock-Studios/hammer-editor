@@ -521,7 +521,7 @@ element markdown can emit has a rule:
 
 | Element      | Treatment                                                                       |
 |--------------|---------------------------------------------------------------------------------|
-| `p`          | 2em first-line indent, justified; flush left after a heading, rule, list or quote |
+| `p`          | 2em first-line indent on every prose paragraph, justified                       |
 | `ul` / `ol`  | 3.5em indent so markers sit inside the prose indent, 0.75em between items, accent markers |
 | `hr`         | Centered short rule with an amber diamond, 3rem of air above and below           |
 | `blockquote` | Tinted panel, amber left rule, italic, with `em` flipped upright inside          |
