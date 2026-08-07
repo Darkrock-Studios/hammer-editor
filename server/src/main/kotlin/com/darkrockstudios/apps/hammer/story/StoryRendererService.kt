@@ -107,23 +107,26 @@ class StoryRendererService(
 		return builder.toString()
 	}
 
+	/** Appends every scene under [parentId], depth first, and returns their total word count. */
 	private fun writeGroupChildren(
 		builder: StringBuilder,
 		parentId: Int,
 		scenesByParent: Map<Int, List<ApiProjectEntity.SceneEntity>>
-	) {
-		val children = scenesByParent[parentId]?.sortedBy { it.order } ?: return
+	): Int {
+		val children = scenesByParent[parentId]?.sortedBy { it.order } ?: return 0
 
+		var wordCount = 0
 		for (child in children) {
 			if (child.sceneType == ApiSceneType.Scene) {
 				if (child.content.isNotBlank()) {
 					builder.appendScene(child.content)
+					wordCount += WordCountUtils.countWords(child.content)
 				}
 			} else {
-				// Recursively process nested groups
-				writeGroupChildren(builder, child.id, scenesByParent)
+				wordCount += writeGroupChildren(builder, child.id, scenesByParent)
 			}
 		}
+		return wordCount
 	}
 
 	/**
@@ -531,28 +534,10 @@ class StoryRendererService(
 		scenesByParent: Map<Int, List<ApiProjectEntity.SceneEntity>>
 	): Pair<String, Int> {
 		val builder = StringBuilder()
-		var totalWordCount = 0
-
 		builder.append("## ${group.name}\n\n")
+		val wordCount = writeGroupChildren(builder, group.id, scenesByParent)
 
-		fun collectGroupContent(parentId: Int) {
-			val children = scenesByParent[parentId]?.sortedBy { it.order } ?: return
-			for (child in children) {
-				if (child.sceneType == ApiSceneType.Scene) {
-					if (child.content.isNotBlank()) {
-						builder.appendScene(child.content)
-						totalWordCount += WordCountUtils.countWords(child.content)
-					}
-				} else {
-					// Recursively collect nested group content
-					collectGroupContent(child.id)
-				}
-			}
-		}
-
-		collectGroupContent(group.id)
-
-		return builder.toString() to totalWordCount
+		return builder.toString() to wordCount
 	}
 
 	companion object {

@@ -522,10 +522,19 @@ element markdown can emit has a rule:
 | Element      | Treatment                                                                       |
 |--------------|---------------------------------------------------------------------------------|
 | `p`          | 2em first-line indent on every prose paragraph, justified                       |
+| `h1`         | The story title, in Kingthings at 2rem                                          |
+| `h2`         | Chapter heading: centered, with a dashed rule above it and 4rem of air, dropped on the first one |
+| `h3` / `h4`  | Kingthings, stepping down in size, 2.5rem above                                 |
+| `h5` / `h6`  | Uppercase, letter-spaced and secondary-colored rather than larger               |
 | `ul` / `ol`  | 3.5em indent so markers sit inside the prose indent, 0.75em between items, accent markers |
 | `hr`         | Centered short rule with an amber diamond, 3rem of air above and below           |
 | `blockquote` | Tinted panel, amber left rule, italic, with `em` flipped upright inside          |
-| `br`         | The break `MarkdownService` emits for each blank line past the first             |
+| `pre`        | Tinted box that wraps rather than overflows the column                          |
+| `code`       | Courier; a tinted pill when it sits inline in a paragraph or list item          |
+| `a`          | Accent-colored, underlined with a softened amber rule                           |
+
+`br` needs no rule: it is the break `MarkdownService` emits for each blank line past the first, and
+it inherits the prose line height.
 
 Below 600px the column is too narrow to justify without opening rivers, so paragraphs go ragged
 right and hyphenation is off.
