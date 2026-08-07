@@ -10,6 +10,7 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,8 +22,10 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
+import com.darkrockstudios.apps.hammer.common.compose.ProjectShortcutHost
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.defaultScaffold
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
@@ -30,9 +33,12 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.fab
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.rootElement
 import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
+import com.darkrockstudios.apps.hammer.save_all_toast
+import kotlinx.coroutines.launch
 
 // Locale-independent nav testTags; values match "nav-${DestinationTypes.name}".
 const val NAV_HOME_TAG = "nav-Home"
@@ -46,11 +52,28 @@ const val NAV_TIMELINE_TAG = "nav-TimeLine"
 fun ProjectRootScaffold(
 	component: ProjectRoot,
 	onCloseRequest: () -> Unit,
+	shortcutHost: ProjectShortcutHost? = null,
 ) {
 	val shouldConfirmClose by component.closeRequestHandlers.subscribeAsState()
 	val themeState by component.projectTheme.subscribeAsState()
 	val rootSnackbar = rememberRootSnackbarHostState()
 	val coroutineScope = rememberCoroutineScope()
+	val strRes = rememberStrRes()
+
+	if (shortcutHost != null) {
+		DisposableEffect(shortcutHost, component, rootSnackbar, coroutineScope, strRes) {
+			shortcutHost.bind(
+				startSync = { component.startProjectSync() },
+				saveAll = {
+					coroutineScope.launch {
+						component.storeDirtyBuffers()
+						rootSnackbar.showSnackbar(strRes.get(Res.string.save_all_toast))
+					}
+				},
+			)
+			onDispose { shortcutHost.unbind() }
+		}
+	}
 
 	ProjectThemeOverride(themeState.theme) {
 		val windowSizeClass = calculateWindowSizeClass()
