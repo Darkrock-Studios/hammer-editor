@@ -1,6 +1,6 @@
 package com.darkrockstudios.apps.hammer.utilities
 
-import org.intellij.markdown.flavours.commonmark.CommonMarkFlavourDescriptor
+import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
 import org.intellij.markdown.parser.MarkdownParser
 import org.owasp.html.HtmlPolicyBuilder
@@ -12,9 +12,13 @@ import org.owasp.html.PolicyFactory
  * This service uses the JetBrains Markdown library for parsing and
  * OWASP HTML Sanitizer to prevent XSS attacks by only allowing
  * safe HTML elements and attributes.
+ *
+ * The flavour is GitHub Flavored Markdown, matching the editor that writes the
+ * content: CommonMark has no strikethrough, so `~~struck~~` reached the page as
+ * literal tildes.
  */
 class MarkdownService {
-	private val markdownFlavour = CommonMarkFlavourDescriptor()
+	private val markdownFlavour = GFMFlavourDescriptor()
 	private val markdownParser = MarkdownParser(markdownFlavour)
 
 	/**
@@ -25,7 +29,7 @@ class MarkdownService {
 	 */
 	private val sanitizer: PolicyFactory = HtmlPolicyBuilder()
 		.allowElements(
-			"p", "br", "strong", "em", "b", "i", "u",
+			"p", "br", "strong", "em", "b", "i", "u", "del",
 			"ul", "ol", "li",
 			"h1", "h2", "h3", "h4", "h5", "h6",
 			"blockquote", "code", "pre",
@@ -54,8 +58,16 @@ class MarkdownService {
 		val source = if (preserveBlankLines) expandBlankLines(markdown) else markdown
 		val parsedTree = markdownParser.buildMarkdownTreeFromString(source)
 		val unsafeHtml = HtmlGenerator(source, parsedTree, markdownFlavour).generateHtml()
-		return sanitizer.sanitize(unsafeHtml)
+		return sanitizer.sanitize(unsafeHtml.strikethroughAsDel())
 	}
+
+	/**
+	 * The GFM generator emits strikethrough as `<span class="user-del">`. Rewrite it
+	 * to `<del>` so the sanitizer, which allows no attributes on a `span` and so
+	 * would unwrap it, can keep the element.
+	 */
+	private fun String.strikethroughAsDel(): String =
+		replace(STRIKETHROUGH_SPAN, "<del>$1</del>")
 
 	/**
 	 * CommonMark collapses any run of blank lines into a single paragraph break, which loses the
@@ -157,5 +169,8 @@ class MarkdownService {
 		private const val MAX_FENCE_INDENT = 3
 		private const val MIN_FENCE_LENGTH = 3
 		private const val TAB_WIDTH = 4
+
+		private val STRIKETHROUGH_SPAN =
+			Regex("""<span class="user-del">(.*?)</span>""", RegexOption.DOT_MATCHES_ALL)
 	}
 }

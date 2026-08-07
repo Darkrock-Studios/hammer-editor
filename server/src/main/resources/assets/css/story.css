@@ -310,6 +310,13 @@
 	border-radius: 0.25rem;
 }
 
+/* Struck text is a revision the author left visible; it recedes but stays readable */
+.story-content del {
+	text-decoration: line-through;
+	text-decoration-thickness: 1px;
+	color: var(--text-secondary);
+}
+
 .story-content a {
 	color: var(--accent-dark);
 	text-decoration: underline;

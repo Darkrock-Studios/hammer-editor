@@ -19,6 +19,41 @@ class MarkdownServiceTest {
 	}
 
 	@Test
+	fun `markdownToSafeHtml renders strikethrough`() {
+		val result = markdownService.markdownToSafeHtml("He was ~~dead~~ alive.")
+
+		assertTrue(result.contains("<del>dead</del>"), result)
+		assertFalse(result.contains("~~"), result)
+	}
+
+	@Test
+	fun `markdownToSafeHtml renders strikethrough alongside other emphasis`() {
+		val result = markdownService.markdownToSafeHtml("**bold** *italic* ~~struck~~")
+
+		assertTrue(result.contains("<strong>bold</strong>"), result)
+		assertTrue(result.contains("<em>italic</em>"), result)
+		assertTrue(result.contains("<del>struck</del>"), result)
+	}
+
+	@Test
+	fun `markdownToSafeHtml keeps strikethrough nested inside emphasis`() {
+		val result = markdownService.markdownToSafeHtml("He said *hello ~~there~~* now.")
+
+		assertTrue(result.contains("<del>there</del>"), result)
+		assertFalse(result.contains("~~"), result)
+	}
+
+	@Test
+	fun `markdownToSafeHtml does not let authored markup forge a del element`() {
+		val result = markdownService.markdownToSafeHtml(
+			"<span class=\"user-del\" onclick=\"alert('xss')\">x</span>"
+		)
+
+		assertFalse(result.contains("onclick"), result)
+		assertFalse(result.contains("alert"), result)
+	}
+
+	@Test
 	fun `markdownToSafeHtml renders headings`() {
 		val markdown = "# Heading 1\n## Heading 2"
 		val result = markdownService.markdownToSafeHtml(markdown)

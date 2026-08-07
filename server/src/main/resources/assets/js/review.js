@@ -78,15 +78,19 @@
 	function runNode(run) {
 		const tn = document.createTextNode(run.text);
 		nodeSrcStart.set(tn, run.srcStart);
-		if (!run.bold && !run.italic) return tn;
-		const span = el('span', {
-			style: {
-				fontWeight: run.bold ? '700' : '',
-				fontStyle: run.italic ? 'italic' : '',
-			},
-		});
+		if (!run.bold && !run.italic && !run.strike) return tn;
+		const span = el('span', { style: runStyle(run) });
 		span.appendChild(tn);
 		return span;
+	}
+
+	/** Inline styles for a parsed markdown run. */
+	function runStyle(run) {
+		return {
+			fontWeight: run.bold ? '700' : '',
+			fontStyle: run.italic ? 'italic' : '',
+			textDecoration: run.strike ? 'line-through' : '',
+		};
 	}
 
 	/** Append the styled display pieces for source range [start,end) of a paragraph. */
@@ -97,8 +101,11 @@
 	/** Append free text with its inline emphasis rendered (no source offsets — not manuscript text). */
 	function appendStyledText(parent, text) {
 		parseInlineMarkdown(text).forEach((run) => {
-			if (!run.bold && !run.italic) { parent.appendChild(document.createTextNode(run.text)); return; }
-			const span = el('span', { style: { fontWeight: run.bold ? '700' : '', fontStyle: run.italic ? 'italic' : '' } });
+			if (!run.bold && !run.italic && !run.strike) {
+				parent.appendChild(document.createTextNode(run.text));
+				return;
+			}
+			const span = el('span', { style: runStyle(run) });
 			span.appendChild(document.createTextNode(run.text));
 			parent.appendChild(span);
 		});
