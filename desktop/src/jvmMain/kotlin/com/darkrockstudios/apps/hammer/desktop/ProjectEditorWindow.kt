@@ -41,7 +41,7 @@ import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
-import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.ProjectShortcutHost
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
@@ -108,9 +108,7 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 	}
 
 	val windowTitle = Res.string.project_window_title.get(projectDef.name)
-	val saveAllToast = Res.string.save_all_toast.get()
-	val windowScope = rememberCoroutineScope()
-	val rootSnackbar = rememberRootSnackbarHostState()
+	val shortcutHost = remember { ProjectShortcutHost() }
 
 	MaterialDecoratedWindow(
 		title = windowTitle,
@@ -120,19 +118,8 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 		// These two run pre-focus so a focused editor can't swallow them.
 		onPreviewKeyEvent = { event ->
 			when {
-				event.matchesShortcut(Key.F3) -> {
-					component.startProjectSync()
-					true
-				}
-
-				event.matchesShortcut(Key.S, ctrl = true, alt = true) -> {
-					windowScope.launch {
-						component.storeDirtyBuffers()
-						rootSnackbar.showSnackbar(saveAllToast)
-					}
-					true
-				}
-
+				event.matchesShortcut(Key.F3) -> shortcutHost.startProjectSync()
+				event.matchesShortcut(Key.S, ctrl = true, alt = true) -> shortcutHost.saveAllBuffers()
 				else -> false
 			}
 		},
@@ -165,6 +152,7 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 			}
 		}
 	) {
+		val scope = rememberCoroutineScope()
 		val mainDispatcher = rememberMainDispatcher()
 
 		MaterialTitleBar {
@@ -178,7 +166,7 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 		// Tao windows are their own ComposeScene: locals provided outside the
 		// window (AppTheme in Main.kt) don't reach this content, so re-apply.
 		AppTheme(useDarkTheme = darkMode, settings = settings) {
-			AppContent(component, rootSnackbar)
+			AppContent(component, shortcutHost)
 
 			LaunchedEffect(closeRequest) {
 				if (closeRequest != ApplicationState.CloseType.None) {
@@ -191,7 +179,7 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 				when (item) {
 					CloseConfirm.Scenes -> {
 						confirmCloseUnsavedScenesDialog(closeRequest) { result, closeType ->
-							windowScope.launch {
+							scope.launch {
 								if (result == ConfirmCloseResult.SaveAll) {
 									component.storeDirtyBuffers()
 								}
@@ -288,10 +276,11 @@ private fun FrameWindowScope.EditorMenuBar(
 }
 
 @Composable
-private fun AppContent(component: ProjectRoot, rootSnackbar: RootSnackbarHostState) {
+private fun AppContent(component: ProjectRoot, shortcutHost: ProjectShortcutHost) {
 	val router by component.routerState.subscribeAsState()
 	val themeState by component.projectTheme.subscribeAsState()
 	val navRailState by component.navRailState.subscribeAsState()
+	val rootSnackbar = rememberRootSnackbarHostState()
 
 	val destinations = ProjectRoot.DestinationTypes.entries.map { it.toHdNavRailDestination() }
 
@@ -312,7 +301,7 @@ private fun AppContent(component: ProjectRoot, rootSnackbar: RootSnackbarHostSta
 					},
 				)
 
-				ProjectRootUi(component, rootSnackbar)
+				ProjectRootUi(component, rootSnackbar, shortcutHost = shortcutHost)
 			}
 
 			SnackbarHost(

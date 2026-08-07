@@ -10,7 +10,6 @@ import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSiz
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -22,7 +21,6 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.compose.ProjectShortcutHost
@@ -33,12 +31,9 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.fab
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
-import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.rootElement
 import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
-import com.darkrockstudios.apps.hammer.save_all_toast
-import kotlinx.coroutines.launch
 
 // Locale-independent nav testTags; values match "nav-${DestinationTypes.name}".
 const val NAV_HOME_TAG = "nav-Home"
@@ -58,29 +53,13 @@ fun ProjectRootScaffold(
 	val themeState by component.projectTheme.subscribeAsState()
 	val rootSnackbar = rememberRootSnackbarHostState()
 	val coroutineScope = rememberCoroutineScope()
-	val strRes = rememberStrRes()
-
-	if (shortcutHost != null) {
-		DisposableEffect(shortcutHost, component, rootSnackbar, coroutineScope, strRes) {
-			shortcutHost.bind(
-				startSync = { component.startProjectSync() },
-				saveAll = {
-					coroutineScope.launch {
-						component.storeDirtyBuffers()
-						rootSnackbar.showSnackbar(strRes.get(Res.string.save_all_toast))
-					}
-				},
-			)
-			onDispose { shortcutHost.unbind() }
-		}
-	}
 
 	ProjectThemeOverride(themeState.theme) {
 		val windowSizeClass = calculateWindowSizeClass()
 		when (windowSizeClass.widthSizeClass) {
-			WindowWidthSizeClass.Compact -> CompactNavigation(component, rootSnackbar)
+			WindowWidthSizeClass.Compact -> CompactNavigation(component, rootSnackbar, shortcutHost)
 			WindowWidthSizeClass.Medium,
-			WindowWidthSizeClass.Expanded -> RailNavigation(component, rootSnackbar)
+			WindowWidthSizeClass.Expanded -> RailNavigation(component, rootSnackbar, shortcutHost)
 		}
 
 		if (shouldConfirmClose.isNotEmpty()) {
@@ -100,6 +79,7 @@ fun ProjectRootScaffold(
 private fun CompactNavigation(
 	component: ProjectRoot,
 	rootSnackbar: RootSnackbarHostState,
+	shortcutHost: ProjectShortcutHost?,
 ) {
 	val router by component.routerState.subscribeAsState()
 	Scaffold(
@@ -112,6 +92,7 @@ private fun CompactNavigation(
 				rootSnackbar,
 				modifier = Modifier.rootElement(scaffoldPadding),
 				navWidth = 0.dp,
+				shortcutHost = shortcutHost,
 			)
 		},
 		bottomBar = {
@@ -133,6 +114,7 @@ private fun CompactNavigation(
 private fun RailNavigation(
 	component: ProjectRoot,
 	rootSnackbar: RootSnackbarHostState,
+	shortcutHost: ProjectShortcutHost?,
 ) {
 	val router by component.routerState.subscribeAsState()
 	val navRailState by component.navRailState.subscribeAsState()
@@ -164,7 +146,13 @@ private fun RailNavigation(
 					},
 				)
 
-				ProjectRootUi(component, rootSnackbar, navRailWidth, Modifier.padding(scaffoldPadding))
+				ProjectRootUi(
+					component,
+					rootSnackbar,
+					navRailWidth,
+					Modifier.padding(scaffoldPadding),
+					shortcutHost = shortcutHost,
+				)
 			}
 		},
 		floatingActionButton = {
