@@ -45,6 +45,9 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	fun isAtRoot(): Boolean
 
 	fun showProjectSync()
+
+	/** Opens the sync modal only when this project is linked to a server. */
+	fun startProjectSync()
 	fun dismissProjectSync()
 
 	fun showGlobalSearch()

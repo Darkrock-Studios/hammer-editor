@@ -234,6 +234,12 @@ class ProjectRootComponent(
 
 	override fun showProjectSync() = modalRouter.showProjectSync()
 
+	override fun startProjectSync() {
+		if (syncJournal.isServerSynchronized()) {
+			showProjectSync()
+		}
+	}
+
 	override fun dismissProjectSync() = modalRouter.dismissProjectSync()
 
 	override fun showGlobalSearch() = modalRouter.showGlobalSearch()

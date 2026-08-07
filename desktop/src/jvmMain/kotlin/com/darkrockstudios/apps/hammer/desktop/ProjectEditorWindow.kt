@@ -41,9 +41,11 @@ import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
+import com.darkrockstudios.apps.hammer.common.compose.ProjectShortcutHost
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
+import com.darkrockstudios.apps.hammer.common.compose.matchesShortcut
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -58,6 +60,7 @@ import com.darkrockstudios.apps.hammer.project_window_menu_file
 import com.darkrockstudios.apps.hammer.project_window_menu_item_close
 import com.darkrockstudios.apps.hammer.project_window_menu_item_exit
 import com.darkrockstudios.apps.hammer.project_window_title
+import com.darkrockstudios.apps.hammer.save_all_toast
 import dev.nucleusframework.application.NucleusApplicationScope
 import dev.nucleusframework.window.material.MaterialDecoratedWindow
 import dev.nucleusframework.window.material.MaterialTitleBar
@@ -105,11 +108,21 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 	}
 
 	val windowTitle = Res.string.project_window_title.get(projectDef.name)
+	val shortcutHost = remember { ProjectShortcutHost() }
+
 	MaterialDecoratedWindow(
 		title = windowTitle,
 		state = windowState,
 		icon = painterResource("icon.png"),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) },
+		// These two run pre-focus so a focused editor can't swallow them.
+		onPreviewKeyEvent = { event ->
+			when {
+				event.matchesShortcut(Key.F3) -> shortcutHost.startProjectSync()
+				event.matchesShortcut(Key.S, ctrl = true, alt = true) -> shortcutHost.saveAllBuffers()
+				else -> false
+			}
+		},
 		onKeyEvent = { event ->
 			when {
 				event.key == Key.Escape && event.type == KeyEventType.KeyUp -> {
@@ -153,7 +166,7 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 		// Tao windows are their own ComposeScene: locals provided outside the
 		// window (AppTheme in Main.kt) don't reach this content, so re-apply.
 		AppTheme(useDarkTheme = darkMode, settings = settings) {
-			AppContent(component)
+			AppContent(component, shortcutHost)
 
 			LaunchedEffect(closeRequest) {
 				if (closeRequest != ApplicationState.CloseType.None) {
@@ -263,7 +276,7 @@ private fun FrameWindowScope.EditorMenuBar(
 }
 
 @Composable
-private fun AppContent(component: ProjectRoot) {
+private fun AppContent(component: ProjectRoot, shortcutHost: ProjectShortcutHost) {
 	val router by component.routerState.subscribeAsState()
 	val themeState by component.projectTheme.subscribeAsState()
 	val navRailState by component.navRailState.subscribeAsState()
@@ -288,7 +301,7 @@ private fun AppContent(component: ProjectRoot) {
 					},
 				)
 
-				ProjectRootUi(component, rootSnackbar)
+				ProjectRootUi(component, rootSnackbar, shortcutHost = shortcutHost)
 			}
 
 			SnackbarHost(

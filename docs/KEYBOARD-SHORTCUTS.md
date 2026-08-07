@@ -1,6 +1,7 @@
 # Keyboard Shortcuts
 
-Desktop-only. `Ctrl` and `Cmd` are interchangeable everywhere below: `onKeyShortcut`
+Desktop, plus the two project shortcuts on Android and iOS with a hardware keyboard.
+`Ctrl` and `Cmd` are interchangeable everywhere below: `onKeyShortcut`
 (
 `composeUi/src/commonMain/kotlin/com/darkrockstudios/apps/hammer/common/compose/ShortcutModifiers.kt`)
 treats `isCtrlPressed || isMetaPressed` as a single "ctrl" modifier, so these are not
@@ -17,10 +18,29 @@ macOS-specific `Cmd` bindings, they work with either key on every platform.
 
 ## Project (while a project is open)
 
-| Shortcut     | Action                                       | Source                                           |
-|--------------|----------------------------------------------|--------------------------------------------------|
-| `Ctrl+Alt+S` | Save all dirty buffers (scenes, notes, etc.) | `saveAllShortcutModifier` via `ProjectRootUi.kt` |
-| `F3`         | Start project sync                           | `syncShortcutModifier` via `ProjectRootUi.kt`    |
+These two work on all three platforms, each through the host hook that does not depend on
+what Compose has focused. Compose routes key events along the focus path, so a screen with
+nothing focused never sees them, which is why none of these are `Modifier` shortcuts.
+
+| Platform | Hook                                                          |
+|----------|---------------------------------------------------------------|
+| Desktop  | `ProjectEditorWindow.kt` window `onPreviewKeyEvent`           |
+| Android  | `ProjectRootActivity.dispatchKeyEvent`                        |
+| iOS      | `ShortcutHostController.keyCommands` in `ComposeContainer.swift` |
+
+Android and iOS reach the shared action through `ProjectShortcutHost`, which
+`ProjectRootScaffold` binds while the project UI is composed. The application shortcuts
+above use the window's `onKeyEvent` instead and yield to a focused component that consumes
+the key. Modifier shortcuts (the editor ones below) only fire when focus sits inside the
+composable they are attached to.
+
+Modifiers match exactly: `F3` means F3 with nothing held, so `Ctrl+F3` and `Shift+F3` do
+not start a sync. On iOS the save-all chord is `Cmd+Opt+S` or `Ctrl+Opt+S`.
+
+| Shortcut     | Action                                       |
+|--------------|----------------------------------------------|
+| `Ctrl+Alt+S` | Save all dirty buffers (scenes, notes, etc.) |
+| `F3`         | Start project sync (server-linked only)      |
 
 ## Editors (scene, note, timeline event, story idea)
 

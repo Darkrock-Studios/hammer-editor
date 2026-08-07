@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
+import com.darkrockstudios.apps.hammer.common.compose.ProjectShortcutHost
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.defaultScaffold
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
@@ -46,6 +47,7 @@ const val NAV_TIMELINE_TAG = "nav-TimeLine"
 fun ProjectRootScaffold(
 	component: ProjectRoot,
 	onCloseRequest: () -> Unit,
+	shortcutHost: ProjectShortcutHost? = null,
 ) {
 	val shouldConfirmClose by component.closeRequestHandlers.subscribeAsState()
 	val themeState by component.projectTheme.subscribeAsState()
@@ -55,9 +57,9 @@ fun ProjectRootScaffold(
 	ProjectThemeOverride(themeState.theme) {
 		val windowSizeClass = calculateWindowSizeClass()
 		when (windowSizeClass.widthSizeClass) {
-			WindowWidthSizeClass.Compact -> CompactNavigation(component, rootSnackbar)
+			WindowWidthSizeClass.Compact -> CompactNavigation(component, rootSnackbar, shortcutHost)
 			WindowWidthSizeClass.Medium,
-			WindowWidthSizeClass.Expanded -> RailNavigation(component, rootSnackbar)
+			WindowWidthSizeClass.Expanded -> RailNavigation(component, rootSnackbar, shortcutHost)
 		}
 
 		if (shouldConfirmClose.isNotEmpty()) {
@@ -77,6 +79,7 @@ fun ProjectRootScaffold(
 private fun CompactNavigation(
 	component: ProjectRoot,
 	rootSnackbar: RootSnackbarHostState,
+	shortcutHost: ProjectShortcutHost?,
 ) {
 	val router by component.routerState.subscribeAsState()
 	Scaffold(
@@ -89,6 +92,7 @@ private fun CompactNavigation(
 				rootSnackbar,
 				modifier = Modifier.rootElement(scaffoldPadding),
 				navWidth = 0.dp,
+				shortcutHost = shortcutHost,
 			)
 		},
 		bottomBar = {
@@ -110,6 +114,7 @@ private fun CompactNavigation(
 private fun RailNavigation(
 	component: ProjectRoot,
 	rootSnackbar: RootSnackbarHostState,
+	shortcutHost: ProjectShortcutHost?,
 ) {
 	val router by component.routerState.subscribeAsState()
 	val navRailState by component.navRailState.subscribeAsState()
@@ -141,7 +146,13 @@ private fun RailNavigation(
 					},
 				)
 
-				ProjectRootUi(component, rootSnackbar, navRailWidth, Modifier.padding(scaffoldPadding))
+				ProjectRootUi(
+					component,
+					rootSnackbar,
+					navRailWidth,
+					Modifier.padding(scaffoldPadding),
+					shortcutHost = shortcutHost,
+				)
 			}
 		},
 		floatingActionButton = {
