@@ -107,18 +107,18 @@ function applyAccepted(text, suggestions) {
  * at the punctuation's source offset, so the per-run source-slice invariant
  * holds), and an escaped marker can neither open nor close emphasis.
  *
- * @returns {Array<{text:string, srcStart:number, bold:boolean, italic:boolean}>}
+ * @returns {Array<{text:string, srcStart:number, bold:boolean, italic:boolean, strike:boolean}>}
  */
 function parseInlineMarkdown(text) {
 	const ESCAPABLE = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~';
 	const runs = [];
 
-	function emit(str, srcStart, bold, italic) {
+	function emit(str, srcStart, bold, italic, strike) {
 		if (str.length === 0) return;
-		runs.push({ text: str, srcStart: srcStart, bold: bold, italic: italic });
+		runs.push({ text: str, srcStart: srcStart, bold: bold, italic: italic, strike: strike });
 	}
 
-	function isFlankableBefore(ch) { return !ch || !/[\w*_]/.test(ch); }
+	function isFlankableBefore(ch) { return !ch || !/[\w*_~]/.test(ch); }
 
 	function findClose(marker, from, end) {
 		let i = from;
@@ -138,20 +138,22 @@ function parseInlineMarkdown(text) {
 		return -1;
 	}
 
-	function walk(start, end, bold, italic) {
+	function walk(start, end, bold, italic, strike) {
 		let plainFrom = start;
 		let i = start;
 		while (i < end) {
 			const ch = text[i];
 			if (ch === '\\' && i + 1 < end && ESCAPABLE.indexOf(text[i + 1]) !== -1) {
-				emit(text.slice(plainFrom, i), plainFrom, bold, italic);
-				emit(text[i + 1], i + 1, bold, italic);
+				emit(text.slice(plainFrom, i), plainFrom, bold, italic, strike);
+				emit(text[i + 1], i + 1, bold, italic, strike);
 				i += 2;
 				plainFrom = i;
 				continue;
 			}
-			if (ch !== '*' && ch !== '_') { i++; continue; }
+			if (ch !== '*' && ch !== '_' && ch !== '~') { i++; continue; }
 			const double = text[i + 1] === ch;
+			// GFM strikethrough is only the doubled form; a lone `~` is literal.
+			if (ch === '~' && !double) { i++; continue; }
 			const marker = double ? ch + ch : ch;
 			const contentFrom = i + marker.length;
 			const openOk = isFlankableBefore(text[i - 1]) &&
@@ -160,15 +162,21 @@ function parseInlineMarkdown(text) {
 			const close = findClose(marker, contentFrom + 1, end);
 			if (close === -1) { i++; continue; }
 
-			emit(text.slice(plainFrom, i), plainFrom, bold, italic);
-			walk(contentFrom, close, bold || double, italic || !double);
+			emit(text.slice(plainFrom, i), plainFrom, bold, italic, strike);
+			walk(
+				contentFrom,
+				close,
+				bold || (double && ch !== '~'),
+				italic || (!double && ch !== '~'),
+				strike || ch === '~',
+			);
 			i = close + marker.length;
 			plainFrom = i;
 		}
-		emit(text.slice(plainFrom, end), plainFrom, bold, italic);
+		emit(text.slice(plainFrom, end), plainFrom, bold, italic, strike);
 	}
 
-	walk(0, text.length, false, false);
+	walk(0, text.length, false, false, false);
 	return runs;
 }
 
@@ -188,6 +196,7 @@ function runsForRange(runs, start, end) {
 			srcStart: s,
 			bold: r.bold,
 			italic: r.italic,
+			strike: r.strike,
 		});
 	}
 	return out;
