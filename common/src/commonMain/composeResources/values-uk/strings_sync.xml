@@ -116,6 +116,7 @@
 	<string name="sync_log_begin_project">Синхронізація проєкту: %1$s</string>
 	<string name="sync_log_project_conflict">У проєкті є конфлікт: %1$s. Відкрийте цей проєкт і синхронізуйте, щоб вирішити його.</string>
 	<string name="sync_log_client_data_computed">Дані сутностей клієнта обчислено</string>
+	<string name="sync_log_project_id_stale">The server no longer has this project. It will be recreated the next time you sync.</string>
 	<string name="sync_log_server_data_loaded">Дані сервера отримано</string>
 	<string name="sync_log_client_data_loaded">Дані клієнта завантажено</string>
 	<string name="sync_log_backup_made">Локальну резервну копію створено: %1$s</string>
