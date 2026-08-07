@@ -137,6 +137,66 @@ class StoryRendererServiceTest {
 	}
 
 	@Test
+	fun `chapter headings gain no break from the scene separator`() = runTest {
+		val scenes = listOf(
+			createScene(id = 1, name = "First", content = "Content 1", order = 0),
+			createScene(id = 2, name = "Second", content = "Content 2", order = 1),
+		)
+		setupMocksForScenes(scenes)
+
+		val result = service.renderStoryAsHtml(userId, projectId)
+
+		assertIs<StoryRenderResult.Success>(result)
+		assertFalse(result.html.contains("<br"), "Scene separation must not read as author spacing")
+	}
+
+	@Test
+	fun `sibling scenes in a group render as separate paragraphs`() = runTest {
+		val scenes = listOf(
+			createScene(id = 1, name = "Chapter 1", content = "", order = 0, sceneType = ApiSceneType.Group),
+			createScene(id = 2, name = "Scene 1.1", content = "First child content.", order = 0, path = listOf(0, 1)),
+			createScene(id = 3, name = "Scene 1.2", content = "Second child content.", order = 1, path = listOf(0, 1)),
+		)
+		setupMocksForScenes(scenes)
+
+		val result = service.renderStoryAsHtml(userId, projectId)
+
+		assertIs<StoryRenderResult.Success>(result)
+		assertTrue(result.html.contains("<p>First child content.</p>"))
+		assertTrue(result.html.contains("<p>Second child content.</p>"))
+	}
+
+	@Test
+	fun `sibling scenes in an exported group render as separate paragraphs`() = runTest {
+		val scenes = listOf(
+			createScene(id = 1, name = "Chapter 1", content = "", order = 0, sceneType = ApiSceneType.Group),
+			createScene(id = 2, name = "Scene 1.1", content = "First child content.", order = 0, path = listOf(0, 1)),
+			createScene(id = 3, name = "Scene 1.2", content = "Second child content.", order = 1, path = listOf(0, 1)),
+		)
+		setupMocksForScenes(scenes)
+
+		val result = service.renderSceneAsHtml(userId, projectId, sceneId = 1)
+
+		assertIs<SingleSceneExportResult.Success>(result)
+		assertTrue(result.html.contains("<p>First child content.</p>"))
+		assertTrue(result.html.contains("<p>Second child content.</p>"))
+	}
+
+	@Test
+	fun `a scene keeps its own block structure`() = runTest {
+		val content = "A list follows:\n\n- one\n- two\n\nAnd prose after it."
+		val scene = createScene(id = 1, name = "Chapter One", content = content, order = 0)
+		setupMocksForScenes(listOf(scene))
+
+		val result = service.renderStoryAsHtml(userId, projectId)
+
+		assertIs<StoryRenderResult.Success>(result)
+		assertTrue(result.html.contains("<ul>"))
+		assertTrue(result.html.contains("<li>one</li>"))
+		assertTrue(result.html.contains("<p>And prose after it.</p>"))
+	}
+
+	@Test
 	fun `exports nested groups correctly`() = runTest {
 		val scenes = listOf(
 			createScene(id = 1, name = "Part 1", content = "", order = 0, sceneType = ApiSceneType.Group),

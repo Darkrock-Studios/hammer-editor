@@ -52,7 +52,7 @@ class StoryRendererService(
 			}
 
 			val markdown = buildStoryMarkdown(projectDef.name, scenes)
-			val html = markdownService.markdownToSafeHtml(markdown)
+			val html = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
 
 			// Calculate total word count from scene content only (not group names)
 			val totalWordCount = scenes
@@ -89,13 +89,12 @@ class StoryRendererService(
 
 		var chapterNumber = 1
 		for (scene in rootScenes) {
-			builder.append("\n## $chapterNumber. ${scene.name}\n\n")
+			builder.append("## $chapterNumber. ${scene.name}\n\n")
 
 			if (scene.sceneType == ApiSceneType.Scene) {
 				// Write scene content directly
 				if (scene.content.isNotBlank()) {
-					builder.append(scene.content)
-					builder.append("\n")
+					builder.appendScene(scene.content)
 				}
 			} else {
 				// It's a Group - write all child scenes' content
@@ -108,24 +107,36 @@ class StoryRendererService(
 		return builder.toString()
 	}
 
+	/** Appends every scene under [parentId], depth first, and returns their total word count. */
 	private fun writeGroupChildren(
 		builder: StringBuilder,
 		parentId: Int,
 		scenesByParent: Map<Int, List<ApiProjectEntity.SceneEntity>>
-	) {
-		val children = scenesByParent[parentId]?.sortedBy { it.order } ?: return
+	): Int {
+		val children = scenesByParent[parentId]?.sortedBy { it.order } ?: return 0
 
+		var wordCount = 0
 		for (child in children) {
 			if (child.sceneType == ApiSceneType.Scene) {
 				if (child.content.isNotBlank()) {
-					builder.append(child.content)
-					builder.append("\n")
+					builder.appendScene(child.content)
+					wordCount += WordCountUtils.countWords(child.content)
 				}
 			} else {
-				// Recursively process nested groups
-				writeGroupChildren(builder, child.id, scenesByParent)
+				wordCount += writeGroupChildren(builder, child.id, scenesByParent)
 			}
 		}
+		return wordCount
+	}
+
+	/**
+	 * Scenes are separate passages. Without the blank line the last paragraph of one scene and the
+	 * first of the next parse as a single paragraph; the trim keeps a scene that already ends in
+	 * newlines from gaining a spurious break.
+	 */
+	private fun StringBuilder.appendScene(content: String) {
+		append(content.trimEnd())
+		append("\n\n")
 	}
 
 	/**
@@ -284,7 +295,7 @@ class StoryRendererService(
 
 		// Build markdown and HTML for current page only
 		val pageMarkdown = buildPaginatedMarkdown(projectDef.name, currentPageScenes, currentPage == 1)
-		val pageHtml = markdownService.markdownToSafeHtml(pageMarkdown)
+		val pageHtml = markdownService.markdownToSafeHtml(pageMarkdown, preserveBlankLines = true)
 
 		return StoryRender(
 			result = PaginatedStoryExportResult(
@@ -354,8 +365,7 @@ class StoryRendererService(
 			if (scene.markdown.isNotBlank()) {
 				// Add scene name as chapter header
 				builder.append("## ${scene.scene.name}\n\n")
-				builder.append(scene.markdown)
-				builder.append("\n\n")
+				builder.appendScene(scene.markdown)
 			}
 		}
 
@@ -491,7 +501,7 @@ class StoryRendererService(
 			val (markdown, wordCount) = if (targetScene.sceneType == ApiSceneType.Scene) {
 				// Single scene - just its content
 				val content = if (targetScene.content.isNotBlank()) {
-					"## ${targetScene.name}\n\n${targetScene.content}\n"
+					"## ${targetScene.name}\n\n${targetScene.content.trimEnd()}\n"
 				} else {
 					"## ${targetScene.name}\n"
 				}
@@ -501,7 +511,7 @@ class StoryRendererService(
 				buildGroupMarkdown(targetScene, scenesByParent)
 			}
 
-			val html = markdownService.markdownToSafeHtml(markdown)
+			val html = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
 
 			SingleSceneExportResult.Success(
 				projectName = projectDef.name,
@@ -524,29 +534,10 @@ class StoryRendererService(
 		scenesByParent: Map<Int, List<ApiProjectEntity.SceneEntity>>
 	): Pair<String, Int> {
 		val builder = StringBuilder()
-		var totalWordCount = 0
-
 		builder.append("## ${group.name}\n\n")
+		val wordCount = writeGroupChildren(builder, group.id, scenesByParent)
 
-		fun collectGroupContent(parentId: Int) {
-			val children = scenesByParent[parentId]?.sortedBy { it.order } ?: return
-			for (child in children) {
-				if (child.sceneType == ApiSceneType.Scene) {
-					if (child.content.isNotBlank()) {
-						builder.append(child.content)
-						builder.append("\n")
-						totalWordCount += WordCountUtils.countWords(child.content)
-					}
-				} else {
-					// Recursively collect nested group content
-					collectGroupContent(child.id)
-				}
-			}
-		}
-
-		collectGroupContent(group.id)
-
-		return builder.toString() to totalWordCount
+		return builder.toString() to wordCount
 	}
 
 	companion object {
