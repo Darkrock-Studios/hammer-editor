@@ -137,6 +137,20 @@ class StoryRendererServiceTest {
 	}
 
 	@Test
+	fun `chapter headings gain no break from the scene separator`() = runTest {
+		val scenes = listOf(
+			createScene(id = 1, name = "First", content = "Content 1", order = 0),
+			createScene(id = 2, name = "Second", content = "Content 2", order = 1),
+		)
+		setupMocksForScenes(scenes)
+
+		val result = service.renderStoryAsHtml(userId, projectId)
+
+		assertIs<StoryRenderResult.Success>(result)
+		assertFalse(result.html.contains("<br"), "Scene separation must not read as author spacing")
+	}
+
+	@Test
 	fun `sibling scenes in a group render as separate paragraphs`() = runTest {
 		val scenes = listOf(
 			createScene(id = 1, name = "Chapter 1", content = "", order = 0, sceneType = ApiSceneType.Group),

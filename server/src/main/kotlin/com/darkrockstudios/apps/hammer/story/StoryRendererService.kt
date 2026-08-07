@@ -52,7 +52,7 @@ class StoryRendererService(
 			}
 
 			val markdown = buildStoryMarkdown(projectDef.name, scenes)
-			val html = markdownService.markdownToSafeHtml(markdown)
+			val html = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
 
 			// Calculate total word count from scene content only (not group names)
 			val totalWordCount = scenes
@@ -89,7 +89,7 @@ class StoryRendererService(
 
 		var chapterNumber = 1
 		for (scene in rootScenes) {
-			builder.append("\n## $chapterNumber. ${scene.name}\n\n")
+			builder.append("## $chapterNumber. ${scene.name}\n\n")
 
 			if (scene.sceneType == ApiSceneType.Scene) {
 				// Write scene content directly
@@ -292,7 +292,7 @@ class StoryRendererService(
 
 		// Build markdown and HTML for current page only
 		val pageMarkdown = buildPaginatedMarkdown(projectDef.name, currentPageScenes, currentPage == 1)
-		val pageHtml = markdownService.markdownToSafeHtml(pageMarkdown)
+		val pageHtml = markdownService.markdownToSafeHtml(pageMarkdown, preserveBlankLines = true)
 
 		return StoryRender(
 			result = PaginatedStoryExportResult(
@@ -508,7 +508,7 @@ class StoryRendererService(
 				buildGroupMarkdown(targetScene, scenesByParent)
 			}
 
-			val html = markdownService.markdownToSafeHtml(markdown)
+			val html = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
 
 			SingleSceneExportResult.Success(
 				projectName = projectDef.name,

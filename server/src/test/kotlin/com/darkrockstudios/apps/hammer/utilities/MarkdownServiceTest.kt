@@ -161,9 +161,19 @@ class MarkdownServiceTest {
 	}
 
 	@Test
+	fun `markdownToSafeHtml collapses extra blank lines unless asked to preserve them`() {
+		val markdown = "First paragraph.\n\n\n\nSecond paragraph."
+		val result = markdownService.markdownToSafeHtml(markdown)
+
+		assertEquals(0, countBreaks(result))
+		assertTrue(result.contains("First paragraph."))
+		assertTrue(result.contains("Second paragraph."))
+	}
+
+	@Test
 	fun `markdownToSafeHtml keeps a single blank line as a plain paragraph break`() {
 		val markdown = "First paragraph.\n\nSecond paragraph."
-		val result = markdownService.markdownToSafeHtml(markdown)
+		val result = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
 
 		assertEquals(0, countBreaks(result))
 		assertTrue(result.contains("First paragraph."))
@@ -173,7 +183,7 @@ class MarkdownServiceTest {
 	@Test
 	fun `markdownToSafeHtml renders each extra blank line as a break`() {
 		val markdown = "First paragraph.\n\n\n\nSecond paragraph."
-		val result = markdownService.markdownToSafeHtml(markdown)
+		val result = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
 
 		assertEquals(2, countBreaks(result))
 		assertTrue(result.contains("First paragraph."))
@@ -183,7 +193,7 @@ class MarkdownServiceTest {
 	@Test
 	fun `markdownToSafeHtml caps a runaway run of blank lines`() {
 		val markdown = "First paragraph." + "\n".repeat(40) + "Second paragraph."
-		val result = markdownService.markdownToSafeHtml(markdown)
+		val result = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
 
 		assertEquals(MarkdownService.MAX_CONSECUTIVE_BREAKS, countBreaks(result))
 	}
@@ -191,7 +201,7 @@ class MarkdownServiceTest {
 	@Test
 	fun `markdownToSafeHtml ignores blank lines before the first paragraph`() {
 		val markdown = "\n\n\n\nFirst paragraph."
-		val result = markdownService.markdownToSafeHtml(markdown)
+		val result = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
 
 		assertEquals(0, countBreaks(result))
 	}
@@ -199,7 +209,7 @@ class MarkdownServiceTest {
 	@Test
 	fun `markdownToSafeHtml ignores trailing blank lines`() {
 		val markdown = "First paragraph." + "\n".repeat(6)
-		val result = markdownService.markdownToSafeHtml(markdown)
+		val result = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
 
 		assertEquals(0, countBreaks(result))
 	}
@@ -207,7 +217,7 @@ class MarkdownServiceTest {
 	@Test
 	fun `markdownToSafeHtml leaves blank lines inside fenced code untouched`() {
 		val markdown = "```\nfirst\n\n\n\nsecond\n```"
-		val result = markdownService.markdownToSafeHtml(markdown)
+		val result = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
 
 		assertEquals(0, countBreaks(result))
 		assertTrue(result.contains("first"))
@@ -215,9 +225,49 @@ class MarkdownServiceTest {
 	}
 
 	@Test
+	fun `markdownToSafeHtml leaves blank lines inside an indented code block untouched`() {
+		val markdown = "Intro:\n\n    code line one\n\n\n    code line two\n\nOutro."
+		val result = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
+
+		assertEquals(0, countBreaks(result))
+		assertEquals(1, countTag(result, "pre"))
+	}
+
+	@Test
+	fun `markdownToSafeHtml leaves a fence nested in a list item untouched`() {
+		val markdown = "- item\n\n    ```\n    code\n\n\n    more\n    ```"
+		val result = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
+
+		assertEquals(0, countBreaks(result))
+		assertFalse(result.contains("&lt;br"))
+		assertTrue(result.contains("code"))
+		assertTrue(result.contains("more"))
+	}
+
+	@Test
+	fun `markdownToSafeHtml does not close a fence on a different delimiter`() {
+		val markdown = "```\nline one\n~~~\nline two\n\n\nline three\n```\n\nAfter."
+		val result = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
+
+		assertEquals(0, countBreaks(result))
+		assertFalse(result.contains("&lt;br"))
+		assertTrue(result.contains("After."))
+	}
+
+	@Test
+	fun `markdownToSafeHtml does not close a fence on a shorter delimiter`() {
+		val markdown = "````\nline one\n```\nline two\n\n\nline three\n````\n\nAfter."
+		val result = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
+
+		assertEquals(0, countBreaks(result))
+		assertFalse(result.contains("&lt;br"))
+		assertTrue(result.contains("After."))
+	}
+
+	@Test
 	fun `markdownToSafeHtml keeps a list intact when extra blank lines follow it`() {
 		val markdown = "- item 1\n- item 2\n\n\nAfter the list."
-		val result = markdownService.markdownToSafeHtml(markdown)
+		val result = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
 
 		assertTrue(result.contains("<ul>"))
 		assertEquals(1, countBreaks(result))
@@ -225,4 +275,6 @@ class MarkdownServiceTest {
 	}
 
 	private fun countBreaks(html: String) = Regex("<br\\s*/?>").findAll(html).count()
+
+	private fun countTag(html: String, tag: String) = Regex("<$tag[\\s>]").findAll(html).count()
 }
