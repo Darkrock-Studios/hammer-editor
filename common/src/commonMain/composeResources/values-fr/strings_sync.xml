@@ -36,9 +36,9 @@
 	<string name="project_info_tags_placeholder">fantaisie, brouillon, nanowrimo…</string>
 	<string name="project_info_language_label">Language</string>
 	<string name="project_info_language_unset">Not set</string>
-	<string name="project_info_language_dialog_title">Choose a language</string>
+	<string name="project_info_language_dialog_title">Choisir une langue</string>
 	<string name="project_info_language_dialog_close">Fermer</string>
-	<string name="project_info_language_search_hint">Search languages</string>
+	<string name="project_info_language_search_hint">Choisir une langue</string>
 	<string name="project_info_language_clear">Clear (not set)</string>
 	<string name="project_info_language_empty">No languages match</string>
 	<string name="project_info_color_picker_edit">Modifier</string>
