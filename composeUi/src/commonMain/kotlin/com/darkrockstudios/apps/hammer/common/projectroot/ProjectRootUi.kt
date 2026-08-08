@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -26,10 +27,9 @@ import com.darkrockstudios.apps.hammer.common.compose.SetScreenCharacteristics
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBarDestination
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailDestination
+import com.darkrockstudios.apps.hammer.common.compose.ProjectShortcutHost
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.saveAllShortcutModifier
-import com.darkrockstudios.apps.hammer.common.compose.syncShortcutModifier
 import com.darkrockstudios.apps.hammer.common.encyclopedia.BrowseEntriesFab
 import com.darkrockstudios.apps.hammer.common.encyclopedia.EncyclopediaUi
 import com.darkrockstudios.apps.hammer.common.globalsearch.GlobalSearchUi
@@ -89,21 +89,29 @@ fun ProjectRootUi(
 	rootSnackbar: RootSnackbarHostState,
 	navWidth: Dp = Dp.Unspecified,
 	modifier: Modifier = Modifier,
+	shortcutHost: ProjectShortcutHost? = null,
 ) {
 	val scope = rememberCoroutineScope()
 	val strRes = rememberStrRes()
 
-	SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
-		FeatureContent(
-			modifier
-				.fillMaxSize()
-				.saveAllShortcutModifier {
+	if (shortcutHost != null) {
+		DisposableEffect(shortcutHost, component, rootSnackbar, scope, strRes) {
+			shortcutHost.bind(
+				startSync = { component.startProjectSync() },
+				saveAll = {
 					scope.launch {
 						component.storeDirtyBuffers()
 						rootSnackbar.showSnackbar(strRes.get(Res.string.save_all_toast))
 					}
-				}
-				.syncShortcutModifier { component.showProjectSync() },
+				},
+			)
+			onDispose { shortcutHost.unbind() }
+		}
+	}
+
+	SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
+		FeatureContent(
+			modifier.fillMaxSize(),
 			component,
 			rootSnackbar,
 			navWidth,

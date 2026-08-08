@@ -69,6 +69,11 @@
 	border-bottom: 3px solid var(--accent);
 }
 
+/* ========================================
+   Story Prose
+   Typography for author-written markdown
+   ======================================== */
+
 .story-content {
 	background: white;
 	padding: 3rem;
@@ -76,6 +81,7 @@
 	box-shadow: var(--shadow-lg);
 	line-height: 1.8;
 	font-size: 1.125rem;
+	color: var(--text-primary);
 	overflow-wrap: break-word;
 	word-wrap: break-word;
 	word-break: normal;
@@ -108,36 +114,219 @@
 	padding-top: 0;
 }
 
+.story-content h3,
+.story-content h4,
+.story-content h5,
+.story-content h6 {
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--text-primary);
+	margin-top: 2.5rem;
+	margin-bottom: 0.75rem;
+}
+
+.story-content h3 {
+	font-size: 1.375rem;
+}
+
+.story-content h4 {
+	font-size: 1.1875rem;
+}
+
+.story-content h5,
+.story-content h6 {
+	font-size: 1rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--text-secondary);
+}
+
 .story-content p {
 	margin-bottom: 0;
+	font-size: inherit;
+	color: inherit;
 	text-indent: 2em;
 	text-align: justify;
 }
 
-/* Standard typographic rule: don't indent the first paragraph after a heading */
-.story-content h1 + p,
-.story-content h2 + p,
-.story-content h3 + p {
+/* ----------------------------------------
+   Lists
+   ---------------------------------------- */
+
+.story-content ul,
+.story-content ol {
+	margin: 1.5em 0;
+	padding-left: 3.5em;
+	text-align: left;
 	text-indent: 0;
 }
 
+.story-content li {
+	margin-bottom: 0.75em;
+	padding-left: 0.4em;
+}
+
+.story-content li:last-child {
+	margin-bottom: 0;
+}
+
+.story-content li::marker {
+	color: var(--accent);
+}
+
+.story-content ol > li::marker {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.95em;
+}
+
+.story-content li > p {
+	margin: 0;
+	text-indent: 0;
+	text-align: left;
+}
+
+.story-content li > p + p {
+	margin-top: 0.6em;
+}
+
+/* Nested lists tuck under their parent item instead of repeating the outer gap */
+.story-content li > ul,
+.story-content li > ol {
+	margin: 0.6em 0 0;
+	padding-left: 2em;
+}
+
+.story-content ul ul {
+	list-style-type: circle;
+}
+
+.story-content ul ul ul {
+	list-style-type: square;
+}
+
+.story-content ol ol {
+	list-style-type: lower-alpha;
+}
+
+.story-content ol ol ol {
+	list-style-type: lower-roman;
+}
+
+/* ----------------------------------------
+   Scene break
+   ---------------------------------------- */
+
+.story-content hr {
+	position: relative;
+	width: 45%;
+	max-width: 14rem;
+	height: 1px;
+	margin: 3rem auto;
+	border: none;
+	background: linear-gradient(90deg,
+	transparent 0%,
+	var(--neutral-300) 20%,
+	var(--neutral-300) 80%,
+	transparent 100%
+	);
+	overflow: visible;
+}
+
+.story-content hr::after {
+	content: '\25C6';
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	padding: 0 0.75rem;
+	background: white;
+	color: var(--accent);
+	font-size: 0.75rem;
+	line-height: 1;
+}
+
+/* ----------------------------------------
+   Quotes and code
+   ---------------------------------------- */
+
+.story-content blockquote {
+	margin: 2em 0 2em 1.5em;
+	padding: 1em 1.5em;
+	background: rgba(245, 245, 244, 0.7);
+	border-left: 3px solid rgba(217, 119, 6, 0.4);
+	border-radius: 0 0.375rem 0.375rem 0;
+	color: var(--text-secondary);
+	font-style: italic;
+}
+
+.story-content blockquote p {
+	margin: 0;
+	text-indent: 0;
+	text-align: left;
+	color: inherit;
+}
+
+.story-content blockquote p + p {
+	margin-top: 1em;
+}
+
+/* Emphasis inside already-italic type reads as upright */
+.story-content blockquote em {
+	font-style: normal;
+}
+
+.story-content blockquote blockquote {
+	margin-right: 0;
+	margin-bottom: 0;
+}
+
+.story-content blockquote > :last-child {
+	margin-bottom: 0;
+}
+
 .story-content pre {
+	margin: 1.5em 0;
+	padding: 1rem 1.25rem;
+	background: var(--neutral-100);
+	border: 1px solid var(--neutral-200);
+	border-radius: 0.375rem;
 	white-space: pre-wrap;
 	word-wrap: break-word;
 	overflow-x: auto;
 	max-width: 100%;
+	text-indent: 0;
 }
 
 .story-content code {
-	word-break: break-all;
+	font-family: 'Courier New', monospace;
+	font-size: 0.9375em;
+	word-break: normal;
+	overflow-wrap: anywhere;
 }
 
-.story-content blockquote {
-	margin: 1rem 0;
-	padding-left: 1rem;
-	border-left: 3px solid var(--neutral-300);
+.story-content p > code,
+.story-content li > code {
+	padding: 0.125em 0.375em;
+	background: var(--neutral-100);
+	border-radius: 0.25rem;
+}
+
+/* Struck text is a revision the author left visible; it recedes but stays readable */
+.story-content del {
+	text-decoration: line-through;
+	text-decoration-thickness: 1px;
 	color: var(--text-secondary);
-	font-style: italic;
+}
+
+.story-content a {
+	color: var(--accent-dark);
+	text-decoration: underline;
+	text-decoration-color: rgba(217, 119, 6, 0.4);
+	text-underline-offset: 0.15em;
+}
+
+.story-content a:hover {
+	color: var(--accent);
+	text-decoration-color: var(--accent);
 }
 
 .story-empty {
@@ -316,6 +505,32 @@
 
 	.story-title {
 		font-size: 2rem;
+	}
+
+	.story-content ul,
+	.story-content ol {
+		padding-left: 2.25em;
+	}
+
+	.story-content blockquote {
+		margin-left: 0.5em;
+		padding: 0.875em 1.125em;
+	}
+
+	.story-content hr {
+		width: 60%;
+		margin: 2.25rem auto;
+	}
+}
+
+/* A column this narrow can't justify without opening rivers between words */
+@media only screen and (max-width: 600px) {
+	.story-content {
+		hyphens: none;
+	}
+
+	.story-content p {
+		text-align: left;
 	}
 }
 

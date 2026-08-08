@@ -75,7 +75,7 @@ class StoryRenderCache(
 			.getOrNull()
 
 	companion object {
-		private const val RENDER_VERSION = "v1"
+		private const val RENDER_VERSION = "v3"
 
 		/**
 		 * Everything a render of this story depends on, collapsed to a string: the title heading

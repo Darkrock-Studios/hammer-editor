@@ -24,10 +24,14 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
-import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
+import com.darkrockstudios.apps.hammer.common.data.SceneContent
+import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.loadSceneContent
+import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.sceneDiffText
 import com.darkrockstudios.texteditor.CharLineOffset
 import com.darkrockstudios.texteditor.TextEditor
 import com.darkrockstudios.texteditor.TextEditorRange
+import com.darkrockstudios.texteditor.markdown.MarkdownConfiguration
+import com.darkrockstudios.texteditor.markdown.MarkdownExtension
 import com.darkrockstudios.texteditor.markdown.withMarkdown
 import com.darkrockstudios.texteditor.richstyle.HighlightSpanStyle
 import com.darkrockstudios.texteditor.richstyle.RichSpan
@@ -50,6 +54,17 @@ fun DraftCompareUi(component: DraftCompare) {
 	val screen = LocalScreenCharacteristic.current
 	val state by component.state.subscribeAsState()
 	val draftName = component.draftDef.draftName
+	val markdownConfig = LocalMarkdownConfig.current
+
+	// Hoisted above the width branch: the two layouts are separate composables, so building
+	// the editors inside them would discard the user's merge edits on a resize or rotate
+	// while component.mergedContent still pointed at the torn-down editor.
+	val draftMarkdown = key(state.draftContent) {
+		rememberSceneContentEditor(state.draftContent, markdownConfig)
+	}
+	val currentMarkdown = key(state.sceneContent) {
+		rememberSceneContentEditor(state.sceneContent, markdownConfig)
+	}
 
 	Column(modifier = Modifier.fillMaxSize()) {
 		HdMasthead(
@@ -69,35 +84,44 @@ fun DraftCompareUi(component: DraftCompare) {
 
 		when (screen.windowWidthClass) {
 			WindowWidthSizeClass.Compact, WindowWidthSizeClass.Medium -> {
-				CompactDraftCompareUi(Modifier.fillMaxSize(), component)
+				CompactDraftCompareUi(
+					modifier = Modifier.fillMaxSize(),
+					component = component,
+					draftMarkdown = draftMarkdown,
+					currentMarkdown = currentMarkdown,
+				)
 			}
 
 			else -> {
-				ExpandedDraftCompareUi(Modifier.fillMaxSize(), component)
+				ExpandedDraftCompareUi(
+					modifier = Modifier.fillMaxSize(),
+					component = component,
+					draftMarkdown = draftMarkdown,
+					currentMarkdown = currentMarkdown,
+				)
 			}
 		}
 	}
 }
 
 @Composable
-private fun CompactDraftCompareUi(modifier: Modifier, component: DraftCompare) {
+private fun CompactDraftCompareUi(
+	modifier: Modifier,
+	component: DraftCompare,
+	draftMarkdown: MarkdownExtension,
+	currentMarkdown: MarkdownExtension,
+) {
 	var pane by rememberSaveable { mutableIntStateOf(PANE_DRAFT) }
-	val state by component.state.subscribeAsState()
-	val markdownConfig = LocalMarkdownConfig.current
 	val draftLabel = Res.string.draft_compare_tab_title_draft.get()
 	val currentLabel = Res.string.draft_compare_tab_title_current.get()
 
-	val draftState = key(state.draftContent) {
-		rememberTextEditorState(getInitialEditorContent(state.draftContent, markdownConfig))
+	// Only one pane is composed at a time here, so the panes' own seeding effects can't
+	// be relied on to feed both sides of the diff.
+	LaunchedEffect(draftMarkdown) {
+		component.submitDraftText(sceneDiffText(draftMarkdown))
 	}
-	val currentState = key(state.sceneContent) {
-		rememberTextEditorState(getInitialEditorContent(state.sceneContent, markdownConfig))
-	}
-	LaunchedEffect(draftState) {
-		component.submitDraftText(draftState.getAllText().text)
-	}
-	LaunchedEffect(currentState) {
-		component.onCurrentTextChanged(currentState.getAllText().text)
+	LaunchedEffect(currentMarkdown) {
+		component.onCurrentTextChanged(sceneDiffText(currentMarkdown))
 	}
 
 	Column(modifier = modifier) {
@@ -116,32 +140,29 @@ private fun CompactDraftCompareUi(modifier: Modifier, component: DraftCompare) {
 				modifier = Modifier.fillMaxSize(),
 				sectionNumber = 1,
 				component = component,
-				textEditorState = draftState,
+				markdownExtension = draftMarkdown,
 			)
 		} else {
 			CurrentPane(
 				modifier = Modifier.fillMaxSize(),
 				sectionNumber = 1,
 				component = component,
-				textEditorState = currentState,
+				markdownExtension = currentMarkdown,
 			)
 		}
 	}
 }
 
 @Composable
-private fun ExpandedDraftCompareUi(modifier: Modifier, component: DraftCompare) {
+private fun ExpandedDraftCompareUi(
+	modifier: Modifier,
+	component: DraftCompare,
+	draftMarkdown: MarkdownExtension,
+	currentMarkdown: MarkdownExtension,
+) {
 	val state by component.state.subscribeAsState()
-	val markdownConfig = LocalMarkdownConfig.current
-
-	// Hoist both editor states here so we can wire synchronized scrolling between the panes.
-	// Each is keyed on its content so it rebuilds when the draft / scene finishes loading.
-	val draftState = key(state.draftContent) {
-		rememberTextEditorState(getInitialEditorContent(state.draftContent, markdownConfig))
-	}
-	val currentState = key(state.sceneContent) {
-		rememberTextEditorState(getInitialEditorContent(state.sceneContent, markdownConfig))
-	}
+	val draftState = draftMarkdown.editorState
+	val currentState = currentMarkdown.editorState
 
 	SyncScrolling(
 		leftState = draftState,
@@ -155,7 +176,7 @@ private fun ExpandedDraftCompareUi(modifier: Modifier, component: DraftCompare) 
 			modifier = Modifier.weight(1f).fillMaxHeight(),
 			sectionNumber = 1,
 			component = component,
-			textEditorState = draftState,
+			markdownExtension = draftMarkdown,
 		)
 		VerticalDivider(
 			color = MaterialTheme.colorScheme.outlineVariant,
@@ -165,7 +186,7 @@ private fun ExpandedDraftCompareUi(modifier: Modifier, component: DraftCompare) 
 			modifier = Modifier.weight(1f).fillMaxHeight(),
 			sectionNumber = 2,
 			component = component,
-			textEditorState = currentState,
+			markdownExtension = currentMarkdown,
 		)
 	}
 }
@@ -175,15 +196,16 @@ private fun DraftPane(
 	modifier: Modifier,
 	sectionNumber: Int,
 	component: DraftCompare,
-	textEditorState: TextEditorState,
+	markdownExtension: MarkdownExtension,
 ) {
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	val deletedHighlight = rememberDeletedHighlight()
+	val textEditorState = markdownExtension.editorState
 
 	// The draft is read-only, so its rendered text never changes — submit it once for the diff.
-	LaunchedEffect(textEditorState) {
-		component.submitDraftText(textEditorState.getAllText().text)
+	LaunchedEffect(markdownExtension) {
+		component.submitDraftText(sceneDiffText(markdownExtension))
 	}
 	val spans = if (state.showDiff) state.diffResult?.leftSpans.orEmpty() else emptyList()
 	DiffHighlightEffect(textEditorState, spans, deletedHighlight)
@@ -241,30 +263,24 @@ private fun CurrentPane(
 	modifier: Modifier,
 	sectionNumber: Int,
 	component: DraftCompare,
-	textEditorState: TextEditorState,
+	markdownExtension: MarkdownExtension,
 ) {
 	val state by component.state.subscribeAsState()
-	val markdownConfig = LocalMarkdownConfig.current
 	val insertedHighlight = rememberInsertedHighlight()
+	val textEditorState = markdownExtension.editorState
 
-	val markdownExtension = remember(textEditorState) { textEditorState.withMarkdown(markdownConfig) }
-
-	LaunchedEffect(markdownExtension, markdownConfig) {
-		markdownExtension.updateMarkdownConfiguration(markdownConfig)
-	}
-
-	LaunchedEffect(textEditorState) {
+	LaunchedEffect(markdownExtension) {
 		// Seed the diff with the initial text, then watch for edits. `collectLatest` cancels the
 		// previous lambda when a new edit arrives, so the `delay` acts as a per-keystroke debounce:
 		// the diff recompute only fires after the user stops typing for [DIFF_RECOMPUTE_DELAY_MS].
 		// The merged-content update runs synchronously before the delay so picking the current
 		// draft always uses the latest text. Submitting the editor's rendered text (not the
 		// markdown) keeps the diff in the same coordinate space the highlights are drawn in.
-		component.onCurrentTextChanged(textEditorState.getAllText().text)
+		component.onCurrentTextChanged(sceneDiffText(markdownExtension))
 		textEditorState.editOperations.collectLatest { _ ->
 			component.onMergedContentChanged(ComposeRichText(markdownExtension))
 			delay(DIFF_RECOMPUTE_DELAY_MS)
-			component.onCurrentTextChanged(textEditorState.getAllText().text)
+			component.onCurrentTextChanged(sceneDiffText(markdownExtension))
 		}
 	}
 
@@ -311,6 +327,24 @@ private fun CurrentPane(
 			)
 		}
 	}
+}
+
+/** An editor seeded with [content], keeping the block structure markdown carries. */
+@Composable
+private fun rememberSceneContentEditor(
+	content: SceneContent?,
+	markdownConfig: MarkdownConfiguration,
+): MarkdownExtension {
+	val editorState = rememberTextEditorState()
+	val markdownExtension = remember(editorState) {
+		editorState.withMarkdown(markdownConfig).also { loadSceneContent(it, content) }
+	}
+	// Both panes restyle together; the config is otherwise baked in at import time and
+	// the two would drift apart on a font size or theme change.
+	LaunchedEffect(markdownExtension, markdownConfig) {
+		markdownExtension.updateMarkdownConfiguration(markdownConfig)
+	}
+	return markdownExtension
 }
 
 @Composable

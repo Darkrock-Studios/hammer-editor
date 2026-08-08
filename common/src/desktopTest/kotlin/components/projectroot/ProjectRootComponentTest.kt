@@ -282,6 +282,34 @@ class ProjectRootComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `startProjectSync opens the modal for server synchronized projects`() = runTest(mainTestDispatcher) {
+		every { syncJournal.isServerSynchronized() } returns true
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.startProjectSync()
+		advanceUntilIdle()
+
+		assertIs<ProjectRoot.ModalDestination.ProjectSync>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `startProjectSync does nothing for local-only projects`() = runTest(mainTestDispatcher) {
+		every { syncJournal.isServerSynchronized() } returns false
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.startProjectSync()
+		advanceUntilIdle()
+
+		assertIs<ProjectRoot.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
 	fun `Global search modal opens and dismisses`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 		context.resume()

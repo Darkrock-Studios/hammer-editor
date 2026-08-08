@@ -27,7 +27,6 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.ApplicationScope
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.MenuBar
 import com.arkivanov.decompose.DefaultComponentContext
@@ -42,14 +41,18 @@ import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
+import com.darkrockstudios.apps.hammer.common.compose.ProjectShortcutHost
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
+import com.darkrockstudios.apps.hammer.common.compose.matchesShortcut
 import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.toHdNavRailDestination
@@ -57,8 +60,10 @@ import com.darkrockstudios.apps.hammer.project_window_menu_file
 import com.darkrockstudios.apps.hammer.project_window_menu_item_close
 import com.darkrockstudios.apps.hammer.project_window_menu_item_exit
 import com.darkrockstudios.apps.hammer.project_window_title
-import io.github.kdroidfilter.nucleus.window.material.MaterialDecoratedWindow
-import io.github.kdroidfilter.nucleus.window.material.MaterialTitleBar
+import com.darkrockstudios.apps.hammer.save_all_toast
+import dev.nucleusframework.application.NucleusApplicationScope
+import dev.nucleusframework.window.material.MaterialDecoratedWindow
+import dev.nucleusframework.window.material.MaterialTitleBar
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -67,9 +72,11 @@ import kotlinx.coroutines.withContext
 @ExperimentalDecomposeApi
 @ExperimentalMaterialApi
 @Composable
-internal fun ApplicationScope.ProjectEditorWindow(
+internal fun NucleusApplicationScope.ProjectEditorWindow(
 	app: ApplicationState,
 	projectDef: ProjectDef,
+	settings: GlobalSettings,
+	darkMode: Boolean,
 ) {
 	val backDispatcher = BackDispatcher()
 	val lifecycle = remember { LifecycleRegistry() }
@@ -101,11 +108,21 @@ internal fun ApplicationScope.ProjectEditorWindow(
 	}
 
 	val windowTitle = Res.string.project_window_title.get(projectDef.name)
+	val shortcutHost = remember { ProjectShortcutHost() }
+
 	MaterialDecoratedWindow(
 		title = windowTitle,
 		state = windowState,
 		icon = painterResource("icon.png"),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) },
+		// These two run pre-focus so a focused editor can't swallow them.
+		onPreviewKeyEvent = { event ->
+			when {
+				event.matchesShortcut(Key.F3) -> shortcutHost.startProjectSync()
+				event.matchesShortcut(Key.S, ctrl = true, alt = true) -> shortcutHost.saveAllBuffers()
+				else -> false
+			}
+		},
 		onKeyEvent = { event ->
 			when {
 				event.key == Key.Escape && event.type == KeyEventType.KeyUp -> {
@@ -146,78 +163,76 @@ internal fun ApplicationScope.ProjectEditorWindow(
 			)
 		}
 
-		// The old menu bar approach
-//		Column {
-//			EditorMenuBar(component, app, ::onRequestClose)
-//
-//			AppContent(component)
-//		}
-		AppContent(component)
+		// Tao windows are their own ComposeScene: locals provided outside the
+		// window (AppTheme in Main.kt) don't reach this content, so re-apply.
+		AppTheme(useDarkTheme = darkMode, settings = settings) {
+			AppContent(component, shortcutHost)
 
-		LaunchedEffect(closeRequest) {
-			if (closeRequest != ApplicationState.CloseType.None) {
-				component.requestClose()
+			LaunchedEffect(closeRequest) {
+				if (closeRequest != ApplicationState.CloseType.None) {
+					component.requestClose()
+				}
 			}
-		}
 
-		if (shouldConfirmClose.isNotEmpty()) {
-			val item = shouldConfirmClose.first()
-			when (item) {
-				CloseConfirm.Scenes -> {
-					confirmCloseUnsavedScenesDialog(closeRequest) { result, closeType ->
-						scope.launch {
-							if (result == ConfirmCloseResult.SaveAll) {
-								component.storeDirtyBuffers()
-							}
+			if (shouldConfirmClose.isNotEmpty()) {
+				val item = shouldConfirmClose.first()
+				when (item) {
+					CloseConfirm.Scenes -> {
+						confirmCloseUnsavedScenesDialog(closeRequest) { result, closeType ->
+							scope.launch {
+								if (result == ConfirmCloseResult.SaveAll) {
+									component.storeDirtyBuffers()
+								}
 
-							withContext(mainDispatcher) {
-								if (result != ConfirmCloseResult.Cancel) {
-									component.closeRequestDealtWith(CloseConfirm.Scenes)
-								} else {
-									cancelClose()
+								withContext(mainDispatcher) {
+									if (result != ConfirmCloseResult.Cancel) {
+										component.closeRequestDealtWith(CloseConfirm.Scenes)
+									} else {
+										cancelClose()
+									}
 								}
 							}
 						}
 					}
-				}
 
-				CloseConfirm.Notes -> {
-					confirmCloseUnsavedNotesDialog(closeRequest) { result, closeType ->
-						when (result) {
-							ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
-							ConfirmCloseResult.Discard -> component.closeRequestDealtWith(CloseConfirm.Notes)
-							ConfirmCloseResult.Cancel -> cancelClose()
+					CloseConfirm.Notes -> {
+						confirmCloseUnsavedNotesDialog(closeRequest) { result, closeType ->
+							when (result) {
+								ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
+								ConfirmCloseResult.Discard -> component.closeRequestDealtWith(CloseConfirm.Notes)
+								ConfirmCloseResult.Cancel -> cancelClose()
+							}
 						}
 					}
-				}
 
-				CloseConfirm.Encyclopedia -> {
-					confirmCloseUnsavedEncyclopediaDialog(closeRequest) { result, closeType ->
-						when (result) {
-							ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
-							ConfirmCloseResult.Discard -> component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
-							ConfirmCloseResult.Cancel -> cancelClose()
+					CloseConfirm.Encyclopedia -> {
+						confirmCloseUnsavedEncyclopediaDialog(closeRequest) { result, closeType ->
+							when (result) {
+								ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
+								ConfirmCloseResult.Discard -> component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
+								ConfirmCloseResult.Cancel -> cancelClose()
+							}
 						}
 					}
-				}
 
-				CloseConfirm.Timeline -> {
-					confirmCloseUnsavedTimelineDialog(closeRequest) { result, closeType ->
-						when (result) {
-							ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
-							ConfirmCloseResult.Discard -> component.closeRequestDealtWith(
-								CloseConfirm.Timeline
-							)
-							ConfirmCloseResult.Cancel -> cancelClose()
+					CloseConfirm.Timeline -> {
+						confirmCloseUnsavedTimelineDialog(closeRequest) { result, closeType ->
+							when (result) {
+								ConfirmCloseResult.SaveAll -> error("Unhandled close type: $closeType")
+								ConfirmCloseResult.Discard -> component.closeRequestDealtWith(
+									CloseConfirm.Timeline
+								)
+								ConfirmCloseResult.Cancel -> cancelClose()
+							}
 						}
 					}
-				}
 
-				CloseConfirm.Sync -> {
-					component.showProjectSync()
-				}
+					CloseConfirm.Sync -> {
+						component.showProjectSync()
+					}
 
-				CloseConfirm.Complete -> performClose(app, closeRequest)
+					CloseConfirm.Complete -> performClose(app, closeRequest)
+				}
 			}
 		}
 	}
@@ -261,7 +276,7 @@ private fun FrameWindowScope.EditorMenuBar(
 }
 
 @Composable
-private fun AppContent(component: ProjectRoot) {
+private fun AppContent(component: ProjectRoot, shortcutHost: ProjectShortcutHost) {
 	val router by component.routerState.subscribeAsState()
 	val themeState by component.projectTheme.subscribeAsState()
 	val navRailState by component.navRailState.subscribeAsState()
@@ -286,7 +301,7 @@ private fun AppContent(component: ProjectRoot) {
 					},
 				)
 
-				ProjectRootUi(component, rootSnackbar)
+				ProjectRootUi(component, rootSnackbar, shortcutHost = shortcutHost)
 			}
 
 			SnackbarHost(

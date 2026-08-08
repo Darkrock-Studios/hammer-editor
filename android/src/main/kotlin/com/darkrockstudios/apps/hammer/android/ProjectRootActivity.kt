@@ -30,6 +30,7 @@ import com.darkrockstudios.apps.hammer.android.shortcuts.ProjectShortcutsManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
+import com.darkrockstudios.apps.hammer.common.compose.ProjectShortcutHost
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
@@ -70,6 +71,7 @@ class ProjectRootActivity : AppCompatActivity() {
 	private val viewModel: ProjectRootViewModel by viewModels()
 
 	private var projectRoot: ProjectRoot? = null
+	private val shortcutHost = ProjectShortcutHost()
 
 	override fun onCreate(savedInstanceState: Bundle?) {
 		super.onCreate(savedInstanceState)
@@ -185,14 +187,22 @@ class ProjectRootActivity : AppCompatActivity() {
 	}
 
 	override fun dispatchKeyEvent(event: KeyEvent): Boolean {
-		if (event.action == KeyEvent.ACTION_DOWN &&
-			event.keyCode == KeyEvent.KEYCODE_F &&
-			event.isShiftPressed &&
-			event.isCtrlPressed
-		) {
-			projectRoot?.let {
-				it.showGlobalSearch()
-				return true
+		if (event.action == KeyEvent.ACTION_DOWN) {
+			if (event.keyCode == KeyEvent.KEYCODE_F && event.isShiftPressed && event.isCtrlPressed) {
+				projectRoot?.let {
+					it.showGlobalSearch()
+					return true
+				}
+			}
+
+			// hasModifiers matches exactly, so Ctrl+F3 and Ctrl+Alt+Shift+S fall through.
+			if (event.keyCode == KeyEvent.KEYCODE_F3 && event.hasNoModifiers()) {
+				if (shortcutHost.startProjectSync()) return true
+			}
+
+			val ctrlAlt = KeyEvent.META_CTRL_ON or KeyEvent.META_ALT_ON
+			if (event.keyCode == KeyEvent.KEYCODE_S && event.hasModifiers(ctrlAlt)) {
+				if (shortcutHost.saveAllBuffers()) return true
 			}
 		}
 		return super.dispatchKeyEvent(event)
@@ -214,7 +224,7 @@ class ProjectRootActivity : AppCompatActivity() {
 			component.requestClose()
 		}
 
-		ProjectRootScaffold(component, onCloseRequest = ::finish)
+		ProjectRootScaffold(component, onCloseRequest = ::finish, shortcutHost = shortcutHost)
 	}
 
 	companion object {

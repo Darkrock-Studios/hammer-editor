@@ -32,6 +32,10 @@ internal fun updateMarkdownStyles(
 ) {
 	if (state.textLines.isEmpty()) return
 
+	// Heading styles are deliberately absent: MarkdownExtension.markdownConfiguration's
+	// setter rebakes them from their HeaderSpanStyle spans. Remapping them here too
+	// leaves the rebake unable to find the old style to strip, so it appends a second
+	// copy to every heading on each config change.
 	val styleMapping = mapOf(
 		oldConfig.defaultTextStyle to newConfig.defaultTextStyle,
 		oldConfig.boldStyle to newConfig.boldStyle,
@@ -39,17 +43,14 @@ internal fun updateMarkdownStyles(
 		oldConfig.codeStyle to newConfig.codeStyle,
 		oldConfig.linkStyle to newConfig.linkStyle,
 		oldConfig.blockquoteStyle to newConfig.blockquoteStyle,
-		oldConfig.header1Style to newConfig.header1Style,
-		oldConfig.header2Style to newConfig.header2Style,
-		oldConfig.header3Style to newConfig.header3Style,
-		oldConfig.header4Style to newConfig.header4Style,
-		oldConfig.header5Style to newConfig.header5Style,
-		oldConfig.header6Style to newConfig.header6Style
 	)
 
 	state.processLines { _: Int, line: AnnotatedString ->
 		buildAnnotatedString {
 			append(line.text)
+			// Block lines carry their indent as a ParagraphStyle, which the raw text
+			// append above drops.
+			line.paragraphStyles.forEach { addStyle(it.item, it.start, it.end) }
 			if (line.spanStyles.isEmpty()) {
 				addStyle(newConfig.defaultTextStyle, 0, line.length)
 			} else {
@@ -59,7 +60,6 @@ internal fun updateMarkdownStyles(
 						addStyle(newStyle, span.start, span.end)
 					} else {
 						// Keep the original style if it's not a markdown style
-						println("Skipping style update")
 						addStyle(span.item, span.start, span.end)
 					}
 				}

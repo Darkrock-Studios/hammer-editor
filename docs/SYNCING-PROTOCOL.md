@@ -23,6 +23,27 @@ parity with each other.
 Additionally, it will find or create a `projectId` for the client's local projects. These are the
 key to being able to sync a local project with the server.
 
+### Stale project IDs
+
+A local project caches the `projectId` it was assigned, so a client that last synced against a
+different server (or one whose database has since been reset) holds IDs that server never issued.
+Account sync therefore treats a cached ID the server neither lists in `begin_sync` nor reports in
+`deletedProjects` as **dead**, and recreates the project as though it had no ID at all.
+
+Liveness is judged against the raw `begin_sync` response. A project the client has queued for
+deletion is filtered out of the working copy of that list, but it is still known to the server, and
+judging it against the filtered list would recreate what the user just deleted. A tombstoned ID is
+likewise not dead: it means a real server-side delete, which propagates as a local deletion instead.
+
+Replacing an ID strands anything else queued against the old one, so the queues are withdrawn
+rather than retried:
+
+- A **rename** queued against an ID the server does not know is dropped without being sent. The
+  server cannot rename an ID it never issued, so retrying only logs an error every session;
+  recreation already covers it, because the project is created under its current local name.
+- A **creation** queued for a name with no local project is dropped. The project was deleted before
+  it ever reached the server, so creating it would push an empty project out to every device.
+
 Any given user account may only have one sync in progress at a time. Attempting to start a sync when
 one is already in progress will result in a failure to begin the sync (`400 Bad Request`).
 
@@ -306,6 +327,19 @@ The install is identified server-side from the authenticated bearer token (never
   after 2 minutes without activity (sliding — refreshed each time the `syncID` is used).
 
 The client also fires `end_sync` even when its sync is cancelled, so sessions are normally released cleanly; reclaim is the safety net for the cases where that request can't be delivered.
+
+#### Unknown project (`410 Gone`)
+
+A project endpoint called with a `projectId` the user doesn't own answers **`410 Gone`**, not `404`.
+The distinction matters: `download_entity` maps a `404` to "entity deleted on the server" and, for
+an entity it doesn't already hold, silently marks it deleted. A project-level `404` would therefore
+make a client abandon undownloaded entities when a project vanishes mid-sync.
+
+`410` is terminal for that ID: retrying can never succeed. On receiving it from `begin_sync` the
+client discards the cached `projectId`, which drops the project back to the never-synced state, and
+the next sync recreates it on the server. Without that the project would fail every sync forever,
+because the only other repair path (account sync, above) is not run when syncing a single project
+from inside the project itself.
 
 You may however have `syncID`s for multiple different projects simultaneously.
 

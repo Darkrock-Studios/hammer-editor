@@ -133,6 +133,43 @@ test('parseInlineMarkdown supports nesting and leaves unmatched or intraword mar
 	assert.equal(unclosed.map((r) => r.text).join(''), 'an *unclosed marker');
 });
 
+test('parseInlineMarkdown renders strikethrough without markers', () => {
+	const text = 'He was ~~dead~~ alive.';
+	const runs = logic.parseInlineMarkdown(text);
+	assert.deepEqual(runs.map((r) => [r.text, r.srcStart, r.strike]), [
+		['He was ', 0, false],
+		['dead', 9, true],
+		[' alive.', 15, false],
+	]);
+	for (const r of runs) {
+		assert.equal(text.slice(r.srcStart, r.srcStart + r.text.length), r.text);
+	}
+});
+
+test('parseInlineMarkdown nests strikethrough with other emphasis', () => {
+	const runs = logic.parseInlineMarkdown('*hello ~~there~~ now*');
+	assert.deepEqual(runs.map((r) => [r.text, r.italic, r.strike]), [
+		['hello ', true, false],
+		['there', true, true],
+		[' now', true, false],
+	]);
+});
+
+test('parseInlineMarkdown leaves a lone or unmatched tilde literal', () => {
+	const lone = logic.parseInlineMarkdown('about ~5 minutes');
+	assert.equal(lone.length, 1);
+	assert.equal(lone[0].strike, false);
+	assert.equal(lone[0].text, 'about ~5 minutes');
+
+	const unclosed = logic.parseInlineMarkdown('an ~~unclosed marker');
+	assert.equal(unclosed.map((r) => r.text).join(''), 'an ~~unclosed marker');
+	assert.equal(unclosed.some((r) => r.strike), false);
+
+	const escaped = logic.parseInlineMarkdown('not \\~\\~struck\\~\\~ here');
+	assert.equal(escaped.map((r) => r.text).join(''), 'not ~~struck~~ here');
+	assert.equal(escaped.some((r) => r.strike), false);
+});
+
 test('parseInlineMarkdown unescapes backslash-escaped punctuation, keeping source offsets', () => {
 	const text = 'Down the Rabbit\\-Hole \\(here\\) What\\!';
 	const runs = logic.parseInlineMarkdown(text);

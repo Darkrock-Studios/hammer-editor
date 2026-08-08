@@ -34,6 +34,13 @@
 	<string name="project_info_tags_label">Tags</string>
 	<string name="project_info_tags_hint">↵ zum Hinzufügen</string>
 	<string name="project_info_tags_placeholder">Fantasy, Entwurf, NaNoWriMo…</string>
+	<string name="project_info_language_label">Language</string>
+	<string name="project_info_language_unset">Not set</string>
+	<string name="project_info_language_dialog_title">Choose a language</string>
+	<string name="project_info_language_dialog_close">Schließen</string>
+	<string name="project_info_language_search_hint">Search languages</string>
+	<string name="project_info_language_clear">Clear (not set)</string>
+	<string name="project_info_language_empty">No languages match</string>
 	<string name="project_info_color_picker_edit">Bearbeiten</string>
 	<string name="project_info_color_picker_cancel">Abbrechen</string>
 	<string name="project_info_color_picker_confirm">OK</string>
@@ -44,6 +51,7 @@
 	<string name="project_settings_hero_by">von %1$s</string>
 	<string name="project_settings_hero_no_author">von (kein Autor festgelegt)</string>
 	<string name="project_settings_spellcheck_section_title">Rechtschreibprüfung</string>
+	<string name="project_settings_spellcheck_mismatch_caption">Spell check is off: the project language (%1$s) doesn’t match your dictionary (%2$s). Change either to re-enable it.</string>
 	<string name="project_settings_folio_caption">Projekteinstellungen · %1$s</string>
 	<string name="project_settings_folio_section_count">§§ %1$d</string>
 	<string name="sync_conflict_project_data_title">Projekteinstellungen-Konflikt</string>
@@ -52,6 +60,7 @@
 	<string name="sync_conflict_project_data_field_theme">Projekt-Farbschema</string>
 	<string name="sync_conflict_project_data_field_word_goal">Wortzahlziel</string>
 	<string name="sync_conflict_project_data_field_tags">Tags</string>
+	<string name="sync_conflict_project_data_field_language">Language</string>
 	<string name="sync_conflict_project_data_value_unset">(nicht festgelegt)</string>
 	<string name="sync_conflict_project_data_cadence_day">Tag</string>
 	<string name="sync_conflict_project_data_cadence_week">Woche</string>
@@ -107,6 +116,7 @@
 	<string name="sync_log_begin_project">Projekt wird synchronisiert: %1$s</string>
 	<string name="sync_log_project_conflict">Im Projekt %1$s besteht ein Konflikt. Öffnen Sie dieses Projekt und synchronisieren Sie, um ihn aufzulösen.</string>
 	<string name="sync_log_client_data_computed">Client-Entitätsdaten berechnet</string>
+	<string name="sync_log_project_id_stale">The server no longer has this project. It will be recreated the next time you sync.</string>
 	<string name="sync_log_server_data_loaded">Serverdaten empfangen</string>
 	<string name="sync_log_client_data_loaded">Client-Daten geladen</string>
 	<string name="sync_log_backup_made">Lokales Backup erstellt: %1$s</string>

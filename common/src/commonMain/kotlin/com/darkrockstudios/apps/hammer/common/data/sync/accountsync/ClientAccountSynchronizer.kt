@@ -81,10 +81,11 @@ class ClientAccountSynchronizer(
 				syncId = serverSyncData.syncId
 
 				val clientSyncData = loadSyncData()
+				val serverKnownIds = serverSyncData.knownProjectIds()
 
 				yield()
 
-				syncRenamedProjects(clientSyncData, serverSyncData, onLog, onUnauthorized)
+				syncRenamedProjects(clientSyncData, serverSyncData, serverKnownIds, onLog, onUnauthorized)
 
 				yield()
 
@@ -95,7 +96,14 @@ class ClientAccountSynchronizer(
 				val updatedServerSyncData = processProjectSyncData(serverSyncData, clientSyncData)
 
 				val localProjects = projectsRepository.getProjects()
-				syncCreatedProjects(clientSyncData, updatedServerSyncData, localProjects, onLog, onUnauthorized)
+				syncCreatedProjects(
+					clientSyncData,
+					updatedServerSyncData,
+					serverKnownIds,
+					localProjects,
+					onLog,
+					onUnauthorized,
+				)
 
 				yield()
 
@@ -273,11 +281,20 @@ class ClientAccountSynchronizer(
 	private suspend fun syncRenamedProjects(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
+		serverKnownIds: Set<ProjectId>,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
 		// Rename projects on the server
 		clientSyncData.projectsToRename.forEach { (projectId, newName) ->
+			// The server can't rename an id it never issued, and would fail this every session
+			// forever. Recreation covers the rename anyway: it creates under the local name,
+			// which a local rename has already updated.
+			if (projectId !in serverKnownIds) {
+				dropQueuedRename(projectId)
+				return@forEach
+			}
+
 			val result = serverProjectsApi.renameProject(projectId, serverSyncData.syncId, newName)
 			if (result.isSuccess) {
 				onLog(
@@ -288,12 +305,7 @@ class ClientAccountSynchronizer(
 						)
 					)
 				)
-				updateSyncData { syncData ->
-					syncData.copy(
-						projectsToRename = syncData.projectsToRename
-							.filterNot { it.projectId == projectId }.toSet(),
-					)
-				}
+				dropQueuedRename(projectId)
 			} else {
 				val exception = result.exceptionOrNull()
 				Napier.e("Failed to rename project: $projectId", exception)
@@ -311,6 +323,15 @@ class ClientAccountSynchronizer(
 					onUnauthorized()
 				}
 			}
+		}
+	}
+
+	private fun dropQueuedRename(projectId: ProjectId) {
+		updateSyncData { syncData ->
+			syncData.copy(
+				projectsToRename = syncData.projectsToRename
+					.filterNot { it.projectId == projectId }.toSet(),
+			)
 		}
 	}
 
@@ -402,6 +423,7 @@ class ClientAccountSynchronizer(
 	private suspend fun syncCreatedProjects(
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
+		serverKnownIds: Set<ProjectId>,
 		localProjects: List<ProjectDef>,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
@@ -425,7 +447,14 @@ class ClientAccountSynchronizer(
 			onLog
 		)
 
-		createProjectsOnServer(localProjectsWithIds, clientSyncData, serverSyncData, onLog, onUnauthorized)
+		createProjectsOnServer(
+			localProjectsWithIds,
+			clientSyncData,
+			serverSyncData,
+			serverKnownIds,
+			onLog,
+			onUnauthorized,
+		)
 
 		createLocalProjectsFromServer(newServerProjects, onLog)
 	}
@@ -478,20 +507,34 @@ class ClientAccountSynchronizer(
 	}
 
 	/**
-	 * Create projects on the server which this client has created locally
+	 * Create projects on the server which this client has created locally. A cached [ProjectId]
+	 * absent from [serverKnownIds] is dead (the client last synced against a different or
+	 * since-reset server): recreate it, or per-project sync gets an id it can only 410 on.
 	 */
 	private suspend fun createProjectsOnServer(
 		localProjectsWithIds: List<Pair<ProjectDef, ProjectId?>>,
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
+		serverKnownIds: Set<ProjectId>,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
 		val localOnly = localProjectsWithIds.filter { (_, uuid) ->
-			uuid == null
+			uuid == null || uuid !in serverKnownIds
 		}.map { it.first.name }
 
-		val newLocalProjects = clientSyncData.projectsToCreate + localOnly
+		// A queued name with no local project was deleted before it ever reached the server.
+		// Creating it would push an empty project to every device, and resolving its definition
+		// would point at a directory that is gone, so drop it instead.
+		val localNames = localProjectsWithIds.mapTo(mutableSetOf()) { it.first.name }
+		val staleCreates = clientSyncData.projectsToCreate - localNames
+		if (staleCreates.isNotEmpty()) {
+			updateSyncData { syncData ->
+				syncData.copy(projectsToCreate = syncData.projectsToCreate - staleCreates)
+			}
+		}
+
+		val newLocalProjects = (clientSyncData.projectsToCreate - staleCreates) + localOnly
 		// Create projects on the server
 		newLocalProjects.forEach { projectName ->
 			val result = serverProjectsApi.createProject(projectName, serverSyncData.syncId)
@@ -625,6 +668,19 @@ class ClientAccountSynchronizer(
 		}
 	}
 
+	/**
+	 * A project deleted before it ever synced has no id to tombstone, only a queued creation to
+	 * withdraw. Left queued, the next sync would create it on the server and push it back to
+	 * every device.
+	 */
+	fun deleteUnsyncedProject(projectName: String) {
+		updateSyncData { syncData ->
+			syncData.copy(
+				projectsToCreate = syncData.projectsToCreate - projectName,
+			)
+		}
+	}
+
 	private fun getSyncDataPath(): Path =
 		projectsRepository.getProjectsDirectory().toOkioPath() / SYNC_FILE_NAME
 
@@ -709,3 +765,11 @@ private data class ProjectPair(
 
 private fun Throwable?.isAuthenticationFailure(): Boolean =
 	(this is HttpFailureException && statusCode == HttpStatusCode.Unauthorized)
+
+/**
+ * Every project id the server accounted for, live or tombstoned. Must be read from the raw
+ * begin_sync response: `processProjectSyncData` drops projects this client has queued for
+ * deletion, and a project missing for that reason is still known to the server, not dead.
+ */
+private fun BeginProjectsSyncResponse.knownProjectIds(): Set<ProjectId> =
+	projects.mapTo(mutableSetOf()) { it.uuid } + deletedProjects

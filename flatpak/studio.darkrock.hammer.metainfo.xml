@@ -32,6 +32,17 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.8.1" date="2026-08-08">
+            <description>
+                <p>Improvements</p>
+                <p>- text editor no longer drops block structure (horizontal rules, images, code fences) when a scene loads</p>
+                <p>- font size changes no longer flatten list and blockquote indents</p>
+                <p>- typed text after a size change could lose the paragraph&apos;s body style</p>
+                <p>- F3 and Ctrl+Alt+S sync shortcuts work from anywhere in the project window</p>
+                <p>- tag suggestion chips could add the typed prefix instead of the selected tag</p>
+                <p>- Sync: projects with a stale cached server id could get stuck failing &quot;410 Gone&quot; instead of recreating</p>
+            </description>
+        </release>
         <release version="3.8.0" date="2026-08-04">
             <description>
                 <p>https://hammer.ink/blog/news/hammer-3-8-0</p>

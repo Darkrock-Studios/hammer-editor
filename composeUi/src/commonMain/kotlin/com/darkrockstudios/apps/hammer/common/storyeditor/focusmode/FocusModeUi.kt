@@ -41,11 +41,13 @@ import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.findShortcutModifier
+import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownFormatBar
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
-import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.getInitialEditorContent
+import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.loadSceneContent
+import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.sceneContentMarkdown
 import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
 import com.darkrockstudios.apps.hammer.scene_editor_menu_item_close
 import com.darkrockstudios.texteditor.find.FindBar
@@ -54,22 +56,21 @@ import com.darkrockstudios.texteditor.rememberTextEditorStyle
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
 import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
+import kotlinx.coroutines.withContext
 
 @Composable
 fun FocusModeUi(component: FocusMode) {
 	val state by component.state.subscribeAsState()
 	val lastForceUpdate by component.lastForceUpdate.subscribeAsState()
 	val markdownConfig = LocalMarkdownConfig.current
+	val defaultDispatcher = rememberDefaultDispatcher()
 
 	val editorSpellChecker = remember(state.spellChecker) {
 		state.spellChecker.toEditorSpellChecker()
 	}
-	// Only read once, but unremembered it rebuilds the whole document's AnnotatedString on the UI
-	// thread every recomposition, and the buffer republishes every 500ms while typing.
-	val initialEditorContent = remember { getInitialEditorContent(state.sceneBuffer?.content, markdownConfig) }
 	val textEditorState = rememberSpellCheckState(
 		spellChecker = editorSpellChecker,
-		initialText = initialEditorContent,
+		initialText = null,
 		enableSpellChecking = state.spellCheckingEnabled,
 	)
 	val markdownExtension = remember { textEditorState.withMarkdown(markdownConfig) }
@@ -87,8 +88,13 @@ fun FocusModeUi(component: FocusMode) {
 		state.sceneBuffer?.let { buffer ->
 			// Always update on first buffer (initial load), or when external update occurs
 			if (!hasReceivedInitialBuffer || buffer.source != UpdateSource.Editor) {
-				val newContent = getInitialEditorContent(buffer.content, markdownConfig)
-				textEditorState.textState.setText(newContent)
+				val sceneMarkdown = withContext(defaultDispatcher) {
+					sceneContentMarkdown(buffer.content)
+				}
+				loadSceneContent(markdownExtension, sceneMarkdown)
+				// Importing emits no edit operations, so the incremental checker never
+				// sees this text. The one-shot check already ran against an empty document.
+				textEditorState.runFullSpellCheck()
 				hasReceivedInitialBuffer = true
 			}
 		}
