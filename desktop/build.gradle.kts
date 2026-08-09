@@ -33,7 +33,6 @@ configurations.all {
 kotlin {
 	jvmToolchain {
 		languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
-		vendor.set(JvmVendorSpec.JETBRAINS)
 	}
 	jvm()
 	sourceSets {
@@ -77,15 +76,15 @@ kotlin {
 	}
 }
 
-// Pin jpackage's bundled runtime to the JetBrains Runtime.
-val jbrLauncher = javaToolchains.launcherFor {
+// Pin jpackage's bundled runtime to the project's toolchain JDK rather than
+// whichever JVM happens to be running Gradle.
+val packagingLauncher = javaToolchains.launcherFor {
 	languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
-	vendor.set(JvmVendorSpec.JETBRAINS)
 }
 
 compose.desktop {
 	application {
-		javaHome = jbrLauncher.get().metadata.installationPath.asFile.absolutePath
+		javaHome = packagingLauncher.get().metadata.installationPath.asFile.absolutePath
 		mainClass = "com.darkrockstudios.apps.hammer.desktop.MainKt"
 		nativeDistributions {
 			targetFormats(
