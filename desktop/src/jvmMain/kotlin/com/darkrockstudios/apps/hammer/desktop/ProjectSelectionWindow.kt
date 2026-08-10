@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.desktop
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -12,7 +13,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
@@ -43,6 +46,9 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.darkrockstudios.apps.hammer.common.projectselection.toHdNavRailDestination
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
+import com.darkrockstudios.cairn.CairnAboutOverlay
+import com.darkrockstudios.cairn.CairnAppId
+import com.darkrockstudios.cairn.CairnConfig
 import dev.nucleusframework.application.NucleusApplicationScope
 import dev.nucleusframework.window.material.MaterialDecoratedWindow
 import dev.nucleusframework.window.material.MaterialTitleBar
@@ -124,40 +130,56 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 fun Content(component: ProjectSelection) {
 	val stackState by component.stack.subscribeAsState()
 	val navRailState by component.navRailState.subscribeAsState()
+	var showStudio by remember { mutableStateOf(false) }
 
 	val destinations = ProjectSelection.Locations.entries.map { it.toHdNavRailDestination() }
 
-	Scaffold(
-		modifier = Modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.background),
-		content = { innerPadding ->
-			Row(
-				modifier = Modifier
-					.padding(innerPadding)
-					.fillMaxSize()
-					.background(MaterialTheme.colorScheme.background)
-			) {
-				HdNavRail(
-					destinations = destinations,
-					selectedId = stackState.active.configuration.location,
-					onSelect = { component.showLocation(it) },
-					expanded = navRailState.expanded,
-					onToggleExpanded = { component.toggleNavRailExpanded() },
-					footer = {
-						val versionText = remember { getAppVersionString() }
-						HdMonoLabel(
-							text = versionText,
-							color = MaterialTheme.colorScheme.onSurfaceVariant,
-						)
-					},
-				)
+	// The overlay is hoisted above the nav rail so its ceremony covers the
+	// whole window, not just the content pane.
+	Box(modifier = Modifier.fillMaxSize()) {
+		Scaffold(
+			modifier = Modifier
+				.fillMaxSize()
+				.background(MaterialTheme.colorScheme.background),
+			content = { innerPadding ->
+				Row(
+					modifier = Modifier
+						.padding(innerPadding)
+						.fillMaxSize()
+						.background(MaterialTheme.colorScheme.background)
+				) {
+					HdNavRail(
+						destinations = destinations,
+						selectedId = stackState.active.configuration.location,
+						onSelect = { component.showLocation(it) },
+						expanded = navRailState.expanded,
+						onToggleExpanded = { component.toggleNavRailExpanded() },
+						footer = {
+							val versionText = remember { getAppVersionString() }
+							HdMonoLabel(
+								text = versionText,
+								color = MaterialTheme.colorScheme.onSurfaceVariant,
+							)
+						},
+					)
 
-				ProjectSelectionUi(
-					component,
-					Modifier.padding(start = Ui.Padding.XL, top = Ui.Padding.XL)
-				)
-			}
-		},
-	)
+					ProjectSelectionUi(
+						component,
+						onShowStudio = { showStudio = true },
+						modifier = Modifier.padding(start = Ui.Padding.XL, top = Ui.Padding.XL),
+					)
+				}
+			},
+		)
+
+		CairnAboutOverlay(
+			visible = showStudio,
+			config = CairnConfig(
+				currentAppId = CairnAppId.Hammer,
+				// Cairn stamps its own "v", ours already carries one.
+				versionName = getAppVersionString().removePrefix("v"),
+			),
+			onDismissed = { showStudio = false },
+		)
+	}
 }

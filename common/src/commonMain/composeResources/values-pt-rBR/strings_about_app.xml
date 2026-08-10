@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="about_description">Uma ferramenta simples para construir histórias.</string>
-	<string name="about_description_line_two">Um projeto livre e de código aberto.</string>
 	<string name="about_community_header">Comunidades</string>
 	<string name="about_community_discord_link">Discord</string>
 	<string name="about_community_reddit_link">Reddit</string>

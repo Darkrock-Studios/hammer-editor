@@ -15,7 +15,7 @@ import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 @Composable
 fun ScreenAboutAppUiPreview() {
 	AppTheme(globalSettingsPreview) {
-		AboutAppUi(previewComponent)
+		AboutAppUi(previewComponent, onShowStudio = {})
 	}
 }
 
@@ -24,7 +24,7 @@ fun ScreenAboutAppUiPreview() {
 fun ScreenAboutAppUiTabletPreview() {
 	KoinApplicationPreview {
 		TabletPreviewSurface {
-			AboutAppUi(previewComponent)
+			AboutAppUi(previewComponent, onShowStudio = {})
 		}
 	}
 }
