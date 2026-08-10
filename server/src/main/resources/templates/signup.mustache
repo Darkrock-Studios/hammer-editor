@@ -1,0 +1,65 @@
+{{> header}}
+
+<main class="page page--centered">
+	<div class="page__container page__container--narrow">
+		<div class="paper-section paper-section--compact">
+			<div class="login-header">
+				<h1>{{msg.signup_title}}</h1>
+				<p>{{msg.signup_subtitle}}</p>
+			</div>
+
+			<form action="/signup" method="post" class="login-form">
+				<div class="form-field">
+					<label for="email" class="form-field__label">{{msg.signup_email_label}}</label>
+					<input type="email" id="email" name="email" class="form-input" required autofocus
+						   value="{{email}}" placeholder="{{msg.signup_email_placeholder}}" autocomplete="email">
+				</div>
+
+				<div class="form-field">
+					<label for="password" class="form-field__label">{{msg.signup_password_label}}</label>
+					<input type="password" id="password" name="password" class="form-input" required
+						   placeholder="{{msg.login_password_placeholder}}" autocomplete="new-password">
+					<p class="form-field__help">{{msg.password_reset_requirements}}</p>
+				</div>
+
+				<div class="form-field">
+					<label for="confirmPassword" class="form-field__label">{{msg.signup_confirm_password_label}}</label>
+					<input type="password" id="confirmPassword" name="confirmPassword" class="form-input" required
+						   placeholder="{{msg.login_password_placeholder}}" autocomplete="new-password">
+				</div>
+
+				{{#tosVersion}}
+					<div class="form-field">
+						<label class="form-field__label">
+							<input type="checkbox" name="tosAccepted" value="true" required>
+							{{msg.signup_tos_agree_prefix}}
+							<a href="/terms" target="_blank">{{msg.signup_tos_link_label}}</a>
+						</label>
+						<input type="hidden" name="acceptedTosVersion" value="{{tosVersion}}"/>
+					</div>
+				{{/tosVersion}}
+
+				{{#error}}
+					<div class="login-message">
+						<p>{{error}}</p>
+					</div>
+				{{/error}}
+
+				<div class="form-actions">
+					<button type="submit" class="login-button">{{msg.signup_button}}</button>
+				</div>
+			</form>
+
+			<div class="login-info">
+				<p class="login-info-text">{{msg.signup_login_prompt}} <a href="/login">{{msg.signup_login_link}}</a></p>
+				{{#contactEmail}}
+					<div class="login-info-whitelist">
+						<p>{{msg.signup_not_allowed_hint}}</p>
+					</div>
+				{{/contactEmail}}
+			</div>
+		</div>
+	</div>
+</main>
+
+{{> footer}}

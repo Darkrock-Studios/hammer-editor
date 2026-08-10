@@ -78,6 +78,8 @@ import kotlin.time.Duration.Companion.days
 
 fun Route.frontend() {
 	val accountsRepository: AccountsRepository by inject()
+	val accountsComponent: com.darkrockstudios.apps.hammer.account.AccountsComponent by inject()
+	val termsOfServiceRepository: com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository by inject()
 	val whiteListRepository: WhiteListRepository by inject()
 	val configRepository: ConfigRepository by inject()
 	val projectsRepository: ProjectsRepository by inject()
@@ -130,6 +132,14 @@ fun Route.frontend() {
 	privacyPolicyPage()
 	localeRoutes()
 	authRoutes(accountsRepository, whiteListRepository, configRepository, serverConfig, securityRepository)
+	signupPage(
+		accountsComponent,
+		accountsRepository,
+		whiteListRepository,
+		termsOfServiceRepository,
+		configRepository,
+		securityRepository,
+	)
 	passwordResetRoutes(passwordResetRepository)
 	dashboardPage(
 		projectsRepository,
