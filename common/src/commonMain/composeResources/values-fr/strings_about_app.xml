@@ -8,6 +8,7 @@
 	<string name="about_community_github_link">GitHub</string>
 	<string name="about_attribution_header">Attribution</string>
 	<string name="about_attribution_libraries_button">Bibliothèques</string>
+	<string name="about_attribution_studio_button">Dark Rock Studios</string>
 	<string name="about_version_changes_button">Changements</string>
 	<string name="about_version_github_button">Version GitHub</string>
 	<string name="changelog_dialog_title">Nouveautés</string>
