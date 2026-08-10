@@ -656,8 +656,82 @@ a:focus-visible {
 	color: var(--neutral-800);
 }
 
-.instance-band__text p:last-child {
+/* The notice is admin-authored markdown, so the band has to hold anything a short
+   document can contain while staying a single band-height strip. */
+.instance-band__text > :first-child {
+	margin-top: 0;
+}
+
+.instance-band__text > :last-child {
 	margin-bottom: 0;
+}
+
+.instance-band__text p {
+	margin: 0 0 0.6rem 0;
+}
+
+.instance-band__text a {
+	color: var(--primary);
+	text-decoration: underline;
+	text-decoration-color: var(--accent-dark);
+	text-decoration-thickness: 2px;
+	text-underline-offset: 3px;
+	transition: color var(--transition-base);
+}
+
+.instance-band__text a:hover,
+.instance-band__text a:focus-visible {
+	color: var(--accent-dark);
+}
+
+.instance-band__text h1,
+.instance-band__text h2,
+.instance-band__text h3,
+.instance-band__text h4,
+.instance-band__text h5,
+.instance-band__text h6 {
+	font-family: 'Kingthings Typewriter', 'Courier New', monospace;
+	font-size: 1.05rem;
+	color: var(--neutral-800);
+	margin: 0 0 0.4rem 0;
+}
+
+.instance-band__text ul,
+.instance-band__text ol {
+	margin: 0 0 0.6rem 0;
+	padding-left: 1.5rem;
+}
+
+.instance-band__text blockquote {
+	margin: 0 0 0.6rem 0;
+	padding-left: 0.9rem;
+	border-left: 2px solid var(--accent);
+	color: var(--neutral-700);
+}
+
+.instance-band__text code {
+	font-family: 'Courier New', monospace;
+	font-size: 0.9em;
+	background: rgba(41, 37, 36, 0.08);
+	padding: 0.1em 0.35em;
+}
+
+.instance-band__text pre {
+	margin: 0 0 0.6rem 0;
+	padding: 0.6rem 0.8rem;
+	overflow-x: auto;
+	background: rgba(41, 37, 36, 0.08);
+}
+
+.instance-band__text pre code {
+	background: none;
+	padding: 0;
+}
+
+.instance-band__text hr {
+	margin: 0.6rem 0;
+	border: none;
+	border-top: 1px dashed rgba(180, 83, 9, 0.4);
 }
 
 /* Only a separator when it actually follows a server message; a whitelisted server

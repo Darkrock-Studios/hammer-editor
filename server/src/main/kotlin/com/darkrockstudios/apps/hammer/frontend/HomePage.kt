@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.webSiteJsonLd
+import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -36,6 +37,7 @@ fun Route.homePage(
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
 	serverConfig: ServerConfig,
+	markdownService: MarkdownService,
 ) {
 	route("/") {
 		get {
@@ -43,13 +45,15 @@ fun Route.homePage(
 			model["page_stylesheet"] = "/assets/css/home.css"
 			model["preloadImages"] = MASTHEAD_PRELOADS
 			val useWhiteList = whiteListRepository.useWhiteList()
-			val serverMessage = configRepository.get(AdminServerConfig.SERVER_MESSAGE)
+			val serverMessageHtml = markdownService.markdownToSafeHtml(
+				configRepository.get(AdminServerConfig.SERVER_MESSAGE)
+			)
 			val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)
 			val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
 			val patreonFeatureEnabled = serverConfig.patreonEnabled == true
 			val patreonActive = patreonFeatureEnabled && patreonConfig.enabled && patreonConfig.patreonUrl.isNotBlank()
 
-			model["serverMessage"] = serverMessage
+			model["serverMessageHtml"] = serverMessageHtml
 			model["page_script"] = "/assets/js/home.js"
 			model["title"] = "Hammer — ${call.msg("home_meta_tagline")}"
 			model["metaDescription"] = call.msg("home_meta_description")
@@ -64,7 +68,7 @@ fun Route.homePage(
 				model["whitelistEnabled"] = true
 				call.msg(model, "home_servermessage_whitelist", contactEmail)
 			}
-			model["hasInstanceNotice"] = serverMessage.isNotBlank() || showWhitelist
+			model["hasInstanceNotice"] = serverMessageHtml.isNotBlank() || showWhitelist
 
 			call.respond(MustacheContent("home.mustache", model))
 		}

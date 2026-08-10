@@ -35,9 +35,11 @@ fun Route.aboutPage(
 			model["aboutHtml"] = aboutHtml
 
 			// The whitelist half of the band belongs with the signup CTA on the home page.
-			val serverMessage = configRepository.get(AdminServerConfig.SERVER_MESSAGE)
-			model["serverMessage"] = serverMessage
-			model["hasInstanceNotice"] = serverMessage.isNotBlank()
+			val serverMessageHtml = markdownService.markdownToSafeHtml(
+				configRepository.get(AdminServerConfig.SERVER_MESSAGE)
+			)
+			model["serverMessageHtml"] = serverMessageHtml
+			model["hasInstanceNotice"] = serverMessageHtml.isNotBlank()
 			model["title"] = "${call.msg("about_page_title")} — Hammer"
 			metaDescription(aboutMarkdown)?.let { model["metaDescription"] = it }
 
