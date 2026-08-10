@@ -1,5 +1,12 @@
 name: hammer-editor
-base: core22
+# core24 (glibc 2.39), not core22 (glibc 2.35). A strict snap runs against the
+# base's libc, not the host's, so the host having a newer glibc doesn't help:
+# libnucleus_tao.so carries a non-weak GLIBC_2.39 version reference (Rust std's
+# pidfd_spawnp / pidfd_getpid) and ld.so hard-fails the load on core22 with
+# "version `GLIBC_2.39' not found". Nothing else we bundle needs past 2.36.
+# core26 would give more headroom, but the gnome extension has no 2604 content
+# snap yet.
+base: core24
 version: '3.8.1'
 summary: A simple tool for building stories
 description: |
@@ -12,8 +19,8 @@ icon: snap/gui/hammer-editor-store.png
 grade: stable
 confinement: strict
 
-architectures:
-    -   build-on: amd64
+platforms:
+    amd64:
 
 apps:
     hammer-editor:
@@ -39,8 +46,9 @@ parts:
         override-build: |
             set -euo pipefail
 
-            # A full JDK, not a JRE: createDistributable needs jlink/jpackage,
-            # and it bundles whatever JVM is in JAVA_HOME into lib/runtime/.
+            # A full JDK, not a JRE: the build resolves its toolchain to this
+            # JVM and jpackage bundles it into lib/runtime/, so jlink and
+            # jpackage have to be present.
             echo "Downloading Temurin JDK..."
             wget https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12%2B8/OpenJDK21U-jdk_x64_linux_hotspot_21.0.12_8.tar.gz -O jdk.tar.gz
             echo "e4446ff06a276155697597cc0f1b15da004ff083f4964a35271ecee567177370  jdk.tar.gz" | sha256sum -c -
@@ -56,21 +64,19 @@ parts:
             echo "Building with JDK (JAVA_HOME=$JAVA_HOME)"
             java -version
 
-            # Run gradle build with createDistributable
             chmod +x ./gradlew
-            # First build all necessary JARs, then create the distributable
             ./gradlew :desktop:jvmJar --no-daemon
             ./gradlew :desktop:createDistributable -x desktopTest --no-daemon
-            # Copy the gradle output to the install directory
-            # Note: outputBaseDir is set to 'installers' in build.gradle.kts
-            # This includes the bundled runtime at lib/runtime/
+
+            # The installers/ path comes from outputBaseDir in
+            # desktop/build.gradle.kts; the app tree carries its own JVM at
+            # lib/runtime/, which the launcher below points JAVA_HOME at.
             mkdir -p $CRAFT_PART_INSTALL/lib
             cp -r desktop/build/installers/main/app/hammer $CRAFT_PART_INSTALL/lib/hammer
-            # Create the bin directory and launcher script
+
             mkdir -p $CRAFT_PART_INSTALL/bin
             cat > $CRAFT_PART_INSTALL/bin/hammer << 'EOF'
             #!/bin/bash
-            # Use the bundled runtime that comes with the distributable
             export JAVA_HOME=$SNAP/lib/hammer/lib/runtime
             export PATH=$JAVA_HOME/bin:$PATH
             exec $SNAP/lib/hammer/bin/hammer "$@"
