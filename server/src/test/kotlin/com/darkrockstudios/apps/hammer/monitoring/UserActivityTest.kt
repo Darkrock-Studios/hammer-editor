@@ -159,7 +159,12 @@ class UserActivityTest : BaseTest() {
 			configRepository = configRepository,
 			metricsRepository = MetricsRepository(ApiMetricDao(db)),
 			errorRepository = ErrorRepository(ErrorLogDao(db), clock),
-			securityRepository = SecurityRepository(LoginAttemptDao(db), clock),
+			securityRepository = SecurityRepository(
+				LoginAttemptDao(db),
+				MonitoringState(),
+				LoggerFactory.getLogger("test"),
+				clock,
+			),
 			collector = MetricsCollector(clock),
 			userActivityCollector = collector,
 			userActivityRepository = repository,

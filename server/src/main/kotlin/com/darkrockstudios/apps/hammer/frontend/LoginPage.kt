@@ -6,10 +6,14 @@ import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
+import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
+import com.darkrockstudios.apps.hammer.plugins.LOGIN_RATE_LIMIT
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
 import io.ktor.server.mustache.*
+import io.ktor.server.plugins.origin
+import io.ktor.server.plugins.ratelimit.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -19,9 +23,10 @@ fun Route.authRoutes(
 	accountsRepository: AccountsRepository,
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
-	serverConfig: ServerConfig
+	serverConfig: ServerConfig,
+	securityRepository: SecurityRepository,
 ) {
-	loginPage(accountsRepository, whiteListRepository, configRepository, serverConfig)
+	loginPage(accountsRepository, whiteListRepository, configRepository, serverConfig, securityRepository)
 	logout()
 	unauthorized()
 }
@@ -30,7 +35,8 @@ private fun Route.loginPage(
 	accountsRepository: AccountsRepository,
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
-	serverConfig: ServerConfig
+	serverConfig: ServerConfig,
+	securityRepository: SecurityRepository,
 ) {
 	route("/login") {
 		get {
@@ -46,40 +52,54 @@ private fun Route.loginPage(
 			}
 		}
 
-		post {
-			val params = call.receiveParameters()
-			val email = params["email"] ?: ""
-			val password = params["password"] ?: ""
+		rateLimit(RateLimitName(LOGIN_RATE_LIMIT)) {
+			post {
+				val params = call.receiveParameters()
+				val email = params["email"] ?: ""
+				val password = params["password"] ?: ""
 
-			val result = accountsRepository.login(
-				email = email,
-				password = password,
-				installId = "web"
-			)
-			if (isSuccess(result)) {
-				val token = result.data
-				val isAdmin = accountsRepository.isAdmin(token.userId)
-				val session = UserSession(
-					userId = token.userId,
-					username = email,
-					isAdmin = isAdmin
+				val result = accountsRepository.login(
+					email = email,
+					password = password,
+					installId = "web"
 				)
-				if (sessionIsAuthorized(session, accountsRepository, whiteListRepository)) {
+				val session: UserSession?
+				val credentialsError: String?
+				if (isSuccess(result)) {
+					val token = result.data
+					session = UserSession(
+						userId = token.userId,
+						username = email,
+						isAdmin = accountsRepository.isAdmin(token.userId)
+					)
+					credentialsError = null
+				} else {
+					session = null
+					credentialsError = result.displayMessageText(call) ?: "Login failed"
+				}
+
+				// A whitelist rejection is a denied sign-in, so it is audited as a failure
+				// to match what the API path records for the same credentials.
+				val authorized = session != null &&
+					sessionIsAuthorized(session, accountsRepository, whiteListRepository)
+
+				securityRepository.recordLoginAttempt(
+					email = email,
+					ipAddress = call.request.origin.remoteAddress,
+					success = authorized,
+				)
+
+				if (session != null && authorized) {
 					call.sessions.set(session)
 					call.respondRedirect("/dashboard")
 				} else {
-					// Credentials are valid but the user isn't whitelisted; don't set a
-					// session that /dashboard would reject (which would loop back here).
 					val model = buildLoginModel(call, whiteListRepository, configRepository, serverConfig)
 						.toMutableMap()
-					model["message"] = call.t(R("api_whitelist_rejected"))
+					// Valid credentials without a whitelist entry get no session, because
+					// /dashboard would reject it and loop back here.
+					model["message"] = credentialsError ?: call.t(R("api_whitelist_rejected"))
 					call.respond(MustacheContent("login.mustache", call.withDefaults(model)))
 				}
-			} else {
-				val message = result.displayMessageText(call) ?: "Login failed"
-				val model = buildLoginModel(call, whiteListRepository, configRepository, serverConfig).toMutableMap()
-				model["message"] = message
-				call.respond(MustacheContent("login.mustache", call.withDefaults(model)))
 			}
 		}
 	}

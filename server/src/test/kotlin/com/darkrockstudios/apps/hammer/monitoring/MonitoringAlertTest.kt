@@ -54,7 +54,12 @@ class MonitoringAlertTest : BaseTest() {
 			configRepository = ConfigRepository(ServerConfigDao(db)),
 			metricsRepository = MetricsRepository(ApiMetricDao(db)),
 			errorRepository = errorRepository,
-			securityRepository = SecurityRepository(LoginAttemptDao(db), clock),
+			securityRepository = SecurityRepository(
+				LoginAttemptDao(db),
+				MonitoringState(),
+				LoggerFactory.getLogger("test"),
+				clock,
+			),
 			collector = MetricsCollector(clock),
 			userActivityCollector = UserActivityCollector(clock),
 			userActivityRepository = UserActivityRepository(UserActivityDao(db)),

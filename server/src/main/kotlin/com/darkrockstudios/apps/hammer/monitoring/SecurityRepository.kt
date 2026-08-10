@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer.monitoring
 import com.darkrockstudios.apps.hammer.Login_attempt
 import com.darkrockstudios.apps.hammer.database.LoginAttemptDao
 import io.ktor.util.*
+import io.ktor.util.logging.Logger
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.time.Clock
 import kotlin.time.Instant
 import org.koin.core.component.KoinComponent
@@ -10,20 +12,37 @@ import org.koin.core.component.KoinComponent
 /**
  * Records login attempts for brute-force visibility. Emails are stored
  * lower-cased so failure counts are stable regardless of how the attacker cased
- * the address. The IP is optional — callers pass null when storeLoginIp is off.
+ * the address, and blank ones as null so they stay out of the per-account
+ * queries. The monitoring toggles are honored here rather than at the call
+ * sites, so callers always pass the source address and no login route can
+ * record what an operator has switched off.
  */
 class SecurityRepository(
 	private val loginAttemptDao: LoginAttemptDao,
+	private val monitoringState: MonitoringState,
+	private val log: Logger,
 	private val clock: Clock,
 ) : KoinComponent {
 
+	/**
+	 * Recording is passive observation, so a failed write is logged and swallowed
+	 * rather than failing the sign-in that triggered it.
+	 */
 	suspend fun recordLoginAttempt(email: String?, ipAddress: String?, success: Boolean) {
-		loginAttemptDao.recordAttempt(
-			email = email?.cleaned(),
-			ipAddress = ipAddress,
-			success = success,
-			at = clock.now(),
-		)
+		if (monitoringState.loginTrackingEnabled.not()) return
+
+		try {
+			loginAttemptDao.recordAttempt(
+				email = email?.ifBlank { null }?.cleaned(),
+				ipAddress = ipAddress.takeIf { monitoringState.storeLoginIp },
+				success = success,
+				at = clock.now(),
+			)
+		} catch (e: CancellationException) {
+			throw e
+		} catch (e: Exception) {
+			log.error("Failed to record login attempt", e)
+		}
 	}
 
 	suspend fun countRecentFailures(email: String, since: Instant): Long =

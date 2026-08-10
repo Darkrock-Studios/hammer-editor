@@ -129,7 +129,7 @@ fun Route.frontend() {
 	termsOfServicePage()
 	privacyPolicyPage()
 	localeRoutes()
-	authRoutes(accountsRepository, whiteListRepository, configRepository, serverConfig)
+	authRoutes(accountsRepository, whiteListRepository, configRepository, serverConfig, securityRepository)
 	passwordResetRoutes(passwordResetRepository)
 	dashboardPage(
 		projectsRepository,
