@@ -44,7 +44,7 @@ class WhitelistExpiryJobTest : BaseTest() {
 		accountDao = AccountDao(db)
 		authTokenDao = AuthTokenDao(db)
 		clock = TestClock(Clock.System)
-		whiteListRepository = WhiteListRepository(whiteListDao, ConfigRepository(ServerConfigDao(db)), clock)
+		whiteListRepository = WhiteListRepository(whiteListDao, clock)
 		accountsRepository = AccountsRepository(
 			accountDao = accountDao,
 			authTokenDao = authTokenDao,

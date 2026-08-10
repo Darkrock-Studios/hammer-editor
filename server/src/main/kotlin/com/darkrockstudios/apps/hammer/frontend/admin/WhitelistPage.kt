@@ -1,8 +1,5 @@
 package com.darkrockstudios.apps.hammer.frontend.admin
 
-import com.darkrockstudios.apps.hammer.ServerConfig
-import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
-import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.withDefaults
@@ -29,15 +26,12 @@ import kotlin.time.Duration.Companion.days
 
 internal fun Route.whiteListRoutes(
 	whiteListRepository: WhiteListRepository,
-	configRepository: ConfigRepository,
-	serverConfig: ServerConfig,
 	clock: Clock,
 ) {
 	route("/whitelist") {
 		whitelistUserFragment(whiteListRepository)
 		whitelistAdd(whiteListRepository, clock)
 		whitelistRemove(whiteListRepository)
-		whitelistToggle(whiteListRepository, configRepository, serverConfig)
 		whitelistEditReason(whiteListRepository)
 		whitelistEditExpiry(whiteListRepository, clock)
 	}
@@ -83,34 +77,6 @@ private fun parseCustomExpiryDate(customDate: String?): ExpiryParse {
 		ExpiryParse.Parsed(endOfDay.toKotlinInstant())
 	} catch (_: DateTimeParseException) {
 		ExpiryParse.Invalid
-	}
-}
-
-private suspend fun isPatreonActive(configRepository: ConfigRepository, serverConfig: ServerConfig): Boolean {
-	val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
-	val patreonFeatureEnabled = serverConfig.patreonEnabled == true
-	return patreonFeatureEnabled && patreonConfig.enabled && patreonConfig.patreonUrl.isNotBlank()
-}
-
-private fun Route.whitelistToggle(
-	whiteListRepository: WhiteListRepository,
-	configRepository: ConfigRepository,
-	serverConfig: ServerConfig
-) {
-	hx.post("/toggle") {
-		val enabled = whiteListRepository.useWhiteList()
-		val patreonActive = isPatreonActive(configRepository, serverConfig)
-
-		// Prevent disabling whitelist when Patreon is active
-		if (enabled && patreonActive) {
-			call.respond(HttpStatusCode.Forbidden, "")
-			return@post
-		}
-
-		whiteListRepository.setWhiteListEnabled(!enabled)
-
-		call.response.header(HxResponseHeaders.Refresh, "true")
-		call.respond(HttpStatusCode.OK, "")
 	}
 }
 
@@ -320,7 +286,6 @@ internal suspend fun getWhitelistModel(
 	whitelist["hasPrevPage"] = currentPage > 0
 	whitelist["nextPage"] = currentPage + 1
 	whitelist["prevPage"] = currentPage - 1
-	whitelist["enabled"] = whiteListRepository.useWhiteList()
 	whitelist["sortOldestFirst"] = actualSortOldestFirst
 	whitelist["sortNewestFirst"] = !actualSortOldestFirst
 

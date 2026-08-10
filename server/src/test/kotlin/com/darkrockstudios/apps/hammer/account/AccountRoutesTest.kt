@@ -26,6 +26,7 @@ import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.setupKtorTestKoin
+import com.darkrockstudios.apps.hammer.utils.testAccount
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.get
@@ -305,7 +306,6 @@ class AccountRoutesTest : BaseTest() {
 	fun `Account - Test Auth - invisible token is rejected at the bearer gate`() = testApplication {
 		coEvery { accountsRepository.checkToken(USER_ID, "bearer-token") } returns
 			SResult.failure("No valid token found", null)
-		coEvery { whiteListRepository.useWhiteList() } returns false
 
 		application {
 			setupKtorTestKoin(this@AccountRoutesTest, testModule)
@@ -324,7 +324,8 @@ class AccountRoutesTest : BaseTest() {
 	@Test
 	fun `Account - Test Auth - active account passes the bearer gate`() = testApplication {
 		coEvery { accountsRepository.checkToken(USER_ID, "bearer-token") } returns SResult.success(USER_ID)
-		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { accountsRepository.getAccountOrNull(USER_ID) } returns testAccount()
+		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
 
 		application {
 			setupKtorTestKoin(this@AccountRoutesTest, testModule)

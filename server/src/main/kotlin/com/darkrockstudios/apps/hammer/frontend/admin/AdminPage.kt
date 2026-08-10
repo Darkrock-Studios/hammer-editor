@@ -59,15 +59,9 @@ fun Route.adminPage(
 				projectsSyncManager, projectSyncManager, clock,
 				patreonFeatureEnabled, emailFeatureEnabled,
 			)
-			adminWhitelistPage(
-				whiteListRepository,
-				configRepository,
-				serverConfig,
-				patreonFeatureEnabled,
-				emailFeatureEnabled
-			)
+			adminWhitelistPage(patreonFeatureEnabled, emailFeatureEnabled)
 			adminUsersPage(patreonFeatureEnabled, emailFeatureEnabled)
-			whiteListRoutes(whiteListRepository, configRepository, serverConfig, clock)
+			whiteListRoutes(whiteListRepository, clock)
 			serverSettingsRoutes(configRepository)
 			usersRoutes(accountsRepository, projectsRepository, accountDeletionService)
 			if (patreonFeatureEnabled && patreonSyncService != null) {
@@ -129,20 +123,12 @@ private fun Route.adminSettingsPage(
 	}
 }
 
-// GET /admin/whitelist - Whitelist Management page
+// GET /admin/whitelist - Allowed Users management page
 private fun Route.adminWhitelistPage(
-	whiteListRepository: WhiteListRepository,
-	configRepository: ConfigRepository,
-	serverConfig: ServerConfig,
 	patreonFeatureEnabled: Boolean,
 	emailFeatureEnabled: Boolean
 ) {
 	get("/whitelist") {
-		val whitelistEnabled = whiteListRepository.useWhiteList()
-		val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
-		val patreonActive = patreonFeatureEnabled && patreonConfig.enabled && patreonConfig.patreonUrl.isNotBlank()
-		val canDisableWhitelist = !patreonActive
-
 		val model = mapOf(
 			"page_stylesheet" to "/assets/css/admin.css",
 			"activeSettings" to false,
@@ -152,10 +138,6 @@ private fun Route.adminWhitelistPage(
 			"activeEmail" to false,
 			"patreonFeatureEnabled" to patreonFeatureEnabled,
 			"emailFeatureEnabled" to emailFeatureEnabled,
-			"whitelist" to mapOf(
-				"enabled" to whitelistEnabled,
-				"canDisable" to canDisableWhitelist
-			),
 		)
 		call.respond(MustacheContent("admin-whitelist.mustache", call.withDefaults(model)))
 	}

@@ -10,17 +10,8 @@ import kotlin.time.Instant
 
 class WhiteListRepository(
 	private val whiteListDao: WhiteListDao,
-	private val configRepository: ConfigRepository,
 	private val clock: Clock,
 ) : KoinComponent {
-
-	suspend fun useWhiteList(): Boolean {
-		return configRepository.get(AdminServerConfig.WHITELIST_ENABLED)
-	}
-
-	suspend fun setWhiteListEnabled(enabled: Boolean) {
-		configRepository.set(AdminServerConfig.WHITELIST_ENABLED, enabled)
-	}
 
 	suspend fun getWhiteList(): List<String> {
 		return whiteListDao.getAllWhiteListedEmails()

@@ -9,41 +9,7 @@
 			<div class="page-header">
 				<div class="page-header__content">
 					<h1 class="page-header__title">{{msg.admin_whitelist_management_title}}</h1>
-					<p class="page-header__subtitle">
-						{{#whitelist.enabled}}
-							{{msg.admin_whitelist_enabled_subtitle}}
-						{{/whitelist.enabled}}
-						{{^whitelist.enabled}}
-							{{msg.admin_whitelist_disabled_subtitle}}
-						{{/whitelist.enabled}}
-					</p>
-				</div>
-				<div class="page-header__actions">
-					<form action="/admin/whitelist/toggle" method="post" class="logout-form"
-						  hx-post="/admin/whitelist/toggle"
-						  hx-swap="none">
-						{{#whitelist.enabled}}
-							{{#whitelist.canDisable}}
-								<button type="submit" class="toggle-button active">
-									Disable Whitelist
-								</button>
-							{{/whitelist.canDisable}}
-							{{^whitelist.canDisable}}
-								<button type="button" class="toggle-button active" disabled
-										title="{{msg.admin_whitelist_cannot_disable_patreon}}">
-									Disable Whitelist
-								</button>
-							{{/whitelist.canDisable}}
-						{{/whitelist.enabled}}
-						{{^whitelist.enabled}}
-							<button type="submit" class="toggle-button">
-								Enable Whitelist
-							</button>
-						{{/whitelist.enabled}}
-					</form>
-					{{#whitelist.enabled}}
-						<span class="section-badge accent">{{msg.admin_badge_active}}</span>
-					{{/whitelist.enabled}}
+					<p class="page-header__subtitle">{{msg.admin_whitelist_enabled_subtitle}}</p>
 				</div>
 			</div>
 

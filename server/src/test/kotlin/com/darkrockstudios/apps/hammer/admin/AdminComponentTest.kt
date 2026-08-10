@@ -32,7 +32,7 @@ class AdminComponentTest : BaseTest() {
 		db.initialize()
 		whiteListDao = WhiteListDao(db)
 		clock = TestClock(Clock.System)
-		whiteListRepository = WhiteListRepository(whiteListDao, ConfigRepository(ServerConfigDao(db)), clock)
+		whiteListRepository = WhiteListRepository(whiteListDao, clock)
 
 		setupKoin()
 	}

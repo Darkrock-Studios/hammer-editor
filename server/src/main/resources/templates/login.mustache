@@ -48,15 +48,13 @@
 					</div>
 				{{/patreonEnabled}}
 				{{^patreonEnabled}}
-					{{#whitelistEnabled}}
-						<div class="login-info-whitelist">
-							<p>{{msg.login_info_whitelist_notice}}</p>
-							{{#contactEmail}}
-								<p>{{msg.login_info_whitelist_contact}} <a
-									href="mailto:{{contactEmail}}">{{contactEmail}}</a></p>
-							{{/contactEmail}}
-						</div>
-					{{/whitelistEnabled}}
+					<div class="login-info-whitelist">
+						<p>{{msg.login_info_whitelist_notice}}</p>
+						{{#contactEmail}}
+							<p>{{msg.login_info_whitelist_contact}} <a
+								href="mailto:{{contactEmail}}">{{contactEmail}}</a></p>
+						{{/contactEmail}}
+					</div>
 				{{/patreonEnabled}}
 			</div>
 		</div>

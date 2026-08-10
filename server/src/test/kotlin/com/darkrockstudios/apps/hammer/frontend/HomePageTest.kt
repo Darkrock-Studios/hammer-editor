@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
-import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.patreon.PatreonConfig
 import com.darkrockstudios.apps.hammer.plugins.configureLocalization
@@ -30,7 +29,6 @@ import kotlin.test.assertFalse
 
 class HomePageTest : BaseTest() {
 
-	private val whiteListRepository: WhiteListRepository = mockk()
 	private val configRepository: ConfigRepository = mockk()
 
 	private fun ApplicationTestBuilder.configureApp() {
@@ -47,7 +45,7 @@ class HomePageTest : BaseTest() {
 				cookie<UserSession>(COOKIE_USER_SESSION)
 			}
 			routing {
-				homePage(whiteListRepository, configRepository, ServerConfig(), MarkdownService())
+				homePage(configRepository, ServerConfig(), MarkdownService())
 			}
 		}
 	}
@@ -58,7 +56,6 @@ class HomePageTest : BaseTest() {
 		coEvery { configRepository.get(AdminServerConfig.PATREON_CONFIG) } returns PatreonConfig()
 		coEvery { configRepository.get(AdminServerConfig.ABOUT_SERVER) } returns ""
 		coEvery { configRepository.get(AdminServerConfig.DEFAULT_LOCALE) } returns "en"
-		coEvery { whiteListRepository.useWhiteList() } returns false
 	}
 
 	private suspend fun ApplicationTestBuilder.getHome() =

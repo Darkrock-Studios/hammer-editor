@@ -47,7 +47,7 @@ private fun Route.loginPage(
 				// Drop a present-but-unauthorized cookie so the user isn't bounced
 				// straight back to /dashboard and into a redirect loop.
 				if (session != null) call.sessions.clear<UserSession>()
-				val model = buildLoginModel(call, whiteListRepository, configRepository, serverConfig)
+				val model = buildLoginModel(call, configRepository, serverConfig)
 				call.respond(MustacheContent("login.mustache", call.withDefaults(model)))
 			}
 		}
@@ -93,7 +93,7 @@ private fun Route.loginPage(
 					call.sessions.set(session)
 					call.respondRedirect("/dashboard")
 				} else {
-					val model = buildLoginModel(call, whiteListRepository, configRepository, serverConfig)
+					val model = buildLoginModel(call, configRepository, serverConfig)
 						.toMutableMap()
 					// Valid credentials without a whitelist entry get no session, because
 					// /dashboard would reject it and loop back here.
@@ -107,11 +107,9 @@ private fun Route.loginPage(
 
 private suspend fun buildLoginModel(
 	call: RoutingCall,
-	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
 	serverConfig: ServerConfig
 ): Map<String, Any> {
-	val useWhiteList = whiteListRepository.useWhiteList()
 	val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)
 	val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
 	val patreonFeatureEnabled = serverConfig.patreonEnabled == true
@@ -119,7 +117,6 @@ private suspend fun buildLoginModel(
 
 	return buildMap {
 		put("page_stylesheet", "/assets/css/login.css")
-		put("whitelistEnabled", useWhiteList)
 		if (contactEmail.isNotBlank()) {
 			put("contactEmail", contactEmail)
 		}

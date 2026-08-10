@@ -17,6 +17,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
+import kotlin.time.Instant
 
 class AllowedUsersBackfillMigrationTest : BaseTest() {
 
@@ -38,7 +39,7 @@ class AllowedUsersBackfillMigrationTest : BaseTest() {
 		whiteListDao = WhiteListDao(db)
 		configRepository = ConfigRepository(ServerConfigDao(db))
 		clock = TestClock(Clock.System)
-		repository = WhiteListRepository(whiteListDao, configRepository, clock)
+		repository = WhiteListRepository(whiteListDao, clock)
 		migration = AllowedUsersBackfillMigration(repository)
 
 		setupKoin()
@@ -70,7 +71,8 @@ class AllowedUsersBackfillMigrationTest : BaseTest() {
 
 	@Test
 	fun `migrate - keeps an existing entry's reason and expiry`() = runTest {
-		val expiry = clock.now() + 30.days
+		// Whole seconds: Postgres stores microseconds, JVM Instants carry nanoseconds.
+		val expiry = Instant.fromEpochSeconds((clock.now() + 30.days).epochSeconds)
 		whiteListDao.addToWhiteList("patron@example.com", clock.now(), "Patreon", expiry)
 		accountDao.createAccount("patron@example.com", "hash", "secret", isAdmin = false)
 

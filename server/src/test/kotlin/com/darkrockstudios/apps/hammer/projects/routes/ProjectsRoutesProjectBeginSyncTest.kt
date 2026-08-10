@@ -35,7 +35,6 @@ class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 
 		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
 		coEvery { accountsRepository.getInstallId(BEARER_TOKEN) } returns "test-install-id"
-		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery {
 			projectsRepository.beginProjectsSync(userId, "test-install-id")
 		} returns SResult.success(syncData)
@@ -61,7 +60,6 @@ class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 	@Test
 	fun `Projects - Begin Sync - Active Sync Session Conflict`() = testApplication {
 		coEvery { accountsRepository.checkToken(any(), any()) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery {
 			projectsRepository.beginProjectsSync(any(), any())
 		} returns SResult.failure(Exception())
@@ -78,7 +76,6 @@ class ProjectsRoutesProjectBeginSyncTest : ProjectsRoutesBaseTest() {
 	@Test
 	fun `Projects - Begin Sync - Bad Auth`() = testApplication {
 		coEvery { accountsRepository.checkToken(any(), any()) } returns SResult.failure(Exception())
-		coEvery { whiteListRepository.useWhiteList() } returns false
 		defaultApplication()
 
 		client.get("api/projects/0/begin_sync") {

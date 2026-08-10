@@ -31,12 +31,4 @@ class AdminComponent(
 	suspend fun removeFromWhiteList(email: String) {
 		whiteListRepository.removeFromWhiteList(email)
 	}
-
-	suspend fun enableWhiteList() {
-		whiteListRepository.setWhiteListEnabled(true)
-	}
-
-	suspend fun disableWhiteList() {
-		whiteListRepository.setWhiteListEnabled(false)
-	}
 }
