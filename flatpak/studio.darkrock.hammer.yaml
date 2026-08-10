@@ -24,11 +24,11 @@ modules:
             build-args:
                 - --share=network
         build-commands:
-            # Extract JBR, setup environment, and build with Gradle
+            # Extract the JDK, setup environment, and build with Gradle
             # All in one command block so environment variables persist
             - |
-                tar -xzf jbr.tar.gz
-                export JAVA_HOME=$PWD/jbrsdk_jcef-21.0.9-linux-x64-b1163.86
+                tar -xzf jdk.tar.gz
+                export JAVA_HOME=$PWD/jdk-21.0.12+8
                 export PATH=$JAVA_HOME/bin:$PATH
                 java -version
                 chmod +x gradlew
@@ -54,6 +54,6 @@ modules:
             -   type: dir
                 path: ..
             -   type: file
-                url: https://cache-redirector.jetbrains.com/intellij-jbr/jbrsdk_jcef-21.0.9-linux-x64-b1163.86.tar.gz
-                sha256: 81d780fbea669d67a40a65a678ad0710d224c31439472d2d8933109c95cacf57
-                dest-filename: jbr.tar.gz
+                url: https://github.com/adoptium/temurin21-binaries/releases/download/jdk-21.0.12%2B8/OpenJDK21U-jdk_x64_linux_hotspot_21.0.12_8.tar.gz
+                sha256: e4446ff06a276155697597cc0f1b15da004ff083f4964a35271ecee567177370
+                dest-filename: jdk.tar.gz

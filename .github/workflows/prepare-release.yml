@@ -15,8 +15,8 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
-          distribution: 'adopt'
-          java-version: 21
+          distribution: 'temurin'
+          java-version: '21'
           cache: gradle
 
       - name: Run Unit Tests
@@ -50,10 +50,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up JBR
-        uses: ./.github/actions/setup-jbr
+      - name: Set up JDK
+        uses: actions/setup-java@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          distribution: 'temurin'
+          java-version: '21'
 
       - name: Gradle caching
         uses: actions/cache@v6
@@ -149,10 +150,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up JBR
-        uses: ./.github/actions/setup-jbr
+      - name: Set up JDK
+        uses: actions/setup-java@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          distribution: 'temurin'
+          java-version: '21'
 
       - name: Gradle caching
         uses: actions/cache@v6
@@ -260,10 +262,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up JBR
-        uses: ./.github/actions/setup-jbr
+      - name: Set up JDK
+        uses: actions/setup-java@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          distribution: 'temurin'
+          java-version: '21'
 
       - name: Gradle caching
         uses: actions/cache@v6
@@ -348,8 +351,8 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
-          distribution: 'adopt'
-          java-version: 21
+          distribution: 'temurin'
+          java-version: '21'
 
       - name: Gradle caching
         uses: actions/cache@v6
@@ -410,8 +413,8 @@ jobs:
       - name: Set up JDK
         uses: actions/setup-java@v5
         with:
-          distribution: 'adopt'
-          java-version: 21
+          distribution: 'temurin'
+          java-version: '21'
 
       - name: Gradle caching
         uses: actions/cache@v6
@@ -482,10 +485,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up JBR
-        uses: ./.github/actions/setup-jbr
+      - name: Set up JDK
+        uses: actions/setup-java@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          distribution: 'temurin'
+          java-version: '21'
           cache: gradle
 
       - name: Grant Permission to Execute
@@ -520,10 +524,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Set up JBR
-        uses: ./.github/actions/setup-jbr
+      - name: Set up JDK
+        uses: actions/setup-java@v5
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          distribution: 'temurin'
+          java-version: '21'
           cache: gradle
 
       - name: Install Flatpak and flatpak-builder
