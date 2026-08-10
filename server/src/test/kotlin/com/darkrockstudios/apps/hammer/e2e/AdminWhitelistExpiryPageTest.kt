@@ -311,6 +311,84 @@ class AdminWhitelistExpiryPageTest : EndToEndTest() {
 		}
 	}
 
+	private suspend fun HttpClient.postFragment(action: String, body: String): String {
+		val response = post(route("admin/allowed-users/$action")) {
+			header("HX-Request", "true")
+			contentType(ContentType.Application.FormUrlEncoded)
+			setBody(body)
+		}
+		assertEquals(HttpStatusCode.OK, response.status)
+		return response.bodyAsText()
+	}
+
+	@Test
+	fun `add validation errors re-render the fragment and create no entry`(): Unit = runBlocking {
+		doStartServer()
+		seed()
+
+		login().use { authed ->
+			assertContains(authed.postFragment("add", "email="), "Email address is required")
+			assertContains(authed.postFragment("add", "email=not-an-email"), "Invalid email address format")
+			assertContains(
+				authed.postFragment("add", "email=valid%40example.com&reason=${"x".repeat(40)}"),
+				"Reason must be 32 characters or less",
+			)
+			assertContains(
+				authed.postFragment("add", "email=valid%40example.com&expiryPreset=-5"),
+				"Expiry date must be a valid date in the future",
+			)
+
+			val emails = database().serverDatabase.whiteListQueries.getAll().executeAsList().map { it.email }
+			assertFalse(emails.contains("valid@example.com"), "A rejected submission must not create an entry")
+		}
+	}
+
+	@Test
+	fun `edit-reason updates the entry and validates its input`(): Unit = runBlocking {
+		doStartServer()
+		seed()
+
+		login().use { authed ->
+			authed.addEntry("writer@example.com", "never")
+
+			val body = authed.postFragment("edit-reason", "email=writer%40example.com&reason=Proofreader")
+			assertContains(body, "Proofreader")
+			assertEquals(
+				"Proofreader",
+				database().serverDatabase.whiteListQueries.getAll().executeAsList()
+					.single { it.email == "writer@example.com" }.reason,
+			)
+
+			assertContains(
+				authed.postFragment("edit-reason", "email=&reason=Whatever"),
+				"Email address is required",
+			)
+			assertContains(
+				authed.postFragment("edit-reason", "email=writer%40example.com&reason=${"x".repeat(40)}"),
+				"Reason must be 32 characters or less",
+			)
+		}
+	}
+
+	@Test
+	fun `edit-expiry validates its input`(): Unit = runBlocking {
+		doStartServer()
+		seed()
+
+		login().use { authed ->
+			authed.addEntry("writer@example.com", "never")
+
+			assertContains(
+				authed.postFragment("edit-expiry", "email="),
+				"Email address is required",
+			)
+			assertContains(
+				authed.postFragment("edit-expiry", "email=writer%40example.com&expiryPreset=-5"),
+				"Expiry date must be a valid date in the future",
+			)
+		}
+	}
+
 	@Test
 	fun `old whitelist url permanently redirects to the allowed users page`(): Unit = runBlocking {
 		doStartServer()
