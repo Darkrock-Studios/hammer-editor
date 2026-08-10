@@ -197,7 +197,7 @@ fun mainModule(
 	single<ConfigRepository>()
 	single {
 		DataMigrator(get()).apply {
-			addMigration(AllowedUsersBackfillMigration(get()))
+			addMigration(AllowedUsersBackfillMigration(get(), get()))
 		}
 	}
 	single<MetricsRepository>()

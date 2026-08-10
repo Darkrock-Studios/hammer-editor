@@ -578,9 +578,11 @@ your admin account) and add their email address. They can then create their own 
 `/signup` page, or from within the Hammer app. Entries can carry an optional expiry date, after
 which the user's access is revoked automatically.
 
-When upgrading a server from a version that had an optional whitelist, every existing account is
-added to the allowed users list automatically on first startup (with the reason
-"Existing account"), so nobody is locked out by the upgrade.
+When upgrading a server that had explicitly **disabled** the old whitelist, every existing
+account is added to the allowed users list automatically on first startup (with the reason
+"Existing account"), so nobody is locked out by the upgrade. Servers that were already
+enforcing the whitelist are left untouched: entries that were removed or expired stay
+revoked.
 
 ## Enable Community
 

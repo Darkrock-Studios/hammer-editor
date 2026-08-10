@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.datamigrator
 
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
+import com.darkrockstudios.apps.hammer.admin.ServerConfigKey
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
@@ -40,13 +41,42 @@ class AllowedUsersBackfillMigrationTest : BaseTest() {
 		configRepository = ConfigRepository(ServerConfigDao(db))
 		clock = TestClock(Clock.System)
 		repository = WhiteListRepository(whiteListDao, clock)
-		migration = AllowedUsersBackfillMigration(repository)
+		migration = AllowedUsersBackfillMigration(repository, configRepository)
 
 		setupKoin()
 	}
 
+	private val legacyFlag = ServerConfigKey.boolean("whitelist_enabled", true)
+
+	private suspend fun legacyWhitelistWasDisabled() {
+		configRepository.set(legacyFlag, false)
+	}
+
+	@Test
+	fun `migrate - skips the backfill when the legacy whitelist was enforcing`() = runTest {
+		// A missing white_list row on an enforcing server means access was revoked
+		// (expired invite, lapsed patron, manual removal); it must stay revoked.
+		configRepository.set(legacyFlag, true)
+		accountDao.createAccount("revoked@example.com", "hash", "secret", isAdmin = false)
+
+		migration.migrate()
+
+		assertNull(whiteListDao.getByEmail("revoked@example.com"))
+	}
+
+	@Test
+	fun `migrate - skips the backfill when no legacy flag row exists`() = runTest {
+		// The old toggle defaulted to enabled, so an absent row means enforcing.
+		accountDao.createAccount("alice@example.com", "hash", "secret", isAdmin = false)
+
+		migration.migrate()
+
+		assertNull(whiteListDao.getByEmail("alice@example.com"))
+	}
+
 	@Test
 	fun `migrate - adds non-deleted accounts with default reason and no expiry`() = runTest {
+		legacyWhitelistWasDisabled()
 		accountDao.createAccount("alice@example.com", "hash", "secret", isAdmin = false)
 		accountDao.createAccount("admin@example.com", "hash", "secret", isAdmin = true)
 
@@ -61,6 +91,7 @@ class AllowedUsersBackfillMigrationTest : BaseTest() {
 
 	@Test
 	fun `migrate - excludes soft-deleted accounts`() = runTest {
+		legacyWhitelistWasDisabled()
 		val userId = accountDao.createAccount("gone@example.com", "hash", "secret", isAdmin = false)
 		accountDao.markDeleted(userId, clock.now())
 
@@ -71,6 +102,7 @@ class AllowedUsersBackfillMigrationTest : BaseTest() {
 
 	@Test
 	fun `migrate - keeps an existing entry's reason and expiry`() = runTest {
+		legacyWhitelistWasDisabled()
 		// Whole seconds: Postgres stores microseconds, JVM Instants carry nanoseconds.
 		val expiry = Instant.fromEpochSeconds((clock.now() + 30.days).epochSeconds)
 		whiteListDao.addToWhiteList("patron@example.com", clock.now(), "Patreon", expiry)
@@ -86,6 +118,7 @@ class AllowedUsersBackfillMigrationTest : BaseTest() {
 
 	@Test
 	fun `migrate - running twice adds nothing new`() = runTest {
+		legacyWhitelistWasDisabled()
 		accountDao.createAccount("alice@example.com", "hash", "secret", isAdmin = false)
 
 		migration.migrate()
@@ -96,6 +129,7 @@ class AllowedUsersBackfillMigrationTest : BaseTest() {
 
 	@Test
 	fun `via DataMigrator - a removed email is not re-added once complete`() = runTest {
+		legacyWhitelistWasDisabled()
 		accountDao.createAccount("alice@example.com", "hash", "secret", isAdmin = false)
 		val migrator = DataMigrator(configRepository).apply { addMigration(migration) }
 
