@@ -35,6 +35,15 @@ ON CONFLICT (email) DO UPDATE
 SET reason = EXCLUDED.reason,
     expires = EXCLUDED.expires;
 
+-- DO NOTHING rather than addToWhiteList's upsert: existing entries (Patreon,
+-- expiring invites) must keep their reason and expiry.
+backfillFromAccounts:
+INSERT INTO white_list(email, date_added, reason, expires)
+SELECT a.email, ?, ?, NULL
+FROM account a
+WHERE a.deleted_at IS NULL
+ON CONFLICT (email) DO NOTHING;
+
 removeFromWhiteList:
 DELETE FROM white_list
 WHERE email = CAST(? AS CITEXT);

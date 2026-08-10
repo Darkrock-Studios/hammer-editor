@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.admin.configureWhitelistExpiryJob
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
 import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.database.Database
+import com.darkrockstudios.apps.hammer.datamigrator.DataMigrator
 import com.darkrockstudios.apps.hammer.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.encryption.EncryptionBootstrap
 import com.darkrockstudios.apps.hammer.frontend.configureFrontEnd
@@ -411,6 +412,10 @@ fun Application.appMain(
 	configureDependencyInjection(config, addInModule)
 	val encryptionBootstrap: EncryptionBootstrap by inject()
 	runBlocking { encryptionBootstrap.run() }
+	// Must complete before any route is installed: routes enforce the allowed
+	// users list, and the backfill is what guarantees existing accounts are on it.
+	val dataMigrator: DataMigrator by inject()
+	runBlocking { dataMigrator.runMigrations() }
 	configureSerialization()
 	configureMonitoring(logLevel)
 	configureApiMetrics()

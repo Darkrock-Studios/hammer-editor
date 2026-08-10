@@ -45,6 +45,8 @@ import com.darkrockstudios.apps.hammer.database.UserActivityDao
 import com.darkrockstudios.apps.hammer.database.UserDataPurgeDao
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
 import com.darkrockstudios.apps.hammer.database.WritingActivityDao
+import com.darkrockstudios.apps.hammer.datamigrator.DataMigrator
+import com.darkrockstudios.apps.hammer.datamigrator.migrations.AllowedUsersBackfillMigration
 import com.darkrockstudios.apps.hammer.email.EmailProvider
 import com.darkrockstudios.apps.hammer.email.EmailService
 import com.darkrockstudios.apps.hammer.email.MailgunEmailService
@@ -193,6 +195,11 @@ fun mainModule(
 	single { ServerIdeasRepository(get(), get(), get(), get(), get(), get(), get()) }
 	single<WhiteListRepository>()
 	single<ConfigRepository>()
+	single {
+		DataMigrator(get()).apply {
+			addMigration(AllowedUsersBackfillMigration(get()))
+		}
+	}
 	single<MetricsRepository>()
 	single<ErrorRepository>()
 	single<SecurityRepository>()
