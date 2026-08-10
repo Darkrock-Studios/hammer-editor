@@ -49,7 +49,12 @@ class SecurityAlertEmailTest : BaseTest() {
 	}
 
 	private fun job(email: FakeEmailService): Pair<MonitoringMaintenanceJob, SecurityRepository> {
-		val securityRepository = SecurityRepository(LoginAttemptDao(db), clock)
+		val securityRepository = SecurityRepository(
+			LoginAttemptDao(db),
+			MonitoringState(),
+			LoggerFactory.getLogger("test"),
+			clock,
+		)
 		val maintenance = MonitoringMaintenanceJob(
 			configRepository = ConfigRepository(ServerConfigDao(db)),
 			metricsRepository = MetricsRepository(ApiMetricDao(db)),
