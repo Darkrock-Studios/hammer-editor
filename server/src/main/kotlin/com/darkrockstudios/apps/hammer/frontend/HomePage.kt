@@ -60,12 +60,12 @@ fun Route.homePage(
 				description = call.msg("home_meta_description"),
 			)
 
-			val showWhitelist = contactEmail.isNotBlank() && !patreonActive
-			if (showWhitelist) {
-				model["whitelistEnabled"] = true
-				call.msg(model, "home_servermessage_whitelist", contactEmail)
+			val showAllowedUsersNotice = contactEmail.isNotBlank() && !patreonActive
+			if (showAllowedUsersNotice) {
+				model["allowedUsersNotice"] = true
+				call.msg(model, "home_servermessage_allowedusers", contactEmail)
 			}
-			model["hasInstanceNotice"] = serverMessageHtml.isNotBlank() || showWhitelist
+			model["hasInstanceNotice"] = serverMessageHtml.isNotBlank() || showAllowedUsersNotice
 
 			call.respond(MustacheContent("home.mustache", model))
 		}

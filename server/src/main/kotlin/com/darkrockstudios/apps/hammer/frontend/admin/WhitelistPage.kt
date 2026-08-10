@@ -28,7 +28,7 @@ internal fun Route.whiteListRoutes(
 	whiteListRepository: WhiteListRepository,
 	clock: Clock,
 ) {
-	route("/whitelist") {
+	route("/allowed-users") {
 		whitelistUserFragment(whiteListRepository)
 		whitelistAdd(whiteListRepository, clock)
 		whitelistRemove(whiteListRepository)
@@ -93,20 +93,20 @@ private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository, clock: 
 		if (email.isEmpty()) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
-				call.msg("admin_whitelist_error_emailrequired"),
+				call.msg("admin_allowedusers_error_emailrequired"),
 				sortOldestFirst
 			)
-			call.respond(MustacheContent("partials/whitelist.mustache", model))
+			call.respond(MustacheContent("partials/allowed-users.mustache", model))
 			return@post
 		}
 
 		if (!whiteListRepository.validateEmail(email)) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
-				call.msg("admin_whitelist_error_emailinvalid"),
+				call.msg("admin_allowedusers_error_emailinvalid"),
 				sortOldestFirst
 			)
-			call.respond(MustacheContent("partials/whitelist.mustache", model))
+			call.respond(MustacheContent("partials/allowed-users.mustache", model))
 			return@post
 		}
 
@@ -116,10 +116,10 @@ private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository, clock: 
 		if (!whiteListRepository.validateReason(actualReason)) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
-				call.msg("admin_whitelist_error_reasontoolong"),
+				call.msg("admin_allowedusers_error_reasontoolong"),
 				sortOldestFirst
 			)
-			call.respond(MustacheContent("partials/whitelist.mustache", model))
+			call.respond(MustacheContent("partials/allowed-users.mustache", model))
 			return@post
 		}
 
@@ -127,10 +127,10 @@ private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository, clock: 
 		if (parsedExpiry !is ExpiryParse.Parsed || !whiteListRepository.validateExpiry(parsedExpiry.expires)) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
-				call.msg("admin_whitelist_error_expiryinvalid"),
+				call.msg("admin_allowedusers_error_expiryinvalid"),
 				sortOldestFirst
 			)
-			call.respond(MustacheContent("partials/whitelist.mustache", model))
+			call.respond(MustacheContent("partials/allowed-users.mustache", model))
 			return@post
 		}
 
@@ -138,7 +138,7 @@ private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository, clock: 
 		whiteListRepository.addToWhiteList(email, actualReason, parsedExpiry.expires)
 
 		val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst)
-		call.respond(MustacheContent("partials/whitelist.mustache", model))
+		call.respond(MustacheContent("partials/allowed-users.mustache", model))
 	}
 }
 
@@ -154,7 +154,7 @@ private fun Route.whitelistRemove(whiteListRepository: WhiteListRepository) {
 		}
 
 		val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst)
-		call.respond(MustacheContent("partials/whitelist.mustache", model))
+		call.respond(MustacheContent("partials/allowed-users.mustache", model))
 	}
 }
 
@@ -169,27 +169,27 @@ private fun Route.whitelistEditReason(whiteListRepository: WhiteListRepository) 
 		if (email.isEmpty()) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
-				call.msg("admin_whitelist_error_emailrequired"),
+				call.msg("admin_allowedusers_error_emailrequired"),
 				sortOldestFirst
 			)
-			call.respond(MustacheContent("partials/whitelist.mustache", model))
+			call.respond(MustacheContent("partials/allowed-users.mustache", model))
 			return@post
 		}
 
 		if (!whiteListRepository.validateReason(reason)) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
-				call.msg("admin_whitelist_error_reasontoolong"),
+				call.msg("admin_allowedusers_error_reasontoolong"),
 				sortOldestFirst
 			)
-			call.respond(MustacheContent("partials/whitelist.mustache", model))
+			call.respond(MustacheContent("partials/allowed-users.mustache", model))
 			return@post
 		}
 
 		whiteListRepository.updateReason(email, reason)
 
 		val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst)
-		call.respond(MustacheContent("partials/whitelist.mustache", model))
+		call.respond(MustacheContent("partials/allowed-users.mustache", model))
 	}
 }
 
@@ -203,10 +203,10 @@ private fun Route.whitelistEditExpiry(whiteListRepository: WhiteListRepository, 
 		if (email.isEmpty()) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
-				call.msg("admin_whitelist_error_emailrequired"),
+				call.msg("admin_allowedusers_error_emailrequired"),
 				sortOldestFirst
 			)
-			call.respond(MustacheContent("partials/whitelist.mustache", model))
+			call.respond(MustacheContent("partials/allowed-users.mustache", model))
 			return@post
 		}
 
@@ -220,24 +220,24 @@ private fun Route.whitelistEditExpiry(whiteListRepository: WhiteListRepository, 
 		if (parsedExpiry !is ExpiryParse.Parsed || !whiteListRepository.validateExpiry(parsedExpiry.expires)) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
-				call.msg("admin_whitelist_error_expiryinvalid"),
+				call.msg("admin_allowedusers_error_expiryinvalid"),
 				sortOldestFirst
 			)
-			call.respond(MustacheContent("partials/whitelist.mustache", model))
+			call.respond(MustacheContent("partials/allowed-users.mustache", model))
 			return@post
 		}
 
 		whiteListRepository.updateExpiry(email, parsedExpiry.expires)
 
 		val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst)
-		call.respond(MustacheContent("partials/whitelist.mustache", model))
+		call.respond(MustacheContent("partials/allowed-users.mustache", model))
 	}
 }
 
 internal fun Route.whitelistUserFragment(whiteListRepository: WhiteListRepository) {
 	hx.get("/user-fragment") {
 		val model = getWhitelistModel(call, whiteListRepository)
-		call.respond(MustacheContent("partials/whitelist.mustache", model))
+		call.respond(MustacheContent("partials/allowed-users.mustache", model))
 	}
 }
 
@@ -264,12 +264,12 @@ internal suspend fun getWhitelistModel(
 		mapOf(
 			"email" to entry.email,
 			"dateAdded" to (formatDateFromTimestamp(entry.date_added)
-				?: call.msg("admin_whitelist_date_added_unknown")),
+				?: call.msg("admin_allowedusers_date_added_unknown")),
 			"reason" to entry.reason,
 			"hasAccount" to entry.has_account,
 			"hasExpiry" to (entry.expires != null),
 			"expires" to (entry.expires?.let { formatDateFromTimestamp(it) }
-				?: call.msg("admin_whitelist_expiry_never")),
+				?: call.msg("admin_allowedusers_expiry_never")),
 			// Prefills the edit dialog's <input type="date">, which only accepts yyyy-MM-dd.
 			"expiresRaw" to (entry.expires?.let { formatDateInputValue(it) } ?: ""),
 			// Patreon sync owns its entries' lifecycle, so expiry isn't the admin's to set.

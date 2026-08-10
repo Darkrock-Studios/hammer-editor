@@ -906,8 +906,8 @@ While the shared components cover most use cases, some pages have additional spe
 
 - **home.css** - Marketing page sticky notes, feature grid, download cards
 - **dashboard.css** - Pen name section, danger zone, account info
-- **admin.css** - Sidebar navigation, whitelist management
-- **login.css** - Login header styling, error shake animation, whitelist notices
+- **admin.css** - Sidebar navigation, allowed users management (CSS class names still use the legacy `whitelist-` prefix)
+- **login.css** - Login header styling, error shake animation, allowed-users notices
 - **author.css** - Author header with avatar, story count
 - **story.css** - Story content formatting, publish toggle, access list
 - **error.css** - Colored sticky-note error cards with animations

@@ -59,7 +59,7 @@ fun Route.adminPage(
 				projectsSyncManager, projectSyncManager, clock,
 				patreonFeatureEnabled, emailFeatureEnabled,
 			)
-			adminWhitelistPage(patreonFeatureEnabled, emailFeatureEnabled)
+			adminAllowedUsersPage(patreonFeatureEnabled, emailFeatureEnabled)
 			adminUsersPage(patreonFeatureEnabled, emailFeatureEnabled)
 			whiteListRoutes(whiteListRepository, clock)
 			serverSettingsRoutes(configRepository)
@@ -96,7 +96,7 @@ private fun Route.adminSettingsPage(
 		val model = mapOf(
 			"page_stylesheet" to "/assets/css/admin.css",
 			"activeSettings" to true,
-			"activeWhitelist" to false,
+			"activeAllowedUsers" to false,
 			"activeUsers" to false,
 			"activePatreon" to false,
 			"activeEmail" to false,
@@ -123,23 +123,28 @@ private fun Route.adminSettingsPage(
 	}
 }
 
-// GET /admin/whitelist - Allowed Users management page
-private fun Route.adminWhitelistPage(
+// GET /admin/allowed-users - Allowed Users management page
+private fun Route.adminAllowedUsersPage(
 	patreonFeatureEnabled: Boolean,
 	emailFeatureEnabled: Boolean
 ) {
-	get("/whitelist") {
+	get("/allowed-users") {
 		val model = mapOf(
 			"page_stylesheet" to "/assets/css/admin.css",
 			"activeSettings" to false,
-			"activeWhitelist" to true,
+			"activeAllowedUsers" to true,
 			"activeUsers" to false,
 			"activePatreon" to false,
 			"activeEmail" to false,
 			"patreonFeatureEnabled" to patreonFeatureEnabled,
 			"emailFeatureEnabled" to emailFeatureEnabled,
 		)
-		call.respond(MustacheContent("admin-whitelist.mustache", call.withDefaults(model)))
+		call.respond(MustacheContent("admin-allowed-users.mustache", call.withDefaults(model)))
+	}
+
+	// Old bookmarks and links from the whitelist era.
+	get("/whitelist") {
+		call.respondRedirect("/admin/allowed-users", permanent = true)
 	}
 }
 
@@ -149,7 +154,7 @@ private fun Route.adminUsersPage(patreonFeatureEnabled: Boolean, emailFeatureEna
 		val model = mapOf(
 			"page_stylesheet" to "/assets/css/admin.css",
 			"activeSettings" to false,
-			"activeWhitelist" to false,
+			"activeAllowedUsers" to false,
 			"activeUsers" to true,
 			"activePatreon" to false,
 			"activeEmail" to false,

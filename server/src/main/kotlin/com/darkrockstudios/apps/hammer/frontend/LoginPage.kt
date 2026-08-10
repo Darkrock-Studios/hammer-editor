@@ -97,7 +97,7 @@ private fun Route.loginPage(
 						.toMutableMap()
 					// Valid credentials without a whitelist entry get no session, because
 					// /dashboard would reject it and loop back here.
-					model["message"] = credentialsError ?: call.t(R("api_whitelist_rejected"))
+					model["message"] = credentialsError ?: call.t(R("api_allowedusers_rejected"))
 					call.respond(MustacheContent("login.mustache", call.withDefaults(model)))
 				}
 			}

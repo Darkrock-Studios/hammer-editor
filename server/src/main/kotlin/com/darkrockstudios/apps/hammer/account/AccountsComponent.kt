@@ -113,7 +113,7 @@ class AccountsComponent(
 		} else {
 			SResult.failure(
 				error = "User not on whitelist",
-				displayMessage = Msg.r("api_whitelist_rejected")
+				displayMessage = Msg.r("api_allowedusers_rejected")
 			)
 		}
 	}

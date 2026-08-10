@@ -6,10 +6,10 @@
 				<div class="instance-band__text">{{{serverMessageHtml}}}</div>
 			</div>
 		{{/serverMessageHtml}}
-		{{#whitelistEnabled}}
+		{{#allowedUsersNotice}}
 			<div class="instance-band__inner instance-band__inner--whitelist">
-				<p>{{msg.home_servermessage_whitelist}}</p>
+				<p>{{msg.home_servermessage_allowedusers}}</p>
 			</div>
-		{{/whitelistEnabled}}
+		{{/allowedUsersNotice}}
 	</div>
 {{/hasInstanceNotice}}

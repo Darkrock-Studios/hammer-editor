@@ -55,7 +55,7 @@ class AdminWhitelistExpiryPageTest : EndToEndTest() {
 	}
 
 	private suspend fun HttpClient.addEntry(target: String, preset: String, date: String = ""): String {
-		val response = post(route("admin/whitelist/add")) {
+		val response = post(route("admin/allowed-users/add")) {
 			header("HX-Request", "true")
 			contentType(ContentType.Application.FormUrlEncoded)
 			setBody(
@@ -166,7 +166,7 @@ class AdminWhitelistExpiryPageTest : EndToEndTest() {
 			authed.addEntry("edit@example.com", "never")
 			assertNull(storedExpiry("edit@example.com"))
 
-			val set = authed.post(route("admin/whitelist/edit-expiry")) {
+			val set = authed.post(route("admin/allowed-users/edit-expiry")) {
 				header("HX-Request", "true")
 				contentType(ContentType.Application.FormUrlEncoded)
 				setBody("email=${URLEncoder.encode("edit@example.com", "UTF-8")}&expiryPreset=7")
@@ -174,7 +174,7 @@ class AdminWhitelistExpiryPageTest : EndToEndTest() {
 			assertEquals(HttpStatusCode.OK, set.status)
 			assertNotNull(storedExpiry("edit@example.com"), "Expiry should have been set")
 
-			val clear = authed.post(route("admin/whitelist/edit-expiry")) {
+			val clear = authed.post(route("admin/allowed-users/edit-expiry")) {
 				header("HX-Request", "true")
 				contentType(ContentType.Application.FormUrlEncoded)
 				setBody("email=${URLEncoder.encode("edit@example.com", "UTF-8")}&expiryPreset=never")
@@ -195,7 +195,7 @@ class AdminWhitelistExpiryPageTest : EndToEndTest() {
 			authed.addEntry("ext@example.com", "never")
 			database().serverDatabase.whiteListQueries.updateExpiry(current, "ext@example.com")
 
-			val resp = authed.post(route("admin/whitelist/edit-expiry")) {
+			val resp = authed.post(route("admin/allowed-users/edit-expiry")) {
 				header("HX-Request", "true")
 				contentType(ContentType.Application.FormUrlEncoded)
 				setBody("email=${URLEncoder.encode("ext@example.com", "UTF-8")}&expiryPreset=30")
@@ -223,7 +223,7 @@ class AdminWhitelistExpiryPageTest : EndToEndTest() {
 			authed.addEntry("lapsed2@example.com", "never")
 			database().serverDatabase.whiteListQueries.updateExpiry(past, "lapsed2@example.com")
 
-			val resp = authed.post(route("admin/whitelist/edit-expiry")) {
+			val resp = authed.post(route("admin/allowed-users/edit-expiry")) {
 				header("HX-Request", "true")
 				contentType(ContentType.Application.FormUrlEncoded)
 				setBody("email=${URLEncoder.encode("lapsed2@example.com", "UTF-8")}&expiryPreset=30")
@@ -259,7 +259,7 @@ class AdminWhitelistExpiryPageTest : EndToEndTest() {
 		)
 
 		login().use { authed ->
-			val body = authed.get(route("admin/whitelist/user-fragment")) {
+			val body = authed.get(route("admin/allowed-users/user-fragment")) {
 				header("HX-Request", "true")
 			}.bodyAsText()
 
@@ -308,6 +308,34 @@ class AdminWhitelistExpiryPageTest : EndToEndTest() {
 				"A lapsed whitelist entry must not permit login",
 			)
 			user.close()
+		}
+	}
+
+	@Test
+	fun `old whitelist url permanently redirects to the allowed users page`(): Unit = runBlocking {
+		doStartServer()
+		seed()
+
+		HttpClient {
+			install(HttpCookies)
+			followRedirects = false
+		}.use { authed ->
+			val loginResponse = authed.post(route("login")) {
+				contentType(ContentType.Application.FormUrlEncoded)
+				setBody(
+					"email=${URLEncoder.encode(email, "UTF-8")}" +
+						"&password=${URLEncoder.encode(password, "UTF-8")}"
+				)
+			}
+			assertEquals(HttpStatusCode.Found, loginResponse.status)
+
+			val redirect = authed.get(route("admin/whitelist"))
+			assertEquals(HttpStatusCode.MovedPermanently, redirect.status)
+			assertEquals("/admin/allowed-users", redirect.headers["Location"])
+
+			val page = authed.get(route("admin/allowed-users"))
+			assertEquals(HttpStatusCode.OK, page.status)
+			assertContains(page.bodyAsText(), "Allowed Users")
 		}
 	}
 }
