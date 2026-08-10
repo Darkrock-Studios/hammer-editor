@@ -1,13 +1,33 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.about
 
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -17,18 +37,38 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.about_attribution_header
+import com.darkrockstudios.apps.hammer.about_attribution_libraries_button
+import com.darkrockstudios.apps.hammer.about_attribution_studio_button
+import com.darkrockstudios.apps.hammer.about_community_discord_link
+import com.darkrockstudios.apps.hammer.about_community_github_link
+import com.darkrockstudios.apps.hammer.about_community_header
+import com.darkrockstudios.apps.hammer.about_community_reddit_link
+import com.darkrockstudios.apps.hammer.about_description
+import com.darkrockstudios.apps.hammer.about_description_line_two
+import com.darkrockstudios.apps.hammer.about_version_changes_button
+import com.darkrockstudios.apps.hammer.about_version_github_button
+import com.darkrockstudios.apps.hammer.app_name
 import com.darkrockstudios.apps.hammer.common.components.projectselection.aboutapp.AboutApp
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.Ui
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCatalogueCard
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.icons.AboutIcons
 import com.darkrockstudios.apps.hammer.common.compose.icons.Discord
 import com.darkrockstudios.apps.hammer.common.compose.icons.Github
 import com.darkrockstudios.apps.hammer.common.compose.icons.Reddit
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
+import com.darkrockstudios.apps.hammer.hammer_icon
+import com.darkrockstudios.cairn.CairnAboutOverlay
+import com.darkrockstudios.cairn.CairnAppId
+import com.darkrockstudios.cairn.CairnConfig
 import org.jetbrains.compose.resources.painterResource
 
 private val MaxColumnWidth = 880.dp
@@ -36,6 +76,7 @@ private val MaxColumnWidth = 880.dp
 @Composable
 fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 	var showLibraries by remember { mutableStateOf(false) }
+	var showStudio by remember { mutableStateOf(false) }
 	val state by component.state.subscribeAsState()
 	val screen = LocalScreenCharacteristic.current
 	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
@@ -44,108 +85,141 @@ fun AboutAppUi(component: AboutApp, modifier: Modifier = Modifier) {
 	val outerVertical: Dp = if (isCompact) Ui.Padding.L else 28.dp
 	val sectionCount = 4 + platformAboutSectionCount
 
-	Column(
-		modifier = modifier
-			.fillMaxSize()
-			.background(MaterialTheme.colorScheme.surface),
-	) {
-		Breadcrumb(isCompact = isCompact)
-		HdFolioDivider()
-
-		val scrollState = rememberScrollState()
-		Box(
+	Box(modifier = modifier.fillMaxSize()) {
+		Column(
 			modifier = Modifier
-				.weight(1f)
-				.fillMaxWidth(),
+				.fillMaxSize()
+				.background(MaterialTheme.colorScheme.surface),
 		) {
-			Column(
+			Breadcrumb(isCompact = isCompact)
+			HdFolioDivider()
+
+			val scrollState = rememberScrollState()
+			Box(
 				modifier = Modifier
-					.fillMaxSize()
-					.verticalScroll(scrollState)
-					.padding(horizontal = outerHorizontal, vertical = outerVertical),
+					.weight(1f)
+					.fillMaxWidth(),
 			) {
-				Box(
+				Column(
 					modifier = Modifier
-						.widthIn(max = MaxColumnWidth)
-						.fillMaxWidth()
-						.align(Alignment.CenterHorizontally),
+						.fillMaxSize()
+						.verticalScroll(scrollState)
+						.padding(horizontal = outerHorizontal, vertical = outerVertical),
 				) {
-					Column(verticalArrangement = Arrangement.spacedBy(64.dp)) {
-						Hero(isCompact = isCompact)
+					Box(
+						modifier = Modifier
+							.widthIn(max = MaxColumnWidth)
+							.fillMaxWidth()
+							.align(Alignment.CenterHorizontally),
+					) {
+						Column(verticalArrangement = Arrangement.spacedBy(64.dp)) {
+							Hero(isCompact = isCompact)
 
-						HdHairlineSection(
-							section = 1,
-							title = "MANUSCRIPT",
-							contentSpacing = 12.dp,
-						) {
-							Text(
-								text = Res.string.about_description_line_two.get(),
-								style = MaterialTheme.typography.bodyLarge,
-								color = MaterialTheme.colorScheme.onSurface,
+							HdHairlineSection(
+								section = 1,
+								title = "MANUSCRIPT",
+								contentSpacing = 12.dp,
+							) {
+								Text(
+									text = Res.string.about_description_line_two.get(),
+									style = MaterialTheme.typography.bodyLarge,
+									color = MaterialTheme.colorScheme.onSurface,
+								)
+							}
+
+							HdHairlineSection(
+								section = 2,
+								title = Res.string.about_community_header.get(),
+								contentSpacing = 0.dp,
+							) {
+								CommunityLink(
+									label = Res.string.about_community_discord_link.get(),
+									icon = AboutIcons.Discord,
+									onClick = component::openDiscord,
+								)
+								CommunityRowDivider()
+								CommunityLink(
+									label = Res.string.about_community_reddit_link.get(),
+									icon = AboutIcons.Reddit,
+									onClick = component::openReddit,
+								)
+								CommunityRowDivider()
+								CommunityLink(
+									label = Res.string.about_community_github_link.get(),
+									icon = AboutIcons.Github,
+									onClick = component::openGithub,
+								)
+							}
+
+							VersionCard(
+								state = state,
+								onViewChangelog = component::viewChangelog,
+								onOpenLatestRelease = component::openLatestRelease,
 							)
+
+							AttributionSection(
+								onShowLibraries = { showLibraries = true },
+								onShowStudio = { showStudio = true },
+							)
+
+							PlatformAboutSection(component, section = 5)
+
+							Spacer(Modifier.height(8.dp))
 						}
-
-						HdHairlineSection(
-							section = 2,
-							title = Res.string.about_community_header.get(),
-							contentSpacing = 0.dp,
-						) {
-							CommunityLink(
-								label = Res.string.about_community_discord_link.get(),
-								icon = AboutIcons.Discord,
-								onClick = component::openDiscord,
-							)
-							CommunityRowDivider()
-							CommunityLink(
-								label = Res.string.about_community_reddit_link.get(),
-								icon = AboutIcons.Reddit,
-								onClick = component::openReddit,
-							)
-							CommunityRowDivider()
-							CommunityLink(
-								label = Res.string.about_community_github_link.get(),
-								icon = AboutIcons.Github,
-								onClick = component::openGithub,
-							)
-						}
-
-						VersionCard(
-							state = state,
-							onViewChangelog = component::viewChangelog,
-							onOpenLatestRelease = component::openLatestRelease,
-						)
-
-						HdHairlineSection(
-							section = 4,
-							title = Res.string.about_attribution_header.get(),
-							contentSpacing = 14.dp,
-						) {
-							HdHairlineButton(
-								label = Res.string.about_attribution_libraries_button.get(),
-								onClick = { showLibraries = true },
-							)
-						}
-
-						PlatformAboutSection(component, section = 5)
-
-						Spacer(Modifier.height(8.dp))
 					}
 				}
+
+				MpScrollBarColumn(
+					modifier = scrollBarOverlay(),
+					state = scrollState,
+				)
 			}
 
-			MpScrollBarColumn(
-				modifier = scrollBarOverlay(),
-				state = scrollState,
+			FolioCaption(
+				horizontalPadding = outerHorizontal,
+				sectionCount = sectionCount,
 			)
 		}
 
-		FolioCaption(
-			horizontalPadding = outerHorizontal,
-			sectionCount = sectionCount,
+		LibrariesUi(showLibraries) { showLibraries = false }
+
+		CairnAboutOverlay(
+			visible = showStudio,
+			config = CairnConfig(
+				currentAppId = CairnAppId.Hammer,
+				// Cairn stamps its own "v", ours already carries one.
+				versionName = state.currentVersion.removePrefix("v"),
+			),
+			onDismissed = { showStudio = false },
 		)
 	}
+}
 
-	LibrariesUi(showLibraries) { showLibraries = false }
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun AttributionSection(
+	onShowLibraries: () -> Unit,
+	onShowStudio: () -> Unit,
+) {
+	HdHairlineSection(
+		section = 4,
+		title = Res.string.about_attribution_header.get(),
+		contentSpacing = 14.dp,
+	) {
+		FlowRow(
+			horizontalArrangement = Arrangement.spacedBy(14.dp),
+			verticalArrangement = Arrangement.spacedBy(14.dp),
+		) {
+			HdHairlineButton(
+				label = Res.string.about_attribution_libraries_button.get(),
+				onClick = onShowLibraries,
+			)
+			HdHairlineButton(
+				label = Res.string.about_attribution_studio_button.get(),
+				onClick = onShowStudio,
+			)
+		}
+	}
 }
 
 @Composable
