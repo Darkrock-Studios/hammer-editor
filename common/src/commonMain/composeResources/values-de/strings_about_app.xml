@@ -8,9 +8,10 @@
 	<string name="about_community_github_link">Github</string>
 	<string name="about_attribution_header">Quellen</string>
 	<string name="about_attribution_libraries_button">Bibliotheken</string>
-	<string name="about_version_changes_button">Änderungen</string>
-	<string name="about_version_github_button">GitHub-Release</string>
-	<string name="changelog_dialog_title">Was ist neu</string>
+	<string name="about_attribution_studio_button">Dark Rock Studios</string>
+	<string name="about_version_changes_button">Changes</string>
+	<string name="about_version_github_button">GitHub Release</string>
+	<string name="changelog_dialog_title">What's New</string>
 	<string name="update_dialog_release_notes_section">Versionshinweise</string>
 	<string name="update_dialog_release_notes_empty">Keine Versionshinweise vorhanden.</string>
 	<string name="update_dialog_open_release_button">Release öffnen</string>
