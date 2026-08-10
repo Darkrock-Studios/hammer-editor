@@ -52,11 +52,13 @@
 
 			<div class="login-info">
 				<p class="login-info-text">{{msg.signup_login_prompt}} <a href="/login">{{msg.signup_login_link}}</a></p>
-				{{#contactEmail}}
-					<div class="login-info-whitelist">
-						<p>{{msg.signup_not_allowed_hint}}</p>
-					</div>
-				{{/contactEmail}}
+				<div class="login-info-whitelist">
+					<p>{{msg.login_info_allowedusers_notice}}</p>
+					{{#contactEmail}}
+						<p>{{msg.login_info_allowedusers_contact}} <a
+							href="mailto:{{contactEmail}}">{{contactEmail}}</a></p>
+					{{/contactEmail}}
+				</div>
 			</div>
 		</div>
 	</div>

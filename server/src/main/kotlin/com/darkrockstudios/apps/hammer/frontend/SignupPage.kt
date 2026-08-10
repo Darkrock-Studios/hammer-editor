@@ -135,7 +135,6 @@ private suspend fun buildSignupModel(
 	val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)
 	if (contactEmail.isNotBlank()) {
 		model["contactEmail"] = contactEmail
-		call.msg(model, "signup_not_allowed_hint", contactEmail)
 	}
 	return model
 }
