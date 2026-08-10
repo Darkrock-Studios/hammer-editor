@@ -40,6 +40,7 @@ import org.koin.core.module.Module
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import org.koin.test.KoinTest
+import kotlin.time.Clock
 import org.koin.test.get
 import java.util.concurrent.Executors
 import kotlin.coroutines.CoroutineContext
@@ -88,16 +89,14 @@ abstract class RoundTripTestBase : EndToEndTest(), KoinTest {
 		projectsRoot = "/client/projects".toPath()
 		fileSystem.createDirectories(projectsRoot)
 
-		// Match the existing e2e tests' fixture: whitelist disabled, so any
-		// authenticated user can sync (instead of being rejected with 401).
-		database().execute(
-			"INSERT INTO server_config VALUES ('whitelist_enabled', 'false', to_timestamp(1704067200));"
-		)
-
 		doStartServer()
 
 		account = TestAccount(email = "test@test.com", password = "password123!@#")
 		E2eTestData.createAccount(account, database())
+		// The allowed users list is always enforced; the synced account must be on it
+		// or every bearer request is rejected with 401.
+		database().serverDatabase.whiteListQueries
+			.addToWhiteList(account.email, Clock.System.now(), "Round-trip test", null)
 		authToken = E2eTestData.createAuthToken(
 			userId = userId,
 			installId = installId,
