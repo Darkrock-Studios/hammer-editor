@@ -137,6 +137,7 @@ class AccountRoutesTest : BaseTest() {
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
 			single { mockk<AccountDeletionService>(relaxed = true) }
+			single { mockk<TermsOfServiceRepository>(relaxed = true) }
 		}
 	}
 
