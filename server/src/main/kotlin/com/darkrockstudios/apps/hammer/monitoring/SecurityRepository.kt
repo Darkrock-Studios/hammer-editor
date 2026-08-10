@@ -40,7 +40,7 @@ class SecurityRepository(
 			)
 		} catch (e: CancellationException) {
 			throw e
-		} catch (e: Exception) {
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			log.error("Failed to record login attempt", e)
 		}
 	}
