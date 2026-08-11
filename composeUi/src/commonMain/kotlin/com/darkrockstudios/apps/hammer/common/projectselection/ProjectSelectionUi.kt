@@ -66,6 +66,7 @@ fun ProjectSelection.Locations.toHdBottomBarDestination(): HdBottomBarDestinatio
 @Composable
 fun ProjectSelectionUi(
 	component: ProjectSelection,
+	onShowStudio: () -> Unit,
 	modifier: Modifier = Modifier
 ) {
 	// SetScreenCharacteristics only fires inside ProjectRootUi by default,
@@ -104,6 +105,7 @@ fun ProjectSelectionUi(
 
 					is ProjectSelection.Destination.AboutAppDestination -> AboutAppUi(
 						destination.component,
+						onShowStudio = onShowStudio,
 					)
 				}
 			}

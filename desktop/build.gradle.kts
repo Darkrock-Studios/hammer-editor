@@ -57,6 +57,7 @@ kotlin {
 				implementation(project(":composeUi"))
 				implementation(libs.jetbrains.compose.components.ui.tooling.preview)
 				implementation(compose.desktop.currentOs)
+				implementation(libs.cairn)
 				implementation(libs.clikt)
 				implementation(libs.nucleus.darkmode.detector)
 				implementation(libs.nucleus.application)
@@ -169,6 +170,17 @@ compose.desktop {
 			//joinOutputJars.set(true)
 			configurationFiles.from("proguard-rules.pro")
 		}
+	}
+}
+
+// Nucleus' Tao popup layer opens its placeholder surface at 1x1, which a
+// Wayland compositor on a scaled output rejects as a protocol violation and
+// kills the client. XWayland has no such rule.
+// https://github.com/NucleusFramework/Nucleus/issues/502
+// Respects an explicit GDK_BACKEND so the Wayland path stays testable.
+if (org.gradle.internal.os.OperatingSystem.current().isLinux && System.getenv("GDK_BACKEND") == null) {
+	tasks.withType<JavaExec>().configureEach {
+		environment("GDK_BACKEND", "x11")
 	}
 }
 

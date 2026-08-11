@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="about_description">Простий інструмент для створення історій.</string>
-	<string name="about_description_line_two">Безкоштовний проєкт із відкритим кодом.</string>
 	<string name="about_community_header">Спільнота</string>
 	<string name="about_community_discord_link">Discord</string>
 	<string name="about_community_reddit_link">Reddit</string>
