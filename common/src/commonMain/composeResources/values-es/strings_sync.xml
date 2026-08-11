@@ -180,7 +180,8 @@
 	<string name="server_setup_help_patreon_link">Patreon</string>
 	<string name="server_setup_help_hammer_link">Hammer.Ink</string>
 	<string name="server_setup_help_registration_header">Registro</string>
-	<string name="server_setup_help_registration_body">De forma predeterminada, los servidores tienen el registro cerrado, lo que significa que debes ser añadido a la lista blanca del servidor para poder crear una cuenta.</string>
+	<string name="server_setup_help_registration_body">Servers have closed registration, meaning the server admin needs to add you to the server's allowed users list before you can create an account.
+	</string>
 	<string name="server_setup_help_setup_header">Configuración</string>
 	<string name="server_setup_help_setup_step1">Introduce la URL del servidor, como «hammer.ink» para el servidor oficial.</string>
 	<string name="server_setup_help_setup_step2">Introduce tu correo y contraseña, luego pulsa «Crear» para crear tu cuenta.</string>
