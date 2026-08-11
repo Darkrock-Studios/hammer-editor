@@ -1,9 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <resources>
 	<string name="about_description">A simple tool for building stories.</string>
-
-	<string name="about_studio_header">Studio</string>
-	<string name="about_community_studio_attribution">Hammer is made by Dark Rock Studios, alongside a family of other privacy-respecting, open source apps.</string>
+	<string name="about_description_line_two">A free and open source project.</string>
 
 	<string name="about_community_header">Community</string>
 	<string name="about_community_discord_link">Discord</string>
