@@ -9,22 +9,10 @@ import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ExperimentalComposeApi
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.isCtrlPressed
-import androidx.compose.ui.input.key.isMetaPressed
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.type
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.DefaultComponentContext
 import com.arkivanov.decompose.ExperimentalDecomposeApi
@@ -46,12 +34,14 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.projectselection.ProjectSelectionUi
 import com.darkrockstudios.apps.hammer.common.projectselection.toHdNavRailDestination
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
+import com.darkrockstudios.apps.hammer.hammer_icon
 import com.darkrockstudios.cairn.CairnAboutOverlay
 import com.darkrockstudios.cairn.CairnAppId
 import com.darkrockstudios.cairn.CairnConfig
 import dev.nucleusframework.application.NucleusApplicationScope
 import dev.nucleusframework.window.material.MaterialDecoratedWindow
 import dev.nucleusframework.window.material.MaterialTitleBar
+import org.jetbrains.compose.resources.painterResource
 
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
@@ -90,7 +80,7 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 		title = title,
 		state = windowState,
 		onCloseRequest = ::exitApplication,
-		icon = painterResource("icon.png"),
+		icon = painterResource(Res.drawable.hammer_icon),
 		onKeyEvent = { event ->
 			when {
 				event.key == Key.Escape && event.type == KeyEventType.KeyUp -> {
