@@ -180,7 +180,7 @@
 	<string name="server_setup_help_patreon_link">Patreon</string>
 	<string name="server_setup_help_hammer_link">Hammer.Ink</string>
 	<string name="server_setup_help_registration_header">Registro</string>
-	<string name="server_setup_help_registration_body">By default, servers have closed registration, meaning you need to get added to that server's whitelist to be able to create an account.
+	<string name="server_setup_help_registration_body">Servers have closed registration, meaning the server admin needs to add you to the server's allowed users list before you can create an account.
 	</string>
 	<string name="server_setup_help_setup_header">Configurar</string>
 	<string name="server_setup_help_setup_step1">Digite a URL do servidor, como "hammer.ink" para o servidor oficial</string>
