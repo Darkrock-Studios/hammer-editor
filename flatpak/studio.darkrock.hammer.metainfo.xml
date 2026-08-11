@@ -32,6 +32,13 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.8.2" date="2026-08-11">
+            <description>
+                <p>- About: Dark Rock Studios attribution screen improved, check it out!</p>
+                <p>- Translations updated for German, Spanish, French, Italian, Portuguese (Brazil), and Ukrainian</p>
+                <p>Fixes</p>
+            </description>
+        </release>
         <release version="3.8.1" date="2026-08-08">
             <description>
                 <p>Improvements</p>

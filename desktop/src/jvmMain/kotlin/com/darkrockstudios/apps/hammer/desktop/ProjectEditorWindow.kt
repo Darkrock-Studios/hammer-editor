@@ -10,22 +10,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.ExperimentalComposeApi
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.input.key.Key
-import androidx.compose.ui.input.key.KeyEventType
-import androidx.compose.ui.input.key.isCtrlPressed
-import androidx.compose.ui.input.key.isMetaPressed
-import androidx.compose.ui.input.key.isShiftPressed
-import androidx.compose.ui.input.key.key
-import androidx.compose.ui.input.key.type
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.FrameWindowScope
 import androidx.compose.ui.window.MenuBar
@@ -35,19 +23,15 @@ import com.arkivanov.decompose.extensions.compose.lifecycle.LifecycleController
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.essenty.backhandler.BackDispatcher
 import com.arkivanov.essenty.lifecycle.LifecycleRegistry
-import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRoot
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectRootComponent
-import com.darkrockstudios.apps.hammer.common.compose.ProjectShortcutHost
-import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
-import com.darkrockstudios.apps.hammer.common.compose.matchesShortcut
-import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
-import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
@@ -56,16 +40,12 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootFab
 import com.darkrockstudios.apps.hammer.common.projectroot.ProjectRootUi
 import com.darkrockstudios.apps.hammer.common.projectroot.toHdNavRailDestination
-import com.darkrockstudios.apps.hammer.project_window_menu_file
-import com.darkrockstudios.apps.hammer.project_window_menu_item_close
-import com.darkrockstudios.apps.hammer.project_window_menu_item_exit
-import com.darkrockstudios.apps.hammer.project_window_title
-import com.darkrockstudios.apps.hammer.save_all_toast
 import dev.nucleusframework.application.NucleusApplicationScope
 import dev.nucleusframework.window.material.MaterialDecoratedWindow
 import dev.nucleusframework.window.material.MaterialTitleBar
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.jetbrains.compose.resources.painterResource
 
 @OptIn(ExperimentalMaterial3Api::class)
 @ExperimentalComposeApi
@@ -113,7 +93,7 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 	MaterialDecoratedWindow(
 		title = windowTitle,
 		state = windowState,
-		icon = painterResource("icon.png"),
+		icon = painterResource(Res.drawable.hammer_icon),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) },
 		// These two run pre-focus so a focused editor can't swallow them.
 		onPreviewKeyEvent = { event ->

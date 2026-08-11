@@ -87,13 +87,12 @@ class AccountsComponent(
 		return if (account != null) {
 			checkIfWhiteListRejected(account)
 		} else {
-			whiteListRepository.useWhiteList() && whiteListRepository.isOnWhiteList(email).not()
+			whiteListRepository.isOnWhiteList(email).not()
 		}
 	}
 
 	private suspend fun checkIfWhiteListRejected(account: Account): Boolean {
 		return !account.is_admin &&
-			whiteListRepository.useWhiteList() &&
 			whiteListRepository.isOnWhiteList(account.email).not()
 	}
 
@@ -114,7 +113,7 @@ class AccountsComponent(
 		} else {
 			SResult.failure(
 				error = "User not on whitelist",
-				displayMessage = Msg.r("api_whitelist_rejected")
+				displayMessage = Msg.r("api_allowedusers_rejected")
 			)
 		}
 	}

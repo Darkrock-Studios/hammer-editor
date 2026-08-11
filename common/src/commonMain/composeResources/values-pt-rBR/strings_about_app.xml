@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="about_description">Uma ferramenta simples para construir histórias.</string>
-	<string name="about_description_line_two">Um projeto livre e de código aberto.</string>
+	<string name="about_studio_header">Studio</string>
+	<string name="about_community_studio_attribution">Hammer is made by Dark Rock Studios, alongside a family of other privacy-respecting, open source apps.</string>
 	<string name="about_community_header">Comunidades</string>
 	<string name="about_community_discord_link">Discord</string>
 	<string name="about_community_reddit_link">Reddit</string>
 	<string name="about_community_github_link">Github</string>
 	<string name="about_attribution_header">Atribuição</string>
 	<string name="about_attribution_libraries_button">Bibliotecas</string>
-	<string name="about_version_changes_button">Alterações</string>
-	<string name="about_version_github_button">Versão no GitHub</string>
-	<string name="changelog_dialog_title">Novidades</string>
+	<string name="about_attribution_studio_button">Dark Rock Studios</string>
+	<string name="about_version_changes_button">Changes</string>
+	<string name="about_version_github_button">GitHub Release</string>
+	<string name="changelog_dialog_title">What's New</string>
 	<string name="update_dialog_release_notes_section">Notas de versão</string>
 	<string name="update_dialog_release_notes_empty">Nenhuma nota de versão fornecida.</string>
 	<string name="update_dialog_open_release_button">Abrir Versão</string>

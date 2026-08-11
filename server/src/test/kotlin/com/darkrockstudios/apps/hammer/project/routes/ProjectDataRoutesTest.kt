@@ -128,6 +128,7 @@ class ProjectDataRoutesTest : BaseTest() {
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.account.AccountDeletionService>(relaxed = true) }
+			single { mockk<com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository>(relaxed = true) }
 			single { json }
 		}
 	}
@@ -135,7 +136,7 @@ class ProjectDataRoutesTest : BaseTest() {
 	@Test
 	fun `GET project_data returns dto when row exists`() = testApplication {
 		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
 		coEvery {
 			serverProjectDataRepository.load(userId, ProjectDefinition(projectName, projectId))
 		} returns SResult.success(RawProjectDataDto(sampleJson, "hash-abc"))
@@ -162,7 +163,7 @@ class ProjectDataRoutesTest : BaseTest() {
 	@Test
 	fun `GET project_data returns 204 when no row`() = testApplication {
 		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
 		coEvery {
 			serverProjectDataRepository.load(any(), any())
 		} returns SResult.success(null)
@@ -185,7 +186,7 @@ class ProjectDataRoutesTest : BaseTest() {
 	@Test
 	fun `GET project_data returns 404 when project missing`() = testApplication {
 		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
 		coEvery {
 			serverProjectDataRepository.load(any(), any())
 		} returns SResult.failure(ProjectNotFound(projectId))
@@ -208,7 +209,7 @@ class ProjectDataRoutesTest : BaseTest() {
 	@Test
 	fun `POST project_data 200 when accepted`() = testApplication {
 		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
 		coEvery {
 			serverProjectDataRepository.save(
 				userId,
@@ -254,7 +255,7 @@ class ProjectDataRoutesTest : BaseTest() {
 	@Test
 	fun `POST project_data 409 with conflict body when hashes mismatch`() = testApplication {
 		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
 
 		val serverState = sampleData.copy(authorName = "Server")
 		coEvery {

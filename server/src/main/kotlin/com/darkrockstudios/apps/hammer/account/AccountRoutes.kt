@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.account
 import com.darkrockstudios.apps.hammer.base.http.HTTP_STATUS_TERMS_OF_SERVICE
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.base.http.INVALID_USER_ID
-import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
 import com.darkrockstudios.apps.hammer.plugins.LOGIN_RATE_LIMIT
 import com.darkrockstudios.apps.hammer.plugins.ServerUserIdPrincipal
@@ -70,7 +69,6 @@ private fun Route.createAccount() {
 private fun Route.login() {
 	val accountsComponent: AccountsComponent = get()
 	val securityRepository: SecurityRepository = get()
-	val monitoringState: MonitoringState = get()
 
 	post("/login") {
 		val formParameters = call.receiveParameters()
@@ -79,12 +77,12 @@ private fun Route.login() {
 		val installId = formParameters["installId"].toString()
 
 		val result = accountsComponent.login(email = email, password = password, installId = installId)
-		val success = isSuccess(result)
 
-		if (monitoringState.loginTrackingEnabled) {
-			val ip = if (monitoringState.storeLoginIp) call.request.origin.remoteAddress else null
-			securityRepository.recordLoginAttempt(email = email, ipAddress = ip, success = success)
-		}
+		securityRepository.recordLoginAttempt(
+			email = email,
+			ipAddress = call.request.origin.remoteAddress,
+			success = isSuccess(result),
+		)
 
 		if (isSuccess(result)) {
 			val authToken = result.data

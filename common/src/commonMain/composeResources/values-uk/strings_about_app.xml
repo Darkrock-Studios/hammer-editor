@@ -1,16 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 	<string name="about_description">Простий інструмент для створення історій.</string>
-	<string name="about_description_line_two">Безкоштовний проєкт із відкритим кодом.</string>
+	<string name="about_studio_header">Studio</string>
+	<string name="about_community_studio_attribution">Hammer is made by Dark Rock Studios, alongside a family of other privacy-respecting, open source apps.</string>
 	<string name="about_community_header">Спільнота</string>
 	<string name="about_community_discord_link">Discord</string>
 	<string name="about_community_reddit_link">Reddit</string>
 	<string name="about_community_github_link">Github</string>
 	<string name="about_attribution_header">Атрибуція</string>
 	<string name="about_attribution_libraries_button">Бібліотеки</string>
-	<string name="about_version_changes_button">Зміни</string>
-	<string name="about_version_github_button">Випуск на GitHub</string>
-	<string name="changelog_dialog_title">Що нового</string>
+	<string name="about_attribution_studio_button">Dark Rock Studios</string>
+	<string name="about_version_changes_button">Changes</string>
+	<string name="about_version_github_button">GitHub Release</string>
+	<string name="changelog_dialog_title">What's New</string>
 	<string name="update_dialog_release_notes_section">Примітки до випуску</string>
 	<string name="update_dialog_release_notes_empty">Приміток до випуску не надано.</string>
 	<string name="update_dialog_open_release_button">Відкрити випуск</string>

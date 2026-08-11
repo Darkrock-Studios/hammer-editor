@@ -8,63 +8,29 @@
 			<!-- Admin Header -->
 			<div class="page-header">
 				<div class="page-header__content">
-					<h1 class="page-header__title">{{msg.admin_whitelist_management_title}}</h1>
-					<p class="page-header__subtitle">
-						{{#whitelist.enabled}}
-							{{msg.admin_whitelist_enabled_subtitle}}
-						{{/whitelist.enabled}}
-						{{^whitelist.enabled}}
-							{{msg.admin_whitelist_disabled_subtitle}}
-						{{/whitelist.enabled}}
-					</p>
-				</div>
-				<div class="page-header__actions">
-					<form action="/admin/whitelist/toggle" method="post" class="logout-form"
-						  hx-post="/admin/whitelist/toggle"
-						  hx-swap="none">
-						{{#whitelist.enabled}}
-							{{#whitelist.canDisable}}
-								<button type="submit" class="toggle-button active">
-									Disable Whitelist
-								</button>
-							{{/whitelist.canDisable}}
-							{{^whitelist.canDisable}}
-								<button type="button" class="toggle-button active" disabled
-										title="{{msg.admin_whitelist_cannot_disable_patreon}}">
-									Disable Whitelist
-								</button>
-							{{/whitelist.canDisable}}
-						{{/whitelist.enabled}}
-						{{^whitelist.enabled}}
-							<button type="submit" class="toggle-button">
-								Enable Whitelist
-							</button>
-						{{/whitelist.enabled}}
-					</form>
-					{{#whitelist.enabled}}
-						<span class="section-badge accent">{{msg.admin_badge_active}}</span>
-					{{/whitelist.enabled}}
+					<h1 class="page-header__title">{{msg.admin_allowedusers_management_title}}</h1>
+					<p class="page-header__subtitle">{{msg.admin_allowedusers_subtitle}}</p>
 				</div>
 			</div>
 
-			<!-- Whitelist Management Section -->
+			<!-- Allowed Users Management Section -->
 			<section class="paper-section">
 				<div class="section-header">
-					<h2 class="section-header__title">{{msg.admin_whitelist_add_title}}</h2>
+					<h2 class="section-header__title">{{msg.admin_allowedusers_add_title}}</h2>
 				</div>
-				<p class="section-description">{{msg.admin_whitelist_description}}</p>
+				<p class="section-description">{{msg.admin_allowedusers_description}}</p>
 
-				<form action="/admin/whitelist/add" method="post" class="whitelist-form" id="add-whitelist-form"
-					  hx-post="/admin/whitelist/add"
+				<form action="/admin/allowed-users/add" method="post" class="whitelist-form" id="add-whitelist-form"
+					  hx-post="/admin/allowed-users/add"
 					  hx-target="#whitelist"
 					  hx-swap="innerHTML"
 					  hx-on::after-request="this.reset(); syncAddExpiryDateVisibility()">
 					<input type="hidden" name="page" id="add-form-page" value="0"/>
 					<input type="hidden" name="sortOldestFirst" id="add-form-sort" value="false"/>
 					<div class="form-group">
-						<label for="email" class="form-field__label">{{msg.admin_whitelist_email_label}}</label>
+						<label for="email" class="form-field__label">{{msg.admin_allowedusers_email_label}}</label>
 						<input id="email" name="email" type="email" class="form-input"
-							   placeholder="{{msg.admin_whitelist_email_placeholder}}" required/>
+							   placeholder="{{msg.admin_allowedusers_email_placeholder}}" required/>
 					</div>
 					<div class="form-group">
 						<label for="reason" class="form-field__label">Reason (optional)</label>
@@ -73,34 +39,34 @@
 					</div>
 					<div class="form-group">
 						<label for="add-expiry-preset"
-							   class="form-field__label">{{msg.admin_whitelist_expiry_label}}</label>
+							   class="form-field__label">{{msg.admin_allowedusers_expiry_label}}</label>
 						<select id="add-expiry-preset" name="expiryPreset" class="form-select"
 								onchange="toggleExpiryDate(this, 'add-expiry-date-field')">
-							<option value="never" selected>{{msg.admin_whitelist_expiry_never}}</option>
-							<option value="7">{{msg.admin_whitelist_expiry_7days}}</option>
-							<option value="30">{{msg.admin_whitelist_expiry_30days}}</option>
-							<option value="90">{{msg.admin_whitelist_expiry_90days}}</option>
-							<option value="custom">{{msg.admin_whitelist_expiry_custom}}</option>
+							<option value="never" selected>{{msg.admin_allowedusers_expiry_never}}</option>
+							<option value="7">{{msg.admin_allowedusers_expiry_7days}}</option>
+							<option value="30">{{msg.admin_allowedusers_expiry_30days}}</option>
+							<option value="90">{{msg.admin_allowedusers_expiry_90days}}</option>
+							<option value="custom">{{msg.admin_allowedusers_expiry_custom}}</option>
 						</select>
-						<p class="form-field__help">{{msg.admin_whitelist_expiry_help}}</p>
+						<p class="form-field__help">{{msg.admin_allowedusers_expiry_help}}</p>
 					</div>
 					<div class="form-group hidden" id="add-expiry-date-field">
 						<label for="add-expiry-date"
-							   class="form-field__label form-field__label--small">{{msg.admin_whitelist_expiry_date_label}}</label>
+							   class="form-field__label form-field__label--small">{{msg.admin_allowedusers_expiry_date_label}}</label>
 						<input id="add-expiry-date" name="expiryDate" type="date" class="form-input"/>
 					</div>
 					<div class="form-group">
 						<button type="submit"
-								class="btn btn--accent btn--block">{{msg.admin_whitelist_add_button}}</button>
+								class="btn btn--accent btn--block">{{msg.admin_allowedusers_add_button}}</button>
 					</div>
 				</form>
 
 				<div class="whitelist-container">
 					<div id="whitelist"
-						 hx-get="/admin/whitelist/user-fragment"
+						 hx-get="/admin/allowed-users/user-fragment"
 						 hx-trigger="load, whitelist-updated from:body"
 						 hx-swap="innerHTML">
-						<!-- List of whitelisted users loaded here -->
+						<!-- List of allowed users loaded here -->
 					</div>
 				</div>
 			</section>
@@ -112,13 +78,13 @@
 <div class="dialog-overlay hidden" id="edit-reason-dialog">
 	<div class="dialog">
 		<div class="dialog__header">
-			<h3>{{msg.admin_whitelist_edit_reason_title}}</h3>
+			<h3>{{msg.admin_allowedusers_edit_reason_title}}</h3>
 			<button class="dialog__close" onclick="closeEditReasonDialog()">
 				<i class="fas fa-times"></i>
 			</button>
 		</div>
-		<form action="/admin/whitelist/edit-reason" method="post"
-			  hx-post="/admin/whitelist/edit-reason"
+		<form action="/admin/allowed-users/edit-reason" method="post"
+			  hx-post="/admin/allowed-users/edit-reason"
 			  hx-target="#whitelist"
 			  hx-swap="innerHTML"
 			  hx-on::after-request="closeEditReasonDialog()">
@@ -129,16 +95,16 @@
 				<input type="hidden" name="sortOldestFirst" id="edit-reason-sort"/>
 				<div class="form-field">
 					<label for="edit-reason-input"
-						   class="form-field__label">{{msg.admin_whitelist_reason_label}}</label>
+						   class="form-field__label">{{msg.admin_allowedusers_reason_label}}</label>
 					<input type="text" id="edit-reason-input" name="reason" class="form-input"
-						   placeholder="{{msg.admin_whitelist_reason_placeholder}}" maxlength="32"/>
-					<p class="form-field__help">{{msg.admin_whitelist_reason_help}}</p>
+						   placeholder="{{msg.admin_allowedusers_reason_placeholder}}" maxlength="32"/>
+					<p class="form-field__help">{{msg.admin_allowedusers_reason_help}}</p>
 				</div>
 			</div>
 			<div class="dialog__actions">
 				<button type="button" class="btn btn--ghost"
 						onclick="closeEditReasonDialog()">{{msg.admin_dialog_cancel}}</button>
-				<button type="submit" class="btn btn--accent">{{msg.admin_whitelist_save_reason}}</button>
+				<button type="submit" class="btn btn--accent">{{msg.admin_allowedusers_save_reason}}</button>
 			</div>
 		</form>
 	</div>
@@ -148,20 +114,20 @@
 <div class="dialog-overlay hidden" id="edit-expiry-dialog">
 	<div class="dialog">
 		<div class="dialog__header">
-			<h3>{{msg.admin_whitelist_edit_expiry_title}}</h3>
+			<h3>{{msg.admin_allowedusers_edit_expiry_title}}</h3>
 			<button class="dialog__close" onclick="closeEditExpiryDialog()">
 				<i class="fas fa-times"></i>
 			</button>
 		</div>
-		<form action="/admin/whitelist/edit-expiry" method="post"
-			  hx-post="/admin/whitelist/edit-expiry"
+		<form action="/admin/allowed-users/edit-expiry" method="post"
+			  hx-post="/admin/allowed-users/edit-expiry"
 			  hx-target="#whitelist"
 			  hx-swap="innerHTML"
 			  hx-on::after-request="closeEditExpiryDialog()">
 			<div class="dialog__body">
 				<p class="dialog__email-display" id="edit-expiry-email-display"></p>
 				<p class="whitelist-expiry__current">
-						{{msg.admin_whitelist_expiry_current}}
+						{{msg.admin_allowedusers_expiry_current}}
 						<span class="whitelist-expiry__current-value" id="edit-expiry-current"></span>
 					</p>
 					<input type="hidden" name="email" id="edit-expiry-email"/>
@@ -169,27 +135,27 @@
 				<input type="hidden" name="sortOldestFirst" id="edit-expiry-sort"/>
 				<div class="form-field">
 					<label for="edit-expiry-preset"
-						   class="form-field__label">{{msg.admin_whitelist_expiry_change_label}}</label>
+						   class="form-field__label">{{msg.admin_allowedusers_expiry_change_label}}</label>
 					<select id="edit-expiry-preset" name="expiryPreset" class="form-select"
 							onchange="toggleExpiryDate(this, 'edit-expiry-date-field')">
-						<option value="never">{{msg.admin_whitelist_expiry_never}}</option>
-						<option value="7">{{msg.admin_whitelist_expiry_extend_7days}}</option>
-						<option value="30">{{msg.admin_whitelist_expiry_extend_30days}}</option>
-						<option value="90">{{msg.admin_whitelist_expiry_extend_90days}}</option>
-						<option value="custom">{{msg.admin_whitelist_expiry_custom}}</option>
+						<option value="never">{{msg.admin_allowedusers_expiry_never}}</option>
+						<option value="7">{{msg.admin_allowedusers_expiry_extend_7days}}</option>
+						<option value="30">{{msg.admin_allowedusers_expiry_extend_30days}}</option>
+						<option value="90">{{msg.admin_allowedusers_expiry_extend_90days}}</option>
+						<option value="custom">{{msg.admin_allowedusers_expiry_custom}}</option>
 					</select>
-					<p class="form-field__help">{{msg.admin_whitelist_expiry_help}}</p>
+					<p class="form-field__help">{{msg.admin_allowedusers_expiry_help}}</p>
 				</div>
 				<div class="form-field hidden" id="edit-expiry-date-field">
 					<label for="edit-expiry-date"
-						   class="form-field__label form-field__label--small">{{msg.admin_whitelist_expiry_date_label}}</label>
+						   class="form-field__label form-field__label--small">{{msg.admin_allowedusers_expiry_date_label}}</label>
 					<input type="date" id="edit-expiry-date" name="expiryDate" class="form-input"/>
 				</div>
 			</div>
 			<div class="dialog__actions">
 				<button type="button" class="btn btn--ghost"
 						onclick="closeEditExpiryDialog()">{{msg.admin_dialog_cancel}}</button>
-				<button type="submit" class="btn btn--accent">{{msg.admin_whitelist_save_expiry}}</button>
+				<button type="submit" class="btn btn--accent">{{msg.admin_allowedusers_save_expiry}}</button>
 			</div>
 		</form>
 	</div>

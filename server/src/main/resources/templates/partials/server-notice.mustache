@@ -1,15 +1,15 @@
 {{#hasInstanceNotice}}
 	<div class="instance-band">
-		{{#serverMessage}}
+		{{#serverMessageHtml}}
 			<div class="instance-band__inner">
 				<span class="instance-band__label">{{msg.home_servermessage}}</span>
-				<div class="instance-band__text">{{serverMessage}}</div>
+				<div class="instance-band__text">{{{serverMessageHtml}}}</div>
 			</div>
-		{{/serverMessage}}
-		{{#whitelistEnabled}}
+		{{/serverMessageHtml}}
+		{{#allowedUsersNotice}}
 			<div class="instance-band__inner instance-band__inner--whitelist">
-				<p>{{msg.home_servermessage_whitelist}}</p>
+				<p>{{msg.home_servermessage_allowedusers}}</p>
 			</div>
-		{{/whitelistEnabled}}
+		{{/allowedUsersNotice}}
 	</div>
 {{/hasInstanceNotice}}

@@ -33,7 +33,6 @@ configurations.all {
 kotlin {
 	jvmToolchain {
 		languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
-		vendor.set(JvmVendorSpec.JETBRAINS)
 	}
 	jvm()
 	sourceSets {
@@ -58,6 +57,7 @@ kotlin {
 				implementation(project(":composeUi"))
 				implementation(libs.jetbrains.compose.components.ui.tooling.preview)
 				implementation(compose.desktop.currentOs)
+				implementation(libs.cairn)
 				implementation(libs.clikt)
 				implementation(libs.nucleus.darkmode.detector)
 				implementation(libs.nucleus.application)
@@ -77,15 +77,15 @@ kotlin {
 	}
 }
 
-// Pin jpackage's bundled runtime to the JetBrains Runtime.
-val jbrLauncher = javaToolchains.launcherFor {
+// Pin jpackage's bundled runtime to the project's toolchain JDK rather than
+// whichever JVM happens to be running Gradle.
+val packagingLauncher = javaToolchains.launcherFor {
 	languageVersion.set(JavaLanguageVersion.of(libs.versions.jvm.get().toInt()))
-	vendor.set(JvmVendorSpec.JETBRAINS)
 }
 
 compose.desktop {
 	application {
-		javaHome = jbrLauncher.get().metadata.installationPath.asFile.absolutePath
+		javaHome = packagingLauncher.get().metadata.installationPath.asFile.absolutePath
 		mainClass = "com.darkrockstudios.apps.hammer.desktop.MainKt"
 		nativeDistributions {
 			targetFormats(
@@ -170,6 +170,17 @@ compose.desktop {
 			//joinOutputJars.set(true)
 			configurationFiles.from("proguard-rules.pro")
 		}
+	}
+}
+
+// Nucleus' Tao popup layer opens its placeholder surface at 1x1, which a
+// Wayland compositor on a scaled output rejects as a protocol violation and
+// kills the client. XWayland has no such rule.
+// https://github.com/NucleusFramework/Nucleus/issues/502
+// Respects an explicit GDK_BACKEND so the Wayland path stays testable.
+if (org.gradle.internal.os.OperatingSystem.current().isLinux && System.getenv("GDK_BACKEND") == null) {
+	tasks.withType<JavaExec>().configureEach {
+		environment("GDK_BACKEND", "x11")
 	}
 }
 

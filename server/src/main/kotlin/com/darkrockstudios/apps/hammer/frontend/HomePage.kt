@@ -3,10 +3,10 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
-import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.webSiteJsonLd
+import com.darkrockstudios.apps.hammer.utilities.MarkdownService
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -33,23 +33,24 @@ private val MASTHEAD_PRELOADS = listOf(
 )
 
 fun Route.homePage(
-	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
 	serverConfig: ServerConfig,
+	markdownService: MarkdownService,
 ) {
 	route("/") {
 		get {
 			val model = call.withDefaults()
 			model["page_stylesheet"] = "/assets/css/home.css"
 			model["preloadImages"] = MASTHEAD_PRELOADS
-			val useWhiteList = whiteListRepository.useWhiteList()
-			val serverMessage = configRepository.get(AdminServerConfig.SERVER_MESSAGE)
+			val serverMessageHtml = markdownService.markdownToSafeHtml(
+				configRepository.get(AdminServerConfig.SERVER_MESSAGE)
+			)
 			val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)
 			val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
 			val patreonFeatureEnabled = serverConfig.patreonEnabled == true
 			val patreonActive = patreonFeatureEnabled && patreonConfig.enabled && patreonConfig.patreonUrl.isNotBlank()
 
-			model["serverMessage"] = serverMessage
+			model["serverMessageHtml"] = serverMessageHtml
 			model["page_script"] = "/assets/js/home.js"
 			model["title"] = "Hammer — ${call.msg("home_meta_tagline")}"
 			model["metaDescription"] = call.msg("home_meta_description")
@@ -59,12 +60,12 @@ fun Route.homePage(
 				description = call.msg("home_meta_description"),
 			)
 
-			val showWhitelist = useWhiteList && contactEmail.isNotBlank() && !patreonActive
-			if (showWhitelist) {
-				model["whitelistEnabled"] = true
-				call.msg(model, "home_servermessage_whitelist", contactEmail)
+			val showAllowedUsersNotice = contactEmail.isNotBlank() && !patreonActive
+			if (showAllowedUsersNotice) {
+				model["allowedUsersNotice"] = true
+				call.msg(model, "home_servermessage_allowedusers", contactEmail)
 			}
-			model["hasInstanceNotice"] = serverMessage.isNotBlank() || showWhitelist
+			model["hasInstanceNotice"] = serverMessageHtml.isNotBlank() || showAllowedUsersNotice
 
 			call.respond(MustacheContent("home.mustache", model))
 		}

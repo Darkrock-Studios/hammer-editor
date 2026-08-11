@@ -27,6 +27,10 @@ open class WhiteListDao(
 		queries.addToWhiteList(email, dateAdded, reason, expires)
 	}
 
+	open suspend fun backfillFromAccounts(now: Instant, reason: String): Unit = withContext(ioDispatcher) {
+		queries.backfillFromAccounts(now, reason)
+	}
+
 	open suspend fun removeFromWhiteList(email: String): Unit = withContext(ioDispatcher) {
 		queries.removeFromWhiteList(email)
 	}

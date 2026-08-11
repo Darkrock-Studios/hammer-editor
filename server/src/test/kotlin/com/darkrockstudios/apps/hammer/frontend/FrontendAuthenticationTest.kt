@@ -94,7 +94,6 @@ class FrontendAuthenticationTest {
 	@Test
 	fun `non-whitelisted user is challenged when whitelist enabled`() = testApplication {
 		coEvery { accountRepo.getAccount(7) } returns account(7, "user@example.com")
-		coEvery { whitelistRepo.useWhiteList() } returns true
 		coEvery { whitelistRepo.isOnWhiteList("user@example.com") } returns false
 
 		configureApp()
@@ -110,7 +109,6 @@ class FrontendAuthenticationTest {
 	@Test
 	fun `whitelisted user reaches protected route`() = testApplication {
 		coEvery { accountRepo.getAccount(7) } returns account(7, "user@example.com")
-		coEvery { whitelistRepo.useWhiteList() } returns true
 		coEvery { whitelistRepo.isOnWhiteList("user@example.com") } returns true
 
 		configureApp()
@@ -126,7 +124,6 @@ class FrontendAuthenticationTest {
 	@Test
 	fun `unknown user id is challenged not server error`() = testApplication {
 		coEvery { accountRepo.getAccount(7) } throws AccountNotFound(7)
-		coEvery { whitelistRepo.useWhiteList() } returns true
 
 		configureApp()
 		val noRedirect = createClient { followRedirects = false }
@@ -143,7 +140,6 @@ class FrontendAuthenticationTest {
 	@Test
 	fun `session is unauthorized when not whitelisted`() = runBlocking {
 		coEvery { accountRepo.getAccount(7) } returns account(7, "user@example.com")
-		coEvery { whitelistRepo.useWhiteList() } returns true
 		coEvery { whitelistRepo.isOnWhiteList("user@example.com") } returns false
 
 		val session = UserSession(userId = 7, username = "user@example.com", isAdmin = false)
@@ -153,7 +149,6 @@ class FrontendAuthenticationTest {
 	@Test
 	fun `session is unauthorized when account is missing`() = runBlocking {
 		coEvery { accountRepo.getAccount(7) } throws AccountNotFound(7)
-		coEvery { whitelistRepo.useWhiteList() } returns true
 
 		val session = UserSession(userId = 7, username = "user@example.com", isAdmin = false)
 		assertFalse(sessionIsAuthorized(session, accountRepo, whitelistRepo))
@@ -162,7 +157,6 @@ class FrontendAuthenticationTest {
 	@Test
 	fun `admin session bypasses the whitelist`() = runBlocking {
 		coEvery { accountRepo.getAccount(7) } returns account(7, "admin@example.com", isAdmin = true)
-		coEvery { whitelistRepo.useWhiteList() } returns true
 		coEvery { whitelistRepo.isOnWhiteList("admin@example.com") } returns false
 
 		val session = UserSession(userId = 7, username = "admin@example.com", isAdmin = true)
@@ -173,7 +167,6 @@ class FrontendAuthenticationTest {
 	fun `session is unauthorized when account is pending deletion`() = runBlocking {
 		coEvery { accountRepo.getAccount(7) } returns
 			account(7, "user@example.com", deletedAt = Clock.System.now())
-		coEvery { whitelistRepo.useWhiteList() } returns false
 
 		val session = UserSession(userId = 7, username = "user@example.com", isAdmin = false)
 		assertFalse(sessionIsAuthorized(session, accountRepo, whitelistRepo))
@@ -183,7 +176,6 @@ class FrontendAuthenticationTest {
 	fun `soft-deleted admin session is unauthorized despite admin bypass`() = runBlocking {
 		coEvery { accountRepo.getAccount(7) } returns
 			account(7, "admin@example.com", isAdmin = true, deletedAt = Clock.System.now())
-		coEvery { whitelistRepo.useWhiteList() } returns false
 
 		val session = UserSession(userId = 7, username = "admin@example.com", isAdmin = true)
 		assertFalse(sessionIsAuthorized(session, accountRepo, whitelistRepo))
@@ -192,7 +184,6 @@ class FrontendAuthenticationTest {
 	@Test
 	fun `session is authorized when whitelisted`() = runBlocking {
 		coEvery { accountRepo.getAccount(7) } returns account(7, "user@example.com")
-		coEvery { whitelistRepo.useWhiteList() } returns true
 		coEvery { whitelistRepo.isOnWhiteList("user@example.com") } returns true
 
 		val session = UserSession(userId = 7, username = "user@example.com", isAdmin = false)

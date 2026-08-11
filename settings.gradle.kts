@@ -7,7 +7,7 @@ pluginManagement {
     }
 }
 
-// F-Droid can't provide JBR or reach foojay, so skip both for F-Droid builds.
+// F-Droid can't reach foojay, so skip the toolchain resolver for F-Droid builds.
 // The flag is honoured from -Pfdroid=true, an `fdroid` entry in gradle.properties,
 // or the FDROID_BUILD environment variable - the same sources the module build
 // scripts read, so a single gradle.properties line drives the whole build.

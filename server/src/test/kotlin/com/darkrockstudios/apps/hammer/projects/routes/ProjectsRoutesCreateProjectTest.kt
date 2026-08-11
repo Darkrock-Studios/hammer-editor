@@ -29,7 +29,6 @@ class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
 		val userId = 0L
 
 		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery {
 			projectsRepository.createProject(
 				userId = userId,
@@ -68,7 +67,6 @@ class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
 	@Test
 	fun `Projects - Create Project - Invalid Request`() = testApplication {
 		coEvery { accountsRepository.checkToken(any(), any()) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
 
 		defaultApplication()
 
@@ -86,7 +84,6 @@ class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
 		val userId = 0L
 
 		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery {
 			projectsRepository.createProject(
 				userId = userId,
@@ -112,7 +109,6 @@ class ProjectsRoutesCreateProjectTest : ProjectsRoutesBaseTest() {
 		val userId = 0L
 
 		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery {
 			projectsRepository.createProject(
 				userId = userId,

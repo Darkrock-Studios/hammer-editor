@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
@@ -11,7 +13,9 @@ import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.components.projectselection.ProjectSelection
@@ -21,6 +25,9 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.rootElement
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
+import com.darkrockstudios.cairn.CairnAboutOverlay
+import com.darkrockstudios.cairn.CairnAppId
+import com.darkrockstudios.cairn.CairnConfig
 
 @OptIn(
 	ExperimentalMaterial3WindowSizeClassApi::class,
@@ -30,17 +37,39 @@ import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
 @Composable
 fun ProjectSelectScaffold(component: ProjectSelection) {
 	val windowSizeClass = calculateWindowSizeClass()
+	var showStudio by remember { mutableStateOf(false) }
 
-	when (windowSizeClass.widthSizeClass) {
-		WindowWidthSizeClass.Compact -> CompactNavigation(component)
-		WindowWidthSizeClass.Medium,
-		WindowWidthSizeClass.Expanded -> RailNavigation(component)
+	// The overlay is hoisted above the nav rail/bottom bar so its ceremony
+	// covers the whole window, not just the content pane.
+	Box(modifier = Modifier.fillMaxSize()) {
+		when (windowSizeClass.widthSizeClass) {
+			WindowWidthSizeClass.Compact -> CompactNavigation(
+				component = component,
+				onShowStudio = { showStudio = true },
+			)
+
+			WindowWidthSizeClass.Medium,
+			WindowWidthSizeClass.Expanded -> RailNavigation(
+				component = component,
+				onShowStudio = { showStudio = true },
+			)
+		}
+
+		CairnAboutOverlay(
+			visible = showStudio,
+			config = CairnConfig(
+				currentAppId = CairnAppId.Hammer,
+				// Cairn stamps its own "v", ours already carries one.
+				versionName = getAppVersionString().removePrefix("v"),
+			),
+			onDismissed = { showStudio = false },
+		)
 	}
 }
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
-private fun CompactNavigation(component: ProjectSelection) {
+private fun CompactNavigation(component: ProjectSelection, onShowStudio: () -> Unit) {
 	val stackState by component.stack.subscribeAsState()
 	Scaffold(
 		modifier = Modifier.defaultScaffold(),
@@ -48,6 +77,7 @@ private fun CompactNavigation(component: ProjectSelection) {
 		content = { scaffoldPadding ->
 			ProjectSelectionUi(
 				component,
+				onShowStudio = onShowStudio,
 				modifier = Modifier.rootElement(scaffoldPadding),
 			)
 		},
@@ -64,7 +94,7 @@ private fun CompactNavigation(component: ProjectSelection) {
 
 @OptIn(ExperimentalMaterialApi::class, ExperimentalComposeApi::class)
 @Composable
-private fun RailNavigation(component: ProjectSelection) {
+private fun RailNavigation(component: ProjectSelection, onShowStudio: () -> Unit) {
 	val stackState by component.stack.subscribeAsState()
 	val navRailState by component.navRailState.subscribeAsState()
 	Scaffold(
@@ -88,7 +118,7 @@ private fun RailNavigation(component: ProjectSelection) {
 					},
 				)
 
-				ProjectSelectionUi(component)
+				ProjectSelectionUi(component, onShowStudio = onShowStudio)
 			}
 		},
 	)
