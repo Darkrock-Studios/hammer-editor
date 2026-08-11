@@ -66,7 +66,6 @@ class AccountsComponentCreateAccountTest {
 	fun `Create Account - First User, skip whitelist`() = runTest {
 		coEvery { accountsRepository.hasUsers() } returns false
 		coEvery { accountsRepository.findAccount(any()) } returns null
-		coEvery { whiteListRepository.useWhiteList() } returns true
 		coEvery {
 			accountsRepository.createAccount(
 				email = validEmail,
@@ -84,17 +83,16 @@ class AccountsComponentCreateAccountTest {
 		assertTrue(result is CreateAccountResult.Success)
 		assertEquals(token, result.token)
 
-		coVerify(exactly = 0) { whiteListRepository.useWhiteList() }
 		coVerify(exactly = 0) { whiteListRepository.isOnWhiteList(any()) }
 
 		coVerify { projectsRepository.createUserData(token.userId) }
 	}
 
 	@Test
-	fun `Create Account - Success`() = runTest {
+	fun `Create Account - Success - Is On Allowed List`() = runTest {
 		coEvery { accountsRepository.hasUsers() } returns true
 		coEvery { accountsRepository.findAccount(any()) } returns null
-		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns true
 		coEvery {
 			accountsRepository.createAccount(
 				email = validEmail,
@@ -116,10 +114,9 @@ class AccountsComponentCreateAccountTest {
 	}
 
 	@Test
-	fun `Create Account - Failure - Not On Whitelist`() = runTest {
+	fun `Create Account - Failure - Not On Allowed List`() = runTest {
 		coEvery { accountsRepository.hasUsers() } returns true
 		coEvery { accountsRepository.findAccount(any()) } returns null
-		coEvery { whiteListRepository.useWhiteList() } returns true
 		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns false
 		coEvery {
 			accountsRepository.createAccount(
@@ -142,36 +139,11 @@ class AccountsComponentCreateAccountTest {
 	}
 
 	@Test
-	fun `Create Account - Success - Is On Whitelist`() = runTest {
-		coEvery { accountsRepository.hasUsers() } returns true
-		coEvery { accountsRepository.findAccount(any()) } returns null
-		coEvery { whiteListRepository.useWhiteList() } returns true
-		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns true
-		coEvery {
-			accountsRepository.createAccount(
-				email = validEmail,
-				installId = installId,
-				password = validPassword
-			)
-		} returns SResult.success(token)
-
-		val result = component().createAccount(
-			email = validEmail,
-			installId = installId,
-			password = validPassword,
-		)
-
-		assertTrue(result is CreateAccountResult.Success)
-		assertEquals(token, result.token)
-		coVerify { projectsRepository.createUserData(token.userId) }
-	}
-
-	@Test
 	fun `Create Account - TOS enforced, no acceptance - challenges`() = runTest {
 		val challenge = TermsOfServiceChallenge(text = "Be excellent to each other", version = "v1")
 		coEvery { accountsRepository.hasUsers() } returns true
 		coEvery { accountsRepository.findAccount(any()) } returns null
-		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns true
 		every { termsOfServiceRepository.challenge() } returns challenge
 
 		val result = component().createAccount(
@@ -192,7 +164,7 @@ class AccountsComponentCreateAccountTest {
 		val challenge = TermsOfServiceChallenge(text = "Be excellent to each other", version = "v2")
 		coEvery { accountsRepository.hasUsers() } returns true
 		coEvery { accountsRepository.findAccount(any()) } returns null
-		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns true
 		every { termsOfServiceRepository.challenge() } returns challenge
 
 		val result = component().createAccount(
@@ -212,7 +184,7 @@ class AccountsComponentCreateAccountTest {
 		val challenge = TermsOfServiceChallenge(text = "Be excellent to each other", version = "v1")
 		coEvery { accountsRepository.hasUsers() } returns true
 		coEvery { accountsRepository.findAccount(any()) } returns null
-		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns true
 		every { termsOfServiceRepository.challenge() } returns challenge
 		coEvery {
 			accountsRepository.createAccount(
@@ -238,7 +210,6 @@ class AccountsComponentCreateAccountTest {
 	fun `Create Account - Whitelist rejection precedes TOS challenge`() = runTest {
 		coEvery { accountsRepository.hasUsers() } returns true
 		coEvery { accountsRepository.findAccount(any()) } returns null
-		coEvery { whiteListRepository.useWhiteList() } returns true
 		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns false
 		every { termsOfServiceRepository.challenge() } returns
 			TermsOfServiceChallenge(text = "Be excellent to each other", version = "v1")

@@ -78,6 +78,7 @@ internal val DISALLOWED_PATHS: List<String> = listOf(
 	"/login",
 	"/logout",
 	"/setup",
+	"/signup",
 	"/account",
 	"/reset-password",
 	"/forgot-password",

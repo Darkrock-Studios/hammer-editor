@@ -30,7 +30,6 @@ class ProjectsRoutesRenameProjectTest : ProjectsRoutesBaseTest() {
 		val newName = "New Project Name"
 
 		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery {
 			projectsRepository.renameProject(
 				userId = userId,
@@ -96,7 +95,6 @@ class ProjectsRoutesRenameProjectTest : ProjectsRoutesBaseTest() {
 		val newName = "What Ever"
 
 		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery {
 			projectsRepository.renameProject(
 				userId = userId,

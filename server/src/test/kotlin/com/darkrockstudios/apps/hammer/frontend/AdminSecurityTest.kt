@@ -96,7 +96,7 @@ class AdminSecurityTest : BaseTest() {
 	@Test
 	fun `cookie claiming admin is denied when the database says not admin`() = testApplication {
 		coEvery { accountRepo.getAccount(7) } returns account(admin = false)
-		coEvery { whitelistRepo.useWhiteList() } returns false
+		coEvery { whitelistRepo.isOnWhiteList(any()) } returns true
 		coEvery { accountRepo.isAdmin(7) } returns false
 
 		configureApp()
@@ -112,7 +112,7 @@ class AdminSecurityTest : BaseTest() {
 	@Test
 	fun `an htmx request from a non-admin is redirected like any other`() = testApplication {
 		coEvery { accountRepo.getAccount(7) } returns account(admin = false)
-		coEvery { whitelistRepo.useWhiteList() } returns false
+		coEvery { whitelistRepo.isOnWhiteList(any()) } returns true
 		coEvery { accountRepo.isAdmin(7) } returns false
 
 		configureApp()
@@ -199,7 +199,7 @@ class AdminSecurityTest : BaseTest() {
 	@Test
 	fun `admin per the database reaches the admin route`() = testApplication {
 		coEvery { accountRepo.getAccount(7) } returns account(admin = true)
-		coEvery { whitelistRepo.useWhiteList() } returns false
+		coEvery { whitelistRepo.isOnWhiteList(any()) } returns true
 		coEvery { accountRepo.isAdmin(7) } returns true
 
 		configureApp()

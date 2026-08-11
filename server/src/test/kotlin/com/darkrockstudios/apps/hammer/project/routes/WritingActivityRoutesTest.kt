@@ -147,6 +147,7 @@ class WritingActivityRoutesTest : BaseTest() {
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.account.AccountDeletionService>(relaxed = true) }
+			single { mockk<com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository>(relaxed = true) }
 			single { json }
 		}
 	}
@@ -168,7 +169,7 @@ class WritingActivityRoutesTest : BaseTest() {
 			)
 		)
 		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
 		coEvery {
 			serverWritingActivityRepository.loadAll(
 				userId,
@@ -196,7 +197,7 @@ class WritingActivityRoutesTest : BaseTest() {
 	@Test
 	fun `GET writing_activity returns 404 when project missing`() = testApplication {
 		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
 		coEvery {
 			serverWritingActivityRepository.loadAll(any(), any())
 		} returns SResult.failure(ProjectNotFound(projectId))
@@ -229,7 +230,7 @@ class WritingActivityRoutesTest : BaseTest() {
 			),
 		)
 		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
 		coEvery {
 			serverWritingActivityRepository.saveDeviceLog(
 				userId = userId,
@@ -268,7 +269,7 @@ class WritingActivityRoutesTest : BaseTest() {
 	@Test
 	fun `GET writing_activity 410 Gone when project id unknown`() = testApplication {
 		coEvery { accountsRepository.checkToken(userId, bearerToken) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
 		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns null
 
 		application {

@@ -5,7 +5,7 @@ uses the in-process (embedded) PostgreSQL database, so no external services are
 required: just a volume for your data.
 
 This is the Docker-specific guide. For everything that is not Docker-specific
-(whitelisting, email, community, analytics, encryption at rest) see
+(allowed users, email, community, analytics, encryption at rest) see
 [HOW-TO-RUN-A-SERVER.md](HOW-TO-RUN-A-SERVER.md). Where the two disagree about
 networking, **this document wins for containers**.
 

@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.frontend
 import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
-import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.webSiteJsonLd
@@ -34,7 +33,6 @@ private val MASTHEAD_PRELOADS = listOf(
 )
 
 fun Route.homePage(
-	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
 	serverConfig: ServerConfig,
 	markdownService: MarkdownService,
@@ -44,7 +42,6 @@ fun Route.homePage(
 			val model = call.withDefaults()
 			model["page_stylesheet"] = "/assets/css/home.css"
 			model["preloadImages"] = MASTHEAD_PRELOADS
-			val useWhiteList = whiteListRepository.useWhiteList()
 			val serverMessageHtml = markdownService.markdownToSafeHtml(
 				configRepository.get(AdminServerConfig.SERVER_MESSAGE)
 			)
@@ -63,12 +60,12 @@ fun Route.homePage(
 				description = call.msg("home_meta_description"),
 			)
 
-			val showWhitelist = useWhiteList && contactEmail.isNotBlank() && !patreonActive
-			if (showWhitelist) {
-				model["whitelistEnabled"] = true
-				call.msg(model, "home_servermessage_whitelist", contactEmail)
+			val showAllowedUsersNotice = contactEmail.isNotBlank() && !patreonActive
+			if (showAllowedUsersNotice) {
+				model["allowedUsersNotice"] = true
+				call.msg(model, "home_servermessage_allowedusers", contactEmail)
 			}
-			model["hasInstanceNotice"] = serverMessageHtml.isNotBlank() || showWhitelist
+			model["hasInstanceNotice"] = serverMessageHtml.isNotBlank() || showAllowedUsersNotice
 
 			call.respond(MustacheContent("home.mustache", model))
 		}

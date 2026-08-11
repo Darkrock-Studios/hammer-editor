@@ -46,7 +46,7 @@ class PatreonSyncServiceTest : BaseTest() {
 		configDao = ServerConfigDao(db)
 		configRepository = ConfigRepository(configDao)
 		clock = TestClock(Clock.System)
-		whiteListRepository = WhiteListRepository(whiteListDao, configRepository, clock)
+		whiteListRepository = WhiteListRepository(whiteListDao, clock)
 		patreonApiClient = mockk()
 		accountsRepository = mockk()
 

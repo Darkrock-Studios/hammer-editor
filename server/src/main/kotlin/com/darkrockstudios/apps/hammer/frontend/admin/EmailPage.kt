@@ -36,7 +36,7 @@ internal fun Route.adminEmailPage(
 		val model = mapOf(
 			"page_stylesheet" to "/assets/css/admin.css",
 			"activeSettings" to false,
-			"activeWhitelist" to false,
+			"activeAllowedUsers" to false,
 			"activeUsers" to false,
 			"activePatreon" to false,
 			"activeEmail" to true,

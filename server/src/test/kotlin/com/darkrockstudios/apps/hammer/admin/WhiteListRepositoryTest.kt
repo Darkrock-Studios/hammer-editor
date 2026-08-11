@@ -20,8 +20,6 @@ class WhiteListRepositoryTest : BaseTest() {
 
 	private lateinit var db: SharedPostgresTestDatabase
 	private lateinit var whiteListDao: WhiteListDao
-	private lateinit var configDao: ServerConfigDao
-	private lateinit var configRepository: ConfigRepository
 	private lateinit var clock: TestClock
 
 	@BeforeEach
@@ -31,41 +29,13 @@ class WhiteListRepositoryTest : BaseTest() {
 		db = SharedPostgresTestDatabase()
 		db.initialize()
 		whiteListDao = WhiteListDao(db)
-		configDao = ServerConfigDao(db)
-		configRepository = ConfigRepository(configDao)
 
 		clock = TestClock(Clock.System)
 
 		setupKoin()
 	}
 
-	private fun createRepo() = WhiteListRepository(whiteListDao, configRepository, clock)
-
-	@Test
-	fun `useWhiteList - returns true by default`() = runTest {
-		val repo = createRepo()
-		assertTrue(repo.useWhiteList(), "Should be enabled by default")
-	}
-
-	@Test
-	fun `setWhiteListEnabled - updates config`() = runTest {
-		val repo = createRepo()
-
-		repo.setWhiteListEnabled(false)
-		assertFalse(repo.useWhiteList(), "Should be disabled after setting to false")
-
-		repo.setWhiteListEnabled(true)
-		assertTrue(repo.useWhiteList(), "Should be enabled after setting to true")
-	}
-
-	@Test
-	fun `setWhiteListEnabled - persists`() = runTest {
-		val repo1 = createRepo()
-		repo1.setWhiteListEnabled(false)
-
-		val repo2 = createRepo()
-		assertFalse(repo2.useWhiteList(), "Should be disabled in new repo instance")
-	}
+	private fun createRepo() = WhiteListRepository(whiteListDao, clock)
 
 	@Test
 	fun `getWhiteList - all`() = runTest {

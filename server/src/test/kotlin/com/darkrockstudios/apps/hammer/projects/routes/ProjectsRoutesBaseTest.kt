@@ -92,8 +92,10 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 
 		MockKAnnotations.init(this, relaxUnitFun = true)
 
-		// The bearer gate loads the account after token validation; default to an active one.
+		// The bearer gate loads the account after token validation; default to an
+		// active, allowed one (the relaxed mock's isOnWhiteList would return false).
 		coEvery { accountsRepository.getAccountOrNull(any()) } returns testAccount()
+		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
 
 		testModule = module {
 			single { accountsRepository }
@@ -116,6 +118,7 @@ abstract class ProjectsRoutesBaseTest : BaseTest() {
 			single { mockk<com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.database.ProjectDao>(relaxed = true) }
 			single { mockk<com.darkrockstudios.apps.hammer.account.AccountDeletionService>(relaxed = true) }
+			single { mockk<com.darkrockstudios.apps.hammer.account.TermsOfServiceRepository>(relaxed = true) }
 		}
 	}
 

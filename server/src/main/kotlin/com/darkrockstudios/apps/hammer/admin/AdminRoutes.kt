@@ -17,7 +17,6 @@ import kotlin.time.Instant
 
 private const val ERR_KEY_WHITELIST_EMAIL_MISSING = "api_admin_whitelist_error_emailmissing"
 private const val ERR_KEY_WHITELIST_EXPIRES_INVALID = "api_admin_whitelist_error_expiresinvalid"
-private const val ERR_KEY_ENABLE_WHITELIST_MISSING = "api_admin_enablewhitelist_enablemissing"
 private const val MSG_SUCCESS_KEY = "api_success"
 
 fun Route.adminRoutes() {
@@ -26,7 +25,6 @@ fun Route.adminRoutes() {
 			getWhiteList()
 			addToWhiteList()
 			removeFromWhiteList()
-			enableWhiteList()
 		}
 	}
 }
@@ -93,25 +91,6 @@ private fun Route.removeFromWhiteList() {
 		}
 
 		adminRepository.removeFromWhiteList(email)
-		call.respond(call.t(R(MSG_SUCCESS_KEY)))
-	}
-}
-
-private fun Route.enableWhiteList() {
-	val adminRepository: AdminComponent = get()
-
-	delete("/whitelist/enable/{setEnable}") {
-		val setEnable = call.request.queryParameters["setEnable"]?.toBoolean()
-		if (setEnable == null) {
-			call.respondMissingParameter(ERR_KEY_ENABLE_WHITELIST_MISSING)
-			return@delete
-		}
-
-		if (setEnable) {
-			adminRepository.enableWhiteList()
-		} else {
-			adminRepository.disableWhiteList()
-		}
 		call.respond(call.t(R(MSG_SUCCESS_KEY)))
 	}
 }

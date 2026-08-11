@@ -26,7 +26,7 @@ docker compose up -d
 ```
 
 **See [HOW-TO-RUN-A-SERVER-DOCKER.md](HOW-TO-RUN-A-SERVER-DOCKER.md) for the full
-Docker guide.** The feature sections below (whitelisting, email, community,
+Docker guide.** The feature sections below (allowed users, email, community,
 analytics, encryption) apply to Docker too, since the server auto-loads
 `config.toml` from the mounted data directory.
 
@@ -567,17 +567,22 @@ sudo nginx -t
 
 As long as that doesn't throw any errors, you can restart nginx. You should now be able to access your Hammer server web page at your URL!
 
-## Whitelisting Users
+## Allowed Users
 
-By default, the server is closed to account creation after the first account.
+Account creation is restricted to allowed email addresses. This is always on and cannot be
+disabled; it is the nominal state of a Hammer server, since there are no moderation tools or
+account verification, and a fully open server would fill with spam very quickly.
 
-You can open it by going to `/admin` on the website, logging in as your admin account, and clicking
-"**Disable Whitelist**".
-Otherwise, you can add individual users to the whitelist using the admin page.
+To allow someone to use your server, go to `/admin/allowed-users` on the website (logged in as
+your admin account) and add their email address. They can then create their own account on the
+`/signup` page, or from within the Hammer app. Entries can carry an optional expiry date, after
+which the user's access is revoked automatically.
 
-_**Note:** Disabling the whitelist is **strongly discouraged**. There are currently no moderation
-tools or even account
-verification. I expect any fully open server would become filled with spam very quickly._
+When upgrading a server that had explicitly **disabled** the old whitelist, every existing
+account is added to the allowed users list automatically on first startup (with the reason
+"Existing account"), so nobody is locked out by the upgrade. Servers that were already
+enforcing the whitelist are left untouched: entries that were removed or expired stay
+revoked.
 
 ## Enable Community
 

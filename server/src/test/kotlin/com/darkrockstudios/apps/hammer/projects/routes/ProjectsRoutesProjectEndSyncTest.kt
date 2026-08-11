@@ -18,7 +18,6 @@ class ProjectsRoutesProjectEndSyncTest : ProjectsRoutesBaseTest() {
 		val userId = 0L
 
 		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
 		coEvery {
 			projectsRepository.endProjectsSync(userId = userId, syncId = syncId)
 		} returns SResult.success(Unit)
@@ -40,7 +39,6 @@ class ProjectsRoutesProjectEndSyncTest : ProjectsRoutesBaseTest() {
 		val userId = 0L
 
 		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
-		coEvery { whiteListRepository.useWhiteList() } returns false
 
 		defaultApplication()
 

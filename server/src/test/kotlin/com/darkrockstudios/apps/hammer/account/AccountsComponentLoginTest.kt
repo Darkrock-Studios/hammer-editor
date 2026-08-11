@@ -68,34 +68,7 @@ class AccountsComponentLoginTest {
 	}
 
 	@Test
-	fun `Login - Success`() = runTest {
-		coEvery { whiteListRepository.useWhiteList() } returns false
-		coEvery { accountsRepository.findAccount(validEmail) } returns account
-		coEvery {
-			accountsRepository.login(
-				email = validEmail,
-				password = validPassword,
-				installId = installId
-			)
-		} returns SResult.success(token)
-
-		val comp = AccountsComponent(
-			accountsRepository,
-			whiteListRepository,
-			projectsRepository,
-			configRepository,
-			termsOfServiceRepository,
-			serverConfig
-		)
-		val result = comp.login(validEmail, validPassword, installId)
-
-		assertTrue(isSuccess(result))
-		assertEquals(token, result.data)
-	}
-
-	@Test
-	fun `Login - Success - Valid, whitelist enabled and one it`() = runTest {
-		coEvery { whiteListRepository.useWhiteList() } returns true
+	fun `Login - Success - Valid and on the allowed list`() = runTest {
 		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns true
 		coEvery { accountsRepository.findAccount(validEmail) } returns account
 		coEvery {
@@ -121,8 +94,7 @@ class AccountsComponentLoginTest {
 	}
 
 	@Test
-	fun `Login - Failure - Valid, but not on whitelist`() = runTest {
-		coEvery { whiteListRepository.useWhiteList() } returns true
+	fun `Login - Failure - Valid, but not on the allowed list`() = runTest {
 		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns false
 		coEvery { accountsRepository.findAccount(validEmail) } returns account
 		coEvery {
@@ -150,7 +122,7 @@ class AccountsComponentLoginTest {
 
 	@Test
 	fun `Login - Failure - Account not found`() = runTest {
-		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns true
 		coEvery { accountsRepository.findAccount(validEmail) } returns null
 		coEvery {
 			accountsRepository.login(
@@ -218,7 +190,7 @@ class AccountsComponentLoginTest {
 
 	@Test
 	fun `Login - Failure - Bad Login`() = runTest {
-		coEvery { whiteListRepository.useWhiteList() } returns false
+		coEvery { whiteListRepository.isOnWhiteList(validEmail) } returns true
 		coEvery { accountsRepository.findAccount(validEmail) } returns account
 		coEvery {
 			accountsRepository.login(
