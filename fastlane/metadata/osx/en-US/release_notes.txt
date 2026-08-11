@@ -1,10 +1,6 @@
-Improvements
-- text editor no longer drops block structure (horizontal rules, images, code fences) when a scene loads
-- font size changes no longer flatten list and blockquote indents
-- typed text after a size change could lose the paragraph's body style
-- F3 and Ctrl+Alt+S sync shortcuts work from anywhere in the project window
-- tag suggestion chips could add the typed prefix instead of the selected tag
-- Sync: projects with a stale cached server id could get stuck failing "410 Gone" instead of recreating
+- About: Dark Rock Studios attribution screen improved, check it out!
+- Translations updated for German, Spanish, French, Italian, Portuguese (Brazil), and Ukrainian
+Fixes
 
 Full changelog:
-https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.8.1
+https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.8.2
