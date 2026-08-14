@@ -101,3 +101,16 @@ class SyncDataDatasource(
 		const val SYNC_FILE_NAME = "sync.json"
 	}
 }
+
+/**
+ * Deletes the entity journal so [SyncDataDatasource.createSyncData] rebuilds it from local state on
+ * the next sync. For scope-less callers (no per-project Koin scope) that move a project to a
+ * different server project, where every id, hash and deletion the journal records was agreed with
+ * a server that no longer has this project.
+ */
+fun deleteProjectSyncJournal(projectDef: ProjectDef, fileSystem: FileSystem) {
+	val path = projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME
+	if (fileSystem.exists(path)) {
+		fileSystem.delete(path)
+	}
+}

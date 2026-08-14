@@ -15,7 +15,9 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.projectdata.clearProjectDataSyncBaseline
 import com.darkrockstudios.apps.hammer.common.data.projectdata.saveStoredProjectData
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.deleteProjectSyncJournal
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.MAX_FILENAME_LENGTH
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.RECOVERED_PROJECT_NAME
@@ -95,12 +97,29 @@ class ProjectsRepository(
 		projectsMetadataDatasource.updateMetadata(projectDef) {
 			it.copy(info = it.info.copy(serverProjectId = null))
 		}
+		clearSyncBaseline(projectDef)
 	}
 
 	fun setProjectId(projectDef: ProjectDef, projectId: ProjectId) {
+		val previousId = getProjectId(projectDef)
 		projectsMetadataDatasource.updateMetadata(projectDef) {
 			it.copy(info = it.info.copy(serverProjectId = projectId))
 		}
+		if (previousId != projectId) {
+			clearSyncBaseline(projectDef)
+		}
+	}
+
+	/**
+	 * The entity journal and `lastSyncedHash` record what one specific server already confirmed.
+	 * Once the project points somewhere else they describe an agreement that no longer exists, and
+	 * an untouched project reads as "already in sync": its content is never uploaded, and
+	 * `ProjectDataSyncOperation` fast-forwards the local copy to the new server's empty one.
+	 * The user's data is untouched — only the baseline goes, so the next sync uploads everything.
+	 */
+	private fun clearSyncBaseline(projectDef: ProjectDef) {
+		deleteProjectSyncJournal(projectDef, fileSystem)
+		clearProjectDataSyncBaseline(projectDef, fileSystem, toml)
 	}
 
 	fun getProjectId(projectDef: ProjectDef): ProjectId? {
