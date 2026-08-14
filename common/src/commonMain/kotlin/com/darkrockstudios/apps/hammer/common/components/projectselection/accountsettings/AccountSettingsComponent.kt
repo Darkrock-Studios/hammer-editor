@@ -40,7 +40,9 @@ import com.darkrockstudios.apps.hammer.settings_server_setup_toast_failure
 import com.darkrockstudios.apps.hammer.settings_server_setup_toast_failure_unknown
 import com.darkrockstudios.apps.hammer.settings_server_setup_toast_success
 import com.darkrockstudios.apps.hammer.settings_server_tos_declined
+import io.github.aakira.napier.Napier
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
@@ -75,6 +77,7 @@ class AccountSettingsComponent(
 
 	private var serverSetupJob: Job? = null
 	private var pendingServerSetup: PendingServerSetup? = null
+	private var promptedSetup: PendingServerSetup? = null
 
 	override val platformSettings: PlatformSettings by inject { parametersOf(componentContext) }
 	override val spellCheckSettings: SpellCheckSettings = SpellCheckSettingsComponent(componentContext)
@@ -181,12 +184,14 @@ class AccountSettingsComponent(
 			globalSettingsStore.deleteServerSettings()
 		}
 		pendingServerSetup = null
+		promptedSetup = null
 		_state.getAndUpdate {
 			it.copy(
 				serverSetup = false,
 				serverError = null,
 				serverWorking = false,
 				tosChallenge = null,
+				mergePrompt = false,
 			)
 		}
 	}
@@ -288,7 +293,7 @@ class AccountSettingsComponent(
 		email: String,
 		password: String,
 		create: Boolean,
-		removeLocalContent: Boolean
+		replaceLocalContent: Boolean
 	) {
 		cancelSetupJob()
 
@@ -326,13 +331,85 @@ class AccountSettingsComponent(
 			}
 
 			// All validation passed, proceed with server setup
-			if (removeLocalContent) {
-				removeLocalContent()
-			}
+			val pending = PendingServerSetup(
+				url = cleanUrl,
+				email = email.trim(),
+				password = password,
+				create = create,
+				replaceLocalContent = replaceLocalContent,
+			)
 
-			val pending = PendingServerSetup(cleanUrl, email.trim(), password, create)
-			pendingServerSetup = pending
+			if (shouldPromptForMerge(pending)) {
+				promptedSetup = pending
+				withContext(mainDispatcher) {
+					_state.getAndUpdate {
+						it.copy(
+							mergePrompt = true,
+							serverSetup = false,
+							serverWorking = false,
+						)
+					}
+				}
+			} else {
+				pendingServerSetup = pending
+				performServerSetup(pending, acceptedTosVersion = null)
+			}
+		}
+	}
+
+	/**
+	 * Only worth asking when logging in to a *different* server while holding real local work:
+	 * everything else has one sensible answer. Re-reads the projects directory rather than trusting
+	 * anything the UI passed in, so a stale caller can only cost a prompt, never local content.
+	 */
+	private suspend fun shouldPromptForMerge(pending: PendingServerSetup): Boolean {
+		if (pending.create || pending.replaceLocalContent) return false
+
+		val current = _state.value
+		val sameServer = current.currentUrl == pending.url && current.currentEmail == pending.email
+		if (sameServer) return false
+
+		return withContext(dispatcherIo) {
+			projectsRepository.getProjects().any { exampleProjectRepository.isExampleProject(it).not() }
+		}
+	}
+
+	override fun chooseMerge() = resumePromptedSetup(replaceLocalContent = false)
+
+	override fun chooseReplace() = resumePromptedSetup(replaceLocalContent = true)
+
+	private fun resumePromptedSetup(replaceLocalContent: Boolean) {
+		val prompted = promptedSetup ?: return
+		promptedSetup = null
+
+		val pending = prompted.copy(replaceLocalContent = replaceLocalContent)
+		pendingServerSetup = pending
+
+		cancelSetupJob()
+		serverSetupJob = scope.launch {
+			withContext(mainDispatcher) {
+				_state.getAndUpdate {
+					it.copy(
+						mergePrompt = false,
+						serverSetup = true,
+						serverError = null,
+						serverWorking = true,
+					)
+				}
+			}
+			// Credentials were validated before the prompt was raised.
 			performServerSetup(pending, acceptedTosVersion = null)
+		}
+	}
+
+	override fun cancelMergePrompt() {
+		promptedSetup = null
+		_state.getAndUpdate {
+			it.copy(
+				mergePrompt = false,
+				serverSetup = true,
+				serverWorking = false,
+			)
 		}
 	}
 
@@ -379,7 +456,13 @@ class AccountSettingsComponent(
 		)
 		withContext(mainDispatcher) {
 			when (result) {
-				is ServerSetupResult.Success -> {
+				is ServerSetupResult.Success -> withContext(NonCancellable) {
+					// The local wipe waits until the account is confirmed: a bad password, an
+					// unreachable server or a declined ToS must never cost the user their work.
+					// NonCancellable so a close/ESC landing here can't strand valid tokens either.
+					if (shouldRemoveLocalContent(pending)) {
+						withContext(dispatcherIo) { removeLocalContent() }
+					}
 					pendingServerSetup = null
 					// A freshly created account holds no projects, so any serverProjectId from a
 					// previous server is stale and would make sync skip re-creating the project.
@@ -447,9 +530,25 @@ class AccountSettingsComponent(
 		}
 	}
 
-	private suspend fun removeLocalContent() {
+	/**
+	 * Logging in with nothing but the bundled example project is a clean slate: drop it rather than
+	 * uploading it to the account and propagating it to every other device.
+	 */
+	private suspend fun shouldRemoveLocalContent(pending: PendingServerSetup): Boolean {
+		if (pending.create) return false
+		if (pending.replaceLocalContent) return true
+
+		return withContext(dispatcherIo) {
+			val projects = projectsRepository.getProjects()
+			projects.size == 1 && exampleProjectRepository.isExampleProject(projects.first())
+		}
+	}
+
+	private fun removeLocalContent() {
 		projectsRepository.getProjects().forEach { projectDef ->
-			projectsRepository.deleteProject(projectDef)
+			if (projectsRepository.deleteProject(projectDef).not()) {
+				Napier.w("Failed to delete local project '${projectDef.name}' during server setup")
+			}
 		}
 	}
 
@@ -488,6 +587,7 @@ private data class PendingServerSetup(
 	val email: String,
 	val password: String,
 	val create: Boolean,
+	val replaceLocalContent: Boolean,
 )
 
 @Serializable

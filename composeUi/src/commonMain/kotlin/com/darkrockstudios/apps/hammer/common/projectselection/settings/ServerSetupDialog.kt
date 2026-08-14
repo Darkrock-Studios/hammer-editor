@@ -19,7 +19,6 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
-import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -71,7 +70,6 @@ fun ServerSetupDialogContent(
 	val state by component.state.subscribeAsState()
 
 	var passwordVisible by rememberSaveable(state.serverSetup) { mutableStateOf(false) }
-	var confirmDeleteLocal by rememberSaveable(state.serverSetup) { mutableStateOf<Boolean?>(null) }
 	var showHelpDialog by rememberSaveable { mutableStateOf(false) }
 	val existingServer = rememberSaveable(state.serverSetup) {
 		state.serverWorking.not()
@@ -184,53 +182,27 @@ fun ServerSetupDialogContent(
 				color = MaterialTheme.colorScheme.outlineVariant,
 			)
 
+			// The component decides whether a login needs the merge/replace prompt; the UI only
+			// ever asks for the non-destructive setup.
+			fun setupServer(create: Boolean) {
+				component.setupServer(
+					url = state.serverUrl ?: "",
+					email = state.serverEmail ?: "",
+					password = state.serverPassword ?: "",
+					create = create,
+					replaceLocalContent = false,
+				)
+			}
+
 			ActionRow(
 				working = state.serverWorking,
 				isLoggedIn = state.serverIsLoggedIn,
 				canCreate = state.currentUrl == null,
 				onCancel = { scope.launch { component.cancelServerSetup() } },
-				onCreate = { confirmDeleteLocal = true },
-				onLogin = {
-					if (state.serverIsLoggedIn.not()) {
-						confirmDeleteLocal = false
-					} else {
-						component.setupServer(
-							url = state.serverUrl ?: "",
-							email = state.serverEmail ?: "",
-							password = state.serverPassword ?: "",
-							create = false,
-							removeLocalContent = false,
-						)
-					}
-				},
+				onCreate = { setupServer(create = true) },
+				onLogin = { setupServer(create = false) },
 			)
 		}
-	}
-
-	confirmDeleteLocal?.let { create ->
-		fun setupServer(create: Boolean, removeLocal: Boolean) {
-			component.setupServer(
-				url = state.serverUrl ?: "",
-				email = state.serverEmail ?: "",
-				password = state.serverPassword ?: "",
-				create = create,
-				removeLocalContent = removeLocal,
-			)
-		}
-
-		SimpleConfirm(
-			title = Res.string.remove_local_dialog_title.get(),
-			message = Res.string.remove_local_dialog_message.get(),
-			implicitCancel = false,
-			onDismiss = {
-				setupServer(create, false)
-				confirmDeleteLocal = null
-			},
-			onConfirm = {
-				setupServer(create, true)
-				confirmDeleteLocal = null
-			},
-		)
 	}
 
 	if (showHelpDialog) {

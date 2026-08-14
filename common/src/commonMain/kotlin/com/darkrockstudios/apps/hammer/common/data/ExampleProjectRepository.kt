@@ -38,6 +38,13 @@ abstract class ExampleProjectRepository(
 	fun shouldInstallFirstTime(): Boolean =
 		!globalSettingsStore.globalSettings.nux.exampleProjectCreated
 
+	/**
+	 * The NUX flag alone is not enough (it is never cleared when the example is deleted or renamed),
+	 * and the name alone is not enough (a user may name their own project this). Both together are.
+	 */
+	fun isExampleProject(projectDef: ProjectDef): Boolean =
+		projectDef.name == PROJECT_NAME && globalSettingsStore.globalSettings.nux.exampleProjectCreated
+
 	fun install() {
 		removeExampleProject()
 		platformInstall()
