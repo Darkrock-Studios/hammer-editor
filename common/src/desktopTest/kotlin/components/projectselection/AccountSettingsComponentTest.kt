@@ -20,7 +20,6 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
-import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import io.mockk.coEvery
@@ -33,11 +32,11 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
+import okio.ForwardingFileSystem
 import okio.Path
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -65,6 +64,9 @@ class AccountSettingsComponentTest : BaseTest() {
 	private lateinit var accountUseCase: AccountUseCase
 	private lateinit var projectsRepository: ProjectsRepository
 
+	/** Set by a test to interleave an action with the post-success wipe. */
+	private var onFirstDelete: (() -> Unit)? = null
+
 	private val projectsDir: Path =
 		getDefaultRootDocumentDirectory().toPath() / GlobalSettingsStore.DEFAULT_PROJECTS_DIR
 
@@ -88,6 +90,9 @@ class AccountSettingsComponentTest : BaseTest() {
 		ffs.createDirectories(projectsDir)
 		toml = createTomlSerializer()
 
+		onFirstDelete = null
+		val hookedFs = DeleteHookFileSystem(ffs) { onFirstDelete?.invoke() }
+
 		globalSettingsStore = mockk(relaxed = true)
 		globalSettingsUpdates = MutableSharedFlow(replay = 1)
 		every { globalSettingsStore.globalSettingsUpdates } returns globalSettingsUpdates
@@ -102,21 +107,21 @@ class AccountSettingsComponentTest : BaseTest() {
 		accountUseCase = mockk(relaxed = true)
 
 		val testModule = module {
-			single<FileSystem> { ffs }
+			single<FileSystem> { hookedFs }
 			single { toml }
 			single { globalSettingsStore } bind GlobalSettingsStore::class
 			single<Clock> { Clock.System }
 			single {
 				ProjectsRepository(
-					fileSystem = ffs,
+					fileSystem = hookedFs,
 					globalSettingsStore = globalSettingsStore,
-					projectsMetadataDatasource = ProjectMetadataDatasource(ffs, toml),
+					projectsMetadataDatasource = ProjectMetadataDatasource(hookedFs, toml),
 					toml = toml,
 					deviceLocaleResolver = mockk(relaxed = true),
 				)
 			} bind ProjectsRepository::class
 			single<ExampleProjectRepository> {
-				FakeExampleProjectRepository(globalSettingsStore, ffs, toml, get())
+				FakeExampleProjectRepository(globalSettingsStore, hookedFs, toml, get())
 			} bind ExampleProjectRepository::class
 			single { accountUseCase } bind AccountUseCase::class
 			single { mockk<StrRes>(relaxed = true) } bind StrRes::class
@@ -420,6 +425,45 @@ class AccountSettingsComponentTest : BaseTest() {
 	}
 
 	@Test
+	fun `Re-authenticating against the configured server keeps the example project`() = runTest {
+		seedProject(ExampleProjectRepository.PROJECT_NAME)
+		setupSucceeds()
+		serverSettingsUpdates.emit(
+			ServerSettings(
+				url = "example.com",
+				email = "writer@example.com",
+				userId = 1L,
+				bearerToken = null,
+				refreshToken = null,
+			)
+		)
+
+		val component = newComponent()
+		advanceUntilIdle()
+		component.logIn()
+		advanceUntilIdle()
+
+		assertEquals(listOf(ExampleProjectRepository.PROJECT_NAME), localProjectNames())
+	}
+
+	@Test
+	fun `Cancelling while the post-success wipe runs keeps the new credentials`() = runTest {
+		seedProject(PROJECT_A)
+		setupSucceeds()
+
+		val component = newComponent()
+		advanceUntilIdle()
+		// The wipe runs off the main dispatcher, so a close or ESC can land while it is in flight.
+		// By then the account exists and its tokens must survive.
+		onFirstDelete = { component.cancelServerSetup() }
+		component.logIn(replaceLocalContent = true)
+		advanceUntilIdle()
+
+		verify(exactly = 0) { globalSettingsStore.deleteServerSettings() }
+		assertEquals(emptyList(), localProjectNames())
+	}
+
+	@Test
 	fun `Terms of service challenge is surfaced and acceptance retries the request`() = runTest {
 		coEvery {
 			accountUseCase.setupServer(any(), any(), any(), any(), null)
@@ -468,6 +512,22 @@ class AccountSettingsComponentTest : BaseTest() {
 	private companion object {
 		const val PROJECT_A = "Test Project A"
 		const val PROJECT_B = "Test Project B"
+	}
+}
+
+/** Runs [onFirstDelete] once, on the first deletion, so a test can act from inside a wipe. */
+private class DeleteHookFileSystem(
+	delegate: FileSystem,
+	private val onFirstDelete: () -> Unit,
+) : ForwardingFileSystem(delegate) {
+	private var fired = false
+
+	override fun delete(path: Path, mustExist: Boolean) {
+		if (!fired) {
+			fired = true
+			onFirstDelete()
+		}
+		super.delete(path, mustExist)
 	}
 }
 

@@ -331,12 +331,17 @@ class AccountSettingsComponent(
 			}
 
 			// All validation passed, proceed with server setup
+			val cleanEmail = email.trim()
+			val current = _state.value
 			val pending = PendingServerSetup(
 				url = cleanUrl,
-				email = email.trim(),
+				email = cleanEmail,
 				password = password,
 				create = create,
 				replaceLocalContent = replaceLocalContent,
+				// Captured now: AccountUseCase writes provisional settings, so by the time the
+				// result comes back the state already names the server being logged in to.
+				sameServer = current.currentUrl == cleanUrl && current.currentEmail == cleanEmail,
 			)
 
 			if (shouldPromptForMerge(pending)) {
@@ -363,11 +368,7 @@ class AccountSettingsComponent(
 	 * anything the UI passed in, so a stale caller can only cost a prompt, never local content.
 	 */
 	private suspend fun shouldPromptForMerge(pending: PendingServerSetup): Boolean {
-		if (pending.create || pending.replaceLocalContent) return false
-
-		val current = _state.value
-		val sameServer = current.currentUrl == pending.url && current.currentEmail == pending.email
-		if (sameServer) return false
+		if (pending.create || pending.replaceLocalContent || pending.sameServer) return false
 
 		return withContext(dispatcherIo) {
 			projectsRepository.getProjects().any { exampleProjectRepository.isExampleProject(it).not() }
@@ -457,13 +458,15 @@ class AccountSettingsComponent(
 		withContext(mainDispatcher) {
 			when (result) {
 				is ServerSetupResult.Success -> withContext(NonCancellable) {
+					// Cleared before the wipe suspends: cancelServerSetup() deletes the server
+					// settings whenever a setup is pending, and these tokens are now valid.
+					pendingServerSetup = null
 					// The local wipe waits until the account is confirmed: a bad password, an
 					// unreachable server or a declined ToS must never cost the user their work.
 					// NonCancellable so a close/ESC landing here can't strand valid tokens either.
 					if (shouldRemoveLocalContent(pending)) {
 						withContext(dispatcherIo) { removeLocalContent() }
 					}
-					pendingServerSetup = null
 					// A freshly created account holds no projects, so any serverProjectId from a
 					// previous server is stale and would make sync skip re-creating the project.
 					if (pending.create) {
@@ -531,12 +534,14 @@ class AccountSettingsComponent(
 	}
 
 	/**
-	 * Logging in with nothing but the bundled example project is a clean slate: drop it rather than
-	 * uploading it to the account and propagating it to every other device.
+	 * Logging in to a new server with nothing but the bundled example project is a clean slate: drop
+	 * it rather than uploading it to the account and propagating it to every other device. Re-auth
+	 * against the configured server is not a clean slate, so it keeps whatever is there.
 	 */
 	private suspend fun shouldRemoveLocalContent(pending: PendingServerSetup): Boolean {
 		if (pending.create) return false
 		if (pending.replaceLocalContent) return true
+		if (pending.sameServer) return false
 
 		return withContext(dispatcherIo) {
 			val projects = projectsRepository.getProjects()
@@ -588,6 +593,7 @@ private data class PendingServerSetup(
 	val password: String,
 	val create: Boolean,
 	val replaceLocalContent: Boolean,
+	val sameServer: Boolean,
 )
 
 @Serializable
