@@ -1,6 +1,8 @@
 package repositories.sceneeditor
 
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
+import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import kotlinx.coroutines.runBlocking
 import okio.Path
@@ -80,6 +82,42 @@ class SceneRepositoryRationalizeTreePaddingTest : SceneRepositoryTestBase() {
 		// Disk and computed paths must agree for every scene after the pass
 		tree.forEach { node ->
 			if (node.value.isRootScene) return@forEach
+			assertTrue(
+				ffs.exists(repo.getSceneFilePath(node.value.id).toOkioPath()),
+				"Scene ${node.value.id} not found at its computed path"
+			)
+		}
+	}
+
+	@Test
+	fun `Rationalize tree pads from disk-present children when a tree child is missing on disk`() = runBlocking {
+		// 9 scenes on disk: single-digit order padding
+		val scenesDir = projectPath.toOkioPath().div(SceneDatasource.SCENE_DIRECTORY)
+		ffs.deleteRecursively(scenesDir)
+		ffs.createDirectories(scenesDir)
+
+		for (i in 0..8) {
+			writeScene(scenesDir, "$i~Scene ${i + 1}~${i + 1}.md")
+		}
+
+		sceneDatasource = SceneDatasource(projectDef, ffs)
+		repo = createRepository()
+		repo.initializeSceneEditor()
+
+		// A 10th tree child with no file on disk (e.g. a failed download) must not push
+		// padding to two digits, or computed paths diverge from disk afterwards
+		val tree = repo.rawTree
+		val phantom = SceneItem(projectDef, SceneItem.Type.Scene, 99, "Phantom", 9)
+		tree.root().addChild(TreeNode(phantom))
+
+		repo.rationalizeTree()
+
+		for (i in 0..8) {
+			val path = scenesDir.div("$i~Scene ${i + 1}~${i + 1}.md")
+			assertTrue(ffs.exists(path), "Scene file unexpectedly renamed: $path")
+		}
+		tree.forEach { node ->
+			if (node.value.isRootScene || node.value.id == phantom.id) return@forEach
 			assertTrue(
 				ffs.exists(repo.getSceneFilePath(node.value.id).toOkioPath()),
 				"Scene ${node.value.id} not found at its computed path"

@@ -182,6 +182,12 @@ class SceneRepository(
 	private fun orderDigitsIn(parentPath: HPath): Int =
 		sceneDatasource.getLastOrderNumber(parentPath).numDigits()
 
+	/** The path of [child] directly inside [parentPath], given the order field width there. */
+	private fun childScenePath(parentPath: HPath, child: SceneItem, orderDigits: Int): HPath =
+		parentPath.toOkioPath()
+			.div(sceneFileName(child, orderDigits))
+			.toHPath()
+
 	fun getSceneItemFromId(id: Int): SceneItem? {
 		return sceneTree.findValueOrNull { it.id == id }
 	}
@@ -360,9 +366,7 @@ class SceneRepository(
 		parent.children().forEach { childNode ->
 			val existingPath = existingSceneFiles[childNode.value.id]
 				?: error("Scene wasn't present in directory")
-			val newPath = parentPath.toOkioPath()
-				.div(sceneFileName(childNode.value, orderDigits))
-				.toHPath()
+			val newPath = childScenePath(parentPath, childNode.value, orderDigits)
 
 			if (existingPath != newPath) {
 				try {
@@ -510,9 +514,7 @@ class SceneRepository(
 
 			val existingPath = existingSceneFiles[childNode.value.id]
 				?: error("Scene wasn't present in directory")
-			val newPath = parentPath.toOkioPath()
-				.div(sceneFileName(childNode.value, orderDigits))
-				.toHPath()
+			val newPath = childScenePath(parentPath, childNode.value, orderDigits)
 
 			if (existingPath != newPath) {
 				try {
@@ -568,20 +570,31 @@ class SceneRepository(
 
 	/**
 	 * Moves [parentNode]'s children (recursively) to their intended paths. Order padding is
-	 * derived from the tree's child counts, never from live disk counts: each move changes a
-	 * directory's disk count, and crossing a digit boundary mid-pass (e.g. 10 to 9 children)
-	 * would compute ancestor names that don't exist on disk yet. Parents are finalized before
-	 * their children so every destination directory exists.
+	 * computed up front from the children that exist on disk, never from live directory counts:
+	 * each move changes a directory's disk count, and crossing a digit boundary mid-pass
+	 * (e.g. 10 to 9 children) would compute ancestor names that don't exist on disk yet.
+	 * Counting only disk-present children keeps the written names recomputable afterwards by
+	 * getSceneFilePath, whose padding comes from the directory's final disk count. Parents are
+	 * finalized before their children so every destination directory exists.
 	 */
 	private fun rationalizeChildren(parentNode: TreeNode<SceneItem>, parentPath: HPath) {
-		val orderDigits = parentNode.children().size.numDigits()
+		// Children already inside this directory, snapshotted once: a sibling's rename never
+		// relocates another sibling's file, so each entry stays valid until its own move.
+		// Children arriving from elsewhere fall back to a live resolve.
+		val childPathsInDir = sceneDatasource.getGroupChildPathsById(parentPath)
 
-		parentNode.children().forEach { node ->
-			val intendedPath = parentPath.toOkioPath()
-				.div(sceneFileName(node.value, orderDigits))
-				.toHPath()
+		val children = parentNode.children()
+		val presentCount = children.count { node ->
+			childPathsInDir.containsKey(node.value.id) ||
+				sceneDatasource.resolveScenePathFromFilesystem(node.value.id) != null
+		}
+		val orderDigits = presentCount.numDigits()
 
-			val realPath = sceneDatasource.resolveScenePathFromFilesystem(node.value.id)
+		children.forEach { node ->
+			val intendedPath = childScenePath(parentPath, node.value, orderDigits)
+
+			val realPath = childPathsInDir[node.value.id]
+				?: sceneDatasource.resolveScenePathFromFilesystem(node.value.id)
 			if (realPath != null) {
 				if (realPath != intendedPath) {
 					Napier.i { "Moving scene to new path: ${intendedPath.path} from old path: ${realPath.path}" }
