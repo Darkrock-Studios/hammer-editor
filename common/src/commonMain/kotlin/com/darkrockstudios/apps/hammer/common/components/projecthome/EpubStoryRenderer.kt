@@ -7,8 +7,10 @@ import io.documentnode.epub4kmp.epub.EpubWriter
 import kotlinx.html.*
 import kotlinx.html.stream.appendHTML
 import okio.BufferedSink
+import com.darkrockstudios.apps.hammer.base.markdown.ProseHtml
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
 import org.intellij.markdown.html.HtmlGenerator
+import org.intellij.markdown.parser.LinkMap
 import org.intellij.markdown.parser.MarkdownParser
 
 private data class TocEntry(val title: String, val href: String)
@@ -84,6 +86,8 @@ private fun buildStylesheet(theme: ProjectTheme?): Stylesheet = stylesheet {
 	// Title page presentation — applies even without a theme.
 	raw(
 		"""
+		/* Each authored line is its own paragraph, so the indent has to be the only separator */
+		p { margin: 0; }
 		body.title-page { text-align: center; margin: 0; }
 		.title-page-inner { margin-top: 30%; padding: 0 2em; }
 		h1.book-title { font-size: 2.5em; margin: 0 0 0.4em 0; page-break-before: auto; }
@@ -172,8 +176,10 @@ private fun BODY.titlePageBody(projectName: String, authorName: String?) {
 private fun BODY.chapterBody(chapterTitle: String, markdown: String) {
 	h1(classes = "chapter-title") { +chapterTitle }
 	val flavour = GFMFlavourDescriptor()
-	val parsed = MarkdownParser(flavour).buildMarkdownTreeFromString(markdown)
-	val htmlBody = HtmlGenerator(markdown, parsed, flavour).generateHtml()
+	val source = ProseHtml.normalizeLineEndings(markdown)
+	val parsed = MarkdownParser(flavour).buildMarkdownTreeFromString(source)
+	val providers = ProseHtml.providers(flavour, LinkMap.buildLinkMap(parsed, source))
+	val htmlBody = HtmlGenerator(source, parsed, providers).generateHtml()
 	val xhtmlBody = htmlBody.selfCloseHtmlVoidTags()
 	unsafe { +xhtmlBody }
 }

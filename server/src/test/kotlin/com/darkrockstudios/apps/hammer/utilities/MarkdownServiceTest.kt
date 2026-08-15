@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.utilities
 
+import com.darkrockstudios.apps.hammer.base.markdown.ProseHtml
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -281,7 +282,7 @@ class MarkdownServiceTest {
 		val markdown = "First paragraph." + "\n".repeat(40) + "Second paragraph."
 		val result = markdownService.markdownToSafeHtml(markdown, preserveLineBreaks = true)
 
-		assertEquals(MarkdownService.MAX_CONSECUTIVE_BREAKS, countBreaks(result))
+		assertEquals(ProseHtml.MAX_CONSECUTIVE_BREAKS, countBreaks(result))
 	}
 
 	@Test

@@ -334,13 +334,36 @@ class DocxStoryRendererTest {
 	}
 
 	@Test
-	fun `soft line breaks within a paragraph stay in one paragraph`() {
+	fun `every authored line becomes its own paragraph`() {
 		val doc = render(listOf(StoryChapter("Alpha", "line one\nline two")))
 
 		val texts = doc.bodyParagraphs().map { it.text }
 		assertTrue(
-			texts.any { it.contains("line one") && it.contains("line two") },
-			"Soft-wrapped lines should join into a single paragraph, got $texts",
+			texts.contains("line one") && texts.contains("line two"),
+			"Authored lines should each stand alone, got $texts",
 		)
+	}
+
+	@Test
+	fun `a line that runs on into another loses the gap between them`() {
+		val doc = render(listOf(StoryChapter("Alpha", "line one\nline two")))
+
+		val first = doc.bodyParagraphs().first { it.text == "line one" }
+		assertEquals(
+			0,
+			(first.ctp.pPr?.spacing?.after as? java.math.BigInteger)?.toInt(),
+			"A line followed by more prose must not push the next line down",
+		)
+	}
+
+	@Test
+	fun `a blank line between passages becomes an empty paragraph`() {
+		val doc = render(listOf(StoryChapter("Alpha", "First passage.\n\nSecond passage.")))
+
+		val texts = doc.bodyParagraphs().map { it.text }
+		val first = texts.indexOf("First passage.")
+		val second = texts.indexOf("Second passage.")
+		assertEquals(first + 2, second, "Expected one empty paragraph between the passages, got $texts")
+		assertEquals("", texts[first + 1])
 	}
 }

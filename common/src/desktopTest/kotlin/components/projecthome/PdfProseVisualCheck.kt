@@ -17,17 +17,27 @@ class PdfProseVisualCheck {
 	@EnabledIfEnvironmentVariable(named = "PDF_VISUAL_CHECK", matches = "1")
 	fun `render sample pdf`() {
 		val markdown = """
-			The opening paragraph of a chapter sits flush against the margin, as is the convention in book typesetting. It runs long enough to wrap across several lines so the wrapping behaviour around the indent can be seen clearly on the page.
+			The opening paragraph of a chapter carries a first-line indent, as does every other. It runs long enough to wrap across several lines so the wrapping behaviour around the indent can be seen clearly on the page.
 
-			The second paragraph begins with a first-line indent, marking the paragraph break without a blank line. It also runs long enough to wrap, which shows that only the first line is indented and continuation lines return to the margin.
+			The second paragraph sits one blank line below, because that is the blank line the author typed. It also runs long enough to wrap, which shows that only the first line is indented and continuation lines return to the margin.
 
-			A third paragraph continues the prose with the same indent, with **bold**, *italic*, and ~~struck~~ words along the way to confirm inline styling still works.
+			A third paragraph continues the prose with **bold**, *italic*, and ~~struck~~ words along the way to confirm inline styling still works.
+
+			– Good evening, madame. I did not mean to disturb you.
+			– Think nothing of it, she said. I am only doing my work.
+			– Then perhaps you can tell me where the old medicines are kept, said the visitor, whose question ran on long enough to wrap onto a second line.
+
+			These lines of dialogue each stand on their own, exactly as they do in the editor.
+
+
+			Two blank lines above this one open a wider gap, the way the author asked for it.
 
 			---
 
-			After a scene break the next paragraph is flush again, signalling a fresh section to the reader.
+			After a scene break the prose continues.
 
-			And the one after it is indented once more.
+			> A quoted passage keeps its lines,
+			> one under the next.
 
 			## A Secondary Heading
 

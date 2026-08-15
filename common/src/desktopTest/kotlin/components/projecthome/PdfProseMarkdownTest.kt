@@ -23,12 +23,45 @@ class PdfProseMarkdownTest {
 	}
 
 	@Test
-	fun `paragraphs are split on blank lines and soft wraps become spaces`() {
-		val blocks = parseProseMarkdown("First line\ncontinues here.\n\nSecond paragraph.")
+	fun `every authored line becomes its own paragraph`() {
+		val blocks = parseProseMarkdown("First line.\nSecond line.\nThird line.")
 
-		assertEquals(2, blocks.size)
-		assertEquals("First line continues here.", paragraph(blocks[0]).spans.plain())
-		assertEquals("Second paragraph.", paragraph(blocks[1]).spans.plain())
+		assertEquals(3, blocks.size)
+		assertEquals("First line.", paragraph(blocks[0]).spans.plain())
+		assertEquals("Second line.", paragraph(blocks[1]).spans.plain())
+		assertEquals("Third line.", paragraph(blocks[2]).spans.plain())
+	}
+
+	@Test
+	fun `a blank line between passages survives as a blank block`() {
+		val blocks = parseProseMarkdown("First passage.\n\nSecond passage.")
+
+		assertEquals(3, blocks.size)
+		assertEquals("First passage.", paragraph(blocks[0]).spans.plain())
+		assertIs<ProseBlock.Blank>(blocks[1])
+		assertEquals("Second passage.", paragraph(blocks[2]).spans.plain())
+	}
+
+	@Test
+	fun `each blank line of a run counts`() {
+		val blocks = parseProseMarkdown("First passage.\n\n\n\nSecond passage.")
+
+		assertEquals(3, blocks.count { it is ProseBlock.Blank })
+	}
+
+	@Test
+	fun `a blank line beside a heading is left to the heading's own spacing`() {
+		val blocks = parseProseMarkdown("## Chapter One\n\nThe prose.\n\n\n## Chapter Two")
+
+		assertEquals(0, blocks.count { it is ProseBlock.Blank })
+	}
+
+	@Test
+	fun `Windows line endings lay out like any other`() {
+		val unix = parseProseMarkdown("First line.\nSecond line.\n\nAfter a blank line.")
+		val windows = parseProseMarkdown("First line.\r\nSecond line.\r\n\r\nAfter a blank line.")
+
+		assertEquals(unix, windows)
 	}
 
 	@Test
@@ -152,10 +185,22 @@ class PdfProseMarkdownTest {
 	}
 
 	@Test
-	fun `hard line break becomes a newline within the paragraph`() {
+	fun `hard line break parts the lines just as a plain newline does`() {
 		val blocks = parseProseMarkdown("line one  \nline two")
 
-		assertEquals("line one\nline two", paragraph(blocks.single()).spans.plain())
+		assertEquals(2, blocks.size)
+		assertEquals("line one", paragraph(blocks[0]).spans.plain())
+		assertEquals("line two", paragraph(blocks[1]).spans.plain())
+	}
+
+	@Test
+	fun `a quoted passage keeps its lines`() {
+		val blocks = parseProseMarkdown("> quote line one\n> quote line two")
+
+		val quote = assertIs<ProseBlock.Quote>(blocks.single())
+		assertEquals(2, quote.paragraphs.size)
+		assertEquals("quote line one", quote.paragraphs[0].plain())
+		assertEquals("quote line two", quote.paragraphs[1].plain())
 	}
 
 	@Test

@@ -512,9 +512,16 @@ private class MarkdownDocxWriter(
 	private val ctx: DocxRenderContext,
 ) {
 	fun render(markdown: String) {
-		for (block in parseProseMarkdown(markdown)) {
+		val blocks = parseProseMarkdown(markdown)
+		blocks.forEachIndexed { index, block ->
+			// Prose runs tight: the indent parts one line from the next, and the space a passage
+			// break wants is a blank line the author typed. Space after is for leaving prose behind.
+			val runsOn = blocks.getOrNull(index + 1)?.isProseLine == true
 			when (block) {
-				is ProseBlock.Paragraph -> paragraph(style = null, numId = null) { runs(block.spans) }
+				is ProseBlock.Paragraph ->
+					paragraph(style = null, numId = null, tight = runsOn) { runs(block.spans) }
+
+				ProseBlock.Blank -> paragraph(style = null, numId = null, tight = runsOn) {}
 				is ProseBlock.Heading -> paragraph(style = "Heading${block.level}", numId = null) { runs(block.spans) }
 				is ProseBlock.Listing -> {
 					val numbering = DocxListNumbering(ctx)
@@ -619,11 +626,17 @@ private class MarkdownDocxWriter(
 		}
 	}
 
-	private fun paragraph(style: String?, numId: Int?, ilvl: Int = 0, body: () -> Unit) {
+	private fun paragraph(
+		style: String?,
+		numId: Int?,
+		ilvl: Int = 0,
+		tight: Boolean = false,
+		body: () -> Unit,
+	) {
 		// Plain prose gets the first-line-indented body style; numbered paragraphs control their own indent.
 		val effectiveStyle = style ?: if (numId == null) "BodyText" else null
 		writer.w("p") {
-			if (effectiveStyle != null || numId != null) {
+			if (effectiveStyle != null || numId != null || tight) {
 				w("pPr") {
 					effectiveStyle?.let { wVal("pStyle", it) }
 					if (numId != null) {
@@ -632,6 +645,8 @@ private class MarkdownDocxWriter(
 							wVal("numId", numId.toString())
 						}
 					}
+					// Overrides the document default, which would otherwise gap every line of prose.
+					if (tight) w("spacing") { wAttr("after", "0") }
 				}
 			}
 			body()
