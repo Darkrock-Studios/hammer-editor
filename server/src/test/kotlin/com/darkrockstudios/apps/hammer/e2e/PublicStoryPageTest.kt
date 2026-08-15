@@ -52,11 +52,29 @@ class PublicStoryPageTest : EndToEndTest() {
 		)
 	}
 
-	private fun grantAccess(password: String?) {
-		database().serverDatabase.projectAccessQueries.insertAccess(
+	private fun grantAccess(password: String?, sceneIds: List<Int> = emptyList()) {
+		val queries = database().serverDatabase
+		queries.projectAccessQueries.insertAccess(
 			project_id = projectRowId(),
 			access_password = password,
 			expires_at = null,
+		)
+		if (sceneIds.isNotEmpty()) {
+			val accessId = queries.projectAccessQueries.getAllAccessForProject(projectRowId())
+				.executeAsList().last().id
+			sceneIds.forEach { sceneId ->
+				queries.projectAccessSceneQueries.insertScene(access_id = accessId, scene_id = sceneId)
+			}
+		}
+	}
+
+	private fun seedSecondScene() = runBlocking {
+		E2eTestData.insertEntity(
+			userId = userId,
+			projectId = projectRowId(),
+			entity = E2eTestData.createTestScene(2),
+			testDatabase = database(),
+			contentEncryptor = encryptor(),
 		)
 	}
 
@@ -202,5 +220,84 @@ class PublicStoryPageTest : EndToEndTest() {
 
 		assertEquals(HttpStatusCode.NotFound, response.status)
 		assertEquals(emptyList(), cachedFiles(DiskCache.STORY_HTML))
+	}
+
+	@Test
+	fun `a scene-limited share renders only the selected scenes`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		seedSecondScene()
+		grantAccess(password = "secret", sceneIds = listOf(1))
+
+		val body = client().get(storyPath(password = "secret")).bodyAsText()
+
+		assertTrue(body.contains("test content 1"), "the selected scene should render")
+		assertTrue(!body.contains("test content 2"), "an unselected scene must not leak into the share")
+	}
+
+	@Test
+	fun `a deleted selected scene silently drops out of a limited share`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		seedSecondScene()
+		grantAccess(password = "secret", sceneIds = listOf(1, 2))
+
+		database().serverDatabase.storyEntityQueries.deleteEntity(userId, projectRowId(), 2L)
+		val response = client().get(storyPath(password = "secret"))
+
+		assertEquals(HttpStatusCode.OK, response.status)
+		val body = response.bodyAsText()
+		assertTrue(body.contains("test content 1"))
+		assertTrue(!body.contains("test content 2"))
+	}
+
+	@Test
+	fun `a limited share whose every scene is gone is not found`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		grantAccess(password = "secret", sceneIds = listOf(1))
+
+		database().serverDatabase.storyEntityQueries.deleteEntity(userId, projectRowId(), 1L)
+		val response = client().get(storyPath(password = "secret"))
+
+		assertEquals(HttpStatusCode.NotFound, response.status)
+	}
+
+	@Test
+	fun `editing an unselected scene keeps a limited share's validator`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		seedSecondScene()
+		grantAccess(password = "secret", sceneIds = listOf(1))
+
+		val before = assertNotNull(client().get(storyPath(password = "secret")).headers[HttpHeaders.ETag])
+
+		val edited = E2eTestData.createTestScene(2).copy(content = "an edit outside the share")
+		database().serverDatabase.storyEntityQueries.deleteEntity(userId, projectRowId(), 2L)
+		E2eTestData.insertEntity(userId, projectRowId(), edited, database(), encryptor())
+
+		val response = client().get(storyPath(password = "secret")) { header(HttpHeaders.IfNoneMatch, before) }
+
+		assertEquals(HttpStatusCode.NotModified, response.status, "an unselected edit must not invalidate the share")
+	}
+
+	@Test
+	fun `editing a selected scene changes a limited share's validator`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		seedSecondScene()
+		grantAccess(password = "secret", sceneIds = listOf(1))
+
+		val before = assertNotNull(client().get(storyPath(password = "secret")).headers[HttpHeaders.ETag])
+
+		val edited = E2eTestData.createTestScene(1).copy(content = "a freshly written chapter")
+		database().serverDatabase.storyEntityQueries.deleteEntity(userId, projectRowId(), 1L)
+		E2eTestData.insertEntity(userId, projectRowId(), edited, database(), encryptor())
+
+		val response = client().get(storyPath(password = "secret")) { header(HttpHeaders.IfNoneMatch, before) }
+
+		assertEquals(HttpStatusCode.OK, response.status)
+		assertNotEquals(before, response.headers[HttpHeaders.ETag])
+		assertTrue(response.bodyAsText().contains("a freshly written chapter"))
 	}
 }
