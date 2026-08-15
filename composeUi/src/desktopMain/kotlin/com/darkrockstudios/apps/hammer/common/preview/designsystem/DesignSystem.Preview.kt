@@ -59,6 +59,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailDest
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPlainSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChipVariant
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResizeHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResponsiveStrip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooter
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
@@ -1129,6 +1130,28 @@ fun DesignSystemGalleryPreview() {
 					destinations = bottomBarPreviewDestinations,
 					selectedId = "home",
 					onSelect = {},
+				)
+			}
+		}
+	}
+}
+
+@Preview
+@Composable
+fun ResizeHandlePreview() {
+	AppTheme(globalSettingsPreview, useDarkTheme = true) {
+		PreviewSurface {
+			Row(modifier = Modifier.height(120.dp)) {
+				HdResizeHandle(
+					onOutwardDrag = {},
+					onDragEnd = {},
+					onReset = {},
+				)
+				Box(
+					modifier = Modifier
+						.width(240.dp)
+						.fillMaxHeight()
+						.background(MaterialTheme.colorScheme.surfaceVariant),
 				)
 			}
 		}

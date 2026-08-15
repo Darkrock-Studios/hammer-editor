@@ -651,8 +651,8 @@ class ClientAccountSynchronizerTest {
 		// Uploading first would leave an orphan second "MyNovel" on the server that every
 		// other device then downloads as an empty duplicate.
 		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
-		verify { projectsRepository.setProjectId(def, serverId) }
-		verify(exactly = 0) { projectsRepository.setProjectId(def, duplicateId) }
+		coVerify { projectsRepository.setProjectId(def, serverId) }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(def, duplicateId) }
 	}
 
 	@Test
@@ -676,7 +676,7 @@ class ClientAccountSynchronizerTest {
 
 		assertTrue(result)
 		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
-		verify { projectsRepository.setProjectId(def, serverId) }
+		coVerify { projectsRepository.setProjectId(def, serverId) }
 		// Left queued, it would try to duplicate the project again on every future sync.
 		assertTrue(readSyncData().projectsToCreate.isEmpty())
 	}
@@ -708,7 +708,7 @@ class ClientAccountSynchronizerTest {
 
 		assertTrue(result)
 		// Adopting the orphan abandons the server project actually holding the manuscript.
-		verify(exactly = 0) { projectsRepository.setProjectId(def, orphanId) }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(def, orphanId) }
 		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
 	}
 
@@ -736,9 +736,9 @@ class ClientAccountSynchronizerTest {
 
 		assertTrue(result)
 		verify(exactly = 1) { projectsRepository.createProject("My Novel", any()) }
-		verify { projectsRepository.setProjectId(createdDef, firstId) }
+		coVerify { projectsRepository.setProjectId(createdDef, firstId) }
 		// The second one would silently steal the only local project the first just claimed.
-		verify(exactly = 0) { projectsRepository.setProjectId(createdDef, secondId) }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(createdDef, secondId) }
 	}
 
 	@Test

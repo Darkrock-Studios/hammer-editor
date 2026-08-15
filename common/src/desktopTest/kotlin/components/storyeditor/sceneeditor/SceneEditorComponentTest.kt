@@ -391,6 +391,50 @@ class SceneEditorComponentTest : ComponentTest() {
 		assertTrue(expected > GlobalSettings.DEFAULT_FONT_SIZE)
 	}
 
+	// --- editor width (settings writes) --------------------------------------
+
+	@Test
+	fun `initial state seeds editorMaxWidth from settings`() = runTest(mainTestDispatcher) {
+		globalSettings = settings().copy(editorMaxWidth = 900f)
+
+		val comp = newComponent()
+
+		assertEquals(900f, comp.state.value.editorMaxWidth)
+	}
+
+	@Test
+	fun `setEditorMaxWidth persists the width`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+
+		comp.setEditorMaxWidth(900f)
+		advanceUntilIdle()
+
+		assertEquals(900f, settingsAction.captured(globalSettings).editorMaxWidth)
+	}
+
+	@Test
+	fun `setEditorMaxWidth clamps out-of-range widths`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+
+		comp.setEditorMaxWidth(5000f)
+		advanceUntilIdle()
+		assertEquals(GlobalSettings.MAX_EDITOR_WIDTH, settingsAction.captured(globalSettings).editorMaxWidth)
+
+		comp.setEditorMaxWidth(100f)
+		advanceUntilIdle()
+		assertEquals(GlobalSettings.MIN_EDITOR_WIDTH, settingsAction.captured(globalSettings).editorMaxWidth)
+	}
+
+	@Test
+	fun `resetEditorMaxWidth persists the default width`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+
+		comp.resetEditorMaxWidth()
+		advanceUntilIdle()
+
+		assertEquals(GlobalSettings.DEFAULT_EDITOR_WIDTH, settingsAction.captured(globalSettings).editorMaxWidth)
+	}
+
 	// --- forwarding ----------------------------------------------------------
 
 	@Test

@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.common.data.*
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings.Companion.DEFAULT_EDITOR_WIDTH
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings.Companion.DEFAULT_FONT_SIZE
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -55,6 +56,7 @@ class SceneEditorComponent(
 			sceneItem = originalSceneItem,
 			spellCheckingEnabled = settingsRepository.globalSettings.spellCheckSettings.enabled,
 			metadataPanelVisible = settingsRepository.globalSettings.metadataPanelVisible,
+			editorMaxWidth = settingsRepository.globalSettings.editorMaxWidth,
 		)
 	)
 	override val state: Value<SceneEditor.State> = _state
@@ -84,12 +86,14 @@ class SceneEditorComponent(
 				val current = _state.value
 				if (
 					current.spellCheckingEnabled != settings.spellCheckSettings.enabled ||
-					current.metadataPanelVisible != settings.metadataPanelVisible
+					current.metadataPanelVisible != settings.metadataPanelVisible ||
+					current.editorMaxWidth != settings.editorMaxWidth
 				) {
 					_state.update {
 						it.copy(
 							spellCheckingEnabled = settings.spellCheckSettings.enabled,
 							metadataPanelVisible = settings.metadataPanelVisible,
+							editorMaxWidth = settings.editorMaxWidth,
 						)
 					}
 				}
@@ -457,6 +461,26 @@ class SceneEditorComponent(
 			settingsRepository.updateSettings {
 				it.copy(
 					editorFontSize = DEFAULT_FONT_SIZE
+				)
+			}
+		}
+	}
+
+	override fun setEditorMaxWidth(width: Float) {
+		scope.launch {
+			settingsRepository.updateSettings {
+				it.copy(
+					editorMaxWidth = clampEditorWidth(width)
+				)
+			}
+		}
+	}
+
+	override fun resetEditorMaxWidth() {
+		scope.launch {
+			settingsRepository.updateSettings {
+				it.copy(
+					editorMaxWidth = DEFAULT_EDITOR_WIDTH
 				)
 			}
 		}
