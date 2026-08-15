@@ -47,11 +47,22 @@ function canSendReview(checkedCount, email) {
 	return checkedCount > 0 && !!email && email.includes('@');
 }
 
+/**
+ * Whether a private share can be created: either it isn't limited to specific
+ * scenes, or at least one scene is picked.
+ * @param {boolean} limitEnabled
+ * @param {number} checkedCount
+ */
+function canCreateShare(limitEnabled, checkedCount) {
+	return !limitEnabled || checkedCount > 0;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
 	module.exports = {
 		nextToggleState: nextToggleState,
 		allSelected: allSelected,
 		reviewCountLabel: reviewCountLabel,
 		canSendReview: canSendReview,
+		canCreateShare: canCreateShare,
 	};
 }

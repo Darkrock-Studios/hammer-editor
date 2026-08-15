@@ -1,12 +1,15 @@
+<!-- No stopPropagation on the dialog: the scene-select handlers are delegated to
+     document, and closeShareDialog already ignores bubbled clicks from inside. -->
 <div class="dialog-overlay" id="share-dialog-overlay" onclick="closeShareDialog(event)">
-	<div class="dialog" onclick="event.stopPropagation()">
+	<div class="dialog dialog--share">
 		<div class="dialog__header">
 			<h3>{{msg.story_share_private_title}}</h3>
 			<button type="button" class="dialog__close" onclick="closeShareDialog()">
 				<i class="fas fa-times"></i>
 			</button>
 		</div>
-		<form hx-post="/story/{{projectNameForUrl}}/access"
+		<form data-scene-select
+			  hx-post="/story/{{projectNameForUrl}}/access"
 			  hx-target="#publish-section"
 			  hx-swap="outerHTML"
 			  hx-on::after-request="closeShareDialog()">
@@ -33,12 +36,31 @@
 						   class="form-input"
 						   min="{{minDate}}">
 				</div>
+				<div class="form-field">
+					<label class="share-form__limit">
+						<input type="checkbox" name="limitScenes" class="share-form__limit-check">
+						<span class="review-scene-row__box"><i class="fa-solid fa-check"></i></span>
+						<span class="share-form__limit-name">
+							{{msg.story_share_limit_scenes}}
+							<span class="optional-label">{{msg.story_share_limit_scenes_hint}}</span>
+						</span>
+					</label>
+					<div class="share-form__scenes" hidden>
+						<div class="review-form__scenes-head">
+							<span class="form-field__label">{{msg.story_share_scenes}}</span>
+							<span class="review-form__scene-count"
+								  data-total="{{sceneCount}}"
+								  data-none-label="{{msg.review_dialog_scenes_none}}">{{msg.review_dialog_scenes_none}}</span>
+						</div>
+						{{> scene-select-tree}}
+					</div>
+				</div>
 			</div>
 			<div class="dialog__actions">
 				<button type="button" class="btn btn--ghost" onclick="closeShareDialog()">
 					{{msg.story_cancel}}
 				</button>
-				<button type="submit" class="btn btn--accent">
+				<button type="submit" class="btn btn--accent" data-scene-submit>
 					{{msg.story_create_access}}
 				</button>
 			</div>

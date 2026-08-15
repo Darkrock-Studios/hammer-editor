@@ -36,3 +36,13 @@ test('canSendReview requires at least one scene and an emailish address', () => 
 	assert.equal(logic.canSendReview(2, 'not-an-email'), false); // no '@'
 	assert.equal(logic.canSendReview(2, ''), false); // empty email
 });
+
+test('canCreateShare allows an unlimited share regardless of selection', () => {
+	assert.equal(logic.canCreateShare(false, 0), true);
+	assert.equal(logic.canCreateShare(false, 3), true);
+});
+
+test('canCreateShare requires a selection once limiting is enabled', () => {
+	assert.equal(logic.canCreateShare(true, 0), false);
+	assert.equal(logic.canCreateShare(true, 1), true);
+});

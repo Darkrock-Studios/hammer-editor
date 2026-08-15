@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
 import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
+import com.darkrockstudios.apps.hammer.frontend.utils.sceneTreeModel
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
@@ -23,6 +24,9 @@ import com.darkrockstudios.apps.hammer.story.SingleSceneExportResult
 import com.darkrockstudios.apps.hammer.story.StoryRenderResult
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.story.WordCountUtils
+import com.darkrockstudios.apps.hammer.utilities.Msg
+import com.darkrockstudios.apps.hammer.utilities.SResult
+import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utilities.truncateToUtcDay
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
@@ -354,11 +358,25 @@ fun Route.storyPage(
 			}
 
 			hx.get("/share-dialog") {
+				val session = call.sessions.requireUser()
 				val projectNameParam = call.parameters["projectName"]
 
 				if (projectNameParam.isNullOrBlank()) {
 					call.respond(HttpStatusCode.BadRequest)
 					return@get
+				}
+
+				val project = projectsRepository.findProjectByUrlSegment(session.userId, projectNameParam)
+				if (project == null) {
+					call.respond(HttpStatusCode.NotFound)
+					return@get
+				}
+
+				val hierarchyResult =
+					storyRendererService.getSceneHierarchy(session.userId, ProjectId(project.uuid))
+				val scenes = when (hierarchyResult) {
+					is SceneHierarchyResult.Success -> hierarchyResult.scenes
+					else -> emptyList()
 				}
 
 				// Get tomorrow's date as minimum date for the date picker
@@ -367,8 +385,10 @@ fun Route.storyPage(
 
 				val model = call.withDefaults(
 					mapOf(
-						"projectNameForUrl" to projectNameParam,
-						"minDate" to minDate
+						"projectNameForUrl" to ProjectName.projectSegment(project.name, project.uuid),
+						"minDate" to minDate,
+						"sceneTree" to sceneTreeModel(scenes),
+						"sceneCount" to scenes.count { it.isScene },
 					)
 				)
 
@@ -404,6 +424,12 @@ fun Route.storyPage(
 				val formParams = call.receiveParameters()
 				val password = formParams["password"]
 				val expiresAt = formParams["expiresAt"]?.ifBlank { null }
+				val limitScenes = formParams["limitScenes"] != null
+				val sceneIds = if (limitScenes) {
+					formParams.getAll("sceneIds")?.mapNotNull { it.toIntOrNull() } ?: emptyList()
+				} else {
+					emptyList()
+				}
 
 				if (password.isNullOrBlank()) {
 					call.respond(HttpStatusCode.BadRequest)
@@ -424,12 +450,17 @@ fun Route.storyPage(
 					kotlin.time.Instant.parse("${it}T23:59:59Z")
 				}
 
-				projectAccessRepository.createPrivateAccess(
-					userId = session.userId,
-					projectUuid = projectId,
-					password = password,
-					expiresAt = expiresAtInstant
-				)
+				val createResult = if (limitScenes && sceneIds.isEmpty()) {
+					SResult.failure("No scenes selected", Msg.r("story_toast_access_no_scenes"))
+				} else {
+					projectAccessRepository.createPrivateAccess(
+						userId = session.userId,
+						projectUuid = projectId,
+						password = password,
+						expiresAt = expiresAtInstant,
+						sceneIds = sceneIds,
+					)
+				}
 
 				// Return updated publish section
 				val isPublished = projectAccessRepository.isPublished(session.userId, projectId)
@@ -454,11 +485,24 @@ fun Route.storyPage(
 					)
 				)
 
+				// Single respond after the when: responding from inside an exhaustive
+				// when's branches trips Ktor's pipeline-subject ClassCastException.
+				val (toastMessage, toastType) = when (createResult) {
+					is ServerResult.Failure -> Pair(
+						createResult.displayMessageText(call) ?: call.msg("story_toast_access_no_scenes"),
+						Toast.Error,
+					)
+
+					is ServerResult.Success -> Pair(
+						call.msg("story_toast_access_created"),
+						Toast.Success,
+					)
+				}
 				respondTemplateWithToast(
 					templatePath = "partials/story-publish.mustache",
 					model = model,
-					message = call.msg("story_toast_access_created"),
-					toast = Toast.Success
+					message = toastMessage,
+					toast = toastType
 				)
 			}
 

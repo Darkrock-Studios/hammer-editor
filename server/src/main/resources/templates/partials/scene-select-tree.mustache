@@ -1,0 +1,34 @@
+<!-- Scene-selection tree shared by the review-request and share dialogs. The
+     enclosing form must carry data-scene-select; story.js drives all behavior
+     through classes scoped to that form. Model keys: sceneTree, msg. -->
+<div class="review-form__scene-box">
+	<div class="review-scene-master">
+		<span class="review-scene-master__name">{{msg.review_dialog_all_scenes}}</span>
+		<button type="button" class="review-scene-master__toggle"
+				data-select-label="{{msg.review_dialog_select_all}}"
+				data-clear-label="{{msg.review_dialog_clear_all}}">{{msg.review_dialog_select_all}}</button>
+	</div>
+	<div class="review-form__scene-tree">
+		{{#sceneTree}}
+			{{#isGroup}}
+				<div class="review-scene-group" style="padding-left: {{indentPx}}px;">
+					<span class="review-scene-group__name">{{name}}</span>
+					<button type="button"
+							class="review-scene-group__toggle"
+							data-group-depth="{{depth}}"
+							data-select-label="{{msg.review_dialog_select_all}}"
+							data-clear-label="{{msg.review_dialog_clear_all}}">{{msg.review_dialog_select_all}}</button>
+				</div>
+			{{/isGroup}}
+			{{#isScene}}
+				<label class="review-scene-row" style="padding-left: {{indentPx}}px;"
+					   data-depth="{{depth}}">
+					<input type="checkbox" name="sceneIds" value="{{id}}"
+						   class="review-scene-row__check">
+					<span class="review-scene-row__box"><i class="fa-solid fa-check"></i></span>
+					<span class="review-scene-row__name">{{name}}</span>
+				</label>
+			{{/isScene}}
+		{{/sceneTree}}
+	</div>
+</div>
