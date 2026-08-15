@@ -126,10 +126,13 @@
 					</div>
 					{{> partials/review-panel}}
 				</div>
-				<div id="review-dialog-container"></div>
 			</aside>
 		</div>
 	</div>
 </main>
+
+<!-- Outside the sidebar: position:sticky there makes a stacking context the
+     overlay's z-index can't escape, which paints it under the site header. -->
+<div id="review-dialog-container"></div>
 
 {{> footer}}

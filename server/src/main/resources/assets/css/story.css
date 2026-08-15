@@ -1840,6 +1840,7 @@
 	max-width: 540px;
 	width: 92%;
 	max-height: calc(100vh - 48px);
+	max-height: calc(100dvh - 48px);
 	display: flex;
 	flex-direction: column;
 	/* Fully opaque: this dialog is tall enough to overlap the page footer,
@@ -1854,11 +1855,18 @@
 .dialog--review form {
 	display: flex;
 	flex-direction: column;
+	flex: 1 1 auto;
 	min-height: 0;
 }
 
+/* The only scroll region in the dialog. The scene list renders at its full
+   height inside it, so the whole form scrolls as one column between the pinned
+   header and actions instead of nesting a second scroller. */
 .dialog--review .dialog__body {
+	flex: 1 1 auto;
+	min-height: 0;
 	overflow-y: auto;
+	overscroll-behavior: contain;
 }
 
 .review-form__row {
@@ -1932,13 +1940,17 @@
 	color: var(--neutral-400);
 }
 
-.review-form__scene-tree {
+/* Frames the master row and the list as one control. Nothing here scrolls: the
+   list is as tall as the story is long and the dialog body scrolls it. */
+.review-form__scene-box {
 	border: 1px solid var(--neutral-200);
 	border-radius: 10px;
 	background: #ffffff;
+	overflow: hidden;
+}
+
+.review-form__scene-tree {
 	padding: 0.4rem 0;
-	max-height: 260px;
-	overflow-y: auto;
 }
 
 .review-scene-master {
@@ -1947,12 +1959,9 @@
 	justify-content: space-between;
 	gap: 0.6rem;
 	padding: 0.55rem 1rem;
-	margin: 0 0.4rem 0.25rem 0.4rem;
 	border-bottom: 1px dashed var(--neutral-200);
-	position: sticky;
-	top: 0;
-	background: #ffffff;
-	z-index: 1;
+	background: #faf6ee;
+	flex-shrink: 0;
 }
 
 .review-scene-master__name {
@@ -2087,9 +2096,49 @@
 	color: var(--neutral-600);
 }
 
+/* Short viewports: give the dialog's own chrome back to the scene list */
+@media only screen and (max-height: 900px) {
+	.dialog--review {
+		max-height: calc(100vh - 16px);
+		max-height: calc(100dvh - 16px);
+	}
+
+	.dialog--review .dialog__header,
+	.dialog--review .dialog__actions {
+		padding-top: 0.75rem;
+		padding-bottom: 0.75rem;
+	}
+
+	.dialog--review .dialog__body {
+		padding: 1rem 1.25rem;
+	}
+
+	.dialog--review .form-field:not(:last-child) {
+		margin-bottom: 0.85rem;
+	}
+
+	.review-form__note {
+		min-height: 2.2rem;
+	}
+}
+
 @media only screen and (max-width: 600px) {
 	.review-form__row {
 		flex-direction: column;
 		gap: 0;
+	}
+
+	/* Full-height sheet, so the list gets every pixel the phone has */
+	.dialog--review {
+		width: 100%;
+		max-width: 100%;
+		height: 100vh;
+		height: 100dvh;
+		max-height: 100vh;
+		max-height: 100dvh;
+		margin: 0;
+		border-radius: 0;
+		border-left: none;
+		border-right: none;
 	}
 }
