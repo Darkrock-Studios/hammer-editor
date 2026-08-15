@@ -521,7 +521,7 @@ element markdown can emit has a rule:
 
 | Element      | Treatment                                                                       |
 |--------------|---------------------------------------------------------------------------------|
-| `p`          | 2em first-line indent on every prose paragraph, justified                       |
+| `p`          | One authored line: 2em first-line indent, justified, no margin between siblings |
 | `h1`         | The story title, in Kingthings at 2rem                                          |
 | `h2`         | Chapter heading: centered, with a dashed rule above it and 4rem of air, dropped on the first one |
 | `h3` / `h4`  | Kingthings, stepping down in size, 2.5rem above                                 |
@@ -533,8 +533,17 @@ element markdown can emit has a rule:
 | `code`       | Courier; a tinted pill when it sits inline in a paragraph or list item          |
 | `a`          | Accent-colored, underlined with a softened amber rule                           |
 
-`br` needs no rule: it is the break `MarkdownService` emits for each blank line past the first, and
-it inherits the prose line height.
+`br` needs no rule: it is the break `MarkdownService` emits for each blank line between two
+paragraphs, and it inherits the prose line height.
+
+Prose is laid out as the author typed it, which is what they see in the editor: every newline starts
+a new paragraph and every blank line is a blank line. Paragraph siblings carry no margin, so
+consecutive lines sit directly under one another and each takes the first-line indent. Headings,
+lists, quotes and rules keep their own spacing; blank lines next to them add nothing.
+
+The prose element declares the story's language (`lang` on `.story-content`) on both the author's
+page and the public reader page, so the browser hyphenates by the story's rules rather than the
+reader's UI locale.
 
 Below 600px the column is too narrow to justify without opening rivers, so paragraphs go ragged
 right and hyphenation is off.

@@ -167,6 +167,23 @@ class StoryRendererServiceTest {
 	}
 
 	@Test
+	fun `sibling scenes in a group are parted by one blank line`() = runTest {
+		val scenes = listOf(
+			createScene(id = 1, name = "Chapter 1", content = "", order = 0, sceneType = ApiSceneType.Group),
+			createScene(id = 2, name = "Scene 1.1", content = "First child content.", order = 0, path = listOf(0, 1)),
+			createScene(id = 3, name = "Scene 1.2", content = "Second child content.", order = 1, path = listOf(0, 1)),
+		)
+		setupMocksForScenes(scenes)
+
+		val result = service.renderStoryAsHtml(userId, projectId)
+
+		assertIs<StoryRenderResult.Success>(result)
+		// Nothing else marks the seam between two scenes of a chapter, and without it the last line
+		// of one and the first of the next read as consecutive lines of the same passage.
+		assertEquals(1, Regex("<br\\s*/?>").findAll(result.html).count(), result.html)
+	}
+
+	@Test
 	fun `sibling scenes in an exported group render as separate paragraphs`() = runTest {
 		val scenes = listOf(
 			createScene(id = 1, name = "Chapter 1", content = "", order = 0, sceneType = ApiSceneType.Group),

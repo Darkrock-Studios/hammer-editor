@@ -1,7 +1,17 @@
 package com.darkrockstudios.apps.hammer.utilities
 
+import org.intellij.markdown.IElementType
+import org.intellij.markdown.MarkdownElementTypes
+import org.intellij.markdown.MarkdownTokenTypes
+import org.intellij.markdown.ast.ASTNode
+import org.intellij.markdown.ast.LeafASTNode
+import org.intellij.markdown.ast.accept
 import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
+import org.intellij.markdown.html.GeneratingProvider
 import org.intellij.markdown.html.HtmlGenerator
+import org.intellij.markdown.html.SimpleTagProvider
+import org.intellij.markdown.html.TrimmingInlineHolderProvider
+import org.intellij.markdown.parser.LinkMap
 import org.intellij.markdown.parser.MarkdownParser
 import org.owasp.html.HtmlPolicyBuilder
 import org.owasp.html.PolicyFactory
@@ -47,17 +57,22 @@ class MarkdownService {
 	 * All script tags, event handlers, and javascript: URLs are stripped.
 	 *
 	 * @param markdown The markdown text to convert
-	 * @param preserveBlankLines Keep runs of blank lines as visible space rather than letting
-	 * CommonMark collapse them. Prose opts in; anywhere the markdown is a short piece of writing
-	 * rather than a story, such as a bio or a policy page, wants the default collapsing.
+	 * @param preserveLineBreaks Lay the text out the way the author typed it: every newline starts a
+	 * new line and every blank line is a blank line, which is what the editor shows them. Story prose
+	 * opts in; anywhere the markdown is a short piece of writing rather than a story, such as a bio or
+	 * a policy page, wants CommonMark's usual reflowing.
 	 * @return Sanitized HTML string safe for rendering
 	 */
-	fun markdownToSafeHtml(markdown: String, preserveBlankLines: Boolean = false): String {
+	fun markdownToSafeHtml(markdown: String, preserveLineBreaks: Boolean = false): String {
 		if (markdown.isBlank()) return ""
 
-		val source = if (preserveBlankLines) expandBlankLines(markdown) else markdown
-		val parsedTree = markdownParser.buildMarkdownTreeFromString(source)
-		val unsafeHtml = HtmlGenerator(source, parsedTree, markdownFlavour).generateHtml()
+		val parsedTree = markdownParser.buildMarkdownTreeFromString(markdown)
+		val providers = markdownFlavour.createHtmlGeneratingProviders(
+			LinkMap.buildLinkMap(parsedTree, markdown),
+			null,
+		) + if (preserveLineBreaks) PROSE_PROVIDERS else emptyMap()
+
+		val unsafeHtml = HtmlGenerator(markdown, parsedTree, providers).generateHtml()
 		return sanitizer.sanitize(unsafeHtml.strikethroughAsDel())
 	}
 
@@ -69,108 +84,109 @@ class MarkdownService {
 	private fun String.strikethroughAsDel(): String =
 		replace(STRIKETHROUGH_SPAN, "<del>$1</del>")
 
-	/**
-	 * CommonMark collapses any run of blank lines into a single paragraph break, which loses the
-	 * deliberate white space a writer put between passages. Each blank line past the first becomes
-	 * a `<br />` block so the rendered story keeps the author's spacing.
-	 *
-	 * Code is left exactly as written: a `<br />` landing inside a code block would both split the
-	 * block and show up as literal text. Fenced blocks are tracked by their delimiter, and a blank
-	 * run between two indented lines is assumed to sit inside an indented block.
-	 */
-	private fun expandBlankLines(markdown: String): String {
-		val out = StringBuilder(markdown.length)
-		var fence: Fence? = null
-		var blankRun = 0
-		var seenContent = false
-		var lastIndent = 0
-
-		for (line in markdown.lineSequence()) {
-			val openFence = fence
-			if (openFence != null) {
-				out.append(line).append('\n')
-				if (closesFence(line, openFence)) fence = null
-				continue
-			}
-
-			if (line.isBlank()) {
-				blankRun++
-				continue
-			}
-
-			val indent = indentWidth(line)
-			if (blankRun > 0) {
-				val insideIndentedBlock = lastIndent > MAX_FENCE_INDENT && indent > MAX_FENCE_INDENT
-				if (seenContent && !insideIndentedBlock) {
-					out.append('\n')
-					repeat((blankRun - 1).coerceAtMost(MAX_CONSECUTIVE_BREAKS)) {
-						out.append(BREAK_BLOCK).append("\n\n")
-					}
-				} else {
-					repeat(blankRun) { out.append('\n') }
-				}
-				blankRun = 0
-			}
-
-			out.append(line).append('\n')
-			seenContent = true
-			lastIndent = indent
-			fence = openingFence(line)
-		}
-
-		return out.toString()
-	}
-
-	private fun openingFence(line: String): Fence? {
-		if (indentWidth(line) > MAX_FENCE_INDENT) return null
-
-		val trimmed = line.trimStart()
-		val delimiter = trimmed.firstOrNull() ?: return null
-		if (delimiter != '`' && delimiter != '~') return null
-
-		val length = trimmed.takeWhile { it == delimiter }.length
-		if (length < MIN_FENCE_LENGTH) return null
-		// A backtick fence's info string may not itself contain a backtick.
-		if (delimiter == '`' && trimmed.drop(length).contains('`')) return null
-
-		return Fence(delimiter, length)
-	}
-
-	private fun closesFence(line: String, fence: Fence): Boolean {
-		if (indentWidth(line) > MAX_FENCE_INDENT) return false
-
-		val trimmed = line.trimStart()
-		val length = trimmed.takeWhile { it == fence.delimiter }.length
-		return length >= fence.length && trimmed.drop(length).isBlank()
-	}
-
-	private fun indentWidth(line: String): Int {
-		var width = 0
-		for (character in line) {
-			when (character) {
-				' ' -> width++
-				'\t' -> width += TAB_WIDTH
-				else -> return width
-			}
-		}
-		return width
-	}
-
-	/** The delimiter that opened a code fence; only the same character, as long or longer, ends it. */
-	private data class Fence(val delimiter: Char, val length: Int)
-
 	companion object {
 		/** Upper bound on the breaks one run of blank lines can produce. */
 		const val MAX_CONSECUTIVE_BREAKS = 6
 
-		/** A blank line preceding this makes CommonMark pass it through as a raw HTML block. */
-		private const val BREAK_BLOCK = "<br />"
-
-		private const val MAX_FENCE_INDENT = 3
-		private const val MIN_FENCE_LENGTH = 3
-		private const val TAB_WIDTH = 4
+		private val PROSE_PROVIDERS: Map<IElementType, GeneratingProvider> = mapOf(
+			MarkdownElementTypes.PARAGRAPH to ProseParagraphProvider,
+			MarkdownElementTypes.MARKDOWN_FILE to ProseContainerProvider("body"),
+			MarkdownElementTypes.BLOCK_QUOTE to ProseContainerProvider("blockquote"),
+		)
 
 		private val STRIKETHROUGH_SPAN =
 			Regex("""<span class="user-del">(.*?)</span>""", RegexOption.DOT_MATCHES_ALL)
+	}
+}
+
+/**
+ * A paragraph of prose keeps the lines the author typed. CommonMark reflows a run of single-newline
+ * lines into one block, which turns a page of dialogue into a wall of text that looks nothing like
+ * what the writer sees in the editor; each line becomes its own paragraph instead.
+ *
+ * Paragraph siblings carry no vertical margin in the story stylesheet, so consecutive lines sit
+ * directly under one another and each picks up the first-line indent, exactly as the editor draws
+ * them.
+ */
+private object ProseParagraphProvider : TrimmingInlineHolderProvider() {
+	override fun openTag(visitor: HtmlGenerator.HtmlGeneratingVisitor, text: String, node: ASTNode) {
+		visitor.consumeTagOpen(node, "p")
+	}
+
+	override fun closeTag(visitor: HtmlGenerator.HtmlGeneratingVisitor, text: String, node: ASTNode) {
+		visitor.consumeTagClose("p")
+	}
+
+	override fun processNode(
+		visitor: HtmlGenerator.HtmlGeneratingVisitor,
+		text: String,
+		node: ASTNode,
+	) {
+		val children = childrenToRender(node)
+		openTag(visitor, text, node)
+
+		children.forEachIndexed { index, child ->
+			when {
+				// An edge newline would only open or close an empty paragraph.
+				child.type == MarkdownTokenTypes.EOL -> {
+					if (index != 0 && index != children.lastIndex) {
+						closeTag(visitor, text, node)
+						openTag(visitor, text, node)
+					}
+				}
+
+				// The trailing spaces of a hard break are redundant: the newline itself breaks here.
+				child.type == MarkdownTokenTypes.HARD_LINE_BREAK -> Unit
+
+				child is LeafASTNode -> visitor.visitLeaf(child)
+				else -> child.accept(visitor)
+			}
+		}
+
+		closeTag(visitor, text, node)
+	}
+}
+
+/**
+ * Blank lines an author left between passages are deliberate white space, but CommonMark treats any
+ * run of them as a single paragraph break. Each one becomes a break element so the spacing survives.
+ *
+ * Only prose gets them. Headings, lists and rules carry their own margins, and stacking blank lines
+ * on top of those margins opens a gap the author never asked for.
+ */
+private class ProseContainerProvider(tag: String) : SimpleTagProvider(tag) {
+	override fun processNode(
+		visitor: HtmlGenerator.HtmlGeneratingVisitor,
+		text: String,
+		node: ASTNode,
+	) {
+		openTag(visitor, text, node)
+
+		var newlines = 0
+		var afterParagraph = false
+		for (child in node.children) {
+			when (child.type) {
+				MarkdownTokenTypes.EOL -> newlines++
+				// A quote's own '>' markers sit between the lines they mark, and neither they nor
+				// stray indentation say anything about how far apart two passages are.
+				MarkdownTokenTypes.WHITE_SPACE, MarkdownTokenTypes.BLOCK_QUOTE -> Unit
+				else -> {
+					val isParagraph = child.type == MarkdownElementTypes.PARAGRAPH
+					if (afterParagraph && isParagraph) {
+						val breaks = (newlines - 1).coerceIn(0, MarkdownService.MAX_CONSECUTIVE_BREAKS)
+						repeat(breaks) { visitor.consumeHtml(BREAK) }
+					}
+					child.accept(visitor)
+					afterParagraph = isParagraph
+					newlines = 0
+				}
+			}
+		}
+
+		closeTag(visitor, text, node)
+	}
+
+	private companion object {
+		const val BREAK = "<br />"
 	}
 }

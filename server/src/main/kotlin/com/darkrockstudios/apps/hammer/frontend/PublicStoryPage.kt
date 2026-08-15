@@ -201,6 +201,7 @@ fun Route.publicStoryPage(
 							)
 							if (storyLanguage != null) {
 								model["locale"] = storyLanguage
+								model["storyLanguage"] = storyLanguage
 							}
 
 							model.putAll(

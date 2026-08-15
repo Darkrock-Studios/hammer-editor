@@ -41,7 +41,8 @@
 				{{/hasScenes}}
 
 				<!-- Story Content -->
-				<article class="story-content" id="story-content-area">
+				<article class="story-content"{{#storyLanguage}} lang="{{storyLanguage}}"{{/storyLanguage}}
+						 id="story-content-area">
 					{{#hasContent}}
 						{{{storyHtml}}}
 					{{/hasContent}}

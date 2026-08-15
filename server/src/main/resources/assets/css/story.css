@@ -265,10 +265,6 @@
 	color: inherit;
 }
 
-.story-content blockquote p + p {
-	margin-top: 1em;
-}
-
 /* Emphasis inside already-italic type reads as upright */
 .story-content blockquote em {
 	font-style: normal;
