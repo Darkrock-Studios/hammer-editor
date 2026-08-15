@@ -110,6 +110,7 @@
 	<string name="sync_log_account_project_create_client">Локальний проєкт створено: %1$s</string>
 	<string name="sync_log_account_project_create_client_local">Встановлення ID сервера для локального проєкту: %1$s</string>
 	<string name="sync_log_account_project_create_client_failure">Не вдалося створити проєкт на сервері: %1$s</string>
+	<string name="sync_log_account_project_create_client_name_taken">Skipped server project %1$s: a local project of that name already syncs with a different server project</string>
 	<string name="sync_log_begin_account">Синхронізація облікового запису…</string>
 	<string name="sync_log_begin_projects">Синхронізація проєктів…</string>
 	<string name="sync_log_end_projects">Синхронізацію проєктів завершено</string>

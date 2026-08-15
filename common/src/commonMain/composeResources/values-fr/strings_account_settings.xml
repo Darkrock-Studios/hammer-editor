@@ -43,9 +43,16 @@
 	<string name="settings_server_setup_login_button">Se connecter</string>
 	<string name="settings_server_setup_create_button">Créer</string>
 	<string name="settings_server_setup_cancel_button">Annuler</string>
-	<string name="remove_local_dialog_title">Supprimer le contenu local ?</string>
-	<string name="remove_local_dialog_message">Devons-nous supprimer votre contenu local actuel avant la synchronisation ? Sinon, nous tenterons de fusionner votre contenu local avec celui du serveur.
-Des conflits peuvent se déclarer et causer des erreurs si les contenus ne correspondent pas</string>
+	<string name="merge_projects_dialog_title">Merge existing projects with the server?</string>
+	<string name="merge_projects_mode_label">PROJECT DATA</string>
+	<string name="merge_projects_mode_merge">Merge</string>
+	<string name="merge_projects_mode_replace">Remplacer</string>
+	<string name="merge_projects_explain_merge">Hammer will match your local projects to projects already on the server by name. Projects that only exist on the server will be downloaded, and projects that only exist on this device will be uploaded.</string>
+	<string name="merge_projects_explain_replace">All of your local projects will be deleted and replaced with whatever is on the server.</string>
+	<string name="merge_projects_continue_button">Continue</string>
+	<string name="merge_projects_replace_confirm_title">Delete all local projects?</string>
+	<string name="merge_projects_replace_confirm_message">This permanently deletes every project on this device and replaces them with the projects from the server. This cannot be undone.</string>
+	<string name="merge_projects_replace_confirm_button">Delete and Replace</string>
 	<string name="settings_platform_settings_title">Paramètres de la plateforme</string>
 	<string name="settings_platform_settings_empty">Aucun paramètre spécifique à la plateforme.</string>
 	<string name="settings_keep_screen_on">Garder l'écran allumé</string>
