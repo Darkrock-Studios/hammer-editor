@@ -61,9 +61,13 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 			email: String,
 			password: String,
 			create: Boolean,
-			removeLocalContent: Boolean
+			replaceLocalContent: Boolean
 		) {
 		}
+
+		override fun chooseMerge() {}
+		override fun chooseReplace() {}
+		override fun cancelMergePrompt() {}
 
 		override fun acceptTos() {}
 		override fun declineTos() {}
