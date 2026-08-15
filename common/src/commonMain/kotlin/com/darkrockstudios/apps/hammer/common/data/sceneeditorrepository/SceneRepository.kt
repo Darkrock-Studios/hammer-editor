@@ -569,13 +569,11 @@ class SceneRepository(
 	}
 
 	/**
-	 * Moves [parentNode]'s children (recursively) to their intended paths. Order padding is
-	 * computed up front from the children that exist on disk, never from live directory counts:
-	 * each move changes a directory's disk count, and crossing a digit boundary mid-pass
-	 * (e.g. 10 to 9 children) would compute ancestor names that don't exist on disk yet.
-	 * Counting only disk-present children keeps the written names recomputable afterwards by
-	 * getSceneFilePath, whose padding comes from the directory's final disk count. Parents are
-	 * finalized before their children so every destination directory exists.
+	 * Recursively moves [parentNode]'s children to their intended paths. Order padding is the
+	 * digit count of the children present on disk, computed once per directory: it is immune to
+	 * the moves below changing the directory's live count, and it matches the padding
+	 * [getSceneFilePath] derives from the directory's final disk count. Parents are finalized
+	 * before their children so every destination directory exists.
 	 */
 	private fun rationalizeChildren(parentNode: TreeNode<SceneItem>, parentPath: HPath) {
 		// Children already inside this directory, snapshotted once: a sibling's rename never
