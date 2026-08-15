@@ -14,6 +14,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -53,8 +54,10 @@ fun MergeProjectsDialog(component: AccountSettings) {
 	var renderInternal by remember { mutableStateOf(state.mergePrompt) }
 	LaunchedEffect(state.mergePrompt) { if (state.mergePrompt) renderInternal = true }
 
-	var mode by remember(state.mergePrompt) { mutableStateOf(MergeMode.Merge) }
-	var confirmReplace by remember(state.mergePrompt) { mutableStateOf(false) }
+	// Keyed on renderInternal, not mergePrompt: the choice has to outlive the exit animation, and
+	// resetting on close would visibly snap the picker back to Merge on the way out.
+	var mode by rememberSaveable(renderInternal) { mutableStateOf(MergeMode.Merge) }
+	var confirmReplace by rememberSaveable(renderInternal) { mutableStateOf(false) }
 
 	if (renderInternal) {
 		AnimatedDialogContainer(
