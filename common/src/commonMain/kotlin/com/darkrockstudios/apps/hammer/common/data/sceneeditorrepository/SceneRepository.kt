@@ -563,25 +563,33 @@ class SceneRepository(
 	 */
 	fun rationalizeTree() {
 		correctSceneOrders()
+		rationalizeChildren(sceneTree.root(), sceneDatasource.getSceneDirectory())
+	}
 
-		sceneTree.forEach { node ->
-			if (node.value.type == SceneItem.Type.Root) return@forEach
+	/**
+	 * Moves [parentNode]'s children (recursively) to their intended paths. Order padding is
+	 * derived from the tree's child counts, never from live disk counts: each move changes a
+	 * directory's disk count, and crossing a digit boundary mid-pass (e.g. 10 to 9 children)
+	 * would compute ancestor names that don't exist on disk yet. Parents are finalized before
+	 * their children so every destination directory exists.
+	 */
+	private fun rationalizeChildren(parentNode: TreeNode<SceneItem>, parentPath: HPath) {
+		val orderDigits = parentNode.children().size.numDigits()
 
-			val intendedPath = getSceneFilePath(node.value.id)
+		parentNode.children().forEach { node ->
+			val intendedPath = parentPath.toOkioPath()
+				.div(sceneFileName(node.value, orderDigits))
+				.toHPath()
 
-			val allPaths = sceneDatasource.getAllScenePaths()
-			val realPath = allPaths.find { path ->
-				val scene = sceneDatasource.getSceneFromPath(path)
-				scene.id == node.value.id
-			}
-
+			val realPath = sceneDatasource.resolveScenePathFromFilesystem(node.value.id)
 			if (realPath != null) {
 				if (realPath != intendedPath) {
 					Napier.i { "Moving scene to new path: ${intendedPath.path} from old path: ${realPath.path}" }
 					sceneDatasource.moveScene(realPath, intendedPath)
-				} else {
-					// Too chatty, don't need it
-					//Napier.d { "Scene ${node.value.id} is in the correct location" }
+				}
+
+				if (node.value.type == SceneItem.Type.Group) {
+					rationalizeChildren(node, intendedPath)
 				}
 			} else {
 				Napier.e { "Scene ${node.value.id} is missing from the filesystem" }
