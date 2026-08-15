@@ -212,6 +212,49 @@
 }
 
 /* ----------------------------------------
+   Tables
+   ---------------------------------------- */
+
+.story-content table {
+	display: block;
+	width: fit-content;
+	max-width: 100%;
+	margin: 2em auto;
+	overflow-x: auto;
+	border-collapse: collapse;
+	font-size: 0.9375em;
+	text-indent: 0;
+}
+
+.story-content th,
+.story-content td {
+	padding: 0.5em 1em;
+	border: 1px solid var(--neutral-200);
+	text-align: left;
+	vertical-align: top;
+}
+
+/* Author CSS outranks the align attribute markdown's column alignment produces, so honour it here */
+.story-content th[align="center"],
+.story-content td[align="center"] {
+	text-align: center;
+}
+
+.story-content th[align="right"],
+.story-content td[align="right"] {
+	text-align: right;
+}
+
+.story-content th {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375em;
+	font-weight: 500;
+	color: var(--text-secondary);
+	background: rgba(245, 245, 244, 0.7);
+	border-bottom-color: var(--neutral-300);
+}
+
+/* ----------------------------------------
    Scene break
    ---------------------------------------- */
 
@@ -263,10 +306,6 @@
 	text-indent: 0;
 	text-align: left;
 	color: inherit;
-}
-
-.story-content blockquote p + p {
-	margin-top: 1em;
 }
 
 /* Emphasis inside already-italic type reads as upright */

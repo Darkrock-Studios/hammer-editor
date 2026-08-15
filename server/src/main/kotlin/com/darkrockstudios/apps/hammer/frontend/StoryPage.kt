@@ -14,6 +14,8 @@ import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
 import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
+import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.SceneHierarchyResult
@@ -48,6 +50,7 @@ fun Route.storyPage(
 	accountsRepository: AccountsRepository,
 	reviewRepository: com.darkrockstudios.apps.hammer.review.ReviewRepository,
 	storyReaderRepository: StoryReaderRepository,
+	serverProjectDataRepository: ServerProjectDataRepository,
 	projectDao: ProjectDao,
 	clock: kotlin.time.Clock,
 ) {
@@ -140,9 +143,18 @@ fun Route.storyPage(
 
 						val reviewModels = call.reviewCards(reviewRepository, session.userId, projectId)
 
+						// The public reader page declares the story's language on the prose; the
+						// author's own view has to as well, or the browser hyphenates a French
+						// story by the rules of whatever locale the author reads Hammer in.
+						val storyLanguage = serverProjectDataRepository.loadProjectLanguage(
+							userId = session.userId,
+							projectDef = ProjectDefinition(name = project.name, uuid = projectId),
+						)
+
 						val model = call.withDefaults(
 							mapOf(
 								"page_stylesheet" to "/assets/css/story.css",
+								"storyLanguage" to storyLanguage.orEmpty(),
 								"page_script" to "/assets/js/story.js",
 								"page_pre_script" to "/assets/js/review-form-logic.js",
 								"reviews" to reviewModels,

@@ -521,20 +521,35 @@ element markdown can emit has a rule:
 
 | Element      | Treatment                                                                       |
 |--------------|---------------------------------------------------------------------------------|
-| `p`          | 2em first-line indent on every prose paragraph, justified                       |
+| `p`          | One authored line: 2em first-line indent, justified, no margin between siblings |
 | `h1`         | The story title, in Kingthings at 2rem                                          |
 | `h2`         | Chapter heading: centered, with a dashed rule above it and 4rem of air, dropped on the first one |
 | `h3` / `h4`  | Kingthings, stepping down in size, 2.5rem above                                 |
 | `h5` / `h6`  | Uppercase, letter-spaced and secondary-colored rather than larger               |
 | `ul` / `ol`  | 3.5em indent so markers sit inside the prose indent, 0.75em between items, accent markers |
+| `table`      | Centered, hairline-ruled, scrolls inside itself; header row in Kingthings on a tint |
 | `hr`         | Centered short rule with an amber diamond, 3rem of air above and below           |
 | `blockquote` | Tinted panel, amber left rule, italic, with `em` flipped upright inside          |
 | `pre`        | Tinted box that wraps rather than overflows the column                          |
 | `code`       | Courier; a tinted pill when it sits inline in a paragraph or list item          |
 | `a`          | Accent-colored, underlined with a softened amber rule                           |
 
-`br` needs no rule: it is the break `MarkdownService` emits for each blank line past the first, and
-it inherits the prose line height.
+`br` needs no rule: it is the break `MarkdownService` emits for each blank line between two
+paragraphs, and it inherits the prose line height.
+
+Prose is laid out as the author typed it, which is what they see in the editor: every newline in a
+paragraph starts a new line and every blank line is a blank line. Paragraph siblings carry no
+margin, so consecutive lines sit directly under one another and each takes the first-line indent.
+Headings, lists, quotes and rules keep their own spacing; blank lines next to them add nothing, and
+a list keeps markdown's own layout rather than the author's line breaks.
+
+An element the sanitizer drops keeps its text, so anything the parser can emit needs either a rule
+here or a deliberate exclusion. Images and task-list checkboxes are excluded: a remote image on a
+public page is a tracking pixel, and a checkbox is a form control.
+
+The prose element declares the story's language (`lang` on `.story-content`) on both the author's
+page and the public reader page, so the browser hyphenates by the story's rules rather than the
+reader's UI locale.
 
 Below 600px the column is too narrow to justify without opening rivers, so paragraphs go ragged
 right and hyphenation is off.

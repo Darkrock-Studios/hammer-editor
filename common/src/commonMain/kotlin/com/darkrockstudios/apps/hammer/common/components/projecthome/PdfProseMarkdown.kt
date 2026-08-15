@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.projecthome
 
 import com.conamobile.pdfkmp.dsl.ContainerScope
+import com.darkrockstudios.apps.hammer.base.markdown.ProseHtml
 import com.darkrockstudios.apps.hammer.common.data.search.unescapeMarkdown
 import com.conamobile.pdfkmp.dsl.TextScope
 import com.conamobile.pdfkmp.geometry.Padding
@@ -52,14 +53,15 @@ internal fun ContainerScope.proseMarkdown(markdown: String, colors: ProseColors 
 			if (index > 0) {
 				val previous = blocks[index - 1]
 				when {
-					// Consecutive paragraphs carry their own separation via the indent.
-					previous is ProseBlock.Paragraph && block is ProseBlock.Paragraph -> Unit
+					// Prose carries its own separation: the indent, and the author's blank lines.
+					previous.isProseLine && block.isProseLine -> Unit
 					previous is ProseBlock.Heading -> spacer(height = HEADING_SPACING)
 					else -> spacer(height = BLOCK_SPACING)
 				}
 			}
 			when (block) {
 				is ProseBlock.Paragraph -> renderParagraph(block.spans, base, colors)
+				ProseBlock.Blank -> spacer(height = Dp(TextStyle().fontSize.value * BODY_LEADING))
 				is ProseBlock.Heading -> renderHeading(block, base, colors)
 				is ProseBlock.Listing -> renderListing(block, base, colors)
 				is ProseBlock.Quote -> renderQuote(block, base, colors)
@@ -94,7 +96,12 @@ internal data class ProseListItem(
 
 /** A block-level markdown element, reduced to what the prose layout renders. */
 internal sealed interface ProseBlock {
+	/** One line of prose as the author typed it. */
 	data class Paragraph(val spans: List<ProseSpan>) : ProseBlock
+
+	/** A blank line the author left between two passages. */
+	data object Blank : ProseBlock
+
 	data class Heading(val level: Int, val spans: List<ProseSpan>) : ProseBlock
 	data class Listing(val ordered: Boolean, val items: List<ProseListItem>) : ProseBlock
 	data class Quote(val paragraphs: List<List<ProseSpan>>) : ProseBlock
@@ -106,11 +113,20 @@ internal sealed interface ProseBlock {
 /**
  * Parses [markdown] into renderable blocks using the GFM flavour, so `~~strike~~`, pipe tables, and
  * autolinks are recognized. Unknown syntax degrades to paragraph text.
+ *
+ * Prose keeps the shape the author gave it, which is what the editor shows them: every newline
+ * starts a new [ProseBlock.Paragraph] and every blank line becomes a [ProseBlock.Blank]. CommonMark
+ * would reflow both away, turning a page of dialogue into one packed block.
  */
 internal fun parseProseMarkdown(markdown: String): List<ProseBlock> {
-	val root = MarkdownParser(GFMFlavourDescriptor()).buildMarkdownTreeFromString(markdown)
-	return ProseWalker(markdown).blocks(root)
+	val source = ProseHtml.normalizeLineEndings(markdown)
+	val root = MarkdownParser(GFMFlavourDescriptor()).buildMarkdownTreeFromString(source)
+	return ProseWalker(source).blocks(root)
 }
+
+/** True for the block kinds that make up running prose, as opposed to a structural block. */
+internal val ProseBlock.isProseLine: Boolean
+	get() = this is ProseBlock.Paragraph || this is ProseBlock.Blank
 
 // ---------------------------------------------------------------------------
 // AST walking
@@ -129,37 +145,99 @@ private val HEADING_LEVELS: Map<IElementType, Int> = mapOf(
 
 private class ProseWalker(private val source: String) {
 
-	fun blocks(root: ASTNode): List<ProseBlock> = root.children.mapNotNull { block(it) }
+	/**
+	 * Walks the top level, keeping the blank lines between prose passages. A run of newlines
+	 * separating two paragraphs is one more than the blank lines it contains; only prose gets them,
+	 * because a heading, list or rule carries its own spacing already.
+	 */
+	fun blocks(root: ASTNode): List<ProseBlock> {
+		val out = mutableListOf<ProseBlock>()
+		var newlines = 0
+		var afterProse = false
 
-	private fun block(node: ASTNode): ProseBlock? = when (node.type) {
-		MarkdownElementTypes.PARAGRAPH ->
-			inline(node).ifEmpty { null }?.let { ProseBlock.Paragraph(it) }
+		for (child in root.children) {
+			if (child.type == MarkdownTokenTypes.EOL) {
+				newlines++
+				continue
+			}
+			if (child.type == MarkdownTokenTypes.WHITE_SPACE) continue
 
-		in HEADING_LEVELS -> heading(node)
+			val produced = block(child)
+			if (produced.isEmpty()) continue
+
+			if (afterProse && produced.first().isProseLine) {
+				val blanks = (newlines - 1).coerceIn(0, ProseHtml.MAX_CONSECUTIVE_BREAKS)
+				repeat(blanks) { out += ProseBlock.Blank }
+			}
+			out += produced
+			afterProse = produced.last().isProseLine
+			newlines = 0
+		}
+
+		return out
+	}
+
+	private fun block(node: ASTNode): List<ProseBlock> = when (node.type) {
+		MarkdownElementTypes.PARAGRAPH -> paragraphs(node)
+
+		in HEADING_LEVELS -> listOfNotNull(heading(node))
 
 		MarkdownElementTypes.UNORDERED_LIST ->
-			ProseBlock.Listing(ordered = false, items = listItems(node, level = 0, ordered = false))
+			listOf(ProseBlock.Listing(ordered = false, items = listItems(node, level = 0, ordered = false)))
 
 		MarkdownElementTypes.ORDERED_LIST ->
-			ProseBlock.Listing(ordered = true, items = listItems(node, level = 0, ordered = true))
+			listOf(ProseBlock.Listing(ordered = true, items = listItems(node, level = 0, ordered = true)))
 
 		MarkdownElementTypes.BLOCK_QUOTE ->
-			quoteParagraphs(node).ifEmpty { null }?.let { ProseBlock.Quote(it) }
+			listOfNotNull(quoteParagraphs(node).ifEmpty { null }?.let { ProseBlock.Quote(it) })
 
-		MarkdownElementTypes.CODE_FENCE -> ProseBlock.CodeBlock(fenceContent(node))
-		MarkdownElementTypes.CODE_BLOCK -> ProseBlock.CodeBlock(indentedCode(node))
+		MarkdownElementTypes.CODE_FENCE -> listOf(ProseBlock.CodeBlock(fenceContent(node)))
+		MarkdownElementTypes.CODE_BLOCK -> listOf(ProseBlock.CodeBlock(indentedCode(node)))
 
-		MarkdownTokenTypes.HORIZONTAL_RULE -> ProseBlock.Rule
+		MarkdownTokenTypes.HORIZONTAL_RULE -> listOf(ProseBlock.Rule)
 
-		GFMElementTypes.TABLE -> table(node)
+		GFMElementTypes.TABLE -> listOfNotNull(table(node))
 
-		// Reference-link definitions and inter-block whitespace produce no output.
-		MarkdownElementTypes.LINK_DEFINITION,
-		MarkdownTokenTypes.EOL,
-		MarkdownTokenTypes.WHITE_SPACE,
-		-> null
+		// Reference-link definitions produce no output.
+		MarkdownElementTypes.LINK_DEFINITION -> emptyList()
 
-		else -> inline(node).ifEmpty { null }?.let { ProseBlock.Paragraph(it) }
+		else -> paragraphs(node)
+	}
+
+	/** A paragraph node, split into one block per line the author typed. */
+	private fun paragraphs(node: ASTNode): List<ProseBlock.Paragraph> =
+		if (node.children.isEmpty()) {
+			listOfNotNull(inline(node).ifEmpty { null }?.let { ProseBlock.Paragraph(it) })
+		} else {
+			lines(node).map { ProseBlock.Paragraph(it) }
+		}
+
+	/** The inline content of [holder], cut at every newline the author typed. */
+	private fun lines(holder: ASTNode): List<List<ProseSpan>> {
+		val lines = mutableListOf<List<ProseSpan>>()
+		var current = mutableListOf<ProseSpan>()
+
+		fun endLine() {
+			normalise(current).ifEmpty { null }?.let { lines += it }
+			current = mutableListOf()
+		}
+
+		for (child in holder.children) {
+			when (child.type) {
+				MarkdownTokenTypes.EOL -> endLine()
+
+				// The trailing spaces of a hard break are redundant: the newline itself breaks here.
+				MarkdownTokenTypes.HARD_LINE_BREAK -> Unit
+
+				// A quote's own '>' markers sit inside the paragraph, on every line but the first.
+				MarkdownTokenTypes.BLOCK_QUOTE -> Unit
+
+				else -> collect(child, Flags(), current)
+			}
+		}
+		endLine()
+
+		return lines
 	}
 
 	private fun heading(node: ASTNode): ProseBlock? {
@@ -214,7 +292,8 @@ private class ProseWalker(private val source: String) {
 				MarkdownTokenTypes.WHITE_SPACE,
 				-> Unit
 
-				else -> inline(child).ifEmpty { null }?.let { paragraphs += it }
+				// A quoted passage keeps its lines, the same as prose outside the quote.
+				else -> paragraphs += lines(child)
 			}
 		}
 		return paragraphs
