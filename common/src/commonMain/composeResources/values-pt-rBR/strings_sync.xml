@@ -110,6 +110,7 @@
 	<string name="sync_log_account_project_create_client">Projeto local criado: %1$s</string>
 	<string name="sync_log_account_project_create_client_local">Configurando ID do servidor do projeto local: %1$s</string>
 	<string name="sync_log_account_project_create_client_failure">Falha ao criar projeto de servidor:%1$s</string>
+	<string name="sync_log_account_project_create_client_name_taken">Skipped server project %1$s: a local project of that name already syncs with a different server project</string>
 	<string name="sync_log_begin_account">Sincronizando Conta...</string>
 	<string name="sync_log_begin_projects">Sincronizando Projetos...</string>
 	<string name="sync_log_end_projects">Sincronização de projetos concluída</string>
