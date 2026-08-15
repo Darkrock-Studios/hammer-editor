@@ -210,12 +210,12 @@ class AccountSettingsComponent(
 		return accountUseCase.testAuth()
 	}
 
-	override fun removeServer() {
+	override suspend fun removeServer() {
 		globalSettingsStore.deleteServerSettings()
 		clearAllProjectIds()
 	}
 
-	private fun clearAllProjectIds() {
+	private suspend fun clearAllProjectIds() {
 		projectsRepository.getProjects().forEach { projectDef ->
 			projectsRepository.removeProjectId(projectDef = projectDef)
 		}

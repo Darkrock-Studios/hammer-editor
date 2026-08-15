@@ -42,7 +42,7 @@ interface AccountSettings : ComponentToaster {
 	fun declineTos()
 
 	suspend fun authTest(): Boolean
-	fun removeServer()
+	suspend fun removeServer()
 
 	suspend fun setAutomaticBackups(value: Boolean)
 	suspend fun setAutoCloseDialogs(value: Boolean)

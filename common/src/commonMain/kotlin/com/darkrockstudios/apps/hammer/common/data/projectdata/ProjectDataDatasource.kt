@@ -96,3 +96,19 @@ fun saveStoredProjectData(
 ) {
 	fileSystem.writeToml(projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME, toml, stored)
 }
+
+/**
+ * Drops [StoredProjectData.lastSyncedHash] while leaving [StoredProjectData.data] intact, for when
+ * the project starts pointing at a different server project and the old baseline no longer
+ * describes any agreement. Never creates the file: no file means no baseline to clear.
+ */
+fun clearProjectDataSyncBaseline(
+	projectDef: ProjectDef,
+	fileSystem: FileSystem,
+	toml: Toml,
+) {
+	if (!fileSystem.exists(projectDef.path.toOkioPath() / ProjectDataDatasource.FILENAME)) return
+	val stored = readStoredProjectData(projectDef, fileSystem, toml)
+	if (stored.lastSyncedHash == null) return
+	saveStoredProjectData(projectDef, fileSystem, toml, stored.copy(lastSyncedHash = null))
+}

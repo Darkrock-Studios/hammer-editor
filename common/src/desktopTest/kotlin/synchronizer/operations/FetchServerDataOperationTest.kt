@@ -200,7 +200,7 @@ class FetchServerDataOperationTest : BaseTest() {
 
 		assertFalse(isSuccess(result))
 		// Only a 410 proves the id is dead; a transient failure must not discard it.
-		verify(exactly = 0) { projectsRepository.removeProjectId(any()) }
+		coVerify(exactly = 0) { projectsRepository.removeProjectId(any()) }
 	}
 
 	@Test
@@ -223,7 +223,7 @@ class FetchServerDataOperationTest : BaseTest() {
 		val result = execute(op)
 
 		assertFalse(isSuccess(result))
-		verify { projectsRepository.removeProjectId(projectDef) }
+		coVerify { projectsRepository.removeProjectId(projectDef) }
 	}
 
 	private suspend fun stubSettingsAndMetadata() {

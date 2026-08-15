@@ -101,3 +101,40 @@ class SyncDataDatasource(
 		const val SYNC_FILE_NAME = "sync.json"
 	}
 }
+
+/**
+ * Resets everything in the entity journal that records agreement with a *specific* server, for
+ * scope-less callers moving a project to a different server project. Local pending work the new
+ * server has never seen — [ProjectSynchronizationData.dirty], `newIds`, `deletedIds`, `lastId` —
+ * is kept, so an unsynced edit or a tombstone can't be lost by the move. Dirty entries keep their
+ * id but drop [EntityOriginalState.originalHash]: a baseline the old server confirmed would forge
+ * a phantom conflict against the new one, while a null baseline uploads unconditionally.
+ *
+ * No-op when the journal doesn't exist. A corrupt journal is deleted so
+ * [SyncDataDatasource.createSyncData] rebuilds it from local state, matching [loadSyncData].
+ */
+// Corrupt sync data recovers by deleting it; not an error to surface.
+@Suppress("SwallowedException")
+fun clearProjectSyncBaseline(projectDef: ProjectDef, fileSystem: FileSystem, json: Json) {
+	val path = projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME
+	if (!fileSystem.exists(path)) return
+
+	val current = try {
+		fileSystem.read(path) { json.decodeFromString<ProjectSynchronizationData>(readUtf8()) }
+	} catch (e: SerializationException) {
+		fileSystem.delete(path)
+		return
+	}
+
+	val cleared = current.copy(
+		currentSyncId = null,
+		lastSync = Instant.DISTANT_PAST,
+		dirty = current.dirty.map { it.copy(originalHash = null) },
+		syncedHashes = emptyMap(),
+		cachedProjectHash = null,
+		hashAlgoVersion = 0,
+	)
+	if (cleared == current) return
+
+	fileSystem.write(path) { writeUtf8(json.encodeToString(cleared)) }
+}

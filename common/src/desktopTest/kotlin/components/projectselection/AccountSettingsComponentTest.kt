@@ -5,6 +5,7 @@ import com.arkivanov.essenty.lifecycle.LifecycleRegistry
 import com.arkivanov.essenty.lifecycle.resume
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
+import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
@@ -117,6 +118,7 @@ class AccountSettingsComponentTest : BaseTest() {
 					globalSettingsStore = globalSettingsStore,
 					projectsMetadataDatasource = ProjectMetadataDatasource(hookedFs, toml),
 					toml = toml,
+					json = createJsonSerializer(),
 					deviceLocaleResolver = mockk(relaxed = true),
 				)
 			} bind ProjectsRepository::class

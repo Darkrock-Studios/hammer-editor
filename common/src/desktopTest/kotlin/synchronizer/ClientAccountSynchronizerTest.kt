@@ -434,7 +434,7 @@ class ClientAccountSynchronizerTest {
 
 		assertTrue(result)
 		coVerify { serverProjectsApi.createProject("LocalNovel", "sync-1") }
-		verify { projectsRepository.setProjectId(def, newId) }
+		coVerify { projectsRepository.setProjectId(def, newId) }
 		assertTrue(readSyncData().projectsToCreate.isEmpty())
 	}
 
@@ -457,7 +457,7 @@ class ClientAccountSynchronizerTest {
 
 		assertTrue(result)
 		coVerify { serverProjectsApi.createProject("ResetServerNovel", "sync-1") }
-		verify { projectsRepository.setProjectId(def, freshId) }
+		coVerify { projectsRepository.setProjectId(def, freshId) }
 	}
 
 	@Test
@@ -530,7 +530,7 @@ class ClientAccountSynchronizerTest {
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
-		verify { projectsRepository.deleteProject(def) }
+		coVerify { projectsRepository.deleteProject(def) }
 	}
 
 	@Test
@@ -603,8 +603,8 @@ class ClientAccountSynchronizerTest {
 
 		assertTrue(result)
 		coVerify { serverProjectsApi.deleteProject(id, "sync-1") }
-		verify(exactly = 0) { projectsRepository.createProject(any(), any()) }
-		verify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.createProject(any(), any()) }
+		coVerify(exactly = 0) { projectsRepository.setProjectId(any(), any()) }
 	}
 
 	@Test
@@ -623,8 +623,8 @@ class ClientAccountSynchronizerTest {
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
-		verify { projectsRepository.createProject("ServerNovel", any()) }
-		verify { projectsRepository.setProjectId(createdDef, serverId) }
+		coVerify { projectsRepository.createProject("ServerNovel", any()) }
+		coVerify { projectsRepository.setProjectId(createdDef, serverId) }
 	}
 
 	@Test
@@ -759,8 +759,8 @@ class ClientAccountSynchronizerTest {
 		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
 
 		assertTrue(result)
-		verify { projectsRepository.createProject(safeName, any()) }
-		verify(exactly = 0) { projectsRepository.createProject(mangledName, any()) }
-		verify { projectsRepository.setProjectId(createdDef, serverId) }
+		coVerify { projectsRepository.createProject(safeName, any()) }
+		coVerify(exactly = 0) { projectsRepository.createProject(mangledName, any()) }
+		coVerify { projectsRepository.setProjectId(createdDef, serverId) }
 	}
 }
