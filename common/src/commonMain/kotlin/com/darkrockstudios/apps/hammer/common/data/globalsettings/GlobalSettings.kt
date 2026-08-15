@@ -24,6 +24,12 @@ data class GlobalSettings(
 	val automaticSyncing: Boolean = true,
 	val nux: NewUserExperience = NewUserExperience(),
 	val editorFontSize: Float = DEFAULT_FONT_SIZE,
+	/**
+	 * The scene editor's maximum column width in dp; rendered width is
+	 * min(available width, this). Only takes effect on windows wide enough
+	 * to exceed it.
+	 */
+	val editorMaxWidth: Float = DEFAULT_EDITOR_WIDTH,
 	val enableDndInFocusMode: Boolean = false,
 	/**
 	 * Whether the scene metadata panel is visible on wide layouts. UI state,
@@ -54,6 +60,9 @@ data class GlobalSettings(
 		const val DEFAULT_BACKUPS = 20
 		const val MAX_BACKUPS = 50
 		const val DEFAULT_FONT_SIZE = 16f
+		const val DEFAULT_EDITOR_WIDTH = 700f
+		const val MIN_EDITOR_WIDTH = 700f
+		const val MAX_EDITOR_WIDTH = 1400f
 	}
 }
 

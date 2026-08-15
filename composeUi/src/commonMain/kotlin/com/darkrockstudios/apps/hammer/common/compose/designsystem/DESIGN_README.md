@@ -312,6 +312,24 @@ The handwriting of the system. Reach for these instead of styling
   Use where a dropdown would be unwieldy: dozens to hundreds of
   options, e.g. every platform locale. Optional muted clear row above
   the list resets the selection.
+- **[`HdResizeHandle`](HdResizeHandle.kt)**: full-height 16dp gutter
+  on the start edge of a centered, width-capped column (the scene
+  editor, focus mode) that drags the column wider or narrower. Shows
+  the `HdDragHandle` grip glyph at low alpha, full alpha on hover or
+  drag; desktop gets a horizontal-resize cursor via expect/actual
+  (the scrollbar-rail precedent for desktop-flavored affordances);
+  double-click resets. Reports drag deltas outward-positive
+  regardless of layout direction, so callers stay RTL-safe and a
+  centered column grows by twice the reported delta. Pair it with
+  `rememberHdResizeHandleState`, which owns the drag math,
+  commit-on-drag-end, and the `showHandle` gate that hides it on
+  narrow layouts (`RESIZE_HANDLE_MIN_SLACK` beyond the column's
+  minimum width, so an over-wide persisted value can always be
+  shrunk back).
+
+      ┆▪ ▪┆ ┌────────────────────┐
+      ┆▪ ▪┆ │  centered column   │
+      ┆▪ ▪┆ └────────────────────┘
 
 ### Categorization
 

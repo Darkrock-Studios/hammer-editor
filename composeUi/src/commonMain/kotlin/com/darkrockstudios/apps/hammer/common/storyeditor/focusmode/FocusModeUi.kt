@@ -6,6 +6,7 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -37,12 +38,15 @@ import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusMode
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.clampEditorWidth
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.findShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResizeHandle
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdResizeHandleState
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownFormatBar
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
@@ -161,25 +165,44 @@ fun FocusModeUi(component: FocusMode) {
 				)
 			}
 
-			Row(
-				modifier = Modifier.fillMaxSize(),
-				horizontalArrangement = Arrangement.Center
-			) {
-				SpellCheckingTextEditor(
-					state = textEditorState,
-					contentPadding = PaddingValues(Ui.Padding.XL),
-					enabled = hasReceivedInitialBuffer,
-					style = rememberTextEditorStyle(
-						textStyle = TextStyle.Default.copy(
-							textIndent = TextIndent(firstLine = 24.sp)
-						),
-						focusedBorderColor = Color.Transparent,
-					),
-					modifier = Modifier
-						.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
-						.fillMaxHeight()
-						.widthIn(128.dp, TextEditorDefaults.MAX_WIDTH),
+			BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+				val widthState = rememberHdResizeHandleState(
+					persistedWidth = state.editorMaxWidth,
+					availableWidth = maxWidth,
+					clampWidth = ::clampEditorWidth,
+					onCommit = component::setEditorMaxWidth,
+					onReset = component::resetEditorMaxWidth,
 				)
+				val editorMaxWidth = widthState.width
+
+				Row(
+					modifier = Modifier.fillMaxSize(),
+					horizontalArrangement = Arrangement.Center
+				) {
+					if (widthState.showHandle) {
+						HdResizeHandle(
+							onOutwardDrag = widthState::onOutwardDrag,
+							onDragEnd = widthState::onDragEnd,
+							onReset = widthState::reset,
+						)
+					}
+
+					SpellCheckingTextEditor(
+						state = textEditorState,
+						contentPadding = PaddingValues(Ui.Padding.XL),
+						enabled = hasReceivedInitialBuffer,
+						style = rememberTextEditorStyle(
+							textStyle = TextStyle.Default.copy(
+								textIndent = TextIndent(firstLine = 24.sp)
+							),
+							focusedBorderColor = Color.Transparent,
+						),
+						modifier = Modifier
+							.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
+							.fillMaxHeight()
+							.widthIn(TextEditorDefaults.MIN_WIDTH, editorMaxWidth),
+					)
+				}
 			}
 		}
 	}
