@@ -2,10 +2,14 @@ package com.darkrockstudios.apps.hammer.project.access
 
 import com.darkrockstudios.apps.hammer.Project_access
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.database.CommunityFeedStory
 import com.darkrockstudios.apps.hammer.database.ProjectAccessDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.PublishedStoryInfo
+import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
+import com.darkrockstudios.apps.hammer.utilities.Msg
+import com.darkrockstudios.apps.hammer.utilities.SResult
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.time.Clock
@@ -25,6 +29,8 @@ sealed class PublicProjectResult {
 		val projectName: String,
 		val penName: String,
 		val isPublic: Boolean,
+		/** Scene ids this share is limited to; null exposes the entire story. */
+		val sceneIds: Set<Int>? = null,
 	) : PublicProjectResult()
 
 	data object NotFound : PublicProjectResult()
@@ -37,12 +43,19 @@ data class AccessEntryInfo(
 	val password: String?,
 	val expiresAt: Instant?,
 	val expiresAtFormatted: String?,
-	val isExpired: Boolean
-)
+	val isExpired: Boolean,
+	/** Number of scenes this share is limited to; null exposes the entire story. */
+	val sceneCount: Int? = null,
+) {
+	/** Pluralization hook for the Mustache access list. */
+	val isSingleScene: Boolean
+		get() = sceneCount == 1
+}
 
 class ProjectAccessRepository(
 	private val projectAccessDao: ProjectAccessDao,
 	private val projectDao: ProjectDao,
+	private val projectEntityDatasource: ProjectEntityDatasource,
 	private val clock: Clock,
 ) {
 	suspend fun getAccessForProject(userId: Long, projectUuid: ProjectId): Project_access? {
@@ -102,14 +115,44 @@ class ProjectAccessRepository(
 		projectUuid: ProjectId,
 		password: String,
 		expiresAt: Instant?,
-	) {
+		sceneIds: List<Int> = emptyList(),
+	): SResult<Unit> {
+		if (sceneIds.size != sceneIds.distinct().size) {
+			return SResult.failure("Duplicate scene ids", Msg.r("api_access_create_error_invalid_scene"))
+		}
+
+		val projectDef = projectEntityDatasource.getProject(userId, projectUuid)
+			?: return SResult.failure("Project not found", Msg.r("api_access_create_error_project_not_found"))
+		for (sceneId in sceneIds) {
+			val type = projectEntityDatasource.findEntityType(sceneId, userId, projectDef)
+			if (type != ApiProjectEntity.Type.SCENE) {
+				return SResult.failure(
+					"Entity $sceneId is not a scene",
+					Msg.r("api_access_create_error_invalid_scene")
+				)
+			}
+		}
+
 		val projectId = projectDao.getProjectId(userId, projectUuid)
-		projectAccessDao.insertAccess(projectId, password, expiresAt)
+		// Password lookup on the reader route resolves a single row, so a password
+		// reused across shares of one project would make the older share unreachable.
+		val duplicate = projectAccessDao.getPrivateAccessForProject(projectId)
+			.any { it.access_password == password }
+		if (duplicate) {
+			return SResult.failure(
+				"Password already used by another share",
+				Msg.r("api_access_create_error_duplicate_password")
+			)
+		}
+
+		projectAccessDao.insertAccessWithScenes(projectId, password, expiresAt, sceneIds)
+		return SResult.success(Unit)
 	}
 
 	suspend fun getPrivateAccessEntries(userId: Long, projectUuid: ProjectId): List<AccessEntryInfo> {
 		val projectId = projectDao.getProjectId(userId, projectUuid)
 		val entries = projectAccessDao.getPrivateAccessForProject(projectId)
+		val sceneCounts = projectAccessDao.sceneCountsForAccessIds(entries.map { it.id })
 		val now = clock.now()
 		val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy").withZone(ZoneId.systemDefault())
 
@@ -123,7 +166,8 @@ class ProjectAccessRepository(
 				password = entry.access_password,
 				expiresAt = expiresAt,
 				expiresAtFormatted = formattedDate,
-				isExpired = isExpired
+				isExpired = isExpired,
+				sceneCount = sceneCounts[entry.id],
 			)
 		}
 	}
@@ -208,12 +252,18 @@ class ProjectAccessRepository(
 			return PublicProjectResult.PasswordRequired
 		}
 
+		val sceneIds = passwordInfo.accessId
+			?.let { projectAccessDao.getSceneIdsForAccess(it) }
+			?.toSet()
+			?.ifEmpty { null }
+
 		return PublicProjectResult.Success(
 			userId = passwordInfo.userId,
 			projectUuid = ProjectId(passwordInfo.projectUuid),
 			projectName = passwordInfo.projectName,
 			penName = passwordInfo.penName,
 			isPublic = false,
+			sceneIds = sceneIds,
 		)
 	}
 
