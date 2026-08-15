@@ -527,6 +527,7 @@ element markdown can emit has a rule:
 | `h3` / `h4`  | Kingthings, stepping down in size, 2.5rem above                                 |
 | `h5` / `h6`  | Uppercase, letter-spaced and secondary-colored rather than larger               |
 | `ul` / `ol`  | 3.5em indent so markers sit inside the prose indent, 0.75em between items, accent markers |
+| `table`      | Centered, hairline-ruled, scrolls inside itself; header row in Kingthings on a tint |
 | `hr`         | Centered short rule with an amber diamond, 3rem of air above and below           |
 | `blockquote` | Tinted panel, amber left rule, italic, with `em` flipped upright inside          |
 | `pre`        | Tinted box that wraps rather than overflows the column                          |
@@ -536,10 +537,15 @@ element markdown can emit has a rule:
 `br` needs no rule: it is the break `MarkdownService` emits for each blank line between two
 paragraphs, and it inherits the prose line height.
 
-Prose is laid out as the author typed it, which is what they see in the editor: every newline starts
-a new paragraph and every blank line is a blank line. Paragraph siblings carry no margin, so
-consecutive lines sit directly under one another and each takes the first-line indent. Headings,
-lists, quotes and rules keep their own spacing; blank lines next to them add nothing.
+Prose is laid out as the author typed it, which is what they see in the editor: every newline in a
+paragraph starts a new line and every blank line is a blank line. Paragraph siblings carry no
+margin, so consecutive lines sit directly under one another and each takes the first-line indent.
+Headings, lists, quotes and rules keep their own spacing; blank lines next to them add nothing, and
+a list keeps markdown's own layout rather than the author's line breaks.
+
+An element the sanitizer drops keeps its text, so anything the parser can emit needs either a rule
+here or a deliberate exclusion. Images and task-list checkboxes are excluded: a remote image on a
+public page is a tracking pixel, and a checkbox is a form control.
 
 The prose element declares the story's language (`lang` on `.story-content`) on both the author's
 page and the public reader page, so the browser hyphenates by the story's rules rather than the

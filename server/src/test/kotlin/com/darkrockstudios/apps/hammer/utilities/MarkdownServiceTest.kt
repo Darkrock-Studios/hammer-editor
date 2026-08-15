@@ -375,7 +375,47 @@ class MarkdownServiceTest {
 		val result = markdownService.markdownToSafeHtml(markdown, preserveLineBreaks = true)
 
 		assertEquals(0, countBreaks(result))
+		assertEquals(1, countTag(result, "table"))
+		assertEquals(2, countTag(result, "th"))
+		assertEquals(2, countTag(result, "td"))
 		assertTrue(result.contains("After."))
+	}
+
+	@Test
+	fun `markdownToSafeHtml keeps a table's column alignment`() {
+		val markdown = "| a | b | c |\n| :--- | :---: | ---: |\n| 1 | 2 | 3 |"
+		val result = markdownService.markdownToSafeHtml(markdown, preserveLineBreaks = true)
+
+		assertTrue(result.contains("""align="center""""), result)
+		assertTrue(result.contains("""align="right""""), result)
+	}
+
+	@Test
+	fun `markdownToSafeHtml keeps the number an ordered list starts at`() {
+		val markdown = "5. Fifth\n6. Sixth"
+		val result = markdownService.markdownToSafeHtml(markdown, preserveLineBreaks = true)
+
+		assertTrue(result.contains("""<ol start="5">"""), result)
+	}
+
+	@Test
+	fun `markdownToSafeHtml lays out Windows line endings like any other`() {
+		val unix = "First line.\nSecond line.\n\nAfter a blank line."
+		val windows = unix.replace("\n", "\r\n")
+
+		assertEquals(
+			markdownService.markdownToSafeHtml(unix, preserveLineBreaks = true),
+			markdownService.markdownToSafeHtml(windows, preserveLineBreaks = true),
+		)
+	}
+
+	@Test
+	fun `markdownToSafeHtml keeps blocks apart across Windows line endings`() {
+		val markdown = "- one\r\n- two\r\n\r\nAfter the list."
+		val result = markdownService.markdownToSafeHtml(markdown, preserveLineBreaks = true)
+
+		assertEquals(2, countTag(result, "li"))
+		assertTrue(result.contains("<p>After the list.</p>"), result)
 	}
 
 	private fun countBreaks(html: String) = Regex("<br\\s*/?>").findAll(html).count()

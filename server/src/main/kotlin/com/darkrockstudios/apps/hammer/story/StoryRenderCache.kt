@@ -18,7 +18,8 @@ import kotlin.time.Duration
  * Keys are built from the render's inputs — the project name and every scene's stored content hash
  * — so a synced edit, rename, reorder, or deletion lands on a different key and renders fresh. The
  * superseded entry is simply orphaned, then reclaimed by size eviction or [prune]. Bump
- * [RENDER_VERSION] to invalidate everything after a change to how markdown becomes HTML.
+ * [RENDER_VERSION] after a change to how markdown becomes HTML: it sits in [fingerprint], so it
+ * invalidates the readers' ETags along with the cached pages.
  */
 class StoryRenderCache(
 	fileSystem: TouchableFileSystem,
@@ -64,7 +65,7 @@ class StoryRenderCache(
 		wordsPerPage: Int,
 		sceneHashes: List<EntityHash>,
 	): String =
-		"story-html:$RENDER_VERSION:${projectId.id}:$page:$wordsPerPage:${fingerprint(projectName, sceneHashes)}"
+		"story-html:${projectId.id}:$page:$wordsPerPage:${fingerprint(projectName, sceneHashes)}"
 
 	private fun encode(result: PaginatedStoryExportResult): ByteArray =
 		json.encodeToString(result).toByteArray(Charsets.UTF_8)
@@ -78,13 +79,16 @@ class StoryRenderCache(
 		private const val RENDER_VERSION = "v4"
 
 		/**
-		 * Everything a render of this story depends on, collapsed to a string: the title heading
-		 * and every scene's stored content hash. Doubles as the HTTP validator for story pages.
+		 * Everything a render of this story depends on, collapsed to a string: the renderer itself,
+		 * the title heading and every scene's stored content hash. Doubles as the HTTP validator for
+		 * story pages, so [RENDER_VERSION] has to be in here as well as in the cache key — otherwise
+		 * a reader holding the old ETag is answered 304 with the old markup.
 		 *
 		 * The name is length-prefixed so one containing the delimiters can't imitate a scene list.
 		 */
 		fun fingerprint(projectName: String, sceneHashes: List<EntityHash>): String =
-			"${projectName.length}:$projectName|" + sceneHashes.joinToString(",") { "${it.id}:${it.hash}" }
+			"$RENDER_VERSION|${projectName.length}:$projectName|" +
+				sceneHashes.joinToString(",") { "${it.id}:${it.hash}" }
 	}
 }
 
