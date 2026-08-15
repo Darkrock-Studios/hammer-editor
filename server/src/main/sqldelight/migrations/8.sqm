@@ -1,0 +1,13 @@
+-- Migration 8 -> 9: per-share scene restriction for private shares. Mirrors
+-- ProjectAccessScene.sq for already-deployed v8 databases; fresh installs get
+-- this from Schema.create.
+--
+-- No rows for an access id means the share exposes the entire story, so every
+-- existing share keeps its current behaviour.
+
+CREATE TABLE project_access_scene (
+    access_id BIGINT NOT NULL,
+    scene_id INTEGER NOT NULL,
+    PRIMARY KEY (access_id, scene_id),
+    FOREIGN KEY(access_id) REFERENCES project_access(id) ON DELETE CASCADE
+);

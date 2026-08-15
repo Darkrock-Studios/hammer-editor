@@ -13,6 +13,7 @@ data class PublicProjectInfo(
 	val projectName: String,
 	val penName: String,
 	val expiresAt: Instant?,
+	val accessId: Long? = null,
 )
 
 data class PublishedStoryInfo(
@@ -33,6 +34,7 @@ class ProjectAccessDao(
 ) : KoinComponent {
 	private val ioDispatcher by injectIoDispatcher()
 	private val queries = database.serverDatabase.projectAccessQueries
+	private val sceneQueries = database.serverDatabase.projectAccessSceneQueries
 
 	suspend fun getAccessForProject(projectId: Long): Project_access? = withContext(ioDispatcher) {
 		queries.getAccessForProject(projectId).executeAsOneOrNull()
@@ -70,6 +72,32 @@ class ProjectAccessDao(
 		}
 	}
 
+	suspend fun insertAccessWithScenes(
+		projectId: Long,
+		password: String?,
+		expiresAt: Instant?,
+		sceneIds: Collection<Int>,
+	): Long = withContext(ioDispatcher) {
+		queries.transactionWithResult {
+			// RETURNING queries are lazy; executeAsOne() is what runs the INSERT.
+			val accessId = queries.insertAccessReturningId(projectId, password, expiresAt).executeAsOne()
+			sceneIds.forEach { sceneId ->
+				sceneQueries.insertScene(accessId, sceneId)
+			}
+			accessId
+		}
+	}
+
+	suspend fun getSceneIdsForAccess(accessId: Long): List<Int> = withContext(ioDispatcher) {
+		sceneQueries.getSceneIdsForAccess(accessId).executeAsList()
+	}
+
+	suspend fun sceneCountsForAccessIds(accessIds: Collection<Long>): Map<Long, Int> = withContext(ioDispatcher) {
+		if (accessIds.isEmpty()) return@withContext emptyMap()
+		sceneQueries.sceneCountsForAccessIds(accessIds).executeAsList()
+			.associate { it.access_id to it.scene_count.toInt() }
+	}
+
 	suspend fun deleteAccess(projectId: Long) {
 		withContext(ioDispatcher) {
 			queries.deleteAccess(projectId)
@@ -77,7 +105,16 @@ class ProjectAccessDao(
 	}
 
 	suspend fun deleteAccessById(accessId: Long, projectId: Long): Boolean = withContext(ioDispatcher) {
-		queries.deleteAccessById(accessId, projectId).executeAsOneOrNull() != null
+		queries.transactionWithResult {
+			// Parent first: the project_id scoping is the authorization check, and
+			// scene rows must only go once it has passed. The explicit child delete
+			// backs up the cascade because tests disable FK enforcement.
+			val deleted = queries.deleteAccessById(accessId, projectId).executeAsOneOrNull() != null
+			if (deleted) {
+				sceneQueries.deleteForAccess(accessId)
+			}
+			deleted
+		}
 	}
 
 	suspend fun deletePublicAccessForProject(projectId: Long) {
@@ -138,7 +175,8 @@ class ProjectAccessDao(
 					userId = it.user_id,
 					projectName = it.project_name,
 					penName = it.pen_name ?: "",
-					expiresAt = it.expires_at
+					expiresAt = it.expires_at,
+					accessId = it.access_id,
 				)
 			}
 	}

@@ -47,4 +47,49 @@ class ProjectAccessDaoTest : BaseTest() {
 		assertTrue(deleted)
 		assertEquals(0, dao.getAllAccessForProject(victimProjectId).size)
 	}
+
+	@Test
+	fun `insertAccessWithScenes persists the access row and its scene ids`() = runTest {
+		val accessId = dao.insertAccessWithScenes(victimProjectId, "secret", null, listOf(3, 7, 12))
+
+		assertEquals(accessId, dao.getAllAccessForProject(victimProjectId).single().id)
+		assertEquals(listOf(3, 7, 12), dao.getSceneIdsForAccess(accessId).sorted())
+	}
+
+	@Test
+	fun `insertAccessWithScenes with no scenes creates an unrestricted share`() = runTest {
+		val accessId = dao.insertAccessWithScenes(victimProjectId, "secret", null, emptyList())
+
+		assertEquals(emptyList(), dao.getSceneIdsForAccess(accessId))
+	}
+
+	@Test
+	fun `sceneCountsForAccessIds counts only limited shares`() = runTest {
+		val limitedId = dao.insertAccessWithScenes(victimProjectId, "limited", null, listOf(1, 2, 3))
+		val unrestrictedId = dao.insertAccessWithScenes(victimProjectId, "unrestricted", null, emptyList())
+
+		val counts = dao.sceneCountsForAccessIds(listOf(limitedId, unrestrictedId))
+
+		assertEquals(mapOf(limitedId to 3), counts)
+	}
+
+	@Test
+	fun `deleteAccessById removes the scene rows of its share`() = runTest {
+		val accessId = dao.insertAccessWithScenes(victimProjectId, "secret", null, listOf(1, 2))
+
+		val deleted = dao.deleteAccessById(accessId, victimProjectId)
+
+		assertTrue(deleted)
+		assertEquals(emptyList(), dao.getSceneIdsForAccess(accessId))
+	}
+
+	@Test
+	fun `deleteAccessById from a foreign project leaves scene rows intact`() = runTest {
+		val accessId = dao.insertAccessWithScenes(victimProjectId, "secret", null, listOf(1, 2))
+
+		val deleted = dao.deleteAccessById(accessId, attackerProjectId)
+
+		assertFalse(deleted)
+		assertEquals(listOf(1, 2), dao.getSceneIdsForAccess(accessId).sorted())
+	}
 }
