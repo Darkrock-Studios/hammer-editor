@@ -682,6 +682,66 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
+	fun `syncProjects leaves a project bound to a live server project alone when another shares its name`() = runTest {
+		writeSyncData(emptySyncData())
+		val liveId = ProjectId.randomUUID()
+		val orphanId = ProjectId.randomUUID()
+		val def = projectDef("My Novel")
+
+		// An account that still carries an orphan duplicate from the old upload-first ordering:
+		// its name sanitizes to the name of a local project already bound to a different server
+		// project.
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(
+				projects = setOf(
+					ApiProjectDefinition("My Novel", liveId),
+					ApiProjectDefinition("My#Novel", orphanId),
+				)
+			)
+		)
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns liveId
+		every { projectsRepository.findProject("My Novel") } returns def
+		every { projectsRepository.getProjectDefinition("My Novel") } returns def
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		// Adopting the orphan abandons the server project actually holding the manuscript.
+		verify(exactly = 0) { projectsRepository.setProjectId(def, orphanId) }
+		coVerify(exactly = 0) { serverProjectsApi.createProject(any(), any()) }
+	}
+
+	@Test
+	fun `syncProjects binds only the first of two server projects sharing one local name`() = runTest {
+		writeSyncData(emptySyncData())
+		val firstId = ProjectId.randomUUID()
+		val secondId = ProjectId.randomUUID()
+		val createdDef = projectDef("My Novel")
+
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(
+				projects = setOf(
+					ApiProjectDefinition("My Novel", firstId),
+					ApiProjectDefinition("My#Novel", secondId),
+				)
+			)
+		)
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+		every { projectsRepository.findProject("My Novel") } returnsMany listOf(null, createdDef)
+		every { projectsRepository.createProject("My Novel", any()) } returns CResult.success(createdDef)
+		every { projectsRepository.getProjectId(createdDef) } returns firstId
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		verify(exactly = 1) { projectsRepository.createProject("My Novel", any()) }
+		verify { projectsRepository.setProjectId(createdDef, firstId) }
+		// The second one would silently steal the only local project the first just claimed.
+		verify(exactly = 0) { projectsRepository.setProjectId(createdDef, secondId) }
+	}
+
+	@Test
 	fun `syncProjects sanitizes an illegal server project name before creating it locally`() = runTest {
 		writeSyncData(emptySyncData())
 		val serverId = ProjectId.randomUUID()

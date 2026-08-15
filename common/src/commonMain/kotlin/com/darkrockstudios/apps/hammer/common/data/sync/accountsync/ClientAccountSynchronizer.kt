@@ -450,7 +450,8 @@ class ClientAccountSynchronizer(
 		// Claim server projects by name before uploading anything. The other order uploads a
 		// same-named local project as a second server project and only then overwrites its id
 		// with the name match, stranding an orphan duplicate on the server.
-		val claimedNames = createLocalProjectsFromServer(newServerProjects, onLog)
+		val liveServerIds = serverProjects.mapTo(mutableSetOf()) { it.uuid }
+		val claimedNames = createLocalProjectsFromServer(newServerProjects, liveServerIds, onLog)
 
 		createProjectsOnServer(
 			localProjectsWithIds,
@@ -466,9 +467,15 @@ class ClientAccountSynchronizer(
 	/**
 	 * Create local projects from server. Returns the local names now backed by a server project,
 	 * whether adopted or freshly created, so [createProjectsOnServer] does not re-upload them.
+	 *
+	 * A name match only claims a local project that is not already bound to one of
+	 * [liveServerIds]: re-pointing it would abandon the server project holding its content, and
+	 * two server names can sanitize to a single local name. Tombstoned ids are absent from
+	 * [liveServerIds], so a project whose server copy was deleted elsewhere can still be claimed.
 	 */
 	private suspend fun createLocalProjectsFromServer(
 		newServerProjects: List<ApiProjectDefinition>,
+		liveServerIds: Set<ProjectId>,
 		onLog: OnSyncLog
 	): Set<String> {
 		val claimedNames = mutableSetOf<String>()
@@ -476,6 +483,19 @@ class ClientAccountSynchronizer(
 			val localName = ProjectsRepository.toLocalSafeName(serverProject.name)
 			val existingProject = projectsRepository.findProject(localName)
 			if (existingProject != null) {
+				val existingId = projectsRepository.getProjectId(existingProject)
+				if (existingId != null && existingId in liveServerIds) {
+					onLog(
+						syncAccLogW(
+							strRes.get(
+								Res.string.sync_log_account_project_create_client_name_taken,
+								serverProject.name
+							)
+						)
+					)
+					return@forEach
+				}
+
 				projectsRepository.setProjectId(existingProject, serverProject.uuid)
 				claimedNames += existingProject.name
 				onLog(
