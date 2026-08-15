@@ -58,6 +58,7 @@
 	<string name="scene_move_dialog_dismiss_button">Cancel</string>
 
 	<string name="scene_list_count_format">%1$d · %2$d GR</string>
+	<string name="scene_group_scene_count_format">%1$d SCN</string>
 	<string name="scene_list_create_menu_scene">New Scene</string>
 	<string name="scene_list_create_menu_group">New Group</string>
 	<string name="scene_list_add_button">Add</string>
