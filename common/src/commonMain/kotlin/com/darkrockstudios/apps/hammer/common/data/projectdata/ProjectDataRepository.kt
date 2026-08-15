@@ -47,6 +47,20 @@ class ProjectDataRepository(
 	}
 
 	/**
+	 * Sync-only: drop [StoredProjectData.lastSyncedHash], keeping [ProjectData] intact, for when the
+	 * project starts pointing at a different server project. Goes through the same lock as every
+	 * other write so a concurrent [updateData] can't persist the stale baseline back out of the
+	 * cache. Never creates the file: no baseline recorded means nothing to clear.
+	 */
+	suspend fun clearSyncBaseline() = mutex.withLock {
+		val current = _state.value ?: datasource.load()
+		if (current.lastSyncedHash == null) return@withLock
+		val next = current.copy(lastSyncedHash = null)
+		datasource.save(next)
+		_state.value = next
+	}
+
+	/**
 	 * Sync-only: replace both [ProjectData] and [StoredProjectData.lastSyncedHash]
 	 * atomically, e.g. after a successful upload or after fast-forwarding to
 	 * the server's state.

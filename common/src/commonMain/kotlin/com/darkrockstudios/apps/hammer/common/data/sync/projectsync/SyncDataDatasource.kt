@@ -103,14 +103,38 @@ class SyncDataDatasource(
 }
 
 /**
- * Deletes the entity journal so [SyncDataDatasource.createSyncData] rebuilds it from local state on
- * the next sync. For scope-less callers (no per-project Koin scope) that move a project to a
- * different server project, where every id, hash and deletion the journal records was agreed with
- * a server that no longer has this project.
+ * Resets everything in the entity journal that records agreement with a *specific* server, for
+ * scope-less callers moving a project to a different server project. Local pending work the new
+ * server has never seen — [ProjectSynchronizationData.dirty], `newIds`, `deletedIds`, `lastId` —
+ * is kept, so an unsynced edit or a tombstone can't be lost by the move. Dirty entries keep their
+ * id but drop [EntityOriginalState.originalHash]: a baseline the old server confirmed would forge
+ * a phantom conflict against the new one, while a null baseline uploads unconditionally.
+ *
+ * No-op when the journal doesn't exist. A corrupt journal is deleted so
+ * [SyncDataDatasource.createSyncData] rebuilds it from local state, matching [loadSyncData].
  */
-fun deleteProjectSyncJournal(projectDef: ProjectDef, fileSystem: FileSystem) {
+// Corrupt sync data recovers by deleting it; not an error to surface.
+@Suppress("SwallowedException")
+fun clearProjectSyncBaseline(projectDef: ProjectDef, fileSystem: FileSystem, json: Json) {
 	val path = projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME
-	if (fileSystem.exists(path)) {
+	if (!fileSystem.exists(path)) return
+
+	val current = try {
+		fileSystem.read(path) { json.decodeFromString<ProjectSynchronizationData>(readUtf8()) }
+	} catch (e: SerializationException) {
 		fileSystem.delete(path)
+		return
 	}
+
+	val cleared = current.copy(
+		currentSyncId = null,
+		lastSync = Instant.DISTANT_PAST,
+		dirty = current.dirty.map { it.copy(originalHash = null) },
+		syncedHashes = emptyMap(),
+		cachedProjectHash = null,
+		hashAlgoVersion = 0,
+	)
+	if (cleared == current) return
+
+	fileSystem.write(path) { writeUtf8(json.encodeToString(cleared)) }
 }

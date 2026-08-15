@@ -14,18 +14,20 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.isSuccess
 import com.darkrockstudios.apps.hammer.common.data.migrator.PROJECT_DATA_VERSION
+import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
 import com.darkrockstudios.apps.hammer.common.data.projectdata.clearProjectDataSyncBaseline
 import com.darkrockstudios.apps.hammer.common.data.projectdata.saveStoredProjectData
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.deleteProjectSyncJournal
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.MAX_FILENAME_LENGTH
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.RECOVERED_PROJECT_NAME
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.encodeForFilename
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.sanitizeFileName
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository.Companion.validateFileName
+import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.clearProjectSyncBaseline
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
@@ -38,12 +40,14 @@ import com.darkrockstudios.apps.hammer.create_project_error_too_long
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.IOException
 import okio.Path.Companion.toPath
 import org.jetbrains.compose.resources.StringResource
 import org.koin.core.component.KoinComponent
+import org.koin.core.component.getScopeId
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import kotlin.coroutines.CoroutineContext
@@ -54,6 +58,7 @@ class ProjectsRepository(
 	globalSettingsStore: GlobalSettingsStore,
 	private val projectsMetadataDatasource: ProjectMetadataDatasource,
 	private val toml: Toml,
+	private val json: Json,
 	private val deviceLocaleResolver: DeviceLocaleResolver,
 ) : KoinComponent {
 
@@ -93,20 +98,19 @@ class ProjectsRepository(
 		getProjectsDirectory()
 	}
 
-	fun removeProjectId(projectDef: ProjectDef) {
+	suspend fun removeProjectId(projectDef: ProjectDef) {
+		clearSyncBaseline(projectDef)
 		projectsMetadataDatasource.updateMetadata(projectDef) {
 			it.copy(info = it.info.copy(serverProjectId = null))
 		}
-		clearSyncBaseline(projectDef)
 	}
 
-	fun setProjectId(projectDef: ProjectDef, projectId: ProjectId) {
-		val previousId = getProjectId(projectDef)
+	suspend fun setProjectId(projectDef: ProjectDef, projectId: ProjectId) {
+		if (getProjectId(projectDef) != projectId) {
+			clearSyncBaseline(projectDef)
+		}
 		projectsMetadataDatasource.updateMetadata(projectDef) {
 			it.copy(info = it.info.copy(serverProjectId = projectId))
-		}
-		if (previousId != projectId) {
-			clearSyncBaseline(projectDef)
 		}
 	}
 
@@ -116,10 +120,24 @@ class ProjectsRepository(
 	 * an untouched project reads as "already in sync": its content is never uploaded, and
 	 * `ProjectDataSyncOperation` fast-forwards the local copy to the new server's empty one.
 	 * The user's data is untouched — only the baseline goes, so the next sync uploads everything.
+	 *
+	 * Runs before the id is written: the two are separate files, so a failure or crash between them
+	 * must leave a project that still points at the old server rather than one pointing at the new
+	 * server with the old server's baseline, which is the corrupt state this exists to prevent.
 	 */
-	private fun clearSyncBaseline(projectDef: ProjectDef) {
-		deleteProjectSyncJournal(projectDef, fileSystem)
-		clearProjectDataSyncBaseline(projectDef, fileSystem, toml)
+	private suspend fun clearSyncBaseline(projectDef: ProjectDef) {
+		clearProjectSyncBaseline(projectDef, fileSystem, json)
+
+		// An open project serves project data from ProjectDataRepository's cache, so clearing only
+		// the file would leave the stale hash live (and get it written straight back out).
+		val openProject = getKoin()
+			.getScopeOrNull(ProjectDefScope(projectDef).getScopeId())
+			?.get<ProjectDataRepository>()
+		if (openProject != null) {
+			openProject.clearSyncBaseline()
+		} else {
+			clearProjectDataSyncBaseline(projectDef, fileSystem, toml)
+		}
 	}
 
 	fun getProjectId(projectDef: ProjectDef): ProjectId? {
