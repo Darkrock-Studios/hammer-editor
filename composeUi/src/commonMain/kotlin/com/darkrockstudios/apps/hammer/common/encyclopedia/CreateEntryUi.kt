@@ -53,7 +53,6 @@ import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberSaveableStringList
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.retryingFileDialog
 import com.darkrockstudios.apps.hammer.common.compose.stageIntoCache
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
@@ -85,8 +84,10 @@ import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_name_too_
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_success
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_tag_too_long
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_too_long
+import io.github.aakira.napier.Napier
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.dialogs.FileKitPickerException
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.path
@@ -217,8 +218,14 @@ internal fun CreateEntryUi(
 					label = Res.string.encyclopedia_create_entry_cover_art_label.get(),
 					onClick = {
 						scope.launch {
-							val picked = retryingFileDialog {
+							val picked = try {
 								FileKit.openFilePicker(type = FileKitType.File(EncyclopediaDatasource.IMAGE_EXTENSIONS))
+							} catch (e: FileKitPickerException) {
+								Napier.e("Image picker failed", e)
+								rootSnackbar.showSnackbar(
+									strRes.get(Res.string.encyclopedia_create_entry_image_load_failed)
+								)
+								null
 							}
 							if (picked != null) applyImage(picked)
 						}

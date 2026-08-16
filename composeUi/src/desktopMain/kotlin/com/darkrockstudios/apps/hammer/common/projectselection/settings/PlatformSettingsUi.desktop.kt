@@ -6,7 +6,12 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -16,7 +21,6 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.accoun
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.retryingFileDialog
 import com.darkrockstudios.apps.hammer.settings_projects_directory
 import com.darkrockstudios.apps.hammer.settings_projects_directory_button
 import com.darkrockstudios.apps.hammer.settings_projects_directory_description
@@ -55,7 +59,7 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 			label = Res.string.settings_projects_directory_button.get(),
 			onClick = {
 				scope.launch {
-					val directory = retryingFileDialog { FileKit.openDirectoryPicker() }
+					val directory = FileKit.openDirectoryPicker()
 					if (directory != null) {
 						projectsPathText = directory.absolutePath()
 						component.setProjectsDir(projectsPathText)

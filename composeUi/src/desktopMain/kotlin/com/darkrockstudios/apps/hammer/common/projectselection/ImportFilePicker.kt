@@ -3,7 +3,6 @@ package com.darkrockstudios.apps.hammer.common.projectselection
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
-import com.darkrockstudios.apps.hammer.common.compose.retryingFileDialog
 import io.github.aakira.napier.Napier
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.dialogs.FileKitType
@@ -25,9 +24,8 @@ actual fun ImportFilePicker(
 
 	LaunchedEffect(show) {
 		if (show) {
-			val file = retryingFileDialog {
+			val file =
 				FileKit.openFilePicker(type = FileKitType.File(extensions = listOf("md", "markdown", "rtf")))
-			}
 			if (file != null) {
 				scope.launch {
 					val content = withContext(defaultDispatcher) {
