@@ -52,6 +52,7 @@
 	<string name="scene_move_dialog_move_button">Verschieben</string>
 	<string name="scene_move_dialog_dismiss_button">Abbrechen</string>
 	<string name="scene_list_count_format">%1$d · %2$d GR</string>
+	<string name="scene_group_scene_count_format">%1$d SZN</string>
 	<string name="scene_list_create_menu_scene">Neue Szene</string>
 	<string name="scene_list_create_menu_group">Neue Gruppe</string>
 	<string name="scene_list_add_button">Hinzufügen</string>
