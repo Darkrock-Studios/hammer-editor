@@ -122,10 +122,12 @@ fun SceneEditorUi(
 					sceneContentMarkdown(buffer.content)
 				}
 				loadSceneContent(markdownExtension, sceneMarkdown)
+				// Squiggles are decoration, so the editor takes input the moment the
+				// text is in and the check catches up behind it.
+				hasReceivedInitialBuffer = true
 				// Importing emits no edit operations, so the incremental checker never
 				// sees this text. The one-shot check already ran against an empty document.
 				textEditorState.runFullSpellCheck()
-				hasReceivedInitialBuffer = true
 			}
 		}
 	}
