@@ -61,8 +61,8 @@ final class ShortcutHostController: UIViewController {
     override var keyCommands: [UIKeyCommand]? {
         [
             UIKeyCommand(input: Self.f3Input, modifierFlags: [], action: #selector(startSync)),
-            UIKeyCommand(input: "s", modifierFlags: [.command, .alternate], action: #selector(saveAll)),
-            UIKeyCommand(input: "s", modifierFlags: [.control, .alternate], action: #selector(saveAll)),
+            UIKeyCommand(input: "s", modifierFlags: [.command, .shift], action: #selector(saveAll)),
+            UIKeyCommand(input: "s", modifierFlags: [.control, .shift], action: #selector(saveAll)),
         ]
     }
 

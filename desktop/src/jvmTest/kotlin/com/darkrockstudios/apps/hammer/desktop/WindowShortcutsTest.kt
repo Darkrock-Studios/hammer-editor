@@ -76,4 +76,26 @@ class WindowShortcutsTest {
 		assertNull(keyDown(Key.Q).toProjectSelectionShortcut())
 		assertNull(keyDown(Key.W).toProjectEditorShortcut())
 	}
+
+	@Test
+	fun `F3 starts a project sync`() {
+		assertEquals(ProjectShortcut.SyncProject, keyDown(Key.F3).toProjectShortcut())
+		assertNull(keyDown(Key.F3, ctrl = true).toProjectShortcut())
+	}
+
+	@Test
+	fun `ctrl shift S saves all buffers`() {
+		assertEquals(
+			ProjectShortcut.SaveAll,
+			keyDown(Key.S, ctrl = true, shift = true).toProjectShortcut(),
+		)
+	}
+
+	@Test
+	fun `AltGr S types its character instead of saving`() {
+		assertNull(keyDown(Key.S, ctrl = true, alt = true).toProjectShortcut())
+		assertNull(
+			keyDown(Key.S, ctrl = true, alt = true, shift = true).toProjectShortcut(),
+		)
+	}
 }

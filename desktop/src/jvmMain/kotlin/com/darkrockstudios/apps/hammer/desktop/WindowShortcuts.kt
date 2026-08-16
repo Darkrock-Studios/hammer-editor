@@ -4,16 +4,27 @@ import androidx.compose.ui.input.key.*
 import com.darkrockstudios.apps.hammer.common.compose.matchesShortcut
 
 /**
- * Window level shortcuts, matched before the focused component sees the event.
- *
- * Modifiers must match exactly: AltGr arrives as Ctrl+Alt, so a loose `Ctrl+Q` test would
- * fire while the user types `@` on a Turkish or German keyboard.
+ * Modifiers must match exactly, and no chord may use Alt: AltGr arrives as Ctrl+Alt, so
+ * either would fire while a Turkish, German, or Polish layout types the character on that
+ * key.
  */
 internal enum class WindowShortcut {
 	Back,
 	Quit,
 	CloseProject,
 	GlobalSearch,
+}
+
+/** Project actions, matched pre-focus so a focused editor cannot swallow them. */
+internal enum class ProjectShortcut {
+	SyncProject,
+	SaveAll,
+}
+
+internal fun KeyEvent.toProjectShortcut(): ProjectShortcut? = when {
+	matchesShortcut(Key.F3) -> ProjectShortcut.SyncProject
+	matchesShortcut(Key.S, ctrl = true, shift = true) -> ProjectShortcut.SaveAll
+	else -> null
 }
 
 internal fun KeyEvent.toProjectSelectionShortcut(): WindowShortcut? = when {

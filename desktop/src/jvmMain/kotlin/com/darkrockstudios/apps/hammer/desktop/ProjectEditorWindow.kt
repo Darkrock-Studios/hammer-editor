@@ -95,12 +95,11 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 		state = windowState,
 		icon = painterResource(Res.drawable.hammer_icon),
 		onCloseRequest = { onRequestClose(component, app, ApplicationState.CloseType.Application) },
-		// These two run pre-focus so a focused editor can't swallow them.
 		onPreviewKeyEvent = { event ->
-			when {
-				event.matchesShortcut(Key.F3) -> shortcutHost.startProjectSync()
-				event.matchesShortcut(Key.S, ctrl = true, alt = true) -> shortcutHost.saveAllBuffers()
-				else -> false
+			when (event.toProjectShortcut()) {
+				ProjectShortcut.SyncProject -> shortcutHost.startProjectSync()
+				ProjectShortcut.SaveAll -> shortcutHost.saveAllBuffers()
+				null -> false
 			}
 		},
 		onKeyEvent = { event ->
