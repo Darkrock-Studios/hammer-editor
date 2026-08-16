@@ -1,6 +1,7 @@
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
 import com.darkrockstudios.apps.hammer.common.projecthome.allSceneIds
 import com.darkrockstudios.apps.hammer.common.projecthome.descendantSceneIds
+import com.darkrockstudios.apps.hammer.common.projecthome.isFullSelection
 import com.darkrockstudios.apps.hammer.common.projecthome.isGroupFullySelected
 import com.darkrockstudios.apps.hammer.common.projecthome.toggleGroup
 import com.darkrockstudios.apps.hammer.common.projecthome.toggleScene
@@ -42,6 +43,14 @@ class ExportSceneSelectionTest {
 	@Test
 	fun `descendantSceneIds stops at the next sibling of the same depth`() {
 		assertFalse(7 in descendantSceneIds(entries, topGroup))
+	}
+
+	@Test
+	fun `isFullSelection requires every leaf scene and a non-empty tree`() {
+		assertTrue(isFullSelection(entries, setOf(1, 3, 4, 6, 7)))
+		assertTrue(isFullSelection(entries, setOf(1, 3, 4, 6, 7, 999)))
+		assertFalse(isFullSelection(entries, setOf(1, 3, 4, 6)))
+		assertFalse(isFullSelection(emptyList(), emptySet()))
 	}
 
 	@Test

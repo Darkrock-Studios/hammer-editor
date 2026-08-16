@@ -74,15 +74,27 @@ class ProjectHomeComponent(
 	)
 	override val state: Value<ProjectHome.State> = _state
 
+	// The options to restore when the dialog is dismissed without confirming, so
+	// cancelled edits don't become the next export's defaults. Lives outside State:
+	// it is dialog-session bookkeeping, not something the UI renders.
+	private var exportOptionsBeforeDialog: ExportOptions? = null
+
 	override fun beginProjectExport() {
-		val scenes = exportableScenes(sceneEditorRepository.getSceneTree())
 		_state.getAndUpdate {
+			// A scene limit from a previous export would silently narrow this one.
+			val options = it.exportOptions.copy(sceneIds = null)
+			exportOptionsBeforeDialog = options
 			it.copy(
 				showExportDialog = true,
-				exportableScenes = scenes,
-				// A scene limit from a previous export would silently narrow this one.
-				exportOptions = it.exportOptions.copy(sceneIds = null),
+				exportOptions = options,
 			)
+		}
+		// The tree walk reads from the repository and can be large; keep it off the click handler.
+		scope.launch {
+			val scenes = exportableScenes(sceneEditorRepository.getSceneTree())
+			withContext(mainDispatcher) {
+				_state.getAndUpdate { it.copy(exportableScenes = scenes) }
+			}
 		}
 	}
 
@@ -90,7 +102,6 @@ class ProjectHomeComponent(
 		_state.getAndUpdate {
 			it.copy(
 				showExportDialog = false,
-				exportableScenes = emptyList(),
 			)
 		}
 	}
@@ -101,7 +112,22 @@ class ProjectHomeComponent(
 		}
 	}
 
+	override fun exportDialogDismissed() {
+		// Runs after the close animation, so restoring options and dropping the scene
+		// snapshot can't visibly change the still-composed dialog content.
+		val restore = exportOptionsBeforeDialog
+		exportOptionsBeforeDialog = null
+		_state.getAndUpdate {
+			it.copy(
+				exportOptions = restore ?: it.exportOptions,
+				exportableScenes = emptyList(),
+			)
+		}
+	}
+
 	override fun confirmExportDialog(options: ExportOptions) {
+		// Confirmed edits are the new defaults; nothing to restore on dismissal.
+		exportOptionsBeforeDialog = null
 		// Keep the dialog open through the file picker and export so it can show the working state.
 		_state.getAndUpdate {
 			it.copy(
@@ -117,7 +143,6 @@ class ProjectHomeComponent(
 				showExportDialog = false,
 				showExportFilePicker = false,
 				isExporting = false,
-				exportableScenes = emptyList(),
 			)
 		}
 	}

@@ -277,6 +277,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		context.resume()
 
 		comp.beginProjectExport()
+		advanceUntilIdle()
 
 		val expected = listOf(
 			ExportableScene(id = 1, name = "Scene 1", isGroup = false, depth = 0),
@@ -341,18 +342,38 @@ class ProjectHomeComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `cancel and end clear the exportable scenes snapshot`() = runTest(mainTestDispatcher) {
+	fun `dismissal after cancel discards in-dialog edits and drops the scenes snapshot`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+
+		val defaults = comp.state.value.exportOptions
+		comp.beginProjectExport()
+		advanceUntilIdle()
+		assertTrue(comp.state.value.exportableScenes.isNotEmpty())
+
+		comp.updateExportOptions(ExportOptions(treatTopLevelAsChapters = false, format = ExportFormat.Pdf))
+		comp.cancelExportDialog()
+		// The snapshot survives until the close animation finishes, no mid-animation flash.
+		assertTrue(comp.state.value.exportableScenes.isNotEmpty())
+
+		comp.exportDialogDismissed()
+		assertEquals(defaults.copy(sceneIds = null), comp.state.value.exportOptions)
+		assertTrue(comp.state.value.exportableScenes.isEmpty())
+	}
+
+	@Test
+	fun `dismissal after confirm keeps the confirmed options`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 		context.resume()
 
 		comp.beginProjectExport()
-		assertTrue(comp.state.value.exportableScenes.isNotEmpty())
-		comp.cancelExportDialog()
-		assertTrue(comp.state.value.exportableScenes.isEmpty())
-
-		comp.beginProjectExport()
+		val confirmed = ExportOptions(format = ExportFormat.Rtf, sceneIds = setOf(3))
+		comp.updateExportOptions(confirmed)
+		comp.confirmExportDialog(confirmed)
 		comp.endProjectExport()
-		assertTrue(comp.state.value.exportableScenes.isEmpty())
+		comp.exportDialogDismissed()
+
+		assertEquals(confirmed, comp.state.value.exportOptions)
 	}
 
 	@Test

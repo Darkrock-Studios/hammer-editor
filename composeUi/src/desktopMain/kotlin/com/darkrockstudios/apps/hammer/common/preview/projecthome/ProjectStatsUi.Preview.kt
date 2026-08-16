@@ -116,6 +116,7 @@ private val component = object : ProjectHome {
 	override fun updateExportOptions(options: ExportOptions) {}
 	override fun confirmExportDialog(options: ExportOptions) {}
 	override fun endProjectExport() {}
+	override fun exportDialogDismissed() {}
 	override fun startProjectSync() {}
 	override fun showGlobalSearch() {}
 	override fun showGlobalSearchForTag(tag: String) {}

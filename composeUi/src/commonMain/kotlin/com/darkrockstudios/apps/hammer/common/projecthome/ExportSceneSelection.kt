@@ -30,6 +30,12 @@ internal fun isGroupFullySelected(
 	return ids.isNotEmpty() && selected.containsAll(ids)
 }
 
+/** True when [selected] covers every leaf scene in [entries] and there is at least one. */
+internal fun isFullSelection(entries: List<ExportableScene>, selected: Set<Int>): Boolean {
+	val all = allSceneIds(entries)
+	return all.isNotEmpty() && selected.containsAll(all)
+}
+
 internal fun toggleScene(selected: Set<Int>, id: Int): Set<Int> =
 	if (id in selected) selected - id else selected + id
 

@@ -32,6 +32,9 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 	fun confirmExportDialog(options: ExportOptions)
 	fun endProjectExport()
 
+	/** Called after the export dialog's close animation finishes; discards unconfirmed edits. */
+	fun exportDialogDismissed()
+
 	fun startProjectSync()
 	fun showGlobalSearch()
 	fun showGlobalSearchForTag(tag: String)

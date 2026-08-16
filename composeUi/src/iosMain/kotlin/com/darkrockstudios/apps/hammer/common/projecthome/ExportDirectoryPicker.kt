@@ -3,10 +3,13 @@ package com.darkrockstudios.apps.hammer.common.projecthome
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.project_home_action_export_toast_success
 import io.github.vinceglb.filekit.dialogs.compose.rememberDirectoryPickerLauncher
 import io.github.vinceglb.filekit.path
@@ -22,11 +25,13 @@ actual fun ExportDirectoryPicker(
 	scope: CoroutineScope,
 ) {
 	val defaultDispatcher = rememberDefaultDispatcher()
-	val state by component.state.subscribeAsState()
+	// Snapshot of the confirmed options taken when the picker launches; the picker
+	// does not block the app, so options must not be re-read afterwards.
+	var confirmedOptions by remember { mutableStateOf<ExportOptions?>(null) }
 
 	val directoryPickerLauncher = rememberDirectoryPickerLauncher { directory ->
-		if (directory != null) {
-			val options = state.exportOptions
+		val options = confirmedOptions
+		if (directory != null && options != null) {
 			scope.launch(defaultDispatcher) {
 				// FileKit's absolutePath() returns nsUrl.absoluteString (with "file://" scheme), which okio's
 				// posix sink can't open — use .path for the bare filesystem path. UIDocumentPicker URLs are
@@ -46,6 +51,7 @@ actual fun ExportDirectoryPicker(
 
 	LaunchedEffect(show) {
 		if (show) {
+			confirmedOptions = component.state.value.exportOptions
 			directoryPickerLauncher.launch()
 		}
 	}
