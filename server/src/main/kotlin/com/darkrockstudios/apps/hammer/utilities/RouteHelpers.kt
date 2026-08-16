@@ -11,9 +11,6 @@ import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import org.koin.ktor.ext.get
-import java.util.Locale
-import java.util.MissingResourceException
-import java.util.ResourceBundle
 
 internal const val ERROR_MISSING_PARAMETER = "Missing Parameter"
 internal const val ERROR_MISSING_HEADER = "Missing Header"
@@ -25,22 +22,6 @@ internal const val ERR_KEY_SYNC_ID_MISSING = "api_project_sync_error_syncidmissi
 internal const val ERR_KEY_ENTITY_ID_MISSING = "api_project_error_entityidmissing"
 internal const val ERR_KEY_INVALID_SYNC_ID = "api_project_sync_end_invalidid"
 internal const val ERR_KEY_UNKNOWN = "api_error_unknown"
-
-/**
- * Localized API message with an English fallback.
- *
- * Thar be dragons: the `i18n/Messages_*` bundles have no base `Messages.properties`, so a
- * translation that lacks the key has no parent to resolve through and [t] throws
- * MissingResourceException — turning the error response into a 500 for every locale but
- * English. Clients send `Accept-Language` on every API call, so any key Crowdin has not
- * translated yet (or has dropped) needs this.
- */
-fun ApplicationCall.tWithEnglishFallback(messageKey: String): String =
-	try {
-		t(R(messageKey))
-	} catch (_: MissingResourceException) {
-		ResourceBundle.getBundle("i18n.Messages", Locale.ENGLISH).getString(messageKey)
-	}
 
 /** Responds 400 BadRequest with the given error name and a plain-text display message. */
 suspend fun ApplicationCall.respondBadRequest(error: String, displayMessage: String) {
