@@ -223,6 +223,25 @@ class PublicStoryPageTest : EndToEndTest() {
 	}
 
 	@Test
+	fun `an expired share does not shadow a live share with the same password`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+		// Raw insert: the expires-after-published CHECK bars seeding an already-expired
+		// row through insertAccess. The expired row is older, so a lookup that ignores
+		// expiry would resolve to it.
+		database().executeAsync(
+			"INSERT INTO project_access(project_id, access_password, published_at, expires_at) " +
+				"VALUES (${projectRowId()}, 'secret', '2019-01-01T00:00:00Z', '2020-01-01T00:00:00Z')"
+		)
+		grantAccess(password = "secret")
+
+		val response = client().get(storyPath(password = "secret"))
+
+		assertEquals(HttpStatusCode.OK, response.status)
+		assertTrue(response.bodyAsText().contains("test content 1"), "the live share must win over the expired one")
+	}
+
+	@Test
 	fun `a scene-limited share renders only the selected scenes`(): Unit = runBlocking {
 		doStartServer()
 		seedStory()

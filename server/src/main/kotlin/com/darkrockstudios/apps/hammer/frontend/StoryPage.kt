@@ -11,7 +11,9 @@ import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
 import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.renderTemplate
 import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
+import com.darkrockstudios.apps.hammer.frontend.utils.respondHtmlWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.sceneTreeModel
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
@@ -487,20 +489,25 @@ fun Route.storyPage(
 
 				// Single respond after the when: responding from inside an exhaustive
 				// when's branches trips Ktor's pipeline-subject ClassCastException.
-				val (toastMessage, toastType) = when (createResult) {
-					is ServerResult.Failure -> Pair(
+				// The dialog is cleared via OOB swap only on success; a failure leaves
+				// it open with the author's scene selection intact.
+				val publishHtml = renderTemplate("partials/story-publish.mustache", model)
+				val closeDialog = """<div id="share-dialog-container" hx-swap-oob="innerHTML"></div>"""
+				val (content, toastMessage, toastType) = when (createResult) {
+					is ServerResult.Failure -> Triple(
+						publishHtml,
 						createResult.displayMessageText(call) ?: call.msg("story_toast_access_no_scenes"),
 						Toast.Error,
 					)
 
-					is ServerResult.Success -> Pair(
+					is ServerResult.Success -> Triple(
+						publishHtml + closeDialog,
 						call.msg("story_toast_access_created"),
 						Toast.Success,
 					)
 				}
-				respondTemplateWithToast(
-					templatePath = "partials/story-publish.mustache",
-					model = model,
+				respondHtmlWithToast(
+					content = content,
 					message = toastMessage,
 					toast = toastType
 				)

@@ -282,6 +282,25 @@ class ProjectAccessRepositoryTest {
 	}
 
 	@Test
+	fun `createPrivateAccess - allows reusing the password of an expired share`() = runTest {
+		mockCreatePrivateAccessCollaborators()
+		coEvery { projectAccessDao.getPrivateAccessForProject(projectId) } returns listOf(
+			GetPrivateAccessForProject(
+				id = 1,
+				access_password = "secret123",
+				expires_at = Instant.parse("2020-01-01T00:00:00Z"),
+				project_id = projectId,
+				published_at = Instant.parse("2019-12-25T23:51:32Z")
+			)
+		)
+
+		val result = repository.createPrivateAccess(userId, projectUuid, "secret123", null)
+
+		assertTrue(isSuccess(result))
+		coVerify { projectAccessDao.insertAccessWithScenes(projectId, "secret123", null, emptyList()) }
+	}
+
+	@Test
 	fun `createPrivateAccess - rejects a password already used by another share`() = runTest {
 		mockCreatePrivateAccessCollaborators()
 		coEvery { projectAccessDao.getPrivateAccessForProject(projectId) } returns listOf(

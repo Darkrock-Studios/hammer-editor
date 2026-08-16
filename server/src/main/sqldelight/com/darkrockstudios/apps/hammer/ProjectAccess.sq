@@ -101,7 +101,8 @@ WHERE project.uuid = CAST(:projectUuid AS UUID)
   AND project_access.access_password IS NULL;
 
 -- Nothing prevents two shares of one project from using the same password;
--- ORDER BY id LIMIT 1 keeps the oldest one winning instead of a crash.
+-- ORDER BY id LIMIT 1 keeps the oldest one winning instead of a crash. Expired
+-- rows are skipped here so they can never shadow a live share.
 findProjectByPenNameProjectNameAndPassword:
 SELECT
     project.uuid AS project_uuid,
@@ -116,6 +117,7 @@ INNER JOIN project_access ON project.id = project_access.project_id
 WHERE account.pen_name = CAST(:penName AS CITEXT)
   AND project.name = CAST(:projectName AS CITEXT)
   AND project_access.access_password = :password
+  AND (project_access.expires_at IS NULL OR project_access.expires_at > NOW())
 ORDER BY project_access.id
 LIMIT 1;
 

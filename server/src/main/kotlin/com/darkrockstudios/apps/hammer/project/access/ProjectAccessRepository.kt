@@ -136,8 +136,10 @@ class ProjectAccessRepository(
 		val projectId = projectDao.getProjectId(userId, projectUuid)
 		// Password lookup on the reader route resolves a single row, so a password
 		// reused across shares of one project would make the older share unreachable.
+		// Expired shares no longer resolve there, so their passwords are free to reuse.
+		val now = clock.now()
 		val duplicate = projectAccessDao.getPrivateAccessForProject(projectId)
-			.any { it.access_password == password }
+			.any { it.access_password == password && (it.expires_at == null || it.expires_at > now) }
 		if (duplicate) {
 			return SResult.failure(
 				"Password already used by another share",
