@@ -531,13 +531,35 @@
             "licenses": [
                 "MIT"
             ],
+			"funding": [
+			]
+		},
+		{
+			"uniqueId": "com.darkrockstudios:cairn-desktop",
+			"artifactVersion": "0.2.2",
+			"name": "Cairn",
+			"description": "A Compose Multiplatform About screen for the Dark Rock Studios family of apps.",
+			"website": "https://github.com/Wavesonics/Cairn",
+			"developers": [
+				{
+					"name": "Adam Brown"
+				}
+			],
+			"scm": {
+				"connection": "scm:git:git://github.com/Wavesonics/Cairn.git",
+				"developerConnection": "scm:git:ssh://github.com/Wavesonics/Cairn.git",
+				"url": "https://github.com/Wavesonics/Cairn"
+			},
+			"licenses": [
+				"Apache-2.0"
+			],
             "funding": [
                 
             ]
         },
         {
             "uniqueId": "com.darkrockstudios:composetexteditor-desktop",
-            "artifactVersion": "2.4.0",
+			"artifactVersion": "2.4.3",
             "name": "Compose Text Editor",
             "description": "A Kotlin Multiplatform Text Editor.",
             "website": "https://github.com/Darkrock-Studios/ComposeTextEditor",
@@ -560,7 +582,7 @@
         },
         {
             "uniqueId": "com.darkrockstudios:composetexteditor-find-desktop",
-            "artifactVersion": "2.4.0",
+			"artifactVersion": "2.4.3",
             "name": "Compose Text Editor Find",
             "description": "Find functionality addon for Compose Text Editor.",
             "website": "https://github.com/Darkrock-Studios/ComposeTextEditor",
@@ -583,7 +605,7 @@
         },
         {
             "uniqueId": "com.darkrockstudios:composetexteditor-spellcheck-desktop",
-            "artifactVersion": "2.4.0",
+			"artifactVersion": "2.4.3",
             "name": "Compose Text Editor Spell Check",
             "description": "Spell checking addon for Compose Text Editor.",
             "website": "https://github.com/Darkrock-Studios/ComposeTextEditor",
@@ -1501,7 +1523,7 @@
         },
         {
             "uniqueId": "dev.nucleusframework:nucleus.aot-runtime",
-            "artifactVersion": "2.1.9",
+			"artifactVersion": "2.4.4",
             "name": "Nucleus AOT Runtime",
             "description": "AOT runtime library for the Nucleus Gradle plugin",
             "website": "https://github.com/NucleusFramework/Nucleus",
@@ -1524,7 +1546,7 @@
         },
         {
             "uniqueId": "dev.nucleusframework:nucleus.core-runtime",
-            "artifactVersion": "2.1.9",
+			"artifactVersion": "2.4.4",
             "name": "Nucleus Core Runtime",
             "description": "Core runtime library for the Nucleus Gradle plugin",
             "website": "https://github.com/NucleusFramework/Nucleus",
@@ -1547,7 +1569,7 @@
         },
         {
             "uniqueId": "dev.nucleusframework:nucleus.darkmode-detector",
-            "artifactVersion": "2.1.9",
+			"artifactVersion": "2.4.4",
             "name": "Nucleus Dark Mode Detector",
             "description": "Reactive dark mode detection for Compose Desktop across Windows, macOS and Linux",
             "website": "https://github.com/NucleusFramework/Nucleus",
@@ -1570,7 +1592,7 @@
         },
         {
             "uniqueId": "dev.nucleusframework:nucleus.decorated-window-awt",
-            "artifactVersion": "2.1.9",
+			"artifactVersion": "2.4.4",
             "name": "Nucleus Decorated Window AWT",
             "description": "AWT/Compose Desktop integration of Nucleus Decorated Window (consumed by JBR and JNI backends)",
             "website": "https://github.com/NucleusFramework/Nucleus",
@@ -1593,7 +1615,7 @@
         },
         {
             "uniqueId": "dev.nucleusframework:nucleus.decorated-window-core",
-            "artifactVersion": "2.1.9",
+			"artifactVersion": "2.4.4",
             "name": "Nucleus Decorated Window Core",
             "description": "Shared types, layout, styling, and resources for Nucleus Decorated Window",
             "website": "https://github.com/NucleusFramework/Nucleus",
@@ -1616,7 +1638,7 @@
         },
         {
             "uniqueId": "dev.nucleusframework:nucleus.decorated-window-material3",
-            "artifactVersion": "2.1.9",
+			"artifactVersion": "2.4.4",
             "name": "Nucleus Material Decorated Window",
             "description": "Material 3 integration for Nucleus Decorated Window",
             "website": "https://github.com/NucleusFramework/Nucleus",
@@ -1639,7 +1661,7 @@
         },
         {
             "uniqueId": "dev.nucleusframework:nucleus.decorated-window-tao",
-            "artifactVersion": "2.1.9",
+			"artifactVersion": "2.4.4",
             "name": "Nucleus Decorated Window Tao",
             "description": "Experimental no-AWT decorated window backend for Compose Desktop, powered by Tao via direct JNI for macOS, Windows, and Linux.",
             "website": "https://github.com/NucleusFramework/Nucleus",
@@ -1662,7 +1684,7 @@
         },
         {
             "uniqueId": "dev.nucleusframework:nucleus.freedesktop-icons",
-            "artifactVersion": "2.1.9",
+			"artifactVersion": "2.4.4",
             "name": "Nucleus Freedesktop Icons",
             "description": "Type-safe freedesktop icon naming specification constants for JVM desktop applications",
             "website": "https://github.com/NucleusFramework/Nucleus",
@@ -1685,7 +1707,7 @@
         },
         {
             "uniqueId": "dev.nucleusframework:nucleus.graalvm-runtime",
-            "artifactVersion": "2.1.9",
+			"artifactVersion": "2.4.4",
             "name": "Nucleus GraalVM Runtime",
             "description": "GraalVM native-image runtime initialization and font manager substitutions",
             "website": "https://github.com/NucleusFramework/Nucleus",
@@ -1708,7 +1730,7 @@
         },
         {
             "uniqueId": "dev.nucleusframework:nucleus.launcher-linux",
-            "artifactVersion": "2.1.9",
+			"artifactVersion": "2.4.4",
             "name": "Nucleus Launcher Linux",
             "description": "Unity Launcher API (com.canonical.Unity.LauncherEntry) for JVM desktop applications via JNI",
             "website": "https://github.com/NucleusFramework/Nucleus",
@@ -1731,7 +1753,7 @@
         },
         {
             "uniqueId": "dev.nucleusframework:nucleus.launcher-macos",
-            "artifactVersion": "2.1.9",
+			"artifactVersion": "2.4.4",
             "name": "Nucleus Launcher macOS",
             "description": "macOS dock context menu for JVM desktop applications via JNI",
             "website": "https://github.com/NucleusFramework/Nucleus",
@@ -1754,7 +1776,7 @@
         },
         {
             "uniqueId": "dev.nucleusframework:nucleus.launcher-windows",
-            "artifactVersion": "2.1.9",
+			"artifactVersion": "2.4.4",
             "name": "Nucleus Launcher Windows",
             "description": "Windows Launcher API (Badge Notifications) for JVM desktop applications via JNI",
             "website": "https://github.com/NucleusFramework/Nucleus",
@@ -1777,7 +1799,7 @@
         },
         {
             "uniqueId": "dev.nucleusframework:nucleus.linux-hidpi",
-            "artifactVersion": "2.1.9",
+			"artifactVersion": "2.4.4",
             "name": "Nucleus Linux HiDPI",
             "description": "Native HiDPI scale factor detection for Compose Desktop on Linux (GSettings, GDK_SCALE, Xft.dpi)",
             "website": "https://github.com/NucleusFramework/Nucleus",
@@ -1800,7 +1822,7 @@
         },
         {
             "uniqueId": "dev.nucleusframework:nucleus.nucleus-application",
-            "artifactVersion": "2.1.9",
+			"artifactVersion": "2.4.4",
             "name": "Nucleus Application",
             "description": "Unified entry point picking the decorated-window backend (JBR/JNI AWT or no-AWT Tao) and exposing a backend-agnostic window handle.",
             "website": "https://github.com/NucleusFramework/Nucleus",
@@ -2006,7 +2028,7 @@
         },
         {
             "uniqueId": "io.github.pdvrieze.xmlutil:core-jvm",
-            "artifactVersion": "1.0.1",
+			"artifactVersion": "1.0.2",
             "name": "core",
             "description": "Component of the XMLUtil library",
             "website": "https://github.com/pdvrieze/xmlutil",
@@ -2074,7 +2096,7 @@
         },
         {
             "uniqueId": "io.github.vinceglb:filekit-core-jvm",
-            "artifactVersion": "0.14.2",
+			"artifactVersion": "0.15.0",
             "name": "FileKit",
             "description": "Files, Media, Folder Picker and File saver library for Kotlin Multiplatform and Compose Multiplatform",
             "website": "https://github.com/vinceglb/FileKit",
@@ -2614,7 +2636,7 @@
         },
         {
             "uniqueId": "no.synth:kmp-zip-jvm",
-            "artifactVersion": "0.12.2",
+			"artifactVersion": "0.13.0",
             "name": "kmp-zip",
             "description": "Kotlin Multiplatform ZIP streams for JVM, iOS, macOS, Linux, Windows, and Wasm/JS",
             "website": "https://github.com/henrik242/kmp-zip",
@@ -2637,7 +2659,7 @@
         },
         {
             "uniqueId": "no.synth:kmp-zip-okio-jvm",
-            "artifactVersion": "0.12.2",
+			"artifactVersion": "0.13.0",
             "name": "kmp-zip-okio",
             "description": "OkIO BufferedSource/BufferedSink adapters for kmp-zip ZipInputStream and ZipOutputStream",
             "website": "https://github.com/henrik242/kmp-zip",

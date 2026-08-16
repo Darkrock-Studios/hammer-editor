@@ -173,17 +173,6 @@ compose.desktop {
 	}
 }
 
-// Nucleus' Tao popup layer opens its placeholder surface at 1x1, which a
-// Wayland compositor on a scaled output rejects as a protocol violation and
-// kills the client. XWayland has no such rule.
-// https://github.com/NucleusFramework/Nucleus/issues/502
-// Respects an explicit GDK_BACKEND so the Wayland path stays testable.
-if (org.gradle.internal.os.OperatingSystem.current().isLinux && System.getenv("GDK_BACKEND") == null) {
-	tasks.withType<JavaExec>().configureEach {
-		environment("GDK_BACKEND", "x11")
-	}
-}
-
 aboutLibraries {
 	export {
 		prettyPrint = true
