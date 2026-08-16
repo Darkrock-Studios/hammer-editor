@@ -29,3 +29,6 @@ class ProjectNotFound(val projectId: ProjectId) :
 
 class InvalidProjectName(val name: String) :
 	Exception("Invalid project name: $name")
+
+class ProjectNameTaken(val name: String) :
+	Exception("This account already has a project named: $name")

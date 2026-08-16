@@ -630,6 +630,61 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
+	fun `syncProjects frees a deleted project's name before renaming another project into it`() = runTest {
+		val deletedId = ProjectId.randomUUID()
+		val keptId = ProjectId.randomUUID()
+		val keptDef = projectDef("FooBar")
+
+		writeSyncData(
+			emptySyncData().copy(
+				projectsToDelete = setOf(deletedId),
+				projectsToRename = setOf(RenamedProject(keptId, "FooBar")),
+			)
+		)
+		coEvery { serverProjectsApi.beginProjectsSync() } returns Result.success(
+			emptyServerResponse().copy(
+				projects = setOf(
+					ApiProjectDefinition("FooBar", deletedId),
+					ApiProjectDefinition("FooBar V2", keptId),
+				)
+			)
+		)
+		coEvery { serverProjectsApi.deleteProject(deletedId, "sync-1") } returns Result.success("ok")
+		coEvery { serverProjectsApi.renameProject(keptId, "sync-1", "FooBar") } returns Result.success("ok")
+		every { projectsRepository.getProjects(any()) } returns listOf(keptDef)
+		every { projectsRepository.getProjectId(keptDef) } returns keptId
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		// A project name is unique per account on the server, so renaming first collides with
+		// the project this same sync is about to delete.
+		coVerifyOrder {
+			serverProjectsApi.deleteProject(deletedId, "sync-1")
+			serverProjectsApi.renameProject(keptId, "sync-1", "FooBar")
+		}
+		assertTrue(readSyncData().projectsToRename.isEmpty())
+	}
+
+	@Test
+	fun `syncProjects drops a rename queued against a project the server has deleted`() = runTest {
+		val id = ProjectId.randomUUID()
+		val def = projectDef("GoneNovel")
+		writeSyncData(emptySyncData().copy(projectsToRename = setOf(RenamedProject(id, "NewName"))))
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(deletedProjects = setOf(id)))
+		every { projectsRepository.findProject(id) } returns def
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+
+		val result = createSynchronizer().syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		// The project is gone on both sides; the rename could only 404 and requeue forever.
+		coVerify(exactly = 0) { serverProjectsApi.renameProject(any(), any(), any()) }
+		assertTrue(readSyncData().projectsToRename.isEmpty())
+	}
+
+	@Test
 	fun `syncProjects does not recreate a project deleted locally that the server still lists`() = runTest {
 		val id = ProjectId.randomUUID()
 		val serverProject = ApiProjectDefinition(name = "DeadNovel", uuid = id)

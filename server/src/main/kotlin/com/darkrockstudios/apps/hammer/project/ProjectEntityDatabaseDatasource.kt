@@ -329,15 +329,11 @@ class ProjectEntityDatabaseDatasource(
 		userId: Long,
 		projectId: ProjectId,
 		newProjectName: String
-	): Boolean {
-		projectDao.updateProjectName(
-			userId = userId,
-			projectUuid = projectId,
-			newName = newProjectName,
-		)
-
-		return true
-	}
+	): Boolean = projectDao.updateProjectName(
+		userId = userId,
+		projectUuid = projectId,
+		newName = newProjectName,
+	)
 
 	override suspend fun getProject(userId: Long, projectId: ProjectId): ProjectDefinition? {
 		val projectData = projectDao.getProjectData(userId, projectId)

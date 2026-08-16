@@ -227,11 +227,12 @@ class ProjectsRepository(
 			return SResult.failure(InvalidProjectName(newProjectName ?: "null"))
 
 		val existingProject = projectEntityDatasource.checkProjectExists(userId, projectId)
-		return if (existingProject) {
-			projectEntityDatasource.renameProject(userId, projectId, newProjectName)
+		if (existingProject.not()) return SResult.failure(ProjectNotFound(projectId))
+
+		return if (projectEntityDatasource.renameProject(userId, projectId, newProjectName)) {
 			SResult.success()
 		} else {
-			SResult.failure(ProjectNotFound(projectId))
+			SResult.failure(ProjectNameTaken(newProjectName))
 		}
 	}
 

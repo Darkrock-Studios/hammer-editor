@@ -6,10 +6,12 @@ import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
 import com.darkrockstudios.apps.hammer.base.http.HEADER_SYNC_ID
 import com.darkrockstudios.apps.hammer.project.InvalidProjectName
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
+import com.darkrockstudios.apps.hammer.project.ProjectNameTaken
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.server.testing.*
 import io.mockk.coEvery
@@ -19,6 +21,7 @@ import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.MethodSource
 import java.util.stream.Stream
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 
 class ProjectsRoutesRenameProjectTest : ProjectsRoutesBaseTest() {
@@ -61,6 +64,38 @@ class ProjectsRoutesRenameProjectTest : ProjectsRoutesBaseTest() {
 		}
 	}
 
+	@Test
+	fun `Unknown project reports that the project does not exist`() = testApplication {
+		val projectId = ProjectId("TestProjectId")
+		val syncId = "syncId-test"
+		val userId = 0L
+		val newName = "What Ever"
+
+		coEvery { accountsRepository.checkToken(userId, BEARER_TOKEN) } returns SResult.success(0L)
+		coEvery {
+			projectsRepository.renameProject(
+				userId = userId,
+				syncId = syncId,
+				projectId = projectId,
+				newProjectName = newName
+			)
+		} returns SResult.failure(ProjectNotFound(projectId))
+
+		defaultApplication()
+
+		client.get("api/projects/0/rename") {
+			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+			header("Authorization", "Bearer $BEARER_TOKEN")
+			header(HEADER_SYNC_ID, syncId)
+
+			parameter("projectId", projectId.id)
+			parameter("projectName", newName)
+		}.apply {
+			assertEquals(HttpStatusCode.NotFound, status)
+			assertContains(bodyAsText(), "Project does not exist")
+		}
+	}
+
 	companion object {
 		@JvmStatic
 		fun provideFailureTestData(): Stream<Arguments> {
@@ -78,6 +113,10 @@ class ProjectsRoutesRenameProjectTest : ProjectsRoutesBaseTest() {
 						InvalidSyncIdException()
 					),
 					HttpStatusCode.BadRequest
+				),
+				Arguments.of(
+					SResult.failure<Unit>(ProjectNameTaken("What Ever")),
+					HttpStatusCode.Conflict
 				),
 			)
 		}
