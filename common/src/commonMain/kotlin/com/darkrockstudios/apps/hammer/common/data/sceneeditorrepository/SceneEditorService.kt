@@ -185,7 +185,7 @@ class SceneEditorService(
 
 		sceneEditorRepository.markSceneForSynchronization(sceneItem)
 
-		val scenePath = sceneEditorRepository.getSceneFilePath(sceneItem)
+		val scenePath = sceneEditorRepository.resolveSceneContentPath(sceneItem)
 		val success = sceneContentRepository.persistBuffer(buffer, scenePath)
 
 		if (success) {
@@ -208,7 +208,7 @@ class SceneEditorService(
 	}
 
 	fun discardSceneBuffer(sceneDef: SceneItem) {
-		val scenePath = sceneEditorRepository.getSceneFilePath(sceneDef)
+		val scenePath = sceneEditorRepository.resolveSceneContentPath(sceneDef)
 		val reloaded = sceneContentRepository.discardBuffer(sceneDef, scenePath)
 		if (reloaded != null) {
 			writingSessionTracker.rememberBaseline(sceneDef.id, reloaded.content.coerceMarkdown())
@@ -292,7 +292,7 @@ class SceneEditorService(
 		val cached = sceneContentRepository.getSceneBuffer(sceneItem)
 		if (cached != null) return cached
 
-		val scenePath = sceneEditorRepository.getSceneFilePath(sceneItem)
+		val scenePath = sceneEditorRepository.resolveSceneContentPath(sceneItem)
 		val buffer = sceneContentRepository.loadBuffer(sceneItem, scenePath)
 		writingSessionTracker.rememberBaseline(sceneItem.id, buffer.content.coerceMarkdown())
 		return buffer
