@@ -17,6 +17,8 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSeri
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.async
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import okio.fakefilesystem.FakeFileSystem
@@ -143,6 +145,37 @@ class StoryIdeasComponentTest : ComponentTest() {
 		assertFalse(draft.isEditing)
 		assertFalse(draft.isDirty)
 		assertEquals("v2", draft.savedContent)
+	}
+
+	@Test
+	fun `A save landing after the editor moved on leaves the new draft alone`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.writeIdea(content = "first")
+		comp.writeIdea(content = "second")
+		advanceUntilIdle()
+
+		val first = comp.state.value.ideas.single { it.content == "first" }
+		val second = comp.state.value.ideas.single { it.content == "second" }
+
+		comp.editIdea(first.id)
+		comp.beginEdit()
+		comp.updateContent("first, rewritten")
+
+		// Unconfined so the save runs up to its first suspension, leaving the write in flight
+		// while the editor is switched underneath it.
+		val save = async(UnconfinedTestDispatcher(testScheduler)) { comp.saveDraft() }
+		assertFalse(save.isCompleted, "The write must still be in flight for this to test anything")
+		comp.editIdea(second.id)
+		advanceUntilIdle()
+
+		assertEquals(StoryIdeas.SaveResult.Saved, save.await())
+		assertEquals("first, rewritten", comp.state.value.ideas.single { it.id == first.id }.content)
+
+		val draft = comp.state.value.draft!!
+		assertEquals("second", draft.content, "The open editor still shows the idea it was opened on")
+		assertEquals("second", draft.savedContent)
 	}
 
 	@Test

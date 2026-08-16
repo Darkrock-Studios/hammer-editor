@@ -157,15 +157,19 @@ class StoryIdeasComponent(
 			)
 
 			is ClientResult.Success -> withContext(dispatcherMain) {
-				if (editor is StoryIdeas.Editor.Create) {
-					closeEditor()
-					StoryIdeas.SaveResult.Created
-				} else {
-					// Re-baseline off what was actually stored, so the trimming and tag cleaning
-					// the repository applies don't leave the editor looking dirty.
-					updateDraft { result.data.asDraft(isEditing = false) }
-					StoryIdeas.SaveResult.Saved
+				val created = editor is StoryIdeas.Editor.Create
+				// The editor can move on while the write is in flight; the result belongs to the
+				// one that started it, so don't stamp it onto whatever is open now.
+				if (isStillOpen(editor)) {
+					if (created) {
+						closeEditor()
+					} else {
+						// Re-baseline off what was actually stored, so the trimming and tag cleaning
+						// the repository applies don't leave the editor looking dirty.
+						updateDraft { result.data.asDraft(isEditing = false) }
+					}
 				}
+				if (created) StoryIdeas.SaveResult.Created else StoryIdeas.SaveResult.Saved
 			}
 		}
 	}
@@ -184,6 +188,14 @@ class StoryIdeasComponent(
 
 	override suspend fun promoteIdea(id: IdeaId): CResult<ProjectDef> {
 		return promoteIdeaUseCase(id)
+	}
+
+	private fun isStillOpen(editor: StoryIdeas.Editor): Boolean {
+		val current = _state.value.editor
+		return when (editor) {
+			StoryIdeas.Editor.Create -> current is StoryIdeas.Editor.Create
+			is StoryIdeas.Editor.Edit -> (current as? StoryIdeas.Editor.Edit)?.idea?.id == editor.idea.id
+		}
 	}
 
 	private fun updateDraft(transform: (StoryIdeas.Draft) -> StoryIdeas.Draft) {

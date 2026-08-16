@@ -41,8 +41,8 @@ inline fun <reified T : Any> serializableSaverNonNull(): Saver<T, String> = Save
 )
 
 /**
- * A string list that survives a configuration change. Use it for draft collections — tags, chips,
- * selections — that a plain [mutableStateListOf] would drop when the composition is rebuilt.
+ * A string list that survives a configuration change. Use it for draft collections (tags, chips,
+ * selections) that a plain [mutableStateListOf] would drop when the composition is rebuilt.
  */
 @Composable
 fun rememberSaveableStringList(): SnapshotStateList<String> = rememberSaveable(

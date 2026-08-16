@@ -88,17 +88,20 @@ internal fun ViewEntryUi(
 	var entryNameText by rememberSaveable { mutableStateOf(state.content?.name ?: "") }
 	var entryText by rememberSaveable { mutableStateOf(state.content?.text ?: "") }
 	var discardConfirm by rememberSaveable { mutableStateOf(false) }
+	var seeded by rememberSaveable { mutableStateOf(false) }
 
 	val screen = LocalScreenCharacteristic.current
 	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
 
 	LaunchedEffect(state.content) {
 		val loaded = state.content ?: return@LaunchedEffect
-		// A configuration change re-runs this effect over the restored draft, so re-seeding
-		// unconditionally would throw away whatever the user had typed but not saved.
-		if (state.editName || state.editText) return@LaunchedEffect
+		// Once the fields hold the entry, an open edit owns them: re-seeding would discard
+		// unsaved text. Until then they must be filled even if the edit started first,
+		// otherwise a save writes an empty entry.
+		if (seeded && (state.editName || state.editText)) return@LaunchedEffect
 		entryNameText = loaded.name
 		entryText = loaded.text
+		seeded = true
 	}
 
 	val ruleColor = MaterialTheme.colorScheme.outlineVariant

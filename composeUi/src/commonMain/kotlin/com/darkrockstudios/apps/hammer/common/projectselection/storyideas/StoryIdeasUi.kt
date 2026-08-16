@@ -58,6 +58,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -202,6 +204,16 @@ private enum class IdeasSortMode(
 	TitleAsc(Res.string.ideas_sort_title_az, Res.string.ideas_sort_glyph_title_az),
 }
 
+private val IdeasSortModeSaver = Saver<IdeasSortMode, String>(
+	save = { it.name },
+	restore = { IdeasSortMode.valueOf(it) },
+)
+
+private val TagSetSaver = listSaver<Set<String>, String>(
+	save = { it.toList() },
+	restore = { it.toSet() },
+)
+
 private fun StoryIdea.wordCount(): Int =
 	content.split(Regex("\\s+")).count { it.isNotBlank() }
 
@@ -268,8 +280,12 @@ private fun IdeasBrowse(
 	val isWide = screen.isWide
 
 	var searchQuery by rememberSaveable { mutableStateOf("") }
-	var sortMode by remember { mutableStateOf(IdeasSortMode.DateDesc) }
-	var activeTags by remember { mutableStateOf<Set<String>>(emptySet()) }
+	var sortMode by rememberSaveable(stateSaver = IdeasSortModeSaver) {
+		mutableStateOf(IdeasSortMode.DateDesc)
+	}
+	var activeTags by rememberSaveable(stateSaver = TagSetSaver) {
+		mutableStateOf<Set<String>>(emptySet())
+	}
 	var showArchived by rememberSaveable { mutableStateOf(false) }
 	var showSearchBar by rememberSaveable { mutableStateOf(false) }
 
