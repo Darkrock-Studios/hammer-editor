@@ -156,9 +156,9 @@ class SceneRepository(
 		val parentPath = resolveParentPathFromFilesystem(parentId)
 
 		val orderDigits = if (isNewScene && willNextSceneIncreaseMagnitude(parentId)) {
-			sceneDatasource.countScenes(parentPath).numDigits() + 1
+			sceneDatasource.getLastOrderNumber(parentPath).numDigits() + 1
 		} else {
-			sceneDatasource.countScenes(parentPath).numDigits()
+			sceneDatasource.getLastOrderNumber(parentPath).numDigits()
 		}
 
 		return sceneFileName(sceneDef, orderDigits)
@@ -180,16 +180,7 @@ class SceneRepository(
 
 	/** How wide the order field is for items directly inside [parentPath]. */
 	private fun orderDigitsIn(parentPath: HPath): Int =
-		sceneDatasource.countScenes(parentPath).numDigits()
-
-	/**
-	 * Where [sceneItem]'s content actually sits. Resolved by id from disk, falling back to the
-	 * computed name only for a scene that has no file yet. Reading or writing content through a
-	 * recomputed name lets any disagreement between the tree and disk silently retarget the
-	 * operation: reads land on nothing and come back empty, writes create a rival file.
-	 */
-	fun resolveSceneContentPath(sceneItem: SceneItem): HPath =
-		sceneDatasource.resolveScenePathFromFilesystem(sceneItem.id) ?: getSceneFilePath(sceneItem)
+		sceneDatasource.getLastOrderNumber(parentPath).numDigits()
 
 	/** The path of [child] directly inside [parentPath], given the order field width there. */
 	private fun childScenePath(parentPath: HPath, child: SceneItem, orderDigits: Int): HPath =
@@ -579,10 +570,10 @@ class SceneRepository(
 
 	/**
 	 * Recursively moves [parentNode]'s children to their intended paths. Order padding is the
-	 * width of the highest order among the children present on disk, computed once per directory:
-	 * it is immune to the moves below changing the directory's live count, and it matches the
-	 * padding [getSceneFilePath] derives once the directory holds exactly these children. Parents
-	 * are finalized before their children so every destination directory exists.
+	 * digit count of the children present on disk, computed once per directory: it is immune to
+	 * the moves below changing the directory's live count, and it matches the padding
+	 * [getSceneFilePath] derives from the directory's final disk count. Parents are finalized
+	 * before their children so every destination directory exists.
 	 */
 	private fun rationalizeChildren(parentNode: TreeNode<SceneItem>, parentPath: HPath) {
 		// Children already inside this directory, snapshotted once: a sibling's rename never
@@ -595,7 +586,7 @@ class SceneRepository(
 			childPathsInDir.containsKey(node.value.id) ||
 				sceneDatasource.resolveScenePathFromFilesystem(node.value.id) != null
 		}
-		val orderDigits = (presentCount - 1).numDigits()
+		val orderDigits = presentCount.numDigits()
 
 		children.forEach { node ->
 			val intendedPath = childScenePath(parentPath, node.value, orderDigits)
@@ -783,7 +774,7 @@ class SceneRepository(
 	 */
 	fun loadSceneMarkdownRaw(
 		sceneItem: SceneItem,
-		scenePath: HPath = resolveSceneContentPath(sceneItem)
+		scenePath: HPath = getSceneFilePath(sceneItem)
 	): String =
 		sceneDatasource.loadSceneMarkdownRaw(sceneItem, scenePath)
 
@@ -795,7 +786,7 @@ class SceneRepository(
 	fun readSceneMarkdownInto(
 		sceneItem: SceneItem,
 		sink: ScanBuffers,
-		scenePath: HPath = resolveSceneContentPath(sceneItem),
+		scenePath: HPath = getSceneFilePath(sceneItem),
 	): Int = sceneDatasource.readSceneMarkdownInto(sceneItem, scenePath, sink)
 
 	/**
@@ -803,7 +794,7 @@ class SceneRepository(
 	 */
 	suspend fun storeSceneMarkdownRaw(
 		sceneItem: SceneContent,
-		scenePath: HPath = resolveSceneContentPath(sceneItem.scene)
+		scenePath: HPath = getSceneFilePath(sceneItem.scene)
 	): Boolean {
 		markForSynchronization(sceneItem.scene)
 
