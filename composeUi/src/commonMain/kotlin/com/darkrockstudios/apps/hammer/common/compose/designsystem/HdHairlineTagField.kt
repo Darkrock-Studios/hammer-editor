@@ -9,6 +9,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.focusProperties
@@ -49,7 +50,8 @@ fun HdHairlineTagField(
 	testTag: String? = null,
 	onDraftChange: (String) -> Unit = {},
 ) {
-	var draft by remember { mutableStateOf("") }
+	// Saveable so a configuration change can't drop a tag that was typed but not yet committed.
+	var draft by rememberSaveable { mutableStateOf("") }
 	val updateDraft: (String) -> Unit = {
 		draft = it
 		onDraftChange(it)

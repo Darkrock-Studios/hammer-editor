@@ -10,6 +10,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -36,7 +37,7 @@ internal fun SaveDraftDialog(
 	val strRes = rememberStrRes()
 	val scope = rememberCoroutineScope()
 	val mainDispatcher = rememberMainDispatcher()
-	var draftName by remember { mutableStateOf("") }
+	var draftName by rememberSaveable { mutableStateOf("") }
 
 	val metadataState by component.sceneMetadataComponent.state.subscribeAsState()
 	val currentDraftName = metadataState.metadata.currentDraftName
