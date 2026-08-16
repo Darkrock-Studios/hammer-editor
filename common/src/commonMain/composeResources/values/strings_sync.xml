@@ -144,13 +144,12 @@
 
 	<string name="sync_log_account_project_create_server_success">Created project on server: %1$s</string>
 	<string name="sync_log_account_project_create_server_failure">Failed to create project on server: %1$s</string>
+	<string name="sync_log_account_project_id_save_failure">Project created on server, but failed to save its ID locally: %1$s</string>
 	<string name="sync_log_account_project_create_client">Created local project: %1$s</string>
 	<string name="sync_log_account_project_create_client_local">Setting local project Server ID:
 		%1$s
 	</string>
-	<string name="sync_log_account_project_create_client_failure">Failed to create server project:
-		%1$s
-	</string>
+	<string name="sync_log_account_project_create_client_failure">Failed to create local project from server: %1$s</string>
 	<string name="sync_log_account_project_create_client_name_taken">Skipped server project %1$s: a local project of that name already syncs with a different server project</string>
 
 	<string name="sync_log_begin_account">Syncing Account...</string>

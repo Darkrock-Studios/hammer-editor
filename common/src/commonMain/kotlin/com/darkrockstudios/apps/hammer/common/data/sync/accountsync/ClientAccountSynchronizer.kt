@@ -598,7 +598,7 @@ class ClientAccountSynchronizer(
 					onLog(
 						syncAccLogE(
 							strRes.get(
-								Res.string.sync_log_account_project_create_server_failure,
+								Res.string.sync_log_account_project_id_save_failure,
 								projectName
 							)
 						)

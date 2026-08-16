@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.projectGet
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.countWords
 import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
@@ -42,9 +43,13 @@ class SceneMetadataPanelComponent(
 	SceneMetadataPanel {
 
 	private val appScope: CoroutineScope by inject(named(APP_SCOPE))
-	private val sceneEditor: SceneEditorService by projectInject()
+
+	// Resolved eagerly because onDestroy uses them, and on project close the project scope is
+	// closed before this component is destroyed: a lazy first-resolve there would crash.
+	private val sceneEditor: SceneEditorService = projectGet()
+	private val scrubInvalidReferences: ScrubInvalidReferencesUseCase = projectGet()
+
 	private val encyclopediaService: EncyclopediaService by projectInject()
-	private val scrubInvalidReferences: ScrubInvalidReferencesUseCase by projectInject()
 
 	private val searchableEntries = MutableStateFlow<List<SearchableEntry>>(emptyList())
 
