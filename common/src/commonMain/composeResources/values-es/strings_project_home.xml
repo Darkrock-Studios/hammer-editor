@@ -78,6 +78,12 @@
 	<string name="project_home_export_format_rtf">RTF (.rtf)</string>
 	<string name="project_home_export_cancel">Cancelar</string>
 	<string name="project_home_export_execute">Exportar</string>
+	<string name="project_home_export_limit_scenes_label">Limit to specific scenes</string>
+	<string name="project_home_export_limit_scenes_hint">Only the selected scenes will be included in the export</string>
+	<string name="project_home_export_scenes_label">Escenas</string>
+	<string name="project_home_export_scenes_selected">%1$d of %2$d selected</string>
+	<string name="project_home_export_scenes_select_all">Seleccionar todo</string>
+	<string name="project_home_export_scenes_clear_all">Borrar todo</string>
 	<string name="project_home_export_help_icon_description">Más información sobre los formatos de exportación</string>
 	<string name="project_home_export_help_title">Elegir un formato de exportación</string>
 	<string name="project_home_export_help_intro">Cada formato sirve para un propósito diferente. Elige el que se ajuste a cómo planeas usar la historia exportada.</string>
