@@ -149,7 +149,7 @@
 	<string name="sync_log_account_project_create_client_local">Setting local project Server ID:
 		%1$s
 	</string>
-	<string name="sync_log_account_project_create_client_failure">Failed to create local project from server: %1$s</string>
+	<string name="sync_log_account_project_create_local_failure">Failed to create local project from server: %1$s</string>
 	<string name="sync_log_account_project_create_client_name_taken">Skipped server project %1$s: a local project of that name already syncs with a different server project</string>
 
 	<string name="sync_log_begin_account">Syncing Account...</string>

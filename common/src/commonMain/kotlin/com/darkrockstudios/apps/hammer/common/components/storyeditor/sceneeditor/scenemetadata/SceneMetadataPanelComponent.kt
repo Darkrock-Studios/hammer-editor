@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescent
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
@@ -63,6 +64,7 @@ class SceneMetadataPanelComponent(
 	override val state: Value<SceneMetadataPanel.State> = _state
 
 	private var bufferUpdateSubscription: Job? = null
+	private var metadataLoaded = false
 
 	private val _metadataUpdateFlow = MutableSharedFlow<SceneMetadata>(
 		extraBufferCapacity = 1,
@@ -148,6 +150,7 @@ class SceneMetadataPanelComponent(
 
 	private suspend fun loadMetadataData() {
 		val metadata = sceneEditor.loadSceneMetadata(originalSceneItem.id)
+		metadataLoaded = true
 		_state.getAndUpdate {
 			it.copy(
 				metadata = metadata,
@@ -333,10 +336,20 @@ class SceneMetadataPanelComponent(
 		bufferUpdateSubscription?.cancel()
 		bufferUpdateSubscription = null
 
-		val scrubbed = scrubInvalidReferences(state.value.metadata)
-		val editor = sceneEditor
+		// If the load never completed, state still holds the default empty metadata;
+		// flushing it would wipe the scene's stored metadata.
+		if (metadataLoaded.not()) return
+
+		// The scrub does filesystem walks, so it runs off the lifecycle thread.
+		val metadata = state.value.metadata
 		appScope.launch {
-			editor.storeMetadata(scrubbed, originalSceneItem.id)
+			try {
+				sceneEditor.storeMetadata(scrubInvalidReferences(metadata), originalSceneItem.id)
+			} catch (e: CancellationException) {
+				throw e
+			} catch (e: Exception) {
+				Napier.e("Failed to flush metadata for scene ${originalSceneItem.id}", e)
+			}
 		}
 	}
 

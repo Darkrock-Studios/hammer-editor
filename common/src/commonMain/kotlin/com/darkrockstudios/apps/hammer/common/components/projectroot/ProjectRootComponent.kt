@@ -41,7 +41,7 @@ class ProjectRootComponent(
 	initialDeepLink: ProjectDeepLink? = null,
 ) : ProjectComponentBase(projectDef, componentContext), ProjectRoot {
 
-	private val syncJournal: SyncJournal by projectInject()
+	private val syncJournal: SyncJournal = projectGet()
 	private val sceneEditor: SceneEditorService by projectInject()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
 	private val encyclopediaService: EncyclopediaService by projectInject()

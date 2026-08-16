@@ -524,8 +524,8 @@ class ClientAccountSynchronizer(
 					onLog(
 						syncAccLogE(
 							strRes.get(
-								Res.string.sync_log_account_project_create_client_failure,
-								serverProject.toString(),
+								Res.string.sync_log_account_project_create_local_failure,
+								serverProject.name,
 							)
 						)
 					)
@@ -577,9 +577,23 @@ class ClientAccountSynchronizer(
 				// Save the newly provisioned project id
 				val response = result.getOrThrow()
 				val projectDef = projectsRepository.getProjectDefinition(projectName)
-				try {
+				val idSaved = try {
 					projectsRepository.setProjectId(projectDef, response.projectId)
+					true
+				} catch (e: Exception) {
+					Napier.e("Failed to save project id for $projectName", e)
+					onLog(
+						syncAccLogE(
+							strRes.get(
+								Res.string.sync_log_account_project_id_save_failure,
+								projectName
+							)
+						)
+					)
+					false
+				}
 
+				if (idSaved) {
 					onLog(
 						syncAccLogI(
 							strRes.get(
@@ -593,16 +607,6 @@ class ClientAccountSynchronizer(
 							projectsToCreate = syncData.projectsToCreate - projectName,
 						)
 					}
-				} catch (e: Exception) {
-					Napier.e("Failed to save project id for $projectName", e)
-					onLog(
-						syncAccLogE(
-							strRes.get(
-								Res.string.sync_log_account_project_id_save_failure,
-								projectName
-							)
-						)
-					)
 				}
 			} else {
 				onLog(

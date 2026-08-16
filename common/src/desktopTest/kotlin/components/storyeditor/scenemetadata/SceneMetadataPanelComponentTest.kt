@@ -14,6 +14,7 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -85,6 +86,25 @@ class SceneMetadataPanelComponentTest : ComponentTest() {
 			)
 		}
 	}
+
+	@Test
+	fun `Destroy before the metadata load completes does not overwrite stored metadata`() =
+		runTest(mainTestDispatcher) {
+			coEvery { sceneEditor.loadSceneMetadata(any()) } coAnswers { awaitCancellation() }
+
+			val component = newComponent()
+			context.resume()
+			advanceUntilIdle()
+
+			context.destroy()
+			advanceUntilIdle()
+
+			// State still holds the default empty SceneMetadata; flushing it would wipe the
+			// scene's real outline/notes/references on disk.
+			coVerify(exactly = 0) {
+				sceneEditor.storeMetadata(any(), any())
+			}
+		}
 
 	@Test
 	fun `Destroy after the project scope closed does not crash and still flushes metadata`() =
