@@ -114,6 +114,7 @@ import com.darkrockstudios.apps.hammer.utilities.SystemTouchableFileSystem
 import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import com.darkrockstudios.apps.hammer.utilities.TouchableFileSystem
 import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
+import com.darkrockstudios.apps.hammer.utilities.nonBlockingSecureRandom
 import io.ktor.util.logging.Logger
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.Json
@@ -147,7 +148,7 @@ fun mainModule(
 	single { Toml { ignoreUnknownKeys = true } } bind Toml::class
 	single { Clock.System } bind Clock::class
 	single { createTokenBase64() } bind Base64::class
-	single { SecureRandom.getInstanceStrong() } bind SecureRandom::class
+	single { nonBlockingSecureRandom() } bind SecureRandom::class
 	single { FileSystem.SYSTEM } bind FileSystem::class
 	single<Database> {
 		val cfg = get<ServerConfig>()
