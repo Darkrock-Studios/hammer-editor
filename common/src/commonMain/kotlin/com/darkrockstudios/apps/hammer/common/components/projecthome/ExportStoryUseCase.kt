@@ -93,8 +93,8 @@ class ExportStoryUseCase(
 	/** Reads source data off [ioDispatcher], then renders the document into an in-memory buffer on [defaultDispatcher]. */
 	private suspend fun render(projectName: String, options: ExportOptions): Buffer {
 		val source = withContext(ioDispatcher) {
-			val perNodeChapters = sceneEditorRepository.getSceneTree().root.children.map { node ->
-				StoryChapter(name = node.value.name, markdown = collectMarkdown(node))
+			val perNodeChapters = sceneEditorRepository.getSceneTree().root.children.mapNotNull { node ->
+				chapterFor(node, options.sceneIds)
 			}
 			val projectData =
 				if (options.format == ExportFormat.Markdown) null else projectDataDatasource.load().data
@@ -174,13 +174,28 @@ class ExportStoryUseCase(
 		listOf(StoryChapter(projectName, perNodeChapters.joinToString("\n\n") { it.markdown }))
 	}
 
-	private fun collectMarkdown(node: TreeValue<SceneItem>): String {
-		return if (node.value.type == SceneItem.Type.Scene) {
-			sceneEditorRepository.loadSceneMarkdownRaw(node.value)
+	/**
+	 * Builds the chapter for one top-level node under an optional scene filter.
+	 * Returns null when a filter is active and the node contributes no selected scenes,
+	 * dropping it from the chapter list so later chapters renumber automatically.
+	 * A filter never widens: an empty or fully stale set yields zero chapters.
+	 */
+	private fun chapterFor(node: TreeValue<SceneItem>, sceneFilter: Set<Int>?): StoryChapter? {
+		val sceneNodes = if (node.value.type == SceneItem.Type.Scene) {
+			listOf(node)
 		} else {
 			node.filter { it.value.type == SceneItem.Type.Scene }
-				.joinToString("\n\n") { sceneEditorRepository.loadSceneMarkdownRaw(it.value) }
 		}
+		val included = if (sceneFilter == null) {
+			sceneNodes
+		} else {
+			sceneNodes.filter { it.value.id in sceneFilter }
+		}
+		if (sceneFilter != null && included.isEmpty()) return null
+		return StoryChapter(
+			name = node.value.name,
+			markdown = included.joinToString("\n\n") { sceneEditorRepository.loadSceneMarkdownRaw(it.value) },
+		)
 	}
 
 }

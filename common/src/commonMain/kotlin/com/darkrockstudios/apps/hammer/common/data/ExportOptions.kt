@@ -9,4 +9,6 @@ enum class ExportFormat { Markdown, Epub, Pdf, Docx, Rtf }
 data class ExportOptions(
 	val treatTopLevelAsChapters: Boolean = true,
 	val format: ExportFormat = ExportFormat.Epub,
+	/** Scene ids the export is limited to; null exports the entire story. */
+	val sceneIds: Set<Int>? = null,
 )

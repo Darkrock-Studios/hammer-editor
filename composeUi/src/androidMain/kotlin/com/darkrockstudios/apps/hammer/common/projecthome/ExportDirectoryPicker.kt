@@ -5,13 +5,16 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
 import com.darkrockstudios.apps.hammer.common.data.ExportFormat
+import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import com.darkrockstudios.apps.hammer.project_home_action_export_toast_failure
@@ -30,11 +33,14 @@ actual fun ExportDirectoryPicker(
 	val externalFileIo: ExternalFileIo = rememberKoinInject()
 	val state by component.state.subscribeAsState()
 	val format = state.exportOptions.format
+	// Snapshot of the confirmed options taken when the SAF picker launches; the
+	// picker does not block the app, so options must not be re-read afterwards.
+	var confirmedOptions by remember { mutableStateOf<ExportOptions?>(null) }
 	val launcher = rememberLauncherForActivityResult(
 		remember(format) { ActivityResultContracts.CreateDocument(mimeTypeFor(format)) }
 	) { uri ->
-		if (uri != null) {
-			val options = state.exportOptions
+		val options = confirmedOptions
+		if (uri != null && options != null) {
 			scope.launch(ioDispatcher) {
 				val exportTempFile = getCacheDirectory()
 				val tempFilePath = component.exportProject(exportTempFile, options)
@@ -60,7 +66,9 @@ actual fun ExportDirectoryPicker(
 
 	LaunchedEffect(show) {
 		if (show) {
-			launcher.launch(component.getExportStoryFileName(format))
+			val options = component.state.value.exportOptions
+			confirmedOptions = options
+			launcher.launch(component.getExportStoryFileName(options.format))
 		}
 	}
 }

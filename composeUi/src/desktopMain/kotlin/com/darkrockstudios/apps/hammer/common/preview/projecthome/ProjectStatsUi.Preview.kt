@@ -113,8 +113,10 @@ private val component = object : ProjectHome {
 	override suspend fun exportProjectToFile(filePath: String, options: ExportOptions): HPath = fakeProjectDef().path
 	override fun beginProjectExport() {}
 	override fun cancelExportDialog() {}
+	override fun updateExportOptions(options: ExportOptions) {}
 	override fun confirmExportDialog(options: ExportOptions) {}
 	override fun endProjectExport() {}
+	override fun exportDialogDismissed() {}
 	override fun startProjectSync() {}
 	override fun showGlobalSearch() {}
 	override fun showGlobalSearchForTag(tag: String) {}
