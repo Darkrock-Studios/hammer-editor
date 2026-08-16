@@ -365,4 +365,92 @@ class ProjectsTest : EndToEndTest() {
 			assertEquals(HttpStatusCode.OK, endSyncResponse2.status)
 		}
 	}
+
+	@Test
+	fun `Project Sync - Rename onto a name another project still holds is a conflict`(): Unit = runBlocking {
+		val database = database()
+		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database)
+		TestDataSet1.createFullDataset(database, encryptor())
+		val userId = 1L
+		val authToken = createAuthToken(userId, "test-install-id", database = database, tokenHasher = tokenHasher())
+		doStartServer()
+
+		client().apply {
+			val beginSyncResponse = get(api("projects/$userId/begin_sync")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+					append("Authorization", "Bearer ${authToken.auth}")
+				}
+			}
+			assertEquals(HttpStatusCode.OK, beginSyncResponse.status)
+			val syncId = beginSyncResponse.body<BeginProjectsSyncResponse>().syncId
+
+			val occupiedName = "Occupied Project"
+			val createResponse = get(api("projects/$userId/create")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+					append("Authorization", "Bearer ${authToken.auth}")
+					append(HEADER_SYNC_ID, syncId)
+				}
+				parameter("projectName", occupiedName)
+			}
+			assertEquals(HttpStatusCode.OK, createResponse.status)
+			val occupyingProjectId = createResponse.body<CreateProjectResponse>().projectId
+
+			val renameResponse = get(api("projects/$userId/rename")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+					append("Authorization", "Bearer ${authToken.auth}")
+					append(HEADER_SYNC_ID, syncId)
+				}
+				parameter("projectId", TestDataSet1.project1.uuid)
+				parameter("projectName", occupiedName)
+			}
+			assertEquals(HttpStatusCode.Conflict, renameResponse.status)
+
+			// Every client sends its device locale, and the locale bundles have no English parent.
+			val translatedRenameResponse = get(api("projects/$userId/rename")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+					append("Authorization", "Bearer ${authToken.auth}")
+					append(HEADER_SYNC_ID, syncId)
+					append(HttpHeaders.AcceptLanguage, "de")
+				}
+				parameter("projectId", TestDataSet1.project1.uuid)
+				parameter("projectName", occupiedName)
+			}
+			assertEquals(HttpStatusCode.Conflict, translatedRenameResponse.status)
+
+			// Freeing the name first is what the client's delete-before-rename ordering guarantees.
+			val deleteResponse = get(api("projects/$userId/delete")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+					append("Authorization", "Bearer ${authToken.auth}")
+					append(HEADER_SYNC_ID, syncId)
+				}
+				parameter("projectId", occupyingProjectId.id)
+			}
+			assertEquals(HttpStatusCode.OK, deleteResponse.status)
+
+			val retryRenameResponse = get(api("projects/$userId/rename")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+					append("Authorization", "Bearer ${authToken.auth}")
+					append(HEADER_SYNC_ID, syncId)
+				}
+				parameter("projectId", TestDataSet1.project1.uuid)
+				parameter("projectName", occupiedName)
+			}
+			assertEquals(HttpStatusCode.OK, retryRenameResponse.status)
+
+			val endSyncResponse = get(api("projects/$userId/end_sync")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+					append("Authorization", "Bearer ${authToken.auth}")
+					append(HEADER_SYNC_ID, syncId)
+				}
+			}
+			assertEquals(HttpStatusCode.OK, endSyncResponse.status)
+		}
+	}
 }

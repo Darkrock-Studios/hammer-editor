@@ -68,6 +68,7 @@ interface ProjectEntityDatasource {
 		type: ApiProjectEntity.Type
 	): List<EntityDefinition>
 
+	/** False when the account already holds another project under [newProjectName]. */
 	suspend fun renameProject(userId: Long, projectId: ProjectId, newProjectName: String): Boolean
 
 	/** All of a project's entity ids paired with their cached hashes, in one query, sorted by id. */

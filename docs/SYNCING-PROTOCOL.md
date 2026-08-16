@@ -23,6 +23,13 @@ parity with each other.
 Additionally, it will find or create a `projectId` for the client's local projects. These are the
 key to being able to sync a local project with the server.
 
+### Phase ordering
+
+The phases run **delete, then rename, then create**, and the order is load-bearing. A project name is
+unique per account server-side, so a rename or a creation that takes the name of a project the same
+session is about to delete is rejected until the delete has freed it. Renaming a project onto a name
+another live project still holds answers `409 Conflict`.
+
 ### Stale project IDs
 
 A local project caches the `projectId` it was assigned, so a client that last synced against a
@@ -40,7 +47,9 @@ rather than retried:
 
 - A **rename** queued against an ID the server does not know is dropped without being sent. The
   server cannot rename an ID it never issued, so retrying only logs an error every session;
-  recreation already covers it, because the project is created under its current local name.
+  recreation already covers it, because the project is created under its current local name. A
+  rename queued against a **tombstoned** ID is dropped for the same reason: the delete phase has
+  already removed the project locally, and the server has nothing left to rename.
 - A **creation** queued for a name with no local project is dropped. The project was deleted before
   it ever reached the server, so creating it would push an empty project out to every device.
 
@@ -74,21 +83,6 @@ sequenceDiagram
 			Server -x Client: 400 Bad Request (sync ends here)
 		end
 	end
-	rect rgb(11, 0, 74)
-		loop Rename Projects
-			Client ->> Server: POST /api/projects/{userId}/rename
-			deactivate Client
-			activate Server
-			Note right of Client: bearer token <br/> syncId <br/> projectId <br/> projectName
-			Server -->> Client: 200 OK (Rename successful)
-			deactivate Server
-			activate Client
-			alt Rename fails
-				Server -->> Client: 4XX Bad Request
-			end
-		end
-	end
-
 	rect rgb(74, 0, 9)
 		loop Delete Projects
 			Client ->> Server: POST /api/projects/{userId}/delete
@@ -99,6 +93,21 @@ sequenceDiagram
 			deactivate Server
 			activate Client
 			alt Delete fails
+				Server -->> Client: 4XX Bad Request
+			end
+		end
+	end
+
+	rect rgb(11, 0, 74)
+		loop Rename Projects
+			Client ->> Server: POST /api/projects/{userId}/rename
+			deactivate Client
+			activate Server
+			Note right of Client: bearer token <br/> syncId <br/> projectId <br/> projectName
+			Server -->> Client: 200 OK (Rename successful)
+			deactivate Server
+			activate Client
+			alt Rename fails
 				Server -->> Client: 4XX Bad Request
 			end
 		end

@@ -85,11 +85,13 @@ class ClientAccountSynchronizer(
 
 				yield()
 
-				syncRenamedProjects(clientSyncData, serverSyncData, serverKnownIds, onLog, onUnauthorized)
+				// Deletions go first: a project name is unique per account on the server, so a
+				// rename into a name still held by a project queued for deletion is rejected.
+				syncDeletedProjects(clientSyncData, serverSyncData, onLog, onUnauthorized)
 
 				yield()
 
-				syncDeletedProjects(clientSyncData, serverSyncData, onLog, onUnauthorized)
+				syncRenamedProjects(clientSyncData, serverSyncData, serverKnownIds, onLog, onUnauthorized)
 
 				yield()
 
@@ -289,8 +291,9 @@ class ClientAccountSynchronizer(
 		clientSyncData.projectsToRename.forEach { (projectId, newName) ->
 			// The server can't rename an id it never issued, and would fail this every session
 			// forever. Recreation covers the rename anyway: it creates under the local name,
-			// which a local rename has already updated.
-			if (projectId !in serverKnownIds) {
+			// which a local rename has already updated. A tombstoned id is just as unrenamable,
+			// and its local project has already been deleted by syncDeletedProjects.
+			if (projectId !in serverKnownIds || projectId in serverSyncData.deletedProjects) {
 				dropQueuedRename(projectId)
 				return@forEach
 			}
