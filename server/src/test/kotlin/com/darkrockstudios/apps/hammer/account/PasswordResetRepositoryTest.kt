@@ -8,11 +8,11 @@ import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.PasswordResetTokenDao
 import com.darkrockstudios.apps.hammer.email.EmailResult
 import com.darkrockstudios.apps.hammer.email.EmailService
+import com.darkrockstudios.apps.hammer.utilities.Argon2PasswordHasher
 import com.darkrockstudios.apps.hammer.utilities.isFailure
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.darkrockstudios.apps.hammer.utils.BaseTest
 import com.darkrockstudios.apps.hammer.utils.TestClock
-import de.mkammerer.argon2.Argon2Factory
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -221,7 +221,7 @@ class PasswordResetRepositoryTest : BaseTest() {
 		val newHash = slot<String>()
 		coVerify(exactly = 1) { accountDao.updatePassword(userId, capture(newHash)) }
 		assertTrue(
-			Argon2Factory.create().verify(newHash.captured, "BrandNewPass123".toCharArray()),
+			Argon2PasswordHasher.verify(newHash.captured, "BrandNewPass123".toCharArray()),
 			"Stored hash must verify against the new password",
 		)
 		coVerify(exactly = 1) { authTokenDao.deleteTokensByUserId(userId) }

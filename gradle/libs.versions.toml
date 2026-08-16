@@ -82,7 +82,6 @@ mockk = "1.14.11"
 tomlkt = "0.5.0"
 
 krypto = "4.0.10"
-argon2_jvm = "2.12"
 owasp_html_sanitizer = "20260313.1"
 
 sqldelight = "2.3.2"
@@ -284,7 +283,6 @@ work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "w
 korlibs_krypto = { group = "com.soywiz.korlibs.krypto", name = "krypto", version.ref = "krypto" }
 korlibs_korio = { group = "com.soywiz.korlibs.korio", name = "korio", version.ref = "krypto" }
 
-argon2_jvm = { group = "de.mkammerer", name = "argon2-jvm", version.ref = "argon2_jvm" }
 owasp-html-sanitizer = { group = "com.googlecode.owasp-java-html-sanitizer", name = "owasp-java-html-sanitizer", version.ref = "owasp_html_sanitizer" }
 
 sqldelight_driver = { group = "app.cash.sqldelight", name = "sqlite-driver", version.ref = "sqldelight" }
@@ -329,6 +327,7 @@ compose-texteditor-spellcheck = { group = "com.darkrockstudios", name = "compose
 platform-spellcheckerkt = { module = "com.darkrockstudios:platform-spellcheckerkt", version.ref = "platform-spellcheckerkt" }
 
 bouncycastle-bcpkix = { group = "org.bouncycastle", name = "bcpkix-jdk18on", version.ref = "bouncycastle" }
+bouncycastle-bcprov = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
 
 nucleus_darkmode_detector = { module = "dev.nucleusframework:nucleus.darkmode-detector", version.ref = "nucleus" }
 nucleus_application = { module = "dev.nucleusframework:nucleus.nucleus-application", version.ref = "nucleus" }

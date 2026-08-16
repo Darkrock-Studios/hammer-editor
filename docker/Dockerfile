@@ -28,6 +28,12 @@ RUN groupadd --gid 1000 hammer \
 # setting JAVA_OPTS for heap would otherwise silently relocate all durable state.
 ENV SERVER_OPTS="-Duser.home=/data"
 
+# JNA, which the CLI's terminal library pulls in, extracts a shared object and executes
+# it. On Linux it ignores java.io.tmpdir and uses $XDG_CACHE_HOME (defaulting to
+# <user.home>/.cache), so without this it lands on the /data volume, which many hosts
+# mount noexec. Keep it on the image layer instead.
+ENV XDG_CACHE_HOME=/home/hammer/.cache
+
 ARG DIST_DIR=server/build/install/server
 COPY --chown=1000:1000 ${DIST_DIR}/ /opt/hammer/
 
