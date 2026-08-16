@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.FolderOpen
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -25,11 +23,16 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdIndentStep
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentFor
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentRails
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.scene_group_item_collapsed
 import com.darkrockstudios.apps.hammer.scene_group_item_expanded
+import com.darkrockstudios.apps.hammer.scene_group_scene_count_format
 
 fun sceneGroupTag(id: Int) = "scene-group-$id"
 
@@ -48,12 +51,17 @@ internal fun SceneGroupItem(
 	onCreateGroupClick: (scene: SceneItem) -> Unit,
 ) {
 	val (scene: SceneItem, _, _, children: List<TreeValue<SceneItem>>) = sceneNode
-	val isTopLevel = sceneNode.depth == 1
+	val isTopLevel = sceneNode.depth <= 1
+	val indent = hdIndentFor(sceneNode.depth)
+	val railColor = MaterialTheme.colorScheme.outlineVariant
 
 	val groupModifier = draggable
 		.fillMaxWidth()
 		.testTag(sceneGroupTag(scene.id))
+		.hdIndentRails(levels = sceneNode.depth - 1, color = railColor)
 		.clickable { toggleExpand(scene.id) }
+
+	val sceneCount = sceneNode.count { it.value.type == SceneItem.Type.Scene }
 
 	SceneGroupActionContainer(
 		scene = scene,
@@ -66,63 +74,55 @@ internal fun SceneGroupItem(
 	) {
 		Box(modifier = groupModifier) {
 			Column(modifier = Modifier.fillMaxWidth()) {
-				if (isTopLevel) {
-					HorizontalDivider(
-						thickness = Dp.Hairline,
-						color = MaterialTheme.colorScheme.outlineVariant,
-					)
-				}
+				// A chapter break cuts the full panel; a nested rule hangs at the group's own indent.
+				HorizontalDivider(
+					modifier = Modifier.padding(start = if (isTopLevel) 0.dp else indent),
+					thickness = Dp.Hairline,
+					color = MaterialTheme.colorScheme.outlineVariant,
+				)
 
 				Row(
 					modifier = Modifier
 						.fillMaxWidth()
 						.padding(
-							start = if (isTopLevel) {
-								Ui.Padding.XL
-							} else {
-								Ui.Padding.XL + (Ui.Padding.XL * (sceneNode.depth - 2).coerceAtLeast(0))
-							},
+							start = indent,
 							end = Ui.Padding.XL,
 							top = Ui.Padding.L,
 							bottom = Ui.Padding.L,
 						),
 					verticalAlignment = Alignment.CenterVertically,
 				) {
-					if (isTopLevel) {
-						Icon(
-							imageVector = if (collapsed) Icons.AutoMirrored.Filled.KeyboardArrowRight else Icons.Filled.KeyboardArrowDown,
-							contentDescription = if (collapsed) {
-								Res.string.scene_group_item_collapsed.get()
-							} else {
-								Res.string.scene_group_item_expanded.get()
-							},
-							tint = MaterialTheme.colorScheme.onSurfaceVariant,
-							modifier = Modifier.size(16.dp).padding(end = Ui.Padding.S),
-						)
-						Text(
-							text = scene.name,
-							style = MaterialTheme.typography.titleSmall,
-							fontWeight = FontWeight.Medium,
-							color = MaterialTheme.colorScheme.onSurface,
-							modifier = Modifier.weight(1f),
-						)
-					} else {
-						Icon(
-							imageVector = if (collapsed) Icons.Filled.Folder else Icons.Filled.FolderOpen,
-							contentDescription = if (collapsed) {
-								Res.string.scene_group_item_collapsed.get()
-							} else {
-								Res.string.scene_group_item_expanded.get()
-							},
-							tint = MaterialTheme.colorScheme.onSurfaceVariant,
-							modifier = Modifier.size(20.dp).padding(end = Ui.Padding.M),
-						)
-						Text(
-							text = scene.name,
-							style = MaterialTheme.typography.bodyMedium,
-							fontWeight = FontWeight.Medium,
-							color = MaterialTheme.colorScheme.onSurface,
-							modifier = Modifier.weight(1f),
+					Icon(
+						imageVector = if (collapsed) {
+							Icons.AutoMirrored.Filled.KeyboardArrowRight
+						} else {
+							Icons.Filled.KeyboardArrowDown
+						},
+						contentDescription = if (collapsed) {
+							Res.string.scene_group_item_collapsed.get()
+						} else {
+							Res.string.scene_group_item_expanded.get()
+						},
+						tint = MaterialTheme.colorScheme.onSurfaceVariant,
+						modifier = Modifier.size(HdIndentStep),
+					)
+
+					Text(
+						text = scene.name,
+						style = if (isTopLevel) {
+							MaterialTheme.typography.titleSmall
+						} else {
+							MaterialTheme.typography.bodyMedium
+						},
+						fontWeight = FontWeight.Medium,
+						color = MaterialTheme.colorScheme.onSurface,
+						modifier = Modifier.weight(1f),
+					)
+
+					if (sceneCount > 0) {
+						HdMonoLabel(
+							text = Res.string.scene_group_scene_count_format.get(sceneCount),
+							modifier = Modifier.padding(start = Ui.Padding.M),
 						)
 					}
 				}

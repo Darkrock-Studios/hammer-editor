@@ -208,6 +208,22 @@ These set up the page. Use them before reaching for raw `Column` /
       │ └─[ KTOR · HTTPS ]─────────[ LAST SYNC 14:32 ]┘  │
       └──────────────────────────────────────────────────┘
 
+- **[`HdIndentRails`](HdIndentRails.kt)** — the nesting vocabulary for
+  tree rows: `HdIndentStep` (one level = one disclosure column),
+  `hdIndentFor(depth)` for a row's start inset, and
+  `Modifier.hdIndentRails(levels, color)` to draw one vertical hairline
+  per ancestor, each centered on the disclosure column that owns it.
+  Every row in a tree — parent and leaf alike — takes its inset from
+  `hdIndentFor`, and a leaf adds one more `HdIndentStep` to clear the
+  chevron column, so a child's label sits exactly one step right of its
+  parent's. The rails are the marginalia rule applied along the depth
+  axis: without them 16dp steps stop being traceable past two levels.
+
+      ⌄ Chapter I                    3 SCN
+      ┆   At Home
+      ┆ ⌄ Chapter II                 2 SCN
+      ┆ ┆   The Pool of Tears
+
 - **[`HdScrollAwayFooter`](HdScrollAwayFooter.kt)**: hairline action
   strip that floats over the bottom of a scrolling pane and slides away
   as the reader scrolls down. It is an **overlay**, never a sibling in
