@@ -408,7 +408,7 @@ class ProjectsTest : EndToEndTest() {
 			}
 			assertEquals(HttpStatusCode.Conflict, renameResponse.status)
 
-			// Every client sends its device locale, and the locale bundles have no English parent.
+			// Every client sends its device locale, and this key has no translation yet.
 			val translatedRenameResponse = get(api("projects/$userId/rename")) {
 				headers {
 					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())

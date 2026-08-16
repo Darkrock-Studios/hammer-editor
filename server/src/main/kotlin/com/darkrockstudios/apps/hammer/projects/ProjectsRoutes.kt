@@ -231,26 +231,17 @@ private suspend fun RoutingContext.respondRenameFailure(exception: Throwable?) {
 	when (exception) {
 		is InvalidProjectName -> call.respond(
 			status = HttpStatusCode.NotAcceptable,
-			HttpResponseError(
-				error = ERROR_GENERIC,
-				displayMessage = call.tWithEnglishFallback(ERR_KEY_INVALID_PROJECT_NAME),
-			),
+			HttpResponseError(error = ERROR_GENERIC, displayMessage = call.t(R(ERR_KEY_INVALID_PROJECT_NAME))),
 		)
 
 		is ProjectNotFound -> call.respond(
 			status = HttpStatusCode.NotFound,
-			HttpResponseError(
-				error = ERROR_GENERIC,
-				displayMessage = call.tWithEnglishFallback(ERR_KEY_PROJECT_NOT_FOUND),
-			),
+			HttpResponseError(error = ERROR_GENERIC, displayMessage = call.t(R(ERR_KEY_PROJECT_NOT_FOUND))),
 		)
 
 		is ProjectNameTaken -> call.respond(
 			status = HttpStatusCode.Conflict,
-			HttpResponseError(
-				error = ERROR_GENERIC,
-				displayMessage = call.tWithEnglishFallback(ERR_KEY_PROJECT_NAME_TAKEN),
-			),
+			HttpResponseError(error = ERROR_GENERIC, displayMessage = call.t(R(ERR_KEY_PROJECT_NAME_TAKEN))),
 		)
 
 		else -> call.respondSyncFailure(exception)
