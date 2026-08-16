@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectGet
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.countWords
@@ -279,7 +280,11 @@ class SceneMetadataPanelComponent(
 		}
 	}
 
-	override fun searchEntriesForAdd(query: String, maxResults: Int): List<SceneMetadataPanel.AddSuggestion> {
+	override fun searchEntriesForAdd(
+		query: String,
+		types: Set<EntryType>,
+		maxResults: Int,
+	): List<SceneMetadataPanel.AddSuggestion> {
 		val metadata = state.value.metadata
 		return filterEntriesForAdd(
 			query = query,
@@ -287,6 +292,7 @@ class SceneMetadataPanelComponent(
 			confirmedIds = metadata.confirmedReferences,
 			dismissedIds = metadata.dismissedReferences,
 			maxResults = maxResults,
+			types = types,
 		)
 	}
 

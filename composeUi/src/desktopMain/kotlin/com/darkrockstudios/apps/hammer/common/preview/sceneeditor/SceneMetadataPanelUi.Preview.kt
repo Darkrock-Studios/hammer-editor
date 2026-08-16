@@ -61,7 +61,7 @@ private fun previewComponent(
 	override fun dismissReference(entryId: Int) {}
 	override fun restoreDismissedReference(entryId: Int) {}
 	override fun addConfirmedReference(entryId: Int) {}
-	override fun searchEntriesForAdd(query: String, maxResults: Int) =
+	override fun searchEntriesForAdd(query: String, types: Set<EntryType>, maxResults: Int) =
 		emptyList<SceneMetadataPanel.AddSuggestion>()
 
 	override fun navigateToEntry(entryDef: EntryDef) {}

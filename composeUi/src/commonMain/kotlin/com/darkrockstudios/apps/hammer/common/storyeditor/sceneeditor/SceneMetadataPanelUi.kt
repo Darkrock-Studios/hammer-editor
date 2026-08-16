@@ -43,6 +43,9 @@ private fun EntryType.bucket(): RefBucket = when (this) {
 	else -> RefBucket.Other
 }
 
+private fun RefBucket.types(): Set<EntryType> =
+	EntryType.entries.filterTo(mutableSetOf()) { it.bucket() == this }
+
 @Composable
 private fun RefBucket.label(): String = when (this) {
 	RefBucket.Characters -> Res.string.scene_editor_metadata_references_characters_label.get()
@@ -455,8 +458,7 @@ private fun AddReferenceDialog(
 	var tab by rememberSaveable { mutableStateOf(RefBucket.Characters) }
 
 	val suggestions = remember(query, tab) {
-		component.searchEntriesForAdd(query)
-			.filter { it.entryDef.type.bucket() == tab }
+		component.searchEntriesForAdd(query, types = tab.types())
 	}
 
 	AnimatedDialog(
