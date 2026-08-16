@@ -187,12 +187,20 @@ class SceneDatasource(
 		return scenePaths
 	}
 
+	/**
+	 * Scene paths directly inside [root], keyed by scene id. Two files claiming one id are settled
+	 * the same way [validateScenePaths] and [ScenePathIndex] settle them: the name-first path wins.
+	 * Every id lookup in the codebase must agree, or a pass that rewrites files picks a different
+	 * copy than the one the tree was loaded from and discards the other.
+	 */
 	fun getGroupChildPathsById(root: HPath): Map<Int, HPath> {
-		return getScenePathsFromFilesystem(root)
-			.map { scenePath ->
-				val sceneId = getSceneIdFromPath(scenePath.toHPath())
-				Pair(sceneId, scenePath)
-			}.associateBy({ it.first }, { it.second.toHPath() })
+		val byId = LinkedHashMap<Int, HPath>()
+		// filterScenePathsOkio sorts by name, so the first path seen for an id is the one it owns.
+		for (scenePath in getScenePathsFromFilesystem(root)) {
+			val sceneId = getSceneIdFromPath(scenePath.toHPath())
+			if (!byId.containsKey(sceneId)) byId[sceneId] = scenePath.toHPath()
+		}
+		return byId
 	}
 
 	fun moveScene(sourcePath: HPath, targetPath: HPath) {
@@ -216,8 +224,6 @@ class SceneDatasource(
 	}
 
 	fun getSceneFilename(path: HPath) = path.toOkioPath().name
-
-	fun getLastOrderNumber(parentPath: HPath): Int = countScenePathsIn(parentPath)
 
 	fun clearTempScene(sceneItem: SceneItem) {
 		val path = getSceneBufferTempPath(sceneItem).toOkioPath()
@@ -289,6 +295,13 @@ class SceneDatasource(
 		}
 	}
 
+	/**
+	 * The highest order number in use directly inside [parentPath]. Orders are a contiguous
+	 * 0-based sequence, so a directory of N children tops out at N-1. Both the order given to the
+	 * next child and the width of the zero-padded order field must derive from this, never from
+	 * the raw child count: at a power of ten the two disagree, and the names on disk stop matching
+	 * the ones [SceneRepository.getSceneFilePath] computes to read them back.
+	 */
 	fun countScenes(parentPath: HPath): Int = countScenePathsIn(parentPath) - 1
 
 	fun storeTempSceneBuffer(buffer: SceneBuffer): Boolean {
