@@ -104,31 +104,25 @@ internal fun NucleusApplicationScope.ProjectEditorWindow(
 			}
 		},
 		onKeyEvent = { event ->
-			when {
-				event.key == Key.Escape && event.type == KeyEventType.KeyUp -> {
-					backDispatcher.back()
-				}
-				event.type == KeyEventType.KeyDown &&
-					event.key == Key.F &&
-					event.isShiftPressed &&
-					(event.isCtrlPressed || event.isMetaPressed) -> {
+			when (event.toProjectEditorShortcut()) {
+				WindowShortcut.Back -> backDispatcher.back()
+
+				WindowShortcut.GlobalSearch -> {
 					component.showGlobalSearch()
 					true
 				}
-				event.type == KeyEventType.KeyDown &&
-					event.key == Key.W &&
-					(event.isCtrlPressed || event.isMetaPressed) -> {
+
+				WindowShortcut.CloseProject -> {
 					onRequestClose(component, app, ApplicationState.CloseType.Project)
 					true
 				}
 
-				event.type == KeyEventType.KeyDown &&
-					event.key == Key.Q &&
-					(event.isCtrlPressed || event.isMetaPressed) -> {
+				WindowShortcut.Quit -> {
 					onRequestClose(component, app, ApplicationState.CloseType.Application)
 					true
 				}
-				else -> false
+
+				null -> false
 			}
 		}
 	) {

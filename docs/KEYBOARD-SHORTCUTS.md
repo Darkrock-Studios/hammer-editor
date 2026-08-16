@@ -9,12 +9,18 @@ macOS-specific `Cmd` bindings, they work with either key on every platform.
 
 ## Application
 
-| Shortcut       | Action                | Source                                                               |
-|----------------|-----------------------|----------------------------------------------------------------------|
-| `Esc`          | Navigate back         | `ProjectEditorWindow.kt`, `ProjectSelectionWindow.kt` (`onKeyEvent`) |
-| `Ctrl+Q`       | Quit application      | `ProjectEditorWindow.kt`, `ProjectSelectionWindow.kt` (`onKeyEvent`) |
-| `Ctrl+W`       | Close current project | `ProjectEditorWindow.kt` (`onKeyEvent`)                              |
-| `Ctrl+Shift+F` | Open global search    | `ProjectEditorWindow.kt` (`onKeyEvent`)                              |
+These are matched in `desktop/.../WindowShortcuts.kt` and dispatched from each window's
+`onKeyEvent`.
+
+| Shortcut       | Action                | Window                                          |
+|----------------|-----------------------|-------------------------------------------------|
+| `Esc`          | Navigate back         | `ProjectEditorWindow.kt`, `ProjectSelectionWindow.kt` |
+| `Ctrl+Q`       | Quit application      | `ProjectEditorWindow.kt`, `ProjectSelectionWindow.kt` |
+| `Ctrl+W`       | Close current project | `ProjectEditorWindow.kt`                        |
+| `Ctrl+Shift+F` | Open global search    | `ProjectEditorWindow.kt`                        |
+
+Modifiers match exactly here too, which is what keeps `AltGr` (reported as `Ctrl+Alt` on
+Windows) from quitting the app while a non-US layout types `@`.
 
 ## Project (while a project is open)
 
