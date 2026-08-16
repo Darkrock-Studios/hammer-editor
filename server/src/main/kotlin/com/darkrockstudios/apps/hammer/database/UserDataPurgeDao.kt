@@ -37,6 +37,7 @@ class UserDataPurgeDao(
 			db.publishedStoryReaderQueries.deleteAllForUser(userId)
 			db.publishedStoryReaderQueries.deleteAllTotalsForUser(userId)
 			db.deletedEntityQueries.deleteAllForUser(userId)
+			db.projectAccessSceneQueries.deleteAllForUser(userId)
 			db.projectAccessQueries.deleteAllAccessForUser(userId)
 			db.storyEntityQueries.deleteAllForUser(userId)
 			db.projectDataQueries.deleteAllForUser(userId)

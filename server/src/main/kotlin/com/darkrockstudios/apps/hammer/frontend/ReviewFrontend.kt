@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.requestBaseUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
 import com.darkrockstudios.apps.hammer.frontend.utils.respondHtmlWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
+import com.darkrockstudios.apps.hammer.frontend.utils.sceneTreeModel
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.review.ReviewInviteMailer
 import com.darkrockstudios.apps.hammer.review.ReviewParagraphs
@@ -80,16 +81,7 @@ fun Route.reviewFrontend(
 					else -> emptyList()
 				}
 
-				val sceneTree = scenes.map { item ->
-					mapOf(
-						"id" to item.id,
-						"name" to item.name,
-						"isGroup" to item.isGroup,
-						"isScene" to item.isScene,
-						"depth" to item.depth,
-						"indentPx" to (item.depth * 18),
-					)
-				}
+				val sceneTree = sceneTreeModel(scenes)
 				val sceneCount = scenes.count { it.isScene }
 
 				val model = call.withDefaults(

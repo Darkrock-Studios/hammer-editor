@@ -1416,6 +1416,8 @@
 .access-entry-expiry {
 	display: flex;
 	align-items: center;
+	gap: 0.75rem;
+	flex-wrap: wrap;
 }
 
 .access-expiry {
@@ -1437,6 +1439,23 @@
 
 .access-expiry.never {
 	color: var(--neutral-400);
+}
+
+.access-scope {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.75rem;
+	color: var(--text-secondary);
+}
+
+.access-scope i {
+	font-size: 0.6875rem;
+}
+
+.access-scope.dead {
+	color: var(--error);
 }
 
 .delete-access-btn {
@@ -1836,7 +1855,9 @@
 
 /* ===== Request a Review dialog ===== */
 
-.dialog--review {
+/* Tall sheet dialogs (review request, private share): pinned header and actions
+   with the form as the single scroll column between them. */
+.dialog--sheet {
 	max-width: 540px;
 	width: 92%;
 	max-height: calc(100vh - 48px);
@@ -1848,11 +1869,11 @@
 	background: #fffdfa;
 }
 
-.dialog--review .dialog__actions {
+.dialog--sheet .dialog__actions {
 	background: #faf6ee;
 }
 
-.dialog--review form {
+.dialog--sheet form {
 	display: flex;
 	flex-direction: column;
 	flex: 1 1 auto;
@@ -1862,7 +1883,7 @@
 /* The only scroll region in the dialog. The scene list renders at its full
    height inside it, so the whole form scrolls as one column between the pinned
    header and actions instead of nesting a second scroller. */
-.dialog--review .dialog__body {
+.dialog--sheet .dialog__body {
 	flex: 1 1 auto;
 	min-height: 0;
 	overflow-y: auto;
@@ -2069,10 +2090,38 @@
 	color: var(--neutral-800);
 }
 
-#review-send-btn:disabled {
+[data-scene-submit]:disabled {
 	background: var(--neutral-200);
 	color: var(--neutral-400);
 	cursor: default;
+}
+
+/* ===== Share dialog scene limiting =====
+   The checkbox itself reuses the review-scene-row__* classes; only the row
+   layout differs because it sits outside the scene tree. */
+
+.share-form__limit {
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	cursor: pointer;
+}
+
+.share-form__limit-name .optional-label {
+	display: block;
+}
+
+.share-form__scenes {
+	margin-top: 0.9rem;
+}
+
+.review-form__scene-empty {
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.9rem;
+	color: var(--neutral-400);
+	margin: 0;
+	padding: 0.6rem 1rem;
 }
 
 /* ===== Review link fallback dialog ===== */
@@ -2098,22 +2147,22 @@
 
 /* Short viewports: give the dialog's own chrome back to the scene list */
 @media only screen and (max-height: 900px) {
-	.dialog--review {
+	.dialog--sheet {
 		max-height: calc(100vh - 16px);
 		max-height: calc(100dvh - 16px);
 	}
 
-	.dialog--review .dialog__header,
-	.dialog--review .dialog__actions {
+	.dialog--sheet .dialog__header,
+	.dialog--sheet .dialog__actions {
 		padding-top: 0.75rem;
 		padding-bottom: 0.75rem;
 	}
 
-	.dialog--review .dialog__body {
+	.dialog--sheet .dialog__body {
 		padding: 1rem 1.25rem;
 	}
 
-	.dialog--review .form-field:not(:last-child) {
+	.dialog--sheet .form-field:not(:last-child) {
 		margin-bottom: 0.85rem;
 	}
 
@@ -2129,7 +2178,7 @@
 	}
 
 	/* Full-height sheet, so the list gets every pixel the phone has */
-	.dialog--review {
+	.dialog--sheet {
 		width: 100%;
 		max-width: 100%;
 		height: 100vh;

@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertNotEquals
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class StoryRendererServiceTest {
@@ -355,6 +357,114 @@ class StoryRendererServiceTest {
 		// Markdown should be converted to HTML
 		assertTrue(result.html.contains("<strong>") || result.html.contains("<b>"))
 		assertTrue(result.html.contains("<em>") || result.html.contains("<i>"))
+	}
+
+	// Scene-limited share tests
+
+	@Test
+	fun `filtered - prepareExport version covers only the filtered scenes`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(1, "First", "Content 1", 0),
+				createScene(2, "Second", "Content 2", 1),
+			)
+		)
+		stubSceneHashes(EntityHash(1, "hash-one"), EntityHash(2, "hash-two"))
+
+		val full = service.prepareExport(userId, projectId)!!
+		val filtered = service.prepareExport(userId, projectId, setOf(1))!!
+
+		assertNotEquals(full.version, filtered.version)
+
+		// An edit to an unselected scene must not invalidate the filtered share.
+		stubSceneHashes(EntityHash(1, "hash-one"), EntityHash(2, "hash-two-changed"))
+		assertEquals(filtered.version, service.prepareExport(userId, projectId, setOf(1))!!.version)
+
+		// An edit to a selected scene must.
+		stubSceneHashes(EntityHash(1, "hash-one-changed"), EntityHash(2, "hash-two-changed"))
+		assertNotEquals(filtered.version, service.prepareExport(userId, projectId, setOf(1))!!.version)
+	}
+
+	@Test
+	fun `filtered - two shares with different scene sets get distinct versions`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(1, "First", "Content 1", 0),
+				createScene(2, "Second", "Content 2", 1),
+			)
+		)
+		stubSceneHashes(EntityHash(1, "hash-one"), EntityHash(2, "hash-two"))
+
+		val shareOne = service.prepareExport(userId, projectId, setOf(1))!!
+		val shareTwo = service.prepareExport(userId, projectId, setOf(2))!!
+
+		assertNotEquals(shareOne.version, shareTwo.version)
+	}
+
+	@Test
+	fun `filtered - prepareExport returns null when every selected scene is gone`() = runTest {
+		setupMocksForScenes(listOf(createScene(1, "First", "Content 1", 0)))
+		stubSceneHashes(EntityHash(1, "hash-one"))
+
+		assertNull(service.prepareExport(userId, projectId, setOf(99)))
+	}
+
+	@Test
+	fun `filtered - renders only the selected scenes`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(1, "First", "Alpha content", 0),
+				createScene(2, "Second", "Bravo content", 1),
+				createScene(3, "Third", "Charlie content", 2),
+			)
+		)
+
+		val prepared = service.prepareExport(userId, projectId, setOf(1, 3))!!
+		val result = service.renderStoryAsHtmlPaginated(prepared)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		val data = result.data
+		assertTrue(data.pageHtml.contains("Alpha content"))
+		assertTrue(data.pageHtml.contains("Charlie content"))
+		assertFalse(data.pageHtml.contains("Bravo content"))
+		assertEquals(2, data.sceneCount)
+		assertEquals(4, data.totalWordCount)
+	}
+
+	@Test
+	fun `filtered - a deleted selected scene silently drops out`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(1, "First", "Alpha content", 0),
+				createScene(2, "Second", "Bravo content", 1),
+			)
+		)
+
+		// Scene 3 was selected when the share was created but no longer exists.
+		val prepared = service.prepareExport(userId, projectId, setOf(1, 3))!!
+		val result = service.renderStoryAsHtmlPaginated(prepared)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		assertTrue(result.data.pageHtml.contains("Alpha content"))
+		assertFalse(result.data.pageHtml.contains("Bravo content"))
+		assertEquals(1, result.data.sceneCount)
+	}
+
+	@Test
+	fun `filtered - an unfiltered prepareExport keeps full-story behavior`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(1, "First", "Alpha content", 0),
+				createScene(2, "Second", "Bravo content", 1),
+			)
+		)
+
+		val prepared = service.prepareExport(userId, projectId)!!
+		val result = service.renderStoryAsHtmlPaginated(prepared)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		assertTrue(result.data.pageHtml.contains("Alpha content"))
+		assertTrue(result.data.pageHtml.contains("Bravo content"))
 	}
 
 	private fun createScene(

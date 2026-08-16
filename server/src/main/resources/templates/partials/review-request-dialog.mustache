@@ -1,7 +1,7 @@
 <!-- No stopPropagation here: the Select all / form-state handlers are delegated to
      document, and closeReviewDialog already ignores bubbled clicks from inside. -->
 <div class="dialog-overlay" id="review-dialog-overlay" onclick="closeReviewDialog(event)">
-	<div class="dialog dialog--review">
+	<div class="dialog dialog--sheet">
 		<div class="dialog__header">
 			<h3>{{msg.review_dialog_title}}</h3>
 			<button type="button" class="dialog__close" onclick="closeReviewDialog()">
@@ -10,6 +10,7 @@
 		</div>
 		<!-- The server response closes or replaces this dialog via OOB swap -->
 		<form id="review-request-form"
+			  data-scene-select
 			  hx-post="/story/{{projectNameForUrl}}/reviews"
 			  hx-target="#review-panel"
 			  hx-swap="outerHTML">
@@ -71,48 +72,17 @@
 					<div class="review-form__scenes-head">
 						<span class="form-field__label">{{msg.review_dialog_scenes}}</span>
 						<span class="review-form__scene-count"
-							  id="review-scene-count"
 							  data-total="{{sceneCount}}"
 							  data-none-label="{{msg.review_dialog_scenes_none}}">{{msg.review_dialog_scenes_none}}</span>
 					</div>
-					<div class="review-form__scene-box">
-						<div class="review-scene-master">
-							<span class="review-scene-master__name">{{msg.review_dialog_all_scenes}}</span>
-							<button type="button" class="review-scene-master__toggle" id="review-select-all"
-									data-select-label="{{msg.review_dialog_select_all}}"
-									data-clear-label="{{msg.review_dialog_clear_all}}">{{msg.review_dialog_select_all}}</button>
-						</div>
-						<div class="review-form__scene-tree" id="review-scene-tree">
-							{{#sceneTree}}
-								{{#isGroup}}
-									<div class="review-scene-group" style="padding-left: {{indentPx}}px;">
-										<span class="review-scene-group__name">{{name}}</span>
-										<button type="button"
-												class="review-scene-group__toggle"
-												data-group-depth="{{depth}}"
-												data-select-label="{{msg.review_dialog_select_all}}"
-												data-clear-label="{{msg.review_dialog_clear_all}}">{{msg.review_dialog_select_all}}</button>
-									</div>
-								{{/isGroup}}
-								{{#isScene}}
-									<label class="review-scene-row" style="padding-left: {{indentPx}}px;"
-										   data-depth="{{depth}}">
-										<input type="checkbox" name="sceneIds" value="{{id}}"
-											   class="review-scene-row__check">
-										<span class="review-scene-row__box"><i class="fa-solid fa-check"></i></span>
-										<span class="review-scene-row__name">{{name}}</span>
-									</label>
-								{{/isScene}}
-							{{/sceneTree}}
-						</div>
-					</div>
+					{{> scene-select-tree}}
 				</div>
 			</div>
 			<div class="dialog__actions">
 				<button type="button" class="btn btn--ghost" onclick="closeReviewDialog()">
 					{{msg.review_dialog_cancel}}
 				</button>
-				<button type="submit" class="btn btn--accent" id="review-send-btn" disabled>
+				<button type="submit" class="btn btn--accent" id="review-send-btn" data-scene-submit disabled>
 					<i class="fa-solid fa-paper-plane"></i> {{msg.review_dialog_send}}
 				</button>
 			</div>

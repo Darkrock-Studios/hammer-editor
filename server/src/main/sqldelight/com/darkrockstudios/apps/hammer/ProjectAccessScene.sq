@@ -1,0 +1,39 @@
+CREATE TABLE project_access_scene (
+    access_id BIGINT NOT NULL,
+    scene_id INTEGER NOT NULL,
+    PRIMARY KEY (access_id, scene_id),
+    FOREIGN KEY(access_id) REFERENCES project_access(id) ON DELETE CASCADE
+);
+
+insertScene:
+INSERT INTO project_access_scene(access_id, scene_id)
+VALUES (?, ?);
+
+getSceneIdsForAccess:
+SELECT scene_id
+FROM project_access_scene
+WHERE access_id = :accessId;
+
+getSceneIdsForAccessIds:
+SELECT access_id, scene_id
+FROM project_access_scene
+WHERE access_id IN :accessIds;
+
+deleteForAccess:
+DELETE FROM project_access_scene
+WHERE access_id = :accessId;
+
+deleteForProject:
+DELETE FROM project_access_scene
+WHERE access_id IN (
+    SELECT id FROM project_access WHERE project_id = :projectId
+);
+
+deleteAllForUser:
+DELETE FROM project_access_scene
+WHERE access_id IN (
+    SELECT project_access.id
+    FROM project_access
+    INNER JOIN project ON project_access.project_id = project.id
+    WHERE project.user_id = :userId
+);

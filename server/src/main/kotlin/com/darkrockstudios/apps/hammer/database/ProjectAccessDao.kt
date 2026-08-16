@@ -13,6 +13,7 @@ data class PublicProjectInfo(
 	val projectName: String,
 	val penName: String,
 	val expiresAt: Instant?,
+	val accessId: Long? = null,
 )
 
 data class PublishedStoryInfo(
@@ -33,6 +34,7 @@ class ProjectAccessDao(
 ) : KoinComponent {
 	private val ioDispatcher by injectIoDispatcher()
 	private val queries = database.serverDatabase.projectAccessQueries
+	private val sceneQueries = database.serverDatabase.projectAccessSceneQueries
 
 	suspend fun getAccessForProject(projectId: Long): Project_access? = withContext(ioDispatcher) {
 		queries.getAccessForProject(projectId).executeAsOneOrNull()
@@ -70,14 +72,69 @@ class ProjectAccessDao(
 		}
 	}
 
+	/**
+	 * Inserts a private share and its scene restriction atomically, or returns null when
+	 * another live share of the project already uses [password]. The project row is
+	 * locked for the transaction so two concurrent creates cannot both pass the check.
+	 */
+	suspend fun insertAccessWithScenes(
+		projectId: Long,
+		password: String?,
+		expiresAt: Instant?,
+		sceneIds: Collection<Int>,
+		now: Instant,
+	): Long? = withContext(ioDispatcher) {
+		queries.transactionWithResult {
+			queries.lockProjectRow(projectId).executeAsOneOrNull()
+			val duplicate = password != null &&
+				queries.findLiveAccessByPassword(projectId, password, now).executeAsOneOrNull() != null
+			if (duplicate) {
+				null
+			} else {
+				// RETURNING queries are lazy; executeAsOne() is what runs the INSERT.
+				val accessId = queries.insertAccessReturningId(projectId, password, expiresAt).executeAsOne()
+				sceneIds.forEach { sceneId ->
+					sceneQueries.insertScene(accessId, sceneId)
+				}
+				accessId
+			}
+		}
+	}
+
+	suspend fun getSceneIdsForAccess(accessId: Long): List<Int> = withContext(ioDispatcher) {
+		sceneQueries.getSceneIdsForAccess(accessId).executeAsList()
+	}
+
+	suspend fun getSceneIdsForAccessIds(accessIds: Collection<Long>): Map<Long, Set<Int>> =
+		withContext(ioDispatcher) {
+			if (accessIds.isEmpty()) return@withContext emptyMap()
+			sceneQueries.getSceneIdsForAccessIds(accessIds).executeAsList()
+				.groupBy({ it.access_id }, { it.scene_id })
+				.mapValues { (_, ids) -> ids.toSet() }
+		}
+
 	suspend fun deleteAccess(projectId: Long) {
 		withContext(ioDispatcher) {
-			queries.deleteAccess(projectId)
+			queries.transaction {
+				// Children first, matching deleteAccessById: the explicit delete backs up
+				// the cascade because tests disable FK enforcement.
+				sceneQueries.deleteForProject(projectId)
+				queries.deleteAccess(projectId)
+			}
 		}
 	}
 
 	suspend fun deleteAccessById(accessId: Long, projectId: Long): Boolean = withContext(ioDispatcher) {
-		queries.deleteAccessById(accessId, projectId).executeAsOneOrNull() != null
+		queries.transactionWithResult {
+			// Parent first: the project_id scoping is the authorization check, and
+			// scene rows must only go once it has passed. The explicit child delete
+			// backs up the cascade because tests disable FK enforcement.
+			val deleted = queries.deleteAccessById(accessId, projectId).executeAsOneOrNull() != null
+			if (deleted) {
+				sceneQueries.deleteForAccess(accessId)
+			}
+			deleted
+		}
 	}
 
 	suspend fun deletePublicAccessForProject(projectId: Long) {
@@ -88,7 +145,10 @@ class ProjectAccessDao(
 
 	suspend fun deleteAllAccessForUser(userId: Long) {
 		withContext(ioDispatcher) {
-			queries.deleteAllAccessForUser(userId)
+			queries.transaction {
+				sceneQueries.deleteAllForUser(userId)
+				queries.deleteAllAccessForUser(userId)
+			}
 		}
 	}
 
@@ -128,9 +188,10 @@ class ProjectAccessDao(
 	suspend fun findProjectByPenNameProjectNameAndPassword(
 		penName: String,
 		projectName: String,
-		password: String
+		password: String,
+		now: Instant,
 	): PublicProjectInfo? = withContext(ioDispatcher) {
-		queries.findProjectByPenNameProjectNameAndPassword(penName, projectName, password)
+		queries.findProjectByPenNameProjectNameAndPassword(penName, projectName, password, now)
 			.executeAsOneOrNull()
 			?.let {
 				PublicProjectInfo(
@@ -138,7 +199,8 @@ class ProjectAccessDao(
 					userId = it.user_id,
 					projectName = it.project_name,
 					penName = it.pen_name ?: "",
-					expiresAt = it.expires_at
+					expiresAt = it.expires_at,
+					accessId = it.access_id,
 				)
 			}
 	}
