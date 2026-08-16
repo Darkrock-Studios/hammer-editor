@@ -92,6 +92,12 @@
 	<string name="project_home_export_format_rtf">RTF (.rtf)</string>
 	<string name="project_home_export_cancel">Cancel</string>
 	<string name="project_home_export_execute">Export</string>
+	<string name="project_home_export_limit_scenes_label">Limit to specific scenes</string>
+	<string name="project_home_export_limit_scenes_hint">Only the selected scenes will be included in the export</string>
+	<string name="project_home_export_scenes_label">Scenes</string>
+	<string name="project_home_export_scenes_selected">%1$d of %2$d selected</string>
+	<string name="project_home_export_scenes_select_all">Select all</string>
+	<string name="project_home_export_scenes_clear_all">Clear all</string>
 
 	<string name="project_home_export_help_icon_description">Learn about export formats</string>
 	<string name="project_home_export_help_title">Choosing an Export Format</string>

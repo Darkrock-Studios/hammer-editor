@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.components.ComponentToaster
 import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
 import com.darkrockstudios.apps.hammer.common.data.ExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
+import com.darkrockstudios.apps.hammer.common.data.ExportableScene
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
@@ -27,6 +28,7 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 	suspend fun exportProjectToFile(filePath: String, options: ExportOptions): HPath
 	fun beginProjectExport()
 	fun cancelExportDialog()
+	fun updateExportOptions(options: ExportOptions)
 	fun confirmExportDialog(options: ExportOptions)
 	fun endProjectExport()
 
@@ -78,6 +80,7 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val showExportFilePicker: Boolean = false,
 		val isExporting: Boolean = false,
 		val exportOptions: ExportOptions = ExportOptions(),
+		val exportableScenes: List<ExportableScene> = emptyList(),
 		val hasServer: Boolean = false,
 		val isLoadingStats: Boolean = false,
 		val isStatsDirty: Boolean = false,

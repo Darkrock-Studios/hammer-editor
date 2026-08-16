@@ -10,7 +10,11 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.In
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
+import com.darkrockstudios.apps.hammer.common.data.ExportableScene
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
+import com.darkrockstudios.apps.hammer.common.data.tree.Tree
+import com.darkrockstudios.apps.hammer.common.data.tree.TreeNode
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
@@ -111,6 +115,7 @@ class ProjectHomeComponentTest : ComponentTest() {
 		coEvery { sceneEditor.getMetadata() } returns ProjectMetadata(
 			Info(created = Instant.parse("2024-01-15T12:00:00Z"))
 		)
+		every { sceneEditor.getSceneTree() } returns buildSceneTree()
 
 		exportStoryUseCase = mockk()
 		encyclopediaService = mockk()
@@ -167,6 +172,26 @@ class ProjectHomeComponentTest : ComponentTest() {
 		onShowEntry = { shownEntry = it },
 		onCloseProject = { projectClosed = true },
 	)
+
+	private fun scene(id: Int, name: String, type: SceneItem.Type = SceneItem.Type.Scene) =
+		SceneItem(projectDef = projectDef, type = type, id = id, name = name, order = id)
+
+	// Scene 1, Group 2 [Scene 3, Scene 4, Group 5 [Scene 6]], Scene 7
+	private fun buildSceneTree(): ImmutableTree<SceneItem> {
+		val tree = Tree<SceneItem>()
+		val root = TreeNode(scene(0, "", SceneItem.Type.Root))
+		root.addChild(TreeNode(scene(1, "Scene 1")))
+		val group = TreeNode(scene(2, "Group 2", SceneItem.Type.Group))
+		group.addChild(TreeNode(scene(3, "Scene 3")))
+		group.addChild(TreeNode(scene(4, "Scene 4")))
+		val nested = TreeNode(scene(5, "Group 5", SceneItem.Type.Group))
+		nested.addChild(TreeNode(scene(6, "Scene 6")))
+		group.addChild(nested)
+		root.addChild(group)
+		root.addChild(TreeNode(scene(7, "Scene 7")))
+		tree.setRoot(root)
+		return tree.toImmutableTree()
+	}
 
 	private fun stats() = ProjectStatistics(
 		numberOfScenes = 4,
@@ -244,6 +269,90 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 		comp.cancelExportDialog()
 		assertFalse(comp.state.value.showExportDialog)
+	}
+
+	@Test
+	fun `beginProjectExport flattens the scene tree into exportable scenes`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+
+		comp.beginProjectExport()
+
+		val expected = listOf(
+			ExportableScene(id = 1, name = "Scene 1", isGroup = false, depth = 0),
+			ExportableScene(id = 2, name = "Group 2", isGroup = true, depth = 0),
+			ExportableScene(id = 3, name = "Scene 3", isGroup = false, depth = 1),
+			ExportableScene(id = 4, name = "Scene 4", isGroup = false, depth = 1),
+			ExportableScene(id = 5, name = "Group 5", isGroup = true, depth = 1),
+			ExportableScene(id = 6, name = "Scene 6", isGroup = false, depth = 2),
+			ExportableScene(id = 7, name = "Scene 7", isGroup = false, depth = 0),
+		)
+		assertEquals(expected, comp.state.value.exportableScenes)
+	}
+
+	@Test
+	fun `beginProjectExport resets a scene limit left over from a previous export`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+
+		comp.beginProjectExport()
+		comp.updateExportOptions(ExportOptions(sceneIds = setOf(3)))
+		comp.confirmExportDialog(comp.state.value.exportOptions)
+		comp.endProjectExport()
+
+		comp.beginProjectExport()
+		assertNull(comp.state.value.exportOptions.sceneIds)
+	}
+
+	@Test
+	fun `updateExportOptions persists in-dialog edits in component state`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+
+		comp.beginProjectExport()
+		val edited = ExportOptions(
+			treatTopLevelAsChapters = false,
+			format = ExportFormat.Pdf,
+			sceneIds = setOf(3, 4),
+		)
+		comp.updateExportOptions(edited)
+
+		// The dialog composition holds no option state, so surviving here is surviving rotation.
+		assertEquals(edited, comp.state.value.exportOptions)
+	}
+
+	@Test
+	fun `confirmExportDialog carries the scene filter through to the use case`() = runTest(mainTestDispatcher) {
+		val options = ExportOptions(format = ExportFormat.Markdown, sceneIds = setOf(3, 6))
+		val exported = HPath("/out/Test.md", "Test.md", true)
+		coEvery { exportStoryUseCase.execute(any(), any()) } returns exported
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.beginProjectExport()
+		comp.confirmExportDialog(options)
+		assertEquals(options, comp.state.value.exportOptions)
+
+		comp.exportProject("/out", options)
+		advanceUntilIdle()
+
+		coVerify { exportStoryUseCase.execute(any(), match { it.sceneIds == setOf(3, 6) }) }
+	}
+
+	@Test
+	fun `cancel and end clear the exportable scenes snapshot`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+
+		comp.beginProjectExport()
+		assertTrue(comp.state.value.exportableScenes.isNotEmpty())
+		comp.cancelExportDialog()
+		assertTrue(comp.state.value.exportableScenes.isEmpty())
+
+		comp.beginProjectExport()
+		comp.endProjectExport()
+		assertTrue(comp.state.value.exportableScenes.isEmpty())
 	}
 
 	@Test

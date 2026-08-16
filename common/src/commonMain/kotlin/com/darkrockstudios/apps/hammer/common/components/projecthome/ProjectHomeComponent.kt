@@ -75,9 +75,13 @@ class ProjectHomeComponent(
 	override val state: Value<ProjectHome.State> = _state
 
 	override fun beginProjectExport() {
+		val scenes = exportableScenes(sceneEditorRepository.getSceneTree())
 		_state.getAndUpdate {
 			it.copy(
-				showExportDialog = true
+				showExportDialog = true,
+				exportableScenes = scenes,
+				// A scene limit from a previous export would silently narrow this one.
+				exportOptions = it.exportOptions.copy(sceneIds = null),
 			)
 		}
 	}
@@ -85,8 +89,15 @@ class ProjectHomeComponent(
 	override fun cancelExportDialog() {
 		_state.getAndUpdate {
 			it.copy(
-				showExportDialog = false
+				showExportDialog = false,
+				exportableScenes = emptyList(),
 			)
+		}
+	}
+
+	override fun updateExportOptions(options: ExportOptions) {
+		_state.getAndUpdate {
+			it.copy(exportOptions = options)
 		}
 	}
 
@@ -106,6 +117,7 @@ class ProjectHomeComponent(
 				showExportDialog = false,
 				showExportFilePicker = false,
 				isExporting = false,
+				exportableScenes = emptyList(),
 			)
 		}
 	}
