@@ -28,8 +28,8 @@ import com.darkrockstudios.apps.hammer.utilities.DiskCache
 import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
 import com.darkrockstudios.apps.hammer.utilities.configureDiskCachePruneJob
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
+import com.darkrockstudios.apps.hammer.utilities.keyMintingSecureRandom
 import com.darkrockstudios.apps.hammer.utilities.loadPemAsKeyStore
-import com.darkrockstudios.apps.hammer.utilities.nonBlockingSecureRandom
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.core.subcommands
@@ -435,5 +435,5 @@ fun Application.appMain(
 }
 
 fun cliKeyringCodec(): KeyringCodec =
-	KeyringCodec(nonBlockingSecureRandom(), createTokenBase64())
+	KeyringCodec(keyMintingSecureRandom(), createTokenBase64())
 
