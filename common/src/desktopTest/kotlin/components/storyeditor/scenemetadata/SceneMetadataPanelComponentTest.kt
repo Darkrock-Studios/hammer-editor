@@ -18,6 +18,7 @@ import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
+import okio.IOException
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.qualifier.named
@@ -84,6 +85,23 @@ class SceneMetadataPanelComponentTest : ComponentTest() {
 				match { it.outline == "Final outline edit" },
 				sceneItem.id,
 			)
+		}
+	}
+
+	@Test
+	fun `Destroy flush IO failure does not propagate`() = runTest(mainTestDispatcher) {
+		coEvery { sceneEditor.storeMetadata(any(), any()) } throws IOException("volume gone")
+
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.updateOutline("Final outline edit")
+		context.destroy()
+		advanceUntilIdle()
+
+		coVerify {
+			sceneEditor.storeMetadata(any(), sceneItem.id)
 		}
 	}
 

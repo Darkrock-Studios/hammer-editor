@@ -21,7 +21,6 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescent
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
@@ -31,6 +30,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okio.IOException
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import kotlin.time.Duration.Companion.milliseconds
@@ -345,9 +345,7 @@ class SceneMetadataPanelComponent(
 		appScope.launch {
 			try {
 				sceneEditor.storeMetadata(scrubInvalidReferences(metadata), originalSceneItem.id)
-			} catch (e: CancellationException) {
-				throw e
-			} catch (e: Exception) {
+			} catch (e: IOException) {
 				Napier.e("Failed to flush metadata for scene ${originalSceneItem.id}", e)
 			}
 		}

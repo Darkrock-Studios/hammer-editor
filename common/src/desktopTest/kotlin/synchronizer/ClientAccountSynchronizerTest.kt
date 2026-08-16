@@ -25,6 +25,12 @@ import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
+import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.sync_log_account_project_create_local_failure
+import com.darkrockstudios.apps.hammer.sync_log_account_project_create_server_success
+import com.darkrockstudios.apps.hammer.sync_log_account_project_id_save_failure
+import org.jetbrains.compose.resources.StringResource
 import io.ktor.http.*
 import io.mockk.*
 import kotlinx.coroutines.test.runTest
@@ -90,7 +96,7 @@ class ClientAccountSynchronizerTest {
 		error = HttpResponseError(error = "Unauthorized", displayMessage = "nope"),
 	)
 
-	private fun createSynchronizer() = ClientAccountSynchronizer(
+	private fun createSynchronizer(strRes: StrRes = TestStrRes()) = ClientAccountSynchronizer(
 		fileSystem = ffs,
 		globalSettingsStore = globalSettingsStore,
 		projectsRepository = projectsRepository,
@@ -99,8 +105,22 @@ class ClientAccountSynchronizerTest {
 		networkConnectivity = networkConnectivity,
 		json = json,
 		toml = Toml,
-		strRes = TestStrRes(),
+		strRes = strRes,
 	)
+
+	private class RecordingStrRes : StrRes {
+		val calls = mutableListOf<Pair<StringResource, List<Any>>>()
+
+		override suspend fun get(str: StringResource): String {
+			calls.add(str to emptyList())
+			return "test"
+		}
+
+		override suspend fun get(str: StringResource, vararg args: Any): String {
+			calls.add(str to args.toList())
+			return "test"
+		}
+	}
 
 	@BeforeEach
 	fun setup() {
@@ -439,6 +459,30 @@ class ClientAccountSynchronizerTest {
 	}
 
 	@Test
+	fun `syncProjects keeps the queued creation and logs an id-save failure when saving the new id fails`() = runTest {
+		writeSyncData(emptySyncData().copy(projectsToCreate = setOf("LocalNovel")))
+		val def = projectDef("LocalNovel")
+		val newId = ProjectId.randomUUID()
+
+		every { projectsRepository.getProjects(any()) } returns listOf(def)
+		every { projectsRepository.getProjectId(def) } returns null
+		every { projectsRepository.getProjectDefinition("LocalNovel") } returns def
+		coEvery { serverProjectsApi.createProject("LocalNovel", "sync-1") } returns
+			Result.success(CreateProjectResponse(newId, alreadyExisted = false))
+		coEvery { projectsRepository.setProjectId(def, newId) } throws IllegalStateException("disk error")
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		// The entry must survive so the next sync can retry saving the id.
+		assertEquals(setOf("LocalNovel"), readSyncData().projectsToCreate)
+		val resources = strRes.calls.map { it.first }
+		assertTrue(resources.contains(Res.string.sync_log_account_project_id_save_failure))
+		assertFalse(resources.contains(Res.string.sync_log_account_project_create_server_success))
+	}
+
+	@Test
 	fun `syncProjects recreates a project whose cached id the server neither holds nor tombstoned`() = runTest {
 		writeSyncData(emptySyncData())
 		val staleId = ProjectId.randomUUID()
@@ -625,6 +669,27 @@ class ClientAccountSynchronizerTest {
 		assertTrue(result)
 		coVerify { projectsRepository.createProject("ServerNovel", any()) }
 		coVerify { projectsRepository.setProjectId(createdDef, serverId) }
+	}
+
+	@Test
+	fun `syncProjects logs the project name when local creation from a server project fails`() = runTest {
+		writeSyncData(emptySyncData())
+		val serverId = ProjectId.randomUUID()
+		val serverProject = ApiProjectDefinition(name = "ServerNovel", uuid = serverId)
+
+		coEvery { serverProjectsApi.beginProjectsSync() } returns
+			Result.success(emptyServerResponse().copy(projects = setOf(serverProject)))
+		every { projectsRepository.getProjects(any()) } returns emptyList()
+		every { projectsRepository.findProject("ServerNovel") } returns null
+		every { projectsRepository.createProject("ServerNovel", any()) } returns
+			CResult.failure(error = "creation failed")
+
+		val strRes = RecordingStrRes()
+		val result = createSynchronizer(strRes).syncProjects(onLog = {}, onUnauthorized = {})
+
+		assertTrue(result)
+		val logged = strRes.calls.single { it.first == Res.string.sync_log_account_project_create_local_failure }
+		assertEquals(listOf<Any>("ServerNovel"), logged.second)
 	}
 
 	@Test
