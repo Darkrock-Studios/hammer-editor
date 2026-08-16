@@ -10,7 +10,6 @@ import com.darkrockstudios.apps.hammer.database.AccountDao
 import com.darkrockstudios.apps.hammer.database.AuthTokenDao
 import com.darkrockstudios.apps.hammer.database.CommunityAuthor
 import com.darkrockstudios.apps.hammer.utilities.*
-import de.mkammerer.argon2.Argon2Factory
 import kotlin.io.encoding.Base64
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
@@ -149,19 +148,14 @@ class AccountsRepository(
 	private fun checkPassword(account: Account, plainTextPassword: String): Boolean =
 		checkPassword(plainTextPassword, account.password_hash)
 
-	// Any verify failure (invalid/old hash format) is treated as a wrong password.
-	@Suppress("TooGenericExceptionCaught", "SwallowedException")
+	// An unreadable stored hash is treated as a wrong password.
 	private fun checkPassword(plainTextPassword: String, passwordHash: String): Boolean {
-		val argon2 = Argon2Factory.create()
 		val passwordChars = plainTextPassword.toCharArray()
 
 		return try {
-			argon2.verify(passwordHash, passwordChars)
-		} catch (_: Exception) {
-			// If verification fails (e.g., invalid format, old hash), return false
-			false
+			Argon2PasswordHasher.verify(passwordHash, passwordChars)
 		} finally {
-			argon2.wipeArray(passwordChars)
+			passwordChars.fill('\u0000')
 		}
 	}
 
@@ -345,18 +339,17 @@ class AccountsRepository(
 		const val ARGON2_PARALLELISM = 2  // threads
 
 		fun hashPassword(password: String): String {
-			val argon2 = Argon2Factory.create()
 			val passwordChars = password.toCharArray()
 
 			try {
-				return argon2.hash(
-					ARGON2_TIME_COST,
-					ARGON2_MEMORY_COST_KIB,
-					ARGON2_PARALLELISM,
-					passwordChars
+				return Argon2PasswordHasher.hash(
+					password = passwordChars,
+					memoryKib = ARGON2_MEMORY_COST_KIB,
+					iterations = ARGON2_TIME_COST,
+					parallelism = ARGON2_PARALLELISM,
 				)
 			} finally {
-				argon2.wipeArray(passwordChars)
+				passwordChars.fill('\u0000')
 			}
 		}
 	}
