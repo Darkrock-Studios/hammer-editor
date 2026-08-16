@@ -54,17 +54,13 @@ class PublicStoryPageTest : EndToEndTest() {
 
 	private fun grantAccess(password: String?, sceneIds: List<Int> = emptyList()) {
 		val queries = database().serverDatabase
-		queries.projectAccessQueries.insertAccess(
+		val accessId = queries.projectAccessQueries.insertAccessReturningId(
 			project_id = projectRowId(),
 			access_password = password,
 			expires_at = null,
-		)
-		if (sceneIds.isNotEmpty()) {
-			val accessId = queries.projectAccessQueries.getAllAccessForProject(projectRowId())
-				.executeAsList().last().id
-			sceneIds.forEach { sceneId ->
-				queries.projectAccessSceneQueries.insertScene(access_id = accessId, scene_id = sceneId)
-			}
+		).executeAsOne()
+		sceneIds.forEach { sceneId ->
+			queries.projectAccessSceneQueries.insertScene(access_id = accessId, scene_id = sceneId)
 		}
 	}
 

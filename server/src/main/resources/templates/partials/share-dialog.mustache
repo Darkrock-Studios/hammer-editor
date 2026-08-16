@@ -1,7 +1,7 @@
 <!-- No stopPropagation on the dialog: the scene-select handlers are delegated to
      document, and closeShareDialog already ignores bubbled clicks from inside. -->
 <div class="dialog-overlay" id="share-dialog-overlay" onclick="closeShareDialog(event)">
-	<div class="dialog dialog--share">
+	<div class="dialog dialog--sheet">
 		<div class="dialog__header">
 			<h3>{{msg.story_share_private_title}}</h3>
 			<button type="button" class="dialog__close" onclick="closeShareDialog()">
@@ -38,10 +38,12 @@
 						   min="{{minDate}}">
 				</div>
 				<div class="form-field">
+					<!-- The checkbox reuses the scene-row classes for its look, but sits outside
+					     .review-form__scene-tree so it never counts as a selected scene. -->
 					<label class="share-form__limit">
-						<input type="checkbox" name="limitScenes" class="share-form__limit-check">
+						<input type="checkbox" name="limitScenes" class="review-scene-row__check">
 						<span class="review-scene-row__box"><i class="fa-solid fa-check"></i></span>
-						<span class="share-form__limit-name">
+						<span class="review-scene-row__name share-form__limit-name">
 							{{msg.story_share_limit_scenes}}
 							<span class="optional-label">{{msg.story_share_limit_scenes_hint}}</span>
 						</span>

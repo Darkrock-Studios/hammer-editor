@@ -14,15 +14,20 @@ SELECT scene_id
 FROM project_access_scene
 WHERE access_id = :accessId;
 
-sceneCountsForAccessIds:
-SELECT access_id, COUNT(*) AS scene_count
+getSceneIdsForAccessIds:
+SELECT access_id, scene_id
 FROM project_access_scene
-WHERE access_id IN :accessIds
-GROUP BY access_id;
+WHERE access_id IN :accessIds;
 
 deleteForAccess:
 DELETE FROM project_access_scene
 WHERE access_id = :accessId;
+
+deleteForProject:
+DELETE FROM project_access_scene
+WHERE access_id IN (
+    SELECT id FROM project_access WHERE project_id = :projectId
+);
 
 deleteAllForUser:
 DELETE FROM project_access_scene

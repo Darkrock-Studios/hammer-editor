@@ -72,19 +72,32 @@ class ProjectAccessDao(
 		}
 	}
 
+	/**
+	 * Inserts a private share and its scene restriction atomically, or returns null when
+	 * another live share of the project already uses [password]. The project row is
+	 * locked for the transaction so two concurrent creates cannot both pass the check.
+	 */
 	suspend fun insertAccessWithScenes(
 		projectId: Long,
 		password: String?,
 		expiresAt: Instant?,
 		sceneIds: Collection<Int>,
-	): Long = withContext(ioDispatcher) {
+		now: Instant,
+	): Long? = withContext(ioDispatcher) {
 		queries.transactionWithResult {
-			// RETURNING queries are lazy; executeAsOne() is what runs the INSERT.
-			val accessId = queries.insertAccessReturningId(projectId, password, expiresAt).executeAsOne()
-			sceneIds.forEach { sceneId ->
-				sceneQueries.insertScene(accessId, sceneId)
+			queries.lockProjectRow(projectId).executeAsOneOrNull()
+			val duplicate = password != null &&
+				queries.findLiveAccessByPassword(projectId, password, now).executeAsOneOrNull() != null
+			if (duplicate) {
+				null
+			} else {
+				// RETURNING queries are lazy; executeAsOne() is what runs the INSERT.
+				val accessId = queries.insertAccessReturningId(projectId, password, expiresAt).executeAsOne()
+				sceneIds.forEach { sceneId ->
+					sceneQueries.insertScene(accessId, sceneId)
+				}
+				accessId
 			}
-			accessId
 		}
 	}
 
@@ -92,15 +105,22 @@ class ProjectAccessDao(
 		sceneQueries.getSceneIdsForAccess(accessId).executeAsList()
 	}
 
-	suspend fun sceneCountsForAccessIds(accessIds: Collection<Long>): Map<Long, Int> = withContext(ioDispatcher) {
-		if (accessIds.isEmpty()) return@withContext emptyMap()
-		sceneQueries.sceneCountsForAccessIds(accessIds).executeAsList()
-			.associate { it.access_id to it.scene_count.toInt() }
-	}
+	suspend fun getSceneIdsForAccessIds(accessIds: Collection<Long>): Map<Long, Set<Int>> =
+		withContext(ioDispatcher) {
+			if (accessIds.isEmpty()) return@withContext emptyMap()
+			sceneQueries.getSceneIdsForAccessIds(accessIds).executeAsList()
+				.groupBy({ it.access_id }, { it.scene_id })
+				.mapValues { (_, ids) -> ids.toSet() }
+		}
 
 	suspend fun deleteAccess(projectId: Long) {
 		withContext(ioDispatcher) {
-			queries.deleteAccess(projectId)
+			queries.transaction {
+				// Children first, matching deleteAccessById: the explicit delete backs up
+				// the cascade because tests disable FK enforcement.
+				sceneQueries.deleteForProject(projectId)
+				queries.deleteAccess(projectId)
+			}
 		}
 	}
 
@@ -125,7 +145,10 @@ class ProjectAccessDao(
 
 	suspend fun deleteAllAccessForUser(userId: Long) {
 		withContext(ioDispatcher) {
-			queries.deleteAllAccessForUser(userId)
+			queries.transaction {
+				sceneQueries.deleteAllForUser(userId)
+				queries.deleteAllAccessForUser(userId)
+			}
 		}
 	}
 
@@ -165,9 +188,10 @@ class ProjectAccessDao(
 	suspend fun findProjectByPenNameProjectNameAndPassword(
 		penName: String,
 		projectName: String,
-		password: String
+		password: String,
+		now: Instant,
 	): PublicProjectInfo? = withContext(ioDispatcher) {
-		queries.findProjectByPenNameProjectNameAndPassword(penName, projectName, password)
+		queries.findProjectByPenNameProjectNameAndPassword(penName, projectName, password, now)
 			.executeAsOneOrNull()
 			?.let {
 				PublicProjectInfo(

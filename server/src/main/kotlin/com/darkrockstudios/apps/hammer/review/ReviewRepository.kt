@@ -14,6 +14,8 @@ import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
+import com.darkrockstudios.apps.hammer.project.SceneSetResult
+import com.darkrockstudios.apps.hammer.project.loadSceneSet
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneDraftSynchronizer
 import com.darkrockstudios.apps.hammer.project.synchronizers.ServerSceneSynchronizer
@@ -100,28 +102,19 @@ class ReviewRepository(
 			?: return SResult.failure("Project not found", Msg.r("api_review_create_error_project_not_found"))
 
 		// Load and validate every requested scene before minting anything.
-		val scenes = mutableListOf<ApiProjectEntity.SceneEntity>()
-		for (sceneId in sceneIds) {
-			val type = projectEntityDatasource.findEntityType(sceneId, userId, projectDef)
-			if (type != ApiProjectEntity.Type.SCENE) {
-				return SResult.failure(
-					"Entity $sceneId is not a scene",
-					Msg.r("api_review_create_error_invalid_scene")
-				)
-			}
-			val result = projectEntityDatasource.loadEntity(
-				userId, projectDef, sceneId,
-				ApiProjectEntity.Type.SCENE,
-				ApiProjectEntity.SceneEntity.serializer(),
+		val scenes = when (val loaded = projectEntityDatasource.loadSceneSet(userId, projectDef, sceneIds)) {
+			is SceneSetResult.InvalidId -> return SResult.failure(
+				"Invalid scene ${loaded.id}",
+				Msg.r("api_review_create_error_invalid_scene"),
+				loaded.exception,
 			)
-			if (isFailure(result)) {
-				return SResult.failure(
-					"Failed to load scene $sceneId",
-					Msg.r("api_review_create_error_invalid_scene"),
-					result.exception,
-				)
-			}
-			scenes += result.data
+
+			is SceneSetResult.NotAScene -> return SResult.failure(
+				"Entity ${loaded.id} is not a scene",
+				Msg.r("api_review_create_error_invalid_scene")
+			)
+
+			is SceneSetResult.Success -> loaded.scenes
 		}
 
 		val draftName = forEditDraftName(label)

@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptor
 import com.darkrockstudios.apps.hammer.encryption.ContentEncryptorRegistry
+import com.darkrockstudios.apps.hammer.project.EntityDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectSyncData
@@ -166,10 +167,10 @@ class ReviewRepositoryTest : BaseTest() {
 		coEvery { accountDao.getAccount(userId) } returns mockk {
 			coEvery { cipher_secret } returns cipherSecret
 		}
+		coEvery {
+			projectEntityDatasource.getEntityDefsByType(userId, projectDef, ApiProjectEntity.Type.SCENE)
+		} returns sceneIds.map { EntityDefinition(it, ApiProjectEntity.Type.SCENE) }
 		for (sceneId in sceneIds) {
-			coEvery {
-				projectEntityDatasource.findEntityType(sceneId, userId, projectDef)
-			} returns ApiProjectEntity.Type.SCENE
 			coEvery {
 				projectEntityDatasource.loadEntity(
 					userId, projectDef, sceneId,
@@ -266,9 +267,10 @@ class ReviewRepositoryTest : BaseTest() {
 	fun `create review request rejects non-scene entity ids`() = runTest {
 		coEvery { projectEntityDatasource.getProject(userId, projectId) } returns projectDef
 		coEvery { projectDao.getProjectIdOrNull(userId, projectId) } returns numericProjectId
+		// Entity 9 exists but is not a scene, so the scene defs list does not contain it.
 		coEvery {
-			projectEntityDatasource.findEntityType(9, userId, projectDef)
-		} returns ApiProjectEntity.Type.NOTE
+			projectEntityDatasource.getEntityDefsByType(userId, projectDef, ApiProjectEntity.Type.SCENE)
+		} returns emptyList()
 
 		val result = createRepository().createReviewRequest(
 			userId = userId,

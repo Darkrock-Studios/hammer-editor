@@ -31,17 +31,24 @@
 						<i class="fas fa-infinity"></i> {{msg.story_access_no_expiry}}
 					</span>
 					{{/expiresAtFormatted}}
-					{{#sceneCount}}
+					{{#isRestricted}}
+					{{#isSceneless}}
+					<span class="access-scope dead">
+						<i class="fas fa-triangle-exclamation"></i> {{msg.story_access_no_scenes_left}}
+					</span>
+					{{/isSceneless}}
+					{{^isSceneless}}
 					<span class="access-scope">
 						<i class="fas fa-list"></i>
 						{{sceneCount}} {{#isSingleScene}}{{msg.story_access_scene_single}}{{/isSingleScene}}{{^isSingleScene}}{{msg.story_access_scenes_suffix}}{{/isSingleScene}}
 					</span>
-					{{/sceneCount}}
-					{{^sceneCount}}
+					{{/isSceneless}}
+					{{/isRestricted}}
+					{{^isRestricted}}
 					<span class="access-scope">
 						<i class="fas fa-book"></i> {{msg.story_access_entire_story}}
 					</span>
-					{{/sceneCount}}
+					{{/isRestricted}}
 				</div>
 			</div>
 			<button type="button"

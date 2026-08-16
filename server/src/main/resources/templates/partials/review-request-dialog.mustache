@@ -1,7 +1,7 @@
 <!-- No stopPropagation here: the Select all / form-state handlers are delegated to
      document, and closeReviewDialog already ignores bubbled clicks from inside. -->
 <div class="dialog-overlay" id="review-dialog-overlay" onclick="closeReviewDialog(event)">
-	<div class="dialog dialog--review">
+	<div class="dialog dialog--sheet">
 		<div class="dialog__header">
 			<h3>{{msg.review_dialog_title}}</h3>
 			<button type="button" class="dialog__close" onclick="closeReviewDialog()">

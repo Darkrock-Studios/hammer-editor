@@ -8,6 +8,8 @@ import com.darkrockstudios.apps.hammer.database.ProjectAccessDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.PublishedStoryInfo
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
+import com.darkrockstudios.apps.hammer.project.SceneSetResult
+import com.darkrockstudios.apps.hammer.project.loadSceneSet
 import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import java.time.ZoneId
@@ -44,9 +46,16 @@ data class AccessEntryInfo(
 	val expiresAt: Instant?,
 	val expiresAtFormatted: String?,
 	val isExpired: Boolean,
-	/** Number of scenes this share is limited to; null exposes the entire story. */
+	/** Number of still-existing scenes this share is limited to; null exposes the entire story. */
 	val sceneCount: Int? = null,
 ) {
+	val isRestricted: Boolean
+		get() = sceneCount != null
+
+	/** Restricted, but every selected scene has since been deleted: the link is dead. */
+	val isSceneless: Boolean
+		get() = sceneCount == 0
+
 	/** Pluralization hook for the Mustache access list. */
 	val isSingleScene: Boolean
 		get() = sceneCount == 1
@@ -110,51 +119,78 @@ class ProjectAccessRepository(
 		projectAccessDao.deletePublicAccessForProject(projectId)
 	}
 
+	/**
+	 * [sceneIds] limits the share to those scenes; null shares the entire story. A non-null
+	 * empty set is rejected rather than widened, so a caller that filtered its selection down
+	 * to nothing can never accidentally expose the whole manuscript.
+	 */
 	suspend fun createPrivateAccess(
 		userId: Long,
 		projectUuid: ProjectId,
 		password: String,
 		expiresAt: Instant?,
-		sceneIds: List<Int> = emptyList(),
+		sceneIds: Set<Int>? = null,
 	): SResult<Unit> {
-		if (sceneIds.size != sceneIds.distinct().size) {
-			return SResult.failure("Duplicate scene ids", Msg.r("api_access_create_error_invalid_scene"))
+		if (sceneIds != null && sceneIds.isEmpty()) {
+			return SResult.failure("No scenes selected", Msg.r("story_toast_access_no_scenes"))
 		}
 
 		val projectDef = projectEntityDatasource.getProject(userId, projectUuid)
 			?: return SResult.failure("Project not found", Msg.r("api_access_create_error_project_not_found"))
-		for (sceneId in sceneIds) {
-			val type = projectEntityDatasource.findEntityType(sceneId, userId, projectDef)
-			if (type != ApiProjectEntity.Type.SCENE) {
-				return SResult.failure(
-					"Entity $sceneId is not a scene",
+		if (sceneIds != null) {
+			when (val loaded = projectEntityDatasource.loadSceneSet(userId, projectDef, sceneIds)) {
+				is SceneSetResult.InvalidId -> return SResult.failure(
+					"Invalid scene ${loaded.id}",
+					Msg.r("api_access_create_error_invalid_scene"),
+					loaded.exception,
+				)
+
+				is SceneSetResult.NotAScene -> return SResult.failure(
+					"Entity ${loaded.id} is not a scene",
 					Msg.r("api_access_create_error_invalid_scene")
 				)
+
+				is SceneSetResult.Success -> Unit
 			}
 		}
 
 		val projectId = projectDao.getProjectId(userId, projectUuid)
-		// Password lookup on the reader route resolves a single row, so a password
-		// reused across shares of one project would make the older share unreachable.
-		// Expired shares no longer resolve there, so their passwords are free to reuse.
-		val now = clock.now()
-		val duplicate = projectAccessDao.getPrivateAccessForProject(projectId)
-			.any { it.access_password == password && (it.expires_at == null || it.expires_at > now) }
-		if (duplicate) {
+		val accessId = projectAccessDao.insertAccessWithScenes(
+			projectId = projectId,
+			password = password,
+			expiresAt = expiresAt,
+			sceneIds = sceneIds ?: emptySet(),
+			now = clock.now(),
+		)
+		// Null means another live share of this project already uses the password; the reader
+		// lookup resolves a single row per password, so allowing it would strand one share.
+		if (accessId == null) {
 			return SResult.failure(
 				"Password already used by another share",
 				Msg.r("api_access_create_error_duplicate_password")
 			)
 		}
-
-		projectAccessDao.insertAccessWithScenes(projectId, password, expiresAt, sceneIds)
 		return SResult.success(Unit)
 	}
 
 	suspend fun getPrivateAccessEntries(userId: Long, projectUuid: ProjectId): List<AccessEntryInfo> {
 		val projectId = projectDao.getProjectId(userId, projectUuid)
 		val entries = projectAccessDao.getPrivateAccessForProject(projectId)
-		val sceneCounts = projectAccessDao.sceneCountsForAccessIds(entries.map { it.id })
+		val restrictions = projectAccessDao.getSceneIdsForAccessIds(entries.map { it.id })
+		// Scene counts reflect scenes that still exist, so a share whose selection has been
+		// deleted out from under it reads as dead instead of quietly advertising stale scenes.
+		val liveSceneIds = if (restrictions.isEmpty()) {
+			emptySet()
+		} else {
+			val projectDef = projectEntityDatasource.getProject(userId, projectUuid)
+			projectDef?.let { def ->
+				projectEntityDatasource.getEntityDefsByType(
+					userId = userId,
+					projectDef = def,
+					type = ApiProjectEntity.Type.SCENE,
+				).map { it.id }.toSet()
+			} ?: emptySet()
+		}
 		val now = clock.now()
 		val formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy").withZone(ZoneId.systemDefault())
 
@@ -169,7 +205,7 @@ class ProjectAccessRepository(
 				expiresAt = expiresAt,
 				expiresAtFormatted = formattedDate,
 				isExpired = isExpired,
-				sceneCount = sceneCounts[entry.id],
+				sceneCount = restrictions[entry.id]?.let { ids -> ids.intersect(liveSceneIds).size },
 			)
 		}
 	}
@@ -246,8 +282,12 @@ class ProjectAccessRepository(
 		}
 
 		// Check password-protected access
-		val passwordInfo = projectAccessDao.findProjectByPenNameProjectNameAndPassword(penName, projectName, password)
-			?: return PublicProjectResult.PasswordRequired
+		val passwordInfo = projectAccessDao.findProjectByPenNameProjectNameAndPassword(
+			penName = penName,
+			projectName = projectName,
+			password = password,
+			now = clock.now(),
+		) ?: return PublicProjectResult.PasswordRequired
 
 		// Check expiration if set
 		if (passwordInfo.expiresAt != null && clock.now() > passwordInfo.expiresAt) {

@@ -4,11 +4,14 @@ import com.darkrockstudios.apps.hammer.GetPrivateAccessForProject
 import com.darkrockstudios.apps.hammer.Project_access
 import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.database.ProjectAccessDao
 import com.darkrockstudios.apps.hammer.database.ProjectDao
 import com.darkrockstudios.apps.hammer.database.PublicProjectInfo
+import com.darkrockstudios.apps.hammer.project.EntityDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
+import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.isFailure
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.darkrockstudios.apps.hammer.utils.TestClock
@@ -224,7 +227,7 @@ class ProjectAccessRepositoryTest {
 		val result = repository.createPrivateAccess(userId, projectUuid, password, expiresAt)
 
 		assertTrue(isSuccess(result))
-		coVerify { projectAccessDao.insertAccessWithScenes(projectId, password, expiresAt, emptyList()) }
+		coVerify { projectAccessDao.insertAccessWithScenes(projectId, password, expiresAt, emptySet<Int>(), any()) }
 	}
 
 	@Test
@@ -236,94 +239,103 @@ class ProjectAccessRepositoryTest {
 		val result = repository.createPrivateAccess(userId, projectUuid, password, null)
 
 		assertTrue(isSuccess(result))
-		coVerify { projectAccessDao.insertAccessWithScenes(projectId, password, null, emptyList()) }
+		coVerify { projectAccessDao.insertAccessWithScenes(projectId, password, null, emptySet<Int>(), any()) }
 	}
 
 	@Test
 	fun `createPrivateAccess - persists the selected scene ids`() = runTest {
 		val password = "secret123"
-		val sceneIds = listOf(3, 7)
+		val sceneIds = setOf(3, 7)
 
 		mockCreatePrivateAccessCollaborators()
-		coEvery {
-			projectEntityDatasource.findEntityType(any(), userId, projectDef)
-		} returns ApiProjectEntity.Type.SCENE
+		mockSceneDefs(3, 7)
+		mockLoadScene(3)
+		mockLoadScene(7)
 
 		val result = repository.createPrivateAccess(userId, projectUuid, password, null, sceneIds)
 
 		assertTrue(isSuccess(result))
-		coVerify { projectAccessDao.insertAccessWithScenes(projectId, password, null, sceneIds) }
+		coVerify { projectAccessDao.insertAccessWithScenes(projectId, password, null, sceneIds, any()) }
 	}
 
 	@Test
-	fun `createPrivateAccess - rejects an id that is not a scene`() = runTest {
+	fun `createPrivateAccess - rejects an id that does not exist`() = runTest {
 		mockCreatePrivateAccessCollaborators()
-		coEvery {
-			projectEntityDatasource.findEntityType(3, userId, projectDef)
-		} returns ApiProjectEntity.Type.SCENE
-		coEvery {
-			projectEntityDatasource.findEntityType(9, userId, projectDef)
-		} returns ApiProjectEntity.Type.NOTE
+		mockSceneDefs(3)
+		mockLoadScene(3)
 
-		val result = repository.createPrivateAccess(userId, projectUuid, "secret", null, listOf(3, 9))
+		val result = repository.createPrivateAccess(userId, projectUuid, "secret", null, setOf(3, 9))
 
 		assertTrue(isFailure(result))
-		coVerify(exactly = 0) { projectAccessDao.insertAccessWithScenes(any(), any(), any(), any()) }
+		coVerify(exactly = 0) { projectAccessDao.insertAccessWithScenes(any(), any(), any(), any(), any()) }
 	}
 
 	@Test
-	fun `createPrivateAccess - rejects duplicate scene ids`() = runTest {
+	fun `createPrivateAccess - rejects a scene group id`() = runTest {
 		mockCreatePrivateAccessCollaborators()
+		mockSceneDefs(3, 4)
+		mockLoadScene(3)
+		mockLoadScene(4, sceneType = ApiSceneType.Group)
 
-		val result = repository.createPrivateAccess(userId, projectUuid, "secret", null, listOf(3, 3))
+		val result = repository.createPrivateAccess(userId, projectUuid, "secret", null, setOf(3, 4))
 
 		assertTrue(isFailure(result))
-		coVerify(exactly = 0) { projectAccessDao.insertAccessWithScenes(any(), any(), any(), any()) }
+		coVerify(exactly = 0) { projectAccessDao.insertAccessWithScenes(any(), any(), any(), any(), any()) }
 	}
 
 	@Test
-	fun `createPrivateAccess - allows reusing the password of an expired share`() = runTest {
+	fun `createPrivateAccess - rejects an empty scene restriction instead of widening it`() = runTest {
 		mockCreatePrivateAccessCollaborators()
-		coEvery { projectAccessDao.getPrivateAccessForProject(projectId) } returns listOf(
-			GetPrivateAccessForProject(
-				id = 1,
-				access_password = "secret123",
-				expires_at = Instant.parse("2020-01-01T00:00:00Z"),
-				project_id = projectId,
-				published_at = Instant.parse("2019-12-25T23:51:32Z")
-			)
-		)
 
-		val result = repository.createPrivateAccess(userId, projectUuid, "secret123", null)
+		val result = repository.createPrivateAccess(userId, projectUuid, "secret", null, emptySet())
 
-		assertTrue(isSuccess(result))
-		coVerify { projectAccessDao.insertAccessWithScenes(projectId, "secret123", null, emptyList()) }
+		assertTrue(isFailure(result))
+		coVerify(exactly = 0) { projectAccessDao.insertAccessWithScenes(any(), any(), any(), any(), any()) }
 	}
 
 	@Test
-	fun `createPrivateAccess - rejects a password already used by another share`() = runTest {
+	fun `createPrivateAccess - surfaces the DAO's duplicate-password refusal`() = runTest {
 		mockCreatePrivateAccessCollaborators()
-		coEvery { projectAccessDao.getPrivateAccessForProject(projectId) } returns listOf(
-			GetPrivateAccessForProject(
-				id = 1,
-				access_password = "secret123",
-				expires_at = null,
-				project_id = projectId,
-				published_at = Instant.parse("2025-12-25T23:51:32Z")
-			)
-		)
+		coEvery {
+			projectAccessDao.insertAccessWithScenes(any(), any(), any(), any(), any())
+		} returns null
 
 		val result = repository.createPrivateAccess(userId, projectUuid, "secret123", null)
 
 		assertTrue(isFailure(result))
-		coVerify(exactly = 0) { projectAccessDao.insertAccessWithScenes(any(), any(), any(), any()) }
 	}
 
 	private fun mockCreatePrivateAccessCollaborators() {
 		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
 		coEvery { projectEntityDatasource.getProject(userId, projectUuid) } returns projectDef
-		coEvery { projectAccessDao.getPrivateAccessForProject(projectId) } returns emptyList()
-		coEvery { projectAccessDao.insertAccessWithScenes(any(), any(), any(), any()) } returns 42L
+		coEvery { projectAccessDao.insertAccessWithScenes(any(), any(), any(), any(), any()) } returns 42L
+	}
+
+	private fun mockSceneDefs(vararg ids: Int) {
+		coEvery {
+			projectEntityDatasource.getEntityDefsByType(userId, projectDef, ApiProjectEntity.Type.SCENE)
+		} returns ids.map { EntityDefinition(it, ApiProjectEntity.Type.SCENE) }
+	}
+
+	private fun mockLoadScene(id: Int, sceneType: ApiSceneType = ApiSceneType.Scene) {
+		coEvery {
+			projectEntityDatasource.loadEntity(
+				userId, projectDef, id,
+				ApiProjectEntity.Type.SCENE,
+				ApiProjectEntity.SceneEntity.serializer(),
+			)
+		} returns SResult.success(
+			ApiProjectEntity.SceneEntity(
+				id = id,
+				sceneType = sceneType,
+				order = 0,
+				name = "Scene $id",
+				path = listOf(0),
+				content = "",
+				outline = "",
+				notes = "",
+			)
+		)
 	}
 
 	@Test
@@ -347,7 +359,10 @@ class ProjectAccessRepositoryTest {
 
 		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
 		coEvery { projectAccessDao.getPrivateAccessForProject(projectId) } returns entries
-		coEvery { projectAccessDao.sceneCountsForAccessIds(listOf(1L, 2L)) } returns mapOf(1L to 5)
+		coEvery { projectAccessDao.getSceneIdsForAccessIds(listOf(1L, 2L)) } returns
+			mapOf(1L to setOf(10, 11, 12, 13, 14))
+		coEvery { projectEntityDatasource.getProject(userId, projectUuid) } returns projectDef
+		mockSceneDefs(10, 11, 12, 13, 14)
 
 		val result = repository.getPrivateAccessEntries(userId, projectUuid)
 
@@ -381,12 +396,37 @@ class ProjectAccessRepositoryTest {
 
 		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
 		coEvery { projectAccessDao.getPrivateAccessForProject(projectId) } returns entries
-		coEvery { projectAccessDao.sceneCountsForAccessIds(any()) } returns emptyMap()
+		coEvery { projectAccessDao.getSceneIdsForAccessIds(any()) } returns emptyMap()
 
 		val result = repository.getPrivateAccessEntries(userId, projectUuid)
 
 		assertEquals(1, result.size)
 		assertTrue(result[0].isExpired)
+	}
+
+	@Test
+	fun `getPrivateAccessEntries - a share whose scenes were all deleted reads as sceneless`() = runTest {
+		val entries = listOf(
+			GetPrivateAccessForProject(
+				id = 1,
+				access_password = "pass1",
+				expires_at = null,
+				project_id = 1,
+				published_at = Instant.parse("2025-12-25T23:51:32Z")
+			)
+		)
+
+		coEvery { projectDao.getProjectId(userId, projectUuid) } returns projectId
+		coEvery { projectAccessDao.getPrivateAccessForProject(projectId) } returns entries
+		coEvery { projectAccessDao.getSceneIdsForAccessIds(listOf(1L)) } returns mapOf(1L to setOf(10, 11))
+		coEvery { projectEntityDatasource.getProject(userId, projectUuid) } returns projectDef
+		mockSceneDefs(20, 21)
+
+		val result = repository.getPrivateAccessEntries(userId, projectUuid)
+
+		assertEquals(0, result[0].sceneCount)
+		assertTrue(result[0].isSceneless)
+		assertTrue(result[0].isRestricted)
 	}
 
 	@Test
@@ -517,8 +557,9 @@ class ProjectAccessRepositoryTest {
 			projectAccessDao.findProjectByPenNameProjectNameAndPassword(
 				penName,
 				projectName,
-				password
-			)
+				password,
+				any()
+				)
 		} returns privateInfo
 
 		val result = repository.findAccessibleProject(penName, projectName, password)
@@ -544,7 +585,7 @@ class ProjectAccessRepositoryTest {
 		coEvery { projectAccessDao.findPublicProjectByPenNameAndProjectName(penName, projectName) } returns null
 		coEvery { projectAccessDao.hasAnyAccessForProject(penName, projectName) } returns true
 		coEvery {
-			projectAccessDao.findProjectByPenNameProjectNameAndPassword(penName, projectName, password)
+			projectAccessDao.findProjectByPenNameProjectNameAndPassword(penName, projectName, password, any())
 		} returns privateInfo
 		coEvery { projectAccessDao.getSceneIdsForAccess(42L) } returns listOf(3, 7)
 
@@ -569,7 +610,7 @@ class ProjectAccessRepositoryTest {
 		coEvery { projectAccessDao.findPublicProjectByPenNameAndProjectName(penName, projectName) } returns null
 		coEvery { projectAccessDao.hasAnyAccessForProject(penName, projectName) } returns true
 		coEvery {
-			projectAccessDao.findProjectByPenNameProjectNameAndPassword(penName, projectName, password)
+			projectAccessDao.findProjectByPenNameProjectNameAndPassword(penName, projectName, password, any())
 		} returns privateInfo
 		coEvery { projectAccessDao.getSceneIdsForAccess(42L) } returns emptyList()
 
@@ -607,8 +648,9 @@ class ProjectAccessRepositoryTest {
 			projectAccessDao.findProjectByPenNameProjectNameAndPassword(
 				penName,
 				projectName,
-				wrongPassword
-			)
+				wrongPassword,
+				any()
+				)
 		} returns null
 
 		val result = repository.findAccessibleProject(penName, projectName, wrongPassword)
@@ -633,8 +675,9 @@ class ProjectAccessRepositoryTest {
 			projectAccessDao.findProjectByPenNameProjectNameAndPassword(
 				penName,
 				projectName,
-				password
-			)
+				password,
+				any()
+				)
 		} returns expiredInfo
 
 		val result = repository.findAccessibleProject(penName, projectName, password)
@@ -671,8 +714,9 @@ class ProjectAccessRepositoryTest {
 			projectAccessDao.findProjectByPenNameProjectNameAndPassword(
 				penName,
 				projectName,
-				password
-			)
+				password,
+				any()
+				)
 		} returns validPrivateInfo
 
 		val result = repository.findAccessibleProject(penName, projectName, password)

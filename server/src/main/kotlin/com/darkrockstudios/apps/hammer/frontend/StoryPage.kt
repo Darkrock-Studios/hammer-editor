@@ -26,10 +26,9 @@ import com.darkrockstudios.apps.hammer.story.SingleSceneExportResult
 import com.darkrockstudios.apps.hammer.story.StoryRenderResult
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.story.WordCountUtils
-import com.darkrockstudios.apps.hammer.utilities.Msg
-import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utilities.truncateToUtcDay
+import com.github.aymanizz.ktori18n.R
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.htmx.hx
@@ -376,9 +375,18 @@ fun Route.storyPage(
 
 				val hierarchyResult =
 					storyRendererService.getSceneHierarchy(session.userId, ProjectId(project.uuid))
+				// A failed tree load must not render as an innocent empty tree: with the limit
+				// toggle on, an empty tree pins the submit button disabled with no explanation.
 				val scenes = when (hierarchyResult) {
 					is SceneHierarchyResult.Success -> hierarchyResult.scenes
-					else -> emptyList()
+					else -> {
+						respondHtmlWithToast(
+							content = "",
+							message = call.msg("story_share_dialog_scenes_failed"),
+							toast = Toast.Error,
+						)
+						return@get
+					}
 				}
 
 				// Get tomorrow's date as minimum date for the date picker
@@ -426,11 +434,12 @@ fun Route.storyPage(
 				val formParams = call.receiveParameters()
 				val password = formParams["password"]
 				val expiresAt = formParams["expiresAt"]?.ifBlank { null }
-				val limitScenes = formParams["limitScenes"] != null
-				val sceneIds = if (limitScenes) {
-					formParams.getAll("sceneIds")?.mapNotNull { it.toIntOrNull() } ?: emptyList()
+				// Null means the entire story; a checked limit box always produces a set, and
+				// the repository rejects an empty one rather than widening it.
+				val sceneIds: Set<Int>? = if (formParams["limitScenes"] != null) {
+					formParams.getAll("sceneIds")?.mapNotNull { it.toIntOrNull() }?.toSet() ?: emptySet()
 				} else {
-					emptyList()
+					null
 				}
 
 				if (password.isNullOrBlank()) {
@@ -452,17 +461,13 @@ fun Route.storyPage(
 					kotlin.time.Instant.parse("${it}T23:59:59Z")
 				}
 
-				val createResult = if (limitScenes && sceneIds.isEmpty()) {
-					SResult.failure("No scenes selected", Msg.r("story_toast_access_no_scenes"))
-				} else {
-					projectAccessRepository.createPrivateAccess(
-						userId = session.userId,
-						projectUuid = projectId,
-						password = password,
-						expiresAt = expiresAtInstant,
-						sceneIds = sceneIds,
-					)
-				}
+				val createResult = projectAccessRepository.createPrivateAccess(
+					userId = session.userId,
+					projectUuid = projectId,
+					password = password,
+					expiresAt = expiresAtInstant,
+					sceneIds = sceneIds,
+				)
 
 				// Return updated publish section
 				val isPublished = projectAccessRepository.isPublished(session.userId, projectId)
@@ -496,7 +501,7 @@ fun Route.storyPage(
 				val (content, toastMessage, toastType) = when (createResult) {
 					is ServerResult.Failure -> Triple(
 						publishHtml,
-						createResult.displayMessageText(call) ?: call.msg("story_toast_access_no_scenes"),
+						createResult.displayMessageText(call, R("api_error_unknown")),
 						Toast.Error,
 					)
 

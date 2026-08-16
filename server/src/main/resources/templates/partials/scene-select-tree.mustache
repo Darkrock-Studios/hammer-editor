@@ -9,6 +9,9 @@
 				data-clear-label="{{msg.review_dialog_clear_all}}">{{msg.review_dialog_select_all}}</button>
 	</div>
 	<div class="review-form__scene-tree">
+		{{^sceneTree}}
+			<p class="review-form__scene-empty">{{msg.scene_select_tree_empty}}</p>
+		{{/sceneTree}}
 		{{#sceneTree}}
 			{{#isGroup}}
 				<div class="review-scene-group" style="padding-left: {{indentPx}}px;">

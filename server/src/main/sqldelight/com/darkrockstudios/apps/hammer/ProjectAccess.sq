@@ -43,6 +43,19 @@ INSERT INTO project_access(project_id, access_password, expires_at)
 VALUES (?, ?, ?)
 RETURNING id;
 
+-- Serializes share creation per project: taken inside the insert transaction so
+-- two concurrent creates cannot both pass the duplicate-password check.
+lockProjectRow:
+SELECT id FROM project WHERE id = :projectId FOR UPDATE;
+
+findLiveAccessByPassword:
+SELECT id
+FROM project_access
+WHERE project_id = :projectId
+  AND access_password = :password
+  AND (expires_at IS NULL OR expires_at > :now)
+LIMIT 1;
+
 -- The SQLite `INSERT OR REPLACE` here had no UNIQUE other than PK (id auto-incr)
 -- so it was effectively a plain INSERT in practice; preserve that semantics.
 updateAccess:
@@ -100,9 +113,10 @@ INNER JOIN project_access ON project.id = project_access.project_id
 WHERE project.uuid = CAST(:projectUuid AS UUID)
   AND project_access.access_password IS NULL;
 
--- Nothing prevents two shares of one project from using the same password;
+-- Rows predating the create-time duplicate check may share a password;
 -- ORDER BY id LIMIT 1 keeps the oldest one winning instead of a crash. Expired
--- rows are skipped here so they can never shadow a live share.
+-- rows are skipped so they can never shadow a live share. Expiry compares
+-- against a caller-supplied :now so create and read share one clock.
 findProjectByPenNameProjectNameAndPassword:
 SELECT
     project.uuid AS project_uuid,
@@ -117,7 +131,7 @@ INNER JOIN project_access ON project.id = project_access.project_id
 WHERE account.pen_name = CAST(:penName AS CITEXT)
   AND project.name = CAST(:projectName AS CITEXT)
   AND project_access.access_password = :password
-  AND (project_access.expires_at IS NULL OR project_access.expires_at > NOW())
+  AND (project_access.expires_at IS NULL OR project_access.expires_at > :now)
 ORDER BY project_access.id
 LIMIT 1;
 
