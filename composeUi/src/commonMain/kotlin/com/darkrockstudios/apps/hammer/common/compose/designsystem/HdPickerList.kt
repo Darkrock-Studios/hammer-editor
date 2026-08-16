@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.compose.designsystem
 
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,7 +26,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.isSpecified
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 
 /** Rows deeper than this share the same indent so long names keep room. */
 private const val MAX_INDENT_DEPTH = 4
@@ -62,10 +66,20 @@ fun HdPickerList(
 			val rowHeight = with(LocalDensity.current) {
 				(if (lineHeight.isSpecified) lineHeight.toDp() else 20.dp) + (Ui.Padding.M * 2)
 			}
-			LazyColumn(
-				modifier = Modifier.heightIn(max = rowHeight * maxVisibleRows),
-				content = content,
-			)
+			val listState = rememberLazyListState()
+			Box {
+				LazyColumn(
+					state = listState,
+					modifier = Modifier
+						.heightIn(max = rowHeight * maxVisibleRows)
+						.padding(end = Ui.Padding.S),
+					content = content,
+				)
+				MpScrollBarList(
+					modifier = scrollBarOverlay(),
+					state = listState,
+				)
+			}
 		}
 	}
 }
