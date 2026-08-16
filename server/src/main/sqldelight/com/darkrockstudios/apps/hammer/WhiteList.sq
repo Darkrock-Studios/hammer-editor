@@ -52,32 +52,58 @@ getAll:
 SELECT * FROM white_list
 ORDER BY email ASC;
 
+-- Every paginated query breaks ties on email. backfillFromAccounts stamps all the rows
+-- it migrates with one timestamp, so date_added alone leaves LIMIT/OFFSET free to repeat
+-- and skip entries across pages.
 getPaginated:
 SELECT * FROM white_list
-ORDER BY date_added DESC
+ORDER BY date_added DESC, email ASC
 LIMIT ? OFFSET ?;
 
 getPaginatedOldestFirst:
 SELECT * FROM white_list
-ORDER BY date_added ASC
+ORDER BY date_added ASC, email ASC
 LIMIT ? OFFSET ?;
 
 getPaginatedWithAccountStatus:
 SELECT w.*, (a.email IS NOT NULL) AS has_account
 FROM white_list w
 LEFT JOIN account a ON w.email = a.email
-ORDER BY w.date_added DESC
+ORDER BY w.date_added DESC, w.email ASC
 LIMIT ? OFFSET ?;
 
 getPaginatedWithAccountStatusOldestFirst:
 SELECT w.*, (a.email IS NOT NULL) AS has_account
 FROM white_list w
 LEFT JOIN account a ON w.email = a.email
-ORDER BY w.date_added ASC
+ORDER BY w.date_added ASC, w.email ASC
+LIMIT ? OFFSET ?;
+
+-- Admin email search. A wildcard match can't ride the citext equality operator, so both
+-- sides are narrowed to text and matched with ILIKE, which is unambiguously
+-- case-insensitive. The repository escapes % and _ in the admin's input before binding.
+searchPaginatedWithAccountStatus:
+SELECT w.*, (a.email IS NOT NULL) AS has_account
+FROM white_list w
+LEFT JOIN account a ON w.email = a.email
+WHERE CAST(w.email AS TEXT) ILIKE ?
+ORDER BY w.date_added DESC, w.email ASC
+LIMIT ? OFFSET ?;
+
+searchPaginatedWithAccountStatusOldestFirst:
+SELECT w.*, (a.email IS NOT NULL) AS has_account
+FROM white_list w
+LEFT JOIN account a ON w.email = a.email
+WHERE CAST(w.email AS TEXT) ILIKE ?
+ORDER BY w.date_added ASC, w.email ASC
 LIMIT ? OFFSET ?;
 
 getCount:
 SELECT count(*) FROM white_list;
+
+searchCount:
+SELECT count(*) FROM white_list
+WHERE CAST(email AS TEXT) ILIKE ?;
 
 getByEmail:
 SELECT * FROM white_list WHERE email = CAST(? AS CITEXT);
