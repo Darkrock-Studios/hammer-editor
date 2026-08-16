@@ -107,9 +107,10 @@
 	<string name="sync_log_account_project_rename_client_from_server_failure">No se pudo renombrar el proyecto desde el servidor: %1$s</string>
 	<string name="sync_log_account_project_create_server_success">Proyecto creado en el servidor: %1$s</string>
 	<string name="sync_log_account_project_create_server_failure">No se pudo crear el proyecto en el servidor: %1$s</string>
+	<string name="sync_log_account_project_id_save_failure">Project created on server, but failed to save its ID locally: %1$s</string>
 	<string name="sync_log_account_project_create_client">Proyecto local creado: %1$s</string>
 	<string name="sync_log_account_project_create_client_local">Estableciendo el ID de servidor del proyecto local: %1$s</string>
-	<string name="sync_log_account_project_create_client_failure">No se pudo crear el proyecto en el servidor: %1$s</string>
+	<string name="sync_log_account_project_create_local_failure">Failed to create local project from server: %1$s</string>
 	<string name="sync_log_account_project_create_client_name_taken">Skipped server project %1$s: a local project of that name already syncs with a different server project</string>
 	<string name="sync_log_begin_account">Sincronizando la cuenta…</string>
 	<string name="sync_log_begin_projects">Sincronizando los proyectos…</string>
@@ -181,7 +182,8 @@
 	<string name="server_setup_help_patreon_link">Patreon</string>
 	<string name="server_setup_help_hammer_link">Hammer.Ink</string>
 	<string name="server_setup_help_registration_header">Registro</string>
-	<string name="server_setup_help_registration_body">De forma predeterminada, los servidores tienen el registro cerrado, lo que significa que debes ser añadido a la lista blanca del servidor para poder crear una cuenta.</string>
+	<string name="server_setup_help_registration_body">Servers have closed registration, meaning the server admin needs to add you to the server's allowed users list before you can create an account.
+	</string>
 	<string name="server_setup_help_setup_header">Configuración</string>
 	<string name="server_setup_help_setup_step1">Introduce la URL del servidor, como «hammer.ink» para el servidor oficial.</string>
 	<string name="server_setup_help_setup_step2">Introduce tu correo y contraseña, luego pulsa «Crear» para crear tu cuenta.</string>
