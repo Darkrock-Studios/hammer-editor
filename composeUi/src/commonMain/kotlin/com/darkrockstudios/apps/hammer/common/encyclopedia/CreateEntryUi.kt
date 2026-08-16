@@ -22,7 +22,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -51,6 +50,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberSaveableStringList
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.retryingFileDialog
@@ -114,7 +114,7 @@ internal fun CreateEntryUi(
 
 	var name by rememberSaveable { mutableStateOf("") }
 	var description by rememberSaveable { mutableStateOf("") }
-	val tags = remember { mutableStateListOf<String>() }
+	val tags = rememberSaveableStringList()
 	var selectedType by rememberSaveable { mutableStateOf(EntryType.PERSON) }
 
 	var imagePath by remember { mutableStateOf<PlatformFile?>(null) }

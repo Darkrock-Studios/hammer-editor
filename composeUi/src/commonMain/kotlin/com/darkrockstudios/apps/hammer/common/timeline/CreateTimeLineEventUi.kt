@@ -7,6 +7,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -19,6 +20,7 @@ import com.darkrockstudios.apps.hammer.common.components.timeline.CreateTimeLine
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
+import com.darkrockstudios.apps.hammer.common.compose.rememberSaveableStringList
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEventError
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
@@ -40,10 +42,10 @@ fun CreateTimeLineEventUi(
 	val strRes = rememberStrRes()
 	val state by component.state.subscribeAsState()
 	val contentText by component.contentText.subscribeAsState()
-	var dateText by remember { mutableStateOf("") }
+	var dateText by rememberSaveable { mutableStateOf("") }
 	var dateFocused by remember { mutableStateOf(false) }
 	var resetVersion by remember { mutableStateOf(0) }
-	val tags = remember { mutableStateListOf<String>() }
+	val tags = rememberSaveableStringList()
 
 	val wordCount = remember(contentText) {
 		contentText.split(Regex("\\s+")).count { it.isNotBlank() }

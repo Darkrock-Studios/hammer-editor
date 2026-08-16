@@ -93,10 +93,12 @@ internal fun ViewEntryUi(
 	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
 
 	LaunchedEffect(state.content) {
-		state.content?.let {
-			entryNameText = it.name
-			entryText = it.text
-		}
+		val loaded = state.content ?: return@LaunchedEffect
+		// A configuration change re-runs this effect over the restored draft, so re-seeding
+		// unconditionally would throw away whatever the user had typed but not saved.
+		if (state.editName || state.editText) return@LaunchedEffect
+		entryNameText = loaded.name
+		entryText = loaded.text
 	}
 
 	val ruleColor = MaterialTheme.colorScheme.outlineVariant

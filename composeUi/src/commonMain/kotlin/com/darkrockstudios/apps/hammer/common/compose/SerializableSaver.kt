@@ -1,6 +1,12 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.listSaver
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.snapshots.SnapshotStateList
+import androidx.compose.runtime.toMutableStateList
 import kotlinx.serialization.json.Json
 
 /**
@@ -33,3 +39,15 @@ inline fun <reified T : Any> serializableSaverNonNull(): Saver<T, String> = Save
 	save = { value -> Json.encodeToString(value) },
 	restore = { json -> Json.decodeFromString(json) }
 )
+
+/**
+ * A string list that survives a configuration change. Use it for draft collections — tags, chips,
+ * selections — that a plain [mutableStateListOf] would drop when the composition is rebuilt.
+ */
+@Composable
+fun rememberSaveableStringList(): SnapshotStateList<String> = rememberSaveable(
+	saver = listSaver<SnapshotStateList<String>, String>(
+		save = { it.toList() },
+		restore = { it.toMutableStateList() },
+	)
+) { mutableStateListOf() }
