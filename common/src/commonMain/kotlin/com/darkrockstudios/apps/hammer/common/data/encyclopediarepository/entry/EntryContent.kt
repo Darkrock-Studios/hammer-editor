@@ -13,6 +13,8 @@ data class EntryContent(
 	val text: String,
 	val tags: Set<String>,
 	val aliases: List<String> = emptyList(),
+	/** Keeps this entry's name and aliases out of the spell-check session dictionary. */
+	val excludeFromDictionary: Boolean = false,
 ) {
 	fun toDef(projectDef: ProjectDef): EntryDef = EntryDef(
 		projectDef = projectDef,

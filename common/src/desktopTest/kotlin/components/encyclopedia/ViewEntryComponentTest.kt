@@ -90,7 +90,8 @@ class ViewEntryComponentTest : BaseTest() {
 				oldEntryDef = origDef,
 				name = newName,
 				text = oldEntry.text,
-				tags = oldEntry.tags
+				tags = oldEntry.tags,
+				excludeFromDictionary = false,
 			)
 		} returns EntryResult(newContainer, EntryError.NONE)
 
@@ -136,7 +137,8 @@ class ViewEntryComponentTest : BaseTest() {
 				oldEntryDef = origDef,
 				name = newName,
 				text = oldEntry.text,
-				tags = oldEntry.tags
+				tags = oldEntry.tags,
+				excludeFromDictionary = false,
 			)
 		} returns EntryResult(newContainer, EntryError.NAME_INVALID_CHARACTERS)
 

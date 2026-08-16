@@ -21,7 +21,8 @@ interface CreateEntry : TagSuggesting {
 		type: EntryType,
 		text: String,
 		tags: Set<String>,
-		imagePath: String?
+		imagePath: String?,
+		excludeFromDictionary: Boolean = false,
 	): EntryResult
 
 	fun confirmClose()

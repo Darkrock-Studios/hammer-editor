@@ -87,12 +87,13 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 				override val state: Value<SpellCheckSettings.State>
 					get() = MutableValue(
 						SpellCheckSettings.State(
-							true, true, Locale.root, emptyList()
+							true, true, true, Locale.root, emptyList()
 						)
 					)
 
 				override suspend fun setSpellcheckEnable(enable: Boolean) {}
 				override suspend fun setSpellCheckingInFocusEnabled(enable: Boolean) {}
+				override suspend fun setSpellCheckEncyclopediaEnabled(enable: Boolean) {}
 				override suspend fun setSpellCheckLanguage(language: Locale) {}
 			}
 

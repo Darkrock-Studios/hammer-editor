@@ -117,6 +117,7 @@ import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.server.ServerIdeasApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.server.WritingActivityApi
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.russhwolf.settings.Settings
@@ -289,6 +290,7 @@ val mainModule = module {
 		scoped<ProjectDataRepository>()
 		scoped<ProjectDataConflictBroker>()
 		scoped<ProjectSpellCheckRepository>()
+		scoped<ProjectDictionaryService>()
 
 		scoped<ReferenceIndexDatasource>()
 		scoped<ReferenceIndexRepository>()

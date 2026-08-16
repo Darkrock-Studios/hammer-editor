@@ -131,6 +131,7 @@ class EncyclopediaServiceTest : BaseTest() {
 			name = "A new name",
 			text = entry1().text,
 			tags = entry1().tags,
+			excludeFromDictionary = false,
 		)
 
 		assertEquals(EntryError.NONE, result.error)
@@ -145,6 +146,7 @@ class EncyclopediaServiceTest : BaseTest() {
 			name = "",
 			text = entry1().text,
 			tags = entry1().tags,
+			excludeFromDictionary = false,
 		)
 
 		assertEquals(EntryError.NAME_TOO_SHORT, result.error)

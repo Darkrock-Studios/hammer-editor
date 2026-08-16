@@ -69,6 +69,7 @@ class ClientEncyclopediaSynchronizer(
 			tags = entity.tags,
 			image = entity.image,
 			aliases = entity.aliases,
+			excludeFromDictionary = entity.excludeFromDictionary,
 		)
 	}
 
@@ -97,6 +98,7 @@ class ClientEncyclopediaSynchronizer(
 			tags = entry.tags,
 			image = image,
 			aliases = entry.aliases,
+			excludeFromDictionary = entry.excludeFromDictionary,
 		)
 	}
 
@@ -150,6 +152,7 @@ class ClientEncyclopediaSynchronizer(
 				text = serverEntity.text,
 				tags = serverEntity.tags,
 				aliases = serverEntity.aliases,
+				excludeFromDictionary = serverEntity.excludeFromDictionary,
 			)
 		} else {
 			encyclopediaService.createEntry(
@@ -160,6 +163,7 @@ class ClientEncyclopediaSynchronizer(
 				imagePath = null, // Always pass null here, we wrote the image our selves
 				forceId = serverEntity.id,
 				aliases = serverEntity.aliases,
+				excludeFromDictionary = serverEntity.excludeFromDictionary,
 			)
 		}
 

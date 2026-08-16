@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.spellcheck
 
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.util.Locale
@@ -12,6 +13,8 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.koin.core.component.KoinComponent
 
 class SpellCheckRepository(
@@ -31,18 +34,75 @@ class SpellCheckRepository(
 	private var currentLanguage: Locale? = null
 	private var currentEnabled: Boolean? = null
 
-	private suspend fun applySpellCheckSettings(enabled: Boolean, language: Locale) {
+	private val mutex = Mutex()
+	private var sessionWords: Map<ProjectDef, Set<String>> = emptyMap()
+	private var appliedCandidates: Set<String> = emptySet()
+
+	/**
+	 * Replaces [owner]'s session words. Held in-memory only (DictionaryScope.AppLocal),
+	 * unioned across owners, and re-applied whenever a new checker is created.
+	 * Non-suspend so it is callable from ScopeCallback.onScopeClose.
+	 */
+	fun setSessionWords(owner: ProjectDef, words: Set<String>) {
+		scope.launch {
+			mutex.withLock {
+				if (sessionWords[owner] == words) return@withLock
+				sessionWords = sessionWords + (owner to words)
+				recreateCheckerWithSessionWords()
+			}
+		}
+	}
+
+	fun clearSessionWords(owner: ProjectDef) {
+		scope.launch {
+			mutex.withLock {
+				if (owner !in sessionWords) return@withLock
+				sessionWords = sessionWords - owner
+				recreateCheckerWithSessionWords()
+			}
+		}
+	}
+
+	/**
+	 * Downstream editors only re-run a full scan when the checker identity changes,
+	 * so word-set changes emit a fresh instance rather than mutating the current one.
+	 */
+	private suspend fun recreateCheckerWithSessionWords() {
+		val language = currentLanguage ?: return
+		if (sessionWordUnion() == appliedCandidates) return
+
+		val checker = spellCheckFactory.createSpellChecker(language.toSpLocale())
+		applySessionWords(checker)
+		_dictionaryFlow.tryEmit(checker)
+	}
+
+	private fun sessionWordUnion(): Set<String> =
+		sessionWords.values.flatMapTo(mutableSetOf()) { it }
+
+	// Words the base dictionary already accepts are filtered, so only unknown spellings are added.
+	private suspend fun applySessionWords(checker: PlatformSpellChecker) {
+		val union = sessionWordUnion()
+		appliedCandidates = union
+		val toAdd = union.filterNot { checker.isWordCorrect(it) }
+		if (toAdd.isNotEmpty()) {
+			checker.setUserDictionary(toAdd)
+			Napier.i("Spell Check: applied ${toAdd.size} session words")
+		}
+	}
+
+	private suspend fun applySpellCheckSettings(enabled: Boolean, language: Locale) = mutex.withLock {
 		if (!enabled) {
 			if (currentEnabled != false) {
 				currentEnabled = false
 				currentLanguage = null
+				appliedCandidates = emptySet()
 				_dictionaryFlow.tryEmit(null)
 				Napier.i("Spell Check disabled: dictionary cleared")
 			}
-			return
+			return@withLock
 		}
 
-		if (currentEnabled == true && currentLanguage == language) return
+		if (currentEnabled == true && currentLanguage == language) return@withLock
 
 		val spLocale = language.toSpLocale()
 		if (spellCheckFactory.hasLanguage(spLocale).not()) {
@@ -51,6 +111,7 @@ class SpellCheckRepository(
 			val checker = spellCheckFactory.createSpellChecker(spLocale)
 			currentLanguage = language
 			currentEnabled = true
+			applySessionWords(checker)
 			_dictionaryFlow.tryEmit(checker)
 
 			Napier.i("Spell Checker loaded for: ${language.toLanguageTag()}")

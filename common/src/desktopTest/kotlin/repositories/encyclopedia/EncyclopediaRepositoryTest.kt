@@ -96,7 +96,8 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			oldEntryDef = origDef,
 			name = newValidName,
 			text = entry.text,
-			tags = entry.tags
+			tags = entry.tags,
+			excludeFromDictionary = false,
 		)
 
 
@@ -127,7 +128,8 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			oldEntryDef = origDef,
 			name = newName,
 			text = oldEntry.text,
-			tags = oldEntry.tags
+			tags = oldEntry.tags,
+			excludeFromDictionary = false,
 		)
 
 		assertInvalid(EntryError.NAME_INVALID_CHARACTERS, result, repo, oldEntry, newEntry)
@@ -142,7 +144,8 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			oldEntryDef = origDef,
 			name = newName,
 			text = oldEntry.text,
-			tags = oldEntry.tags
+			tags = oldEntry.tags,
+			excludeFromDictionary = false,
 		)
 
 		assertInvalid(EntryError.NAME_TOO_SHORT, result, repo, oldEntry, newEntry)
@@ -157,7 +160,8 @@ class EncyclopediaRepositoryTest : BaseTest() {
 			oldEntryDef = origDef,
 			name = newName,
 			text = oldEntry.text,
-			tags = oldEntry.tags
+			tags = oldEntry.tags,
+			excludeFromDictionary = false,
 		)
 
 		assertInvalid(EntryError.NAME_TOO_LONG, result, repo, oldEntry, newEntry)
@@ -368,6 +372,7 @@ class EncyclopediaRepositoryTest : BaseTest() {
 				name = entry1().name,
 				text = "updated text",
 				tags = entry1().tags,
+				excludeFromDictionary = false,
 			)
 			awaitItem()
 

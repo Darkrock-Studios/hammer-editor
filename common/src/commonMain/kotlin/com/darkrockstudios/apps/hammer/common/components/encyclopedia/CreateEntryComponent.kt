@@ -53,9 +53,17 @@ class CreateEntryComponent(
 		type: EntryType,
 		text: String,
 		tags: Set<String>,
-		imagePath: String?
+		imagePath: String?,
+		excludeFromDictionary: Boolean,
 	): EntryResult = withContext(dispatcherDefault) {
-		val result = encyclopediaService.createEntry(name, type, text, tags, imagePath)
+		val result = encyclopediaService.createEntry(
+			name = name,
+			type = type,
+			text = text,
+			tags = tags,
+			imagePath = imagePath,
+			excludeFromDictionary = excludeFromDictionary,
+		)
 		if (result.error == EntryError.NONE) {
 			encyclopediaService.loadEntries()
 			result.instance?.entry?.let { newEntry ->

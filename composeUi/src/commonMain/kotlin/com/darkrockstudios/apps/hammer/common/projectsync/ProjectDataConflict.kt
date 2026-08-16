@@ -42,11 +42,14 @@ import com.darkrockstudios.apps.hammer.sync_conflict_project_data_explanation
 import com.darkrockstudios.apps.hammer.common.spellcheck.displayName
 import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_author
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_dictionary
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_language
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_tags
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_theme
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_field_word_goal
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_resolve_button
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_value_off
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_value_on
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_value_unset
 import com.darkrockstudios.apps.hammer.sync_conflict_tab_local
 import com.darkrockstudios.apps.hammer.sync_conflict_tab_remote
@@ -64,14 +67,19 @@ internal fun ProjectDataConflict(
 	var goalChoice by remember { mutableStateOf(DataChoice.LOCAL) }
 	var tagsChoice by remember { mutableStateOf(DataChoice.LOCAL) }
 	var languageChoice by remember { mutableStateOf(DataChoice.LOCAL) }
+	var dictionaryChoice by remember { mutableStateOf(DataChoice.LOCAL) }
 
 	val authorConflict = conflictState.local.authorName != conflictState.server.authorName
 	val themeConflict = conflictState.local.theme != conflictState.server.theme
 	val goalConflict = conflictState.local.wordCountGoal != conflictState.server.wordCountGoal
 	val tagsConflict = conflictState.local.tags != conflictState.server.tags
 	val languageConflict = conflictState.local.language != conflictState.server.language
+	val dictionaryConflict =
+		conflictState.local.encyclopediaDictionary != conflictState.server.encyclopediaDictionary
 
 	val unsetLabel = Res.string.sync_conflict_project_data_value_unset.get()
+	val onLabel = Res.string.sync_conflict_project_data_value_on.get()
+	val offLabel = Res.string.sync_conflict_project_data_value_off.get()
 	val localLabel = Res.string.sync_conflict_tab_local.get()
 	val remoteLabel = Res.string.sync_conflict_tab_remote.get()
 	val dayLabel = Res.string.sync_conflict_project_data_cadence_day.get()
@@ -151,6 +159,18 @@ internal fun ProjectDataConflict(
 			stackVertical = stackVertical,
 		)
 
+		PerFieldChoice(
+			label = Res.string.sync_conflict_project_data_field_dictionary.get(),
+			conflict = dictionaryConflict,
+			localValue = if (conflictState.local.encyclopediaDictionary) onLabel else offLabel,
+			serverValue = if (conflictState.server.encyclopediaDictionary) onLabel else offLabel,
+			selected = dictionaryChoice,
+			onSelect = { dictionaryChoice = it },
+			localLabel = localLabel,
+			remoteLabel = remoteLabel,
+			stackVertical = stackVertical,
+		)
+
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.End,
@@ -167,6 +187,7 @@ internal fun ProjectDataConflict(
 							goalChoice = goalChoice,
 							tagsChoice = tagsChoice,
 							languageChoice = languageChoice,
+							dictionaryChoice = dictionaryChoice,
 						)
 					)
 				},
@@ -270,12 +291,14 @@ private fun buildResolved(
 	goalChoice: DataChoice,
 	tagsChoice: DataChoice,
 	languageChoice: DataChoice,
+	dictionaryChoice: DataChoice,
 ): ProjectData = ProjectData(
 	authorName = if (authorChoice == DataChoice.LOCAL) local.authorName else server.authorName,
 	theme = if (themeChoice == DataChoice.LOCAL) local.theme else server.theme,
 	wordCountGoal = if (goalChoice == DataChoice.LOCAL) local.wordCountGoal else server.wordCountGoal,
 	tags = if (tagsChoice == DataChoice.LOCAL) local.tags else server.tags,
 	language = if (languageChoice == DataChoice.LOCAL) local.language else server.language,
+	encyclopediaDictionary = if (dictionaryChoice == DataChoice.LOCAL) local.encyclopediaDictionary else server.encyclopediaDictionary,
 )
 
 private fun displayString(value: String?, unsetLabel: String): String =

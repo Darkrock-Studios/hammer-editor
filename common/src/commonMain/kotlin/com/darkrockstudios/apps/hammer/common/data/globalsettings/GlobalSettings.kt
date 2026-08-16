@@ -77,6 +77,11 @@ data class NewUserExperience(
 data class SpellCheckerSettings(
 	val enabled: Boolean = true,
 	val enabledInFocusMode: Boolean = false,
+	/**
+	 * Add Encyclopedia entry names and aliases to the dictionary as session
+	 * words while a project is open. Never persisted to any OS dictionary.
+	 */
+	val includeEncyclopediaNames: Boolean = true,
 	@Serializable(with = LocaleSerializer::class)
 	val locale: Locale
 ) {

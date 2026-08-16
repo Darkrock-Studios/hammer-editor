@@ -27,6 +27,7 @@ class SpellCheckSettingsComponent(
 		SpellCheckSettings.State(
 			spellCheckingEnabled = globalSettingsStore.globalSettings.spellCheckSettings.enabled,
 			spellCheckingInFocusEnabled = globalSettingsStore.globalSettings.spellCheckSettings.enabledInFocusMode,
+			spellCheckingEncyclopediaEnabled = globalSettingsStore.globalSettings.spellCheckSettings.includeEncyclopediaNames,
 			spellCheckingLanguage = globalSettingsStore.globalSettings.spellCheckSettings.locale,
 			spellCheckLanguages = platformSpellCheckerFactory.availableLocales().map { it.toLocale() },
 		)
@@ -47,6 +48,7 @@ class SpellCheckSettingsComponent(
 						it.copy(
 							spellCheckingEnabled = settings.spellCheckSettings.enabled,
 							spellCheckingInFocusEnabled = settings.spellCheckSettings.enabledInFocusMode,
+							spellCheckingEncyclopediaEnabled = settings.spellCheckSettings.includeEncyclopediaNames,
 							spellCheckingLanguage = settings.spellCheckSettings.locale
 						)
 					}
@@ -70,6 +72,16 @@ class SpellCheckSettingsComponent(
 			it.copy(
 				spellCheckSettings = it.spellCheckSettings.copy(
 					enabledInFocusMode = enable
+				)
+			)
+		}
+	}
+
+	override suspend fun setSpellCheckEncyclopediaEnabled(enable: Boolean) {
+		globalSettingsStore.updateSettings {
+			it.copy(
+				spellCheckSettings = it.spellCheckSettings.copy(
+					includeEncyclopediaNames = enable
 				)
 			)
 		}

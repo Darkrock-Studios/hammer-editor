@@ -22,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -36,6 +37,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCrumbBackLink
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
@@ -52,6 +54,8 @@ import com.darkrockstudios.apps.hammer.project_settings_folio_section_count
 import com.darkrockstudios.apps.hammer.project_settings_hero_by
 import com.darkrockstudios.apps.hammer.project_settings_hero_marker
 import com.darkrockstudios.apps.hammer.project_settings_hero_no_author
+import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_enable
+import com.darkrockstudios.apps.hammer.project_settings_spellcheck_encyclopedia_enable_hint
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_mismatch_caption
 import com.darkrockstudios.apps.hammer.project_settings_spellcheck_section_title
 
@@ -116,6 +120,10 @@ fun ProjectSettingsUi(
 								contentSpacing = 18.dp,
 							) {
 								SpellCheckSettingsContent(component.spellCheckSettings)
+								ProjectDictionaryToggle(
+									enabled = state.data.encyclopediaDictionary,
+									component = component,
+								)
 								SpellCheckMismatchCaption(
 									projectLanguageTag = state.data.language,
 									spellCheckSettings = component.spellCheckSettings,
@@ -138,6 +146,31 @@ fun ProjectSettingsUi(
 			projectName = component.projectName,
 			sectionCount = 4,
 			horizontalPadding = outerHorizontal,
+		)
+	}
+}
+
+/** Per-project override for the global "learn encyclopedia names" feature. */
+@Composable
+private fun ProjectDictionaryToggle(
+	enabled: Boolean,
+	component: ProjectSettings,
+) {
+	val spellCheckState by component.spellCheckSettings.state.subscribeAsState()
+	val featureOn = spellCheckState.spellCheckingEnabled && spellCheckState.spellCheckingEncyclopediaEnabled
+
+	Box(
+		modifier = Modifier.alpha(if (featureOn) 1f else 0.45f),
+	) {
+		HdHairlineToggleRow(
+			checked = enabled,
+			label = Res.string.project_settings_spellcheck_encyclopedia_enable.get(),
+			hint = Res.string.project_settings_spellcheck_encyclopedia_enable_hint.get(),
+			onCheckedChange = {
+				if (featureOn) {
+					component.setEncyclopediaDictionaryEnabled(it)
+				}
+			},
 		)
 	}
 }

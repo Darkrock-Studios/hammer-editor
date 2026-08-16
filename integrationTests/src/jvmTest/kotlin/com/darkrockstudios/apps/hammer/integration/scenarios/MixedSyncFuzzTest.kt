@@ -95,7 +95,13 @@ class MixedSyncFuzzTest : RoundTripTestBase() {
 					eventState[id] = updated
 				}
 				9 -> entries.randomOrNull(rng)?.let { id ->
-					encyclopedia.updateEntry(encyclopedia.getEntryDef(id), "Entry $i", "about edit $i", randomTags(rng))
+					encyclopedia.updateEntry(
+						encyclopedia.getEntryDef(id),
+						"Entry $i",
+						"about edit $i",
+						randomTags(rng),
+						excludeFromDictionary = false,
+					)
 				}
 
 				10 -> scenes.randomOrNull(rng)?.let { id ->

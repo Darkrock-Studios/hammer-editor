@@ -45,6 +45,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineBut
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineImageDrop
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTypePicker
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
@@ -75,6 +76,8 @@ import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_too_large
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_name_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_name_placeholder
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_section_marker
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_dictionary_toggle_hint
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_dictionary_toggle_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_hint
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_placeholder
@@ -117,6 +120,7 @@ internal fun CreateEntryUi(
 	var description by rememberSaveable { mutableStateOf("") }
 	val tags = rememberSaveableStringList()
 	var selectedType by rememberSaveable { mutableStateOf(EntryType.PERSON) }
+	var excludeFromDictionary by rememberSaveable { mutableStateOf(false) }
 
 	var imagePath by remember { mutableStateOf<PlatformFile?>(null) }
 
@@ -254,6 +258,13 @@ internal fun CreateEntryUi(
 						{ imagePath = null }
 					} else null,
 				)
+
+				HdHairlineToggleRow(
+					checked = !excludeFromDictionary,
+					label = Res.string.encyclopedia_entry_dictionary_toggle_label.get(),
+					hint = Res.string.encyclopedia_entry_dictionary_toggle_hint.get(),
+					onCheckedChange = { include -> excludeFromDictionary = !include },
+				)
 			}
 
 			HairlineModalFooter(
@@ -267,6 +278,7 @@ internal fun CreateEntryUi(
 							text = description,
 							tags = tags.toSet(),
 							imagePath = imagePath?.path,
+							excludeFromDictionary = excludeFromDictionary,
 						)
 						val message = when (result.error) {
 							EntryError.NAME_TOO_LONG -> strRes.get(
