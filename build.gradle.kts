@@ -43,6 +43,9 @@ allprojects {
 
 	tasks.withType<Test> {
 		useJUnitPlatform()
+		// The Koin compiler plugin's compile-safety hints are not tests, and as of plugin
+		// 1.1.0 they carry duplicate method signatures that JUnit's scan chokes on.
+		exclude("org/koin/plugin/hints/**")
 	}
 
 	// Compiler flags applied globally

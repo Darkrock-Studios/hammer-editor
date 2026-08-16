@@ -82,15 +82,13 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 		onCloseRequest = ::exitApplication,
 		icon = painterResource(Res.drawable.hammer_icon),
 		onKeyEvent = { event ->
-			when {
-				event.key == Key.Escape && event.type == KeyEventType.KeyUp -> {
+			when (event.toProjectSelectionShortcut()) {
+				WindowShortcut.Back -> {
 					backDispatcher.back()
 					true
 				}
 
-				event.type == KeyEventType.KeyDown &&
-					event.key == Key.Q &&
-					(event.isCtrlPressed || event.isMetaPressed) -> {
+				WindowShortcut.Quit -> {
 					exitApplication()
 					true
 				}

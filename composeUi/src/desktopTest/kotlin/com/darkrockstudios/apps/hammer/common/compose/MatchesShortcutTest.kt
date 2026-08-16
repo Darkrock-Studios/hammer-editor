@@ -66,20 +66,20 @@ class MatchesShortcutTest {
 	}
 
 	@Test
-	fun `ctrl alt S fires save all`() {
+	fun `ctrl shift S fires save all`() {
 		assertEquals(
 			1,
-			shortcutFirings({ onKeyShortcut(Key.S, ctrl = true, alt = true, action = it) }) {
-				withKeyDown(Key.CtrlLeft) { withKeyDown(Key.AltLeft) { pressKey(Key.S) } }
+			shortcutFirings({ onKeyShortcut(Key.S, ctrl = true, shift = true, action = it) }) {
+				withKeyDown(Key.CtrlLeft) { withKeyDown(Key.ShiftLeft) { pressKey(Key.S) } }
 			},
 		)
 	}
 
 	@Test
-	fun `ctrl alt shift S does not fire save all`() {
+	fun `AltGr shift S does not fire save all`() {
 		assertEquals(
 			0,
-			shortcutFirings({ onKeyShortcut(Key.S, ctrl = true, alt = true, action = it) }) {
+			shortcutFirings({ onKeyShortcut(Key.S, ctrl = true, shift = true, action = it) }) {
 				withKeyDown(Key.CtrlLeft) {
 					withKeyDown(Key.AltLeft) {
 						withKeyDown(Key.ShiftLeft) { pressKey(Key.S) }

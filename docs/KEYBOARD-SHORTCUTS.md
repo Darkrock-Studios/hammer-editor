@@ -7,14 +7,21 @@ Desktop, plus the two project shortcuts on Android and iOS with a hardware keybo
 treats `isCtrlPressed || isMetaPressed` as a single "ctrl" modifier, so these are not
 macOS-specific `Cmd` bindings, they work with either key on every platform.
 
+Every binding matches its modifiers exactly, and none of them uses `Alt`. Both rules are
+load bearing: Windows reports `AltGr` as `Ctrl+Alt`, so a loose or `Alt` based chord fires
+while a Turkish, German, or Polish layout types the character on that key (issue #859).
+
 ## Application
 
-| Shortcut       | Action                | Source                                                               |
-|----------------|-----------------------|----------------------------------------------------------------------|
-| `Esc`          | Navigate back         | `ProjectEditorWindow.kt`, `ProjectSelectionWindow.kt` (`onKeyEvent`) |
-| `Ctrl+Q`       | Quit application      | `ProjectEditorWindow.kt`, `ProjectSelectionWindow.kt` (`onKeyEvent`) |
-| `Ctrl+W`       | Close current project | `ProjectEditorWindow.kt` (`onKeyEvent`)                              |
-| `Ctrl+Shift+F` | Open global search    | `ProjectEditorWindow.kt` (`onKeyEvent`)                              |
+These are matched in `desktop/.../WindowShortcuts.kt` and dispatched from each window's
+`onKeyEvent`.
+
+| Shortcut       | Action                | Window                                          |
+|----------------|-----------------------|-------------------------------------------------|
+| `Esc`          | Navigate back         | `ProjectEditorWindow.kt`, `ProjectSelectionWindow.kt` |
+| `Ctrl+Q`       | Quit application      | `ProjectEditorWindow.kt`, `ProjectSelectionWindow.kt` |
+| `Ctrl+W`       | Close current project | `ProjectEditorWindow.kt`                        |
+| `Ctrl+Shift+F` | Open global search    | `ProjectEditorWindow.kt`                        |
 
 ## Project (while a project is open)
 
@@ -34,13 +41,12 @@ above use the window's `onKeyEvent` instead and yield to a focused component tha
 the key. Modifier shortcuts (the editor ones below) only fire when focus sits inside the
 composable they are attached to.
 
-Modifiers match exactly: `F3` means F3 with nothing held, so `Ctrl+F3` and `Shift+F3` do
-not start a sync. On iOS the save-all chord is `Cmd+Opt+S` or `Ctrl+Opt+S`.
+`F3` means F3 with nothing held, so `Ctrl+F3` and `Shift+F3` do not start a sync.
 
-| Shortcut     | Action                                       |
-|--------------|----------------------------------------------|
-| `Ctrl+Alt+S` | Save all dirty buffers (scenes, notes, etc.) |
-| `F3`         | Start project sync (server-linked only)      |
+| Shortcut       | Action                                       |
+|----------------|----------------------------------------------|
+| `Ctrl+Shift+S` | Save all dirty buffers (scenes, notes, etc.) |
+| `F3`           | Start project sync (server-linked only)      |
 
 ## Editors (scene, note, timeline event, story idea)
 
