@@ -24,7 +24,7 @@
 					  hx-post="/admin/allowed-users/add"
 					  hx-target="#whitelist"
 					  hx-swap="innerHTML"
-					  hx-on::after-request="this.reset(); syncAddExpiryDateVisibility(); resetWhitelistSearchInput()">
+					  hx-include="#whitelist-search, #whitelist-sort-state, #whitelist-page-state">
 					<div class="form-group">
 						<label for="email" class="form-field__label">{{msg.admin_allowedusers_email_label}}</label>
 						<input id="email" name="email" type="email" class="form-input"
@@ -70,6 +70,7 @@
 								   hx-get="/admin/allowed-users/user-fragment"
 								   hx-target="#whitelist"
 								   hx-swap="innerHTML"
+								   hx-include="#whitelist-sort-state"
 								   hx-trigger="input changed delay:300ms, search"/>
 						</div>
 					</div>
@@ -262,6 +263,13 @@
 	function resetWhitelistSearchInput() {
 		document.getElementById('whitelist-search').value = '';
 	}
+
+	// Only a successful add emits this, so a rejected one keeps the typed values and the filter.
+	document.body.addEventListener('whitelist-added', function () {
+		document.getElementById('add-whitelist-form').reset();
+		syncAddExpiryDateVisibility();
+		resetWhitelistSearchInput();
+	});
 
 	// Close dialog on escape key
 	document.addEventListener('keydown', function (e) {

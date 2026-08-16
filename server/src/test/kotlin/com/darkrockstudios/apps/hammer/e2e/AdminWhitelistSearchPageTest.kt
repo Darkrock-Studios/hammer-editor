@@ -226,6 +226,92 @@ class AdminWhitelistSearchPageTest : EndToEndTest() {
 	}
 
 	@Test
+	fun `a search with no matches renders no pagination bar`(): Unit = runBlocking {
+		doStartServer()
+		seed()
+		addEntries("alice@example.com")
+
+		login().use { authed ->
+			val body = authed.fragment("?q=nobody")
+
+			assertFalse(
+				body.contains("class=\"pagination\""),
+				"Zero matches means zero pages, so no pagination bar should render",
+			)
+		}
+	}
+
+	@Test
+	fun `the fragment exposes its sort state so a search can preserve it`(): Unit = runBlocking {
+		doStartServer()
+		seed()
+		addEntries("alice@example.com")
+
+		login().use { authed ->
+			assertContains(
+				authed.fragment("?sortOldestFirst=true"),
+				"id=\"whitelist-sort-state\"",
+			)
+			assertContains(
+				authed.fragment("?sortOldestFirst=true"),
+				"name=\"sortOldestFirst\" value=\"true\"",
+			)
+		}
+	}
+
+	@Test
+	fun `a rejected add keeps the admin's filter and page`(): Unit = runBlocking {
+		doStartServer()
+		seed()
+		addEntries("alice@example.com", "bob@example.com")
+
+		login().use { authed ->
+			val body = authed.postFragment(
+				"add",
+				"email=not-an-email&reason=Beta+tester&expiryPreset=never&expiryDate=&page=0&sortOldestFirst=false&q=alice"
+			)
+
+			assertContains(body, "Invalid email address format")
+			assertContains(body, "alice@example.com")
+			assertFalse(
+				body.contains("bob@example.com"),
+				"A validation error is not an add, so the admin's filter must survive it",
+			)
+		}
+	}
+
+	@Test
+	fun `a successful add signals the client to reset the form`(): Unit = runBlocking {
+		doStartServer()
+		seed()
+
+		login().use { authed ->
+			val ok = authed.post(route("admin/allowed-users/add")) {
+				header("HX-Request", "true")
+				contentType(ContentType.Application.FormUrlEncoded)
+				setBody(
+					"email=${URLEncoder.encode("carol@example.com", "UTF-8")}" +
+						"&reason=Beta+tester&expiryPreset=never&expiryDate=&q=alice"
+				)
+			}
+			assertEquals(HttpStatusCode.OK, ok.status)
+			assertEquals(
+				"whitelist-added",
+				ok.headers["HX-Trigger"],
+				"Only a real add may tell the client to clear the form and search",
+			)
+
+			val rejected = authed.post(route("admin/allowed-users/add")) {
+				header("HX-Request", "true")
+				contentType(ContentType.Application.FormUrlEncoded)
+				setBody("email=not-an-email&reason=Beta+tester&expiryPreset=never&expiryDate=&q=alice")
+			}
+			assertEquals(HttpStatusCode.OK, rejected.status)
+			assertEquals(null, rejected.headers["HX-Trigger"], "A rejected add must not signal a reset")
+		}
+	}
+
+	@Test
 	fun `a query containing markup is escaped in both the body and the reflected links`(): Unit = runBlocking {
 		doStartServer()
 		seed()

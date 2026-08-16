@@ -3,6 +3,10 @@
 		<div class="error-message">{{error}}</div>
 	{{/error}}
 
+	{{! Controls outside this fragment pull the current view state from here via hx-include. }}
+	<input type="hidden" id="whitelist-sort-state" name="sortOldestFirst" value="{{sortOldestFirst}}"/>
+	<input type="hidden" id="whitelist-page-state" name="page" value="{{currentPage}}"/>
+
 	<div class="whitelist-controls">
 		{{#hasSearch}}
 			<span class="whitelist-controls__filter">
@@ -116,7 +120,7 @@
 		</div>
 	{{/items}}
 
-	{{#totalPages}}
+	{{#hasPages}}
 		<div class="pagination">
 			{{#hasPrevPage}}
 				<button hx-get="/admin/allowed-users/user-fragment?page={{prevPage}}&sortOldestFirst={{sortOldestFirst}}&q={{searchEnc}}"
@@ -140,5 +144,5 @@
 				</button>
 			{{/hasNextPage}}
 		</div>
-	{{/totalPages}}
+	{{/hasPages}}
 {{/whitelist}}

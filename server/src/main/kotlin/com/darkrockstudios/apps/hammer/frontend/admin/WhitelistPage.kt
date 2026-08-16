@@ -90,17 +90,17 @@ private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository, clock: 
 		val params = call.receiveParameters()
 		val email = params["email"]?.trim().orEmpty()
 		val reason = params["reason"]?.trim().orEmpty()
-		// The response is always the unfiltered first page, newest first, so a newly added
-		// entry is visible instead of landing outside the admin's current page or filter.
-		val page = 0
-		val sortOldestFirst = false
+		// A rejected add is not an add, so the error lands in the admin's current view.
+		val page = params["page"]?.toIntOrNull() ?: 0
+		val sortOldestFirst = params["sortOldestFirst"]?.toBoolean() ?: false
+		val search = params["q"]
 
 		// Validate email format
 		if (email.isEmpty()) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
 				call.msg("admin_allowedusers_error_emailrequired"),
-				sortOldestFirst
+				sortOldestFirst, search
 			)
 			call.respond(MustacheContent("partials/allowed-users.mustache", model))
 			return@post
@@ -110,7 +110,7 @@ private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository, clock: 
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
 				call.msg("admin_allowedusers_error_emailinvalid"),
-				sortOldestFirst
+				sortOldestFirst, search
 			)
 			call.respond(MustacheContent("partials/allowed-users.mustache", model))
 			return@post
@@ -123,7 +123,7 @@ private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository, clock: 
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
 				call.msg("admin_allowedusers_error_reasontoolong"),
-				sortOldestFirst
+				sortOldestFirst, search
 			)
 			call.respond(MustacheContent("partials/allowed-users.mustache", model))
 			return@post
@@ -134,7 +134,7 @@ private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository, clock: 
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
 				call.msg("admin_allowedusers_error_expiryinvalid"),
-				sortOldestFirst
+				sortOldestFirst, search
 			)
 			call.respond(MustacheContent("partials/allowed-users.mustache", model))
 			return@post
@@ -143,7 +143,10 @@ private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository, clock: 
 		// All validation passed
 		whiteListRepository.addToWhiteList(email, actualReason, parsedExpiry.expires)
 
-		val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst)
+		// A new entry is only guaranteed visible on the unfiltered first page, newest first,
+		// so the successful response resets the view and tells the client to match it.
+		call.response.header(HxResponseHeaders.Trigger, "whitelist-added")
+		val model = getWhitelistModel(call, whiteListRepository, page = 0, sortOldestFirst = false, search = "")
 		call.respond(MustacheContent("partials/allowed-users.mustache", model))
 	}
 }
@@ -297,6 +300,8 @@ internal suspend fun getWhitelistModel(
 	whitelist["currentPage"] = currentPage
 	whitelist["currentPageDisplay"] = currentPage + 1
 	whitelist["totalPages"] = totalPages
+	// Mustache renders a section on a boxed 0, so paging needs its own boolean.
+	whitelist["hasPages"] = totalPages > 0
 	whitelist["hasNextPage"] = currentPage < totalPages - 1
 	whitelist["hasPrevPage"] = currentPage > 0
 	whitelist["nextPage"] = currentPage + 1

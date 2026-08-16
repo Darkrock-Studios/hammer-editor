@@ -361,6 +361,34 @@ class WhiteListRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `paging is stable when every entry shares a date_added`() = runTest {
+		// backfillFromAccounts stamps every migrated row with one timestamp, so the sort
+		// key alone can't order them and LIMIT/OFFSET needs a unique tiebreaker.
+		val emails = (1..15).map { "user%02d@example.com".format(it) }
+		emails.forEach { whiteListDao.addToWhiteList(it, Instant.fromEpochSeconds(0), "Test") }
+
+		val repo = createRepo()
+		val firstPage = repo.getWhiteListWithAccountStatus(0, 10).map { it.email }
+		val secondPage = repo.getWhiteListWithAccountStatus(1, 10).map { it.email }
+
+		assertEquals(emails.take(10), firstPage, "Ties break on email, so paging is deterministic")
+		assertEquals(emails.drop(10), secondPage)
+		assertEquals(emails, firstPage + secondPage, "Every entry appears exactly once")
+	}
+
+	@Test
+	fun `filtered paging is stable when every entry shares a date_added`() = runTest {
+		val emails = (1..15).map { "alice%02d@example.com".format(it) }
+		emails.forEach { whiteListDao.addToWhiteList(it, Instant.fromEpochSeconds(0), "Test") }
+
+		val repo = createRepo()
+		val firstPage = repo.getWhiteListWithAccountStatus(0, 10, emailSearch = "alice").map { it.email }
+		val secondPage = repo.getWhiteListWithAccountStatus(1, 10, emailSearch = "alice").map { it.email }
+
+		assertEquals(emails, firstPage + secondPage, "Every match appears exactly once across pages")
+	}
+
+	@Test
 	fun `emailSearchPattern - wraps in wildcards and escapes LIKE metacharacters`() {
 		assertEquals("%alice%", WhiteListRepository.emailSearchPattern("alice"))
 		assertEquals("%alice%", WhiteListRepository.emailSearchPattern("  alice  "))
