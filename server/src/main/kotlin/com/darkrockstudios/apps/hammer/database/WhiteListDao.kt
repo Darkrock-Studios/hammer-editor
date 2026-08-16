@@ -68,19 +68,36 @@ open class WhiteListDao(
 	): List<GetPaginatedWithAccountStatus> =
 		withContext(ioDispatcher) {
 			return@withContext if (sortOldestFirst) {
-				queries.getPaginatedWithAccountStatusOldestFirst(limit, offset).executeAsList().map {
-					GetPaginatedWithAccountStatus(
-						email = it.email,
-						date_added = it.date_added,
-						reason = it.reason,
-						expires = it.expires,
-						has_account = it.has_account
-					)
-				}
+				queries.getPaginatedWithAccountStatusOldestFirst(
+					limit, offset, ::GetPaginatedWithAccountStatus
+				).executeAsList()
 			} else {
 				queries.getPaginatedWithAccountStatus(limit, offset).executeAsList()
 			}
 		}
+
+	/** [pattern] is a LIKE pattern; see `WhiteListRepository.emailSearchPattern`. */
+	open suspend fun searchPaginatedWithAccountStatus(
+		pattern: String,
+		limit: Long,
+		offset: Long,
+		sortOldestFirst: Boolean = false
+	): List<GetPaginatedWithAccountStatus> =
+		withContext(ioDispatcher) {
+			return@withContext if (sortOldestFirst) {
+				queries.searchPaginatedWithAccountStatusOldestFirst(
+					pattern, limit, offset, ::GetPaginatedWithAccountStatus
+				).executeAsList()
+			} else {
+				queries.searchPaginatedWithAccountStatus(
+					pattern, limit, offset, ::GetPaginatedWithAccountStatus
+				).executeAsList()
+			}
+		}
+
+	open suspend fun searchCount(pattern: String): Long = withContext(ioDispatcher) {
+		return@withContext queries.searchCount(pattern).executeAsOne()
+	}
 
 	open suspend fun getByEmail(email: String): WhiteList? = withContext(ioDispatcher) {
 		return@withContext queries.getByEmail(email).executeAsOneOrNull()

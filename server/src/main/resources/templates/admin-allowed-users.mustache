@@ -24,9 +24,7 @@
 					  hx-post="/admin/allowed-users/add"
 					  hx-target="#whitelist"
 					  hx-swap="innerHTML"
-					  hx-on::after-request="this.reset(); syncAddExpiryDateVisibility()">
-					<input type="hidden" name="page" id="add-form-page" value="0"/>
-					<input type="hidden" name="sortOldestFirst" id="add-form-sort" value="false"/>
+					  hx-on::after-request="this.reset(); syncAddExpiryDateVisibility(); resetWhitelistSearchInput()">
 					<div class="form-group">
 						<label for="email" class="form-field__label">{{msg.admin_allowedusers_email_label}}</label>
 						<input id="email" name="email" type="email" class="form-input"
@@ -62,9 +60,23 @@
 				</form>
 
 				<div class="whitelist-container">
+					<div class="whitelist-search">
+						<div class="form-field whitelist-search__field">
+							<label class="form-field__label form-field__label--small"
+								   for="whitelist-search">{{msg.admin_allowedusers_search_label}}</label>
+							<input id="whitelist-search" name="q" type="search" class="form-input"
+								   autocomplete="off"
+								   placeholder="{{msg.admin_allowedusers_search_placeholder}}"
+								   hx-get="/admin/allowed-users/user-fragment"
+								   hx-target="#whitelist"
+								   hx-swap="innerHTML"
+								   hx-trigger="input changed delay:300ms, search"/>
+						</div>
+					</div>
+
 					<div id="whitelist"
 						 hx-get="/admin/allowed-users/user-fragment"
-						 hx-trigger="load, whitelist-updated from:body"
+						 hx-trigger="load"
 						 hx-swap="innerHTML">
 						<!-- List of allowed users loaded here -->
 					</div>
@@ -93,6 +105,7 @@
 				<input type="hidden" name="email" id="edit-reason-email"/>
 				<input type="hidden" name="page" id="edit-reason-page"/>
 				<input type="hidden" name="sortOldestFirst" id="edit-reason-sort"/>
+				<input type="hidden" name="q" id="edit-reason-q"/>
 				<div class="form-field">
 					<label for="edit-reason-input"
 						   class="form-field__label">{{msg.admin_allowedusers_reason_label}}</label>
@@ -133,6 +146,7 @@
 					<input type="hidden" name="email" id="edit-expiry-email"/>
 				<input type="hidden" name="page" id="edit-expiry-page"/>
 				<input type="hidden" name="sortOldestFirst" id="edit-expiry-sort"/>
+				<input type="hidden" name="q" id="edit-expiry-q"/>
 				<div class="form-field">
 					<label for="edit-expiry-preset"
 						   class="form-field__label">{{msg.admin_allowedusers_expiry_change_label}}</label>
@@ -181,6 +195,7 @@
 		document.getElementById('edit-expiry-email').value = email;
 		document.getElementById('edit-expiry-page').value = btn.dataset.page;
 		document.getElementById('edit-expiry-sort').value = btn.dataset.sortOldestFirst;
+		document.getElementById('edit-expiry-q').value = btn.dataset.q || '';
 
 		// Default to a no-op: an entry with an expiry opens on "specific date" showing
 		// its current value; an entry with no expiry opens on "Never".
@@ -215,6 +230,7 @@
 		document.getElementById('edit-reason-input').value = reason;
 		document.getElementById('edit-reason-page').value = page;
 		document.getElementById('edit-reason-sort').value = sortOldestFirst;
+		document.getElementById('edit-reason-q').value = btn.dataset.q || '';
 
 		const dialog = document.getElementById('edit-reason-dialog');
 		dialog.classList.remove('hidden', 'closing');
@@ -235,19 +251,17 @@
 		}, 200);
 	}
 
-	// Update form hidden fields when whitelist is loaded/updated
-	document.body.addEventListener('htmx:afterSwap', function (event) {
-		if (event.detail.target.id === 'whitelist') {
-			// Extract current page and sort from the loaded content
-			const urlParams = new URLSearchParams(window.location.search);
-			const currentPage = urlParams.get('page') || '0';
-			const sortOldestFirst = urlParams.get('sortOldestFirst') || 'false';
+	function clearWhitelistSearch() {
+		const input = document.getElementById('whitelist-search');
+		input.value = '';
+		htmx.trigger(input, 'search');
+		input.focus();
+	}
 
-			// Update add form hidden inputs
-			document.getElementById('add-form-page').value = currentPage;
-			document.getElementById('add-form-sort').value = sortOldestFirst;
-		}
-	});
+	// The add response is deliberately unfiltered, so the field is emptied to match.
+	function resetWhitelistSearchInput() {
+		document.getElementById('whitelist-search').value = '';
+	}
 
 	// Close dialog on escape key
 	document.addEventListener('keydown', function (e) {

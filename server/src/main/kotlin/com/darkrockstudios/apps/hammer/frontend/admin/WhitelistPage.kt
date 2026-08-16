@@ -13,6 +13,7 @@ import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.utils.io.*
+import java.net.URLEncoder
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -40,6 +41,9 @@ internal fun Route.whiteListRoutes(
 /** The `never` preset and a blank custom date both mean "no expiry". */
 internal const val EXPIRY_PRESET_NEVER = "never"
 internal const val EXPIRY_PRESET_CUSTOM = "custom"
+
+/** The practical ceiling on an email address, so a search can't be arbitrarily long. */
+private const val MAX_SEARCH_LENGTH = 254
 
 /**
  * Resolves the add/edit form's expiry controls to an instant, or null for "never".
@@ -86,8 +90,10 @@ private fun Route.whitelistAdd(whiteListRepository: WhiteListRepository, clock: 
 		val params = call.receiveParameters()
 		val email = params["email"]?.trim().orEmpty()
 		val reason = params["reason"]?.trim().orEmpty()
-		val page = params["page"]?.toIntOrNull() ?: 0
-		val sortOldestFirst = params["sortOldestFirst"]?.toBoolean() ?: false
+		// The response is always the unfiltered first page, newest first, so a newly added
+		// entry is visible instead of landing outside the admin's current page or filter.
+		val page = 0
+		val sortOldestFirst = false
 
 		// Validate email format
 		if (email.isEmpty()) {
@@ -148,12 +154,13 @@ private fun Route.whitelistRemove(whiteListRepository: WhiteListRepository) {
 		val email = params["email"]?.trim().orEmpty()
 		val page = params["page"]?.toIntOrNull() ?: 0
 		val sortOldestFirst = params["sortOldestFirst"]?.toBoolean() ?: false
+		val search = params["q"]
 
 		if (email.isNotEmpty()) {
 			whiteListRepository.removeFromWhiteList(email)
 		}
 
-		val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst)
+		val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst, search)
 		call.respond(MustacheContent("partials/allowed-users.mustache", model))
 	}
 }
@@ -165,12 +172,13 @@ private fun Route.whitelistEditReason(whiteListRepository: WhiteListRepository) 
 		val reason = params["reason"]?.trim().orEmpty()
 		val page = params["page"]?.toIntOrNull() ?: 0
 		val sortOldestFirst = params["sortOldestFirst"]?.toBoolean() ?: false
+		val search = params["q"]
 
 		if (email.isEmpty()) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
 				call.msg("admin_allowedusers_error_emailrequired"),
-				sortOldestFirst
+				sortOldestFirst, search
 			)
 			call.respond(MustacheContent("partials/allowed-users.mustache", model))
 			return@post
@@ -180,7 +188,7 @@ private fun Route.whitelistEditReason(whiteListRepository: WhiteListRepository) 
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
 				call.msg("admin_allowedusers_error_reasontoolong"),
-				sortOldestFirst
+				sortOldestFirst, search
 			)
 			call.respond(MustacheContent("partials/allowed-users.mustache", model))
 			return@post
@@ -188,7 +196,7 @@ private fun Route.whitelistEditReason(whiteListRepository: WhiteListRepository) 
 
 		whiteListRepository.updateReason(email, reason)
 
-		val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst)
+		val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst, search)
 		call.respond(MustacheContent("partials/allowed-users.mustache", model))
 	}
 }
@@ -199,12 +207,13 @@ private fun Route.whitelistEditExpiry(whiteListRepository: WhiteListRepository, 
 		val email = params["email"]?.trim().orEmpty()
 		val page = params["page"]?.toIntOrNull() ?: 0
 		val sortOldestFirst = params["sortOldestFirst"]?.toBoolean() ?: false
+		val search = params["q"]
 
 		if (email.isEmpty()) {
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
 				call.msg("admin_allowedusers_error_emailrequired"),
-				sortOldestFirst
+				sortOldestFirst, search
 			)
 			call.respond(MustacheContent("partials/allowed-users.mustache", model))
 			return@post
@@ -221,7 +230,7 @@ private fun Route.whitelistEditExpiry(whiteListRepository: WhiteListRepository, 
 			val model = getWhitelistModelWithError(
 				call, whiteListRepository, page,
 				call.msg("admin_allowedusers_error_expiryinvalid"),
-				sortOldestFirst
+				sortOldestFirst, search
 			)
 			call.respond(MustacheContent("partials/allowed-users.mustache", model))
 			return@post
@@ -229,7 +238,7 @@ private fun Route.whitelistEditExpiry(whiteListRepository: WhiteListRepository, 
 
 		whiteListRepository.updateExpiry(email, parsedExpiry.expires)
 
-		val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst)
+		val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst, search)
 		call.respond(MustacheContent("partials/allowed-users.mustache", model))
 	}
 }
@@ -245,7 +254,8 @@ internal suspend fun getWhitelistModel(
 	call: ApplicationCall,
 	whiteListRepository: WhiteListRepository,
 	page: Int? = null,
-	sortOldestFirst: Boolean? = null
+	sortOldestFirst: Boolean? = null,
+	search: String? = null,
 ): MutableMap<String, Any> {
 	val queryPage = call.request.queryParameters["page"]?.toIntOrNull()
 	val actualPage = page ?: queryPage ?: 0
@@ -253,13 +263,18 @@ internal suspend fun getWhitelistModel(
 	val querySortOldestFirst = call.request.queryParameters["sortOldestFirst"]?.toBoolean()
 	val actualSortOldestFirst = sortOldestFirst ?: querySortOldestFirst ?: false
 
+	val actualSearch = (search ?: call.request.queryParameters["q"])
+		?.trim().orEmpty().take(MAX_SEARCH_LENGTH)
+	val searchFilter = actualSearch.ifEmpty { null }
+
 	val pageSize = 10
-	val totalCount = whiteListRepository.getWhiteListCount()
+	val totalCount = whiteListRepository.getWhiteListCount(searchFilter)
 	val totalPages = ceil(totalCount.toDouble() / pageSize).toInt()
 	val currentPage = if (totalPages > 0) actualPage.coerceIn(0, totalPages - 1) else 0
 
-	val whitelistEntries =
-		whiteListRepository.getWhiteListWithAccountStatus(currentPage, pageSize, actualSortOldestFirst)
+	val whitelistEntries = whiteListRepository.getWhiteListWithAccountStatus(
+		currentPage, pageSize, actualSortOldestFirst, searchFilter
+	)
 	val whitelistItems = whitelistEntries.map { entry ->
 		mapOf(
 			"email" to entry.email,
@@ -288,6 +303,10 @@ internal suspend fun getWhitelistModel(
 	whitelist["prevPage"] = currentPage - 1
 	whitelist["sortOldestFirst"] = actualSortOldestFirst
 	whitelist["sortNewestFirst"] = !actualSortOldestFirst
+	whitelist["search"] = actualSearch
+	// Reflected into hx-get URLs, where mustache's HTML escaping alone isn't enough.
+	whitelist["searchEnc"] = URLEncoder.encode(actualSearch, Charsets.UTF_8)
+	whitelist["hasSearch"] = actualSearch.isNotEmpty()
 
 	val model = call.withDefaults()
 	model["whitelist"] = whitelist
@@ -300,9 +319,10 @@ private suspend fun getWhitelistModelWithError(
 	whiteListRepository: WhiteListRepository,
 	page: Int,
 	errorMessage: String,
-	sortOldestFirst: Boolean? = null
+	sortOldestFirst: Boolean? = null,
+	search: String? = null,
 ): MutableMap<String, Any> {
-	val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst)
+	val model = getWhitelistModel(call, whiteListRepository, page, sortOldestFirst, search)
 	model["error"] = errorMessage
 	return model
 }

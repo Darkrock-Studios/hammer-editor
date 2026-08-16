@@ -4,8 +4,18 @@
 	{{/error}}
 
 	<div class="whitelist-controls">
+		{{#hasSearch}}
+			<span class="whitelist-controls__filter">
+				{{msg.admin_allowedusers_search_filtered_by}} <code>{{search}}</code>
+				<button type="button" class="btn btn--ghost whitelist-controls__filter-clear"
+						onclick="clearWhitelistSearch()"
+						aria-label="{{msg.admin_allowedusers_search_clear}}">
+					<i class="fa-solid fa-xmark"></i>
+				</button>
+			</span>
+		{{/hasSearch}}
 		{{#sortNewestFirst}}
-			<button hx-get="/admin/allowed-users/user-fragment?page={{currentPage}}&sortOldestFirst=true"
+			<button hx-get="/admin/allowed-users/user-fragment?page={{currentPage}}&sortOldestFirst=true&q={{searchEnc}}"
 			hx-target="#whitelist"
 			hx-swap="innerHTML"
 			class="btn btn--ghost">
@@ -14,7 +24,7 @@
 			</button>
 		{{/sortNewestFirst}}
 		{{#sortOldestFirst}}
-			<button hx-get="/admin/allowed-users/user-fragment?page={{currentPage}}&sortOldestFirst=false"
+			<button hx-get="/admin/allowed-users/user-fragment?page={{currentPage}}&sortOldestFirst=false&q={{searchEnc}}"
 			hx-target="#whitelist"
 			hx-swap="innerHTML"
 			class="btn btn--ghost">
@@ -61,6 +71,7 @@
 						data-reason="{{reason}}"
 						data-page="{{currentPage}}"
 						data-sort-oldest-first="{{sortOldestFirst}}"
+						data-q="{{search}}"
 						onclick="openEditReasonDialog(this)">
 					<i class="fa-solid fa-pen"></i>
 					{{msg.admin_allowedusers_edit_button}}
@@ -72,6 +83,7 @@
 							data-expires-raw="{{expiresRaw}}"
 							data-page="{{currentPage}}"
 							data-sort-oldest-first="{{sortOldestFirst}}"
+							data-q="{{search}}"
 							onclick="openEditExpiryDialog(this)">
 						<i class="fa-solid fa-hourglass-half"></i>
 						{{msg.admin_allowedusers_edit_expiry_button}}
@@ -85,6 +97,7 @@
 					<input type="hidden" name="email" value="{{email}}"/>
 					<input type="hidden" name="page" value="{{currentPage}}"/>
 					<input type="hidden" name="sortOldestFirst" value="{{sortOldestFirst}}"/>
+					<input type="hidden" name="q" value="{{search}}"/>
 					<button type="submit" class="btn btn--danger">{{msg.admin_allowedusers_remove_button}}</button>
 				</form>
 			</div>
@@ -92,14 +105,21 @@
 	{{/items}}
 	{{^items}}
 		<div class="empty-state">
-		<p>{{msg.admin_allowedusers_empty}}</p>
-	</div>
+			{{#hasSearch}}
+				<p>{{msg.admin_allowedusers_search_empty}}</p>
+				<button type="button" class="btn btn--ghost"
+						onclick="clearWhitelistSearch()">{{msg.admin_allowedusers_search_clear}}</button>
+			{{/hasSearch}}
+			{{^hasSearch}}
+				<p>{{msg.admin_allowedusers_empty}}</p>
+			{{/hasSearch}}
+		</div>
 	{{/items}}
 
 	{{#totalPages}}
 		<div class="pagination">
 			{{#hasPrevPage}}
-				<button hx-get="/admin/allowed-users/user-fragment?page={{prevPage}}&sortOldestFirst={{sortOldestFirst}}"
+				<button hx-get="/admin/allowed-users/user-fragment?page={{prevPage}}&sortOldestFirst={{sortOldestFirst}}&q={{searchEnc}}"
 				hx-target="#whitelist"
 				hx-swap="innerHTML"
 				class="pagination-button">
@@ -112,7 +132,7 @@
     </span>
 
 			{{#hasNextPage}}
-				<button hx-get="/admin/allowed-users/user-fragment?page={{nextPage}}&sortOldestFirst={{sortOldestFirst}}"
+				<button hx-get="/admin/allowed-users/user-fragment?page={{nextPage}}&sortOldestFirst={{sortOldestFirst}}&q={{searchEnc}}"
 				hx-target="#whitelist"
 				hx-swap="innerHTML"
 				class="pagination-button">

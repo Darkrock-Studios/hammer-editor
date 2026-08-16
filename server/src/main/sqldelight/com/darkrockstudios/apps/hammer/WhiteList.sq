@@ -76,8 +76,31 @@ LEFT JOIN account a ON w.email = a.email
 ORDER BY w.date_added ASC
 LIMIT ? OFFSET ?;
 
+-- Admin email search. A wildcard match can't ride the citext equality operator, so both
+-- sides are narrowed to text and matched with ILIKE, which is unambiguously
+-- case-insensitive. The repository escapes % and _ in the admin's input before binding.
+searchPaginatedWithAccountStatus:
+SELECT w.*, (a.email IS NOT NULL) AS has_account
+FROM white_list w
+LEFT JOIN account a ON w.email = a.email
+WHERE CAST(w.email AS TEXT) ILIKE ?
+ORDER BY w.date_added DESC
+LIMIT ? OFFSET ?;
+
+searchPaginatedWithAccountStatusOldestFirst:
+SELECT w.*, (a.email IS NOT NULL) AS has_account
+FROM white_list w
+LEFT JOIN account a ON w.email = a.email
+WHERE CAST(w.email AS TEXT) ILIKE ?
+ORDER BY w.date_added ASC
+LIMIT ? OFFSET ?;
+
 getCount:
 SELECT count(*) FROM white_list;
+
+searchCount:
+SELECT count(*) FROM white_list
+WHERE CAST(email AS TEXT) ILIKE ?;
 
 getByEmail:
 SELECT * FROM white_list WHERE email = CAST(? AS CITEXT);
