@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.projectGet
 import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.countWords
 import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
@@ -29,6 +30,7 @@ import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import okio.IOException
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import kotlin.time.Duration.Companion.milliseconds
@@ -42,9 +44,13 @@ class SceneMetadataPanelComponent(
 	SceneMetadataPanel {
 
 	private val appScope: CoroutineScope by inject(named(APP_SCOPE))
-	private val sceneEditor: SceneEditorService by projectInject()
+
+	// Resolved eagerly because onDestroy uses them, and on project close the project scope is
+	// closed before this component is destroyed: a lazy first-resolve there would crash.
+	private val sceneEditor: SceneEditorService = projectGet()
+	private val scrubInvalidReferences: ScrubInvalidReferencesUseCase = projectGet()
+
 	private val encyclopediaService: EncyclopediaService by projectInject()
-	private val scrubInvalidReferences: ScrubInvalidReferencesUseCase by projectInject()
 
 	private val searchableEntries = MutableStateFlow<List<SearchableEntry>>(emptyList())
 
@@ -58,6 +64,7 @@ class SceneMetadataPanelComponent(
 	override val state: Value<SceneMetadataPanel.State> = _state
 
 	private var bufferUpdateSubscription: Job? = null
+	private var metadataLoaded = false
 
 	private val _metadataUpdateFlow = MutableSharedFlow<SceneMetadata>(
 		extraBufferCapacity = 1,
@@ -143,6 +150,7 @@ class SceneMetadataPanelComponent(
 
 	private suspend fun loadMetadataData() {
 		val metadata = sceneEditor.loadSceneMetadata(originalSceneItem.id)
+		metadataLoaded = true
 		_state.getAndUpdate {
 			it.copy(
 				metadata = metadata,
@@ -328,10 +336,18 @@ class SceneMetadataPanelComponent(
 		bufferUpdateSubscription?.cancel()
 		bufferUpdateSubscription = null
 
-		val scrubbed = scrubInvalidReferences(state.value.metadata)
-		val editor = sceneEditor
+		// If the load never completed, state still holds the default empty metadata;
+		// flushing it would wipe the scene's stored metadata.
+		if (metadataLoaded.not()) return
+
+		// The scrub does filesystem walks, so it runs off the lifecycle thread.
+		val metadata = state.value.metadata
 		appScope.launch {
-			editor.storeMetadata(scrubbed, originalSceneItem.id)
+			try {
+				sceneEditor.storeMetadata(scrubInvalidReferences(metadata), originalSceneItem.id)
+			} catch (e: IOException) {
+				Napier.e("Failed to flush metadata for scene ${originalSceneItem.id}", e)
+			}
 		}
 	}
 
