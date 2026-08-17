@@ -69,6 +69,8 @@
 	<string name="settings_spellcheck_notice">Falls es Probleme verursacht, schalten Sie es einfach aus.</string>
 	<string name="settings_spellcheck_enable">Rechtschreibprüfung aktivieren</string>
 	<string name="settings_spellcheck_in_focus_enable">Im Fokusmodus aktivieren</string>
+	<string name="settings_spellcheck_encyclopedia_enable">Learn encyclopedia names</string>
+	<string name="settings_spellcheck_encyclopedia_enable_hint">Entry names and aliases won&#8217;t be marked as misspelled while their project is open</string>
 	<string name="settings_spellcheck_dictionary">Wörterbuch</string>
 	<string name="settings_spellcheck_dictionary_android_info_title">Sprache der Rechtschreibprüfung</string>
 	<string name="settings_spellcheck_dictionary_android_info_message">Unter Android wird die Sprache der Rechtschreibprüfung von Ihrem Gerät festgelegt, nicht von der App. Ändern Sie sie in den Android-Einstellungen über die System- und Tastatursprachen.</string>
