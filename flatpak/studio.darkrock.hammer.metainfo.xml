@@ -32,6 +32,23 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.9.0" date="2026-08-16">
+            <description>
+                <p>New</p>
+                <p>- Export just the scenes you pick, in any format</p>
+                <p>- Encyclopedia names feed spell check, so invented names aren&apos;t flagged</p>
+                <p>- Scenes connect to every kind of Encyclopedia entry</p>
+                <p>- Drag the editor&apos;s edge to set its width</p>
+                <p>Improved</p>
+                <p>- Exports lay prose out exactly as you wrote it</p>
+                <p>- Scenes accept typing right away</p>
+                <p>- Clearer scene tree nesting</p>
+                <p>Fixed</p>
+                <p>- Folders with exactly ten items could show blank scenes</p>
+                <p>- Signing in no longer risks deleting local projects</p>
+                <p>- Unsaved edits survive rotation</p>
+            </description>
+        </release>
         <release version="3.8.2" date="2026-08-11">
             <description>
                 <p>- About: Dark Rock Studios attribution screen improved, check it out!</p>

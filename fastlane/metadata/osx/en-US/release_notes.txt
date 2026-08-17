@@ -1,6 +1,18 @@
-- About: Dark Rock Studios attribution screen improved, check it out!
-- Translations updated for German, Spanish, French, Italian, Portuguese (Brazil), and Ukrainian
-Fixes
+New
+- Export just the scenes you pick, in any format
+- Encyclopedia names feed spell check, so invented names aren't flagged
+- Scenes connect to every kind of Encyclopedia entry
+- Drag the editor's edge to set its width
+
+Improved
+- Exports lay prose out exactly as you wrote it
+- Scenes accept typing right away
+- Clearer scene tree nesting
+
+Fixed
+- Folders with exactly ten items could show blank scenes
+- Signing in no longer risks deleting local projects
+- Unsaved edits survive rotation
 
 Full changelog:
-https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.8.2
+https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.9.0
