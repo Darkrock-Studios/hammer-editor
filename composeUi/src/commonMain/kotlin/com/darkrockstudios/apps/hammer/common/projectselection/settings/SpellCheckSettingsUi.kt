@@ -13,7 +13,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -52,34 +51,20 @@ internal fun SpellCheckSettingsContent(
 			label = Res.string.settings_spellcheck_enable.get(),
 			onCheckedChange = { scope.launch { component.setSpellcheckEnable(it) } },
 		)
-		Box(
-			modifier = Modifier.alpha(if (state.spellCheckingEnabled) 1f else 0.45f),
-		) {
-			HdHairlineToggleRow(
-				checked = state.spellCheckingInFocusEnabled,
-				label = Res.string.settings_spellcheck_in_focus_enable.get(),
-				onCheckedChange = {
-					if (state.spellCheckingEnabled) {
-						scope.launch { component.setSpellCheckingInFocusEnabled(it) }
-					}
-				},
-			)
-		}
+		HdHairlineToggleRow(
+			checked = state.spellCheckingInFocusEnabled,
+			label = Res.string.settings_spellcheck_in_focus_enable.get(),
+			enabled = state.spellCheckingEnabled,
+			onCheckedChange = { scope.launch { component.setSpellCheckingInFocusEnabled(it) } },
+		)
 		if (showEncyclopediaToggle) {
-			Box(
-				modifier = Modifier.alpha(if (state.spellCheckingEnabled) 1f else 0.45f),
-			) {
-				HdHairlineToggleRow(
-					checked = state.spellCheckingEncyclopediaEnabled,
-					label = Res.string.settings_spellcheck_encyclopedia_enable.get(),
-					hint = Res.string.settings_spellcheck_encyclopedia_enable_hint.get(),
-					onCheckedChange = {
-						if (state.spellCheckingEnabled) {
-							scope.launch { component.setSpellCheckEncyclopediaEnabled(it) }
-						}
-					},
-				)
-			}
+			HdHairlineToggleRow(
+				checked = state.spellCheckingEncyclopediaEnabled,
+				label = Res.string.settings_spellcheck_encyclopedia_enable.get(),
+				hint = Res.string.settings_spellcheck_encyclopedia_enable_hint.get(),
+				enabled = state.spellCheckingEnabled,
+				onCheckedChange = { scope.launch { component.setSpellCheckEncyclopediaEnabled(it) } },
+			)
 		}
 		SpellCheckDictionaryControl(
 			selected = state.spellCheckingLanguage,

@@ -22,7 +22,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -161,22 +160,14 @@ private fun ProjectDictionaryToggle(
 ) {
 	val spellCheckState by component.spellCheckSettings.state.subscribeAsState()
 	if (!spellCheckState.spellCheckingEncyclopediaEnabled) return
-	val featureOn = spellCheckState.spellCheckingEnabled
 
-	Box(
-		modifier = Modifier.alpha(if (featureOn) 1f else 0.45f),
-	) {
-		HdHairlineToggleRow(
-			checked = enabled,
-			label = Res.string.project_settings_spellcheck_encyclopedia_enable.get(),
-			hint = Res.string.project_settings_spellcheck_encyclopedia_enable_hint.get(),
-			onCheckedChange = {
-				if (featureOn) {
-					component.setEncyclopediaDictionaryEnabled(it)
-				}
-			},
-		)
-	}
+	HdHairlineToggleRow(
+		checked = enabled,
+		label = Res.string.project_settings_spellcheck_encyclopedia_enable.get(),
+		hint = Res.string.project_settings_spellcheck_encyclopedia_enable_hint.get(),
+		enabled = spellCheckState.spellCheckingEnabled,
+		onCheckedChange = { component.setEncyclopediaDictionaryEnabled(it) },
+	)
 }
 
 /** Explains why spell check isn't running when the project's language gates it off. */

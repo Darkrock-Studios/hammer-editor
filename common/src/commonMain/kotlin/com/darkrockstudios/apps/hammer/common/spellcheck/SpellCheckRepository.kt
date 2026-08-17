@@ -9,6 +9,7 @@ import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import com.darkrockstudios.libs.platformspellchecker.SpLocale
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -23,7 +24,8 @@ class SpellCheckRepository(
 ) : KoinComponent {
 
 	private val dispatcherDefault by injectDefaultDispatcher()
-	private val scope = CoroutineScope(dispatcherDefault)
+	// Supervisor so a failing platform-checker call can't kill the settings collector.
+	private val scope = CoroutineScope(dispatcherDefault + SupervisorJob())
 
 	private val _dictionaryFlow = MutableSharedFlow<PlatformSpellChecker?>(
 		replay = 1,
@@ -71,23 +73,28 @@ class SpellCheckRepository(
 		val language = currentLanguage ?: return
 		if (sessionWordUnion() == appliedCandidates) return
 
-		val checker = spellCheckFactory.createSpellChecker(language.toSpLocale())
-		applySessionWords(checker)
-		_dictionaryFlow.tryEmit(checker)
+		try {
+			val checker = spellCheckFactory.createSpellChecker(language.toSpLocale())
+			applySessionWords(checker)
+			_dictionaryFlow.tryEmit(checker)
+		} catch (e: Exception) {
+			Napier.e("Spell Check: failed to apply session words", e)
+		}
 	}
 
 	private fun sessionWordUnion(): Set<String> =
 		sessionWords.values.flatMapTo(mutableSetOf()) { it }
 
 	// Words the base dictionary already accepts are filtered, so only unknown spellings are added.
+	// appliedCandidates is only recorded on success, so a failed apply retries on the next push.
 	private suspend fun applySessionWords(checker: PlatformSpellChecker) {
 		val union = sessionWordUnion()
-		appliedCandidates = union
 		val toAdd = union.filterNot { checker.isWordCorrect(it) }
 		if (toAdd.isNotEmpty()) {
 			checker.setUserDictionary(toAdd)
 			Napier.i("Spell Check: applied ${toAdd.size} session words")
 		}
+		appliedCandidates = union
 	}
 
 	private suspend fun applySpellCheckSettings(enabled: Boolean, language: Locale) = mutex.withLock {
@@ -111,7 +118,13 @@ class SpellCheckRepository(
 			val checker = spellCheckFactory.createSpellChecker(spLocale)
 			currentLanguage = language
 			currentEnabled = true
-			applySessionWords(checker)
+			try {
+				applySessionWords(checker)
+			} catch (e: Exception) {
+				// The checker still ships without session words; the stale
+				// appliedCandidates means the next push retries the apply.
+				Napier.e("Spell Check: failed to apply session words", e)
+			}
 			_dictionaryFlow.tryEmit(checker)
 
 			Napier.i("Spell Checker loaded for: ${language.toLanguageTag()}")

@@ -102,10 +102,11 @@ class EncyclopediaRepository(
 		return EntryResult(container, EntryError.NONE)
 	}
 
-	suspend fun loadEntriesImperative() {
+	suspend fun loadEntriesImperative(): List<EntryDef> {
 		val entryDefs = datasource.loadEntriesImperative()
 
 		updateEntries(entryDefs)
+		return entryDefs
 	}
 
 	suspend fun ensureEntriesLoaded(): List<EntryDef> {

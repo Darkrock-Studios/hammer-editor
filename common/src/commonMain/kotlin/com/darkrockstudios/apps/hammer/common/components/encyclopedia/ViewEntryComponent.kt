@@ -203,21 +203,31 @@ class ViewEntryComponent(
 		}
 	}
 
+	/**
+	 * Saves the entry as [transform] of its current content, sourcing unchanged fields from
+	 * the loaded state or, if the async load hasn't landed yet, straight from disk - so a
+	 * save can never revert a field to its default.
+	 */
+	private suspend fun saveEntry(transform: (EntryContent) -> EntryContent): EntryResult {
+		val current = state.value.content ?: loadEntryContent(state.value.entryDef)
+		val updated = transform(current)
+		return encyclopediaService.updateEntry(
+			oldEntryDef = state.value.entryDef,
+			name = updated.name,
+			text = updated.text,
+			tags = updated.tags,
+			aliases = updated.aliases,
+			excludeFromDictionary = updated.excludeFromDictionary,
+		)
+	}
+
 	override suspend fun updateEntry(
 		name: String,
 		text: String,
 		tags: Set<String>
 	): EntryResult = withContext(dispatcherDefault) {
-		val currentAliases = state.value.content?.aliases.orEmpty()
 		val previousName = state.value.entryDef.name
-		val result = encyclopediaService.updateEntry(
-			oldEntryDef = state.value.entryDef,
-			name = name,
-			text = text,
-			tags = tags,
-			aliases = currentAliases,
-			excludeFromDictionary = state.value.content?.excludeFromDictionary ?: false,
-		)
+		val result = saveEntry { it.copy(name = name, text = text, tags = tags) }
 		if (result.instance != null && result.error == EntryError.NONE) {
 			_state.getAndUpdate {
 				it.copy(
@@ -253,21 +263,8 @@ class ViewEntryComponent(
 
 	override fun removeTag(tag: String) {
 		scope.launch {
-			state.value.content?.apply {
-				val newTags = tags.toMutableSet()
-				newTags.remove(tag)
-
-				encyclopediaService.updateEntry(
-					oldEntryDef = state.value.entryDef,
-					name = name,
-					text = text,
-					tags = newTags,
-					aliases = aliases,
-					excludeFromDictionary = excludeFromDictionary,
-				)
-
-				reload()
-			}
+			saveEntry { it.copy(tags = it.tags - tag) }
+			reload()
 		}
 	}
 
@@ -294,16 +291,7 @@ class ViewEntryComponent(
 	override suspend fun addTags(tagInput: String) = withContext(dispatcherDefault) {
 		val newTags = parseTagInput(tagInput)
 
-		state.value.content?.apply {
-			encyclopediaService.updateEntry(
-				oldEntryDef = state.value.entryDef,
-				name = name,
-				text = text,
-				tags = tags + newTags,
-				aliases = aliases,
-				excludeFromDictionary = excludeFromDictionary,
-			)
-		}
+		saveEntry { it.copy(tags = it.tags + newTags) }
 
 		endTagAdd()
 		reload()
@@ -318,21 +306,12 @@ class ViewEntryComponent(
 	}
 
 	override suspend fun addAlias(alias: String): EntryResult = withContext(dispatcherDefault) {
-		val current = state.value.content
-			?: return@withContext EntryResult(EntryError.NONE)
 		val trimmed = alias.trim()
 		if (trimmed.isEmpty()) {
 			endAliasAdd()
 			return@withContext EntryResult(EntryError.NONE)
 		}
-		val result = encyclopediaService.updateEntry(
-			oldEntryDef = state.value.entryDef,
-			name = current.name,
-			text = current.text,
-			tags = current.tags,
-			aliases = current.aliases + trimmed,
-			excludeFromDictionary = current.excludeFromDictionary,
-		)
+		val result = saveEntry { it.copy(aliases = it.aliases + trimmed) }
 		if (result.error == EntryError.NONE) {
 			endAliasAdd()
 			reload()
@@ -343,33 +322,14 @@ class ViewEntryComponent(
 
 	override fun removeAlias(alias: String) {
 		scope.launch {
-			state.value.content?.apply {
-				encyclopediaService.updateEntry(
-					oldEntryDef = state.value.entryDef,
-					name = name,
-					text = text,
-					tags = tags,
-					aliases = aliases.filterNot { it == alias },
-					excludeFromDictionary = excludeFromDictionary,
-				)
-
-				reload()
-			}
+			saveEntry { it.copy(aliases = it.aliases.filterNot { a -> a == alias }) }
+			reload()
 		}
 	}
 
 	override suspend fun setExcludeFromDictionary(exclude: Boolean): EntryResult =
 		withContext(dispatcherDefault) {
-			val current = state.value.content
-				?: return@withContext EntryResult(EntryError.NONE)
-			val result = encyclopediaService.updateEntry(
-				oldEntryDef = state.value.entryDef,
-				name = current.name,
-				text = current.text,
-				tags = current.tags,
-				aliases = current.aliases,
-				excludeFromDictionary = exclude,
-			)
+			val result = saveEntry { it.copy(excludeFromDictionary = exclude) }
 			if (result.error == EntryError.NONE) {
 				reload()
 			}

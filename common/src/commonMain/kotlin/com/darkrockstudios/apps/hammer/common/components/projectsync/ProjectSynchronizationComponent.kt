@@ -333,7 +333,9 @@ class ProjectSynchronizationComponent(
 			entryType = local.type.text,
 			text = local.text,
 			tags = local.tags,
-			image = image
+			image = image,
+			aliases = local.aliases,
+			excludeFromDictionary = local.excludeFromDictionary,
 		)
 
 		withContext(mainDispatcher) {

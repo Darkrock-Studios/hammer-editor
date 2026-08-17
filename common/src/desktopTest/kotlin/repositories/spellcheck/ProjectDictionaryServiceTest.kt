@@ -142,7 +142,7 @@ class ProjectDictionaryServiceTest : BaseTest() {
 			projectDef = projectDef,
 		),
 		spellCheckRepository = spellCheckRepository,
-	)
+	).also { it.initialize() }
 
 	private suspend fun createEntry(
 		name: String,
@@ -231,6 +231,25 @@ class ProjectDictionaryServiceTest : BaseTest() {
 
 		globalSettingsStore.updateSettings {
 			it.copy(spellCheckSettings = it.spellCheckSettings.copy(includeEncyclopediaNames = true))
+		}
+		advanceUntilIdle()
+		assertEquals(setOf("zaltharion"), appliedPerChecker.last())
+	}
+
+	@Test
+	fun `disabling spell check entirely clears the words and re-enable restores them`() = scope.runTest {
+		createEntry("Zaltharion")
+		createService()
+		advanceUntilIdle()
+		assertEquals(setOf("zaltharion"), appliedPerChecker.last())
+
+		globalSettingsStore.updateSettings {
+			it.copy(spellCheckSettings = it.spellCheckSettings.copy(enabled = false))
+		}
+		advanceUntilIdle()
+
+		globalSettingsStore.updateSettings {
+			it.copy(spellCheckSettings = it.spellCheckSettings.copy(enabled = true))
 		}
 		advanceUntilIdle()
 		assertEquals(setOf("zaltharion"), appliedPerChecker.last())

@@ -10,6 +10,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 
 /**
@@ -24,11 +25,13 @@ fun HdHairlineToggleRow(
 	label: String,
 	modifier: Modifier = Modifier,
 	hint: String? = null,
+	enabled: Boolean = true,
 ) {
 	Row(
 		modifier = modifier
 			.fillMaxWidth()
-			.clickable { onCheckedChange(!checked) },
+			.alpha(if (enabled) 1f else 0.45f)
+			.clickable(enabled = enabled) { onCheckedChange(!checked) },
 		verticalAlignment = Alignment.CenterVertically,
 		horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 	) {
