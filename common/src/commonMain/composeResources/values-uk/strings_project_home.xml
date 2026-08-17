@@ -78,6 +78,12 @@
 	<string name="project_home_export_format_rtf">RTF (.rtf)</string>
 	<string name="project_home_export_cancel">Скасувати</string>
 	<string name="project_home_export_execute">Експортувати</string>
+	<string name="project_home_export_limit_scenes_label">Limit to specific scenes</string>
+	<string name="project_home_export_limit_scenes_hint">Only the selected scenes will be included in the export</string>
+	<string name="project_home_export_scenes_label">Сцени</string>
+	<string name="project_home_export_scenes_selected">%1$d of %2$d selected</string>
+	<string name="project_home_export_scenes_select_all">Вибрати все</string>
+	<string name="project_home_export_scenes_clear_all">Очистити все</string>
 	<string name="project_home_export_help_icon_description">Дізнатися про формати експорту</string>
 	<string name="project_home_export_help_title">Вибір формату експорту</string>
 	<string name="project_home_export_help_intro">Кожен формат підходить для різних цілей. Виберіть той, що відповідає тому, як ви плануєте використовувати експортовану історію.</string>

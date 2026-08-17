@@ -34,6 +34,8 @@
 	<string name="encyclopedia_create_entry_toast_tag_too_long">Тег задовгий. Макс. %1$d</string>
 	<string name="encyclopedia_create_entry_toast_alias_too_long">Псевдонім задовгий. Макс. %1$d</string>
 	<string name="encyclopedia_entry_aliases_label">Псевдоніми</string>
+	<string name="encyclopedia_entry_dictionary_toggle_label">Learn in spell check</string>
+	<string name="encyclopedia_entry_dictionary_toggle_hint">This entry&#8217;s name and aliases won&#8217;t be marked as misspelled</string>
 	<string name="encyclopedia_entry_add_alias_dialog_title">Додати псевдонім</string>
 	<string name="encyclopedia_entry_add_alias_button">Додати</string>
 	<string name="encyclopedia_entry_alias_hint">Прізвисько або інша назва</string>

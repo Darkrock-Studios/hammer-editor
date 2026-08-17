@@ -34,6 +34,8 @@
 	<string name="encyclopedia_create_entry_toast_tag_too_long">Tag ist zu lang. Max. %1$d</string>
 	<string name="encyclopedia_create_entry_toast_alias_too_long">Alias ist zu lang. Max. %1$d</string>
 	<string name="encyclopedia_entry_aliases_label">Aliase</string>
+	<string name="encyclopedia_entry_dictionary_toggle_label">Learn in spell check</string>
+	<string name="encyclopedia_entry_dictionary_toggle_hint">This entry&#8217;s name and aliases won&#8217;t be marked as misspelled</string>
 	<string name="encyclopedia_entry_add_alias_dialog_title">Alias hinzufügen</string>
 	<string name="encyclopedia_entry_add_alias_button">Hinzufügen</string>
 	<string name="encyclopedia_entry_alias_hint">Spitzname oder anderer Name</string>
