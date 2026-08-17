@@ -3,6 +3,8 @@ package repositories.statistics
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
@@ -206,6 +208,29 @@ class StatisticsServiceTest : BaseTest() {
 			assertEquals(stats, saved.captured)
 			// Calculation flag is reset once finished.
 			assertFalse(service.isCalculating.value)
+		}
+
+	@Test
+	fun `recalculateStatistics limits top appearances to people but counts connections for all types`() =
+		runTest(mainTestDispatcher) {
+			// Scenes reference entries of every type. The "Characters by Appearances"
+			// chart is people-only; the connections total spans the whole encyclopedia.
+			val entries = EntryType.entries.mapIndexed { index, type ->
+				EntryDef(projectDef, index + 1, type, "Entry${type.name}")
+			}
+			every { encyclopediaRepository.entryListFlow } returns MutableStateFlow(entries)
+			coEvery { referenceIndexService.loadIndex() } returns ReferenceIndex(
+				entryToScenes = entries.associate { it.id to setOf(100, 200) },
+			)
+			coEvery { statisticsRepository.loadStatistics() } returns null
+
+			val stats = makeService().recalculateStatistics()
+
+			assertEquals(
+				listOf(EntryType.PERSON),
+				stats.topAppearances.map { it.type }.distinct(),
+			)
+			assertEquals(entries.size * 2, stats.totalEntryConnections)
 		}
 
 	@Test

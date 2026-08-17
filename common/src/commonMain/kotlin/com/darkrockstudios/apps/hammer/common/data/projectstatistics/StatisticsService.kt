@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
@@ -196,8 +197,10 @@ class StatisticsService(
 					sceneCount = sceneCount,
 				)
 			}
+			// People only: this drives the "Characters by Appearances" chart. The
+			// totalEntryConnections count above stays across all entry types.
 			val topAppearances = appearances
-				.filter { it.sceneCount > 0 }
+				.filter { it.type == EntryType.PERSON && it.sceneCount > 0 }
 				.sortedByDescending { it.sceneCount }
 				.take(TOP_APPEARANCES_LIMIT)
 
