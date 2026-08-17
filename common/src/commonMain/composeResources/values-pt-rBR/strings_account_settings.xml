@@ -69,6 +69,8 @@
 	<string name="settings_spellcheck_notice">Se estiver causando problemas, basta desativá-lo.</string>
 	<string name="settings_spellcheck_enable">Ativar o corretor ortográfico</string>
 	<string name="settings_spellcheck_in_focus_enable">Ativar no Modo de Foco</string>
+	<string name="settings_spellcheck_encyclopedia_enable">Learn encyclopedia names</string>
+	<string name="settings_spellcheck_encyclopedia_enable_hint">Entry names and aliases won&#8217;t be marked as misspelled while their project is open</string>
 	<string name="settings_spellcheck_dictionary">Dicionário</string>
 	<string name="settings_spellcheck_dictionary_android_info_title">Idioma do corretor ortográfico</string>
 	<string name="settings_spellcheck_dictionary_android_info_message">No Android, o idioma do corretor ortográfico é escolhido pelo seu dispositivo, não pelo app. Para alterá-lo, atualize os idiomas do sistema e do teclado nas configurações do Android.</string>
