@@ -51,6 +51,10 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 	fun decreaseTextSize()
 	fun increaseTextSize()
 	fun resetTextSize()
+
+	/** Persists the user's editor max width in dp. Call on drag end, not per frame. */
+	fun setEditorMaxWidth(width: Float)
+	fun resetEditorMaxWidth()
 	fun enterFocusMode()
 
 	data class State(
@@ -68,6 +72,7 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 		val showMetadataModal: Boolean = false,
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
 		val textSize: Float = GlobalSettings.DEFAULT_FONT_SIZE,
+		val editorMaxWidth: Float = GlobalSettings.DEFAULT_EDITOR_WIDTH,
 		val spellChecker: PlatformSpellChecker? = null,
 		val spellCheckingEnabled: Boolean = true,
 	)

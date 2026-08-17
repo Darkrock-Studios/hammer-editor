@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
@@ -84,7 +85,8 @@ private fun fakeComponent() = object : SceneEditor {
 		override fun dismissReference(entryId: Int) {}
 		override fun restoreDismissedReference(entryId: Int) {}
 		override fun addConfirmedReference(entryId: Int) {}
-		override fun searchEntriesForAdd(query: String, maxResults: Int) = emptyList<SceneMetadataPanel.AddSuggestion>()
+		override fun searchEntriesForAdd(query: String, types: Set<EntryType>, maxResults: Int) =
+			emptyList<SceneMetadataPanel.AddSuggestion>()
 		override fun navigateToEntry(entryDef: EntryDef) {}
 		override fun addTags(input: String) {}
 		override fun removeTag(tag: String) {}
@@ -127,5 +129,7 @@ private fun fakeComponent() = object : SceneEditor {
 	override fun decreaseTextSize() {}
 	override fun increaseTextSize() {}
 	override fun resetTextSize() {}
+	override fun setEditorMaxWidth(width: Float) {}
+	override fun resetEditorMaxWidth() {}
 	override fun enterFocusMode() {}
 }

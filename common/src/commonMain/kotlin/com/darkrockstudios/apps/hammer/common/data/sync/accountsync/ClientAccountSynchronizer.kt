@@ -85,11 +85,13 @@ class ClientAccountSynchronizer(
 
 				yield()
 
-				syncRenamedProjects(clientSyncData, serverSyncData, serverKnownIds, onLog, onUnauthorized)
+				// Deletions go first: a project name is unique per account on the server, so a
+				// rename into a name still held by a project queued for deletion is rejected.
+				syncDeletedProjects(clientSyncData, serverSyncData, onLog, onUnauthorized)
 
 				yield()
 
-				syncDeletedProjects(clientSyncData, serverSyncData, onLog, onUnauthorized)
+				syncRenamedProjects(clientSyncData, serverSyncData, serverKnownIds, onLog, onUnauthorized)
 
 				yield()
 
@@ -289,8 +291,9 @@ class ClientAccountSynchronizer(
 		clientSyncData.projectsToRename.forEach { (projectId, newName) ->
 			// The server can't rename an id it never issued, and would fail this every session
 			// forever. Recreation covers the rename anyway: it creates under the local name,
-			// which a local rename has already updated.
-			if (projectId !in serverKnownIds) {
+			// which a local rename has already updated. A tombstoned id is just as unrenamable,
+			// and its local project has already been deleted by syncDeletedProjects.
+			if (projectId !in serverKnownIds || projectId in serverSyncData.deletedProjects) {
 				dropQueuedRename(projectId)
 				return@forEach
 			}
@@ -447,30 +450,57 @@ class ClientAccountSynchronizer(
 			onLog
 		)
 
+		// Claim server projects by name before uploading anything. The other order uploads a
+		// same-named local project as a second server project and only then overwrites its id
+		// with the name match, stranding an orphan duplicate on the server.
+		val liveServerIds = serverProjects.mapTo(mutableSetOf()) { it.uuid }
+		val claimedNames = createLocalProjectsFromServer(newServerProjects, liveServerIds, onLog)
+
 		createProjectsOnServer(
 			localProjectsWithIds,
+			claimedNames,
 			clientSyncData,
 			serverSyncData,
 			serverKnownIds,
 			onLog,
 			onUnauthorized,
 		)
-
-		createLocalProjectsFromServer(newServerProjects, onLog)
 	}
 
 	/**
-	 * Create local projects from server
+	 * Create local projects from server. Returns the local names now backed by a server project,
+	 * whether adopted or freshly created, so [createProjectsOnServer] does not re-upload them.
+	 *
+	 * A name match only claims a local project that is not already bound to one of
+	 * [liveServerIds]: re-pointing it would abandon the server project holding its content, and
+	 * two server names can sanitize to a single local name. Tombstoned ids are absent from
+	 * [liveServerIds], so a project whose server copy was deleted elsewhere can still be claimed.
 	 */
 	private suspend fun createLocalProjectsFromServer(
 		newServerProjects: List<ApiProjectDefinition>,
+		liveServerIds: Set<ProjectId>,
 		onLog: OnSyncLog
-	) {
+	): Set<String> {
+		val claimedNames = mutableSetOf<String>()
 		newServerProjects.forEach { serverProject ->
 			val localName = ProjectsRepository.toLocalSafeName(serverProject.name)
 			val existingProject = projectsRepository.findProject(localName)
 			if (existingProject != null) {
+				val existingId = projectsRepository.getProjectId(existingProject)
+				if (existingId != null && existingId in liveServerIds) {
+					onLog(
+						syncAccLogW(
+							strRes.get(
+								Res.string.sync_log_account_project_create_client_name_taken,
+								serverProject.name
+							)
+						)
+					)
+					return@forEach
+				}
+
 				projectsRepository.setProjectId(existingProject, serverProject.uuid)
+				claimedNames += existingProject.name
 				onLog(
 					syncAccLogI(
 						strRes.get(
@@ -484,6 +514,7 @@ class ClientAccountSynchronizer(
 				if (isSuccess(createResult)) {
 					val projectDef = createResult.data
 					projectsRepository.setProjectId(projectDef, serverProject.uuid)
+					claimedNames += projectDef.name
 					onLog(
 						syncAccLogI(
 							strRes.get(
@@ -496,45 +527,52 @@ class ClientAccountSynchronizer(
 					onLog(
 						syncAccLogE(
 							strRes.get(
-								Res.string.sync_log_account_project_create_client_failure,
-								serverProject.toString(),
+								Res.string.sync_log_account_project_create_local_failure,
+								serverProject.name,
 							)
 						)
 					)
 				}
 			}
 		}
+		return claimedNames
 	}
 
 	/**
 	 * Create projects on the server which this client has created locally. A cached [ProjectId]
 	 * absent from [serverKnownIds] is dead (the client last synced against a different or
 	 * since-reset server): recreate it, or per-project sync gets an id it can only 410 on.
+	 *
+	 * [claimedNames] are local projects that just adopted a server project by name; uploading them
+	 * would duplicate that project on the server.
 	 */
 	private suspend fun createProjectsOnServer(
 		localProjectsWithIds: List<Pair<ProjectDef, ProjectId?>>,
+		claimedNames: Set<String>,
 		clientSyncData: ProjectsSynchronizationData,
 		serverSyncData: BeginProjectsSyncResponse,
 		serverKnownIds: Set<ProjectId>,
 		onLog: OnSyncLog,
 		onUnauthorized: suspend () -> Unit = {},
 	) {
-		val localOnly = localProjectsWithIds.filter { (_, uuid) ->
-			uuid == null || uuid !in serverKnownIds
+		val localOnly = localProjectsWithIds.filter { (def, uuid) ->
+			(uuid == null || uuid !in serverKnownIds) && def.name !in claimedNames
 		}.map { it.first.name }
 
 		// A queued name with no local project was deleted before it ever reached the server.
 		// Creating it would push an empty project to every device, and resolving its definition
-		// would point at a directory that is gone, so drop it instead.
+		// would point at a directory that is gone. A queued name that just adopted a server
+		// project is equally dead. Drop both rather than acting on them.
 		val localNames = localProjectsWithIds.mapTo(mutableSetOf()) { it.first.name }
-		val staleCreates = clientSyncData.projectsToCreate - localNames
-		if (staleCreates.isNotEmpty()) {
+		val withdrawnCreates = clientSyncData.projectsToCreate
+			.filterTo(mutableSetOf()) { it !in localNames || it in claimedNames }
+		if (withdrawnCreates.isNotEmpty()) {
 			updateSyncData { syncData ->
-				syncData.copy(projectsToCreate = syncData.projectsToCreate - staleCreates)
+				syncData.copy(projectsToCreate = syncData.projectsToCreate - withdrawnCreates)
 			}
 		}
 
-		val newLocalProjects = (clientSyncData.projectsToCreate - staleCreates) + localOnly
+		val newLocalProjects = (clientSyncData.projectsToCreate - withdrawnCreates) + localOnly
 		// Create projects on the server
 		newLocalProjects.forEach { projectName ->
 			val result = serverProjectsApi.createProject(projectName, serverSyncData.syncId)
@@ -542,9 +580,23 @@ class ClientAccountSynchronizer(
 				// Save the newly provisioned project id
 				val response = result.getOrThrow()
 				val projectDef = projectsRepository.getProjectDefinition(projectName)
-				try {
+				val idSaved = try {
 					projectsRepository.setProjectId(projectDef, response.projectId)
+					true
+				} catch (e: Exception) {
+					Napier.e("Failed to save project id for $projectName", e)
+					onLog(
+						syncAccLogE(
+							strRes.get(
+								Res.string.sync_log_account_project_id_save_failure,
+								projectName
+							)
+						)
+					)
+					false
+				}
 
+				if (idSaved) {
 					onLog(
 						syncAccLogI(
 							strRes.get(
@@ -558,16 +610,6 @@ class ClientAccountSynchronizer(
 							projectsToCreate = syncData.projectsToCreate - projectName,
 						)
 					}
-				} catch (e: Exception) {
-					Napier.e("Failed to save project id for $projectName", e)
-					onLog(
-						syncAccLogE(
-							strRes.get(
-								Res.string.sync_log_account_project_create_server_failure,
-								projectName
-							)
-						)
-					)
 				}
 			} else {
 				onLog(

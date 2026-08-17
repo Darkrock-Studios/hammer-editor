@@ -259,7 +259,144 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		assertTrue(bytes.size > 100, "Single-chapter EPUB should still produce a real file")
 	}
 
+	@Test
+	fun `scene filter keeps only selected scenes and renumbers chapters`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = ExportFormat.Markdown,
+				treatTopLevelAsChapters = true,
+				sceneIds = setOf(1, 4),
+			),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertEquals(EXPECTED_FILTERED_MARKDOWN.trim(), text.trim())
+	}
+
+	@Test
+	fun `scene filter drops chapters with no selected scenes`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = ExportFormat.Markdown,
+				treatTopLevelAsChapters = true,
+				sceneIds = setOf(6),
+			),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		val expected = """
+			# Test Project 1
+
+
+			## 1. Scene ID 6
+
+			Content of scene id 6
+		""".trimIndent()
+		assertEquals(expected, text.trim())
+	}
+
+	@Test
+	fun `scene filter applies when top-level scenes are not chapters`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = ExportFormat.Markdown,
+				treatTopLevelAsChapters = false,
+				sceneIds = setOf(3, 6),
+			),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertEquals(
+			"# Test Project 1\n\nContent of scene id 3\n\n\nContent of scene id 6",
+			text.trim(),
+		)
+	}
+
+	@Test
+	fun `scene ids missing from the tree are silently ignored`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = ExportFormat.Markdown,
+				treatTopLevelAsChapters = true,
+				sceneIds = setOf(1, 4, 999),
+			),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertEquals(EXPECTED_FILTERED_MARKDOWN.trim(), text.trim())
+	}
+
+	@Test
+	fun `an empty scene filter fails closed instead of exporting the whole story`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = ExportFormat.Markdown,
+				treatTopLevelAsChapters = true,
+				sceneIds = emptySet(),
+			),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertEquals("# Test Project 1", text.trim())
+	}
+
+	@Test
+	fun `epub export honors the scene filter`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Test Author"))
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = ExportFormat.Epub,
+				treatTopLevelAsChapters = true,
+				sceneIds = setOf(4),
+			),
+		)
+
+		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
+		assertEquals('P'.code.toByte(), bytes[0])
+		assertEquals('K'.code.toByte(), bytes[1])
+		val chapterText = zipEntryText(bytes, "ch1.xhtml")
+		assertTrue(
+			"Content of scene id 4" in chapterText,
+			"Filtered EPUB chapter should contain the selected scene, got: $chapterText",
+		)
+		assertTrue(
+			"Content of scene id 3" !in chapterText,
+			"Filtered EPUB chapter should not contain unselected scenes, got: $chapterText",
+		)
+	}
+
 	companion object {
+		private val EXPECTED_FILTERED_MARKDOWN = """
+			# Test Project 1
+
+
+			## 1. Scene ID 1
+
+			Content of scene id 1
+
+			## 2. Chapter ID 2
+
+			Content of scene id 4
+		""".trimIndent()
+
 		private val EXPECTED_PROJECT_1_MARKDOWN = """
 			# Test Project 1
 

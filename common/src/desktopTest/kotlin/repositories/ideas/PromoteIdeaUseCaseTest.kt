@@ -67,6 +67,7 @@ class PromoteIdeaUseCaseTest : BaseTest() {
 			globalSettingsStore = globalSettingsStore,
 			projectsMetadataDatasource = ProjectMetadataDatasource(ffs, toml),
 			toml = toml,
+			json = createJsonSerializer(),
 			deviceLocaleResolver = deviceLocaleResolver,
 		)
 		val ideasDatasource = IdeasDatasource(ffs, StoryIdeaCodec(toml), globalSettingsStore)

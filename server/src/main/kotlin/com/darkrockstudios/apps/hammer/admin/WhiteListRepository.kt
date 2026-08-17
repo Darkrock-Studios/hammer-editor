@@ -29,15 +29,33 @@ class WhiteListRepository(
 		return whiteListDao.getPaginated(limit, offset, sortOldestFirst)
 	}
 
-	suspend fun getWhiteListWithAccountStatus(page: Int, pageSize: Int, sortOldestFirst: Boolean = false) =
+	/** A blank [emailSearch] lists everything; otherwise only emails containing it. */
+	suspend fun getWhiteListWithAccountStatus(
+		page: Int,
+		pageSize: Int,
+		sortOldestFirst: Boolean = false,
+		emailSearch: String? = null,
+	) = if (emailSearch.isNullOrBlank()) {
 		whiteListDao.getPaginatedWithAccountStatus(
 			limit = pageSize.toLong(),
 			offset = (page * pageSize).toLong(),
 			sortOldestFirst = sortOldestFirst
 		)
+	} else {
+		whiteListDao.searchPaginatedWithAccountStatus(
+			pattern = emailSearchPattern(emailSearch),
+			limit = pageSize.toLong(),
+			offset = (page * pageSize).toLong(),
+			sortOldestFirst = sortOldestFirst
+		)
+	}
 
-	suspend fun getWhiteListCount(): Long {
-		return whiteListDao.getWhiteListCount()
+	suspend fun getWhiteListCount(emailSearch: String? = null): Long {
+		return if (emailSearch.isNullOrBlank()) {
+			whiteListDao.getWhiteListCount()
+		} else {
+			whiteListDao.searchCount(emailSearchPattern(emailSearch))
+		}
 	}
 
 	/** False for an entry whose expiry has passed, even if the reaping job hasn't run yet. */
@@ -115,5 +133,14 @@ class WhiteListRepository(
 	companion object {
 		const val MAX_REASON_LENGTH = 32
 		const val REASON_EXISTING_ACCOUNT = "Existing account"
+
+		/** `%` and `_` are LIKE wildcards; an admin typing `a_b@` means those literally. */
+		internal fun emailSearchPattern(raw: String): String {
+			val escaped = raw.trim()
+				.replace("\\", "\\\\")
+				.replace("%", "\\%")
+				.replace("_", "\\_")
+			return "%$escaped%"
+		}
 	}
 }

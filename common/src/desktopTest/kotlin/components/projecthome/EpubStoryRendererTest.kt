@@ -42,6 +42,30 @@ class EpubStoryRendererTest {
 	}
 
 	@Test
+	fun `every authored line becomes its own paragraph`() {
+		val content = render(listOf(StoryChapter("Alpha", "line one\nline two")))
+
+		assertTrue("<p>line one</p><p>line two</p>" in content, "Authored lines should each stand alone")
+	}
+
+	@Test
+	fun `a blank line between passages survives as a break`() {
+		val content = render(listOf(StoryChapter("Alpha", "First passage.\n\nSecond passage.")))
+
+		assertTrue(
+			"<p>First passage.</p><br /><p>Second passage.</p>" in content,
+			"The author's blank line should reach the reader",
+		)
+	}
+
+	@Test
+	fun `paragraphs carry no margin so the indent parts the lines`() {
+		val content = render(listOf(StoryChapter("Alpha", "Body.")))
+
+		assertTrue("p { margin: 0; }" in content, "Prose lines must not be gapped by a paragraph margin")
+	}
+
+	@Test
 	fun `contents page carries the localized title`() {
 		val content = render(listOf(StoryChapter("Alpha", "Body.")))
 		assertTrue("Contents" in content, "The TOC title should appear in the EPUB")

@@ -3,20 +3,48 @@ package com.darkrockstudios.apps.hammer.common.encyclopedia
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
-import androidx.compose.foundation.*
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material3.*
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.onFocusChanged
@@ -39,13 +67,40 @@ import coil3.memory.MemoryCache
 import coil3.request.ImageRequest
 import coil3.request.crossfade
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
-import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
-import com.darkrockstudios.apps.hammer.common.compose.*
-import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.CollapseWhileTyping
+import com.darkrockstudios.apps.hammer.common.compose.DetailViewDropdownMenu
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
+import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.SimpleConfirm
+import com.darkrockstudios.apps.hammer.common.compose.SimpleDialog
+import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCrumbBackLink
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDetailStampRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEngravingPlaceholder
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineGrid
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetadataItem
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagChip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdTagSuggestionStrip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberTagSuggestions
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
+import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
+import com.darkrockstudios.apps.hammer.common.compose.rememberMainDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
+import com.darkrockstudios.apps.hammer.common.compose.stageIntoCache
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
@@ -54,7 +109,59 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryR
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.tagindex.replaceTagPrefix
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_load_failed
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_too_large
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_label
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_alias_too_long
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_invalid_name
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_name_too_short
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_success
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_tag_too_long
+import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_too_long
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_alias_button
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_alias_chip
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_alias_dialog_title
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_tag_chip
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_tags_button
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_add_tags_dialog_title
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_alias_hint
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_aliases_label
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_appears_in_empty
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_appears_in_label
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_dictionary_toggle_hint
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_dictionary_toggle_label
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_body_empty_label
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_close_button
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_colophon_end
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_colophon_label
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_colophon_label_compact
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_crumb_root
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_image_message
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_image_title
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_message
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_title
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_delete_toast
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_discard_message
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_discard_title
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_button
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_cancel_button
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_save_button
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_edit_save_toast
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_figure_add
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_figure_caption
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_figure_label
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_folio_format
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_name_hint
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_aliases
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_label
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_scenes
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_tags
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_particulars_type
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_scene_index_format
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_tags_label
+import io.github.aakira.napier.Napier
 import io.github.vinceglb.filekit.FileKit
+import io.github.vinceglb.filekit.dialogs.FileKitPickerException
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.path
@@ -88,15 +195,20 @@ internal fun ViewEntryUi(
 	var entryNameText by rememberSaveable { mutableStateOf(state.content?.name ?: "") }
 	var entryText by rememberSaveable { mutableStateOf(state.content?.text ?: "") }
 	var discardConfirm by rememberSaveable { mutableStateOf(false) }
+	var seeded by rememberSaveable { mutableStateOf(false) }
 
 	val screen = LocalScreenCharacteristic.current
 	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
 
 	LaunchedEffect(state.content) {
-		state.content?.let {
-			entryNameText = it.name
-			entryText = it.text
-		}
+		val loaded = state.content ?: return@LaunchedEffect
+		// Once the fields hold the entry, an open edit owns them: re-seeding would discard
+		// unsaved text. Until then they must be filled even if the edit started first,
+		// otherwise a save writes an empty entry.
+		if (seeded && (state.editName || state.editText)) return@LaunchedEffect
+		entryNameText = loaded.name
+		entryText = loaded.text
+		seeded = true
 	}
 
 	val ruleColor = MaterialTheme.colorScheme.outlineVariant
@@ -272,6 +384,12 @@ internal fun ViewEntryUi(
 							component = component,
 						)
 
+						DictionaryToggleZone(
+							state = state,
+							component = component,
+							scope = scope,
+						)
+
 						FooterColophon(
 							compact = isCompact,
 							ruleSoft = ruleSoft,
@@ -305,8 +423,14 @@ internal fun ViewEntryUi(
 
 	LaunchedEffect(state.showAddImageDialog) {
 		if (state.showAddImageDialog) {
-			val file = retryingFileDialog {
+			val file = try {
 				FileKit.openFilePicker(type = FileKitType.File(EncyclopediaDatasource.IMAGE_EXTENSIONS))
+			} catch (e: FileKitPickerException) {
+				Napier.e("Image picker failed", e)
+				rootSnackbar.showSnackbar(
+					strRes.get(Res.string.encyclopedia_create_entry_image_load_failed)
+				)
+				null
 			}
 			if (file != null) {
 				if (file.size() > EncyclopediaDatasource.MAX_IMAGE_SIZE_BYTES) {
@@ -918,6 +1042,28 @@ private fun TagsAndAliasesZone(
 			AliasesSection(content.aliases, component, modifier = Modifier.weight(1f))
 		}
 	}
+}
+
+@Composable
+private fun DictionaryToggleZone(
+	state: ViewEntry.State,
+	component: ViewEntry,
+	scope: CoroutineScope,
+) {
+	if (!state.dictionaryFeatureEnabled) return
+	val content = state.content ?: return
+	HdHairlineToggleRow(
+		checked = !content.excludeFromDictionary,
+		label = Res.string.encyclopedia_entry_dictionary_toggle_label.get(),
+		hint = Res.string.encyclopedia_entry_dictionary_toggle_hint.get(),
+		onCheckedChange = { include ->
+			scope.launch { component.setExcludeFromDictionary(!include) }
+		},
+		modifier = Modifier
+			.padding(horizontal = Ui.Padding.XXL)
+			.padding(top = 28.dp)
+			.fillMaxWidth(),
+	)
 }
 
 @OptIn(ExperimentalLayoutApi::class)

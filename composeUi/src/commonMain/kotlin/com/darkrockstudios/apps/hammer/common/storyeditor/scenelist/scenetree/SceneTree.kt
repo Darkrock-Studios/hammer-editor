@@ -33,6 +33,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentFor
 
 /**
  * The root composable take takes a scene tree and handles rendering, reorder, collapsing
@@ -151,7 +152,7 @@ private fun Modifier.reorderableModifier(state: SceneTreeState): Modifier {
 	}
 }
 
-private val NESTING_INSET = 16f.dp
+private val EDGE_INSET = 16f.dp
 
 @Composable
 private fun drawInsertLine(
@@ -210,8 +211,8 @@ private fun drawInsertLine(
 			nestingDept = parentNode.depth + 1
 		}
 
-		val insetSize = (nestingDept * NESTING_INSET.toPx())
-		val endX = size.width - NESTING_INSET.toPx()
+		val insetSize = hdIndentFor(nestingDept).toPx()
+		val endX = size.width - EDGE_INSET.toPx()
 
 		drawLine(
 			start = Offset(x = insetSize, y = lineY),

@@ -208,6 +208,22 @@ These set up the page. Use them before reaching for raw `Column` /
       │ └─[ KTOR · HTTPS ]─────────[ LAST SYNC 14:32 ]┘  │
       └──────────────────────────────────────────────────┘
 
+- **[`HdIndentRails`](HdIndentRails.kt)** — the nesting vocabulary for
+  tree rows: `HdIndentStep` (one level = one disclosure column),
+  `hdIndentFor(depth)` for a row's start inset, and
+  `Modifier.hdIndentRails(levels, color)` to draw one vertical hairline
+  per ancestor, each centered on the disclosure column that owns it.
+  Every row in a tree — parent and leaf alike — takes its inset from
+  `hdIndentFor`, and a leaf adds one more `HdIndentStep` to clear the
+  chevron column, so a child's label sits exactly one step right of its
+  parent's. The rails are the marginalia rule applied along the depth
+  axis: without them 16dp steps stop being traceable past two levels.
+
+      ⌄ Chapter I                    3 SCN
+      ┆   At Home
+      ┆ ⌄ Chapter II                 2 SCN
+      ┆ ┆   The Pool of Tears
+
 - **[`HdScrollAwayFooter`](HdScrollAwayFooter.kt)**: hairline action
   strip that floats over the bottom of a scrolling pane and slides away
   as the reader scrolls down. It is an **overlay**, never a sibling in
@@ -312,6 +328,24 @@ The handwriting of the system. Reach for these instead of styling
   Use where a dropdown would be unwieldy: dozens to hundreds of
   options, e.g. every platform locale. Optional muted clear row above
   the list resets the selection.
+- **[`HdResizeHandle`](HdResizeHandle.kt)**: full-height 16dp gutter
+  on the start edge of a centered, width-capped column (the scene
+  editor, focus mode) that drags the column wider or narrower. Shows
+  the `HdDragHandle` grip glyph at low alpha, full alpha on hover or
+  drag; desktop gets a horizontal-resize cursor via expect/actual
+  (the scrollbar-rail precedent for desktop-flavored affordances);
+  double-click resets. Reports drag deltas outward-positive
+  regardless of layout direction, so callers stay RTL-safe and a
+  centered column grows by twice the reported delta. Pair it with
+  `rememberHdResizeHandleState`, which owns the drag math,
+  commit-on-drag-end, and the `showHandle` gate that hides it on
+  narrow layouts (`RESIZE_HANDLE_MIN_SLACK` beyond the column's
+  minimum width, so an over-wide persisted value can always be
+  shrunk back).
+
+      ┆▪ ▪┆ ┌────────────────────┐
+      ┆▪ ▪┆ │  centered column   │
+      ┆▪ ▪┆ └────────────────────┘
 
 ### Categorization
 

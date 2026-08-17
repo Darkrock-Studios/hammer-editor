@@ -58,6 +58,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.listSaver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -183,6 +185,7 @@ import kotlin.time.Instant
 import androidx.compose.foundation.lazy.staggeredgrid.items as staggeredItems
 
 const val IDEAS_CREATE_FAB_TAG = "ideas-create-fab"
+const val IDEAS_EDITOR_TITLE_TAG = "ideas-editor-title"
 const val IDEAS_EDITOR_BODY_TAG = "ideas-editor-body"
 const val IDEAS_EDITOR_CONFIRM_TAG = "ideas-editor-confirm"
 const val IDEAS_EDITOR_CANCEL_TAG = "ideas-editor-cancel"
@@ -200,6 +203,16 @@ private enum class IdeasSortMode(
 	DateAsc(Res.string.ideas_sort_oldest, Res.string.ideas_sort_glyph_date_asc),
 	TitleAsc(Res.string.ideas_sort_title_az, Res.string.ideas_sort_glyph_title_az),
 }
+
+private val IdeasSortModeSaver = Saver<IdeasSortMode, String>(
+	save = { it.name },
+	restore = { IdeasSortMode.valueOf(it) },
+)
+
+private val TagSetSaver = listSaver<Set<String>, String>(
+	save = { it.toList() },
+	restore = { it.toSet() },
+)
 
 private fun StoryIdea.wordCount(): Int =
 	content.split(Regex("\\s+")).count { it.isNotBlank() }
@@ -233,10 +246,12 @@ fun StoryIdeasUi(
 			contentKey = { it != null },
 			label = "StoryIdeasEditorSwap",
 		) { editor ->
-			if (editor != null) {
+			val draft = state.draft
+			if (editor != null && draft != null) {
 				IdeaDetail(
 					component = component,
 					editor = editor,
+					draft = draft,
 					rootSnackbar = rootSnackbar,
 					sharedTransitionScope = this@SharedTransitionLayout,
 					animatedVisibilityScope = this@AnimatedContent,
@@ -265,8 +280,12 @@ private fun IdeasBrowse(
 	val isWide = screen.isWide
 
 	var searchQuery by rememberSaveable { mutableStateOf("") }
-	var sortMode by remember { mutableStateOf(IdeasSortMode.DateDesc) }
-	var activeTags by remember { mutableStateOf<Set<String>>(emptySet()) }
+	var sortMode by rememberSaveable(stateSaver = IdeasSortModeSaver) {
+		mutableStateOf(IdeasSortMode.DateDesc)
+	}
+	var activeTags by rememberSaveable(stateSaver = TagSetSaver) {
+		mutableStateOf<Set<String>>(emptySet())
+	}
 	var showArchived by rememberSaveable { mutableStateOf(false) }
 	var showSearchBar by rememberSaveable { mutableStateOf(false) }
 
@@ -651,6 +670,7 @@ private fun IdeaStamps(idea: StoryIdea) {
 private fun IdeaDetail(
 	component: StoryIdeas,
 	editor: StoryIdeas.Editor,
+	draft: StoryIdeas.Draft,
 	rootSnackbar: RootSnackbarHostState,
 	sharedTransitionScope: SharedTransitionScope,
 	animatedVisibilityScope: AnimatedVisibilityScope,
@@ -662,34 +682,18 @@ private fun IdeaDetail(
 	val existing = (editor as? StoryIdeas.Editor.Edit)?.idea
 	val isCreate = existing == null
 
-	// Creating starts straight in edit mode; an existing idea opens read-only.
-	var isEditing by rememberSaveable(editor) { mutableStateOf(isCreate) }
-	var titleText by remember(editor) { mutableStateOf(existing?.title.orEmpty()) }
-	var contentText by remember(editor) { mutableStateOf(existing?.content.orEmpty()) }
-	var tags by remember(editor) { mutableStateOf(existing?.tags?.toList().orEmpty()) }
-	// A tag typed into the field but not yet committed with Enter/comma; folded in on save
-	// so it can't be silently dropped.
-	var tagDraft by remember(editor) { mutableStateOf("") }
-	// The view body reflects saved edits without waiting for the state flow to round-trip.
-	var savedTitle by remember(editor) { mutableStateOf(existing?.title) }
-	var savedContent by remember(editor) { mutableStateOf(existing?.content.orEmpty()) }
-	var savedTags by remember(editor) { mutableStateOf(existing?.tags ?: emptySet()) }
+	// The draft lives in the component so a configuration change can't take unsaved text with it.
+	val isEditing = draft.isEditing
+	val isDirty = draft.isDirty
 
-	var confirmDelete by remember { mutableStateOf(false) }
-	var confirmDiscard by remember { mutableStateOf(false) }
-	var confirmClose by remember { mutableStateOf(false) }
-	var confirmPromote by remember { mutableStateOf(false) }
+	var confirmDelete by rememberSaveable { mutableStateOf(false) }
+	var confirmDiscard by rememberSaveable { mutableStateOf(false) }
+	var confirmClose by rememberSaveable { mutableStateOf(false) }
+	var confirmPromote by rememberSaveable { mutableStateOf(false) }
 
-	val isDirty = isEditing && (
-		titleText != savedTitle.orEmpty() ||
-			contentText != savedContent ||
-			tags.toSet() != savedTags ||
-			tagDraft.isNotBlank()
-		)
-
-	val charCount = contentText.length
+	val charCount = draft.content.length
 	val overLimit = charCount > StoryIdea.MAX_CONTENT_LENGTH
-	val canSave = contentText.isNotBlank() && !overLimit
+	val canSave = draft.content.isNotBlank() && !overLimit
 
 	suspend fun showError(error: IdeaError) {
 		when (error) {
@@ -709,43 +713,20 @@ private fun IdeaDetail(
 
 	val saveChanges: () -> Unit = {
 		scope.launch {
-			val title = titleText.trim().ifEmpty { null }
-			val pendingTag = tagDraft.trim().removePrefix("#")
-			val allTags = if (pendingTag.isEmpty()) tags.toSet() else tags.toSet() + pendingTag
-			val error = if (existing == null) {
-				component.createIdea(title, contentText, allTags)
-			} else {
-				component.saveIdea(existing.id, title, contentText, allTags)
-			}
-			if (error == IdeaError.NONE) {
-				if (isCreate) {
-					withContext(mainDispatcher) { component.closeEditor() }
+			when (val result = component.saveDraft()) {
+				StoryIdeas.SaveResult.Created ->
 					rootSnackbar.showSnackbar(strRes.get(Res.string.ideas_toast_created))
-				} else {
-					withContext(mainDispatcher) {
-						savedTitle = title
-						savedContent = contentText
-						savedTags = allTags
-						tags = allTags.toList()
-						tagDraft = ""
-						isEditing = false
-					}
+
+				StoryIdeas.SaveResult.Saved ->
 					rootSnackbar.showSnackbar(strRes.get(Res.string.ideas_toast_saved))
-				}
-			} else {
-				showError(error)
+
+				is StoryIdeas.SaveResult.Failed -> showError(result.error)
 			}
 		}
 	}
 
 	val cancelEdit: () -> Unit = {
-		if (isDirty) {
-			confirmDiscard = true
-		} else if (isCreate) {
-			component.closeEditor()
-		} else {
-			isEditing = false
-		}
+		if (isDirty) confirmDiscard = true else component.discardEdit()
 	}
 
 	val requestClose: () -> Unit = {
@@ -839,7 +820,7 @@ private fun IdeaDetail(
 				idea = existing,
 				sharedTransitionScope = sharedTransitionScope,
 				animatedVisibilityScope = animatedVisibilityScope,
-				onEdit = { isEditing = true },
+				onEdit = component::beginEdit,
 				onSave = saveChanges,
 				onCancel = cancelEdit,
 				onPromote = { confirmPromote = true },
@@ -853,13 +834,13 @@ private fun IdeaDetail(
 
 			if (isEditing) {
 				EditBody(
-					titleText = titleText,
-					onTitleChanged = { titleText = it },
-					tags = tags,
-					onTagsChanged = { tags = it },
-					onTagDraftChanged = { tagDraft = it },
-					contentText = contentText,
-					onContentChanged = { contentText = it },
+					titleText = draft.title,
+					onTitleChanged = component::updateTitle,
+					tags = draft.tags,
+					onTagsChanged = component::updateTags,
+					onTagDraftChanged = component::updateTagDraft,
+					contentText = draft.content,
+					onContentChanged = component::updateContent,
 					suggestTags = component::suggestTags,
 					modifier = Modifier.weight(1f),
 				)
@@ -867,17 +848,17 @@ private fun IdeaDetail(
 				EditStatusFooter(charCount = charCount, overLimit = overLimit)
 			} else {
 				ViewBody(
-					title = savedTitle,
-					markdown = savedContent,
-					tags = savedTags,
+					title = draft.savedTitle,
+					markdown = draft.savedContent,
+					tags = draft.savedTags,
 					idea = existing,
 					sharedTransitionScope = sharedTransitionScope,
 					animatedVisibilityScope = animatedVisibilityScope,
-					onEnterEdit = { isEditing = true },
+					onEnterEdit = component::beginEdit,
 					modifier = Modifier.weight(1f, fill = false),
 				)
 
-				ViewFolioFooter(markdown = savedContent, tagCount = savedTags.size)
+				ViewFolioFooter(markdown = draft.savedContent, tagCount = draft.savedTags.size)
 			}
 		}
 		}
@@ -895,10 +876,7 @@ private fun IdeaDetail(
 			if (confirmClose || isCreate) {
 				component.closeEditor()
 			} else {
-				titleText = savedTitle.orEmpty()
-				contentText = savedContent
-				tags = savedTags.toList()
-				isEditing = false
+				component.discardEdit()
 			}
 			confirmDiscard = false
 			confirmClose = false
@@ -1192,6 +1170,7 @@ private fun EditBody(
 				onValueChange = onTitleChanged,
 				placeholder = Res.string.ideas_title_placeholder.get(),
 				onFocusChanged = { titleFocused = it },
+				testTag = IDEAS_EDITOR_TITLE_TAG,
 				modifier = Modifier
 					.fillMaxWidth()
 					.padding(horizontal = Ui.Padding.XL)

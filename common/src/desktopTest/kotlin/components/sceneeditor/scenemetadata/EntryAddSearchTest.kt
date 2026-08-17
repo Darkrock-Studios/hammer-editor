@@ -115,6 +115,40 @@ class EntryAddSearchTest {
 	}
 
 	@Test
+	fun `types restricts the result to the requested entry types`() {
+		val result = filterEntriesForAdd(
+			query = "a",
+			entries = entries,
+			confirmedIds = emptySet(),
+			dismissedIds = emptySet(),
+			maxResults = 20,
+			types = setOf(EntryType.PLACE),
+		)
+		assertEquals(listOf("Atlantis"), result.map { it.entryDef.name })
+	}
+
+	@Test
+	fun `types narrows before maxResults truncates`() {
+		// The alphabetically-early people would fill the cap on their own; the
+		// requested type must still come back rather than being starved out.
+		val crowded = listOf(
+			entry(1, "Aaron"),
+			entry(2, "Abel"),
+			entry(3, "Abigail"),
+			entry(4, "Aventine", type = EntryType.PLACE),
+		)
+		val result = filterEntriesForAdd(
+			query = "a",
+			entries = crowded,
+			confirmedIds = emptySet(),
+			dismissedIds = emptySet(),
+			maxResults = 2,
+			types = setOf(EntryType.PLACE),
+		)
+		assertEquals(listOf("Aventine"), result.map { it.entryDef.name })
+	}
+
+	@Test
 	fun `maxResults caps the returned list`() {
 		// 'b' matches Bob, Bobby, and Robert; the cap must keep the first two in sorted order.
 		val result = filterEntriesForAdd(

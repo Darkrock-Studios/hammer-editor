@@ -1,4 +1,4 @@
-<article class="story-content">{{{storyHtml}}}</article>
+<article class="story-content"{{#storyLanguage}} lang="{{storyLanguage}}"{{/storyLanguage}}>{{{storyHtml}}}</article>
 
 {{#hasPagination}}
 	<nav class="story-pagination">

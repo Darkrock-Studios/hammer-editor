@@ -9,7 +9,6 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.storyi
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeaError
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
@@ -95,6 +94,20 @@ private val previewIdeas = listOf(
 	),
 )
 
+private fun previewDraft(editor: StoryIdeas.Editor?): StoryIdeas.Draft? = when (editor) {
+	null -> null
+	StoryIdeas.Editor.Create -> StoryIdeas.Draft(isEditing = true)
+	is StoryIdeas.Editor.Edit -> StoryIdeas.Draft(
+		isEditing = false,
+		title = editor.idea.title.orEmpty(),
+		content = editor.idea.content,
+		tags = editor.idea.tags.toList(),
+		savedTitle = editor.idea.title,
+		savedContent = editor.idea.content,
+		savedTags = editor.idea.tags,
+	)
+}
+
 private fun fakeComponent(
 	editor: StoryIdeas.Editor? = null,
 ): StoryIdeas = object : StoryIdeas {
@@ -102,6 +115,7 @@ private fun fakeComponent(
 		StoryIdeas.State(
 			ideas = previewIdeas,
 			editor = editor,
+			draft = previewDraft(editor),
 		)
 	)
 
@@ -109,8 +123,13 @@ private fun fakeComponent(
 	override fun editIdea(id: IdeaId) {}
 	override fun closeEditor() {}
 	override fun suggestTags(prefix: String): List<String> = emptyList()
-	override suspend fun createIdea(title: String?, content: String, tags: Set<String>) = IdeaError.NONE
-	override suspend fun saveIdea(id: IdeaId, title: String?, content: String, tags: Set<String>) = IdeaError.NONE
+	override fun beginEdit() {}
+	override fun discardEdit() {}
+	override fun updateTitle(title: String) {}
+	override fun updateContent(content: String) {}
+	override fun updateTags(tags: List<String>) {}
+	override fun updateTagDraft(tagDraft: String) {}
+	override suspend fun saveDraft(): StoryIdeas.SaveResult = StoryIdeas.SaveResult.Saved
 	override suspend fun deleteIdea(id: IdeaId) {}
 	override suspend fun archiveIdea(id: IdeaId) {}
 	override suspend fun unarchiveIdea(id: IdeaId) {}

@@ -7,7 +7,15 @@ import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
+import java.sql.SQLException
 import kotlin.time.Instant
+
+private const val SQLSTATE_UNIQUE_VIOLATION = "23505"
+
+// The cause chain is walked because the driver's violation can reach us wrapped by the pool.
+private fun SQLException.isUniqueViolation(): Boolean =
+	generateSequence(this as Throwable) { it.cause }
+		.any { it is SQLException && it.sqlState == SQLSTATE_UNIQUE_VIOLATION }
 
 class ProjectDao(
 	database: Database,
@@ -64,12 +72,18 @@ class ProjectDao(
 			queries.hasProjectById(userId, projectId.id).executeAsOne()
 		}
 
+	/** False when the account already has a project under [newName]; `project(name, user_id)` is unique. */
 	suspend fun updateProjectName(
 		userId: Long,
 		projectUuid: ProjectId,
 		newName: String
-	) = withContext(ioDispatcher) {
-		queries.updateProjectName(userId = userId, uuid = projectUuid.id, name = newName)
+	): Boolean = withContext(ioDispatcher) {
+		return@withContext try {
+			queries.updateProjectName(userId = userId, uuid = projectUuid.id, name = newName)
+			true
+		} catch (e: SQLException) {
+			if (e.isUniqueViolation()) false else throw e
+		}
 	}
 
 	suspend fun updateSyncData(

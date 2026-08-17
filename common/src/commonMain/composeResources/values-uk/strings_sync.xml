@@ -107,9 +107,11 @@
 	<string name="sync_log_account_project_rename_client_from_server_failure">Не вдалося перейменувати проєкт із сервера: %1$s</string>
 	<string name="sync_log_account_project_create_server_success">Проєкт створено на сервері: %1$s</string>
 	<string name="sync_log_account_project_create_server_failure">Не вдалося створити проєкт на сервері: %1$s</string>
+	<string name="sync_log_account_project_id_save_failure">Project created on server, but failed to save its ID locally: %1$s</string>
 	<string name="sync_log_account_project_create_client">Локальний проєкт створено: %1$s</string>
 	<string name="sync_log_account_project_create_client_local">Встановлення ID сервера для локального проєкту: %1$s</string>
-	<string name="sync_log_account_project_create_client_failure">Не вдалося створити проєкт на сервері: %1$s</string>
+	<string name="sync_log_account_project_create_local_failure">Failed to create local project from server: %1$s</string>
+	<string name="sync_log_account_project_create_client_name_taken">Skipped server project %1$s: a local project of that name already syncs with a different server project</string>
 	<string name="sync_log_begin_account">Синхронізація облікового запису…</string>
 	<string name="sync_log_begin_projects">Синхронізація проєктів…</string>
 	<string name="sync_log_end_projects">Синхронізацію проєктів завершено</string>
@@ -180,7 +182,8 @@
 	<string name="server_setup_help_patreon_link">Patreon</string>
 	<string name="server_setup_help_hammer_link">Hammer.Ink</string>
 	<string name="server_setup_help_registration_header">Реєстрація</string>
-	<string name="server_setup_help_registration_body">За замовчуванням сервери мають закриту реєстрацію, тобто вас потрібно додати до білого списку сервера, щоб ви могли створити обліковий запис.</string>
+	<string name="server_setup_help_registration_body">Servers have closed registration, meaning the server admin needs to add you to the server's allowed users list before you can create an account.
+	</string>
 	<string name="server_setup_help_setup_header">Налаштування</string>
 	<string name="server_setup_help_setup_step1">Введіть URL сервера, наприклад «hammer.ink» для офіційного сервера.</string>
 	<string name="server_setup_help_setup_step2">Введіть вашу електронну пошту та пароль, потім натисніть «Створити», щоб створити обліковий запис.</string>

@@ -80,6 +80,7 @@ class EncyclopediaRepository(
 		text: String,
 		tags: Set<String>,
 		aliases: List<String> = emptyList(),
+		excludeFromDictionary: Boolean,
 	): EntryResult {
 		val result = validateEntry(name, oldEntryDef.type, text, tags, aliases)
 		if (result != EntryError.NONE) return EntryResult(result)
@@ -94,16 +95,18 @@ class EncyclopediaRepository(
 			text = text,
 			tags = cleanedTags,
 			aliases = cleanedAliases,
+			excludeFromDictionary = excludeFromDictionary,
 		)
 
 		_entryContentChangedFlow.emit(Unit)
 		return EntryResult(container, EntryError.NONE)
 	}
 
-	suspend fun loadEntriesImperative() {
+	suspend fun loadEntriesImperative(): List<EntryDef> {
 		val entryDefs = datasource.loadEntriesImperative()
 
 		updateEntries(entryDefs)
+		return entryDefs
 	}
 
 	suspend fun ensureEntriesLoaded(): List<EntryDef> {
@@ -153,6 +156,7 @@ class EncyclopediaRepository(
 		imagePath: String?,
 		forceId: Int? = null,
 		aliases: List<String> = emptyList(),
+		excludeFromDictionary: Boolean = false,
 	): EntryResult {
 		val result = validateEntry(name, type, text, tags, aliases)
 		if (result != EntryError.NONE) return EntryResult(result)
@@ -168,6 +172,7 @@ class EncyclopediaRepository(
 			text = text.trim(),
 			tags = cleanedTags,
 			aliases = cleanedAliases,
+			excludeFromDictionary = excludeFromDictionary,
 		)
 		val container = EntryContainer(entry)
 

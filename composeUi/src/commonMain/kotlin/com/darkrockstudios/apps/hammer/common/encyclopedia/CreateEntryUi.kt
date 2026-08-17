@@ -22,7 +22,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -46,14 +45,15 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineBut
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineImageDrop
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTagField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTypePicker
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.glyph
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberSaveableStringList
 import com.darkrockstudios.apps.hammer.common.compose.rememberStrRes
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.compose.retryingFileDialog
 import com.darkrockstudios.apps.hammer.common.compose.stageIntoCache
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
@@ -76,6 +76,8 @@ import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_image_too_large
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_name_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_name_placeholder
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_section_marker
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_dictionary_toggle_hint
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_dictionary_toggle_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_hint
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_label
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_tags_placeholder
@@ -85,8 +87,10 @@ import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_name_too_
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_success
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_tag_too_long
 import com.darkrockstudios.apps.hammer.encyclopedia_create_entry_toast_too_long
+import io.github.aakira.napier.Napier
 import io.github.vinceglb.filekit.FileKit
 import io.github.vinceglb.filekit.PlatformFile
+import io.github.vinceglb.filekit.dialogs.FileKitPickerException
 import io.github.vinceglb.filekit.dialogs.FileKitType
 import io.github.vinceglb.filekit.dialogs.openFilePicker
 import io.github.vinceglb.filekit.path
@@ -114,8 +118,9 @@ internal fun CreateEntryUi(
 
 	var name by rememberSaveable { mutableStateOf("") }
 	var description by rememberSaveable { mutableStateOf("") }
-	val tags = remember { mutableStateListOf<String>() }
+	val tags = rememberSaveableStringList()
 	var selectedType by rememberSaveable { mutableStateOf(EntryType.PERSON) }
+	var excludeFromDictionary by rememberSaveable { mutableStateOf(false) }
 
 	var imagePath by remember { mutableStateOf<PlatformFile?>(null) }
 
@@ -217,8 +222,14 @@ internal fun CreateEntryUi(
 					label = Res.string.encyclopedia_create_entry_cover_art_label.get(),
 					onClick = {
 						scope.launch {
-							val picked = retryingFileDialog {
+							val picked = try {
 								FileKit.openFilePicker(type = FileKitType.File(EncyclopediaDatasource.IMAGE_EXTENSIONS))
+							} catch (e: FileKitPickerException) {
+								Napier.e("Image picker failed", e)
+								rootSnackbar.showSnackbar(
+									strRes.get(Res.string.encyclopedia_create_entry_image_load_failed)
+								)
+								null
 							}
 							if (picked != null) applyImage(picked)
 						}
@@ -247,6 +258,15 @@ internal fun CreateEntryUi(
 						{ imagePath = null }
 					} else null,
 				)
+
+				if (state.dictionaryFeatureEnabled) {
+					HdHairlineToggleRow(
+						checked = !excludeFromDictionary,
+						label = Res.string.encyclopedia_entry_dictionary_toggle_label.get(),
+						hint = Res.string.encyclopedia_entry_dictionary_toggle_hint.get(),
+						onCheckedChange = { include -> excludeFromDictionary = !include },
+					)
+				}
 			}
 
 			HairlineModalFooter(
@@ -260,6 +280,7 @@ internal fun CreateEntryUi(
 							text = description,
 							tags = tags.toSet(),
 							imagePath = imagePath?.path,
+							excludeFromDictionary = excludeFromDictionary,
 						)
 						val message = when (result.error) {
 							EntryError.NAME_TOO_LONG -> strRes.get(

@@ -130,10 +130,16 @@ fun ProjectStatsUi(
 
 	ExportOptionsDialog(
 		visible = state.showExportDialog,
-		initialOptions = state.exportOptions,
+		options = state.exportOptions,
+		exportableScenes = state.exportableScenes,
+		onOptionsChanged = component::updateExportOptions,
 		onCancel = component::cancelExportDialog,
 		onConfirm = component::confirmExportDialog,
-		working = state.isExporting,
+		onDismissed = component::exportDialogDismissed,
+		// The platform save dialog does not block this window on desktop, so the
+		// options must freeze once the picker is up or the written file's extension
+		// and contents could disagree.
+		working = state.isExporting || state.showExportFilePicker,
 	)
 	ExportDirectoryPicker(state.showExportFilePicker, component, scope)
 }

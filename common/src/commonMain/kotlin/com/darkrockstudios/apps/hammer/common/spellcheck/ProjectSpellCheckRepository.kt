@@ -9,6 +9,7 @@ import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 
 /**
@@ -42,4 +43,24 @@ class ProjectSpellCheckRepository(
 	) { checker, allowed ->
 		if (allowed) checker else null
 	}.distinctUntilChanged()
+
+	/** The global spell-check master switch. */
+	val spellCheckEnabled: Flow<Boolean> = globalSettingsStore.globalSettingsUpdates
+		.map { it.spellCheckSettings.enabled }
+		.distinctUntilChanged()
+
+	/**
+	 * True while encyclopedia names feed the spell-check session dictionary:
+	 * the global setting AND this project's own toggle. Gates the feature's
+	 * per-entry UI as well as the word loading itself.
+	 */
+	val encyclopediaDictionaryEnabled: Flow<Boolean> = combine(
+		globalSettingsStore.globalSettingsUpdates,
+		projectDataRepository.state,
+	) { settings, stored ->
+		settings.spellCheckSettings.includeEncyclopediaNames &&
+			(stored?.data?.encyclopediaDictionary ?: true)
+	}
+		.onStart { projectDataRepository.load() }
+		.distinctUntilChanged()
 }

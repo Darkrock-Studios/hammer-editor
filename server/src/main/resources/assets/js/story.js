@@ -296,17 +296,22 @@ document.addEventListener('keydown', function (e) {
 	if (e.key === 'Escape') closeReviewDialog();
 });
 
-// Scene checkbox changes: update the count and gate the send button
+// Scene checkbox changes: update the count and gate the submit button.
+// Both the review dialog and the share dialog mark their form data-scene-select.
 document.addEventListener('change', function (e) {
-	const form = document.getElementById('review-request-form');
-	if (!form || !form.contains(e.target)) return;
-	updateReviewFormState(form);
+	const form = e.target.closest('form[data-scene-select]');
+	if (!form) return;
+	if (e.target.name === 'limitScenes') {
+		const scenes = form.querySelector('.share-form__scenes');
+		if (scenes) scenes.hidden = !e.target.checked;
+	}
+	updateSceneSelectFormState(form);
 });
 
 document.addEventListener('input', function (e) {
-	const form = document.getElementById('review-request-form');
-	if (!form || !form.contains(e.target)) return;
-	updateReviewFormState(form);
+	const form = e.target.closest('form[data-scene-select]');
+	if (!form) return;
+	updateSceneSelectFormState(form);
 });
 
 /** Every scene checkbox nested under a group toggle, to the next sibling at or above its depth. */
@@ -337,8 +342,8 @@ document.addEventListener('click', function (e) {
 
 	toggleBoxes(groupToggleBoxes(toggle));
 
-	const form = document.getElementById('review-request-form');
-	if (form) updateReviewFormState(form);
+	const form = toggle.closest('form[data-scene-select]');
+	if (form) updateSceneSelectFormState(form);
 });
 
 // Master "Select all"/"Clear all" toggles every scene in the project
@@ -347,12 +352,13 @@ document.addEventListener('click', function (e) {
 	if (!master) return;
 	e.preventDefault();
 
-	const tree = document.getElementById('review-scene-tree');
+	const form = master.closest('form[data-scene-select]');
+	if (!form) return;
+	const tree = form.querySelector('.review-form__scene-tree');
 	if (!tree) return;
 	toggleBoxes(Array.from(tree.querySelectorAll('.review-scene-row__check')));
 
-	const form = document.getElementById('review-request-form');
-	if (form) updateReviewFormState(form);
+	updateSceneSelectFormState(form);
 });
 
 /**
@@ -366,22 +372,21 @@ function toggleBoxes(boxes) {
 }
 
 /**
- * Update the selected-scene count, the toggle button labels, and the send button
- * @param {HTMLFormElement} form - The review request form
+ * Update the selected-scene count, the toggle button labels, and the submit button
+ * of a scene-selecting form (review request or private share).
+ * @param {HTMLFormElement} form - A form marked data-scene-select
  */
-function updateReviewFormState(form) {
-	const allBoxes = Array.from(form.querySelectorAll('.review-scene-row__check'));
+function updateSceneSelectFormState(form) {
+	const allBoxes = Array.from(form.querySelectorAll('.review-form__scene-tree .review-scene-row__check'));
 	const checked = allBoxes.filter(function (b) { return b.checked; }).length;
-	const email = form.querySelector('#review-email');
-	const sendBtn = form.querySelector('#review-send-btn');
-	const counter = document.getElementById('review-scene-count');
+	const counter = form.querySelector('.review-form__scene-count');
 
 	if (counter) {
 		counter.textContent = reviewCountLabel(checked, counter.dataset.total, counter.dataset.noneLabel || 'none selected');
 	}
 
 	// Master toggle reads "Clear all" once everything is selected
-	const master = document.getElementById('review-select-all');
+	const master = form.querySelector('.review-scene-master__toggle');
 	if (master) {
 		const allChecked = allSelected(allBoxes.map(function (b) { return b.checked; }));
 		master.textContent = allChecked ? master.dataset.clearLabel : master.dataset.selectLabel;
@@ -394,7 +399,13 @@ function updateReviewFormState(form) {
 		toggle.textContent = allChecked ? toggle.dataset.clearLabel : toggle.dataset.selectLabel;
 	});
 
-	if (sendBtn) {
-		sendBtn.disabled = !canSendReview(checked, email ? email.value : '');
+	const submitBtn = form.querySelector('[data-scene-submit]');
+	if (!submitBtn) return;
+	const email = form.querySelector('[name="reviewerEmail"]');
+	if (email) {
+		submitBtn.disabled = !canSendReview(checked, email.value);
+	} else {
+		const limit = form.querySelector('[name="limitScenes"]');
+		submitBtn.disabled = !canCreateShare(!!(limit && limit.checked), checked);
 	}
 }

@@ -156,7 +156,7 @@ fun Route.frontend() {
 		projectsRepository,
 		accountsRepository,
 		reviewRepository,
-		storyReaderRepository, projectDao, clock,
+		storyReaderRepository, serverProjectDataRepository, projectDao, clock,
 	)
 	reviewFrontend(
 		reviewRepository = reviewRepository,

@@ -82,6 +82,30 @@ class BackfillEntryReferencesUseCaseTest : BaseTest() {
 	}
 
 	@Test
+	fun `Backfills entries of every type under the default config`() = runTest(mainTestDispatcher) {
+		for ((index, type) in EntryType.entries.withIndex()) {
+			val id = 100 + index
+			val name = "Entry$id"
+			val entry = EntryContent(
+				id = id,
+				name = name,
+				type = type,
+				text = "",
+				tags = emptySet(),
+				aliases = emptyList(),
+			)
+			coEvery { referenceIndexService.findScenesMatchingEntry(id, listOf(name)) } returns listOf(10)
+			coEvery { sceneEditor.loadSceneMetadata(10) } returns SceneMetadata()
+			val metaSlot = slot<SceneMetadata>()
+			coEvery { sceneEditor.storeMetadata(capture(metaSlot), 10) } just Runs
+
+			useCase(entry)
+
+			assertEquals(setOf(id), metaSlot.captured.confirmedReferences, "type $type was not backfilled")
+		}
+	}
+
+	@Test
 	fun `Skips entry types that are not enabled in config`() = runTest(mainTestDispatcher) {
 		// Config gates which entry types participate in matching. A type that is
 		// not enabled never produces a scan or a write, regardless of name matches.

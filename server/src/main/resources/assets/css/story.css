@@ -212,6 +212,49 @@
 }
 
 /* ----------------------------------------
+   Tables
+   ---------------------------------------- */
+
+.story-content table {
+	display: block;
+	width: fit-content;
+	max-width: 100%;
+	margin: 2em auto;
+	overflow-x: auto;
+	border-collapse: collapse;
+	font-size: 0.9375em;
+	text-indent: 0;
+}
+
+.story-content th,
+.story-content td {
+	padding: 0.5em 1em;
+	border: 1px solid var(--neutral-200);
+	text-align: left;
+	vertical-align: top;
+}
+
+/* Author CSS outranks the align attribute markdown's column alignment produces, so honour it here */
+.story-content th[align="center"],
+.story-content td[align="center"] {
+	text-align: center;
+}
+
+.story-content th[align="right"],
+.story-content td[align="right"] {
+	text-align: right;
+}
+
+.story-content th {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9375em;
+	font-weight: 500;
+	color: var(--text-secondary);
+	background: rgba(245, 245, 244, 0.7);
+	border-bottom-color: var(--neutral-300);
+}
+
+/* ----------------------------------------
    Scene break
    ---------------------------------------- */
 
@@ -263,10 +306,6 @@
 	text-indent: 0;
 	text-align: left;
 	color: inherit;
-}
-
-.story-content blockquote p + p {
-	margin-top: 1em;
 }
 
 /* Emphasis inside already-italic type reads as upright */
@@ -1377,6 +1416,8 @@
 .access-entry-expiry {
 	display: flex;
 	align-items: center;
+	gap: 0.75rem;
+	flex-wrap: wrap;
 }
 
 .access-expiry {
@@ -1398,6 +1439,23 @@
 
 .access-expiry.never {
 	color: var(--neutral-400);
+}
+
+.access-scope {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.75rem;
+	color: var(--text-secondary);
+}
+
+.access-scope i {
+	font-size: 0.6875rem;
+}
+
+.access-scope.dead {
+	color: var(--error);
 }
 
 .delete-access-btn {
@@ -1797,10 +1855,13 @@
 
 /* ===== Request a Review dialog ===== */
 
-.dialog--review {
+/* Tall sheet dialogs (review request, private share): pinned header and actions
+   with the form as the single scroll column between them. */
+.dialog--sheet {
 	max-width: 540px;
 	width: 92%;
 	max-height: calc(100vh - 48px);
+	max-height: calc(100dvh - 48px);
 	display: flex;
 	flex-direction: column;
 	/* Fully opaque: this dialog is tall enough to overlap the page footer,
@@ -1808,18 +1869,25 @@
 	background: #fffdfa;
 }
 
-.dialog--review .dialog__actions {
+.dialog--sheet .dialog__actions {
 	background: #faf6ee;
 }
 
-.dialog--review form {
+.dialog--sheet form {
 	display: flex;
 	flex-direction: column;
+	flex: 1 1 auto;
 	min-height: 0;
 }
 
-.dialog--review .dialog__body {
+/* The only scroll region in the dialog. The scene list renders at its full
+   height inside it, so the whole form scrolls as one column between the pinned
+   header and actions instead of nesting a second scroller. */
+.dialog--sheet .dialog__body {
+	flex: 1 1 auto;
+	min-height: 0;
 	overflow-y: auto;
+	overscroll-behavior: contain;
 }
 
 .review-form__row {
@@ -1893,13 +1961,17 @@
 	color: var(--neutral-400);
 }
 
-.review-form__scene-tree {
+/* Frames the master row and the list as one control. Nothing here scrolls: the
+   list is as tall as the story is long and the dialog body scrolls it. */
+.review-form__scene-box {
 	border: 1px solid var(--neutral-200);
 	border-radius: 10px;
 	background: #ffffff;
+	overflow: hidden;
+}
+
+.review-form__scene-tree {
 	padding: 0.4rem 0;
-	max-height: 260px;
-	overflow-y: auto;
 }
 
 .review-scene-master {
@@ -1908,12 +1980,9 @@
 	justify-content: space-between;
 	gap: 0.6rem;
 	padding: 0.55rem 1rem;
-	margin: 0 0.4rem 0.25rem 0.4rem;
 	border-bottom: 1px dashed var(--neutral-200);
-	position: sticky;
-	top: 0;
-	background: #ffffff;
-	z-index: 1;
+	background: #faf6ee;
+	flex-shrink: 0;
 }
 
 .review-scene-master__name {
@@ -2021,10 +2090,38 @@
 	color: var(--neutral-800);
 }
 
-#review-send-btn:disabled {
+[data-scene-submit]:disabled {
 	background: var(--neutral-200);
 	color: var(--neutral-400);
 	cursor: default;
+}
+
+/* ===== Share dialog scene limiting =====
+   The checkbox itself reuses the review-scene-row__* classes; only the row
+   layout differs because it sits outside the scene tree. */
+
+.share-form__limit {
+	display: flex;
+	align-items: center;
+	gap: 0.7rem;
+	cursor: pointer;
+}
+
+.share-form__limit-name .optional-label {
+	display: block;
+}
+
+.share-form__scenes {
+	margin-top: 0.9rem;
+}
+
+.review-form__scene-empty {
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.9rem;
+	color: var(--neutral-400);
+	margin: 0;
+	padding: 0.6rem 1rem;
 }
 
 /* ===== Review link fallback dialog ===== */
@@ -2048,9 +2145,49 @@
 	color: var(--neutral-600);
 }
 
+/* Short viewports: give the dialog's own chrome back to the scene list */
+@media only screen and (max-height: 900px) {
+	.dialog--sheet {
+		max-height: calc(100vh - 16px);
+		max-height: calc(100dvh - 16px);
+	}
+
+	.dialog--sheet .dialog__header,
+	.dialog--sheet .dialog__actions {
+		padding-top: 0.75rem;
+		padding-bottom: 0.75rem;
+	}
+
+	.dialog--sheet .dialog__body {
+		padding: 1rem 1.25rem;
+	}
+
+	.dialog--sheet .form-field:not(:last-child) {
+		margin-bottom: 0.85rem;
+	}
+
+	.review-form__note {
+		min-height: 2.2rem;
+	}
+}
+
 @media only screen and (max-width: 600px) {
 	.review-form__row {
 		flex-direction: column;
 		gap: 0;
+	}
+
+	/* Full-height sheet, so the list gets every pixel the phone has */
+	.dialog--sheet {
+		width: 100%;
+		max-width: 100%;
+		height: 100vh;
+		height: 100dvh;
+		max-height: 100vh;
+		max-height: 100dvh;
+		margin: 0;
+		border-radius: 0;
+		border-left: none;
+		border-right: none;
 	}
 }

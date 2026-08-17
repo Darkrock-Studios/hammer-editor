@@ -22,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineTag
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownEditField
+import com.darkrockstudios.apps.hammer.common.compose.rememberSaveableStringList
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NoteError
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
@@ -46,7 +47,7 @@ fun CreateNoteUi(
 	val strRes = rememberStrRes()
 	var newNoteError by remember { mutableStateOf(false) }
 	var resetVersion by remember { mutableStateOf(0) }
-	val tags = remember { mutableStateListOf<String>() }
+	val tags = rememberSaveableStringList()
 
 	val wordCount = remember(noteText) {
 		noteText.split(Regex("\\s+")).count { it.isNotBlank() }

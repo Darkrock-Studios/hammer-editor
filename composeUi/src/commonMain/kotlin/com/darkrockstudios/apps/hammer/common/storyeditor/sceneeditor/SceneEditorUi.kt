@@ -48,6 +48,7 @@ import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.clampEditorWidth
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
@@ -57,6 +58,8 @@ import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.findShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResizeHandle
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdResizeHandleState
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownFormatBar
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.markdownFormatShortcuts
 import com.darkrockstudios.apps.hammer.common.compose.saveShortcutModifier
@@ -119,10 +122,12 @@ fun SceneEditorUi(
 					sceneContentMarkdown(buffer.content)
 				}
 				loadSceneContent(markdownExtension, sceneMarkdown)
+				// Squiggles are decoration, so the editor takes input the moment the
+				// text is in and the check catches up behind it.
+				hasReceivedInitialBuffer = true
 				// Importing emits no edit operations, so the incremental checker never
 				// sees this text. The one-shot check already ran against an empty document.
 				textEditorState.runFullSpellCheck()
-				hasReceivedInitialBuffer = true
 			}
 		}
 	}
@@ -151,8 +156,17 @@ fun SceneEditorUi(
 				CircularProgressIndicator()
 			}
 		} else {
-			val remainingWidth = remember(boxWithConstraintsScope.maxWidth) {
-				boxWithConstraintsScope.maxWidth - TextEditorDefaults.MAX_WIDTH
+			val widthState = rememberHdResizeHandleState(
+				persistedWidth = state.editorMaxWidth,
+				availableWidth = boxWithConstraintsScope.maxWidth,
+				clampWidth = ::clampEditorWidth,
+				onCommit = component::setEditorMaxWidth,
+				onReset = component::resetEditorMaxWidth,
+			)
+			val editorMaxWidth = widthState.width
+
+			val remainingWidth = remember(boxWithConstraintsScope.maxWidth, editorMaxWidth) {
+				boxWithConstraintsScope.maxWidth - editorMaxWidth
 			}
 			val isWide = remember(remainingWidth) { remainingWidth >= SCENE_METADATA_MIN_WIDTH }
 			SideEffect { component.setLayoutMode(isWide) }
@@ -201,6 +215,14 @@ fun SceneEditorUi(
 					modifier = Modifier.fillMaxSize(),
 					horizontalArrangement = Arrangement.Center
 				) {
+					if (widthState.showHandle) {
+						HdResizeHandle(
+							onOutwardDrag = widthState::onOutwardDrag,
+							onDragEnd = widthState::onDragEnd,
+							onReset = widthState::reset,
+						)
+					}
+
 					SpellCheckingTextEditor(
 						state = textEditorState,
 						contentPadding = PaddingValues(Ui.Padding.XL),
@@ -216,7 +238,7 @@ fun SceneEditorUi(
 							.testTag(SCENE_EDITOR_TEXT_TAG)
 							.background(MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
 							.fillMaxHeight()
-							.widthIn(128.dp, TextEditorDefaults.MAX_WIDTH),
+							.widthIn(TextEditorDefaults.MIN_WIDTH, editorMaxWidth),
 					)
 
 					HorizontalDivider(modifier = Modifier.fillMaxHeight().width(1.dp))

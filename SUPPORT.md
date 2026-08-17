@@ -5,7 +5,7 @@ Thanks for using Hammer! If you need help, have feedback, or want to request a f
 ## Get in touch
 
 - **Email:** [darkrockstudios@gmail.com](mailto:darkrockstudios@gmail.com)
-- **Chat with us on Discord:** [discord.gg/GTmgjZcupk](https://discord.gg/GTmgjZcupk)
+- **Chat with us on Discord:** [join discord](https://discord.gg/49Kj5mMj6d)
 - **Report a bug or request a feature:** [open an issue on GitHub](https://github.com/Darkrock-Studios/hammer-editor/issues)
 
 We aim to reply to support emails within a few business days.

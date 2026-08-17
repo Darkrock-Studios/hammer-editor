@@ -19,12 +19,17 @@ interface FocusMode {
 	fun increaseTextSize()
 	fun resetTextSize()
 
+	/** Persists the user's editor max width in dp. Call on drag end, not per frame. */
+	fun setEditorMaxWidth(width: Float)
+	fun resetEditorMaxWidth()
+
 	data class State(
 		val projectDef: ProjectDef,
 		val sceneItem: SceneItem,
 		val sceneBuffer: SceneBuffer? = null,
 		val isLoading: Boolean = true,
 		val textSize: Float = GlobalSettings.DEFAULT_FONT_SIZE,
+		val editorMaxWidth: Float = GlobalSettings.DEFAULT_EDITOR_WIDTH,
 		val spellChecker: PlatformSpellChecker? = null,
 		val spellCheckingEnabled: Boolean = false,
 	)

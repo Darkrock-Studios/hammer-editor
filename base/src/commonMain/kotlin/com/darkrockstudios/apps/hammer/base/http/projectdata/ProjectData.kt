@@ -11,6 +11,8 @@ data class ProjectData(
 	val tags: Set<String> = emptySet(),
 	/** BCP-47 tag of the language the project is written in (e.g. "en", "pt-BR"); null when unset. */
 	val language: String? = null,
+	/** Whether Encyclopedia entry names feed the spell-check session dictionary for this project. */
+	val encyclopediaDictionary: Boolean = true,
 )
 
 /** Picked as a unit during conflict resolution — one device's primary paired with another's secondary is undesigned. */

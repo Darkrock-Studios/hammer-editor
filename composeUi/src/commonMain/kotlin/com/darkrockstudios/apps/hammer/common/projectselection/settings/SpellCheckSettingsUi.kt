@@ -13,7 +13,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -31,6 +30,8 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.notice_experimental_label
 import com.darkrockstudios.apps.hammer.settings_spellcheck_enable
+import com.darkrockstudios.apps.hammer.settings_spellcheck_encyclopedia_enable
+import com.darkrockstudios.apps.hammer.settings_spellcheck_encyclopedia_enable_hint
 import com.darkrockstudios.apps.hammer.settings_spellcheck_in_focus_enable
 import com.darkrockstudios.apps.hammer.settings_spellcheck_notice
 import kotlinx.coroutines.launch
@@ -38,6 +39,7 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun SpellCheckSettingsContent(
 	component: SpellCheckSettings,
+	showEncyclopediaToggle: Boolean = true,
 ) {
 	val state by component.state.subscribeAsState()
 	val scope = rememberCoroutineScope()
@@ -49,17 +51,19 @@ internal fun SpellCheckSettingsContent(
 			label = Res.string.settings_spellcheck_enable.get(),
 			onCheckedChange = { scope.launch { component.setSpellcheckEnable(it) } },
 		)
-		Box(
-			modifier = Modifier.alpha(if (state.spellCheckingEnabled) 1f else 0.45f),
-		) {
+		HdHairlineToggleRow(
+			checked = state.spellCheckingInFocusEnabled,
+			label = Res.string.settings_spellcheck_in_focus_enable.get(),
+			enabled = state.spellCheckingEnabled,
+			onCheckedChange = { scope.launch { component.setSpellCheckingInFocusEnabled(it) } },
+		)
+		if (showEncyclopediaToggle) {
 			HdHairlineToggleRow(
-				checked = state.spellCheckingInFocusEnabled,
-				label = Res.string.settings_spellcheck_in_focus_enable.get(),
-				onCheckedChange = {
-					if (state.spellCheckingEnabled) {
-						scope.launch { component.setSpellCheckingInFocusEnabled(it) }
-					}
-				},
+				checked = state.spellCheckingEncyclopediaEnabled,
+				label = Res.string.settings_spellcheck_encyclopedia_enable.get(),
+				hint = Res.string.settings_spellcheck_encyclopedia_enable_hint.get(),
+				enabled = state.spellCheckingEnabled,
+				onCheckedChange = { scope.launch { component.setSpellCheckEncyclopediaEnabled(it) } },
 			)
 		}
 		SpellCheckDictionaryControl(

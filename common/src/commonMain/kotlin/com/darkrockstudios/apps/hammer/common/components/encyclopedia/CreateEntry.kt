@@ -14,6 +14,7 @@ interface CreateEntry : TagSuggesting {
 		val projectDef: ProjectDef,
 		val showConfirmClose: Boolean = false,
 		val spellCheckAllowed: Boolean = true,
+		val dictionaryFeatureEnabled: Boolean = true,
 	)
 
 	suspend fun createEntry(
@@ -21,7 +22,8 @@ interface CreateEntry : TagSuggesting {
 		type: EntryType,
 		text: String,
 		tags: Set<String>,
-		imagePath: String?
+		imagePath: String?,
+		excludeFromDictionary: Boolean = false,
 	): EntryResult
 
 	fun confirmClose()

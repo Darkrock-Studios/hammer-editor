@@ -30,6 +30,42 @@ class RtfStoryRendererTest {
 		return buffer.readByteArray().decodeToString()
 	}
 
+	@Test
+	fun `every authored line becomes its own paragraph`() {
+		val rtf = render(listOf(StoryChapter("Alpha", "line one\nline two")))
+
+		// \fi360 opens a body paragraph; two lines means two of them.
+		assertEquals(2, Regex("""\\fi360""").findAll(rtf).count(), rtf)
+		assertTrue(rtf.contains("line one"), rtf)
+		assertTrue(rtf.contains("line two"), rtf)
+	}
+
+	@Test
+	fun `lines that run on into each other lose the gaps between them`() {
+		val chapter = render(listOf(StoryChapter("Alpha", "line one\nline two\nline three")))
+		// Isolate the chapter body: the front matter has paragraphs of its own.
+		val rtf = chapter.substring(chapter.indexOf("line one"))
+
+		// Only the last line leaves prose behind and so earns a gap after it.
+		assertEquals(
+			1,
+			Regex("""\\sa[1-9]""").findAll(rtf).count(),
+			"Prose that runs on into more prose must not push the next line down: $rtf",
+		)
+	}
+
+	@Test
+	fun `a blank line between passages becomes an empty paragraph`() {
+		val tight = render(listOf(StoryChapter("Alpha", "First passage.\nSecond passage.")))
+		val parted = render(listOf(StoryChapter("Alpha", "First passage.\n\nSecond passage.")))
+
+		assertEquals(
+			Regex("""\\fi360""").findAll(tight).count() + 1,
+			Regex("""\\fi360""").findAll(parted).count(),
+			"A blank line should add one empty body paragraph",
+		)
+	}
+
 	/** Counts brace nesting, ignoring the backslash-escaped `\{` and `\}` that appear in body text. */
 	private fun braceBalance(rtf: String): Int {
 		var depth = 0

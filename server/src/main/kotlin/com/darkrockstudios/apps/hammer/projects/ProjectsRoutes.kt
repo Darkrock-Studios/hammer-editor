@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.project.InvalidProjectName
 import com.darkrockstudios.apps.hammer.project.InvalidSyncIdException
 import com.darkrockstudios.apps.hammer.monitoring.ActivityType
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
+import com.darkrockstudios.apps.hammer.project.ProjectNameTaken
 import com.darkrockstudios.apps.hammer.project.ProjectNotFound
 import com.darkrockstudios.apps.hammer.storyideas.ServerIdeasRepository
 import com.darkrockstudios.apps.hammer.utilities.*
@@ -30,6 +31,8 @@ import org.koin.ktor.ext.get
 
 private const val ERROR_GENERIC = "Error"
 private const val ERR_KEY_INVALID_PROJECT_NAME = "api_project_rename_error_invalidname"
+private const val ERR_KEY_PROJECT_NAME_TAKEN = "api_project_rename_error_nametaken"
+private const val ERR_KEY_PROJECT_NOT_FOUND = "api_project_getproject_error_notfound"
 
 /** Reads syncId from header, responding 400 "Missing Header" with a localized message if absent. */
 private suspend fun ApplicationCall.requireSyncIdFromHeader(): String? {
@@ -233,7 +236,12 @@ private suspend fun RoutingContext.respondRenameFailure(exception: Throwable?) {
 
 		is ProjectNotFound -> call.respond(
 			status = HttpStatusCode.NotFound,
-			HttpResponseError(error = ERROR_GENERIC, displayMessage = call.t(R(ERR_KEY_INVALID_PROJECT_NAME))),
+			HttpResponseError(error = ERROR_GENERIC, displayMessage = call.t(R(ERR_KEY_PROJECT_NOT_FOUND))),
+		)
+
+		is ProjectNameTaken -> call.respond(
+			status = HttpStatusCode.Conflict,
+			HttpResponseError(error = ERROR_GENERIC, displayMessage = call.t(R(ERR_KEY_PROJECT_NAME_TAKEN))),
 		)
 
 		else -> call.respondSyncFailure(exception)

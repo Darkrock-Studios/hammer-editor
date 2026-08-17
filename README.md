@@ -7,7 +7,7 @@ A simple tool for building stories.
 
 ![badge-platform-android] ![badge-platform-ios] ![badge-platform-windows] ![badge-platform-linux] ![badge-platform-macos]
 
-[![Discord badge](https://img.shields.io/discord/1100282852295327744?logo=discord)](https://discord.gg/GTmgjZcupk)
+[![Discord badge](https://img.shields.io/discord/1100282852295327744?logo=discord)](https://discord.gg/49Kj5mMj6d)
 [![Crowdin](https://badges.crowdin.net/hammer-editor/localized.svg)](https://crowdin.com/project/hammer-editor)
 
 ### Available on:
@@ -21,7 +21,9 @@ A simple tool for building stories.
 | **Linux**   | [![Snap Store](https://img.shields.io/badge/Snap_Store-82BEA0?logo=snapcraft&logoColor=white)](https://snapcraft.io/hammer-editor)                                                                                                                                                                                                                                                                                                                                                                     | [![.deb](https://img.shields.io/badge/.deb-A81D33?logo=debian&logoColor=white)](https://github.com/Darkrock-Studios/hammer-editor/releases/latest/download/hammer.deb) [![.rpm](https://img.shields.io/badge/.rpm-EE0000?logo=redhat&logoColor=white)](https://github.com/Darkrock-Studios/hammer-editor/releases/latest/download/hammer.rpm) [![AppImage](https://img.shields.io/badge/AppImage-FCC624?logo=linux&logoColor=black)](https://github.com/Darkrock-Studios/hammer-editor/releases/latest/download/hammer.AppImage) [![Flatpak](https://img.shields.io/badge/Flatpak-4A90D9?logo=flatpak&logoColor=white)](https://github.com/Darkrock-Studios/hammer-editor/releases/latest/download/hammer.flatpak)                                                                                                                                                                                                                        |
 
 ### Community
-Join our [Discord](https://discord.gg/GTmgjZcupk) and help us by reporting bugs, making feature requests, and discussing
+
+Join our [Discord](https://discord.gg/49Kj5mMj6d) and help us by reporting bugs, making feature
+requests, and discussing
 the future of Hammer.
 
 Or visit us on Reddit at [r/hammereditor](https://www.reddit.com/r/hammereditor/)
@@ -95,7 +97,7 @@ latest commit.~~
 💡 Have suggestions?  
 📚 Want to help translate?  
 🎮 Interested in our other apps?  
-👉 Join our community of Open Source enthusiasts on [**Discord**](https://discord.gg/ju2RQa5x8W)!
+👉 Join our community of Open Source enthusiasts on [**Discord**](https://discord.gg/49Kj5mMj6d)!
 
 # Development
 

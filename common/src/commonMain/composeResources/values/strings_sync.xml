@@ -63,6 +63,8 @@
 	<string name="project_settings_hero_no_author">by (no author set)</string>
 	<string name="project_settings_spellcheck_section_title">Spell checking</string>
 	<string name="project_settings_spellcheck_mismatch_caption">Spell check is off: the project language (%1$s) doesn’t match your dictionary (%2$s). Change either to re-enable it.</string>
+	<string name="project_settings_spellcheck_encyclopedia_enable">Learn encyclopedia names in this project</string>
+	<string name="project_settings_spellcheck_encyclopedia_enable_hint">Turn off to keep this project&#8217;s entry names out of the spell check dictionary</string>
 	<string name="project_settings_folio_caption">Project Settings · %1$s</string>
 	<string name="project_settings_folio_section_count">§§ %1$d</string>
 
@@ -73,7 +75,10 @@
 	<string name="sync_conflict_project_data_field_word_goal">Word Count Goal</string>
 	<string name="sync_conflict_project_data_field_tags">Tags</string>
 	<string name="sync_conflict_project_data_field_language">Language</string>
+	<string name="sync_conflict_project_data_field_dictionary">Learn Encyclopedia Names</string>
 	<string name="sync_conflict_project_data_value_unset">(not set)</string>
+	<string name="sync_conflict_project_data_value_on">On</string>
+	<string name="sync_conflict_project_data_value_off">Off</string>
 	<string name="sync_conflict_project_data_cadence_day">day</string>
 	<string name="sync_conflict_project_data_cadence_week">week</string>
 	<string name="sync_conflict_project_data_resolve_button">Resolve</string>
@@ -144,13 +149,13 @@
 
 	<string name="sync_log_account_project_create_server_success">Created project on server: %1$s</string>
 	<string name="sync_log_account_project_create_server_failure">Failed to create project on server: %1$s</string>
+	<string name="sync_log_account_project_id_save_failure">Project created on server, but failed to save its ID locally: %1$s</string>
 	<string name="sync_log_account_project_create_client">Created local project: %1$s</string>
 	<string name="sync_log_account_project_create_client_local">Setting local project Server ID:
 		%1$s
 	</string>
-	<string name="sync_log_account_project_create_client_failure">Failed to create server project:
-		%1$s
-	</string>
+	<string name="sync_log_account_project_create_local_failure">Failed to create local project from server: %1$s</string>
+	<string name="sync_log_account_project_create_client_name_taken">Skipped server project %1$s: a local project of that name already syncs with a different server project</string>
 
 	<string name="sync_log_begin_account">Syncing Account...</string>
 	<string name="sync_log_begin_projects">Syncing Projects...</string>

@@ -22,8 +22,10 @@ import com.darkrockstudios.apps.hammer.utils.testAccount
 import io.ktor.client.request.forms.submitForm
 import io.ktor.client.request.cookie
 import io.ktor.client.request.get
+import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.parameters
 import io.ktor.http.parseServerSetCookieHeader
@@ -111,6 +113,7 @@ class SignupPageTest : BaseTest() {
 		confirmPassword: String,
 		tosAccepted: Boolean = false,
 		acceptedTosVersion: String? = null,
+		acceptLanguage: String? = null,
 	) = createClient { followRedirects = false }.submitForm(
 		url = "/signup",
 		formParameters = parameters {
@@ -120,7 +123,9 @@ class SignupPageTest : BaseTest() {
 			if (tosAccepted) append("tosAccepted", "true")
 			if (acceptedTosVersion != null) append("acceptedTosVersion", acceptedTosVersion)
 		}
-	)
+	) {
+		if (acceptLanguage != null) header(HttpHeaders.AcceptLanguage, acceptLanguage)
+	}
 
 	@Test
 	fun `GET renders the signup form without a ToS block when no terms are configured`() = testApplication {
@@ -236,6 +241,31 @@ class SignupPageTest : BaseTest() {
 		coVerify(exactly = 1) {
 			securityRepository.recordLoginAttempt("stranger@test.com", any(), false)
 		}
+	}
+
+	@Test
+	fun `POST for a not-allowed email falls back to English when the locale lacks the message`() = testApplication {
+		mockPageModelDependencies()
+		coEvery {
+			accountsComponent.createAccount("stranger@test.com", "web", "password123", null)
+		} returns CreateAccountResult.Failure(
+			SResult.failure<Token>(
+				"User not on whitelist",
+				Msg.r("api_allowedusers_rejected"),
+			)
+		)
+		coEvery { accountsComponent.checkIfWhiteListRejected("stranger@test.com") } returns true
+		configureApp()
+
+		// "xx" resolves to the deliberately incomplete test-resource bundle
+		// (Messages_xx.properties); real locales are kept complete by Crowdin.
+		val response = postSignupForm(
+			"stranger@test.com", "password123", "password123",
+			acceptLanguage = "xx",
+		)
+
+		assertEquals(HttpStatusCode.OK, response.status)
+		assertContains(response.bodyAsText(), "not allowed on this server")
 	}
 
 	@Test

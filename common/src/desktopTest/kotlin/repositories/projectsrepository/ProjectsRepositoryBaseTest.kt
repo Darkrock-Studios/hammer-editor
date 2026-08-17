@@ -1,5 +1,6 @@
 package repositories.projectsrepository
 
+import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
@@ -14,6 +15,7 @@ import io.mockk.coJustAwait
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.serialization.json.Json
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.fakefilesystem.FakeFileSystem
@@ -27,10 +29,11 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 	protected lateinit var projectsMetaDatasource: ProjectMetadataDatasource
 	protected lateinit var settings: GlobalSettings
 	protected lateinit var toml: Toml
+	protected lateinit var json: Json
 	protected lateinit var deviceLocaleResolver: DeviceLocaleResolver
 
 	protected fun projectsRepository(fs: FileSystem = ffs) =
-		ProjectsRepository(fs, settingsRepo, projectsMetaDatasource, toml, deviceLocaleResolver)
+		ProjectsRepository(fs, settingsRepo, projectsMetaDatasource, toml, json, deviceLocaleResolver)
 
 	@BeforeEach
 	override fun setup() {
@@ -38,6 +41,7 @@ abstract class ProjectsRepositoryBaseTest : BaseTest() {
 
 		ffs = FakeFileSystem()
 		toml = createTomlSerializer()
+		json = createJsonSerializer()
 		deviceLocaleResolver = mockk()
 		every { deviceLocaleResolver.getCurrentLocale() } returns Locale.forLanguage("en", "US")
 

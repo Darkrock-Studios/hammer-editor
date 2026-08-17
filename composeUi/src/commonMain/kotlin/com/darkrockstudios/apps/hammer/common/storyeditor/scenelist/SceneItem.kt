@@ -15,9 +15,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdIndentStep
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentFor
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.hdIndentRails
 import com.darkrockstudios.apps.hammer.common.compose.leftBorder
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 
@@ -40,6 +42,7 @@ internal fun SceneItem(
 ) {
 	val bg = if (isSelected) MaterialTheme.colorScheme.surfaceContainer else Color.Transparent
 	val accent = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent
+	val railColor = MaterialTheme.colorScheme.outlineVariant
 
 	SceneItemActionContainer(
 		scene,
@@ -54,6 +57,7 @@ internal fun SceneItem(
 				.fillMaxWidth()
 				.testTag(sceneItemTag(scene.id))
 				.background(bg)
+				.hdIndentRails(levels = depth - 1, color = railColor)
 				.leftBorder(2.dp, accent)
 				.combinedClickable(onClick = { onSceneSelected(scene) })
 		) {
@@ -61,7 +65,8 @@ internal fun SceneItem(
 				modifier = Modifier
 					.fillMaxWidth()
 					.padding(
-						start = sceneRowStartPadding(depth),
+						// Clears the disclosure column, so scene names line up with group names.
+						start = hdIndentFor(depth) + HdIndentStep,
 						end = Ui.Padding.XL,
 						top = Ui.Padding.M,
 						bottom = Ui.Padding.M,
@@ -85,6 +90,3 @@ internal fun SceneItem(
 		}
 	}
 }
-
-private fun sceneRowStartPadding(depth: Int): Dp =
-	Ui.Padding.XXL + (Ui.Padding.XL * (depth - 1).coerceAtLeast(0))

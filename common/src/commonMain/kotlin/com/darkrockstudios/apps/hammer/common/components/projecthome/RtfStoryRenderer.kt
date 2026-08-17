@@ -183,9 +183,15 @@ private fun themeColor(argb: String?): RtfColor? {
  */
 private fun renderMarkdownRtf(markdown: String, primary: RtfColor?, secondary: RtfColor?): List<RtfBlock> {
 	val blocks = mutableListOf<RtfBlock>()
-	for (block in parseProseMarkdown(markdown)) {
+	val parsed = parseProseMarkdown(markdown)
+	parsed.forEachIndexed { index, block ->
+		// Prose runs tight: the indent parts one line from the next, and the space a passage break
+		// wants is a blank line the author actually typed. Space after is for leaving prose behind.
+		val runsOn = parsed.getOrNull(index + 1)?.isProseLine == true
+		val proseSpaceAfter = if (runsOn) 0 else PARAGRAPH_SPACE_AFTER
 		when (block) {
-			is ProseBlock.Paragraph -> blocks += bodyParagraph(block.spans, primary)
+			is ProseBlock.Paragraph -> blocks += bodyParagraph(block.spans, primary, proseSpaceAfter)
+			ProseBlock.Blank -> blocks += bodyParagraph(emptyList(), primary, proseSpaceAfter)
 			is ProseBlock.Heading -> blocks += headingParagraph(block, primary, secondary)
 			is ProseBlock.Listing -> {
 				val numbering = RtfListNumbering()
@@ -201,9 +207,16 @@ private fun renderMarkdownRtf(markdown: String, primary: RtfColor?, secondary: R
 	return blocks
 }
 
-private fun bodyParagraph(spans: List<ProseSpan>, primary: RtfColor?): RtfParagraph = RtfParagraph(
+private fun bodyParagraph(
+	spans: List<ProseSpan>,
+	primary: RtfColor?,
+	spaceAfterTwips: Int = PARAGRAPH_SPACE_AFTER,
+): RtfParagraph = RtfParagraph(
 	content = coalesceRuns(spansToInlines(spans, RtfSpanStyle.Default, primary)),
-	style = RtfParagraphStyle(firstLineIndentTwips = BODY_FIRST_LINE_INDENT, spaceAfterTwips = PARAGRAPH_SPACE_AFTER),
+	style = RtfParagraphStyle(
+		firstLineIndentTwips = BODY_FIRST_LINE_INDENT,
+		spaceAfterTwips = spaceAfterTwips,
+	),
 )
 
 private fun headingParagraph(block: ProseBlock.Heading, primary: RtfColor?, secondary: RtfColor?): RtfParagraph {

@@ -34,6 +34,10 @@ class CreateEntryComponent(
 		watchSpellCheckAllowed { allowed ->
 			_state.getAndUpdate { it.copy(spellCheckAllowed = allowed) }
 		}
+
+		watchEncyclopediaDictionaryEnabled { enabled ->
+			_state.getAndUpdate { it.copy(dictionaryFeatureEnabled = enabled) }
+		}
 	}
 
 	override fun confirmClose() {
@@ -53,9 +57,17 @@ class CreateEntryComponent(
 		type: EntryType,
 		text: String,
 		tags: Set<String>,
-		imagePath: String?
+		imagePath: String?,
+		excludeFromDictionary: Boolean,
 	): EntryResult = withContext(dispatcherDefault) {
-		val result = encyclopediaService.createEntry(name, type, text, tags, imagePath)
+		val result = encyclopediaService.createEntry(
+			name = name,
+			type = type,
+			text = text,
+			tags = tags,
+			imagePath = imagePath,
+			excludeFromDictionary = excludeFromDictionary,
+		)
 		if (result.error == EntryError.NONE) {
 			encyclopediaService.loadEntries()
 			result.instance?.entry?.let { newEntry ->

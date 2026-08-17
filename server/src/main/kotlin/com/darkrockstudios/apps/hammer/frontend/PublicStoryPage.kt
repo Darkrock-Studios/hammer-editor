@@ -148,8 +148,13 @@ fun Route.publicStoryPage(
 					)
 
 					// Resolved once and reused by the render below, so the ETag costs no extra queries.
-					val prepared =
-						storyRendererService.prepareExport(resolved.userId, resolved.projectUuid)
+					// A scene-limited share prepares only its scene subset; if every selected scene
+					// is gone this returns null and the link 404s like a nonexistent share.
+					val prepared = storyRendererService.prepareExport(
+						resolved.userId,
+						resolved.projectUuid,
+						resolved.sceneIds,
+					)
 
 					// Stands in for everything project-data carries (notably the declared story
 					// language rendered below): a hash-only lookup, so the revalidation path never
@@ -201,6 +206,7 @@ fun Route.publicStoryPage(
 							)
 							if (storyLanguage != null) {
 								model["locale"] = storyLanguage
+								model["storyLanguage"] = storyLanguage
 							}
 
 							model.putAll(

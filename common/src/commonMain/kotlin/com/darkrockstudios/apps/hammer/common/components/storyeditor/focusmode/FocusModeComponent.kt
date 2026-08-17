@@ -5,6 +5,7 @@ import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
 import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.clampEditorWidth
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.decreaseEditorTextSize
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.increaseEditorTextSize
 import com.darkrockstudios.apps.hammer.common.data.*
@@ -39,6 +40,7 @@ class FocusModeComponent(
 			projectDef = projectDef,
 			sceneItem = sceneItem,
 			spellCheckingEnabled = (settingsRepository.globalSettings.spellCheckSettings.isEnabledInFocusMode()),
+			editorMaxWidth = settingsRepository.globalSettings.editorMaxWidth,
 		)
 	)
 	override val state = _state
@@ -114,6 +116,26 @@ class FocusModeComponent(
 		}
 	}
 
+	override fun setEditorMaxWidth(width: Float) {
+		scope.launch {
+			settingsRepository.updateSettings {
+				it.copy(
+					editorMaxWidth = clampEditorWidth(width)
+				)
+			}
+		}
+	}
+
+	override fun resetEditorMaxWidth() {
+		scope.launch {
+			settingsRepository.updateSettings {
+				it.copy(
+					editorMaxWidth = GlobalSettings.DEFAULT_EDITOR_WIDTH
+				)
+			}
+		}
+	}
+
 	private fun subscribeToBufferUpdates() {
 		Napier.d { "FocusModeComponent start collecting buffer updates" }
 
@@ -129,6 +151,7 @@ class FocusModeComponent(
 					_state.getAndUpdate {
 						it.copy(
 							textSize = settings.editorFontSize,
+							editorMaxWidth = settings.editorMaxWidth,
 							spellCheckingEnabled = settings.spellCheckSettings.isEnabledInFocusMode(),
 						)
 					}

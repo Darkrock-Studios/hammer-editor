@@ -28,6 +28,7 @@ interface ViewEntry : TagSuggesting {
 		val menuItems: Set<MenuItemDescriptor> = emptySet(),
 		val appearsIn: List<Appearance> = emptyList(),
 		val spellCheckAllowed: Boolean = true,
+		val dictionaryFeatureEnabled: Boolean = true,
 	)
 
 	data class Appearance(
@@ -69,5 +70,6 @@ interface ViewEntry : TagSuggesting {
 	fun endAliasAdd()
 	suspend fun addAlias(alias: String): EntryResult
 	fun removeAlias(alias: String)
+	suspend fun setExcludeFromDictionary(exclude: Boolean): EntryResult
 	fun navigateToAppearance(appearance: Appearance)
 }

@@ -188,20 +188,20 @@ class ProjectRootActivity : AppCompatActivity() {
 
 	override fun dispatchKeyEvent(event: KeyEvent): Boolean {
 		if (event.action == KeyEvent.ACTION_DOWN) {
-			if (event.keyCode == KeyEvent.KEYCODE_F && event.isShiftPressed && event.isCtrlPressed) {
+			// hasModifiers matches exactly, so AltGr chords fall through and type their character.
+			val ctrlShift = KeyEvent.META_CTRL_ON or KeyEvent.META_SHIFT_ON
+			if (event.keyCode == KeyEvent.KEYCODE_F && event.hasModifiers(ctrlShift)) {
 				projectRoot?.let {
 					it.showGlobalSearch()
 					return true
 				}
 			}
 
-			// hasModifiers matches exactly, so Ctrl+F3 and Ctrl+Alt+Shift+S fall through.
 			if (event.keyCode == KeyEvent.KEYCODE_F3 && event.hasNoModifiers()) {
 				if (shortcutHost.startProjectSync()) return true
 			}
 
-			val ctrlAlt = KeyEvent.META_CTRL_ON or KeyEvent.META_ALT_ON
-			if (event.keyCode == KeyEvent.KEYCODE_S && event.hasModifiers(ctrlAlt)) {
+			if (event.keyCode == KeyEvent.KEYCODE_S && event.hasModifiers(ctrlShift)) {
 				if (shortcutHost.saveAllBuffers()) return true
 			}
 		}

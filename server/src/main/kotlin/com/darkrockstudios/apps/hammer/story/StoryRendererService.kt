@@ -52,7 +52,7 @@ class StoryRendererService(
 			}
 
 			val markdown = buildStoryMarkdown(projectDef.name, scenes)
-			val html = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
+			val html = markdownService.markdownToSafeHtml(markdown, preserveLineBreaks = true)
 
 			// Calculate total word count from scene content only (not group names)
 			val totalWordCount = scenes
@@ -144,14 +144,24 @@ class StoryRendererService(
 	 * render doesn't pay for the lookup twice. Costs one project lookup plus one indexed hash query
 	 * with no decryption. Null when the project doesn't exist.
 	 */
-	suspend fun prepareExport(userId: Long, projectId: ProjectId): PreparedExport? {
+	suspend fun prepareExport(
+		userId: Long,
+		projectId: ProjectId,
+		sceneFilter: Set<Int>? = null,
+	): PreparedExport? {
 		val projectDef = projectEntityDatasource.getProject(userId, projectId) ?: return null
-		val sceneHashes = sceneHashes(userId, projectDef)
+		val allHashes = sceneHashes(userId, projectDef)
+		// The fingerprint covers only the filtered scenes, so the HTTP validator changes
+		// exactly when this share's visible content changes, and two shares with different
+		// scene sets never collide on a validator.
+		val sceneHashes = if (sceneFilter != null) allHashes.filter { it.id in sceneFilter } else allHashes
+		if (sceneFilter != null && sceneHashes.isEmpty()) return null
 		return PreparedExport(
 			userId = userId,
 			projectId = projectId,
 			projectDef = projectDef,
 			sceneHashes = sceneHashes,
+			sceneFilter = sceneFilter,
 			version = StoryRenderCache.fingerprint(projectDef.name, sceneHashes),
 		)
 	}
@@ -190,6 +200,7 @@ class StoryRendererService(
 		page = page,
 		wordsPerPage = wordsPerPage,
 		cacheable = cacheable,
+		sceneFilter = prepared.sceneFilter,
 	)
 
 	private suspend fun renderOrCache(
@@ -200,6 +211,7 @@ class StoryRendererService(
 		page: Int,
 		wordsPerPage: Int,
 		cacheable: Boolean,
+		sceneFilter: Set<Int>? = null,
 	): PaginatedExportResult {
 		val cache = renderCache.takeIf { cacheable }
 
@@ -211,9 +223,9 @@ class StoryRendererService(
 					page = page,
 					wordsPerPage = wordsPerPage,
 					sceneHashes = sceneHashes,
-				) { renderPaginated(userId, projectDef, page, wordsPerPage) }
+				) { renderPaginated(userId, projectDef, page, wordsPerPage, sceneFilter) }
 			} else {
-				renderPaginated(userId, projectDef, page, wordsPerPage).result
+				renderPaginated(userId, projectDef, page, wordsPerPage, sceneFilter).result
 			}
 			PaginatedExportResult.Success(result)
 		} catch (e: Exception) {
@@ -233,12 +245,19 @@ class StoryRendererService(
 		projectDef: ProjectDefinition,
 		page: Int,
 		wordsPerPage: Int,
+		sceneFilter: Set<Int>? = null,
 	): StoryRender {
-		val sceneDefs = projectEntityDatasource.getEntityDefsByType(
+		val allSceneDefs = projectEntityDatasource.getEntityDefsByType(
 			userId = userId,
 			projectDef = projectDef,
 			type = ApiProjectEntity.Type.SCENE
 		)
+		// Filter before loading so unselected scenes are never decrypted.
+		val sceneDefs = if (sceneFilter != null) {
+			allSceneDefs.filter { it.id in sceneFilter }
+		} else {
+			allSceneDefs
+		}
 
 		if (sceneDefs.isEmpty()) {
 			return StoryRender(
@@ -295,7 +314,7 @@ class StoryRendererService(
 
 		// Build markdown and HTML for current page only
 		val pageMarkdown = buildPaginatedMarkdown(projectDef.name, currentPageScenes, currentPage == 1)
-		val pageHtml = markdownService.markdownToSafeHtml(pageMarkdown, preserveBlankLines = true)
+		val pageHtml = markdownService.markdownToSafeHtml(pageMarkdown, preserveLineBreaks = true)
 
 		return StoryRender(
 			result = PaginatedStoryExportResult(
@@ -511,7 +530,7 @@ class StoryRendererService(
 				buildGroupMarkdown(targetScene, scenesByParent)
 			}
 
-			val html = markdownService.markdownToSafeHtml(markdown, preserveBlankLines = true)
+			val html = markdownService.markdownToSafeHtml(markdown, preserveLineBreaks = true)
 
 			SingleSceneExportResult.Success(
 				projectName = projectDef.name,
@@ -570,6 +589,8 @@ class PreparedExport internal constructor(
 	internal val projectDef: ProjectDefinition,
 	internal val sceneHashes: List<EntityHash>,
 	val version: String,
+	/** Scene ids the render is limited to; null renders the entire story. */
+	internal val sceneFilter: Set<Int>? = null,
 )
 
 @Serializable

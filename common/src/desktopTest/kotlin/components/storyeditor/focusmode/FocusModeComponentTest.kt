@@ -166,6 +166,43 @@ class FocusModeComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `Editor width controls persist through settings`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.setEditorMaxWidth(900f)
+		advanceUntilIdle()
+		assertEquals(900f, settingsTransform.captured(GlobalSettings(projectsDirectory = "/p")).editorMaxWidth)
+
+		comp.setEditorMaxWidth(5000f)
+		advanceUntilIdle()
+		assertEquals(
+			GlobalSettings.MAX_EDITOR_WIDTH,
+			settingsTransform.captured(GlobalSettings(projectsDirectory = "/p")).editorMaxWidth,
+		)
+
+		comp.resetEditorMaxWidth()
+		advanceUntilIdle()
+		assertEquals(
+			GlobalSettings.DEFAULT_EDITOR_WIDTH,
+			settingsTransform.captured(GlobalSettings(projectsDirectory = "/p")).editorMaxWidth,
+		)
+	}
+
+	@Test
+	fun `Settings updates change the editor width in state`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		settingsUpdates.emit(GlobalSettings(projectsDirectory = "/projects", editorMaxWidth = 1200f))
+		advanceUntilIdle()
+
+		assertEquals(1200f, comp.state.value.editorMaxWidth)
+	}
+
+	@Test
 	fun `External buffer updates refresh state and force an editor update`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 		context.resume()

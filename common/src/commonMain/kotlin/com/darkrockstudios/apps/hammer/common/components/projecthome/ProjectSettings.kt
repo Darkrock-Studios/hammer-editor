@@ -24,6 +24,8 @@ interface ProjectSettings : HammerComponent {
 	/** [tag] is a BCP-47 tag; null or blank clears the project language. */
 	fun setProjectLanguage(tag: String?)
 
+	fun setEncyclopediaDictionaryEnabled(enabled: Boolean)
+
 	data class LanguageOption(
 		val tag: String,
 		val displayName: String,

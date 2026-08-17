@@ -61,15 +61,19 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 			email: String,
 			password: String,
 			create: Boolean,
-			removeLocalContent: Boolean
+			replaceLocalContent: Boolean
 		) {
 		}
+
+		override fun chooseMerge() {}
+		override fun chooseReplace() {}
+		override fun cancelMergePrompt() {}
 
 		override fun acceptTos() {}
 		override fun declineTos() {}
 
 		override suspend fun authTest() = true
-		override fun removeServer() {}
+		override suspend fun removeServer() {}
 		override suspend fun setAutomaticBackups(value: Boolean) {}
 		override suspend fun setAutoCloseDialogs(value: Boolean) {}
 		override suspend fun setAutoSyncing(value: Boolean) {}
@@ -83,12 +87,13 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 				override val state: Value<SpellCheckSettings.State>
 					get() = MutableValue(
 						SpellCheckSettings.State(
-							true, true, Locale.root, emptyList()
+							true, true, true, Locale.root, emptyList()
 						)
 					)
 
 				override suspend fun setSpellcheckEnable(enable: Boolean) {}
 				override suspend fun setSpellCheckingInFocusEnabled(enable: Boolean) {}
+				override suspend fun setSpellCheckEncyclopediaEnabled(enable: Boolean) {}
 				override suspend fun setSpellCheckLanguage(language: Locale) {}
 			}
 

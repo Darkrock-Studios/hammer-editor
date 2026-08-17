@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSettings
 import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
+import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
@@ -34,7 +35,8 @@ import kotlin.time.Instant
 @OptIn(ExperimentalCoroutinesApi::class)
 // These tests drive lifecycle by calling onCreate()/onStart()/onStop() directly rather than
 // context.resume(), which keeps the eagerly-constructed child SceneMetadataPanelComponent dormant
-// so its dependencies don't need registering.
+// so its lazy dependencies don't need registering. Its construction-time dependencies
+// (SceneEditorService, ScrubInvalidReferencesUseCase) still must be registered.
 class SceneEditorComponentTest : ComponentTest() {
 
 	private val sceneItem = SceneItem(projectDef, SceneItem.Type.Scene, id = 7, name = "Chapter One", order = 0)
@@ -102,6 +104,7 @@ class SceneEditorComponentTest : ComponentTest() {
 			single { sceneEditor } bind SceneEditorService::class
 			single { draftsRepository } bind SceneDraftRepository::class
 			single { autoConfirm } bind AutoConfirmReferencesUseCase::class
+			single<ScrubInvalidReferencesUseCase> { mockk(relaxed = true) }
 		})
 
 		closeCount = 0
@@ -389,6 +392,50 @@ class SceneEditorComponentTest : ComponentTest() {
 		val expected = increaseEditorTextSize(GlobalSettings.DEFAULT_FONT_SIZE)
 		assertEquals(expected, settingsAction.captured(globalSettings).editorFontSize)
 		assertTrue(expected > GlobalSettings.DEFAULT_FONT_SIZE)
+	}
+
+	// --- editor width (settings writes) --------------------------------------
+
+	@Test
+	fun `initial state seeds editorMaxWidth from settings`() = runTest(mainTestDispatcher) {
+		globalSettings = settings().copy(editorMaxWidth = 900f)
+
+		val comp = newComponent()
+
+		assertEquals(900f, comp.state.value.editorMaxWidth)
+	}
+
+	@Test
+	fun `setEditorMaxWidth persists the width`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+
+		comp.setEditorMaxWidth(900f)
+		advanceUntilIdle()
+
+		assertEquals(900f, settingsAction.captured(globalSettings).editorMaxWidth)
+	}
+
+	@Test
+	fun `setEditorMaxWidth clamps out-of-range widths`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+
+		comp.setEditorMaxWidth(5000f)
+		advanceUntilIdle()
+		assertEquals(GlobalSettings.MAX_EDITOR_WIDTH, settingsAction.captured(globalSettings).editorMaxWidth)
+
+		comp.setEditorMaxWidth(100f)
+		advanceUntilIdle()
+		assertEquals(GlobalSettings.MIN_EDITOR_WIDTH, settingsAction.captured(globalSettings).editorMaxWidth)
+	}
+
+	@Test
+	fun `resetEditorMaxWidth persists the default width`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+
+		comp.resetEditorMaxWidth()
+		advanceUntilIdle()
+
+		assertEquals(GlobalSettings.DEFAULT_EDITOR_WIDTH, settingsAction.captured(globalSettings).editorMaxWidth)
 	}
 
 	// --- forwarding ----------------------------------------------------------

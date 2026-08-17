@@ -95,6 +95,12 @@ class ProjectSettingsComponent(
 		}
 	}
 
+	override fun setEncyclopediaDictionaryEnabled(enabled: Boolean) {
+		scope.launch {
+			projectDataRepository.updateData { it.copy(encyclopediaDictionary = enabled) }
+		}
+	}
+
 	override fun suggestProjectTags(prefix: String): List<String> {
 		// Exclude this project's own tags so it suggests from the *other* projects' / ideas'
 		// vocabulary, rather than offering back tags already applied here.

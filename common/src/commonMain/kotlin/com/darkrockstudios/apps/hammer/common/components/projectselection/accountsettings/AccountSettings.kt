@@ -21,19 +21,28 @@ interface AccountSettings : ComponentToaster {
 	fun reinstallExampleProject(onComplete: (Boolean) -> Unit)
 	fun beginSetupServer()
 	fun cancelServerSetup()
+	/**
+	 * [replaceLocalContent] is only ever true when the user explicitly chose "Replace" in the merge
+	 * prompt. When it is false and the login would merge real local work into a different server,
+	 * this raises that prompt instead of running the setup; see [chooseMerge] / [chooseReplace].
+	 */
 	fun setupServer(
 		url: String,
 		email: String,
 		password: String,
 		create: Boolean,
-		removeLocalContent: Boolean
+		replaceLocalContent: Boolean
 	)
+
+	fun chooseMerge()
+	fun chooseReplace()
+	fun cancelMergePrompt()
 
 	fun acceptTos()
 	fun declineTos()
 
 	suspend fun authTest(): Boolean
-	fun removeServer()
+	suspend fun removeServer()
 
 	suspend fun setAutomaticBackups(value: Boolean)
 	suspend fun setAutoCloseDialogs(value: Boolean)
@@ -65,6 +74,7 @@ interface AccountSettings : ComponentToaster {
 		@Transient val serverError: String? = null,
 		@Transient val serverWorking: Boolean = false,
 		@Transient val tosChallenge: TermsOfServiceChallenge? = null,
+		@Transient val mergePrompt: Boolean = false,
 		val syncAutomaticSync: Boolean,
 		val syncAutomaticBackups: Boolean,
 		val syncAutoCloseDialog: Boolean,

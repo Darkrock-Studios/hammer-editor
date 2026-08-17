@@ -11,9 +11,14 @@ import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
 import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
+import com.darkrockstudios.apps.hammer.frontend.utils.renderTemplate
 import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
+import com.darkrockstudios.apps.hammer.frontend.utils.respondHtmlWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
+import com.darkrockstudios.apps.hammer.frontend.utils.sceneTreeModel
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
+import com.darkrockstudios.apps.hammer.project.ProjectDefinition
+import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.story.SceneHierarchyResult
@@ -21,7 +26,9 @@ import com.darkrockstudios.apps.hammer.story.SingleSceneExportResult
 import com.darkrockstudios.apps.hammer.story.StoryRenderResult
 import com.darkrockstudios.apps.hammer.story.StoryRendererService
 import com.darkrockstudios.apps.hammer.story.WordCountUtils
+import com.darkrockstudios.apps.hammer.utilities.ServerResult
 import com.darkrockstudios.apps.hammer.utilities.truncateToUtcDay
+import com.github.aymanizz.ktori18n.R
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.htmx.hx
@@ -48,6 +55,7 @@ fun Route.storyPage(
 	accountsRepository: AccountsRepository,
 	reviewRepository: com.darkrockstudios.apps.hammer.review.ReviewRepository,
 	storyReaderRepository: StoryReaderRepository,
+	serverProjectDataRepository: ServerProjectDataRepository,
 	projectDao: ProjectDao,
 	clock: kotlin.time.Clock,
 ) {
@@ -140,9 +148,18 @@ fun Route.storyPage(
 
 						val reviewModels = call.reviewCards(reviewRepository, session.userId, projectId)
 
+						// The public reader page declares the story's language on the prose; the
+						// author's own view has to as well, or the browser hyphenates a French
+						// story by the rules of whatever locale the author reads Hammer in.
+						val storyLanguage = serverProjectDataRepository.loadProjectLanguage(
+							userId = session.userId,
+							projectDef = ProjectDefinition(name = project.name, uuid = projectId),
+						)
+
 						val model = call.withDefaults(
 							mapOf(
 								"page_stylesheet" to "/assets/css/story.css",
+								"storyLanguage" to storyLanguage.orEmpty(),
 								"page_script" to "/assets/js/story.js",
 								"page_pre_script" to "/assets/js/review-form-logic.js",
 								"reviews" to reviewModels,
@@ -342,11 +359,34 @@ fun Route.storyPage(
 			}
 
 			hx.get("/share-dialog") {
+				val session = call.sessions.requireUser()
 				val projectNameParam = call.parameters["projectName"]
 
 				if (projectNameParam.isNullOrBlank()) {
 					call.respond(HttpStatusCode.BadRequest)
 					return@get
+				}
+
+				val project = projectsRepository.findProjectByUrlSegment(session.userId, projectNameParam)
+				if (project == null) {
+					call.respond(HttpStatusCode.NotFound)
+					return@get
+				}
+
+				val hierarchyResult =
+					storyRendererService.getSceneHierarchy(session.userId, ProjectId(project.uuid))
+				// A failed tree load must not render as an innocent empty tree: with the limit
+				// toggle on, an empty tree pins the submit button disabled with no explanation.
+				val scenes = when (hierarchyResult) {
+					is SceneHierarchyResult.Success -> hierarchyResult.scenes
+					else -> {
+						respondHtmlWithToast(
+							content = "",
+							message = call.msg("story_share_dialog_scenes_failed"),
+							toast = Toast.Error,
+						)
+						return@get
+					}
 				}
 
 				// Get tomorrow's date as minimum date for the date picker
@@ -355,8 +395,10 @@ fun Route.storyPage(
 
 				val model = call.withDefaults(
 					mapOf(
-						"projectNameForUrl" to projectNameParam,
-						"minDate" to minDate
+						"projectNameForUrl" to ProjectName.projectSegment(project.name, project.uuid),
+						"minDate" to minDate,
+						"sceneTree" to sceneTreeModel(scenes),
+						"sceneCount" to scenes.count { it.isScene },
 					)
 				)
 
@@ -392,6 +434,13 @@ fun Route.storyPage(
 				val formParams = call.receiveParameters()
 				val password = formParams["password"]
 				val expiresAt = formParams["expiresAt"]?.ifBlank { null }
+				// Null means the entire story; a checked limit box always produces a set, and
+				// the repository rejects an empty one rather than widening it.
+				val sceneIds: Set<Int>? = if (formParams["limitScenes"] != null) {
+					formParams.getAll("sceneIds")?.mapNotNull { it.toIntOrNull() }?.toSet() ?: emptySet()
+				} else {
+					null
+				}
 
 				if (password.isNullOrBlank()) {
 					call.respond(HttpStatusCode.BadRequest)
@@ -412,11 +461,12 @@ fun Route.storyPage(
 					kotlin.time.Instant.parse("${it}T23:59:59Z")
 				}
 
-				projectAccessRepository.createPrivateAccess(
+				val createResult = projectAccessRepository.createPrivateAccess(
 					userId = session.userId,
 					projectUuid = projectId,
 					password = password,
-					expiresAt = expiresAtInstant
+					expiresAt = expiresAtInstant,
+					sceneIds = sceneIds,
 				)
 
 				// Return updated publish section
@@ -442,11 +492,29 @@ fun Route.storyPage(
 					)
 				)
 
-				respondTemplateWithToast(
-					templatePath = "partials/story-publish.mustache",
-					model = model,
-					message = call.msg("story_toast_access_created"),
-					toast = Toast.Success
+				// Single respond after the when: responding from inside an exhaustive
+				// when's branches trips Ktor's pipeline-subject ClassCastException.
+				// The dialog is cleared via OOB swap only on success; a failure leaves
+				// it open with the author's scene selection intact.
+				val publishHtml = renderTemplate("partials/story-publish.mustache", model)
+				val closeDialog = """<div id="share-dialog-container" hx-swap-oob="innerHTML"></div>"""
+				val (content, toastMessage, toastType) = when (createResult) {
+					is ServerResult.Failure -> Triple(
+						publishHtml,
+						createResult.displayMessageText(call, R("api_error_unknown")),
+						Toast.Error,
+					)
+
+					is ServerResult.Success -> Triple(
+						publishHtml + closeDialog,
+						call.msg("story_toast_access_created"),
+						Toast.Success,
+					)
+				}
+				respondHtmlWithToast(
+					content = content,
+					message = toastMessage,
+					toast = toastType
 				)
 			}
 

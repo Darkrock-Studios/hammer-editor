@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
 import io.github.aakira.napier.Napier
 import org.koin.core.Koin
 import org.koin.core.component.KoinComponent
@@ -15,7 +16,7 @@ import org.koin.mp.KoinPlatform.getKoin
 
 suspend fun KoinComponent.temporaryProjectTask(projectDef: ProjectDef, block: suspend (projectScope: Scope) -> Unit) {
 	val hadToCreate = getKoin().getScopeOrNull(ProjectDefScope(projectDef).getScopeId()) == null
-	val projScope = openProjectScope(projectDef)
+	val projScope = openProjectScope(projectDef, temporary = true)
 
 	block(projScope)
 
@@ -34,20 +35,20 @@ fun createProjectScope(projectDef: ProjectDef): Scope {
 	return projScope
 }
 
-suspend fun openProjectScope(projectDef: ProjectDef): Scope {
+suspend fun openProjectScope(projectDef: ProjectDef, temporary: Boolean = false): Scope {
 	val defScope = ProjectDefScope(projectDef)
 
 	val needsInit = getKoin().getScopeOrNull(ProjectDefScope(projectDef).getScopeId()) == null
 	val projScope = getKoin().getOrCreateScope<ProjectDefScope>(defScope.getScopeId(), source = defScope)
 
 	if (needsInit) {
-		initializeProjectScope(projectDef)
+		initializeProjectScope(projectDef, temporary)
 	}
 
 	return projScope
 }
 
-suspend fun initializeProjectScope(projectDef: ProjectDef) {
+suspend fun initializeProjectScope(projectDef: ProjectDef, temporary: Boolean = false) {
 	val defScope = ProjectDefScope(projectDef)
 	getKoin().getScopeOrNull(defScope.getScopeId())?.let { projScope ->
 		// Creates the service (activating its autosave side-effect subscription from project open)
@@ -57,6 +58,12 @@ suspend fun initializeProjectScope(projectDef: ProjectDef) {
 
 		val timeLineRepository: TimeLineRepository = projScope.get { parametersOf(projectDef) }
 		timeLineRepository.initialize()
+
+		// Skipped for temporary scopes (background sync, import): loading session words
+		// there only churns the shared checker while the sync rewrites entries.
+		if (!temporary) {
+			projScope.get<ProjectDictionaryService>().initialize()
+		}
 	} ?: throw IllegalStateException("No scope found for $projectDef")
 }
 

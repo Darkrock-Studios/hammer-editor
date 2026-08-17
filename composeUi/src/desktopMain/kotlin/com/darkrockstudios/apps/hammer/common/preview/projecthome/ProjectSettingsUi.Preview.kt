@@ -69,6 +69,7 @@ private val fakeSpellCheckSettings = object : SpellCheckSettings {
 
 	override suspend fun setSpellcheckEnable(enable: Boolean) {}
 	override suspend fun setSpellCheckingInFocusEnabled(enable: Boolean) {}
+	override suspend fun setSpellCheckEncyclopediaEnabled(enable: Boolean) {}
 	override suspend fun setSpellCheckLanguage(language: Locale) {}
 }
 
@@ -96,6 +97,7 @@ private fun fakeComponent(language: String?) = object : ProjectSettings {
 	override fun setWordCountGoal(goal: WordCountGoal?) {}
 	override fun setTags(tags: Set<String>) {}
 	override fun setProjectLanguage(tag: String?) {}
+	override fun setEncyclopediaDictionaryEnabled(enabled: Boolean) {}
 	override fun suggestProjectTags(prefix: String): List<String> =
 		listOf("fantasy", "sci-fi", "nanowrimo").filter { it.startsWith(prefix, ignoreCase = true) }
 }

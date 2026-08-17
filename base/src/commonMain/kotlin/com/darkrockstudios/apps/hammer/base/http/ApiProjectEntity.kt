@@ -99,6 +99,7 @@ sealed interface ApiProjectEntity {
 		val tags: Set<String>,
 		val image: Image?,
 		val aliases: List<String> = emptyList(),
+		val excludeFromDictionary: Boolean = false,
 	) : ApiProjectEntity {
 		@Serializable
 		data class Image(
@@ -114,6 +115,7 @@ sealed interface ApiProjectEntity {
 			tags = tags,
 			image = image,
 			aliases = aliases,
+			excludeFromDictionary = excludeFromDictionary,
 		)
 	}
 

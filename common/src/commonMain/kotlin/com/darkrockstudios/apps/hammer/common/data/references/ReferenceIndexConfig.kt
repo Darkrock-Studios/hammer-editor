@@ -12,7 +12,7 @@ data class ReferenceIndexConfig(
 ) {
 	companion object {
 		fun default() = ReferenceIndexConfig(
-			enabledEntryTypes = setOf(EntryType.PERSON, EntryType.PLACE),
+			enabledEntryTypes = EntryType.entries.toSet(),
 			enabledSourceTypes = setOf(ReferenceSourceType.Scene),
 		)
 	}

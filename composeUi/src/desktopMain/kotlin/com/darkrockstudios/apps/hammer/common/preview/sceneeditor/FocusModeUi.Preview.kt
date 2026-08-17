@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
+import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_HEIGHT_DP
 import com.darkrockstudios.apps.hammer.common.preview.TABLET_WIDTH_DP
 import com.darkrockstudios.apps.hammer.common.preview.TabletPreviewSurface
@@ -18,14 +19,18 @@ import com.darkrockstudios.apps.hammer.common.storyeditor.focusmode.FocusModeUi
 @Preview
 @Composable
 fun ScreenFocusModeUiPreview() {
-	FocusModeUi(focusMode)
+	KoinApplicationPreview {
+		FocusModeUi(focusMode)
+	}
 }
 
 @Preview(widthDp = TABLET_WIDTH_DP, heightDp = TABLET_HEIGHT_DP)
 @Composable
 fun ScreenFocusModeUiTabletPreview() {
-	TabletPreviewSurface {
-		FocusModeUi(focusMode)
+	KoinApplicationPreview {
+		TabletPreviewSurface {
+			FocusModeUi(focusMode)
+		}
 	}
 }
 
@@ -54,4 +59,6 @@ private val focusMode = object : FocusMode {
 	override fun decreaseTextSize() {}
 	override fun increaseTextSize() {}
 	override fun resetTextSize() {}
+	override fun setEditorMaxWidth(width: Float) {}
+	override fun resetEditorMaxWidth() {}
 }

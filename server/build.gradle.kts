@@ -87,6 +87,8 @@ dependencies {
 	implementation(libs.ktor.server.forwarded.header)
 	implementation(libs.ktor.network.tlscertificates)
 	implementation(libs.bouncycastle.bcpkix)
+	// Argon2 password hashing; also pulled in transitively by bcpkix, declared for the direct use.
+	implementation(libs.bouncycastle.bcprov)
 	implementation(libs.jakarta.mail)
 
 	// Logback is the active SLF4J binding (replaces slf4j-simple) so logback.xml's
@@ -134,7 +136,6 @@ dependencies {
 //	implementation(libs.cryptography.core)
 //	implementation(libs.cryptography.provider.jdk)
 	implementation(libs.kache)
-	implementation(libs.argon2.jvm)
 
 	testImplementation(libs.bundles.ktor.client)
 	testImplementation(libs.ktor.serialization.kotlinx.json)

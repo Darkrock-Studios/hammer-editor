@@ -290,6 +290,18 @@
 	gap: 0.75rem;
 }
 
+.whitelist-search {
+	display: flex;
+	gap: 0.75rem;
+	align-items: flex-end;
+	margin-bottom: 1rem;
+}
+
+.whitelist-search__field {
+	flex: 1;
+	margin-bottom: 0;
+}
+
 .whitelist-controls {
 	display: flex;
 	align-items: center;
@@ -297,6 +309,28 @@
 	margin-bottom: 1rem;
 	padding-bottom: 0.75rem;
 	border-bottom: 2px solid var(--neutral-200);
+}
+
+/* Pushed left of the sort button, which the container's flex-end would otherwise pin it to. */
+.whitelist-controls__filter {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.375rem;
+	margin-right: auto;
+	font-size: 0.875rem;
+	color: var(--text-secondary);
+}
+
+.whitelist-controls__filter code {
+	font-family: 'Kingthings Typewriter', 'Courier New', monospace;
+	color: var(--text-primary);
+	word-break: break-all;
+}
+
+.whitelist-controls .whitelist-controls__filter-clear {
+	padding: 0.25rem 0.5rem;
+	border: none;
+	line-height: 1;
 }
 
 .whitelist-controls .btn {
@@ -704,6 +738,16 @@
 
 	.status-label {
 		min-width: auto;
+	}
+
+	.whitelist-controls {
+		flex-wrap: wrap;
+		gap: 0.5rem;
+	}
+
+	.whitelist-controls__filter {
+		margin-right: 0;
+		width: 100%;
 	}
 
 	.whitelist-entry {
