@@ -83,6 +83,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEngravingPl
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineGrid
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetadataItem
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
@@ -127,6 +128,8 @@ import com.darkrockstudios.apps.hammer.encyclopedia_entry_alias_hint
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_aliases_label
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_appears_in_empty
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_appears_in_label
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_dictionary_toggle_hint
+import com.darkrockstudios.apps.hammer.encyclopedia_entry_dictionary_toggle_label
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_body_empty_label
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_close_button
 import com.darkrockstudios.apps.hammer.encyclopedia_entry_colophon_end
@@ -379,6 +382,12 @@ internal fun ViewEntryUi(
 						AppearsInZone(
 							state = state,
 							component = component,
+						)
+
+						DictionaryToggleZone(
+							state = state,
+							component = component,
+							scope = scope,
 						)
 
 						FooterColophon(
@@ -1033,6 +1042,28 @@ private fun TagsAndAliasesZone(
 			AliasesSection(content.aliases, component, modifier = Modifier.weight(1f))
 		}
 	}
+}
+
+@Composable
+private fun DictionaryToggleZone(
+	state: ViewEntry.State,
+	component: ViewEntry,
+	scope: CoroutineScope,
+) {
+	if (!state.dictionaryFeatureEnabled) return
+	val content = state.content ?: return
+	HdHairlineToggleRow(
+		checked = !content.excludeFromDictionary,
+		label = Res.string.encyclopedia_entry_dictionary_toggle_label.get(),
+		hint = Res.string.encyclopedia_entry_dictionary_toggle_hint.get(),
+		onCheckedChange = { include ->
+			scope.launch { component.setExcludeFromDictionary(!include) }
+		},
+		modifier = Modifier
+			.padding(horizontal = Ui.Padding.XXL)
+			.padding(top = 28.dp)
+			.fillMaxWidth(),
+	)
 }
 
 @OptIn(ExperimentalLayoutApi::class)

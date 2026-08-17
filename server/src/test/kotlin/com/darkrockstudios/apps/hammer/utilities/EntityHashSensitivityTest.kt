@@ -237,6 +237,7 @@ class EntityHashSensitivityTest {
 				"image.base64" to base.copy(image = base.image!!.copy(base64 = "abcd")),
 				"image.fileExtension" to base.copy(image = base.image!!.copy(fileExtension = "jpg")),
 				"aliases" to base.copy(aliases = listOf("Bobby")),
+				"excludeFromDictionary" to base.copy(excludeFromDictionary = true),
 			),
 		)
 	}
@@ -291,6 +292,7 @@ class EntityHashSensitivityTest {
 				"wordCountGoal.count" to base.copy(wordCountGoal = base.wordCountGoal!!.copy(count = 999)),
 				"tags" to base.copy(tags = setOf("different")),
 				"language" to base.copy(language = "fr"),
+				"encyclopediaDictionary" to base.copy(encyclopediaDictionary = false),
 			),
 		)
 	}

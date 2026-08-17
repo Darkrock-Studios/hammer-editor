@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
 import io.github.aakira.napier.Napier
 import org.koin.core.Koin
 import org.koin.core.component.KoinComponent
@@ -57,6 +58,9 @@ suspend fun initializeProjectScope(projectDef: ProjectDef) {
 
 		val timeLineRepository: TimeLineRepository = projScope.get { parametersOf(projectDef) }
 		timeLineRepository.initialize()
+
+		// Eagerly created so encyclopedia session words load from project open, not first use.
+		projScope.get<ProjectDictionaryService>()
 	} ?: throw IllegalStateException("No scope found for $projectDef")
 }
 

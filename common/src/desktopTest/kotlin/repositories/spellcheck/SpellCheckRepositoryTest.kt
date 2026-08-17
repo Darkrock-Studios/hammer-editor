@@ -12,6 +12,8 @@ import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import com.darkrockstudios.libs.platformspellchecker.SpLocale
+import getProject1Def
+import getProjectDef
 import io.mockk.Runs
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -187,6 +189,209 @@ class SpellCheckRepositoryTest : BaseTest() {
 			assertSame(checker, awaitItem())
 			cancelAndConsumeRemainingEvents()
 		}
+	}
+
+	private fun sessionCapableChecker(correctWords: Set<String> = emptySet()): Pair<PlatformSpellChecker, MutableList<Collection<String>>> {
+		val applied = mutableListOf<Collection<String>>()
+		val checker = mockk<PlatformSpellChecker>()
+		coEvery { checker.isWordCorrect(any()) } answers { firstArg<String>() in correctWords }
+		coEvery { checker.setUserDictionary(any()) } answers { applied.add(firstArg()); Unit }
+		return checker to applied
+	}
+
+	@Test
+	fun `setSessionWords emits a new checker carrying the words`() = scope.runTest {
+		val (first, _) = sessionCapableChecker()
+		val (second, secondApplied) = sessionCapableChecker()
+		every { factory.hasLanguage(any()) } returns true
+		coEvery { factory.createSpellChecker(any()) } returnsMany listOf(first, second)
+
+		val repo = SpellCheckRepository(settingsStore(Locale.forLanguageTag("en")), factory)
+
+		repo.dictionaryFlow.test {
+			assertSame(first, awaitItem())
+
+			repo.setSessionWords(getProject1Def(), setOf("zaltharion", "kastle"))
+
+			assertSame(second, awaitItem())
+			assertEquals(setOf("zaltharion", "kastle"), secondApplied.single().toSet())
+			cancelAndConsumeRemainingEvents()
+		}
+	}
+
+	@Test
+	fun `words the base dictionary already accepts are not added`() = scope.runTest {
+		val (first, _) = sessionCapableChecker()
+		val (second, secondApplied) = sessionCapableChecker(correctWords = setOf("paris"))
+		every { factory.hasLanguage(any()) } returns true
+		coEvery { factory.createSpellChecker(any()) } returnsMany listOf(first, second)
+
+		val repo = SpellCheckRepository(settingsStore(Locale.forLanguageTag("en")), factory)
+
+		repo.dictionaryFlow.test {
+			assertSame(first, awaitItem())
+
+			repo.setSessionWords(getProject1Def(), setOf("paris", "zaltharion"))
+
+			assertSame(second, awaitItem())
+			assertEquals(setOf("zaltharion"), secondApplied.single().toSet())
+			cancelAndConsumeRemainingEvents()
+		}
+	}
+
+	@Test
+	fun `locale change re-applies session words to the new checker`() = scope.runTest {
+		val (en, _) = sessionCapableChecker()
+		val (enWithWords, _) = sessionCapableChecker()
+		val (fr, frApplied) = sessionCapableChecker()
+		every { factory.hasLanguage(any()) } returns true
+		coEvery { factory.createSpellChecker(SpLocale("en")) } returnsMany listOf(en, enWithWords)
+		coEvery { factory.createSpellChecker(SpLocale("fr")) } returns fr
+		coEvery { globalSettingsDatasource.storeSettings(any()) } just Runs
+
+		val store = settingsStore(Locale.forLanguageTag("en"))
+		val repo = SpellCheckRepository(store, factory)
+
+		repo.dictionaryFlow.test {
+			assertSame(en, awaitItem())
+
+			repo.setSessionWords(getProject1Def(), setOf("zaltharion"))
+			assertSame(enWithWords, awaitItem())
+
+			store.updateSettings { settings ->
+				settings.copy(
+					spellCheckSettings = settings.spellCheckSettings.copy(
+						locale = Locale.forLanguageTag("fr")
+					)
+				)
+			}
+
+			assertSame(fr, awaitItem())
+			assertEquals(setOf("zaltharion"), frApplied.single().toSet())
+			cancelAndConsumeRemainingEvents()
+		}
+	}
+
+	@Test
+	fun `session words set while disabled are applied on re-enable`() = scope.runTest {
+		val (checker, applied) = sessionCapableChecker()
+		every { factory.hasLanguage(any()) } returns true
+		coEvery { factory.createSpellChecker(SpLocale("en")) } returns checker
+		coEvery { globalSettingsDatasource.storeSettings(any()) } just Runs
+
+		val store = settingsStore(Locale.forLanguageTag("en"), enabled = false)
+		val repo = SpellCheckRepository(store, factory)
+		advanceUntilIdle()
+
+		repo.setSessionWords(getProject1Def(), setOf("zaltharion"))
+		advanceUntilIdle()
+		coVerify(exactly = 0) { factory.createSpellChecker(any()) }
+
+		repo.dictionaryFlow.test {
+			assertEquals(null, awaitItem())
+
+			store.updateSettings { settings ->
+				settings.copy(
+					spellCheckSettings = settings.spellCheckSettings.copy(enabled = true)
+				)
+			}
+
+			assertSame(checker, awaitItem())
+			assertEquals(setOf("zaltharion"), applied.single().toSet())
+			cancelAndConsumeRemainingEvents()
+		}
+	}
+
+	@Test
+	fun `clearSessionWords emits a fresh checker without the words`() = scope.runTest {
+		val (first, _) = sessionCapableChecker()
+		val (second, secondApplied) = sessionCapableChecker()
+		val (third, thirdApplied) = sessionCapableChecker()
+		every { factory.hasLanguage(any()) } returns true
+		coEvery { factory.createSpellChecker(any()) } returnsMany listOf(first, second, third)
+
+		val repo = SpellCheckRepository(settingsStore(Locale.forLanguageTag("en")), factory)
+
+		repo.dictionaryFlow.test {
+			assertSame(first, awaitItem())
+
+			repo.setSessionWords(getProject1Def(), setOf("zaltharion"))
+			assertSame(second, awaitItem())
+			assertEquals(setOf("zaltharion"), secondApplied.single().toSet())
+
+			repo.clearSessionWords(getProject1Def())
+			assertSame(third, awaitItem())
+			assertTrue(thirdApplied.isEmpty())
+			cancelAndConsumeRemainingEvents()
+		}
+	}
+
+	@Test
+	fun `clearing an owner that contributed nothing does not recreate the checker`() = scope.runTest {
+		val (checker, _) = sessionCapableChecker()
+		var loadCount = 0
+		every { factory.hasLanguage(any()) } returns true
+		coEvery { factory.createSpellChecker(any()) } answers { loadCount++; checker }
+
+		val repo = SpellCheckRepository(settingsStore(Locale.forLanguageTag("en")), factory)
+		advanceUntilIdle()
+		val loadsAfterInit = loadCount
+
+		repo.clearSessionWords(getProject1Def())
+		advanceUntilIdle()
+
+		assertEquals(loadsAfterInit, loadCount)
+	}
+
+	@Test
+	fun `session words are unioned across owners and cleared per-owner`() = scope.runTest {
+		val (first, _) = sessionCapableChecker()
+		val (second, secondApplied) = sessionCapableChecker()
+		val (third, thirdApplied) = sessionCapableChecker()
+		val (fourth, fourthApplied) = sessionCapableChecker()
+		every { factory.hasLanguage(any()) } returns true
+		coEvery { factory.createSpellChecker(any()) } returnsMany listOf(first, second, third, fourth)
+
+		val projectA = getProject1Def()
+		val projectB = getProjectDef("Project B")
+		val repo = SpellCheckRepository(settingsStore(Locale.forLanguageTag("en")), factory)
+
+		repo.dictionaryFlow.test {
+			assertSame(first, awaitItem())
+
+			repo.setSessionWords(projectA, setOf("zaltharion"))
+			assertSame(second, awaitItem())
+			assertEquals(setOf("zaltharion"), secondApplied.single().toSet())
+
+			repo.setSessionWords(projectB, setOf("kastle"))
+			assertSame(third, awaitItem())
+			assertEquals(setOf("zaltharion", "kastle"), thirdApplied.single().toSet())
+
+			repo.clearSessionWords(projectA)
+			assertSame(fourth, awaitItem())
+			assertEquals(setOf("kastle"), fourthApplied.single().toSet())
+			cancelAndConsumeRemainingEvents()
+		}
+	}
+
+	@Test
+	fun `pushing an identical word set does not recreate the checker`() = scope.runTest {
+		val (checker, _) = sessionCapableChecker()
+		var loadCount = 0
+		every { factory.hasLanguage(any()) } returns true
+		coEvery { factory.createSpellChecker(any()) } answers { loadCount++; checker }
+
+		val repo = SpellCheckRepository(settingsStore(Locale.forLanguageTag("en")), factory)
+		advanceUntilIdle()
+
+		repo.setSessionWords(getProject1Def(), setOf("zaltharion"))
+		advanceUntilIdle()
+		val loadsAfterFirstPush = loadCount
+
+		repo.setSessionWords(getProject1Def(), setOf("zaltharion"))
+		advanceUntilIdle()
+
+		assertEquals(loadsAfterFirstPush, loadCount)
 	}
 
 	@Test

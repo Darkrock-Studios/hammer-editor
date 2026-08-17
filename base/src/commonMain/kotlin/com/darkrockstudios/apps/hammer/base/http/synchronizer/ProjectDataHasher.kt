@@ -56,6 +56,12 @@ object ProjectDataHasher {
 			d.update(data.language, buf)
 		}
 
+		// Zero bytes at the default (true): pre-existing hashes must stay identical.
+		// -2 marker: -1 is taken by the language block.
+		if (!data.encyclopediaDictionary) {
+			d.update(-2, buf)
+		}
+
 		return d.digest().base64Url
 	}
 }

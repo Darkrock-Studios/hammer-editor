@@ -82,6 +82,13 @@ class ProjectDataHasherTest {
 	}
 
 	@Test
+	fun `encyclopedia dictionary affects hash`() {
+		val on = ProjectData(authorName = "Pat")
+		val off = on.copy(encyclopediaDictionary = false)
+		assertNotEquals(ProjectDataHasher.hash(on), ProjectDataHasher.hash(off))
+	}
+
+	@Test
 	fun `null vs empty language distinguishable`() {
 		val nullLanguage = ProjectData(language = null)
 		val emptyLanguage = ProjectData(language = "")

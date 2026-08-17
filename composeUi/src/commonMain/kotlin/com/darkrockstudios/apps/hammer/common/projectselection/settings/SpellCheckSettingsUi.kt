@@ -31,6 +31,8 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.notice_experimental_label
 import com.darkrockstudios.apps.hammer.settings_spellcheck_enable
+import com.darkrockstudios.apps.hammer.settings_spellcheck_encyclopedia_enable
+import com.darkrockstudios.apps.hammer.settings_spellcheck_encyclopedia_enable_hint
 import com.darkrockstudios.apps.hammer.settings_spellcheck_in_focus_enable
 import com.darkrockstudios.apps.hammer.settings_spellcheck_notice
 import kotlinx.coroutines.launch
@@ -38,6 +40,7 @@ import kotlinx.coroutines.launch
 @Composable
 internal fun SpellCheckSettingsContent(
 	component: SpellCheckSettings,
+	showEncyclopediaToggle: Boolean = true,
 ) {
 	val state by component.state.subscribeAsState()
 	val scope = rememberCoroutineScope()
@@ -61,6 +64,22 @@ internal fun SpellCheckSettingsContent(
 					}
 				},
 			)
+		}
+		if (showEncyclopediaToggle) {
+			Box(
+				modifier = Modifier.alpha(if (state.spellCheckingEnabled) 1f else 0.45f),
+			) {
+				HdHairlineToggleRow(
+					checked = state.spellCheckingEncyclopediaEnabled,
+					label = Res.string.settings_spellcheck_encyclopedia_enable.get(),
+					hint = Res.string.settings_spellcheck_encyclopedia_enable_hint.get(),
+					onCheckedChange = {
+						if (state.spellCheckingEnabled) {
+							scope.launch { component.setSpellCheckEncyclopediaEnabled(it) }
+						}
+					},
+				)
+			}
 		}
 		SpellCheckDictionaryControl(
 			selected = state.spellCheckingLanguage,

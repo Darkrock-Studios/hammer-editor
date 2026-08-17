@@ -31,8 +31,10 @@ class EncyclopediaService(
 		imagePath: String?,
 		forceId: Int? = null,
 		aliases: List<String> = emptyList(),
+		excludeFromDictionary: Boolean = false,
 	): EntryResult {
-		val result = repository.createEntry(name, type, text, tags, imagePath, forceId, aliases)
+		val result =
+			repository.createEntry(name, type, text, tags, imagePath, forceId, aliases, excludeFromDictionary)
 		if (result.error == EntryError.NONE) statisticsRepository.markDirty()
 		return result
 	}
@@ -43,8 +45,9 @@ class EncyclopediaService(
 		text: String,
 		tags: Set<String>,
 		aliases: List<String> = emptyList(),
+		excludeFromDictionary: Boolean,
 	): EntryResult {
-		val result = repository.updateEntry(oldEntryDef, name, text, tags, aliases)
+		val result = repository.updateEntry(oldEntryDef, name, text, tags, aliases, excludeFromDictionary)
 		if (result.error == EntryError.NONE) statisticsRepository.markDirty()
 		return result
 	}

@@ -283,7 +283,8 @@ class EncyclopediaDatasource(
 		name: String,
 		text: String,
 		tags: Set<String>,
-		aliases: List<String> = emptyList(),
+		aliases: List<String>,
+		excludeFromDictionary: Boolean,
 	): EntryContainer {
 		val oldPath = getEntryPath(oldEntryDef.id).toOkioPath()
 		fileSystem.delete(oldPath)
@@ -295,6 +296,7 @@ class EncyclopediaDatasource(
 			text = text.trim(),
 			tags = tags,
 			aliases = aliases,
+			excludeFromDictionary = excludeFromDictionary,
 		)
 		val container = EntryContainer(entry)
 		val entryToml = toml.encodeToString(container)

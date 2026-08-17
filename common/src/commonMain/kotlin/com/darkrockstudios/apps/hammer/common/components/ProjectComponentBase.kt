@@ -33,6 +33,17 @@ abstract class ProjectComponentBase(
 			}
 		}
 	}
+
+	/** Collects whether encyclopedia names feed the spell-check dictionary (global AND project toggles); call from onCreate. [onChange] runs on the main dispatcher. */
+	protected fun watchEncyclopediaDictionaryEnabled(onChange: (Boolean) -> Unit) {
+		scope.launch {
+			projectSpellCheck.encyclopediaDictionaryEnabled.collect { enabled ->
+				withContext(dispatcherMain) {
+					onChange(enabled)
+				}
+			}
+		}
+	}
 }
 
 abstract class SavableProjectComponentBase<S : Any>(

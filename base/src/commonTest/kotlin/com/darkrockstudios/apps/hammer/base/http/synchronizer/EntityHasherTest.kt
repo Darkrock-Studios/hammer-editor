@@ -137,6 +137,23 @@ class EntityHasherTest {
 	}
 
 	@Test
+	fun `hashEncyclopediaEntry differs when excludeFromDictionary differs`() {
+		val included = EntityHasher.hashEncyclopediaEntry(
+			id = 2, name = "Robert", entryType = "person",
+			text = "text", tags = emptySet(), image = null,
+			aliases = emptyList(),
+			excludeFromDictionary = false,
+		)
+		val excluded = EntityHasher.hashEncyclopediaEntry(
+			id = 2, name = "Robert", entryType = "person",
+			text = "text", tags = emptySet(), image = null,
+			aliases = emptyList(),
+			excludeFromDictionary = true,
+		)
+		assertNotEquals(included, excluded, "hashEncyclopediaEntry must include excludeFromDictionary in the digest")
+	}
+
+	@Test
 	fun `hashEncyclopediaEntry alias order is significant`() {
 		// aliases is a List, not a Set - reordering is a meaningful change that should
 		// propagate through sync so two clients with reordered aliases don't silently diverge.

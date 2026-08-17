@@ -99,6 +99,7 @@ object EntityHasher {
 		tags: Set<String>,
 		image: ApiProjectEntity.EncyclopediaEntryEntity.Image?,
 		aliases: List<String>,
+		excludeFromDictionary: Boolean = false,
 	): String {
 		val buf = buff()
 		val d = Algorithm.MurmurHash3_X64_128().createDigest()
@@ -119,6 +120,11 @@ object EntityHasher {
 		if (image != null) {
 			d.update(Base64.decode(image.base64, url = true))
 			d.update(image.fileExtension, buf)
+		}
+
+		// Zero bytes at the default (false): pre-existing hashes must stay identical.
+		if (excludeFromDictionary) {
+			d.update(1, buf)
 		}
 
 		return d.digest().base64Url

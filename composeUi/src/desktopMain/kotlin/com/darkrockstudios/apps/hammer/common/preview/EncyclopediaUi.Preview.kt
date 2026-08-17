@@ -174,7 +174,8 @@ private val fakeCreateEntryComponent: CreateEntry = object : CreateEntry {
 		type: EntryType,
 		text: String,
 		tags: Set<String>,
-		imagePath: String?
+		imagePath: String?,
+		excludeFromDictionary: Boolean,
 	): EntryResult = EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
 
 	override fun confirmClose() {}
@@ -328,6 +329,8 @@ val fakeViewEntryComponent: ViewEntry = object : ViewEntry {
 	override suspend fun addAlias(alias: String) =
 		EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
 	override fun removeAlias(alias: String) {}
+	override suspend fun setExcludeFromDictionary(exclude: Boolean) =
+		EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
 	override fun navigateToAppearance(appearance: ViewEntry.Appearance) {}
 	override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()
 }

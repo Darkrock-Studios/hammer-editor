@@ -11,12 +11,14 @@ interface SpellCheckSettings {
 
 	suspend fun setSpellcheckEnable(enable: Boolean)
 	suspend fun setSpellCheckingInFocusEnabled(enable: Boolean)
+	suspend fun setSpellCheckEncyclopediaEnabled(enable: Boolean)
 	suspend fun setSpellCheckLanguage(language: Locale)
 
 	@Serializable
 	data class State(
 		val spellCheckingEnabled: Boolean,
 		val spellCheckingInFocusEnabled: Boolean,
+		val spellCheckingEncyclopediaEnabled: Boolean = true,
 		@Serializable(with = LocaleSerializer::class)
 		val spellCheckingLanguage: Locale,
 		@Serializable(with = LocaleListSerializer::class)

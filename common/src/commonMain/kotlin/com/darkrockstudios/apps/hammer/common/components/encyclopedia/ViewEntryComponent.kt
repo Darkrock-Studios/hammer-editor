@@ -66,6 +66,10 @@ class ViewEntryComponent(
 			_state.getAndUpdate { it.copy(spellCheckAllowed = allowed) }
 		}
 
+		watchEncyclopediaDictionaryEnabled { enabled ->
+			_state.getAndUpdate { it.copy(dictionaryFeatureEnabled = enabled) }
+		}
+
 		// Trigger an initial recompute so the index reflects current data
 		scope.launch { referenceIndexService.loadIndex() }
 
@@ -212,6 +216,7 @@ class ViewEntryComponent(
 			text = text,
 			tags = tags,
 			aliases = currentAliases,
+			excludeFromDictionary = state.value.content?.excludeFromDictionary ?: false,
 		)
 		if (result.instance != null && result.error == EntryError.NONE) {
 			_state.getAndUpdate {
@@ -258,6 +263,7 @@ class ViewEntryComponent(
 					text = text,
 					tags = newTags,
 					aliases = aliases,
+					excludeFromDictionary = excludeFromDictionary,
 				)
 
 				reload()
@@ -295,6 +301,7 @@ class ViewEntryComponent(
 				text = text,
 				tags = tags + newTags,
 				aliases = aliases,
+				excludeFromDictionary = excludeFromDictionary,
 			)
 		}
 
@@ -324,6 +331,7 @@ class ViewEntryComponent(
 			text = current.text,
 			tags = current.tags,
 			aliases = current.aliases + trimmed,
+			excludeFromDictionary = current.excludeFromDictionary,
 		)
 		if (result.error == EntryError.NONE) {
 			endAliasAdd()
@@ -342,12 +350,31 @@ class ViewEntryComponent(
 					text = text,
 					tags = tags,
 					aliases = aliases.filterNot { it == alias },
+					excludeFromDictionary = excludeFromDictionary,
 				)
 
 				reload()
 			}
 		}
 	}
+
+	override suspend fun setExcludeFromDictionary(exclude: Boolean): EntryResult =
+		withContext(dispatcherDefault) {
+			val current = state.value.content
+				?: return@withContext EntryResult(EntryError.NONE)
+			val result = encyclopediaService.updateEntry(
+				oldEntryDef = state.value.entryDef,
+				name = current.name,
+				text = current.text,
+				tags = current.tags,
+				aliases = current.aliases,
+				excludeFromDictionary = exclude,
+			)
+			if (result.error == EntryError.NONE) {
+				reload()
+			}
+			result
+		}
 
 	override fun navigateToAppearance(appearance: ViewEntry.Appearance) {
 		showScene(appearance.sceneItem)

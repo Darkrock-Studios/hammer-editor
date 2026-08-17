@@ -86,6 +86,7 @@ class EntityTypeResyncMatrixTest : RoundTripTestBase() {
 			name = "Hero",
 			text = "a very brave hero",
 			tags = setOf("hero", "legend"),
+			excludeFromDictionary = false,
 		)
 		assertTrue(client.syncNoConflict(), "resync should succeed")
 		assertNotEquals(before, serverEntityHash(project, container.entry.id), "edit must reach the server")
