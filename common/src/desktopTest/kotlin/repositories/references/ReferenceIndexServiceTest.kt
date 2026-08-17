@@ -136,6 +136,9 @@ class ReferenceIndexServiceTest : BaseTest() {
 	private fun place(id: Int, name: String) =
 		EntryContent(id = id, name = name, type = EntryType.PLACE, text = "", tags = emptySet())
 
+	private fun entryOfType(id: Int, name: String, type: EntryType) =
+		EntryContent(id = id, name = name, type = type, text = "", tags = emptySet())
+
 	@Test
 	fun `recalculate builds inverted forward map from confirmed references`() = runTest(mainTestDispatcher) {
 		stubSceneTree(
@@ -267,6 +270,24 @@ class ReferenceIndexServiceTest : BaseTest() {
 		assertEquals(1, suggestions.size)
 		assertEquals(1, suggestions[0].entryId)
 	}
+
+	@Test
+	fun `computeAutoReferencesForScene matches every entry type under the default config`() =
+		runTest(mainTestDispatcher) {
+			val entries = EntryType.entries.mapIndexed { index, type ->
+				entryOfType(index + 1, "Entry${type.name}", type)
+			}
+			stubEntries(entries)
+			val service = makeService()
+
+			val suggestions = service.computeAutoReferencesForScene(
+				sceneId = 10,
+				sceneText = entries.joinToString(" ") { it.name },
+				metadata = SceneMetadata(),
+			)
+
+			assertEquals(entries.map { it.id }.toSet(), suggestions.map { it.entryId }.toSet())
+		}
 
 	@Test
 	fun `computeAutoReferencesForScene dedupes per entry on multiple hits`() = runTest(mainTestDispatcher) {

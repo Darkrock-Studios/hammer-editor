@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata
 
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 
 /**
  * Pre-loaded searchable representation of an encyclopedia entry: its [EntryDef]
@@ -24,6 +25,9 @@ internal data class SearchableEntry(
  * Behavior:
  * - Empty / blank query -> empty result.
  * - Match: case-insensitive substring against name and any alias.
+ * - Restricted to [types], so a caller showing one tab per entry-type group
+ *   narrows before [maxResults] truncates. Filtering after truncation would
+ *   let a run of alphabetically-early entries from one group starve another.
  * - Already-confirmed entries are excluded (they're already chips above the
  *   search field; surfacing them again is noise).
  * - Already-dismissed entries are included, with `isDismissed = true` so the
@@ -37,11 +41,13 @@ internal fun filterEntriesForAdd(
 	confirmedIds: Set<Int>,
 	dismissedIds: Set<Int>,
 	maxResults: Int,
+	types: Set<EntryType> = EntryType.entries.toSet(),
 ): List<SceneMetadataPanel.AddSuggestion> {
 	val q = query.trim().lowercase()
 	if (q.isEmpty()) return emptyList()
 	return entries
 		.asSequence()
+		.filter { it.entryDef.type in types }
 		.filter { it.entryDef.id !in confirmedIds }
 		.filter { entry -> entry.lowerCaseSearchTerms.any { it.contains(q) } }
 		.sortedBy { it.entryDef.name.lowercase() }

@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneedito
 import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
@@ -27,13 +28,18 @@ interface SceneMetadataPanel : HammerComponent, TagSuggesting {
 
 	/**
 	 * Search entries by name or alias for the manual "add reference" affordance.
-	 * Case-insensitive substring match across all entry types. Already-confirmed
+	 * Case-insensitive substring match, restricted to [types]. Already-confirmed
 	 * entries are excluded; dismissed entries are included with [AddSuggestion.isDismissed]
 	 * flagged so the UI can hint that picking will un-dismiss.
 	 *
-	 * Returns up to [maxResults] entries sorted by name.
+	 * Returns up to [maxResults] entries sorted by name. [types] is applied before
+	 * the cap, so a caller showing one group at a time gets a full page of that group.
 	 */
-	fun searchEntriesForAdd(query: String, maxResults: Int = 20): List<AddSuggestion>
+	fun searchEntriesForAdd(
+		query: String,
+		types: Set<EntryType> = EntryType.entries.toSet(),
+		maxResults: Int = 20,
+	): List<AddSuggestion>
 
 	/**
 	 * Adds one or more tags from a free-form space-separated string. Input is normalized by
