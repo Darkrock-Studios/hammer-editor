@@ -81,6 +81,8 @@
 	<string name="settings_spellcheck_notice">If it is causing problems just turn it off.</string>
 	<string name="settings_spellcheck_enable">Enable spell checking</string>
 	<string name="settings_spellcheck_in_focus_enable">Enable in focus mode</string>
+	<string name="settings_spellcheck_encyclopedia_enable">Learn encyclopedia names</string>
+	<string name="settings_spellcheck_encyclopedia_enable_hint">Entry names and aliases won&#8217;t be marked as misspelled while their project is open</string>
 	<string name="settings_spellcheck_dictionary">Dictionary</string>
 	<string name="settings_spellcheck_dictionary_android_info_title">Spell check language</string>
 	<string name="settings_spellcheck_dictionary_android_info_message">On Android, the spell check language is chosen by your device, not the app. To change it, update your system and keyboard languages in Android Settings.</string>
