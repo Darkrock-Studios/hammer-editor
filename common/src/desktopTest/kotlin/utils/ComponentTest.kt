@@ -108,6 +108,7 @@ open class ComponentTest : BaseTest() {
 					mockk(relaxed = true) {
 						every { spellCheckAllowed } returns emptyFlow()
 						every { dictionaryFlow } returns emptyFlow()
+						every { encyclopediaDictionaryEnabled } returns emptyFlow()
 					}
 				}
 			},

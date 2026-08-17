@@ -3,8 +3,6 @@ package com.darkrockstudios.apps.hammer.common.spellcheck
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
-import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.github.aakira.napier.Napier
@@ -16,8 +14,6 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
 import org.koin.core.component.KoinComponent
@@ -37,8 +33,7 @@ import kotlin.time.Duration.Companion.milliseconds
 class ProjectDictionaryService(
 	private val projectDef: ProjectDef,
 	private val encyclopediaRepository: EncyclopediaRepository,
-	private val projectDataRepository: ProjectDataRepository,
-	private val globalSettingsStore: GlobalSettingsStore,
+	private val projectSpellCheckRepository: ProjectSpellCheckRepository,
 	private val spellCheckRepository: SpellCheckRepository,
 ) : ScopeCallback, ProjectScoped, KoinComponent {
 
@@ -51,15 +46,9 @@ class ProjectDictionaryService(
 		projectScope.scope.registerCallback(this)
 		serviceScope.launch {
 			combine(
-				globalSettingsStore.globalSettingsUpdates
-					.map { it.spellCheckSettings.includeEncyclopediaNames }
-					.distinctUntilChanged(),
-				projectDataRepository.state
-					.onStart { projectDataRepository.load() }
-					.map { it?.data?.encyclopediaDictionary ?: true }
-					.distinctUntilChanged(),
+				projectSpellCheckRepository.encyclopediaDictionaryEnabled,
 				encyclopediaRepository.entryContentChangedFlow.onStart { emit(Unit) },
-			) { globalOn, projectOn, _ -> globalOn && projectOn }
+			) { enabled, _ -> enabled }
 				.debounce(REBUILD_DEBOUNCE)
 				.collect { enabled ->
 					if (enabled) {

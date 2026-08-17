@@ -34,6 +34,10 @@ class CreateEntryComponent(
 		watchSpellCheckAllowed { allowed ->
 			_state.getAndUpdate { it.copy(spellCheckAllowed = allowed) }
 		}
+
+		watchEncyclopediaDictionaryEnabled { enabled ->
+			_state.getAndUpdate { it.copy(dictionaryFeatureEnabled = enabled) }
+		}
 	}
 
 	override fun confirmClose() {

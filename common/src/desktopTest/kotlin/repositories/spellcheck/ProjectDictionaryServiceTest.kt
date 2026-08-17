@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
 import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
@@ -134,8 +135,12 @@ class ProjectDictionaryServiceTest : BaseTest() {
 	private fun createService() = ProjectDictionaryService(
 		projectDef = projectDef,
 		encyclopediaRepository = encyclopediaRepository,
-		projectDataRepository = projectDataRepository,
-		globalSettingsStore = globalSettingsStore,
+		projectSpellCheckRepository = ProjectSpellCheckRepository(
+			spellCheckRepository = spellCheckRepository,
+			globalSettingsStore = globalSettingsStore,
+			projectDataRepository = projectDataRepository,
+			projectDef = projectDef,
+		),
 		spellCheckRepository = spellCheckRepository,
 	)
 

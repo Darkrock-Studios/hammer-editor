@@ -42,4 +42,19 @@ class ProjectSpellCheckRepository(
 	) { checker, allowed ->
 		if (allowed) checker else null
 	}.distinctUntilChanged()
+
+	/**
+	 * True while encyclopedia names feed the spell-check session dictionary:
+	 * the global setting AND this project's own toggle. Gates the feature's
+	 * per-entry UI as well as the word loading itself.
+	 */
+	val encyclopediaDictionaryEnabled: Flow<Boolean> = combine(
+		globalSettingsStore.globalSettingsUpdates,
+		projectDataRepository.state,
+	) { settings, stored ->
+		settings.spellCheckSettings.includeEncyclopediaNames &&
+			(stored?.data?.encyclopediaDictionary ?: true)
+	}
+		.onStart { projectDataRepository.load() }
+		.distinctUntilChanged()
 }

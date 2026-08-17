@@ -66,6 +66,10 @@ class ViewEntryComponent(
 			_state.getAndUpdate { it.copy(spellCheckAllowed = allowed) }
 		}
 
+		watchEncyclopediaDictionaryEnabled { enabled ->
+			_state.getAndUpdate { it.copy(dictionaryFeatureEnabled = enabled) }
+		}
+
 		// Trigger an initial recompute so the index reflects current data
 		scope.launch { referenceIndexService.loadIndex() }
 

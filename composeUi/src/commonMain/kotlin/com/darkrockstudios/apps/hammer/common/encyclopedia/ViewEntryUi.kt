@@ -377,12 +377,17 @@ internal fun ViewEntryUi(
 							state = state,
 							component = component,
 							compact = isCompact,
-							scope = scope,
 						)
 
 						AppearsInZone(
 							state = state,
 							component = component,
+						)
+
+						DictionaryToggleZone(
+							state = state,
+							component = component,
+							scope = scope,
 						)
 
 						FooterColophon(
@@ -1017,7 +1022,6 @@ private fun TagsAndAliasesZone(
 	state: ViewEntry.State,
 	component: ViewEntry,
 	compact: Boolean,
-	scope: CoroutineScope,
 ) {
 	val content = state.content ?: return
 	val padding = Modifier.padding(horizontal = Ui.Padding.XXL).padding(top = 28.dp)
@@ -1038,7 +1042,16 @@ private fun TagsAndAliasesZone(
 			AliasesSection(content.aliases, component, modifier = Modifier.weight(1f))
 		}
 	}
+}
 
+@Composable
+private fun DictionaryToggleZone(
+	state: ViewEntry.State,
+	component: ViewEntry,
+	scope: CoroutineScope,
+) {
+	if (!state.dictionaryFeatureEnabled) return
+	val content = state.content ?: return
 	HdHairlineToggleRow(
 		checked = !content.excludeFromDictionary,
 		label = Res.string.encyclopedia_entry_dictionary_toggle_label.get(),

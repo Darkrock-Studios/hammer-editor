@@ -14,6 +14,7 @@ interface CreateEntry : TagSuggesting {
 		val projectDef: ProjectDef,
 		val showConfirmClose: Boolean = false,
 		val spellCheckAllowed: Boolean = true,
+		val dictionaryFeatureEnabled: Boolean = true,
 	)
 
 	suspend fun createEntry(

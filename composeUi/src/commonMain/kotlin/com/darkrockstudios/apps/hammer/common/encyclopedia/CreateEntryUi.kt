@@ -259,12 +259,14 @@ internal fun CreateEntryUi(
 					} else null,
 				)
 
-				HdHairlineToggleRow(
-					checked = !excludeFromDictionary,
-					label = Res.string.encyclopedia_entry_dictionary_toggle_label.get(),
-					hint = Res.string.encyclopedia_entry_dictionary_toggle_hint.get(),
-					onCheckedChange = { include -> excludeFromDictionary = !include },
-				)
+				if (state.dictionaryFeatureEnabled) {
+					HdHairlineToggleRow(
+						checked = !excludeFromDictionary,
+						label = Res.string.encyclopedia_entry_dictionary_toggle_label.get(),
+						hint = Res.string.encyclopedia_entry_dictionary_toggle_hint.get(),
+						onCheckedChange = { include -> excludeFromDictionary = !include },
+					)
+				}
 			}
 
 			HairlineModalFooter(

@@ -119,7 +119,10 @@ fun ProjectSettingsUi(
 								title = Res.string.project_settings_spellcheck_section_title.get(),
 								contentSpacing = 18.dp,
 							) {
-								SpellCheckSettingsContent(component.spellCheckSettings)
+								SpellCheckSettingsContent(
+									component.spellCheckSettings,
+									showEncyclopediaToggle = false,
+								)
 								ProjectDictionaryToggle(
 									enabled = state.data.encyclopediaDictionary,
 									component = component,
@@ -157,7 +160,8 @@ private fun ProjectDictionaryToggle(
 	component: ProjectSettings,
 ) {
 	val spellCheckState by component.spellCheckSettings.state.subscribeAsState()
-	val featureOn = spellCheckState.spellCheckingEnabled && spellCheckState.spellCheckingEncyclopediaEnabled
+	if (!spellCheckState.spellCheckingEncyclopediaEnabled) return
+	val featureOn = spellCheckState.spellCheckingEnabled
 
 	Box(
 		modifier = Modifier.alpha(if (featureOn) 1f else 0.45f),
