@@ -25,10 +25,12 @@ import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.utilities.DevSelfSignedCert
 import com.darkrockstudios.apps.hammer.utilities.DiskCache
+import com.darkrockstudios.apps.hammer.utilities.applyServerTimeZone
 import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
 import com.darkrockstudios.apps.hammer.utilities.configureDiskCachePruneJob
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utilities.loadPemAsKeyStore
+import com.darkrockstudios.apps.hammer.utilities.resolveServerTimeZone
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.core.subcommands
@@ -90,6 +92,10 @@ class HammerServerCommand : CliktCommand(name = "Hammer Server") {
 
 		val logLevel = parseLogLevel(logLevelArg)
 		val config: ServerConfig = resolveServerConfig(configPath)
+
+		val timeZone = resolveServerTimeZone(config.timezone)
+		applyServerTimeZone(timeZone)
+		configLogger.info("Server time zone: $timeZone")
 
 		config.storage.validate()
 		config.analytics.validate()

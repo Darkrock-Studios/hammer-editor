@@ -43,6 +43,8 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import java.net.URLEncoder
+import java.time.ZoneId
+import java.time.ZoneOffset
 import kotlin.math.ceil
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
@@ -140,9 +142,10 @@ fun Route.adminMonitoringPages(
 			val range = call.request.queryParameters["range"] ?: RANGE_24H
 			val since = clock.now() - rangeToDuration(range)
 			val stats = metricsRepository.getEndpointStats(since)
-			val labelFormat = if (range == RANGE_24H) "HH:00" else "MMM dd"
-			val timeSeries = metricsRepository.getTimeSeries(since, range == RANGE_24H)
-			val latencyChart = buildLatencyChart(timeSeries, labelFormat)
+			val hourly = range == RANGE_24H
+			val labelFormat = if (hourly) "HH:00" else "MMM dd"
+			val timeSeries = metricsRepository.getTimeSeries(since, hourly)
+			val latencyChart = buildLatencyChart(timeSeries, labelFormat, chartLabelZone(hourly))
 
 			val model = mutableMapOf<String, Any>(
 				"page_stylesheet" to "/assets/css/admin.css",
@@ -164,9 +167,10 @@ fun Route.adminMonitoringPages(
 		get("/errors") {
 			val range = call.request.queryParameters["range"] ?: RANGE_24H
 			val since = clock.now() - rangeToDuration(range)
-			val labelFormat = if (range == RANGE_24H) "HH:00" else "MMM dd"
-			val timeSeries = metricsRepository.getTimeSeries(since, range == RANGE_24H)
-			val errorRateChart = buildErrorRateChart(timeSeries, labelFormat)
+			val hourly = range == RANGE_24H
+			val labelFormat = if (hourly) "HH:00" else "MMM dd"
+			val timeSeries = metricsRepository.getTimeSeries(since, hourly)
+			val errorRateChart = buildErrorRateChart(timeSeries, labelFormat, chartLabelZone(hourly))
 
 			val routeFilter = call.request.queryParameters["route"]?.takeIf { it.isNotBlank() }
 			val ignoreRules = configRepository.get(AdminServerConfig.IGNORED_ERROR_RULES)
@@ -455,9 +459,16 @@ private fun securityAlertModel(alert: SecurityAlert): Map<String, Any> = mapOf(
 	"href" to "/admin/monitoring/security",
 )
 
-private fun buildErrorRateChart(points: List<TimeSeriesPoint>, labelFormat: String): String {
+/**
+ * Hourly buckets are ordinary instants, so they read best in the server's own zone. Daily buckets
+ * are floored to the UTC day, so labeling one anywhere else shifts every point onto a neighboring
+ * date.
+ */
+private fun chartLabelZone(hourly: Boolean): ZoneId = if (hourly) ZoneId.systemDefault() else ZoneOffset.UTC
+
+private fun buildErrorRateChart(points: List<TimeSeriesPoint>, labelFormat: String, zone: ZoneId): String {
 	val payload = ErrorRateChartPayload(
-		labels = points.map { formatInstant(it.bucketStart, labelFormat) },
+		labels = points.map { formatInstant(it.bucketStart, labelFormat, zone) },
 		errorRates = points.map { pt ->
 			if (pt.requests > 0) pt.errors.toDouble() / pt.requests * 100.0 else 0.0
 		},
@@ -465,9 +476,9 @@ private fun buildErrorRateChart(points: List<TimeSeriesPoint>, labelFormat: Stri
 	return Json.encodeToString(ErrorRateChartPayload.serializer(), payload)
 }
 
-private fun buildLatencyChart(points: List<TimeSeriesPoint>, labelFormat: String): String {
+private fun buildLatencyChart(points: List<TimeSeriesPoint>, labelFormat: String, zone: ZoneId): String {
 	val payload = LatencyChartPayload(
-		labels = points.map { formatInstant(it.bucketStart, labelFormat) },
+		labels = points.map { formatInstant(it.bucketStart, labelFormat, zone) },
 		p95Ms = points.map { it.p95Ms },
 	)
 	return Json.encodeToString(LatencyChartPayload.serializer(), payload)
@@ -475,7 +486,7 @@ private fun buildLatencyChart(points: List<TimeSeriesPoint>, labelFormat: String
 
 private fun buildActiveUsersChart(daily: List<DailyActiveUsers>): String {
 	val payload = ActiveUsersChartPayload(
-		labels = daily.map { formatInstant(it.day, "MMM dd") },
+		labels = daily.map { formatInstant(it.day, "MMM dd", ZoneOffset.UTC) },
 		sync = daily.map { it.sync },
 		web = daily.map { it.web },
 	)
@@ -484,7 +495,7 @@ private fun buildActiveUsersChart(daily: List<DailyActiveUsers>): String {
 
 private fun buildReadersChart(daily: List<ReaderDay>): String {
 	val payload = ReadersChartPayload(
-		labels = daily.map { formatInstant(it.day, "MMM dd") },
+		labels = daily.map { formatInstant(it.day, "MMM dd", ZoneOffset.UTC) },
 		readers = daily.map { it.count },
 	)
 	return Json.encodeToString(ReadersChartPayload.serializer(), payload)
@@ -492,7 +503,7 @@ private fun buildReadersChart(daily: List<ReaderDay>): String {
 
 private fun buildTrafficChart(points: List<TimeSeriesPoint>): String {
 	val payload = ChartPayload(
-		labels = points.map { formatInstant(it.bucketStart, "MMM dd") },
+		labels = points.map { formatInstant(it.bucketStart, "MMM dd", ZoneOffset.UTC) },
 		requests = points.map { it.requests },
 		errors = points.map { it.errors },
 	)
