@@ -2,7 +2,7 @@
 <resources>
 	<string name="about_description">Un outil pour rédiger des histoires.</string>
 	<string name="about_studio_header">Studio</string>
-	<string name="about_community_studio_attribution">Hammer is made by Dark Rock Studios, alongside a family of other privacy-respecting, open source apps.</string>
+	<string name="about_community_studio_attribution">Hammer a été créé par Dark Rock Studios, aux côtés d'autres applications open source et respectueuse de votre vie privée.</string>
 	<string name="about_community_header">Communauté</string>
 	<string name="about_community_discord_link">Discord</string>
 	<string name="about_community_reddit_link">Reddit</string>
