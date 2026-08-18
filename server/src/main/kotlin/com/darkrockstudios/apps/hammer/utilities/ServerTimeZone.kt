@@ -71,8 +71,8 @@ private fun reloadLogbackConfiguration() {
 	context.reset()
 	try {
 		ContextInitializer(context).autoConfig()
-	} catch (e: Throwable) {
-		// reset() already detached every appender, so without a fallback the server would run on
+	} catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
+		// reset() already detached every appender, so anything escaping here would leave the server
 		// with no console output and an empty admin log viewer.
 		System.err.println("Logging config failed to reload after the time zone change: ${e.message}")
 		BasicConfigurator().configure(context)
