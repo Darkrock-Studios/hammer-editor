@@ -21,6 +21,14 @@ internal interface HammerBookmarksLib : Library {
 	fun hammer_bookmark_resolve_and_start(base64Bookmark: String, outStale: IntByReference): Pointer?
 	fun hammer_bookmark_stop(path: String)
 	fun hammer_bookmark_free_string(s: Pointer)
+	fun hammer_dialog_confirm(
+		title: String?,
+		message: String?,
+		primaryButton: String?,
+		secondaryButton: String?,
+	): Int
+
+	fun hammer_dialog_pick_directory(title: String?, message: String?, prompt: String?): Pointer?
 }
 
 internal object MacOsBookmarks {
@@ -65,6 +73,29 @@ internal object MacOsBookmarks {
 	fun stopAccess(path: String) {
 		lib?.hammer_bookmark_stop(path)
 		if (activePath == path) activePath = null
+	}
+
+	/**
+	 * Native two-button alert. True when the user chose the primary button.
+	 *
+	 * Deliberately not [javax.swing.JOptionPane]: this runs before the Compose
+	 * application starts, and initializing AWT first leaves the Tao backend's
+	 * event loop with no events to pump, hanging the app on a blank screen.
+	 */
+	fun confirm(title: String, message: String, primaryButton: String, secondaryButton: String): Boolean {
+		val lib = lib ?: return false
+		return lib.hammer_dialog_confirm(title, message, primaryButton, secondaryButton) == 1
+	}
+
+	/** Native directory chooser (the Powerbox panel when sandboxed). Null when cancelled. */
+	fun pickDirectory(title: String, message: String, prompt: String): String? {
+		val lib = lib ?: return null
+		val ptr = lib.hammer_dialog_pick_directory(title, message, prompt) ?: return null
+		return try {
+			ptr.getString(0)
+		} finally {
+			lib.hammer_bookmark_free_string(ptr)
+		}
 	}
 
 	private fun tryLoadLib(): HammerBookmarksLib? {

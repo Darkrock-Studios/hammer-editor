@@ -239,7 +239,26 @@ val compileMacosBookmarksLib = tasks.register("compileMacosBookmarksLib") {
 	val outDir = layout.buildDirectory.dir("macos-native-libs/macos").get().asFile
 	val outFile = outDir.resolve("libhammer_bookmarks.dylib")
 
+	// Declared as an input so a flags-only edit — another framework, a version-min
+	// bump — reruns the task instead of leaving a stale dylib UP-TO-DATE for
+	// signMacAppResources to sign into the bundle. The absolute -o and source
+	// paths stay out of it; inputs.file/outputs.file already cover those, and
+	// baking them in would make the fingerprint machine-specific.
+	val clangArgs = listOf(
+		"-dynamiclib",
+		"-fobjc-arc",
+		"-O2",
+		"-arch", "arm64",
+		"-mmacosx-version-min=12.0",
+		"-framework", "Foundation",
+		// AppKit backs the first-run folder picker and its alerts, which
+		// must be native — AWT would claim NSApp and wedge the Tao loop.
+		"-framework", "AppKit",
+		"-install_name", "@rpath/libhammer_bookmarks.dylib",
+	)
+
 	inputs.file(src).withPropertyName("source").withPathSensitivity(PathSensitivity.RELATIVE)
+	inputs.property("clangArgs", clangArgs)
 	outputs.file(outFile)
 
 	val execOps = project.providers
@@ -247,17 +266,7 @@ val compileMacosBookmarksLib = tasks.register("compileMacosBookmarksLib") {
 		outDir.mkdirs()
 		execOps.exec {
 			executable = "clang"
-			args(
-				"-dynamiclib",
-				"-fobjc-arc",
-				"-O2",
-				"-arch", "arm64",
-				"-mmacosx-version-min=12.0",
-				"-framework", "Foundation",
-				"-install_name", "@rpath/libhammer_bookmarks.dylib",
-				"-o", outFile.absolutePath,
-				src.absolutePath
-			)
+			args(clangArgs + listOf("-o", outFile.absolutePath, src.absolutePath))
 		}.result.get()
 		logger.lifecycle("Compiled ${outFile.name}")
 	}

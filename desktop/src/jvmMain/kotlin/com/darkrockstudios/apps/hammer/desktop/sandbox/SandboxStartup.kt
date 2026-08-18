@@ -1,17 +1,9 @@
 package com.darkrockstudios.apps.hammer.desktop.sandbox
 
-import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.IS_APP_STORE
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.datasource.GlobalSettingsDatasource
-import com.darkrockstudios.apps.hammer.common.util.StrRes
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.runBlocking
-import org.jetbrains.compose.resources.StringResource
 import org.koin.java.KoinJavaComponent.getKoin
-import java.awt.FileDialog
-import java.awt.Frame
-import java.io.File
-import javax.swing.JOptionPane
 import kotlin.system.exitProcess
 
 /**
@@ -22,15 +14,23 @@ import kotlin.system.exitProcess
  * from the projects dir, which is inaccessible in the sandbox until we
  * activate a security-scoped bookmark for it.
  *
+ * Nothing on this path may touch AWT, directly or indirectly. All of it runs
+ * before the Compose application starts, and whatever creates `NSApp` first
+ * owns it: if that is AWT, the Tao backend's event loop — which blocks the
+ * main thread expecting AppKit events — never gets any, and the app runs on
+ * with no window and no crash. Two separate things used to do exactly that,
+ * and both had to go: the Swing/AWT dialogs (now native AppKit via
+ * [MacOsBookmarks]) and Compose Resources string lookup (now [SandboxStrings],
+ * because `getString()` reaches `Toolkit.getDefaultToolkit()` on desktop).
+ *
+ * The hang only ever bites on first launch — later launches resolve a stored
+ * bookmark and never get here — which is exactly how it reached App Review.
+ *
  * No-op on non-sandboxed builds.
  */
 object SandboxStartup {
 
-	private val strRes: StrRes by lazy { getKoin().get(StrRes::class) }
-
-	// These dialogs run on the startup thread before any Compose UI exists, so
-	// resolve the (suspend) localized strings synchronously.
-	private fun str(res: StringResource): String = runBlocking { strRes.get(res) }
+	private fun str(key: String): String = SandboxStrings.get(key)
 
 	fun ensureProjectsDirAccess() {
 		if (!IS_APP_STORE) return
@@ -58,6 +58,7 @@ object SandboxStartup {
 		val (path, bookmark) = pickDirectoryUntilSuccessfulOrQuit()
 		bookmarkStore.saveProjectsDirBookmark(bookmark)
 		datasource.storeSettings(datasource.loadSettings().copy(projectsDirectory = path))
+		Napier.i("Projects directory set to picked path: $path")
 	}
 
 	private fun refreshIfNeeded(
@@ -84,10 +85,14 @@ object SandboxStartup {
 		while (true) {
 			val picked = showNativeDirectoryPicker()
 			if (picked != null) {
-				val bookmark = MacOsBookmarks.createBookmark(picked.absolutePath)
+				Napier.i("User picked projects directory: $picked")
+				val bookmark = MacOsBookmarks.createBookmark(picked)
 				if (bookmark != null) {
 					val resolved = MacOsBookmarks.resolveAndStartAccess(bookmark)
-					if (resolved != null) return resolved.path to bookmark
+					if (resolved != null) {
+						Napier.i("Bookmark for picked directory resolved to: ${resolved.path}")
+						return resolved.path to bookmark
+					}
 					Napier.w("Could not start access on a freshly-created bookmark; retrying")
 				} else {
 					Napier.w("Could not create bookmark for picked directory; retrying")
@@ -100,55 +105,27 @@ object SandboxStartup {
 		}
 	}
 
-	private fun showNativeDirectoryPicker(): File? {
-		// macOS-specific AWT toggle to make FileDialog pick directories rather
-		// than files. Restore the previous value so we don't leak this into any
-		// other dialog Compose Desktop might open later.
-		val key = "apple.awt.fileDialogForDirectories"
-		val prior = System.getProperty(key)
-		System.setProperty(key, "true")
-		try {
-			// Don't set dialog.directory — user.home is the sandbox container.
-			// NSOpenPanel runs out-of-process and defaults to the real ~/Documents.
-			val dialog = FileDialog(null as Frame?, str(Res.string.sandbox_picker_title), FileDialog.LOAD)
-			dialog.isVisible = true
-			val name = dialog.file ?: return null
-			val dir = dialog.directory ?: return null
-			return File(dir, name)
-		} finally {
-			if (prior == null) System.clearProperty(key) else System.setProperty(key, prior)
-		}
-	}
+	// Same string for title and message on purpose: modern macOS hides an open
+	// panel's title bar, so `message` is the only one the user actually reads.
+	private fun showNativeDirectoryPicker(): String? = MacOsBookmarks.pickDirectory(
+		title = str(SandboxStrings.PICKER_TITLE),
+		message = str(SandboxStrings.PICKER_TITLE),
+		prompt = str(SandboxStrings.CHOOSE_FOLDER_BUTTON),
+	)
 
 	// Shown once before the native picker so first-time users understand why
 	// macOS is about to ask them to choose a folder.
-	private fun confirmIntroOrQuit(): Boolean {
-		val options = arrayOf<Any>(str(Res.string.sandbox_choose_folder_button), str(Res.string.sandbox_quit_button))
-		val result = JOptionPane.showOptionDialog(
-			null,
-			str(Res.string.sandbox_intro_message),
-			str(Res.string.sandbox_intro_title),
-			JOptionPane.YES_NO_OPTION,
-			JOptionPane.INFORMATION_MESSAGE,
-			null,
-			options,
-			options[0],
-		)
-		return result == JOptionPane.YES_OPTION
-	}
+	private fun confirmIntroOrQuit(): Boolean = MacOsBookmarks.confirm(
+		title = str(SandboxStrings.INTRO_TITLE),
+		message = str(SandboxStrings.INTRO_MESSAGE),
+		primaryButton = str(SandboxStrings.CHOOSE_FOLDER_BUTTON),
+		secondaryButton = str(SandboxStrings.QUIT_BUTTON),
+	)
 
-	private fun confirmRetryOrQuit(): Boolean {
-		val options = arrayOf<Any>(str(Res.string.sandbox_choose_folder_button), str(Res.string.sandbox_quit_button))
-		val result = JOptionPane.showOptionDialog(
-			null,
-			str(Res.string.sandbox_retry_message),
-			"Hammer",
-			JOptionPane.YES_NO_OPTION,
-			JOptionPane.WARNING_MESSAGE,
-			null,
-			options,
-			options[0],
-		)
-		return result == JOptionPane.YES_OPTION
-	}
+	private fun confirmRetryOrQuit(): Boolean = MacOsBookmarks.confirm(
+		title = "Hammer",
+		message = str(SandboxStrings.RETRY_MESSAGE),
+		primaryButton = str(SandboxStrings.CHOOSE_FOLDER_BUTTON),
+		secondaryButton = str(SandboxStrings.QUIT_BUTTON),
+	)
 }

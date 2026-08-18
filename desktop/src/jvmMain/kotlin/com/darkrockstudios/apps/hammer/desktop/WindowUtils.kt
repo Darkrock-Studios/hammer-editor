@@ -6,9 +6,6 @@ import androidx.compose.ui.unit.coerceIn
 import androidx.compose.ui.unit.dp
 import java.awt.Toolkit
 
-fun getScreenWidth() = Toolkit.getDefaultToolkit().screenSize.width.dp
-fun getScreenHeight() = Toolkit.getDefaultToolkit().screenSize.height.dp
-
 fun coerceWindowSize(targetWidth: Dp, targetHeight: Dp): DpSize {
 	val min = 100.dp
 	val maxPercent = 0.9

@@ -50,7 +50,12 @@ config directory).
 
 **macOS:**
 
-`~/Library/Application Support/hammer/0/logs/`
+`~/Library/Preferences/hammer/0/logs/`
+
+If you installed Hammer from the Mac App Store, it runs sandboxed and that
+path is relocated into the app's container:
+
+`~/Library/Containers/com.darkrockstudios.apps.hammer/Data/Library/Preferences/hammer/0/logs/`
 
 **Linux:**
 
