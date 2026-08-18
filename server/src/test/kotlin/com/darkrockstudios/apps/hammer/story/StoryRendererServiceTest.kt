@@ -467,6 +467,218 @@ class StoryRendererServiceTest {
 		assertTrue(result.data.pageHtml.contains("Bravo content"))
 	}
 
+	@Test
+	fun `chapter headings are the author's own, unnumbered`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(id = 1, name = "Prologue", content = "Prologue content.", order = 0),
+				createScene(id = 2, name = "Chapitre 1", content = "First chapter.", order = 1),
+			)
+		)
+
+		val result = service.renderStoryAsHtml(userId, projectId)
+
+		assertIs<StoryRenderResult.Success>(result)
+		assertTrue(result.html.contains("<h2>Prologue</h2>"), result.html)
+		assertTrue(result.html.contains("<h2>Chapitre 1</h2>"), result.html)
+	}
+
+	/**
+	 * Two chapters whose scenes were not created in reading order, so entity id order and tree
+	 * order disagree: FR/Prologue(2), ENG/Prologue(4), FR/Chapitre 1(5).
+	 */
+	private fun interleavedChapters() = listOf(
+		createScene(id = 1, name = "Unhealthy - FR", content = "", order = 0, sceneType = ApiSceneType.Group),
+		createScene(id = 2, name = "Prologue", content = "Prologue francais", order = 0, path = listOf(0, 1)),
+		createScene(id = 3, name = "Unhealthy - ENG", content = "", order = 1, sceneType = ApiSceneType.Group),
+		createScene(id = 4, name = "Prologue", content = "English prologue", order = 0, path = listOf(0, 3)),
+		createScene(id = 5, name = "Chapitre 1", content = "Chapitre un", order = 1, path = listOf(0, 1)),
+	)
+
+	private fun assertRendersInOrder(html: String, vararg content: String) {
+		val positions = content.map { it to html.indexOf(it) }
+		positions.forEach { (text, at) -> assertTrue(at >= 0, "'$text' is missing from the render:\n$html") }
+		positions.zipWithNext { (beforeText, before), (afterText, after) ->
+			assertTrue(before < after, "'$beforeText' should render before '$afterText':\n$html")
+		}
+	}
+
+	@Test
+	fun `paginated - scenes render in tree order, not entity id order`() = runTest {
+		setupMocksForScenes(interleavedChapters())
+
+		val result = service.renderStoryAsHtmlPaginated(userId, projectId)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		assertRendersInOrder(result.data.pageHtml, "Prologue francais", "Chapitre un", "English prologue")
+	}
+
+	@Test
+	fun `filtered - selected scenes render in tree order, not entity id order`() = runTest {
+		setupMocksForScenes(interleavedChapters())
+
+		val prepared = service.prepareExport(userId, projectId, setOf(2, 4, 5))!!
+		val result = service.renderStoryAsHtmlPaginated(prepared)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		assertRendersInOrder(result.data.pageHtml, "Prologue francais", "Chapitre un", "English prologue")
+	}
+
+	@Test
+	fun `filtered - a subset spanning two chapters keeps tree order`() = runTest {
+		setupMocksForScenes(interleavedChapters())
+
+		val prepared = service.prepareExport(userId, projectId, setOf(4, 5))!!
+		val result = service.renderStoryAsHtmlPaginated(prepared)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		assertFalse(result.data.pageHtml.contains("Prologue francais"))
+		assertRendersInOrder(result.data.pageHtml, "Chapitre un", "English prologue")
+	}
+
+	@Test
+	fun `paginated - pagination follows tree order`() = runTest {
+		setupMocksForScenes(interleavedChapters())
+
+		// Three scenes of 2, 2, and 2 words: one per page, in tree order.
+		val pages = (1..3).map { page ->
+			val result = service.renderStoryAsHtmlPaginated(userId, projectId, page = page, wordsPerPage = 2)
+			assertIs<PaginatedExportResult.Success>(result)
+			result.data
+		}
+
+		assertEquals(3, pages.first().totalPages)
+		assertTrue(pages[0].pageHtml.contains("Prologue francais"))
+		assertTrue(pages[1].pageHtml.contains("Chapitre un"))
+		assertTrue(pages[2].pageHtml.contains("English prologue"))
+	}
+
+	@Test
+	fun `paginated - a scene orphaned from its group still renders`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(id = 1, name = "Chapter 1", content = "", order = 0, sceneType = ApiSceneType.Group),
+				createScene(id = 2, name = "Scene 1", content = "Attached content", order = 0, path = listOf(0, 1)),
+				// Parent group 99 does not exist; the prose must not vanish from the page.
+				createScene(id = 3, name = "Lost Scene", content = "Orphaned content", order = 0, path = listOf(0, 99)),
+			)
+		)
+
+		val result = service.renderStoryAsHtmlPaginated(userId, projectId)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		assertTrue(result.data.pageHtml.contains("Attached content"))
+		assertTrue(result.data.pageHtml.contains("Orphaned content"))
+		assertEquals(2, result.data.sceneCount)
+	}
+
+	/** Two chapters, one scene each, with [chapterOrder] deciding which chapter reads first. */
+	private fun twoChapters(chapterOrder: List<Int>) = listOf(
+		createScene(id = 1, name = "Chapter A", content = "", order = chapterOrder[0], sceneType = ApiSceneType.Group),
+		createScene(id = 2, name = "Scene X", content = "Alpha content", order = 0, path = listOf(0, 1)),
+		createScene(id = 3, name = "Chapter B", content = "", order = chapterOrder[1], sceneType = ApiSceneType.Group),
+		createScene(id = 4, name = "Scene Y", content = "Bravo content", order = 0, path = listOf(0, 3)),
+	)
+
+	@Test
+	fun `filtered - reordering the chapters around a share changes its version`() = runTest {
+		setupMocksForScenes(twoChapters(listOf(0, 1)))
+		val before = service.prepareExport(userId, projectId, setOf(2, 4))!!
+
+		// Neither selected scene is touched; only the groups that place them swap.
+		setupMocksForScenes(twoChapters(listOf(1, 0)))
+		val after = service.prepareExport(userId, projectId, setOf(2, 4))!!
+
+		assertNotEquals(
+			before.version,
+			after.version,
+			"a reader holding the old validator would be answered 304 with the old reading order"
+		)
+	}
+
+	@Test
+	fun `filtered - reordering the chapters around a share changes the rendered order`() = runTest {
+		setupMocksForScenes(twoChapters(listOf(1, 0)))
+
+		val prepared = service.prepareExport(userId, projectId, setOf(2, 4))!!
+		val result = service.renderStoryAsHtmlPaginated(prepared)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		assertRendersInOrder(result.data.pageHtml, "Bravo content", "Alpha content")
+	}
+
+	@Test
+	fun `filtered - a share never reads a scene it does not show`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(id = 1, name = "Chapter A", content = "", order = 0, sceneType = ApiSceneType.Group),
+				createScene(id = 2, name = "Scene X", content = "Alpha content", order = 0, path = listOf(0, 1)),
+				createScene(id = 3, name = "Secret", content = "Unshared prose", order = 1, path = listOf(0, 1)),
+			)
+		)
+
+		val prepared = service.prepareExport(userId, projectId, setOf(2))!!
+		val result = service.renderStoryAsHtmlPaginated(prepared)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		assertFalse(result.data.pageHtml.contains("Unshared prose"))
+		// Unshared prose is never decrypted, not merely dropped after the fact.
+		coVerify(exactly = 0) {
+			datasource.loadEntity(
+				userId,
+				projectDef,
+				3,
+				ApiProjectEntity.Type.SCENE,
+				ApiProjectEntity.SceneEntity.serializer()
+			)
+		}
+	}
+
+	@Test
+	fun `filtered - an unrelated scene failing to load still caches the share`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(id = 1, name = "Shared", content = "Alpha content", order = 0),
+				createScene(id = 2, name = "Elsewhere", content = "Bravo content", order = 1),
+			)
+		)
+		// A scene the share doesn't show fails to decrypt; it cannot affect this render's output.
+		coEvery {
+			datasource.loadEntity(
+				userId,
+				projectDef,
+				2,
+				ApiProjectEntity.Type.SCENE,
+				ApiProjectEntity.SceneEntity.serializer()
+			)
+		} returns SResult.failure("boom")
+
+		val prepared = cachingService.prepareExport(userId, projectId, setOf(1))!!
+		val result = cachingService.renderStoryAsHtmlPaginated(prepared, cacheable = true)
+
+		assertIs<PaginatedExportResult.Success>(result)
+		assertTrue(result.data.pageHtml.contains("Alpha content"))
+		assertEquals(1, cachedFiles().size, "the share renders the same every time; it should be cached")
+	}
+
+	@Test
+	fun `a scene orphaned from its group still renders on the author's full story`() = runTest {
+		setupMocksForScenes(
+			listOf(
+				createScene(id = 1, name = "Chapter 1", content = "", order = 0, sceneType = ApiSceneType.Group),
+				createScene(id = 2, name = "Scene 1", content = "Attached content", order = 0, path = listOf(0, 1)),
+				// Parent group 99 does not exist; readers can see this scene, so the author must too.
+				createScene(id = 3, name = "Lost Scene", content = "Orphaned content", order = 0, path = listOf(0, 99)),
+			)
+		)
+
+		val result = service.renderStoryAsHtml(userId, projectId)
+
+		assertIs<StoryRenderResult.Success>(result)
+		assertTrue(result.html.contains("Attached content"))
+		assertTrue(result.html.contains("Orphaned content"), result.html)
+	}
+
 	private fun createScene(
 		id: Int,
 		name: String,
@@ -491,9 +703,12 @@ class StoryRendererServiceTest {
 		val entityDefs = scenes.map { EntityDefinition(it.id, ApiProjectEntity.Type.SCENE) }
 		coEvery { datasource.getEntityDefsByType(userId, projectDef, ApiProjectEntity.Type.SCENE) } returns entityDefs
 
-		// Mirrors the real column: the stored hash covers the scene's content, so editing a scene
-		// here changes its hash the way a sync would.
-		stubSceneHashes(*scenes.map { EntityHash(it.id, "h${it.content.hashCode()}") }.toTypedArray())
+		// Mirrors the real column: the stored hash covers the whole serialized entity, so editing a
+		// scene or moving it changes its hash the way a sync would.
+		stubSceneHashes(
+			*scenes.map { EntityHash(it.id, "h${listOf(it.name, it.content, it.order, it.path).hashCode()}") }
+				.toTypedArray()
+		)
 
 		val entityIdSlot = slot<Int>()
 		coEvery {
