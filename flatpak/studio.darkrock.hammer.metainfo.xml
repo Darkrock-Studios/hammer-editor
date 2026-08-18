@@ -32,6 +32,12 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.9.1" date="2026-08-18">
+            <description>
+                <p>- Fix sharing scene order</p>
+                <p>- Fix PDF export crash</p>
+            </description>
+        </release>
         <release version="3.9.0" date="2026-08-16">
             <description>
                 <p>New</p>
