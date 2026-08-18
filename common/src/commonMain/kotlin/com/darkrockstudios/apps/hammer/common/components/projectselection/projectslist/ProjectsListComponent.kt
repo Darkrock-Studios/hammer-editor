@@ -731,7 +731,8 @@ class ProjectsListComponent(
 									onSyncLog(syncLogI("No changes — skipped", projectDef))
 									syncProgressStatus(
 										projectDef.name,
-										ProjectsList.Status.Complete
+										ProjectsList.Status.Complete,
+										progress = 1f,
 									)
 									return@launch
 								}
@@ -755,7 +756,11 @@ class ProjectsListComponent(
 									ProjectSyncOutcome.NeedsResolution -> ProjectsList.Status.NeedsResolution
 									ProjectSyncOutcome.Failed -> ProjectsList.Status.Failed
 								}
-								syncProgressStatus(projectDef.name, newStatus)
+								syncProgressStatus(
+									projectDef.name,
+									newStatus,
+									progress = 1f.takeIf { newStatus == ProjectsList.Status.Complete },
+								)
 							} catch (e: CancellationException) {
 								throw e
 							} catch (e: Exception) {
