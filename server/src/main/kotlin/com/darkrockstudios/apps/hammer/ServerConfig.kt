@@ -35,6 +35,12 @@ data class ServerConfig(
 	 * them. Assumes a single proxy: the address comes from the last `X-Forwarded-For` entry.
 	 */
 	val trustProxyForwarding: Boolean = false,
+	/**
+	 * IANA zone ID (e.g. "Europe/Paris") that server-rendered timestamps and log lines are stamped
+	 * in. Absent, the `HAMMER_TIMEZONE` environment variable is used, then `TZ`, then the host's own
+	 * zone. An unknown ID aborts startup.
+	 */
+	val timezone: String? = null,
 	val additionalSitemaps: List<String> = emptyList(),
 	/**
 	 * Generate per-page social share images (OpenGraph) on the fly for author and story pages.

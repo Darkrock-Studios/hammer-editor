@@ -40,16 +40,23 @@ class MacOsDockShortcuts(
 			runCatching {
 				val recent = projectsRepository.getRecentProjects(MAX_RECENT_PROJECTS, excludeCurrent)
 				idToProject.clear()
+				@Suppress("UNUSED_VARIABLE")
 				val items = recent.mapIndexed { idx, def ->
 					val id = idx + 1
 					idToProject[id] = def
 					DockMenuItem(id = id, title = def.name)
 				}
-				// Defer to the EDT so AWT has installed the NSApplicationDelegate
-				// that Nucleus method-swizzles in nativeSetDockMenu.
-				javax.swing.SwingUtilities.invokeLater {
-					MacOsDockMenu.setDockMenu(items)
-				}
+				// Publishing the menu is commented out along with the rest of this
+				// implementation being unbound (see desktopModule). It used to hop to
+				// the EDT so AWT would have installed the NSApplicationDelegate that
+				// Nucleus method-swizzles in nativeSetDockMenu — but touching AWT is
+				// exactly what hangs the app when it wins the race against the Tao
+				// backend claiming AppKit (see SandboxStartup). Re-enabling this needs
+				// a non-AWT way to get that delegate installed first; restoring the
+				// SwingUtilities call as-is would reintroduce the hang.
+				// javax.swing.SwingUtilities.invokeLater {
+				//     MacOsDockMenu.setDockMenu(items)
+				// }
 			}.onFailure { Napier.w("Failed to refresh macOS dock menu", it) }
 		}
 	}

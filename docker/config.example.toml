@@ -12,6 +12,10 @@ host = "hammer.example.com"
 # HEALTHCHECK both assume 8080; changing it means changing those too.
 port = 8080
 
+# Time zone for rendered timestamps and log lines, as an IANA zone ID. Defaults to
+# the container's zone (UTC unless TZ is set in docker-compose.yml).
+# timezone = "Europe/Paris"
+
 # Do NOT set bindHosts under Docker. The main server guide recommends
 # ["127.0.0.1", "::1"] behind a reverse proxy, but inside a container that binds
 # the container's own loopback, so the published port reaches nothing and the

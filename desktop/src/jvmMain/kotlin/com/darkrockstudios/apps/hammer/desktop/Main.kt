@@ -160,11 +160,6 @@ fun main(args: Array<String>) {
 	val quickShortcuts = getKoin().get<QuickShortcuts>()
 	quickShortcuts.init()
 
-	if (initialProject == null) {
-		// When opening a project, the subsequent ApplicationState.openProject() will refresh.
-		appScope.launch { quickShortcuts.refresh() }
-	}
-
 	val scope = CoroutineScope(getDefaultDispatcher())
 	val mainDispatcher = getMainDispatcher()
 
@@ -189,7 +184,15 @@ fun main(args: Array<String>) {
 		backend = NucleusBackend.Tao,
 		enableSingleInstance = false,
 	) {
-		LaunchedEffect(Unit) { Napier.i("Startup: first composition") }
+		LaunchedEffect(Unit) {
+			Napier.i("Startup: first composition")
+			// Refreshed from inside composition, never from a coroutine racing
+			// the launch: an implementation that touches AWT (the macOS dock
+			// menu does) must not get there before the Tao backend has claimed
+			// AppKit, or the app hangs with no window. See SandboxStartup.
+			// When opening a project, ApplicationState.openProject() refreshes instead.
+			if (initialProject == null) quickShortcuts.refresh()
+		}
 		val applicationState = remember {
 			ApplicationState(
 				appScope = appScope,

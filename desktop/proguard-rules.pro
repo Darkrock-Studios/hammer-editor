@@ -92,6 +92,14 @@
 -keep class * implements org.slf4j.spi.SLF4JServiceProvider { *; }
 
 ################################################################################
+# COMMONS-LOGGING (PDFBox, used by PDF export)
+# LogFactory resolves its implementation by name, so the shrinker sees no
+# reference to LogFactoryImpl and drops it. PDDocument's static init then dies.
+################################################################################
+-keep class org.apache.commons.logging.** { *; }
+-dontwarn org.apache.commons.logging.**
+
+################################################################################
 # CLEANUP & WARNING SUPPRESSION
 ################################################################################
 -dontwarn okio.**

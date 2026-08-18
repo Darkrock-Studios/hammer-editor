@@ -87,9 +87,9 @@ class StoryRendererService(
 		// Get root-level scenes (direct children of root)
 		val rootScenes = scenesByParent[0]?.sortedBy { it.order } ?: emptyList()
 
-		var chapterNumber = 1
 		for (scene in rootScenes) {
-			builder.append("## $chapterNumber. ${scene.name}\n\n")
+			// The author's own heading, verbatim: a story renders as written, never renumbered.
+			builder.append("## ${scene.name}\n\n")
 
 			if (scene.sceneType == ApiSceneType.Scene) {
 				// Write scene content directly
@@ -100,8 +100,13 @@ class StoryRendererService(
 				// It's a Group - write all child scenes' content
 				writeGroupChildren(builder, scene.id, scenesByParent)
 			}
+		}
 
-			chapterNumber++
+		// A scene the walk can't reach still belongs to the author, and their readers can see it on
+		// the published page; it would be worse for it to be missing here than to sit at the end.
+		for (orphan in walkScenes(scenes).orphans) {
+			builder.append("## ${orphan.name}\n\n")
+			if (orphan.content.isNotBlank()) builder.appendScene(orphan.content)
 		}
 
 		return builder.toString()
@@ -141,8 +146,8 @@ class StoryRendererService(
 
 	/**
 	 * Resolve a story once, so a caller that needs its [PreparedExport.version] before deciding to
-	 * render doesn't pay for the lookup twice. Costs one project lookup plus one indexed hash query
-	 * with no decryption. Null when the project doesn't exist.
+	 * render doesn't pay for the lookup twice. A whole-story export costs one project lookup plus
+	 * one indexed hash query with no decryption. Null when the project doesn't exist.
 	 */
 	suspend fun prepareExport(
 		userId: Long,
@@ -151,19 +156,61 @@ class StoryRendererService(
 	): PreparedExport? {
 		val projectDef = projectEntityDatasource.getProject(userId, projectId) ?: return null
 		val allHashes = sceneHashes(userId, projectDef)
-		// The fingerprint covers only the filtered scenes, so the HTTP validator changes
-		// exactly when this share's visible content changes, and two shares with different
-		// scene sets never collide on a validator.
-		val sceneHashes = if (sceneFilter != null) allHashes.filter { it.id in sceneFilter } else allHashes
-		if (sceneFilter != null && sceneHashes.isEmpty()) return null
+
+		if (sceneFilter == null) {
+			return PreparedExport(
+				userId = userId,
+				projectId = projectId,
+				projectDef = projectDef,
+				sceneHashes = allHashes,
+				version = StoryRenderCache.fingerprint(projectDef.name, allHashes),
+			)
+		}
+
+		val presentIds = allHashes.map { it.id }.toSet()
+		val selectedIds = presentIds intersect sceneFilter
+		if (selectedIds.isEmpty()) return null
+
+		// Where a selected scene falls in the reading order is decided by the groups above it, so
+		// the share's validator has to cover those too or a reordered chapter is answered 304 with
+		// the old order. A scene's path is its whole ancestor chain, so one more read settles it.
+		val selected = loadScenes(userId, projectDef, selectedIds)
+		val ancestorIds = selected.flatMapTo(mutableSetOf()) { it.path }
+			.intersect(presentIds) - selectedIds
+		val ancestors = loadScenes(userId, projectDef, ancestorIds)
+
+		val coveredIds = selectedIds + ancestorIds
+		// Still only this share's scenes and the structure around them: an edit to a scene the
+		// share doesn't show leaves the validator alone, and two shares of different scene sets
+		// never collide on one.
+		val sceneHashes = allHashes.filter { it.id in coveredIds }
 		return PreparedExport(
 			userId = userId,
 			projectId = projectId,
 			projectDef = projectDef,
 			sceneHashes = sceneHashes,
 			sceneFilter = sceneFilter,
+			// Read once here and carried to the render, so a cache miss doesn't decrypt twice.
+			scenes = selected + ancestors,
+			scenesComplete = selected.size + ancestors.size == coveredIds.size,
 			version = StoryRenderCache.fingerprint(projectDef.name, sceneHashes),
 		)
+	}
+
+	/** Loads [ids], skipping any that fail; the caller compares sizes to detect a partial read. */
+	private suspend fun loadScenes(
+		userId: Long,
+		projectDef: ProjectDefinition,
+		ids: Collection<Int>,
+	): List<ApiProjectEntity.SceneEntity> = ids.mapNotNull { id ->
+		val result = projectEntityDatasource.loadEntity(
+			userId = userId,
+			projectDef = projectDef,
+			entityId = id,
+			entityType = ApiProjectEntity.Type.SCENE,
+			serializer = ApiProjectEntity.SceneEntity.serializer()
+		)
+		if (isSuccess(result)) result.data else null
 	}
 
 	/**
@@ -201,6 +248,7 @@ class StoryRendererService(
 		wordsPerPage = wordsPerPage,
 		cacheable = cacheable,
 		sceneFilter = prepared.sceneFilter,
+		preloaded = prepared.scenes?.let { PreloadedScenes(it, prepared.scenesComplete) },
 	)
 
 	private suspend fun renderOrCache(
@@ -212,6 +260,7 @@ class StoryRendererService(
 		wordsPerPage: Int,
 		cacheable: Boolean,
 		sceneFilter: Set<Int>? = null,
+		preloaded: PreloadedScenes? = null,
 	): PaginatedExportResult {
 		val cache = renderCache.takeIf { cacheable }
 
@@ -223,9 +272,9 @@ class StoryRendererService(
 					page = page,
 					wordsPerPage = wordsPerPage,
 					sceneHashes = sceneHashes,
-				) { renderPaginated(userId, projectDef, page, wordsPerPage, sceneFilter) }
+				) { renderPaginated(userId, projectDef, page, wordsPerPage, sceneFilter, preloaded) }
 			} else {
-				renderPaginated(userId, projectDef, page, wordsPerPage, sceneFilter).result
+				renderPaginated(userId, projectDef, page, wordsPerPage, sceneFilter, preloaded).result
 			}
 			PaginatedExportResult.Success(result)
 		} catch (e: Exception) {
@@ -246,20 +295,27 @@ class StoryRendererService(
 		page: Int,
 		wordsPerPage: Int,
 		sceneFilter: Set<Int>? = null,
+		preloaded: PreloadedScenes? = null,
 	): StoryRender {
-		val allSceneDefs = projectEntityDatasource.getEntityDefsByType(
-			userId = userId,
-			projectDef = projectDef,
-			type = ApiProjectEntity.Type.SCENE
-		)
-		// Filter before loading so unselected scenes are never decrypted.
-		val sceneDefs = if (sceneFilter != null) {
-			allSceneDefs.filter { it.id in sceneFilter }
+		// A scene-limited share arrives with its scenes and their ancestor groups already read;
+		// nothing else in the project is touched, so unshared prose is never decrypted. A whole
+		// story reads every scene, which is also every scene it renders.
+		val scenes: List<ApiProjectEntity.SceneEntity>
+		val complete: Boolean
+		if (preloaded != null) {
+			scenes = preloaded.scenes
+			complete = preloaded.complete
 		} else {
-			allSceneDefs
+			val sceneDefs = projectEntityDatasource.getEntityDefsByType(
+				userId = userId,
+				projectDef = projectDef,
+				type = ApiProjectEntity.Type.SCENE
+			)
+			scenes = loadScenes(userId, projectDef, sceneDefs.map { it.id })
+			complete = scenes.size == sceneDefs.size
 		}
 
-		if (sceneDefs.isEmpty()) {
+		if (scenes.isEmpty()) {
 			return StoryRender(
 				result = PaginatedStoryExportResult(
 					projectName = projectDef.name,
@@ -275,31 +331,20 @@ class StoryRendererService(
 					prevPage = 1,
 					estimatedReadingTimeMinutes = 1
 				),
-				complete = true,
+				complete = complete,
 			)
 		}
 
-		val scenes: List<ApiProjectEntity.SceneEntity> = sceneDefs.mapNotNull { def ->
-			val result = projectEntityDatasource.loadEntity(
-				userId = userId,
-				projectDef = projectDef,
-				entityId = def.id,
-				entityType = ApiProjectEntity.Type.SCENE,
-				serializer = ApiProjectEntity.SceneEntity.serializer()
-			)
-			if (isSuccess(result)) result.data else null
-		}
+		val selected = walkScenes(scenes).scenes
+			.let { ordered -> if (sceneFilter == null) ordered else ordered.filter { it.id in sceneFilter } }
 
-		// Process all scenes with their word counts (only count actual scenes, not groups)
-		val processedScenes = scenes
-			.filter { it.sceneType == ApiSceneType.Scene }
-			.map { scene ->
-				ProcessedScene(
-					scene = scene,
-					wordCount = WordCountUtils.countWords(scene.content),
-					markdown = scene.content
-				)
-			}
+		val processedScenes = selected.map { scene ->
+			ProcessedScene(
+				scene = scene,
+				wordCount = WordCountUtils.countWords(scene.content),
+				markdown = scene.content
+			)
+		}
 
 		val totalWordCount = processedScenes.sumOf { it.wordCount }
 		val estimatedReadingTime = WordCountUtils.estimateReadingTimeMinutes(totalWordCount)
@@ -334,9 +379,42 @@ class StoryRendererService(
 			// A scene that failed to load is silently absent from the prose. Serve the page, but
 			// never persist it: a transient decrypt or DB failure must not outlive itself in the
 			// cache, where the key wouldn't change until the author next edits.
-			complete = scenes.size == sceneDefs.size,
+			complete = complete,
 		)
 	}
+
+	/**
+	 * Flattens the scene tree to its leaf scenes in the order the author sees them: depth first,
+	 * siblings by [ApiProjectEntity.SceneEntity.order].
+	 */
+	private fun walkScenes(scenes: List<ApiProjectEntity.SceneEntity>): SceneWalk {
+		val scenesByParent = scenes.groupBy { it.path.lastOrNull() ?: ROOT_KEY }
+		val ordered = mutableListOf<ApiProjectEntity.SceneEntity>()
+		val visited = mutableSetOf<Int>()
+
+		fun visit(parentId: Int) {
+			val children = scenesByParent[parentId] ?: return
+			for (scene in children.sortedBy { it.order }) {
+				// A path cycle would otherwise recurse forever.
+				if (!visited.add(scene.id)) continue
+				if (scene.sceneType == ApiSceneType.Scene) ordered += scene else visit(scene.id)
+			}
+		}
+		visit(ROOT_ID)
+
+		val orphans = scenes.filter { it.sceneType == ApiSceneType.Scene && it.id !in visited }
+		return SceneWalk(scenes = ordered + orphans, orphans = orphans)
+	}
+
+	/**
+	 * The story's leaf scenes in reading order. [orphans] are the ones the walk couldn't reach,
+	 * a scene whose parent group is missing; they land at the end of [scenes] so that nothing the
+	 * author wrote silently disappears from a render.
+	 */
+	private class SceneWalk(
+		val scenes: List<ApiProjectEntity.SceneEntity>,
+		val orphans: List<ApiProjectEntity.SceneEntity>,
+	)
 
 	private fun paginateScenes(
 		scenes: List<ProcessedScene>,
@@ -560,7 +638,9 @@ class StoryRendererService(
 	}
 
 	companion object {
+		/** Bucket for a scene with no path at all; distinct from the real root, which is id 0. */
 		private const val ROOT_KEY = -1
+		private const val ROOT_ID = 0
 		const val DEFAULT_WORDS_PER_PAGE = 2000
 	}
 }
@@ -591,6 +671,19 @@ class PreparedExport internal constructor(
 	val version: String,
 	/** Scene ids the render is limited to; null renders the entire story. */
 	internal val sceneFilter: Set<Int>? = null,
+	/**
+	 * The scenes a limited share renders and the groups that place them, read while resolving the
+	 * version. Null for a whole-story export, which reads its scenes at render time instead.
+	 */
+	internal val scenes: List<ApiProjectEntity.SceneEntity>? = null,
+	/** False when one of [scenes] failed to load, which bars the render from the cache. */
+	internal val scenesComplete: Boolean = true,
+)
+
+/** Scenes resolved before the render, with whether the set is whole. */
+internal class PreloadedScenes(
+	val scenes: List<ApiProjectEntity.SceneEntity>,
+	val complete: Boolean,
 )
 
 @Serializable

@@ -74,6 +74,53 @@ bindHosts = ["127.0.0.1", "::1"]
 public name shown to users. Each address gets its own listener (and its own HTTPS listener when an
 SSL cert is configured).
 
+## Time zone
+
+The server stamps timestamps in the host's time zone, which on most containers and fresh installs
+is UTC. To use your local zone instead, set `timezone` to an IANA zone ID
+([full list of accepted IDs](SERVER-TIMEZONES.md)):
+
+```toml
+timezone = "Europe/Paris"
+```
+
+Two environment variables do the same thing, for setups where the config file is inconvenient:
+`HAMMER_TIMEZONE`, and the standard `TZ`. `config.toml` wins over `HAMMER_TIMEZONE`, which wins
+over `TZ`.
+
+```sh
+HAMMER_TIMEZONE=Europe/Paris ./run.sh
+```
+
+The zone is applied at startup, and logged as `Server time zone: ...` so you can confirm it took.
+An unknown ID in `timezone` or `HAMMER_TIMEZONE` aborts startup rather than quietly leaving every
+timestamp in the wrong zone. `TZ` is treated more leniently, because the POSIX form some systems
+use (`CET-1CEST,M3.5.0`) is a legitimate value the operating system has already acted on: a `TZ`
+Hammer cannot read logs a warning and leaves the zone to the host.
+
+What it affects:
+
+- Dates and times on the web pages the server renders: the dashboard, admin screens, monitoring,
+  editorial reviews, and published story dates.
+- Log line timestamps, both in the console output and the admin log viewer.
+
+What it does not affect:
+
+- Stored data. Everything is persisted as an absolute instant (UTC in the database), so changing
+  the zone re-renders existing timestamps rather than shifting any data.
+- The desktop, Android, and iOS clients. Those render in each device's own zone.
+- Maintenance job scheduling. Jobs run on fixed intervals from server start, not at a wall-clock
+  time of day, so no schedule moves with the zone.
+
+One caveat when changing the zone on a server that has already been running: date-only admin
+fields are interpreted in whatever zone was in effect when they were saved. An Allowed Users
+expiry entered as "expires Sep 1" is stored as the end of Sep 1 in the old zone, so afterwards the
+edit form can show the neighboring date, and re-saving that row moves the expiry by a day. Nothing
+expires early or late on its own; only re-saving an existing row does it.
+
+Note that `TZ` alone already works on Linux, because the JVM reads it. Hammer reads it back
+explicitly so the same variable also works on Windows and macOS hosts, which ignore it.
+
 ## Rich link previews (optional)
 
 By default, sharing an author or story link on social media shows a branded static preview card.

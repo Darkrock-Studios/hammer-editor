@@ -19,6 +19,8 @@ import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import com.darkrockstudios.apps.hammer.project_home_action_export_toast_failure
 import com.darkrockstudios.apps.hammer.project_home_action_export_toast_success
+import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.io.File
@@ -42,22 +44,30 @@ actual fun ExportDirectoryPicker(
 		val options = confirmedOptions
 		if (uri != null && options != null) {
 			scope.launch(ioDispatcher) {
-				val exportTempFile = getCacheDirectory()
-				val tempFilePath = component.exportProject(exportTempFile, options)
-				val tempFile = File(tempFilePath.path)
-				val bytes = tempFile.readBytes()
-				tempFile.delete()
+				// A renderer failure must surface as a toast; an uncaught throw here takes down the app.
+				try {
+					val exportTempFile = getCacheDirectory()
+					val tempFilePath = component.exportProject(exportTempFile, options)
+					val tempFile = File(tempFilePath.path)
+					val bytes = tempFile.readBytes()
+					tempFile.delete()
 
-				val ok = externalFileIo.writeExternalFile(
-					path = uri.toString(),
-					content = bytes,
-				)
-				val toast = if (ok) {
-					Res.string.project_home_action_export_toast_success
-				} else {
-					Res.string.project_home_action_export_toast_failure
+					val ok = externalFileIo.writeExternalFile(
+						path = uri.toString(),
+						content = bytes,
+					)
+					val toast = if (ok) {
+						Res.string.project_home_action_export_toast_success
+					} else {
+						Res.string.project_home_action_export_toast_failure
+					}
+					component.showToast(toast)
+				} catch (e: CancellationException) {
+					throw e
+				} catch (@Suppress("TooGenericExceptionCaught") e: Throwable) {
+					Napier.e("Story export failed", e)
+					component.showToast(Res.string.project_home_action_export_toast_failure)
 				}
-				component.showToast(toast)
 			}
 		} else {
 			component.endProjectExport()

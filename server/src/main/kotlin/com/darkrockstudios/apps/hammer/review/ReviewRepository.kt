@@ -805,7 +805,11 @@ class ReviewRepository(
 			return base.take(MAX_DRAFT_NAME_LENGTH).trim()
 		}
 
-		/** Name for the committed draft, same validDraftName constraints (so no comma in the date). */
+		/**
+		 * Name for the committed draft, same validDraftName constraints (so no comma in the date).
+		 * Dated in UTC, not the server's configured zone: this name is written into the author's
+		 * project and syncs to devices anywhere, so it should not depend on a server setting.
+		 */
 		fun reviewedDraftName(label: String, at: kotlin.time.Instant): String {
 			val date = java.time.format.DateTimeFormatter
 				.ofPattern("MMM d yyyy", java.util.Locale.ENGLISH)

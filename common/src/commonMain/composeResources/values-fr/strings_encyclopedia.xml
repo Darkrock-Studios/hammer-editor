@@ -34,6 +34,8 @@
 	<string name="encyclopedia_create_entry_toast_tag_too_long">L'Étiquette est trop longue. Max %1$d</string>
 	<string name="encyclopedia_create_entry_toast_alias_too_long">L'alias est trop long. Max %1$d</string>
 	<string name="encyclopedia_entry_aliases_label">Alias</string>
+	<string name="encyclopedia_entry_dictionary_toggle_label">Learn in spell check</string>
+	<string name="encyclopedia_entry_dictionary_toggle_hint">This entry&#8217;s name and aliases won&#8217;t be marked as misspelled</string>
 	<string name="encyclopedia_entry_add_alias_dialog_title">Ajouter un alias</string>
 	<string name="encyclopedia_entry_add_alias_button">Ajouter</string>
 	<string name="encyclopedia_entry_alias_hint">Surnom ou autre nom</string>
