@@ -69,6 +69,8 @@
 	<string name="settings_spellcheck_notice">Якщо це спричиняє проблеми, просто вимкніть її.</string>
 	<string name="settings_spellcheck_enable">Увімкнути перевірку правопису</string>
 	<string name="settings_spellcheck_in_focus_enable">Увімкнути в режимі зосередження</string>
+	<string name="settings_spellcheck_encyclopedia_enable">Learn encyclopedia names</string>
+	<string name="settings_spellcheck_encyclopedia_enable_hint">Entry names and aliases won&#8217;t be marked as misspelled while their project is open</string>
 	<string name="settings_spellcheck_dictionary">Словник</string>
 	<string name="settings_spellcheck_dictionary_android_info_title">Мова перевірки правопису</string>
 	<string name="settings_spellcheck_dictionary_android_info_message">В Android мову перевірки правопису вибирає ваш пристрій, а не застосунок. Щоб змінити її, оновіть мови системи та клавіатури в налаштуваннях Android.</string>

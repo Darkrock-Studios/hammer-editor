@@ -52,6 +52,8 @@
 	<string name="project_settings_hero_no_author">di (nessun autore impostato)</string>
 	<string name="project_settings_spellcheck_section_title">Controllo ortografico</string>
 	<string name="project_settings_spellcheck_mismatch_caption">Spell check is off: the project language (%1$s) doesn’t match your dictionary (%2$s). Change either to re-enable it.</string>
+	<string name="project_settings_spellcheck_encyclopedia_enable">Learn encyclopedia names in this project</string>
+	<string name="project_settings_spellcheck_encyclopedia_enable_hint">Turn off to keep this project&#8217;s entry names out of the spell check dictionary</string>
 	<string name="project_settings_folio_caption">Impostazioni del progetto · %1$s</string>
 	<string name="project_settings_folio_section_count">§§ %1$d</string>
 	<string name="sync_conflict_project_data_title">Conflitto di impostazioni del progetto</string>
@@ -61,7 +63,10 @@
 	<string name="sync_conflict_project_data_field_word_goal">Obiettivo di conteggio parole</string>
 	<string name="sync_conflict_project_data_field_tags">Tag</string>
 	<string name="sync_conflict_project_data_field_language">Language</string>
+	<string name="sync_conflict_project_data_field_dictionary">Learn Encyclopedia Names</string>
 	<string name="sync_conflict_project_data_value_unset">(non impostato)</string>
+	<string name="sync_conflict_project_data_value_on">On</string>
+	<string name="sync_conflict_project_data_value_off">Off</string>
 	<string name="sync_conflict_project_data_cadence_day">giorno</string>
 	<string name="sync_conflict_project_data_cadence_week">settimana</string>
 	<string name="sync_conflict_project_data_resolve_button">Risolvi</string>
