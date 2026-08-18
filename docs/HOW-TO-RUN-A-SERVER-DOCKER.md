@@ -127,6 +127,27 @@ Paths inside `config.toml` are resolved differently depending on the setting:
 > with a confusing `UnexpectedTokenException` on line 1. In PowerShell use
 > `[System.IO.File]::WriteAllText($path, $text)`.
 
+### Time zone
+
+The container runs in UTC unless told otherwise, so rendered timestamps and log lines are stamped
+in UTC. `docker-compose.yml` passes `TZ` through, so set it in your shell or in a `.env` file next
+to the compose file:
+
+```
+TZ=Europe/Paris
+```
+
+Or set it directly in `config.toml`, which takes precedence:
+
+```toml
+timezone = "Europe/Paris"
+```
+
+Either way the value is an IANA zone ID; see the [full list](SERVER-TIMEZONES.md). The effective
+zone is logged at startup as `Server time zone: ...`. Stored data is unaffected, since everything
+is persisted as an absolute instant. See [Time zone](HOW-TO-RUN-A-SERVER.md#time-zone) for the
+full rundown, including the one caveat when changing the zone on a server already in use.
+
 ## TLS in the container
 
 If you want Hammer itself to terminate TLS, mount the certificate directory and
