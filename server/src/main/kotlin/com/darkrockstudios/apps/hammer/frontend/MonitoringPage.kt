@@ -464,7 +464,7 @@ private fun securityAlertModel(alert: SecurityAlert): Map<String, Any> = mapOf(
  * are floored to the UTC day, so labeling one anywhere else shifts every point onto a neighboring
  * date.
  */
-private fun chartLabelZone(hourly: Boolean): ZoneId = if (hourly) ZoneId.systemDefault() else ZoneOffset.UTC
+internal fun chartLabelZone(hourly: Boolean): ZoneId = if (hourly) ZoneId.systemDefault() else ZoneOffset.UTC
 
 private fun buildErrorRateChart(points: List<TimeSeriesPoint>, labelFormat: String, zone: ZoneId): String {
 	val payload = ErrorRateChartPayload(
@@ -484,7 +484,7 @@ private fun buildLatencyChart(points: List<TimeSeriesPoint>, labelFormat: String
 	return Json.encodeToString(LatencyChartPayload.serializer(), payload)
 }
 
-private fun buildActiveUsersChart(daily: List<DailyActiveUsers>): String {
+internal fun buildActiveUsersChart(daily: List<DailyActiveUsers>): String {
 	val payload = ActiveUsersChartPayload(
 		labels = daily.map { formatInstant(it.day, "MMM dd", ZoneOffset.UTC) },
 		sync = daily.map { it.sync },
@@ -493,7 +493,7 @@ private fun buildActiveUsersChart(daily: List<DailyActiveUsers>): String {
 	return Json.encodeToString(ActiveUsersChartPayload.serializer(), payload)
 }
 
-private fun buildReadersChart(daily: List<ReaderDay>): String {
+internal fun buildReadersChart(daily: List<ReaderDay>): String {
 	val payload = ReadersChartPayload(
 		labels = daily.map { formatInstant(it.day, "MMM dd", ZoneOffset.UTC) },
 		readers = daily.map { it.count },
@@ -501,7 +501,7 @@ private fun buildReadersChart(daily: List<ReaderDay>): String {
 	return Json.encodeToString(ReadersChartPayload.serializer(), payload)
 }
 
-private fun buildTrafficChart(points: List<TimeSeriesPoint>): String {
+internal fun buildTrafficChart(points: List<TimeSeriesPoint>): String {
 	val payload = ChartPayload(
 		labels = points.map { formatInstant(it.bucketStart, "MMM dd", ZoneOffset.UTC) },
 		requests = points.map { it.requests },
