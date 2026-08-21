@@ -1,13 +1,10 @@
 package com.darkrockstudios.apps.hammer.account
 
 import com.darkrockstudios.apps.hammer.Account
-import com.darkrockstudios.apps.hammer.ServerConfig
-import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
-import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.base.http.Token
-import com.darkrockstudios.apps.hammer.patreon.PatreonConfig
+import com.darkrockstudios.apps.hammer.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.Msg
 import com.darkrockstudios.apps.hammer.utilities.SResult
@@ -18,9 +15,8 @@ class AccountsComponent(
 	private val accountsRepository: AccountsRepository,
 	private val whiteListRepository: WhiteListRepository,
 	private val projectsRepository: ProjectsRepository,
-	private val configRepository: ConfigRepository,
 	private val termsOfServiceRepository: TermsOfServiceRepository,
-	private val serverConfig: ServerConfig,
+	private val pluginRegistry: PluginRegistry,
 ) {
 	suspend fun createAccount(
 		email: String,
@@ -96,26 +92,12 @@ class AccountsComponent(
 			whiteListRepository.isOnWhiteList(account.email).not()
 	}
 
-	private suspend fun getActivePatreonConfig(): PatreonConfig? {
-		if (serverConfig.patreonEnabled != true) return null
-		val config = configRepository.get(AdminServerConfig.PATREON_CONFIG)
-		return if (config.enabled && config.patreonUrl.isNotBlank()) config else null
-	}
-
 	private suspend fun whiteListRejectedFailure(): ServerResult.Failure<Token> {
-		val patreonConfig = getActivePatreonConfig()
-		return if (patreonConfig != null) {
-			val amount = "%.2f".format(patreonConfig.minimumAmountCents / 100.0)
-			SResult.failure(
-				error = "User not on whitelist - Patreon subscription required",
-				displayMessage = Msg.r("login_failure_patreon_notice_message", amount, patreonConfig.patreonUrl)
-			)
-		} else {
-			SResult.failure(
-				error = "User not on whitelist",
-				displayMessage = Msg.r("api_allowedusers_rejected")
-			)
-		}
+		val message = pluginRegistry.activeAllowedUsersSource()?.rejectionMessage()
+		return SResult.failure(
+			error = "User not on whitelist",
+			displayMessage = message ?: Msg.r("api_allowedusers_rejected")
+		)
 	}
 }
 

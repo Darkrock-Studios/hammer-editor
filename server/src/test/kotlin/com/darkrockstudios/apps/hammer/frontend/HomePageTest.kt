@@ -4,7 +4,6 @@ import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.frontend.data.UserSession
-import com.darkrockstudios.apps.hammer.patreon.PatreonConfig
 import com.darkrockstudios.apps.hammer.plugins.configureLocalization
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
@@ -45,7 +44,7 @@ class HomePageTest : BaseTest() {
 				cookie<UserSession>(COOKIE_USER_SESSION)
 			}
 			routing {
-				homePage(configRepository, ServerConfig(), MarkdownService())
+				homePage(configRepository, MarkdownService())
 			}
 		}
 	}
@@ -53,7 +52,6 @@ class HomePageTest : BaseTest() {
 	private fun mockPageModelDependencies(serverMessage: String) {
 		coEvery { configRepository.get(AdminServerConfig.SERVER_MESSAGE) } returns serverMessage
 		coEvery { configRepository.get(AdminServerConfig.CONTACT_EMAIL) } returns ""
-		coEvery { configRepository.get(AdminServerConfig.PATREON_CONFIG) } returns PatreonConfig()
 		coEvery { configRepository.get(AdminServerConfig.ABOUT_SERVER) } returns ""
 		coEvery { configRepository.get(AdminServerConfig.DEFAULT_LOCALE) } returns "en"
 	}

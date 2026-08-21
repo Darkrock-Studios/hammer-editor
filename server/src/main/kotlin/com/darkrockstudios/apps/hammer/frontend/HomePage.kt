@@ -1,12 +1,13 @@
 package com.darkrockstudios.apps.hammer.frontend
 
-import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.webSiteJsonLd
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
+import com.darkrockstudios.apps.hammer.plugin.NoticeSlot
+import com.darkrockstudios.apps.hammer.plugin.putAllowedUsersNotice
 import io.ktor.server.mustache.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -34,7 +35,6 @@ private val MASTHEAD_PRELOADS = listOf(
 
 fun Route.homePage(
 	configRepository: ConfigRepository,
-	serverConfig: ServerConfig,
 	markdownService: MarkdownService,
 ) {
 	route("/") {
@@ -46,9 +46,10 @@ fun Route.homePage(
 				configRepository.get(AdminServerConfig.SERVER_MESSAGE)
 			)
 			val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)
-			val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
-			val patreonFeatureEnabled = serverConfig.patreonEnabled == true
-			val patreonActive = patreonFeatureEnabled && patreonConfig.enabled && patreonConfig.patreonUrl.isNotBlank()
+			val bannerNotice = call.putAllowedUsersNotice(
+				model, NoticeSlot.HOME_BANNER,
+				htmlKey = "allowedUsersBannerHtml", providedKey = "allowedUsersBannerProvided",
+			)
 
 			model["serverMessageHtml"] = serverMessageHtml
 			model["page_script"] = "/assets/js/home.js"
@@ -60,12 +61,13 @@ fun Route.homePage(
 				description = call.msg("home_meta_description"),
 			)
 
-			val showAllowedUsersNotice = contactEmail.isNotBlank() && !patreonActive
+			val showAllowedUsersNotice = contactEmail.isNotBlank() && bannerNotice == null
 			if (showAllowedUsersNotice) {
 				model["allowedUsersNotice"] = true
 				call.msg(model, "home_servermessage_allowedusers", contactEmail)
 			}
-			model["hasInstanceNotice"] = serverMessageHtml.isNotBlank() || showAllowedUsersNotice
+			model["hasInstanceNotice"] =
+				serverMessageHtml.isNotBlank() || showAllowedUsersNotice || !bannerNotice.isNullOrBlank()
 
 			call.respond(MustacheContent("home.mustache", model))
 		}

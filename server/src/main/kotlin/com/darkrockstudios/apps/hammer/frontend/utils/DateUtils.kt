@@ -11,16 +11,6 @@ const val SYNC_DATE_PATTERN = "MMM dd, yyyy 'at' HH:mm"
 fun formatSyncDate(instant: kotlin.time.Instant): String =
 	formatInstant(instant, SYNC_DATE_PATTERN)
 
-/** Format a Patreon ISO datetime string for display. Patreon hands us strings, not Instants. */
-fun formatPatreonDate(dateTimeStr: String): String {
-	if (dateTimeStr.isEmpty()) return ""
-	return try {
-		formatInstant(kotlin.time.Instant.parse(dateTimeStr), SYNC_DATE_PATTERN)
-	} catch (_: Exception) {
-		dateTimeStr
-	}
-}
-
 /** Format a kotlin.time.Instant with the given pattern, in [zone] (system zone by default). */
 fun formatInstant(
 	instant: kotlin.time.Instant,

@@ -75,10 +75,6 @@ import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityCollector
 import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
-import com.darkrockstudios.apps.hammer.patreon.PatreonApiClient
-import com.darkrockstudios.apps.hammer.patreon.PatreonPollingJob
-import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
-import com.darkrockstudios.apps.hammer.patreon.PatreonWebhookHandler
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatabaseDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.project.ProjectEntityRepository
@@ -300,10 +296,6 @@ fun mainModule(
 	single<AdminComponent>()
 	single<AccountsComponent>()
 
-	single<PatreonApiClient>()
-	single<PatreonSyncService>()
-	single<PatreonWebhookHandler>()
-	single<PatreonPollingJob>()
 
 	single<ServerSceneSynchronizer>()
 	single<ServerNoteSynchronizer>()

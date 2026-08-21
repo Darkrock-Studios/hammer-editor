@@ -48,11 +48,9 @@
 			<a href="https://bsky.app/profile/darkrockstudios.bsky.social" target="_blank" rel="noopener noreferrer" aria-label="{{msg.home_footer_bluesky}}">
 				<i class="fa-brands fa-bluesky"></i>
 			</a>
-			{{#patreonUrl}}
-				<a href="{{patreonUrl}}" target="_blank" rel="noopener noreferrer" aria-label="{{msg.home_footer_patreon}}">
-					<i class="fa-brands fa-patreon"></i>
-				</a>
-			{{/patreonUrl}}
+			{{#footerNoticeHtml}}
+				{{{footerNoticeHtml}}}
+			{{/footerNoticeHtml}}
 		</div>
 		<form action="/locale" method="post" class="language-selector">
 			<label for="lang-select">Language:</label>

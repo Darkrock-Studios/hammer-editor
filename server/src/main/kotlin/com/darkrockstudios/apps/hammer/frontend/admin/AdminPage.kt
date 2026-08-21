@@ -16,7 +16,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
 import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.respondToast
-import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
+import com.darkrockstudios.apps.hammer.plugin.installPluginAdminRoutes
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.ResUtils
 import io.ktor.htmx.*
@@ -35,7 +35,6 @@ fun Route.adminPage(
 	projectsRepository: ProjectsRepository,
 	accountDeletionService: AccountDeletionService,
 	serverConfig: ServerConfig,
-	patreonSyncService: PatreonSyncService?,
 	emailService: EmailService?,
 	metricsRepository: com.darkrockstudios.apps.hammer.monitoring.MetricsRepository,
 	errorRepository: com.darkrockstudios.apps.hammer.monitoring.ErrorRepository,
@@ -47,31 +46,26 @@ fun Route.adminPage(
 	projectSyncManager: com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager<*, com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession>,
 	clock: kotlin.time.Clock,
 ) {
-	val patreonFeatureEnabled = serverConfig.patreonEnabled == true
 	val emailFeatureEnabled = serverConfig.emailProviderType != null
 
 	adminOnly {
 		route("/admin") {
-			adminSettingsPage(configRepository, patreonFeatureEnabled, emailFeatureEnabled)
+			adminSettingsPage(configRepository)
 			adminMonitoringPages(
 				metricsRepository, configRepository, errorRepository, securityRepository,
 				userActivityRepository, storyReaderRepository, recurringTaskRegistry,
 				projectsSyncManager, projectSyncManager, clock,
-				patreonFeatureEnabled, emailFeatureEnabled,
 			)
-			adminAllowedUsersPage(patreonFeatureEnabled, emailFeatureEnabled)
-			adminUsersPage(patreonFeatureEnabled, emailFeatureEnabled)
+			adminAllowedUsersPage()
+			adminUsersPage()
 			whiteListRoutes(whiteListRepository, clock)
 			serverSettingsRoutes(configRepository)
 			usersRoutes(accountsRepository, projectsRepository, accountDeletionService)
-			if (patreonFeatureEnabled && patreonSyncService != null) {
-				adminPatreonPage(configRepository, patreonSyncService, emailFeatureEnabled)
-				patreonSettingsRoutes(configRepository, patreonSyncService, serverConfig)
-			}
 			if (emailFeatureEnabled && emailService != null) {
-				adminEmailPage(configRepository, emailService, patreonFeatureEnabled, serverConfig)
+				adminEmailPage(configRepository, emailService, serverConfig)
 				emailSettingsRoutes(configRepository, emailService)
 			}
+			installPluginAdminRoutes()
 		}
 	}
 }
@@ -79,8 +73,6 @@ fun Route.adminPage(
 // GET /admin - Server Settings page (default)
 private fun Route.adminSettingsPage(
 	configRepository: ConfigRepository,
-	patreonFeatureEnabled: Boolean,
-	emailFeatureEnabled: Boolean
 ) {
 	get {
 		val configuredDefaultLocale = configRepository.get(AdminServerConfig.DEFAULT_LOCALE)
@@ -98,10 +90,7 @@ private fun Route.adminSettingsPage(
 			"activeSettings" to true,
 			"activeAllowedUsers" to false,
 			"activeUsers" to false,
-			"activePatreon" to false,
 			"activeEmail" to false,
-			"patreonFeatureEnabled" to patreonFeatureEnabled,
-			"emailFeatureEnabled" to emailFeatureEnabled,
 			"contactEmail" to configRepository.get(AdminServerConfig.CONTACT_EMAIL),
 			"serverMessage" to configRepository.get(AdminServerConfig.SERVER_MESSAGE),
 			"aboutServer" to configRepository.get(AdminServerConfig.ABOUT_SERVER),
@@ -124,20 +113,14 @@ private fun Route.adminSettingsPage(
 }
 
 // GET /admin/allowed-users - Allowed Users management page
-private fun Route.adminAllowedUsersPage(
-	patreonFeatureEnabled: Boolean,
-	emailFeatureEnabled: Boolean
-) {
+private fun Route.adminAllowedUsersPage() {
 	get("/allowed-users") {
 		val model = mapOf(
 			"page_stylesheet" to "/assets/css/admin.css",
 			"activeSettings" to false,
 			"activeAllowedUsers" to true,
 			"activeUsers" to false,
-			"activePatreon" to false,
 			"activeEmail" to false,
-			"patreonFeatureEnabled" to patreonFeatureEnabled,
-			"emailFeatureEnabled" to emailFeatureEnabled,
 		)
 		call.respond(MustacheContent("admin-allowed-users.mustache", call.withDefaults(model)))
 	}
@@ -149,17 +132,14 @@ private fun Route.adminAllowedUsersPage(
 }
 
 // GET /admin/users - User Management page
-private fun Route.adminUsersPage(patreonFeatureEnabled: Boolean, emailFeatureEnabled: Boolean) {
+private fun Route.adminUsersPage() {
 	get("/users") {
 		val model = mapOf(
 			"page_stylesheet" to "/assets/css/admin.css",
 			"activeSettings" to false,
 			"activeAllowedUsers" to false,
 			"activeUsers" to true,
-			"activePatreon" to false,
 			"activeEmail" to false,
-			"patreonFeatureEnabled" to patreonFeatureEnabled,
-			"emailFeatureEnabled" to emailFeatureEnabled,
 		)
 		call.respond(MustacheContent("admin-users.mustache", call.withDefaults(model)))
 	}
@@ -226,7 +206,7 @@ private suspend fun getUsersModel(
 			"id" to account.id,
 			"email" to account.email,
 			"created" to formatDate(account.created),
-			"lastSync" to (formatLastSync(account.most_recent_sync) ?: call.msg("admin_patreon_last_sync_never")),
+			"lastSync" to (formatLastSync(account.most_recent_sync) ?: call.msg("admin_users_last_sync_never")),
 			"penName" to account.pen_name,
 			"hasPenName" to (account.pen_name != null),
 			"projectCount" to account.project_count,

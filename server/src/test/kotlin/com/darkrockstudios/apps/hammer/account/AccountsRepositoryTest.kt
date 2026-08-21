@@ -204,8 +204,8 @@ class AccountsRepositoryTest : BaseTest() {
 		assertTrue(isFailure(wrongPassword))
 		assertTrue(isFailure(unknownAccount))
 		assertEquals(
-			wrongPassword.displayMessage?.r?.joinToString("|"),
-			unknownAccount.displayMessage?.r?.joinToString("|"),
+			(wrongPassword.displayMessage as? ServerMessage.Resource)?.r?.joinToString("|"),
+			(unknownAccount.displayMessage as? ServerMessage.Resource)?.r?.joinToString("|"),
 			"Login must not reveal whether the account exists",
 		)
 	}

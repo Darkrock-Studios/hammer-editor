@@ -63,8 +63,6 @@ class MonitoringIgnoreRouteTest : BaseTest() {
 					relaxed = true
 				),
 				clock = clock,
-				patreonFeatureEnabled = false,
-				emailFeatureEnabled = false,
 			)
 		}
 	}

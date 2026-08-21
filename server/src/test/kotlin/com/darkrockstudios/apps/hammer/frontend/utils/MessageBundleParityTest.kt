@@ -1,18 +1,17 @@
 package com.darkrockstudios.apps.hammer.frontend.utils
 
-import com.darkrockstudios.apps.hammer.utilities.ResUtils
 import org.junit.jupiter.api.Test
 import java.io.File
-import java.util.Locale
 import java.util.Properties
 import kotlin.test.assertTrue
 import kotlin.test.fail
 
 /**
- * English is the fallback bundle every other locale resolves through, so a key
- * that is looked up but absent from Messages_en.properties throws
- * MissingResourceException at request time instead of degrading to untranslated
- * text.
+ * English is the fallback every other locale resolves through, so a key that is
+ * looked up but absent from its English bundle throws MissingResourceException at
+ * request time instead of degrading to untranslated text. Kotlin call sites resolve
+ * only the default Messages bundle; templates read the msg map, which also merges
+ * plugin-declared bundles.
  *
  * Parity is asserted against the keys the server actually references rather than
  * against the translation files, which Crowdin owns and which carry strings that
@@ -31,20 +30,30 @@ class MessageBundleParityTest {
 	)
 	private val templatePattern = Regex("""\{\{[{&]?\s*msg\.([A-Za-z0-9_]+)""")
 
-	private fun keysOf(locale: Locale): Set<String> {
+	private val i18nDir = File("src/main/resources/i18n")
+
+	private fun loadProperties(file: File): Properties {
 		val properties = Properties()
-		ResUtils.getResourceAsStream("i18n/Messages_$locale.properties")
-			.reader(Charsets.UTF_8)
-			.use { properties.load(it) }
-		return properties.stringPropertyNames()
+		file.reader(Charsets.UTF_8).use { properties.load(it) }
+		return properties
 	}
+
+	private fun englishBundleFiles(): List<File> =
+		i18nDir.listFiles { f -> f.name.endsWith("_en.properties") }.orEmpty().toList()
+
+	/** Kotlin call sites resolve only the default bundle, so they get no plugin-bundle credit. */
+	private fun coreEnglishKeys(): Set<String> =
+		loadProperties(File(i18nDir, "Messages_en.properties")).stringPropertyNames()
+
+	/** Templates read the msg map, which merges plugin bundles, so the union applies. */
+	private fun allEnglishKeys(): Set<String> =
+		englishBundleFiles().flatMapTo(mutableSetOf()) { loadProperties(it).stringPropertyNames() }
 
 	private fun filesUnder(root: File, extension: String): List<File> =
 		root.walkTopDown().filter { it.isFile && it.extension == extension }.toList()
 
-	private fun referencedKeys(): Map<String, String> {
+	private fun sourceReferences(): Map<String, String> {
 		val references = mutableMapOf<String, String>()
-
 		filesUnder(kotlinSources, "kt").forEach { file ->
 			val text = file.readText()
 			callSitePatterns.forEach { pattern ->
@@ -55,14 +64,17 @@ class MessageBundleParityTest {
 				}
 			}
 		}
+		return references
+	}
 
+	private fun templateReferences(): Map<String, String> {
+		val references = mutableMapOf<String, String>()
 		filesUnder(templates, "mustache").forEach { file ->
 			val text = file.readText()
 			templatePattern.findAll(text).forEach { match ->
 				references.putIfAbsent(match.groupValues[1], file.name)
 			}
 		}
-
 		return references
 	}
 
@@ -71,17 +83,21 @@ class MessageBundleParityTest {
 		assertTrue(kotlinSources.isDirectory, "Kotlin sources not found at ${kotlinSources.absolutePath}")
 		assertTrue(templates.isDirectory, "Templates not found at ${templates.absolutePath}")
 
-		val references = referencedKeys()
+		val sourceRefs = sourceReferences()
+		val templateRefs = templateReferences()
 		// A regex that quietly stops matching would turn this into a vacuous pass.
-		assertTrue(references.size > 200, "Only found ${references.size} message references; the scan is broken")
+		val total = sourceRefs.size + templateRefs.size
+		assertTrue(total > 200, "Only found $total message references; the scan is broken")
 
-		val englishKeys = keysOf(Locale.ENGLISH)
-		val missing = references.filterKeys { it !in englishKeys }
+		val coreKeys = coreEnglishKeys()
+		val allKeys = allEnglishKeys()
+		val missing = sourceRefs.filterKeys { it !in coreKeys } +
+			templateRefs.filterKeys { it !in allKeys }
 
 		if (missing.isNotEmpty()) {
 			val report = missing.toSortedMap().entries.joinToString("\n") { (key, source) -> "  $key (used by $source)" }
 			fail(
-				"Messages_en.properties is the fallback bundle and must carry every key the server looks up.\n" +
+				"The English bundles are the fallback and must carry every key the server looks up.\n" +
 					"$report\n" +
 					"If a Crowdin sync rewrote the English source file, restore the dropped keys."
 			)
@@ -90,12 +106,12 @@ class MessageBundleParityTest {
 
 	@Test
 	fun `every English key resolves to a non-blank value`() {
-		val properties = Properties()
-		ResUtils.getResourceAsStream("i18n/Messages_en.properties")
-			.reader(Charsets.UTF_8)
-			.use { properties.load(it) }
-
-		val blank = properties.stringPropertyNames().filter { properties.getProperty(it).isNullOrBlank() }
+		val blank = englishBundleFiles().flatMap { file ->
+			val properties = loadProperties(file)
+			properties.stringPropertyNames()
+				.filter { properties.getProperty(it).isNullOrBlank() }
+				.map { "${file.name}: $it" }
+		}
 
 		assertTrue(blank.isEmpty(), "English keys with blank values: ${blank.sorted()}")
 	}

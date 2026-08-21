@@ -18,6 +18,8 @@ import com.darkrockstudios.apps.hammer.utilities.TokenHasher
 import com.darkrockstudios.apps.hammer.utilities.TouchableFileSystem
 import com.darkrockstudios.apps.hammer.utilities.DiskCache
 import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
+import com.darkrockstudios.apps.hammer.plugin.ServerPlugin
+import com.darkrockstudios.apps.hammer.plugin.installedPlugins
 import io.ktor.client.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.serialization.kotlinx.json.*
@@ -56,6 +58,13 @@ abstract class EndToEndTest {
 	 * known secret, so pin it explicitly rather than riding the plaintext default.
 	 */
 	protected open val serverConfig = ServerConfig(encryption = EncryptionConfig(EncryptionMode.AES))
+
+	/**
+	 * Plugins active in the booted server. Defaults to the build's real plugin list so e2e
+	 * runs match production; tests override to add fixtures or to isolate from plugins.
+	 * Plugin fixtures must keep their integrations unconfigured or tests become order-dependent.
+	 */
+	protected open val serverPlugins: List<ServerPlugin> = installedPlugins()
 
 	/** The OS-assigned port the server bound to; valid after [doStartServer]. */
 	protected var serverPort: Int = 0
@@ -154,7 +163,7 @@ abstract class EndToEndTest {
 			port = 0,
 			host = "0.0.0.0",
 			module = {
-				appMain(serverConfig, testModule)
+				appMain(serverConfig, testModule, plugins = serverPlugins)
 			}
 		)
 		server.start()
