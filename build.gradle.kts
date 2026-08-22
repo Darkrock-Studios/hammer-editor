@@ -175,14 +175,15 @@ tasks.register("prepareForRelease") {
 		val versionsFile = project.rootDir.resolve(versionsPath)
 		writeSemvar(libs.versions.app.get(), releaseInfo.semVar, versionsFile)
 
-		// Store listings carry the app-only notes plus a link to the GitHub release,
-		// which holds the full text including the web and server changes. A release
-		// that reaches no store has no store notes; leave the existing metadata alone
-		// rather than blanking the notes the last client release published.
+		// Store listings carry the app-only notes. Google Play also gets a link to the
+		// GitHub release, which holds the full text including the web and server changes;
+		// the Apple stores must not (see releaseNotesUrl) and get the notes alone. A
+		// release that reaches no store has no store notes; leave the existing metadata
+		// alone rather than blanking the notes the last client release published.
 		val fullNotesUrl = releaseNotesUrl(releaseInfo.tag)
 		val storeNotes = releaseInfo.storeChangeLog
 		val writeStoreNotes = storeNotes.isNotBlank()
-		val notesLength = storeNotesLength(storeNotes, fullNotesUrl)
+		val playNotesLength = storeNotesLength(storeNotes, fullNotesUrl)
 		val playChangelog = formatStoreNotes(storeNotes, PLAY_STORE_LIMIT, fullNotesUrl)
 
 		// Write the Fastlane changelog file
@@ -194,15 +195,15 @@ tasks.register("prepareForRelease") {
 		if (writeStoreNotes) {
 			changeLogFile.writeText(playChangelog)
 			println("Changelog for version ${releaseInfo.semVar} written to $changelogsPath/$versionCode.txt")
-			if (notesLength > PLAY_STORE_LIMIT) {
+			if (playNotesLength > PLAY_STORE_LIMIT) {
 				println("  Google Play notes truncated to $PLAY_STORE_LIMIT characters; full text at $fullNotesUrl")
 			}
 		} else {
 			println("No store notes for this release; store metadata left untouched")
 		}
 
-		val appleChangelog = formatStoreNotes(storeNotes, APPLE_STORE_LIMIT, fullNotesUrl)
-		if (writeStoreNotes && notesLength > APPLE_STORE_LIMIT) {
+		val appleChangelog = formatStoreNotes(storeNotes, APPLE_STORE_LIMIT, null)
+		if (writeStoreNotes && storeNotesLength(storeNotes, null) > APPLE_STORE_LIMIT) {
 			println("App Store notes truncated to $APPLE_STORE_LIMIT characters; full text at $fullNotesUrl")
 		}
 

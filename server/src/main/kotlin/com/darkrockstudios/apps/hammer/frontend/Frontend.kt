@@ -34,7 +34,9 @@ import com.darkrockstudios.apps.hammer.monitoring.UserActivityRepository
 import com.darkrockstudios.apps.hammer.monitoring.isClientAbort
 import com.darkrockstudios.apps.hammer.monitoring.recordMonitoredError
 import com.darkrockstudios.apps.hammer.monitoring.toMonitoredStatus
-import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
+import com.darkrockstudios.apps.hammer.plugin.NoticeSlot
+import com.darkrockstudios.apps.hammer.plugin.pluginAdminNav
+import com.darkrockstudios.apps.hammer.plugin.putAllowedUsersNotice
 import com.darkrockstudios.apps.hammer.plugins.configureTemplating
 import com.darkrockstudios.apps.hammer.project.ProjectSyncKey
 import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
@@ -105,12 +107,6 @@ fun Route.frontend() {
 	val projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession> by inject(named(PROJECTS_SYNC_MANAGER))
 	val projectSyncManager: SyncSessionManager<ProjectSyncKey, ProjectSynchronizationSession> by inject(named(PROJECT_SYNC_MANAGER))
 
-	// Only inject PatreonSyncService if Patreon is enabled at server level
-	val patreonSyncService: PatreonSyncService? = if (serverConfig.patreonEnabled == true) {
-		inject<PatreonSyncService>().value
-	} else {
-		null
-	}
 
 	// Only inject EmailService if email is enabled at server level
 	val emailService: EmailService? = if (serverConfig.emailProviderType != null) {
@@ -126,12 +122,12 @@ fun Route.frontend() {
 	robotsRoutes()
 	sitemapRoutes(serverConfig, accountsRepository, projectAccessRepository, configRepository)
 	setupPage(serverConfig)
-	homePage(configRepository, serverConfig, markdownService)
+	homePage(configRepository, markdownService)
 	aboutPage(configRepository, serverConfig, accountsRepository, projectAccessRepository, markdownService)
 	termsOfServicePage()
 	privacyPolicyPage()
 	localeRoutes()
-	authRoutes(accountsRepository, whiteListRepository, configRepository, serverConfig, securityRepository)
+	authRoutes(accountsRepository, whiteListRepository, configRepository, securityRepository)
 	signupPage(
 		accountsComponent,
 		accountsRepository,
@@ -191,7 +187,6 @@ fun Route.frontend() {
 		projectsRepository,
 		accountDeletionService,
 		serverConfig,
-		patreonSyncService,
 		emailService,
 		metricsRepository,
 		errorRepository,
@@ -386,6 +381,13 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 
 	val serverConfig = get<ServerConfig>()
 
+	// Only admin templates render the admin-nav partial that consumes these.
+	if (request.path().startsWith("/admin")) {
+		// Not putIfAbsent: the argument would compute the nav even when the key is present.
+		if ("pluginNavEntries" !in model) model["pluginNavEntries"] = pluginAdminNav()
+		model.putIfAbsent("emailFeatureEnabled", serverConfig.emailProviderType != null)
+	}
+
 	val configRepository = get<ConfigRepository>()
 	val aboutContent = configRepository.get(AdminServerConfig.ABOUT_SERVER)
 	val hasAboutPage = aboutContent.isNotBlank()
@@ -404,13 +406,7 @@ suspend fun ApplicationCall.withDefaults(data: Map<String, Any> = emptyMap()): M
 	model["footerExtraLinks"] = footerExtraLinks
 	model["hasFooterNav"] = hasAboutPage || hasTermsPage || hasPrivacyPage || footerExtraLinks.isNotEmpty()
 
-	// Add Patreon link for footer if configured
-	if (serverConfig.patreonEnabled == true) {
-		val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
-		if (patreonConfig.enabled && patreonConfig.patreonUrl.isNotBlank()) {
-			model["patreonUrl"] = patreonConfig.patreonUrl
-		}
-	}
+	putAllowedUsersNotice(model, NoticeSlot.FOOTER, htmlKey = "footerNoticeHtml", providedKey = "footerNoticeProvided")
 
 	// Add community enabled flag for header nav
 	if (serverConfig.communityEnabled) {

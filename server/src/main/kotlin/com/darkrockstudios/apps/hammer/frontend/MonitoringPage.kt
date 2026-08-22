@@ -71,8 +71,6 @@ fun Route.adminMonitoringPages(
 	projectsSyncManager: SyncSessionManager<Long, ProjectsSynchronizationSession>,
 	projectSyncManager: SyncSessionManager<*, ProjectSynchronizationSession>,
 	clock: Clock,
-	patreonFeatureEnabled: Boolean,
-	emailFeatureEnabled: Boolean,
 ) {
 	route("/monitoring") {
 		get {
@@ -108,8 +106,6 @@ fun Route.adminMonitoringPages(
 				"page_stylesheet" to "/assets/css/admin.css",
 				"activeMonitoring" to true,
 				"activeMonOverview" to true,
-				"patreonFeatureEnabled" to patreonFeatureEnabled,
-				"emailFeatureEnabled" to emailFeatureEnabled,
 				"monitoringEnabled" to enabled,
 				"statRequests" to formatCount(totals.requestCount),
 				"statErrorRate" to formatPercent(totals.errorRate),
@@ -151,8 +147,6 @@ fun Route.adminMonitoringPages(
 				"page_stylesheet" to "/assets/css/admin.css",
 				"activeMonitoring" to true,
 				"activeMonPerformance" to true,
-				"patreonFeatureEnabled" to patreonFeatureEnabled,
-				"emailFeatureEnabled" to emailFeatureEnabled,
 				"range24h" to (range == RANGE_24H),
 				"range7d" to (range == RANGE_7D),
 				"range30d" to (range == RANGE_30D),
@@ -205,8 +199,6 @@ fun Route.adminMonitoringPages(
 				"page_stylesheet" to "/assets/css/admin.css",
 				"activeMonitoring" to true,
 				"activeMonErrors" to true,
-				"patreonFeatureEnabled" to patreonFeatureEnabled,
-				"emailFeatureEnabled" to emailFeatureEnabled,
 				"range24h" to (range == RANGE_24H),
 				"range7d" to (range == RANGE_7D),
 				"range30d" to (range == RANGE_30D),
@@ -310,8 +302,6 @@ fun Route.adminMonitoringPages(
 				"page_stylesheet" to "/assets/css/admin.css",
 				"activeMonitoring" to true,
 				"activeMonSecurity" to true,
-				"patreonFeatureEnabled" to patreonFeatureEnabled,
-				"emailFeatureEnabled" to emailFeatureEnabled,
 				"topFailures" to topFailures,
 				"hasTopFailures" to topFailures.isNotEmpty(),
 				"attempts" to attempts,
@@ -327,8 +317,6 @@ fun Route.adminMonitoringPages(
 				"page_stylesheet" to "/assets/css/admin.css",
 				"activeMonitoring" to true,
 				"activeMonJobs" to true,
-				"patreonFeatureEnabled" to patreonFeatureEnabled,
-				"emailFeatureEnabled" to emailFeatureEnabled,
 				"jobs" to jobs,
 				"hasJobs" to jobs.isNotEmpty(),
 				"anyFailing" to jobs.any { it["failing"] == true },
@@ -341,8 +329,6 @@ fun Route.adminMonitoringPages(
 				"page_stylesheet" to "/assets/css/admin.css",
 				"activeMonitoring" to true,
 				"activeMonLogs" to true,
-				"patreonFeatureEnabled" to patreonFeatureEnabled,
-				"emailFeatureEnabled" to emailFeatureEnabled,
 			)
 			call.respond(MustacheContent("admin-monitoring-logs.mustache", call.withDefaults(model)))
 		}

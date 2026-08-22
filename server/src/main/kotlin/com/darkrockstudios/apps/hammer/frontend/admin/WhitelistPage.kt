@@ -3,7 +3,7 @@ package com.darkrockstudios.apps.hammer.frontend.admin
 import com.darkrockstudios.apps.hammer.admin.WhiteListRepository
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.withDefaults
-import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
+import com.darkrockstudios.apps.hammer.plugin.PluginRegistry
 import io.ktor.htmx.*
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -12,6 +12,7 @@ import io.ktor.server.mustache.*
 import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
+import org.koin.ktor.ext.get
 import io.ktor.utils.io.*
 import java.net.URLEncoder
 import java.time.LocalDate
@@ -260,6 +261,7 @@ internal suspend fun getWhitelistModel(
 	sortOldestFirst: Boolean? = null,
 	search: String? = null,
 ): MutableMap<String, Any> {
+	val sourceIds = call.application.get<PluginRegistry>().allowedUsersSourceIds
 	val queryPage = call.request.queryParameters["page"]?.toIntOrNull()
 	val actualPage = page ?: queryPage ?: 0
 
@@ -290,8 +292,8 @@ internal suspend fun getWhitelistModel(
 				?: call.msg("admin_allowedusers_expiry_never")),
 			// Prefills the edit dialog's <input type="date">, which only accepts yyyy-MM-dd.
 			"expiresRaw" to (entry.expires?.let { formatDateInputValue(it) } ?: ""),
-			// Patreon sync owns its entries' lifecycle, so expiry isn't the admin's to set.
-			"isPatreon" to (entry.reason == PatreonSyncService.WHITELIST_REASON),
+			// A syncing source owns its entries' lifecycle, so expiry isn't the admin's to set.
+			"sourceManaged" to (entry.reason in sourceIds),
 		)
 	}
 

@@ -13,7 +13,9 @@ import com.darkrockstudios.apps.hammer.frontend.configureFrontEnd
 import com.darkrockstudios.apps.hammer.monitoring.configureApiMetrics
 import com.darkrockstudios.apps.hammer.monitoring.configureMonitoringJob
 import com.darkrockstudios.apps.hammer.monitoring.configureRouteTemplateCapture
-import com.darkrockstudios.apps.hammer.patreon.configurePatreonPolling
+import com.darkrockstudios.apps.hammer.plugin.ServerPlugin
+import com.darkrockstudios.apps.hammer.plugin.installedPlugins
+import com.darkrockstudios.apps.hammer.plugin.launchPluginTasks
 import com.darkrockstudios.apps.hammer.plugins.SetupModePlugin
 import com.darkrockstudios.apps.hammer.plugins.configureDependencyInjection
 import com.darkrockstudios.apps.hammer.plugins.configureHTTP
@@ -414,8 +416,9 @@ fun Application.appMain(
 	config: ServerConfig,
 	addInModule: Module? = null,
 	logLevel: Level? = null,
+	plugins: List<ServerPlugin> = installedPlugins(),
 ) {
-	configureDependencyInjection(config, addInModule)
+	configureDependencyInjection(config, addInModule, plugins)
 	val encryptionBootstrap: EncryptionBootstrap by inject()
 	runBlocking { encryptionBootstrap.run() }
 	// Must complete before any route is installed: routes enforce the allowed
@@ -432,7 +435,7 @@ fun Application.appMain(
 	install(SetupModePlugin)
 	configureRouting(config)
 	configureFrontEnd()
-	configurePatreonPolling(config)
+	launchPluginTasks()
 	configureMonitoringJob()
 	configureTokenMaintenanceJob()
 	configureWhitelistExpiryJob()

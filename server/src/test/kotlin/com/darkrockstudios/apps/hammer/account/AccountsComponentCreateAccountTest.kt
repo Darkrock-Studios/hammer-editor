@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.SResult
+import com.darkrockstudios.apps.hammer.plugin.PluginRegistry
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -51,9 +52,8 @@ class AccountsComponentCreateAccountTest {
 		accountsRepository,
 		whiteListRepository,
 		projectsRepository,
-		configRepository,
 		termsOfServiceRepository,
-		serverConfig
+		PluginRegistry(emptyList())
 	)
 
 	@BeforeEach

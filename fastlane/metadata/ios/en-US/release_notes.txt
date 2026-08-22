@@ -1,5 +1,1 @@
-- Fix sharing scene order
-- Fix PDF export crash
-
-Full changelog:
-https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.9.1
+Bug fixes and performance improvements

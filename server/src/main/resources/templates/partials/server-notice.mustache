@@ -11,5 +11,10 @@
 				<p>{{msg.home_servermessage_allowedusers}}</p>
 			</div>
 		{{/allowedUsersNotice}}
+		{{#allowedUsersBannerHtml}}
+			<div class="instance-band__inner instance-band__inner--whitelist">
+				{{{allowedUsersBannerHtml}}}
+			</div>
+		{{/allowedUsersBannerHtml}}
 	</div>
 {{/hasInstanceNotice}}

@@ -1,6 +1,6 @@
 [versions]
 # App Versions
-app = "3.9.1"
+app = "3.9.2"
 data_version = "1.0"
 
 # Kotlin

@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.frontend
 
-import com.darkrockstudios.apps.hammer.ServerConfig
 import com.darkrockstudios.apps.hammer.account.AccountsRepository
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
@@ -9,6 +8,9 @@ import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
 import com.darkrockstudios.apps.hammer.plugins.LOGIN_RATE_LIMIT
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
+import com.darkrockstudios.apps.hammer.plugin.NoticeSlot
+import com.darkrockstudios.apps.hammer.plugin.activeAllowedUsersSource
+import com.darkrockstudios.apps.hammer.plugin.putAllowedUsersNotice
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
 import io.ktor.server.mustache.*
@@ -23,10 +25,9 @@ fun Route.authRoutes(
 	accountsRepository: AccountsRepository,
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
-	serverConfig: ServerConfig,
 	securityRepository: SecurityRepository,
 ) {
-	loginPage(accountsRepository, whiteListRepository, configRepository, serverConfig, securityRepository)
+	loginPage(accountsRepository, whiteListRepository, configRepository, securityRepository)
 	logout()
 	unauthorized()
 }
@@ -35,7 +36,6 @@ private fun Route.loginPage(
 	accountsRepository: AccountsRepository,
 	whiteListRepository: WhiteListRepository,
 	configRepository: ConfigRepository,
-	serverConfig: ServerConfig,
 	securityRepository: SecurityRepository,
 ) {
 	route("/login") {
@@ -47,7 +47,7 @@ private fun Route.loginPage(
 				// Drop a present-but-unauthorized cookie so the user isn't bounced
 				// straight back to /dashboard and into a redirect loop.
 				if (session != null) call.sessions.clear<UserSession>()
-				val model = buildLoginModel(call, configRepository, serverConfig)
+				val model = buildLoginModel(call, configRepository)
 				call.respond(MustacheContent("login.mustache", call.withDefaults(model)))
 			}
 		}
@@ -93,11 +93,13 @@ private fun Route.loginPage(
 					call.sessions.set(session)
 					call.respondRedirect("/dashboard")
 				} else {
-					val model = buildLoginModel(call, configRepository, serverConfig)
+					val model = buildLoginModel(call, configRepository)
 						.toMutableMap()
 					// Valid credentials without a whitelist entry get no session, because
 					// /dashboard would reject it and loop back here.
-					model["message"] = credentialsError ?: call.t(R("api_allowedusers_rejected"))
+					model["message"] = credentialsError
+						?: call.activeAllowedUsersSource()?.rejectionMessage()?.text(call)
+						?: call.t(R("api_allowedusers_rejected"))
 					call.respond(MustacheContent("login.mustache", call.withDefaults(model)))
 				}
 			}
@@ -108,24 +110,15 @@ private fun Route.loginPage(
 private suspend fun buildLoginModel(
 	call: RoutingCall,
 	configRepository: ConfigRepository,
-	serverConfig: ServerConfig
 ): Map<String, Any> {
 	val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)
-	val patreonConfig = configRepository.get(AdminServerConfig.PATREON_CONFIG)
-	val patreonFeatureEnabled = serverConfig.patreonEnabled == true
-	val patreonActive = patreonFeatureEnabled && patreonConfig.enabled && patreonConfig.patreonUrl.isNotBlank()
 
 	return buildMap {
 		put("page_stylesheet", "/assets/css/login.css")
 		if (contactEmail.isNotBlank()) {
 			put("contactEmail", contactEmail)
 		}
-		if (patreonActive) {
-			val amount = "%.2f".format(patreonConfig.minimumAmountCents / 100.0)
-			put("patreonEnabled", true)
-			put("patreonUrl", patreonConfig.patreonUrl)
-			put("patreonMessage", call.t(R("login_patreon_notice_message"), amount))
-		}
+		call.putAllowedUsersNotice(this, NoticeSlot.LOGIN)
 	}
 }
 
