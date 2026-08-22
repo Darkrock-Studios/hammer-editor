@@ -1,2 +1,1 @@
-- Fix sharing scene order
-- Fix PDF export crash
+Bug fixes and performance improvements
