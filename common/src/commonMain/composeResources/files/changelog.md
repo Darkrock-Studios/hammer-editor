@@ -1,4 +1,3 @@
-## [3.9.2] - 2026-8-21
+## [3.9.3] - 2026-8-22
 
-- Fix MacOS Crash
-- Fix Android widgets not working
+Bug fixes

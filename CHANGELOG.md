@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.9.3] - 2026-8-22
+
+Bug fixes
+
+
 ## [3.9.2] - 2026-8-21
 
 - Fix MacOS Crash

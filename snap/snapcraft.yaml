@@ -7,7 +7,7 @@ name: hammer-editor
 # core26 would give more headroom, but the gnome extension has no 2604 content
 # snap yet.
 base: core24
-version: '3.9.2'
+version: '3.9.3'
 summary: A simple tool for building stories
 description: |
     Hammer is a multi-platform story editor application. It's designed for
