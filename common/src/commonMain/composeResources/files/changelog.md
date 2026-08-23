@@ -1,3 +1,3 @@
-## [3.9.3] - 2026-8-22
+## [3.9.4] - 2026-8-22
 
-Bug fixes
+Fix widgets not doing anything
