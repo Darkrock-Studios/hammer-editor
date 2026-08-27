@@ -34,14 +34,14 @@
 	<string name="encyclopedia_create_entry_toast_tag_too_long">A etiqueta é muito longa. Máx. %1$d</string>
 	<string name="encyclopedia_create_entry_toast_alias_too_long">O apelido é muito longo. Máx. %1$d</string>
 	<string name="encyclopedia_entry_aliases_label">Apelidos</string>
-	<string name="encyclopedia_entry_dictionary_toggle_label">Learn in spell check</string>
-	<string name="encyclopedia_entry_dictionary_toggle_hint">This entry&#8217;s name and aliases won&#8217;t be marked as misspelled</string>
+	<string name="encyclopedia_entry_dictionary_toggle_label">Adicionar à correção ortográfica</string>
+	<string name="encyclopedia_entry_dictionary_toggle_hint">O nome e apelidos deste verbete não serão marcados como incorretos</string>
 	<string name="encyclopedia_entry_add_alias_dialog_title">Adicionar Apelido</string>
 	<string name="encyclopedia_entry_add_alias_button">Adicionar</string>
 	<string name="encyclopedia_entry_alias_hint">Apelido ou outro nome</string>
 	<string name="encyclopedia_entry_appears_in_label">Aparece nas cenas</string>
 	<string name="encyclopedia_entry_appears_in_empty">Ainda não referenciado em nenhuma cena</string>
-	<string name="encyclopedia_create_entry_toast_name_too_short">Entry name cannot be empty</string>
+	<string name="encyclopedia_create_entry_toast_name_too_short">Nome do verbete não pode estar vazio</string>
 	<string name="encyclopedia_create_entry_discard_title">Descartar Novo Verbete?</string>
 	<string name="encyclopedia_entry_load_error">Erro: Falha ao carregar o verbete!</string>
 	<string name="encyclopedia_entry_body_empty_label">Clique para inserir a descrição</string>
