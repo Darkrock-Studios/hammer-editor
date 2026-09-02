@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.9.5] - 2026-9-1
+
+Release fix
+
+
 ## [3.9.4] - 2026-8-22
 
 Fix widgets not doing anything
