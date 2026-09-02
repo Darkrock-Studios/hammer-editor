@@ -127,10 +127,17 @@ kover {
 registerPublishTasks()
 registerLinuxDistributionTasks(libs.versions.app.get())
 
+// The pre-commit hook runs Gradle, so git's hook env leaks into the daemon and Gradle
+// blanks rather than unsets it later; a blank GIT_INDEX_FILE reads as an empty index.
+fun ProcessBuilder.scrubGitEnv(): ProcessBuilder = apply {
+	environment().keys.removeAll { it.startsWith("GIT_") }
+}
+
 val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 	doLast {
 		fun runGit(vararg args: String): String {
 			val process = ProcessBuilder(*args)
+				.scrubGitEnv()
 				.directory(project.rootDir)
 				.start()
 			val stdout = process.inputStream.bufferedReader().readText().trim()
@@ -139,7 +146,7 @@ val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 		}
 
 		println("Fetching origin...")
-		ProcessBuilder("git", "fetch", "origin").directory(project.rootDir).inheritIO().start().waitFor()
+		ProcessBuilder("git", "fetch", "origin").scrubGitEnv().directory(project.rootDir).inheritIO().start().waitFor()
 
 		// Check for unstaged/uncommitted changes
 		val statusText = runGit("git", "status", "--porcelain")
@@ -265,6 +272,7 @@ tasks.register("prepareForRelease") {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
 			val process = ProcessBuilder(cmd)
+				.scrubGitEnv()
 				.directory(project.rootDir)
 				.redirectErrorStream(true)
 				.start()
@@ -297,6 +305,7 @@ tasks.register("prepareForRelease") {
 			val cmd = listOf("git") + args.toList()
 			println("> (${dir.name}) ${cmd.joinToString(" ")}")
 			val process = ProcessBuilder(cmd)
+				.scrubGitEnv()
 				.directory(dir)
 				.redirectErrorStream(true)
 				.start()
@@ -346,6 +355,7 @@ tasks.register("backoutLastRelease") {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
 			val process = ProcessBuilder(cmd)
+				.scrubGitEnv()
 				.directory(project.rootDir)
 				.redirectErrorStream(true)
 				.start()
@@ -363,6 +373,7 @@ tasks.register("backoutLastRelease") {
 		// the prefix (`vX.Y.Z+rc1`, `vX.Y.Z+sbom`) aren't included.
 		fun findReleaseTags(): List<String> {
 			val proc = ProcessBuilder("git", "tag", "-l", tagName, "$tagName+*")
+				.scrubGitEnv()
 				.directory(project.rootDir)
 				.start()
 			val tags = proc.inputStream.bufferedReader().readLines().filter { it.isNotBlank() }
@@ -375,6 +386,7 @@ tasks.register("backoutLastRelease") {
 
 		// Check if HEAD commit is the release commit
 		val headProcess = ProcessBuilder("git", "log", "-1", "--format=%s")
+			.scrubGitEnv()
 			.directory(project.rootDir).start()
 		val headMessage = headProcess.inputStream.bufferedReader().readText().trim()
 		headProcess.waitFor()
@@ -422,6 +434,7 @@ tasks.register("revertLastRelease") {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
 			val process = ProcessBuilder(cmd)
+				.scrubGitEnv()
 				.directory(project.rootDir)
 				.redirectErrorStream(true)
 				.start()
@@ -434,6 +447,7 @@ tasks.register("revertLastRelease") {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
 			val process = ProcessBuilder(cmd)
+				.scrubGitEnv()
 				.directory(project.rootDir)
 				.redirectErrorStream(true)
 				.start()
@@ -446,6 +460,7 @@ tasks.register("revertLastRelease") {
 		fun gitOutput(vararg args: String): String {
 			val cmd = listOf("git") + args.toList()
 			val process = ProcessBuilder(cmd)
+				.scrubGitEnv()
 				.directory(project.rootDir)
 				.redirectErrorStream(true)
 				.start()
