@@ -80,15 +80,20 @@ fun writeBakedChangelog(entry: String, bakedFile: File) {
 	println("Baked changelog written to ${bakedFile.path}")
 }
 
+/** Tag-message trailer that tells CI to publish the release instead of leaving it a draft. */
+const val AUTO_PUBLISH_TRAILER = "Auto-Publish: true"
+
 /**
  * @param changeLog The full release notes: CHANGELOG.md and the GitHub release.
  * @param storeChangeLog The app-only subset every store listing carries.
+ * @param autoPublish Publish the GitHub release once every CI build job passes.
  */
 data class ReleaseInfo(
 	val semVar: SemVar,
 	val changeLog: String,
 	val storeChangeLog: String,
 	val platforms: Set<Platform>,
+	val autoPublish: Boolean = false,
 ) {
 	init {
 		// Fail fast at construction so we never get halfway through prepareForRelease
@@ -99,6 +104,11 @@ data class ReleaseInfo(
 
 	/** The git tag for this release: `vX.Y.Z` for full, `vX.Y.Z+token+token` for partial. */
 	val tag: String get() = "v$semVar${tagSuffix(platforms)}"
+
+	// The trailer is the only channel that reaches CI per-release: the tag name already
+	// encodes platform scope, and a `+` suffix there would read as a partial release.
+	/** The annotated-tag message: the notes, plus the auto-publish trailer when asked for. */
+	val tagMessage: String get() = if (autoPublish) "$changeLog\n\n$AUTO_PUBLISH_TRAILER" else changeLog
 }
 
 /**
@@ -151,7 +161,8 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 	SwingUtilities.invokeAndWait {
 		val frame = JFrame()
 		frame.defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
-		frame.setSize(620, 900)
+		// The fixed sections take the height they need; this leaves the changelog editor ~250px.
+		frame.setSize(620, 1080)
 
 		fun refreshTitle() {
 			frame.title = "Prepare Release — $curSemVar → $newSemVar"
@@ -374,6 +385,18 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 		// ============= Section: Will push tag =============
 		val tagSection = section("Will push tag").apply { add(tagLabel) }
 
+		// ============= Section: After the build =============
+		val autoPublishBox = JCheckBox("Auto-publish the GitHub release").apply {
+			alignmentX = Component.LEFT_ALIGNMENT
+		}
+		val autoPublishSection = section("After the build").apply {
+			add(autoPublishBox)
+			add(
+				tabHint("Off leaves a draft. Publishing starts the store workflow.")
+					.apply { alignmentX = Component.LEFT_ALIGNMENT },
+			)
+		}
+
 		// ============= Section: Changelog =============
 		val changelogSection = section("Changelog")
 
@@ -467,6 +490,7 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 				changeLog = changeLog.text,
 				storeChangeLog = storeNotes.text,
 				platforms = currentPlatforms(),
+				autoPublish = autoPublishBox.isSelected,
 			)
 			frame.dispose()
 		}
@@ -485,6 +509,8 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 			add(scopeSection)
 			add(Box.createRigidArea(Dimension(0, 8)))
 			add(tagSection)
+			add(Box.createRigidArea(Dimension(0, 8)))
+			add(autoPublishSection)
 			add(Box.createRigidArea(Dimension(0, 8)))
 		}
 		val root = JPanel(BorderLayout()).apply {

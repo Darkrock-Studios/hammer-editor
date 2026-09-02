@@ -595,6 +595,16 @@ jobs:
         run: |
           TAG_NAME=${GITHUB_REF#refs/tags/}
           TAG_MESSAGE=$(git tag -n90 --format='%(contents)' "$TAG_NAME" )
+
+          # prepareForRelease appends this trailer when the release dialog's
+          # auto-publish box is checked. Strip it so it stays out of the body.
+          AUTO_PUBLISH=false
+          if printf '%s\n' "$TAG_MESSAGE" | grep -qxF 'Auto-Publish: true'; then
+            AUTO_PUBLISH=true
+          fi
+          TAG_MESSAGE=$(printf '%s\n' "$TAG_MESSAGE" | grep -vxF 'Auto-Publish: true' || true)
+          echo "auto_publish=$AUTO_PUBLISH" >> $GITHUB_ENV
+          echo "Auto-publish: $AUTO_PUBLISH"
           
           echo "Tag: $TAG_NAME"
           echo -e "Tag message:\n$TAG_MESSAGE"
@@ -612,3 +622,19 @@ jobs:
           prerelease: true
           allowUpdates: true
           body: ${{ env.tag_message }}
+
+      # Flipping the draft fires `release: published`, which starts
+      # publish-release.yml. The token must not be GITHUB_TOKEN: GitHub suppresses
+      # workflow runs triggered by it, so no store would ever publish.
+      - name: Publish release
+        if: env.auto_publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PAT }}
+          REPO: ${{ github.repository }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::Auto-publish was requested but the RELEASE_PAT secret is not set."
+            exit 1
+          fi
+          gh release edit "$TAG_NAME" --repo "$REPO" --draft=false --prerelease=false --latest
