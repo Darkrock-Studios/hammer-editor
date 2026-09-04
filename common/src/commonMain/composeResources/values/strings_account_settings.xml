@@ -153,5 +153,6 @@
 		name="server_error_connection_generic">Network error connecting to %1$s. Check your connection and try again.
 	</string>
 	<string name="server_error_tls">Could not make a secure connection to %1$s. Hammer only connects over HTTPS, so the server needs a valid TLS certificate of its own or a reverse proxy that provides one.</string>
+	<string name="server_error_network_unavailable">Hammer could not open a network connection on this device, so the request never reached the server. Security software, a VPN, or a firewall may be blocking it.</string>
 
 </resources>
