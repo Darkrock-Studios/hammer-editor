@@ -18,14 +18,16 @@ import io.ktor.client.request.forms.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.util.*
+import kotlinx.serialization.json.Json
 import okio.IOException
 
 private val GlobalSettingsKey = AttributeKey<GlobalSettingsStore>("GlobalSettings")
 
 fun createHttpClient(
 	globalSettingsStore: GlobalSettingsStore,
+	networkJson: Json,
 ): HttpClient {
-	val tokenRefreshClient = createRefreshClient()
+	val tokenRefreshClient = createRefreshClient(networkJson)
 	val client = HttpClient(getHttpPlatformEngine()) {
 
 		install(Logging) {
@@ -41,7 +43,7 @@ fun createHttpClient(
 		}
 
 		install(ContentNegotiation) {
-			json()
+			json(networkJson)
 		}
 
 		installCompression()
@@ -82,7 +84,7 @@ private fun loadTokens(globalSettingsStore: GlobalSettingsStore): BearerTokens? 
 	}
 }
 
-private fun createRefreshClient(): HttpClient {
+private fun createRefreshClient(networkJson: Json): HttpClient {
 	return HttpClient(getHttpPlatformEngine()) {
 		install(Logging) {
 			logger = NapierHttpLogger()
@@ -90,7 +92,7 @@ private fun createRefreshClient(): HttpClient {
 		}
 
 		install(ContentNegotiation) {
-			json()
+			json(networkJson)
 		}
 	}
 }
