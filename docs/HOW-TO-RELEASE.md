@@ -3,6 +3,8 @@
 - Make sure your local repository is in a clean state, nothing outstanding
 - Change branch to `develop`
 - When `develop` is ready to release, run: `./gradlew prepareForRelease`
+	- Leave **Auto-publish the GitHub release** unchecked to publish by hand (see
+	  [Auto-publishing](#auto-publishing))
 	- This will prepare your repo by doing the following:
 		- Increment app version `app` in `libs.versions.toml`
 		- Add new changelog in `fastlane\metadata\android\en-US\changelogs` called `n.txt` where `n` is
@@ -23,6 +25,19 @@
 - This will trigger the `publish` action which will upload artifacts to stores, deploy
   to [hammer.ink](https://hammer.ink), and notify the **Discord** channel of a new release
 - All done!
+
+## Auto-publishing
+
+The release dialog's **Auto-publish the GitHub release** checkbox (off by default) does the
+manual publish steps above for you. When it is checked `prepareForRelease` appends an
+`Auto-Publish: true` trailer to the tag message; once every build job passes, `set-release-body`
+strips the trailer from the release body and marks the release as the latest production release,
+firing the same `publish` action.
+
+This needs a `RELEASE_PAT` repository secret: a fine-grained PAT scoped to this repo with
+**Contents: read and write**. GitHub does not start workflow runs from events triggered by the
+default `GITHUB_TOKEN`, so publishing with that token would leave every store untouched. The step
+fails with a clear error when the secret is missing.
 
 ## Partial (single-store) releases
 

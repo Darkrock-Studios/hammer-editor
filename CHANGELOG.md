@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.9.6] - 2026-9-3
+
+Release fix
+
+
 ## [3.9.5] - 2026-9-1
 
 Release fix
