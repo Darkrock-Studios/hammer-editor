@@ -25,7 +25,7 @@ class FetchLocalDataOperation(
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,
 		onLog: OnSyncLog,
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
-		onComplete: suspend () -> Unit
+		onComplete: suspend (success: Boolean) -> Unit
 	): CResult<SyncOperationState> {
 		return try {
 			state as InitialSyncOperationState

@@ -52,7 +52,7 @@ class WritingActivitySyncOperationTest : BaseTest() {
 	private val onProgress: suspend (Float, SyncLogMessage?) -> Unit = mockk(relaxed = true)
 	private val onLog: OnSyncLog = mockk(relaxed = true)
 	private val onConflict: EntityConflictHandler<ApiProjectEntity> = mockk(relaxed = true)
-	private val onComplete: suspend () -> Unit = mockk(relaxed = true)
+	private val onComplete: suspend (Boolean) -> Unit = mockk(relaxed = true)
 
 	private val ownDeviceId = "device-self"
 	private val deviceLabel = "My Desktop"
