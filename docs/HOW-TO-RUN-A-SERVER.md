@@ -59,6 +59,30 @@ The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 7. **IMPORTANT!** You must now download one of the clients and create an account on the server. The first account
    created will be the admin account.
 
+## Account passwords
+
+The server enforces exactly one password rule: **8 to 64 characters**. There is no complexity
+requirement, no character is forbidden, and nothing is silently stripped or truncated — the
+password is hashed with Argon2 exactly as it arrives, so any Unicode you can type (accents,
+symbols, emoji) is fair game. A password outside that length range is rejected at account
+creation with `400 Bad Request` and an explanatory message; it is never accepted and then
+mysteriously unusable at login.
+
+If a login fails, the server log names the reason:
+
+```
+Login rejected: no account for the submitted email
+Login rejected: password mismatch for user 1
+```
+
+The response body carries a machine-readable `errorCode` (`invalid_credentials`,
+`not_whitelisted`, `password_too_long`, …) alongside the translated message. Note that the
+*response* deliberately cannot distinguish a wrong password from an unknown email — that
+would let anyone enumerate your users — so the log above is the place to look.
+
+A login answering `403 Forbidden` with `not_whitelisted` means the credentials were fine and the
+account simply isn't allowed in; see [Allowed Users](#allowed-users).
+
 ## Network binding
 
 By default the server binds to all IPv4 interfaces (`0.0.0.0`), so it accepts connections from the
