@@ -222,6 +222,16 @@ platform :ios do
       # with fastlane/metadata/ios.
       skip_screenshots: false,
       metadata_path: "fastlane/metadata/ios",
+      # deliver keeps screenshots_path separate from metadata_path and defaults
+      # it to ./fastlane/screenshots, which does not exist in this repo — ours
+      # live beside the metadata, as fastlane/metadata/ios/<locale>/APP_*.
+      # Without this, deliver finds an empty set, logs "Successfully uploaded
+      # all screenshots" having uploaded none, and the submit then fails with
+      # "App screenshot missing (APP_IPHONE_65)".
+      screenshots_path: "fastlane/metadata/ios",
+      # deliver_with_retry can invoke deliver several times; without this each
+      # attempt stacks another copy of every screenshot onto the version.
+      overwrite_screenshots: true,
       submit_for_review: true,
       automatic_release: true,
       run_precheck_before_submit: false,
