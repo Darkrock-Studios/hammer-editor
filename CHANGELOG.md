@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.9.7] - 2026-9-4
+
+iOS Release fix
+
+
 ## [3.9.6] - 2026-9-3
 
 Release fix

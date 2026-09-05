@@ -1,3 +1,3 @@
-## [3.9.6] - 2026-9-3
+## [3.9.7] - 2026-9-4
 
-Release fix
+iOS Release fix
