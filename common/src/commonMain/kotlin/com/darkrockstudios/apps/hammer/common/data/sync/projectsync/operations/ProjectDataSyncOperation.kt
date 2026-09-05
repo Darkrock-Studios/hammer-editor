@@ -75,7 +75,7 @@ class ProjectDataSyncOperation(
 			}
 			serverDto.hash == localHash -> {
 				if (lastSyncedHash != serverDto.hash) {
-					repository.updateFromSync(serverDto.data, serverDto.hash)
+					repository.updateFromSync(serverDto.data, serverDto.hash, snapshot = stored.data)
 				}
 				onLog(syncLogI("Project data already in sync", projectDef))
 				return CResult.success(state)
@@ -86,7 +86,7 @@ class ProjectDataSyncOperation(
 				// recording the server hash would make the stored copy look locally edited, and the
 				// next sync would upload it — deleting the newer field server-side. With the stored
 				// hash, an out-of-date device just keeps fast-forwarding harmlessly.
-				repository.updateFromSync(serverDto.data, ProjectDataHasher.hash(serverDto.data))
+				repository.updateFromSync(serverDto.data, ProjectDataHasher.hash(serverDto.data), snapshot = stored.data)
 				onLog(syncLogI("Project data updated from server", projectDef))
 				return CResult.success(state)
 			}
@@ -108,7 +108,7 @@ class ProjectDataSyncOperation(
 		val result = api.uploadProjectData(userId, projectId, data, originalHash)
 		val success = result.getOrNull()
 		if (success != null) {
-			repository.updateFromSync(success.data, success.hash)
+			repository.updateFromSync(success.data, success.hash, snapshot = data)
 			onLog(syncLogI("Project data synced", projectDef))
 			return success
 		}
@@ -150,7 +150,7 @@ class ProjectDataSyncOperation(
 			onLog(syncLogE("Project data conflict resolution failed: ${resolveError?.message}", projectDef))
 			return null
 		}
-		repository.updateFromSync(resolvedDto.data, resolvedDto.hash)
+		repository.updateFromSync(resolvedDto.data, resolvedDto.hash, snapshot = data)
 		onLog(syncLogI("Project data synced", projectDef))
 		return resolvedDto
 	}

@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultD
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -16,6 +17,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
@@ -30,7 +32,7 @@ import kotlin.time.Duration.Companion.milliseconds
  * scope. Gated on spell check being enabled; the encyclopedia half is further gated
  * on the global feature setting and the project's own toggle, all live-reactive.
  */
-@OptIn(FlowPreview::class)
+@OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
 class ProjectDictionaryService(
 	private val projectDef: ProjectDef,
 	private val encyclopediaRepository: EncyclopediaRepository,
@@ -50,18 +52,32 @@ class ProjectDictionaryService(
 	/** Starts watching for words to load; called from initializeProjectScope on project open. */
 	fun initialize() {
 		serviceScope.launch {
+			// Entries are only re-read when one changes or the feature toggles; a user word
+			// edit unions into the cached set without touching the encyclopedia on disk.
+			val encyclopediaWords = combine(
+				projectSpellCheckRepository.encyclopediaDictionaryEnabled,
+				encyclopediaRepository.entryContentChangedFlow.onStart { emit(Unit) },
+			) { enabled, _ -> enabled }
+				.debounce(REBUILD_DEBOUNCE)
+				.mapLatest { enabled -> if (enabled) loadEncyclopediaWords() else emptySet() }
+
 			combine(
 				projectSpellCheckRepository.spellCheckEnabled,
-				projectSpellCheckRepository.encyclopediaDictionaryEnabled,
+				encyclopediaWords,
 				projectSpellCheckRepository.userDictionaryWords,
-				encyclopediaRepository.entryContentChangedFlow.onStart { emit(Unit) },
-			) { spellCheckOn, encyclopediaOn, userWords, _ ->
-				if (spellCheckOn) Sources(encyclopediaOn, userWords) else null
+			) { spellCheckOn, encyclopedia, userWords ->
+				// Both the exact spelling and the tokenized form go in: the tokenizer lowercases,
+				// which is what the encyclopedia path relies on, but a mixed-case word like
+				// "McKinley" must also be accepted as typed.
+				if (spellCheckOn) encyclopedia + userWords + tokenizeDictionaryWords(userWords) else null
 			}
 				.debounce(REBUILD_DEBOUNCE)
-				.collect { sources ->
-					if (sources != null) {
-						rebuild(sources)
+				.collect { words ->
+					// Never push words after onScopeClose has cleared them: close cancels this
+					// scope first, so a collect that raced past its last suspension bails here.
+					if (!currentCoroutineContext().isActive) return@collect
+					if (words != null) {
+						spellCheckRepository.setSessionWords(projectDef, words)
 					} else {
 						spellCheckRepository.clearSessionWords(projectDef)
 					}
@@ -69,40 +85,27 @@ class ProjectDictionaryService(
 		}
 	}
 
-	private data class Sources(val encyclopediaOn: Boolean, val userWords: Set<String>)
-
-	@Suppress("TooGenericExceptionCaught") // Background rebuild must not crash on any failure
-	private suspend fun rebuild(sources: Sources) {
+	@Suppress("TooGenericExceptionCaught") // A failed reload must not kill the collector
+	private suspend fun loadEncyclopediaWords(): Set<String> {
 		try {
-			val encyclopediaWords = if (sources.encyclopediaOn) loadEncyclopediaWords() else emptySet()
-			// Both the exact spelling and the tokenized form go in: the tokenizer lowercases,
-			// which is what the encyclopedia path relies on, but a mixed-case word like
-			// "McKinley" must also be accepted as typed.
-			val words = encyclopediaWords + sources.userWords + tokenizeDictionaryWords(sources.userWords)
-			// Never push words after onScopeClose has cleared them: close cancels this
-			// scope first, so a rebuild that raced past its last suspension bails here.
-			if (!currentCoroutineContext().isActive) return
-			spellCheckRepository.setSessionWords(projectDef, words)
+			// entryListFlow's replay cache is not refreshed by entry writes, so force a
+			// reload before reading defs - renames change EntryDef.name.
+			val defs = encyclopediaRepository.loadEntriesImperative()
+			return coroutineScope {
+				defs.map { def ->
+					async {
+						val entry = encyclopediaRepository.loadEntry(def).entry
+						if (entry.excludeFromDictionary) emptySet()
+						else tokenizeDictionaryWords(listOf(entry.name) + entry.aliases)
+					}
+				}.awaitAll()
+			}.flatMapTo(mutableSetOf()) { it }
 		} catch (e: CancellationException) {
 			throw e
 		} catch (t: Throwable) {
-			Napier.e("ProjectDictionaryService rebuild failed", t)
+			Napier.e("ProjectDictionaryService encyclopedia reload failed", t)
+			return emptySet()
 		}
-	}
-
-	private suspend fun loadEncyclopediaWords(): Set<String> {
-		// entryListFlow's replay cache is not refreshed by entry writes, so force a
-		// reload before reading defs - renames change EntryDef.name.
-		val defs = encyclopediaRepository.loadEntriesImperative()
-		return coroutineScope {
-			defs.map { def ->
-				async {
-					val entry = encyclopediaRepository.loadEntry(def).entry
-					if (entry.excludeFromDictionary) emptySet()
-					else tokenizeDictionaryWords(listOf(entry.name) + entry.aliases)
-				}
-			}.awaitAll()
-		}.flatten().toSet()
 	}
 
 	override fun onScopeClose(scope: Scope) {

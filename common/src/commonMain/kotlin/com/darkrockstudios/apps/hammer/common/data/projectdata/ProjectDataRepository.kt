@@ -61,13 +61,18 @@ class ProjectDataRepository(
 	}
 
 	/**
-	 * Sync-only: replace both [ProjectData] and [StoredProjectData.lastSyncedHash]
-	 * atomically, e.g. after a successful upload or after fast-forwarding to
-	 * the server's state.
+	 * Sync-only: install [data] as the state agreed with the server under [lastSyncedHash], e.g.
+	 * after a successful upload or a fast-forward. Edits made since the sync read [snapshot]
+	 * are re-applied on top, so they stay pending for the next sync instead of being lost.
 	 */
-	suspend fun updateFromSync(data: ProjectData, lastSyncedHash: String) = mutex.withLock {
-		val current = _state.value
-		val next = StoredProjectData(data = data, lastSyncedHash = lastSyncedHash)
+	suspend fun updateFromSync(
+		data: ProjectData,
+		lastSyncedHash: String,
+		snapshot: ProjectData,
+	) = mutex.withLock {
+		val current = _state.value ?: datasource.load()
+		val merged = if (current.data == snapshot) data else reapplyLocalEdits(snapshot, current.data, data)
+		val next = StoredProjectData(data = merged, lastSyncedHash = lastSyncedHash)
 		if (current == next) return@withLock
 		datasource.save(next)
 		_state.value = next

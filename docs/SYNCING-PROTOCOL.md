@@ -598,6 +598,11 @@ field, the client merges and re-uploads without involving the user; when other f
 resolver appears for those and the dictionary is still unioned. A word deleted on one device is therefore
 resurrected if the other device conflicts before the deletion syncs; that is accepted for a word list.
 
+Sync writes never clobber a concurrent local edit: the client snapshots the blob when the phase
+starts, and when it installs the server-agreed state it re-applies any field the user changed since
+that snapshot (dictionary words as an add/remove delta). Those edits then differ from the recorded
+`lastSyncedHash`, so the next sync uploads them.
+
 Unlike writing-activity sync (which swallows errors and continues), a non-conflict failure on the project-data phase fails the whole sync — the data is user-authored and silent loss is unacceptable.
 
 Note: unlike the entity endpoints, the `project_data` and `writing_activity` endpoints are not gated on a `syncID` — they simply run inside the sync session window.

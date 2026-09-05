@@ -5,6 +5,9 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRe
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
 import io.github.aakira.napier.Napier
+import kotlinx.atomicfu.atomic
+import kotlinx.atomicfu.getAndUpdate
+import kotlinx.atomicfu.update
 import org.koin.core.Koin
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.getScopeId
@@ -14,13 +17,19 @@ import org.koin.core.scope.Scope
 import org.koin.core.scope.ScopeID
 import org.koin.mp.KoinPlatform.getKoin
 
+// Scopes an editor has opened. A temporary task that created the scope must not close it
+// once an editor owns it, and an editor opening an existing temporary scope must still
+// start the editor-only services.
+private val editorScopes = atomic(emptySet<ScopeID>())
+
 suspend fun KoinComponent.temporaryProjectTask(projectDef: ProjectDef, block: suspend (projectScope: Scope) -> Unit) {
-	val hadToCreate = getKoin().getScopeOrNull(ProjectDefScope(projectDef).getScopeId()) == null
+	val scopeId = ProjectDefScope(projectDef).getScopeId()
+	val hadToCreate = getKoin().getScopeOrNull(scopeId) == null
 	val projScope = openProjectScope(projectDef, temporary = true)
 
 	block(projScope)
 
-	if (hadToCreate) {
+	if (hadToCreate && scopeId !in editorScopes.value) {
 		closeProjectScope(projScope, projectDef)
 	}
 }
@@ -37,12 +46,15 @@ fun createProjectScope(projectDef: ProjectDef): Scope {
 
 suspend fun openProjectScope(projectDef: ProjectDef, temporary: Boolean = false): Scope {
 	val defScope = ProjectDefScope(projectDef)
+	val scopeId = defScope.getScopeId()
 
-	val needsInit = getKoin().getScopeOrNull(ProjectDefScope(projectDef).getScopeId()) == null
-	val projScope = getKoin().getOrCreateScope<ProjectDefScope>(defScope.getScopeId(), source = defScope)
+	val needsInit = getKoin().getScopeOrNull(scopeId) == null
+	val projScope = getKoin().getOrCreateScope<ProjectDefScope>(scopeId, source = defScope)
 
 	if (needsInit) {
 		initializeProjectScope(projectDef, temporary)
+	} else if (!temporary && markOpenedForEditing(scopeId)) {
+		initializeEditorServices(projScope)
 	}
 
 	return projScope
@@ -61,14 +73,25 @@ suspend fun initializeProjectScope(projectDef: ProjectDef, temporary: Boolean = 
 
 		// Skipped for temporary scopes (background sync, import): loading session words
 		// there only churns the shared checker while the sync rewrites entries.
-		if (!temporary) {
-			projScope.get<ProjectDictionaryService>().initialize()
+		if (!temporary && markOpenedForEditing(defScope.getScopeId())) {
+			initializeEditorServices(projScope)
 		}
 	} ?: throw IllegalStateException("No scope found for $projectDef")
 }
 
+private fun initializeEditorServices(projScope: Scope) {
+	projScope.get<ProjectDictionaryService>().initialize()
+}
+
+/** Returns true the first time [scopeId] is marked. */
+private fun markOpenedForEditing(scopeId: ScopeID): Boolean {
+	val before = editorScopes.getAndUpdate { it + scopeId }
+	return scopeId !in before
+}
+
 fun closeProjectScope(projectScope: Scope, projectDef: ProjectDef) {
 	Napier.d { "closeProjectScope: ${projectDef.name}" }
+	editorScopes.update { it - ProjectDefScope(projectDef).getScopeId() }
 	projectScope.close()
 }
 

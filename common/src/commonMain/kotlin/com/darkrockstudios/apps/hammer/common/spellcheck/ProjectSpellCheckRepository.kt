@@ -64,9 +64,9 @@ class ProjectSpellCheckRepository(
 		.onStart { projectDataRepository.load() }
 		.distinctUntilChanged()
 
-	/** The project's user-added dictionary words, as stored. */
+	/** The project's user-added dictionary words. Cleaned on read: the stored set may come from sync. */
 	val userDictionaryWords: Flow<Set<String>> = projectDataRepository.state
-		.map { stored -> stored?.data?.dictionaryWords ?: emptySet() }
+		.map { stored -> cleanDictionaryWords(stored?.data?.dictionaryWords ?: emptySet()) }
 		.onStart { projectDataRepository.load() }
 		.distinctUntilChanged()
 }

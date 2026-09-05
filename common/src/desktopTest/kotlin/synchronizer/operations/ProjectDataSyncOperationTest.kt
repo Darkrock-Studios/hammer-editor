@@ -257,6 +257,28 @@ class ProjectDataSyncOperationTest : BaseTest() {
 	}
 
 	@Test
+	fun `a word added while the upload is in flight is kept and left pending`() = runTest {
+		val local = ProjectData(authorName = "Local Edit")
+		datasource.save(StoredProjectData(local, lastSyncedHash = "stale-hash"))
+		coEvery { api.getProjectData(any(), any()) } returns
+			Result.success(ProjectDataDto(ProjectData(authorName = "Server"), "server-hash"))
+		coEvery {
+			api.uploadProjectData(any(), any(), local, "stale-hash")
+		} coAnswers {
+			repository.updateData { it.copy(dictionaryWords = it.dictionaryWords + "kvothe") }
+			Result.success(ProjectDataDto(local, "new-hash"))
+		}
+
+		val result = createOperation().run()
+
+		assertTrue(isSuccess(result))
+		val stored = repository.state.value
+		assertEquals(local.copy(dictionaryWords = setOf("kvothe")), stored?.data)
+		// The baseline is what the server holds, so the concurrent add uploads next time.
+		assertEquals("new-hash", stored?.lastSyncedHash)
+	}
+
+	@Test
 	fun `a non-conflict upload failure fails the sync`() = runTest {
 		val local = ProjectData(authorName = "Local Edit")
 		datasource.save(StoredProjectData(local, lastSyncedHash = "stale-hash"))

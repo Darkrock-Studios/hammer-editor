@@ -107,6 +107,11 @@ class ProjectDataHasherTest {
 		val joined = ProjectData(dictionaryWords = setOf("ab"))
 		val split = ProjectData(dictionaryWords = setOf("a", "b"))
 		assertNotEquals(ProjectDataHasher.hash(joined), ProjectDataHasher.hash(split))
+
+		// Same size and same concatenation: only a per-word length keeps these apart.
+		val left = ProjectData(dictionaryWords = setOf("a", "bc"))
+		val right = ProjectData(dictionaryWords = setOf("ab", "c"))
+		assertNotEquals(ProjectDataHasher.hash(left), ProjectDataHasher.hash(right))
 	}
 
 	@Test
