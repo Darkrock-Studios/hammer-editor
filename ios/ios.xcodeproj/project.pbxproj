@@ -492,7 +492,7 @@
 					"-framework",
 					Hammer,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.darkrockstudios.apps.hammer.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = com.darkrockstudios.apps.hammer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Hammer AppStore iOS";
@@ -525,7 +525,7 @@
 					"-framework",
 					Hammer,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.darkrockstudios.apps.hammer.ios;
+				PRODUCT_BUNDLE_IDENTIFIER = com.darkrockstudios.apps.hammer;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				"PROVISIONING_PROFILE_SPECIFIER[sdk=iphoneos*]" = "Hammer AppStore iOS";
