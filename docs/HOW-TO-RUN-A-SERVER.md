@@ -81,7 +81,7 @@ The response body carries a machine-readable `errorCode` (`invalid_credentials`,
 would let anyone enumerate your users — so the log above is the place to look.
 
 A login answering `403 Forbidden` with `not_whitelisted` means the credentials were fine and the
-account simply isn't allowed in; see [Whitelisting Users](#whitelisting-users).
+account simply isn't allowed in; see [Allowed Users](#allowed-users).
 
 ## Network binding
 
