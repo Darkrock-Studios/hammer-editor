@@ -11,8 +11,8 @@ import org.junit.Rule
 import org.junit.Test
 
 /**
- * The support case behind the export button was a user who could not get at their logs, so both
- * routes to them have to actually render.
+ * The support case behind these buttons was a user who could not get at their logs, so every
+ * route to them has to actually render.
  */
 class PlatformAboutSectionTest {
 	@get:Rule
@@ -30,7 +30,7 @@ class PlatformAboutSectionTest {
 	}
 
 	@Test
-	fun `both log actions and the log directory are shown`() {
+	fun `every log action and the log directory are shown`() {
 		val logDir = "/home/someone/.config/DarkrockStudios/hammer/0/logs"
 		compose.setContent {
 			AppTheme(globalSettingsPreview) {
@@ -42,5 +42,6 @@ class PlatformAboutSectionTest {
 		compose.onNodeWithText(logDir).assertIsDisplayed()
 		compose.onNodeWithText("Open log directory").assertIsDisplayed()
 		compose.onNodeWithText("Export Logs").assertIsDisplayed()
+		compose.onNodeWithText("Copy Diagnostics").assertIsDisplayed()
 	}
 }

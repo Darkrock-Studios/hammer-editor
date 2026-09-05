@@ -2,7 +2,8 @@ package com.darkrockstudios.apps.hammer.common.projectselection.about
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -43,6 +44,7 @@ import java.io.File
 
 private const val LOGS_ZIP_BASE_NAME = "hammer-logs"
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 actual fun PlatformAboutSection(component: AboutApp, section: Int) {
 	val scope = rememberCoroutineScope()
@@ -67,7 +69,10 @@ actual fun PlatformAboutSection(component: AboutApp, section: Int) {
 				value = displayedLogDir,
 				selectable = true,
 			)
-			Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+			FlowRow(
+				horizontalArrangement = Arrangement.spacedBy(12.dp),
+				verticalArrangement = Arrangement.spacedBy(12.dp),
+			) {
 				HdHairlineButton(
 					label = Res.string.about_logs_open_tooltip.get(),
 					onClick = { openLogDirectory(displayedLogDir) },
@@ -88,6 +93,10 @@ actual fun PlatformAboutSection(component: AboutApp, section: Int) {
 							exporting = false
 						}
 					},
+				)
+				CopyDiagnosticsButton(
+					logDirectoryPath = logDir,
+					onStatus = { status = it },
 				)
 			}
 			status?.let {
