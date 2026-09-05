@@ -38,6 +38,15 @@ class PasswordComplexityLoginTest : EndToEndTest() {
 	// The login rate limiter allows 10 requests per window, so at most five pairs per server.
 	private fun roundTrip(vararg passwords: Pair<String, String>): Unit = runBlocking {
 		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database())
+
+		// Allowed Users is always enforced, and only the first account (the bootstrap
+		// admin) is exempt, so every other address has to be on the list to get in.
+		passwords.indices.forEach { index ->
+			database().executeAsync(
+				"INSERT INTO white_list(email, date_added) VALUES ('user$index@example.com', NOW())"
+			)
+		}
+
 		doStartServer()
 
 		val failures = mutableListOf<String>()
