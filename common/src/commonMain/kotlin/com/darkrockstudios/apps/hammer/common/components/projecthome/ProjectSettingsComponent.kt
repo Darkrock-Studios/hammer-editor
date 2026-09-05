@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
 import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCase
 import com.darkrockstudios.apps.hammer.common.spellcheck.displayName
 import com.darkrockstudios.apps.hammer.common.util.AvailableLocalesProvider
 import com.darkrockstudios.apps.hammer.common.util.Locale
@@ -28,6 +29,7 @@ class ProjectSettingsComponent(
 
 	private val mainDispatcher by injectMainDispatcher()
 	private val projectDataRepository: ProjectDataRepository by projectInject()
+	private val projectDictionary: ProjectDictionaryUseCase by projectInject()
 	private val accountTagService: AccountTagService by inject()
 	private val availableLocalesProvider: AvailableLocalesProvider by inject()
 
@@ -99,6 +101,14 @@ class ProjectSettingsComponent(
 		scope.launch {
 			projectDataRepository.updateData { it.copy(encyclopediaDictionary = enabled) }
 		}
+	}
+
+	override fun addDictionaryWord(word: String) {
+		scope.launch { projectDictionary.addWord(word) }
+	}
+
+	override fun removeDictionaryWord(word: String) {
+		scope.launch { projectDictionary.removeWord(word) }
 	}
 
 	override fun suggestProjectTags(prefix: String): List<String> {

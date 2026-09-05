@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.AccountTagService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCase
 import com.darkrockstudios.apps.hammer.common.util.AvailableLocalesProvider
 import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
@@ -82,6 +83,7 @@ class ProjectSettingsComponentTest : ComponentTest() {
 			}
 			scope<ProjectDefScope> {
 				scoped { ProjectDataRepository(datasource, projectDef) }
+				scoped { ProjectDictionaryUseCase(get()) }
 				scoped<SyncDataDatasource> { mockk(relaxed = true) }
 			}
 		})
@@ -183,6 +185,46 @@ class ProjectSettingsComponentTest : ComponentTest() {
 
 		assertEquals(goal, comp.projectInfoState.value.data.wordCountGoal)
 		assertEquals(goal, datasource.load().data.wordCountGoal)
+	}
+
+	@Test
+	fun `addDictionaryWord normalizes and persists`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.addDictionaryWord("  Kvothe ")
+		advanceUntilIdle()
+
+		assertEquals(setOf("Kvothe"), comp.projectInfoState.value.data.dictionaryWords)
+		assertEquals(setOf("Kvothe"), datasource.load().data.dictionaryWords)
+	}
+
+	@Test
+	fun `addDictionaryWord ignores input that is not a single word`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.addDictionaryWord("two words")
+		comp.addDictionaryWord("   ")
+		advanceUntilIdle()
+
+		assertEquals(emptySet(), comp.projectInfoState.value.data.dictionaryWords)
+	}
+
+	@Test
+	fun `removeDictionaryWord persists the removal`() = runTest(mainTestDispatcher) {
+		datasource.save(StoredProjectData(data = ProjectData(dictionaryWords = setOf("Kvothe", "Denna"))))
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.removeDictionaryWord("Kvothe")
+		advanceUntilIdle()
+
+		assertEquals(setOf("Denna"), comp.projectInfoState.value.data.dictionaryWords)
+		assertEquals(setOf("Denna"), datasource.load().data.dictionaryWords)
 	}
 
 	@Test

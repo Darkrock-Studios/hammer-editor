@@ -62,6 +62,13 @@ object ProjectDataHasher {
 			d.update(-2, buf)
 		}
 
+		// Zero bytes when empty, same rule as tags. -3 marker: -1 and -2 are taken.
+		if (data.dictionaryWords.isNotEmpty()) {
+			d.update(-3, buf)
+			d.update(data.dictionaryWords.size, buf)
+			data.dictionaryWords.sorted().forEach { word -> d.update(word, buf) }
+		}
+
 		return d.digest().base64Url
 	}
 }

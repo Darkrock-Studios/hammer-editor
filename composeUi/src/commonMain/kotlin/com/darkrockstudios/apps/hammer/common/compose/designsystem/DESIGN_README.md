@@ -291,6 +291,10 @@ The handwriting of the system. Reach for these instead of styling
 - **[`HdHairlineTagField`](HdHairlineTagField.kt)** — same vocabulary
   but the value is a `List<String>` of `HdTagChip`s; Enter / comma
   adds a tag, Backspace on empty removes the last.
+- **[`HdHairlineWordListField`](HdHairlineWordListField.kt)** — the
+  tag field's shape for a plain word list (the project dictionary):
+  neutral `#` chips that wrap instead of scrolling, Enter / comma /
+  space commits, and the caller's `parseInput` decides what a word is.
 - **[`HdHairlineTypePicker`](HdHairlineTypePicker.kt)** — segmented
   picker for `EntryType`. Glyph square + mono label per cell, 2dp
   top stripe in the type's color when active.

@@ -592,6 +592,12 @@ sequenceDiagram
 
 Two further branches aren't diagrammed: if the server has no blob yet (`204`) and the local data is non-default, the client uploads with a null `originalHash` (the server accepts a baseline-less upload unchecked); and if the hashes already match, the phase is a no-op (re-recording `lastSyncedHash` if it was stale).
 
+One field is exempt from the per-field resolver: `dictionaryWords` (the project's user spell-check
+dictionary) is merged by union on both paths. When a `409` differs from the local copy *only* in that
+field, the client merges and re-uploads without involving the user; when other fields also differ, the
+resolver appears for those and the dictionary is still unioned. A word deleted on one device is therefore
+resurrected if the other device conflicts before the deletion syncs; that is accepted for a word list.
+
 Unlike writing-activity sync (which swallows errors and continues), a non-conflict failure on the project-data phase fails the whole sync — the data is user-authored and silent loss is unacceptable.
 
 Note: unlike the entity endpoints, the `project_data` and `writing_activity` endpoints are not gated on a `syncID` — they simply run inside the sync session window.
