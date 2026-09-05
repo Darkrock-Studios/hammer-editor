@@ -3,8 +3,12 @@ package com.darkrockstudios.apps.hammer.common.projectselection.about
 import android.content.Context
 import android.content.Intent
 import android.widget.Toast
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
@@ -22,6 +26,7 @@ import java.io.File
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 actual fun PlatformAboutSection(component: AboutApp, section: Int) {
 	val context = LocalContext.current
@@ -34,20 +39,29 @@ actual fun PlatformAboutSection(component: AboutApp, section: Int) {
 		section = section,
 		title = Res.string.about_logs_header.get(),
 	) {
-		HdHairlineButton(
-			label = Res.string.about_logs_export_button.get(),
-			onClick = {
-				if (exporting) return@HdHairlineButton
-				exporting = true
-				scope.launch {
-					val success = exportAndShareLogs(context, state.logDirectoryPath)
-					if (!success) {
-						Toast.makeText(context, noLogsMessage, Toast.LENGTH_SHORT).show()
+		FlowRow(
+			horizontalArrangement = Arrangement.spacedBy(12.dp),
+			verticalArrangement = Arrangement.spacedBy(12.dp),
+		) {
+			HdHairlineButton(
+				label = Res.string.about_logs_export_button.get(),
+				onClick = {
+					if (exporting) return@HdHairlineButton
+					exporting = true
+					scope.launch {
+						val success = exportAndShareLogs(context, state.logDirectoryPath)
+						if (!success) {
+							Toast.makeText(context, noLogsMessage, Toast.LENGTH_SHORT).show()
+						}
+						exporting = false
 					}
-					exporting = false
-				}
-			},
-		)
+				},
+			)
+			CopyDiagnosticsButton(
+				logDirectoryPath = state.logDirectoryPath,
+				onStatus = { Toast.makeText(context, it, Toast.LENGTH_SHORT).show() },
+			)
+		}
 	}
 }
 
