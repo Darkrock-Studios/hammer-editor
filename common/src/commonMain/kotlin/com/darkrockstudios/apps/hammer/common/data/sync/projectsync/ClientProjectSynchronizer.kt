@@ -71,7 +71,7 @@ class ClientProjectSynchronizer(
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,
 		onLog: OnSyncLog,
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
-		onComplete: suspend () -> Unit,
+		onComplete: suspend (success: Boolean) -> Unit,
 		onlyNew: Boolean = false,
 		onUnauthorized: suspend () -> Unit,
 	): Boolean = coroutineScope {
@@ -110,7 +110,7 @@ class ClientProjectSynchronizer(
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,
 		onLog: OnSyncLog,
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
-		onComplete: suspend () -> Unit,
+		onComplete: suspend (success: Boolean) -> Unit,
 		onUnauthorized: suspend () -> Unit = {}
 	): CResult<SyncOperationState> {
 		var currentState = initialState
@@ -142,7 +142,7 @@ class ClientProjectSynchronizer(
 	private suspend fun handleSyncFailure(
 		e: Throwable,
 		onLog: OnSyncLog,
-		onComplete: suspend () -> Unit,
+		onComplete: suspend (success: Boolean) -> Unit,
 		onUnauthorized: suspend () -> Unit = {}
 	) {
 		Napier.e("Sync failed: ${e.message}", e)
@@ -154,7 +154,7 @@ class ClientProjectSynchronizer(
 			)
 		)
 		endSync()
-		onComplete()
+		onComplete(false)
 
 		// Check if the error is a 401 Unauthorized error
 		if (e is HttpFailureException && e.statusCode == HttpStatusCode.Unauthorized) {

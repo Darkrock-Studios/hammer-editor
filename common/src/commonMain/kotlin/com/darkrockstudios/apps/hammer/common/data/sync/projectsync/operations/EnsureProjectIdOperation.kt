@@ -24,7 +24,7 @@ class EnsureProjectIdOperation(
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,
 		onLog: OnSyncLog,
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
-		onComplete: suspend () -> Unit
+		onComplete: suspend (success: Boolean) -> Unit
 	): CResult<SyncOperationState> {
 		val metadata = projectMetadataDatasource.loadMetadata(projectDef)
 		if (metadata.info.serverProjectId == null) {

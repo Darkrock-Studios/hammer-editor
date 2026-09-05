@@ -68,7 +68,7 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 		val onProgress: suspend (Float, SyncLogMessage?) -> Unit,
 		val onLog: suspend (SyncLogMessage?) -> Unit,
 		val onConflict: suspend (ApiProjectEntity) -> Unit,
-		val onComplete: suspend () -> Unit,
+		val onComplete: suspend (Boolean) -> Unit,
 		val onUnauthorized: suspend () -> Unit,
 	)
 
@@ -132,7 +132,7 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 	fun `Successful sync reports progress and auto-closes the dialog`() = runTest(mainTestDispatcher) {
 		stubSync { callbacks ->
 			callbacks.onProgress(0.5f, null)
-			callbacks.onComplete()
+			callbacks.onComplete(true)
 			true
 		}
 
@@ -158,7 +158,7 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 			autoCloseSyncDialog = false,
 		)
 		stubSync { callbacks ->
-			callbacks.onComplete()
+			callbacks.onComplete(true)
 			true
 		}
 
@@ -196,7 +196,7 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 		stubSync { callbacks ->
 			callbacks.onProgress(0.25f, SyncLogMessage("first", SyncLogLevel.INFO, projectDef.name, Instant.DISTANT_PAST))
 			callbacks.onLog(SyncLogMessage("second", SyncLogLevel.WARN, projectDef.name, Instant.DISTANT_PAST))
-			callbacks.onComplete()
+			callbacks.onComplete(true)
 			true
 		}
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(
@@ -213,6 +213,26 @@ class ProjectSynchronizationComponentTest : ComponentTest() {
 		val messages = comp.state.value.syncLog.map { it.message }
 		assertTrue(messages.contains("first"))
 		assertTrue(messages.contains("second"))
+	}
+
+	@Test
+	fun `Failed sync does not log Sync complete`() = runTest(mainTestDispatcher) {
+		stubSync { callbacks ->
+			callbacks.onLog(SyncLogMessage("Sync failed: boom", SyncLogLevel.ERROR, projectDef.name, Instant.DISTANT_PAST))
+			callbacks.onComplete(false)
+			false
+		}
+
+		val comp = newComponent()
+		context.resume()
+
+		comp.syncProject { }
+		advanceUntilIdle()
+
+		val messages = comp.state.value.syncLog.map { it.message }
+		assertTrue(messages.contains("Sync failed: boom"))
+		assertFalse(messages.contains("Sync complete!"))
+		assertFalse(comp.state.value.isSyncing)
 	}
 
 	@Test

@@ -59,7 +59,7 @@ class EntityTransferOperation(
 		onProgress: suspend (Float, SyncLogMessage?) -> Unit,
 		onLog: OnSyncLog,
 		onConflict: EntityConflictHandler<ApiProjectEntity>,
-		onComplete: suspend () -> Unit
+		onComplete: suspend (success: Boolean) -> Unit
 	): CResult<SyncOperationState> {
 		state as EntityDeleteOperationState
 

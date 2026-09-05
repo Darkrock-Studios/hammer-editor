@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.network_request_failure_parse_body
 import com.darkrockstudios.apps.hammer.server_error_connection_generic
 import com.darkrockstudios.apps.hammer.server_error_connection_timeout
 import com.darkrockstudios.apps.hammer.server_error_dns
+import com.darkrockstudios.apps.hammer.server_error_network_unavailable
 import com.darkrockstudios.apps.hammer.server_error_timeout
 import com.darkrockstudios.apps.hammer.server_error_tls
 import com.darkrockstudios.apps.hammer.sync_general_error
@@ -152,30 +153,59 @@ abstract class Api(
 				)
 			)
 		} catch (e: IOException) {
-			if (e.isTlsFailure()) {
-				Napier.e("TLS Error", e)
-				Result.failure(
-					HttpFailureException(
-						statusCode = outerResponse?.status ?: HttpStatusCode.BadGateway,
-						error = HttpResponseError(
-							error = e.message ?: "TLS Error",
-							displayMessage = strRes.get(Res.string.server_error_tls, server.url),
-						)
+			ioFailure(e, server.url, path, outerResponse)
+		} catch (e: RuntimeException) {
+			// Only an unchecked IO wrapper lands here, which means the platform could not build its
+			// HTTP client at all, so the request never left the device.
+			ioFailure(e.asIoFailure() ?: throw e, server.url, path, outerResponse, local = true)
+		}
+	}
+
+	private suspend fun <T> ioFailure(
+		e: IOException,
+		serverUrl: String,
+		path: String,
+		outerResponse: HttpResponse?,
+		local: Boolean = false,
+	): Result<T> = when {
+		e.isTlsFailure() -> {
+			Napier.e("TLS Error", e)
+			Result.failure(
+				HttpFailureException(
+					statusCode = outerResponse?.status ?: HttpStatusCode.BadGateway,
+					error = HttpResponseError(
+						error = e.message ?: "TLS Error",
+						displayMessage = strRes.get(Res.string.server_error_tls, serverUrl),
 					)
 				)
-			} else {
-				// Generic network error (connection refused, etc.)
-				Napier.e("Network Error", e)
-				Result.failure(
-					HttpFailureException(
-						statusCode = outerResponse?.status ?: HttpStatusCode.RequestTimeout,
-						error = HttpResponseError(
-							error = e.message ?: "Network Error",
-							displayMessage = strRes.get(Res.string.server_error_connection_generic, path),
-						)
+			)
+		}
+
+		local -> {
+			Napier.e("Network Unavailable", e)
+			Result.failure(
+				HttpFailureException(
+					statusCode = outerResponse?.status ?: HttpStatusCode.ServiceUnavailable,
+					error = HttpResponseError(
+						error = e.message ?: "Network Unavailable",
+						displayMessage = strRes.get(Res.string.server_error_network_unavailable),
 					)
 				)
-			}
+			)
+		}
+
+		else -> {
+			// Generic network error (connection refused, etc.)
+			Napier.e("Network Error", e)
+			Result.failure(
+				HttpFailureException(
+					statusCode = outerResponse?.status ?: HttpStatusCode.RequestTimeout,
+					error = HttpResponseError(
+						error = e.message ?: "Network Error",
+						displayMessage = strRes.get(Res.string.server_error_connection_generic, path),
+					)
+				)
+			)
 		}
 	}
 

@@ -205,7 +205,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val onLog = mockk<OnSyncLog>(relaxed = true)
 		val onConflict = mockk<EntityConflictHandler<ApiProjectEntity>>(relaxed = true)
-		val onComplete = mockk<suspend () -> Unit>(relaxed = true)
+		val onComplete = mockk<suspend (Boolean) -> Unit>(relaxed = true)
 
 		val success = syncer.sync(
 			onProgress = onProgress,
@@ -322,7 +322,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val onLog = mockk<OnSyncLog>(relaxed = true)
 		val onConflict = mockk<EntityConflictHandler<ApiProjectEntity>>(relaxed = true)
-		val onComplete = mockk<suspend () -> Unit>(relaxed = true)
+		val onComplete = mockk<suspend (Boolean) -> Unit>(relaxed = true)
 
 		val success = syncer.sync(
 			onProgress = onProgress,
@@ -448,7 +448,7 @@ class ClientProjectSynchronizerTest : BaseTest() {
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val onLog = mockk<OnSyncLog>(relaxed = true)
 		val onConflict = mockk<EntityConflictHandler<ApiProjectEntity>>(relaxed = true)
-		val onComplete = mockk<suspend () -> Unit>(relaxed = true)
+		val onComplete = mockk<suspend (Boolean) -> Unit>(relaxed = true)
 		val onUnauthorized = mockk<suspend () -> Unit>(relaxed = true)
 
 		val success = syncer.sync(

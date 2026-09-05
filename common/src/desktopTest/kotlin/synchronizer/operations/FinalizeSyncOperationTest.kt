@@ -121,7 +121,7 @@ class FinalizeSyncOperationTest : BaseTest() {
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val onLog = mockk<OnSyncLog>(relaxed = true)
 		val onConflict = mockk<EntityConflictHandler<ApiProjectEntity>>(relaxed = true)
-		val onComplete = mockk<suspend () -> Unit>(relaxed = true)
+		val onComplete = mockk<suspend (Boolean) -> Unit>(relaxed = true)
 
 		val initialState = EntityTransferState(
 			onlyNew = false,
@@ -153,7 +153,7 @@ class FinalizeSyncOperationTest : BaseTest() {
 		coVerify { serverProjectApi.endProjectSync(1L, projId, beganResponse.syncId, 12, clock.now()) }
 		// Downloaded ids may sit above the allocator's sync-start snapshot; it must re-derive.
 		coVerify { idAllocator.findNextId() }
-		coVerify { onComplete() }
+		coVerify { onComplete(true) }
 
 		val saved = slot<ProjectSynchronizationData>()
 		coVerify { syncDataDatasource.saveSyncData(capture(saved)) }
