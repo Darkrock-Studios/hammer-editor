@@ -97,6 +97,7 @@ private fun fakeComponent() = object : SceneEditor {
 	override fun addEditorMenu() {}
 	override fun removeEditorMenu() {}
 	override fun loadSceneContent() {}
+	override fun addWordToDictionary(word: String) {}
 	override suspend fun storeSceneContent() = true
 	override fun onContentChanged(content: PlatformRichText) {}
 	override fun beginSceneNameEdit() {}

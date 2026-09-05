@@ -89,6 +89,34 @@ class ProjectDataHasherTest {
 	}
 
 	@Test
+	fun `dictionary words affect hash`() {
+		val without = ProjectData(authorName = "Pat")
+		val with = without.copy(dictionaryWords = setOf("kvothe"))
+		assertNotEquals(ProjectDataHasher.hash(without), ProjectDataHasher.hash(with))
+	}
+
+	@Test
+	fun `dictionary word insertion order does not affect hash`() {
+		val ab = ProjectData(dictionaryWords = setOf("alpha", "beta"))
+		val ba = ProjectData(dictionaryWords = setOf("beta", "alpha"))
+		assertEquals(ProjectDataHasher.hash(ab), ProjectDataHasher.hash(ba))
+	}
+
+	@Test
+	fun `dictionary word boundaries affect hash`() {
+		val joined = ProjectData(dictionaryWords = setOf("ab"))
+		val split = ProjectData(dictionaryWords = setOf("a", "b"))
+		assertNotEquals(ProjectDataHasher.hash(joined), ProjectDataHasher.hash(split))
+	}
+
+	@Test
+	fun `dictionary block does not collide with tags or language`() {
+		val words = ProjectData(dictionaryWords = setOf("en"))
+		assertNotEquals(ProjectDataHasher.hash(ProjectData(tags = setOf("en"))), ProjectDataHasher.hash(words))
+		assertNotEquals(ProjectDataHasher.hash(ProjectData(language = "en")), ProjectDataHasher.hash(words))
+	}
+
+	@Test
 	fun `null vs empty language distinguishable`() {
 		val nullLanguage = ProjectData(language = null)
 		val emptyLanguage = ProjectData(language = "")

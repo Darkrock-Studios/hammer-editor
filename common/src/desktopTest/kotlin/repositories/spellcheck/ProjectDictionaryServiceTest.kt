@@ -280,6 +280,44 @@ class ProjectDictionaryServiceTest : BaseTest() {
 	}
 
 	@Test
+	fun `user dictionary words are pushed exactly and lowercased`() = scope.runTest {
+		projectDataRepository.updateData { it.copy(dictionaryWords = setOf("McKinley")) }
+
+		createService()
+		advanceUntilIdle()
+
+		assertEquals(setOf("McKinley", "mckinley"), appliedPerChecker.last())
+	}
+
+	@Test
+	fun `user dictionary words do not depend on the encyclopedia feature`() = scope.runTest {
+		createEntry("Zaltharion")
+		projectDataRepository.updateData {
+			it.copy(dictionaryWords = setOf("kvothe"), encyclopediaDictionary = false)
+		}
+
+		createService()
+		advanceUntilIdle()
+
+		assertEquals(setOf("kvothe"), appliedPerChecker.last())
+	}
+
+	@Test
+	fun `adding and removing a user word after start updates the checker`() = scope.runTest {
+		createEntry("Zaltharion")
+		createService()
+		advanceUntilIdle()
+
+		projectDataRepository.updateData { it.copy(dictionaryWords = setOf("kvothe")) }
+		advanceUntilIdle()
+		assertEquals(setOf("zaltharion", "kvothe"), appliedPerChecker.last())
+
+		projectDataRepository.updateData { it.copy(dictionaryWords = emptySet()) }
+		advanceUntilIdle()
+		assertEquals(setOf("zaltharion"), appliedPerChecker.last())
+	}
+
+	@Test
 	fun `closing the project scope clears the words`() = scope.runTest {
 		createEntry("Zaltharion")
 		val service = createService()

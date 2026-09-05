@@ -312,6 +312,61 @@ class ProjectDataSyncOperationTest : BaseTest() {
 	}
 
 	@Test
+	fun `a dictionary-only conflict merges both sides without a resolver`() = runTest {
+		val local = ProjectData(authorName = "Author", dictionaryWords = setOf("local"))
+		datasource.save(StoredProjectData(local, lastSyncedHash = "stale-hash"))
+		val server = ProjectData(authorName = "Author", dictionaryWords = setOf("server"))
+		coEvery { api.getProjectData(any(), any()) } returns
+			Result.success(ProjectDataDto(server, "server-hash"))
+		coEvery {
+			api.uploadProjectData(any(), any(), local, "stale-hash")
+		} returns Result.failure(
+			ProjectDataConflictException(ProjectDataConflictDto(server, "server-hash"))
+		)
+		val merged = local.copy(dictionaryWords = setOf("local", "server"))
+		coEvery {
+			api.uploadProjectData(any(), any(), merged, "server-hash")
+		} returns Result.success(ProjectDataDto(merged, "merged-hash"))
+
+		val result = createOperation().run()
+
+		assertTrue(isSuccess(result))
+		assertEquals(StoredProjectData(merged, "merged-hash"), repository.state.value)
+		assertTrue(broker.conflicts.tryReceive().isFailure, "no conflict should reach the resolver")
+	}
+
+	@Test
+	fun `a conflict on another field still reaches the resolver`() = runTest {
+		val local = ProjectData(authorName = "Local Edit", dictionaryWords = setOf("local"))
+		datasource.save(StoredProjectData(local, lastSyncedHash = "stale-hash"))
+		val server = ProjectData(authorName = "Server", dictionaryWords = setOf("server"))
+		coEvery { api.getProjectData(any(), any()) } returns
+			Result.success(ProjectDataDto(server, "server-hash"))
+		coEvery {
+			api.uploadProjectData(any(), any(), local, "stale-hash")
+		} returns Result.failure(
+			ProjectDataConflictException(ProjectDataConflictDto(server, "server-hash"))
+		)
+		val resolved = ProjectData(authorName = "Merged", dictionaryWords = setOf("local", "server"))
+		coEvery {
+			api.uploadProjectData(any(), any(), resolved, "server-hash")
+		} returns Result.success(ProjectDataDto(resolved, "resolved-hash"))
+
+		var reported: ProjectData? = null
+		val watcher = launch {
+			reported = broker.conflicts.receive().local
+			broker.resolve(resolved)
+		}
+
+		val result = createOperation().run()
+
+		assertTrue(isSuccess(result))
+		assertEquals(local, reported)
+		assertEquals(StoredProjectData(resolved, "resolved-hash"), repository.state.value)
+		watcher.cancel()
+	}
+
+	@Test
 	fun `a failed conflict-resolution upload fails the sync`() = runTest {
 		val local = ProjectData(authorName = "Local Edit")
 		datasource.save(StoredProjectData(local, lastSyncedHash = "stale-hash"))

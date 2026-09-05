@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.clampEditorWidth
@@ -62,10 +63,13 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResizeHandl
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdResizeHandleState
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownFormatBar
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.markdownFormatShortcuts
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.saveShortcutModifier
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneDeleteDialog
+import com.darkrockstudios.apps.hammer.common.utils.addToDictionaryMenuItems
 import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
+import com.darkrockstudios.apps.hammer.scene_editor_add_to_dictionary
 import com.darkrockstudios.texteditor.find.FindBar
 import com.darkrockstudios.texteditor.find.rememberFindState
 import com.darkrockstudios.texteditor.rememberTextEditorStyle
@@ -93,6 +97,10 @@ fun SceneEditorUi(
 	val scope = rememberCoroutineScope()
 	val defaultDispatcher = rememberDefaultDispatcher()
 
+	val addToDictionaryLabel = Res.string.scene_editor_add_to_dictionary.get()
+	val spellCheckMenuItems = remember(addToDictionaryLabel, component) {
+		addToDictionaryMenuItems(addToDictionaryLabel, component::addWordToDictionary)
+	}
 	val editorSpellChecker = remember(state.spellChecker) {
 		state.spellChecker.toEditorSpellChecker()
 	}
@@ -227,6 +235,7 @@ fun SceneEditorUi(
 						state = textEditorState,
 						contentPadding = PaddingValues(Ui.Padding.XL),
 						enabled = hasReceivedInitialBuffer,
+						spellCheckMenuItems = spellCheckMenuItems,
 						style = rememberTextEditorStyle(
 							textStyle = TextStyle.Default.copy(
 								textIndent = TextIndent(firstLine = 24.sp)

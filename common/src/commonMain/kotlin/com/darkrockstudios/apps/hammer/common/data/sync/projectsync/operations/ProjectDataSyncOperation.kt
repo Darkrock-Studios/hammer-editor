@@ -12,6 +12,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflict
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectdata.differsOutsideDictionary
+import com.darkrockstudios.apps.hammer.common.data.projectdata.mergeDictionaryWords
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.IdConflictResolutionState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
@@ -26,6 +28,9 @@ import io.github.aakira.napier.Napier
 /**
  * A non-conflict server error fails the whole sync — unlike writing-activity sync,
  * the data is user-authored and silent loss is unacceptable.
+ *
+ * A conflict confined to [ProjectData.dictionaryWords] is merged by union here and never
+ * reaches the resolver; any other conflicting field still goes through the broker.
  */
 class ProjectDataSyncOperation(
 	projectDef: ProjectDef,
@@ -116,15 +121,21 @@ class ProjectDataSyncOperation(
 			return null
 		}
 
-		onLog(syncLogW("Project data conflict detected", projectDef))
-		broker.reportConflict(
-			ProjectDataConflict(
-				local = data,
-				server = conflict.conflict.server,
-				serverHash = conflict.conflict.serverHash,
+		val server = conflict.conflict.server
+		val resolved = if (data.differsOutsideDictionary(server)) {
+			onLog(syncLogW("Project data conflict detected", projectDef))
+			broker.reportConflict(
+				ProjectDataConflict(
+					local = data,
+					server = server,
+					serverHash = conflict.conflict.serverHash,
+				)
 			)
-		)
-		val resolved = broker.awaitResolution()
+			broker.awaitResolution()
+		} else {
+			onLog(syncLogI("Project data conflict: dictionary words merged", projectDef))
+			data.copy(dictionaryWords = mergeDictionaryWords(data, server))
+		}
 
 		val resolveResult = api.uploadProjectData(
 			userId = userId,

@@ -109,6 +109,7 @@ open class ComponentTest : BaseTest() {
 						every { spellCheckAllowed } returns emptyFlow()
 						every { dictionaryFlow } returns emptyFlow()
 						every { encyclopediaDictionaryEnabled } returns emptyFlow()
+						every { userDictionaryWords } returns emptyFlow()
 					}
 				}
 			},

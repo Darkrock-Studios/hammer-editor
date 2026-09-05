@@ -55,6 +55,7 @@ private val focusMode = object : FocusMode {
 	override var lastForceUpdate = MutableValue(1L)
 
 	override fun dismiss() {}
+	override fun addWordToDictionary(word: String) {}
 	override fun onContentChanged(content: PlatformRichText) {}
 	override fun decreaseTextSize() {}
 	override fun increaseTextSize() {}

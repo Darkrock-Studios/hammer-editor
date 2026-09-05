@@ -167,6 +167,21 @@ class ProjectSpellCheckRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `userDictionaryWords follows the stored project data`() = scope.runTest {
+		projectDataDatasource.save(StoredProjectData(ProjectData(dictionaryWords = setOf("Kvothe")), null))
+		val repo = repository(settingsStore(Locale.forLanguageTag("en-US")))
+
+		repo.userDictionaryWords.test {
+			assertEquals(setOf("Kvothe"), awaitItem())
+
+			projectDataRepository.updateData { it.copy(dictionaryWords = it.dictionaryWords + "Denna") }
+
+			assertEquals(setOf("Kvothe", "Denna"), awaitItem())
+			cancelAndConsumeRemainingEvents()
+		}
+	}
+
+	@Test
 	fun `spellCheckAllowed reflects the language gate`() = scope.runTest {
 		projectDataDatasource.save(StoredProjectData(ProjectData(language = "fr"), null))
 		val repo = repository(settingsStore(Locale.forLanguageTag("en-US")))
