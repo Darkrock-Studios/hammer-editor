@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.test.ExperimentalTestApi
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -86,6 +87,41 @@ class HdHairlineWordListFieldTest {
 		compose.waitForIdle()
 
 		assertEquals(emptyList<String>(), words)
+	}
+
+	@Test
+	fun `a pasted list commits the complete words and keeps the partial one as draft`() {
+		showField()
+
+		compose.onNodeWithTag(FIELD_TAG).performTextInput("Kvothe Denna")
+		compose.waitForIdle()
+		assertEquals(listOf("Kvothe"), words)
+
+		compose.onNodeWithTag(FIELD_TAG).performKeyInput { pressKey(Key.Enter) }
+		compose.waitForIdle()
+		assertEquals(listOf("Kvothe", "Denna"), words)
+	}
+
+	@Test
+	fun `a word already present in another case is not added`() {
+		showField(listOf("Kvothe"))
+
+		compose.onNodeWithTag(FIELD_TAG).performTextInput("kvothe ")
+		compose.waitForIdle()
+
+		assertEquals(listOf("Kvothe"), words)
+	}
+
+	@Test
+	fun `a rejected word stays in the draft after a separator`() {
+		showField()
+		val tooLong = "a".repeat(65)
+
+		compose.onNodeWithTag(FIELD_TAG).performTextInput("$tooLong ")
+		compose.waitForIdle()
+
+		assertEquals(emptyList<String>(), words)
+		compose.onNodeWithTag(FIELD_TAG).assertTextEquals(tooLong)
 	}
 
 	@Test

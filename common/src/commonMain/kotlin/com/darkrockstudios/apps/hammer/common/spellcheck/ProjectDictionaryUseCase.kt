@@ -6,11 +6,13 @@ import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataReposi
 class ProjectDictionaryUseCase(
 	private val projectDataRepository: ProjectDataRepository,
 ) {
-	/** Returns false when [raw] normalizes to nothing storable. */
-	suspend fun addWord(raw: String): Boolean {
-		val word = normalizeDictionaryWord(raw) ?: return false
-		projectDataRepository.updateData { it.copy(dictionaryWords = it.dictionaryWords + word) }
-		return true
+	/** Input that normalizes to nothing storable, or a word already present in any case, is ignored. */
+	suspend fun addWord(raw: String) {
+		val word = normalizeDictionaryWord(raw) ?: return
+		projectDataRepository.updateData { data ->
+			if (data.dictionaryWords.any { it.equals(word, ignoreCase = true) }) data
+			else data.copy(dictionaryWords = data.dictionaryWords + word)
+		}
 	}
 
 	suspend fun removeWord(word: String) {

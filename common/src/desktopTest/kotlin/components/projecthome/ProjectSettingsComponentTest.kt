@@ -214,6 +214,19 @@ class ProjectSettingsComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `addDictionaryWord ignores a word already present in another case`() = runTest(mainTestDispatcher) {
+		datasource.save(StoredProjectData(data = ProjectData(dictionaryWords = setOf("Kvothe"))))
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.addDictionaryWord("kvothe")
+		advanceUntilIdle()
+
+		assertEquals(setOf("Kvothe"), datasource.load().data.dictionaryWords)
+	}
+
+	@Test
 	fun `removeDictionaryWord persists the removal`() = runTest(mainTestDispatcher) {
 		datasource.save(StoredProjectData(data = ProjectData(dictionaryWords = setOf("Kvothe", "Denna"))))
 		val comp = newComponent()

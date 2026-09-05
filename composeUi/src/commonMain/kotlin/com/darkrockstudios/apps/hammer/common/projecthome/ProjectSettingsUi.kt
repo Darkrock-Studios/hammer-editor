@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -185,9 +186,10 @@ private fun ProjectDictionaryWords(
 	words: Set<String>,
 	component: ProjectSettings,
 ) {
+	val sorted = remember(words) { words.sortedBy { it.lowercase() } }
 	HdHairlineWordListField(
 		label = Res.string.project_settings_dictionary_label.get(),
-		words = words.sortedBy { it.lowercase() },
+		words = sorted,
 		onAdd = component::addDictionaryWord,
 		onRemove = component::removeDictionaryWord,
 		parseInput = ::normalizeDictionaryWord,

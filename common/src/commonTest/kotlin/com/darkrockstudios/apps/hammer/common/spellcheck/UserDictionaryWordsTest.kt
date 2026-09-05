@@ -17,6 +17,11 @@ class UserDictionaryWordsTest {
 	}
 
 	@Test
+	fun `decomposed characters are composed`() {
+		assertEquals("\u00e8", normalizeDictionaryWord("e\u0300"))
+	}
+
+	@Test
 	fun `blank input is rejected`() {
 		assertNull(normalizeDictionaryWord("   "))
 	}

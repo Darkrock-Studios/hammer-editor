@@ -28,7 +28,10 @@ import getProjectDef
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.just
+import io.mockk.clearMocks
+import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.spyk
 import io.mockk.Runs
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -113,16 +116,18 @@ class ProjectDictionaryServiceTest : BaseTest() {
 		createProject(fileSystem, PROJECT_EMPTY_NAME)
 
 		val toml = createTomlSerializer()
-		encyclopediaRepository = EncyclopediaRepository(
-			projectDef = projectDef,
-			idAllocator = idAllocator,
-			datasource = EncyclopediaDatasource(
+		encyclopediaRepository = spyk(
+			EncyclopediaRepository(
 				projectDef = projectDef,
-				toml = toml,
-				fileSystem = fileSystem,
-				externalFileIo = mockk<ExternalFileIo>(),
-			),
-			syncJournal = syncJournal,
+				idAllocator = idAllocator,
+				datasource = EncyclopediaDatasource(
+					projectDef = projectDef,
+					toml = toml,
+					fileSystem = fileSystem,
+					externalFileIo = mockk<ExternalFileIo>(),
+				),
+				syncJournal = syncJournal,
+			)
 		)
 		projectDataRepository = ProjectDataRepository(
 			ProjectDataDatasource(fileSystem, toml, projectDef),
@@ -315,6 +320,20 @@ class ProjectDictionaryServiceTest : BaseTest() {
 		projectDataRepository.updateData { it.copy(dictionaryWords = emptySet()) }
 		advanceUntilIdle()
 		assertEquals(setOf("zaltharion"), appliedPerChecker.last())
+	}
+
+	@Test
+	fun `a user word edit does not reload the encyclopedia`() = scope.runTest {
+		createEntry("Zaltharion")
+		createService()
+		advanceUntilIdle()
+		clearMocks(encyclopediaRepository, answers = false, recordedCalls = true, childMocks = false)
+
+		projectDataRepository.updateData { it.copy(dictionaryWords = setOf("kvothe")) }
+		advanceUntilIdle()
+
+		assertEquals(setOf("zaltharion", "kvothe"), appliedPerChecker.last())
+		coVerify(exactly = 0) { encyclopediaRepository.loadEntriesImperative() }
 	}
 
 	@Test
