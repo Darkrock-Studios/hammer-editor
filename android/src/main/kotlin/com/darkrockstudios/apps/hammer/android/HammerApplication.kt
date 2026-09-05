@@ -16,7 +16,6 @@ import com.darkrockstudios.apps.hammer.android.shortcuts.shortcutsModule
 import com.darkrockstudios.apps.hammer.android.widgets.AddNoteWidgetReceiver
 import com.darkrockstudios.apps.hammer.android.widgets.StoriesListWidgetReceiver
 import com.darkrockstudios.apps.hammer.android.widgets.StoryInfoWidgetReceiver
-import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.BuildConfig
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
@@ -25,7 +24,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingMo
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.logStartupBanner
-import com.darkrockstudios.apps.hammer.common.platformStartupInfo
+import com.darkrockstudios.apps.hammer.common.startupBanner
 import com.darkrockstudios.apps.hammer.common.setExternalDirectories
 import com.darkrockstudios.apps.hammer.common.setInternalDirectories
 import com.darkrockstudios.apps.hammer.common.util.AndroidSettingsKeys
@@ -151,7 +150,7 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 		dir.mkdirs()
 		File(dir, "crash-${System.currentTimeMillis()}.txt").writeText(
 			buildString {
-				append("Hammer v${BuildMetadata.APP_VERSION} | ${platformStartupInfo()}\n")
+				append(startupBanner() + "\n")
 				append("Uncaught exception on thread '${thread.name}'\n\n")
 				append(throwable.stackTraceToString())
 			}
