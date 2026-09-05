@@ -213,7 +213,14 @@ platform :ios do
       platform: "ios",
       app_version: app_marketing_version,
       skip_binary_upload: true,
-      skip_screenshots: true,
+      # Screenshots must be uploaded, unlike the :mac lane. iOS moved onto the
+      # macOS app record for Universal Purchase, and that record's iOS platform
+      # started with no screenshots at all — nothing carried over from the old
+      # standalone iOS listing. App Store Connect refuses to submit a version
+      # with no iPhone screenshots, and the failure lands after the binary is
+      # already uploaded. Uploading every release also keeps the store in sync
+      # with fastlane/metadata/ios.
+      skip_screenshots: false,
       metadata_path: "fastlane/metadata/ios",
       submit_for_review: true,
       automatic_release: true,
