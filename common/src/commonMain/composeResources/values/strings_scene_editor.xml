@@ -24,6 +24,7 @@
 	<string name="scene_editor_menu_item_archive">Archive</string>
 	<string name="scene_editor_menu_item_save">Save</string>
 	<string name="scene_editor_menu_item_close">Close</string>
+	<string name="scene_editor_add_to_dictionary">Add to dictionary</string>
 
 	<string name="archive_scene_dialog_title">Archive Scene</string>
 	<string name="archive_scene_dialog_message">Are you sure you want to archive '%1$s'? The scene will be hidden from the scene list but can be restored later.</string>

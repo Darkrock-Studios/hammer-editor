@@ -57,6 +57,9 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 	fun resetEditorMaxWidth()
 	fun enterFocusMode()
 
+	/** Adds a flagged word to the project's spell-check dictionary. */
+	fun addWordToDictionary(word: String)
+
 	data class State(
 		val sceneItem: SceneItem,
 		val sceneBuffer: SceneBuffer? = null,

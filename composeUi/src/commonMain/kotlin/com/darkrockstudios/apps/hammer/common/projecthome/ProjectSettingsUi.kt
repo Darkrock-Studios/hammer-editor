@@ -20,6 +20,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
@@ -37,6 +38,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCrumbBackLi
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineWordListField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
@@ -44,10 +46,14 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.SpellCheckSettingsContent
 import com.darkrockstudios.apps.hammer.common.spellcheck.displayName
 import com.darkrockstudios.apps.hammer.common.spellcheck.isSpellCheckAllowedForProject
+import com.darkrockstudios.apps.hammer.common.spellcheck.normalizeDictionaryWord
 import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.apps.hammer.project_settings_autosaved
 import com.darkrockstudios.apps.hammer.project_settings_breadcrumb_home
 import com.darkrockstudios.apps.hammer.project_settings_breadcrumb_root
+import com.darkrockstudios.apps.hammer.project_settings_dictionary_hint
+import com.darkrockstudios.apps.hammer.project_settings_dictionary_label
+import com.darkrockstudios.apps.hammer.project_settings_dictionary_placeholder
 import com.darkrockstudios.apps.hammer.project_settings_folio_caption
 import com.darkrockstudios.apps.hammer.project_settings_folio_section_count
 import com.darkrockstudios.apps.hammer.project_settings_hero_by
@@ -126,6 +132,10 @@ fun ProjectSettingsUi(
 									enabled = state.data.encyclopediaDictionary,
 									component = component,
 								)
+								ProjectDictionaryWords(
+									words = state.data.dictionaryWords,
+									component = component,
+								)
 								SpellCheckMismatchCaption(
 									projectLanguageTag = state.data.language,
 									spellCheckSettings = component.spellCheckSettings,
@@ -167,6 +177,25 @@ private fun ProjectDictionaryToggle(
 		hint = Res.string.project_settings_spellcheck_encyclopedia_enable_hint.get(),
 		enabled = spellCheckState.spellCheckingEnabled,
 		onCheckedChange = { component.setEncyclopediaDictionaryEnabled(it) },
+	)
+}
+
+/** The user-added words this project's spell checker accepts, synced with the project. */
+@Composable
+private fun ProjectDictionaryWords(
+	words: Set<String>,
+	component: ProjectSettings,
+) {
+	val sorted = remember(words) { words.sortedBy { it.lowercase() } }
+	HdHairlineWordListField(
+		label = Res.string.project_settings_dictionary_label.get(),
+		words = sorted,
+		onAdd = component::addDictionaryWord,
+		onRemove = component::removeDictionaryWord,
+		parseInput = ::normalizeDictionaryWord,
+		hint = Res.string.project_settings_dictionary_hint.get(),
+		placeholder = Res.string.project_settings_dictionary_placeholder.get(),
+		testTag = "project-settings-dictionary",
 	)
 }
 

@@ -257,6 +257,28 @@ class ProjectDataSyncOperationTest : BaseTest() {
 	}
 
 	@Test
+	fun `a word added while the upload is in flight is kept and left pending`() = runTest {
+		val local = ProjectData(authorName = "Local Edit")
+		datasource.save(StoredProjectData(local, lastSyncedHash = "stale-hash"))
+		coEvery { api.getProjectData(any(), any()) } returns
+			Result.success(ProjectDataDto(ProjectData(authorName = "Server"), "server-hash"))
+		coEvery {
+			api.uploadProjectData(any(), any(), local, "stale-hash")
+		} coAnswers {
+			repository.updateData { it.copy(dictionaryWords = it.dictionaryWords + "kvothe") }
+			Result.success(ProjectDataDto(local, "new-hash"))
+		}
+
+		val result = createOperation().run()
+
+		assertTrue(isSuccess(result))
+		val stored = repository.state.value
+		assertEquals(local.copy(dictionaryWords = setOf("kvothe")), stored?.data)
+		// The baseline is what the server holds, so the concurrent add uploads next time.
+		assertEquals("new-hash", stored?.lastSyncedHash)
+	}
+
+	@Test
 	fun `a non-conflict upload failure fails the sync`() = runTest {
 		val local = ProjectData(authorName = "Local Edit")
 		datasource.save(StoredProjectData(local, lastSyncedHash = "stale-hash"))
@@ -308,6 +330,61 @@ class ProjectDataSyncOperationTest : BaseTest() {
 		assertTrue(isSuccess(result))
 		assertEquals(StoredProjectData(resolved, "resolved-hash"), repository.state.value)
 		coVerify(exactly = 1) { api.uploadProjectData(any(), any(), resolved, "server-hash") }
+		watcher.cancel()
+	}
+
+	@Test
+	fun `a dictionary-only conflict merges both sides without a resolver`() = runTest {
+		val local = ProjectData(authorName = "Author", dictionaryWords = setOf("local"))
+		datasource.save(StoredProjectData(local, lastSyncedHash = "stale-hash"))
+		val server = ProjectData(authorName = "Author", dictionaryWords = setOf("server"))
+		coEvery { api.getProjectData(any(), any()) } returns
+			Result.success(ProjectDataDto(server, "server-hash"))
+		coEvery {
+			api.uploadProjectData(any(), any(), local, "stale-hash")
+		} returns Result.failure(
+			ProjectDataConflictException(ProjectDataConflictDto(server, "server-hash"))
+		)
+		val merged = local.copy(dictionaryWords = setOf("local", "server"))
+		coEvery {
+			api.uploadProjectData(any(), any(), merged, "server-hash")
+		} returns Result.success(ProjectDataDto(merged, "merged-hash"))
+
+		val result = createOperation().run()
+
+		assertTrue(isSuccess(result))
+		assertEquals(StoredProjectData(merged, "merged-hash"), repository.state.value)
+		assertTrue(broker.conflicts.tryReceive().isFailure, "no conflict should reach the resolver")
+	}
+
+	@Test
+	fun `a conflict on another field still reaches the resolver`() = runTest {
+		val local = ProjectData(authorName = "Local Edit", dictionaryWords = setOf("local"))
+		datasource.save(StoredProjectData(local, lastSyncedHash = "stale-hash"))
+		val server = ProjectData(authorName = "Server", dictionaryWords = setOf("server"))
+		coEvery { api.getProjectData(any(), any()) } returns
+			Result.success(ProjectDataDto(server, "server-hash"))
+		coEvery {
+			api.uploadProjectData(any(), any(), local, "stale-hash")
+		} returns Result.failure(
+			ProjectDataConflictException(ProjectDataConflictDto(server, "server-hash"))
+		)
+		val resolved = ProjectData(authorName = "Merged", dictionaryWords = setOf("local", "server"))
+		coEvery {
+			api.uploadProjectData(any(), any(), resolved, "server-hash")
+		} returns Result.success(ProjectDataDto(resolved, "resolved-hash"))
+
+		var reported: ProjectData? = null
+		val watcher = launch {
+			reported = broker.conflicts.receive().local
+			broker.resolve(resolved)
+		}
+
+		val result = createOperation().run()
+
+		assertTrue(isSuccess(result))
+		assertEquals(local, reported)
+		assertEquals(StoredProjectData(resolved, "resolved-hash"), repository.state.value)
 		watcher.cancel()
 	}
 

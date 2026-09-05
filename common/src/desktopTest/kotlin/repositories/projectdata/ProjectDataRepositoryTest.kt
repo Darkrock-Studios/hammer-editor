@@ -169,9 +169,9 @@ class ProjectDataRepositoryTest : BaseTest() {
 
 	@Test
 	fun `updateFromSync replaces both data and the synced hash`() = runTest {
-		repository.load()
+		val snapshot = repository.load().data
 
-		repository.updateFromSync(ProjectData(authorName = "Server"), "server-hash")
+		repository.updateFromSync(ProjectData(authorName = "Server"), "server-hash", snapshot)
 
 		assertEquals(
 			StoredProjectData(ProjectData(authorName = "Server"), "server-hash"),
@@ -187,11 +187,34 @@ class ProjectDataRepositoryTest : BaseTest() {
 
 	@Test
 	fun `updateFromSync is idempotent`() = runTest {
-		repository.updateFromSync(ProjectData(authorName = "Server"), "server-hash")
-		repository.updateFromSync(ProjectData(authorName = "Server"), "server-hash")
+		val snapshot = repository.load().data
+		repository.updateFromSync(ProjectData(authorName = "Server"), "server-hash", snapshot)
+		repository.updateFromSync(ProjectData(authorName = "Server"), "server-hash", snapshot)
 
 		assertEquals(
 			StoredProjectData(ProjectData(authorName = "Server"), "server-hash"),
+			repository.state.value,
+		)
+	}
+
+	@Test
+	fun `updateFromSync keeps edits made after the snapshot`() = runTest {
+		val snapshot = repository.load().data
+
+		// Lands while the sync's network round-trip is in flight.
+		repository.updateData { it.copy(dictionaryWords = setOf("local"), authorName = "Edited") }
+
+		repository.updateFromSync(
+			ProjectData(authorName = "Server", language = "en", dictionaryWords = setOf("server")),
+			"server-hash",
+			snapshot,
+		)
+
+		assertEquals(
+			StoredProjectData(
+				ProjectData(authorName = "Edited", language = "en", dictionaryWords = setOf("server", "local")),
+				"server-hash",
+			),
 			repository.state.value,
 		)
 	}

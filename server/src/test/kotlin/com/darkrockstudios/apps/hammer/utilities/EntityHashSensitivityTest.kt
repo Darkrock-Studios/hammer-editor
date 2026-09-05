@@ -275,6 +275,7 @@ class EntityHashSensitivityTest {
 			wordCountGoal = WordCountGoal(cadence = WordCountGoal.Cadence.DAY, count = 100),
 			tags = setOf("base-tag"),
 			language = "en-US",
+			dictionaryWords = setOf("base-word"),
 		)
 		Spec(
 			klass = ProjectData::class,
@@ -293,6 +294,7 @@ class EntityHashSensitivityTest {
 				"tags" to base.copy(tags = setOf("different")),
 				"language" to base.copy(language = "fr"),
 				"encyclopediaDictionary" to base.copy(encyclopediaDictionary = false),
+				"dictionaryWords" to base.copy(dictionaryWords = setOf("different")),
 			),
 		)
 	}

@@ -36,8 +36,10 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdConflictFie
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.data.projectdata.mergeDictionaryWords
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_cadence_day
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_cadence_week
+import com.darkrockstudios.apps.hammer.sync_conflict_project_data_dictionary_merged
 import com.darkrockstudios.apps.hammer.sync_conflict_project_data_explanation
 import com.darkrockstudios.apps.hammer.common.spellcheck.displayName
 import com.darkrockstudios.apps.hammer.common.util.Locale
@@ -171,6 +173,14 @@ internal fun ProjectDataConflict(
 			stackVertical = stackVertical,
 		)
 
+		if (conflictState.local.dictionaryWords != conflictState.server.dictionaryWords) {
+			Text(
+				text = Res.string.sync_conflict_project_data_dictionary_merged.get(),
+				style = MaterialTheme.typography.bodySmall,
+				color = MaterialTheme.colorScheme.onSurfaceVariant,
+			)
+		}
+
 		Row(
 			modifier = Modifier.fillMaxWidth(),
 			horizontalArrangement = Arrangement.End,
@@ -299,6 +309,7 @@ private fun buildResolved(
 	tags = if (tagsChoice == DataChoice.LOCAL) local.tags else server.tags,
 	language = if (languageChoice == DataChoice.LOCAL) local.language else server.language,
 	encyclopediaDictionary = if (dictionaryChoice == DataChoice.LOCAL) local.encyclopediaDictionary else server.encyclopediaDictionary,
+	dictionaryWords = mergeDictionaryWords(local, server),
 )
 
 private fun displayString(value: String?, unsetLabel: String): String =
