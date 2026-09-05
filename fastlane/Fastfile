@@ -222,13 +222,21 @@ platform :ios do
       # with fastlane/metadata/ios.
       skip_screenshots: false,
       metadata_path: "fastlane/metadata/ios",
-      # deliver keeps screenshots_path separate from metadata_path and defaults
-      # it to ./fastlane/screenshots, which does not exist in this repo — ours
-      # live beside the metadata, as fastlane/metadata/ios/<locale>/APP_*.
-      # Without this, deliver finds an empty set, logs "Successfully uploaded
-      # all screenshots" having uploaded none, and the submit then fails with
-      # "App screenshot missing (APP_IPHONE_65)".
-      screenshots_path: "fastlane/metadata/ios",
+      # screenshots_path is a separate option from metadata_path and defaults to
+      # ./fastlane/screenshots. deliver globs <path>/<locale>/*.png FLAT — it
+      # does not descend into per-device folders (only appleTV/iMessage are
+      # special-cased), and it derives the device from the image's pixel size,
+      # not from any folder name. The screenshots therefore live flat in
+      # fastlane/screenshots/ios/<locale>/. Get this wrong and deliver silently
+      # uploads nothing, logs "Successfully uploaded all screenshots", and the
+      # submit fails with "App screenshot missing (APP_IPHONE_65)".
+      #
+      # Filenames matter too: 2732x2048 is ambiguous between the 2nd- and
+      # 3rd-gen iPad Pro, and deliver picks the 2nd gen if the path contains
+      # "app_ipad_pro_129" or both "12.9" and "2nd generation". Ours avoid
+      # those, so they resolve to APP_IPAD_PRO_3GEN_129, which is what App
+      # Store Connect asks for.
+      screenshots_path: "fastlane/screenshots/ios",
       # deliver_with_retry can invoke deliver several times; without this each
       # attempt stacks another copy of every screenshot onto the version.
       overwrite_screenshots: true,
