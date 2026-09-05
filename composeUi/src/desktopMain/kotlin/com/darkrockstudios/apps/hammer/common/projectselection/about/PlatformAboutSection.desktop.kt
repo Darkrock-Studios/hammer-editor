@@ -28,6 +28,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMetadataIte
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.getPlatformFilesystem
 import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
+import com.darkrockstudios.apps.hammer.common.shellPath
 import com.darkrockstudios.apps.hammer.common.util.zip.zipDirectory
 import io.github.aakira.napier.Napier
 import io.github.vinceglb.filekit.FileKit
@@ -47,6 +48,8 @@ actual fun PlatformAboutSection(component: AboutApp, section: Int) {
 	val scope = rememberCoroutineScope()
 	val state by component.state.subscribeAsState()
 	val logDir = state.logDirectoryPath
+	// What the user would paste into a file manager, which under a container is not what the app writes to.
+	val displayedLogDir = shellPath(logDir)
 	var exporting by remember { mutableStateOf(false) }
 	var status by remember { mutableStateOf<String?>(null) }
 
@@ -61,13 +64,13 @@ actual fun PlatformAboutSection(component: AboutApp, section: Int) {
 		Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
 			HdMetadataItem(
 				label = Res.string.about_logs_directory_label.get(),
-				value = logDir,
+				value = displayedLogDir,
 				selectable = true,
 			)
 			Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
 				HdHairlineButton(
 					label = Res.string.about_logs_open_tooltip.get(),
-					onClick = { openLogDirectory(logDir) },
+					onClick = { openLogDirectory(displayedLogDir) },
 				)
 				HdHairlineButton(
 					label = Res.string.about_logs_export_button.get(),
@@ -133,9 +136,9 @@ private suspend fun exportLogs(logDirPath: String): ExportResult {
 }
 
 /**
- * Hands the shell the nearest existing ancestor rather than a dead path: under an MSIX or Snap
- * container the app's own writes are redirected, so a path that resolves from inside the container
- * can still be missing from the shell's point of view.
+ * Hands the shell the nearest existing ancestor rather than a dead path. [shellPath] already
+ * un-redirects the known container layouts; this covers the rest, including a log directory that
+ * has not been written to yet.
  */
 private fun openLogDirectory(logDir: String) {
 	try {
