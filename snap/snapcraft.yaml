@@ -65,8 +65,8 @@ parts:
             java -version
 
             chmod +x ./gradlew
-            ./gradlew :desktop:jvmJar --no-daemon
-            ./gradlew :desktop:createDistributable -x desktopTest --no-daemon
+            ./gradlew :desktop:jvmJar -Pchannel=snap --no-daemon
+            ./gradlew :desktop:createDistributable -Pchannel=snap -x desktopTest --no-daemon
 
             # The installers/ path comes from outputBaseDir in
             # desktop/build.gradle.kts; the app tree carries its own JVM at

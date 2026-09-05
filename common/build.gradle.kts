@@ -155,7 +155,7 @@ kotlin {
 				api(libs.serialization.jvm)
 				api(libs.coroutines.swing)
 				implementation(libs.appdirs)
-				implementation(libs.ktor.client.java)
+				implementation(libs.ktor.client.okhttp)
 				implementation(libs.turbine)
 			}
 		}

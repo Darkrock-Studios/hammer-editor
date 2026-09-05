@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.common
 
-import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +43,7 @@ private fun writeCrashDump(throwable: Throwable) {
 	fileSystem.createDirectories(dir)
 	val file = dir / "crash-${Clock.System.now().toEpochMilliseconds()}.txt"
 	fileSystem.write(file) {
-		writeUtf8("Hammer v${BuildMetadata.APP_VERSION} | ${platformStartupInfo()}\n")
+		writeUtf8(startupBanner() + "\n")
 		writeUtf8("Uncaught exception\n\n")
 		writeUtf8(throwable.stackTraceToString())
 	}
