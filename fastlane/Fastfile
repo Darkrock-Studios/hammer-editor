@@ -71,6 +71,29 @@ rescue => e
   false
 end
 
+# App Store Connect validation failures: the version's contents or state are
+# rejected outright, so the same call will fail identically forever. Retrying
+# these only buries the real cause — the first 3.9.7 iOS submit spent all six
+# attempts and five minutes restating "App screenshot missing". Matched on
+# message text rather than exception class because Spaceship raises
+# UnexpectedResponse for transient faults too, so the class cannot tell them
+# apart. Keep this list narrow: anything not matched here still gets retried,
+# which is the safe direction to be wrong in.
+PERMANENT_DELIVER_ERRORS = [
+  /is not in valid state/i,
+  /cannot be reviewed/i,
+  /screenshot missing/i,
+  /required but was not provided/i,
+].freeze
+
+# Matches against the whole message, not just the first line: App Store Connect
+# puts the summary on line 1 ("...is not in valid state") and the actual reasons
+# on the lines below it ("App screenshot missing (APP_IPHONE_65)").
+def permanent_deliver_error?(error)
+  message = error.message.to_s
+  PERMANENT_DELIVER_ERRORS.any? { |pattern| message.match?(pattern) }
+end
+
 # Run deliver with a bounded retry. Right after upload the build is processed in
 # TestFlight but can lag propagating to the App Store version API, so deliver
 # crashes with "Could not find build". That crash happens during build lookup —
@@ -90,6 +113,14 @@ def deliver_with_retry(params, attempts: 6, wait_seconds: 60)
       UI.success("App Store version #{params[:app_version]} is already submitted for review — deliver's error was a false negative.")
       return
     end
+    if permanent_deliver_error?(e)
+      # Print the whole message — the summary line names the version, but the
+      # lines under it are the ones that say what is actually wrong.
+      UI.error("App Store Connect rejected the submission. This will not clear on its own, so not retrying:")
+      UI.error(e.message.to_s)
+      raise
+    end
+
     raise if try >= attempts
     UI.important("deliver attempt #{try}/#{attempts} failed: #{e.message.to_s.lines.first&.strip}")
     UI.important("Build may still be propagating to App Store Connect; retrying in #{wait_seconds}s…")
