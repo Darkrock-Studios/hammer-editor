@@ -38,6 +38,7 @@
 	<string name="settings_server_setup_url_hint">URL du serveur : hammer.ink</string>
 	<string name="settings_server_setup_email_hint">E-mail : utilisateur@exemple.com</string>
 	<string name="settings_server_setup_password_hint">Mot de passe</string>
+	<string name="settings_server_setup_password_requirements">%1$d-%2$d characters</string>
 	<string name="settings_server_setup_password_show">Afficher le mot de passe</string>
 	<string name="settings_server_setup_password_hide">Masquer le mot de passe</string>
 	<string name="settings_server_setup_login_button">Se connecter</string>
@@ -121,4 +122,5 @@
 	<string name="server_error_dns">Serveur introuvable. Vérifiez l'adresse du serveur et votre connexion Internet.</string>
 	<string name="server_error_connection_generic">Erreur réseau lors de la connexion à %1$s. Vérifiez votre connexion et réessayez.</string>
 	<string name="server_error_tls">Impossible d'établir une connection sécurisée à %1$s. Hammer se connecte uniquement via HTTPS, le serveur a besoin de son propre certificat TLS ou d'un proxy inverse qui lui en fournit un</string>
+	<string name="server_error_network_unavailable">Hammer could not open a network connection on this device, so the request never reached the server. Security software, a VPN, or a firewall may be blocking it.</string>
 </resources>
