@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.server_error_connection_generic
+import com.darkrockstudios.apps.hammer.server_error_network_unavailable
 import com.darkrockstudios.apps.hammer.server_error_tls
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
@@ -21,15 +22,19 @@ import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.BeforeEach
 import org.koin.dsl.module
 import utils.BaseTest
+import java.io.UncheckedIOException
 import java.net.ConnectException
 import javax.net.ssl.SSLHandshakeException
 import kotlin.test.Test
+import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /**
  * A server reachable only over plain HTTP fails the client's TLS handshake, which needs to read as
- * "this server isn't serving HTTPS" rather than as a generic connectivity problem.
+ * "this server isn't serving HTTPS" rather than as a generic connectivity problem. Covers the rest
+ * of the network failure mapping too, including the unchecked wrappers the JDK throws.
  */
 class ApiTlsFailureTest : BaseTest() {
 
@@ -86,6 +91,47 @@ class ApiTlsFailureTest : BaseTest() {
 		assertTrue(strRes.requested.contains(Res.string.server_error_tls))
 	}
 
+	/**
+	 * `java.net.http.HttpClient`'s constructor wraps a failed `Selector.open()` this way, which is
+	 * how a Windows machine that cannot open the JDK's loopback socket pair fails. Nothing reached
+	 * the network, so it must not read as a server or connectivity problem.
+	 */
+	@Test
+	fun `an unchecked io wrapper reports the network being unavailable`() = runTest {
+		val api = createApi(
+			UncheckedIOException(java.io.IOException("Unable to establish loopback connection"))
+		)
+
+		val result = api.createAccount("user@example.com", "password", "install-id")
+
+		assertIs<HttpFailureException>(result.exceptionOrNull())
+		assertTrue(strRes.requested.contains(Res.string.server_error_network_unavailable))
+		assertFalse(strRes.requested.contains(Res.string.server_error_connection_generic))
+	}
+
+	@Test
+	fun `an unchecked io wrapper still recognises a tls failure`() = runTest {
+		val api = createApi(
+			UncheckedIOException(
+				java.io.IOException("request failed", SSLHandshakeException("bad certificate"))
+			)
+		)
+
+		val result = api.createAccount("user@example.com", "password", "install-id")
+
+		assertIs<HttpFailureException>(result.exceptionOrNull())
+		assertTrue(strRes.requested.contains(Res.string.server_error_tls))
+	}
+
+	@Test
+	fun `an unchecked non-io failure propagates`() = runTest {
+		val api = createApi(IllegalStateException("boom"))
+
+		assertFailsWith<IllegalStateException> {
+			api.createAccount("user@example.com", "password", "install-id")
+		}
+	}
+
 	@Test
 	fun `an ordinary connection failure keeps the generic message`() = runTest {
 		val api = createApi(ConnectException("Connection refused"))
@@ -94,6 +140,7 @@ class ApiTlsFailureTest : BaseTest() {
 
 		assertIs<HttpFailureException>(result.exceptionOrNull())
 		assertTrue(strRes.requested.contains(Res.string.server_error_connection_generic))
+		assertFalse(strRes.requested.contains(Res.string.server_error_network_unavailable))
 	}
 }
 

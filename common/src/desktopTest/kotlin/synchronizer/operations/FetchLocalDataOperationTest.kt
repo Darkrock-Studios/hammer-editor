@@ -110,7 +110,7 @@ class FetchLocalDataOperationTest : BaseTest() {
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val onLog = mockk<OnSyncLog>(relaxed = true)
 		val onConflict = mockk<EntityConflictHandler<ApiProjectEntity>>(relaxed = true)
-		val onComplete = mockk<suspend () -> Unit>(relaxed = true)
+		val onComplete = mockk<suspend (Boolean) -> Unit>(relaxed = true)
 
 		val initialState = InitialSyncOperationState(false)
 		val result = op.execute(
@@ -206,7 +206,7 @@ class FetchLocalDataOperationTest : BaseTest() {
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val onLog = mockk<OnSyncLog>(relaxed = true)
 		val onConflict = mockk<EntityConflictHandler<ApiProjectEntity>>(relaxed = true)
-		val onComplete = mockk<suspend () -> Unit>(relaxed = true)
+		val onComplete = mockk<suspend (Boolean) -> Unit>(relaxed = true)
 
 		val initialState = InitialSyncOperationState(false)
 		val result = op.execute(
@@ -240,7 +240,7 @@ class FetchLocalDataOperationTest : BaseTest() {
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val onLog = mockk<OnSyncLog>(relaxed = true)
 		val onConflict = mockk<EntityConflictHandler<ApiProjectEntity>>(relaxed = true)
-		val onComplete = mockk<suspend () -> Unit>(relaxed = true)
+		val onComplete = mockk<suspend (Boolean) -> Unit>(relaxed = true)
 
 		val initialState = InitialSyncOperationState(false)
 		val result = op.execute(
