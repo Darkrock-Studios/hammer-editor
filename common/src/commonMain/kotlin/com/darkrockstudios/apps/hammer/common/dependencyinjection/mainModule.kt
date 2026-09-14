@@ -1,7 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
 import com.darkrockstudios.apps.hammer.base.di.dispatcherModule
+import com.darkrockstudios.apps.hammer.base.http.NetworkJsonQualifier
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
+import com.darkrockstudios.apps.hammer.base.http.createNetworkJsonSerializer
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -173,13 +175,34 @@ val mainModule = module {
 	includes(platformModule)
 
 	single<ProtocolMismatchRepository>()
-	single { create(::createHttpClient) } bind HttpClient::class
+	single { createHttpClient(get(), get(NetworkJsonQualifier)) } bind HttpClient::class
 	single<ServerAccountApi>()
-	single<ServerProjectApi>()
+	single<ServerProjectApi> {
+		ServerProjectApi(
+			httpClient = get(),
+			globalSettingsStore = get(),
+			json = get(NetworkJsonQualifier),
+			strRes = get(),
+		)
+	}
 	single<ServerProjectsApi>()
 	single<WritingActivityApi>()
-	single<ProjectDataApi>()
-	single<ServerIdeasApi>()
+	single<ProjectDataApi> {
+		ProjectDataApi(
+			httpClient = get(),
+			globalSettingsStore = get(),
+			json = get(NetworkJsonQualifier),
+			strRes = get(),
+		)
+	}
+	single<ServerIdeasApi> {
+		ServerIdeasApi(
+			httpClient = get(),
+			globalSettingsStore = get(),
+			json = get(NetworkJsonQualifier),
+			strRes = get(),
+		)
+	}
 	single<ServerAdminApi>()
 
 	single<ServerSettingsFilesystemDatasource>() bind ServerSettingsDatasource::class
@@ -188,7 +211,9 @@ val mainModule = module {
 
 	// Only the protocol mismatch dialog checks GitHub, and only once the user has already
 	// connected to a sync server. Nothing on the app-load path may use this.
-	single<GithubVersionCheckDataSource>() bind VersionCheckDataSource::class
+	single<GithubVersionCheckDataSource> {
+		GithubVersionCheckDataSource(http = get(), json = get(NetworkJsonQualifier))
+	} bind VersionCheckDataSource::class
 	single<VersionCheckRepository>()
 
 	single<ResourceChangelogDatasource>() bind ChangelogDatasource::class
@@ -218,6 +243,7 @@ val mainModule = module {
 	single { create(::createTomlSerializer) } bind Toml::class
 
 	single { create(::createJsonSerializer) } bind Json::class
+	single(NetworkJsonQualifier) { createNetworkJsonSerializer() }
 
 	single<ClientIdeasSynchronizer>()
 	single<ClientAccountSynchronizer>()
