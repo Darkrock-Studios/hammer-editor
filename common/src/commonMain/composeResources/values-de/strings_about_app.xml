@@ -21,4 +21,6 @@
 	<string name="about_logs_export_button">Protokolle exportieren</string>
 	<string name="about_logs_no_logs">Keine Protokolldateien gefunden</string>
 	<string name="about_logs_open_tooltip">Protokollverzeichnis öffnen</string>
+	<string name="about_logs_export_success">Logs exported.</string>
+	<string name="about_logs_export_failed">Could not export the logs. See the log directory.</string>
 </resources>
