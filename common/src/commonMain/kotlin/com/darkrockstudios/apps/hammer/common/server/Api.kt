@@ -154,7 +154,7 @@ abstract class Api(
 			)
 		} catch (e: IOException) {
 			ioFailure(e, server.url, path, outerResponse)
-		} catch (e: RuntimeException) {
+		} catch (@Suppress("TooGenericExceptionCaught") e: RuntimeException) {
 			// Only an unchecked IO wrapper lands here, which means the platform could not build its
 			// HTTP client at all, so the request never left the device.
 			ioFailure(e.asIoFailure() ?: throw e, server.url, path, outerResponse, local = true)
