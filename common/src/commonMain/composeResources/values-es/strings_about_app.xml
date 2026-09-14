@@ -21,4 +21,6 @@
 	<string name="about_logs_export_button">Exportar registros</string>
 	<string name="about_logs_no_logs">No se encontraron archivos de registro</string>
 	<string name="about_logs_open_tooltip">Abrir carpeta de registros</string>
+	<string name="about_logs_export_success">Logs exported.</string>
+	<string name="about_logs_export_failed">Could not export the logs. See the log directory.</string>
 </resources>
