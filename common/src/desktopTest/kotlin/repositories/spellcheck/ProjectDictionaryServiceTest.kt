@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncJournal
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
 import com.darkrockstudios.apps.hammer.common.spellcheck.SpellCheckRepository
@@ -57,6 +58,7 @@ class ProjectDictionaryServiceTest : BaseTest() {
 	private lateinit var fileSystem: FakeFileSystem
 	private lateinit var idAllocator: IdAllocator
 	private lateinit var syncJournal: SyncJournal
+	private lateinit var datasource: EncyclopediaDatasource
 	private lateinit var encyclopediaRepository: EncyclopediaRepository
 	private lateinit var projectDataRepository: ProjectDataRepository
 	private lateinit var globalSettingsStore: GlobalSettingsStore
@@ -99,6 +101,7 @@ class ProjectDictionaryServiceTest : BaseTest() {
 		coEvery { globalSettingsDatasource.storeSettings(any()) } just Runs
 		coEvery { serverSettingsDatasource.loadServerSettings(any()) } returns null
 		every { syncJournal.isServerSynchronized() } returns false
+		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
 		coEvery { idAllocator.claimNextId() } answers { nextId++ }
 
 		val syncDataDatasource = mockk<SyncDataDatasource>(relaxed = true)
@@ -113,15 +116,16 @@ class ProjectDictionaryServiceTest : BaseTest() {
 		createProject(fileSystem, PROJECT_EMPTY_NAME)
 
 		val toml = createTomlSerializer()
+		datasource = EncyclopediaDatasource(
+			projectDef = projectDef,
+			toml = toml,
+			fileSystem = fileSystem,
+			externalFileIo = mockk<ExternalFileIo>(),
+		)
 		encyclopediaRepository = EncyclopediaRepository(
 			projectDef = projectDef,
 			idAllocator = idAllocator,
-			datasource = EncyclopediaDatasource(
-				projectDef = projectDef,
-				toml = toml,
-				fileSystem = fileSystem,
-				externalFileIo = mockk<ExternalFileIo>(),
-			),
+			datasource = datasource,
 			syncJournal = syncJournal,
 		)
 		projectDataRepository = ProjectDataRepository(
@@ -290,6 +294,70 @@ class ProjectDictionaryServiceTest : BaseTest() {
 		advanceUntilIdle()
 
 		assertEquals(emptySet(), appliedPerChecker.last())
+	}
+
+	@Test
+	fun `deleting an entry removes its words`() = scope.runTest {
+		createEntry("Zaltharion")
+		createEntry("Kastle")
+		createService()
+		advanceUntilIdle()
+		assertEquals(setOf("zaltharion", "kastle"), appliedPerChecker.last())
+
+		val def = encyclopediaRepository.ensureEntriesLoaded().first { it.name == "Kastle" }
+		encyclopediaRepository.deleteEntry(def)
+		advanceUntilIdle()
+
+		assertEquals(setOf("zaltharion"), appliedPerChecker.last())
+	}
+
+	@Test
+	fun `changes made while the feature is off are reflected on re-enable`() = scope.runTest {
+		createEntry("Zaltharion")
+		createService()
+		advanceUntilIdle()
+		assertEquals(setOf("zaltharion"), appliedPerChecker.last())
+
+		globalSettingsStore.updateSettings {
+			it.copy(spellCheckSettings = it.spellCheckSettings.copy(includeEncyclopediaNames = false))
+		}
+		advanceUntilIdle()
+		createEntry("Kastle")
+		advanceUntilIdle()
+
+		globalSettingsStore.updateSettings {
+			it.copy(spellCheckSettings = it.spellCheckSettings.copy(includeEncyclopediaNames = true))
+		}
+		advanceUntilIdle()
+
+		assertEquals(setOf("zaltharion", "kastle"), appliedPerChecker.last())
+	}
+
+	@Test
+	fun `entry edits do not re-read other entries from disk`() = scope.runTest {
+		createEntry("Zaltharion")
+		createEntry("Kastle", aliases = listOf("Rock"))
+		createService()
+		advanceUntilIdle()
+		assertEquals(setOf("zaltharion", "kastle", "rock"), appliedPerChecker.last())
+
+		// Remove Kastle's file behind the datasource's back: a full re-scan would now
+		// lose its words, so their survival proves the edit was served from the cache.
+		val kastleDef = encyclopediaRepository.ensureEntriesLoaded().first { it.name == "Kastle" }
+		fileSystem.delete(datasource.getEntryPath(kastleDef).toOkioPath())
+
+		val zalDef = encyclopediaRepository.ensureEntriesLoaded().first { it.name == "Zaltharion" }
+		encyclopediaRepository.updateEntry(
+			oldEntryDef = zalDef,
+			name = zalDef.name,
+			text = "new text",
+			tags = emptySet(),
+			aliases = listOf("Velcaryn"),
+			excludeFromDictionary = false,
+		)
+		advanceUntilIdle()
+
+		assertEquals(setOf("zaltharion", "velcaryn", "kastle", "rock"), appliedPerChecker.last())
 	}
 
 	@Test
