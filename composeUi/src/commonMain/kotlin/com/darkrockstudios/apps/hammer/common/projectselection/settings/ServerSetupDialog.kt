@@ -10,13 +10,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
+import com.darkrockstudios.apps.hammer.base.validate.PasswordValidator
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialogContainer
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -135,38 +134,26 @@ fun ServerSetupDialogContent(
 					enabled = !state.serverWorking && !existingServer,
 				)
 
-				HdHairlineField(
+				HdEmailField(
 					label = "EMAIL",
 					value = state.serverEmail ?: "",
 					onValueChange = { component.updateServerEmail(it) },
 					placeholder = Res.string.settings_server_setup_email_hint.get(),
-					singleLine = true,
-					imeAction = ImeAction.Next,
-					keyboardType = KeyboardType.Email,
 					enabled = !state.serverWorking && !existingServer,
 				)
 
-				HdHairlineField(
+				HdPasswordField(
 					label = "PASSWORD",
 					value = state.serverPassword ?: "",
 					onValueChange = { component.updateServerPassword(it) },
+					visible = passwordVisible,
+					onVisibleChange = { passwordVisible = it },
 					placeholder = Res.string.settings_server_setup_password_hint.get(),
-					singleLine = true,
-					imeAction = ImeAction.Done,
-					keyboardType = KeyboardType.Password,
-					visualTransformation = if (passwordVisible) VisualTransformation.None
-					else PasswordVisualTransformation(),
+					hint = Res.string.settings_server_setup_password_requirements.get(
+						PasswordValidator.MIN_LENGTH,
+						PasswordValidator.MAX_LENGTH,
+					),
 					enabled = !state.serverWorking,
-				)
-
-				HdHairlineToggleRow(
-					checked = passwordVisible,
-					onCheckedChange = { passwordVisible = it },
-					label = if (passwordVisible) {
-						Res.string.settings_server_setup_password_hide.get()
-					} else {
-						Res.string.settings_server_setup_password_show.get()
-					},
 				)
 
 				state.serverError?.let { error ->

@@ -37,6 +37,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCategorySwa
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCollapseGlyph
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDailyGoalProgress
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDeltaBadge
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEmailField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEngravingPlaceholder
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryCard
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryFilterBar
@@ -56,6 +57,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMiniBarChar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailDestination
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPasswordField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPlainSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChipVariant
@@ -686,6 +688,38 @@ fun HairlineFieldPreview() {
 				singleLine = false,
 				minLines = 3,
 				modifier = Modifier.fillMaxWidth(),
+			)
+		}
+	}
+}
+
+@Preview
+@Composable
+fun CredentialFieldsPreview() {
+	AppTheme(globalSettingsPreview, useDarkTheme = true) {
+		PreviewSurface {
+			HdEmailField(
+				label = "EMAIL",
+				value = "alice@example.com",
+				onValueChange = {},
+				placeholder = "E-Mail: user@example.com",
+				modifier = Modifier.fillMaxWidth(),
+			)
+			HdPasswordField(
+				label = "PASSWORD",
+				value = "correcthorsebattery",
+				onValueChange = {},
+				visible = false,
+				onVisibleChange = {},
+				hint = "8-64 characters",
+			)
+			HdPasswordField(
+				label = "PASSWORD",
+				value = "hunter2",
+				onValueChange = {},
+				visible = true,
+				onVisibleChange = {},
+				error = "Password is too short",
 			)
 		}
 	}
