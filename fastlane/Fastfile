@@ -355,7 +355,8 @@ platform :android do
   lane :internal do
     gradle(
       task: ":android:bundleRelease",
-      gradle_path: "./gradlew"
+      gradle_path: "./gradlew",
+      properties: { "channel" => "google-play" }
     )
     upload_to_play_store(track: 'internal')
   end
@@ -364,7 +365,8 @@ platform :android do
   lane :alpha do
     gradle(
       task: ":android:bundleRelease",
-      gradle_path: "./gradlew"
+      gradle_path: "./gradlew",
+      properties: { "channel" => "google-play" }
     )
     upload_to_play_store(track: 'alpha')
   end
@@ -373,7 +375,8 @@ platform :android do
   lane :beta do
     gradle(
       task: ":android:bundleRelease",
-      gradle_path: "./gradlew"
+      gradle_path: "./gradlew",
+      properties: { "channel" => "google-play" }
     )
     upload_to_play_store(track: 'beta')
   end
@@ -382,7 +385,8 @@ platform :android do
   lane :release do
     gradle(
       task: "clean bundleRelease",
-      gradle_path: "./gradlew"
+      gradle_path: "./gradlew",
+      properties: { "channel" => "google-play" }
     )
     upload_to_play_store(
       root_url: "https://androidpublisher.googleapis.com/",

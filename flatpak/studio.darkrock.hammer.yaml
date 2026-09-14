@@ -32,7 +32,7 @@ modules:
                 export PATH=$JAVA_HOME/bin:$PATH
                 java -version
                 chmod +x gradlew
-                ./gradlew :desktop:createDistributable -x test --no-daemon
+                ./gradlew :desktop:createDistributable -Pchannel=flathub -x test --no-daemon
             # Install the app (outputBaseDir is set to 'installers' in build.gradle.kts)
             - mkdir -p /app/lib/hammer
             - cp -r desktop/build/installers/main/app/hammer/* /app/lib/hammer/

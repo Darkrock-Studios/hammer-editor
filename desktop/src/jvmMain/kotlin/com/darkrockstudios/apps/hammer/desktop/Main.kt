@@ -14,7 +14,6 @@ import com.arkivanov.decompose.ExperimentalDecomposeApi
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.getAndUpdate
-import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.compose.getDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.getMainDispatcher
@@ -32,7 +31,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.getLogDirectory
 import com.darkrockstudios.apps.hammer.common.logStartupBanner
-import com.darkrockstudios.apps.hammer.common.platformStartupInfo
+import com.darkrockstudios.apps.hammer.common.startupBanner
 import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
 import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModule
 import com.darkrockstudios.apps.hammer.desktop.sandbox.SandboxStartup
@@ -98,7 +97,7 @@ private fun writeCrashDump(thread: Thread, throwable: Throwable) {
 	File(dir).mkdirs()
 	File(dir, "crash-${System.currentTimeMillis()}.txt").writeText(
 		buildString {
-			append("Hammer v${BuildMetadata.APP_VERSION} | ${platformStartupInfo()}\n")
+			append(startupBanner() + "\n")
 			append("Uncaught exception on thread '${thread.name}'\n\n")
 			append(throwable.stackTraceToString())
 		}

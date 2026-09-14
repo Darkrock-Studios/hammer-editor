@@ -72,7 +72,7 @@ jobs:
           timeout_minutes: 30
           max_attempts: 3
           shell: pwsh
-          command: ./gradlew :desktop:packageReleaseMsi
+          command: ./gradlew :desktop:packageReleaseMsi -Pchannel=github
 
       - name: Rename MSI Artifact
         shell: cmd
@@ -104,7 +104,7 @@ jobs:
           timeout_minutes: 30
           max_attempts: 3
           shell: pwsh
-          command: ./gradlew :desktop:packageReleaseExe
+          command: ./gradlew :desktop:packageReleaseExe -Pchannel=github
 
       - name: Rename EXE Artifact
         shell: cmd
@@ -192,7 +192,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: ./gradlew :desktop:packageReleaseDeb
+          command: ./gradlew :desktop:packageReleaseDeb -Pchannel=github
 
       - name: Rename DEB Artifact
         run: |
@@ -216,7 +216,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: ./gradlew :desktop:packageReleaseRpm
+          command: ./gradlew :desktop:packageReleaseRpm -Pchannel=github
 
       - name: Rename RPM Artifact
         run: |
@@ -240,7 +240,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: ./gradlew buildDistAppImage
+          command: ./gradlew buildDistAppImage -Pchannel=appimage
 
       - name: Create Release
         uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
@@ -283,7 +283,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: ./gradlew :desktop:packageReleaseDmg
+          command: ./gradlew :desktop:packageReleaseDmg -Pchannel=github
 
       - name: Rename DMG Artifact
         run: |
@@ -307,7 +307,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: ./gradlew :desktop:packageReleasePkg
+          command: ./gradlew :desktop:packageReleasePkg -Pchannel=github
 
       - name: Rename PKG Artifact
         run: |
@@ -564,7 +564,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: ./gradlew buildDistFlatpak
+          command: ./gradlew buildDistFlatpak -Pchannel=flathub
 
       - name: Create Release
         uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
