@@ -23,14 +23,15 @@ data class HttpResponseError(
  * value from a newer server deserializes instead of throwing.
  */
 object ApiErrorCode {
-	/** Wrong password, or no such account. Deliberately one code — see AccountsRepository.login. */
+	/** Wrong password, or no such account. Deliberately one code: see AccountsRepository.login. */
 	const val INVALID_CREDENTIALS = "invalid_credentials"
 	const val ACCOUNT_EXISTS = "account_exists"
 	const val ACCOUNT_PENDING_DELETION = "account_pending_deletion"
 	const val INVALID_EMAIL = "invalid_email"
-	const val PASSWORD_TOO_SHORT = "password_too_short"
-	const val PASSWORD_TOO_LONG = "password_too_long"
-	const val PASSWORD_INVALID = "password_invalid"
+	// Wire error codes, not secrets.
+	const val PASSWORD_TOO_SHORT = "password_too_short" // nosemgrep: generic.secrets.gitleaks.hashicorp-tf-password.hashicorp-tf-password
+	const val PASSWORD_TOO_LONG = "password_too_long" // nosemgrep: generic.secrets.gitleaks.hashicorp-tf-password.hashicorp-tf-password
+	const val PASSWORD_INVALID = "password_invalid" // nosemgrep: generic.secrets.gitleaks.hashicorp-tf-password.hashicorp-tf-password
 	const val NOT_WHITELISTED = "not_whitelisted"
 	const val TOKEN_INVALID = "token_invalid"
 }
