@@ -5,6 +5,8 @@
 	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 	<uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY"/>
 	<uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
+	<!-- Watch pairing prompt. Play services only: not mirrored in src/fdroid/AndroidManifest.xml. -->
+	<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
 	<application
 		android:name=".HammerApplication"
@@ -99,6 +101,26 @@
 				android:name="android.appwidget.provider"
 				android:resource="@xml/story_info_widget_info"/>
 		</receiver>
+
+		<!-- Wear OS pairing. Play services only: not mirrored in src/fdroid/AndroidManifest.xml. -->
+		<activity
+			android:name=".wear.WearPairingActivity"
+			android:excludeFromRecents="true"
+			android:exported="false"
+			android:theme="@style/Theme.AppCompat.DayNight.Dialog"
+			android:windowSoftInputMode="adjustResize"/>
+		<service
+			android:name=".wear.WearPairingListenerService"
+			android:exported="true">
+			<intent-filter>
+				<action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED"/>
+
+				<data
+					android:host="*"
+					android:pathPrefix="/hammer/pair/request"
+					android:scheme="wear"/>
+			</intent-filter>
+		</service>
 
 		<provider
 				android:name="androidx.core.content.FileProvider"

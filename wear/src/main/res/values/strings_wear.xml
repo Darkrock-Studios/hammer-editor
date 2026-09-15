@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="app_name">Hammer</string>
+
+	<string name="onboarding_body">Capture notes and ideas on your wrist, synced with your Hammer account.</string>
+	<string name="onboarding_pair">Pair with phone</string>
+	<string name="onboarding_manual_sign_in">Sign in on watch</string>
+
+	<string name="pairing_searching">Looking for your phone</string>
+	<string name="pairing_awaiting">Confirm on your phone</string>
+	<string name="pairing_paired">Paired</string>
+	<string name="pairing_not_found">No phone with Hammer is in range</string>
+	<string name="pairing_failed">Pairing failed</string>
+	<string name="pairing_failed_declined">Pairing was declined on the phone</string>
+	<string name="pairing_failed_not_signed_in">Sign in to a sync server on your phone first</string>
+	<string name="pairing_failed_server">The sync server refused to pair this watch</string>
+	<string name="pairing_failed_unsupported">Update Hammer on your phone and watch, then try again</string>
+	<string name="pairing_retry">Try again</string>
+	<string name="pairing_cancel">Cancel</string>
+
+	<string name="sign_in_title">Sign in</string>
+	<string name="sign_in_server">Server</string>
+	<string name="sign_in_email">Email</string>
+	<string name="sign_in_password">Password</string>
+	<string name="sign_in_not_set">Tap to enter</string>
+	<string name="sign_in_button">Sign in</string>
+	<string name="sign_in_error_missing">Enter a server, email and password</string>
+	<string name="sign_in_error_terms">Accept this server’s terms on your phone or computer first</string>
+	<string name="sign_in_error_generic">Sign in failed</string>
+
+	<string name="account_signed_in_as">Signed in as %1$s</string>
+	<string name="account_sign_out">Sign out</string>
+</resources>

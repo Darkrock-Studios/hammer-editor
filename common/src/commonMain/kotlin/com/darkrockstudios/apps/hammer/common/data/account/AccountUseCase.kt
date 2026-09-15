@@ -115,6 +115,18 @@ class AccountUseCase(
 		}
 	}
 
+	/** Adopts a session another install minted for this one through [pairInstall]. */
+	fun applyPairedSettings(settings: ServerSettings): CResult<Unit> {
+		val bearerToken = settings.bearerToken
+		if (bearerToken.isNullOrBlank() || settings.userId < 0) {
+			return CResult.failure(error = "Paired settings carry no session")
+		}
+
+		httpClient.updateCredentials(BearerTokens(accessToken = bearerToken, refreshToken = settings.refreshToken))
+		globalSettingsStore.updateServerSettings(settings)
+		return CResult.success()
+	}
+
 	suspend fun testAuth(): Boolean {
 		return accountApi.testAuth().isSuccess
 	}

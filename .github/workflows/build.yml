@@ -33,6 +33,8 @@ jobs:
       # buildDebug does not touch androidTest, so stale instrumented tests rot silently otherwise.
       - name: Compile Android instrumented tests
         run: ./gradlew :android:assembleDebugAndroidTest
+      - name: Build and unit test the Wear OS app
+        run: ./gradlew :wear:assembleDebug :wear:testDebugUnitTest
       - name: Run Kover
         run: ./gradlew koverXmlReport
       - name: Upload coverage reports to Codecov

@@ -1,6 +1,7 @@
 # Hammer for Wear OS
 
-_Design doc. Status: phases 1 and 2 implemented on the `wear-app` branch; phase 3 in progress._
+_Design doc. Status: phases 1 and 2 implemented on the `wear-app` branch; phase 3 pairing and
+sign-in implemented, projects and background sync in progress._
 
 A standalone Wear OS client for capturing notes and ideas while away from a desk, and for
 listening to scenes read aloud. It reuses the `common` data and sync layers unchanged and
@@ -58,20 +59,21 @@ wear/   Wear OS application module. Depends on :common only, never on :composeUi
 
 ## Koin graph
 
-The watch has its own `Application` that calls `startKoin` with `mainModule` plus a
-`wearModule`. `mainModule` hard-includes the Android `platformModule`, which today also wires
-phone-only services (spell checker factory, share service, backup manager, focus mode,
-platform settings component). Those all live in `androidMain` so they compile on Wear, but the
-spell checker leans on Android text services that a watch may not provide.
+The watch has its own `Application` that calls `startKoin` with `mainModule`,
+`appModule(scope)`, and a `wearModule`. `mainModule` hard-includes the Android `platformModule`,
+which also wires phone-only services (share service, backup manager, focus mode, platform
+settings component). The module is not split: every one of those is a lazy binding resolved only
+by `composeUi` screens the watch never shows, and `PlatformSpellCheckerFactory` constructs inertly
+and degrades to no checkers. `wearModule` adds only watch pieces (Data Layer client, pairing use
+case). The encrypted shared-prefs auth token store works unchanged on Wear.
 
-Split the Android `platformModule` into:
+`FileLogger` and the global crash handler live in `common/src/androidMain` so both applications
+share them.
 
-- `platformCoreModule`: network connectivity, `StrRes`, locale resolvers, URL launcher,
-  `GlobalSettingsDatasource`, auth token store.
-- `phonePlatformModule`: everything else. Included by `HammerApplication` only.
-
-`wearModule` provides a no-op `PlatformSpellCheckerFactory` and nothing else that is phone
-shaped. The encrypted shared-prefs auth token store works unchanged on Wear.
+On the phone, everything that touches Google Play services (the pairing listener, dialog,
+responder, and `wearPairingModule`) lives in `android/src/gms`, added to the source set only for
+non-F-Droid builds. `src/nogms` supplies an empty `playServicesModules` list, and the F-Droid
+manifest simply omits the pairing service and activity.
 
 Backups: `BackupOperation` runs before every project sync. Projects on the watch are small and
 few, so keep the behaviour rather than special-casing it; revisit if storage becomes a problem.
@@ -140,7 +142,9 @@ tracked separately.
 Account sync creates a local directory for every server project, with metadata and a server
 project ID but no entities. Syncing content is opt-in per project:
 
-- The watch keeps a `subscribedProjects` set in its own settings.
+- The watch keeps its subscribed projects in a wear-owned DataStore (`WearPrefsDatasource`, the
+  only writer), keyed by server `ProjectId` so a rename does not drop a subscription. It is not a
+  `GlobalSettings` field because that file is shared by every platform.
 - Only subscribed projects are passed to the sync use case. The change probe keeps repeat
   syncs to a single request when nothing changed.
 - A subscribed project's first sync pulls every entity, one request each. That is acceptable for

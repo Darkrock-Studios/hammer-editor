@@ -245,6 +245,31 @@ class AccountUseCaseTest : BaseTest() {
 	}
 
 	@Test
+	fun `Applying paired settings adopts the session and stores it`() = runTest {
+		val watchSettings = phoneSettings.copy(bearerToken = "watch-auth", refreshToken = "watch-refresh")
+		val bearerTokenSlot = slot<BearerTokens>()
+		every { httpClient.updateCredentials(credentials = capture(bearerTokenSlot)) } just Runs
+		val settingsSlot = slot<ServerSettings>()
+		every { globalSettingsStore.updateServerSettings(settings = capture(settingsSlot)) } just Runs
+
+		val result = createSut().applyPairedSettings(watchSettings)
+
+		assertIs<ClientResult.Success<Unit>>(result)
+		assertEquals("watch-auth", bearerTokenSlot.captured.accessToken)
+		assertEquals("watch-refresh", bearerTokenSlot.captured.refreshToken)
+		assertEquals(watchSettings, settingsSlot.captured)
+	}
+
+	@Test
+	fun `Paired settings without a session are refused and nothing is stored`() = runTest {
+		val result = createSut().applyPairedSettings(phoneSettings.copy(bearerToken = null))
+
+		assertIs<ClientResult.Failure<Unit>>(result)
+		coVerify(exactly = 0) { httpClient.updateCredentials(any()) }
+		coVerify(exactly = 0) { globalSettingsStore.updateServerSettings(any()) }
+	}
+
+	@Test
 	fun `Login account successfully`() = runTest {
 		val token = Token(1, "test-auth", "test-refresh")
 		val settings = ServerSettings(

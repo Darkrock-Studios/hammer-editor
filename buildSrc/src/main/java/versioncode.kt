@@ -11,6 +11,21 @@ fun getVersionCode(semVarStr: String): Int {
 	return versionCode
 }
 
+/**
+ * Play needs unique version codes across every bundle in a listing. Phone codes stay below this
+ * while the major version is below 10, and phone plus offset stays under Play's 2,100,000,000 cap.
+ */
+private const val WEAR_VERSION_CODE_OFFSET = 1_000_000_000
+
+fun getWearVersionCode(semVarStr: String): Int = wearVersionCode(getVersionCode(semVarStr))
+
+fun wearVersionCode(phoneVersionCode: Int): Int {
+	require(phoneVersionCode in 0 until WEAR_VERSION_CODE_OFFSET) {
+		"Phone version code $phoneVersionCode leaves no room for the wear offset"
+	}
+	return phoneVersionCode + WEAR_VERSION_CODE_OFFSET
+}
+
 data class SemVar(
 	val major: Int,
 	val minor: Int,
