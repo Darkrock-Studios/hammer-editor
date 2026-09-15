@@ -72,6 +72,25 @@ private fun ManualSignInEmptyPreview() {
 
 @WearPreviewDevices
 @Composable
+private fun ManualSignInInsecurePreview() {
+	WearPreviewFrame {
+		ManualSignInContent(
+			state = ManualSignIn.State(
+				server = "http://192.168.1.50:8080",
+				serverInsecure = true,
+				email = "writer@example.com",
+				hasPassword = true,
+			),
+			onEditServer = {},
+			onEditEmail = {},
+			onEditPassword = {},
+			onSignIn = {},
+		)
+	}
+}
+
+@WearPreviewDevices
+@Composable
 private fun ManualSignInErrorPreview() {
 	WearPreviewFrame {
 		ManualSignInContent(

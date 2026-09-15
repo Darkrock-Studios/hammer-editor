@@ -13,6 +13,7 @@ interface ManualSignIn {
 	/** The password is deliberately absent: it never leaves the component. */
 	data class State(
 		val server: String = "",
+		val serverInsecure: Boolean = false,
 		val email: String = "",
 		val hasPassword: Boolean = false,
 		val busy: Boolean = false,

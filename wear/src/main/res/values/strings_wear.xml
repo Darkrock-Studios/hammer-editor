@@ -23,6 +23,7 @@
 	<string name="sign_in_email">Email</string>
 	<string name="sign_in_password">Password</string>
 	<string name="sign_in_not_set">Tap to enter</string>
+	<string name="sign_in_insecure_warning">Plain HTTP: your sign in and writing are not encrypted. Only use this on a network you trust.</string>
 	<string name="sign_in_button">Sign in</string>
 	<string name="sign_in_error_missing">Enter a server, email and password</string>
 	<string name="sign_in_error_terms">Accept this server’s terms on your phone or computer first</string>

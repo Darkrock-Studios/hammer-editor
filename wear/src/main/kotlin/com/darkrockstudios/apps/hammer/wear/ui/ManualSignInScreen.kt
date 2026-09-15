@@ -123,6 +123,16 @@ fun ManualSignInContent(
 					onClick = onEditServer,
 				)
 			}
+			if (state.serverInsecure) {
+				item {
+					Text(
+						text = stringResource(R.string.sign_in_insecure_warning),
+						color = MaterialTheme.colorScheme.error,
+						textAlign = TextAlign.Center,
+						modifier = Modifier.fillMaxWidth(),
+					)
+				}
+			}
 			item {
 				SignInFieldButton(
 					label = stringResource(R.string.sign_in_email),

@@ -83,6 +83,20 @@ class ManualSignInComponentTest : WearTestBase() {
 	}
 
 	@Test
+	fun `an http server is flagged as insecure and an https one is not`() = runTest(dispatcher) {
+		val component = newComponent()
+
+		component.updateServer("http://192.168.1.50:8080")
+		assertTrue(component.state.value.serverInsecure)
+
+		component.updateServer("hammer.ink")
+		assertFalse(component.state.value.serverInsecure)
+
+		component.updateServer("https://hammer.ink")
+		assertFalse(component.state.value.serverInsecure)
+	}
+
+	@Test
 	fun `the password is never exposed in state`() = runTest(dispatcher) {
 		val component = newComponent()
 

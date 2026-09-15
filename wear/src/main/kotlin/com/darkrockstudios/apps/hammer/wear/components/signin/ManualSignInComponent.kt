@@ -7,6 +7,7 @@ import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.account.ServerSetupResult
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.isInsecureServerUrl
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.parseServerUrl
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import kotlinx.coroutines.launch
@@ -24,7 +25,8 @@ class ManualSignInComponent(
 	private var password: String = ""
 
 	override fun updateServer(server: String) {
-		_state.update { it.copy(server = server.trim(), error = null) }
+		val trimmed = server.trim()
+		_state.update { it.copy(server = trimmed, serverInsecure = isInsecureServerUrl(trimmed), error = null) }
 	}
 
 	override fun updateEmail(email: String) {
