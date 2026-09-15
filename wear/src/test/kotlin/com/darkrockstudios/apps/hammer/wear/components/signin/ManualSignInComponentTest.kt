@@ -66,6 +66,23 @@ class ManualSignInComponentTest : WearTestBase() {
 	}
 
 	@Test
+	fun `an http server is signed in to in the clear`() = runTest(dispatcher) {
+		coEvery { accountUseCase.setupServer(any(), any(), any(), any(), any(), any()) } returns
+			ServerSetupResult.Success
+		val component = newComponent()
+		component.updateServer("http://192.168.1.50:8080")
+		component.updateEmail("writer@example.com")
+		component.updatePassword("hunter2")
+
+		component.signIn()
+		scheduler.advanceUntilIdle()
+
+		coVerify {
+			accountUseCase.setupServer("192.168.1.50:8080", "writer@example.com", "hunter2", false, null, false)
+		}
+	}
+
+	@Test
 	fun `the password is never exposed in state`() = runTest(dispatcher) {
 		val component = newComponent()
 

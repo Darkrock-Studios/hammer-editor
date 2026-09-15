@@ -5,8 +5,8 @@ import net.peanuuutz.tomlkt.TomlLiteralString
 
 @Serializable
 data class ServerSettings(
-	// Clients always talk HTTPS; only test harnesses pointing at a plain-HTTP in-process
-	// server construct this with ssl = false.
+	// HTTPS unless the user typed an http:// URL for a self-hosted server that has no
+	// certificate. See parseServerUrl.
 	val ssl: Boolean = true,
 	@TomlLiteralString
 	val url: String,

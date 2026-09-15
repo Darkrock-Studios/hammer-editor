@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+	Shared by the phone and Wear OS apps.
+
+	Cleartext is permitted because a self-hosted server on a LAN or VPN often has no certificate.
+	The apps still default to HTTPS: plain HTTP is used only for a server the user deliberately
+	entered as an http:// URL, and the setup screen warns before that is saved.
+
+	Debug builds additionally trust user-installed CAs, so a developer can point a device at a
+	proxy or a local server with a self-signed certificate. Release builds trust system CAs only.
+-->
+<network-security-config>
+	<base-config cleartextTrafficPermitted="true">
+		<trust-anchors>
+			<certificates src="system" />
+		</trust-anchors>
+	</base-config>
+
+	<debug-overrides>
+		<trust-anchors>
+			<certificates src="system" />
+			<certificates src="user" />
+		</trust-anchors>
+	</debug-overrides>
+</network-security-config>

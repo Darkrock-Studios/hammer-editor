@@ -412,8 +412,28 @@ The desktop client run with `--dev` trusts this self-signed cert, but **only for
 and hostname validation, so pointing a dev build at a real server is not silently insecure.
 
 This path never activates without `--dev`; a production server with no `sslCert` serves plain HTTP
-only (for the reverse-proxy case). Mobile clients still won't trust the self-signed cert, so
-develop the mobile clients against a real certificate or a reverse proxy.
+only (for the reverse-proxy case). Mobile clients still won't trust the self-signed cert, so to
+develop against the phone or watch apps, use a real certificate, a reverse proxy, or the plain
+HTTP connector described below.
+
+#### Plain HTTP on a network you trust
+
+A self-hosted server on a LAN, a VPN, or a mesh network such as Tailscale often has no
+certificate at all. Clients can talk to the plain HTTP connector (`port`, default 8080) in that
+case, but only when the user opts in explicitly: **type the server address with an `http://`
+scheme**, for example `http://192.168.1.50:8080`. A bare host or an `https://` address always
+stays encrypted, and the setup screen warns while an `http://` address is entered.
+
+Everything travels unencrypted on that connection, including the password at sign-in and the
+auth tokens on every later request, so only do this on a network where you trust every device.
+Anything reachable from the open internet needs a real certificate.
+
+The Android and Wear OS apps permit cleartext through `network_security_config.xml`, shared by
+both apps from `common/src/androidMain/res/xml/`. Debug builds of those apps additionally trust
+user-installed CAs, which is useful with a proxy or a locally issued certificate.
+
+This is also the simplest way to develop against a device: run the server (it binds `0.0.0.0` by
+default), then sign in on the phone or watch with `http://<your-machine-ip>:8080`.
 
 #### Let's Encrypt
 

@@ -89,6 +89,28 @@ class ServerSettingsDatasourceTest : BaseTest() {
 	}
 
 	@Test
+	fun `A plaintext server round-trips as plaintext`() = runTest {
+		val datasource = createDatasource()
+		val plaintext = createConfig().copy(ssl = false, url = "192.168.1.50:8080")
+
+		datasource.storeServerSettings(plaintext, projectsDir())
+
+		assertEquals(plaintext, datasource.loadServerSettings(projectsDir()))
+	}
+
+	@Test
+	fun `A server json written before plaintext support loads as https`() = runTest {
+		fileSystem.createDirectories(projectsDirPath())
+		fileSystem.write(configPath().toOkioPath()) {
+			writeUtf8("""{"url":"hammer.ink","email":"test@example.com","userId":1}""")
+		}
+
+		val loaded = createDatasource().loadServerSettings(projectsDir())
+
+		assertTrue(loaded!!.ssl)
+	}
+
+	@Test
 	fun `Stored server json contains no tokens`() = runTest {
 		val datasource = createDatasource()
 

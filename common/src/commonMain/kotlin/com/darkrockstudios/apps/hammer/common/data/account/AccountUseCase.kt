@@ -29,9 +29,11 @@ class AccountUseCase(
 		password: String,
 		create: Boolean,
 		acceptedTosVersion: String? = null,
+		ssl: Boolean = true,
 	): ServerSetupResult {
 		val installId = globalSettingsStore.ensureInstallId()
 		val newSettings = ServerSettings(
+			ssl = ssl,
 			userId = -1,
 			url = url,
 			email = email,

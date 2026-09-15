@@ -7,6 +7,7 @@ import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.account.ServerSetupResult
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.parseServerUrl
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -45,11 +46,13 @@ class ManualSignInComponent(
 
 		_state.update { it.copy(busy = true, error = null) }
 		scope.launch {
+			val parsedUrl = parseServerUrl(current.server)
 			val result = accountUseCase.setupServer(
-				url = current.server,
+				url = parsedUrl.host,
 				email = current.email,
 				password = password,
 				create = false,
+				ssl = parsedUrl.ssl,
 			)
 			val error = when (result) {
 				ServerSetupResult.Success -> null

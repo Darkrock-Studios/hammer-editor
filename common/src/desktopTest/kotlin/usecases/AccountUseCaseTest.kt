@@ -270,6 +270,27 @@ class AccountUseCaseTest : BaseTest() {
 	}
 
 	@Test
+	fun `A plaintext server is stored as plaintext`() = runTest {
+		val token = Token(1, "test-auth", "test-refresh")
+		coEvery { accountApi.login(any(), any(), any()) } returns Result.success(token)
+		every { httpClient.updateCredentials(any()) } just Runs
+		val settingsSlot = slot<ServerSettings>()
+		every { globalSettingsStore.updateServerSettings(settings = capture(settingsSlot)) } just Runs
+
+		val result = createSut().setupServer(
+			url = "192.168.1.50:8080",
+			email = "writer@example.com",
+			password = "password",
+			create = false,
+			ssl = false,
+		)
+
+		assertIs<ServerSetupResult.Success>(result)
+		assertEquals(false, settingsSlot.captured.ssl)
+		assertEquals("192.168.1.50:8080", settingsSlot.captured.url)
+	}
+
+	@Test
 	fun `Login account successfully`() = runTest {
 		val token = Token(1, "test-auth", "test-refresh")
 		val settings = ServerSettings(

@@ -68,6 +68,8 @@ interface AccountSettings : ComponentToaster {
 		val serverSetup: Boolean = false,
 		val serverIsLoggedIn: Boolean = false,
 		val serverUrl: String? = null,
+		/** The typed URL would connect in the clear, so the setup screen warns about it. */
+		val serverUrlInsecure: Boolean = false,
 		val serverEmail: String? = null,
 		// Never persist the password to disk; drop stale error/working state on restore.
 		@Transient val serverPassword: String? = null,
