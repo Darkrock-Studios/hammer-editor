@@ -269,9 +269,10 @@ fun Application.configureStatusPages(
 			}
 		}
 		status(HttpStatusCode.Unauthorized) { call, status ->
-			if (call.request.isApiCall()) {
-				call.respond(HttpStatusCode.Unauthorized)
-			} else {
+			// API routes answer 401 with their own HttpResponseError body; responding again
+			// here would replace it with an empty one, leaving the client no way to tell a
+			// wrong password from an unknown account or an expired token.
+			if (!call.request.isApiCall()) {
 				call.respond(
 					HttpStatusCode.Unauthorized,
 					MustacheContent("unauthorized.mustache", call.withDefaults(ERROR_PAGE_STYLE))

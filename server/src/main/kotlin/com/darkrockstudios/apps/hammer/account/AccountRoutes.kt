@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.account
 
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.HTTP_STATUS_TERMS_OF_SERVICE
 import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.base.http.INVALID_USER_ID
@@ -58,9 +59,10 @@ private fun Route.createAccount() {
 			is CreateAccountResult.Failure -> {
 				val response = HttpResponseError(
 					error = "Failed to create account",
-					displayMessage = result.failure.displayMessageText(call, R("api_error_unknown"))
+					displayMessage = result.failure.displayMessageText(call, R("api_error_unknown")),
+					errorCode = createErrorCode(result.failure.exception),
 				)
-				call.respond(status = HttpStatusCode.Conflict, response)
+				call.respond(status = createErrorStatus(result.failure.exception), response)
 			}
 		}
 	}
@@ -88,13 +90,35 @@ private fun Route.login() {
 			val authToken = result.data
 			call.respond(authToken)
 		} else {
+			// A rejected whitelist isn't a credential problem, and answering 401 made it
+			// indistinguishable from a wrong password in both the logs and the client.
+			val notWhitelisted = result.exception is NotWhitelisted
 			val response = HttpResponseError(
 				error = "Failed to authenticate",
-				displayMessage = result.displayMessageText(call, R("api_error_unknown"))
+				displayMessage = result.displayMessageText(call, R("api_error_unknown")),
+				errorCode = if (notWhitelisted) ApiErrorCode.NOT_WHITELISTED
+				else ApiErrorCode.INVALID_CREDENTIALS,
 			)
-			call.respond(status = HttpStatusCode.Unauthorized, response)
+			val status = if (notWhitelisted) HttpStatusCode.Forbidden else HttpStatusCode.Unauthorized
+			call.respond(status = status, message = response)
 		}
 	}
+}
+
+private fun createErrorStatus(cause: Throwable?): HttpStatusCode = when (cause) {
+	is AccountAlreadyExists, is AccountPendingDeletion -> HttpStatusCode.Conflict
+	is InvalidEmail, is InvalidPassword -> HttpStatusCode.BadRequest
+	is NotWhitelisted -> HttpStatusCode.Forbidden
+	else -> HttpStatusCode.Conflict
+}
+
+private fun createErrorCode(cause: Throwable?): String? = when (cause) {
+	is AccountAlreadyExists -> ApiErrorCode.ACCOUNT_EXISTS
+	is AccountPendingDeletion -> ApiErrorCode.ACCOUNT_PENDING_DELETION
+	is InvalidEmail -> ApiErrorCode.INVALID_EMAIL
+	is InvalidPassword -> InvalidPassword.getCode(cause.result)
+	is NotWhitelisted -> ApiErrorCode.NOT_WHITELISTED
+	else -> null
 }
 
 private fun Route.refreshToken() {
@@ -117,7 +141,8 @@ private fun Route.refreshToken() {
 				status = HttpStatusCode.Unauthorized,
 				HttpResponseError(
 					error = "Unauthorized",
-					displayMessage = result.displayMessageText(call, R("api_accounts_tokenrefresh_error"))
+					displayMessage = result.displayMessageText(call, R("api_accounts_tokenrefresh_error")),
+					errorCode = ApiErrorCode.TOKEN_INVALID,
 				)
 			)
 		}

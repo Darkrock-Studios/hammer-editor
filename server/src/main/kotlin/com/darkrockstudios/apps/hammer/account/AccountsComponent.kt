@@ -96,7 +96,8 @@ class AccountsComponent(
 		val message = pluginRegistry.activeAllowedUsersSource()?.rejectionMessage()
 		return SResult.failure(
 			error = "User not on whitelist",
-			displayMessage = message ?: Msg.r("api_allowedusers_rejected")
+			displayMessage = message ?: Msg.r("api_allowedusers_rejected"),
+			exception = NotWhitelisted()
 		)
 	}
 }

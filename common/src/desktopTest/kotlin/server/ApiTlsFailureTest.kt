@@ -6,7 +6,6 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.server.HttpFailureException
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
-import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.server_error_connection_generic
 import com.darkrockstudios.apps.hammer.server_error_network_unavailable
 import com.darkrockstudios.apps.hammer.server_error_tls
@@ -18,7 +17,6 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
-import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.BeforeEach
 import org.koin.dsl.module
 import utils.BaseTest
@@ -141,19 +139,5 @@ class ApiTlsFailureTest : BaseTest() {
 		assertIs<HttpFailureException>(result.exceptionOrNull())
 		assertTrue(strRes.requested.contains(Res.string.server_error_connection_generic))
 		assertFalse(strRes.requested.contains(Res.string.server_error_network_unavailable))
-	}
-}
-
-private class RecordingStrRes : StrRes {
-	val requested = mutableListOf<StringResource>()
-
-	override suspend fun get(str: StringResource): String {
-		requested += str
-		return "test"
-	}
-
-	override suspend fun get(str: StringResource, vararg args: Any): String {
-		requested += str
-		return "test"
 	}
 }

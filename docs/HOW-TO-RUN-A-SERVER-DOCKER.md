@@ -89,6 +89,24 @@ entries from your own browser or `curl` hitting `/api/...`, since only Hammer
 clients send the `X-Hammer-Protocol-Version` header. Those are unrelated to the
 client's failure.
 
+### A login that returns 401 after the account was created
+
+Passwords are 8 to 64 characters with no complexity rule and no forbidden characters, and the
+server hashes what it receives without stripping or truncating anything, so a password that was
+accepted at account creation will keep working. See
+[Account passwords](HOW-TO-RUN-A-SERVER.md#account-passwords) for the full policy and for the
+log lines that name why a login was rejected.
+
+Two container-specific causes are worth ruling out first:
+
+- **A stale volume.** If the account was created against a database that has since been
+  recreated (`docker compose down -v`, a changed volume mount), the account is simply gone and
+  every login is a legitimate 401. `Login rejected: no account for the submitted email` in the
+  log confirms it.
+- **Rate limiting seen as a login failure.** The login limiter allows 10 requests per minute
+  keyed on the source address, and behind a reverse proxy that address is the proxy's, shared
+  by everyone. Repeated attempts return `429`, not `401`.
+
 ### Do not set `bindHosts`
 
 [HOW-TO-RUN-A-SERVER.md](HOW-TO-RUN-A-SERVER.md#reverse-proxy-using-nginx) tells
