@@ -23,6 +23,9 @@ interface FocusMode {
 	fun setEditorMaxWidth(width: Float)
 	fun resetEditorMaxWidth()
 
+	/** Adds a flagged word to the project's spell-check dictionary. */
+	fun addWordToDictionary(word: String)
+
 	data class State(
 		val projectDef: ProjectDef,
 		val sceneItem: SceneItem,

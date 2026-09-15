@@ -12,6 +12,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflict
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataConflictBroker
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataRepository
+import com.darkrockstudios.apps.hammer.common.data.projectdata.differsOutsideDictionary
+import com.darkrockstudios.apps.hammer.common.data.projectdata.mergeDictionaryWords
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntityConflictHandler
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.IdConflictResolutionState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
@@ -26,6 +28,9 @@ import io.github.aakira.napier.Napier
 /**
  * A non-conflict server error fails the whole sync — unlike writing-activity sync,
  * the data is user-authored and silent loss is unacceptable.
+ *
+ * A conflict confined to [ProjectData.dictionaryWords] is merged by union here and never
+ * reaches the resolver; any other conflicting field still goes through the broker.
  */
 class ProjectDataSyncOperation(
 	projectDef: ProjectDef,
@@ -70,7 +75,7 @@ class ProjectDataSyncOperation(
 			}
 			serverDto.hash == localHash -> {
 				if (lastSyncedHash != serverDto.hash) {
-					repository.updateFromSync(serverDto.data, serverDto.hash)
+					repository.updateFromSync(serverDto.data, serverDto.hash, snapshot = stored.data)
 				}
 				onLog(syncLogI("Project data already in sync", projectDef))
 				return CResult.success(state)
@@ -81,7 +86,7 @@ class ProjectDataSyncOperation(
 				// recording the server hash would make the stored copy look locally edited, and the
 				// next sync would upload it — deleting the newer field server-side. With the stored
 				// hash, an out-of-date device just keeps fast-forwarding harmlessly.
-				repository.updateFromSync(serverDto.data, ProjectDataHasher.hash(serverDto.data))
+				repository.updateFromSync(serverDto.data, ProjectDataHasher.hash(serverDto.data), snapshot = stored.data)
 				onLog(syncLogI("Project data updated from server", projectDef))
 				return CResult.success(state)
 			}
@@ -103,7 +108,7 @@ class ProjectDataSyncOperation(
 		val result = api.uploadProjectData(userId, projectId, data, originalHash)
 		val success = result.getOrNull()
 		if (success != null) {
-			repository.updateFromSync(success.data, success.hash)
+			repository.updateFromSync(success.data, success.hash, snapshot = data)
 			onLog(syncLogI("Project data synced", projectDef))
 			return success
 		}
@@ -116,15 +121,21 @@ class ProjectDataSyncOperation(
 			return null
 		}
 
-		onLog(syncLogW("Project data conflict detected", projectDef))
-		broker.reportConflict(
-			ProjectDataConflict(
-				local = data,
-				server = conflict.conflict.server,
-				serverHash = conflict.conflict.serverHash,
+		val server = conflict.conflict.server
+		val resolved = if (data.differsOutsideDictionary(server)) {
+			onLog(syncLogW("Project data conflict detected", projectDef))
+			broker.reportConflict(
+				ProjectDataConflict(
+					local = data,
+					server = server,
+					serverHash = conflict.conflict.serverHash,
+				)
 			)
-		)
-		val resolved = broker.awaitResolution()
+			broker.awaitResolution()
+		} else {
+			onLog(syncLogI("Project data conflict: dictionary words merged", projectDef))
+			data.copy(dictionaryWords = mergeDictionaryWords(data, server))
+		}
 
 		val resolveResult = api.uploadProjectData(
 			userId = userId,
@@ -139,7 +150,7 @@ class ProjectDataSyncOperation(
 			onLog(syncLogE("Project data conflict resolution failed: ${resolveError?.message}", projectDef))
 			return null
 		}
-		repository.updateFromSync(resolvedDto.data, resolvedDto.hash)
+		repository.updateFromSync(resolvedDto.data, resolvedDto.hash, snapshot = data)
 		onLog(syncLogI("Project data synced", projectDef))
 		return resolvedDto
 	}
