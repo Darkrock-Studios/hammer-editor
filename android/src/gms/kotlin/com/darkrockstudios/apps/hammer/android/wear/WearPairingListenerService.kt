@@ -36,7 +36,8 @@ class WearPairingListenerService : WearableListenerService(), KoinComponent {
 	override fun onMessageReceived(event: MessageEvent) {
 		if (event.path != PairingProtocol.REQUEST_PATH) return
 
-		if (PairingProtocol.decodeRequest(event.data) == null) {
+		val request = PairingProtocol.decodeRequest(event.data)
+		if (request == null) {
 			appScope.launch { handler.rejectUnreadable(event.sourceNodeId) }
 			return
 		}
@@ -45,20 +46,24 @@ class WearPairingListenerService : WearableListenerService(), KoinComponent {
 		val appVisible = ProcessLifecycleOwner.get().lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)
 		if (appVisible) {
 			startActivity(intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
-		} else {
-			showNotification(intent)
+		} else if (!showNotification(intent, request.requestId)) {
+			// Nothing can put the prompt in front of the user, so answer instead of leaving the
+			// watch waiting on a confirmation that will never appear.
+			appScope.launch { handler.reportUnavailable(event.sourceNodeId, request) }
 		}
 	}
 
+	/** False when the prompt could not be raised, so the caller can answer the watch instead. */
 	@SuppressLint("MissingPermission")
-	private fun showNotification(intent: Intent) {
+	private fun showNotification(intent: Intent, requestId: String): Boolean {
 		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
 			checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
 		) {
 			Napier.w("Cannot show the watch pairing prompt: notification permission not granted")
-			return
+			return false
 		}
 
+		val notificationId = WearPairingActivity.notificationId(requestId)
 		val manager = NotificationManagerCompat.from(this)
 		manager.createNotificationChannel(
 			NotificationChannelCompat.Builder(CHANNEL_ID, NotificationManagerCompat.IMPORTANCE_HIGH)
@@ -68,7 +73,7 @@ class WearPairingListenerService : WearableListenerService(), KoinComponent {
 
 		val pendingIntent = PendingIntent.getActivity(
 			this,
-			0,
+			notificationId,
 			intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
 			PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
 		)
@@ -80,7 +85,13 @@ class WearPairingListenerService : WearableListenerService(), KoinComponent {
 			.setAutoCancel(true)
 			.setPriority(NotificationCompat.PRIORITY_HIGH)
 			.build()
-		manager.notify(WearPairingActivity.NOTIFICATION_ID, notification)
+		return try {
+			manager.notify(notificationId, notification)
+			true
+		} catch (@Suppress("SwallowedException") e: SecurityException) {
+			Napier.w("Cannot show the watch pairing prompt", e)
+			false
+		}
 	}
 
 	private companion object {

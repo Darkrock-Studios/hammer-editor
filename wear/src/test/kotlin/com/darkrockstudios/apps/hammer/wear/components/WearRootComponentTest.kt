@@ -60,12 +60,14 @@ class WearRootComponentTest : WearTestBase() {
 
 	private fun newRoot(): WearRootComponent {
 		val subscriptions = SubscribedProjectsRepository(FakeWearPrefsDatasource())
+		val projects = TestProjects()
 		return WearRootComponent(
 			componentContext = componentContext,
 			globalSettingsStore = globalSettingsStore,
 			phonePairing = phonePairing,
 			accountUseCase = mockk(relaxed = true),
-			listProjects = ListWatchProjectsUseCase(TestProjects().repository, subscriptions),
+			listProjects = ListWatchProjectsUseCase(projects.repository, subscriptions),
+			projectsRepository = projects.repository,
 			subscriptions = subscriptions,
 			syncCoordinator = FakeSyncCoordinator(),
 			signOutUseCase = mockk(relaxed = true),
@@ -150,13 +152,30 @@ class WearRootComponentTest : WearTestBase() {
 	}
 
 	@Test
-	fun `leaving pairing abandons the pending request`() = runTest(dispatcher) {
+	fun `leaving pairing keeps the request pending so a late reply still lands`() = runTest(dispatcher) {
 		val root = newRoot()
 		resumeLifecycle()
 		root.showPairing()
 		scheduler.advanceUntilIdle()
 
 		root.onBack()
+		scheduler.advanceUntilIdle()
+
+		assertEquals(WearRoot.Destination.Onboarding, root.stack.value.active.instance)
+		// The phone may still be showing its prompt. Abandoning here strands the session the server
+		// mints when the user approves it, leaving the watch signed out with no way to recover it.
+		assertEquals(PairingState.AwaitingConfirmation, phonePairing.state.value)
+	}
+
+	@Test
+	fun `cancelling pairing abandons the pending request`() = runTest(dispatcher) {
+		val root = newRoot()
+		resumeLifecycle()
+		root.showPairing()
+		scheduler.advanceUntilIdle()
+
+		val pairing = root.stack.value.active.instance as WearRoot.Destination.PairingDestination
+		pairing.component.cancel()
 		scheduler.advanceUntilIdle()
 
 		assertEquals(WearRoot.Destination.Onboarding, root.stack.value.active.instance)

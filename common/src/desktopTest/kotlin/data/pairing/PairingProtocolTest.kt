@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.data.pairing.PairingProtocol
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class PairingProtocolTest {
 
@@ -45,6 +46,17 @@ class PairingProtocolTest {
 		val decoded = PairingProtocol.decodeResponse(PairingProtocol.encodeResponse(response))
 
 		assertEquals(response, decoded)
+	}
+
+	@Test
+	fun `the protocol version travels with the request`() {
+		val request = PairRequest(requestId = "req-1", installId = "watch-install", deviceLabel = "Pixel Watch")
+
+		val encoded = PairingProtocol.encodeRequest(request).decodeToString()
+
+		// Left off the wire, a future version decodes as this one and the compatibility check is dead.
+		assertTrue(encoded.contains("\"version\""))
+		assertEquals(99, PairingProtocol.decodeRequest(PairingProtocol.encodeRequest(request.copy(version = 99)))?.version)
 	}
 
 	@Test

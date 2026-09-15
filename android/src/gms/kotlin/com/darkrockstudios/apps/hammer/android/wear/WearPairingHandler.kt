@@ -48,9 +48,18 @@ class WearPairingHandler(
 		return response
 	}
 
-	/** Replies to a request this phone could not read, so the watch stops waiting. */
+	/**
+	 * Replies to a request this phone could not read, so the watch stops waiting. The request id is
+	 * unknown precisely because the payload could not be decoded, so this answers with a blank one,
+	 * which the watch matches against whatever it has pending.
+	 */
 	suspend fun rejectUnreadable(nodeId: String) {
 		send(nodeId, PairResponse.Error(requestId = "", code = PairErrorCode.Unsupported))
+	}
+
+	/** Replies when the confirmation cannot be shown, so the watch can tell the user what to do. */
+	suspend fun reportUnavailable(nodeId: String, request: PairRequest) {
+		send(nodeId, PairResponse.Error(request.requestId, PairErrorCode.PhoneUnavailable))
 	}
 
 	private suspend fun send(nodeId: String, response: PairResponse) {

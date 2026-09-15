@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.utilities.isSuccess
 import com.github.aymanizz.ktori18n.R
 import com.github.aymanizz.ktori18n.t
 import io.ktor.http.*
+import io.ktor.http.auth.HttpAuthHeader
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.*
 import io.ktor.server.plugins.ratelimit.*
@@ -160,9 +161,10 @@ private fun Route.pairInstall() {
 		val principal = call.principal<ServerUserIdPrincipal>()!!
 		val newInstallId = call.receiveParameters()["installId"]
 
-		// Derived from the authenticated token (not client-asserted)
-		val callerInstallId = call.request.headers[HttpHeaders.Authorization]
-			?.substringAfter("Bearer ", "")
+		// Derived from the authenticated token (not client-asserted). Parsed the way Ktor itself
+		// parses it, because the auth scheme is case insensitive.
+		val callerInstallId = (call.request.parseAuthorizationHeader() as? HttpAuthHeader.Single)
+			?.blob
 			?.takeIf { it.isNotBlank() }
 			?.let { accountsRepository.getInstallId(it) }
 

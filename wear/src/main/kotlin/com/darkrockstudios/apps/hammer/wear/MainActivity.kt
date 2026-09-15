@@ -23,6 +23,7 @@ class MainActivity : ComponentActivity() {
 				phonePairing = get(),
 				accountUseCase = get(),
 				listProjects = get(),
+				projectsRepository = get(),
 				subscriptions = get(),
 				syncCoordinator = get(),
 				signOutUseCase = get(),

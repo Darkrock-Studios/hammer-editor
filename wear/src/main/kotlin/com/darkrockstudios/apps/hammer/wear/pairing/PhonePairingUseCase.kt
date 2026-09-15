@@ -83,7 +83,9 @@ class PhonePairingUseCase(
 			Napier.w("Ignoring an unreadable pairing response")
 			return
 		}
-		if (response.requestId != pendingRequestId) {
+		val pending = pendingRequestId
+		// A blank id is the phone answering a request it could not decode well enough to quote back.
+		if (pending == null || (response.requestId.isNotEmpty() && response.requestId != pending)) {
 			Napier.w("Ignoring a pairing response for a request that is no longer pending")
 			return
 		}

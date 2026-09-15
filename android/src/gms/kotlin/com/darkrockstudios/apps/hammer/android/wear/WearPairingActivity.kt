@@ -61,7 +61,7 @@ class WearPairingActivity : ComponentActivity(), KoinComponent {
 		}
 		nodeId = sourceNode
 		request = pairRequest
-		NotificationManagerCompat.from(this).cancel(NOTIFICATION_ID)
+		NotificationManagerCompat.from(this).cancel(notificationId(pairRequest.requestId))
 
 		val accountEmail = if (handler.isSignedIn()) globalSettingsStore.serverSettings?.email else null
 		val settings = globalSettingsStore.globalSettings
@@ -132,9 +132,12 @@ class WearPairingActivity : ComponentActivity(), KoinComponent {
 	}
 
 	companion object {
-		const val NOTIFICATION_ID = 7301
+		private const val NOTIFICATION_ID_BASE = 7301
 		private const val EXTRA_NODE_ID = "node_id"
 		private const val EXTRA_REQUEST = "request"
+
+		/** Per request, so two watches asking at once do not overwrite each other's prompt. */
+		fun notificationId(requestId: String): Int = NOTIFICATION_ID_BASE + (requestId.hashCode() and 0xFFFF)
 
 		fun createIntent(context: Context, nodeId: String, requestPayload: ByteArray): Intent =
 			Intent(context, WearPairingActivity::class.java)

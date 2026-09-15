@@ -41,6 +41,7 @@ class FakeSyncCoordinator : SyncCoordinator {
 	override val status = MutableStateFlow(SyncStatus())
 	val requested = mutableListOf<SyncTrigger>()
 	var autoSyncRequests = 0
+	var autoSyncResets = 0
 
 	override fun requestSync(trigger: SyncTrigger) {
 		requested += trigger
@@ -56,6 +57,10 @@ class FakeSyncCoordinator : SyncCoordinator {
 	}
 
 	override suspend fun <T> runExclusive(block: suspend () -> T): T = block()
+
+	override fun resetAutoSync() {
+		autoSyncResets++
+	}
 }
 
 /** A real [ProjectsRepository] over a fake filesystem. Needs Koin started for its dispatcher. */

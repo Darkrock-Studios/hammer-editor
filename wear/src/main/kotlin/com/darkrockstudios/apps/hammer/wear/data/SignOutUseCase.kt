@@ -22,9 +22,15 @@ class SignOutUseCase(
 	suspend fun signOut() {
 		syncScheduler.cancel()
 		syncCoordinator.runExclusive {
-			globalSettingsStore.deleteServerSettings()
-			projectsRepository.deleteAllLocalData()
-			subscriptions.clear()
+			try {
+				globalSettingsStore.deleteServerSettings()
+				projectsRepository.deleteAllLocalData()
+			} finally {
+				// Even a failed wipe must not leave this account's subscriptions or its auto sync
+				// latch behind for whoever signs in next.
+				subscriptions.clear()
+				syncCoordinator.resetAutoSync()
+			}
 		}
 	}
 }

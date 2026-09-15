@@ -41,4 +41,14 @@ class VersionCodeTest {
 	fun `Wear version code rejects a phone code that reaches the offset`() {
 		wearVersionCode(1_000_000_000)
 	}
+
+	@Test(expected = IllegalArgumentException::class)
+	fun `A version that collides with the wear band is refused for every target`() {
+		getVersionCode("10.0.0")
+	}
+
+	@Test
+	fun `The last version below the wear band is still allowed`() {
+		assertEquals(999_990_000, getVersionCode("9.99.99"))
+	}
 }

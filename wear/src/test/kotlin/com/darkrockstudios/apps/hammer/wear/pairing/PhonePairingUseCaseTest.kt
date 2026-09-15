@@ -132,6 +132,38 @@ class PhonePairingUseCaseTest {
 	}
 
 	@Test
+	fun `a reply the phone could not address is applied to the pending request`() = runTest {
+		useCase.startPairing("Pixel Watch")
+
+		useCase.onResponse(
+			PairingProtocol.encodeResponse(PairResponse.Error(requestId = "", code = PairErrorCode.Unsupported))
+		)
+
+		assertEquals(PairingState.Failed(PairErrorCode.Unsupported), useCase.state.value)
+	}
+
+	@Test
+	fun `a reply with no request pending is ignored even when it is unaddressed`() = runTest {
+		useCase.onResponse(
+			PairingProtocol.encodeResponse(PairResponse.Error(requestId = "", code = PairErrorCode.Unsupported))
+		)
+
+		assertEquals(PairingState.Idle, useCase.state.value)
+	}
+
+	@Test
+	fun `a reply that lands after the screen is gone is still adopted`() = runTest {
+		useCase.startPairing("Pixel Watch")
+		val requestId = pendingRequestId()
+
+		// Leaving the pairing screen no longer abandons the request, so this still applies.
+		useCase.onResponse(PairingProtocol.encodeResponse(PairResponse.Success(requestId, watchSettings)))
+
+		assertEquals(PairingState.Paired, useCase.state.value)
+		verify(exactly = 1) { accountUseCase.applyPairedSettings(watchSettings) }
+	}
+
+	@Test
 	fun `a reply after reset is ignored`() = runTest {
 		useCase.startPairing("Pixel Watch")
 		val requestId = pendingRequestId()

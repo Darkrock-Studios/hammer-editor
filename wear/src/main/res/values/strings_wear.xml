@@ -15,6 +15,7 @@
 	<string name="pairing_failed_not_signed_in">Sign in to a sync server on your phone first</string>
 	<string name="pairing_failed_server">The sync server refused to pair this watch</string>
 	<string name="pairing_failed_unsupported">Update Hammer on your phone and watch, then try again</string>
+	<string name="pairing_failed_phone_unavailable">Open Hammer on your phone, then try again</string>
 	<string name="pairing_retry">Try again</string>
 	<string name="pairing_cancel">Cancel</string>
 

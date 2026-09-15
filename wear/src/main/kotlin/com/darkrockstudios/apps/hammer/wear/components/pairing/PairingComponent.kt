@@ -36,12 +36,7 @@ class PairingComponent(
 	}
 
 	override fun cancel() {
-		onCancel()
-	}
-
-	override fun onDestroy() {
-		super.onDestroy()
-		// Leaving the screen abandons the request; a late reply from the phone is then ignored.
 		phonePairing.reset()
+		onCancel()
 	}
 }

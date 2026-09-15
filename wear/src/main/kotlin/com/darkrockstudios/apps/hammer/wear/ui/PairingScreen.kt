@@ -90,6 +90,7 @@ private fun pairingMessage(state: PairingState): Int = when (state) {
 		PairErrorCode.NotSignedIn -> R.string.pairing_failed_not_signed_in
 		PairErrorCode.ServerRejected -> R.string.pairing_failed_server
 		PairErrorCode.Unsupported -> R.string.pairing_failed_unsupported
+		PairErrorCode.PhoneUnavailable -> R.string.pairing_failed_phone_unavailable
 		null -> R.string.pairing_failed
 	}
 }

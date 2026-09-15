@@ -33,6 +33,10 @@ jobs:
       # buildDebug does not touch androidTest, so stale instrumented tests rot silently otherwise.
       - name: Compile Android instrumented tests
         run: ./gradlew :android:assembleDebugAndroidTest
+      # buildDebug abbreviates to buildDebugPreBundle, which never runs unit tests, and Kover
+      # aggregates only :common and :server, so the phone's unit tests need their own step.
+      - name: Unit test the Android app
+        run: ./gradlew :android:testDebugUnitTest
       - name: Build and unit test the Wear OS app
         run: ./gradlew :wear:assembleDebug :wear:testDebugUnitTest
       - name: Run Kover

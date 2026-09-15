@@ -292,12 +292,40 @@ class ProjectsRepository(
 	}
 
 	/**
+	 * Drops a project's content but keeps the directory and its [ProjectMetadata.FILENAME], so the
+	 * project stays listed and keeps its server id. The sync and project data files go with the
+	 * content, so a later re-download starts from nothing rather than from a baseline claiming the
+	 * content is already present.
+	 */
+	fun deleteProjectContent(projectDef: ProjectDef) {
+		val projectDir = projectDef.path.toOkioPath()
+		if (!fileSystem.exists(projectDir)) return
+		fileSystem.list(projectDir)
+			.filter { it.name != ProjectMetadata.FILENAME }
+			.forEach { entry ->
+				try {
+					fileSystem.deleteRecursively(entry)
+				} catch (e: IOException) {
+					Napier.e("Failed to delete $entry while removing project content", e)
+				}
+			}
+	}
+
+	/**
 	 * Deletes everything under the projects directory: every project along with ideas, backups, and
 	 * account sync state. Only for a client discarding its whole account, such as a Wear OS sign out.
 	 */
 	fun deleteAllLocalData() {
 		val projectsDir = getProjectsDirectory().toOkioPath()
-		fileSystem.list(projectsDir).forEach { fileSystem.deleteRecursively(it) }
+		if (!fileSystem.exists(projectsDir)) return
+		fileSystem.list(projectsDir).forEach { child ->
+			// One unwritable entry must not abandon the rest of the wipe.
+			try {
+				fileSystem.deleteRecursively(child)
+			} catch (e: IOException) {
+				Napier.e("Failed to delete $child while discarding local data", e)
+			}
+		}
 	}
 
 	companion object {

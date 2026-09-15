@@ -11,6 +11,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.wear.components.pairing.PairingComponent
 import com.darkrockstudios.apps.hammer.wear.components.projects.WearProjectsComponent
@@ -32,6 +33,7 @@ class WearRootComponent(
 	private val phonePairing: PhonePairingUseCase,
 	private val accountUseCase: AccountUseCase,
 	private val listProjects: ListWatchProjectsUseCase,
+	private val projectsRepository: ProjectsRepository,
 	private val subscriptions: SubscribedProjectsRepository,
 	private val syncCoordinator: SyncCoordinator,
 	private val signOutUseCase: SignOutUseCase,
@@ -113,6 +115,7 @@ class WearRootComponent(
 				componentContext = componentContext,
 				globalSettingsStore = globalSettingsStore,
 				listProjects = listProjects,
+				projectsRepository = projectsRepository,
 				subscriptions = subscriptions,
 				syncCoordinator = syncCoordinator,
 				signOutUseCase = signOutUseCase,

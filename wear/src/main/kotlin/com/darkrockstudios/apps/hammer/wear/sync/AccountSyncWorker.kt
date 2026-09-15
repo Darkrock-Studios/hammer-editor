@@ -21,7 +21,12 @@ class AccountSyncWorker(
 		return when (val run = coordinator.sync(SyncTrigger.Periodic)) {
 			SyncRunResult.Skipped -> Result.success()
 			SyncRunResult.Failed -> Result.retry()
-			is SyncRunResult.Completed -> if (run.result.accountSuccess) Result.success() else Result.retry()
+			is SyncRunResult.Completed -> when {
+				run.result.accountSuccess -> Result.success()
+				// Only the user can mint a new session, so retrying just wakes the radio.
+				coordinator.status.value.needsReauth -> Result.success()
+				else -> Result.retry()
+			}
 		}
 	}
 }

@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncOutcome
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.wear.FakeSyncCoordinator
 import com.darkrockstudios.apps.hammer.wear.FakeWearPrefsDatasource
 import com.darkrockstudios.apps.hammer.wear.TestProjects
@@ -43,7 +44,7 @@ class WearProjectsComponentTest : WearTestBase() {
 		syncLogShown = false
 	}
 
-	private fun newComponent(): WearProjectsComponent {
+	private fun newComponent(advanceToIdle: Boolean = true): WearProjectsComponent {
 		val globalSettingsStore = mockk<GlobalSettingsStore>()
 		every { globalSettingsStore.serverSettings } returns ServerSettings(
 			url = "hammer.ink",
@@ -56,6 +57,7 @@ class WearProjectsComponentTest : WearTestBase() {
 			componentContext = componentContext,
 			globalSettingsStore = globalSettingsStore,
 			listProjects = ListWatchProjectsUseCase(projects.repository, subscriptions),
+			projectsRepository = projects.repository,
 			subscriptions = subscriptions,
 			syncCoordinator = coordinator,
 			signOutUseCase = signOutUseCase,
@@ -63,7 +65,7 @@ class WearProjectsComponentTest : WearTestBase() {
 			onShowSyncLog = { syncLogShown = true },
 		).also {
 			resumeLifecycle()
-			scheduler.advanceUntilIdle()
+			if (advanceToIdle) scheduler.advanceUntilIdle()
 		}
 	}
 
@@ -97,16 +99,37 @@ class WearProjectsComponentTest : WearTestBase() {
 	}
 
 	@Test
-	fun `unsubscribing does not start a sync`() = runTest(dispatcher) {
-		projects.create("Alpha", serverId = "a")
+	fun `unsubscribing drops the content but leaves the project listed`() = runTest(dispatcher) {
+		val projectDef = projects.create("Alpha", serverId = "a")
+		val sceneDir = projectDef.path.toOkioPath() / "scenes"
+		projects.fileSystem.createDirectories(sceneDir)
+		projects.fileSystem.write(sceneDir / "1.md") { writeUtf8("a scene synced to the watch") }
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		val component = newComponent()
 
 		component.toggleSubscription("Alpha")
 		scheduler.advanceUntilIdle()
 
+		assertFalse(projects.fileSystem.exists(sceneDir))
+		// The row has to survive, or the project cannot be subscribed to again without a sync first.
 		assertFalse(component.row("Alpha").subscribed)
+		assertTrue(component.row("Alpha").canSubscribe)
+		assertEquals(emptySet<ProjectId>(), subscriptions.currentSubscriptions())
 		assertEquals(emptyList<SyncTrigger>(), coordinator.requested)
+	}
+
+	@Test
+	fun `the list is not reported as empty until it has loaded`() = runTest(dispatcher) {
+		projects.create("Alpha", serverId = "a")
+
+		val component = newComponent(advanceToIdle = false)
+
+		assertFalse(component.state.value.loaded)
+
+		scheduler.advanceUntilIdle()
+
+		assertTrue(component.state.value.loaded)
+		assertEquals(listOf("Alpha"), component.state.value.projects.map { it.name })
 	}
 
 	@Test

@@ -8,6 +8,11 @@ fun getVersionCode(semVarStr: String): Int {
 	val semVar = parseSemVar(semVarStr)
 	val versionCode = semVar.createVersionCode(isRelease, buildNumber)
 
+	require(versionCode in 0 until WEAR_VERSION_CODE_OFFSET) {
+		"Version $semVarStr produces version code $versionCode, which runs into the Wear OS band at " +
+			"$WEAR_VERSION_CODE_OFFSET. Rework the version code scheme before releasing 10.0.0."
+	}
+
 	return versionCode
 }
 

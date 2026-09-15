@@ -80,6 +80,17 @@ class WearPairingHandlerTest {
 	}
 
 	@Test
+	fun `a phone that cannot raise the prompt tells the watch rather than going quiet`() = runTest {
+		handler().reportUnavailable("watch-node", request)
+
+		assertEquals(
+			listOf("watch-node" to PairResponse.Error("req-1", PairErrorCode.PhoneUnavailable)),
+			responder.sent,
+		)
+		assertEquals(emptyList<String>(), pairedInstalls)
+	}
+
+	@Test
 	fun `a request from a newer protocol version is refused`() = runTest {
 		val response = handler().approve("watch-node", request.copy(version = 99))
 

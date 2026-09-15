@@ -1,11 +1,13 @@
 package repositories.projectsrepository
 
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
+import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import io.mockk.every
 import io.mockk.mockk
@@ -56,6 +58,34 @@ class ProjectsRepositoryDeleteAllLocalDataTest : BaseTest() {
 
 		assertTrue(ffs.exists("/projects".toPath()))
 		assertEquals(emptyList(), ffs.list("/projects".toPath()))
+		assertEquals(emptyList(), projectsRepository.getProjects())
+	}
+
+	@Test
+	fun `a project's content goes but the project itself stays listed`() {
+		projectsRepository.createProject("Alpha", seedDefaultLanguage = false)
+		val projectDef = projectsRepository.getProjects().single()
+		val projectDir = projectDef.path.toOkioPath()
+		ffs.createDirectories(projectDir / "scenes")
+		ffs.write(projectDir / "scenes" / "1.md") { writeUtf8("a scene synced from the server") }
+		ffs.write(projectDir / ".sync.json") { writeUtf8("{}") }
+
+		projectsRepository.deleteProjectContent(projectDef)
+
+		// Only the metadata survives: the sync baseline has to go, or a re-download would believe
+		// the content it just deleted is still present.
+		assertEquals(listOf(projectDir / ProjectMetadata.FILENAME), ffs.list(projectDir))
+		assertEquals(listOf(projectDef), projectsRepository.getProjects())
+	}
+
+	@Test
+	fun `removing the content of a project that is already gone does nothing`() {
+		projectsRepository.createProject("Alpha", seedDefaultLanguage = false)
+		val projectDef = projectsRepository.getProjects().single()
+		ffs.deleteRecursively(projectDef.path.toOkioPath())
+
+		projectsRepository.deleteProjectContent(projectDef)
+
 		assertEquals(emptyList(), projectsRepository.getProjects())
 	}
 }

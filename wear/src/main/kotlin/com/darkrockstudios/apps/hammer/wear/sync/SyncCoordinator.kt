@@ -48,6 +48,9 @@ interface SyncCoordinator {
 
 	/** Runs [block] once no sync is in progress, holding off new syncs until it returns. */
 	suspend fun <T> runExclusive(block: suspend () -> T): T
+
+	/** Clears the once-per-process latch so the next account signed in still syncs on open. */
+	fun resetAutoSync()
 }
 
 class DefaultSyncCoordinator(
@@ -103,6 +106,10 @@ class DefaultSyncCoordinator(
 	}
 
 	override suspend fun <T> runExclusive(block: suspend () -> T): T = mutex.withLock { block() }
+
+	override fun resetAutoSync() {
+		autoSynced.set(false)
+	}
 
 	private val listener = object : SyncAccountListener {
 		override suspend fun onLog(message: SyncLogMessage) {

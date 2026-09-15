@@ -20,6 +20,9 @@ object PairingProtocol {
 	private val json = Json {
 		ignoreUnknownKeys = true
 		classDiscriminator = "type"
+		// [PairRequest.version] is a defaulted field, and the compatibility check depends on it
+		// actually reaching the other device.
+		encodeDefaults = true
 	}
 
 	fun encodeRequest(request: PairRequest): ByteArray =
@@ -77,4 +80,7 @@ enum class PairErrorCode {
 	NotSignedIn,
 	ServerRejected,
 	Unsupported,
+
+	/** The phone got the request but could not put the confirmation in front of the user. */
+	PhoneUnavailable,
 }
