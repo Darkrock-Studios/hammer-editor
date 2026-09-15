@@ -1,6 +1,7 @@
 package util
 
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
+import com.darkrockstudios.apps.hammer.common.DIAGNOSTICS_LOG_HEADER
 import com.darkrockstudios.apps.hammer.common.buildDiagnosticsReport
 import kotlinx.coroutines.test.runTest
 import okio.Path.Companion.toPath
@@ -54,7 +55,7 @@ class DiagnosticsTest {
 	fun `only the tail of a long log is taken`() = runTest {
 		writeLog("current.txt", (1..500).joinToString("\n") { "line $it" })
 
-		val logLines = report().substringAfter("\n\n").lines()
+		val logLines = report().substringAfter("$DIAGNOSTICS_LOG_HEADER\n").lines()
 
 		assertEquals(200, logLines.size)
 		assertEquals("line 301", logLines.first())
@@ -75,5 +76,57 @@ class DiagnosticsTest {
 
 		assertTrue(report.startsWith("Hammer v${BuildMetadata.APP_VERSION}"))
 		assertTrue(report.endsWith("(no log file found)"))
+	}
+
+	@Test
+	fun `the latest crash is included even when a newer session log exists`() = runTest {
+		writeLog("crash-1000.txt", "java.lang.IllegalStateException: boom\n\tat Somewhere.kt:1")
+		writeLog("2026-01-02T000000Z.txt", "after the restart\n")
+
+		val report = report()
+
+		assertTrue(report.contains("crash-1000.txt"))
+		assertTrue(report.contains("java.lang.IllegalStateException: boom"))
+		assertTrue(report.endsWith("after the restart"))
+	}
+
+	@Test
+	fun `only the newest crash is included`() = runTest {
+		writeLog("crash-2000.txt", "the newer crash")
+		writeLog("crash-1000.txt", "the older crash")
+
+		val report = report()
+
+		assertTrue(report.contains("the newer crash"))
+		assertFalse(report.contains("the older crash"))
+	}
+
+	@Test
+	fun `a crash dump is never used as the current log`() = runTest {
+		writeLog("2026-01-01T000000Z.txt", "the session log\n")
+		writeLog("crash-1000.txt", "the crash")
+
+		val logSection = report().substringAfter("$DIAGNOSTICS_LOG_HEADER\n")
+
+		assertEquals("the session log", logSection)
+	}
+
+	@Test
+	fun `there is no crash section without a crash dump`() = runTest {
+		writeLog("2026-01-01T000000Z.txt", "the session log\n")
+
+		assertFalse(report().contains("crash", ignoreCase = true))
+	}
+
+	@Test
+	fun `only the head of a very long crash is taken`() = runTest {
+		writeLog("crash-1000.txt", (1..1000).joinToString("\n") { "frame $it" })
+
+		val report = report()
+
+		assertTrue(report.contains("frame 1\n"))
+		assertTrue(report.contains("frame 300\n"))
+		assertFalse(report.contains("frame 301"))
+		assertTrue(report.contains("700 more lines"))
 	}
 }
