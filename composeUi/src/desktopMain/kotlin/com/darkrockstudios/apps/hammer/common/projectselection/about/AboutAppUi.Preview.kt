@@ -39,4 +39,5 @@ private val previewComponent = object : AboutApp {
 	override fun openGithub() {}
 	override fun viewChangelog() {}
 	override fun openLatestRelease() {}
+	override fun reportBug() {}
 }

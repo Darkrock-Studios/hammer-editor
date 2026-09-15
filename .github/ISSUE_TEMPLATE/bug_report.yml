@@ -1,0 +1,35 @@
+name: Bug report
+description: Something isn't working.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: And what did you expect instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Filled in when you report from Hammer's About screen.
+
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: About > Copy Diagnostics, then paste here.
+      render: text
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Full logs (optional)
+      description: About > Export Logs, then drag the zip here.
