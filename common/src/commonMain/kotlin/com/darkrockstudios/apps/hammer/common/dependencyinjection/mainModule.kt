@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStory
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
@@ -221,6 +222,7 @@ val mainModule = module {
 
 	factory<AccountUseCase>()
 	factory<AccountReauthUseCase>()
+	factory<SyncAccountUseCase>()
 
 	single(named(RAW_FILESYSTEM)) { getPlatformFilesystem() } bind FileSystem::class
 

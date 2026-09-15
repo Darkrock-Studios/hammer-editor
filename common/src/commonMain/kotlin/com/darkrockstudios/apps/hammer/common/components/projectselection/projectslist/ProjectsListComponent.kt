@@ -26,16 +26,14 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStat
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncOutcome
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountListener
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeaConflict
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.OnSyncLog
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogE
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogI
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncAccLogW
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogE
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogI
-import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.syncLogW
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -48,11 +46,8 @@ import com.darkrockstudios.apps.hammer.project_home_action_import_toast_failure
 import com.darkrockstudios.apps.hammer.project_home_action_import_toast_success
 import com.darkrockstudios.apps.hammer.projects_list_toast_sync_complete
 import com.darkrockstudios.apps.hammer.projects_list_toast_sync_failed
-import com.darkrockstudios.apps.hammer.sync_log_begin_account
-import com.darkrockstudios.apps.hammer.sync_log_begin_project
-import com.darkrockstudios.apps.hammer.sync_log_begin_projects
+import com.darkrockstudios.apps.hammer.sync_log_account_failed
 import com.darkrockstudios.apps.hammer.sync_log_end_projects
-import com.darkrockstudios.apps.hammer.sync_log_project_conflict
 import io.github.aakira.napier.Napier
 import korlibs.datastructure.iterators.parallelMap
 import kotlinx.coroutines.CancellationException
@@ -61,22 +56,18 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.cancel
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.yield
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.IOException
 import okio.Path.Companion.toPath
 import org.koin.core.component.inject
-import org.koin.core.parameter.parametersOf
 import kotlin.coroutines.coroutineContext
 import kotlin.time.Clock
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData as StoredData
@@ -92,6 +83,7 @@ class ProjectsListComponent(
 	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectsRepository: ProjectsRepository by inject()
 	private val projectsSynchronizer: ClientAccountSynchronizer by inject()
+	private val syncAccountUseCase: SyncAccountUseCase by inject()
 	private val protocolMismatchRepository: ProtocolMismatchRepository by inject()
 	private val networkConnectivity: NetworkConnectivity by inject()
 	private val projectMetadataDatasource: ProjectMetadataDatasource by inject()
@@ -522,83 +514,44 @@ class ProjectsListComponent(
 		}
 	}
 
-	private suspend fun syncProject(
-		projectDef: ProjectDef,
-		onLog: OnSyncLog,
-		onProgress: suspend (Float, SyncLogMessage?) -> Unit
-	): ProjectSyncOutcome {
-		onLog(syncLogI(strRes.get(Res.string.sync_log_begin_project, projectDef.name), projectDef))
+	private val syncListener = object : SyncAccountListener {
+		override suspend fun onLog(message: SyncLogMessage) {
+			onSyncLog(message)
+		}
 
-		var success = false
-		var conflicted = false
+		override suspend fun onProjectsDiscovered(projects: List<ProjectDef>) {
+			syncNewProjectStatus(projects)
+		}
 
-		try {
-			temporaryProjectTask(projectDef) { projScope ->
-				val synchronizer: ClientProjectSynchronizer =
-					projScope.get { parametersOf(projectDef) }
-				val conflictBroker: ProjectDataConflictBroker =
-					projScope.get { parametersOf(projectDef) }
+		override suspend fun onProjectProgress(projectDef: ProjectDef, progress: Float?) {
+			syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing, progress)
+		}
 
-				coroutineScope {
-					// Bulk account sync has no interactive resolver. A project-data conflict reports
-					// to the broker and waits on resolutions forever, leaving the project stuck
-					// "Syncing". Watch for it and abort so the project stops instead of hanging.
-					val conflictWatcher = launch {
-						for (conflict in conflictBroker.conflicts) {
-							onLog(
-								syncLogW(
-									strRes.get(
-										Res.string.sync_log_project_conflict,
-										projectDef.name
-									),
-									projectDef
-								)
-							)
-							conflicted = true
-							conflictBroker.abort()
-						}
-					}
+		override suspend fun onProjectOutcome(projectDef: ProjectDef, outcome: ProjectSyncOutcome) {
+			when (outcome) {
+				ProjectSyncOutcome.Success,
+				ProjectSyncOutcome.Unchanged ->
+					syncProgressStatus(projectDef.name, ProjectsList.Status.Complete, progress = 1f)
 
-					try {
-						success = synchronizer.sync(
-							onProgress = onProgress,
-							onLog = { message -> onLog(message) },
-							onConflict = {
-								onLog(
-									syncLogW(
-										strRes.get(
-											Res.string.sync_log_project_conflict,
-											projectDef.name
-										),
-										projectDef
-									)
-								)
-								conflicted = true
-								throw IllegalStateException("Entity conflict must be handled by Project sync")
-							},
-							onComplete = {},
-							onUnauthorized = ::showReauth
-						)
-					} finally {
-						conflictWatcher.cancel()
-					}
-				}
+				ProjectSyncOutcome.NeedsResolution ->
+					syncProgressStatus(projectDef.name, ProjectsList.Status.NeedsResolution)
+
+				ProjectSyncOutcome.Failed ->
+					syncProgressStatus(projectDef.name, ProjectsList.Status.Failed)
+
+				ProjectSyncOutcome.NotOnServer,
+				ProjectSyncOutcome.Skipped ->
+					syncProgressStatus(projectDef.name, ProjectsList.Status.Pending)
 			}
-		} catch (e: CancellationException) {
-			throw e
-		} catch (e: Exception) {
-			// A conflict aborts the entity sync by throwing; that's a resolvable state, not a failure.
-			if (!conflicted) throw e
 		}
 
-		return when {
-			success -> ProjectSyncOutcome.Success
-			conflicted -> ProjectSyncOutcome.NeedsResolution
-			else -> ProjectSyncOutcome.Failed
+		override suspend fun onUnauthorized() {
+			showReauth()
 		}
+
+		override suspend fun onIdeaConflict(conflict: IdeaConflict): StoryIdea? =
+			this@ProjectsListComponent.onIdeaConflict(conflict)
 	}
-
-	private enum class ProjectSyncOutcome { Success, NeedsResolution, Failed }
 
 	private suspend fun syncNewProjectStatus(projects: List<ProjectDef>) {
 		val newStatuses = mutableMapOf<String, ProjectsList.ProjectSyncStatus>()
@@ -684,103 +637,7 @@ class ProjectsListComponent(
 
 		syncProjectsJob = newScope.launch {
 			try {
-				var projects = projectsRepository.getProjects()
-				syncNewProjectStatus(projects)
-
-				onSyncLog(syncAccLogI(strRes.get(Res.string.sync_log_begin_account)))
-
-				var ideasSuccess = true
-				val success = projectsSynchronizer.syncProjects(
-					onLog = ::onSyncLog,
-					onUnauthorized = ::showReauth,
-					onIdeaConflict = ::onIdeaConflict,
-					onIdeasSyncResult = { ideasSuccess = it },
-				)
-
-				yield()
-
-				var allSuccess = success && ideasSuccess
-				if (success) {
-					onSyncLog(syncAccLogI(strRes.get(Res.string.sync_log_begin_projects)))
-
-					projects = projectsRepository.getProjects()
-					syncNewProjectStatus(projects)
-
-					// Only sync projects that have a serverProjectId assigned
-					val projectsToSync = projects.mapNotNull { projectDef ->
-						val metadata = projectMetadataDatasource.loadMetadata(projectDef)
-						val serverProjectId = metadata.info.serverProjectId
-						if (serverProjectId == null) {
-							Napier.w { "Skipping project sync for '${projectDef.name}' - no server project ID yet" }
-							syncProgressStatus(projectDef.name, ProjectsList.Status.Pending)
-							null
-						} else {
-							SyncedProjectDefinition(projectDef, serverProjectId)
-						}
-					}
-
-					// Pre-sync change probe: skip projects the server confirms are unchanged.
-					val unchangedProjectIds =
-						projectsSynchronizer.probeUnchangedProjects(projectsToSync)
-
-					projectsToSync.parallelMap { synced ->
-						val projectDef = synced.projectDef
-						newScope.launch {
-							try {
-								if (synced.projectId in unchangedProjectIds) {
-									onSyncLog(syncLogI("No changes — skipped", projectDef))
-									syncProgressStatus(
-										projectDef.name,
-										ProjectsList.Status.Complete,
-										progress = 1f,
-									)
-									return@launch
-								}
-
-								syncProgressStatus(projectDef.name, ProjectsList.Status.Syncing)
-
-								suspend fun onProgress(progress: Float, message: SyncLogMessage?) {
-									syncProgressStatus(
-										projectDef.name,
-										ProjectsList.Status.Syncing,
-										progress
-									)
-									if (message != null) onSyncLog(message)
-								}
-
-								val outcome = syncProject(projectDef, ::onSyncLog, ::onProgress)
-								allSuccess = allSuccess && (outcome == ProjectSyncOutcome.Success)
-
-								val newStatus = when (outcome) {
-									ProjectSyncOutcome.Success -> ProjectsList.Status.Complete
-									ProjectSyncOutcome.NeedsResolution -> ProjectsList.Status.NeedsResolution
-									ProjectSyncOutcome.Failed -> ProjectsList.Status.Failed
-								}
-								syncProgressStatus(
-									projectDef.name,
-									newStatus,
-									progress = 1f.takeIf { newStatus == ProjectsList.Status.Complete },
-								)
-							} catch (e: CancellationException) {
-								throw e
-							} catch (e: Exception) {
-								Napier.e("Project sync failed for ${projectDef.name}", e)
-								onSyncLog(
-									syncLogE(
-										"Sync failed: ${e.message ?: "Unknown error"}",
-										projectDef
-									)
-								)
-								allSuccess = false
-								syncProgressStatus(projectDef.name, ProjectsList.Status.Failed)
-							}
-						}
-					}.joinAll()
-				} else {
-					projects.forEach { projectDef ->
-						syncProgressStatus(projectDef.name, ProjectsList.Status.Failed)
-					}
-				}
+				val allSuccess = syncAccountUseCase.execute(syncListener).allSuccess
 
 				callback(allSuccess)
 
@@ -805,7 +662,9 @@ class ProjectsListComponent(
 				throw e
 			} catch (e: Exception) {
 				Napier.e("Projects sync failed", e)
-				onSyncLog(syncAccLogE("Sync failed: ${e.message ?: "Unknown error"}"))
+				onSyncLog(
+					syncAccLogE(strRes.get(Res.string.sync_log_account_failed, e.message ?: "Unknown error"))
+				)
 				callback(false)
 
 				withContext(NonCancellable + mainDispatcher) {
