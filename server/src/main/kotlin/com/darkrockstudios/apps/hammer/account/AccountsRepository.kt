@@ -239,6 +239,29 @@ class AccountsRepository(
 	}
 
 	/**
+	 * Mints a session for another of the user's devices. Tokens are stored per install, so
+	 * minting for the caller's own install would replace the caller's session; that is refused.
+	 */
+	suspend fun pairInstall(userId: Long, callerInstallId: String, newInstallId: String): SResult<Token> {
+		val installId = newInstallId.trim()
+		return when {
+			installId.isEmpty() -> SResult.failure(
+				"Invalid install id",
+				Msg.r("api_accounts_pair_error_invalidinstall"),
+				InvalidInstallId("Blank install id")
+			)
+
+			installId == callerInstallId -> SResult.failure(
+				"Same install id",
+				Msg.r("api_accounts_pair_error_sameinstall"),
+				InvalidInstallId("Install id matches the caller")
+			)
+
+			else -> SResult.success(createToken(userId, installId))
+		}
+	}
+
+	/**
 	 * Delete auth tokens whose refresh window has fully elapsed, i.e. they can no
 	 * longer be used to authenticate or to refresh. A still-refreshable row (within
 	 * [REFRESH_TOKEN_WINDOW] of its access expiry) is never touched.

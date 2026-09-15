@@ -25,6 +25,9 @@ fun Route.accountRoutes() {
 		rateLimit(RateLimitName(LOGIN_RATE_LIMIT)) {
 			createAccount()
 			login()
+			authenticate(USER_AUTH) {
+				pairInstall()
+			}
 		}
 		refreshToken()
 		authenticate(USER_AUTH) {
@@ -143,6 +146,62 @@ private fun Route.refreshToken() {
 					error = "Unauthorized",
 					displayMessage = result.displayMessageText(call, R("api_accounts_tokenrefresh_error")),
 					errorCode = ApiErrorCode.TOKEN_INVALID,
+				)
+			)
+		}
+	}
+}
+
+private fun Route.pairInstall() {
+	val accountsComponent: AccountsComponent = get()
+	val accountsRepository: AccountsRepository = get()
+
+	post("/pair_install/{userId}") {
+		val principal = call.principal<ServerUserIdPrincipal>()!!
+		val newInstallId = call.receiveParameters()["installId"]
+
+		// Derived from the authenticated token (not client-asserted)
+		val callerInstallId = call.request.headers[HttpHeaders.Authorization]
+			?.substringAfter("Bearer ", "")
+			?.takeIf { it.isNotBlank() }
+			?.let { accountsRepository.getInstallId(it) }
+
+		if (newInstallId == null || callerInstallId == null) {
+			call.respond(
+				status = HttpStatusCode.BadRequest,
+				HttpResponseError(
+					error = "Missing install id",
+					displayMessage = call.t(R("api_accounts_pair_error_invalidinstall")),
+				)
+			)
+			return@post
+		}
+
+		val result = accountsComponent.pairInstall(
+			userId = principal.id,
+			callerInstallId = callerInstallId,
+			newInstallId = newInstallId,
+		)
+		if (isSuccess(result)) {
+			call.application.environment.log.info("Paired a new install for user ${principal.id}")
+			call.respond(HttpStatusCode.Created, result.data)
+		} else {
+			val status = when (result.exception) {
+				is InvalidInstallId -> HttpStatusCode.BadRequest
+				is NotWhitelisted -> HttpStatusCode.Forbidden
+				else -> HttpStatusCode.Unauthorized
+			}
+			val errorCode = when (result.exception) {
+				is InvalidInstallId -> null
+				is NotWhitelisted -> ApiErrorCode.NOT_WHITELISTED
+				else -> ApiErrorCode.TOKEN_INVALID
+			}
+			call.respond(
+				status = status,
+				HttpResponseError(
+					error = "Failed to pair install",
+					displayMessage = result.displayMessageText(call, R("api_accounts_pair_error")),
+					errorCode = errorCode,
 				)
 			)
 		}

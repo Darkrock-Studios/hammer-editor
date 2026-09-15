@@ -1,6 +1,6 @@
 # Hammer for Wear OS
 
-_Design doc. Status: planned, not started._
+_Design doc. Status: phases 1 and 2 implemented on the `wear-app` branch; phase 3 in progress._
 
 A standalone Wear OS client for capturing notes and ideas while away from a desk, and for
 listening to scenes read aloud. It reuses the `common` data and sync layers unchanged and

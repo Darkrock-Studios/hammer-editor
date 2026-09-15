@@ -34,4 +34,7 @@ class LoginFailed(message: String) : Exception(message)
 /** Credentials were fine (or irrelevant); the account simply isn't allowed on this server. */
 class NotWhitelisted : Exception("User not on whitelist")
 
+/** A pairing request named no install, or named the caller's own install. */
+class InvalidInstallId(message: String) : Exception(message)
+
 class AccountNotFound(userId: Long) : Exception("User ID ($userId) not found")
