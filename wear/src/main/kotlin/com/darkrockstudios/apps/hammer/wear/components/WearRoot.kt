@@ -5,6 +5,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.wear.components.pairing.Pairing
 import com.darkrockstudios.apps.hammer.wear.components.projects.WearProjects
 import com.darkrockstudios.apps.hammer.wear.components.signin.ManualSignIn
+import com.darkrockstudios.apps.hammer.wear.components.synclog.SyncLog
 import kotlinx.serialization.Serializable
 
 interface WearRoot {
@@ -27,6 +28,9 @@ interface WearRoot {
 
 		@Serializable
 		data object Projects : Config
+
+		@Serializable
+		data object SyncLog : Config
 	}
 
 	sealed interface Destination {
@@ -34,5 +38,6 @@ interface WearRoot {
 		data class PairingDestination(val component: Pairing) : Destination
 		data class ManualSignInDestination(val component: ManualSignIn) : Destination
 		data class ProjectsDestination(val component: WearProjects) : Destination
+		data class SyncLogDestination(val component: SyncLog) : Destination
 	}
 }

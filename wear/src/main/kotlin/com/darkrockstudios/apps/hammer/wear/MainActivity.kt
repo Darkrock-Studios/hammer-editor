@@ -5,10 +5,12 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import com.arkivanov.decompose.retainedComponent
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.wear.components.WearRootComponent
 import com.darkrockstudios.apps.hammer.wear.ui.WearRootUi
 import com.darkrockstudios.apps.hammer.wear.ui.theme.HammerWearTheme
 import org.koin.android.ext.android.get
+import org.koin.core.qualifier.named
 
 class MainActivity : ComponentActivity() {
 	override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,6 +22,11 @@ class MainActivity : ComponentActivity() {
 				globalSettingsStore = get(),
 				phonePairing = get(),
 				accountUseCase = get(),
+				listProjects = get(),
+				subscriptions = get(),
+				syncCoordinator = get(),
+				signOutUseCase = get(),
+				appScope = get(named(APP_SCOPE)),
 				strRes = get(),
 				deviceLabel = Build.MODEL,
 			)

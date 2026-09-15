@@ -42,6 +42,7 @@ dependencies {
 	testImplementation(libs.koin.test)
 	testImplementation(libs.mockk)
 	testImplementation(libs.jetbrains.compose.components.resources)
+	testImplementation(libs.tomlkt)
 	testImplementation(libs.okio.fakefilesystem)
 }
 

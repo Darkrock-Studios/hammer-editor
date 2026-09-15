@@ -291,6 +291,15 @@ class ProjectsRepository(
 		}
 	}
 
+	/**
+	 * Deletes everything under the projects directory: every project along with ideas, backups, and
+	 * account sync state. Only for a client discarding its whole account, such as a Wear OS sign out.
+	 */
+	fun deleteAllLocalData() {
+		val projectsDir = getProjectsDirectory().toOkioPath()
+		fileSystem.list(projectsDir).forEach { fileSystem.deleteRecursively(it) }
+	}
+
 	companion object {
 		const val MAX_FILENAME_LENGTH = ProjectNameValidator.MAX_LENGTH
 

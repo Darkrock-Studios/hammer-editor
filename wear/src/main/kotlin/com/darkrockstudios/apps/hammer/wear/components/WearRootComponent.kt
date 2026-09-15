@@ -15,8 +15,14 @@ import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.wear.components.pairing.PairingComponent
 import com.darkrockstudios.apps.hammer.wear.components.projects.WearProjectsComponent
 import com.darkrockstudios.apps.hammer.wear.components.signin.ManualSignInComponent
+import com.darkrockstudios.apps.hammer.wear.components.synclog.SyncLogComponent
+import com.darkrockstudios.apps.hammer.wear.data.ListWatchProjectsUseCase
+import com.darkrockstudios.apps.hammer.wear.data.SignOutUseCase
+import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
 import com.darkrockstudios.apps.hammer.wear.data.isSignedIn
 import com.darkrockstudios.apps.hammer.wear.pairing.PhonePairingUseCase
+import com.darkrockstudios.apps.hammer.wear.sync.SyncCoordinator
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -25,6 +31,11 @@ class WearRootComponent(
 	private val globalSettingsStore: GlobalSettingsStore,
 	private val phonePairing: PhonePairingUseCase,
 	private val accountUseCase: AccountUseCase,
+	private val listProjects: ListWatchProjectsUseCase,
+	private val subscriptions: SubscribedProjectsRepository,
+	private val syncCoordinator: SyncCoordinator,
+	private val signOutUseCase: SignOutUseCase,
+	private val appScope: CoroutineScope,
 	private val strRes: StrRes,
 	private val deviceLabel: String,
 ) : ComponentBase(componentContext), WearRoot {
@@ -49,10 +60,10 @@ class WearRootComponent(
 			globalSettingsStore.serverSettingsUpdates.collect { settings ->
 				withContext(dispatcherMain) {
 					val signedIn = settings.isSignedIn()
-					val onProjects = stack.value.active.configuration == WearRoot.Config.Projects
-					if (signedIn && !onProjects) {
+					val onboarding = stack.value.items.none { it.configuration == WearRoot.Config.Projects }
+					if (signedIn && onboarding) {
 						navigation.replaceAll(WearRoot.Config.Projects)
-					} else if (!signedIn && onProjects) {
+					} else if (!signedIn && !onboarding) {
 						navigation.replaceAll(WearRoot.Config.Onboarding)
 					}
 				}
@@ -101,6 +112,19 @@ class WearRootComponent(
 			WearProjectsComponent(
 				componentContext = componentContext,
 				globalSettingsStore = globalSettingsStore,
+				listProjects = listProjects,
+				subscriptions = subscriptions,
+				syncCoordinator = syncCoordinator,
+				signOutUseCase = signOutUseCase,
+				appScope = appScope,
+				onShowSyncLog = { navigation.pushNew(WearRoot.Config.SyncLog) },
+			)
+		)
+
+		WearRoot.Config.SyncLog -> WearRoot.Destination.SyncLogDestination(
+			SyncLogComponent(
+				componentContext = componentContext,
+				syncCoordinator = syncCoordinator,
 			)
 		)
 	}

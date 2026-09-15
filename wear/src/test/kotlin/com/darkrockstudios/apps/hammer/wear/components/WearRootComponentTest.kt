@@ -5,13 +5,19 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.pairing.PairRequest
 import com.darkrockstudios.apps.hammer.wear.FakeStrRes
+import com.darkrockstudios.apps.hammer.wear.FakeSyncCoordinator
+import com.darkrockstudios.apps.hammer.wear.FakeWearPrefsDatasource
+import com.darkrockstudios.apps.hammer.wear.TestProjects
 import com.darkrockstudios.apps.hammer.wear.WearTestBase
+import com.darkrockstudios.apps.hammer.wear.data.ListWatchProjectsUseCase
+import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
 import com.darkrockstudios.apps.hammer.wear.pairing.PairingState
 import com.darkrockstudios.apps.hammer.wear.pairing.PhonePairingClient
 import com.darkrockstudios.apps.hammer.wear.pairing.PhonePairingUseCase
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -52,14 +58,22 @@ class WearRootComponentTest : WearTestBase() {
 		phonePairing = PhonePairingUseCase(client, globalSettingsStore, mockk<AccountUseCase>(relaxed = true))
 	}
 
-	private fun newRoot() = WearRootComponent(
-		componentContext = componentContext,
-		globalSettingsStore = globalSettingsStore,
-		phonePairing = phonePairing,
-		accountUseCase = mockk(relaxed = true),
-		strRes = FakeStrRes(),
-		deviceLabel = "Pixel Watch",
-	)
+	private fun newRoot(): WearRootComponent {
+		val subscriptions = SubscribedProjectsRepository(FakeWearPrefsDatasource())
+		return WearRootComponent(
+			componentContext = componentContext,
+			globalSettingsStore = globalSettingsStore,
+			phonePairing = phonePairing,
+			accountUseCase = mockk(relaxed = true),
+			listProjects = ListWatchProjectsUseCase(TestProjects().repository, subscriptions),
+			subscriptions = subscriptions,
+			syncCoordinator = FakeSyncCoordinator(),
+			signOutUseCase = mockk(relaxed = true),
+			appScope = CoroutineScope(dispatcher),
+			strRes = FakeStrRes(),
+			deviceLabel = "Pixel Watch",
+		)
+	}
 
 	@Test
 	fun `a signed out watch starts on onboarding`() = runTest(dispatcher) {
@@ -115,6 +129,24 @@ class WearRootComponentTest : WearTestBase() {
 		scheduler.advanceUntilIdle()
 
 		assertEquals(WearRoot.Destination.Onboarding, root.stack.value.active.instance)
+	}
+
+	@Test
+	fun `signing out from the sync log also returns to onboarding`() = runTest(dispatcher) {
+		every { globalSettingsStore.serverSettings } returns signedIn
+		val root = newRoot()
+		resumeLifecycle()
+		scheduler.advanceUntilIdle()
+		val projects = root.stack.value.active.instance as WearRoot.Destination.ProjectsDestination
+		projects.component.showSyncLog()
+		scheduler.advanceUntilIdle()
+		assertInstanceOf(WearRoot.Destination.SyncLogDestination::class.java, root.stack.value.active.instance)
+
+		settingsUpdates.emit(null)
+		scheduler.advanceUntilIdle()
+
+		assertEquals(WearRoot.Destination.Onboarding, root.stack.value.active.instance)
+		assertEquals(0, root.stack.value.backStack.size)
 	}
 
 	@Test

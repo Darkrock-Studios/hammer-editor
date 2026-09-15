@@ -45,5 +45,6 @@ private fun WearDestinationUi(destination: WearRoot.Destination, root: WearRoot)
 		is WearRoot.Destination.PairingDestination -> PairingUi(destination.component)
 		is WearRoot.Destination.ManualSignInDestination -> ManualSignInUi(destination.component)
 		is WearRoot.Destination.ProjectsDestination -> WearProjectsUi(destination.component)
+		is WearRoot.Destination.SyncLogDestination -> SyncLogUi(destination.component)
 	}
 }
