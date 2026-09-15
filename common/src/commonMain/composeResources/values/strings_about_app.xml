@@ -29,4 +29,7 @@
 	<string name="about_logs_open_tooltip">Open log directory</string>
 	<string name="about_logs_export_success">Logs exported.</string>
 	<string name="about_logs_export_failed">Could not export the logs. See the log directory.</string>
+	<string name="about_logs_copy_diagnostics_button">Copy Diagnostics</string>
+	<string name="about_logs_copy_diagnostics_success">Diagnostics copied to the clipboard.</string>
+	<string name="about_logs_copy_diagnostics_failed">Could not copy the diagnostics.</string>
 </resources>
