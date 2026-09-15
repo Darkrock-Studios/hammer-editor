@@ -114,4 +114,14 @@ class HomePageTest : BaseTest() {
 
 		assertFalse(body.contains("instance-band"), "An empty band is worse than no band")
 	}
+
+	@Test
+	fun `GET offers the iOS app through a smart app banner`() = testApplication {
+		mockPageModelDependencies("")
+		configureApp()
+
+		val body = getHome().bodyAsText()
+
+		assertContains(body, "<meta name=\"apple-itunes-app\" content=\"app-id=6770841038\">")
+	}
 }
