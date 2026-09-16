@@ -230,6 +230,32 @@ class SceneContentRepository(
 		}
 	}
 
+	/**
+	 * Drops the buffer and temp file of a scene that no longer exists, cancelling any autosave
+	 * still in flight for it.
+	 *
+	 * Unlike [discardBuffer] there is nothing to reload: the scene's file is gone. A buffer left
+	 * behind by a delete stays in the dirty set for the life of the project scope, and every
+	 * later flush tries to resolve a tree path for a node that is no longer in the tree.
+	 */
+	suspend fun purgeBuffer(sceneItem: SceneItem) {
+		// Joined, not just cancelled, so a mid-flight autosave can't rewrite the temp file
+		// after we delete it below.
+		storeTempJobs.remove(sceneItem.id)?.cancelAndJoin()
+
+		val wasPresent = sceneBuffersLock.withLock {
+			val removed = sceneBuffers.remove(sceneItem.id) != null
+			if (removed) _dirtyBufferIds.value = getDirtyBufferIds()
+			removed
+		}
+
+		clearTempScene(sceneItem)
+
+		if (wasPresent) {
+			Napier.d("Purged buffer of deleted scene ${sceneItem.id}")
+		}
+	}
+
 	/** Stores all currently-dirty buffers to disk via [persist], one per dirty scene. */
 	suspend fun forEachDirtyBuffer(persist: suspend (SceneItem) -> Unit) {
 		getDirtyBufferScenes().forEach { persist(it) }

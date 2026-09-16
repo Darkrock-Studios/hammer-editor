@@ -392,6 +392,89 @@ class SceneEditorServiceTest : BaseTest() {
 		assertEquals("Content of scene id 3", buffer.content.markdown)
 	}
 
+	// Deleting a scene takes its node out of the tree, and a buffer left behind can never be
+	// resolved to a path again: it stays dirty and throws NodeNotFound on every later flush,
+	// which fails every sync of the project for the rest of the session.
+	@Test
+	fun `Deleting a scene with unsaved edits clears its buffer`() = runTest(mainTestDispatcher) {
+		val service = initializedService()
+		val scene = service.getSceneItemFromId(3)!!
+
+		service.loadSceneBuffer(scene)
+		service.onContentChanged(SceneContent(scene, "Unsaved edit"), UpdateSource.Editor)
+		advanceUntilIdle()
+		assertTrue(sceneContentRepository.hasDirtyBuffer(3))
+
+		assertTrue(service.deleteScene(scene))
+
+		assertNull(service.getSceneBuffer(scene))
+		assertFalse(service.hasDirtyBuffers())
+		service.storeAllBuffers()
+	}
+
+	// Belt and braces for the same hazard: whatever stranded the buffer, a flush-all must drop
+	// the orphan rather than throw. The throw escaping storeAllBuffers is what turned a stale
+	// buffer into a failed sync, and into a crash on the window-close flush.
+	@Test
+	fun `Store-all-buffers drops an orphaned buffer and still saves the rest`() =
+		runTest(mainTestDispatcher) {
+			val service = initializedService()
+			val orphaned = service.getSceneItemFromId(3)!!
+			val survivor = service.getSceneItemFromId(1)!!
+
+			// Drained one at a time: the content flow buffers a single update, so back-to-back
+			// edits to different scenes would drop the first.
+			service.loadSceneBuffer(survivor)
+			service.onContentChanged(SceneContent(survivor, "Body 1"), UpdateSource.Editor)
+			advanceUntilIdle()
+			service.loadSceneBuffer(orphaned)
+			service.onContentChanged(SceneContent(orphaned, "Body 3"), UpdateSource.Editor)
+			advanceUntilIdle()
+
+			assertTrue(sceneContentRepository.hasDirtyBuffer(1))
+			assertTrue(sceneContentRepository.hasDirtyBuffer(3))
+
+			// Delete underneath the service so the buffer is stranded, as any tree edit that
+			// skips the service's own cleanup would leave it.
+			assertTrue(repo.deleteScene(orphaned))
+			assertTrue(sceneContentRepository.hasDirtyBuffer(3))
+
+			service.storeAllBuffers()
+
+			assertFalse(service.hasDirtyBuffers())
+			assertNull(service.getSceneBuffer(orphaned))
+			assertEquals(
+				"Body 1",
+				service.loadSceneMarkdownRaw(service.getSceneItemFromId(1)!!),
+			)
+		}
+
+	// Archiving also removes the node from the tree, so unsaved edits have to reach disk before
+	// the move — otherwise they are stranded in a buffer with no resolvable path.
+	@Test
+	fun `Archiving a scene flushes unsaved edits and clears its buffer`() =
+		runTest(mainTestDispatcher) {
+			val service = initializedService()
+			val scene = service.getSceneItemFromId(3)!!
+
+			service.loadSceneBuffer(scene)
+			service.onContentChanged(SceneContent(scene, "Edit before archiving"), UpdateSource.Editor)
+			advanceUntilIdle()
+
+			assertTrue(service.archiveScene(scene))
+
+			assertFalse(service.hasDirtyBuffers())
+			assertNull(service.getSceneBuffer(scene))
+			service.storeAllBuffers()
+
+			val archived = service.getArchivedScenes().single { it.id == 3 }
+			val archivedPath = sceneDatasource.resolveScenePathFromFilesystemIncludingArchived(3)!!
+			assertEquals(
+				"Edit before archiving",
+				service.loadSceneMarkdownRaw(archived, archivedPath),
+			)
+		}
+
 	@Test
 	fun `Autosaving an edited buffer marks stats dirty`() = runTest(mainTestDispatcher) {
 		val service = initializedService()

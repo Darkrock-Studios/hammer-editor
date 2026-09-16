@@ -165,8 +165,13 @@ class ClientProjectSynchronizer(
 	// Runs as cleanup, often from a cancelled sync coroutine
 	private suspend fun endSync() = withContext(NonCancellable) {
 		try {
+			// A sync that failed before begin_sync landed has nothing to close out on the
+			// server. Reporting that as an error buries the real failure in the log.
 			val syncId = syncJournal.loadSyncData().currentSyncId
-				?: throw IllegalStateException("No sync ID")
+			if (syncId == null) {
+				Napier.d("No sync in progress to end")
+				return@withContext
+			}
 			val serverProjectId = projectMetadataDatasource.requireProjectId(projectDef)
 
 			val endSyncResult = serverProjectApi.endProjectSync(

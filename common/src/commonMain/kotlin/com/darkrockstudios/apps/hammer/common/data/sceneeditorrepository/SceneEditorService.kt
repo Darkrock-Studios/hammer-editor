@@ -115,6 +115,9 @@ class SceneEditorService(
 	suspend fun deleteScene(scene: SceneItem): Boolean {
 		val deleted = sceneEditorRepository.deleteScene(scene)
 		if (deleted) {
+			// The node is out of the tree now, so its buffer can never be resolved to a path
+			// again. Left behind, it stays dirty and fails every later flush.
+			sceneContentRepository.purgeBuffer(scene)
 			statisticsRepository.markDirty()
 			referenceIndexRepository.markSceneDeleted(scene.id)
 			writingSessionTracker.forgetBaseline(scene.id)
@@ -124,7 +127,10 @@ class SceneEditorService(
 
 	suspend fun deleteGroup(scene: SceneItem): Boolean {
 		val deleted = sceneEditorRepository.deleteGroup(scene)
-		if (deleted) statisticsRepository.markDirty()
+		if (deleted) {
+			sceneContentRepository.purgeBuffer(scene)
+			statisticsRepository.markDirty()
+		}
 		return deleted
 	}
 
@@ -134,8 +140,19 @@ class SceneEditorService(
 	suspend fun moveScene(moveRequest: MoveRequest) = sceneEditorRepository.moveScene(moveRequest)
 
 	suspend fun archiveScene(scene: SceneItem): Boolean {
+		// Archiving takes the node out of the tree too, so flush first: unsaved edits would
+		// otherwise be stranded in a buffer whose path no longer resolves. If they can't be
+		// saved, leave the scene where it is rather than archive over them.
+		if (sceneContentRepository.hasDirtyBuffer(scene.id) && !storeSceneBuffer(scene)) {
+			Napier.e { "Not archiving scene ${scene.id}, could not save its unsaved edits first" }
+			return false
+		}
+
 		val archived = sceneEditorRepository.archiveScene(scene)
-		if (archived) statisticsRepository.markDirty()
+		if (archived) {
+			sceneContentRepository.purgeBuffer(scene)
+			statisticsRepository.markDirty()
+		}
 		return archived
 	}
 
@@ -180,6 +197,15 @@ class SceneEditorService(
 		val buffer = sceneContentRepository.getSceneBuffer(sceneItem)
 		if (buffer == null) {
 			Napier.e { "Failed to store scene: ${sceneItem.id} - ${sceneItem.name}, no buffer present" }
+			return false
+		}
+
+		// A scene that has left the tree has no path to resolve, and asking for one throws.
+		// Thrown from a flush-all this takes down the sync that triggered it — or the app, when
+		// the flush is the one on window close — so drop the orphan instead and keep going.
+		if (sceneEditorRepository.getSceneItemFromId(sceneItem.id) == null) {
+			Napier.w { "Discarding buffer of scene ${sceneItem.id} - ${sceneItem.name}, no longer in the tree" }
+			sceneContentRepository.purgeBuffer(sceneItem)
 			return false
 		}
 
