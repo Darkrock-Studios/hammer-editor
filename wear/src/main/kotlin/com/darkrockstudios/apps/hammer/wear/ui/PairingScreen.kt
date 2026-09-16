@@ -43,7 +43,7 @@ fun PairingScreen(
 		state == PairingState.AwaitingConfirmation
 
 	ScreenScaffold(scrollState = listState) { contentPadding ->
-		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
+		TransformingLazyColumn(state = listState, contentPadding = screenContentPadding(contentPadding)) {
 			if (waiting) {
 				item {
 					CircularProgressIndicator(modifier = Modifier.size(36.dp))

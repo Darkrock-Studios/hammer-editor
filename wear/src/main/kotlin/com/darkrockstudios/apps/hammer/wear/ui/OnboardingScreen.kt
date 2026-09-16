@@ -21,7 +21,7 @@ fun OnboardingScreen(
 ) {
 	val listState = rememberTransformingLazyColumnState()
 	ScreenScaffold(scrollState = listState) { contentPadding ->
-		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
+		TransformingLazyColumn(state = listState, contentPadding = screenContentPadding(contentPadding)) {
 			item {
 				ListHeader { Text(stringResource(R.string.app_name)) }
 			}

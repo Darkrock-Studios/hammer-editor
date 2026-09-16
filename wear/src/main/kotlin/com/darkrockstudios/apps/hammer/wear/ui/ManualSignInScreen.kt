@@ -112,7 +112,7 @@ fun ManualSignInContent(
 			}
 		},
 	) { contentPadding ->
-		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
+		TransformingLazyColumn(state = listState, contentPadding = screenContentPadding(contentPadding)) {
 			item {
 				ListHeader { Text(stringResource(R.string.sign_in_title)) }
 			}
