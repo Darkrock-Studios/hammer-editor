@@ -35,6 +35,8 @@
 	<string name="projects_empty">Sync to fetch your projects</string>
 	<string name="projects_loading">Loading projects</string>
 	<string name="projects_sync_now">Sync</string>
+	<string name="projects_new_note">New note</string>
+	<string name="projects_new_idea">New idea</string>
 	<string name="projects_sync_log">Sync log</string>
 	<string name="projects_sign_out">Sign out</string>
 	<string name="projects_needs_reauth">Your session expired. Sign out and sign in again.</string>
@@ -55,6 +57,23 @@
 	<string name="project_status_synced">Synced</string>
 	<string name="project_status_needs_resolution">Resolve on phone</string>
 	<string name="project_status_failed">Sync failed</string>
+
+	<string name="capture_title_note">New note</string>
+	<string name="capture_title_idea">New idea</string>
+	<string name="capture_text_label">Text</string>
+	<string name="capture_text_empty">Tap to dictate</string>
+	<string name="capture_project_label">Project</string>
+	<string name="capture_project_loading">Loading</string>
+	<string name="capture_project_none">No project on this watch</string>
+	<string name="capture_save">Save</string>
+	<string name="capture_done">Done</string>
+	<string name="capture_saved">Saved</string>
+	<string name="capture_pending_count">%1$d waiting to sync</string>
+	<string name="capture_pending_none">Synced</string>
+	<string name="capture_no_projects_title">No project yet</string>
+	<string name="capture_no_projects_body">Turn on a project in Hammer to keep it on this watch, then you can add notes to it.</string>
+	<string name="capture_failed">Not saved</string>
+	<string name="capture_failed_body">Something went wrong. Try again.</string>
 
 	<string name="sync_log_title">Sync log</string>
 	<string name="sync_log_empty">Nothing has synced yet</string>

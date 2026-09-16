@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -20,15 +21,20 @@ import androidx.wear.compose.material3.SwitchButton
 import androidx.wear.compose.material3.Text
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncOutcome
+import com.darkrockstudios.apps.hammer.wear.CaptureActivity
 import com.darkrockstudios.apps.hammer.wear.R
+import com.darkrockstudios.apps.hammer.wear.components.capture.Capture
 import com.darkrockstudios.apps.hammer.wear.components.projects.WearProjects
 import kotlin.math.roundToInt
 
 @Composable
 fun WearProjectsUi(component: WearProjects) {
 	val state by component.state.subscribeAsState()
+	val context = LocalContext.current
 	WearProjectsScreen(
 		state = state,
+		onNewNote = { context.startActivity(CaptureActivity.intent(context, Capture.Mode.Note)) },
+		onNewIdea = { context.startActivity(CaptureActivity.intent(context, Capture.Mode.Idea)) },
 		onToggleSubscription = component::toggleSubscription,
 		onSyncNow = component::syncNow,
 		onShowSyncLog = component::showSyncLog,
@@ -42,6 +48,8 @@ fun WearProjectsUi(component: WearProjects) {
 @Composable
 fun WearProjectsScreen(
 	state: WearProjects.State,
+	onNewNote: () -> Unit,
+	onNewIdea: () -> Unit,
 	onToggleSubscription: (projectName: String) -> Unit,
 	onSyncNow: () -> Unit,
 	onShowSyncLog: () -> Unit,
@@ -56,6 +64,8 @@ fun WearProjectsScreen(
 	} else {
 		ProjectsContent(
 			state = state,
+			onNewNote = onNewNote,
+			onNewIdea = onNewIdea,
 			onToggleSubscription = onToggleSubscription,
 			onSyncNow = onSyncNow,
 			onShowSyncLog = onShowSyncLog,
@@ -68,6 +78,8 @@ fun WearProjectsScreen(
 @Composable
 private fun ProjectsContent(
 	state: WearProjects.State,
+	onNewNote: () -> Unit,
+	onNewIdea: () -> Unit,
 	onToggleSubscription: (projectName: String) -> Unit,
 	onSyncNow: () -> Unit,
 	onShowSyncLog: () -> Unit,
@@ -103,6 +115,20 @@ private fun ProjectsContent(
 						modifier = Modifier.fillMaxWidth(),
 					)
 				}
+			}
+			item {
+				FilledTonalButton(
+					onClick = onNewNote,
+					modifier = Modifier.fillMaxWidth(),
+					label = { Text(stringResource(R.string.projects_new_note)) },
+				)
+			}
+			item {
+				FilledTonalButton(
+					onClick = onNewIdea,
+					modifier = Modifier.fillMaxWidth(),
+					label = { Text(stringResource(R.string.projects_new_idea)) },
+				)
 			}
 			if (state.needsReauth || state.lastSyncFailed) {
 				item {

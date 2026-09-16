@@ -17,8 +17,15 @@ class SubscribedProjectsRepository(
 
 	suspend fun currentSubscriptions(): Set<ProjectId> = subscribedProjectIds.first()
 
+	/** The project a capture defaults to, so dictating a note is one tap on a run. */
+	suspend fun lastCaptureProjectId(): ProjectId? = datasource.lastCaptureProjectId.first()?.let(::ProjectId)
+
 	suspend fun setSubscribed(projectId: ProjectId, subscribed: Boolean) {
 		datasource.setSubscribed(projectId.id, subscribed)
+	}
+
+	suspend fun setLastCaptureProject(projectId: ProjectId) {
+		datasource.setLastCaptureProjectId(projectId.id)
 	}
 
 	suspend fun clear() {

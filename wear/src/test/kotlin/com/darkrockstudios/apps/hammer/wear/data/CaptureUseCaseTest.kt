@@ -1,0 +1,103 @@
+package com.darkrockstudios.apps.hammer.wear.data
+
+import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.wear.FakeCaptureSyncScheduler
+import com.darkrockstudios.apps.hammer.wear.FakeCaptureWriter
+import com.darkrockstudios.apps.hammer.wear.FakeUnsyncedContentSource
+import com.darkrockstudios.apps.hammer.wear.FakeWearPrefsDatasource
+import com.darkrockstudios.apps.hammer.wear.TestProjects
+import com.darkrockstudios.apps.hammer.wear.WearTestBase
+import kotlinx.coroutines.test.runTest
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+
+class CaptureUseCaseTest : WearTestBase() {
+
+	private lateinit var projects: TestProjects
+	private lateinit var writer: FakeCaptureWriter
+	private lateinit var unsynced: FakeUnsyncedContentSource
+	private lateinit var captureSync: FakeCaptureSyncScheduler
+	private lateinit var useCase: CaptureUseCase
+
+	@BeforeEach
+	override fun setUp() {
+		super.setUp()
+		projects = TestProjects()
+		writer = FakeCaptureWriter()
+		unsynced = FakeUnsyncedContentSource()
+		captureSync = FakeCaptureSyncScheduler()
+		val subscriptions = SubscribedProjectsRepository(FakeWearPrefsDatasource())
+		useCase = CaptureUseCase(
+			writer = writer,
+			unsyncedContent = UnsyncedContentUseCase(
+				ListWatchProjectsUseCase(projects.repository, subscriptions),
+				unsynced,
+			),
+			captureSync = captureSync,
+		)
+	}
+
+	@Test
+	fun `a dictated note is saved and pushed to the server`() = runTest(dispatcher) {
+		val projectDef = projects.create("Alpha", serverId = "a")
+		unsynced.pendingIdeas = 2
+
+		val result = useCase.capture(CaptureTarget.Note(projectDef), "  salt on the stairs  ")
+
+		assertEquals(listOf("Alpha" to "salt on the stairs"), writer.notes)
+		assertEquals(CaptureResult.Saved(pending = 2), result)
+		assertEquals(1, captureSync.requests)
+	}
+
+	@Test
+	fun `an idea needs no project`() = runTest(dispatcher) {
+		val result = useCase.capture(CaptureTarget.Idea, "a town with one memory")
+
+		assertEquals(listOf("a town with one memory"), writer.ideas)
+		assertEquals(CaptureResult.Saved(pending = 0), result)
+		assertEquals(1, captureSync.requests)
+	}
+
+	@Test
+	fun `blank text is not a capture`() = runTest(dispatcher) {
+		val result = useCase.capture(CaptureTarget.Idea, "   ")
+
+		assertEquals(CaptureResult.Empty, result)
+		assertEquals(emptyList<String>(), writer.ideas)
+		assertEquals(0, captureSync.requests)
+	}
+
+	@Test
+	fun `a rejected write is not reported as saved`() = runTest(dispatcher) {
+		writer.succeed = false
+
+		val result = useCase.capture(CaptureTarget.Idea, "too long, perhaps")
+
+		assertEquals(CaptureResult.Failed, result)
+		assertEquals(0, captureSync.requests)
+	}
+
+	@Test
+	fun `a thrown write is not reported as saved`() = runTest(dispatcher) {
+		writer.failWith = IllegalStateException("disk full")
+
+		val result = useCase.capture(CaptureTarget.Idea, "a thought")
+
+		assertEquals(CaptureResult.Failed, result)
+		assertEquals(0, captureSync.requests)
+	}
+
+	@Test
+	fun `a count that cannot be read still saves the capture`() = runTest(dispatcher) {
+		val projectDef = projects.create("Alpha", serverId = ProjectId("a").id)
+		projects.repository.getProjects()
+		unsynced.failWith = IllegalStateException("no project scope")
+
+		val result = useCase.capture(CaptureTarget.Note(projectDef), "a line worth keeping")
+
+		assertEquals(CaptureResult.Saved(pending = 0), result)
+		assertEquals(1, writer.notes.size)
+		assertEquals(1, captureSync.requests)
+	}
+}

@@ -7,10 +7,12 @@ import com.darkrockstudios.apps.hammer.common.data.pairing.PairErrorCode
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncOutcome
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
+import com.darkrockstudios.apps.hammer.wear.components.capture.Capture
 import com.darkrockstudios.apps.hammer.wear.components.projects.WearProjects
 import com.darkrockstudios.apps.hammer.wear.components.signin.ManualSignIn
 import com.darkrockstudios.apps.hammer.wear.components.synclog.SyncLog
 import com.darkrockstudios.apps.hammer.wear.pairing.PairingState
+import com.darkrockstudios.apps.hammer.wear.ui.CaptureScreen
 import com.darkrockstudios.apps.hammer.wear.ui.ManualSignInContent
 import com.darkrockstudios.apps.hammer.wear.ui.OnboardingScreen
 import com.darkrockstudios.apps.hammer.wear.ui.PairingScreen
@@ -134,6 +136,8 @@ private fun ProjectsPreview(state: WearProjects.State) {
 	WearPreviewFrame {
 		WearProjectsScreen(
 			state = state,
+			onNewNote = {},
+			onNewIdea = {},
 			onToggleSubscription = {},
 			onSyncNow = {},
 			onShowSyncLog = {},
@@ -213,6 +217,106 @@ private fun ProjectsSignOutWarningUnknownPreview() {
 			loaded = true,
 			signOutWarning = WearProjects.SignOutWarning(items = 0),
 		)
+	)
+}
+
+@Composable
+private fun CapturePreview(state: Capture.State) {
+	WearPreviewFrame {
+		CaptureScreen(
+			state = state,
+			onEditText = {},
+			onShowProjectPicker = {},
+			onSelectProject = {},
+			onSave = {},
+			onDone = {},
+		)
+	}
+}
+
+private val previewCaptureProjects = listOf("The Lighthouse", "Salt Roads")
+
+@WearPreviewDevices
+@Composable
+private fun CaptureNoteEmptyPreview() {
+	CapturePreview(
+		Capture.State(
+			mode = Capture.Mode.Note,
+			projects = previewCaptureProjects,
+			projectName = "The Lighthouse",
+			loading = false,
+		)
+	)
+}
+
+@WearPreviewDevices
+@Composable
+private fun CaptureNoteDictatedPreview() {
+	CapturePreview(
+		Capture.State(
+			mode = Capture.Mode.Note,
+			text = "The keeper never lights the lamp on the night his brother visits",
+			projects = previewCaptureProjects,
+			projectName = "The Lighthouse",
+			loading = false,
+		)
+	)
+}
+
+@WearPreviewDevices
+@Composable
+private fun CaptureIdeaPreview() {
+	CapturePreview(
+		Capture.State(
+			mode = Capture.Mode.Idea,
+			text = "A town where everyone shares one memory",
+			loading = false,
+		)
+	)
+}
+
+@WearPreviewDevices
+@Composable
+private fun CaptureProjectPickerPreview() {
+	CapturePreview(
+		Capture.State(
+			mode = Capture.Mode.Note,
+			text = "Salt on the stairs",
+			projects = previewCaptureProjects,
+			projectName = "The Lighthouse",
+			pickingProject = true,
+			loading = false,
+		)
+	)
+}
+
+@WearPreviewDevices
+@Composable
+private fun CaptureSavedPreview() {
+	CapturePreview(
+		Capture.State(
+			mode = Capture.Mode.Note,
+			text = "Salt on the stairs",
+			projectName = "The Lighthouse",
+			loading = false,
+			outcome = Capture.Outcome.Saved(pending = 3),
+		)
+	)
+}
+
+@WearPreviewDevices
+@Composable
+private fun CaptureNoProjectsPreview() {
+	CapturePreview(
+		Capture.State(mode = Capture.Mode.Note, loading = false, outcome = Capture.Outcome.NoProjects)
+	)
+}
+
+@WearPreviewDevices
+@Composable
+private fun CaptureFailedPreview() {
+	CapturePreview(
+		Capture.State(mode = Capture.Mode.Note, loading = false, outcome = Capture.Outcome.Failed)
 	)
 }
 

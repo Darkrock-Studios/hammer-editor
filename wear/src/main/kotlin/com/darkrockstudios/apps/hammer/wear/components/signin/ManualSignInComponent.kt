@@ -24,13 +24,15 @@ class ManualSignInComponent(
 
 	private var password: String = ""
 
+	// The watch's RemoteInput keyboard capitalises the first letter and offers no way to turn that
+	// off, so both of these are folded down to what the server actually matches on.
 	override fun updateServer(server: String) {
-		val trimmed = server.trim()
+		val trimmed = server.trim().lowercase()
 		_state.update { it.copy(server = trimmed, serverInsecure = isInsecureServerUrl(trimmed), error = null) }
 	}
 
 	override fun updateEmail(email: String) {
-		_state.update { it.copy(email = email.trim(), error = null) }
+		_state.update { it.copy(email = email.trim().lowercase(), error = null) }
 	}
 
 	override fun updatePassword(password: String) {

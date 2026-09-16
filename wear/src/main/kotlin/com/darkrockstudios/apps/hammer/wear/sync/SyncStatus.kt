@@ -4,7 +4,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncO
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountResult
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessage
 
-enum class SyncTrigger { AppOpen, Manual, Periodic }
+enum class SyncTrigger { AppOpen, Manual, Periodic, Capture }
 
 /** Per-project progress, keyed by project name like [SyncAccountResult.projects]. */
 data class ProjectSyncState(

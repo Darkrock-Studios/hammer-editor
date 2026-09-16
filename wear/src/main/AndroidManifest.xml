@@ -35,6 +35,11 @@
 			</intent-filter>
 		</activity>
 
+		<activity
+			android:name=".CaptureActivity"
+			android:exported="false"
+			android:taskAffinity="" />
+
 		<service
 			android:name=".pairing.PairingResponseListenerService"
 			android:exported="true">

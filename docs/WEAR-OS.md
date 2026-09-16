@@ -2,8 +2,9 @@
 
 _Design doc. Status: phases 1 to 3 implemented on the `wear-app` branch (sync extraction,
 pairing endpoint, watch app with pairing, sign-in, project subscriptions, and background sync).
-Phase 4 (capture) is in progress: the guards that protect unsynced captures have landed, the
-capture UI has not. Smoke tested on a Wear OS emulator, not yet on a watch._
+Phase 4 (capture) is in progress: the guards, the capture activity, and the expedited sync have
+landed; the tile and complication have not. Note and idea capture are smoke tested end to end on
+a Wear OS emulator against a local server, not yet on a watch._
 
 A standalone Wear OS client for capturing notes and ideas while away from a desk, and for
 listening to scenes read aloud. It reuses the `common` data and sync layers unchanged and
@@ -163,9 +164,13 @@ restriction because they are UUID keyed.
   count of unsynced items. Tiles cannot take input; the buttons launch the activity.
 - **Complication**: a shortcut to the capture activity for watch faces.
 - **Activity**: opens straight into `RemoteInput` (voice first, keyboard fallback). The project
-  defaults to the last-used one and is changed with a scroll picker, never a required step.
+  defaults to the last one captured to and is changed from a list, never a required step.
   Confirm saves through `NotesRepository.createNote` inside `temporaryProjectTask`, exactly
-  like `AddNoteWorker`, then enqueues a sync.
+  like `AddNoteWorker`, then enqueues a sync. Saving runs in the app scope, so a capture still
+  lands if the watch drops the activity mid-save.
+- The `RemoteInput` keyboard opens with shift engaged and offers no way to turn that off, so the
+  sign-in server and email are folded to lowercase. A password cannot be normalised, so a capital
+  there is the user's to fix.
 - **Ideas**: the same flow through `IdeasRepository`, no project step.
 - Show the pending count after save so the user knows the note exists locally even though it
   has not synced.

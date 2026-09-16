@@ -5,6 +5,9 @@ import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountU
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.wear.data.ListWatchProjectsUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SignOutUseCase
+import com.darkrockstudios.apps.hammer.wear.data.CaptureUseCase
+import com.darkrockstudios.apps.hammer.wear.data.CaptureWriter
+import com.darkrockstudios.apps.hammer.wear.data.RepositoryCaptureWriter
 import com.darkrockstudios.apps.hammer.wear.data.RepositoryUnsyncedContentSource
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
 import com.darkrockstudios.apps.hammer.wear.data.UnsyncedContentSource
@@ -15,6 +18,8 @@ import com.darkrockstudios.apps.hammer.wear.pairing.DataLayerPhonePairingClient
 import com.darkrockstudios.apps.hammer.wear.pairing.PhonePairingClient
 import com.darkrockstudios.apps.hammer.wear.pairing.PhonePairingUseCase
 import com.darkrockstudios.apps.hammer.wear.sync.AccountSync
+import com.darkrockstudios.apps.hammer.wear.sync.CaptureSyncScheduler
+import com.darkrockstudios.apps.hammer.wear.sync.WorkManagerCaptureSyncScheduler
 import com.darkrockstudios.apps.hammer.wear.sync.DefaultSyncCoordinator
 import com.darkrockstudios.apps.hammer.wear.sync.SyncCoordinator
 import com.darkrockstudios.apps.hammer.wear.sync.SyncScheduler
@@ -40,6 +45,14 @@ val wearModule: Module = module {
 		RepositoryUnsyncedContentSource(ideasRepository = get(), ideasSyncDatasource = get())
 	}
 	factory { UnsyncedContentUseCase(listProjects = get(), source = get()) }
+	single<CaptureWriter> { RepositoryCaptureWriter(ideasRepository = get()) }
+	single<CaptureSyncScheduler> {
+		WorkManagerCaptureSyncScheduler(
+			workManager = WorkManager.getInstance(androidContext()),
+			globalSettingsStore = get(),
+		)
+	}
+	factory { CaptureUseCase(writer = get(), unsyncedContent = get(), captureSync = get()) }
 
 	single<AccountSync> {
 		val syncAccountUseCase: SyncAccountUseCase = get()

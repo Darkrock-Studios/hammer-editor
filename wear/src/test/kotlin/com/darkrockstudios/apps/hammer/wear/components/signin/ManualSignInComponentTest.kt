@@ -39,6 +39,25 @@ class ManualSignInComponentTest : WearTestBase() {
 	}
 
 	@Test
+	fun `the watch keyboard's capitals are folded away`() = runTest(dispatcher) {
+		coEvery { accountUseCase.setupServer(any(), any(), any(), any(), any()) } returns ServerSetupResult.Success
+		val component = newComponent()
+		// What the Wear RemoteInput keyboard hands back when it capitalises the first letter.
+		component.updateServer("Hammer.ink")
+		component.updateEmail("Writer@example.com")
+		component.updatePassword("hunter2")
+
+		assertEquals("hammer.ink", component.state.value.server)
+		assertEquals("writer@example.com", component.state.value.email)
+
+		component.signIn()
+		scheduler.advanceUntilIdle()
+
+		// The password is passed through untouched; only the user can fix a capital there.
+		coVerify { accountUseCase.setupServer("hammer.ink", "writer@example.com", "hunter2", false, null) }
+	}
+
+	@Test
 	fun `signing in with a field missing asks for it without calling the server`() = runTest(dispatcher) {
 		val component = newComponent()
 		component.updateServer("hammer.ink")

@@ -10,8 +10,10 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
+import com.darkrockstudios.apps.hammer.wear.data.CaptureWriter
 import com.darkrockstudios.apps.hammer.wear.data.UnsyncedContentSource
 import com.darkrockstudios.apps.hammer.wear.data.WearPrefsDatasource
+import com.darkrockstudios.apps.hammer.wear.sync.CaptureSyncScheduler
 import com.darkrockstudios.apps.hammer.wear.sync.SyncCoordinator
 import com.darkrockstudios.apps.hammer.wear.sync.SyncRunResult
 import com.darkrockstudios.apps.hammer.wear.sync.SyncStatus
@@ -26,15 +28,49 @@ import okio.fakefilesystem.FakeFileSystem
 
 class FakeWearPrefsDatasource : WearPrefsDatasource {
 	private val ids = MutableStateFlow<Set<String>>(emptySet())
+	private val lastCapture = MutableStateFlow<String?>(null)
 
 	override val subscribedProjectIds: Flow<Set<String>> = ids
+	override val lastCaptureProjectId: Flow<String?> = lastCapture
 
 	override suspend fun setSubscribed(projectId: String, subscribed: Boolean) {
 		ids.value = if (subscribed) ids.value + projectId else ids.value - projectId
 	}
 
+	override suspend fun setLastCaptureProjectId(projectId: String) {
+		lastCapture.value = projectId
+	}
+
 	override suspend fun clear() {
 		ids.value = emptySet()
+		lastCapture.value = null
+	}
+}
+
+class FakeCaptureWriter : CaptureWriter {
+	val notes = mutableListOf<Pair<String, String>>()
+	val ideas = mutableListOf<String>()
+	var succeed = true
+	var failWith: Exception? = null
+
+	override suspend fun writeNote(projectDef: ProjectDef, text: String): Boolean {
+		failWith?.let { throw it }
+		if (succeed) notes += projectDef.name to text
+		return succeed
+	}
+
+	override suspend fun writeIdea(text: String): Boolean {
+		failWith?.let { throw it }
+		if (succeed) ideas += text
+		return succeed
+	}
+}
+
+class FakeCaptureSyncScheduler : CaptureSyncScheduler {
+	var requests = 0
+
+	override fun syncSoon() {
+		requests++
 	}
 }
 
