@@ -33,6 +33,9 @@ private val MASTHEAD_PRELOADS = listOf(
 	),
 )
 
+/** Must match the App Store links in home.mustache. Drives the iOS Safari smart app banner. */
+private const val IOS_APP_STORE_ID = "6770841038"
+
 fun Route.homePage(
 	configRepository: ConfigRepository,
 	markdownService: MarkdownService,
@@ -55,6 +58,7 @@ fun Route.homePage(
 			model["page_script"] = "/assets/js/home.js"
 			model["title"] = "Hammer — ${call.msg("home_meta_tagline")}"
 			model["metaDescription"] = call.msg("home_meta_description")
+			model["iosAppStoreId"] = IOS_APP_STORE_ID
 			model["jsonLd"] = webSiteJsonLd(
 				name = "Hammer",
 				url = call.canonicalUrl("/"),
