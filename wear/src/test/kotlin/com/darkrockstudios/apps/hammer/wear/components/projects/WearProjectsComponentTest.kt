@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncO
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.wear.FakeSyncCoordinator
 import com.darkrockstudios.apps.hammer.wear.FakeUnsyncedContentSource
+import com.darkrockstudios.apps.hammer.wear.FailingUnsubscribeDatasource
 import com.darkrockstudios.apps.hammer.wear.FakeWearPrefsDatasource
 import com.darkrockstudios.apps.hammer.wear.TestProjects
 import com.darkrockstudios.apps.hammer.wear.WearTestBase
@@ -208,7 +209,7 @@ class WearProjectsComponentTest : WearTestBase() {
 		assertEquals(listOf(SyncTrigger.Manual), coordinator.requested)
 		assertFalse(projects.fileSystem.exists(sceneDir))
 		assertEquals(emptySet<ProjectId>(), subscriptions.currentSubscriptions())
-		assertNull(component.state.value.unsyncedKept)
+		assertNull(component.state.value.notice)
 	}
 
 	@Test
@@ -228,7 +229,10 @@ class WearProjectsComponentTest : WearTestBase() {
 		// Unsubscribing here would filter the project out of every later sync, stranding the note.
 		assertEquals(setOf(ProjectId("a")), subscriptions.currentSubscriptions())
 		assertTrue(component.row("Alpha").subscribed)
-		assertEquals("Alpha", component.state.value.unsyncedKept)
+		assertEquals(
+			WearProjects.Notice("Alpha", WearProjects.Notice.Reason.UnsyncedKept),
+			component.state.value.notice,
+		)
 		assertFalse(component.row("Alpha").unsubscribing)
 	}
 
@@ -246,11 +250,32 @@ class WearProjectsComponentTest : WearTestBase() {
 
 		assertTrue(projects.fileSystem.exists(sceneDir))
 		assertEquals(setOf(ProjectId("a")), subscriptions.currentSubscriptions())
-		assertEquals("Alpha", component.state.value.unsyncedKept)
+		assertEquals(
+			WearProjects.Notice("Alpha", WearProjects.Notice.Reason.UnsyncedKept),
+			component.state.value.notice,
+		)
 	}
 
 	@Test
-	fun `dismissing the kept notice clears it`() = runTest(dispatcher) {
+	fun `an unsubscribe that breaks is not reported as unsynced writing`() = runTest(dispatcher) {
+		projects.create("Alpha", serverId = "a")
+		// Nothing is pending, so the only thing left that can go wrong is the unsubscribe itself.
+		subscriptions = SubscribedProjectsRepository(FailingUnsubscribeDatasource())
+		subscriptions.setSubscribed(ProjectId("a"), true)
+		val component = newComponent()
+
+		component.toggleSubscription("Alpha")
+		scheduler.advanceUntilIdle()
+
+		// Telling the user to sync and retry would be advice that cannot possibly help.
+		assertEquals(
+			WearProjects.Notice("Alpha", WearProjects.Notice.Reason.Failed),
+			component.state.value.notice,
+		)
+	}
+
+	@Test
+	fun `dismissing the notice clears it`() = runTest(dispatcher) {
 		projects.create("Alpha", serverId = "a")
 		subscriptions.setSubscribed(ProjectId("a"), true)
 		unsynced.pendingByProject["Alpha"] = 1
@@ -258,9 +283,9 @@ class WearProjectsComponentTest : WearTestBase() {
 		component.toggleSubscription("Alpha")
 		scheduler.advanceUntilIdle()
 
-		component.dismissUnsyncedNotice()
+		component.dismissNotice()
 
-		assertNull(component.state.value.unsyncedKept)
+		assertNull(component.state.value.notice)
 	}
 
 	@Test
@@ -313,6 +338,38 @@ class WearProjectsComponentTest : WearTestBase() {
 
 		assertNull(component.state.value.signOutWarning)
 		coVerify(exactly = 1) { signOutUseCase.signOut() }
+	}
+
+	@Test
+	fun `the sign out button reports that it is counting`() = runTest(dispatcher) {
+		projects.create("Alpha", serverId = "a")
+		subscriptions.setSubscribed(ProjectId("a"), true)
+		unsynced.pendingByProject["Alpha"] = 1
+		val component = newComponent()
+
+		component.signOut()
+
+		// Counting opens every subscribed project, so a dead-looking button is a real hazard.
+		assertTrue(component.state.value.checkingSignOut)
+
+		scheduler.advanceUntilIdle()
+
+		assertFalse(component.state.value.checkingSignOut)
+	}
+
+	@Test
+	fun `tapping sign out twice only counts once`() = runTest(dispatcher) {
+		projects.create("Alpha", serverId = "a")
+		subscriptions.setSubscribed(ProjectId("a"), true)
+		unsynced.pendingByProject["Alpha"] = 1
+		val component = newComponent()
+
+		component.signOut()
+		component.signOut()
+		scheduler.advanceUntilIdle()
+
+		assertEquals(WearProjects.SignOutWarning(items = 1), component.state.value.signOutWarning)
+		assertEquals(1, unsynced.pendingCalls)
 	}
 
 	@Test

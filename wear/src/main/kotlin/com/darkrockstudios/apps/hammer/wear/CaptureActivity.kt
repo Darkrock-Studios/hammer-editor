@@ -16,6 +16,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
+import androidx.wear.compose.material3.AppScaffold
+import androidx.wear.compose.material3.SwipeToDismissBox
+import androidx.wear.compose.material3.TimeText
 import androidx.wear.input.RemoteInputIntentHelper
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.arkivanov.decompose.retainedComponent
@@ -90,20 +93,33 @@ private fun CaptureUi(component: Capture, onDone: () -> Unit) {
 		launcher.launch(intent)
 	}
 
-	// Dictation is the point of the feature, so it opens without a tap standing in the way.
-	LaunchedEffect(Unit) {
-		if (!prompted) {
+	// Dictation is the point of the feature, so it opens without a tap standing in the way. It waits
+	// for the component to settle first: prompting before we know there is a project to save to
+	// would take a whole dictated note and then throw it away on the "no project" screen.
+	LaunchedEffect(state.loading, state.outcome) {
+		if (!prompted && !state.loading && state.outcome == null) {
 			prompted = true
 			promptForText()
 		}
 	}
 
-	CaptureScreen(
-		state = state,
-		onEditText = ::promptForText,
-		onShowProjectPicker = component::showProjectPicker,
-		onSelectProject = component::selectProject,
-		onSave = component::save,
-		onDone = onDone,
-	)
+	AppScaffold(timeText = { TimeText() }) {
+		SwipeToDismissBox(
+			onDismissed = component::dismissProjectPicker,
+			backgroundKey = false,
+			contentKey = state.pickingProject,
+			// Only the picker is a layer to swipe back out of; elsewhere the gesture leaves capture.
+			userSwipeEnabled = state.pickingProject,
+		) { isBackground ->
+			CaptureScreen(
+				state = if (isBackground) state.copy(pickingProject = false) else state,
+				onEditText = ::promptForText,
+				onShowProjectPicker = component::showProjectPicker,
+				onSelectProject = component::selectProject,
+				onDismissProjectPicker = component::dismissProjectPicker,
+				onSave = component::save,
+				onDone = onDone,
+			)
+		}
+	}
 }

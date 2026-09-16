@@ -25,13 +25,18 @@ fun CaptureScreen(
 	onEditText: () -> Unit,
 	onShowProjectPicker: () -> Unit,
 	onSelectProject: (String) -> Unit,
+	onDismissProjectPicker: () -> Unit,
 	onSave: () -> Unit,
 	onDone: () -> Unit,
 ) {
 	val outcome = state.outcome
 	when {
 		outcome != null -> CaptureOutcomeContent(outcome = outcome, onDone = onDone)
-		state.pickingProject -> ProjectPickerContent(state = state, onSelectProject = onSelectProject)
+		state.pickingProject -> ProjectPickerContent(
+			state = state,
+			onSelectProject = onSelectProject,
+			onCancel = onDismissProjectPicker,
+		)
 		else -> CaptureEntryContent(
 			state = state,
 			onEditText = onEditText,
@@ -107,10 +112,16 @@ private fun CaptureEntryContent(
 private fun ProjectPickerContent(
 	state: Capture.State,
 	onSelectProject: (String) -> Unit,
+	onCancel: () -> Unit,
 ) {
 	val listState = rememberTransformingLazyColumnState()
 
-	ScreenScaffold(scrollState = listState) { contentPadding ->
+	ScreenScaffold(
+		scrollState = listState,
+		edgeButton = {
+			EdgeButton(onClick = onCancel) { Text(stringResource(R.string.capture_project_keep)) }
+		},
+	) { contentPadding ->
 		TransformingLazyColumn(state = listState, contentPadding = screenContentPadding(contentPadding)) {
 			item {
 				ListHeader { Text(stringResource(R.string.capture_project_label)) }
@@ -157,10 +168,10 @@ private fun CaptureOutcomeContent(
 			item {
 				Text(
 					text = when (outcome) {
-						is Capture.Outcome.Saved -> if (outcome.pending > 0) {
-							stringResource(R.string.capture_pending_count, outcome.pending)
-						} else {
-							stringResource(R.string.capture_pending_none)
+						is Capture.Outcome.Saved -> when {
+							outcome.pending == null -> stringResource(R.string.capture_pending_checking)
+							outcome.pending > 0 -> stringResource(R.string.capture_pending_count, outcome.pending)
+							else -> stringResource(R.string.capture_pending_none)
 						}
 
 						Capture.Outcome.NoProjects -> stringResource(R.string.capture_no_projects_body)

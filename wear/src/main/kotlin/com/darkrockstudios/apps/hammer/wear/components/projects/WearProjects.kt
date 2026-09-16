@@ -12,7 +12,7 @@ interface WearProjects {
 	fun signOut()
 	fun confirmSignOut()
 	fun cancelSignOut()
-	fun dismissUnsyncedNotice()
+	fun dismissNotice()
 
 	data class State(
 		val accountEmail: String? = null,
@@ -22,9 +22,21 @@ interface WearProjects {
 		val lastSyncFailed: Boolean = false,
 		val needsReauth: Boolean = false,
 		val signOutWarning: SignOutWarning? = null,
-		/** Set to a project name when unsubscribing left its content on the watch. */
-		val unsyncedKept: String? = null,
+		/** True while the unsynced captures are being counted, before the warning can be shown. */
+		val checkingSignOut: Boolean = false,
+		val notice: Notice? = null,
 	)
+
+	/** The outcome of an unsubscribe that did not simply remove the project. */
+	data class Notice(val projectName: String, val reason: Reason) {
+		enum class Reason {
+			/** Writing the server has not accepted yet, so the project was left alone. */
+			UnsyncedKept,
+
+			/** The unsubscribe itself failed, which says nothing about whether anything is unsynced. */
+			Failed,
+		}
+	}
 
 	/** [canSubscribe] is false until account sync has registered the project with the server. */
 	data class ProjectRow(

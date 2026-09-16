@@ -5,12 +5,14 @@ import com.darkrockstudios.apps.hammer.wear.FakeCaptureSyncScheduler
 import com.darkrockstudios.apps.hammer.wear.FakeCaptureWriter
 import com.darkrockstudios.apps.hammer.wear.FakeUnsyncedContentSource
 import com.darkrockstudios.apps.hammer.wear.FakeWearPrefsDatasource
+import com.darkrockstudios.apps.hammer.wear.GatedUnsyncedContentSource
 import com.darkrockstudios.apps.hammer.wear.TestProjects
 import com.darkrockstudios.apps.hammer.wear.WearTestBase
 import com.darkrockstudios.apps.hammer.wear.data.CaptureUseCase
 import com.darkrockstudios.apps.hammer.wear.data.ListWatchProjectsUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
 import com.darkrockstudios.apps.hammer.wear.data.UnsyncedContentUseCase
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -175,6 +177,69 @@ class CaptureComponentTest : WearTestBase() {
 		assertFalse(component.state.value.pickingProject)
 		assertEquals("Beta", component.state.value.projectName)
 		assertEquals(ProjectId("b"), subscriptions.lastCaptureProjectId())
+	}
+
+	@Test
+	fun `the save is confirmed before the count is gathered`() = runTest(dispatcher) {
+		val gate = CompletableDeferred<Unit>()
+		val listProjects = ListWatchProjectsUseCase(projects.repository, subscriptions)
+		val component = CaptureComponent(
+			componentContext = componentContext,
+			mode = Capture.Mode.Idea,
+			listProjects = listProjects,
+			subscriptions = subscriptions,
+			captureUseCase = CaptureUseCase(
+				writer = writer,
+				unsyncedContent = UnsyncedContentUseCase(listProjects, GatedUnsyncedContentSource(gate)),
+				captureSync = captureSync,
+			),
+			appScope = CoroutineScope(dispatcher),
+		).also {
+			resumeLifecycle()
+			scheduler.advanceUntilIdle()
+		}
+		component.onTextEntered("a thought worth keeping")
+
+		component.save()
+		scheduler.advanceUntilIdle()
+
+		// Counting is still blocked, but the user has already been told their words are safe.
+		assertEquals(listOf("a thought worth keeping"), writer.ideas)
+		assertEquals(Capture.Outcome.Saved(pending = null), component.state.value.outcome)
+
+		gate.complete(Unit)
+		scheduler.advanceUntilIdle()
+
+		assertEquals(Capture.Outcome.Saved(pending = 0), component.state.value.outcome)
+	}
+
+	@Test
+	fun `a count that cannot be read leaves the save confirmed`() = runTest(dispatcher) {
+		unsynced.failWith = IllegalStateException("no journal")
+		val component = newComponent(Capture.Mode.Idea)
+		component.onTextEntered("a thought worth keeping")
+
+		component.save()
+		scheduler.advanceUntilIdle()
+
+		assertEquals(Capture.Outcome.Saved(pending = null), component.state.value.outcome)
+	}
+
+	@Test
+	fun `leaving the project picker keeps the current project`() = runTest(dispatcher) {
+		projects.create("Alpha", serverId = "a")
+		projects.create("Beta", serverId = "b")
+		subscriptions.setSubscribed(ProjectId("a"), true)
+		subscriptions.setSubscribed(ProjectId("b"), true)
+		val component = newComponent(Capture.Mode.Note)
+		component.showProjectPicker()
+
+		component.dismissProjectPicker()
+		scheduler.advanceUntilIdle()
+
+		assertFalse(component.state.value.pickingProject)
+		assertEquals("Alpha", component.state.value.projectName)
+		assertNull(subscriptions.lastCaptureProjectId())
 	}
 
 	@Test

@@ -41,7 +41,7 @@ fun WearProjectsUi(component: WearProjects) {
 		onSignOut = component::signOut,
 		onConfirmSignOut = component::confirmSignOut,
 		onCancelSignOut = component::cancelSignOut,
-		onDismissUnsyncedNotice = component::dismissUnsyncedNotice,
+		onDismissNotice = component::dismissNotice,
 	)
 }
 
@@ -56,7 +56,7 @@ fun WearProjectsScreen(
 	onSignOut: () -> Unit,
 	onConfirmSignOut: () -> Unit,
 	onCancelSignOut: () -> Unit,
-	onDismissUnsyncedNotice: () -> Unit,
+	onDismissNotice: () -> Unit,
 ) {
 	val warning = state.signOutWarning
 	if (warning != null) {
@@ -70,7 +70,7 @@ fun WearProjectsScreen(
 			onSyncNow = onSyncNow,
 			onShowSyncLog = onShowSyncLog,
 			onSignOut = onSignOut,
-			onDismissUnsyncedNotice = onDismissUnsyncedNotice,
+			onDismissNotice = onDismissNotice,
 		)
 	}
 }
@@ -84,7 +84,7 @@ private fun ProjectsContent(
 	onSyncNow: () -> Unit,
 	onShowSyncLog: () -> Unit,
 	onSignOut: () -> Unit,
-	onDismissUnsyncedNotice: () -> Unit,
+	onDismissNotice: () -> Unit,
 ) {
 	val listState = rememberTransformingLazyColumnState()
 
@@ -142,20 +142,29 @@ private fun ProjectsContent(
 					)
 				}
 			}
-			state.unsyncedKept?.let { projectName ->
+			state.notice?.let { notice ->
 				item {
 					Text(
-						text = stringResource(R.string.projects_unsynced_kept, projectName),
-						color = MaterialTheme.colorScheme.tertiary,
+						text = when (notice.reason) {
+							WearProjects.Notice.Reason.UnsyncedKept ->
+								stringResource(R.string.projects_unsynced_kept, notice.projectName)
+
+							WearProjects.Notice.Reason.Failed ->
+								stringResource(R.string.projects_unsubscribe_failed, notice.projectName)
+						},
+						color = when (notice.reason) {
+							WearProjects.Notice.Reason.UnsyncedKept -> MaterialTheme.colorScheme.tertiary
+							WearProjects.Notice.Reason.Failed -> MaterialTheme.colorScheme.error
+						},
 						textAlign = TextAlign.Center,
 						modifier = Modifier.fillMaxWidth(),
 					)
 				}
 				item {
 					FilledTonalButton(
-						onClick = onDismissUnsyncedNotice,
+						onClick = onDismissNotice,
 						modifier = Modifier.fillMaxWidth(),
-						label = { Text(stringResource(R.string.projects_unsynced_kept_dismiss)) },
+						label = { Text(stringResource(R.string.projects_notice_dismiss)) },
 					)
 				}
 			}
@@ -189,8 +198,14 @@ private fun ProjectsContent(
 			item {
 				FilledTonalButton(
 					onClick = onSignOut,
+					enabled = !state.checkingSignOut,
 					modifier = Modifier.fillMaxWidth(),
 					label = { Text(stringResource(R.string.projects_sign_out)) },
+					icon = if (state.checkingSignOut) {
+						{ CircularProgressIndicator(modifier = Modifier.size(20.dp)) }
+					} else {
+						null
+					},
 				)
 			}
 		}

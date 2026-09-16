@@ -20,9 +20,11 @@ import com.darkrockstudios.apps.hammer.wear.sync.SyncStatus
 import com.darkrockstudios.apps.hammer.wear.sync.SyncTrigger
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import okio.IOException
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
 
@@ -74,11 +76,27 @@ class FakeCaptureSyncScheduler : CaptureSyncScheduler {
 	}
 }
 
+/** Blocks [pendingIn] until released, to model counting being slower than the save. */
+class GatedUnsyncedContentSource(private val gate: CompletableDeferred<Unit>) : UnsyncedContentSource {
+	override suspend fun pendingIn(projectDef: ProjectDef): Int {
+		gate.await()
+		return 0
+	}
+
+	override suspend fun pendingIdeas(): Int {
+		gate.await()
+		return 0
+	}
+}
+
 /** Pending counts keyed by project name, so a test can say what has not reached the server. */
 class FakeUnsyncedContentSource : UnsyncedContentSource {
 	val pendingByProject = mutableMapOf<String, Int>()
 	var pendingIdeas = 0
 	var failWith: Exception? = null
+
+	/** Counts full sweeps, so a test can show a second one was never started. */
+	var pendingCalls = 0
 
 	override suspend fun pendingIn(projectDef: ProjectDef): Int {
 		failWith?.let { throw it }
@@ -86,9 +104,28 @@ class FakeUnsyncedContentSource : UnsyncedContentSource {
 	}
 
 	override suspend fun pendingIdeas(): Int {
+		pendingCalls++
 		failWith?.let { throw it }
 		return pendingIdeas
 	}
+}
+
+/** Subscribing works; dropping a subscription does not, which is the unsubscribe failure path. */
+class FailingUnsubscribeDatasource : WearPrefsDatasource {
+	private val delegate = FakeWearPrefsDatasource()
+
+	override val subscribedProjectIds: Flow<Set<String>> get() = delegate.subscribedProjectIds
+	override val lastCaptureProjectId: Flow<String?> get() = delegate.lastCaptureProjectId
+
+	override suspend fun setSubscribed(projectId: String, subscribed: Boolean) {
+		if (!subscribed) throw IOException("the preference store is unwritable")
+		delegate.setSubscribed(projectId, subscribed)
+	}
+
+	override suspend fun setLastCaptureProjectId(projectId: String) =
+		delegate.setLastCaptureProjectId(projectId)
+
+	override suspend fun clear() = delegate.clear()
 }
 
 class FakeSyncCoordinator : SyncCoordinator {

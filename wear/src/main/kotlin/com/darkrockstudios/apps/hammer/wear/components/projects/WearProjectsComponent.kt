@@ -46,7 +46,8 @@ class WearProjectsComponent(
 	private var projectsLoaded = false
 	private var unsubscribing: Set<String> = emptySet()
 	private var signOutWarning: WearProjects.SignOutWarning? = null
-	private var unsyncedKept: String? = null
+	private var checkingSignOut = false
+	private var notice: WearProjects.Notice? = null
 
 	override fun onCreate() {
 		super.onCreate()
@@ -80,7 +81,7 @@ class WearProjectsComponent(
 
 		if (projectName in unsubscribing) return
 		unsubscribing = unsubscribing + projectName
-		unsyncedKept = null
+		notice = null
 		publish()
 		// Outlives the screen: abandoning a half-done unsubscribe would strand the subscription.
 		appScope.launch { unsubscribe(project, projectId) }
@@ -95,6 +96,11 @@ class WearProjectsComponent(
 	}
 
 	override fun signOut() {
+		if (checkingSignOut || signOutWarning != null) return
+		// Counting reads every subscribed project, so the button has to say it is working.
+		checkingSignOut = true
+		publish()
+
 		scope.launch {
 			val pending = try {
 				unsyncedContent.pending()
@@ -106,7 +112,9 @@ class WearProjectsComponent(
 			}
 
 			withContext(dispatcherMain) {
+				checkingSignOut = false
 				if (pending != null && pending.isEmpty) {
+					publish()
 					runSignOut()
 				} else {
 					signOutWarning = WearProjects.SignOutWarning(items = pending?.total ?: 0)
@@ -127,8 +135,8 @@ class WearProjectsComponent(
 		publish()
 	}
 
-	override fun dismissUnsyncedNotice() {
-		unsyncedKept = null
+	override fun dismissNotice() {
+		notice = null
 		publish()
 	}
 
@@ -139,27 +147,31 @@ class WearProjectsComponent(
 	 * writing would never get another chance to upload.
 	 */
 	private suspend fun unsubscribe(project: WatchProject, projectId: ProjectId) {
-		var kept = true
+		val name = project.projectDef.name
+		// Distinct from a failure: telling someone to sync and retry is useless advice when the
+		// unsubscribe itself is what broke.
+		var reason: WearProjects.Notice.Reason? = WearProjects.Notice.Reason.Failed
 		try {
 			// While the project is still subscribed, so the sync filter includes it.
 			if (pendingIn(project) > 0) syncCoordinator.sync(SyncTrigger.Manual)
 
-			kept = !syncCoordinator.runExclusive {
-				val synced = pendingIn(project) == 0
-				if (synced) {
+			reason = syncCoordinator.runExclusive {
+				if (pendingIn(project) == 0) {
 					subscriptions.setSubscribed(projectId, false)
 					projectsRepository.deleteProjectContent(project.projectDef)
+					null
+				} else {
+					WearProjects.Notice.Reason.UnsyncedKept
 				}
-				synced
 			}
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Failed to unsubscribe from ${project.projectDef.name}", e)
+			Napier.e("Failed to unsubscribe from $name", e)
 		} finally {
 			withContext(dispatcherMain) {
-				unsubscribing = unsubscribing - project.projectDef.name
-				unsyncedKept = project.projectDef.name.takeIf { kept }
+				unsubscribing = unsubscribing - name
+				notice = reason?.let { WearProjects.Notice(projectName = name, reason = it) }
 			}
 			reload()
 		}
@@ -226,7 +238,8 @@ class WearProjectsComponent(
 				lastSyncFailed = syncStatus.lastRunFailed || (lastResult != null && !lastResult.allSuccess),
 				needsReauth = syncStatus.needsReauth,
 				signOutWarning = signOutWarning,
-				unsyncedKept = unsyncedKept,
+				checkingSignOut = checkingSignOut,
+				notice = notice,
 			)
 		}
 	}

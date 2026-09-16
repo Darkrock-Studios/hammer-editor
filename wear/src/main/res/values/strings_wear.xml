@@ -47,7 +47,8 @@
 	<string name="projects_sign_out_confirm">Sign out anyway</string>
 	<string name="projects_sign_out_cancel">Keep my writing</string>
 	<string name="projects_unsynced_kept">%1$s still has writing that has not synced, so it was kept on the watch. Sync, then try again.</string>
-	<string name="projects_unsynced_kept_dismiss">Got it</string>
+	<string name="projects_unsubscribe_failed">%1$s could not be removed from the watch. Try again.</string>
+	<string name="projects_notice_dismiss">Got it</string>
 
 	<string name="project_status_not_on_server">Not on the server yet</string>
 	<string name="project_status_unsubscribing">Removing from watch</string>
@@ -65,9 +66,11 @@
 	<string name="capture_project_label">Project</string>
 	<string name="capture_project_loading">Loading</string>
 	<string name="capture_project_none">No project on this watch</string>
+	<string name="capture_project_keep">Keep current</string>
 	<string name="capture_save">Save</string>
 	<string name="capture_done">Done</string>
 	<string name="capture_saved">Saved</string>
+	<string name="capture_pending_checking">Counting what is left to sync</string>
 	<string name="capture_pending_count">%1$d waiting to sync</string>
 	<string name="capture_pending_none">Synced</string>
 	<string name="capture_no_projects_title">No project yet</string>

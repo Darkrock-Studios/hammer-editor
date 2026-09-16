@@ -27,8 +27,11 @@ class WorkManagerCaptureSyncScheduler(
 			.setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
 			.setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
 			.build()
-		// REPLACE, so a burst of captures on a run costs one upload rather than one each.
-		workManager.enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.REPLACE, request)
+		// Thar be dragons: REPLACE cancels work that is already RUNNING, so a second capture would
+		// abort the first one's sync partway through the protocol, leaving a begun-but-never-ended
+		// session on the server. Captures arriving faster than a sync completes would then never
+		// upload at all. APPEND_OR_REPLACE queues behind the running sync instead.
+		workManager.enqueueUniqueWork(WORK_NAME, ExistingWorkPolicy.APPEND_OR_REPLACE, request)
 	}
 
 	private companion object {

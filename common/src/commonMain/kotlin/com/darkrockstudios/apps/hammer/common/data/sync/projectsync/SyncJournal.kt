@@ -18,12 +18,6 @@ class SyncJournal(
 		return datasource.loadSyncDataOrNull()?.deletedIds ?: emptySet()
 	}
 
-	/** Entities written locally but not yet accepted by the server: new ones plus changed ones. */
-	suspend fun pendingEntityCount(): Int {
-		val syncData = datasource.loadSyncDataOrNull() ?: return 0
-		return (syncData.dirty.map { it.id }.toSet() + syncData.newIds).size
-	}
-
 	suspend fun shouldAutoSync(): Boolean = globalSettingsStore.serverIsSetup() &&
 		globalSettingsStore.globalSettings.automaticSyncing &&
 		networkConnectivity.hasActiveConnection() &&

@@ -144,7 +144,7 @@ private fun ProjectsPreview(state: WearProjects.State) {
 			onSignOut = {},
 			onConfirmSignOut = {},
 			onCancelSignOut = {},
-			onDismissUnsyncedNotice = {},
+			onDismissNotice = {},
 		)
 	}
 }
@@ -189,7 +189,33 @@ private fun ProjectsUnsyncedKeptPreview() {
 			accountEmail = "writer@example.com",
 			projects = previewRows.take(2).map { it.copy(unsubscribing = true) },
 			loaded = true,
-			unsyncedKept = "Salt Roads",
+			notice = WearProjects.Notice("Salt Roads", WearProjects.Notice.Reason.UnsyncedKept),
+		)
+	)
+}
+
+@WearPreviewDevices
+@Composable
+private fun ProjectsUnsubscribeFailedPreview() {
+	ProjectsPreview(
+		WearProjects.State(
+			accountEmail = "writer@example.com",
+			projects = previewRows,
+			loaded = true,
+			notice = WearProjects.Notice("Salt Roads", WearProjects.Notice.Reason.Failed),
+		)
+	)
+}
+
+@WearPreviewDevices
+@Composable
+private fun ProjectsCheckingSignOutPreview() {
+	ProjectsPreview(
+		WearProjects.State(
+			accountEmail = "writer@example.com",
+			projects = previewRows,
+			loaded = true,
+			checkingSignOut = true,
 		)
 	)
 }
@@ -228,6 +254,7 @@ private fun CapturePreview(state: Capture.State) {
 			onEditText = {},
 			onShowProjectPicker = {},
 			onSelectProject = {},
+			onDismissProjectPicker = {},
 			onSave = {},
 			onDone = {},
 		)
@@ -300,6 +327,19 @@ private fun CaptureSavedPreview() {
 			projectName = "The Lighthouse",
 			loading = false,
 			outcome = Capture.Outcome.Saved(pending = 3),
+		)
+	)
+}
+
+@WearPreviewDevices
+@Composable
+private fun CaptureSavedUncountedPreview() {
+	CapturePreview(
+		Capture.State(
+			mode = Capture.Mode.Idea,
+			text = "A town where everyone shares one memory",
+			loading = false,
+			outcome = Capture.Outcome.Saved(),
 		)
 	)
 }

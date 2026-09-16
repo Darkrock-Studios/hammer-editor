@@ -42,7 +42,12 @@ val wearModule: Module = module {
 	single { SubscribedProjectsRepository(datasource = get()) }
 	factory { ListWatchProjectsUseCase(projectsRepository = get(), subscriptions = get()) }
 	single<UnsyncedContentSource> {
-		RepositoryUnsyncedContentSource(ideasRepository = get(), ideasSyncDatasource = get())
+		RepositoryUnsyncedContentSource(
+			ideasDatasource = get(),
+			ideasSyncDatasource = get(),
+			fileSystem = get(),
+			json = get(),
+		)
 	}
 	factory { UnsyncedContentUseCase(listProjects = get(), source = get()) }
 	single<CaptureWriter> { RepositoryCaptureWriter(ideasRepository = get()) }

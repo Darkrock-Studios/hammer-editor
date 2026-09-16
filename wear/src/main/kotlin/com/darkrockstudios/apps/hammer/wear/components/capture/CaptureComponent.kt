@@ -83,10 +83,24 @@ class CaptureComponent(
 					it.copy(
 						saving = false,
 						outcome = when (result) {
-							is CaptureResult.Saved -> Capture.Outcome.Saved(result.pending)
+							CaptureResult.Saved -> Capture.Outcome.Saved()
 							CaptureResult.Empty, CaptureResult.Failed -> Capture.Outcome.Failed
 						},
 					)
+				}
+			}
+
+			if (result != CaptureResult.Saved) return@launch
+
+			// The user has already been told their words are safe; the count only fills in the rest.
+			val pending = captureUseCase.pendingCount() ?: return@launch
+			withContext(dispatcherMain) {
+				_state.update {
+					if (it.outcome is Capture.Outcome.Saved) {
+						it.copy(outcome = Capture.Outcome.Saved(pending))
+					} else {
+						it
+					}
 				}
 			}
 		}

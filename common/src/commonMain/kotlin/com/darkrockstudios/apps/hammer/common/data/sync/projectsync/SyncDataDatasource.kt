@@ -138,3 +138,20 @@ fun clearProjectSyncBaseline(projectDef: ProjectDef, fileSystem: FileSystem, jso
 
 	fileSystem.write(path) { writeUtf8(json.encodeToString(cleared)) }
 }
+
+/**
+ * The entities a project has written but not yet had accepted by the server: new ones plus changed
+ * ones. Read without a project scope, because callers that only need the number must not pay for
+ * opening the whole project.
+ *
+ * A project with no journal has never synced and so has nothing outstanding. A journal that cannot
+ * be read throws rather than reporting zero: callers use this to decide whether local writing is
+ * safe to discard, and an unreadable journal is not evidence that it is.
+ */
+fun loadPendingEntityCount(projectDef: ProjectDef, fileSystem: FileSystem, json: Json): Int {
+	val path = projectDef.path.toOkioPath() / SyncDataDatasource.SYNC_FILE_NAME
+	if (!fileSystem.exists(path)) return 0
+
+	val data = fileSystem.read(path) { json.decodeFromString<ProjectSynchronizationData>(readUtf8()) }
+	return (data.dirty.map { it.id }.toSet() + data.newIds).size
+}

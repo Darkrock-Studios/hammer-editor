@@ -31,7 +31,8 @@ interface Capture {
 	}
 
 	sealed interface Outcome {
-		data class Saved(val pending: Int) : Outcome
+		/** [pending] is null until the count has been gathered, which happens after the save. */
+		data class Saved(val pending: Int? = null) : Outcome
 
 		/** No project is kept on the watch, so a note has nowhere to go. */
 		data object NoProjects : Outcome

@@ -163,8 +163,10 @@ restriction because they are UUID keyed.
 - **Tile**: shows the last-used project, a "New note" button, a "New idea" button, and the
   count of unsynced items. Tiles cannot take input; the buttons launch the activity.
 - **Complication**: a shortcut to the capture activity for watch faces.
-- **Activity**: opens straight into `RemoteInput` (voice first, keyboard fallback). The project
-  defaults to the last one captured to and is changed from a list, never a required step.
+- **Activity**: opens into `RemoteInput` (voice first, keyboard fallback) as soon as it knows a
+  capture has somewhere to go, never before: prompting first would take a whole dictated note and
+  then throw it away on the "no project" screen. The project defaults to the last one captured to
+  and is changed from a list, never a required step.
   Confirm saves through `NotesRepository.createNote` inside `temporaryProjectTask`, exactly
   like `AddNoteWorker`, then enqueues a sync. Saving runs in the app scope, so a capture still
   lands if the watch drops the activity mid-save.
@@ -190,17 +192,24 @@ silent.
 - **Signing out** counts the subscribed projects' pending entities plus ideas with no server
   baseline, and asks for confirmation before wiping. An unreadable count still warns.
 
-`SyncJournal.pendingEntityCount` is the source of truth for a project. The watch reaches it
-through `UnsyncedContentSource`, an interface, because reading a project's journal needs a full
-project scope that a JVM test cannot open.
+`loadPendingEntityCount` is the source of truth for a project. It reads the journal file without a
+project scope, because opening one initialises the scene tree, every scene's content, metadata and
+the timeline, which is far too much work to learn how many entities are outstanding. A journal that
+cannot be read throws rather than reporting zero: callers use the count to decide whether local
+writing is safe to discard, and an unreadable journal is not evidence that it is. The watch reaches
+it through `UnsyncedContentSource`, an interface, so the components can be tested with fakes.
 
 ## Background sync
 
 WorkManager, mirroring the widget worker:
 
-- A one-time expedited request with a network constraint after every capture. `SyncCoordinator`
-  reports `Busy` rather than `Skipped` when another sync holds the lock, so work that needs its
-  own captures uploaded asks again instead of reporting success.
+- A one-time expedited request with a network constraint after every capture, enqueued with
+  `APPEND_OR_REPLACE`. `REPLACE` cancels work that is already running, so a second capture would
+  abort the first one's sync partway through the protocol. `SyncCoordinator` reports `Busy` rather
+  than `Skipped` when another sync holds the lock, so work that needs its own captures uploaded
+  asks again instead of reporting success.
+- The pending count is gathered after the save is confirmed, not before. Nothing that can still
+  fail belongs between writing the user's words and telling them the words are safe.
 - A periodic request (charging plus unmetered network) for all subscribed projects.
 - A manual "Sync now" in the app.
 

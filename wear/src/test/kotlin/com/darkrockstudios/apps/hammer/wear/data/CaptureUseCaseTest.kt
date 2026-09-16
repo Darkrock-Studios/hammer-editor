@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.wear.TestProjects
 import com.darkrockstudios.apps.hammer.wear.WearTestBase
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 
@@ -46,8 +47,9 @@ class CaptureUseCaseTest : WearTestBase() {
 		val result = useCase.capture(CaptureTarget.Note(projectDef), "  salt on the stairs  ")
 
 		assertEquals(listOf("Alpha" to "salt on the stairs"), writer.notes)
-		assertEquals(CaptureResult.Saved(pending = 2), result)
+		assertEquals(CaptureResult.Saved, result)
 		assertEquals(1, captureSync.requests)
+		assertEquals(2, useCase.pendingCount())
 	}
 
 	@Test
@@ -55,7 +57,7 @@ class CaptureUseCaseTest : WearTestBase() {
 		val result = useCase.capture(CaptureTarget.Idea, "a town with one memory")
 
 		assertEquals(listOf("a town with one memory"), writer.ideas)
-		assertEquals(CaptureResult.Saved(pending = 0), result)
+		assertEquals(CaptureResult.Saved, result)
 		assertEquals(1, captureSync.requests)
 	}
 
@@ -89,15 +91,16 @@ class CaptureUseCaseTest : WearTestBase() {
 	}
 
 	@Test
-	fun `a count that cannot be read still saves the capture`() = runTest(dispatcher) {
+	fun `a count that cannot be read never affects the capture`() = runTest(dispatcher) {
 		val projectDef = projects.create("Alpha", serverId = ProjectId("a").id)
-		projects.repository.getProjects()
-		unsynced.failWith = IllegalStateException("no project scope")
+		unsynced.failWith = IllegalStateException("no journal")
 
 		val result = useCase.capture(CaptureTarget.Note(projectDef), "a line worth keeping")
 
-		assertEquals(CaptureResult.Saved(pending = 0), result)
+		assertEquals(CaptureResult.Saved, result)
 		assertEquals(1, writer.notes.size)
 		assertEquals(1, captureSync.requests)
+		// Null, not zero: the user must not be told nothing is waiting when we could not look.
+		assertNull(useCase.pendingCount())
 	}
 }

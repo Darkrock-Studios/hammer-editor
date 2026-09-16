@@ -11,8 +11,7 @@ sealed interface CaptureTarget {
 }
 
 sealed interface CaptureResult {
-	/** [pending] is everything on the watch still waiting to reach the server, not just this one. */
-	data class Saved(val pending: Int) : CaptureResult
+	data object Saved : CaptureResult
 	data object Empty : CaptureResult
 	data object Failed : CaptureResult
 }
@@ -31,6 +30,11 @@ class CaptureUseCase(
 	private val unsyncedContent: UnsyncedContentUseCase,
 	private val captureSync: CaptureSyncScheduler,
 ) {
+	/**
+	 * Returns as soon as the capture is durable and a sync is queued. The pending count is not
+	 * gathered here: it is only ever displayed, and nothing that can still fail belongs between
+	 * writing the user's words and telling them the words are safe.
+	 */
 	suspend fun capture(target: CaptureTarget, text: String): CaptureResult {
 		val trimmed = text.trim()
 		if (trimmed.isEmpty()) return CaptureResult.Empty
@@ -50,16 +54,16 @@ class CaptureUseCase(
 		if (!written) return CaptureResult.Failed
 
 		captureSync.syncSoon()
-		return CaptureResult.Saved(pending = countPending())
+		return CaptureResult.Saved
 	}
 
-	/** The count is only ever shown, so a failure to read it must not fail the capture. */
-	private suspend fun countPending(): Int = try {
+	/** Everything on the watch still waiting to reach the server, or null if it could not be read. */
+	suspend fun pendingCount(): Int? = try {
 		unsyncedContent.pending().total
 	} catch (e: CancellationException) {
 		throw e
 	} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 		Napier.e("Failed to count what is waiting to sync", e)
-		0
+		null
 	}
 }
