@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.wear.components.capture
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.wear.FakeCaptureSurfaceUpdater
 import com.darkrockstudios.apps.hammer.wear.FakeCaptureSyncScheduler
 import com.darkrockstudios.apps.hammer.wear.FakeCaptureWriter
 import com.darkrockstudios.apps.hammer.wear.FakeUnsyncedContentSource
@@ -8,6 +9,7 @@ import com.darkrockstudios.apps.hammer.wear.FakeWearPrefsDatasource
 import com.darkrockstudios.apps.hammer.wear.GatedUnsyncedContentSource
 import com.darkrockstudios.apps.hammer.wear.TestProjects
 import com.darkrockstudios.apps.hammer.wear.WearTestBase
+import com.darkrockstudios.apps.hammer.wear.data.CaptureTargetsUseCase
 import com.darkrockstudios.apps.hammer.wear.data.CaptureUseCase
 import com.darkrockstudios.apps.hammer.wear.data.ListWatchProjectsUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
@@ -29,6 +31,7 @@ class CaptureComponentTest : WearTestBase() {
 	private lateinit var writer: FakeCaptureWriter
 	private lateinit var unsynced: FakeUnsyncedContentSource
 	private lateinit var captureSync: FakeCaptureSyncScheduler
+	private lateinit var surfaces: FakeCaptureSurfaceUpdater
 
 	@BeforeEach
 	override fun setUp() {
@@ -38,6 +41,7 @@ class CaptureComponentTest : WearTestBase() {
 		writer = FakeCaptureWriter()
 		unsynced = FakeUnsyncedContentSource()
 		captureSync = FakeCaptureSyncScheduler()
+		surfaces = FakeCaptureSurfaceUpdater()
 	}
 
 	private fun newComponent(mode: Capture.Mode): CaptureComponent {
@@ -45,12 +49,13 @@ class CaptureComponentTest : WearTestBase() {
 		return CaptureComponent(
 			componentContext = componentContext,
 			mode = mode,
-			listProjects = listProjects,
+			captureTargets = CaptureTargetsUseCase(listProjects, subscriptions),
 			subscriptions = subscriptions,
 			captureUseCase = CaptureUseCase(
 				writer = writer,
 				unsyncedContent = UnsyncedContentUseCase(listProjects, unsynced),
 				captureSync = captureSync,
+			surfaces = surfaces,
 			),
 			appScope = CoroutineScope(dispatcher),
 		).also {
@@ -186,12 +191,13 @@ class CaptureComponentTest : WearTestBase() {
 		val component = CaptureComponent(
 			componentContext = componentContext,
 			mode = Capture.Mode.Idea,
-			listProjects = listProjects,
+			captureTargets = CaptureTargetsUseCase(listProjects, subscriptions),
 			subscriptions = subscriptions,
 			captureUseCase = CaptureUseCase(
 				writer = writer,
 				unsyncedContent = UnsyncedContentUseCase(listProjects, GatedUnsyncedContentSource(gate)),
 				captureSync = captureSync,
+			surfaces = surfaces,
 			),
 			appScope = CoroutineScope(dispatcher),
 		).also {

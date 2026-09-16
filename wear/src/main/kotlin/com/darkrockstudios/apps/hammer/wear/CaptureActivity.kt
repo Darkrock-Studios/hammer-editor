@@ -31,7 +31,6 @@ import com.darkrockstudios.apps.hammer.wear.ui.theme.HammerWearTheme
 import org.koin.android.ext.android.get
 import org.koin.core.qualifier.named
 
-private const val EXTRA_MODE = "capture_mode"
 private const val REMOTE_INPUT_KEY = "capture_text"
 
 /** Entry point for the tile, the complication, and the app's own capture buttons. */
@@ -47,7 +46,7 @@ class CaptureActivity : ComponentActivity() {
 			CaptureComponent(
 				componentContext = componentContext,
 				mode = mode,
-				listProjects = get(),
+				captureTargets = get(),
 				subscriptions = get(),
 				captureUseCase = get(),
 				appScope = get(named(APP_SCOPE)),
@@ -62,6 +61,9 @@ class CaptureActivity : ComponentActivity() {
 	}
 
 	companion object {
+		/** Read by the tile, which builds its launch action rather than an Intent. */
+		const val EXTRA_MODE = "capture_mode"
+
 		fun intent(context: Context, mode: Capture.Mode): Intent =
 			Intent(context, CaptureActivity::class.java).putExtra(EXTRA_MODE, mode.name)
 	}

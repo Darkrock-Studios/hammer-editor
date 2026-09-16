@@ -83,6 +83,14 @@
 	<string name="capture_failed">Not saved</string>
 	<string name="capture_failed_body">Something went wrong. Try again.</string>
 
+	<string name="tile_label">Capture</string>
+	<string name="tile_note">Note</string>
+	<string name="tile_idea">Idea</string>
+	<string name="tile_no_project">Hammer</string>
+	<string name="tile_pending">%1$d to sync</string>
+	<string name="complication_label">New note</string>
+	<string name="complication_description">Capture a note in Hammer</string>
+
 	<string name="sync_log_title">Sync log</string>
 	<string name="sync_log_empty">Nothing has synced yet</string>
 </resources>

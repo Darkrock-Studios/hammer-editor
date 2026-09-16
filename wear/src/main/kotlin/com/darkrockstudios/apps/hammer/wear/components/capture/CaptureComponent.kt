@@ -7,8 +7,9 @@ import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.wear.data.CaptureResult
 import com.darkrockstudios.apps.hammer.wear.data.CaptureTarget
+import com.darkrockstudios.apps.hammer.wear.data.CaptureTargets
+import com.darkrockstudios.apps.hammer.wear.data.CaptureTargetsUseCase
 import com.darkrockstudios.apps.hammer.wear.data.CaptureUseCase
-import com.darkrockstudios.apps.hammer.wear.data.ListWatchProjectsUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
 import com.darkrockstudios.apps.hammer.wear.data.WatchProject
 import io.github.aakira.napier.Napier
@@ -20,7 +21,7 @@ import kotlinx.coroutines.withContext
 class CaptureComponent(
 	componentContext: ComponentContext,
 	private val mode: Capture.Mode,
-	private val listProjects: ListWatchProjectsUseCase,
+	private val captureTargets: CaptureTargetsUseCase,
 	private val subscriptions: SubscribedProjectsRepository,
 	private val captureUseCase: CaptureUseCase,
 	private val appScope: CoroutineScope,
@@ -116,32 +117,23 @@ class CaptureComponent(
 	}
 
 	private suspend fun loadTargets() {
-		val projects = try {
-			listProjects.list().filter { it.subscribed }
+		val loaded = try {
+			captureTargets.load()
 		} catch (e: CancellationException) {
 			throw e
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			Napier.e("Failed to list the projects a note could go to", e)
-			emptyList()
-		}
-		val lastUsed = try {
-			subscriptions.lastCaptureProjectId()
-		} catch (e: CancellationException) {
-			throw e
-		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.e("Failed to read the last project captured to", e)
-			null
+			CaptureTargets()
 		}
 
 		withContext(dispatcherMain) {
-			targets = projects
-			val default = projects.find { it.projectId == lastUsed } ?: projects.firstOrNull()
+			targets = loaded.projects
 			_state.update {
 				it.copy(
-					projects = projects.map { project -> project.projectDef.name },
-					projectName = default?.projectDef?.name,
+					projects = loaded.projects.map { project -> project.projectDef.name },
+					projectName = loaded.default?.projectDef?.name,
 					loading = false,
-					outcome = if (projects.isEmpty()) Capture.Outcome.NoProjects else it.outcome,
+					outcome = if (loaded.projects.isEmpty()) Capture.Outcome.NoProjects else it.outcome,
 				)
 			}
 		}

@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.wear.data
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.wear.sync.CaptureSyncScheduler
+import com.darkrockstudios.apps.hammer.wear.tile.CaptureSurfaceUpdater
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 
@@ -29,6 +30,7 @@ class CaptureUseCase(
 	private val writer: CaptureWriter,
 	private val unsyncedContent: UnsyncedContentUseCase,
 	private val captureSync: CaptureSyncScheduler,
+	private val surfaces: CaptureSurfaceUpdater,
 ) {
 	/**
 	 * Returns as soon as the capture is durable and a sync is queued. The pending count is not
@@ -54,6 +56,7 @@ class CaptureUseCase(
 		if (!written) return CaptureResult.Failed
 
 		captureSync.syncSoon()
+		surfaces.refresh()
 		return CaptureResult.Saved
 	}
 

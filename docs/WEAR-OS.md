@@ -2,9 +2,9 @@
 
 _Design doc. Status: phases 1 to 3 implemented on the `wear-app` branch (sync extraction,
 pairing endpoint, watch app with pairing, sign-in, project subscriptions, and background sync).
-Phase 4 (capture) is in progress: the guards, the capture activity, and the expedited sync have
-landed; the tile and complication have not. Note and idea capture are smoke tested end to end on
-a Wear OS emulator against a local server, not yet on a watch._
+Phase 4 (capture) is complete: the guards, the capture activity, the expedited sync, the tile and
+the complication have all landed. Capture, the tile and the complication are smoke tested end to
+end on a Wear OS emulator against a local server, not yet on a watch._
 
 A standalone Wear OS client for capturing notes and ideas while away from a desk, and for
 listening to scenes read aloud. It reuses the `common` data and sync layers unchanged and
@@ -160,9 +160,14 @@ restriction because they are UUID keyed.
 
 ## Capture flow
 
-- **Tile**: shows the last-used project, a "New note" button, a "New idea" button, and the
-  count of unsynced items. Tiles cannot take input; the buttons launch the activity.
-- **Complication**: a shortcut to the capture activity for watch faces.
+- **Tile**: shows the last project captured to, a "Note" button, an "Idea" button, and the count
+  of unsynced items. Tiles cannot take input; the buttons launch the activity through a
+  `LaunchAction`, which is why `CaptureActivity` is exported. Built with ProtoLayout Material 3.
+- **Complication**: SHORT_TEXT and MONOCHROMATIC_IMAGE, showing the unsynced count (or "Note"
+  when there is nothing waiting) and tapping through to capture.
+- Both are cached by the system and re-read only on their own slow cadence, so anything that
+  changes the pending count calls `CaptureSurfaceUpdater`: a capture, and every finished sync.
+  Without it the watch face keeps showing a stale count.
 - **Activity**: opens into `RemoteInput` (voice first, keyboard fallback) as soon as it knows a
   capture has somewhere to go, never before: prompting first would take a whole dictated note and
   then throw it away on the "no project" screen. The project defaults to the last one captured to
@@ -260,8 +265,8 @@ Phase-gated behind the rest, but designed in now because it depends on synced co
 2. **Pairing endpoint** on the server plus the client API and use case. Standalone PR.
 3. **Wear module skeleton**: Koin split, pairing flow, manual sign-in fallback, project list
    with subscribe and sync, sync status.
-4. **Capture**: guards for unsynced captures, then the activity with `RemoteInput`, note and
-   idea flows, tile, complication, WorkManager sync.
+4. **Capture** (done): guards for unsynced captures, then the activity with `RemoteInput`, note
+   and idea flows, tile, complication, WorkManager sync.
 5. **Read aloud**: markdown to speech helper in `base`, playback service, controls.
 6. **Release pipeline**: fastlane lanes, Play workflow, version code offset.
 
@@ -270,8 +275,8 @@ watch slips.
 
 ## Open questions
 
-- Which watch hardware is available for testing, and does its dictation work offline? Voice
-  capture is the point of the feature, so this is checked before phase 4.
+- Does dictation work offline on the target watch? Voice capture is the point of the feature and
+  the emulator cannot answer this; it needs the real hardware.
 - Whether Play accepts a wear bundle with a version-code offset scheme, or whether a separate
   version stream is cleaner.
 - Whether backups on the watch stay on or get a no-op datasource once real usage shows the

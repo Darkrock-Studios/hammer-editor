@@ -12,6 +12,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogMessa
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
 import com.darkrockstudios.apps.hammer.wear.data.isSignedIn
+import com.darkrockstudios.apps.hammer.wear.tile.CaptureSurfaceUpdater
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -58,6 +59,7 @@ class DefaultSyncCoordinator(
 	private val subscriptions: SubscribedProjectsRepository,
 	private val globalSettingsStore: GlobalSettingsStore,
 	private val networkConnectivity: NetworkConnectivity,
+	private val surfaces: CaptureSurfaceUpdater,
 	private val appScope: CoroutineScope,
 ) : SyncCoordinator {
 
@@ -102,6 +104,8 @@ class DefaultSyncCoordinator(
 			return SyncRunResult.Failed
 		} finally {
 			mutex.unlock()
+			// A sync is the only thing that lowers the pending count.
+			surfaces.refresh()
 		}
 	}
 

@@ -5,6 +5,8 @@ import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountU
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.wear.data.ListWatchProjectsUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SignOutUseCase
+import com.darkrockstudios.apps.hammer.wear.data.CaptureTargetsUseCase
+import com.darkrockstudios.apps.hammer.wear.data.CaptureTileStateUseCase
 import com.darkrockstudios.apps.hammer.wear.data.CaptureUseCase
 import com.darkrockstudios.apps.hammer.wear.data.CaptureWriter
 import com.darkrockstudios.apps.hammer.wear.data.RepositoryCaptureWriter
@@ -23,6 +25,8 @@ import com.darkrockstudios.apps.hammer.wear.sync.WorkManagerCaptureSyncScheduler
 import com.darkrockstudios.apps.hammer.wear.sync.DefaultSyncCoordinator
 import com.darkrockstudios.apps.hammer.wear.sync.SyncCoordinator
 import com.darkrockstudios.apps.hammer.wear.sync.SyncScheduler
+import com.darkrockstudios.apps.hammer.wear.tile.CaptureSurfaceUpdater
+import com.darkrockstudios.apps.hammer.wear.tile.WearCaptureSurfaceUpdater
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.core.qualifier.named
@@ -57,7 +61,17 @@ val wearModule: Module = module {
 			globalSettingsStore = get(),
 		)
 	}
-	factory { CaptureUseCase(writer = get(), unsyncedContent = get(), captureSync = get()) }
+	single<CaptureSurfaceUpdater> { WearCaptureSurfaceUpdater(context = androidContext()) }
+	factory {
+		CaptureUseCase(
+			writer = get(),
+			unsyncedContent = get(),
+			captureSync = get(),
+			surfaces = get(),
+		)
+	}
+	factory { CaptureTargetsUseCase(listProjects = get(), subscriptions = get()) }
+	factory { CaptureTileStateUseCase(captureTargets = get(), unsyncedContent = get()) }
 
 	single<AccountSync> {
 		val syncAccountUseCase: SyncAccountUseCase = get()
@@ -69,6 +83,7 @@ val wearModule: Module = module {
 			subscriptions = get(),
 			globalSettingsStore = get(),
 			networkConnectivity = get(),
+			surfaces = get(),
 			appScope = get(named(APP_SCOPE)),
 		)
 	}

@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.wear.data
 
 import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.wear.FakeCaptureSurfaceUpdater
 import com.darkrockstudios.apps.hammer.wear.FakeCaptureSyncScheduler
 import com.darkrockstudios.apps.hammer.wear.FakeCaptureWriter
 import com.darkrockstudios.apps.hammer.wear.FakeUnsyncedContentSource
@@ -19,6 +20,7 @@ class CaptureUseCaseTest : WearTestBase() {
 	private lateinit var writer: FakeCaptureWriter
 	private lateinit var unsynced: FakeUnsyncedContentSource
 	private lateinit var captureSync: FakeCaptureSyncScheduler
+	private lateinit var surfaces: FakeCaptureSurfaceUpdater
 	private lateinit var useCase: CaptureUseCase
 
 	@BeforeEach
@@ -28,6 +30,7 @@ class CaptureUseCaseTest : WearTestBase() {
 		writer = FakeCaptureWriter()
 		unsynced = FakeUnsyncedContentSource()
 		captureSync = FakeCaptureSyncScheduler()
+		surfaces = FakeCaptureSurfaceUpdater()
 		val subscriptions = SubscribedProjectsRepository(FakeWearPrefsDatasource())
 		useCase = CaptureUseCase(
 			writer = writer,
@@ -36,6 +39,7 @@ class CaptureUseCaseTest : WearTestBase() {
 				unsynced,
 			),
 			captureSync = captureSync,
+			surfaces = surfaces,
 		)
 	}
 
@@ -59,6 +63,23 @@ class CaptureUseCaseTest : WearTestBase() {
 		assertEquals(listOf("a town with one memory"), writer.ideas)
 		assertEquals(CaptureResult.Saved, result)
 		assertEquals(1, captureSync.requests)
+	}
+
+	@Test
+	fun `a capture tells the watch face surfaces to re-read`() = runTest(dispatcher) {
+		useCase.capture(CaptureTarget.Idea, "a thought worth keeping")
+
+		// The tile and complication are cached, so without this they keep showing a stale count.
+		assertEquals(1, surfaces.refreshes)
+	}
+
+	@Test
+	fun `a capture that was not saved does not refresh anything`() = runTest(dispatcher) {
+		writer.succeed = false
+
+		useCase.capture(CaptureTarget.Idea, "a thought")
+
+		assertEquals(0, surfaces.refreshes)
 	}
 
 	@Test

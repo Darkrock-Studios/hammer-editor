@@ -35,10 +35,46 @@
 			</intent-filter>
 		</activity>
 
+		<!-- Exported so the tile's launch action can start it. It takes only a mode extra. -->
 		<activity
 			android:name=".CaptureActivity"
-			android:exported="false"
+			android:exported="true"
 			android:taskAffinity="" />
+
+		<service
+			android:name=".tile.CaptureTileService"
+			android:description="@string/complication_description"
+			android:exported="true"
+			android:icon="@mipmap/ic_launcher"
+			android:label="@string/tile_label"
+			android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+			<intent-filter>
+				<action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+			</intent-filter>
+
+			<meta-data
+				android:name="androidx.wear.tiles.PREVIEW"
+				android:resource="@mipmap/ic_launcher" />
+		</service>
+
+		<service
+			android:name=".complication.CaptureComplicationService"
+			android:exported="true"
+			android:icon="@mipmap/ic_launcher"
+			android:label="@string/complication_label"
+			android:permission="com.google.android.wearable.permission.BIND_COMPLICATION_PROVIDER">
+			<intent-filter>
+				<action android:name="android.support.wearable.complications.ACTION_COMPLICATION_UPDATE_REQUEST" />
+			</intent-filter>
+
+			<meta-data
+				android:name="android.support.wearable.complications.SUPPORTED_TYPES"
+				android:value="SHORT_TEXT,MONOCHROMATIC_IMAGE" />
+
+			<meta-data
+				android:name="android.support.wearable.complications.UPDATE_PERIOD_SECONDS"
+				android:value="900" />
+		</service>
 
 		<service
 			android:name=".pairing.PairingResponseListenerService"

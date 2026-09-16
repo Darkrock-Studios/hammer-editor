@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.wear.data.UnsyncedContentSource
 import com.darkrockstudios.apps.hammer.wear.data.WearPrefsDatasource
 import com.darkrockstudios.apps.hammer.wear.sync.CaptureSyncScheduler
 import com.darkrockstudios.apps.hammer.wear.sync.SyncCoordinator
+import com.darkrockstudios.apps.hammer.wear.tile.CaptureSurfaceUpdater
 import com.darkrockstudios.apps.hammer.wear.sync.SyncRunResult
 import com.darkrockstudios.apps.hammer.wear.sync.SyncStatus
 import com.darkrockstudios.apps.hammer.wear.sync.SyncTrigger
@@ -73,6 +74,14 @@ class FakeCaptureSyncScheduler : CaptureSyncScheduler {
 
 	override fun syncSoon() {
 		requests++
+	}
+}
+
+class FakeCaptureSurfaceUpdater : CaptureSurfaceUpdater {
+	var refreshes = 0
+
+	override fun refresh() {
+		refreshes++
 	}
 }
 

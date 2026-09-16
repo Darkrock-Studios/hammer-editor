@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountL
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountResult
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.NetworkConnectivity
+import com.darkrockstudios.apps.hammer.wear.FakeCaptureSurfaceUpdater
 import com.darkrockstudios.apps.hammer.wear.FakeWearPrefsDatasource
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
 import io.mockk.coEvery
@@ -79,6 +80,7 @@ class DefaultSyncCoordinatorTest {
 	private lateinit var subscriptions: SubscribedProjectsRepository
 	private lateinit var globalSettingsStore: GlobalSettingsStore
 	private lateinit var networkConnectivity: NetworkConnectivity
+	private lateinit var surfaces: FakeCaptureSurfaceUpdater
 	private lateinit var coordinator: DefaultSyncCoordinator
 
 	@BeforeEach
@@ -91,7 +93,15 @@ class DefaultSyncCoordinatorTest {
 		every { globalSettingsStore.globalSettings } returns GlobalSettings(projectsDirectory = "/projects", automaticSyncing = true)
 		networkConnectivity = mockk()
 		coEvery { networkConnectivity.hasActiveConnection() } returns true
-		coordinator = DefaultSyncCoordinator(accountSync, subscriptions, globalSettingsStore, networkConnectivity, appScope)
+		surfaces = FakeCaptureSurfaceUpdater()
+		coordinator = DefaultSyncCoordinator(
+			accountSync = accountSync,
+			subscriptions = subscriptions,
+			globalSettingsStore = globalSettingsStore,
+			networkConnectivity = networkConnectivity,
+			surfaces = surfaces,
+			appScope = appScope,
+		)
 	}
 
 	@AfterEach
@@ -152,6 +162,23 @@ class DefaultSyncCoordinatorTest {
 
 		assertEquals(SyncRunResult.Busy, second)
 		assertEquals(1, accountSync.runs)
+	}
+
+	@Test
+	fun `a finished sync tells the watch face surfaces to re-read`() = runTest(dispatcher) {
+		coordinator.sync(SyncTrigger.Manual)
+
+		// A sync is the only thing that lowers the pending count the tile shows.
+		assertEquals(1, surfaces.refreshes)
+	}
+
+	@Test
+	fun `a failed sync still refreshes, since it may have uploaded some of it`() = runTest(dispatcher) {
+		accountSync.behaviour = { error("network gone") }
+
+		coordinator.sync(SyncTrigger.Manual)
+
+		assertEquals(1, surfaces.refreshes)
 	}
 
 	@Test
