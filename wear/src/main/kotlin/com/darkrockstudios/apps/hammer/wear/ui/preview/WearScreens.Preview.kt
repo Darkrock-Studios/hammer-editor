@@ -255,6 +255,8 @@ private fun CapturePreview(state: Capture.State) {
 			onShowProjectPicker = {},
 			onSelectProject = {},
 			onDismissProjectPicker = {},
+			onCancelDiscard = {},
+			onDiscard = {},
 			onSave = {},
 			onDone = {},
 		)
@@ -312,6 +314,21 @@ private fun CaptureProjectPickerPreview() {
 			projects = previewCaptureProjects,
 			projectName = "The Lighthouse",
 			pickingProject = true,
+			loading = false,
+		)
+	)
+}
+
+@WearPreviewDevices
+@Composable
+private fun CaptureDiscardConfirmPreview() {
+	CapturePreview(
+		Capture.State(
+			mode = Capture.Mode.Note,
+			text = "The keeper never lights the lamp on the night his brother visits",
+			projects = previewCaptureProjects,
+			projectName = "The Lighthouse",
+			confirmingDiscard = true,
 			loading = false,
 		)
 	)

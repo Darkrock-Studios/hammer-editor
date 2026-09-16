@@ -10,6 +10,10 @@ interface Capture {
 	fun showProjectPicker()
 	fun selectProject(projectName: String)
 	fun dismissProjectPicker()
+
+	/** Asks before leaving with writing that was never saved. */
+	fun requestDiscard()
+	fun cancelDiscard()
 	fun save()
 
 	enum class Mode { Note, Idea }
@@ -21,6 +25,7 @@ interface Capture {
 		val projects: List<String> = emptyList(),
 		val projectName: String? = null,
 		val pickingProject: Boolean = false,
+		val confirmingDiscard: Boolean = false,
 		val loading: Boolean = true,
 		val saving: Boolean = false,
 		val outcome: Outcome? = null,
@@ -28,6 +33,13 @@ interface Capture {
 		val canSave: Boolean
 			get() = text.isNotBlank() && !saving &&
 				(mode == Mode.Idea || projectName != null)
+
+		/**
+		 * Writing that leaving would destroy. A save already in flight does not count: it finishes
+		 * outside the screen either way.
+		 */
+		val hasUnsavedWork: Boolean
+			get() = text.isNotBlank() && !saving && outcome == null
 	}
 
 	sealed interface Outcome {

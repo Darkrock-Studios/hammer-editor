@@ -67,6 +67,11 @@
 	<string name="capture_project_loading">Loading</string>
 	<string name="capture_project_none">No project on this watch</string>
 	<string name="capture_project_keep">Keep current</string>
+	<string name="capture_discard_title_note">Discard note?</string>
+	<string name="capture_discard_title_idea">Discard idea?</string>
+	<string name="capture_discard_body">This has not been saved yet. Leaving now loses it.</string>
+	<string name="capture_discard_confirm">Discard</string>
+	<string name="capture_discard_keep">Keep writing</string>
 	<string name="capture_save">Save</string>
 	<string name="capture_done">Done</string>
 	<string name="capture_saved">Saved</string>

@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -103,20 +104,40 @@ private fun CaptureUi(component: Capture, onDone: () -> Unit) {
 		}
 	}
 
+	// One way out, whether it came from the swipe or the back button. Leaving is only immediate
+	// when there is nothing to lose.
+	fun exit() {
+		when {
+			state.confirmingDiscard -> component.cancelDiscard()
+			state.pickingProject -> component.dismissProjectPicker()
+			state.hasUnsavedWork -> component.requestDiscard()
+			else -> onDone()
+		}
+	}
+
+	val layered = state.pickingProject || state.confirmingDiscard
+	BackHandler(enabled = layered || state.hasUnsavedWork) { exit() }
+
 	AppScaffold(timeText = { TimeText() }) {
 		SwipeToDismissBox(
-			onDismissed = component::dismissProjectPicker,
+			onDismissed = ::exit,
 			backgroundKey = false,
-			contentKey = state.pickingProject,
-			// Only the picker is a layer to swipe back out of; elsewhere the gesture leaves capture.
-			userSwipeEnabled = state.pickingProject,
+			contentKey = layered,
+			// Disabled only when the gesture can safely fall through to finishing the activity.
+			userSwipeEnabled = layered || state.hasUnsavedWork,
 		) { isBackground ->
 			CaptureScreen(
-				state = if (isBackground) state.copy(pickingProject = false) else state,
+				state = if (isBackground) {
+					state.copy(pickingProject = false, confirmingDiscard = false)
+				} else {
+					state
+				},
 				onEditText = ::promptForText,
 				onShowProjectPicker = component::showProjectPicker,
 				onSelectProject = component::selectProject,
 				onDismissProjectPicker = component::dismissProjectPicker,
+				onCancelDiscard = component::cancelDiscard,
+				onDiscard = onDone,
 				onSave = component::save,
 				onDone = onDone,
 			)

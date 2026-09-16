@@ -62,6 +62,15 @@ class CaptureComponent(
 		_state.update { it.copy(pickingProject = false) }
 	}
 
+	override fun requestDiscard() {
+		if (!_state.value.hasUnsavedWork) return
+		_state.update { it.copy(confirmingDiscard = true, pickingProject = false) }
+	}
+
+	override fun cancelDiscard() {
+		_state.update { it.copy(confirmingDiscard = false) }
+	}
+
 	override fun save() {
 		val current = _state.value
 		if (!current.canSave) return
@@ -74,7 +83,7 @@ class CaptureComponent(
 			}
 		}
 
-		_state.update { it.copy(saving = true) }
+		_state.update { it.copy(saving = true, confirmingDiscard = false) }
 		// Outlives the screen: a capture must land even if the watch drops the activity mid-save.
 		appScope.launch {
 			val result = captureUseCase.capture(target, current.text)

@@ -243,6 +243,59 @@ class CaptureComponentTest : WearTestBase() {
 	}
 
 	@Test
+	fun `leaving with dictated text asks before dropping it`() = runTest(dispatcher) {
+		val component = newComponent(Capture.Mode.Idea)
+		component.onTextEntered("a town where everyone shares one memory")
+
+		assertTrue(component.state.value.hasUnsavedWork)
+		component.requestDiscard()
+
+		assertTrue(component.state.value.confirmingDiscard)
+
+		component.cancelDiscard()
+
+		assertFalse(component.state.value.confirmingDiscard)
+		assertEquals("a town where everyone shares one memory", component.state.value.text)
+	}
+
+	@Test
+	fun `leaving with nothing dictated has nothing to ask about`() = runTest(dispatcher) {
+		val component = newComponent(Capture.Mode.Idea)
+
+		assertFalse(component.state.value.hasUnsavedWork)
+		component.requestDiscard()
+
+		assertFalse(component.state.value.confirmingDiscard)
+	}
+
+	@Test
+	fun `a saved capture is not unsaved work`() = runTest(dispatcher) {
+		val component = newComponent(Capture.Mode.Idea)
+		component.onTextEntered("a thought worth keeping")
+		component.save()
+		scheduler.advanceUntilIdle()
+
+		// The words are on disk, so the swipe out should just leave.
+		assertFalse(component.state.value.hasUnsavedWork)
+		component.requestDiscard()
+
+		assertFalse(component.state.value.confirmingDiscard)
+	}
+
+	@Test
+	fun `saving clears a confirmation left open behind it`() = runTest(dispatcher) {
+		val component = newComponent(Capture.Mode.Idea)
+		component.onTextEntered("a thought worth keeping")
+		component.requestDiscard()
+
+		component.save()
+		scheduler.advanceUntilIdle()
+
+		assertFalse(component.state.value.confirmingDiscard)
+		assertEquals(Capture.Outcome.Saved(pending = 0), component.state.value.outcome)
+	}
+
+	@Test
 	fun `saving twice does not write the capture twice`() = runTest(dispatcher) {
 		val component = newComponent(Capture.Mode.Idea)
 		component.onTextEntered("a thought worth keeping")

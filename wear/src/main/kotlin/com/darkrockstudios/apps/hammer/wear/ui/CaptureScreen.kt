@@ -26,12 +26,20 @@ fun CaptureScreen(
 	onShowProjectPicker: () -> Unit,
 	onSelectProject: (String) -> Unit,
 	onDismissProjectPicker: () -> Unit,
+	onCancelDiscard: () -> Unit,
+	onDiscard: () -> Unit,
 	onSave: () -> Unit,
 	onDone: () -> Unit,
 ) {
 	val outcome = state.outcome
 	when {
 		outcome != null -> CaptureOutcomeContent(outcome = outcome, onDone = onDone)
+		state.confirmingDiscard -> DiscardConfirmContent(
+			mode = state.mode,
+			onKeepEditing = onCancelDiscard,
+			onDiscard = onDiscard,
+		)
+
 		state.pickingProject -> ProjectPickerContent(
 			state = state,
 			onSelectProject = onSelectProject,
@@ -132,6 +140,54 @@ private fun ProjectPickerContent(
 					onClick = { onSelectProject(name) },
 					modifier = Modifier.fillMaxWidth(),
 					label = { Text(name, maxLines = 2) },
+				)
+			}
+		}
+	}
+}
+
+@Composable
+private fun DiscardConfirmContent(
+	mode: Capture.Mode,
+	onKeepEditing: () -> Unit,
+	onDiscard: () -> Unit,
+) {
+	val listState = rememberTransformingLazyColumnState()
+
+	ScreenScaffold(
+		scrollState = listState,
+		// The edge button is the easiest thing to hit, so it is the one that keeps the writing.
+		edgeButton = {
+			EdgeButton(onClick = onKeepEditing) { Text(stringResource(R.string.capture_discard_keep)) }
+		},
+	) { contentPadding ->
+		TransformingLazyColumn(state = listState, contentPadding = screenContentPadding(contentPadding)) {
+			item {
+				ListHeader {
+					Text(
+						stringResource(
+							if (mode == Capture.Mode.Idea) {
+								R.string.capture_discard_title_idea
+							} else {
+								R.string.capture_discard_title_note
+							}
+						)
+					)
+				}
+			}
+			item {
+				Text(
+					text = stringResource(R.string.capture_discard_body),
+					color = MaterialTheme.colorScheme.error,
+					textAlign = TextAlign.Center,
+					modifier = Modifier.fillMaxWidth(),
+				)
+			}
+			item {
+				FilledTonalButton(
+					onClick = onDiscard,
+					modifier = Modifier.fillMaxWidth(),
+					label = { Text(stringResource(R.string.capture_discard_confirm)) },
 				)
 			}
 		}
