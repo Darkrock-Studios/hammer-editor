@@ -137,7 +137,7 @@ class DefaultSyncCoordinatorTest {
 	}
 
 	@Test
-	fun `a sync requested while one is running is skipped`() = runTest(dispatcher) {
+	fun `a sync requested while one is running reports the lock, not completion`() = runTest(dispatcher) {
 		val gate = CompletableDeferred<Unit>()
 		accountSync.behaviour = {
 			gate.await()
@@ -150,7 +150,7 @@ class DefaultSyncCoordinatorTest {
 		gate.complete(Unit)
 		first.await()
 
-		assertEquals(SyncRunResult.Skipped, second)
+		assertEquals(SyncRunResult.Busy, second)
 		assertEquals(1, accountSync.runs)
 	}
 

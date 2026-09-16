@@ -448,6 +448,40 @@ class SyncJournalTest : BaseTest() {
 		)
 	}
 
+	@Test
+	fun `A project that has never synced has nothing pending`() = runTest {
+		createProject(ffs, PROJECT_2_NAME)
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		val repo = createRepository(projectDef)
+		ffs.delete(syncPath(projectDef))
+
+		assertEquals(0, repo.pendingEntityCount())
+		// Asking must not be what creates the file.
+		assertFalse(ffs.exists(syncPath(projectDef)))
+	}
+
+	@Test
+	fun `Pending entities are the new ones plus the changed ones`() = runTest {
+		createProject(ffs, PROJECT_2_NAME)
+		val projectDef = getProjectDef(PROJECT_2_NAME)
+		val repo = createRepository(projectDef)
+		ffs.writeJson(
+			syncPath(projectDef),
+			json,
+			ProjectSynchronizationData(
+				currentSyncId = null,
+				lastId = 6,
+				newIds = listOf(5, 6),
+				lastSync = Instant.DISTANT_PAST,
+				dirty = listOf(EntityOriginalState(1, "hash"), EntityOriginalState(5, null)),
+				deletedIds = setOf(3),
+			),
+		)
+
+		// Entity 5 is both new and dirty, and a deleted id is not writing waiting to upload.
+		assertEquals(3, repo.pendingEntityCount())
+	}
+
 	companion object {
 		@JvmStatic
 		private fun syncTestData() = listOf(

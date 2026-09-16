@@ -2,11 +2,8 @@
 
 _Design doc. Status: phases 1 to 3 implemented on the `wear-app` branch (sync extraction,
 pairing endpoint, watch app with pairing, sign-in, project subscriptions, and background sync).
-Not yet smoke tested on an emulator or watch. Phase 4 (capture) is next._
-
-Sign out wipes the whole projects directory and runs inside the sync coordinator's lock. It
-does not yet warn about notes captured offline that have not synced; phase 4 must add that
-before capture ships.
+Phase 4 (capture) is in progress: the guards that protect unsynced captures have landed, the
+capture UI has not. Smoke tested on a Wear OS emulator, not yet on a watch._
 
 A standalone Wear OS client for capturing notes and ideas while away from a desk, and for
 listening to scenes read aloud. It reuses the `common` data and sync layers unchanged and
@@ -173,12 +170,32 @@ restriction because they are UUID keyed.
 - Show the pending count after save so the user knows the note exists locally even though it
   has not synced.
 
+## Protecting captures that have not synced
+
+Everything the watch writes is offline-first, so two flows can destroy writing that never reached
+the server. Both are guarded before the capture UI exists, because once capture ships the loss is
+silent.
+
+- **Unsubscribing** syncs the project first, while it is still in the sync filter, then deletes
+  its content only if the sync journal reports nothing outstanding. If anything remains the
+  project keeps both its content and its subscription: an unsubscribed project is filtered out of
+  every later sync, so dropping the subscription would strand the writing rather than free it.
+  A count that cannot be read is treated as outstanding, so a failure can never authorise a
+  delete.
+- **Signing out** counts the subscribed projects' pending entities plus ideas with no server
+  baseline, and asks for confirmation before wiping. An unreadable count still warns.
+
+`SyncJournal.pendingEntityCount` is the source of truth for a project. The watch reaches it
+through `UnsyncedContentSource`, an interface, because reading a project's journal needs a full
+project scope that a JVM test cannot open.
+
 ## Background sync
 
 WorkManager, mirroring the widget worker:
 
-- A one-time expedited request with a network constraint after every capture. Runs the sync
-  use case for the touched project only.
+- A one-time expedited request with a network constraint after every capture. `SyncCoordinator`
+  reports `Busy` rather than `Skipped` when another sync holds the lock, so work that needs its
+  own captures uploaded asks again instead of reporting success.
 - A periodic request (charging plus unmetered network) for all subscribed projects.
 - A manual "Sync now" in the app.
 
@@ -229,8 +246,8 @@ Phase-gated behind the rest, but designed in now because it depends on synced co
 2. **Pairing endpoint** on the server plus the client API and use case. Standalone PR.
 3. **Wear module skeleton**: Koin split, pairing flow, manual sign-in fallback, project list
    with subscribe and sync, sync status.
-4. **Capture**: activity with `RemoteInput`, note and idea flows, tile, complication,
-   WorkManager sync.
+4. **Capture**: guards for unsynced captures, then the activity with `RemoteInput`, note and
+   idea flows, tile, complication, WorkManager sync.
 5. **Read aloud**: markdown to speech helper in `base`, playback service, controls.
 6. **Release pipeline**: fastlane lanes, Play workflow, version code offset.
 

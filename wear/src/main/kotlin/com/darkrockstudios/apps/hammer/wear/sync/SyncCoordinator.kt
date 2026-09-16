@@ -83,7 +83,7 @@ class DefaultSyncCoordinator(
 
 	override suspend fun sync(trigger: SyncTrigger): SyncRunResult {
 		if (!globalSettingsStore.serverSettings.isSignedIn()) return SyncRunResult.Skipped
-		if (!mutex.tryLock()) return SyncRunResult.Skipped
+		if (!mutex.tryLock()) return SyncRunResult.Busy
 
 		try {
 			val subscribed = subscriptions.currentSubscriptions()

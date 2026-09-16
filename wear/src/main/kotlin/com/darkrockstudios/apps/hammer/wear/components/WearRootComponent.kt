@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.wear.components.synclog.SyncLogComponent
 import com.darkrockstudios.apps.hammer.wear.data.ListWatchProjectsUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SignOutUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
+import com.darkrockstudios.apps.hammer.wear.data.UnsyncedContentUseCase
 import com.darkrockstudios.apps.hammer.wear.data.isSignedIn
 import com.darkrockstudios.apps.hammer.wear.pairing.PhonePairingUseCase
 import com.darkrockstudios.apps.hammer.wear.sync.SyncCoordinator
@@ -35,6 +36,7 @@ class WearRootComponent(
 	private val listProjects: ListWatchProjectsUseCase,
 	private val projectsRepository: ProjectsRepository,
 	private val subscriptions: SubscribedProjectsRepository,
+	private val unsyncedContent: UnsyncedContentUseCase,
 	private val syncCoordinator: SyncCoordinator,
 	private val signOutUseCase: SignOutUseCase,
 	private val appScope: CoroutineScope,
@@ -117,6 +119,7 @@ class WearRootComponent(
 				listProjects = listProjects,
 				projectsRepository = projectsRepository,
 				subscriptions = subscriptions,
+				unsyncedContent = unsyncedContent,
 				syncCoordinator = syncCoordinator,
 				signOutUseCase = signOutUseCase,
 				appScope = appScope,

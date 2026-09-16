@@ -23,8 +23,14 @@ data class SyncStatus(
 )
 
 sealed interface SyncRunResult {
-	/** Another sync was already running, or there is no account to sync. */
+	/** There is no account to sync. */
 	data object Skipped : SyncRunResult
+
+	/**
+	 * Another sync held the lock. The caller's own writing may not have been part of it, so work
+	 * that needs its captures uploaded has to ask again rather than treat this as done.
+	 */
+	data object Busy : SyncRunResult
 	data class Completed(val result: SyncAccountResult) : SyncRunResult
 	data object Failed : SyncRunResult
 }

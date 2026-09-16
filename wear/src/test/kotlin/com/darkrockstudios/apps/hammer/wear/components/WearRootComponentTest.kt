@@ -6,11 +6,13 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.pairing.PairRequest
 import com.darkrockstudios.apps.hammer.wear.FakeStrRes
 import com.darkrockstudios.apps.hammer.wear.FakeSyncCoordinator
+import com.darkrockstudios.apps.hammer.wear.FakeUnsyncedContentSource
 import com.darkrockstudios.apps.hammer.wear.FakeWearPrefsDatasource
 import com.darkrockstudios.apps.hammer.wear.TestProjects
 import com.darkrockstudios.apps.hammer.wear.WearTestBase
 import com.darkrockstudios.apps.hammer.wear.data.ListWatchProjectsUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
+import com.darkrockstudios.apps.hammer.wear.data.UnsyncedContentUseCase
 import com.darkrockstudios.apps.hammer.wear.pairing.PairingState
 import com.darkrockstudios.apps.hammer.wear.pairing.PhonePairingClient
 import com.darkrockstudios.apps.hammer.wear.pairing.PhonePairingUseCase
@@ -69,6 +71,10 @@ class WearRootComponentTest : WearTestBase() {
 			listProjects = ListWatchProjectsUseCase(projects.repository, subscriptions),
 			projectsRepository = projects.repository,
 			subscriptions = subscriptions,
+			unsyncedContent = UnsyncedContentUseCase(
+				ListWatchProjectsUseCase(projects.repository, subscriptions),
+				FakeUnsyncedContentSource(),
+			),
 			syncCoordinator = FakeSyncCoordinator(),
 			signOutUseCase = mockk(relaxed = true),
 			appScope = CoroutineScope(dispatcher),

@@ -5,7 +5,10 @@ import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountU
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.wear.data.ListWatchProjectsUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SignOutUseCase
+import com.darkrockstudios.apps.hammer.wear.data.RepositoryUnsyncedContentSource
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
+import com.darkrockstudios.apps.hammer.wear.data.UnsyncedContentSource
+import com.darkrockstudios.apps.hammer.wear.data.UnsyncedContentUseCase
 import com.darkrockstudios.apps.hammer.wear.data.WearPrefsDatasource
 import com.darkrockstudios.apps.hammer.wear.data.createWearPrefsDatasource
 import com.darkrockstudios.apps.hammer.wear.pairing.DataLayerPhonePairingClient
@@ -33,6 +36,10 @@ val wearModule: Module = module {
 	single<WearPrefsDatasource> { createWearPrefsDatasource(androidContext()) }
 	single { SubscribedProjectsRepository(datasource = get()) }
 	factory { ListWatchProjectsUseCase(projectsRepository = get(), subscriptions = get()) }
+	single<UnsyncedContentSource> {
+		RepositoryUnsyncedContentSource(ideasRepository = get(), ideasSyncDatasource = get())
+	}
+	factory { UnsyncedContentUseCase(listProjects = get(), source = get()) }
 
 	single<AccountSync> {
 		val syncAccountUseCase: SyncAccountUseCase = get()

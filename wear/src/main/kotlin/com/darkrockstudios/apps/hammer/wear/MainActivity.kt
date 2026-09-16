@@ -25,6 +25,7 @@ class MainActivity : ComponentActivity() {
 				listProjects = get(),
 				projectsRepository = get(),
 				subscriptions = get(),
+				unsyncedContent = get(),
 				syncCoordinator = get(),
 				signOutUseCase = get(),
 				appScope = get(named(APP_SCOPE)),

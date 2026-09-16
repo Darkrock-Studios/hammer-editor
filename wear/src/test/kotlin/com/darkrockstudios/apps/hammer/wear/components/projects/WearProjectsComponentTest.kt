@@ -6,12 +6,14 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncOutcome
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
 import com.darkrockstudios.apps.hammer.wear.FakeSyncCoordinator
+import com.darkrockstudios.apps.hammer.wear.FakeUnsyncedContentSource
 import com.darkrockstudios.apps.hammer.wear.FakeWearPrefsDatasource
 import com.darkrockstudios.apps.hammer.wear.TestProjects
 import com.darkrockstudios.apps.hammer.wear.WearTestBase
 import com.darkrockstudios.apps.hammer.wear.data.ListWatchProjectsUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SignOutUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
+import com.darkrockstudios.apps.hammer.wear.data.UnsyncedContentUseCase
 import com.darkrockstudios.apps.hammer.wear.sync.ProjectSyncState
 import com.darkrockstudios.apps.hammer.wear.sync.SyncStatus
 import com.darkrockstudios.apps.hammer.wear.sync.SyncTrigger
@@ -22,6 +24,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -31,6 +34,7 @@ class WearProjectsComponentTest : WearTestBase() {
 	private lateinit var projects: TestProjects
 	private lateinit var subscriptions: SubscribedProjectsRepository
 	private lateinit var coordinator: FakeSyncCoordinator
+	private lateinit var unsynced: FakeUnsyncedContentSource
 	private lateinit var signOutUseCase: SignOutUseCase
 	private var syncLogShown = false
 
@@ -40,6 +44,7 @@ class WearProjectsComponentTest : WearTestBase() {
 		projects = TestProjects()
 		subscriptions = SubscribedProjectsRepository(FakeWearPrefsDatasource())
 		coordinator = FakeSyncCoordinator()
+		unsynced = FakeUnsyncedContentSource()
 		signOutUseCase = mockk(relaxed = true)
 		syncLogShown = false
 	}
@@ -53,12 +58,14 @@ class WearProjectsComponentTest : WearTestBase() {
 			bearerToken = "auth",
 			refreshToken = "refresh",
 		)
+		val listProjects = ListWatchProjectsUseCase(projects.repository, subscriptions)
 		return WearProjectsComponent(
 			componentContext = componentContext,
 			globalSettingsStore = globalSettingsStore,
-			listProjects = ListWatchProjectsUseCase(projects.repository, subscriptions),
+			listProjects = listProjects,
 			projectsRepository = projects.repository,
 			subscriptions = subscriptions,
+			unsyncedContent = UnsyncedContentUseCase(listProjects, unsynced),
 			syncCoordinator = coordinator,
 			signOutUseCase = signOutUseCase,
 			appScope = CoroutineScope(dispatcher),
@@ -186,12 +193,139 @@ class WearProjectsComponentTest : WearTestBase() {
 	}
 
 	@Test
-	fun `signing out runs the sign out`() = runTest(dispatcher) {
+	fun `unsubscribing uploads first when the project has writing the server has not seen`() = runTest(dispatcher) {
+		val projectDef = projects.create("Alpha", serverId = "a")
+		val sceneDir = projectDef.path.toOkioPath() / "scenes"
+		projects.fileSystem.createDirectories(sceneDir)
+		subscriptions.setSubscribed(ProjectId("a"), true)
+		unsynced.pendingByProject["Alpha"] = 2
+		coordinator.onSync = { unsynced.pendingByProject["Alpha"] = 0 }
+		val component = newComponent()
+
+		component.toggleSubscription("Alpha")
+		scheduler.advanceUntilIdle()
+
+		assertEquals(listOf(SyncTrigger.Manual), coordinator.requested)
+		assertFalse(projects.fileSystem.exists(sceneDir))
+		assertEquals(emptySet<ProjectId>(), subscriptions.currentSubscriptions())
+		assertNull(component.state.value.unsyncedKept)
+	}
+
+	@Test
+	fun `unsubscribing keeps content and the subscription while writing is still unsynced`() = runTest(dispatcher) {
+		val projectDef = projects.create("Alpha", serverId = "a")
+		val sceneDir = projectDef.path.toOkioPath() / "scenes"
+		projects.fileSystem.createDirectories(sceneDir)
+		projects.fileSystem.write(sceneDir / "1.md") { writeUtf8("a note dictated on a run") }
+		subscriptions.setSubscribed(ProjectId("a"), true)
+		unsynced.pendingByProject["Alpha"] = 1
+		val component = newComponent()
+
+		component.toggleSubscription("Alpha")
+		scheduler.advanceUntilIdle()
+
+		assertTrue(projects.fileSystem.exists(sceneDir / "1.md"))
+		// Unsubscribing here would filter the project out of every later sync, stranding the note.
+		assertEquals(setOf(ProjectId("a")), subscriptions.currentSubscriptions())
+		assertTrue(component.row("Alpha").subscribed)
+		assertEquals("Alpha", component.state.value.unsyncedKept)
+		assertFalse(component.row("Alpha").unsubscribing)
+	}
+
+	@Test
+	fun `a count that cannot be read never authorises a delete`() = runTest(dispatcher) {
+		val projectDef = projects.create("Alpha", serverId = "a")
+		val sceneDir = projectDef.path.toOkioPath() / "scenes"
+		projects.fileSystem.createDirectories(sceneDir)
+		subscriptions.setSubscribed(ProjectId("a"), true)
+		unsynced.failWith = IllegalStateException("no project scope")
+		val component = newComponent()
+
+		component.toggleSubscription("Alpha")
+		scheduler.advanceUntilIdle()
+
+		assertTrue(projects.fileSystem.exists(sceneDir))
+		assertEquals(setOf(ProjectId("a")), subscriptions.currentSubscriptions())
+		assertEquals("Alpha", component.state.value.unsyncedKept)
+	}
+
+	@Test
+	fun `dismissing the kept notice clears it`() = runTest(dispatcher) {
+		projects.create("Alpha", serverId = "a")
+		subscriptions.setSubscribed(ProjectId("a"), true)
+		unsynced.pendingByProject["Alpha"] = 1
+		val component = newComponent()
+		component.toggleSubscription("Alpha")
+		scheduler.advanceUntilIdle()
+
+		component.dismissUnsyncedNotice()
+
+		assertNull(component.state.value.unsyncedKept)
+	}
+
+	@Test
+	fun `signing out with nothing outstanding does not stop to ask`() = runTest(dispatcher) {
 		val component = newComponent()
 
 		component.signOut()
 		scheduler.advanceUntilIdle()
 
+		assertNull(component.state.value.signOutWarning)
 		coVerify(exactly = 1) { signOutUseCase.signOut() }
+	}
+
+	@Test
+	fun `signing out warns before wiping captures that have not synced`() = runTest(dispatcher) {
+		projects.create("Alpha", serverId = "a")
+		subscriptions.setSubscribed(ProjectId("a"), true)
+		unsynced.pendingByProject["Alpha"] = 2
+		unsynced.pendingIdeas = 1
+		val component = newComponent()
+
+		component.signOut()
+		scheduler.advanceUntilIdle()
+
+		assertEquals(WearProjects.SignOutWarning(items = 3), component.state.value.signOutWarning)
+		coVerify(exactly = 0) { signOutUseCase.signOut() }
+	}
+
+	@Test
+	fun `an uncountable state still warns rather than wiping silently`() = runTest(dispatcher) {
+		val component = newComponent()
+		unsynced.failWith = IllegalStateException("no project scope")
+
+		component.signOut()
+		scheduler.advanceUntilIdle()
+
+		assertEquals(WearProjects.SignOutWarning(items = 0), component.state.value.signOutWarning)
+		coVerify(exactly = 0) { signOutUseCase.signOut() }
+	}
+
+	@Test
+	fun `confirming the warning signs out`() = runTest(dispatcher) {
+		unsynced.pendingIdeas = 1
+		val component = newComponent()
+		component.signOut()
+		scheduler.advanceUntilIdle()
+
+		component.confirmSignOut()
+		scheduler.advanceUntilIdle()
+
+		assertNull(component.state.value.signOutWarning)
+		coVerify(exactly = 1) { signOutUseCase.signOut() }
+	}
+
+	@Test
+	fun `cancelling the warning keeps the account`() = runTest(dispatcher) {
+		unsynced.pendingIdeas = 1
+		val component = newComponent()
+		component.signOut()
+		scheduler.advanceUntilIdle()
+
+		component.cancelSignOut()
+		scheduler.advanceUntilIdle()
+
+		assertNull(component.state.value.signOutWarning)
+		coVerify(exactly = 0) { signOutUseCase.signOut() }
 	}
 }

@@ -4,12 +4,14 @@ import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.update
+import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.wear.data.ListWatchProjectsUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SignOutUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
+import com.darkrockstudios.apps.hammer.wear.data.UnsyncedContentUseCase
 import com.darkrockstudios.apps.hammer.wear.data.WatchProject
 import com.darkrockstudios.apps.hammer.wear.sync.SyncCoordinator
 import com.darkrockstudios.apps.hammer.wear.sync.SyncStatus
@@ -26,6 +28,7 @@ class WearProjectsComponent(
 	private val listProjects: ListWatchProjectsUseCase,
 	private val projectsRepository: ProjectsRepository,
 	private val subscriptions: SubscribedProjectsRepository,
+	private val unsyncedContent: UnsyncedContentUseCase,
 	private val syncCoordinator: SyncCoordinator,
 	private val signOutUseCase: SignOutUseCase,
 	private val appScope: CoroutineScope,
@@ -41,6 +44,9 @@ class WearProjectsComponent(
 	private var watchProjects: List<WatchProject> = emptyList()
 	private var syncStatus: SyncStatus = syncCoordinator.status.value
 	private var projectsLoaded = false
+	private var unsubscribing: Set<String> = emptySet()
+	private var signOutWarning: WearProjects.SignOutWarning? = null
+	private var unsyncedKept: String? = null
 
 	override fun onCreate() {
 		super.onCreate()
@@ -62,20 +68,22 @@ class WearProjectsComponent(
 	override fun toggleSubscription(projectName: String) {
 		val project = watchProjects.find { it.projectDef.name == projectName } ?: return
 		val projectId = project.projectId ?: return
-		val subscribe = !project.subscribed
 
-		scope.launch {
-			subscriptions.setSubscribed(projectId, subscribe)
-			if (subscribe) {
+		if (!project.subscribed) {
+			scope.launch {
+				subscriptions.setSubscribed(projectId, true)
 				syncCoordinator.requestSync(SyncTrigger.Manual)
-			} else {
-				// Thar be dragons: this throws away synced content immediately. Phase 4 must defer it
-				// until a sync confirms the server holds every capture taken on the watch, or
-				// unsubscribing destroys unsynced writing.
-				syncCoordinator.runExclusive { projectsRepository.deleteProjectContent(project.projectDef) }
+				reload()
 			}
-			reload()
+			return
 		}
+
+		if (projectName in unsubscribing) return
+		unsubscribing = unsubscribing + projectName
+		unsyncedKept = null
+		publish()
+		// Outlives the screen: abandoning a half-done unsubscribe would strand the subscription.
+		appScope.launch { unsubscribe(project, projectId) }
 	}
 
 	override fun syncNow() {
@@ -87,6 +95,87 @@ class WearProjectsComponent(
 	}
 
 	override fun signOut() {
+		scope.launch {
+			val pending = try {
+				unsyncedContent.pending()
+			} catch (e: CancellationException) {
+				throw e
+			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+				Napier.e("Failed to count unsynced captures before signing out", e)
+				null
+			}
+
+			withContext(dispatcherMain) {
+				if (pending != null && pending.isEmpty) {
+					runSignOut()
+				} else {
+					signOutWarning = WearProjects.SignOutWarning(items = pending?.total ?: 0)
+					publish()
+				}
+			}
+		}
+	}
+
+	override fun confirmSignOut() {
+		signOutWarning = null
+		publish()
+		runSignOut()
+	}
+
+	override fun cancelSignOut() {
+		signOutWarning = null
+		publish()
+	}
+
+	override fun dismissUnsyncedNotice() {
+		unsyncedKept = null
+		publish()
+	}
+
+	/**
+	 * Uploads before dropping the project's content, so writing captured on the watch is never
+	 * destroyed by unsubscribing. If anything is still unsynced the project stays subscribed as
+	 * well as intact, because an unsubscribed project is filtered out of every later sync and its
+	 * writing would never get another chance to upload.
+	 */
+	private suspend fun unsubscribe(project: WatchProject, projectId: ProjectId) {
+		var kept = true
+		try {
+			// While the project is still subscribed, so the sync filter includes it.
+			if (pendingIn(project) > 0) syncCoordinator.sync(SyncTrigger.Manual)
+
+			kept = !syncCoordinator.runExclusive {
+				val synced = pendingIn(project) == 0
+				if (synced) {
+					subscriptions.setSubscribed(projectId, false)
+					projectsRepository.deleteProjectContent(project.projectDef)
+				}
+				synced
+			}
+		} catch (e: CancellationException) {
+			throw e
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+			Napier.e("Failed to unsubscribe from ${project.projectDef.name}", e)
+		} finally {
+			withContext(dispatcherMain) {
+				unsubscribing = unsubscribing - project.projectDef.name
+				unsyncedKept = project.projectDef.name.takeIf { kept }
+			}
+			reload()
+		}
+	}
+
+	/** An unreadable count counts as pending, so a failure can never authorise a delete. */
+	private suspend fun pendingIn(project: WatchProject): Int = try {
+		unsyncedContent.pendingIn(project.projectDef)
+	} catch (e: CancellationException) {
+		throw e
+	} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+		Napier.e("Failed to count unsynced writing in ${project.projectDef.name}", e)
+		1
+	}
+
+	private fun runSignOut() {
 		appScope.launch {
 			try {
 				signOutUseCase.signOut()
@@ -118,10 +207,12 @@ class WearProjectsComponent(
 	private fun publish() {
 		val rows = watchProjects.map { project ->
 			val progress = syncStatus.projects[project.projectDef.name]
+			val name = project.projectDef.name
 			WearProjects.ProjectRow(
-				name = project.projectDef.name,
+				name = name,
 				canSubscribe = project.projectId != null,
 				subscribed = project.subscribed,
+				unsubscribing = name in unsubscribing,
 				progress = progress?.progress,
 				outcome = progress?.outcome,
 			)
@@ -134,6 +225,8 @@ class WearProjectsComponent(
 				syncing = syncStatus.running,
 				lastSyncFailed = syncStatus.lastRunFailed || (lastResult != null && !lastResult.allSuccess),
 				needsReauth = syncStatus.needsReauth,
+				signOutWarning = signOutWarning,
+				unsyncedKept = unsyncedKept,
 			)
 		}
 	}

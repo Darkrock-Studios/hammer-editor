@@ -33,6 +33,9 @@ fun WearProjectsUi(component: WearProjects) {
 		onSyncNow = component::syncNow,
 		onShowSyncLog = component::showSyncLog,
 		onSignOut = component::signOut,
+		onConfirmSignOut = component::confirmSignOut,
+		onCancelSignOut = component::cancelSignOut,
+		onDismissUnsyncedNotice = component::dismissUnsyncedNotice,
 	)
 }
 
@@ -43,6 +46,33 @@ fun WearProjectsScreen(
 	onSyncNow: () -> Unit,
 	onShowSyncLog: () -> Unit,
 	onSignOut: () -> Unit,
+	onConfirmSignOut: () -> Unit,
+	onCancelSignOut: () -> Unit,
+	onDismissUnsyncedNotice: () -> Unit,
+) {
+	val warning = state.signOutWarning
+	if (warning != null) {
+		SignOutWarningContent(warning = warning, onConfirm = onConfirmSignOut, onCancel = onCancelSignOut)
+	} else {
+		ProjectsContent(
+			state = state,
+			onToggleSubscription = onToggleSubscription,
+			onSyncNow = onSyncNow,
+			onShowSyncLog = onShowSyncLog,
+			onSignOut = onSignOut,
+			onDismissUnsyncedNotice = onDismissUnsyncedNotice,
+		)
+	}
+}
+
+@Composable
+private fun ProjectsContent(
+	state: WearProjects.State,
+	onToggleSubscription: (projectName: String) -> Unit,
+	onSyncNow: () -> Unit,
+	onShowSyncLog: () -> Unit,
+	onSignOut: () -> Unit,
+	onDismissUnsyncedNotice: () -> Unit,
 ) {
 	val listState = rememberTransformingLazyColumnState()
 
@@ -86,6 +116,23 @@ fun WearProjectsScreen(
 					)
 				}
 			}
+			state.unsyncedKept?.let { projectName ->
+				item {
+					Text(
+						text = stringResource(R.string.projects_unsynced_kept, projectName),
+						color = MaterialTheme.colorScheme.tertiary,
+						textAlign = TextAlign.Center,
+						modifier = Modifier.fillMaxWidth(),
+					)
+				}
+				item {
+					FilledTonalButton(
+						onClick = onDismissUnsyncedNotice,
+						modifier = Modifier.fillMaxWidth(),
+						label = { Text(stringResource(R.string.projects_unsynced_kept_dismiss)) },
+					)
+				}
+			}
 			if (state.projects.isEmpty()) {
 				item {
 					Text(
@@ -100,7 +147,7 @@ fun WearProjectsScreen(
 				SwitchButton(
 					checked = row.subscribed,
 					onCheckedChange = { onToggleSubscription(row.name) },
-					enabled = row.canSubscribe,
+					enabled = row.canSubscribe && !row.unsubscribing,
 					modifier = Modifier.fillMaxWidth(),
 					label = { Text(row.name, maxLines = 1) },
 					secondaryLabel = { Text(projectStatus(row), maxLines = 1) },
@@ -125,10 +172,54 @@ fun WearProjectsScreen(
 }
 
 @Composable
+private fun SignOutWarningContent(
+	warning: WearProjects.SignOutWarning,
+	onConfirm: () -> Unit,
+	onCancel: () -> Unit,
+) {
+	val listState = rememberTransformingLazyColumnState()
+
+	ScreenScaffold(
+		scrollState = listState,
+		edgeButton = {
+			EdgeButton(onClick = onCancel) {
+				Text(stringResource(R.string.projects_sign_out_cancel))
+			}
+		},
+	) { contentPadding ->
+		TransformingLazyColumn(state = listState, contentPadding = screenContentPadding(contentPadding)) {
+			item {
+				ListHeader { Text(stringResource(R.string.projects_sign_out)) }
+			}
+			item {
+				Text(
+					text = if (warning.items > 0) {
+						stringResource(R.string.projects_sign_out_warning_count, warning.items)
+					} else {
+						stringResource(R.string.projects_sign_out_warning_unknown)
+					},
+					color = MaterialTheme.colorScheme.error,
+					textAlign = TextAlign.Center,
+					modifier = Modifier.fillMaxWidth(),
+				)
+			}
+			item {
+				FilledTonalButton(
+					onClick = onConfirm,
+					modifier = Modifier.fillMaxWidth(),
+					label = { Text(stringResource(R.string.projects_sign_out_confirm)) },
+				)
+			}
+		}
+	}
+}
+
+@Composable
 private fun projectStatus(row: WearProjects.ProjectRow): String {
 	val progress = row.progress
 	return when {
 		!row.canSubscribe -> stringResource(R.string.project_status_not_on_server)
+		row.unsubscribing -> stringResource(R.string.project_status_unsubscribing)
 		row.outcome == null && progress != null ->
 			stringResource(R.string.project_status_syncing, (progress * 100).roundToInt())
 

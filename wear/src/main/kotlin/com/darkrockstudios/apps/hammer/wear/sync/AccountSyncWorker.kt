@@ -19,7 +19,8 @@ class AccountSyncWorker(
 		if (!globalSettingsStore.globalSettings.automaticSyncing) return Result.success()
 
 		return when (val run = coordinator.sync(SyncTrigger.Periodic)) {
-			SyncRunResult.Skipped -> Result.success()
+			// A sync is already running, so the periodic pass has nothing left to do.
+			SyncRunResult.Skipped, SyncRunResult.Busy -> Result.success()
 			SyncRunResult.Failed -> Result.retry()
 			is SyncRunResult.Completed -> when {
 				run.result.accountSuccess -> Result.success()

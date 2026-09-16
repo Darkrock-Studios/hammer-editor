@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetada
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
+import com.darkrockstudios.apps.hammer.wear.data.UnsyncedContentSource
 import com.darkrockstudios.apps.hammer.wear.data.WearPrefsDatasource
 import com.darkrockstudios.apps.hammer.wear.sync.SyncCoordinator
 import com.darkrockstudios.apps.hammer.wear.sync.SyncRunResult
@@ -37,6 +38,23 @@ class FakeWearPrefsDatasource : WearPrefsDatasource {
 	}
 }
 
+/** Pending counts keyed by project name, so a test can say what has not reached the server. */
+class FakeUnsyncedContentSource : UnsyncedContentSource {
+	val pendingByProject = mutableMapOf<String, Int>()
+	var pendingIdeas = 0
+	var failWith: Exception? = null
+
+	override suspend fun pendingIn(projectDef: ProjectDef): Int {
+		failWith?.let { throw it }
+		return pendingByProject[projectDef.name] ?: 0
+	}
+
+	override suspend fun pendingIdeas(): Int {
+		failWith?.let { throw it }
+		return pendingIdeas
+	}
+}
+
 class FakeSyncCoordinator : SyncCoordinator {
 	override val status = MutableStateFlow(SyncStatus())
 	val requested = mutableListOf<SyncTrigger>()
@@ -51,8 +69,12 @@ class FakeSyncCoordinator : SyncCoordinator {
 		autoSyncRequests++
 	}
 
+	/** Set to mimic a sync that uploads, so a test can clear what was pending. */
+	var onSync: (suspend () -> Unit)? = null
+
 	override suspend fun sync(trigger: SyncTrigger): SyncRunResult {
 		requested += trigger
+		onSync?.invoke()
 		return SyncRunResult.Skipped
 	}
 

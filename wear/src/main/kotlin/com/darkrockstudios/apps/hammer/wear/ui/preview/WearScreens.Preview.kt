@@ -129,56 +129,91 @@ private val previewRows = listOf(
 	WearProjects.ProjectRow(name = "New Draft", canSubscribe = false, subscribed = false),
 )
 
-@WearPreviewDevices
 @Composable
-private fun ProjectsSyncingPreview() {
+private fun ProjectsPreview(state: WearProjects.State) {
 	WearPreviewFrame {
 		WearProjectsScreen(
-			state = WearProjects.State(
-				accountEmail = "writer@example.com",
-				projects = previewRows,
-				loaded = true,
-				syncing = true,
-			),
+			state = state,
 			onToggleSubscription = {},
 			onSyncNow = {},
 			onShowSyncLog = {},
 			onSignOut = {},
+			onConfirmSignOut = {},
+			onCancelSignOut = {},
+			onDismissUnsyncedNotice = {},
 		)
 	}
+}
+
+@WearPreviewDevices
+@Composable
+private fun ProjectsSyncingPreview() {
+	ProjectsPreview(
+		WearProjects.State(
+			accountEmail = "writer@example.com",
+			projects = previewRows,
+			loaded = true,
+			syncing = true,
+		)
+	)
 }
 
 @WearPreviewDevices
 @Composable
 private fun ProjectsNeedsReauthPreview() {
-	WearPreviewFrame {
-		WearProjectsScreen(
-			state = WearProjects.State(
-				accountEmail = "writer@example.com",
-				projects = previewRows.take(1).map { it.copy(outcome = ProjectSyncOutcome.Failed) },
-				loaded = true,
-				needsReauth = true,
-			),
-			onToggleSubscription = {},
-			onSyncNow = {},
-			onShowSyncLog = {},
-			onSignOut = {},
+	ProjectsPreview(
+		WearProjects.State(
+			accountEmail = "writer@example.com",
+			projects = previewRows.take(1).map { it.copy(outcome = ProjectSyncOutcome.Failed) },
+			loaded = true,
+			needsReauth = true,
 		)
-	}
+	)
 }
 
 @WearPreviewDevices
 @Composable
 private fun ProjectsEmptyPreview() {
-	WearPreviewFrame {
-		WearProjectsScreen(
-			state = WearProjects.State(accountEmail = "writer@example.com", loaded = true),
-			onToggleSubscription = {},
-			onSyncNow = {},
-			onShowSyncLog = {},
-			onSignOut = {},
+	ProjectsPreview(WearProjects.State(accountEmail = "writer@example.com", loaded = true))
+}
+
+@WearPreviewDevices
+@Composable
+private fun ProjectsUnsyncedKeptPreview() {
+	ProjectsPreview(
+		WearProjects.State(
+			accountEmail = "writer@example.com",
+			projects = previewRows.take(2).map { it.copy(unsubscribing = true) },
+			loaded = true,
+			unsyncedKept = "Salt Roads",
 		)
-	}
+	)
+}
+
+@WearPreviewDevices
+@Composable
+private fun ProjectsSignOutWarningPreview() {
+	ProjectsPreview(
+		WearProjects.State(
+			accountEmail = "writer@example.com",
+			projects = previewRows,
+			loaded = true,
+			signOutWarning = WearProjects.SignOutWarning(items = 3),
+		)
+	)
+}
+
+@WearPreviewDevices
+@Composable
+private fun ProjectsSignOutWarningUnknownPreview() {
+	ProjectsPreview(
+		WearProjects.State(
+			accountEmail = "writer@example.com",
+			projects = previewRows,
+			loaded = true,
+			signOutWarning = WearProjects.SignOutWarning(items = 0),
+		)
+	)
 }
 
 @WearPreviewDevices
