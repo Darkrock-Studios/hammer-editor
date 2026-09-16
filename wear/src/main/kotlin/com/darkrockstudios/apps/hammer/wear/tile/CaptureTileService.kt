@@ -3,13 +3,17 @@ package com.darkrockstudios.apps.hammer.wear.tile
 import androidx.concurrent.futures.CallbackToFutureAdapter
 import androidx.wear.protolayout.ActionBuilders
 import androidx.wear.protolayout.DeviceParametersBuilders.DeviceParameters
+import androidx.wear.protolayout.DimensionBuilders.dp
 import androidx.wear.protolayout.DimensionBuilders.expand
+import androidx.wear.protolayout.LayoutElementBuilders
 import androidx.wear.protolayout.LayoutElementBuilders.LayoutElement
 import androidx.wear.protolayout.ResourceBuilders
 import androidx.wear.protolayout.TimelineBuilders
 import androidx.wear.protolayout.material3.MaterialScope
 import androidx.wear.protolayout.material3.Typography
 import androidx.wear.protolayout.material3.buttonGroup
+import androidx.wear.protolayout.material3.compactButton
+import androidx.wear.protolayout.material3.ButtonDefaults.filledTonalButtonColors
 import androidx.wear.protolayout.material3.materialScope
 import androidx.wear.protolayout.material3.primaryLayout
 import androidx.wear.protolayout.material3.text
@@ -82,12 +86,25 @@ class CaptureTileService : TileService(), KoinComponent {
 	private fun layout(state: CaptureTileState, device: DeviceParameters): LayoutElement =
 		materialScope(this, device) {
 			primaryLayout(
-				titleSlot = { titleText(state) },
+				// The project sits in the main slot, not the title: the title slot does not
+				// receive taps, and this one has to be pressable to change where a note goes.
 				mainSlot = {
-					buttonGroup {
-						buttonGroupItem { captureButton(Capture.Mode.Note, R.string.tile_note) }
-						buttonGroupItem { captureButton(Capture.Mode.Idea, R.string.tile_idea) }
-					}
+					LayoutElementBuilders.Column.Builder()
+						.setWidth(expand())
+						.setHeight(expand())
+						.addContent(projectButton(state))
+						.addContent(
+							LayoutElementBuilders.Spacer.Builder()
+								.setHeight(dp(PROJECT_TO_BUTTONS_SPACING_DP))
+								.build()
+						)
+						.addContent(
+							buttonGroup {
+								buttonGroupItem { captureButton(Capture.Mode.Note, R.string.tile_note) }
+								buttonGroupItem { captureButton(Capture.Mode.Idea, R.string.tile_idea) }
+							}
+						)
+						.build()
 				},
 				bottomSlot = state.pending?.takeIf { it > 0 }?.let { pending ->
 					{ pendingText(pending) }
@@ -95,10 +112,19 @@ class CaptureTileService : TileService(), KoinComponent {
 			)
 		}
 
-	private fun MaterialScope.titleText(state: CaptureTileState): LayoutElement = text(
-		text = LayoutString(state.projectName ?: getString(R.string.tile_no_project)),
-		typography = Typography.TITLE_MEDIUM,
-		maxLines = 1,
+	/** A button, not a label: this is how the project a note goes to gets changed. */
+	private fun MaterialScope.projectButton(state: CaptureTileState): LayoutElement = compactButton(
+		onClick = clickable(
+			action = launchCapture(Capture.Mode.Note, pickProject = true),
+			id = "pick_project",
+		),
+		labelContent = {
+			text(
+				LayoutString(state.projectName ?: getString(R.string.tile_no_project)),
+				maxLines = 1,
+			)
+		},
+		colors = filledTonalButtonColors(),
 	)
 
 	private fun MaterialScope.pendingText(pending: Int): LayoutElement = text(
@@ -109,29 +135,36 @@ class CaptureTileService : TileService(), KoinComponent {
 
 	private fun MaterialScope.captureButton(mode: Capture.Mode, labelRes: Int): LayoutElement =
 		textButton(
-			onClick = clickable(
-				action = ActionBuilders.LaunchAction.Builder()
-					.setAndroidActivity(
-						ActionBuilders.AndroidActivity.Builder()
-							.setPackageName(packageName)
-							.setClassName(CaptureActivity::class.java.name)
-							.addKeyToExtraMapping(
-								CaptureActivity.EXTRA_MODE,
-								ActionBuilders.stringExtra(mode.name),
-							)
-							.build()
-					)
-					.build(),
-				id = mode.name,
-			),
-			labelContent = { text(LayoutString(getString(labelRes)), maxLines = 1) },
+			onClick = clickable(action = launchCapture(mode), id = mode.name),
+			// Two lines so "Story idea" reads in full rather than truncating.
+			labelContent = { text(LayoutString(getString(labelRes)), maxLines = 2) },
 			width = expand(),
 			height = expand(),
 		)
 
+	private fun launchCapture(
+		mode: Capture.Mode,
+		pickProject: Boolean = false,
+	): ActionBuilders.LaunchAction = ActionBuilders.LaunchAction.Builder()
+		.setAndroidActivity(
+			ActionBuilders.AndroidActivity.Builder()
+				.setPackageName(packageName)
+				.setClassName(CaptureActivity::class.java.name)
+				.addKeyToExtraMapping(CaptureActivity.EXTRA_MODE, ActionBuilders.stringExtra(mode.name))
+				// Thar be dragons: the tile renderer drops an AndroidBooleanExtra, and the whole
+				// launch action goes with it, so this travels as a string.
+				.addKeyToExtraMapping(
+					CaptureActivity.EXTRA_PICK_PROJECT,
+					ActionBuilders.stringExtra(pickProject.toString()),
+				)
+				.build()
+		)
+		.build()
+
 	private companion object {
 		const val RESOURCES_VERSION = "1"
 		const val FRESHNESS_MINUTES = 15L
+		const val PROJECT_TO_BUTTONS_SPACING_DP = 4f
 	}
 }
 

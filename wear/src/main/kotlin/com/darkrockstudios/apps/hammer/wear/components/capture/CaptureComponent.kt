@@ -21,6 +21,7 @@ import kotlinx.coroutines.withContext
 class CaptureComponent(
 	componentContext: ComponentContext,
 	private val mode: Capture.Mode,
+	private val startWithPicker: Boolean = false,
 	private val captureTargets: CaptureTargetsUseCase,
 	private val subscriptions: SubscribedProjectsRepository,
 	private val captureUseCase: CaptureUseCase,
@@ -132,6 +133,8 @@ class CaptureComponent(
 				it.copy(
 					projects = loaded.projects.map { project -> project.projectDef.name },
 					projectName = loaded.default?.projectDef?.name,
+					// Only worth showing when there is a choice to make.
+					pickingProject = startWithPicker && loaded.projects.size > 1,
 					loading = false,
 					outcome = if (loaded.projects.isEmpty()) Capture.Outcome.NoProjects else it.outcome,
 				)

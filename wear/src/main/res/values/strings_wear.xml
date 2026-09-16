@@ -36,7 +36,7 @@
 	<string name="projects_loading">Loading projects</string>
 	<string name="projects_sync_now">Sync</string>
 	<string name="projects_new_note">New note</string>
-	<string name="projects_new_idea">New idea</string>
+	<string name="projects_new_idea">New story idea</string>
 	<string name="projects_sync_log">Sync log</string>
 	<string name="projects_sign_out">Sign out</string>
 	<string name="projects_needs_reauth">Your session expired. Sign out and sign in again.</string>
@@ -60,15 +60,15 @@
 	<string name="project_status_failed">Sync failed</string>
 
 	<string name="capture_title_note">New note</string>
-	<string name="capture_title_idea">New idea</string>
+	<string name="capture_title_idea">New story idea</string>
 	<string name="capture_text_label">Text</string>
 	<string name="capture_text_empty">Tap to dictate</string>
 	<string name="capture_project_label">Project</string>
 	<string name="capture_project_loading">Loading</string>
 	<string name="capture_project_none">No project on this watch</string>
-	<string name="capture_project_keep">Keep current</string>
+	<string name="capture_project_keep">Cancel</string>
 	<string name="capture_discard_title_note">Discard note?</string>
-	<string name="capture_discard_title_idea">Discard idea?</string>
+	<string name="capture_discard_title_idea">Discard story idea?</string>
 	<string name="capture_discard_body">This has not been saved yet. Leaving now loses it.</string>
 	<string name="capture_discard_confirm">Discard</string>
 	<string name="capture_discard_keep">Keep writing</string>
@@ -85,8 +85,8 @@
 
 	<string name="tile_label">Capture</string>
 	<string name="tile_note">Note</string>
-	<string name="tile_idea">Idea</string>
-	<string name="tile_no_project">Hammer</string>
+	<string name="tile_idea">Story idea</string>
+	<string name="tile_no_project">No project on watch</string>
 	<string name="tile_pending">%1$d to sync</string>
 	<string name="complication_label">New note</string>
 	<string name="complication_description">Capture a note in Hammer</string>

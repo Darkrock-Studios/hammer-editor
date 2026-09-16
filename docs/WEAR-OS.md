@@ -160,8 +160,12 @@ restriction because they are UUID keyed.
 
 ## Capture flow
 
-- **Tile**: shows the last project captured to, a "Note" button, an "Idea" button, and the count
-  of unsynced items. Tiles cannot take input; the buttons launch the activity through a
+- **Tile**: shows the last project captured to as a button, a "Note" button, a "Story idea"
+  button, and the count of unsynced items. Tapping the project opens capture on its picker, which
+  is the only way to change where a note goes without going into the app. The project button lives
+  in the main slot because the title slot does not receive taps. A tile launch action carrying an
+  `AndroidBooleanExtra` is silently dropped along with the whole action, so flags travel as
+  strings. Tiles cannot take input; the buttons launch the activity through a
   `LaunchAction`, which is why `CaptureActivity` is exported. Built with ProtoLayout Material 3.
 - **Complication**: SHORT_TEXT and MONOCHROMATIC_IMAGE, showing the unsynced count (or "Note"
   when there is nothing waiting) and tapping through to capture.

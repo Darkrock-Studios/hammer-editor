@@ -44,11 +44,12 @@ class CaptureComponentTest : WearTestBase() {
 		surfaces = FakeCaptureSurfaceUpdater()
 	}
 
-	private fun newComponent(mode: Capture.Mode): CaptureComponent {
+	private fun newComponent(mode: Capture.Mode, startWithPicker: Boolean = false): CaptureComponent {
 		val listProjects = ListWatchProjectsUseCase(projects.repository, subscriptions)
 		return CaptureComponent(
 			componentContext = componentContext,
 			mode = mode,
+			startWithPicker = startWithPicker,
 			captureTargets = CaptureTargetsUseCase(listProjects, subscriptions),
 			subscriptions = subscriptions,
 			captureUseCase = CaptureUseCase(
@@ -299,6 +300,29 @@ class CaptureComponentTest : WearTestBase() {
 
 		assertFalse(component.state.value.confirmingDiscard)
 		assertEquals(Capture.Outcome.Saved(pending = 0), component.state.value.outcome)
+	}
+
+	@Test
+	fun `the tile can send you straight to the project picker`() = runTest(dispatcher) {
+		projects.create("Alpha", serverId = "a")
+		projects.create("Beta", serverId = "b")
+		subscriptions.setSubscribed(ProjectId("a"), true)
+		subscriptions.setSubscribed(ProjectId("b"), true)
+
+		val component = newComponent(Capture.Mode.Note, startWithPicker = true)
+
+		assertTrue(component.state.value.pickingProject)
+	}
+
+	@Test
+	fun `there is no picker to show when only one project is on the watch`() = runTest(dispatcher) {
+		projects.create("Alpha", serverId = "a")
+		subscriptions.setSubscribed(ProjectId("a"), true)
+
+		val component = newComponent(Capture.Mode.Note, startWithPicker = true)
+
+		assertFalse(component.state.value.pickingProject)
+		assertEquals("Alpha", component.state.value.projectName)
 	}
 
 	@Test

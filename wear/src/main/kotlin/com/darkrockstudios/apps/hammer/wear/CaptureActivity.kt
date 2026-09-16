@@ -42,10 +42,13 @@ class CaptureActivity : ComponentActivity() {
 		val mode = runCatching { Capture.Mode.valueOf(intent.getStringExtra(EXTRA_MODE).orEmpty()) }
 			.getOrDefault(Capture.Mode.Note)
 
+		val pickProject = intent.getStringExtra(EXTRA_PICK_PROJECT).toBoolean()
+
 		val component = retainedComponent { componentContext ->
 			CaptureComponent(
 				componentContext = componentContext,
 				mode = mode,
+				startWithPicker = pickProject,
 				captureTargets = get(),
 				subscriptions = get(),
 				captureUseCase = get(),
@@ -64,8 +67,13 @@ class CaptureActivity : ComponentActivity() {
 		/** Read by the tile, which builds its launch action rather than an Intent. */
 		const val EXTRA_MODE = "capture_mode"
 
-		fun intent(context: Context, mode: Capture.Mode): Intent =
-			Intent(context, CaptureActivity::class.java).putExtra(EXTRA_MODE, mode.name)
+		/** Lets the tile's project name act as "change this", which it cannot do itself. */
+		const val EXTRA_PICK_PROJECT = "capture_pick_project"
+
+		fun intent(context: Context, mode: Capture.Mode, pickProject: Boolean = false): Intent =
+			Intent(context, CaptureActivity::class.java)
+				.putExtra(EXTRA_MODE, mode.name)
+				.putExtra(EXTRA_PICK_PROJECT, pickProject.toString())
 	}
 }
 
@@ -99,8 +107,8 @@ private fun CaptureUi(component: Capture, onDone: () -> Unit) {
 	// Dictation is the point of the feature, so it opens without a tap standing in the way. It waits
 	// for the component to settle first: prompting before we know there is a project to save to
 	// would take a whole dictated note and then throw it away on the "no project" screen.
-	LaunchedEffect(state.loading, state.outcome) {
-		if (!prompted && !state.loading && state.outcome == null) {
+	LaunchedEffect(state.loading, state.outcome, state.pickingProject) {
+		if (!prompted && !state.loading && state.outcome == null && !state.pickingProject) {
 			prompted = true
 			promptForText()
 		}
