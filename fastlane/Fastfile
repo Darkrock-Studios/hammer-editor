@@ -384,7 +384,7 @@ platform :android do
   desc "Deploy a new version to the Google Play"
   lane :release do
     gradle(
-      task: "clean bundleRelease",
+      task: "clean :android:bundleRelease",
       gradle_path: "./gradlew",
       properties: { "channel" => "google-play" }
     )

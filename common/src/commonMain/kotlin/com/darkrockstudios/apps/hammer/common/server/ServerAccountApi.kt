@@ -76,6 +76,19 @@ class ServerAccountApi(
 		}
 	}
 
+	/** Mints a session for another of this user's installs, authorized by this install's bearer. */
+	suspend fun pairInstall(installId: String): Result<Token> {
+		return post("/api/account/pair_install/$userId", parse = { it.body() }) {
+			setBody(
+				FormDataContent(
+					Parameters.build {
+						append("installId", installId)
+					}
+				)
+			)
+		}
+	}
+
 	suspend fun testAuth(): Result<String> {
 		return get("/api/account/test_auth/$userId")
 	}

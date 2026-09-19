@@ -5,6 +5,8 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRe
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
 import io.github.aakira.napier.Napier
+import kotlinx.atomicfu.locks.reentrantLock
+import kotlinx.atomicfu.locks.withLock
 import org.koin.core.Koin
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.getScopeId
@@ -14,14 +16,51 @@ import org.koin.core.scope.Scope
 import org.koin.core.scope.ScopeID
 import org.koin.mp.KoinPlatform.getKoin
 
+private val temporaryScopeLock = reentrantLock()
+private val temporaryScopeUsers = mutableMapOf<ScopeID, Int>()
+private val temporaryScopesToClose = mutableSetOf<ScopeID>()
+
+/**
+ * Opens a project scope for [block], closing it afterwards only if this call is what brought it
+ * into existence and nothing else is still using it.
+ *
+ * Thar be dragons: concurrent temporary tasks on one project must be counted, not each decide for
+ * themselves. Two overlapping tasks both see a scope they did not create, and whichever finishes
+ * first would otherwise close it out from under the other, which then fails with
+ * `ClosedScopeException` partway through. A background sync and a capture racing on the same
+ * project is the ordinary case, not a rare one.
+ */
 suspend fun KoinComponent.temporaryProjectTask(projectDef: ProjectDef, block: suspend (projectScope: Scope) -> Unit) {
-	val hadToCreate = getKoin().getScopeOrNull(ProjectDefScope(projectDef).getScopeId()) == null
+	val scopeId = ProjectDefScope(projectDef).getScopeId()
+
+	temporaryScopeLock.withLock {
+		val users = temporaryScopeUsers[scopeId] ?: 0
+		// Only the first temporary user can be the one creating the scope. A scope that was already
+		// open for real belongs to whoever opened it and is never closed here.
+		if (users == 0 && getKoin().getScopeOrNull(scopeId) == null) {
+			temporaryScopesToClose += scopeId
+		}
+		temporaryScopeUsers[scopeId] = users + 1
+	}
+
 	val projScope = openProjectScope(projectDef, temporary = true)
 
-	block(projScope)
-
-	if (hadToCreate) {
-		closeProjectScope(projScope, projectDef)
+	try {
+		block(projScope)
+	} finally {
+		// Closed while still holding the lock: a task arriving between the decision and the close
+		// would otherwise see the scope still open, adopt it, and have it closed under it.
+		temporaryScopeLock.withLock {
+			val remaining = (temporaryScopeUsers[scopeId] ?: 1) - 1
+			if (remaining > 0) {
+				temporaryScopeUsers[scopeId] = remaining
+			} else {
+				temporaryScopeUsers.remove(scopeId)
+				if (temporaryScopesToClose.remove(scopeId)) {
+					closeProjectScope(projScope, projectDef)
+				}
+			}
+		}
 	}
 }
 

@@ -75,6 +75,14 @@ okio = "3.18.1"
 slf4jSimple = "2.0.18"
 turbine = "1.2.1"
 work-runtime-ktx = "2.11.2"
+wear_compose = "1.6.2"
+wear_input = "1.2.0"
+wear_tiles = "1.6.2"
+wear_protolayout = "1.4.2"
+wear_complications = "1.3.0"
+concurrent_futures = "1.3.0"
+play_services_wearable = "20.0.1"
+lifecycle_process = "2.11.0"
 
 multiplatform_window_size = "0.5.0"
 mockk = "1.14.11"
@@ -279,6 +287,21 @@ okio_fakefilesystem = { group = "com.squareup.okio", name = "okio-fakefilesystem
 slf4j-simple = { module = "org.slf4j:slf4j-simple", version.ref = "slf4jSimple" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 work-runtime-ktx = { module = "androidx.work:work-runtime-ktx", version.ref = "work-runtime-ktx" }
+wear_compose_material3 = { module = "androidx.wear.compose:compose-material3", version.ref = "wear_compose" }
+wear_compose_foundation = { module = "androidx.wear.compose:compose-foundation", version.ref = "wear_compose" }
+wear_compose_ui_tooling = { module = "androidx.wear.compose:compose-ui-tooling", version.ref = "wear_compose" }
+wear_input = { module = "androidx.wear:wear-input", version.ref = "wear_input" }
+wear_tiles = { module = "androidx.wear.tiles:tiles", version.ref = "wear_tiles" }
+wear_tiles_tooling = { module = "androidx.wear.tiles:tiles-tooling", version.ref = "wear_tiles" }
+wear_tiles_tooling_preview = { module = "androidx.wear.tiles:tiles-tooling-preview", version.ref = "wear_tiles" }
+wear_protolayout = { module = "androidx.wear.protolayout:protolayout", version.ref = "wear_protolayout" }
+wear_protolayout_material3 = { module = "androidx.wear.protolayout:protolayout-material3", version.ref = "wear_protolayout" }
+wear_protolayout_expression = { module = "androidx.wear.protolayout:protolayout-expression", version.ref = "wear_protolayout" }
+wear_complications_datasource = { module = "androidx.wear.watchface:watchface-complications-data-source-ktx", version.ref = "wear_complications" }
+concurrent_futures = { module = "androidx.concurrent:concurrent-futures-ktx", version.ref = "concurrent_futures" }
+play_services_wearable = { module = "com.google.android.gms:play-services-wearable", version.ref = "play_services_wearable" }
+coroutines_play_services = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-play-services", version.ref = "coroutines" }
+lifecycle_process = { module = "androidx.lifecycle:lifecycle-process", version.ref = "lifecycle_process" }
 
 korlibs_krypto = { group = "com.soywiz.korlibs.krypto", name = "krypto", version.ref = "krypto" }
 korlibs_korio = { group = "com.soywiz.korlibs.korio", name = "korio", version.ref = "krypto" }

@@ -1,0 +1,280 @@
+package com.darkrockstudios.apps.hammer.wear.components.projects
+
+import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.value.MutableValue
+import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.update
+import com.darkrockstudios.apps.hammer.base.ProjectId
+import com.darkrockstudios.apps.hammer.common.components.ComponentBase
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
+import com.darkrockstudios.apps.hammer.wear.data.ListWatchProjectsUseCase
+import com.darkrockstudios.apps.hammer.wear.data.LocalNetworkAccess
+import com.darkrockstudios.apps.hammer.wear.data.SignOutUseCase
+import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
+import com.darkrockstudios.apps.hammer.wear.data.UnsyncedContentUseCase
+import com.darkrockstudios.apps.hammer.wear.data.WatchProject
+import com.darkrockstudios.apps.hammer.wear.sync.SyncCoordinator
+import com.darkrockstudios.apps.hammer.wear.sync.SyncStatus
+import com.darkrockstudios.apps.hammer.wear.sync.SyncTrigger
+import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+class WearProjectsComponent(
+	componentContext: ComponentContext,
+	private val globalSettingsStore: GlobalSettingsStore,
+	private val listProjects: ListWatchProjectsUseCase,
+	private val projectsRepository: ProjectsRepository,
+	private val subscriptions: SubscribedProjectsRepository,
+	private val unsyncedContent: UnsyncedContentUseCase,
+	private val syncCoordinator: SyncCoordinator,
+	private val signOutUseCase: SignOutUseCase,
+	private val localNetworkAccess: LocalNetworkAccess,
+	private val appScope: CoroutineScope,
+	private val onShowSyncLog: () -> Unit,
+) : ComponentBase(componentContext), WearProjects {
+
+	private val _state = MutableValue(
+		WearProjects.State(accountEmail = globalSettingsStore.serverSettings?.email)
+	)
+	override val state: Value<WearProjects.State> = _state
+
+	// Only touched on the main dispatcher.
+	private var watchProjects: List<WatchProject> = emptyList()
+	private var syncStatus: SyncStatus = syncCoordinator.status.value
+	private var projectsLoaded = false
+	private var unsubscribing: Set<String> = emptySet()
+	private var signOutWarning: WearProjects.SignOutWarning? = null
+	private var checkingSignOut = false
+	private var notice: WearProjects.Notice? = null
+	private var localNetworkBlocked = false
+
+	override fun onCreate() {
+		super.onCreate()
+		scope.launch { reload() }
+		scope.launch {
+			syncCoordinator.status.collect { status ->
+				withContext(dispatcherMain) {
+					val finished = syncStatus.running && !status.running
+					syncStatus = status
+					publish()
+					// A sync can add, rename, or remove projects.
+					if (finished) launch { reload() }
+				}
+			}
+		}
+		// Held back until the local network permission is settled: pairing lands here and syncs at
+		// once, and a blocked connection to a LAN server only times out, with nothing saying why.
+		scope.launch { syncOnceReachable() }
+	}
+
+	override fun onLocalNetworkPermissionResult() {
+		scope.launch { syncOnceReachable() }
+	}
+
+	private suspend fun syncOnceReachable() {
+		val blocked = isLocalNetworkBlocked()
+		withContext(dispatcherMain) {
+			localNetworkBlocked = blocked
+			publish()
+		}
+		if (!blocked) syncCoordinator.requestAutoSync()
+	}
+
+	/** An unreadable answer counts as reachable: the sync then fails, or not, on its own terms. */
+	private suspend fun isLocalNetworkBlocked(): Boolean {
+		val address = globalSettingsStore.serverSettings?.url ?: return false
+		return try {
+			localNetworkAccess.isBlocked(address)
+		} catch (e: CancellationException) {
+			throw e
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+			Napier.e("Failed to check whether the server needs local network access", e)
+			false
+		}
+	}
+
+	override fun toggleSubscription(projectName: String) {
+		val project = watchProjects.find { it.projectDef.name == projectName } ?: return
+		val projectId = project.projectId ?: return
+
+		if (!project.subscribed) {
+			scope.launch {
+				subscriptions.setSubscribed(projectId, true)
+				syncCoordinator.requestSync(SyncTrigger.Manual)
+				reload()
+			}
+			return
+		}
+
+		if (projectName in unsubscribing) return
+		unsubscribing = unsubscribing + projectName
+		notice = null
+		publish()
+		// Outlives the screen: abandoning a half-done unsubscribe would strand the subscription.
+		appScope.launch { unsubscribe(project, projectId) }
+	}
+
+	override fun syncNow() {
+		syncCoordinator.requestSync(SyncTrigger.Manual)
+	}
+
+	override fun showSyncLog() {
+		onShowSyncLog()
+	}
+
+	override fun signOut() {
+		if (checkingSignOut || signOutWarning != null) return
+		// Counting reads every subscribed project, so the button has to say it is working.
+		checkingSignOut = true
+		publish()
+
+		scope.launch {
+			val pending = try {
+				unsyncedContent.pending()
+			} catch (e: CancellationException) {
+				throw e
+			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+				Napier.e("Failed to count unsynced captures before signing out", e)
+				null
+			}
+
+			withContext(dispatcherMain) {
+				checkingSignOut = false
+				if (pending != null && pending.isEmpty) {
+					publish()
+					runSignOut()
+				} else {
+					signOutWarning = WearProjects.SignOutWarning(items = pending?.total ?: 0)
+					publish()
+				}
+			}
+		}
+	}
+
+	override fun confirmSignOut() {
+		signOutWarning = null
+		publish()
+		runSignOut()
+	}
+
+	override fun cancelSignOut() {
+		signOutWarning = null
+		publish()
+	}
+
+	override fun dismissNotice() {
+		notice = null
+		publish()
+	}
+
+	/**
+	 * Uploads before dropping the project's content, so writing captured on the watch is never
+	 * destroyed by unsubscribing. If anything is still unsynced the project stays subscribed as
+	 * well as intact, because an unsubscribed project is filtered out of every later sync and its
+	 * writing would never get another chance to upload.
+	 */
+	private suspend fun unsubscribe(project: WatchProject, projectId: ProjectId) {
+		val name = project.projectDef.name
+		// Distinct from a failure: telling someone to sync and retry is useless advice when the
+		// unsubscribe itself is what broke.
+		var reason: WearProjects.Notice.Reason? = WearProjects.Notice.Reason.Failed
+		try {
+			// While the project is still subscribed, so the sync filter includes it.
+			if (pendingIn(project) > 0) syncCoordinator.sync(SyncTrigger.Manual)
+
+			reason = syncCoordinator.runExclusive {
+				if (pendingIn(project) == 0) {
+					subscriptions.setSubscribed(projectId, false)
+					projectsRepository.deleteProjectContent(project.projectDef)
+					null
+				} else {
+					WearProjects.Notice.Reason.UnsyncedKept
+				}
+			}
+		} catch (e: CancellationException) {
+			throw e
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+			Napier.e("Failed to unsubscribe from $name", e)
+		} finally {
+			withContext(dispatcherMain) {
+				unsubscribing = unsubscribing - name
+				notice = reason?.let { WearProjects.Notice(projectName = name, reason = it) }
+			}
+			reload()
+		}
+	}
+
+	/** An unreadable count counts as pending, so a failure can never authorise a delete. */
+	private suspend fun pendingIn(project: WatchProject): Int = try {
+		unsyncedContent.pendingIn(project.projectDef)
+	} catch (e: CancellationException) {
+		throw e
+	} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+		Napier.e("Failed to count unsynced writing in ${project.projectDef.name}", e)
+		1
+	}
+
+	private fun runSignOut() {
+		appScope.launch {
+			try {
+				signOutUseCase.signOut()
+			} catch (e: CancellationException) {
+				throw e
+			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+				Napier.e("Sign out failed", e)
+			}
+		}
+	}
+
+	private suspend fun reload() {
+		// The scope's job is not a supervisor, so a throw here would take the status collector with it.
+		val projects = try {
+			listProjects.list()
+		} catch (e: CancellationException) {
+			throw e
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+			Napier.e("Failed to list the watch's projects", e)
+			return
+		}
+		withContext(dispatcherMain) {
+			watchProjects = projects
+			projectsLoaded = true
+			publish()
+		}
+	}
+
+	private fun publish() {
+		val rows = watchProjects.map { project ->
+			val name = project.projectDef.name
+			// A failed account sync reports every project as failed, including the ones this watch
+			// filtered out and never tried to sync.
+			val progress = syncStatus.projects[name]?.takeIf { project.subscribed }
+			WearProjects.ProjectRow(
+				name = name,
+				canSubscribe = project.projectId != null,
+				subscribed = project.subscribed,
+				unsubscribing = name in unsubscribing,
+				progress = progress?.progress,
+				outcome = progress?.outcome,
+			)
+		}
+		val lastResult = syncStatus.lastResult
+		_state.update {
+			it.copy(
+				projects = rows,
+				loaded = projectsLoaded,
+				syncing = syncStatus.running,
+				lastSyncFailed = syncStatus.lastRunFailed || (lastResult != null && !lastResult.allSuccess),
+				needsReauth = syncStatus.needsReauth,
+				signOutWarning = signOutWarning,
+				checkingSignOut = checkingSignOut,
+				notice = notice,
+				localNetworkBlocked = localNetworkBlocked,
+			)
+		}
+	}
+}

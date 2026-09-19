@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.android
+package com.darkrockstudios.apps.hammer.common
 
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode

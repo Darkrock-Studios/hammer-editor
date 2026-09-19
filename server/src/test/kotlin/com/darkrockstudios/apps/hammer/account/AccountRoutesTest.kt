@@ -342,6 +342,113 @@ class AccountRoutesTest : BaseTest() {
 		}
 	}
 
+	private fun stubActiveBearer() {
+		coEvery { accountsRepository.checkToken(USER_ID, "bearer-token") } returns SResult.success(USER_ID)
+		coEvery { accountsRepository.getAccountOrNull(USER_ID) } returns testAccount()
+		coEvery { accountsRepository.getInstallId("bearer-token") } returns INSTALL_ID
+		coEvery { whiteListRepository.isOnWhiteList(any()) } returns true
+	}
+
+	@Test
+	fun `Account - Pair Install - mints a token for the new install`() = testApplication {
+		stubActiveBearer()
+		val watchToken = Token(userId = USER_ID, auth = "watch-access", refresh = "watch-refresh")
+		coEvery { accountsComponent.pairInstall(USER_ID, INSTALL_ID, "watch-install") } returns
+			SResult.success(watchToken)
+
+		application {
+			setupKtorTestKoin(this@AccountRoutesTest, testModule)
+
+			configureSerialization()
+			configureLocalization()
+			configureSecurity()
+			configureRouting()
+		}
+
+		makePairCall(USER_ID, "watch-install").apply {
+			assertEquals(HttpStatusCode.Created, status)
+			val body = json.decodeFromString<Token>(bodyAsText())
+			assertEquals(watchToken, body)
+		}
+	}
+
+	@Test
+	fun `Account - Pair Install - the caller's own install is a bad request`() = testApplication {
+		stubActiveBearer()
+		coEvery { accountsComponent.pairInstall(USER_ID, INSTALL_ID, INSTALL_ID) } returns
+			SResult.failure(
+				"Same install id",
+				com.darkrockstudios.apps.hammer.utilities.Msg.r("api_accounts_pair_error_sameinstall"),
+				InvalidInstallId("Install id matches the caller"),
+			)
+
+		application {
+			setupKtorTestKoin(this@AccountRoutesTest, testModule)
+
+			configureSerialization()
+			configureLocalization()
+			configureSecurity()
+			configureRouting()
+		}
+
+		makePairCall(USER_ID, INSTALL_ID).apply {
+			assertEquals(HttpStatusCode.BadRequest, status)
+		}
+	}
+
+	@Test
+	fun `Account - Pair Install - missing install id is a bad request`() = testApplication {
+		stubActiveBearer()
+
+		application {
+			setupKtorTestKoin(this@AccountRoutesTest, testModule)
+
+			configureSerialization()
+			configureLocalization()
+			configureSecurity()
+			configureRouting()
+		}
+
+		makePairCall(USER_ID, installId = null).apply {
+			assertEquals(HttpStatusCode.BadRequest, status)
+		}
+	}
+
+	@Test
+	fun `Account - Pair Install - requires a bearer token`() = testApplication {
+		application {
+			setupKtorTestKoin(this@AccountRoutesTest, testModule)
+
+			configureSerialization()
+			configureLocalization()
+			configureSecurity()
+			configureRouting()
+		}
+
+		makePairCall(USER_ID, "watch-install", bearer = null).apply {
+			assertEquals(HttpStatusCode.Unauthorized, status)
+		}
+	}
+
+	private suspend fun ApplicationTestBuilder.makePairCall(
+		userId: Long,
+		installId: String?,
+		bearer: String? = "bearer-token",
+	): HttpResponse =
+		client.post("/api/account/pair_install/$userId") {
+			bearer?.let { header(HttpHeaders.Authorization, "Bearer $it") }
+			header(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION)
+			header(HEADER_CLIENT_VERSION, BuildMetadata.APP_VERSION)
+			header(HttpHeaders.Accept, ContentType.Application.Json.toString())
+			setBody(
+				FormDataContent(
+					Parameters.build {
+						installId?.let { append("installId", it) }
+					}
+				)
+			)
+		}
+
 	private suspend fun ApplicationTestBuilder.makeTestAuthCall(userId: Long): HttpResponse =
 		client.get("/api/account/test_auth/$userId") {
 			header(HttpHeaders.Authorization, "Bearer bearer-token")

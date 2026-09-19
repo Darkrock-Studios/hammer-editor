@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
@@ -96,6 +97,36 @@ class ServerAccountApiTest : BaseTest() {
 		assertTrue(result.isFailure)
 		val exception = assertIs<TermsOfServiceRequiredException>(result.exceptionOrNull())
 		assertEquals(challenge, exception.challenge)
+	}
+
+	@Test
+	fun `pairInstall posts the new install id for the signed-in user`() = runTest {
+		every { globalSettingsStore.serverSettings } returns ServerSettings(
+			ssl = false,
+			url = "example.com",
+			email = "user@example.com",
+			userId = 7L,
+			bearerToken = "bearer",
+			refreshToken = "refresh",
+		)
+		var requestPath: String? = null
+		var sentInstallId: String? = null
+		val engine = MockEngine { request ->
+			requestPath = request.url.encodedPath
+			sentInstallId = (request.body as FormDataContent).formData["installId"]
+			respond(
+				content = """{"userId":7,"auth":"watch-auth","refresh":"watch-refresh"}""",
+				status = HttpStatusCode.Created,
+				headers = jsonHeaders,
+			)
+		}
+		val api = createApi(engine)
+
+		val result = api.pairInstall("watch-install")
+
+		assertEquals("/api/account/pair_install/7", requestPath)
+		assertEquals("watch-install", sentInstallId)
+		assertEquals("watch-auth", result.getOrThrow().auth)
 	}
 
 	@Test

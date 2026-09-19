@@ -134,6 +134,13 @@ fun ServerSetupDialogContent(
 					enabled = !state.serverWorking && !existingServer,
 				)
 
+				if (state.serverUrlInsecure) {
+					HdMonoLabel(
+						text = "! " + Res.string.settings_server_setup_insecure_warning.get(),
+						color = MaterialTheme.colorScheme.error,
+					)
+				}
+
 				HdEmailField(
 					label = "EMAIL",
 					value = state.serverEmail ?: "",

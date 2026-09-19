@@ -51,7 +51,15 @@ dependencies {
 	androidTestUtil(libs.orchestrator)
 
 	implementation(libs.aboutlibraries.core)
+	if (!isFDroidBuild) {
+		implementation(libs.play.services.wearable)
+		implementation(libs.coroutines.play.services)
+		implementation(libs.lifecycle.process)
+	}
+	testImplementation(platform(libs.junit.bom))
 	testImplementation(libs.bundles.junit.jupiter)
+	testRuntimeOnly(libs.junit.platform.launcher)
+	testImplementation(libs.coroutines.test)
 	androidTestImplementation(libs.bundles.junit.jupiter)
 }
 
@@ -69,6 +77,14 @@ android {
 		vectorDrawables {
 			useSupportLibrary = true
 		}
+	}
+	// Wear OS pairing needs Google Play services, which F-Droid builds may not ship.
+	if (isFDroidBuild) {
+		sourceSets.getByName("main").kotlin.srcDir("src/nogms/kotlin")
+	} else {
+		sourceSets.getByName("main").kotlin.srcDir("src/gms/kotlin")
+		sourceSets.getByName("main").res.srcDir("src/gms/res")
+		sourceSets.getByName("test").kotlin.srcDir("src/testGms/kotlin")
 	}
 	if (isFDroidBuild) {
 		// Swap in the manifest that also declares the public-storage permissions.
@@ -111,7 +127,8 @@ android {
 
 			proguardFiles(
 				getDefaultProguardFile("proguard-android-optimize.txt"),
-				File("proguard-rules.pro")
+				rootProject.file("proguard-common.pro"),
+				file("proguard-rules.pro")
 			)
 		}
 	}
