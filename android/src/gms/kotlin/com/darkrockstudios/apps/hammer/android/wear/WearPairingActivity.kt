@@ -125,8 +125,9 @@ class WearPairingActivity : ComponentActivity(), KoinComponent {
 
 	override fun onDestroy() {
 		super.onDestroy()
-		// Dismissed without an answer: tell the watch rather than leave it waiting.
-		if (!answered && !isChangingConfigurations) {
+		// Dismissed without an answer: tell the watch rather than leave it waiting. Only when finishing:
+		// a backgrounded instance the system reclaims comes back with the prompt still to answer.
+		if (!answered && isFinishing) {
 			decline()
 		}
 	}

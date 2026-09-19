@@ -48,18 +48,18 @@ suspend fun KoinComponent.temporaryProjectTask(projectDef: ProjectDef, block: su
 	try {
 		block(projScope)
 	} finally {
-		val shouldClose = temporaryScopeLock.withLock {
+		// Closed while still holding the lock: a task arriving between the decision and the close
+		// would otherwise see the scope still open, adopt it, and have it closed under it.
+		temporaryScopeLock.withLock {
 			val remaining = (temporaryScopeUsers[scopeId] ?: 1) - 1
 			if (remaining > 0) {
 				temporaryScopeUsers[scopeId] = remaining
-				false
 			} else {
 				temporaryScopeUsers.remove(scopeId)
-				temporaryScopesToClose.remove(scopeId)
+				if (temporaryScopesToClose.remove(scopeId)) {
+					closeProjectScope(projScope, projectDef)
+				}
 			}
-		}
-		if (shouldClose) {
-			closeProjectScope(projScope, projectDef)
 		}
 	}
 }

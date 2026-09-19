@@ -1,9 +1,12 @@
 package com.darkrockstudios.apps.hammer.wear.components
 
+import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.pairing.PairRequest
+import com.darkrockstudios.apps.hammer.common.data.pairing.PairResponse
+import com.darkrockstudios.apps.hammer.common.data.pairing.PairingProtocol
 import com.darkrockstudios.apps.hammer.wear.FakeLocalNetworkAccess
 import com.darkrockstudios.apps.hammer.wear.FakeStrRes
 import com.darkrockstudios.apps.hammer.wear.FakeSyncCoordinator
@@ -58,7 +61,9 @@ class WearRootComponentTest : WearTestBase() {
 				sentRequests += request
 			}
 		}
-		phonePairing = PhonePairingUseCase(client, globalSettingsStore, mockk<AccountUseCase>(relaxed = true))
+		val accountUseCase = mockk<AccountUseCase>(relaxed = true)
+		every { accountUseCase.applyPairedSettings(any()) } returns CResult.success()
+		phonePairing = PhonePairingUseCase(client, globalSettingsStore, accountUseCase)
 	}
 
 	private fun newRoot(): WearRootComponent {
@@ -188,5 +193,25 @@ class WearRootComponentTest : WearTestBase() {
 
 		assertEquals(WearRoot.Destination.Onboarding, root.stack.value.active.instance)
 		assertEquals(PairingState.Idle, phonePairing.state.value)
+	}
+
+	@Test
+	fun `pairing again after signing out asks the phone afresh`() = runTest(dispatcher) {
+		val root = newRoot()
+		resumeLifecycle()
+		root.showPairing()
+		scheduler.advanceUntilIdle()
+		val firstRequest = sentRequests.single()
+		phonePairing.onResponse(PairingProtocol.encodeResponse(PairResponse.Success(firstRequest.requestId, signedIn)))
+		settingsUpdates.emit(signedIn)
+		scheduler.advanceUntilIdle()
+		settingsUpdates.emit(null)
+		scheduler.advanceUntilIdle()
+
+		root.showPairing()
+		scheduler.advanceUntilIdle()
+
+		assertEquals(2, sentRequests.size)
+		assertEquals(PairingState.AwaitingConfirmation, phonePairing.state.value)
 	}
 }

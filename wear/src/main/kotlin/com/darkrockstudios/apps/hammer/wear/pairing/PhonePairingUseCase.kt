@@ -23,6 +23,10 @@ sealed interface PairingState {
 	data class Failed(val reason: PairErrorCode?) : PairingState
 }
 
+/** A request is being made or answered, as opposed to a finished attempt. */
+val PairingState.inFlight: Boolean
+	get() = this == PairingState.SearchingPhone || this == PairingState.AwaitingConfirmation
+
 /**
  * Asks the paired phone for a session of this watch's own. The phone answers asynchronously
  * through [PairingResponseListenerService], which may outlive the screen that started the request,

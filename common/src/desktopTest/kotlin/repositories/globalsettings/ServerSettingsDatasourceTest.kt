@@ -111,6 +111,18 @@ class ServerSettingsDatasourceTest : BaseTest() {
 	}
 
 	@Test
+	fun `A legacy ssl false key still loads as https`() = runTest {
+		fileSystem.createDirectories(projectsDirPath())
+		fileSystem.write(configPath().toOkioPath()) {
+			writeUtf8("""{"ssl":false,"url":"hammer.ink","email":"test@example.com","userId":1}""")
+		}
+
+		val loaded = createDatasource().loadServerSettings(projectsDir())
+
+		assertTrue(loaded!!.ssl)
+	}
+
+	@Test
 	fun `Stored server json contains no tokens`() = runTest {
 		val datasource = createDatasource()
 

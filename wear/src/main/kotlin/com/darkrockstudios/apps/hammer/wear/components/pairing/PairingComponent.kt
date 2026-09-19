@@ -6,6 +6,7 @@ import com.arkivanov.decompose.value.Value
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.wear.pairing.PairingState
 import com.darkrockstudios.apps.hammer.wear.pairing.PhonePairingUseCase
+import com.darkrockstudios.apps.hammer.wear.pairing.inFlight
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -26,7 +27,10 @@ class PairingComponent(
 				withContext(dispatcherMain) { _state.value = pairingState }
 			}
 		}
-		if (phonePairing.state.value == PairingState.Idle) {
+		// The state outlives this screen, so only a request still in flight is worth resuming. Any
+		// finished state is stale: a Paired left over from before a sign out would otherwise strand
+		// the screen on "Paired" with no way to try again.
+		if (!phonePairing.state.value.inFlight) {
 			startPairing()
 		}
 	}
