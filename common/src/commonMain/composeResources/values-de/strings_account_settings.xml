@@ -36,6 +36,7 @@
 	<string name="settings_remove_server_dialog_message">Bist du sicher, dass du diesen Server entfernen möchtest?</string>
 	<string name="settings_server_setup_title">Server einrichten</string>
 	<string name="settings_server_setup_url_hint">Server-URL: hammer.ink</string>
+	<string name="settings_server_setup_insecure_warning">Plain HTTP: your email, password and writing travel unencrypted. Only use this on a network you trust.</string>
 	<string name="settings_server_setup_email_hint">E-Mail: user@example.com</string>
 	<string name="settings_server_setup_password_hint">Passwort</string>
 	<string name="settings_server_setup_password_requirements">%1$d-%2$d characters</string>
