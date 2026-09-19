@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.wear.data.CaptureWriter
+import com.darkrockstudios.apps.hammer.wear.data.LocalNetworkAccess
 import com.darkrockstudios.apps.hammer.wear.data.UnsyncedContentSource
 import com.darkrockstudios.apps.hammer.wear.data.WearPrefsDatasource
 import com.darkrockstudios.apps.hammer.wear.sync.CaptureSyncScheduler
@@ -198,5 +199,23 @@ class TestProjects {
 			}
 		}
 		return projectDef
+	}
+}
+
+/** Blocks the addresses in [blocked] until [grant] is called, like an ungranted Android 17 app. */
+class FakeLocalNetworkAccess(private val blocked: MutableSet<String> = mutableSetOf()) : LocalNetworkAccess {
+	val checked = mutableListOf<String>()
+
+	fun block(address: String) {
+		blocked += address
+	}
+
+	fun grant() {
+		blocked.clear()
+	}
+
+	override suspend fun isBlocked(serverAddress: String): Boolean {
+		checked += serverAddress
+		return serverAddress in blocked
 	}
 }

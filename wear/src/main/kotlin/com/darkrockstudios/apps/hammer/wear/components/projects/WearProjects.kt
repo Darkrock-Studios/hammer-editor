@@ -14,6 +14,9 @@ interface WearProjects {
 	fun cancelSignOut()
 	fun dismissNotice()
 
+	/** Called once the local network prompt is answered, whichever way. */
+	fun onLocalNetworkPermissionResult()
+
 	data class State(
 		val accountEmail: String? = null,
 		val projects: List<ProjectRow> = emptyList(),
@@ -25,6 +28,11 @@ interface WearProjects {
 		/** True while the unsynced captures are being counted, before the warning can be shown. */
 		val checkingSignOut: Boolean = false,
 		val notice: Notice? = null,
+		/**
+		 * The server is on the local network and the app is not allowed to reach it. Nothing syncs
+		 * until that changes.
+		 */
+		val localNetworkBlocked: Boolean = false,
 	)
 
 	/** The outcome of an unsubscribe that did not simply remove the project. */

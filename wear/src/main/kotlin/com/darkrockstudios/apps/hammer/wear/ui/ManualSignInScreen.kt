@@ -8,6 +8,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,6 +52,12 @@ fun ManualSignInUi(component: ManualSignIn) {
 			SignInField.Email -> component.updateEmail(text)
 			SignInField.Password -> component.updatePassword(text)
 		}
+	}
+
+	val requestLocalNetwork = rememberLocalNetworkPermissionRequest(component::onLocalNetworkPermissionResult)
+	// Every attempt asks, since each one is an explicit tap on Sign in.
+	LaunchedEffect(state.localNetworkBlocked) {
+		if (state.localNetworkBlocked) requestLocalNetwork()
 	}
 
 	val labels = mapOf(
@@ -154,6 +161,8 @@ fun ManualSignInContent(
 						text = when (error) {
 							ManualSignIn.SignInError.MissingFields -> stringResource(R.string.sign_in_error_missing)
 							ManualSignIn.SignInError.TermsRequired -> stringResource(R.string.sign_in_error_terms)
+							ManualSignIn.SignInError.LocalNetworkDenied ->
+								stringResource(R.string.sign_in_error_local_network)
 							is ManualSignIn.SignInError.Message ->
 								error.text ?: stringResource(R.string.sign_in_error_generic)
 						},

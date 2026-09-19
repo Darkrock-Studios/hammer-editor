@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncOutcome
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.wear.FakeLocalNetworkAccess
 import com.darkrockstudios.apps.hammer.wear.FakeSyncCoordinator
 import com.darkrockstudios.apps.hammer.wear.FakeUnsyncedContentSource
 import com.darkrockstudios.apps.hammer.wear.FailingUnsubscribeDatasource
@@ -37,6 +38,7 @@ class WearProjectsComponentTest : WearTestBase() {
 	private lateinit var coordinator: FakeSyncCoordinator
 	private lateinit var unsynced: FakeUnsyncedContentSource
 	private lateinit var signOutUseCase: SignOutUseCase
+	private lateinit var localNetwork: FakeLocalNetworkAccess
 	private var syncLogShown = false
 
 	@BeforeEach
@@ -47,13 +49,17 @@ class WearProjectsComponentTest : WearTestBase() {
 		coordinator = FakeSyncCoordinator()
 		unsynced = FakeUnsyncedContentSource()
 		signOutUseCase = mockk(relaxed = true)
+		localNetwork = FakeLocalNetworkAccess()
 		syncLogShown = false
 	}
 
-	private fun newComponent(advanceToIdle: Boolean = true): WearProjectsComponent {
+	private fun newComponent(
+		advanceToIdle: Boolean = true,
+		serverUrl: String = "hammer.ink",
+	): WearProjectsComponent {
 		val globalSettingsStore = mockk<GlobalSettingsStore>()
 		every { globalSettingsStore.serverSettings } returns ServerSettings(
-			url = "hammer.ink",
+			url = serverUrl,
 			email = "writer@example.com",
 			userId = 7,
 			bearerToken = "auth",
@@ -69,6 +75,7 @@ class WearProjectsComponentTest : WearTestBase() {
 			unsyncedContent = UnsyncedContentUseCase(listProjects, unsynced),
 			syncCoordinator = coordinator,
 			signOutUseCase = signOutUseCase,
+			localNetworkAccess = localNetwork,
 			appScope = CoroutineScope(dispatcher),
 			onShowSyncLog = { syncLogShown = true },
 		).also {
@@ -90,6 +97,51 @@ class WearProjectsComponentTest : WearTestBase() {
 		assertTrue(component.row("Alpha").canSubscribe)
 		assertFalse(component.row("Draft").canSubscribe)
 		assertEquals("writer@example.com", component.state.value.accountEmail)
+		assertEquals(1, coordinator.autoSyncRequests)
+	}
+
+	@Test
+	fun `a local server the watch may not reach yet holds the first sync back`() = runTest(dispatcher) {
+		localNetwork.block("192.168.1.46:8081")
+
+		val component = newComponent(serverUrl = "192.168.1.46:8081")
+
+		// Pairing lands here and would sync at once; that sync would only time out.
+		assertTrue(component.state.value.localNetworkBlocked)
+		assertEquals(0, coordinator.autoSyncRequests)
+	}
+
+	@Test
+	fun `granting local network access releases the sync`() = runTest(dispatcher) {
+		localNetwork.block("192.168.1.46:8081")
+		val component = newComponent(serverUrl = "192.168.1.46:8081")
+
+		localNetwork.grant()
+		component.onLocalNetworkPermissionResult()
+		scheduler.advanceUntilIdle()
+
+		assertFalse(component.state.value.localNetworkBlocked)
+		assertEquals(1, coordinator.autoSyncRequests)
+	}
+
+	@Test
+	fun `a refusal keeps the sync held and the explanation showing`() = runTest(dispatcher) {
+		localNetwork.block("192.168.1.46:8081")
+		val component = newComponent(serverUrl = "192.168.1.46:8081")
+
+		component.onLocalNetworkPermissionResult()
+		scheduler.advanceUntilIdle()
+
+		assertTrue(component.state.value.localNetworkBlocked)
+		assertEquals(0, coordinator.autoSyncRequests)
+	}
+
+	@Test
+	fun `a public server is never held back`() = runTest(dispatcher) {
+		val component = newComponent(serverUrl = "hammer.ink")
+
+		assertFalse(component.state.value.localNetworkBlocked)
+		assertEquals(listOf("hammer.ink"), localNetwork.checked)
 		assertEquals(1, coordinator.autoSyncRequests)
 	}
 
@@ -155,6 +207,7 @@ class WearProjectsComponentTest : WearTestBase() {
 	@Test
 	fun `sync progress shows on the project row`() = runTest(dispatcher) {
 		projects.create("Alpha", serverId = "a")
+		subscriptions.setSubscribed(ProjectId("a"), true)
 		val component = newComponent()
 
 		coordinator.status.value = SyncStatus(running = true, projects = mapOf("Alpha" to ProjectSyncState(progress = 0.25f)))
@@ -162,6 +215,26 @@ class WearProjectsComponentTest : WearTestBase() {
 
 		assertTrue(component.state.value.syncing)
 		assertEquals(0.25f, component.row("Alpha").progress)
+	}
+
+	@Test
+	fun `a project that is not on the watch does not report a sync it never attempted`() = runTest(dispatcher) {
+		projects.create("Alpha", serverId = "a")
+		projects.create("Beta", serverId = "b")
+		subscriptions.setSubscribed(ProjectId("a"), true)
+		val component = newComponent()
+
+		// A failed account sync marks every project failed, including ones it filtered out.
+		coordinator.status.value = SyncStatus(
+			projects = mapOf(
+				"Alpha" to ProjectSyncState(outcome = ProjectSyncOutcome.Failed),
+				"Beta" to ProjectSyncState(outcome = ProjectSyncOutcome.Failed),
+			),
+		)
+		scheduler.advanceUntilIdle()
+
+		assertEquals(ProjectSyncOutcome.Failed, component.row("Alpha").outcome)
+		assertNull(component.row("Beta").outcome)
 	}
 
 	@Test

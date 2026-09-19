@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.wear.components.projects.WearProjectsComp
 import com.darkrockstudios.apps.hammer.wear.components.signin.ManualSignInComponent
 import com.darkrockstudios.apps.hammer.wear.components.synclog.SyncLogComponent
 import com.darkrockstudios.apps.hammer.wear.data.ListWatchProjectsUseCase
+import com.darkrockstudios.apps.hammer.wear.data.LocalNetworkAccess
 import com.darkrockstudios.apps.hammer.wear.data.SignOutUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
 import com.darkrockstudios.apps.hammer.wear.data.UnsyncedContentUseCase
@@ -39,6 +40,7 @@ class WearRootComponent(
 	private val unsyncedContent: UnsyncedContentUseCase,
 	private val syncCoordinator: SyncCoordinator,
 	private val signOutUseCase: SignOutUseCase,
+	private val localNetworkAccess: LocalNetworkAccess,
 	private val appScope: CoroutineScope,
 	private val strRes: StrRes,
 	private val deviceLabel: String,
@@ -108,6 +110,7 @@ class WearRootComponent(
 			ManualSignInComponent(
 				componentContext = componentContext,
 				accountUseCase = accountUseCase,
+				localNetworkAccess = localNetworkAccess,
 				strRes = strRes,
 			)
 		)
@@ -122,6 +125,7 @@ class WearRootComponent(
 				unsyncedContent = unsyncedContent,
 				syncCoordinator = syncCoordinator,
 				signOutUseCase = signOutUseCase,
+				localNetworkAccess = localNetworkAccess,
 				appScope = appScope,
 				onShowSyncLog = { navigation.pushNew(WearRoot.Config.SyncLog) },
 			)

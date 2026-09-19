@@ -112,6 +112,26 @@ private fun ManualSignInErrorPreview() {
 
 @WearPreviewDevices
 @Composable
+private fun ManualSignInLocalNetworkDeniedPreview() {
+	WearPreviewFrame {
+		ManualSignInContent(
+			state = ManualSignIn.State(
+				server = "http://192.168.1.50:8080",
+				serverInsecure = true,
+				email = "writer@example.com",
+				hasPassword = true,
+				error = ManualSignIn.SignInError.LocalNetworkDenied,
+			),
+			onEditServer = {},
+			onEditEmail = {},
+			onEditPassword = {},
+			onSignIn = {},
+		)
+	}
+}
+
+@WearPreviewDevices
+@Composable
 private fun ManualSignInBusyPreview() {
 	WearPreviewFrame {
 		ManualSignInContent(
@@ -136,6 +156,7 @@ private fun ProjectsPreview(state: WearProjects.State) {
 	WearPreviewFrame {
 		WearProjectsScreen(
 			state = state,
+			onAllowLocalNetwork = {},
 			onNewNote = {},
 			onNewIdea = {},
 			onToggleSubscription = {},
@@ -190,6 +211,18 @@ private fun ProjectsUnsyncedKeptPreview() {
 			projects = previewRows.take(2).map { it.copy(unsubscribing = true) },
 			loaded = true,
 			notice = WearProjects.Notice("Salt Roads", WearProjects.Notice.Reason.UnsyncedKept),
+		)
+	)
+}
+
+@WearPreviewDevices
+@Composable
+private fun ProjectsLocalNetworkBlockedPreview() {
+	ProjectsPreview(
+		WearProjects.State(
+			accountEmail = "writer@example.com",
+			loaded = true,
+			localNetworkBlocked = true,
 		)
 	)
 }

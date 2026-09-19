@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.wear.data.ListWatchProjectsUseCase
+import com.darkrockstudios.apps.hammer.wear.data.LocalNetworkAccess
 import com.darkrockstudios.apps.hammer.wear.data.SignOutUseCase
 import com.darkrockstudios.apps.hammer.wear.data.SubscribedProjectsRepository
 import com.darkrockstudios.apps.hammer.wear.data.UnsyncedContentUseCase
@@ -24,13 +25,14 @@ import kotlinx.coroutines.withContext
 
 class WearProjectsComponent(
 	componentContext: ComponentContext,
-	globalSettingsStore: GlobalSettingsStore,
+	private val globalSettingsStore: GlobalSettingsStore,
 	private val listProjects: ListWatchProjectsUseCase,
 	private val projectsRepository: ProjectsRepository,
 	private val subscriptions: SubscribedProjectsRepository,
 	private val unsyncedContent: UnsyncedContentUseCase,
 	private val syncCoordinator: SyncCoordinator,
 	private val signOutUseCase: SignOutUseCase,
+	private val localNetworkAccess: LocalNetworkAccess,
 	private val appScope: CoroutineScope,
 	private val onShowSyncLog: () -> Unit,
 ) : ComponentBase(componentContext), WearProjects {
@@ -48,6 +50,7 @@ class WearProjectsComponent(
 	private var signOutWarning: WearProjects.SignOutWarning? = null
 	private var checkingSignOut = false
 	private var notice: WearProjects.Notice? = null
+	private var localNetworkBlocked = false
 
 	override fun onCreate() {
 		super.onCreate()
@@ -63,7 +66,35 @@ class WearProjectsComponent(
 				}
 			}
 		}
-		syncCoordinator.requestAutoSync()
+		// Held back until the local network permission is settled: pairing lands here and syncs at
+		// once, and a blocked connection to a LAN server only times out, with nothing saying why.
+		scope.launch { syncOnceReachable() }
+	}
+
+	override fun onLocalNetworkPermissionResult() {
+		scope.launch { syncOnceReachable() }
+	}
+
+	private suspend fun syncOnceReachable() {
+		val blocked = isLocalNetworkBlocked()
+		withContext(dispatcherMain) {
+			localNetworkBlocked = blocked
+			publish()
+		}
+		if (!blocked) syncCoordinator.requestAutoSync()
+	}
+
+	/** An unreadable answer counts as reachable: the sync then fails, or not, on its own terms. */
+	private suspend fun isLocalNetworkBlocked(): Boolean {
+		val address = globalSettingsStore.serverSettings?.url ?: return false
+		return try {
+			localNetworkAccess.isBlocked(address)
+		} catch (e: CancellationException) {
+			throw e
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+			Napier.e("Failed to check whether the server needs local network access", e)
+			false
+		}
 	}
 
 	override fun toggleSubscription(projectName: String) {
@@ -218,8 +249,10 @@ class WearProjectsComponent(
 
 	private fun publish() {
 		val rows = watchProjects.map { project ->
-			val progress = syncStatus.projects[project.projectDef.name]
 			val name = project.projectDef.name
+			// A failed account sync reports every project as failed, including the ones this watch
+			// filtered out and never tried to sync.
+			val progress = syncStatus.projects[name]?.takeIf { project.subscribed }
 			WearProjects.ProjectRow(
 				name = name,
 				canSubscribe = project.projectId != null,
@@ -240,6 +273,7 @@ class WearProjectsComponent(
 				signOutWarning = signOutWarning,
 				checkingSignOut = checkingSignOut,
 				notice = notice,
+				localNetworkBlocked = localNetworkBlocked,
 			)
 		}
 	}

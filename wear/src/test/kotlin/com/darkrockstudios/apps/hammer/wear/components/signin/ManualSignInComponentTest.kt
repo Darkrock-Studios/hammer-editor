@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.account.ServerSetupResult
 import com.darkrockstudios.apps.hammer.common.data.toMsg
+import com.darkrockstudios.apps.hammer.wear.FakeLocalNetworkAccess
 import com.darkrockstudios.apps.hammer.wear.FakeStrRes
 import com.darkrockstudios.apps.hammer.wear.WearTestBase
 import io.mockk.coEvery
@@ -19,16 +20,19 @@ import org.junit.jupiter.api.Test
 class ManualSignInComponentTest : WearTestBase() {
 
 	private lateinit var accountUseCase: AccountUseCase
+	private lateinit var localNetwork: FakeLocalNetworkAccess
 
 	@BeforeEach
 	override fun setUp() {
 		super.setUp()
 		accountUseCase = mockk()
+		localNetwork = FakeLocalNetworkAccess()
 	}
 
 	private fun newComponent() = ManualSignInComponent(
 		componentContext = componentContext,
 		accountUseCase = accountUseCase,
+		localNetworkAccess = localNetwork,
 		strRes = FakeStrRes(),
 	).also { resumeLifecycle() }
 
@@ -55,6 +59,63 @@ class ManualSignInComponentTest : WearTestBase() {
 
 		// The password is passed through untouched; only the user can fix a capital there.
 		coVerify { accountUseCase.setupServer("hammer.ink", "writer@example.com", "hunter2", false, null) }
+	}
+
+	@Test
+	fun `a local server the watch may not reach yet waits for the prompt before logging in`() =
+		runTest(dispatcher) {
+			localNetwork.block("192.168.1.46:8081")
+			val component = newComponent()
+			component.updateServer("http://192.168.1.46:8081")
+			component.updateEmail("writer@example.com")
+			component.updatePassword("hunter2")
+
+			component.signIn()
+			scheduler.advanceUntilIdle()
+
+			// The login is the first request, and a blocked one would only time out.
+			assertTrue(component.state.value.localNetworkBlocked)
+			assertFalse(component.state.value.busy)
+			coVerify(exactly = 0) { accountUseCase.setupServer(any(), any(), any(), any(), any(), any()) }
+		}
+
+	@Test
+	fun `granting local network access carries on with the sign in`() = runTest(dispatcher) {
+		coEvery { accountUseCase.setupServer(any(), any(), any(), any(), any(), any()) } returns
+			ServerSetupResult.Success
+		localNetwork.block("192.168.1.46:8081")
+		val component = newComponent()
+		component.updateServer("http://192.168.1.46:8081")
+		component.updateEmail("writer@example.com")
+		component.updatePassword("hunter2")
+		component.signIn()
+		scheduler.advanceUntilIdle()
+
+		localNetwork.grant()
+		component.onLocalNetworkPermissionResult()
+		scheduler.advanceUntilIdle()
+
+		assertFalse(component.state.value.localNetworkBlocked)
+		coVerify(exactly = 1) {
+			accountUseCase.setupServer("192.168.1.46:8081", "writer@example.com", "hunter2", false, null, false)
+		}
+	}
+
+	@Test
+	fun `refusing local network access explains why the sign in stopped`() = runTest(dispatcher) {
+		localNetwork.block("192.168.1.46:8081")
+		val component = newComponent()
+		component.updateServer("http://192.168.1.46:8081")
+		component.updateEmail("writer@example.com")
+		component.updatePassword("hunter2")
+		component.signIn()
+		scheduler.advanceUntilIdle()
+
+		component.onLocalNetworkPermissionResult()
+		scheduler.advanceUntilIdle()
+
+		assertEquals(ManualSignIn.SignInError.LocalNetworkDenied, component.state.value.error)
+		coVerify(exactly = 0) { accountUseCase.setupServer(any(), any(), any(), any(), any(), any()) }
 	}
 
 	@Test

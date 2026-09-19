@@ -28,6 +28,7 @@ class MainActivity : ComponentActivity() {
 				unsyncedContent = get(),
 				syncCoordinator = get(),
 				signOutUseCase = get(),
+				localNetworkAccess = get(),
 				appScope = get(named(APP_SCOPE)),
 				strRes = get(),
 				deviceLabel = Build.MODEL,

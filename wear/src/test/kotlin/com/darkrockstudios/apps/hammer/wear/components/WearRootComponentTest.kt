@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.pairing.PairRequest
+import com.darkrockstudios.apps.hammer.wear.FakeLocalNetworkAccess
 import com.darkrockstudios.apps.hammer.wear.FakeStrRes
 import com.darkrockstudios.apps.hammer.wear.FakeSyncCoordinator
 import com.darkrockstudios.apps.hammer.wear.FakeUnsyncedContentSource
@@ -77,6 +78,7 @@ class WearRootComponentTest : WearTestBase() {
 			),
 			syncCoordinator = FakeSyncCoordinator(),
 			signOutUseCase = mockk(relaxed = true),
+			localNetworkAccess = FakeLocalNetworkAccess(),
 			appScope = CoroutineScope(dispatcher),
 			strRes = FakeStrRes(),
 			deviceLabel = "Pixel Watch",

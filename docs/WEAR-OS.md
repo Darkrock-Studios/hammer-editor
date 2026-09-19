@@ -140,6 +140,23 @@ Sign out on the watch wipes local settings and projects; the server token expire
 The existing audit finding that refresh tokens never expire applies to watch tokens too and is
 tracked separately.
 
+### Local network access
+
+Android 17 blocks an app from reaching local network addresses until it holds
+`ACCESS_LOCAL_NETWORK`, and a self-hosted server is usually on the LAN. A blocked connection does not
+fail fast; it times out as a generic connection error, so the permission is settled before
+connecting rather than diagnosed after. The watch asks only when the server needs it: the address is
+resolved and checked against the private, loopback, link-local, IPv6 unique local, and carrier-grade
+NAT ranges (the last covers mesh VPNs such as Tailscale). A name that will not resolve is judged by
+how it looks (`.local`, `.lan`, `.home`, `.internal`, a single label). A server like hammer.ink never
+triggers the prompt.
+
+- **Manual sign in** checks before the login request, since the login is the first thing that
+  touches the server.
+- **Pairing** hands the watch its settings and lands on the projects screen, which holds its
+  app-open sync until the permission is answered. A refusal leaves the sync held with an
+  explanation and an Allow button.
+
 ## Projects on the watch
 
 Account sync creates a local directory for every server project, with metadata and a server

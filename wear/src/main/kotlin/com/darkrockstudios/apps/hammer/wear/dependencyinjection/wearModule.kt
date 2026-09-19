@@ -3,7 +3,10 @@ package com.darkrockstudios.apps.hammer.wear.dependencyinjection
 import androidx.work.WorkManager
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
+import com.darkrockstudios.apps.hammer.wear.data.AndroidLocalNetworkAccess
 import com.darkrockstudios.apps.hammer.wear.data.ListWatchProjectsUseCase
+import com.darkrockstudios.apps.hammer.wear.data.LocalNetworkAccess
 import com.darkrockstudios.apps.hammer.wear.data.SignOutUseCase
 import com.darkrockstudios.apps.hammer.wear.data.CaptureTargetsUseCase
 import com.darkrockstudios.apps.hammer.wear.data.CaptureTileStateUseCase
@@ -43,6 +46,9 @@ val wearModule: Module = module {
 	}
 
 	single<WearPrefsDatasource> { createWearPrefsDatasource(androidContext()) }
+	single<LocalNetworkAccess> {
+		AndroidLocalNetworkAccess(context = androidContext(), ioDispatcher = get(named(DISPATCHER_IO)))
+	}
 	single { SubscribedProjectsRepository(datasource = get()) }
 	factory { ListWatchProjectsUseCase(projectsRepository = get(), subscriptions = get()) }
 	single<UnsyncedContentSource> {

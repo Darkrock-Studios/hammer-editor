@@ -31,8 +31,11 @@ import kotlin.math.roundToInt
 fun WearProjectsUi(component: WearProjects) {
 	val state by component.state.subscribeAsState()
 	val context = LocalContext.current
+	val requestLocalNetwork = rememberLocalNetworkPermissionRequest(component::onLocalNetworkPermissionResult)
+	AskForLocalNetworkOnce(needed = state.localNetworkBlocked, request = requestLocalNetwork)
 	WearProjectsScreen(
 		state = state,
+		onAllowLocalNetwork = requestLocalNetwork,
 		onNewNote = { context.startActivity(CaptureActivity.intent(context, Capture.Mode.Note)) },
 		onNewIdea = { context.startActivity(CaptureActivity.intent(context, Capture.Mode.Idea)) },
 		onToggleSubscription = component::toggleSubscription,
@@ -48,6 +51,7 @@ fun WearProjectsUi(component: WearProjects) {
 @Composable
 fun WearProjectsScreen(
 	state: WearProjects.State,
+	onAllowLocalNetwork: () -> Unit,
 	onNewNote: () -> Unit,
 	onNewIdea: () -> Unit,
 	onToggleSubscription: (projectName: String) -> Unit,
@@ -64,6 +68,7 @@ fun WearProjectsScreen(
 	} else {
 		ProjectsContent(
 			state = state,
+			onAllowLocalNetwork = onAllowLocalNetwork,
 			onNewNote = onNewNote,
 			onNewIdea = onNewIdea,
 			onToggleSubscription = onToggleSubscription,
@@ -78,6 +83,7 @@ fun WearProjectsScreen(
 @Composable
 private fun ProjectsContent(
 	state: WearProjects.State,
+	onAllowLocalNetwork: () -> Unit,
 	onNewNote: () -> Unit,
 	onNewIdea: () -> Unit,
 	onToggleSubscription: (projectName: String) -> Unit,
@@ -129,6 +135,23 @@ private fun ProjectsContent(
 					modifier = Modifier.fillMaxWidth(),
 					label = { Text(stringResource(R.string.projects_new_idea)) },
 				)
+			}
+			if (state.localNetworkBlocked) {
+				item {
+					Text(
+						text = stringResource(R.string.projects_local_network_needed),
+						color = MaterialTheme.colorScheme.error,
+						textAlign = TextAlign.Center,
+						modifier = Modifier.fillMaxWidth(),
+					)
+				}
+				item {
+					FilledTonalButton(
+						onClick = onAllowLocalNetwork,
+						modifier = Modifier.fillMaxWidth(),
+						label = { Text(stringResource(R.string.projects_local_network_allow)) },
+					)
+				}
 			}
 			if (state.needsReauth || state.lastSyncFailed) {
 				item {

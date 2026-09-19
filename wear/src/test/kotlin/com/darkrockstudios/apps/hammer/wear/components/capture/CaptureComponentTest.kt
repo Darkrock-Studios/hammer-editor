@@ -56,7 +56,7 @@ class CaptureComponentTest : WearTestBase() {
 				writer = writer,
 				unsyncedContent = UnsyncedContentUseCase(listProjects, unsynced),
 				captureSync = captureSync,
-			surfaces = surfaces,
+				surfaces = surfaces,
 			),
 			appScope = CoroutineScope(dispatcher),
 		).also {
@@ -198,7 +198,7 @@ class CaptureComponentTest : WearTestBase() {
 				writer = writer,
 				unsyncedContent = UnsyncedContentUseCase(listProjects, GatedUnsyncedContentSource(gate)),
 				captureSync = captureSync,
-			surfaces = surfaces,
+				surfaces = surfaces,
 			),
 			appScope = CoroutineScope(dispatcher),
 		).also {
