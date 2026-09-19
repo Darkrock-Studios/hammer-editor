@@ -262,11 +262,20 @@ Phase-gated behind the rest, but designed in now because it depends on synced co
 
 ## Packaging and release
 
-- `versionName` comes from `libs.versions.toml` like every other target; `prepareForRelease`
-  needs no changes.
-- `fastlane/Fastfile` gains wear lanes mirroring the phone lanes, and
-  `publish-google-play.yml` uploads the wear bundle alongside the phone bundle on the same
-  track.
+- `versionName` comes from `libs.versions.toml` like every other target. `versionCode` is the
+  phone's plus 1,000,000,000 (`getWearVersionCode`), because every bundle in a Play listing needs
+  a unique code.
+- The watch app is a second bundle in the phone's listing, released on Play's Wear OS form
+  factor tracks. Through the API those are `wear:qa` (internal testing), `wear:beta` and
+  `wear:production`. They exist only once Wear OS is added in the Play Console under Advanced
+  settings > Form factors; until then every upload to them fails.
+- The Android lanes in `fastlane/Fastfile` build both bundles and upload the watch's after the
+  phone's, so a Wear OS failure never holds back a phone release. `internal`, `beta` and
+  `release` map to `wear:qa`, `wear:beta` and `wear:production`. `alpha` skips the watch: a
+  form factor has no default closed testing track, only custom-named ones.
+- The watch upload sends release notes only. The listing is shared, and the phone upload already
+  sends its text and images, including any `images/wearScreenshots`.
+- `prepareForRelease` writes the Play release notes under both version codes.
 - `build.yml` builds and unit-tests the wear module.
 
 ## Testing
@@ -289,7 +298,7 @@ Phase-gated behind the rest, but designed in now because it depends on synced co
 4. **Capture** (done): guards for unsynced captures, then the activity with `RemoteInput`, note
    and idea flows, tile, complication, WorkManager sync.
 5. **Read aloud**: markdown to speech helper in `base`, playback service, controls.
-6. **Release pipeline**: fastlane lanes, Play workflow, version code offset.
+6. **Release pipeline** (done): fastlane lanes, release notes, version code offset.
 
 Phases 1 and 2 improve the phone and desktop clients on their own and should land even if the
 watch slips.
@@ -298,7 +307,5 @@ watch slips.
 
 - Does dictation work offline on the target watch? Voice capture is the point of the feature and
   the emulator cannot answer this; it needs the real hardware.
-- Whether Play accepts a wear bundle with a version-code offset scheme, or whether a separate
-  version stream is cleaner.
 - Whether backups on the watch stay on or get a no-op datasource once real usage shows the
   storage cost.

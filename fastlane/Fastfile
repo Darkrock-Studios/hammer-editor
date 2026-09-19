@@ -15,6 +15,14 @@
 
 default_platform(:android)
 
+# The release bundle a Gradle module builds. Named rather than taken from the gradle
+# action's lane context, which only remembers the last of several bundles.
+def play_bundle(module_name)
+  path = File.expand_path("../#{module_name}/build/outputs/bundle/release/#{module_name}-release.aab", __dir__)
+  UI.user_error!("No release bundle at #{path}") unless File.exist?(path)
+  path
+end
+
 # Returns an App Store Connect API key hash for use in mac lanes.
 # The .p8 is gitignored in desktop/secrets/.
 private_lane :appstore_api_key do
@@ -353,43 +361,56 @@ platform :android do
 
   desc "Submit a new Build to Google Play Internal"
   lane :internal do
-    gradle(
-      task: ":android:bundleRelease",
-      gradle_path: "./gradlew",
-      properties: { "channel" => "google-play" }
-    )
-    upload_to_play_store(track: 'internal')
+    play_build
+    upload_to_play_store(track: 'internal', aab: play_bundle("android"))
+    upload_wear_bundle(track: 'wear:qa')
   end
 
   desc "Submit a new Alpha Build to Google Play Close"
   lane :alpha do
-    gradle(
-      task: ":android:bundleRelease",
-      gradle_path: "./gradlew",
-      properties: { "channel" => "google-play" }
-    )
-    upload_to_play_store(track: 'alpha')
+    play_build
+    upload_to_play_store(track: 'alpha', aab: play_bundle("android"))
+    # Wear OS has no default closed testing track; closed tracks on a form factor are
+    # custom-named in the Play Console, so the watch app skips this lane.
   end
 
   desc "Submit a new Beta Build to Google Play Open"
   lane :beta do
-    gradle(
-      task: ":android:bundleRelease",
-      gradle_path: "./gradlew",
-      properties: { "channel" => "google-play" }
-    )
-    upload_to_play_store(track: 'beta')
+    play_build
+    upload_to_play_store(track: 'beta', aab: play_bundle("android"))
+    upload_wear_bundle(track: 'wear:beta')
   end
 
   desc "Deploy a new version to the Google Play"
   lane :release do
+    play_build(clean: true)
+    upload_to_play_store(
+      root_url: "https://androidpublisher.googleapis.com/",
+      aab: play_bundle("android"),
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+    upload_wear_bundle(track: 'wear:production')
+  end
+
+  private_lane :play_build do |options|
     gradle(
-      task: "clean :android:bundleRelease",
+      task: "#{options[:clean] ? 'clean ' : ''}:android:bundleRelease :wear:bundleRelease",
       gradle_path: "./gradlew",
       properties: { "channel" => "google-play" }
     )
+  end
+
+  # The watch app is a second bundle in the same listing, on Play's Wear OS form factor
+  # tracks. Those only exist once Wear OS is added under Advanced settings > Form factors.
+  # It uploads after the phone so a Wear OS failure never holds back a phone release. The
+  # listing is shared and the phone upload already sent it, so only the release notes go.
+  private_lane :upload_wear_bundle do |options|
     upload_to_play_store(
       root_url: "https://androidpublisher.googleapis.com/",
+      track: options[:track],
+      aab: play_bundle("wear"),
+      skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true
     )
