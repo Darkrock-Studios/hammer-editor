@@ -36,6 +36,7 @@
 	<string name="settings_remove_server_dialog_message">Ви впевнені, що хочете вилучити сервер?</string>
 	<string name="settings_server_setup_title">Налаштувати сервер</string>
 	<string name="settings_server_setup_url_hint">URL сервера: hammer.ink</string>
+	<string name="settings_server_setup_insecure_warning">Plain HTTP: your email, password and writing travel unencrypted. Only use this on a network you trust.</string>
 	<string name="settings_server_setup_email_hint">Ел. пошта: user@example.com</string>
 	<string name="settings_server_setup_password_hint">Пароль</string>
 	<string name="settings_server_setup_password_requirements">%1$d-%2$d characters</string>
