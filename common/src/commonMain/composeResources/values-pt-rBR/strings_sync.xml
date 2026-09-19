@@ -121,6 +121,8 @@
 	<string name="sync_log_begin_projects">Sincronizando Projetos...</string>
 	<string name="sync_log_end_projects">Sincronização de projetos concluída</string>
 	<string name="sync_log_begin_project">Sincronizando Projeto: %1$s</string>
+	<string name="sync_log_project_unchanged">No changes, skipped</string>
+	<string name="sync_log_project_failed">Sincronização falhou: %1$s</string>
 	<string name="sync_log_project_conflict">Há um conflito no projeto: %1$s, abra o projeto e sincronize para resolvê-lo</string>
 	<string name="sync_log_client_data_computed">Dados da Entidade de Cliente calculados</string>
 	<string name="sync_log_project_id_stale">O servidor não possui mais este projeto. Ele será recriado na próxima vez que você sincronizar.</string>
