@@ -1,11 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource.Companion.ENTRY_FILENAME_PATTERN
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.InvalidSceneFilename
 import com.darkrockstudios.apps.hammer.common.fileio.ExternalFileIo
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -33,18 +33,24 @@ class EncyclopediaDatasource(
 		return getEncyclopediaDirectory(projectDef, fileSystem)
 	}
 
-	fun getEntryPath(entryContent: EntryContent): HPath {
-		val dir = getTypeDirectory(entryContent.type).toOkioPath()
-		val filename = getEntryFilename(entryContent)
-		val path = dir / filename
-		return path.toHPath()
-	}
+	fun getEntryPath(entryContent: EntryContent): HPath =
+		resolveEntryPath(entryContent.id, entryContent.type, entryContent.name).toHPath()
 
-	fun getEntryPath(entryDef: EntryDef): HPath {
-		val dir = getTypeDirectory(entryDef.type).toOkioPath()
-		val filename = getEntryFilename(entryDef)
-		val path = dir / filename
-		return path.toHPath()
+	fun getEntryPath(entryDef: EntryDef): HPath =
+		resolveEntryPath(entryDef.id, entryDef.type, entryDef.name).toHPath()
+
+	/**
+	 * Where this entry lives on disk: the current `~`-delimited filename, or the pre-v3
+	 * `-`-delimited one when that is what is actually there. Falls back to the current format so
+	 * callers writing a new file always produce it.
+	 */
+	private fun resolveEntryPath(id: Int, type: EntryType, name: String): Path {
+		val dir = getTypeDirectory(type).toOkioPath()
+		val current = dir / getEntryFilename(id, type, name)
+		if (fileSystem.exists(current)) return current
+
+		val legacy = dir / getLegacyEntryFilename(id, type, name)
+		return if (fileSystem.exists(legacy)) legacy else current
 	}
 
 	fun getEntryPath(id: Int): HPath {
@@ -76,25 +82,34 @@ class EncyclopediaDatasource(
 
 	fun getEntryImagePath(entryDef: EntryDef, fileExtension: String): HPath {
 		val dir = getTypeDirectory(entryDef.type).toOkioPath()
-		val filename = getEntryImageFilename(entryDef, fileExtension)
-		val path = dir / filename
+		val existing = resolveEntryImagePath(entryDef, fileExtension)
+		val path = existing ?: dir / getEntryImageFilename(entryDef, fileExtension)
 		return path.toHPath()
 	}
 
-	fun hasEntryImage(entryDef: EntryDef, fileExtension: String): Boolean {
-		val path = getEntryImagePath(entryDef, fileExtension).toOkioPath()
-		return fileSystem.exists(path)
-	}
+	fun hasEntryImage(entryDef: EntryDef, fileExtension: String): Boolean =
+		resolveEntryImagePath(entryDef, fileExtension) != null
 
 	fun hasEntryImage(entryDef: EntryDef): Boolean = findEntryImagePath(entryDef) != null
+
+	/**
+	 * Locates an entry's stored image of a specific extension, preferring the current filename
+	 * format and falling back to the pre-v3 `-`-delimited one.
+	 */
+	private fun resolveEntryImagePath(entryDef: EntryDef, fileExtension: String): Path? {
+		val dir = getTypeDirectory(entryDef.type).toOkioPath()
+		return entryImagePrefixes(entryDef)
+			.map { prefix -> dir / "$prefix$fileExtension" }
+			.firstOrNull { fileSystem.exists(it) }
+	}
 
 	/** Locates an entry's stored image regardless of its file extension. */
 	fun findEntryImagePath(entryDef: EntryDef): HPath? {
 		val dir = getTypeDirectory(entryDef.type).toOkioPath()
-		val prefix = "${entryDef.type.text}-${entryDef.id}-image."
+		val prefixes = entryImagePrefixes(entryDef)
 		return fileSystem.list(dir)
 			.firstOrNull { path ->
-				path.name.startsWith(prefix) &&
+				prefixes.any { path.name.startsWith(it) } &&
 					path.name.substringAfterLast('.').lowercase() in IMAGE_EXTENSIONS
 			}
 			?.toHPath()
@@ -117,12 +132,8 @@ class EncyclopediaDatasource(
 	}
 
 	suspend fun hashEntryImage(entryDef: EntryDef, fileExtension: String): String? {
-		return if (hasEntryImage(entryDef, fileExtension)) {
-			val path = getEntryImagePath(entryDef, fileExtension).toOkioPath()
-			calculateFileMd5(fileSystem, path)
-		} else {
-			null
-		}
+		val path = resolveEntryImagePath(entryDef, fileExtension) ?: return null
+		return calculateFileMd5(fileSystem, path)
 	}
 
 	private fun calculateFileMd5(fileSystem: FileSystem, path: Path): String {
@@ -205,8 +216,8 @@ class EncyclopediaDatasource(
 	}
 
 	fun loadEntryImage(entryDef: EntryDef, fileExtension: String): ByteArray {
-		val imagePath = getEntryImagePath(entryDef, fileExtension)
-		fileSystem.read(imagePath.toOkioPath()) {
+		val imagePath = getEntryImagePath(entryDef, fileExtension).toOkioPath()
+		fileSystem.read(imagePath) {
 			return readByteArray()
 		}
 	}
@@ -268,7 +279,7 @@ class EncyclopediaDatasource(
 	}
 
 	suspend fun deleteEntry(entryDef: EntryDef): Boolean {
-		val path = getEntryPath(entryDef).toOkioPath()
+		val path = findEntryPath(entryDef.id)?.toOkioPath() ?: getEntryPath(entryDef).toOkioPath()
 		fileSystem.delete(path)
 
 		findEntryImagePath(entryDef)?.let { imagePath ->
@@ -311,8 +322,16 @@ class EncyclopediaDatasource(
 	}
 
 	companion object {
-		val ENTRY_NAME_PATTERN = Regex("""([\d\p{L}+ _']+)""")
-		val ENTRY_FILENAME_PATTERN = Regex("""([a-zA-Z]+)-(\d+)-([\d\p{L}+ _']+)\.toml""")
+		// Entry format: type~id~name.toml (delimiter changed from `-` to `~` in data v3).
+		// The name group accepts any char except path separators and the delimiter; encoded
+		// lookalikes pass through naturally.
+		val ENTRY_FILENAME_PATTERN = Regex("""([a-zA-Z]+)~(\d+)~([^~/\\]+)\.toml""")
+
+		// Pre-v3 patterns. Kept for read compatibility (e.g. fixtures, projects mid-migration).
+		// Old name set was the restricted `[\d\p{L}+ _']` so `-` is unambiguously a delimiter.
+		val LEGACY_ENTRY_FILENAME_PATTERN = Regex("""([a-zA-Z]+)-(\d+)-([\d\p{L}+ _']+)\.toml""")
+		val LEGACY_ENTRY_IMAGE_FILENAME_PATTERN = Regex("""([a-zA-Z]+)-(\d+)-image\.([a-zA-Z0-9]+)""")
+
 		const val ENCYCLOPEDIA_DIRECTORY = "encyclopedia"
 
 		fun getEntryFilename(entryDef: EntryDef): String =
@@ -337,15 +356,31 @@ class EncyclopediaDatasource(
 			)
 
 		private fun getEntryFilename(id: Int, type: EntryType, name: String): String {
-			return "${type.text}-$id-$name.toml"
+			return "${type.text}~$id~${ProjectsRepository.encodeForFilename(name)}.toml"
 		}
 
 		private fun getEntryImageFilename(id: Int, type: EntryType, fileExtension: String): String {
-			return "${type.text}-$id-image.$fileExtension"
+			return "${type.text}~$id~image.$fileExtension"
 		}
 
+		private fun getLegacyEntryFilename(id: Int, type: EntryType, name: String): String {
+			return "${type.text}-$id-$name.toml"
+		}
+
+		/** Image filename prefixes an entry's image may carry on disk, newest format first. */
+		private fun entryImagePrefixes(entryDef: EntryDef): List<String> = listOf(
+			"${entryDef.type.text}~${entryDef.id}~image.",
+			"${entryDef.type.text}-${entryDef.id}-image.",
+		)
+
+		private fun matchEntryFilename(fileName: String): MatchResult? =
+			ENTRY_FILENAME_PATTERN.matchEntire(fileName)
+				?: LEGACY_ENTRY_FILENAME_PATTERN.matchEntire(fileName)
+
+		fun isEntryFilename(fileName: String): Boolean = matchEntryFilename(fileName) != null
+
 		fun getEntryIdFromFilename(fileName: String): Int {
-			val captures = ENTRY_FILENAME_PATTERN.matchEntire(fileName)
+			val captures = matchEntryFilename(fileName)
 				?: throw IllegalStateException("Entry filename was bad: $fileName")
 			try {
 				val entryId = captures.groupValues[2].toInt()
@@ -358,12 +393,12 @@ class EncyclopediaDatasource(
 		}
 
 		fun getEntryDefFromFilename(fileName: String, projectDef: ProjectDef): EntryDef {
-			val captures = ENTRY_FILENAME_PATTERN.matchEntire(fileName)
+			val captures = matchEntryFilename(fileName)
 				?: throw IllegalStateException("Entry filename was bad: $fileName")
 			try {
 				val typeString = captures.groupValues[1]
 				val entryId = captures.groupValues[2].toInt()
-				val entryName = captures.groupValues[3]
+				val entryName = ProjectsRepository.decodeFromFilename(captures.groupValues[3])
 
 				val type = EntryType.fromString(typeString)
 
@@ -424,7 +459,7 @@ fun Sequence<Path>.filterEntryPathsOkio() =
 		.filter { path -> !path.segments.any { part -> part.startsWith(".") } }
 
 fun Sequence<HPath>.filterEntryPaths() = filter {
-	!it.name.startsWith(".") && ENTRY_FILENAME_PATTERN.matches(it.name)
+	!it.name.startsWith(".") && EncyclopediaDatasource.isEntryFilename(it.name)
 }.sortedBy { it.name }
 
 open class InvalidEntryFilename(message: String, fileName: String, cause: Throwable? = null) :
