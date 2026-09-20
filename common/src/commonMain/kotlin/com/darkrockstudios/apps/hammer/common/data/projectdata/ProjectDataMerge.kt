@@ -1,11 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.data.projectdata
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
-import com.darkrockstudios.apps.hammer.common.spellcheck.cleanDictionaryWords
 
-/** Dictionary words never need a decision: a conflict keeps both sides. */
+/**
+ * Dictionary words never need a decision: a conflict keeps both sides. Kept verbatim, because the
+ * merged set is uploaded: a word a newer build stored under laxer rules than this one accepts as
+ * input would otherwise be deleted server-side for every other device.
+ */
 fun mergeDictionaryWords(local: ProjectData, server: ProjectData): Set<String> =
-	cleanDictionaryWords(local.dictionaryWords + server.dictionaryWords)
+	local.dictionaryWords + server.dictionaryWords
 
 /** True when something other than the auto-merged dictionary differs. */
 fun ProjectData.differsOutsideDictionary(other: ProjectData): Boolean =

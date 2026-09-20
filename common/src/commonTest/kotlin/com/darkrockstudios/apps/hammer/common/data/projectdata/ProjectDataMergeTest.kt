@@ -9,11 +9,21 @@ import kotlin.test.assertTrue
 class ProjectDataMergeTest {
 
 	@Test
-	fun `merged dictionary words are the cleaned union`() {
-		val local = ProjectData(dictionaryWords = setOf("Kvothe", "two words"))
-		val server = ProjectData(dictionaryWords = setOf("Denna", " Imre "))
+	fun `merged dictionary words are the union of both sides`() {
+		val local = ProjectData(dictionaryWords = setOf("Kvothe"))
+		val server = ProjectData(dictionaryWords = setOf("Denna", "Imre"))
 
 		assertEquals(setOf("Kvothe", "Denna", "Imre"), mergeDictionaryWords(local, server))
+	}
+
+	@Test
+	fun `merging keeps a word this build would not accept as input`() {
+		// The merged set is uploaded, so stripping it here would delete a newer build's word
+		// server-side for every other device.
+		val local = ProjectData(dictionaryWords = setOf("Kvothe"))
+		val server = ProjectData(dictionaryWords = setOf("Chandrian sign"))
+
+		assertEquals(setOf("Kvothe", "Chandrian sign"), mergeDictionaryWords(local, server))
 	}
 
 	@Test

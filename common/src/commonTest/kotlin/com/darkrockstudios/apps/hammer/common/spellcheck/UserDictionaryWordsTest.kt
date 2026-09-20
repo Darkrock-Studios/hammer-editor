@@ -38,10 +38,20 @@ class UserDictionaryWordsTest {
 	}
 
 	@Test
-	fun `cleaning drops invalid entries and dedupes`() {
+	fun `stored words are normalized and deduped`() {
 		assertEquals(
-			setOf("alpha", "beta"),
-			cleanDictionaryWords(listOf(" alpha ", "", "two words", "beta", "alpha")),
+			setOf("alpha", "beta", "\u00e8"),
+			normalizeStoredDictionaryWords(listOf(" alpha ", "", "   ", "beta", "alpha", "e\u0300")),
+		)
+	}
+
+	@Test
+	fun `stored words a peer wrote under laxer rules are kept`() {
+		val overlong = "a".repeat(MAX_DICTIONARY_WORD_LENGTH + 1)
+
+		assertEquals(
+			setOf("two words", overlong),
+			normalizeStoredDictionaryWords(listOf("two words", overlong)),
 		)
 	}
 }

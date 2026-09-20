@@ -16,6 +16,10 @@ fun normalizeDictionaryWord(raw: String): String? {
 	return word
 }
 
-/** Applied wherever words enter from outside the local add path (sync, disk). */
-fun cleanDictionaryWords(words: Iterable<String>): Set<String> =
-	words.mapNotNullTo(mutableSetOf(), ::normalizeDictionaryWord)
+/**
+ * Normalizes stored words for the spell checker. Only a blank entry is dropped: a word a peer
+ * stored under different rules than [normalizeDictionaryWord] is still handed to the checker,
+ * so what Project Settings lists and what the checker accepts stay the same set.
+ */
+fun normalizeStoredDictionaryWords(words: Iterable<String>): Set<String> =
+	words.mapNotNullTo(mutableSetOf()) { word -> normalizeTagForm(word.trim()).takeIf { it.isNotEmpty() } }
