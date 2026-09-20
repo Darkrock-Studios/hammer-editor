@@ -796,8 +796,9 @@ class ReviewRepository(
 		private val collapseSpaces = Regex(""" {2,}""")
 
 		/**
-		 * Build a for-edit draft name that satisfies the client's
-		 * SceneDraftsDatasource.validDraftName rules (alphanumeric, space, apostrophe, max 128).
+		 * Build a for-edit draft name. Deliberately narrower than the client's current
+		 * SceneDraftsDatasource.validDraftName rules (alphanumeric, space, apostrophe, max 128) so
+		 * the name is also accepted by clients predating the widened character set.
 		 */
 		fun forEditDraftName(label: String): String {
 			val sanitizedLabel = sanitizeForDraftName(label)
@@ -806,7 +807,7 @@ class ReviewRepository(
 		}
 
 		/**
-		 * Name for the committed draft, same validDraftName constraints (so no comma in the date).
+		 * Name for the committed draft, same narrow constraints (so no comma in the date).
 		 * Dated in UTC, not the server's configured zone: this name is written into the author's
 		 * project and syncs to devices anywhere, so it should not depend on a server setting.
 		 */

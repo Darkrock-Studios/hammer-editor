@@ -1,8 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.data.drafts
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidationResult
+import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidator
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.fileio.okio.isWithin
@@ -18,11 +21,18 @@ class SceneDraftsDatasource(
 	private val fileSystem: FileSystem,
 	private val sceneDatasource: SceneDatasource
 ) {
+	/**
+	 * Where this draft lives on disk: the current `~`-delimited filename, or the pre-v3
+	 * `-`-delimited one when that is what is actually there. Falls back to the current format so
+	 * callers writing a new file always produce it.
+	 */
 	fun getDraftPath(draftDef: DraftDef): HPath {
-		val dir = getSceneDraftsDirectory(draftDef.sceneId)
-		val filename = getFilename(draftDef)
-		val path = dir.toOkioPath() / filename
-		return path.toHPath()
+		val dir = getSceneDraftsDirectory(draftDef.sceneId).toOkioPath()
+		val current = dir / getFilename(draftDef)
+		if (fileSystem.exists(current)) return current.toHPath()
+
+		val legacy = dir / getLegacyFilename(draftDef)
+		return (if (fileSystem.exists(legacy)) legacy else current).toHPath()
 	}
 
 	fun getSceneIdsThatHaveDrafts(): List<Int> {
@@ -213,27 +223,49 @@ class SceneDraftsDatasource(
 	}
 
 	private fun getFilename(draftDef: DraftDef): String {
-		return "${draftDef.sceneId}-${draftDef.id}-${draftDef.draftName}-${draftDef.draftTimestamp.epochSeconds}.md"
+		val name = ProjectsRepository.encodeForFilename(draftDef.draftName)
+		return "${draftDef.sceneId}~${draftDef.id}~$name~${draftDef.draftTimestamp.epochSeconds}.md"
+	}
+
+	private fun getLegacyFilename(draftDef: DraftDef): String {
+		val timestamp = draftDef.draftTimestamp.epochSeconds
+		return "${draftDef.sceneId}-${draftDef.id}-${draftDef.draftName}-$timestamp.md"
 	}
 
 	companion object {
 		const val DRAFTS_DIR = ".drafts"
-		val DRAFT_FILENAME_PATTERN = Regex("""(\d+)-(\d+)-([\da-zA-Z _']+)-(\d+)\.md""")
-		val DRAFT_NAME_PATTERN = Regex("""[\da-zA-Z _']+""")
-		val MAX_DRAFT_NAME_LENGTH = 128
 
-		fun validDraftName(name: String): Boolean {
-			return name.isNotBlank() && name.length <= MAX_DRAFT_NAME_LENGTH && DRAFT_NAME_PATTERN.matches(name)
-		}
+		// Draft format: sceneId~draftId~name~timestamp.md (delimiter changed from `-` to `~` in
+		// data v3). The name group accepts any char except path separators and the delimiter;
+		// encoded lookalikes pass through naturally.
+		val DRAFT_FILENAME_PATTERN = Regex("""(\d+)~(\d+)~([^~/\\]+)~(\d+)\.md""")
 
-		fun validDraftFileName(filename: String): Boolean = DRAFT_FILENAME_PATTERN.matches(filename)
+		// Pre-v3 pattern. Kept for read compatibility (e.g. fixtures, projects mid-migration).
+		// Old name set was the restricted `[\da-zA-Z _']` so `-` is unambiguously a delimiter.
+		val LEGACY_DRAFT_FILENAME_PATTERN = Regex("""(\d+)-(\d+)-([\da-zA-Z _']+)-(\d+)\.md""")
+
+		/**
+		 * Draft names are stored wrapped as `sceneId~draftId~name~timestamp`, so they never land
+		 * on disk as a bare basename; only the character rules apply. Validates the trimmed name
+		 * because that is what [DraftDef] stores.
+		 */
+		fun validDraftName(name: String): Boolean =
+			ProjectNameValidator.validate(name.trim(), usedAsRawFilename = false) ==
+				ProjectNameValidationResult.VALID
+
+		private fun matchDraftFileName(filename: String): MatchResult? =
+			DRAFT_FILENAME_PATTERN.matchEntire(filename)
+				?: LEGACY_DRAFT_FILENAME_PATTERN.matchEntire(filename)
+
+		fun validDraftFileName(filename: String): Boolean = matchDraftFileName(filename) != null
 
 		fun parseDraftFileName(filename: String): DraftDef? {
-			val matches = DRAFT_FILENAME_PATTERN.matchEntire(filename)
-			return if (validDraftFileName(filename) && matches != null) {
+			val matches = matchDraftFileName(filename)
+			return if (matches != null) {
 				val sceneId = matches.groups[1]?.value?.toInt()
 				val draftId = matches.groups[2]?.value?.toInt()
 				val draftName = matches.groups[3]?.value
+					?.let { ProjectsRepository.decodeFromFilename(it) }
 				val draftTimestamp = matches.groups[4]?.value?.toLong()
 
 				if (draftId == null) error("Failed to parsed draft ID from draft file name")

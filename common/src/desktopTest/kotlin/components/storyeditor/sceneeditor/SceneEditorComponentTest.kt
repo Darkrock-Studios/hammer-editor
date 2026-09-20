@@ -308,7 +308,7 @@ class SceneEditorComponentTest : ComponentTest() {
 	fun `saveDraft with an invalid name returns false without saving`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 
-		val result = comp.saveDraft("bad/name", "bad/name")
+		val result = comp.saveDraft("bad~name", "bad~name")
 
 		assertFalse(result)
 		coVerify(exactly = 0) { draftsRepository.saveDraft(any(), any()) }
