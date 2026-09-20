@@ -6,7 +6,6 @@ import com.darkrockstudios.apps.hammer.email.SendGridConfig
 import com.darkrockstudios.apps.hammer.email.SmtpConfig
 import com.darkrockstudios.apps.hammer.monitoring.IgnoredErrorRule
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringConfig
-import com.darkrockstudios.apps.hammer.patreon.PatreonConfig
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 
@@ -29,12 +28,6 @@ object AdminServerConfig {
 	val ABOUT_SERVER = ServerConfigKey.string("about_server", "")
 	val CONTACT_EMAIL = ServerConfigKey.string("contact_email", "")
 	val DEFAULT_LOCALE = ServerConfigKey.string("default_locale", "en")
-	val PATREON_CONFIG = ServerConfigKey(
-		key = "patreon_config",
-		default = PatreonConfig(),
-		parse = { Json.decodeFromString<PatreonConfig>(it) },
-		serialize = { Json.encodeToString(PatreonConfig.serializer(), it) }
-	)
 	val SMTP_CONFIG = ServerConfigKey(
 		key = "smtp_config",
 		default = SmtpConfig(),

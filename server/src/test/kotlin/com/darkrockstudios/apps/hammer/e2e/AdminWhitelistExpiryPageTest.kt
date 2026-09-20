@@ -3,7 +3,11 @@ package com.darkrockstudios.apps.hammer.e2e
 import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.e2e.util.TestAccount
-import com.darkrockstudios.apps.hammer.patreon.PatreonSyncService
+import com.darkrockstudios.apps.hammer.plugin.AllowedUsersSource
+import com.darkrockstudios.apps.hammer.plugin.NoticeSlot
+import com.darkrockstudios.apps.hammer.plugin.ServerPlugin
+import com.darkrockstudios.apps.hammer.utilities.Msg
+import io.ktor.server.application.ApplicationCall
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.cookies.HttpCookies
 import io.ktor.client.request.get
@@ -31,6 +35,19 @@ import kotlin.time.Clock
  * rendered fragment, and the persisted column are all exercised together.
  */
 class AdminWhitelistExpiryPageTest : EndToEndTest() {
+
+	// A minimal syncing source, standing in for integrations that own their whitelist entries.
+	private class TestSource : AllowedUsersSource {
+		override val id = SOURCE_REASON
+		override suspend fun isActive() = true
+		override suspend fun notice(call: ApplicationCall, slot: NoticeSlot): String? = null
+		override suspend fun rejectionMessage(): Msg? = null
+	}
+
+	override val serverPlugins = super.serverPlugins + object : ServerPlugin {
+		override val id = SOURCE_REASON
+		override fun allowedUsersSource(): AllowedUsersSource = TestSource()
+	}
 
 	private val email = "admin@test.com"
 	private val password = "password123!@#"
@@ -247,14 +264,14 @@ class AdminWhitelistExpiryPageTest : EndToEndTest() {
 			.single { it.contains(target) }
 
 	@Test
-	fun `patreon entries render without an expiry control but others keep one`(): Unit = runBlocking {
+	fun `source-managed entries render without an expiry control but others keep one`(): Unit = runBlocking {
 		doStartServer()
 		seed()
 
 		database().serverDatabase.whiteListQueries.addToWhiteList(
 			"patron@example.com",
 			Clock.System.now(),
-			PatreonSyncService.WHITELIST_REASON,
+			SOURCE_REASON,
 			null,
 		)
 
@@ -266,7 +283,7 @@ class AdminWhitelistExpiryPageTest : EndToEndTest() {
 			assertContains(body, "patron@example.com")
 			assertFalse(
 				rowFor(body, "patron@example.com").contains("edit-expiry-btn"),
-				"Patreon-owned entries must not offer an expiry control",
+				"Source-owned entries must not offer an expiry control",
 			)
 			assertContains(
 				rowFor(body, email),
@@ -415,5 +432,9 @@ class AdminWhitelistExpiryPageTest : EndToEndTest() {
 			assertEquals(HttpStatusCode.OK, page.status)
 			assertContains(page.bodyAsText(), "Allowed Users")
 		}
+	}
+
+	private companion object {
+		const val SOURCE_REASON = "TestSync"
 	}
 }

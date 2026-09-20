@@ -76,7 +76,7 @@ class StoryRenderCache(
 			.getOrNull()
 
 	companion object {
-		private const val RENDER_VERSION = "v4"
+		private const val RENDER_VERSION = "v5"
 
 		/**
 		 * Everything a render of this story depends on, collapsed to a string: the renderer itself,

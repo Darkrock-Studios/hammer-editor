@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.frontend
 
 import com.darkrockstudios.apps.hammer.frontend.utils.SYNC_DATE_PATTERN
 import com.darkrockstudios.apps.hammer.frontend.utils.formatInstant
-import com.darkrockstudios.apps.hammer.frontend.utils.formatPatreonDate
 import com.darkrockstudios.apps.hammer.frontend.utils.formatSyncDate
 import org.junit.jupiter.api.Test
 import java.time.Month
@@ -111,11 +110,4 @@ class FormatSyncDateTest {
 		assertEquals("", result)
 	}
 
-	@Test
-	fun `formatPatreonDate handles ISO 8601 format`() {
-		val result = formatPatreonDate("2024-03-15T14:30:00Z")
-
-		assertTrue(result.matches(syncDateFormat), "Result was: $result")
-		assertTrue(result.startsWith(monthShort(Month.MARCH)), "Result was: $result")
-	}
 }

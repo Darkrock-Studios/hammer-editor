@@ -16,7 +16,7 @@ import kotlin.time.Instant
 
 /**
  * Shared scaffolding for the server's recurring background jobs (token cleanup,
- * monitoring maintenance, Patreon polling, ...). A subclass supplies the work
+ * monitoring maintenance, plugin sync jobs, ...). A subclass supplies the work
  * ([tick]) and the cadence ([nextDelay]); this base owns the loop, the
  * already-running guard, exception handling, graceful shutdown, and the
  * liveness/timing bookkeeping surfaced as a [RecurringTaskStatus].

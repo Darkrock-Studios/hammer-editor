@@ -1,11 +1,15 @@
 package com.darkrockstudios.apps.hammer.e2e
 
+import com.darkrockstudios.apps.hammer.base.http.ApiErrorCode
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_HEADER
 import com.darkrockstudios.apps.hammer.base.http.HAMMER_PROTOCOL_VERSION
+import com.darkrockstudios.apps.hammer.base.http.HttpResponseError
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.base.http.createTokenBase64
+import com.darkrockstudios.apps.hammer.base.validate.PasswordValidator
 import com.darkrockstudios.apps.hammer.e2e.util.EndToEndTest
 import com.darkrockstudios.apps.hammer.utils.SERVER_CONFIG_ONE
+import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_NO_WHITELIST
 import com.darkrockstudios.apps.hammer.utils.SERVER_EMPTY_YES_WHITELIST
 import com.darkrockstudios.apps.hammer.utils.createTestServer
 import io.ktor.client.request.*
@@ -74,7 +78,7 @@ class AccountTest : EndToEndTest() {
 				)
 			}
 
-			assertEquals(HttpStatusCode.Conflict, response.status)
+			assertEquals(HttpStatusCode.Forbidden, response.status)
 			assertNull(
 				database().serverDatabase.accountQueries.findAccount("test2@example.com").executeAsOneOrNull(),
 				"A whitelist-rejected signup must not persist an account",
@@ -136,6 +140,58 @@ class AccountTest : EndToEndTest() {
 	}
 
 	@Test
+	fun `Create Account - password outside the policy is a 400 naming the rule`(): Unit = runBlocking {
+		createTestServer(SERVER_EMPTY_NO_WHITELIST, fileSystem, database())
+		doStartServer()
+		client().apply {
+			val response = post(api("account/create")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+				}
+				setBody(
+					FormDataContent(
+						Parameters.build {
+							append("email", "toolong@example.com")
+							append("password", "x".repeat(PasswordValidator.MAX_LENGTH + 1))
+							append("installId", "fake-install-id")
+						}
+					)
+				)
+			}
+
+			assertEquals(HttpStatusCode.BadRequest, response.status)
+			val error = Json.decodeFromString<HttpResponseError>(response.bodyAsText())
+			assertEquals(ApiErrorCode.PASSWORD_TOO_LONG, error.errorCode)
+		}
+	}
+
+	@Test
+	fun `Login - whitelist rejection is a 403, not a credential failure`(): Unit = runBlocking {
+		createTestServer(SERVER_CONFIG_ONE, fileSystem, database())
+		doStartServer()
+		client().apply {
+			val response = post(api("account/login")) {
+				headers {
+					append(HAMMER_PROTOCOL_HEADER, HAMMER_PROTOCOL_VERSION.toString())
+				}
+				setBody(
+					FormDataContent(
+						Parameters.build {
+							append("email", "notonthelist@example.com")
+							append("password", "password123!@#")
+							append("installId", "fake-install-id")
+						}
+					)
+				)
+			}
+
+			assertEquals(HttpStatusCode.Forbidden, response.status)
+			val error = Json.decodeFromString<HttpResponseError>(response.bodyAsText())
+			assertEquals(ApiErrorCode.NOT_WHITELISTED, error.errorCode)
+		}
+	}
+
+	@Test
 	fun `Login - First User - Bad Password`(): Unit = runBlocking {
 		createTestServer(SERVER_CONFIG_ONE, fileSystem, database())
 		doStartServer()
@@ -156,6 +212,8 @@ class AccountTest : EndToEndTest() {
 			}
 
 			assertEquals(HttpStatusCode.Unauthorized, response.status)
+			val error = Json.decodeFromString<HttpResponseError>(response.bodyAsText())
+			assertEquals(ApiErrorCode.INVALID_CREDENTIALS, error.errorCode)
 		}
 	}
 }

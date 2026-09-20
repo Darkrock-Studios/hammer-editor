@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.account
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.base.http.Token
+import com.darkrockstudios.apps.hammer.common.data.CResult
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
@@ -28,9 +29,11 @@ class AccountUseCase(
 		password: String,
 		create: Boolean,
 		acceptedTosVersion: String? = null,
+		ssl: Boolean = true,
 	): ServerSetupResult {
 		val installId = globalSettingsStore.ensureInstallId()
 		val newSettings = ServerSettings(
+			ssl = ssl,
 			userId = -1,
 			url = url,
 			email = email,
@@ -84,6 +87,46 @@ class AccountUseCase(
 				ServerSetupResult.Failure(displayMessage = displayMessage, exception = exception)
 			}
 		}
+	}
+
+	/**
+	 * Mints a session for another of this user's installs. The settings returned belong to that
+	 * install, so this install's credentials and stored settings are left untouched.
+	 */
+	suspend fun pairInstall(newInstallId: String): CResult<ServerSettings> {
+		val current = globalSettingsStore.serverSettings
+		if (current == null || current.userId < 0) {
+			return CResult.failure(error = "No signed-in server to pair with")
+		}
+
+		val result = accountApi.pairInstall(newInstallId)
+		return if (result.isSuccess) {
+			val token = result.getOrThrow()
+			CResult.success(
+				current.copy(
+					userId = token.userId,
+					bearerToken = token.auth,
+					refreshToken = token.refresh,
+				)
+			)
+		} else {
+			val exception = result.exceptionOrNull()
+			val displayMessage = (exception as? HttpFailureException)?.error?.displayMessage?.toMsg()
+				?: strRes.get(Res.string.server_setup_error_unknown).toMsg()
+			CResult.failure(error = "Pairing failed", displayMessage = displayMessage, exception = exception)
+		}
+	}
+
+	/** Adopts a session another install minted for this one through [pairInstall]. */
+	fun applyPairedSettings(settings: ServerSettings): CResult<Unit> {
+		val bearerToken = settings.bearerToken
+		if (bearerToken.isNullOrBlank() || settings.userId < 0) {
+			return CResult.failure(error = "Paired settings carry no session")
+		}
+
+		httpClient.updateCredentials(BearerTokens(accessToken = bearerToken, refreshToken = settings.refreshToken))
+		globalSettingsStore.updateServerSettings(settings)
+		return CResult.success()
 	}
 
 	suspend fun testAuth(): Boolean {

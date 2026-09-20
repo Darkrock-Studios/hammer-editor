@@ -8,3 +8,9 @@ for_platform :mac do
   apple_id("adamwbrown@gmail.com")
   team_id("8P3G3HT4J5")
 end
+
+for_platform :ios do
+  app_identifier("com.darkrockstudios.apps.hammer")
+  apple_id("adamwbrown@gmail.com")
+  team_id("8P3G3HT4J5")
+end

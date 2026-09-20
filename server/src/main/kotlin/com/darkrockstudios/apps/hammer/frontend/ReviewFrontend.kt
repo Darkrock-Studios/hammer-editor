@@ -49,7 +49,7 @@ import io.ktor.server.routing.route
 import io.ktor.server.sessions.get
 import io.ktor.server.sessions.sessions
 import kotlinx.serialization.Serializable
-import java.time.ZoneOffset
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
@@ -883,7 +883,7 @@ private fun ApplicationCall.requestReviewUrl(token: String): String =
 
 internal fun formatReviewDate(instant: Instant): String =
 	DateTimeFormatter.ofPattern("MMM d, yyyy", java.util.Locale.ENGLISH)
-		.withZone(ZoneOffset.UTC)
+		.withZone(ZoneId.systemDefault())
 		.format(instant.toJavaInstant())
 
 /** Card models for the Editorial Reviews panel, newest first, revoked requests hidden. */

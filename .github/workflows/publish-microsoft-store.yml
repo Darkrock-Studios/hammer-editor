@@ -27,7 +27,7 @@ jobs:
           cache: gradle
 
       - name: Build MSIX package
-        run: ./gradlew :desktop:packageMsix
+        run: ./gradlew :desktop:packageMsix -Pchannel=ms-store
 
       - name: Upload Gradle problems report on failure
         if: failure()

@@ -45,7 +45,7 @@ class SceneDraftRepository(
 			id = newId,
 			sceneId = sceneItem.id,
 			draftTimestamp = newDraftTimestamp,
-			draftName = draftName
+			draftName = draftName.trim()
 		)
 
 		val content: String = sceneContentRepository.getCurrentSceneContent(sceneItem)

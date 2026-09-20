@@ -63,8 +63,6 @@ class MonitoringExportRouteTest {
 				projectsSyncManager = mockk<SyncSessionManager<Long, ProjectsSynchronizationSession>>(relaxed = true),
 				projectSyncManager = mockk<SyncSessionManager<Long, ProjectSynchronizationSession>>(relaxed = true),
 				clock = clock,
-				patreonFeatureEnabled = false,
-				emailFeatureEnabled = false,
 			)
 		}
 	}

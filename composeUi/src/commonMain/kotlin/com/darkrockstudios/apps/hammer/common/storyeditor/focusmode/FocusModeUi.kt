@@ -52,7 +52,9 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.loadSceneContent
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.sceneContentMarkdown
+import com.darkrockstudios.apps.hammer.common.utils.addToDictionaryMenuItems
 import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
+import com.darkrockstudios.apps.hammer.scene_editor_add_to_dictionary
 import com.darkrockstudios.apps.hammer.scene_editor_menu_item_close
 import com.darkrockstudios.texteditor.find.FindBar
 import com.darkrockstudios.texteditor.find.rememberFindState
@@ -69,6 +71,10 @@ fun FocusModeUi(component: FocusMode) {
 	val markdownConfig = LocalMarkdownConfig.current
 	val defaultDispatcher = rememberDefaultDispatcher()
 
+	val addToDictionaryLabel = Res.string.scene_editor_add_to_dictionary.get()
+	val spellCheckMenuItems = remember(addToDictionaryLabel, component) {
+		addToDictionaryMenuItems(addToDictionaryLabel, component::addWordToDictionary)
+	}
 	val editorSpellChecker = remember(state.spellChecker) {
 		state.spellChecker.toEditorSpellChecker()
 	}
@@ -193,6 +199,7 @@ fun FocusModeUi(component: FocusMode) {
 						state = textEditorState,
 						contentPadding = PaddingValues(Ui.Padding.XL),
 						enabled = hasReceivedInitialBuffer,
+						spellCheckMenuItems = spellCheckMenuItems,
 						style = rememberTextEditorStyle(
 							textStyle = TextStyle.Default.copy(
 								textIndent = TextIndent(firstLine = 24.sp)

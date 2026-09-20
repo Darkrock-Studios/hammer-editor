@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.projects.ProjectsRepository
 import com.darkrockstudios.apps.hammer.utilities.SResult
 import com.darkrockstudios.apps.hammer.utilities.isFailure
 import com.darkrockstudios.apps.hammer.utilities.isSuccess
+import com.darkrockstudios.apps.hammer.plugin.PluginRegistry
 import io.mockk.MockKAnnotations
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -83,9 +84,8 @@ class AccountsComponentLoginTest {
 			accountsRepository,
 			whiteListRepository,
 			projectsRepository,
-			configRepository,
 			termsOfServiceRepository,
-			serverConfig
+			PluginRegistry(emptyList())
 		)
 		val result = comp.login(validEmail, validPassword, installId)
 
@@ -109,9 +109,8 @@ class AccountsComponentLoginTest {
 			accountsRepository,
 			whiteListRepository,
 			projectsRepository,
-			configRepository,
 			termsOfServiceRepository,
-			serverConfig
+			PluginRegistry(emptyList())
 		)
 		val result = comp.login(validEmail, validPassword, installId)
 
@@ -136,9 +135,8 @@ class AccountsComponentLoginTest {
 			accountsRepository,
 			whiteListRepository,
 			projectsRepository,
-			configRepository,
 			termsOfServiceRepository,
-			serverConfig
+			PluginRegistry(emptyList())
 		)
 		val result = comp.login(validEmail, validPassword, installId)
 
@@ -156,9 +154,8 @@ class AccountsComponentLoginTest {
 			accountsRepository,
 			whiteListRepository,
 			projectsRepository,
-			configRepository,
 			termsOfServiceRepository,
-			serverConfig
+			PluginRegistry(emptyList())
 		)
 
 		val result = comp.refreshToken(unknownUserId, installId, "bad-refresh")
@@ -175,9 +172,8 @@ class AccountsComponentLoginTest {
 			accountsRepository,
 			whiteListRepository,
 			projectsRepository,
-			configRepository,
 			termsOfServiceRepository,
-			serverConfig
+			PluginRegistry(emptyList())
 		)
 
 		val result = comp.refreshToken(token.userId, installId, "some-refresh")
@@ -204,9 +200,8 @@ class AccountsComponentLoginTest {
 			accountsRepository,
 			whiteListRepository,
 			projectsRepository,
-			configRepository,
 			termsOfServiceRepository,
-			serverConfig
+			PluginRegistry(emptyList())
 		)
 		val result = comp.login(validEmail, validPassword, installId)
 

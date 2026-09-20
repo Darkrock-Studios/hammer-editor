@@ -5,7 +5,7 @@ import com.darkrockstudios.apps.hammer.account.accountRoutes
 import com.darkrockstudios.apps.hammer.admin.adminRoutes
 import com.darkrockstudios.apps.hammer.base.http.API_ROUTE_PREFIX
 import com.darkrockstudios.apps.hammer.frontend.frontend
-import com.darkrockstudios.apps.hammer.patreon.patreonRoutes
+import com.darkrockstudios.apps.hammer.plugin.installPluginRoutes
 import com.darkrockstudios.apps.hammer.project.projectRoutes
 import com.darkrockstudios.apps.hammer.projects.projectsRoutes
 import com.darkrockstudios.apps.hammer.storyideas.ideasRoutes
@@ -20,7 +20,7 @@ fun Application.configureRouting(serverConfig: ServerConfig = ServerConfig()) {
 	val logger = log
 	routing {
 		frontend()
-		patreonRoutes(serverConfig)
+		installPluginRoutes()
 		route(API_ROUTE_PREFIX) {
 			accountRoutes()
 			projectsRoutes()

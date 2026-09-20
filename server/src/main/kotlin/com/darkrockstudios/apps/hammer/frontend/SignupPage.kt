@@ -11,6 +11,8 @@ import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.monitoring.SecurityRepository
 import com.darkrockstudios.apps.hammer.plugins.LOGIN_RATE_LIMIT
+import com.darkrockstudios.apps.hammer.plugin.NoticeSlot
+import com.darkrockstudios.apps.hammer.plugin.putAllowedUsersNotice
 import io.ktor.server.mustache.*
 import io.ktor.server.plugins.origin
 import io.ktor.server.plugins.ratelimit.*
@@ -132,6 +134,7 @@ private suspend fun buildSignupModel(
 	val model = call.withDefaults()
 	model["page_stylesheet"] = "/assets/css/login.css"
 	termsOfServiceRepository.challenge()?.let { model["tosVersion"] = it.version }
+	call.putAllowedUsersNotice(model, NoticeSlot.SIGNUP)
 	val contactEmail = configRepository.get(AdminServerConfig.CONTACT_EMAIL)
 	if (contactEmail.isNotBlank()) {
 		model["contactEmail"] = contactEmail

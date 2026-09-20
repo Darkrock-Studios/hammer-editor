@@ -117,6 +117,52 @@ class AccountsRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `Pair install - stores hashed tokens under the new install`() = runTest {
+		val storedToken = slot<Token>()
+		coEvery { authTokenDao.setToken(userId, "watch-install", capture(storedToken), any()) } just Runs
+		val accountsRepository = AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val result = accountsRepository.pairInstall(
+			userId = userId,
+			callerInstallId = installId,
+			newInstallId = "watch-install",
+		)
+
+		assertTrue(isSuccess(result))
+		assertEquals(userId, result.data.userId)
+		assertEquals("${result.data.auth}-hashed", storedToken.captured.auth)
+		assertEquals("${result.data.refresh}-hashed", storedToken.captured.refresh)
+	}
+
+	@Test
+	fun `Pair install - refuses the caller's own install`() = runTest {
+		val accountsRepository = AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val result = accountsRepository.pairInstall(
+			userId = userId,
+			callerInstallId = installId,
+			newInstallId = installId,
+		)
+
+		assertTrue(result.isFailure)
+		coVerify(exactly = 0) { authTokenDao.setToken(any(), any(), any(), any()) }
+	}
+
+	@Test
+	fun `Pair install - refuses a blank install`() = runTest {
+		val accountsRepository = AccountsRepository(accountDao, authTokenDao, clock, tokenHasher, b64)
+
+		val result = accountsRepository.pairInstall(
+			userId = userId,
+			callerInstallId = installId,
+			newInstallId = "   ",
+		)
+
+		assertTrue(result.isFailure)
+		coVerify(exactly = 0) { authTokenDao.setToken(any(), any(), any(), any()) }
+	}
+
+	@Test
 	fun `Login - Wrong password`() = runTest {
 		coEvery { accountDao.findAccount(any()) } returns account
 		val accountsRepository =
@@ -204,8 +250,8 @@ class AccountsRepositoryTest : BaseTest() {
 		assertTrue(isFailure(wrongPassword))
 		assertTrue(isFailure(unknownAccount))
 		assertEquals(
-			wrongPassword.displayMessage?.r?.joinToString("|"),
-			unknownAccount.displayMessage?.r?.joinToString("|"),
+			(wrongPassword.displayMessage as? ServerMessage.Resource)?.r?.joinToString("|"),
+			(unknownAccount.displayMessage as? ServerMessage.Resource)?.r?.joinToString("|"),
 			"Login must not reveal whether the account exists",
 		)
 	}

@@ -1,0 +1,4 @@
+Release fix
+
+Full changelog:
+https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.9.5+mac-app-store

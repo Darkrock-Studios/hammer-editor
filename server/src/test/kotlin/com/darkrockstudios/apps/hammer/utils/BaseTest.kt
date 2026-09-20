@@ -20,6 +20,7 @@ import com.darkrockstudios.apps.hammer.project.ProjectSynchronizationSession
 import com.darkrockstudios.apps.hammer.projects.ProjectsSynchronizationSession
 import com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry
 import com.darkrockstudios.apps.hammer.syncsessionmanager.SyncSessionManager
+import com.darkrockstudios.apps.hammer.plugin.PluginRegistry
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.mockk.mockk
@@ -116,6 +117,8 @@ fun Application.setupKtorTestKoin(baseTest: BaseTest, vararg modules: Module) {
 
 		modules(
 			module {
+				// Route helpers resolve the registry even when no plugins are in play.
+				single { PluginRegistry(emptyList()) }
 				single<CoroutineContext>(named(DISPATCHER_DEFAULT)) {
 					StandardTestDispatcher(
 						baseTest.scope.testScheduler,

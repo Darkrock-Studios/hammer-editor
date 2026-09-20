@@ -89,6 +89,24 @@ entries from your own browser or `curl` hitting `/api/...`, since only Hammer
 clients send the `X-Hammer-Protocol-Version` header. Those are unrelated to the
 client's failure.
 
+### A login that returns 401 after the account was created
+
+Passwords are 8 to 64 characters with no complexity rule and no forbidden characters, and the
+server hashes what it receives without stripping or truncating anything, so a password that was
+accepted at account creation will keep working. See
+[Account passwords](HOW-TO-RUN-A-SERVER.md#account-passwords) for the full policy and for the
+log lines that name why a login was rejected.
+
+Two container-specific causes are worth ruling out first:
+
+- **A stale volume.** If the account was created against a database that has since been
+  recreated (`docker compose down -v`, a changed volume mount), the account is simply gone and
+  every login is a legitimate 401. `Login rejected: no account for the submitted email` in the
+  log confirms it.
+- **Rate limiting seen as a login failure.** The login limiter allows 10 requests per minute
+  keyed on the source address, and behind a reverse proxy that address is the proxy's, shared
+  by everyone. Repeated attempts return `429`, not `401`.
+
 ### Do not set `bindHosts`
 
 [HOW-TO-RUN-A-SERVER.md](HOW-TO-RUN-A-SERVER.md#reverse-proxy-using-nginx) tells
@@ -126,6 +144,27 @@ Paths inside `config.toml` are resolved differently depending on the setting:
 > PowerShell's `Out-File -Encoding utf8` add one, and the TOML parser rejects it
 > with a confusing `UnexpectedTokenException` on line 1. In PowerShell use
 > `[System.IO.File]::WriteAllText($path, $text)`.
+
+### Time zone
+
+The container runs in UTC unless told otherwise, so rendered timestamps and log lines are stamped
+in UTC. `docker-compose.yml` passes `TZ` through, so set it in your shell or in a `.env` file next
+to the compose file:
+
+```
+TZ=Europe/Paris
+```
+
+Or set it directly in `config.toml`, which takes precedence:
+
+```toml
+timezone = "Europe/Paris"
+```
+
+Either way the value is an IANA zone ID; see the [full list](SERVER-TIMEZONES.md). The effective
+zone is logged at startup as `Server time zone: ...`. Stored data is unaffected, since everything
+is persisted as an absolute instant. See [Time zone](HOW-TO-RUN-A-SERVER.md#time-zone) for the
+full rundown, including the one caveat when changing the zone on a server already in use.
 
 ## TLS in the container
 

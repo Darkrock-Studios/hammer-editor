@@ -11,6 +11,7 @@ import com.darkrockstudios.build.storeNotesLength
 import com.darkrockstudios.build.updateFlatpakFiles
 import com.darkrockstudios.build.updateIosShortVersion
 import com.darkrockstudios.build.updateSnapcraftYaml
+import com.darkrockstudios.build.wearVersionCode
 import com.darkrockstudios.build.writeBakedChangelog
 import com.darkrockstudios.build.writeChangelogMarkdown
 import com.darkrockstudios.build.writeSemvar
@@ -127,10 +128,17 @@ kover {
 registerPublishTasks()
 registerLinuxDistributionTasks(libs.versions.app.get())
 
+// The pre-commit hook runs Gradle, so git's hook env leaks into the daemon and Gradle
+// blanks rather than unsets it later; a blank GIT_INDEX_FILE reads as an empty index.
+fun ProcessBuilder.scrubGitEnv(): ProcessBuilder = apply {
+	environment().keys.removeAll { it.startsWith("GIT_") }
+}
+
 val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 	doLast {
 		fun runGit(vararg args: String): String {
 			val process = ProcessBuilder(*args)
+				.scrubGitEnv()
 				.directory(project.rootDir)
 				.start()
 			val stdout = process.inputStream.bufferedReader().readText().trim()
@@ -139,7 +147,7 @@ val releasePreFlightChecks = tasks.register("releasePreFlightChecks") {
 		}
 
 		println("Fetching origin...")
-		ProcessBuilder("git", "fetch", "origin").directory(project.rootDir).inheritIO().start().waitFor()
+		ProcessBuilder("git", "fetch", "origin").scrubGitEnv().directory(project.rootDir).inheritIO().start().waitFor()
 
 		// Check for unstaged/uncommitted changes
 		val statusText = runGit("git", "status", "--porcelain")
@@ -175,14 +183,15 @@ tasks.register("prepareForRelease") {
 		val versionsFile = project.rootDir.resolve(versionsPath)
 		writeSemvar(libs.versions.app.get(), releaseInfo.semVar, versionsFile)
 
-		// Store listings carry the app-only notes plus a link to the GitHub release,
-		// which holds the full text including the web and server changes. A release
-		// that reaches no store has no store notes; leave the existing metadata alone
-		// rather than blanking the notes the last client release published.
+		// Store listings carry the app-only notes. Google Play also gets a link to the
+		// GitHub release, which holds the full text including the web and server changes;
+		// the Apple stores must not (see releaseNotesUrl) and get the notes alone. A
+		// release that reaches no store has no store notes; leave the existing metadata
+		// alone rather than blanking the notes the last client release published.
 		val fullNotesUrl = releaseNotesUrl(releaseInfo.tag)
 		val storeNotes = releaseInfo.storeChangeLog
 		val writeStoreNotes = storeNotes.isNotBlank()
-		val notesLength = storeNotesLength(storeNotes, fullNotesUrl)
+		val playNotesLength = storeNotesLength(storeNotes, fullNotesUrl)
 		val playChangelog = formatStoreNotes(storeNotes, PLAY_STORE_LIMIT, fullNotesUrl)
 
 		// Write the Fastlane changelog file
@@ -190,19 +199,22 @@ tasks.register("prepareForRelease") {
 		val changelogsPath =
 			"fastlane/metadata/android/en-US/changelogs".replace("/", File.separator)
 		val changeLogsDir = rootDir.resolve(changelogsPath)
-		val changeLogFile = File(changeLogsDir, "$versionCode.txt")
+		// The watch app ships in the same listing under its own version code.
+		val changeLogFiles = listOf(versionCode, wearVersionCode(versionCode)).map { File(changeLogsDir, "$it.txt") }
 		if (writeStoreNotes) {
-			changeLogFile.writeText(playChangelog)
-			println("Changelog for version ${releaseInfo.semVar} written to $changelogsPath/$versionCode.txt")
-			if (notesLength > PLAY_STORE_LIMIT) {
+			changeLogFiles.forEach { file ->
+				file.writeText(playChangelog)
+				println("Changelog for version ${releaseInfo.semVar} written to $changelogsPath/${file.name}")
+			}
+			if (playNotesLength > PLAY_STORE_LIMIT) {
 				println("  Google Play notes truncated to $PLAY_STORE_LIMIT characters; full text at $fullNotesUrl")
 			}
 		} else {
 			println("No store notes for this release; store metadata left untouched")
 		}
 
-		val appleChangelog = formatStoreNotes(storeNotes, APPLE_STORE_LIMIT, fullNotesUrl)
-		if (writeStoreNotes && notesLength > APPLE_STORE_LIMIT) {
+		val appleChangelog = formatStoreNotes(storeNotes, APPLE_STORE_LIMIT, null)
+		if (writeStoreNotes && storeNotesLength(storeNotes, null) > APPLE_STORE_LIMIT) {
 			println("App Store notes truncated to $APPLE_STORE_LIMIT characters; full text at $fullNotesUrl")
 		}
 
@@ -264,6 +276,7 @@ tasks.register("prepareForRelease") {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
 			val process = ProcessBuilder(cmd)
+				.scrubGitEnv()
 				.directory(project.rootDir)
 				.redirectErrorStream(true)
 				.start()
@@ -276,7 +289,7 @@ tasks.register("prepareForRelease") {
 
 		// Commit the changes to the repo
 		if (writeStoreNotes) {
-			git("add", changeLogFile.absolutePath)
+			changeLogFiles.forEach { git("add", it.absolutePath) }
 			git("add", macReleaseNotesFile.absolutePath)
 			git("add", iosReleaseNotesFile.absolutePath)
 			git("add", flatpakManifestFile.absolutePath)
@@ -296,6 +309,7 @@ tasks.register("prepareForRelease") {
 			val cmd = listOf("git") + args.toList()
 			println("> (${dir.name}) ${cmd.joinToString(" ")}")
 			val process = ProcessBuilder(cmd)
+				.scrubGitEnv()
 				.directory(dir)
 				.redirectErrorStream(true)
 				.start()
@@ -324,7 +338,7 @@ tasks.register("prepareForRelease") {
 		// Tag the merge commit explicitly; the main tree stays on develop.
 		val tagMessageFile = File(project.rootDir, "build/release-tag-message.txt")
 		tagMessageFile.parentFile.mkdirs()
-		tagMessageFile.writeText(releaseInfo.changeLog)
+		tagMessageFile.writeText(releaseInfo.tagMessage)
 		git("tag", "-a", releaseInfo.tag, "-F", tagMessageFile.absolutePath, "release")
 
 		// Push the branches and only this release's tag. Pushing --tags would try
@@ -345,6 +359,7 @@ tasks.register("backoutLastRelease") {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
 			val process = ProcessBuilder(cmd)
+				.scrubGitEnv()
 				.directory(project.rootDir)
 				.redirectErrorStream(true)
 				.start()
@@ -362,6 +377,7 @@ tasks.register("backoutLastRelease") {
 		// the prefix (`vX.Y.Z+rc1`, `vX.Y.Z+sbom`) aren't included.
 		fun findReleaseTags(): List<String> {
 			val proc = ProcessBuilder("git", "tag", "-l", tagName, "$tagName+*")
+				.scrubGitEnv()
 				.directory(project.rootDir)
 				.start()
 			val tags = proc.inputStream.bufferedReader().readLines().filter { it.isNotBlank() }
@@ -374,6 +390,7 @@ tasks.register("backoutLastRelease") {
 
 		// Check if HEAD commit is the release commit
 		val headProcess = ProcessBuilder("git", "log", "-1", "--format=%s")
+			.scrubGitEnv()
 			.directory(project.rootDir).start()
 		val headMessage = headProcess.inputStream.bufferedReader().readText().trim()
 		headProcess.waitFor()
@@ -421,6 +438,7 @@ tasks.register("revertLastRelease") {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
 			val process = ProcessBuilder(cmd)
+				.scrubGitEnv()
 				.directory(project.rootDir)
 				.redirectErrorStream(true)
 				.start()
@@ -433,6 +451,7 @@ tasks.register("revertLastRelease") {
 			val cmd = listOf("git") + args.toList()
 			println("> ${cmd.joinToString(" ")}")
 			val process = ProcessBuilder(cmd)
+				.scrubGitEnv()
 				.directory(project.rootDir)
 				.redirectErrorStream(true)
 				.start()
@@ -445,6 +464,7 @@ tasks.register("revertLastRelease") {
 		fun gitOutput(vararg args: String): String {
 			val cmd = listOf("git") + args.toList()
 			val process = ProcessBuilder(cmd)
+				.scrubGitEnv()
 				.directory(project.rootDir)
 				.redirectErrorStream(true)
 				.start()

@@ -10,10 +10,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -141,27 +137,14 @@ internal fun ReauthenticationContent(
 					selectable = true,
 				)
 
-				HdHairlineField(
+				HdPasswordField(
 					label = Res.string.settings_server_setup_password_hint.get(),
 					value = state.serverPassword,
 					onValueChange = onPasswordChange,
+					visible = passwordVisible,
+					onVisibleChange = onPasswordVisibleChange,
 					placeholder = Res.string.settings_server_setup_password_hint.get(),
-					singleLine = true,
-					imeAction = ImeAction.Done,
-					keyboardType = KeyboardType.Password,
-					visualTransformation = if (passwordVisible) VisualTransformation.None
-					else PasswordVisualTransformation(),
 					enabled = !state.serverWorking,
-				)
-
-				HdHairlineToggleRow(
-					checked = passwordVisible,
-					onCheckedChange = onPasswordVisibleChange,
-					label = if (passwordVisible) {
-						Res.string.settings_server_setup_password_hide.get()
-					} else {
-						Res.string.settings_server_setup_password_show.get()
-					},
 				)
 
 				state.serverError?.let { error ->

@@ -1,5 +1,49 @@
 # Changelog
 
+## [3.9.8] - 2026-9-12
+
+iOS Release fix
+
+
+## [3.9.7] - 2026-9-4
+
+iOS Release fix
+
+
+## [3.9.6] - 2026-9-3
+
+Release fix
+
+
+## [3.9.5] - 2026-9-1
+
+Release fix
+
+
+## [3.9.4] - 2026-8-22
+
+Fix widgets not doing anything
+
+
+## [3.9.3] - 2026-8-22
+
+Bug fixes
+
+
+## [3.9.2] - 2026-8-21
+
+- Fix MacOS Crash
+- Fix Android widgets not working
+
+
+## [3.9.1] - 2026-8-18
+
+- Fix sharing scene order
+- Fix PDF export crash
+- Fix MacOS crash on start
+- Added configurable timezone for server admins
+
+
 ## [3.9.0] - 2026-8-16
 
 New features

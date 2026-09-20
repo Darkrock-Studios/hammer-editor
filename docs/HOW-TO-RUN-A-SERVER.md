@@ -59,6 +59,30 @@ The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 7. **IMPORTANT!** You must now download one of the clients and create an account on the server. The first account
    created will be the admin account.
 
+## Account passwords
+
+The server enforces exactly one password rule: **8 to 64 characters**. There is no complexity
+requirement, no character is forbidden, and nothing is silently stripped or truncated — the
+password is hashed with Argon2 exactly as it arrives, so any Unicode you can type (accents,
+symbols, emoji) is fair game. A password outside that length range is rejected at account
+creation with `400 Bad Request` and an explanatory message; it is never accepted and then
+mysteriously unusable at login.
+
+If a login fails, the server log names the reason:
+
+```
+Login rejected: no account for the submitted email
+Login rejected: password mismatch for user 1
+```
+
+The response body carries a machine-readable `errorCode` (`invalid_credentials`,
+`not_whitelisted`, `password_too_long`, …) alongside the translated message. Note that the
+*response* deliberately cannot distinguish a wrong password from an unknown email — that
+would let anyone enumerate your users — so the log above is the place to look.
+
+A login answering `403 Forbidden` with `not_whitelisted` means the credentials were fine and the
+account simply isn't allowed in; see [Allowed Users](#allowed-users).
+
 ## Network binding
 
 By default the server binds to all IPv4 interfaces (`0.0.0.0`), so it accepts connections from the
@@ -73,6 +97,53 @@ bindHosts = ["127.0.0.1", "::1"]
 `bindHosts` is the network interface(s) to listen on, and is distinct from `host`, which is the
 public name shown to users. Each address gets its own listener (and its own HTTPS listener when an
 SSL cert is configured).
+
+## Time zone
+
+The server stamps timestamps in the host's time zone, which on most containers and fresh installs
+is UTC. To use your local zone instead, set `timezone` to an IANA zone ID
+([full list of accepted IDs](SERVER-TIMEZONES.md)):
+
+```toml
+timezone = "Europe/Paris"
+```
+
+Two environment variables do the same thing, for setups where the config file is inconvenient:
+`HAMMER_TIMEZONE`, and the standard `TZ`. `config.toml` wins over `HAMMER_TIMEZONE`, which wins
+over `TZ`.
+
+```sh
+HAMMER_TIMEZONE=Europe/Paris ./run.sh
+```
+
+The zone is applied at startup, and logged as `Server time zone: ...` so you can confirm it took.
+An unknown ID in `timezone` or `HAMMER_TIMEZONE` aborts startup rather than quietly leaving every
+timestamp in the wrong zone. `TZ` is treated more leniently, because the POSIX form some systems
+use (`CET-1CEST,M3.5.0`) is a legitimate value the operating system has already acted on: a `TZ`
+Hammer cannot read logs a warning and leaves the zone to the host.
+
+What it affects:
+
+- Dates and times on the web pages the server renders: the dashboard, admin screens, monitoring,
+  editorial reviews, and published story dates.
+- Log line timestamps, both in the console output and the admin log viewer.
+
+What it does not affect:
+
+- Stored data. Everything is persisted as an absolute instant (UTC in the database), so changing
+  the zone re-renders existing timestamps rather than shifting any data.
+- The desktop, Android, and iOS clients. Those render in each device's own zone.
+- Maintenance job scheduling. Jobs run on fixed intervals from server start, not at a wall-clock
+  time of day, so no schedule moves with the zone.
+
+One caveat when changing the zone on a server that has already been running: date-only admin
+fields are interpreted in whatever zone was in effect when they were saved. An Allowed Users
+expiry entered as "expires Sep 1" is stored as the end of Sep 1 in the old zone, so afterwards the
+edit form can show the neighboring date, and re-saving that row moves the expiry by a day. Nothing
+expires early or late on its own; only re-saving an existing row does it.
+
+Note that `TZ` alone already works on Linux, because the JVM reads it. Hammer reads it back
+explicitly so the same variable also works on Windows and macOS hosts, which ignore it.
 
 ## Rich link previews (optional)
 
@@ -341,8 +412,28 @@ The desktop client run with `--dev` trusts this self-signed cert, but **only for
 and hostname validation, so pointing a dev build at a real server is not silently insecure.
 
 This path never activates without `--dev`; a production server with no `sslCert` serves plain HTTP
-only (for the reverse-proxy case). Mobile clients still won't trust the self-signed cert, so
-develop the mobile clients against a real certificate or a reverse proxy.
+only (for the reverse-proxy case). Mobile clients still won't trust the self-signed cert, so to
+develop against the phone or watch apps, use a real certificate, a reverse proxy, or the plain
+HTTP connector described below.
+
+#### Plain HTTP on a network you trust
+
+A self-hosted server on a LAN, a VPN, or a mesh network such as Tailscale often has no
+certificate at all. Clients can talk to the plain HTTP connector (`port`, default 8080) in that
+case, but only when the user opts in explicitly: **type the server address with an `http://`
+scheme**, for example `http://192.168.1.50:8080`. A bare host or an `https://` address always
+stays encrypted, and the setup screen warns while an `http://` address is entered.
+
+Everything travels unencrypted on that connection, including the password at sign-in and the
+auth tokens on every later request, so only do this on a network where you trust every device.
+Anything reachable from the open internet needs a real certificate.
+
+The Android and Wear OS apps permit cleartext through `network_security_config.xml`, shared by
+both apps from `common/src/androidMain/res/xml/`. Debug builds of those apps additionally trust
+user-installed CAs, which is useful with a proxy or a locally issued certificate.
+
+This is also the simplest way to develop against a device: run the server (it binds `0.0.0.0` by
+default), then sign in on the phone or watch with `http://<your-machine-ip>:8080`.
 
 #### Let's Encrypt
 

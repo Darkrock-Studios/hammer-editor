@@ -101,7 +101,7 @@ class EnsureProjectIdOperationTest : BaseTest() {
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val onLog = mockk<OnSyncLog>(relaxed = true)
 		val onConflict = mockk<EntityConflictHandler<ApiProjectEntity>>(relaxed = true)
-		val onComplete = mockk<suspend () -> Unit>(relaxed = true)
+		val onComplete = mockk<suspend (Boolean) -> Unit>(relaxed = true)
 
 		val initialState = InitialSyncOperationState(false)
 		val result = op.execute(
@@ -146,7 +146,7 @@ class EnsureProjectIdOperationTest : BaseTest() {
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val onLog = mockk<OnSyncLog>(relaxed = true)
 		val onConflict = mockk<EntityConflictHandler<ApiProjectEntity>>(relaxed = true)
-		val onComplete = mockk<suspend () -> Unit>(relaxed = true)
+		val onComplete = mockk<suspend (Boolean) -> Unit>(relaxed = true)
 
 		val initialState = InitialSyncOperationState(false)
 		val result = op.execute(
@@ -190,7 +190,7 @@ class EnsureProjectIdOperationTest : BaseTest() {
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val logs = mutableListOf<SyncLogMessage>()
 		val onConflict = mockk<EntityConflictHandler<ApiProjectEntity>>(relaxed = true)
-		val onComplete = mockk<suspend () -> Unit>(relaxed = true)
+		val onComplete = mockk<suspend (Boolean) -> Unit>(relaxed = true)
 
 		val initialState = InitialSyncOperationState(false)
 		val result = op.execute(
@@ -230,7 +230,7 @@ class EnsureProjectIdOperationTest : BaseTest() {
 		val onProgress = mockk<suspend (Float, SyncLogMessage?) -> Unit>(relaxed = true)
 		val logs = mutableListOf<SyncLogMessage>()
 		val onConflict = mockk<EntityConflictHandler<ApiProjectEntity>>(relaxed = true)
-		val onComplete = mockk<suspend () -> Unit>(relaxed = true)
+		val onComplete = mockk<suspend (Boolean) -> Unit>(relaxed = true)
 
 		val initialState = InitialSyncOperationState(false)
 		val result = op.execute(

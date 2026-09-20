@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.frontend.utils
 import com.darkrockstudios.apps.hammer.admin.AdminServerConfig
 import com.darkrockstudios.apps.hammer.admin.ConfigRepository
 import com.darkrockstudios.apps.hammer.frontend.LOCALE_COOKIE_NAME
+import com.darkrockstudios.apps.hammer.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.utilities.ResUtils
 import io.ktor.http.*
 import io.ktor.server.application.*
@@ -85,6 +86,19 @@ suspend fun ApplicationCall.withMessages(data: Map<String, Any> = emptyMap()): M
 	}
 	bundle.keys.asSequence().forEach { key ->
 		messages[key] = bundle.getString(key)
+	}
+
+	// Plugin bundles layer on top, same English-baseline rule per bundle.
+	val pluginRegistry = runCatching { application.get<PluginRegistry>() }.getOrNull()
+	pluginRegistry?.plugins?.mapNotNull { it.messageBundle() }?.forEach { bundleName ->
+		val pluginEnglish = ResourceBundle.getBundle(bundleName, Locale.ENGLISH)
+		pluginEnglish.keys.asSequence().forEach { key ->
+			messages[key] = pluginEnglish.getString(key)
+		}
+		val pluginLocalized = ResourceBundle.getBundle(bundleName, locale)
+		pluginLocalized.keys.asSequence().forEach { key ->
+			messages[key] = pluginLocalized.getString(key)
+		}
 	}
 
 	val availableLocales = ResUtils.getTranslatedLocales()

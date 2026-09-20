@@ -80,7 +80,7 @@
 					<i class="fa-solid fa-pen"></i>
 					{{msg.admin_allowedusers_edit_button}}
 				</button>
-				{{^isPatreon}}
+				{{^sourceManaged}}
 					<button type="button" class="btn btn--ghost edit-expiry-btn"
 							data-email="{{email}}"
 							data-expires="{{expires}}"
@@ -92,7 +92,7 @@
 						<i class="fa-solid fa-hourglass-half"></i>
 						{{msg.admin_allowedusers_edit_expiry_button}}
 					</button>
-				{{/isPatreon}}
+				{{/sourceManaged}}
 				<form action="/admin/allowed-users/remove" method="post"
 					  hx-post="/admin/allowed-users/remove"
 					  hx-target="#whitelist"

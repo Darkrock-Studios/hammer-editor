@@ -22,7 +22,6 @@ import kotlinx.html.div
 internal fun Route.adminEmailPage(
 	configRepository: ConfigRepository,
 	emailService: EmailService,
-	patreonFeatureEnabled: Boolean,
 	serverConfig: ServerConfig
 ) {
 	get("/email") {
@@ -38,10 +37,7 @@ internal fun Route.adminEmailPage(
 			"activeSettings" to false,
 			"activeAllowedUsers" to false,
 			"activeUsers" to false,
-			"activePatreon" to false,
 			"activeEmail" to true,
-			"patreonFeatureEnabled" to patreonFeatureEnabled,
-			"emailFeatureEnabled" to true,
 			"emailConfigured" to isConfigured,
 			"activeProvider" to activeProvider.name,
 			"isSmtpProvider" to (activeProvider == EmailProvider.SMTP),

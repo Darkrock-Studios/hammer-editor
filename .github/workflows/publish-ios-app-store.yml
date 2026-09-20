@@ -15,6 +15,18 @@ on:
         required: false
   workflow_call:
 
+# Serialized against the Mac App Store publish: since iOS moved onto the macOS
+# app record for Universal Purchase, both publishes target the SAME App Store
+# Connect record, and deliver edits record-level App Information (categories,
+# copyright) as well as the per-platform version. A full release tag — one with
+# no `+platform` suffix — starts both in parallel, so they must queue instead.
+# The group name is deliberately constant, not per-tag: two overlapping releases
+# would collide the same way. cancel-in-progress stays false; aborting a publish
+# part-way through a review submission is far worse than waiting for a slot.
+concurrency:
+  group: app-store-connect
+  cancel-in-progress: false
+
 jobs:
   publish-ios-app-store:
     runs-on: macos-latest

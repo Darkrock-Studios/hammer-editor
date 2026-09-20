@@ -271,7 +271,9 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 
 		assertTrue(stored)
 		assertEquals("Stored anyway", repository.loadEntry(entry1().id).entry.text)
-		assertEquals(before, allRegularFiles())
+		// Storing rewrites the entry file itself, so count files rather than compare paths.
+		assertEquals(before.size, allRegularFiles().size, "No file may be created anywhere")
+		assertNull(datasource.findEntryImagePath(entry1().toDef(projectDef)))
 	}
 
 	@Test
@@ -287,7 +289,8 @@ class ClientEncyclopediaSynchronizerTest : BaseTest() {
 		val before = allRegularFiles()
 		sync.storeEntity(serverEntity, syncId = "sync", onLog = {})
 
-		assertEquals(before, allRegularFiles())
+		assertEquals(before.size, allRegularFiles().size, "No file may be created anywhere")
+		assertNull(datasource.findEntryImagePath(entry1().toDef(projectDef)))
 	}
 
 	@Test

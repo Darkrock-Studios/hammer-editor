@@ -214,6 +214,47 @@ class StoreNotesTest {
 	}
 
 	@Test
+	fun `A null url publishes the notes with no footer and no link`() {
+		val changelog = "- [Fix] A bug\n- [New] A feature"
+
+		val notes = formatStoreNotes(changelog, APPLE_STORE_LIMIT, null)
+
+		assertEquals(changelog, notes)
+		assertEquals(changelog.length, storeNotesLength(changelog, null))
+	}
+
+	@Test
+	fun `Apple notes never carry a link that App Store review would reject`() {
+		// The regression that broke every iOS and macOS submission from v3.7.0: the
+		// footer was appended for Apple too, so the notes ended in a github.com URL.
+		val changelog = (1..400).joinToString("\n") { "- [New] Feature number $it in this release" }
+
+		listOf(
+			formatStoreNotes("- [Fix] A bug", APPLE_STORE_LIMIT, null),
+			formatStoreNotes(changelog, APPLE_STORE_LIMIT, null),
+			formatStoreNotes("word ".repeat(2000).trim(), APPLE_STORE_LIMIT, null),
+		).forEach { notes ->
+			assertTrue(!notes.contains("github.com"), "Apple notes carry a GitHub link:\n$notes")
+			assertTrue(!notes.contains("Full changelog:"), "Apple notes carry the footer:\n$notes")
+			assertTrue(notes.length <= APPLE_STORE_LIMIT, "Notes were ${notes.length} characters")
+		}
+	}
+
+	@Test
+	fun `Dropping the footer gives the body more of the budget`() {
+		val changelog = (1..40).joinToString("\n") { "- [New] Feature number $it in this release" }
+
+		val withFooter = formatStoreNotes(changelog, PLAY_STORE_LIMIT, url)
+		val without = formatStoreNotes(changelog, PLAY_STORE_LIMIT, null)
+
+		assertTrue(
+			publishedBody(without).length > publishedBody(withFooter).length,
+			"The footer's characters were not returned to the body",
+		)
+		assertTrue(without.length <= PLAY_STORE_LIMIT, "Notes were ${without.length} characters")
+	}
+
+	@Test
 	fun `Release url points at the tag`() {
 		assertEquals(
 			"https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.7.0+google-play",

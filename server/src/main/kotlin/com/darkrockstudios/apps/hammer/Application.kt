@@ -13,7 +13,9 @@ import com.darkrockstudios.apps.hammer.frontend.configureFrontEnd
 import com.darkrockstudios.apps.hammer.monitoring.configureApiMetrics
 import com.darkrockstudios.apps.hammer.monitoring.configureMonitoringJob
 import com.darkrockstudios.apps.hammer.monitoring.configureRouteTemplateCapture
-import com.darkrockstudios.apps.hammer.patreon.configurePatreonPolling
+import com.darkrockstudios.apps.hammer.plugin.ServerPlugin
+import com.darkrockstudios.apps.hammer.plugin.installedPlugins
+import com.darkrockstudios.apps.hammer.plugin.launchPluginTasks
 import com.darkrockstudios.apps.hammer.plugins.SetupModePlugin
 import com.darkrockstudios.apps.hammer.plugins.configureDependencyInjection
 import com.darkrockstudios.apps.hammer.plugins.configureHTTP
@@ -25,10 +27,12 @@ import com.darkrockstudios.apps.hammer.plugins.configureSerialization
 import com.darkrockstudios.apps.hammer.secret.KeyringCodec
 import com.darkrockstudios.apps.hammer.utilities.DevSelfSignedCert
 import com.darkrockstudios.apps.hammer.utilities.DiskCache
+import com.darkrockstudios.apps.hammer.utilities.applyServerTimeZone
 import com.darkrockstudios.apps.hammer.utilities.cacheDirectory
 import com.darkrockstudios.apps.hammer.utilities.configureDiskCachePruneJob
 import com.darkrockstudios.apps.hammer.utilities.getRootDataDirectory
 import com.darkrockstudios.apps.hammer.utilities.loadPemAsKeyStore
+import com.darkrockstudios.apps.hammer.utilities.resolveServerTimeZone
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.core.main
 import com.github.ajalt.clikt.core.subcommands
@@ -90,6 +94,10 @@ class HammerServerCommand : CliktCommand(name = "Hammer Server") {
 
 		val logLevel = parseLogLevel(logLevelArg)
 		val config: ServerConfig = resolveServerConfig(configPath)
+
+		val timeZone = resolveServerTimeZone(config.timezone)
+		applyServerTimeZone(timeZone)
+		configLogger.info("Server time zone: $timeZone")
 
 		config.storage.validate()
 		config.analytics.validate()
@@ -408,8 +416,9 @@ fun Application.appMain(
 	config: ServerConfig,
 	addInModule: Module? = null,
 	logLevel: Level? = null,
+	plugins: List<ServerPlugin> = installedPlugins(),
 ) {
-	configureDependencyInjection(config, addInModule)
+	configureDependencyInjection(config, addInModule, plugins)
 	val encryptionBootstrap: EncryptionBootstrap by inject()
 	runBlocking { encryptionBootstrap.run() }
 	// Must complete before any route is installed: routes enforce the allowed
@@ -426,7 +435,7 @@ fun Application.appMain(
 	install(SetupModePlugin)
 	configureRouting(config)
 	configureFrontEnd()
-	configurePatreonPolling(config)
+	launchPluginTasks()
 	configureMonitoringJob()
 	configureTokenMaintenanceJob()
 	configureWhitelistExpiryJob()

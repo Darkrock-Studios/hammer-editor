@@ -37,17 +37,8 @@
 					<a href="/forgot-password">{{msg.password_reset_forgot_link}}</a>
 				</p>
 				<p class="login-info-text">{{msg.login_signup_prompt}} <a href="/signup">{{msg.login_signup_link}}</a></p>
-				{{#patreonEnabled}}
-					<div class="login-info-patreon">
-						<h3 class="login-info-patreon__title">{{msg.login_patreon_notice_title}}</h3>
-						<p>{{patreonMessage}}</p>
-						<a href="{{patreonUrl}}" target="_blank" rel="noopener noreferrer"
-						   class="login-info-patreon__link">
-							{{msg.login_patreon_notice_link}} →
-						</a>
-					</div>
-				{{/patreonEnabled}}
-				{{^patreonEnabled}}
+				{{{allowedUsersNoticeHtml}}}
+				{{^allowedUsersNoticeProvided}}
 					<div class="login-info-whitelist">
 						<p>{{msg.login_info_allowedusers_notice}}</p>
 						{{#contactEmail}}
@@ -55,7 +46,7 @@
 								href="mailto:{{contactEmail}}">{{contactEmail}}</a></p>
 						{{/contactEmail}}
 					</div>
-				{{/patreonEnabled}}
+				{{/allowedUsersNoticeProvided}}
 			</div>
 		</div>
 	</div>

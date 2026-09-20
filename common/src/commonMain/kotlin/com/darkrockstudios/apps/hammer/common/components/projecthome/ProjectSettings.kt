@@ -26,6 +26,10 @@ interface ProjectSettings : HammerComponent {
 
 	fun setEncyclopediaDictionaryEnabled(enabled: Boolean)
 
+	/** Input that normalizes to nothing storable is ignored. */
+	fun addDictionaryWord(word: String)
+	fun removeDictionaryWord(word: String)
+
 	data class LanguageOption(
 		val tag: String,
 		val displayName: String,

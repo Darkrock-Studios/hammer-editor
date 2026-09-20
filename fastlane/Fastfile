@@ -15,6 +15,14 @@
 
 default_platform(:android)
 
+# The release bundle a Gradle module builds. Named rather than taken from the gradle
+# action's lane context, which only remembers the last of several bundles.
+def play_bundle(module_name)
+  path = File.expand_path("../#{module_name}/build/outputs/bundle/release/#{module_name}-release.aab", __dir__)
+  UI.user_error!("No release bundle at #{path}") unless File.exist?(path)
+  path
+end
+
 # Returns an App Store Connect API key hash for use in mac lanes.
 # The .p8 is gitignored in desktop/secrets/.
 private_lane :appstore_api_key do
@@ -71,6 +79,29 @@ rescue => e
   false
 end
 
+# App Store Connect validation failures: the version's contents or state are
+# rejected outright, so the same call will fail identically forever. Retrying
+# these only buries the real cause — the first 3.9.7 iOS submit spent all six
+# attempts and five minutes restating "App screenshot missing". Matched on
+# message text rather than exception class because Spaceship raises
+# UnexpectedResponse for transient faults too, so the class cannot tell them
+# apart. Keep this list narrow: anything not matched here still gets retried,
+# which is the safe direction to be wrong in.
+PERMANENT_DELIVER_ERRORS = [
+  /is not in valid state/i,
+  /cannot be reviewed/i,
+  /screenshot missing/i,
+  /required but was not provided/i,
+].freeze
+
+# Matches against the whole message, not just the first line: App Store Connect
+# puts the summary on line 1 ("...is not in valid state") and the actual reasons
+# on the lines below it ("App screenshot missing (APP_IPHONE_65)").
+def permanent_deliver_error?(error)
+  message = error.message.to_s
+  PERMANENT_DELIVER_ERRORS.any? { |pattern| message.match?(pattern) }
+end
+
 # Run deliver with a bounded retry. Right after upload the build is processed in
 # TestFlight but can lag propagating to the App Store version API, so deliver
 # crashes with "Could not find build". That crash happens during build lookup —
@@ -90,6 +121,14 @@ def deliver_with_retry(params, attempts: 6, wait_seconds: 60)
       UI.success("App Store version #{params[:app_version]} is already submitted for review — deliver's error was a false negative.")
       return
     end
+    if permanent_deliver_error?(e)
+      # Print the whole message — the summary line names the version, but the
+      # lines under it are the ones that say what is actually wrong.
+      UI.error("App Store Connect rejected the submission. This will not clear on its own, so not retrying:")
+      UI.error(e.message.to_s)
+      raise
+    end
+
     raise if try >= attempts
     UI.important("deliver attempt #{try}/#{attempts} failed: #{e.message.to_s.lines.first&.strip}")
     UI.important("Build may still be propagating to App Store Connect; retrying in #{wait_seconds}s…")
@@ -209,12 +248,37 @@ platform :ios do
   lane :ios_submit do |options|
     params = {
       api_key: appstore_api_key,
-      app_identifier: "com.darkrockstudios.apps.hammer.ios",
+      app_identifier: "com.darkrockstudios.apps.hammer",
       platform: "ios",
       app_version: app_marketing_version,
       skip_binary_upload: true,
-      skip_screenshots: true,
+      # Screenshots must be uploaded, unlike the :mac lane. iOS moved onto the
+      # macOS app record for Universal Purchase, and that record's iOS platform
+      # started with no screenshots at all — nothing carried over from the old
+      # standalone iOS listing. App Store Connect refuses to submit a version
+      # with no iPhone screenshots, and the failure lands after the binary is
+      # already uploaded. Uploading every release also keeps the store in sync
+      # with fastlane/metadata/ios.
+      skip_screenshots: false,
       metadata_path: "fastlane/metadata/ios",
+      # screenshots_path is a separate option from metadata_path and defaults to
+      # ./fastlane/screenshots. deliver globs <path>/<locale>/*.png FLAT — it
+      # does not descend into per-device folders (only appleTV/iMessage are
+      # special-cased), and it derives the device from the image's pixel size,
+      # not from any folder name. The screenshots therefore live flat in
+      # fastlane/screenshots/ios/<locale>/. Get this wrong and deliver silently
+      # uploads nothing, logs "Successfully uploaded all screenshots", and the
+      # submit fails with "App screenshot missing (APP_IPHONE_65)".
+      #
+      # Filenames matter too: 2732x2048 is ambiguous between the 2nd- and
+      # 3rd-gen iPad Pro, and deliver picks the 2nd gen if the path contains
+      # "app_ipad_pro_129" or both "12.9" and "2nd generation". Ours avoid
+      # those, so they resolve to APP_IPAD_PRO_3GEN_129, which is what App
+      # Store Connect asks for.
+      screenshots_path: "fastlane/screenshots/ios",
+      # deliver_with_retry can invoke deliver several times; without this each
+      # attempt stacks another copy of every screenshot onto the version.
+      overwrite_screenshots: true,
       submit_for_review: true,
       automatic_release: true,
       run_precheck_before_submit: false,
@@ -233,7 +297,7 @@ platform :ios do
     if build_number.nil? || build_number.empty?
       latest = latest_testflight_build_number(
         api_key: api_key,
-        app_identifier: "com.darkrockstudios.apps.hammer.ios",
+        app_identifier: "com.darkrockstudios.apps.hammer",
         platform: "ios",
         initial_build_number: 0,
       )
@@ -262,7 +326,7 @@ platform :ios do
         teamID: "8P3G3HT4J5",
         signingStyle: "manual",
         provisioningProfiles: {
-          "com.darkrockstudios.apps.hammer.ios" => "Hammer AppStore iOS",
+          "com.darkrockstudios.apps.hammer" => "Hammer AppStore iOS",
         },
       },
       clean: true,
@@ -276,7 +340,7 @@ platform :ios do
     # cutting off a legitimately slow processing run at a tighter deadline.
     upload_to_testflight(
       api_key: api_key,
-      app_identifier: "com.darkrockstudios.apps.hammer.ios",
+      app_identifier: "com.darkrockstudios.apps.hammer",
       app_platform: "ios",
       ipa: lane_context[SharedValues::IPA_OUTPUT_PATH],
       skip_waiting_for_build_processing: !options[:wait],
@@ -297,39 +361,56 @@ platform :android do
 
   desc "Submit a new Build to Google Play Internal"
   lane :internal do
-    gradle(
-      task: ":android:bundleRelease",
-      gradle_path: "./gradlew"
-    )
-    upload_to_play_store(track: 'internal')
+    play_build
+    upload_to_play_store(track: 'internal', aab: play_bundle("android"))
+    upload_wear_bundle(track: 'wear:qa')
   end
 
   desc "Submit a new Alpha Build to Google Play Close"
   lane :alpha do
-    gradle(
-      task: ":android:bundleRelease",
-      gradle_path: "./gradlew"
-    )
-    upload_to_play_store(track: 'alpha')
+    play_build
+    upload_to_play_store(track: 'alpha', aab: play_bundle("android"))
+    # Wear OS has no default closed testing track; closed tracks on a form factor are
+    # custom-named in the Play Console, so the watch app skips this lane.
   end
 
   desc "Submit a new Beta Build to Google Play Open"
   lane :beta do
-    gradle(
-      task: ":android:bundleRelease",
-      gradle_path: "./gradlew"
-    )
-    upload_to_play_store(track: 'beta')
+    play_build
+    upload_to_play_store(track: 'beta', aab: play_bundle("android"))
+    upload_wear_bundle(track: 'wear:beta')
   end
 
   desc "Deploy a new version to the Google Play"
   lane :release do
-    gradle(
-      task: "clean bundleRelease",
-      gradle_path: "./gradlew"
-    )
+    play_build(clean: true)
     upload_to_play_store(
       root_url: "https://androidpublisher.googleapis.com/",
+      aab: play_bundle("android"),
+      skip_upload_images: true,
+      skip_upload_screenshots: true
+    )
+    upload_wear_bundle(track: 'wear:production')
+  end
+
+  private_lane :play_build do |options|
+    gradle(
+      task: "#{options[:clean] ? 'clean ' : ''}:android:bundleRelease :wear:bundleRelease",
+      gradle_path: "./gradlew",
+      properties: { "channel" => "google-play" }
+    )
+  end
+
+  # The watch app is a second bundle in the same listing, on Play's Wear OS form factor
+  # tracks. Those only exist once Wear OS is added under Advanced settings > Form factors.
+  # It uploads after the phone so a Wear OS failure never holds back a phone release. The
+  # listing is shared and the phone upload already sent it, so only the release notes go.
+  private_lane :upload_wear_bundle do |options|
+    upload_to_play_store(
+      root_url: "https://androidpublisher.googleapis.com/",
+      track: options[:track],
+      aab: play_bundle("wear"),
+      skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true
     )

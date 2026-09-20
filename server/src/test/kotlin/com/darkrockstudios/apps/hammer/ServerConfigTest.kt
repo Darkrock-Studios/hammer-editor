@@ -31,6 +31,16 @@ class ServerConfigTest {
 	}
 
 	@Test
+	fun `timezone defaults to null`() {
+		assertEquals(null, parse("").timezone)
+	}
+
+	@Test
+	fun `timezone parses a zone ID`() {
+		assertEquals("Europe/Paris", parse("""timezone = "Europe/Paris"""").timezone)
+	}
+
+	@Test
 	fun `termsOfService defaults to null`() {
 		assertEquals(null, parse("").termsOfService)
 	}

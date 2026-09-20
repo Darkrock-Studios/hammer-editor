@@ -25,7 +25,14 @@ private val SECTION_HEADER = Regex("""^\[[^]]+]$""")
 /** The longest `Label:` prefix treated as an audience label rather than prose. */
 private const val MAX_LABEL_LENGTH = 20
 
-/** The GitHub release page for a release tag, where the untruncated notes live. */
+/**
+ * The GitHub release page for a release tag, where the untruncated notes live.
+ *
+ * Only Google Play is given this link. App Store review rejects release notes that
+ * link to the project's GitHub page — it offers the app outside the App Store — so
+ * the Apple stores pass `null` as the footer URL. The link shipped to iOS and macOS
+ * from v3.7.0 onward and drew "invalid metadata" rejections until it was removed.
+ */
 fun releaseNotesUrl(tag: String): String = "$GITHUB_REPO/releases/tag/$tag"
 
 /**
@@ -156,8 +163,9 @@ fun deriveStoreNotes(fullChangelog: String): StoreNotesDerivation {
 }
 
 /**
- * Fits [changelog] into a store's character limit, always leaving room for a footer
- * pointing at the full notes. Whole entries are kept so the text does not end
+ * Fits [changelog] into a store's character limit, leaving room for a footer pointing
+ * at the full notes when [fullNotesUrl] is given — see [releaseNotesUrl] for why the
+ * Apple stores pass null. Whole entries are kept so the text does not end
  * mid-bullet, and an entry too long for the remaining budget is skipped rather than
  * ending the notes. The `…` mark is appended only when an entry was actually left
  * out; text that fits once its blank lines are collapsed is not marked truncated.
@@ -169,7 +177,7 @@ fun deriveStoreNotes(fullChangelog: String): StoreNotesDerivation {
  * A blank changelog yields an empty string: store metadata that is only a link
  * describes nothing, and App Store review rejects it.
  */
-fun formatStoreNotes(changelog: String, limit: Int, fullNotesUrl: String): String {
+fun formatStoreNotes(changelog: String, limit: Int, fullNotesUrl: String?): String {
 	val body = normalizeNotes(changelog)
 	if (body.isEmpty()) return ""
 
@@ -202,13 +210,19 @@ fun formatStoreNotes(changelog: String, limit: Int, fullNotesUrl: String): Strin
 	return fitted + mark + footer
 }
 
-/** How many characters [changelog] needs at a store, footer included. */
-fun storeNotesLength(changelog: String, fullNotesUrl: String): Int {
+/**
+ * How many characters [changelog] needs at a store, including the footer when
+ * [fullNotesUrl] is given. Pass the same URL the store's [formatStoreNotes] call
+ * gets — null for the Apple stores — or the "will it truncate?" comparison is off
+ * by the footer's length.
+ */
+fun storeNotesLength(changelog: String, fullNotesUrl: String?): Int {
 	val body = normalizeNotes(changelog)
 	return if (body.isEmpty()) 0 else body.length + footerFor(fullNotesUrl).length
 }
 
-private fun footerFor(fullNotesUrl: String) = "\n\n$FOOTER_LABEL\n$fullNotesUrl"
+private fun footerFor(fullNotesUrl: String?) =
+	if (fullNotesUrl == null) "" else "\n\n$FOOTER_LABEL\n$fullNotesUrl"
 
 /**
  * CHANGELOG.md is checked out with CRLF on Windows and seeds the release dialog, so

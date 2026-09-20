@@ -26,11 +26,11 @@ sealed class ServerResult<out T> {
 	) : ServerResult<T>() {
 		override val isSuccess = false
 
-		fun displayMessageText(call: ApplicationCall, default: R): String {
+		suspend fun displayMessageText(call: ApplicationCall, default: R): String {
 			return displayMessage?.text(call) ?: call.t(default)
 		}
 
-		fun displayMessageText(call: ApplicationCall): String? {
+		suspend fun displayMessageText(call: ApplicationCall): String? {
 			return displayMessage?.text(call)
 		}
 	}
@@ -55,17 +55,33 @@ sealed class ServerResult<out T> {
 
 typealias Msg = ServerMessage
 
-class ServerMessage private constructor(
-	@PropertyKey(resourceBundle = DEFAULT_RESOURCE_BUNDLE) res: R,
-	inArgs: List<Any>
-) {
-	val r: R = res
-	val args: List<Any> = inArgs
+sealed class ServerMessage {
+	abstract suspend fun text(call: ApplicationCall): String
 
-	fun text(call: ApplicationCall): String = call.t(r, args)
+	class Resource internal constructor(
+		@PropertyKey(resourceBundle = DEFAULT_RESOURCE_BUNDLE) res: R,
+		inArgs: List<Any>
+	) : ServerMessage() {
+		val r: R = res
+		val args: List<Any> = inArgs
+
+		override suspend fun text(call: ApplicationCall): String = call.t(r, args)
+	}
+
+	/** Text already resolved by the caller, e.g. by a plugin from its own resource bundle. */
+	class Literal(private val value: String) : ServerMessage() {
+		override suspend fun text(call: ApplicationCall): String = value
+	}
+
+	/** Resolved per request, for messages living outside the default bundle. */
+	class Dynamic(private val resolve: suspend (ApplicationCall) -> String) : ServerMessage() {
+		override suspend fun text(call: ApplicationCall): String = resolve(call)
+	}
 
 	companion object {
-		fun r(key: String, vararg args: Any): ServerMessage = ServerMessage(R(key), args.toList())
+		fun r(key: String, vararg args: Any): ServerMessage = Resource(R(key), args.toList())
+		fun literal(text: String): ServerMessage = Literal(text)
+		fun dynamic(resolve: suspend (ApplicationCall) -> String): ServerMessage = Dynamic(resolve)
 	}
 }
 

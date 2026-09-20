@@ -24,14 +24,14 @@
 				<span>{{msg.admin_nav_monitoring}}</span>
 			</a>
 		</li>
-		{{#patreonFeatureEnabled}}
+		{{#pluginNavEntries}}
 			<li class="admin-nav-item">
-				<a href="/admin/patreon" class="admin-nav-link {{#activePatreon}}active{{/activePatreon}}">
-					<i class="fa-brands fa-patreon"></i>
-					<span>{{msg.admin_nav_patreon}}</span>
+				<a href="{{href}}" class="admin-nav-link {{#active}}active{{/active}}">
+					<i class="{{icon}}"></i>
+					<span>{{label}}</span>
 				</a>
 			</li>
-		{{/patreonFeatureEnabled}}
+		{{/pluginNavEntries}}
 		{{#emailFeatureEnabled}}
 			<li class="admin-nav-item">
 				<a href="/admin/email" class="admin-nav-link {{#activeEmail}}active{{/activeEmail}}">

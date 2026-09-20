@@ -16,6 +16,8 @@ class ChangelogRepository(
 	private var cached: Changelog? = null
 
 	suspend fun getChangelog(): Changelog? {
+		if (!supportsInAppChangelog) return null
+
 		lock.withLock { cached }?.let { return it }
 
 		val changelog = datasource.loadChangelog() ?: return null

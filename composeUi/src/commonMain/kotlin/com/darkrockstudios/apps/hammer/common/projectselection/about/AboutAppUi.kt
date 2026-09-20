@@ -66,6 +66,7 @@ import com.darkrockstudios.apps.hammer.common.compose.icons.Github
 import com.darkrockstudios.apps.hammer.common.compose.icons.Reddit
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
+import com.darkrockstudios.apps.hammer.common.data.changelog.supportsInAppChangelog
 import com.darkrockstudios.apps.hammer.hammer_icon
 import org.jetbrains.compose.resources.painterResource
 
@@ -320,10 +321,12 @@ private fun VersionCard(
 			horizontalArrangement = Arrangement.spacedBy(14.dp),
 			verticalArrangement = Arrangement.spacedBy(14.dp),
 		) {
-			HdHairlineButton(
-				label = Res.string.about_version_changes_button.get(),
-				onClick = onViewChangelog,
-			)
+			if (supportsInAppChangelog) {
+				HdHairlineButton(
+					label = Res.string.about_version_changes_button.get(),
+					onClick = onViewChangelog,
+				)
+			}
 			HdHairlineButton(
 				label = Res.string.about_version_github_button.get(),
 				onClick = onOpenLatestRelease,
