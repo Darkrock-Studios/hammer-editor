@@ -54,6 +54,9 @@
 	<string name="project_settings_spellcheck_mismatch_caption">Spell check is off: the project language (%1$s) doesn’t match your dictionary (%2$s). Change either to re-enable it.</string>
 	<string name="project_settings_spellcheck_encyclopedia_enable">Learn encyclopedia names in this project</string>
 	<string name="project_settings_spellcheck_encyclopedia_enable_hint">Turn off to keep this project&#8217;s entry names out of the spell check dictionary</string>
+	<string name="project_settings_dictionary_label">Project dictionary</string>
+	<string name="project_settings_dictionary_hint">↵ para añadir</string>
+	<string name="project_settings_dictionary_placeholder">Words the spell checker should accept in this project</string>
 	<string name="project_settings_folio_caption">Ajustes del proyecto · %1$s</string>
 	<string name="project_settings_folio_section_count">§§ %1$d</string>
 	<string name="sync_conflict_project_data_title">Conflicto de ajustes del proyecto</string>
@@ -69,6 +72,7 @@
 	<string name="sync_conflict_project_data_value_off">Off</string>
 	<string name="sync_conflict_project_data_cadence_day">día</string>
 	<string name="sync_conflict_project_data_cadence_week">semana</string>
+	<string name="sync_conflict_project_data_dictionary_merged">Project dictionary words from both sides are kept.</string>
 	<string name="sync_conflict_project_data_resolve_button">Resolver</string>
 	<string name="sync_conflict_encyclopedia_label_name">Nombre:</string>
 	<string name="sync_conflict_encyclopedia_label_type">Tipo:</string>
@@ -121,6 +125,8 @@
 	<string name="sync_log_begin_projects">Sincronizando los proyectos…</string>
 	<string name="sync_log_end_projects">Sincronización de proyectos completada</string>
 	<string name="sync_log_begin_project">Sincronizando el proyecto: %1$s</string>
+	<string name="sync_log_project_unchanged">No changes, skipped</string>
+	<string name="sync_log_project_failed">La sincronización falló: %1$s</string>
 	<string name="sync_log_project_conflict">Hay un conflicto en el proyecto: %1$s. Abre ese proyecto y sincroniza para resolverlo.</string>
 	<string name="sync_log_client_data_computed">Datos de entidades del cliente calculados</string>
 	<string name="sync_log_project_id_stale">The server no longer has this project. It will be recreated the next time you sync.</string>

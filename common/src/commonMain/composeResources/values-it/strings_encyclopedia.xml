@@ -30,7 +30,7 @@
 	<string name="encyclopedia_create_entry_cancel_button">Annulla</string>
 	<string name="encyclopedia_create_entry_toast_success">Voce creata</string>
 	<string name="encyclopedia_create_entry_toast_too_long">Il nome della voce era troppo lungo. Max %1$d</string>
-	<string name="encyclopedia_create_entry_toast_invalid_name">Il nome della voce deve essere alfanumerico</string>
+	<string name="encyclopedia_create_entry_toast_invalid_name">The entry name contains invalid characters</string>
 	<string name="encyclopedia_create_entry_toast_tag_too_long">Il tag è troppo lungo. Max %1$d</string>
 	<string name="encyclopedia_create_entry_toast_alias_too_long">L’alias è troppo lungo. Max %1$d</string>
 	<string name="encyclopedia_entry_aliases_label">Alias</string>

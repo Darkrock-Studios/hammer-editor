@@ -24,6 +24,7 @@
 	<string name="scene_editor_menu_item_archive">Архівувати</string>
 	<string name="scene_editor_menu_item_save">Зберегти</string>
 	<string name="scene_editor_menu_item_close">Закрити</string>
+	<string name="scene_editor_add_to_dictionary">Add to dictionary</string>
 	<string name="archive_scene_dialog_title">Архівувати сцену</string>
 	<string name="archive_scene_dialog_message">Ви впевнені, що хочете архівувати «%1$s»? Сцену буде приховано зі списку сцен, але її можна відновити пізніше.</string>
 	<string name="archive_scene_dialog_confirm">Архівувати</string>
