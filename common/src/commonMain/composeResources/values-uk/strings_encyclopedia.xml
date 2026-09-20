@@ -30,7 +30,7 @@
 	<string name="encyclopedia_create_entry_cancel_button">Скасувати</string>
 	<string name="encyclopedia_create_entry_toast_success">Запис створено</string>
 	<string name="encyclopedia_create_entry_toast_too_long">Назва запису задовга. Макс. %1$d</string>
-	<string name="encyclopedia_create_entry_toast_invalid_name">Назва запису має бути буквено-цифровою</string>
+	<string name="encyclopedia_create_entry_toast_invalid_name">The entry name contains invalid characters</string>
 	<string name="encyclopedia_create_entry_toast_tag_too_long">Тег задовгий. Макс. %1$d</string>
 	<string name="encyclopedia_create_entry_toast_alias_too_long">Псевдонім задовгий. Макс. %1$d</string>
 	<string name="encyclopedia_entry_aliases_label">Псевдоніми</string>

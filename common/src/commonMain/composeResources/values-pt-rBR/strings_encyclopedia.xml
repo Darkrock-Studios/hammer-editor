@@ -30,7 +30,7 @@
 	<string name="encyclopedia_create_entry_cancel_button">Cancelar</string>
 	<string name="encyclopedia_create_entry_toast_success">Verbete Criado</string>
 	<string name="encyclopedia_create_entry_toast_too_long">O Nome do Verbete é grande demais. Máx. %1$d</string>
-	<string name="encyclopedia_create_entry_toast_invalid_name">O nome do verbete deve ser alfanumérico</string>
+	<string name="encyclopedia_create_entry_toast_invalid_name">The entry name contains invalid characters</string>
 	<string name="encyclopedia_create_entry_toast_tag_too_long">A etiqueta é muito longa. Máx. %1$d</string>
 	<string name="encyclopedia_create_entry_toast_alias_too_long">O apelido é muito longo. Máx. %1$d</string>
 	<string name="encyclopedia_entry_aliases_label">Apelidos</string>

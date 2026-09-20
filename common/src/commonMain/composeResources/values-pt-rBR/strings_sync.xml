@@ -54,6 +54,9 @@
 	<string name="project_settings_spellcheck_mismatch_caption">A verificação ortográfica está desativada: o idioma do projeto (%1$s) não coincide com o seu dicionário (%2$s). Altere algum deles para reativá-la.</string>
 	<string name="project_settings_spellcheck_encyclopedia_enable">Learn encyclopedia names in this project</string>
 	<string name="project_settings_spellcheck_encyclopedia_enable_hint">Turn off to keep this project&#8217;s entry names out of the spell check dictionary</string>
+	<string name="project_settings_dictionary_label">Project dictionary</string>
+	<string name="project_settings_dictionary_hint">↵ para adicionar</string>
+	<string name="project_settings_dictionary_placeholder">Words the spell checker should accept in this project</string>
 	<string name="project_settings_folio_caption">Configurações do Projeto · %1$s</string>
 	<string name="project_settings_folio_section_count">§§ %1$d</string>
 	<string name="sync_conflict_project_data_title">Conflito de Configurações do Projeto</string>
@@ -69,6 +72,7 @@
 	<string name="sync_conflict_project_data_value_off">Off</string>
 	<string name="sync_conflict_project_data_cadence_day">dia</string>
 	<string name="sync_conflict_project_data_cadence_week">semana</string>
+	<string name="sync_conflict_project_data_dictionary_merged">Project dictionary words from both sides are kept.</string>
 	<string name="sync_conflict_project_data_resolve_button">Resolver</string>
 	<string name="sync_conflict_encyclopedia_label_name">Nome:</string>
 	<string name="sync_conflict_encyclopedia_label_type">Tipo:</string>

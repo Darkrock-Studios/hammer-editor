@@ -30,7 +30,7 @@
 	<string name="encyclopedia_create_entry_cancel_button">Abbruch</string>
 	<string name="encyclopedia_create_entry_toast_success">Eintrag erstellt</string>
 	<string name="encyclopedia_create_entry_toast_too_long">Name des Eintrags ist zu lang. Max. %1$d</string>
-	<string name="encyclopedia_create_entry_toast_invalid_name">Der Name des Eintrags muss alphanumerisch sein</string>
+	<string name="encyclopedia_create_entry_toast_invalid_name">The entry name contains invalid characters</string>
 	<string name="encyclopedia_create_entry_toast_tag_too_long">Tag ist zu lang. Max. %1$d</string>
 	<string name="encyclopedia_create_entry_toast_alias_too_long">Alias ist zu lang. Max. %1$d</string>
 	<string name="encyclopedia_entry_aliases_label">Aliase</string>
