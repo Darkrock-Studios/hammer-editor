@@ -10,3 +10,6 @@
 - Credential fields no longer capitalize what you type
 - Spelling suggestions could stick on "Loading"
 - Sync no longer fails on an unknown field
+
+Full changelog:
+https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.10.0
