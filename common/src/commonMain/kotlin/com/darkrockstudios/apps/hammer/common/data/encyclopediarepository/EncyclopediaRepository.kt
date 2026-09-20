@@ -56,6 +56,11 @@ class EncyclopediaRepository(
 	)
 	val entryContentChangedFlow: SharedFlow<Unit> = _entryContentChangedFlow
 
+	// SUSPEND overflow (the default): consumers keep a cache from these, so events
+	// must never be dropped. With no subscribers, emits complete immediately.
+	private val _entryChangeFlow = MutableSharedFlow<EntryChange>(extraBufferCapacity = 64)
+	val entryChangeFlow: SharedFlow<EntryChange> = _entryChangeFlow
+
 	private suspend fun updateEntries(entries: List<EntryDef>) {
 		_entryListFlow.emit(entries)
 	}
@@ -98,6 +103,7 @@ class EncyclopediaRepository(
 			excludeFromDictionary = excludeFromDictionary,
 		)
 
+		_entryChangeFlow.emit(EntryChange.Saved(container.entry))
 		_entryContentChangedFlow.emit(Unit)
 		return EntryResult(container, EntryError.NONE)
 	}
@@ -184,6 +190,7 @@ class EncyclopediaRepository(
 
 		if (forceId == null) markForSynchronization(newDef)
 
+		_entryChangeFlow.emit(EntryChange.Saved(container.entry))
 		_entryContentChangedFlow.emit(Unit)
 		return EntryResult(container, EntryError.NONE)
 	}
@@ -191,6 +198,7 @@ class EncyclopediaRepository(
 	suspend fun deleteEntry(entryDef: EntryDef): Boolean {
 		datasource.deleteEntry(entryDef)
 		syncJournal.recordIdDeletion(entryDef.id)
+		_entryChangeFlow.emit(EntryChange.Deleted(entryDef.id))
 		_entryContentChangedFlow.emit(Unit)
 		return true
 	}
@@ -200,7 +208,10 @@ class EncyclopediaRepository(
 		datasource.setEntryImage(entryDef, imagePath)
 	}
 
-	suspend fun reIdEntry(oldId: Int, newId: Int) = datasource.reIdEntry(oldId, newId)
+	suspend fun reIdEntry(oldId: Int, newId: Int) {
+		datasource.reIdEntry(oldId, newId)
+		_entryChangeFlow.emit(EntryChange.ReId(oldId, newId))
+	}
 
 	fun hasEntryImage(entryDef: EntryDef, fileExension: String): Boolean =
 		datasource.hasEntryImage(entryDef, fileExension)

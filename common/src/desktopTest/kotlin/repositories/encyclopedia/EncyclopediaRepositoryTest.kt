@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.base.http.readToml
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository.Companion.MAX_NAME_SIZE
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryChange
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryLoadError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
@@ -378,6 +379,41 @@ class EncyclopediaRepositoryTest : BaseTest() {
 
 			repo.deleteEntry(entry1().toDef(projDef))
 			awaitItem()
+		}
+	}
+
+	@Test
+	fun `entryChangeFlow carries the persisted mutation`() = runTest {
+		coEvery { idAllocator.claimNextId() } returns 3
+		coEvery { syncJournal.recordIdDeletion(any()) } just Runs
+		val repo = createRepository()
+
+		repo.entryChangeFlow.test {
+			repo.createEntry(
+				name = "NewEntry",
+				type = EntryType.PERSON,
+				text = "",
+				tags = emptySet(),
+				imagePath = null,
+				aliases = listOf("SomeAlias"),
+			)
+			val created = awaitItem() as EntryChange.Saved
+			assertEquals("NewEntry", created.entry.name)
+			assertEquals(listOf("SomeAlias"), created.entry.aliases)
+
+			repo.updateEntry(
+				oldEntryDef = created.entry.toDef(projDef),
+				name = "Renamed",
+				text = "",
+				tags = emptySet(),
+				excludeFromDictionary = true,
+			)
+			val updated = awaitItem() as EntryChange.Saved
+			assertEquals("Renamed", updated.entry.name)
+			assertTrue(updated.entry.excludeFromDictionary)
+
+			repo.deleteEntry(updated.entry.toDef(projDef))
+			assertEquals(EntryChange.Deleted(3), awaitItem())
 		}
 	}
 
