@@ -1,9 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.data.encyclopediarepository
 
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
+import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidationResult
+import com.darkrockstudios.apps.hammer.base.validate.ProjectNameValidator
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectScoped
-import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource.Companion.ENTRY_NAME_PATTERN
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -135,7 +136,10 @@ class EncyclopediaRepository(
 		return when {
 			name.trim().isEmpty() -> EntryError.NAME_TOO_SHORT
 			name.trim().length > MAX_NAME_SIZE -> EntryError.NAME_TOO_LONG
-			!ENTRY_NAME_PATTERN.matches(name.trim()) -> EntryError.NAME_INVALID_CHARACTERS
+			// The entry name is stored wrapped as `type~id~name`, so it never lands on disk as a
+			// bare basename; only the character rules apply.
+			ProjectNameValidator.validate(name.trim(), usedAsRawFilename = false) !=
+				ProjectNameValidationResult.VALID -> EntryError.NAME_INVALID_CHARACTERS
 			tags.any { it.length > MAX_TAG_SIZE } -> EntryError.TAG_TOO_LONG
 			aliases.any { it.trim().length > MAX_NAME_SIZE } -> EntryError.ALIAS_TOO_LONG
 			else -> EntryError.NONE

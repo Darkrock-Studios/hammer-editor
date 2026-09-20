@@ -24,6 +24,7 @@
 	<string name="scene_editor_menu_item_archive">Arquivar</string>
 	<string name="scene_editor_menu_item_save">Salvar</string>
 	<string name="scene_editor_menu_item_close">Fechar</string>
+	<string name="scene_editor_add_to_dictionary">Add to dictionary</string>
 	<string name="archive_scene_dialog_title">Arquivar Cena</string>
 	<string name="archive_scene_dialog_message">Tem certeza que deseja arquivar '%1$s'? A cena será ocultada da lista de cenas, mas pode ser restaurada mais tarde.</string>
 	<string name="archive_scene_dialog_confirm">Arquivar</string>

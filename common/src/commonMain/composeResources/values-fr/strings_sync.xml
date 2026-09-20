@@ -54,6 +54,9 @@
 	<string name="project_settings_spellcheck_mismatch_caption">La vérification orthographique est désactivée : la langue du projet (%1$s) ne correspond pas à votre dictionnaire (%2$s). Changez là pour la réactiver.</string>
 	<string name="project_settings_spellcheck_encyclopedia_enable">Learn encyclopedia names in this project</string>
 	<string name="project_settings_spellcheck_encyclopedia_enable_hint">Turn off to keep this project&#8217;s entry names out of the spell check dictionary</string>
+	<string name="project_settings_dictionary_label">Project dictionary</string>
+	<string name="project_settings_dictionary_hint">↵ ajouter</string>
+	<string name="project_settings_dictionary_placeholder">Words the spell checker should accept in this project</string>
 	<string name="project_settings_folio_caption">Paramètres du projet · %1$s</string>
 	<string name="project_settings_folio_section_count">§§ %1$d</string>
 	<string name="sync_conflict_project_data_title">Conflit de paramètres du projet</string>
@@ -69,6 +72,7 @@
 	<string name="sync_conflict_project_data_value_off">Off</string>
 	<string name="sync_conflict_project_data_cadence_day">jour</string>
 	<string name="sync_conflict_project_data_cadence_week">semaine</string>
+	<string name="sync_conflict_project_data_dictionary_merged">Project dictionary words from both sides are kept.</string>
 	<string name="sync_conflict_project_data_resolve_button">Résoudre</string>
 	<string name="sync_conflict_encyclopedia_label_name">Nom :</string>
 	<string name="sync_conflict_encyclopedia_label_type">Type :</string>
@@ -121,6 +125,8 @@
 	<string name="sync_log_begin_projects">Synchronisation des projets…</string>
 	<string name="sync_log_end_projects">Synchronisation des projets terminée</string>
 	<string name="sync_log_begin_project">Synchronisation du projet : %1$s</string>
+	<string name="sync_log_project_unchanged">No changes, skipped</string>
+	<string name="sync_log_project_failed">Échec de la synchronisation : %1$s</string>
 	<string name="sync_log_project_conflict">Il y a un conflit dans le projet : %1$s. Ouvrez ce projet et synchronisez pour le résoudre.</string>
 	<string name="sync_log_client_data_computed">Données d'entité client calculées</string>
 	<string name="sync_log_project_id_stale">Le serveur n'a plus ce projet. Il sera recréé lors de la prochaine synchronisation.</string>

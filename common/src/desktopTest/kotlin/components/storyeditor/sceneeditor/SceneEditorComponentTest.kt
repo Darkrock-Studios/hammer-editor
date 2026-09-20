@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidRefere
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
 import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCase
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
 import io.mockk.*
@@ -46,6 +47,7 @@ class SceneEditorComponentTest : ComponentTest() {
 	private lateinit var draftsRepository: SceneDraftRepository
 	private lateinit var autoConfirm: AutoConfirmReferencesUseCase
 	private lateinit var spellCheck: ProjectSpellCheckRepository
+	private lateinit var projectDictionary: ProjectDictionaryUseCase
 
 	private lateinit var settingsUpdates: MutableSharedFlow<GlobalSettings>
 	private lateinit var dictionaryFlow: MutableSharedFlow<PlatformSpellChecker?>
@@ -98,9 +100,12 @@ class SceneEditorComponentTest : ComponentTest() {
 		} returns mockk(relaxed = true)
 		every { sceneEditor.subscribeToSceneUpdates(any(), capture(sceneTreeCallback)) } returns mockk(relaxed = true)
 
+		projectDictionary = mockk(relaxed = true)
+
 		setupComponentKoin(module {
 			single<GlobalSettingsStore> { settingsStore }
 			single<ProjectSpellCheckRepository> { spellCheck }
+			single { projectDictionary }
 			single { sceneEditor } bind SceneEditorService::class
 			single { draftsRepository } bind SceneDraftRepository::class
 			single { autoConfirm } bind AutoConfirmReferencesUseCase::class
@@ -148,6 +153,17 @@ class SceneEditorComponentTest : ComponentTest() {
 
 		assertFalse(comp.state.value.spellCheckingEnabled)
 		assertFalse(comp.state.value.metadataPanelVisible)
+	}
+
+	@Test
+	fun `addWordToDictionary delegates to the project dictionary`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		comp.onCreate()
+
+		comp.addWordToDictionary("Kvothe")
+		advanceUntilIdle()
+
+		coVerify(exactly = 1) { projectDictionary.addWord("Kvothe") }
 	}
 
 	// --- scene name ----------------------------------------------------------
@@ -308,7 +324,7 @@ class SceneEditorComponentTest : ComponentTest() {
 	fun `saveDraft with an invalid name returns false without saving`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 
-		val result = comp.saveDraft("bad/name", "bad/name")
+		val result = comp.saveDraft("bad~name", "bad~name")
 
 		assertFalse(result)
 		coVerify(exactly = 0) { draftsRepository.saveDraft(any(), any()) }

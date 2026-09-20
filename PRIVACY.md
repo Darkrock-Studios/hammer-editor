@@ -1,6 +1,6 @@
 # Privacy Policy
 
-_Last updated: 21 July 2026_
+_Last updated: 15 September 2026_
 
 This is a plain-language explanation of how Hammer handles your data, from Dark Rock Studios, the
 makers of Hammer. The short version: Hammer is offline-first, your writing lives on your own
@@ -35,8 +35,12 @@ leaves your device unless you choose to send it.
 ## 5. Security
 
 For anything that does leave your device through a feature you turned on, we do our best to protect
-it. That said, no method of sending data over the internet is ever completely secure, and we won't
-pretend otherwise.
+it. Hammer connects to a sync server over an encrypted HTTPS connection unless you deliberately
+enter an address beginning with `http://`, which some people need for a server on their own home
+network. A plain `http://` connection is not encrypted, so your account details and the writing you
+sync can be read by anyone who can see that network. The app warns you when you enter such an
+address. That said, no method of sending data over the internet is ever completely secure, and we
+won't pretend otherwise.
 
 ## 6. Links to other places
 

@@ -10,8 +10,10 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryUseCase
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectSpellCheckRepository
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
@@ -34,6 +36,7 @@ class FocusModeComponentTest : ComponentTest() {
 	private lateinit var settingsStore: GlobalSettingsStore
 	private lateinit var focusModeService: FocusModeService
 	private lateinit var sceneEditor: SceneEditorService
+	private lateinit var projectDictionary: ProjectDictionaryUseCase
 	private lateinit var settingsUpdates: MutableSharedFlow<GlobalSettings>
 
 	private val bufferCallback = slot<suspend (SceneBuffer) -> Unit>()
@@ -72,10 +75,12 @@ class FocusModeComponentTest : ComponentTest() {
 
 		val spellCheckRepository = mockk<ProjectSpellCheckRepository>(relaxed = true)
 		every { spellCheckRepository.dictionaryFlow } returns MutableSharedFlow()
+		projectDictionary = mockk(relaxed = true)
 
 		setupComponentKoin(module {
 			single { settingsStore }
 			single { spellCheckRepository }
+			single { projectDictionary }
 			single { focusModeService }
 			scope<ProjectDefScope> {
 				scoped { sceneEditor }
@@ -111,6 +116,18 @@ class FocusModeComponentTest : ComponentTest() {
 		context.stop()
 		advanceUntilIdle()
 		verify(exactly = 1) { focusModeService.exitFocusMode() }
+	}
+
+	@Test
+	fun `addWordToDictionary delegates to the project dictionary`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.addWordToDictionary("Kvothe")
+		advanceUntilIdle()
+
+		coVerify(exactly = 1) { projectDictionary.addWord("Kvothe") }
 	}
 
 	@Test

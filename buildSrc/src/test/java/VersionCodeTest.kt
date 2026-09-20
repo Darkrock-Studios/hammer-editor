@@ -28,4 +28,27 @@ class VersionCodeTest {
 		versionCode = semVar.createVersionCode(true, 1)
 		assertEquals(102040000, versionCode, "Release: True Build: 1")
 	}
+
+	@Test
+	fun `Wear version code sits above every phone version code`() {
+		val phoneCode = parseSemVar("9.99.99").createVersionCode(false, 9_999)
+
+		assertEquals(1_999_999_999, wearVersionCode(phoneCode))
+		assertEquals(1_102_030_001, wearVersionCode(102_030_001))
+	}
+
+	@Test(expected = IllegalArgumentException::class)
+	fun `Wear version code rejects a phone code that reaches the offset`() {
+		wearVersionCode(1_000_000_000)
+	}
+
+	@Test(expected = IllegalArgumentException::class)
+	fun `A version that collides with the wear band is refused for every target`() {
+		getVersionCode("10.0.0")
+	}
+
+	@Test
+	fun `The last version below the wear band is still allowed`() {
+		assertEquals(999_990_000, getVersionCode("9.99.99"))
+	}
 }

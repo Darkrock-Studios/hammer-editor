@@ -117,6 +117,7 @@ class DataMigratorTest : BaseTest() {
 		val testModule = module {
 			factory<Migration0_1> { mockMigrator }
 			factory<Migration1_2> { mockk(relaxed = true) }
+			factory<Migration2_3> { mockk(relaxed = true) }
 			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
 			factory<MigrateInlineAuthTokens> { mockk(relaxed = true) }
 		}
@@ -167,6 +168,7 @@ class DataMigratorTest : BaseTest() {
 		val testModule = module {
 			factory<Migration0_1> { mockMigrator }
 			factory<Migration1_2> { mockk(relaxed = true) }
+			factory<Migration2_3> { mockk(relaxed = true) }
 			factory<MigrateInstallIdToGlobal> { mockk(relaxed = true) }
 			factory<MigrateInlineAuthTokens> { mockk(relaxed = true) }
 		}

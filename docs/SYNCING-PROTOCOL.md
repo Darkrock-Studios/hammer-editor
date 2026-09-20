@@ -149,6 +149,32 @@ live idea set — which lets the client skip the Story Ideas phase entirely when
 
 ---
 
+## Pairing another install
+
+Auth tokens are stored per `(userId, installId)`, and a refresh replaces that install's row, so two
+devices can never share one token pair. A signed-in device mints a session for another of the
+user's devices (the Wear OS app, which cannot type a password comfortably) with:
+
+```
+POST /api/account/pair_install/{userId}
+  Authorization: Bearer <caller's token>
+  form: installId=<the other device's install id>
+  201: Token for the new install
+```
+
+- The caller's own install is derived from its bearer token, never from the request, and naming it
+  is refused with `400`: minting over it would replace the caller's session.
+- A blank or missing `installId` is `400`; a pending-deletion or disallowed account is refused the
+  same way a token refresh is.
+- Any *other* install id is accepted, and because `setToken` upserts on `(userId, installId)` it
+  replaces whatever token that install held. Pairing the same watch twice therefore rotates its
+  session, and naming a third device's install id signs that device out. Only the account's own
+  authenticated caller can do this, and install ids are random UUIDs held on the device itself.
+- It shares the login rate limit. The phone never stores a password, so this is the only way it can
+  sign a watch in.
+
+---
+
 ## Story Ideas Sync (account-level)
 
 Story ideas are account-level content: markdown blobs with tags that live at the projects root
@@ -591,6 +617,17 @@ sequenceDiagram
 ```
 
 Two further branches aren't diagrammed: if the server has no blob yet (`204`) and the local data is non-default, the client uploads with a null `originalHash` (the server accepts a baseline-less upload unchecked); and if the hashes already match, the phase is a no-op (re-recording `lastSyncedHash` if it was stale).
+
+One field is exempt from the per-field resolver: `dictionaryWords` (the project's user spell-check
+dictionary) is merged by union on both paths. When a `409` differs from the local copy *only* in that
+field, the client merges and re-uploads without involving the user; when other fields also differ, the
+resolver appears for those and the dictionary is still unioned. A word deleted on one device is therefore
+resurrected if the other device conflicts before the deletion syncs; that is accepted for a word list.
+
+Sync writes never clobber a concurrent local edit: the client snapshots the blob when the phase
+starts, and when it installs the server-agreed state it re-applies any field the user changed since
+that snapshot (dictionary words as an add/remove delta). Those edits then differ from the recorded
+`lastSyncedHash`, so the next sync uploads them.
 
 Unlike writing-activity sync (which swallows errors and continues), a non-conflict failure on the project-data phase fails the whole sync — the data is user-authored and silent loss is unacceptable.
 

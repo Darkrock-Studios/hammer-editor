@@ -59,6 +59,30 @@ The Hammer server is a Java application that runs on Windows, Linux, and macOS.
 7. **IMPORTANT!** You must now download one of the clients and create an account on the server. The first account
    created will be the admin account.
 
+## Account passwords
+
+The server enforces exactly one password rule: **8 to 64 characters**. There is no complexity
+requirement, no character is forbidden, and nothing is silently stripped or truncated — the
+password is hashed with Argon2 exactly as it arrives, so any Unicode you can type (accents,
+symbols, emoji) is fair game. A password outside that length range is rejected at account
+creation with `400 Bad Request` and an explanatory message; it is never accepted and then
+mysteriously unusable at login.
+
+If a login fails, the server log names the reason:
+
+```
+Login rejected: no account for the submitted email
+Login rejected: password mismatch for user 1
+```
+
+The response body carries a machine-readable `errorCode` (`invalid_credentials`,
+`not_whitelisted`, `password_too_long`, …) alongside the translated message. Note that the
+*response* deliberately cannot distinguish a wrong password from an unknown email — that
+would let anyone enumerate your users — so the log above is the place to look.
+
+A login answering `403 Forbidden` with `not_whitelisted` means the credentials were fine and the
+account simply isn't allowed in; see [Allowed Users](#allowed-users).
+
 ## Network binding
 
 By default the server binds to all IPv4 interfaces (`0.0.0.0`), so it accepts connections from the
@@ -388,8 +412,28 @@ The desktop client run with `--dev` trusts this self-signed cert, but **only for
 and hostname validation, so pointing a dev build at a real server is not silently insecure.
 
 This path never activates without `--dev`; a production server with no `sslCert` serves plain HTTP
-only (for the reverse-proxy case). Mobile clients still won't trust the self-signed cert, so
-develop the mobile clients against a real certificate or a reverse proxy.
+only (for the reverse-proxy case). Mobile clients still won't trust the self-signed cert, so to
+develop against the phone or watch apps, use a real certificate, a reverse proxy, or the plain
+HTTP connector described below.
+
+#### Plain HTTP on a network you trust
+
+A self-hosted server on a LAN, a VPN, or a mesh network such as Tailscale often has no
+certificate at all. Clients can talk to the plain HTTP connector (`port`, default 8080) in that
+case, but only when the user opts in explicitly: **type the server address with an `http://`
+scheme**, for example `http://192.168.1.50:8080`. A bare host or an `https://` address always
+stays encrypted, and the setup screen warns while an `http://` address is entered.
+
+Everything travels unencrypted on that connection, including the password at sign-in and the
+auth tokens on every later request, so only do this on a network where you trust every device.
+Anything reachable from the open internet needs a real certificate.
+
+The Android and Wear OS apps permit cleartext through `network_security_config.xml`, shared by
+both apps from `common/src/androidMain/res/xml/`. Debug builds of those apps additionally trust
+user-installed CAs, which is useful with a proxy or a locally issued certificate.
+
+This is also the simplest way to develop against a device: run the server (it binds `0.0.0.0` by
+default), then sign in on the phone or watch with `http://<your-machine-ip>:8080`.
 
 #### Let's Encrypt
 

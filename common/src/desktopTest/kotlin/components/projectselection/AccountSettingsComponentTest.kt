@@ -147,7 +147,7 @@ class AccountSettingsComponentTest : BaseTest() {
 		ffs.list(projectsDir).map { it.name }.sorted()
 
 	private fun setupSucceeds() {
-		coEvery { accountUseCase.setupServer(any(), any(), any(), any(), any()) } returns
+		coEvery { accountUseCase.setupServer(any(), any(), any(), any(), any(), any()) } returns
 			ServerSetupResult.Success
 	}
 
@@ -162,6 +162,42 @@ class AccountSettingsComponentTest : BaseTest() {
 		create = false,
 		replaceLocalContent = replaceLocalContent,
 	)
+
+	@Test
+	fun `An http url logs in to a plaintext server`() = runTest {
+		setupSucceeds()
+		val component = newComponent()
+		advanceUntilIdle()
+
+		component.logIn(url = "http://192.168.1.50:8080")
+		advanceUntilIdle()
+
+		coVerify { accountUseCase.setupServer("192.168.1.50:8080", any(), any(), any(), any(), false) }
+	}
+
+	@Test
+	fun `A bare host logs in over https`() = runTest {
+		setupSucceeds()
+		val component = newComponent()
+		advanceUntilIdle()
+
+		component.logIn(url = "hammer.ink")
+		advanceUntilIdle()
+
+		coVerify { accountUseCase.setupServer("hammer.ink", any(), any(), any(), any(), true) }
+	}
+
+	@Test
+	fun `Typing an http url warns that it is insecure`() = runTest {
+		val component = newComponent()
+		advanceUntilIdle()
+
+		component.updateServerUrl("http://192.168.1.50:8080")
+		assertTrue(component.state.value.serverUrlInsecure)
+
+		component.updateServerUrl("hammer.ink")
+		assertFalse(component.state.value.serverUrlInsecure)
+	}
 
 	private fun AccountSettingsComponent.createAccount() = setupServer(
 		url = "example.com",

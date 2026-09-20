@@ -3,6 +3,9 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	{{#iosAppStoreId}}
+		<meta name="apple-itunes-app" content="app-id={{iosAppStoreId}}">
+	{{/iosAppStoreId}}
 	<title>{{title}}</title>
 	{{#metaDescription}}
 		<meta name="description" content="{{metaDescription}}">

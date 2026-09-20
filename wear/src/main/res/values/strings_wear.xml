@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="app_name">Hammer</string>
+
+	<string name="onboarding_body">Capture notes and ideas on your wrist, synced with your Hammer account.</string>
+	<string name="onboarding_pair">Pair with phone</string>
+	<string name="onboarding_manual_sign_in">Sign in on watch</string>
+
+	<string name="pairing_searching">Looking for your phone</string>
+	<string name="pairing_awaiting">Confirm on your phone</string>
+	<string name="pairing_paired">Paired</string>
+	<string name="pairing_not_found">No phone with Hammer is in range</string>
+	<string name="pairing_failed">Pairing failed</string>
+	<string name="pairing_failed_declined">Pairing was declined on the phone</string>
+	<string name="pairing_failed_not_signed_in">Sign in to a sync server on your phone first</string>
+	<string name="pairing_failed_server">The sync server refused to pair this watch</string>
+	<string name="pairing_failed_unsupported">Update Hammer on your phone and watch, then try again</string>
+	<string name="pairing_failed_phone_unavailable">Open Hammer on your phone, then try again</string>
+	<string name="pairing_retry">Try again</string>
+	<string name="pairing_cancel">Cancel</string>
+
+	<string name="sign_in_title">Sign in</string>
+	<string name="sign_in_server">Server</string>
+	<string name="sign_in_email">Email</string>
+	<string name="sign_in_password">Password</string>
+	<string name="sign_in_not_set">Tap to enter</string>
+	<string name="sign_in_insecure_warning">Plain HTTP: your sign in and writing are not encrypted. Only use this on a network you trust.</string>
+	<string name="sign_in_button">Sign in</string>
+	<string name="sign_in_error_missing">Enter a server, email and password</string>
+	<string name="sign_in_error_terms">Accept this server’s terms on your phone or computer first</string>
+	<string name="sign_in_error_local_network">Allow local network access to reach this server</string>
+	<string name="sign_in_error_generic">Sign in failed</string>
+
+	<string name="projects_header">Projects</string>
+	<string name="projects_signed_in_as">%1$s</string>
+	<string name="projects_empty">Sync to fetch your projects</string>
+	<string name="projects_loading">Loading projects</string>
+	<string name="projects_sync_now">Sync</string>
+	<string name="projects_new_note">New note</string>
+	<string name="projects_new_idea">New story idea</string>
+	<string name="projects_sync_log">Sync log</string>
+	<string name="projects_sign_out">Sign out</string>
+	<string name="projects_local_network_needed">Your server is on your local network. Allow Hammer to reach it to sync.</string>
+	<string name="projects_local_network_allow">Allow</string>
+	<string name="projects_needs_reauth">Your session expired. Sign out and sign in again.</string>
+	<string name="projects_last_sync_failed">The last sync did not finish</string>
+
+	<string name="projects_sign_out_warning_count">%1$d captures have not synced yet. Signing out deletes them.</string>
+	<string name="projects_sign_out_warning_unknown">Some writing might not have synced yet. Signing out deletes it.</string>
+	<string name="projects_sign_out_confirm">Sign out anyway</string>
+	<string name="projects_sign_out_cancel">Keep my writing</string>
+	<string name="projects_unsynced_kept">%1$s still has writing that has not synced, so it was kept on the watch. Sync, then try again.</string>
+	<string name="projects_unsubscribe_failed">%1$s could not be removed from the watch. Try again.</string>
+	<string name="projects_notice_dismiss">Got it</string>
+
+	<string name="project_status_not_on_server">Not on the server yet</string>
+	<string name="project_status_unsubscribing">Removing from watch</string>
+	<string name="project_status_not_on_watch">Not on watch</string>
+	<string name="project_status_on_watch">On watch</string>
+	<string name="project_status_syncing">Syncing %1$d%%</string>
+	<string name="project_status_synced">Synced</string>
+	<string name="project_status_needs_resolution">Resolve on phone</string>
+	<string name="project_status_failed">Sync failed</string>
+
+	<string name="capture_title_note">New note</string>
+	<string name="capture_title_idea">New story idea</string>
+	<string name="capture_text_label">Text</string>
+	<string name="capture_text_empty">Tap to dictate</string>
+	<string name="capture_project_label">Project</string>
+	<string name="capture_project_loading">Loading</string>
+	<string name="capture_project_none">No project on this watch</string>
+	<string name="capture_project_keep">Cancel</string>
+	<string name="capture_discard_title_note">Discard note?</string>
+	<string name="capture_discard_title_idea">Discard story idea?</string>
+	<string name="capture_discard_body">This has not been saved yet. Leaving now loses it.</string>
+	<string name="capture_discard_confirm">Discard</string>
+	<string name="capture_discard_keep">Keep writing</string>
+	<string name="capture_save">Save</string>
+	<string name="capture_done">Done</string>
+	<string name="capture_saved">Saved</string>
+	<string name="capture_pending_checking">Counting what is left to sync</string>
+	<string name="capture_pending_count">%1$d waiting to sync</string>
+	<string name="capture_pending_none">Synced</string>
+	<string name="capture_no_projects_title">No project yet</string>
+	<string name="capture_no_projects_body">Turn on a project in Hammer to keep it on this watch, then you can add notes to it.</string>
+	<string name="capture_failed">Not saved</string>
+	<string name="capture_failed_body">Something went wrong. Try again.</string>
+
+	<string name="tile_label">Capture</string>
+	<string name="tile_note">Note</string>
+	<string name="tile_idea">Story idea</string>
+	<string name="tile_no_project">No project on watch</string>
+	<string name="tile_pending">%1$d to sync</string>
+	<string name="complication_label">New note</string>
+	<string name="complication_description">Capture a note in Hammer</string>
+
+	<string name="sync_log_title">Sync log</string>
+	<string name="sync_log_empty">Nothing has synced yet</string>
+</resources>

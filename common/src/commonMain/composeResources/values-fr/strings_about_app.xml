@@ -2,7 +2,7 @@
 <resources>
 	<string name="about_description">Un outil pour rédiger des histoires.</string>
 	<string name="about_studio_header">Studio</string>
-	<string name="about_community_studio_attribution">Hammer is made by Dark Rock Studios, alongside a family of other privacy-respecting, open source apps.</string>
+	<string name="about_community_studio_attribution">Hammer a été créé par Dark Rock Studios, aux côtés d'autres applications open source et respectueuse de votre vie privée.</string>
 	<string name="about_community_header">Communauté</string>
 	<string name="about_community_discord_link">Discord</string>
 	<string name="about_community_reddit_link">Reddit</string>
@@ -21,4 +21,9 @@
 	<string name="about_logs_export_button">Exporter les journaux</string>
 	<string name="about_logs_no_logs">Aucun fichier journal trouvé</string>
 	<string name="about_logs_open_tooltip">Ouvrir le dossier des journaux</string>
+	<string name="about_logs_export_success">Logs exported.</string>
+	<string name="about_logs_export_failed">Could not export the logs. See the log directory.</string>
+	<string name="about_logs_copy_diagnostics_button">Copy Diagnostics</string>
+	<string name="about_logs_copy_diagnostics_success">Diagnostics copied to the clipboard.</string>
+	<string name="about_logs_copy_diagnostics_failed">Could not copy the diagnostics.</string>
 </resources>

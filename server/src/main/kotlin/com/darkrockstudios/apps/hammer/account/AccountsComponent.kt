@@ -78,6 +78,26 @@ class AccountsComponent(
 		return accountsRepository.refreshToken(userId, installId, refreshToken)
 	}
 
+	suspend fun pairInstall(
+		userId: Long,
+		callerInstallId: String,
+		newInstallId: String,
+	): SResult<Token> {
+		val account = accountsRepository.getAccountOrNull(userId)
+			?: return SResult.failure("Account not found", Msg.r("api_accounts_login_error_notoken"))
+		if (account.deleted_at != null) {
+			return SResult.failure(
+				"Account pending deletion",
+				Msg.r("api_accounts_login_error_pending_deletion")
+			)
+		}
+		if (checkIfWhiteListRejected(account)) {
+			return whiteListRejectedFailure()
+		}
+
+		return accountsRepository.pairInstall(userId, callerInstallId, newInstallId)
+	}
+
 	suspend fun checkIfWhiteListRejected(email: String): Boolean {
 		val account = accountsRepository.findAccount(email)
 		return if (account != null) {
@@ -96,7 +116,8 @@ class AccountsComponent(
 		val message = pluginRegistry.activeAllowedUsersSource()?.rejectionMessage()
 		return SResult.failure(
 			error = "User not on whitelist",
-			displayMessage = message ?: Msg.r("api_allowedusers_rejected")
+			displayMessage = message ?: Msg.r("api_allowedusers_rejected"),
+			exception = NotWhitelisted()
 		)
 	}
 }

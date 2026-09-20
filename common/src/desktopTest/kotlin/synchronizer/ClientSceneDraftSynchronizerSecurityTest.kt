@@ -106,12 +106,51 @@ class ClientSceneDraftSynchronizerSecurityTest : BaseTest() {
 			.toSet()
 
 	@Test
-	fun `a traversal draft name escaping with dot-dot is rejected and writes no file`() = runTest {
+	fun `a traversal draft name escaping with dot-dot cannot leave the drafts directory`() = runTest {
+		val before = allFiles()
+
+		val stored = newSynchronizer().storeEntity(
+			draftEntity("../../../../evil"),
+			syncId = "sync",
+			onLog = {},
+		)
+
+		assertTrue(stored)
+		assertEquals(
+			setOf(datasource.getDraftPath(repository.getDraftDef(500)!!).path),
+			allFiles() - before,
+			"The only new file must be the draft, inside the drafts directory",
+		)
+	}
+
+	@Test
+	fun `a draft name with an embedded slash is stored as a single file`() = runTest {
+		val before = allFiles()
+
+		val stored = newSynchronizer().storeEntity(
+			draftEntity("a/b"),
+			syncId = "sync",
+			onLog = {},
+		)
+
+		assertTrue(stored)
+		val written = (allFiles() - before).single()
+		assertTrue(
+			written.startsWith(datasource.getDraftsDirectory().path),
+			"Draft must land inside the drafts directory, was: $written",
+		)
+		// The separator survives as a lookalike, so the name round-trips without ever
+		// being a real path separator on disk.
+		assertEquals("a/b", repository.getDraftDef(500)?.draftName)
+	}
+
+	@Test
+	fun `a draft name using the reserved delimiter is rejected and writes no file`() = runTest {
 		val before = allFiles()
 		val logs = mutableListOf<SyncLogMessage>()
 
 		val stored = newSynchronizer().storeEntity(
-			draftEntity("../../../../evil"),
+			draftEntity("evil~name"),
 			syncId = "sync",
 			onLog = { logs.add(it) },
 		)
@@ -122,17 +161,19 @@ class ClientSceneDraftSynchronizerSecurityTest : BaseTest() {
 	}
 
 	@Test
-	fun `a draft name with an embedded slash is rejected and writes no file`() = runTest {
-		val before = allFiles()
-
+	fun `a name the old rules allowed still syncs, stored trimmed`() = runTest {
+		// Older clients let a trailing space through, so drafts named this way already exist on
+		// the server. Rejecting them here would strand them permanently.
 		val stored = newSynchronizer().storeEntity(
-			draftEntity("a/b"),
+			draftEntity("My Draft "),
 			syncId = "sync",
 			onLog = {},
 		)
 
-		assertFalse(stored)
-		assertEquals(before, allFiles())
+		assertTrue(stored)
+		val def = repository.getDraftDef(500)
+		assertEquals("My Draft", def?.draftName)
+		assertEquals("PWNED", repository.loadDraftContent(def!!))
 	}
 
 	@Test

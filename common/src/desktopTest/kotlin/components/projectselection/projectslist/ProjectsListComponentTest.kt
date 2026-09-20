@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRe
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStatisticsCacheReader
 import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.toMsg
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDataSource
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
@@ -130,6 +131,7 @@ class ProjectsListComponentTest : ComponentTest() {
 			single { metadataDatasource }
 			single { statsReader }
 			single { reauthUseCase }
+			factory { SyncAccountUseCase(get(), get(), get(), get()) }
 			single<FileSystem> { FakeFileSystem() }
 			single<Toml> { createTomlSerializer() }
 			single<StrRes> { TestStrRes() }
@@ -547,6 +549,27 @@ class ProjectsListComponentTest : ComponentTest() {
 
 			coVerify(exactly = 2) { synchronizer.syncProjects(any(), any(), any(), any()) }
 			assertIs<ProjectsList.ModalDestination.ProjectSync>(comp.modalRouterState.value.child?.instance)
+		}
+
+	@Test
+	fun `a project the server reports unchanged shows as complete in the sync dialog`() =
+		runTest(mainTestDispatcher) {
+			globalSettings = globalSettings.copy(autoCloseSyncDialog = false)
+			every { synchronizer.isServerSynchronized() } returns true
+			every { projectsRepository.getProjects(any()) } returns listOf(projectDefA)
+			every { metadataDatasource.loadMetadata(projectDefA) } returns
+				metadata(Instant.fromEpochSeconds(1), serverId = ProjectId("server-id"))
+			coEvery { synchronizer.syncProjects(any(), any(), any(), any()) } returns true
+			coEvery { synchronizer.probeUnchangedProjects(any()) } returns setOf(ProjectId("server-id"))
+			val comp = newComponent()
+
+			comp.showProjectsSync()
+			advanceUntilIdle()
+
+			val status = comp.state.value.syncState.projectsStatus.getValue("Alpha")
+			assertEquals(ProjectsList.Status.Complete, status.status)
+			assertEquals(1f, status.progress)
+			assertTrue(comp.state.value.syncState.syncComplete)
 		}
 
 	// --- loadProjectList -----------------------------------------------------

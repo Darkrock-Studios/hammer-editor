@@ -119,8 +119,8 @@ class EncyclopediaRepositoryTest : BaseTest() {
 		val repo = createRepository()
 
 		/////////////////////
-		// Invalid characters
-		var newName = "A : Invalid"
+		// Invalid characters (`~` is the reserved filename delimiter)
+		var newName = "A ~ Invalid"
 		var newEntry = oldEntry.copy(
 			name = newName
 		)

@@ -32,6 +32,20 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.10.0" date="2026-09-20">
+            <description>
+                <p>[New]</p>
+                <p>- A per-project spelling dictionary, so invented words aren&apos;t flagged</p>
+                <p>- Encyclopedia and draft names accept punctuation and non-Latin letters</p>
+                <p>[Improved]</p>
+                <p>- A failed login says why, instead of a generic error</p>
+                <p>- Translations updated for six languages</p>
+                <p>[Fixed]</p>
+                <p>- Credential fields no longer capitalize what you type</p>
+                <p>- Spelling suggestions could stick on &quot;Loading&quot;</p>
+                <p>- Sync no longer fails on an unknown field</p>
+            </description>
+        </release>
         <release version="3.9.8" date="2026-09-12">
             <description>
                 <p>iOS Release fix</p>

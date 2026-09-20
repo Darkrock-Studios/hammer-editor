@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.base.http.TermsOfServiceChallenge
 import com.darkrockstudios.apps.hammer.base.http.Token
 import com.darkrockstudios.apps.hammer.common.data.ClientMessage
+import com.darkrockstudios.apps.hammer.common.data.ClientResult
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
 import com.darkrockstudios.apps.hammer.common.data.account.ServerSetupResult
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -194,6 +195,99 @@ class AccountUseCaseTest : BaseTest() {
 
 		assertIs<ServerSetupResult.Success>(result)
 		coVerify { accountApi.createAccount("test@example.com", "password", "test-uuid", "v1") }
+	}
+
+	private val phoneSettings = ServerSettings(
+		url = "hammer.ink",
+		email = "test@example.com",
+		userId = 1,
+		bearerToken = "phone-auth",
+		refreshToken = "phone-refresh",
+	)
+
+	@Test
+	fun `Pairing another install returns its settings and leaves this install alone`() = runTest {
+		every { globalSettingsStore.serverSettings } returns phoneSettings
+		coEvery { accountApi.pairInstall("watch-install") } returns
+			Result.success(Token(1, "watch-auth", "watch-refresh"))
+
+		val result = createSut().pairInstall("watch-install")
+
+		assertIs<ClientResult.Success<ServerSettings>>(result)
+		assertEquals(
+			phoneSettings.copy(bearerToken = "watch-auth", refreshToken = "watch-refresh"),
+			result.data,
+		)
+		coVerify(exactly = 0) { httpClient.updateCredentials(any()) }
+		coVerify(exactly = 0) { globalSettingsStore.updateServerSettings(any()) }
+	}
+
+	@Test
+	fun `Pairing without a signed-in server fails without calling the server`() = runTest {
+		every { globalSettingsStore.serverSettings } returns null
+
+		val result = createSut().pairInstall("watch-install")
+
+		assertIs<ClientResult.Failure<ServerSettings>>(result)
+		coVerify(exactly = 0) { accountApi.pairInstall(any()) }
+	}
+
+	@Test
+	fun `A rejected pairing reports a failure`() = runTest {
+		every { globalSettingsStore.serverSettings } returns phoneSettings
+		coEvery { accountApi.pairInstall(any()) } returns Result.failure(IOException())
+		coEvery { strRes.get(Res.string.server_setup_error_unknown) } returns "Unknown error message"
+
+		val result = createSut().pairInstall("watch-install")
+
+		assertIs<ClientResult.Failure<ServerSettings>>(result)
+		coVerify(exactly = 0) { globalSettingsStore.updateServerSettings(any()) }
+	}
+
+	@Test
+	fun `Applying paired settings adopts the session and stores it`() = runTest {
+		val watchSettings = phoneSettings.copy(bearerToken = "watch-auth", refreshToken = "watch-refresh")
+		val bearerTokenSlot = slot<BearerTokens>()
+		every { httpClient.updateCredentials(credentials = capture(bearerTokenSlot)) } just Runs
+		val settingsSlot = slot<ServerSettings>()
+		every { globalSettingsStore.updateServerSettings(settings = capture(settingsSlot)) } just Runs
+
+		val result = createSut().applyPairedSettings(watchSettings)
+
+		assertIs<ClientResult.Success<Unit>>(result)
+		assertEquals("watch-auth", bearerTokenSlot.captured.accessToken)
+		assertEquals("watch-refresh", bearerTokenSlot.captured.refreshToken)
+		assertEquals(watchSettings, settingsSlot.captured)
+	}
+
+	@Test
+	fun `Paired settings without a session are refused and nothing is stored`() = runTest {
+		val result = createSut().applyPairedSettings(phoneSettings.copy(bearerToken = null))
+
+		assertIs<ClientResult.Failure<Unit>>(result)
+		coVerify(exactly = 0) { httpClient.updateCredentials(any()) }
+		coVerify(exactly = 0) { globalSettingsStore.updateServerSettings(any()) }
+	}
+
+	@Test
+	fun `A plaintext server is stored as plaintext`() = runTest {
+		val token = Token(1, "test-auth", "test-refresh")
+		coEvery { accountApi.login(any(), any(), any()) } returns Result.success(token)
+		every { httpClient.updateCredentials(any()) } just Runs
+		val settingsSlot = slot<ServerSettings>()
+		every { globalSettingsStore.updateServerSettings(settings = capture(settingsSlot)) } just Runs
+
+		val result = createSut().setupServer(
+			url = "192.168.1.50:8080",
+			email = "writer@example.com",
+			password = "password",
+			create = false,
+			ssl = false,
+		)
+
+		assertIs<ServerSetupResult.Success>(result)
+		assertEquals(false, settingsSlot.captured.ssl)
+		assertEquals("192.168.1.50:8080", settingsSlot.captured.url)
 	}
 
 	@Test

@@ -146,7 +146,44 @@ flowchart TD
 
 ## Build Variants
 
+### The distribution channel
+
+Every build is stamped with the distribution vehicle it was produced for, via
+`-Pchannel=<token>`:
+
+```
+./gradlew :desktop:packageMsix -Pchannel=ms-store
+```
+
+Omitting it produces a `dev` build. An unknown token fails the build rather than
+silently falling back, so a typo in a release workflow cannot ship a store binary as
+`dev`. Each release pipeline passes its own channel; `prepare-release.yml` uses `github`
+for the installers it attaches to the GitHub release.
+
+The token list lives in two places that must stay in step, pinned by a test on each side:
+
+| Location | Role |
+| --- | --- |
+| `buildSrc/src/main/java/distributionChannel.kt` | Build-side enum and the `-Pchannel` resolver. |
+| `base/src/commonMain/.../DistributionChannel.kt` | Runtime enum. `DistributionChannel.current` reads the baked-in `BuildMetadata.CHANNEL`. |
+
+Branch on `DistributionChannel.current` for behaviour that varies per vehicle: self-update
+(forbidden in the app stores, expected for the GitHub and AppImage builds), where "get the
+app" links point, external-payment policy, and sandbox-aware path resolution. It is a flat
+enum on purpose: every channel-conditional branch is a greppable `when` on the type.
+Capability flags (`canSelfUpdate`, `isSandboxed`, …) can be introduced later, from real
+duplication rather than a guess at the axes.
+
+Note that every branch compiles into every build, so a store-forbidden code path is
+physically present in a store binary even when unreachable. If a store ever objects to
+presence rather than behaviour, promote that one case to a real source set rather than
+restructuring everything.
+
 ### The F-Droid build flag
+
+Predates the channel constant and is still the switch for the two things that must happen
+before any Kotlin runs (see the table below). A build with the F-Droid flag set and no
+`-Pchannel` reports the `fdroid` channel.
 
 F-Droid builds are produced by the same modules as the Google Play build, but with a
 single build flag toggled. There are no Gradle product flavors; instead the flag is read
@@ -184,9 +221,10 @@ Access), which Google Play does not allow, so the feature is gated to F-Droid bu
 - `HammerApplication` forces internal storage on non-F-Droid builds, so a leftover
   preference can never point a Google Play build at a directory it has no permission for.
 
-When adding new runtime behaviour that should differ between channels, branch on
-`com.darkrockstudios.apps.hammer.common.BuildConfig.FDROID` rather than re-reading the
-Gradle property.
+For behaviour that is specifically about F-Droid's manifest and storage permissions,
+branch on `com.darkrockstudios.apps.hammer.common.BuildConfig.FDROID` rather than
+re-reading the Gradle property. For anything else that varies per vehicle, use
+`DistributionChannel.current`.
 
 ## Client Development
 

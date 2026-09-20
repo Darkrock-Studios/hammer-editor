@@ -8,8 +8,10 @@ import net.peanuuutz.tomlkt.TomlLiteralString
  * Tokenless persisted form of [ServerSettings] written to the per-workspace
  * `server.json`. The secret token fields live in [AuthTokenStore] instead.
  *
- * Note the absence of an `ssl` field: clients are HTTPS-only, so a legacy `ssl` key
- * in an existing `server.json` is ignored on load and every restored connection is HTTPS.
+ * Thar be dragons: the scheme is stored as [plaintext], never under an `ssl` key. Files from before
+ * clients went HTTPS-only can still hold `ssl: false`, which was never chosen through the http://
+ * opt-in, so reading `ssl` would silently downgrade them to cleartext. Only a file written after
+ * that opt-in existed can carry `plaintext: true`.
  */
 @Serializable
 data class PersistedServerSettings(
@@ -18,16 +20,18 @@ data class PersistedServerSettings(
 	@TomlLiteralString
 	val email: String,
 	val userId: Long,
+	val plaintext: Boolean = false,
 )
 
 fun ServerSettings.toPersisted(): PersistedServerSettings = PersistedServerSettings(
 	url = url,
 	email = email,
 	userId = userId,
+	plaintext = !ssl,
 )
 
 fun PersistedServerSettings.toServerSettings(tokens: AuthTokens?): ServerSettings = ServerSettings(
-	ssl = true,
+	ssl = !plaintext,
 	url = url,
 	email = email,
 	userId = userId,

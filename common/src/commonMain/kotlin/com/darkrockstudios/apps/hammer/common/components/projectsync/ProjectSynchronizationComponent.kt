@@ -378,8 +378,10 @@ class ProjectSynchronizationComponent(
 		}
 	}
 
-	private suspend fun onSyncComplete() {
-		updateSyncLog(syncLogI("Sync complete!", projectDef))
+	private suspend fun onSyncComplete(success: Boolean) {
+		if (success) {
+			updateSyncLog(syncLogI("Sync complete!", projectDef))
+		}
 		updateSync(false, 1f)
 	}
 

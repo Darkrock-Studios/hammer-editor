@@ -281,7 +281,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "cd \"$SRCROOT/..\"\n./gradlew :composeUi:embedAndSignAppleFrameworkForXcode\n";
+			shellScript = "cd \"$SRCROOT/..\"\n# Only a Release build is the one that reaches the App Store; a local Debug build stays 'dev'.\nif [ \"$CONFIGURATION\" = \"Release\" ]; then\n  CHANNEL_ARG=-Pchannel=ios-app-store\nelse\n  CHANNEL_ARG=\nfi\n./gradlew :composeUi:embedAndSignAppleFrameworkForXcode $CHANNEL_ARG\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

@@ -7,6 +7,6 @@ fun ApiProjectEntity.SceneDraftEntity.toDraftDef(): DraftDef {
 		id = id,
 		sceneId = sceneId,
 		draftTimestamp = created,
-		draftName = name
+		draftName = name.trim()
 	)
 }

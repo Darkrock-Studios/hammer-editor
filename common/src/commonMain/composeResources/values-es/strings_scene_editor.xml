@@ -24,6 +24,7 @@
 	<string name="scene_editor_menu_item_archive">Archivar</string>
 	<string name="scene_editor_menu_item_save">Guardar</string>
 	<string name="scene_editor_menu_item_close">Cerrar</string>
+	<string name="scene_editor_add_to_dictionary">Add to dictionary</string>
 	<string name="archive_scene_dialog_title">Archivar escena</string>
 	<string name="archive_scene_dialog_message">¿Seguro que quieres archivar «%1$s»? La escena se ocultará de la lista de escenas, pero podrás restaurarla más tarde.</string>
 	<string name="archive_scene_dialog_confirm">Archivar</string>

@@ -11,6 +11,7 @@ import com.darkrockstudios.build.storeNotesLength
 import com.darkrockstudios.build.updateFlatpakFiles
 import com.darkrockstudios.build.updateIosShortVersion
 import com.darkrockstudios.build.updateSnapcraftYaml
+import com.darkrockstudios.build.wearVersionCode
 import com.darkrockstudios.build.writeBakedChangelog
 import com.darkrockstudios.build.writeChangelogMarkdown
 import com.darkrockstudios.build.writeSemvar
@@ -198,10 +199,13 @@ tasks.register("prepareForRelease") {
 		val changelogsPath =
 			"fastlane/metadata/android/en-US/changelogs".replace("/", File.separator)
 		val changeLogsDir = rootDir.resolve(changelogsPath)
-		val changeLogFile = File(changeLogsDir, "$versionCode.txt")
+		// The watch app ships in the same listing under its own version code.
+		val changeLogFiles = listOf(versionCode, wearVersionCode(versionCode)).map { File(changeLogsDir, "$it.txt") }
 		if (writeStoreNotes) {
-			changeLogFile.writeText(playChangelog)
-			println("Changelog for version ${releaseInfo.semVar} written to $changelogsPath/$versionCode.txt")
+			changeLogFiles.forEach { file ->
+				file.writeText(playChangelog)
+				println("Changelog for version ${releaseInfo.semVar} written to $changelogsPath/${file.name}")
+			}
 			if (playNotesLength > PLAY_STORE_LIMIT) {
 				println("  Google Play notes truncated to $PLAY_STORE_LIMIT characters; full text at $fullNotesUrl")
 			}
@@ -285,7 +289,7 @@ tasks.register("prepareForRelease") {
 
 		// Commit the changes to the repo
 		if (writeStoreNotes) {
-			git("add", changeLogFile.absolutePath)
+			changeLogFiles.forEach { git("add", it.absolutePath) }
 			git("add", macReleaseNotesFile.absolutePath)
 			git("add", iosReleaseNotesFile.absolutePath)
 			git("add", flatpakManifestFile.absolutePath)

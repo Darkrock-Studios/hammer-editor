@@ -143,6 +143,16 @@ class SignupPageTest : BaseTest() {
 	}
 
 	@Test
+	fun `GET carries no smart app banner outside the home page`() = testApplication {
+		mockPageModelDependencies()
+		configureApp()
+
+		val body = createClient { followRedirects = false }.get("/signup").bodyAsText()
+
+		assertFalse(body.contains("apple-itunes-app"), "Only the home page advertises the app")
+	}
+
+	@Test
 	fun `GET renders the ToS checkbox and version when terms are configured`() = testApplication {
 		mockPageModelDependencies()
 		every { termsOfServiceRepository.challenge() } returns

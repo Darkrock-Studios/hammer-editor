@@ -25,6 +25,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.isInsecureServerUrl
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.parseServerUrl
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.util.StrRes
@@ -269,7 +271,7 @@ class AccountSettingsComponent(
 	}
 
 	override fun updateServerUrl(url: String) {
-		_state.getAndUpdate { it.copy(serverUrl = url) }
+		_state.getAndUpdate { it.copy(serverUrl = url, serverUrlInsecure = isInsecureServerUrl(url)) }
 	}
 
 	override fun updateServerEmail(email: String) {
@@ -308,7 +310,8 @@ class AccountSettingsComponent(
 			}
 
 			// Client-side URL validation
-			val cleanUrl = cleanUpUrl(url)
+			val parsedUrl = parseServerUrl(url)
+			val cleanUrl = parsedUrl.host
 			if (validateUrl(cleanUrl).not()) {
 				val message = strRes.get(Res.string.server_setup_error_invalid_url)
 				showValidationError(message)
@@ -335,6 +338,7 @@ class AccountSettingsComponent(
 			val current = _state.value
 			val pending = PendingServerSetup(
 				url = cleanUrl,
+				ssl = parsedUrl.ssl,
 				email = cleanEmail,
 				password = password,
 				create = create,
@@ -454,6 +458,7 @@ class AccountSettingsComponent(
 			password = pending.password,
 			create = pending.create,
 			acceptedTosVersion = acceptedTosVersion,
+			ssl = pending.ssl,
 		)
 		withContext(mainDispatcher) {
 			when (result) {
@@ -576,19 +581,13 @@ class AccountSettingsComponent(
 			return true
 		}
 
-		fun cleanUpUrl(url: String): String {
-			var cleanUrl: String = url.trim().lowercase()
-			cleanUrl = cleanUrl.removePrefix("http://")
-			cleanUrl = cleanUrl.removePrefix("https://")
-			cleanUrl = cleanUrl.removeSuffix("/")
-
-			return cleanUrl
-		}
+		fun cleanUpUrl(url: String): String = parseServerUrl(url).host
 	}
 }
 
 private data class PendingServerSetup(
 	val url: String,
+	val ssl: Boolean,
 	val email: String,
 	val password: String,
 	val create: Boolean,

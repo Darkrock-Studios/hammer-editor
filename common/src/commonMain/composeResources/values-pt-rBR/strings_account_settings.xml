@@ -36,8 +36,10 @@
 	<string name="settings_remove_server_dialog_message">Tem certeza que deseja remover este servidor?</string>
 	<string name="settings_server_setup_title">Preparar Servidor</string>
 	<string name="settings_server_setup_url_hint">URL do servidor: hammer.ink</string>
+	<string name="settings_server_setup_insecure_warning">Plain HTTP: your email, password and writing travel unencrypted. Only use this on a network you trust.</string>
 	<string name="settings_server_setup_email_hint">E-mail: usuário@exemplo.com</string>
 	<string name="settings_server_setup_password_hint">Senha</string>
+	<string name="settings_server_setup_password_requirements">%1$d-%2$d characters</string>
 	<string name="settings_server_setup_password_show">Mostrar senha</string>
 	<string name="settings_server_setup_password_hide">Ocultar Senha</string>
 	<string name="settings_server_setup_login_button">Entrar</string>
@@ -121,4 +123,5 @@
 	<string name="server_error_dns">Servidor não encontrado. Verifique o endereço do servidor e sua conexão de 'internet'.</string>
 	<string name="server_error_connection_generic">Erro de rede ao conectar-se a %1$s. Verifique sua conexão e tente novamente.</string>
 	<string name="server_error_tls">Could not make a secure connection to %1$s. Hammer only connects over HTTPS, so the server needs a valid TLS certificate of its own or a reverse proxy that provides one.</string>
+	<string name="server_error_network_unavailable">Hammer could not open a network connection on this device, so the request never reached the server. Security software, a VPN, or a firewall may be blocking it.</string>
 </resources>

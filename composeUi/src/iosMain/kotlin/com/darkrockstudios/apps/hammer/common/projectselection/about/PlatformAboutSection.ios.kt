@@ -1,11 +1,18 @@
 package com.darkrockstudios.apps.hammer.common.projectselection.about
 
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.unit.dp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.about_logs_export_button
@@ -36,27 +43,43 @@ import platform.UIKit.popoverPresentationController
 import platform.darwin.dispatch_async
 import platform.darwin.dispatch_get_main_queue
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 actual fun PlatformAboutSection(component: AboutApp, section: Int) {
 	val scope = rememberCoroutineScope()
 	val state by component.state.subscribeAsState()
 	var exporting by remember { mutableStateOf(false) }
+	var status by remember { mutableStateOf<String?>(null) }
 
 	HdHairlineSection(
 		section = section,
 		title = Res.string.about_logs_header.get(),
 	) {
-		HdHairlineButton(
-			label = Res.string.about_logs_export_button.get(),
-			onClick = {
-				if (exporting) return@HdHairlineButton
-				exporting = true
-				scope.launch {
-					exportAndShareLogs(state.logDirectoryPath)
-					exporting = false
-				}
-			},
-		)
+		Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+			FlowRow(
+				horizontalArrangement = Arrangement.spacedBy(12.dp),
+				verticalArrangement = Arrangement.spacedBy(12.dp),
+			) {
+				HdHairlineButton(
+					label = Res.string.about_logs_export_button.get(),
+					onClick = {
+						if (exporting) return@HdHairlineButton
+						exporting = true
+						scope.launch {
+							exportAndShareLogs(state.logDirectoryPath)
+							exporting = false
+						}
+					},
+				)
+				CopyDiagnosticsButton(
+					logDirectoryPath = state.logDirectoryPath,
+					onStatus = { status = it },
+				)
+			}
+			status?.let {
+				Text(text = it, style = MaterialTheme.typography.bodySmall)
+			}
+		}
 	}
 }
 
