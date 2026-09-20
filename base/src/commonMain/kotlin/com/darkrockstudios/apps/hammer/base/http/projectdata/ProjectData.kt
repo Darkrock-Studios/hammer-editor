@@ -13,6 +13,8 @@ data class ProjectData(
 	val language: String? = null,
 	/** Whether Encyclopedia entry names feed the spell-check session dictionary for this project. */
 	val encyclopediaDictionary: Boolean = true,
+	/** User-added spell-check words. Unlike [tags], a conflict merges both sides by union. */
+	val dictionaryWords: Set<String> = emptySet(),
 )
 
 /** Picked as a unit during conflict resolution — one device's primary paired with another's secondary is undesigned. */
