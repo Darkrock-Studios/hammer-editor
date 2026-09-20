@@ -24,6 +24,7 @@
 	<string name="scene_editor_menu_item_archive">Archivia</string>
 	<string name="scene_editor_menu_item_save">Salva</string>
 	<string name="scene_editor_menu_item_close">Chiudi</string>
+	<string name="scene_editor_add_to_dictionary">Add to dictionary</string>
 	<string name="archive_scene_dialog_title">Archivia scena</string>
 	<string name="archive_scene_dialog_message">Vuoi davvero archiviare «%1$s»? La scena verrà nascosta dall’elenco delle scene ma potrà essere ripristinata in seguito.</string>
 	<string name="archive_scene_dialog_confirm">Archivia</string>
