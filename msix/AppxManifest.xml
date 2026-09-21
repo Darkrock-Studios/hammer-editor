@@ -11,7 +11,7 @@
     Version="2.0.0.0" />
 
   <Properties>
-    <DisplayName>Hammer Editor</DisplayName>
+    <DisplayName>Hammer: Story Editor</DisplayName>
     <PublisherDisplayName>Dark Rock Studios</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
     <Description>A simple tool for building stories.</Description>
