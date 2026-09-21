@@ -10,7 +10,7 @@ class ReleaseInfoTest {
 	private fun releaseInfo(autoPublish: Boolean) = ReleaseInfo(
 		semVar = SemVar(1, 2, 3),
 		changeLog = "Added a thing\n- detail one",
-		storeChangeLog = "Added a thing",
+		storeNotes = StoreChangelogs("Added a thing"),
 		platforms = Platform.ALL,
 		autoPublish = autoPublish,
 	)
@@ -21,7 +21,7 @@ class ReleaseInfoTest {
 			ReleaseInfo(
 				semVar = SemVar(1, 2, 3),
 				changeLog = "notes",
-				storeChangeLog = "notes",
+				storeNotes = StoreChangelogs("notes"),
 				platforms = Platform.ALL,
 			).autoPublish
 		)

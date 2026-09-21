@@ -85,13 +85,13 @@ const val AUTO_PUBLISH_TRAILER = "Auto-Publish: true"
 
 /**
  * @param changeLog The full release notes: CHANGELOG.md and the GitHub release.
- * @param storeChangeLog The app-only subset every store listing carries.
+ * @param storeNotes The app-only text each store listing carries.
  * @param autoPublish Publish the GitHub release once every CI build job passes.
  */
 data class ReleaseInfo(
 	val semVar: SemVar,
 	val changeLog: String,
-	val storeChangeLog: String,
+	val storeNotes: StoreChangelogs,
 	val platforms: Set<Platform>,
 	val autoPublish: Boolean = false,
 ) {
@@ -132,11 +132,73 @@ private fun droppedSummary(dropped: List<String>): String {
 	return if (rest > 0) "$shown  ·  +$rest more" else shown
 }
 
+/** A store editor's character count against its limit, and by how much it is over. */
+private fun counterText(length: Int, limit: Int): String =
+	if (length > limit) "$length/$limit  ·  over by ${length - limit}" else "$length/$limit"
+
 /** Small muted caption above a changelog editor. */
 private fun tabHint(text: String): JLabel = JLabel(wrapped(text)).apply {
 	font = font.deriveFont(Font.ITALIC, font.size - 1f)
 	foreground = UIManager.getColor("Label.disabledForeground") ?: Color.GRAY
 	border = BorderFactory.createEmptyBorder(0, 2, 2, 2)
+}
+
+/** Tab positions in the changelog tab strip. */
+private const val TAB_FULL = 0
+private const val TAB_STORE = 1
+private const val TAB_PLAY = 2
+private const val TAB_APPLE = 3
+
+/**
+ * A changelog editor that mirrors [derive] until it is hand-edited, after which it
+ * keeps its own text until [resync] is called. Chaining these gives the dialog its
+ * default: the full notes are the only thing anyone has to write, and a store tab
+ * is touched only when that store needs something different.
+ */
+private class MirroredEditor(private val derive: () -> String) {
+	val editor = JTextArea().apply {
+		lineWrap = true
+		wrapStyleWord = true
+		rows = 12
+	}
+
+	var edited = false
+		private set
+
+	private var syncing = false
+
+	val text: String get() = editor.text
+
+	fun onChange(listener: () -> Unit) {
+		editor.document.addDocumentListener(OnChangeListener {
+			if (!syncing) edited = true
+			listener()
+		})
+	}
+
+	/** Pulls the source text in, unless this editor has been hand-edited. */
+	fun sync() {
+		if (!edited) write(derive())
+	}
+
+	/** Discards hand edits and follows the source again. */
+	fun resync() {
+		edited = false
+		sync()
+	}
+
+	/** Replaces the text with a hand edit the dialog made, such as trim-to-fit. */
+	fun overwrite(value: String) {
+		write(value)
+		edited = true
+	}
+
+	private fun write(value: String) {
+		syncing = true
+		editor.text = value
+		editor.caretPosition = 0
+		syncing = false
+	}
 }
 
 class OnChangeListener(
@@ -184,7 +246,8 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 		// --- Tag preview label + commit button declared early so refresh can close over them ---
 		val warningColor: Color = UIManager.getColor("Label.disabledForeground") ?: Color.GRAY
 		val normalColor: Color = UIManager.getColor("Label.foreground") ?: Color.LIGHT_GRAY
-		val truncateColor = Color(0xE0, 0x9B, 0x2B)
+		val editedColor = Color(0xE0, 0x9B, 0x2B)
+		val errorColor = Color(0xD0, 0x4A, 0x4A)
 		val tagFontBig = Font(Font.MONOSPACED, Font.BOLD, 18)
 		val tagFontWarn = Font(Font.MONOSPACED, Font.ITALIC, 14)
 
@@ -197,18 +260,21 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 			font = font.deriveFont(Font.BOLD, 14f)
 		}
 
-		// Editors and store preview are declared up here so the refresh below can close
-		// over them; they are laid out in the Changelog section further down.
+		// Editors, previews and tabs are declared up here so the refresh below can
+		// close over them; the Changelog section further down only places them.
 		val changeLog = JTextArea().apply {
 			lineWrap = true
 			wrapStyleWord = true
 			rows = 12
 		}
-		val storeNotes = JTextArea().apply {
-			lineWrap = true
-			wrapStyleWord = true
-			rows = 12
-		}
+
+		// Each store editor mirrors its source until hand-edited: the shared notes
+		// follow a filtered copy of the full changelog, and each store follows the
+		// shared notes. Stores diverge only when someone makes them.
+		val storeNotes = MirroredEditor { deriveStoreNotes(changeLog.text).notes }
+		val playNotes = MirroredEditor { storeNotes.text }
+		val appleNotes = MirroredEditor { storeNotes.text }
+
 		val playPreview = JTextArea().apply {
 			isEditable = false
 			lineWrap = true
@@ -216,14 +282,99 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 			rows = 6
 			font = Font(Font.MONOSPACED, Font.PLAIN, 12)
 		}
-		val characterCount = JLabel().apply {
+		fun counterLabel() = JLabel().apply {
 			font = font.deriveFont(font.size - 1f)
 			foreground = warningColor
 		}
-		// What the filter took out, so nothing leaves the store listing unnoticed.
+		val playCount = counterLabel()
+		val appleCount = counterLabel()
+
+		// What the filter took out, and whether a store still follows its source, so
+		// nothing leaves a listing unnoticed.
 		val storeStatus = tabHint("")
-		val resyncButton = JButton("Re-sync from full notes").apply {
+		val playStatus = tabHint("")
+		val appleStatus = tabHint("")
+
+		fun smallButton(label: String) = JButton(label).apply {
 			font = font.deriveFont(font.size - 1f)
+		}
+		val storeResync = smallButton("Re-sync from full notes")
+		val playResync = smallButton("Re-sync from store notes")
+		val appleResync = smallButton("Re-sync from store notes")
+		val trimButton = smallButton("Trim to fit")
+
+		fun tabHeader(hint: String, status: JLabel, buttons: List<JButton>): JPanel = JPanel().apply {
+			layout = BoxLayout(this, BoxLayout.Y_AXIS)
+			add(tabHint(hint).apply { alignmentX = Component.LEFT_ALIGNMENT })
+			add(status.apply { alignmentX = Component.LEFT_ALIGNMENT })
+			add(
+				JPanel(FlowLayout(FlowLayout.LEFT, 6, 2)).apply {
+					alignmentX = Component.LEFT_ALIGNMENT
+					buttons.forEach { add(it) }
+				},
+			)
+		}
+
+		fun editorTab(header: JComponent, center: JComponent, counter: JLabel?): JPanel =
+			JPanel(BorderLayout(0, 4)).apply {
+				border = BorderFactory.createEmptyBorder(8, 0, 0, 0)
+				add(header, BorderLayout.NORTH)
+				add(center, BorderLayout.CENTER)
+				if (counter != null) {
+					add(
+						JPanel(FlowLayout(FlowLayout.RIGHT, 0, 4)).apply { add(counter) },
+						BorderLayout.SOUTH,
+					)
+				}
+			}
+
+		val fullTab = editorTab(
+			tabHint("Goes to CHANGELOG.md and the GitHub release. Write everything here."),
+			JScrollPane(changeLog),
+			null,
+		)
+		val storeTab = editorTab(
+			tabHeader(
+				"The app-only base every listing starts from. Entries tagged for the web or server are filtered out, because stores reject notes about anything but the app. Google Play and Apple follow this text on their own tabs; Flathub publishes it as it stands, on releases to every store.",
+				storeStatus,
+				listOf(storeResync),
+			),
+			JScrollPane(storeNotes.editor),
+			null,
+		)
+		val playTab = editorTab(
+			tabHeader(
+				"Goes to Google Play and F-Droid, which read the same file. 500 characters, including the link to the full notes on GitHub.",
+				playStatus,
+				listOf(playResync, trimButton),
+			),
+			JSplitPane(
+				JSplitPane.VERTICAL_SPLIT,
+				JScrollPane(playNotes.editor),
+				JScrollPane(playPreview).apply {
+					border = BorderFactory.createTitledBorder("Google Play preview")
+				},
+			).apply {
+				resizeWeight = 0.6
+				border = null
+			},
+			playCount,
+		)
+		val appleTab = editorTab(
+			tabHeader(
+				"Goes to the iOS and Mac App Stores. 4000 characters, and no link: App Store review rejects notes pointing at the GitHub releases page.",
+				appleStatus,
+				listOf(appleResync),
+			),
+			JScrollPane(appleNotes.editor),
+			appleCount,
+		)
+
+		val changelogTabs = JTabbedPane().apply {
+			addTab("Full", fullTab)
+			addTab("App stores", storeTab)
+			addTab("Google Play", playTab)
+			addTab("Apple", appleTab)
 		}
 
 		/** The platforms the current scope selection targets, empty if the selection is incomplete. */
@@ -233,30 +384,20 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 			ReleaseScope.SERVER_ONLY -> setOf(Platform.SERVER)
 		}
 
-		// The store editor mirrors a filtered copy of the full notes until it is
-		// edited by hand, after which it is left alone.
-		var storeNotesEdited = false
-		var syncingStoreNotes = false
-
-		fun syncStoreNotes() {
-			if (storeNotesEdited) return
-			syncingStoreNotes = true
-			storeNotes.text = deriveStoreNotes(changeLog.text).notes
-			storeNotes.caretPosition = 0
-			syncingStoreNotes = false
+		// Without a full selection there is no tag yet, so the notes preview falls back
+		// to the bare version tag.
+		fun currentTag(): String {
+			val platforms = currentPlatforms()
+			return if (platforms.isEmpty()) "v$newSemVar" else "v$newSemVar${tagSuffix(platforms)}"
 		}
 
-		fun resyncStoreNotes() {
-			storeNotesEdited = false
-			syncStoreNotes()
-		}
+		fun followStatus(edited: Boolean) =
+			if (edited) "Hand-edited, so it no longer follows the store notes."
+			else "Following the store notes."
 
 		fun refresh() {
 			val platforms = currentPlatforms()
-			// Without a full selection there is no tag yet, so the notes preview falls
-			// back to the bare version tag.
-			val tag =
-				if (platforms.isEmpty()) "v$newSemVar" else "v$newSemVar${tagSuffix(platforms)}"
+			val tag = currentTag()
 
 			if (platforms.isNotEmpty()) {
 				tagLabel.text = tag
@@ -268,42 +409,80 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 				tagLabel.foreground = warningColor
 			}
 
-			// Empty notes would publish a "What's new" that describes nothing, which
-			// App Store review rejects — after the tag has already been pushed. A
-			// server-only release reaches no store, so it needs no store notes.
-			val needsStoreNotes = platforms.any { it in Platform.CLIENT_STORES }
-			commitButton.isEnabled = platforms.isNotEmpty() &&
-				changeLog.text.isNotBlank() &&
-				(!needsStoreNotes || storeNotes.text.isNotBlank())
+			// A sink only matters when the release reaches it, and a store outside the
+			// scope has its tab disabled so nobody writes notes that go nowhere.
+			// The shared tab stays enabled for any store release because the store tabs
+			// follow it, but it is only required when it is published itself.
+			val needsShared = reachesFlathub(platforms)
+			val needsPlay = reachesPlay(platforms)
+			val needsApple = reachesApple(platforms)
+
+			changelogTabs.setEnabledAt(TAB_STORE, reachesAnyStore(platforms))
+			changelogTabs.setEnabledAt(TAB_PLAY, needsPlay)
+			changelogTabs.setEnabledAt(TAB_APPLE, needsApple)
+			if (!changelogTabs.isEnabledAt(changelogTabs.selectedIndex)) {
+				changelogTabs.selectedIndex = TAB_FULL
+			}
 
 			val dropped = deriveStoreNotes(changeLog.text).dropped
 			storeStatus.text = wrapped(
 				when {
-					storeNotesEdited -> "Hand-edited, so it no longer follows the full notes."
+					storeNotes.edited -> "Hand-edited, so it no longer follows the full notes."
 					dropped.isEmpty() -> "Nothing was removed."
 					else -> "Removed ${dropped.size}:  " + droppedSummary(dropped)
 				}
 			)
-			storeStatus.foreground = if (storeNotesEdited) truncateColor else warningColor
-			resyncButton.isEnabled = storeNotesEdited
+			storeStatus.foreground = if (storeNotes.edited) editedColor else warningColor
+			storeResync.isEnabled = storeNotes.edited
 
+			playStatus.text = wrapped(followStatus(playNotes.edited))
+			playStatus.foreground = if (playNotes.edited) editedColor else warningColor
+			playResync.isEnabled = playNotes.edited
+
+			appleStatus.text = wrapped(followStatus(appleNotes.edited))
+			appleStatus.foreground = if (appleNotes.edited) editedColor else warningColor
+			appleResync.isEnabled = appleNotes.edited
+
+			// Over-limit blocks the commit instead of truncating quietly: the Play tab
+			// exists so the 500 characters are chosen, not cut off at a bullet boundary.
 			val url = releaseNotesUrl(tag)
-			val needed = storeNotesLength(storeNotes.text, url)
-			playPreview.text = formatStoreNotes(storeNotes.text, PLAY_STORE_LIMIT, url)
+			val playLength = storeNotesLength(playNotes.text, url)
+			val playOver = playLength > PLAY_STORE_LIMIT
+			playPreview.text = formatStoreNotes(playNotes.text, PLAY_STORE_LIMIT, url)
 			playPreview.caretPosition = 0
-			characterCount.text = if (needed > PLAY_STORE_LIMIT) {
-				"Store notes: ${storeNotes.document.length}  ·  Play: $needed/$PLAY_STORE_LIMIT — will truncate"
-			} else {
-				"Store notes: ${storeNotes.document.length}  ·  Play: $needed/$PLAY_STORE_LIMIT"
-			}
-			characterCount.foreground =
-				if (needed > PLAY_STORE_LIMIT) truncateColor else warningColor
+			playCount.text = counterText(playLength, PLAY_STORE_LIMIT)
+			playCount.foreground = if (playOver) errorColor else warningColor
+			trimButton.isEnabled = playOver
+
+			val appleLength = storeNotesLength(appleNotes.text, null)
+			val appleOver = appleLength > APPLE_STORE_LIMIT
+			appleCount.text = counterText(appleLength, APPLE_STORE_LIMIT)
+			appleCount.foreground = if (appleOver) errorColor else warningColor
+
+			// Empty notes would publish a "What's new" that describes nothing, which App
+			// Store review rejects, after the tag has already been pushed.
+			commitButton.isEnabled = platforms.isNotEmpty() &&
+				changeLog.text.isNotBlank() &&
+				(!needsShared || storeNotes.text.isNotBlank()) &&
+				(!needsPlay || (playNotes.text.isNotBlank() && !playOver)) &&
+				(!needsApple || (appleNotes.text.isNotBlank() && !appleOver))
 		}
-		changeLog.document.addDocumentListener(OnChangeListener { syncStoreNotes(); refresh() })
-		storeNotes.document.addDocumentListener(OnChangeListener {
-			if (!syncingStoreNotes) storeNotesEdited = true
+
+		changeLog.document.addDocumentListener(OnChangeListener { storeNotes.sync(); refresh() })
+		storeNotes.onChange { playNotes.sync(); appleNotes.sync(); refresh() }
+		playNotes.onChange { refresh() }
+		appleNotes.onChange { refresh() }
+
+		storeResync.addActionListener { storeNotes.resync(); refresh() }
+		playResync.addActionListener { playNotes.resync(); refresh() }
+		appleResync.addActionListener { appleNotes.resync(); refresh() }
+		// Trim puts the fitted text in the editor instead of letting the write path cut
+		// it later, so what the store gets is text someone looked at.
+		trimButton.addActionListener {
+			val budget = storeNotesBudget(PLAY_STORE_LIMIT, releaseNotesUrl(currentTag()))
+			playNotes.overwrite(fitStoreNotes(playNotes.text, budget))
 			refresh()
-		})
+		}
 
 		// --- Label-value row helper for the Version section ---
 		fun labelPair(label: String, value: JComponent): JPanel = JPanel().apply {
@@ -400,55 +579,7 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 		// ============= Section: Changelog =============
 		val changelogSection = section("Changelog")
 
-		val fullTab = JPanel(BorderLayout(0, 4)).apply {
-			border = BorderFactory.createEmptyBorder(8, 0, 0, 0)
-			add(tabHint("Goes to CHANGELOG.md and the GitHub release. Write everything here."), BorderLayout.NORTH)
-			add(JScrollPane(changeLog), BorderLayout.CENTER)
-		}
-		resyncButton.addActionListener { resyncStoreNotes(); refresh() }
-		val storeHeader = JPanel().apply {
-			layout = BoxLayout(this, BoxLayout.Y_AXIS)
-			add(
-				tabHint("Goes to every store listing. Entries tagged for the web or server are filtered out — stores reject notes about anything but the app.").apply {
-					alignmentX = Component.LEFT_ALIGNMENT
-				},
-			)
-			add(storeStatus.apply { alignmentX = Component.LEFT_ALIGNMENT })
-			add(
-				JPanel(FlowLayout(FlowLayout.LEFT, 0, 2)).apply {
-					alignmentX = Component.LEFT_ALIGNMENT
-					add(resyncButton)
-				},
-			)
-		}
-		val storeTab = JPanel(BorderLayout(0, 4)).apply {
-			border = BorderFactory.createEmptyBorder(8, 0, 0, 0)
-			add(storeHeader, BorderLayout.NORTH)
-			add(JScrollPane(storeNotes), BorderLayout.CENTER)
-		}
-		val changelogTabs = JTabbedPane().apply {
-			addTab("Full", fullTab)
-			addTab("App stores", storeTab)
-		}
-
-		val counterRow = JPanel(FlowLayout(FlowLayout.RIGHT, 0, 4)).apply {
-			alignmentX = Component.LEFT_ALIGNMENT
-			add(characterCount)
-		}
-		val editorPane = JPanel(BorderLayout()).apply {
-			add(changelogTabs, BorderLayout.CENTER)
-			add(counterRow, BorderLayout.SOUTH)
-		}
-		val previewPane = JScrollPane(playPreview).apply {
-			border = BorderFactory.createTitledBorder("Google Play preview")
-		}
-
-		val splitPane = JSplitPane(JSplitPane.VERTICAL_SPLIT, editorPane, previewPane).apply {
-			resizeWeight = 0.6
-			border = null
-			alignmentX = Component.LEFT_ALIGNMENT
-		}
-		changelogSection.add(splitPane)
+		changelogSection.add(changelogTabs)
 
 		// ============= Release-type change listeners (after newVersionLabel exists) =============
 		// A patch carries the same notes as the release it patches, so pre-fill the
@@ -488,7 +619,13 @@ fun configureRelease(currentSemVarStr: String, lastReleaseChangelog: String? = n
 			result = ReleaseInfo(
 				semVar = newSemVar,
 				changeLog = changeLog.text,
-				storeChangeLog = storeNotes.text,
+				// Mirroring fills every editor whatever the scope, so the sinks this
+				// release does not reach are dropped here rather than published.
+				storeNotes = StoreChangelogs(
+					shared = storeNotes.text,
+					play = playNotes.text,
+					apple = appleNotes.text,
+				).restrictedTo(currentPlatforms()),
 				platforms = currentPlatforms(),
 				autoPublish = autoPublishBox.isSelected,
 			)

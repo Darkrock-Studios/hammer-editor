@@ -1,5 +1,6 @@
 import com.darkrockstudios.build.APPLE_STORE_LIMIT
 import com.darkrockstudios.build.PLAY_STORE_LIMIT
+import com.darkrockstudios.build.Platform
 import com.darkrockstudios.build.configureRelease
 import com.darkrockstudios.build.extractLatestChangelog
 import com.darkrockstudios.build.formatStoreNotes
@@ -183,16 +184,21 @@ tasks.register("prepareForRelease") {
 		val versionsFile = project.rootDir.resolve(versionsPath)
 		writeSemvar(libs.versions.app.get(), releaseInfo.semVar, versionsFile)
 
-		// Store listings carry the app-only notes. Google Play also gets a link to the
-		// GitHub release, which holds the full text including the web and server changes;
-		// the Apple stores must not (see releaseNotesUrl) and get the notes alone. A
-		// release that reaches no store has no store notes; leave the existing metadata
-		// alone rather than blanking the notes the last client release published.
+		// Store listings carry the app-only notes, written per sink in the release
+		// dialog. Google Play also gets a link to the GitHub release, which holds the
+		// full text including the web and server changes; the Apple stores must not
+		// (see releaseNotesUrl) and get the notes alone. A sink with no notes is one
+		// this release does not reach: leave its metadata alone rather than blanking
+		// the notes the last client release published.
 		val fullNotesUrl = releaseNotesUrl(releaseInfo.tag)
-		val storeNotes = releaseInfo.storeChangeLog
-		val writeStoreNotes = storeNotes.isNotBlank()
-		val playNotesLength = storeNotesLength(storeNotes, fullNotesUrl)
-		val playChangelog = formatStoreNotes(storeNotes, PLAY_STORE_LIMIT, fullNotesUrl)
+		val storeNotes = releaseInfo.storeNotes
+		val playNotes = storeNotes.notesFor(Platform.GOOGLE_PLAY)
+		val appleNotes = storeNotes.notesFor(Platform.IOS_APP_STORE)
+		val writePlayNotes = playNotes.isNotBlank()
+		val writeAppleNotes = appleNotes.isNotBlank()
+		val writeSharedNotes = storeNotes.shared.isNotBlank()
+		val playNotesLength = storeNotesLength(playNotes, fullNotesUrl)
+		val playChangelog = formatStoreNotes(playNotes, PLAY_STORE_LIMIT, fullNotesUrl)
 
 		// Write the Fastlane changelog file
 		val rootDir: File = project.rootDir
@@ -201,7 +207,7 @@ tasks.register("prepareForRelease") {
 		val changeLogsDir = rootDir.resolve(changelogsPath)
 		// The watch app ships in the same listing under its own version code.
 		val changeLogFiles = listOf(versionCode, wearVersionCode(versionCode)).map { File(changeLogsDir, "$it.txt") }
-		if (writeStoreNotes) {
+		if (writePlayNotes) {
 			changeLogFiles.forEach { file ->
 				file.writeText(playChangelog)
 				println("Changelog for version ${releaseInfo.semVar} written to $changelogsPath/${file.name}")
@@ -210,11 +216,11 @@ tasks.register("prepareForRelease") {
 				println("  Google Play notes truncated to $PLAY_STORE_LIMIT characters; full text at $fullNotesUrl")
 			}
 		} else {
-			println("No store notes for this release; store metadata left untouched")
+			println("No Google Play notes for this release; store metadata left untouched")
 		}
 
-		val appleChangelog = formatStoreNotes(storeNotes, APPLE_STORE_LIMIT, null)
-		if (writeStoreNotes && storeNotesLength(storeNotes, null) > APPLE_STORE_LIMIT) {
+		val appleChangelog = formatStoreNotes(appleNotes, APPLE_STORE_LIMIT, null)
+		if (writeAppleNotes && storeNotesLength(appleNotes, null) > APPLE_STORE_LIMIT) {
 			println("App Store notes truncated to $APPLE_STORE_LIMIT characters; full text at $fullNotesUrl")
 		}
 
@@ -223,7 +229,11 @@ tasks.register("prepareForRelease") {
 		val macReleaseNotesDir = rootDir.resolve(macReleaseNotesPath)
 		macReleaseNotesDir.mkdirs()
 		val macReleaseNotesFile = File(macReleaseNotesDir, "release_notes.txt")
-		if (writeStoreNotes) {
+		// Both Apple listings share one set of notes but each has its own file, so a
+		// release to one leaves the other's file holding what it last published.
+		val writeMacNotes = writeAppleNotes && Platform.MAC_APP_STORE in releaseInfo.platforms
+		val writeIosNotes = writeAppleNotes && Platform.IOS_APP_STORE in releaseInfo.platforms
+		if (writeMacNotes) {
 			macReleaseNotesFile.writeText(appleChangelog)
 			println("macOS release notes written to $macReleaseNotesPath/release_notes.txt")
 		}
@@ -233,7 +243,7 @@ tasks.register("prepareForRelease") {
 		val iosReleaseNotesDir = rootDir.resolve(iosReleaseNotesPath)
 		iosReleaseNotesDir.mkdirs()
 		val iosReleaseNotesFile = File(iosReleaseNotesDir, "release_notes.txt")
-		if (writeStoreNotes) {
+		if (writeIosNotes) {
 			iosReleaseNotesFile.writeText(appleChangelog)
 			println("iOS release notes written to $iosReleaseNotesPath/release_notes.txt")
 		}
@@ -260,10 +270,17 @@ tasks.register("prepareForRelease") {
 		val flatpakManifestFile = project.rootDir.resolve(flatpakManifestPath)
 		val flatpakMetainfoPath = "flatpak/studio.darkrock.hammer.metainfo.xml".replace("/", File.separator)
 		val flatpakMetainfoFile = project.rootDir.resolve(flatpakMetainfoPath)
-		// Flathub is a store listing, so it gets the app-only notes. A release with
-		// none of them is not going to Flathub, so it gets no release entry either.
-		if (writeStoreNotes) {
-			updateFlatpakFiles(releaseInfo.semVar, jvmVersion, flatpakManifestFile, flatpakMetainfoFile, storeNotes)
+		// Flathub is a store listing with no tab of its own, so it gets the shared
+		// app-only notes. They are blank unless the release reaches Flathub (see
+		// reachesFlathub), and then it gets no release entry either.
+		if (writeSharedNotes) {
+			updateFlatpakFiles(
+				releaseInfo.semVar,
+				jvmVersion,
+				flatpakManifestFile,
+				flatpakMetainfoFile,
+				storeNotes.shared,
+			)
 		}
 
 		// Keep the iOS marketing version in sync with the semver. macOS pulls this
@@ -288,10 +305,16 @@ tasks.register("prepareForRelease") {
 		}
 
 		// Commit the changes to the repo
-		if (writeStoreNotes) {
+		if (writePlayNotes) {
 			changeLogFiles.forEach { git("add", it.absolutePath) }
+		}
+		if (writeMacNotes) {
 			git("add", macReleaseNotesFile.absolutePath)
+		}
+		if (writeIosNotes) {
 			git("add", iosReleaseNotesFile.absolutePath)
+		}
+		if (writeSharedNotes) {
 			git("add", flatpakManifestFile.absolutePath)
 			git("add", flatpakMetainfoFile.absolutePath)
 		}
