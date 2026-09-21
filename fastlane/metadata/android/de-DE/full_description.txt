@@ -19,3 +19,7 @@ Deine Daten können zwischen Geräten synchronisiert werden, sodass du von über
 Synchronisierung: optional oder selbstbetrieben
 
 Synchronisierung ist vollständig optional, du kannst den Client installieren und auf einem Gerät verwenden, oder du kannst den Server installieren und deine Daten zwischen den Geräten synchronisieren.
+
+Wear OS companion
+
+Capture notes and story ideas from your wrist with the Wear OS app, then pick them up on your other devices. Dictate or type a quick note, file it under a project, or use the Capture tile to start one in a single tap. The watch app syncs through your Hammer sync server.
