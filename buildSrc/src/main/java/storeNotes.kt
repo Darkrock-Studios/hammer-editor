@@ -182,13 +182,29 @@ fun formatStoreNotes(changelog: String, limit: Int, fullNotesUrl: String?): Stri
 	if (body.isEmpty()) return ""
 
 	val footer = footerFor(fullNotesUrl)
-	val budget = limit - footer.length
+	val budget = storeNotesBudget(limit, fullNotesUrl)
 	require(budget > 0) { "Limit $limit is too small to hold the changelog footer" }
 
-	if (body.length <= budget) return body + footer
+	return fitStoreNotes(body, budget) + footer
+}
+
+/** How much of a store's limit is left for the notes once its footer is subtracted. */
+fun storeNotesBudget(limit: Int, fullNotesUrl: String?): Int = limit - footerFor(fullNotesUrl).length
+
+/**
+ * [changelog] cut down to [limit] characters, footer excluded. Returns the body on
+ * its own so the release dialog can put the fitted text back in the Google Play
+ * editor for the user to improve, rather than appending a footer that the next
+ * [formatStoreNotes] call would append again.
+ */
+fun fitStoreNotes(changelog: String, limit: Int): String {
+	val body = normalizeNotes(changelog)
+	if (body.isEmpty()) return ""
+	require(limit > 0) { "Limit $limit leaves no room for notes" }
+	if (body.length <= limit) return body
 
 	val entries = parseEntries(body)
-	val truncatedBudget = budget - TRUNCATION_MARK.length
+	val truncatedBudget = limit - TRUNCATION_MARK.length
 	val kept = mutableListOf<Entry>()
 	for (entry in entries) {
 		val candidate = pruneEmptySections(kept + entry)
@@ -202,12 +218,12 @@ fun formatStoreNotes(changelog: String, limit: Int, fullNotesUrl: String?): Stri
 		val hardCut = body.take(truncatedBudget).trimEnd()
 		val lastSpace = hardCut.lastIndexOf(' ')
 		val cut = if (lastSpace > 0) hardCut.take(lastSpace) else hardCut
-		return cut.trimEnd() + TRUNCATION_MARK + footer
+		return cut.trimEnd() + TRUNCATION_MARK
 	}
 
 	val fitted = render(pruneEmptySections(kept)).trimEnd()
 	val mark = if (kept.size == entries.size) "" else TRUNCATION_MARK
-	return fitted + mark + footer
+	return fitted + mark
 }
 
 /**
@@ -230,3 +246,55 @@ private fun footerFor(fullNotesUrl: String?) =
  * lines with LF) and the verbatim path would disagree with the counted length.
  */
 private fun normalizeNotes(changelog: String) = changelog.replace("\r\n", "\n").trim()
+
+/**
+ * The release notes each store listing carries.
+ *
+ * [shared] is the app-only text produced by filtering the full changelog; [play]
+ * and [apple] begin as copies of it and diverge only when hand-edited in the
+ * release dialog. The split exists because the two sinks have incompatible
+ * budgets (500 characters with a footer link at Google Play against 4000 with no
+ * link at Apple), so text written to fill one is machine-mangled at the other.
+ *
+ * Stores with no tab of their own take [shared]: F-Droid and Google Play read the
+ * same fastlane file, so F-Droid is covered by [play].
+ */
+data class StoreChangelogs(
+	val shared: String,
+	val play: String = shared,
+	val apple: String = shared,
+) {
+	fun notesFor(platform: Platform): String = when (platform) {
+		Platform.GOOGLE_PLAY, Platform.FDROID -> play
+		Platform.IOS_APP_STORE, Platform.MAC_APP_STORE -> apple
+		Platform.SNAP, Platform.MS_STORE, Platform.SERVER -> shared
+	}
+
+	/** The same notes with every sink this release does not reach blanked out. */
+	fun restrictedTo(platforms: Set<Platform>) = StoreChangelogs(
+		shared = if (reachesFlathub(platforms)) shared else "",
+		play = if (reachesPlay(platforms)) play else "",
+		apple = if (reachesApple(platforms)) apple else "",
+	)
+
+	/** True when no listing would carry any text at all. */
+	val isBlank: Boolean get() = shared.isBlank() && play.isBlank() && apple.isBlank()
+}
+
+/** Whether a release to [platforms] reaches the Google Play file, which F-Droid also reads. */
+fun reachesPlay(platforms: Set<Platform>) =
+	Platform.GOOGLE_PLAY in platforms || Platform.FDROID in platforms
+
+/** Whether a release to [platforms] reaches either Apple listing. */
+fun reachesApple(platforms: Set<Platform>) =
+	Platform.IOS_APP_STORE in platforms || Platform.MAC_APP_STORE in platforms
+
+/** Whether a release to [platforms] reaches any store listing at all. */
+fun reachesAnyStore(platforms: Set<Platform>) = platforms.any { it in Platform.CLIENT_STORES }
+
+/**
+ * Whether a release to [platforms] is a Flathub release. Flathub is published by hand
+ * with `publishFlathub`, outside the tag's store scope, so only a release that ships
+ * every client store counts; a targeted hotfix names its stores and Flathub is not one.
+ */
+fun reachesFlathub(platforms: Set<Platform>) = platforms.containsAll(Platform.CLIENT_STORES)
