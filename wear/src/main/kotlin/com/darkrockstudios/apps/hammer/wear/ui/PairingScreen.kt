@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.wear.ui
 
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -14,7 +13,9 @@ import androidx.wear.compose.material3.Button
 import androidx.wear.compose.material3.CircularProgressIndicator
 import androidx.wear.compose.material3.FilledTonalButton
 import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
+import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.data.pairing.PairErrorCode
 import com.darkrockstudios.apps.hammer.wear.R
@@ -38,29 +39,31 @@ fun PairingScreen(
 	onCancel: () -> Unit,
 ) {
 	val listState = rememberTransformingLazyColumnState()
+	val spec = rememberTransformationSpec()
 	val waiting = state == PairingState.Idle ||
 		state == PairingState.SearchingPhone ||
 		state == PairingState.AwaitingConfirmation
 
 	ScreenScaffold(scrollState = listState) { contentPadding ->
-		TransformingLazyColumn(state = listState, contentPadding = screenContentPadding(contentPadding)) {
+		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			if (waiting) {
 				item {
-					CircularProgressIndicator(modifier = Modifier.size(36.dp))
+					CircularProgressIndicator(modifier = Modifier.listContent(this, spec).size(36.dp))
 				}
 			}
 			item {
 				Text(
 					text = stringResource(pairingMessage(state)),
 					textAlign = TextAlign.Center,
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier.listText(this, spec),
 				)
 			}
 			if (state == PairingState.PhoneNotFound || state is PairingState.Failed) {
 				item {
 					Button(
 						onClick = onRetry,
-						modifier = Modifier.fillMaxWidth(),
+						modifier = Modifier.listButton(this, spec),
+						transformation = SurfaceTransformation(spec),
 						label = { Text(stringResource(R.string.pairing_retry)) },
 					)
 				}
@@ -69,7 +72,8 @@ fun PairingScreen(
 				item {
 					FilledTonalButton(
 						onClick = onCancel,
-						modifier = Modifier.fillMaxWidth(),
+						modifier = Modifier.listButton(this, spec),
+						transformation = SurfaceTransformation(spec),
 						label = { Text(stringResource(R.string.pairing_cancel)) },
 					)
 				}

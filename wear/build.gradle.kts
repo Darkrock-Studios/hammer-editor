@@ -41,6 +41,7 @@ dependencies {
 	implementation(libs.play.services.wearable)
 	implementation(libs.coroutines.play.services)
 	implementation(libs.lifecycle.process)
+	implementation(libs.core.splashscreen)
 	debugImplementation(libs.jetbrains.compose.ui.tooling)
 
 	testImplementation(platform(libs.junit.bom))

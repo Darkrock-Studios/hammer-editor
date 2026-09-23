@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.wear.ui
 
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -12,6 +11,7 @@ import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
 import androidx.wear.compose.material3.Text
+import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncLogLevel
 import com.darkrockstudios.apps.hammer.wear.R
@@ -26,17 +26,18 @@ fun SyncLogUi(component: SyncLog) {
 @Composable
 fun SyncLogScreen(state: SyncLog.State) {
 	val listState = rememberTransformingLazyColumnState()
+	val spec = rememberTransformationSpec()
 	ScreenScaffold(scrollState = listState) { contentPadding ->
-		TransformingLazyColumn(state = listState, contentPadding = screenContentPadding(contentPadding)) {
+		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader { Text(stringResource(R.string.sync_log_title)) }
+				ListHeader(modifier = Modifier.listHeader(this, spec)) { Text(stringResource(R.string.sync_log_title)) }
 			}
 			if (state.entries.isEmpty()) {
 				item {
 					Text(
 						text = stringResource(R.string.sync_log_empty),
 						textAlign = TextAlign.Center,
-						modifier = Modifier.fillMaxWidth(),
+						modifier = Modifier.listText(this, spec),
 					)
 				}
 			}
@@ -51,7 +52,7 @@ fun SyncLogScreen(state: SyncLog.State) {
 						SyncLogLevel.WARN -> MaterialTheme.colorScheme.tertiary
 						SyncLogLevel.INFO, SyncLogLevel.DEBUG -> MaterialTheme.colorScheme.onSurface
 					},
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier.listText(this, spec),
 				)
 			}
 		}

@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.wear.ui
 
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -17,8 +16,10 @@ import androidx.wear.compose.material3.FilledTonalButton
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.SwitchButton
 import androidx.wear.compose.material3.Text
+import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ProjectSyncOutcome
 import com.darkrockstudios.apps.hammer.wear.CaptureActivity
@@ -93,6 +94,7 @@ private fun ProjectsContent(
 	onDismissNotice: () -> Unit,
 ) {
 	val listState = rememberTransformingLazyColumnState()
+	val spec = rememberTransformationSpec()
 
 	ScreenScaffold(
 		scrollState = listState,
@@ -106,9 +108,9 @@ private fun ProjectsContent(
 			}
 		},
 	) { contentPadding ->
-		TransformingLazyColumn(state = listState, contentPadding = screenContentPadding(contentPadding)) {
+		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader { Text(stringResource(R.string.projects_header)) }
+				ListHeader(modifier = Modifier.listHeader(this, spec)) { Text(stringResource(R.string.projects_header)) }
 			}
 			state.accountEmail?.let { email ->
 				item {
@@ -118,21 +120,23 @@ private fun ProjectsContent(
 						color = MaterialTheme.colorScheme.onSurfaceVariant,
 						textAlign = TextAlign.Center,
 						maxLines = 1,
-						modifier = Modifier.fillMaxWidth(),
+						modifier = Modifier.listText(this, spec),
 					)
 				}
 			}
 			item {
 				FilledTonalButton(
 					onClick = onNewNote,
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier.listButton(this, spec),
+					transformation = SurfaceTransformation(spec),
 					label = { Text(stringResource(R.string.projects_new_note)) },
 				)
 			}
 			item {
 				FilledTonalButton(
 					onClick = onNewIdea,
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier.listButton(this, spec),
+					transformation = SurfaceTransformation(spec),
 					label = { Text(stringResource(R.string.projects_new_idea)) },
 				)
 			}
@@ -142,13 +146,14 @@ private fun ProjectsContent(
 						text = stringResource(R.string.projects_local_network_needed),
 						color = MaterialTheme.colorScheme.error,
 						textAlign = TextAlign.Center,
-						modifier = Modifier.fillMaxWidth(),
+						modifier = Modifier.listText(this, spec),
 					)
 				}
 				item {
 					FilledTonalButton(
 						onClick = onAllowLocalNetwork,
-						modifier = Modifier.fillMaxWidth(),
+						modifier = Modifier.listButton(this, spec),
+						transformation = SurfaceTransformation(spec),
 						label = { Text(stringResource(R.string.projects_local_network_allow)) },
 					)
 				}
@@ -161,7 +166,7 @@ private fun ProjectsContent(
 						),
 						color = MaterialTheme.colorScheme.error,
 						textAlign = TextAlign.Center,
-						modifier = Modifier.fillMaxWidth(),
+						modifier = Modifier.listText(this, spec),
 					)
 				}
 			}
@@ -180,13 +185,14 @@ private fun ProjectsContent(
 							WearProjects.Notice.Reason.Failed -> MaterialTheme.colorScheme.error
 						},
 						textAlign = TextAlign.Center,
-						modifier = Modifier.fillMaxWidth(),
+						modifier = Modifier.listText(this, spec),
 					)
 				}
 				item {
 					FilledTonalButton(
 						onClick = onDismissNotice,
-						modifier = Modifier.fillMaxWidth(),
+						modifier = Modifier.listButton(this, spec),
+						transformation = SurfaceTransformation(spec),
 						label = { Text(stringResource(R.string.projects_notice_dismiss)) },
 					)
 				}
@@ -196,7 +202,7 @@ private fun ProjectsContent(
 					Text(
 						text = stringResource(if (state.loaded) R.string.projects_empty else R.string.projects_loading),
 						textAlign = TextAlign.Center,
-						modifier = Modifier.fillMaxWidth(),
+						modifier = Modifier.listText(this, spec),
 					)
 				}
 			}
@@ -206,7 +212,8 @@ private fun ProjectsContent(
 					checked = row.subscribed,
 					onCheckedChange = { onToggleSubscription(row.name) },
 					enabled = row.canSubscribe && !row.unsubscribing,
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier.listButton(this, spec),
+					transformation = SurfaceTransformation(spec),
 					label = { Text(row.name, maxLines = 1) },
 					secondaryLabel = { Text(projectStatus(row), maxLines = 1) },
 				)
@@ -214,7 +221,8 @@ private fun ProjectsContent(
 			item {
 				FilledTonalButton(
 					onClick = onShowSyncLog,
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier.listButton(this, spec),
+					transformation = SurfaceTransformation(spec),
 					label = { Text(stringResource(R.string.projects_sync_log)) },
 				)
 			}
@@ -222,7 +230,8 @@ private fun ProjectsContent(
 				FilledTonalButton(
 					onClick = onSignOut,
 					enabled = !state.checkingSignOut,
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier.listButton(this, spec),
+					transformation = SurfaceTransformation(spec),
 					label = { Text(stringResource(R.string.projects_sign_out)) },
 					icon = if (state.checkingSignOut) {
 						{ CircularProgressIndicator(modifier = Modifier.size(20.dp)) }
@@ -242,6 +251,7 @@ private fun SignOutWarningContent(
 	onCancel: () -> Unit,
 ) {
 	val listState = rememberTransformingLazyColumnState()
+	val spec = rememberTransformationSpec()
 
 	ScreenScaffold(
 		scrollState = listState,
@@ -251,9 +261,9 @@ private fun SignOutWarningContent(
 			}
 		},
 	) { contentPadding ->
-		TransformingLazyColumn(state = listState, contentPadding = screenContentPadding(contentPadding)) {
+		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader { Text(stringResource(R.string.projects_sign_out)) }
+				ListHeader(modifier = Modifier.listHeader(this, spec)) { Text(stringResource(R.string.projects_sign_out)) }
 			}
 			item {
 				Text(
@@ -264,13 +274,14 @@ private fun SignOutWarningContent(
 					},
 					color = MaterialTheme.colorScheme.error,
 					textAlign = TextAlign.Center,
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier.listText(this, spec),
 				)
 			}
 			item {
 				FilledTonalButton(
 					onClick = onConfirm,
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier.listButton(this, spec),
+					transformation = SurfaceTransformation(spec),
 					label = { Text(stringResource(R.string.projects_sign_out_confirm)) },
 				)
 			}

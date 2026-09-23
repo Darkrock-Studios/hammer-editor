@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<!-- Branded launch (Wear quality guideline WO-V15): the launcher icon at 48dp on black. -->
+	<style name="Theme.Hammer.Wear.Starting" parent="Theme.SplashScreen">
+		<item name="windowSplashScreenBackground">@android:color/black</item>
+		<item name="windowSplashScreenAnimatedIcon">@drawable/splash_screen</item>
+		<item name="postSplashScreenTheme">@android:style/Theme.DeviceDefault</item>
+	</style>
+</resources>

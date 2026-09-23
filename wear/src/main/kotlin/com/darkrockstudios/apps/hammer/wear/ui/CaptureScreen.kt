@@ -1,6 +1,5 @@
 package com.darkrockstudios.apps.hammer.wear.ui
 
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -15,7 +14,9 @@ import androidx.wear.compose.material3.FilledTonalButton
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
+import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import com.darkrockstudios.apps.hammer.wear.R
 import com.darkrockstudios.apps.hammer.wear.components.capture.Capture
 
@@ -62,6 +63,7 @@ private fun CaptureEntryContent(
 	onSave: () -> Unit,
 ) {
 	val listState = rememberTransformingLazyColumnState()
+	val spec = rememberTransformationSpec()
 	val notSet = stringResource(R.string.capture_text_empty)
 
 	ScreenScaffold(
@@ -76,9 +78,9 @@ private fun CaptureEntryContent(
 			}
 		},
 	) { contentPadding ->
-		TransformingLazyColumn(state = listState, contentPadding = screenContentPadding(contentPadding)) {
+		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader {
+				ListHeader(modifier = Modifier.listHeader(this, spec)) {
 					Text(
 						stringResource(
 							if (state.mode == Capture.Mode.Idea) R.string.capture_title_idea else R.string.capture_title_note
@@ -89,7 +91,8 @@ private fun CaptureEntryContent(
 			item {
 				FilledTonalButton(
 					onClick = onEditText,
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier.listButton(this, spec),
+					transformation = SurfaceTransformation(spec),
 					label = { Text(stringResource(R.string.capture_text_label)) },
 					secondaryLabel = { Text(state.text.ifBlank { notSet }, maxLines = 3) },
 				)
@@ -99,7 +102,8 @@ private fun CaptureEntryContent(
 					FilledTonalButton(
 						onClick = onShowProjectPicker,
 						enabled = state.projects.size > 1,
-						modifier = Modifier.fillMaxWidth(),
+						modifier = Modifier.listButton(this, spec),
+						transformation = SurfaceTransformation(spec),
 						label = { Text(stringResource(R.string.capture_project_label)) },
 						secondaryLabel = {
 							Text(
@@ -123,6 +127,7 @@ private fun ProjectPickerContent(
 	onCancel: () -> Unit,
 ) {
 	val listState = rememberTransformingLazyColumnState()
+	val spec = rememberTransformationSpec()
 
 	ScreenScaffold(
 		scrollState = listState,
@@ -130,15 +135,16 @@ private fun ProjectPickerContent(
 			EdgeButton(onClick = onCancel) { Text(stringResource(R.string.capture_project_keep)) }
 		},
 	) { contentPadding ->
-		TransformingLazyColumn(state = listState, contentPadding = screenContentPadding(contentPadding)) {
+		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader { Text(stringResource(R.string.capture_project_label)) }
+				ListHeader(modifier = Modifier.listHeader(this, spec)) { Text(stringResource(R.string.capture_project_label)) }
 			}
 			items(count = state.projects.size, key = { state.projects[it] }) { index ->
 				val name = state.projects[index]
 				FilledTonalButton(
 					onClick = { onSelectProject(name) },
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier.listButton(this, spec),
+					transformation = SurfaceTransformation(spec),
 					label = { Text(name, maxLines = 2) },
 				)
 			}
@@ -153,6 +159,7 @@ private fun DiscardConfirmContent(
 	onDiscard: () -> Unit,
 ) {
 	val listState = rememberTransformingLazyColumnState()
+	val spec = rememberTransformationSpec()
 
 	ScreenScaffold(
 		scrollState = listState,
@@ -161,9 +168,9 @@ private fun DiscardConfirmContent(
 			EdgeButton(onClick = onKeepEditing) { Text(stringResource(R.string.capture_discard_keep)) }
 		},
 	) { contentPadding ->
-		TransformingLazyColumn(state = listState, contentPadding = screenContentPadding(contentPadding)) {
+		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader {
+				ListHeader(modifier = Modifier.listHeader(this, spec)) {
 					Text(
 						stringResource(
 							if (mode == Capture.Mode.Idea) {
@@ -180,13 +187,14 @@ private fun DiscardConfirmContent(
 					text = stringResource(R.string.capture_discard_body),
 					color = MaterialTheme.colorScheme.error,
 					textAlign = TextAlign.Center,
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier.listText(this, spec),
 				)
 			}
 			item {
 				FilledTonalButton(
 					onClick = onDiscard,
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier.listButton(this, spec),
+					transformation = SurfaceTransformation(spec),
 					label = { Text(stringResource(R.string.capture_discard_confirm)) },
 				)
 			}
@@ -200,6 +208,7 @@ private fun CaptureOutcomeContent(
 	onDone: () -> Unit,
 ) {
 	val listState = rememberTransformingLazyColumnState()
+	val spec = rememberTransformationSpec()
 
 	ScreenScaffold(
 		scrollState = listState,
@@ -207,9 +216,9 @@ private fun CaptureOutcomeContent(
 			EdgeButton(onClick = onDone) { Text(stringResource(R.string.capture_done)) }
 		},
 	) { contentPadding ->
-		TransformingLazyColumn(state = listState, contentPadding = screenContentPadding(contentPadding)) {
+		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader {
+				ListHeader(modifier = Modifier.listHeader(this, spec)) {
 					Text(
 						stringResource(
 							when (outcome) {
@@ -238,7 +247,7 @@ private fun CaptureOutcomeContent(
 						else -> MaterialTheme.colorScheme.error
 					},
 					textAlign = TextAlign.Center,
-					modifier = Modifier.fillMaxWidth(),
+					modifier = Modifier.listText(this, spec),
 				)
 			}
 		}

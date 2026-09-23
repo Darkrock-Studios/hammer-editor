@@ -27,7 +27,8 @@
 		<activity
 			android:name=".MainActivity"
 			android:exported="true"
-			android:taskAffinity="">
+			android:taskAffinity=""
+			android:theme="@style/Theme.Hammer.Wear.Starting">
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 
@@ -39,7 +40,8 @@
 		<activity
 			android:name=".CaptureActivity"
 			android:exported="true"
-			android:taskAffinity="" />
+			android:taskAffinity=""
+			android:theme="@style/Theme.Hammer.Wear.Starting" />
 
 		<service
 			android:name=".tile.CaptureTileService"
