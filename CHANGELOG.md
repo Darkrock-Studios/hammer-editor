@@ -1,5 +1,10 @@
 # Changelog
 
+## [3.10.1] - 2026-9-23
+
+- Fix Android Wear release
+
+
 ## [3.10.0] - 2026-9-20
 
 New features
