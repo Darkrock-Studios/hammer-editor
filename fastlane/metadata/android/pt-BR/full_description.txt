@@ -22,4 +22,4 @@ Você pode instalar o cliente e usá-lo em um dispositivo, ou instalar o servido
 
 Wear OS companion
 
-Capture notes and story ideas from your wrist with the Wear OS app, then pick them up on your other devices. Dictate or type a quick note, file it under a project, or use the Capture tile to start one in a single tap. The watch app syncs through your Hammer sync server.
+Capture notes and story ideas from your wrist with the Wear OS app, then pick them up on your other devices. Dictate or type a quick note and file it under a project. Add the Capture tile to start a note or story idea in a single tap, or put the Hammer complication on your watch face to open a new note. The watch app syncs through your Hammer sync server.
