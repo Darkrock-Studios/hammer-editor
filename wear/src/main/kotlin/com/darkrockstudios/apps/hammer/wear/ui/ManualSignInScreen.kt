@@ -125,7 +125,7 @@ fun ManualSignInContent(
 	) { contentPadding ->
 		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader(modifier = Modifier.listHeader(this, spec)) { Text(stringResource(R.string.sign_in_title)) }
+				ListHeader(modifier = Modifier.listHeader(this, spec), transformation = SurfaceTransformation(spec)) { Text(stringResource(R.string.sign_in_title)) }
 			}
 			item {
 				SignInFieldButton(

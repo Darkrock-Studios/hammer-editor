@@ -38,7 +38,7 @@ private const val REMOTE_INPUT_KEY = "capture_text"
 class CaptureActivity : ComponentActivity() {
 
 	override fun onCreate(savedInstanceState: Bundle?) {
-		installSplashScreen()
+		val splash = installSplashScreen()
 		super.onCreate(savedInstanceState)
 
 		val mode = runCatching { Capture.Mode.valueOf(intent.getStringExtra(EXTRA_MODE).orEmpty()) }
@@ -57,6 +57,8 @@ class CaptureActivity : ComponentActivity() {
 				appScope = get(named(APP_SCOPE)),
 			)
 		}
+		// Note mode reads the project list before it can prompt; keep the icon up instead of a bare screen.
+		splash.setKeepOnScreenCondition { component.state.value.loading }
 
 		setContent {
 			HammerWearTheme {

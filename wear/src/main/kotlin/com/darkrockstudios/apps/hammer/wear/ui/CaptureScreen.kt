@@ -80,7 +80,7 @@ private fun CaptureEntryContent(
 	) { contentPadding ->
 		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader(modifier = Modifier.listHeader(this, spec)) {
+				ListHeader(modifier = Modifier.listHeader(this, spec), transformation = SurfaceTransformation(spec)) {
 					Text(
 						stringResource(
 							if (state.mode == Capture.Mode.Idea) R.string.capture_title_idea else R.string.capture_title_note
@@ -137,7 +137,7 @@ private fun ProjectPickerContent(
 	) { contentPadding ->
 		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader(modifier = Modifier.listHeader(this, spec)) { Text(stringResource(R.string.capture_project_label)) }
+				ListHeader(modifier = Modifier.listHeader(this, spec), transformation = SurfaceTransformation(spec)) { Text(stringResource(R.string.capture_project_label)) }
 			}
 			items(count = state.projects.size, key = { state.projects[it] }) { index ->
 				val name = state.projects[index]
@@ -170,7 +170,7 @@ private fun DiscardConfirmContent(
 	) { contentPadding ->
 		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader(modifier = Modifier.listHeader(this, spec)) {
+				ListHeader(modifier = Modifier.listHeader(this, spec), transformation = SurfaceTransformation(spec)) {
 					Text(
 						stringResource(
 							if (mode == Capture.Mode.Idea) {
@@ -218,7 +218,7 @@ private fun CaptureOutcomeContent(
 	) { contentPadding ->
 		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader(modifier = Modifier.listHeader(this, spec)) {
+				ListHeader(modifier = Modifier.listHeader(this, spec), transformation = SurfaceTransformation(spec)) {
 					Text(
 						stringResource(
 							when (outcome) {

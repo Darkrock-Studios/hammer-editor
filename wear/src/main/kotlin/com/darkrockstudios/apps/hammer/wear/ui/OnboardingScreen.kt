@@ -25,7 +25,7 @@ fun OnboardingScreen(
 	ScreenScaffold(scrollState = listState) { contentPadding ->
 		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader(modifier = Modifier.listHeader(this, spec)) { Text(stringResource(R.string.app_name)) }
+				ListHeader(modifier = Modifier.listHeader(this, spec), transformation = SurfaceTransformation(spec)) { Text(stringResource(R.string.app_name)) }
 			}
 			item {
 				Text(

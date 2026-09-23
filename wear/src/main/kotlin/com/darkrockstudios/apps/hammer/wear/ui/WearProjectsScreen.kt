@@ -110,7 +110,7 @@ private fun ProjectsContent(
 	) { contentPadding ->
 		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader(modifier = Modifier.listHeader(this, spec)) { Text(stringResource(R.string.projects_header)) }
+				ListHeader(modifier = Modifier.listHeader(this, spec), transformation = SurfaceTransformation(spec)) { Text(stringResource(R.string.projects_header)) }
 			}
 			state.accountEmail?.let { email ->
 				item {
@@ -263,7 +263,7 @@ private fun SignOutWarningContent(
 	) { contentPadding ->
 		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader(modifier = Modifier.listHeader(this, spec)) { Text(stringResource(R.string.projects_sign_out)) }
+				ListHeader(modifier = Modifier.listHeader(this, spec), transformation = SurfaceTransformation(spec)) { Text(stringResource(R.string.projects_sign_out)) }
 			}
 			item {
 				Text(

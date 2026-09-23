@@ -5,11 +5,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
 import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
@@ -30,7 +32,7 @@ fun SyncLogScreen(state: SyncLog.State) {
 	ScreenScaffold(scrollState = listState) { contentPadding ->
 		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader(modifier = Modifier.listHeader(this, spec)) { Text(stringResource(R.string.sync_log_title)) }
+				ListHeader(modifier = Modifier.listHeader(this, spec), transformation = SurfaceTransformation(spec)) { Text(stringResource(R.string.sync_log_title)) }
 			}
 			if (state.entries.isEmpty()) {
 				item {
@@ -47,6 +49,10 @@ fun SyncLogScreen(state: SyncLog.State) {
 				Text(
 					text = prefix + entry.message,
 					style = MaterialTheme.typography.bodySmall,
+					textAlign = TextAlign.Center,
+					// Taller entries outgrow the edge transformation and run under the bezel.
+					maxLines = 5,
+					overflow = TextOverflow.Ellipsis,
 					color = when (entry.level) {
 						SyncLogLevel.ERROR -> MaterialTheme.colorScheme.error
 						SyncLogLevel.WARN -> MaterialTheme.colorScheme.tertiary
