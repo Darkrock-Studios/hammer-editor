@@ -14,7 +14,7 @@
 		android:icon="@mipmap/ic_launcher"
 		android:label="@string/app_name"
 		android:supportsRtl="true"
-		android:theme="@android:style/Theme.DeviceDefault">
+		android:theme="@style/Theme.Hammer.Wear">
 
 		<uses-library
 			android:name="com.google.android.wearable"
@@ -27,7 +27,8 @@
 		<activity
 			android:name=".MainActivity"
 			android:exported="true"
-			android:taskAffinity="">
+			android:taskAffinity=""
+			android:theme="@style/Theme.Hammer.Wear.Starting">
 			<intent-filter>
 				<action android:name="android.intent.action.MAIN" />
 
@@ -39,7 +40,8 @@
 		<activity
 			android:name=".CaptureActivity"
 			android:exported="true"
-			android:taskAffinity="" />
+			android:taskAffinity=""
+			android:theme="@style/Theme.Hammer.Wear.Starting" />
 
 		<service
 			android:name=".tile.CaptureTileService"

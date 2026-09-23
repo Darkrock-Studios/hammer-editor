@@ -5,7 +5,6 @@ import android.app.RemoteInput
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -18,6 +17,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.wear.compose.foundation.lazy.TransformingLazyColumn
+import androidx.wear.compose.foundation.lazy.TransformingLazyColumnItemScope
 import androidx.wear.compose.foundation.lazy.rememberTransformingLazyColumnState
 import androidx.wear.compose.material3.CircularProgressIndicator
 import androidx.wear.compose.material3.EdgeButton
@@ -25,7 +25,10 @@ import androidx.wear.compose.material3.FilledTonalButton
 import androidx.wear.compose.material3.ListHeader
 import androidx.wear.compose.material3.MaterialTheme
 import androidx.wear.compose.material3.ScreenScaffold
+import androidx.wear.compose.material3.SurfaceTransformation
 import androidx.wear.compose.material3.Text
+import androidx.wear.compose.material3.lazy.TransformationSpec
+import androidx.wear.compose.material3.lazy.rememberTransformationSpec
 import androidx.wear.input.RemoteInputIntentHelper
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.wear.R
@@ -105,6 +108,7 @@ fun ManualSignInContent(
 	onSignIn: () -> Unit,
 ) {
 	val listState = rememberTransformingLazyColumnState()
+	val spec = rememberTransformationSpec()
 	val notSet = stringResource(R.string.sign_in_not_set)
 
 	ScreenScaffold(
@@ -119,12 +123,13 @@ fun ManualSignInContent(
 			}
 		},
 	) { contentPadding ->
-		TransformingLazyColumn(state = listState, contentPadding = screenContentPadding(contentPadding)) {
+		TransformingLazyColumn(state = listState, contentPadding = contentPadding) {
 			item {
-				ListHeader { Text(stringResource(R.string.sign_in_title)) }
+				ListHeader(modifier = Modifier.listHeader(this, spec), transformation = SurfaceTransformation(spec)) { Text(stringResource(R.string.sign_in_title)) }
 			}
 			item {
 				SignInFieldButton(
+					spec = spec,
 					label = stringResource(R.string.sign_in_server),
 					value = state.server.ifBlank { notSet },
 					onClick = onEditServer,
@@ -136,12 +141,13 @@ fun ManualSignInContent(
 						text = stringResource(R.string.sign_in_insecure_warning),
 						color = MaterialTheme.colorScheme.error,
 						textAlign = TextAlign.Center,
-						modifier = Modifier.fillMaxWidth(),
+						modifier = Modifier.listText(this, spec),
 					)
 				}
 			}
 			item {
 				SignInFieldButton(
+					spec = spec,
 					label = stringResource(R.string.sign_in_email),
 					value = state.email.ifBlank { notSet },
 					onClick = onEditEmail,
@@ -149,6 +155,7 @@ fun ManualSignInContent(
 			}
 			item {
 				SignInFieldButton(
+					spec = spec,
 					label = stringResource(R.string.sign_in_password),
 					value = if (state.hasPassword) "••••••" else notSet,
 					onClick = onEditPassword,
@@ -168,7 +175,7 @@ fun ManualSignInContent(
 						},
 						color = MaterialTheme.colorScheme.error,
 						textAlign = TextAlign.Center,
-						modifier = Modifier.fillMaxWidth(),
+						modifier = Modifier.listText(this, spec),
 					)
 				}
 			}
@@ -177,10 +184,16 @@ fun ManualSignInContent(
 }
 
 @Composable
-private fun SignInFieldButton(label: String, value: String, onClick: () -> Unit) {
+private fun TransformingLazyColumnItemScope.SignInFieldButton(
+	spec: TransformationSpec,
+	label: String,
+	value: String,
+	onClick: () -> Unit,
+) {
 	FilledTonalButton(
 		onClick = onClick,
-		modifier = Modifier.fillMaxWidth(),
+		modifier = Modifier.listButton(this, spec),
+		transformation = SurfaceTransformation(spec),
 		label = { Text(label) },
 		secondaryLabel = { Text(value, maxLines = 1) },
 	)

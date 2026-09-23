@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +38,7 @@ private const val REMOTE_INPUT_KEY = "capture_text"
 class CaptureActivity : ComponentActivity() {
 
 	override fun onCreate(savedInstanceState: Bundle?) {
+		val splash = installSplashScreen()
 		super.onCreate(savedInstanceState)
 
 		val mode = runCatching { Capture.Mode.valueOf(intent.getStringExtra(EXTRA_MODE).orEmpty()) }
@@ -55,6 +57,8 @@ class CaptureActivity : ComponentActivity() {
 				appScope = get(named(APP_SCOPE)),
 			)
 		}
+		// Note mode reads the project list before it can prompt; keep the icon up instead of a bare screen.
+		splash.setKeepOnScreenCondition { component.state.value.loading }
 
 		setContent {
 			HammerWearTheme {

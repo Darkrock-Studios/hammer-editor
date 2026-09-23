@@ -39,6 +39,43 @@ This needs a `RELEASE_PAT` repository secret: a fine-grained PAT scoped to this 
 default `GITHUB_TOKEN`, so publishing with that token would leave every store untouched. The step
 fails with a clear error when the secret is missing.
 
+## Changelog tabs
+
+The release dialog has four changelog tabs. Only **Full** has to be written; the rest
+mirror it and are there for when a store needs something different.
+
+| Tab | Goes to | Limit |
+| --- | --- | --- |
+| **Full** | `CHANGELOG.md`, the GitHub release, the tag message, and the in-app What's New | none |
+| **App stores** | Flathub, on releases to every store | none |
+| **Google Play** | `fastlane/metadata/android/.../changelogs/<versionCode>.txt`, which F-Droid reads too | 500 |
+| **Apple** | `fastlane/metadata/ios/en-US/` and `.../osx/en-US/release_notes.txt` | 4000 |
+
+Each tab follows the one above it until you type in it, after which it says
+*Hand-edited* and offers **Re-sync**. So the usual release is one piece of writing on
+**Full**; a tab is touched only when that store needs its own wording.
+
+**App stores** is **Full** with the entries tagged for a non-app audience removed
+(`[Web]`, `Server:`, a whole `[Server operators]` section, and so on), because Apple
+rejects release notes describing anything but the app and Google Play has an equivalent
+policy. The tab reports what it took out, since the tag matching is a heuristic and a
+silent removal is how an app-facing change goes missing from a listing.
+
+The two store tabs differ in more than length: Google Play's notes carry a link to the
+full notes on GitHub, and Apple's must not, because App Store review reads that link as
+offering the app outside the App Store and rejects the submission.
+
+Google Play's 500 characters are a hard stop: over the limit, the counter turns red and
+**Commit Changes** is disabled. **Trim to fit** drops the auto-fitted text into the
+editor as a starting point, so what ships is text someone chose rather than a sentence
+cut off at a bullet boundary.
+
+Tabs for stores outside the current publish scope are disabled, and their notes are
+dropped on commit. A partial release leaves every notes file it skips untouched: the
+iOS and macOS files are written separately even though they share the Apple tab, and
+Flathub, which is published by hand with `publishFlathub` rather than by the release
+tag, only gets a release entry when every client store is targeted.
+
 ## Partial (single-store) releases
 
 Use this when one store needs a hotfix and you don't want to ship the whole matrix.

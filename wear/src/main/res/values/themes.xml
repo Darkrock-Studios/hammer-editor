@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<style name="Theme.Hammer.Wear" parent="@android:style/Theme.DeviceDefault" />
+
+	<!-- Branded launch per Wear quality guideline WO-V15. -->
+	<style name="Theme.Hammer.Wear.Starting" parent="Theme.SplashScreen">
+		<item name="windowSplashScreenBackground">@android:color/black</item>
+		<item name="windowSplashScreenAnimatedIcon">@drawable/splash_screen</item>
+		<item name="postSplashScreenTheme">@style/Theme.Hammer.Wear</item>
+	</style>
+</resources>
