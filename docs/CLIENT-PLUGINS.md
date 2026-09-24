@@ -770,6 +770,40 @@ later are:
 5. A feature plugin's operations register the same way as any other, so its data
    type is scriptable and agent-accessible the day it ships.
 
+## Cost to `:common`
+
+Most new code lives outside `:common`: in `:operations`, `:composeUi`,
+`:desktop`, and plugin modules. Everything this note asks of `:common`:
+
+| Change | Size | Justified without plugins? |
+| --- | --- | --- |
+| `ProjectRootComponent` notifies Koin-bound `ProjectLifecycleListener`s on open and close | A few lines | No. The one piece of pure plugin plumbing |
+| `ExportFormat` enum becomes `StoryExporterRegistry`; export moves from `components/projecthome` to the data layer | Moderate | Partly. Export logic is in the wrong layer today |
+| Sync-all orchestration moves from `ProjectsListComponent` into a use case | Moderate | Yes. It is data-layer logic living in a component |
+| A draft-save method that takes text, not only the current scene content | Small | No, but it is a natural addition |
+
+**Hidden costs.** Two assumptions could push fixes into `:common`, and both
+come from running it with no UI:
+
+- **Headless startup.** String resources and the data migrator have not been
+  run without a window.
+- **Koin restart per call.** Stopping and restarting the global context only
+  works if project and app scopes shut down cleanly. A repository that leaves a
+  coroutine running or holds static state would need fixing.
+
+Spike both before step 4: start Koin headless, run a few read operations,
+stop and restart it in a loop, and watch for leaks and failures.
+
+**Deferral.** Pluggable export (step 2) only matters for the SMF exporter. If
+that can wait, export stays as it is, and the MCP plugin and style report still
+exercise most of the seam. That leaves the lifecycle listener as the only
+plugin-specific change to `:common`, with the sync refactor needed only for
+headless sync.
+
+**Guardrail.** Every step's `:common` changes must make sense without plugins,
+or be listed in the table above. Anything else gets flagged in review, and the
+design is revisited rather than `:common` bent to fit.
+
 ## Rollout
 
 1. **Seam.** The `:operations` module, `:common`'s extension points
@@ -784,7 +818,9 @@ later are:
 3. **Operation registry and read operations.** Registry, `OperationContext`,
    the Read operations from the catalog, including `project.export` and
    `export.formats`. Tested directly, no front end yet.
-4. **Headless CLI.** Subcommands generated from the registry, `Dispatcher`,
+4. **Headless CLI.** Preceded by the headless spike in
+   [Cost to `:common`](#cost-to-common). Subcommands generated from the
+   registry, `Dispatcher`,
    the `cliCommands()` capability, per-call Koin startup, the writer lock (held
    by the app for its lifetime too).
 5. **[MCP plugin](#mcp-plugin).** `:plugins:mcp`, desktop-only registration,
