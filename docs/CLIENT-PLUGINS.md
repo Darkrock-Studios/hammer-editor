@@ -2,7 +2,7 @@
 
 Design note for extending the Hammer client (desktop, Android, iOS) with plugins,
 and for exposing the same API as a command line interface and an MCP server.
-Status: rollout steps 1 to 5, 11, and Android's half of 12 are built; the rest is a proposal. The server already has an equivalent
+Status: rollout steps 1 to 6, 11, and Android's half of 12 are built; the rest is a proposal. The server already has an equivalent
 plugin seam (`server/.../plugin/ServerPlugin.kt`); this mirrors it where the
 shapes match.
 
@@ -686,7 +686,11 @@ MCP-specific lives in `:plugins:mcp`.
 `hammer mcp` speaks MCP over stdio, which every MCP client supports, and the
 agent launches it as a child process. It builds its tool list from
 `Dispatcher.operations()`, keeping only agent-visible ones, and sends each tool
-call through `Dispatcher.dispatch`. So it works against the running app's live
+call through `Dispatcher.dispatch`. Tool names replace the operation's dots
+with underscores (`scene_read`), since some clients reject dots. A failed call,
+including one refused because the app holds the writer lock, is a tool error
+the agent can read, not a protocol error. The tool list comes from the registry
+without starting Hammer, so the server starts even while the app is open. So it works against the running app's live
 state or, with no app running, directly against the files. No network port and
 no token management.
 
@@ -695,9 +699,9 @@ no token management.
 | `cliCommands()` capability | Contributes `mcp` |
 | Plugin as API consumer | Tool list and every call go through `Dispatcher` |
 | Plugin in its own module | `:plugins:mcp`, with its own `Res` for strings |
-| Platform-specific registration | Registered in `installedDesktopPlugins()`, since the SDK has no iOS or Android target |
-| Global plugin settings | "Enable MCP" and "Allow live edits" in `plugins/mcp.toml` |
-| UI half | Settings pane with both toggles and the config snippet to paste into an agent |
+| Platform-specific registration | Registered in `installedDesktopPlugins()`, since only desktop has the CLI |
+| Global plugin settings | A declared "Enable" setting in `plugins/mcp.toml`; "Allow live edits" joins it with the write operations |
+| UI half | `McpPluginUi` in `:composeUi`'s desktop source set: the declared toggle and the config snippet to paste into an agent |
 
 **Off until enabled.** "Enable MCP" defaults to off, and `hammer mcp` exits with
 a message pointing to the setting. Many writers will not want agent access at
@@ -1184,9 +1188,9 @@ design is revisited rather than `:common` bent to fit.
    that cannot take the lock runs without, as before; forwarding (step 8) is
    what makes the app single-instance. Getting `hammer` onto PATH
    in each package format is not done.
-6. **[MCP plugin](#mcp-plugin).** `:plugins:mcp`, desktop-only registration,
-   settings pane. Read-only at this point, and refuses while the app is running
-   until forwarding lands.
+6. **[MCP plugin](#mcp-plugin).** Built: `:plugins:mcp` on the MCP Kotlin SDK,
+   desktop-only registration, and its settings pane. Read-only for now, and each
+   tool call fails while the app is running until forwarding lands.
 7. **Headless sync.** The account and sync operations, with `sync.run` as a
    CLI listener over `SyncAccountUseCase`. Refuses while the app is running.
 8. **Forwarding.** Local socket in the app, "Allow external tools" setting, CLI

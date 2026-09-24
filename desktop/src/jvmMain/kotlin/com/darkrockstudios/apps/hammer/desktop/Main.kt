@@ -17,6 +17,7 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.compose.getDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.getMainDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.plugin.installedDesktopPluginUis
 import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPluginUis
 import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPlugins
 import com.darkrockstudios.apps.hammer.common.compose.plugin.pluginUiModule
@@ -134,6 +135,8 @@ private fun configureJnaForPackagedRuntime() {
 
 /** Logs go to the log file only, since stdout carries the command's JSON, and are flushed before exit. */
 private fun runCli(args: Array<String>): Int {
+	// Libraries logging through SLF4J must not write to stdout either; MCP speaks on it.
+	System.setProperty("org.slf4j.simpleLogger.logFile", "System.err")
 	val logScope = CoroutineScope(Dispatchers.IO)
 	val logger = FileLogger(scope = logScope)
 	Napier.base(DebugAntilog(handler = listOf(logger)))
@@ -191,7 +194,7 @@ fun main(args: Array<String>) {
 				aboutLibrariesModule,
 				desktopModule,
 				appModule(appScope),
-				pluginUiModule(installedPluginUis()),
+				pluginUiModule(installedPluginUis() + installedDesktopPluginUis()),
 				runtimePlugins.koinModule(),
 			) + pluginRegistry.koinModules()
 		)

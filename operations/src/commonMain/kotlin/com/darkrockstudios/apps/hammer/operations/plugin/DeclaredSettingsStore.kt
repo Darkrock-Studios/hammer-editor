@@ -13,7 +13,6 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import net.peanuuutz.tomlkt.TomlElement
 import net.peanuuutz.tomlkt.TomlTable
 import okio.IOException
 import kotlin.coroutines.CoroutineContext
@@ -29,7 +28,7 @@ class DeclaredSettingsStore internal constructor(
 	private val saveLock = Mutex()
 
 	private val _values = MutableStateFlow(
-		declarations.resolve(datasource.load(pluginId, TomlTable.serializer()) { TomlTable(emptyMap<String, TomlElement>()) }.toSettingValues())
+		datasource.loadDeclared(pluginId, declarations)
 	)
 	val values: StateFlow<JsonObject> = _values.asStateFlow()
 

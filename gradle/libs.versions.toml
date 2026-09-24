@@ -90,6 +90,7 @@ mockk = "1.14.11"
 
 tomlkt = "0.5.0"
 chasm = "2.0.0"
+mcp_kotlin_sdk = "0.15.0"
 
 krypto = "4.0.10"
 owasp_html_sanitizer = "20260313.1"
@@ -240,6 +241,7 @@ koin_compose = { group = "io.insert-koin", name = "koin-compose" }
 
 tomlkt = { group = "net.peanuuutz.tomlkt", name = "tomlkt", version.ref = "tomlkt" }
 chasm = { group = "io.github.charlietap.chasm", name = "chasm", version.ref = "chasm" }
+mcp_kotlin_server = { group = "io.modelcontextprotocol", name = "kotlin-sdk-server", version.ref = "mcp_kotlin_sdk" }
 
 ktor_client_core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
 ktor_client_auth = { group = "io.ktor", name = "ktor-client-auth", version.ref = "ktor" }
