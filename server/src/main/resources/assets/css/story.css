@@ -2205,19 +2205,59 @@
 }
 
 .story-kudos {
-	position: relative;
-	margin-top: 3rem;
-	padding: 2rem 2rem 1.5rem 3.5rem;
-	background: var(--paper-white);
-	border-radius: 0.75rem;
-	box-shadow: var(--shadow-md), inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+	margin-top: 3.5rem;
 }
 
-/* Notebook margin line */
-.story-kudos::before {
+.story-kudos--enter {
+	animation: slideInUp 0.5s ease-out both;
+}
+
+/* "The End", ruled out to either side */
+.story-kudos__fin {
+	display: flex;
+	align-items: center;
+	gap: 1.25rem;
+	margin: 0 0 2.5rem;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.85rem;
+	letter-spacing: 0.35em;
+	text-transform: uppercase;
+	color: var(--text-tertiary);
+}
+
+.story-kudos__fin::before,
+.story-kudos__fin::after {
+	content: '';
+	flex: 1;
+	height: 1px;
+	background: linear-gradient(to right, transparent, var(--neutral-300));
+}
+
+.story-kudos__fin::after {
+	background: linear-gradient(to left, transparent, var(--neutral-300));
+}
+
+/* Lined notebook page */
+.story-kudos__card {
+	position: relative;
+	padding: 2.25rem 2.5rem 1.75rem 4rem;
+	background-color: var(--paper-white);
+	background-image: repeating-linear-gradient(
+		transparent,
+		transparent 31px,
+		rgba(37, 99, 235, 0.05) 31px,
+		rgba(37, 99, 235, 0.05) 32px
+	);
+	border-top: 4px solid var(--accent);
+	border-radius: 0.75rem;
+	box-shadow: var(--shadow-lg), inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+
+/* Red margin rule */
+.story-kudos__card::before {
 	content: '';
 	position: absolute;
-	left: 2rem;
+	left: 2.75rem;
 	top: 0;
 	bottom: 0;
 	width: 2px;
@@ -2225,33 +2265,82 @@
 	pointer-events: none;
 }
 
-.story-kudos__title {
-	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 1.35rem;
-	font-weight: normal;
-	color: var(--text-primary);
-	margin: 0 0 1.25rem;
+.story-kudos__header {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+	margin-bottom: 1.75rem;
 }
 
+.story-kudos__badge {
+	flex: none;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	width: 2.75rem;
+	height: 2.75rem;
+	border-radius: 50%;
+	background: var(--accent);
+	color: #ffffff;
+	font-size: 1.1rem;
+	box-shadow: 0 0 0 4px #fdf1e3;
+}
+
+.story-kudos__eyebrow {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.72rem;
+	letter-spacing: 0.12em;
+	text-transform: uppercase;
+	color: var(--text-tertiary);
+	margin: 0 0 0.2rem;
+}
+
+.story-kudos__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.5rem;
+	font-weight: normal;
+	line-height: 1.25;
+	color: var(--text-primary);
+	margin: 0;
+}
+
+/* What readers loved, as a taped-on sticky note */
 .story-kudos__highlights {
-	margin-bottom: 1.5rem;
-	padding-bottom: 1.25rem;
-	border-bottom: 1px dashed var(--neutral-300);
+	position: relative;
+	max-width: 32rem;
+	margin: 0.75rem 0 2rem;
+	padding: 1.4rem 1.5rem 1.25rem;
+	background: var(--sticky-yellow);
+	border-radius: 2px;
+	box-shadow: var(--shadow-sticky);
+	transform: rotate(-0.6deg);
+}
+
+.story-kudos__highlights::before {
+	content: '';
+	position: absolute;
+	top: -0.7rem;
+	left: 50%;
+	width: 5.5rem;
+	height: 1.4rem;
+	transform: translateX(-50%) rotate(-2deg);
+	background: rgba(255, 255, 255, 0.55);
+	box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
 }
 
 .story-kudos__lead {
 	font-family: 'Kingthings Typewriter', monospace;
-	font-size: 0.75rem;
-	letter-spacing: 0.06em;
+	font-size: 0.72rem;
+	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: var(--text-secondary);
-	margin: 0 0 0.5rem;
+	color: var(--neutral-700);
+	margin: 0 0 0.6rem;
 }
 
 .story-kudos__stamps {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 0.5rem;
+	gap: 0.6rem;
 	list-style: none;
 	margin: 0 0 1rem;
 	padding: 0;
@@ -2261,45 +2350,71 @@
 	margin-bottom: 0;
 }
 
-/* Rubber stamp: inked border with an alternating slight tilt */
+/* Rubber stamp: double inked border with an alternating slight tilt */
 .story-kudos__stamp {
 	font-family: 'Kingthings Typewriter', monospace;
 	font-size: 0.8rem;
-	letter-spacing: 0.04em;
+	letter-spacing: 0.05em;
 	text-transform: uppercase;
 	color: var(--accent-dark);
-	border: 1.5px solid var(--accent);
+	border: 3px double var(--accent);
 	border-radius: 4px;
-	padding: 0.3rem 0.7rem;
+	padding: 0.25rem 0.65rem;
 	transform: rotate(-1.5deg);
 }
 
 .story-kudos__stamp:nth-child(even) {
-	transform: rotate(1deg);
+	transform: rotate(1.2deg);
 }
 
 .story-kudos__stamp--reaction {
 	color: var(--primary-dark);
-	border-color: var(--primary-light);
+	border-color: var(--primary);
 }
 
 .story-kudos__form {
 	margin: 0;
 }
 
+.story-kudos__signin {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem 1rem;
+	margin-bottom: 1.75rem;
+	padding: 0.9rem 1.1rem;
+	background: #fdf1e3;
+	border: 1px dashed var(--accent-light);
+	border-radius: 0.5rem;
+}
+
+.story-kudos__signin p {
+	margin: 0;
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	color: var(--neutral-700);
+}
+
+.story-kudos__signin-btn {
+	font-size: 0.9rem;
+	padding: 0.45rem 1.1rem;
+	text-decoration: none;
+}
+
 .story-kudos__group {
 	border: none;
-	margin: 0 0 1.25rem;
+	margin: 0 0 1.75rem;
 	padding: 0;
 	min-width: 0;
 }
 
 .story-kudos__prompt {
 	font-family: 'Lora', Georgia, serif;
-	font-size: 1.05rem;
+	font-size: 1.1rem;
 	color: var(--text-primary);
 	padding: 0;
-	margin-bottom: 0.65rem;
+	margin-bottom: 0.75rem;
 }
 
 .story-kudos__hint {
@@ -2309,10 +2424,22 @@
 	margin-left: 0.35rem;
 }
 
+.story-kudos__count {
+	display: inline-block;
+	margin-left: 0.5rem;
+	padding: 0.1rem 0.55rem;
+	border-radius: 999px;
+	background: var(--neutral-100);
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.7rem;
+	color: var(--neutral-600);
+	vertical-align: middle;
+}
+
 .story-kudos__chips {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 0.5rem;
+	gap: 0.55rem;
 }
 
 .story-kudos__input {
@@ -2321,66 +2448,156 @@
 	pointer-events: none;
 }
 
+/* Craft chips: paper tags that take a check mark when picked */
 .story-kudos__chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
 	font-size: 0.85rem;
+	box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04);
 }
 
-.story-kudos__chip:hover {
+.story-kudos__input:not(:disabled) + .story-kudos__chip:hover {
 	border-color: var(--accent-light);
 	color: var(--accent-dark);
+	transform: translateY(-1px);
+	box-shadow: var(--shadow-sm);
 }
 
 .story-kudos__input:checked + .story-kudos__chip {
 	box-shadow: var(--shadow-sm);
 }
 
-.story-kudos__input:checked + .story-kudos__chip--reaction {
-	border-color: var(--primary-light);
-	background: #eff6ff;
-	color: var(--primary-dark);
+.story-kudos__input:checked + .story-kudos__chip::before {
+	content: '\f00c';
+	font-family: 'Font Awesome 6 Free';
+	font-weight: 900;
+	font-size: 0.7em;
 }
 
 .story-kudos__input:disabled + .story-kudos__chip {
 	cursor: default;
-	opacity: 0.6;
+	opacity: 0.55;
 	border-color: var(--neutral-200);
 	color: var(--neutral-500);
+}
+
+/* Reactions: larger tiles with an icon */
+.story-kudos__chips--reaction {
+	display: grid;
+	grid-template-columns: repeat(4, minmax(0, 1fr));
+	gap: 0.75rem;
+}
+
+.story-kudos__reaction {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	gap: 0.55rem;
+	min-height: 6rem;
+	padding: 1rem 0.5rem 0.85rem;
+	text-align: center;
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8rem;
+	line-height: 1.3;
+	color: var(--neutral-600);
+	background: #ffffff;
+	border: 1.5px solid var(--neutral-300);
+	border-radius: 0.6rem;
+	cursor: pointer;
+	user-select: none;
+	transition: all var(--transition-fast);
+}
+
+.story-kudos__reaction-icon {
+	font-size: 1.5rem;
+	color: var(--neutral-400);
+	transition: all var(--transition-fast);
+}
+
+.story-kudos__input:not(:disabled) + .story-kudos__reaction:hover {
+	border-color: var(--primary-light);
+	color: var(--primary-dark);
+	transform: translateY(-2px);
+	box-shadow: var(--shadow-md);
+}
+
+.story-kudos__input:not(:disabled) + .story-kudos__reaction:hover .story-kudos__reaction-icon {
+	color: var(--primary-light);
+}
+
+.story-kudos__input:checked + .story-kudos__reaction {
+	border-color: var(--primary);
+	background: #eff6ff;
+	color: var(--primary-dark);
+	box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.story-kudos__input:checked + .story-kudos__reaction .story-kudos__reaction-icon {
+	color: var(--primary);
+	transform: scale(1.12);
+}
+
+.story-kudos__input:focus-visible + .story-kudos__reaction {
+	outline: 2px solid var(--primary);
+	outline-offset: 3px;
+}
+
+.story-kudos__input:disabled + .story-kudos__reaction {
+	cursor: default;
+	opacity: 0.55;
 }
 
 .story-kudos__note {
 	font-family: 'Lora', Georgia, serif;
 	font-style: italic;
-	font-size: 0.9rem;
+	font-size: 0.95rem;
 	color: var(--text-secondary);
 	margin: 0;
-}
-
-.story-kudos__note--signin {
-	margin-bottom: 1rem;
-}
-
-.story-kudos__note a {
-	color: var(--accent-dark);
-	text-decoration: underline;
-	text-underline-offset: 2px;
 }
 
 .story-kudos__status {
 	font-family: 'Lora', Georgia, serif;
 	font-style: italic;
-	font-size: 0.9rem;
-	color: var(--accent-dark);
-	min-height: 1.35rem;
-	margin: 0.25rem 0 0;
+	font-size: 0.95rem;
+	color: #047857;
+	margin: 0 0 0.75rem;
 }
 
-@media only screen and (max-width: 480px) {
-	.story-kudos {
-		padding: 1.5rem 1.25rem 1.25rem 2.25rem;
+.story-kudos__status:empty {
+	display: none;
+}
+
+.story-kudos__fineprint {
+	margin: 0;
+	padding-top: 0.9rem;
+	border-top: 1px dashed var(--neutral-200);
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.8rem;
+	color: var(--text-tertiary);
+}
+
+.story-kudos__fineprint i {
+	margin-right: 0.3rem;
+}
+
+@media only screen and (max-width: 560px) {
+	.story-kudos__card {
+		padding: 1.75rem 1.25rem 1.5rem 2.5rem;
 	}
 
-	.story-kudos::before {
-		left: 1.25rem;
+	.story-kudos__card::before {
+		left: 1.4rem;
+	}
+
+	.story-kudos__title {
+		font-size: 1.25rem;
+	}
+
+	.story-kudos__chips--reaction {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
 	}
 }
 
@@ -2393,63 +2610,154 @@
 }
 
 .kudos-tally__heading {
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
 	font-family: 'Kingthings Typewriter', monospace;
 	font-size: 0.7rem;
-	letter-spacing: 0.06em;
+	letter-spacing: 0.08em;
 	text-transform: uppercase;
 	color: var(--text-secondary);
-	margin: 0.75rem 0 0.35rem;
+	margin: 1.1rem 0 0.6rem;
+}
+
+.kudos-tally__heading::after {
+	content: '';
+	flex: 1;
+	border-top: 1px dashed var(--neutral-200);
 }
 
 .kudos-tally {
+	display: flex;
+	flex-direction: column;
+	gap: 0.6rem;
 	list-style: none;
 	margin: 0;
 	padding: 0;
 }
 
+/* Label and count on one line, a slim bar beneath */
 .kudos-tally__row {
-	display: flex;
-	justify-content: space-between;
+	display: grid;
+	grid-template-columns: 1fr auto;
 	align-items: baseline;
-	padding: 0.3rem 0;
-	border-bottom: 1px dotted var(--neutral-200);
+	column-gap: 0.75rem;
+	row-gap: 0.3rem;
 	font-family: 'Lora', Georgia, serif;
 	font-size: 0.9rem;
 	color: var(--text-primary);
 }
 
-.kudos-tally__row:last-child {
-	border-bottom: none;
+.kudos-tally__label {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.4rem;
+	min-width: 0;
+}
+
+.kudos-tally__icon {
+	width: 1rem;
+	text-align: center;
+	font-size: 0.85rem;
+	color: var(--primary);
+}
+
+.kudos-tally__public {
+	font-size: 0.7rem;
+	color: var(--accent);
 }
 
 .kudos-tally__count {
 	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.9rem;
 	color: var(--accent-dark);
+}
+
+.kudos-tally__bar {
+	grid-column: 1 / -1;
+	height: 5px;
+	background: var(--neutral-100);
+	border-radius: 999px;
+	overflow: hidden;
+}
+
+.kudos-tally__fill {
+	display: block;
+	height: 100%;
+	min-width: 5px;
+	background: linear-gradient(90deg, var(--accent-light), var(--accent));
+	border-radius: 999px;
+}
+
+.kudos-tally--reaction .kudos-tally__count {
+	color: var(--primary-dark);
+}
+
+.kudos-tally--reaction .kudos-tally__fill {
+	background: linear-gradient(90deg, var(--primary-light), var(--primary));
+}
+
+.kudos-tally__legend {
+	margin: 1rem 0 0;
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.78rem;
+	color: var(--text-tertiary);
+}
+
+.kudos-tally__legend i {
+	margin-right: 0.25rem;
+	color: var(--accent);
+}
+
+.kudos-panel__empty {
+	text-align: center;
+	padding: 0.35rem 0.25rem 0;
+}
+
+.kudos-panel__empty i {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 3rem;
+	height: 3rem;
+	border-radius: 50%;
+	background: #fdf1e3;
+	color: var(--accent-light);
+	font-size: 1.3rem;
+}
+
+.kudos-panel__empty p {
+	margin: 0.7rem 0 0;
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.85rem;
+	line-height: 1.5;
+	color: var(--text-secondary);
 }
 
 .kudos-panel__note {
 	font-family: 'Lora', Georgia, serif;
 	font-style: italic;
-	font-size: 0.85rem;
-	color: var(--text-secondary);
+	font-size: 0.8rem;
+	color: var(--text-tertiary);
 	margin: 0.5rem 0 0;
 }
 
+/* Reuses the publish switch; text on the left, switch on the right */
 .kudos-panel__toggle {
-	display: flex;
-	align-items: center;
-	gap: 0.5rem;
-	margin-top: 1rem;
-	padding-top: 0.75rem;
+	justify-content: space-between;
+	margin-top: 1.1rem;
+	padding-top: 0.9rem;
 	border-top: 1px dashed var(--neutral-200);
-	font-family: 'Lora', Georgia, serif;
-	font-size: 0.85rem;
-	color: var(--text-primary);
-	cursor: pointer;
 }
 
-.kudos-panel__toggle input {
-	accent-color: var(--accent);
-	width: 1rem;
-	height: 1rem;
+.kudos-panel__toggle-text {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.88rem;
+	color: var(--text-primary);
+}
+
+.kudos-panel__toggle .publish-toggle-track {
+	flex: none;
 }

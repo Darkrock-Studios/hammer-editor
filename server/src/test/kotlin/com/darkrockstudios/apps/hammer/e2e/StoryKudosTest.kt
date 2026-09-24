@@ -105,7 +105,7 @@ class StoryKudosTest : WebEndToEndTest() {
 		assertEquals(HttpStatusCode.OK, response.status)
 		assertEquals("no-store", response.headers[HttpHeaders.CacheControl])
 		val body = response.bodyAsText()
-		assertContains(body, "Sign in to leave kudos")
+		assertContains(body, "story-kudos__signin")
 		assertContains(body, "fieldset class=\"story-kudos__group\" disabled")
 	}
 
@@ -174,7 +174,7 @@ class StoryKudosTest : WebEndToEndTest() {
 
 		val body = client().postPicks("prose").bodyAsText()
 
-		assertContains(body, "story-kudos__note--signin")
+		assertContains(body, "story-kudos__signin")
 		assertContains(body, "toast-info")
 		assertFalse(body.contains("value=\"prose\" checked"))
 		assertEquals(0L, database().serverDatabase.storyKudosQueries.giverCountForProject(projectRowId(), listOf("prose")).executeAsOne())

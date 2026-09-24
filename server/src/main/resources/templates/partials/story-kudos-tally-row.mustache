@@ -1,0 +1,9 @@
+<li class="kudos-tally__row">
+	<span class="kudos-tally__label">
+		{{#icon}}<i class="fa-solid {{icon}} kudos-tally__icon" aria-hidden="true"></i>{{/icon}}
+		{{label}}
+		{{#isPublic}}<i class="fa-solid fa-stamp kudos-tally__public" title="{{msg.story_kudos_public_legend}}"></i>{{/isPublic}}
+	</span>
+	<span class="kudos-tally__count">{{count}}</span>
+	<span class="kudos-tally__bar" aria-hidden="true"><span class="kudos-tally__fill" style="width: {{percent}}%"></span></span>
+</li>

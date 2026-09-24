@@ -14,31 +14,35 @@
 				<p class="kudos-tally__heading">{{msg.story_kudos_craft_heading}}</p>
 				<ul class="kudos-tally">
 					{{#craftKudos}}
-						<li class="kudos-tally__row">
-							<span class="kudos-tally__label">{{label}}</span>
-							<span class="kudos-tally__count">{{count}}</span>
-						</li>
+						{{> story-kudos-tally-row}}
 					{{/craftKudos}}
 				</ul>
 			{{/hasCraftKudos}}
 			{{#hasReactionKudos}}
 				<p class="kudos-tally__heading">{{msg.story_kudos_reaction_heading}}</p>
-				<ul class="kudos-tally">
+				<ul class="kudos-tally kudos-tally--reaction">
 					{{#reactionKudos}}
-						<li class="kudos-tally__row">
-							<span class="kudos-tally__label">{{label}}</span>
-							<span class="kudos-tally__count">{{count}}</span>
-						</li>
+						{{> story-kudos-tally-row}}
 					{{/reactionKudos}}
 				</ul>
 			{{/hasReactionKudos}}
+			{{#hasPublicKudos}}
+				<p class="kudos-tally__legend">
+					<i class="fa-solid fa-stamp" aria-hidden="true"></i> {{msg.story_kudos_public_legend}}
+				</p>
+			{{/hasPublicKudos}}
 		{{/hasKudos}}
 		{{^hasKudos}}
-			<p class="kudos-panel__note">{{msg.story_kudos_empty}}</p>
+			<div class="kudos-panel__empty">
+				<i class="fa-solid fa-hands-clapping" aria-hidden="true"></i>
+				<p>{{msg.story_kudos_empty}}</p>
+			</div>
 		{{/hasKudos}}
 
-		<label class="kudos-panel__toggle" for="kudos-enabled-input">
+		<label class="kudos-panel__toggle publish-toggle" for="kudos-enabled-input">
+			<span class="kudos-panel__toggle-text">{{msg.story_kudos_enabled_label}}</span>
 			<input type="checkbox"
+				   class="publish-toggle-checkbox"
 				   id="kudos-enabled-input"
 				   name="enabled"
 				   value="true"
@@ -47,7 +51,7 @@
 				   hx-trigger="change"
 				   hx-target="#kudos-panel"
 				   hx-swap="outerHTML">
-			{{msg.story_kudos_enabled_label}}
+			<span class="publish-toggle-track"><span class="publish-toggle-thumb"></span></span>
 		</label>
 		{{^kudosEnabled}}
 			<p class="kudos-panel__note">{{msg.story_kudos_disabled_note}}</p>

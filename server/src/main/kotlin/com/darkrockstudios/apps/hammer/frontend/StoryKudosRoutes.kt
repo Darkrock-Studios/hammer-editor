@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
 import com.darkrockstudios.apps.hammer.kudos.KudosGroup
 import com.darkrockstudios.apps.hammer.kudos.KudosKind
+import com.darkrockstudios.apps.hammer.kudos.KudosTally
 import com.darkrockstudios.apps.hammer.kudos.SetPicksResult
 import com.darkrockstudios.apps.hammer.kudos.StoryKudosRepository
 import com.darkrockstudios.apps.hammer.project.access.ProjectAccessRepository
@@ -34,6 +35,14 @@ private const val KUDOS_FRAGMENT = "partials/story-kudos.mustache"
 private data class KudosStory(
 	val projectId: Long,
 	val authorId: Long,
+	val authorPenName: String,
+)
+
+private val reactionIcons = mapOf(
+	KudosKind.MOVED_ME to "fa-heart",
+	KudosKind.MADE_ME_THINK to "fa-lightbulb",
+	KudosKind.MADE_ME_LAUGH to "fa-face-laugh-beam",
+	KudosKind.PAGE_TURNER to "fa-book-open",
 )
 
 /**
@@ -53,7 +62,7 @@ fun Route.storyKudosRoutes(
 			?.result
 		if (resolved !is PublicProjectResult.Success || !resolved.isPublic) return null
 		val projectId = projectDao.getProjectIdOrNull(resolved.userId, resolved.projectUuid) ?: return null
-		return KudosStory(projectId = projectId, authorId = resolved.userId)
+		return KudosStory(projectId = projectId, authorId = resolved.userId, authorPenName = resolved.penName)
 	}
 
 	route("/a/{penName}/{projectName}/kudos") {
@@ -64,7 +73,9 @@ fun Route.storyKudosRoutes(
 				call.respond(HttpStatusCode.NoContent)
 				return@get
 			}
-			call.respond(MustacheContent(KUDOS_FRAGMENT, call.kudosFragmentModel(story, storyKudosRepository)))
+			val model = call.kudosFragmentModel(story, storyKudosRepository)
+			model["animateIn"] = true
+			call.respond(MustacheContent(KUDOS_FRAGMENT, model))
 		}
 
 		// Every failure re-renders the reader's saved picks, so the chips never show an unsaved state.
@@ -132,8 +143,18 @@ internal suspend fun ApplicationCall.kudosPanelModel(
 	@Suppress("UNCHECKED_CAST")
 	val messages = model["msg"] as Map<String, String>
 	val tally = storyKudosRepository.tally(projectId)
-	fun rows(group: KudosGroup) = tally.ranked(group).map { (kind, count) ->
-		mapOf("label" to (messages[kind.messageKey] ?: kind.key), "count" to "%,d".format(count))
+	fun rows(group: KudosGroup): List<Map<String, Any>> {
+		val ranked = tally.ranked(group)
+		val top = ranked.maxOfOrNull { it.second } ?: 1L
+		return ranked.map { (kind, count) ->
+			mapOf(
+				"label" to (messages[kind.messageKey] ?: kind.key),
+				"count" to "%,d".format(count),
+				"percent" to (count * 100 / top),
+				"icon" to reactionIcons[kind].orEmpty(),
+				"isPublic" to (count >= KudosTally.PUBLIC_THRESHOLD),
+			)
+		}
 	}
 	val craft = rows(KudosGroup.CRAFT)
 	val reactions = rows(KudosGroup.REACTION)
@@ -147,6 +168,7 @@ internal suspend fun ApplicationCall.kudosPanelModel(
 		"reactionKudos" to reactions,
 		"hasCraftKudos" to craft.isNotEmpty(),
 		"hasReactionKudos" to reactions.isNotEmpty(),
+		"hasPublicKudos" to (craft + reactions).any { it["isPublic"] == true },
 	)
 }
 
@@ -175,23 +197,26 @@ private suspend fun ApplicationCall.kudosFragmentModel(
 	val messages = model["msg"] as Map<String, String>
 	val label = { kind: KudosKind -> messages[kind.messageKey] ?: kind.key }
 
-	fun group(group: KudosGroup, promptKey: String, hintKey: String): Map<String, Any> {
-		val full = picks.count { it.group == group } >= group.maxPicks
+	suspend fun group(group: KudosGroup, promptKey: String, hintKey: String): Map<String, Any> {
+		val picked = picks.count { it.group == group }
 		// A full reaction group stays open: picking another reaction swaps it in.
-		val locksWhenFull = group == KudosGroup.CRAFT
+		val isCraft = group == KudosGroup.CRAFT
 		val chips = KudosKind.entries.filter { it.group == group }.map { kind ->
 			val checked = kind in picks
 			mapOf(
 				"key" to kind.key,
 				"label" to label(kind),
+				"icon" to reactionIcons[kind].orEmpty(),
 				"checked" to checked,
-				"disabled" to (!canGive || (locksWhenFull && full && !checked)),
+				"disabled" to (!canGive || (isCraft && picked >= group.maxPicks && !checked)),
 			)
 		}
 		return mapOf(
 			"prompt" to (messages[promptKey] ?: ""),
 			"hint" to (messages[hintKey] ?: ""),
-			"isReaction" to (group == KudosGroup.REACTION),
+			"isReaction" to !isCraft,
+			"showCount" to (isCraft && canGive),
+			"count" to if (isCraft && canGive) msg("kudos_pick_count", picked, group.maxPicks) else "",
 			"chips" to chips,
 		)
 	}
@@ -201,6 +226,11 @@ private suspend fun ApplicationCall.kudosFragmentModel(
 
 	model.putAll(
 		mapOf(
+			"kudosTitle" to if (isAuthor) {
+				messages["kudos_title_author"].orEmpty()
+			} else {
+				msg("kudos_title_for", story.authorPenName)
+			},
 			"kudosUrl" to request.local.uri.substringBefore('?'),
 			"groups" to listOf(
 				group(KudosGroup.CRAFT, "kudos_craft_prompt", "kudos_craft_hint"),

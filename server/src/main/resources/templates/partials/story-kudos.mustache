@@ -1,53 +1,80 @@
-<section class="story-kudos" id="story-kudos" aria-labelledby="story-kudos-title">
-	<h2 class="story-kudos__title" id="story-kudos-title">{{msg.kudos_title}}</h2>
+<section class="story-kudos{{#animateIn}} story-kudos--enter{{/animateIn}}" id="story-kudos" aria-labelledby="story-kudos-title">
+	<p class="story-kudos__fin" aria-hidden="true"><span>{{msg.kudos_the_end}}</span></p>
 
-	{{#hasHighlights}}
-		<div class="story-kudos__highlights">
-			{{#hasCraftHighlights}}
-				<p class="story-kudos__lead">{{msg.kudos_readers_loved}}</p>
-				<ul class="story-kudos__stamps">
-					{{#craftHighlights}}<li class="story-kudos__stamp">{{.}}</li>{{/craftHighlights}}
-				</ul>
-			{{/hasCraftHighlights}}
-			{{#hasReactionHighlights}}
-				<p class="story-kudos__lead">{{msg.kudos_readers_said}}</p>
-				<ul class="story-kudos__stamps">
-					{{#reactionHighlights}}<li class="story-kudos__stamp story-kudos__stamp--reaction">{{.}}</li>{{/reactionHighlights}}
-				</ul>
-			{{/hasReactionHighlights}}
-		</div>
-	{{/hasHighlights}}
+	<div class="story-kudos__card">
+		<header class="story-kudos__header">
+			<span class="story-kudos__badge" aria-hidden="true"><i class="fa-solid fa-hands-clapping"></i></span>
+			<div>
+				{{^isAuthor}}<p class="story-kudos__eyebrow">{{msg.kudos_eyebrow}}</p>{{/isAuthor}}
+				<h2 class="story-kudos__title" id="story-kudos-title">{{kudosTitle}}</h2>
+			</div>
+		</header>
 
-	{{#isAuthor}}
-		<p class="story-kudos__note">{{msg.kudos_author_note}}</p>
-	{{/isAuthor}}
+		{{#hasHighlights}}
+			<div class="story-kudos__highlights">
+				{{#hasCraftHighlights}}
+					<p class="story-kudos__lead">{{msg.kudos_readers_loved}}</p>
+					<ul class="story-kudos__stamps">
+						{{#craftHighlights}}<li class="story-kudos__stamp">{{.}}</li>{{/craftHighlights}}
+					</ul>
+				{{/hasCraftHighlights}}
+				{{#hasReactionHighlights}}
+					<p class="story-kudos__lead">{{msg.kudos_readers_said}}</p>
+					<ul class="story-kudos__stamps">
+						{{#reactionHighlights}}<li class="story-kudos__stamp story-kudos__stamp--reaction">{{.}}</li>{{/reactionHighlights}}
+					</ul>
+				{{/hasReactionHighlights}}
+			</div>
+		{{/hasHighlights}}
 
-	{{^isAuthor}}
-		<form class="story-kudos__form"
-			  hx-post="{{kudosUrl}}"
-			  hx-trigger="change"
-			  hx-sync="this:replace"
-			  hx-target="#story-kudos"
-			  hx-swap="outerHTML">
-			{{#isSignedOut}}
-				<p class="story-kudos__note story-kudos__note--signin"><a href="/login">{{msg.kudos_sign_in_prompt}}</a></p>
-			{{/isSignedOut}}
-			{{#groups}}
-				<fieldset class="story-kudos__group"{{^canGive}} disabled{{/canGive}}>
-					<legend class="story-kudos__prompt">
-						{{prompt}}
-						<span class="story-kudos__hint">{{hint}}</span>
-					</legend>
-					<div class="story-kudos__chips">
-						{{#chips}}
-							<input type="checkbox" class="story-kudos__input" id="kudos-{{key}}" name="kind"
-								   value="{{key}}"{{#checked}} checked{{/checked}}{{#disabled}} disabled{{/disabled}}>
-							<label class="story-kudos__chip{{#isReaction}} story-kudos__chip--reaction{{/isReaction}}" for="kudos-{{key}}">{{label}}</label>
-						{{/chips}}
+		{{#isAuthor}}
+			<p class="story-kudos__note">{{msg.kudos_author_note}}</p>
+		{{/isAuthor}}
+
+		{{^isAuthor}}
+			<form class="story-kudos__form"
+				  hx-post="{{kudosUrl}}"
+				  hx-trigger="change"
+				  hx-sync="this:replace"
+				  hx-target="#story-kudos"
+				  hx-swap="outerHTML">
+				{{#isSignedOut}}
+					<div class="story-kudos__signin">
+						<p>{{msg.kudos_sign_in_prompt}}</p>
+						<a class="btn btn--accent story-kudos__signin-btn" href="/login">
+							<i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> {{msg.kudos_sign_in_button}}
+						</a>
 					</div>
-				</fieldset>
-			{{/groups}}
-			<p class="story-kudos__status" role="status">{{#justSaved}}{{msg.kudos_saved}}{{/justSaved}}</p>
-		</form>
-	{{/isAuthor}}
+				{{/isSignedOut}}
+				{{#groups}}
+					<fieldset class="story-kudos__group"{{^canGive}} disabled{{/canGive}}>
+						<legend class="story-kudos__prompt">
+							{{prompt}}
+							<span class="story-kudos__hint">{{hint}}</span>
+							{{#showCount}}<span class="story-kudos__count">{{count}}</span>{{/showCount}}
+						</legend>
+						<div class="story-kudos__chips{{#isReaction}} story-kudos__chips--reaction{{/isReaction}}">
+							{{#chips}}
+								<input type="checkbox" class="story-kudos__input" id="kudos-{{key}}" name="kind"
+									   value="{{key}}"{{#checked}} checked{{/checked}}{{#disabled}} disabled{{/disabled}}>
+								{{#isReaction}}
+									<label class="story-kudos__reaction" for="kudos-{{key}}">
+										<i class="fa-solid {{icon}} story-kudos__reaction-icon" aria-hidden="true"></i>
+										<span>{{label}}</span>
+									</label>
+								{{/isReaction}}
+								{{^isReaction}}
+									<label class="story-kudos__chip" for="kudos-{{key}}">{{label}}</label>
+								{{/isReaction}}
+							{{/chips}}
+						</div>
+					</fieldset>
+				{{/groups}}
+				<p class="story-kudos__status" role="status">{{#justSaved}}<i class="fa-solid fa-check" aria-hidden="true"></i> {{msg.kudos_saved}}{{/justSaved}}</p>
+				<p class="story-kudos__fineprint">
+					<i class="fa-solid fa-user-secret" aria-hidden="true"></i> {{msg.kudos_anonymous_note}}
+				</p>
+			</form>
+		{{/isAuthor}}
+	</div>
 </section>
