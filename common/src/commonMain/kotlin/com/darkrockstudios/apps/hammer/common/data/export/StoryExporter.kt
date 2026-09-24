@@ -10,6 +10,9 @@ interface StoryExporter {
 	val fileExtension: String
 	val mimeType: String
 
+	/** A display name that needs no localization, such as a runtime plugin's; otherwise the UI supplies one. */
+	val label: String? get() = null
+
 	/** False for formats that ignore project data, which skips loading it. */
 	val needsProjectData: Boolean get() = true
 
