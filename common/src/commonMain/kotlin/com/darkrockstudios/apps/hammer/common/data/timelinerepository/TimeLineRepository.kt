@@ -16,6 +16,7 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.koin.core.scope.Scope
@@ -292,6 +293,7 @@ class TimeLineRepository(
 				}.await()
 			}
 		}
+		this.scope.cancel("Project closed")
 	}
 
 	companion object {

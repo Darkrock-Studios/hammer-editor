@@ -15,6 +15,11 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEF
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
+import com.darkrockstudios.apps.hammer.operations.Access
+import com.darkrockstudios.apps.hammer.operations.NoInput
+import com.darkrockstudios.apps.hammer.operations.Operation
+import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import com.darkrockstudios.apps.hammer.operations.operation
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.ProjectPluginContext
@@ -113,6 +118,33 @@ class PluginRegistryTest : KoinComponent {
 	fun `rejects export formats not prefixed with the plugin id`() {
 		assertThrows<IllegalArgumentException> {
 			PluginRegistry(listOf(RecordingPlugin("recorder", exporters = listOf(FakeExporter("txt")))))
+		}
+	}
+
+	@Test
+	fun `plugin operations join the core operations`() {
+		val op = operation<NoInput, NoInput>("recorder.ping", "", Access.Read) { NoInput }
+		val registry = PluginRegistry(listOf(RecordingPlugin("recorder", operations = listOf(op))))
+		startKoin(registry)
+
+		val operations = getKoin().get<OperationRegistry>()
+		assertSame(op, operations.find("recorder.ping"))
+		assertNotNull(operations.find("scene.read"))
+	}
+
+	@Test
+	fun `rejects operations not prefixed with the plugin id`() {
+		val op = operation<NoInput, NoInput>("scene.ping", "", Access.Read) { NoInput }
+		assertThrows<IllegalArgumentException> {
+			PluginRegistry(listOf(RecordingPlugin("recorder", operations = listOf(op))))
+		}
+	}
+
+	@Test
+	fun `rejects malformed operation names at construction`() {
+		val op = operation<NoInput, NoInput>("recorder.Ping", "", Access.Read) { NoInput }
+		assertThrows<IllegalArgumentException> {
+			PluginRegistry(listOf(RecordingPlugin("recorder", operations = listOf(op))))
 		}
 	}
 
@@ -231,6 +263,7 @@ class PluginRegistryTest : KoinComponent {
 		private val failOnStart: Boolean = false,
 		private val onOpened: (ProjectPluginContext) -> Unit = {},
 		private val exporters: List<StoryExporter> = emptyList(),
+		private val operations: List<Operation<*, *>> = emptyList(),
 	) : ClientPlugin {
 		var started = false
 		var opened: ProjectPluginContext? = null
@@ -239,6 +272,8 @@ class PluginRegistryTest : KoinComponent {
 		override fun koinModule(): Module? = module
 
 		override fun exporters(): List<StoryExporter> = exporters
+
+		override fun operations(): List<Operation<*, *>> = operations
 
 		override fun onAppStart(appScope: CoroutineScope) {
 			check(!failOnStart) { "boom" }

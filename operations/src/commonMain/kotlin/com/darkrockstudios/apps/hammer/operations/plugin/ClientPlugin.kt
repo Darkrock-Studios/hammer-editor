@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.operations.plugin
 
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
+import com.darkrockstudios.apps.hammer.operations.Operation
 import kotlinx.coroutines.CoroutineScope
 import org.koin.core.module.Module
 
@@ -17,6 +18,9 @@ interface ClientPlugin {
 
 	/** Installed alongside the app's own modules. */
 	fun koinModule(): Module? = null
+
+	/** Added to the operation registry. Each name must start with `<id>.`, e.g. `style.report`. */
+	fun operations(): List<Operation<*, *>> = emptyList()
 
 	/** Runs once Koin is up and data migration has finished. Must not assume a UI. */
 	fun onAppStart(appScope: CoroutineScope) {}
