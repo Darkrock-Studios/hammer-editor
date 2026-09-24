@@ -96,6 +96,7 @@ dependencies {
 	kover(project(":common"))
 	kover(project(":operations"))
 	kover(project(":plugins:plaintext"))
+	kover(project(":plugins:wasmhost"))
 	kover(project(":server"))
 }
 

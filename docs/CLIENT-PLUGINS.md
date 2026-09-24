@@ -2,7 +2,7 @@
 
 Design note for extending the Hammer client (desktop, Android, iOS) with plugins,
 and for exposing the same API as a command line interface and an MCP server.
-Status: rollout steps 1 to 3 are built; the rest is a proposal. The server already has an equivalent
+Status: rollout steps 1 to 3 are built and step 4, the runtime plugin spike, is done; the rest is a proposal. The server already has an equivalent
 plugin seam (`server/.../plugin/ServerPlugin.kt`); this mirrors it where the
 shapes match.
 
@@ -989,6 +989,24 @@ host side on chasm; its Java SDK does the same on the Chicory runtime and is
 the reference. If the port proves too large, the fallback is a small
 convention of our own (allocate, call, dispatch, log) plus a C header.
 
+**Settled by the spike.** Extism's convention it is. The host implements the
+`extism:host/env` functions natively (`ExtismKernel`) rather than running
+Extism's kernel module, which would cost a second interpreted call for every
+eight bytes a plugin copies. The Hammer-specific parts:
+
+- `extism:host/user` `hammer_dispatch(request) -> reply`. The request is
+  `{"operation": "...", "input": {...}}`; the reply is `{"output": ...}` or
+  `{"error": {"kind": "...", "message": "..."}}`, with the kinds of
+  `OperationException` plus `PermissionDenied`.
+- An `export` function renders every export format the manifest declares. Its
+  input is `{"format", "projectName", "language", "chapters": [{"name",
+  "scenes": [markdown]}]}` and its output is the file's bytes.
+- HTTP imports exist, as Extism plugins expect them, and always fail. The only
+  WASI import provided is `random_get`, which Kotlin/Wasm's standard library
+  needs; a module importing any other WASI function does not load.
+- `_initialize`, or else `__wasm_call_ctors`, runs once after instantiation, as
+  in other Extism hosts.
+
 ### Host
 
 A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
@@ -999,9 +1017,21 @@ A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
   manifest and render by calling the module; its operations register like any
   plugin's. The same `PluginRegistry` receives it, so everything built for
   compiled-in plugins applies unchanged.
-- **Execution.** Modules run on their own dispatcher, never the UI thread. A
-  runaway plugin must be stoppable; how chasm supports that (fuel, instruction
-  counting, or cancellation) is a spike question.
+- **Execution.** `WasmPlugin.call` runs the module on the IO dispatcher, never
+  the UI thread. Export rendering, already on a background dispatcher, calls it
+  blocking. An operation the module dispatches blocks its thread until done.
+- **Stopping a runaway module.** chasm has no fuel, instruction limit, or
+  interrupt, and its decoded module cannot be edited. So the host rewrites the
+  binary before loading it (`FuelInstrumenter`): a mutable i64 global,
+  decremented on every function entry and loop iteration, traps the module at
+  zero. The host sets it before each call. The same pass caps linear memory
+  (64 MiB) and tables (100,000 entries), and rejects SIMD, threads, and shared
+  or 64-bit memories. A module cannot call itself again from inside a call.
+  Setting the global to zero from another thread does not stop a running call:
+  the interpreter never sees the write. User-initiated cancellation therefore
+  needs either an interrupt flag in chasm itself or an injected host import the
+  fuel check polls (which means renumbering every function index in the
+  module). The fuel budget alone is what stops runaway code for now.
 
 Runtime plugins stay headless: operations, exporters, and later diagnostics.
 A module cannot supply Compose UI, so its settings are
@@ -1021,6 +1051,38 @@ Runtime plugins are untrusted code, unlike compiled-in ones:
   file, enable and disable, and uninstall for runtime plugins, with the
   permission prompt at install. Compiled-in plugins keep having no switch.
 - **Signing** is deferred. An unsigned package is the norm at first.
+
+### Spike results
+
+Desktop JVM, warm, chasm 2.0.0:
+
+| Measure | Result |
+| --- | --- |
+| Tight loop, 20M iterations | 358 ms bare, 738 ms with fuel checks |
+| 557 KB of text (100k words) through a WAT plugin, two host calls per byte | 63 ms |
+| Same text through a Kotlin/Wasm plugin, development build (612 KB) | 825 ms to load, 2.0 s to run |
+| Same text through a C word frequency export | Not yet measured: needs `wasm-ld` (lld) |
+
+- **Kotlin/Wasm works** on the same host, `wasmWasi` target, with
+  `@WasmImport` for the Extism functions and nothing but `random_get` from WASI.
+  It is slow to load and run next to C; a production (binaryen-optimized)
+  build is untried.
+- **C works freestanding.** Extism's C PDK compiles with no libc
+  (`--target=wasm32-unknown-unknown -nostdlib`), so a C plugin imports nothing
+  but Extism and Hammer functions.
+- **Fuel costs about 2x in tight loops.** A cheaper scheme charges a basic
+  block's instruction count once per block instead of one unit per loop pass;
+  it is not needed yet.
+- **Plugin kit.** Authors get `hammer.h` on top of Extism's `extism-pdk.h`: the
+  dispatch import, `hammer_call(operation, input_json)`, and the API version.
+  Typed C structs for operation inputs and outputs can later be generated from
+  `ops.list`'s schemas.
+
+Example and test plugins live in a separate `hammer-plugins` repository, next to
+this one: C and Kotlin/Wasm examples, the plugin kit, and the WAT sources of the
+host's test fixtures. Its fixture script writes the compiled fixtures (a few
+hundred bytes each) into `:plugins:wasmhost`'s test resources, so this repo's
+tests do not need that checkout.
 
 ### Platforms
 
@@ -1080,10 +1142,9 @@ design is revisited rather than `:common` bent to fit.
 3. **Operation registry and read operations.** Registry, `OperationContext`,
    the Read operations from the catalog, including `project.export` and
    `export.formats`. Tested directly, no front end yet.
-4. **Runtime plugin spike.** On desktop, load a C plugin through chasm and
-   call `project.read` from it through the dispatch import. Measure export
-   speed on a novel-length project, find how to stop a runaway module, size the
-   Extism host port, and try a Kotlin/Wasm plugin on the same host.
+4. **Runtime plugin spike.** Done; see [Spike results](#spike-results).
+   `:plugins:wasmhost` holds the Extism host on chasm, fuel instrumentation, the
+   manifest, and `WasmPlugin`.
 5. **Headless CLI.** Preceded by the headless spike in
    [Cost to `:common`](#cost-to-common). Subcommands generated from the
    registry, `Dispatcher`,
@@ -1106,8 +1167,9 @@ design is revisited rather than `:common` bent to fit.
    first proof.
 11. **Runtime plugins on desktop.** [Declared settings](#declared-settings)
     first, with the plain text plugin moving onto them (this part can land any
-    time before). Then `:plugins:wasmhost`, the package format, permissions,
-    and install, enable, and uninstall in Settings. Can move up
+    time before). Then the package format and loader on top of the spike's
+    `:plugins:wasmhost`, permissions, and install, enable, and uninstall in
+    Settings. Can move up
     to follow the spike directly if the spike goes well; it needs only read
     operations to be useful, and write permissions once step 9 lands.
 12. **Runtime plugins on Android**, then an iOS decision. Registration changes
