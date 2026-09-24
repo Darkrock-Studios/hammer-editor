@@ -1923,7 +1923,9 @@
 	pointer-events: none;
 }
 
-.review-form__chip {
+/* Selectable chip, shared by the review expiry picker and reader kudos */
+.review-form__chip,
+.story-kudos__chip {
 	font-family: 'Kingthings Typewriter', monospace;
 	font-size: 0.8rem;
 	padding: 0.5rem 0.95rem;
@@ -1936,13 +1938,15 @@
 	user-select: none;
 }
 
-.review-form__expiry input[type="radio"]:checked + .review-form__chip {
+.review-form__expiry input[type="radio"]:checked + .review-form__chip,
+.story-kudos__input:checked + .story-kudos__chip {
 	border-color: var(--accent);
 	background: #fdf1e3;
 	color: var(--accent-dark);
 }
 
-.review-form__expiry input[type="radio"]:focus-visible + .review-form__chip {
+.review-form__expiry input[type="radio"]:focus-visible + .review-form__chip,
+.story-kudos__input:focus-visible + .story-kudos__chip {
 	outline: 2px solid var(--accent);
 	outline-offset: 3px;
 }
@@ -2318,16 +2322,7 @@
 }
 
 .story-kudos__chip {
-	font-family: 'Kingthings Typewriter', monospace;
 	font-size: 0.85rem;
-	padding: 0.5rem 0.95rem;
-	border-radius: 8px;
-	cursor: pointer;
-	border: 1.5px solid var(--neutral-300);
-	background: #ffffff;
-	color: var(--neutral-600);
-	transition: all var(--transition-fast);
-	user-select: none;
 }
 
 .story-kudos__chip:hover {
@@ -2336,9 +2331,6 @@
 }
 
 .story-kudos__input:checked + .story-kudos__chip {
-	border-color: var(--accent);
-	background: #fdf1e3;
-	color: var(--accent-dark);
 	box-shadow: var(--shadow-sm);
 }
 
@@ -2346,11 +2338,6 @@
 	border-color: var(--primary-light);
 	background: #eff6ff;
 	color: var(--primary-dark);
-}
-
-.story-kudos__input:focus-visible + .story-kudos__chip {
-	outline: 2px solid var(--accent);
-	outline-offset: 3px;
 }
 
 .story-kudos__input:disabled + .story-kudos__chip {

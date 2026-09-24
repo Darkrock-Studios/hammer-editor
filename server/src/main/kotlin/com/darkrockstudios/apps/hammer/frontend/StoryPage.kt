@@ -189,9 +189,7 @@ fun Route.storyPage(
 							)
 						)
 						if (numericProjectId != null) {
-							val kudos = kudosPanelModel(storyKudosRepository, numericProjectId, model)
-							model.putAll(kudos)
-							model["showKudosPanel"] = isPublished || kudos["hasKudos"] == true
+							model.putAll(call.kudosPanelModel(storyKudosRepository, numericProjectId, isPublished, model))
 						}
 						call.respond(MustacheContent("story.mustache", model))
 					}
@@ -357,9 +355,15 @@ fun Route.storyPage(
 					)
 				)
 
-				respondTemplateWithToast(
-					templatePath = "partials/story-publish.mustache",
-					model = model,
+				// Publishing is what makes the Kudos panel relevant, so it swaps in out of band.
+				val kudosPanelHtml = projectDao.getProjectIdOrNull(session.userId, projectId)?.let { numericId ->
+					model.putAll(call.kudosPanelModel(storyKudosRepository, numericId, newIsPublished, model))
+					model["kudosPanelOob"] = true
+					renderTemplate("partials/story-kudos-panel.mustache", model)
+				}.orEmpty()
+
+				respondHtmlWithToast(
+					content = renderTemplate("partials/story-publish.mustache", model) + kudosPanelHtml,
 					message = toastMessage,
 					toast = toastType
 				)
@@ -388,7 +392,8 @@ fun Route.storyPage(
 				val model = call.withDefaults(
 					mapOf("projectNameForUrl" to ProjectName.projectSegment(project.name, project.uuid))
 				)
-				model.putAll(kudosPanelModel(storyKudosRepository, numericProjectId, model))
+				val isPublished = projectAccessRepository.isPublished(session.userId, ProjectId(project.uuid))
+				model.putAll(call.kudosPanelModel(storyKudosRepository, numericProjectId, isPublished, model))
 				call.respond(MustacheContent("partials/story-kudos-panel.mustache", model))
 			}
 

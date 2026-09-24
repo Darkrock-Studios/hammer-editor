@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.database
 
+import app.cash.sqldelight.db.QueryResult
 import com.darkrockstudios.apps.hammer.utilities.injectIoDispatcher
 import kotlinx.coroutines.withContext
 import org.koin.core.component.KoinComponent
@@ -10,6 +11,7 @@ open class StoryKudosDao(
 
 	private val ioDispatcher by injectIoDispatcher()
 	private val queries = database.serverDatabase.storyKudosQueries
+	private val driver = database.driver
 
 	open suspend fun kindsForUser(projectId: Long, userId: Long): Set<String> = withContext(ioDispatcher) {
 		queries.kindsForUser(projectId, userId).executeAsList().toSet()
@@ -19,7 +21,7 @@ open class StoryKudosDao(
 	open suspend fun replacePicks(projectId: Long, userId: Long, kinds: Set<String>): Unit =
 		withContext(ioDispatcher) {
 			queries.transaction {
-				queries.lockGiver(userId).executeAsOneOrNull()
+				lockGiver(userId)
 				val existing = queries.kindsForUser(projectId, userId).executeAsList().toSet()
 				val removed = existing - kinds
 				if (removed.isNotEmpty()) queries.deleteKinds(projectId, userId, removed)
@@ -27,13 +29,29 @@ open class StoryKudosDao(
 			}
 		}
 
-	open suspend fun countsForProject(projectId: Long): Map<String, Long> = withContext(ioDispatcher) {
-		queries.countsForProject(projectId).executeAsList().associate { it.kind to it.givers }
+	/**
+	 * Serializes one giver's concurrent updates so the per-group caps hold. Advisory rather than
+	 * a row lock so the giver's other writes never wait; issued raw because SQLDelight's
+	 * Postgres dialect can't parse the call.
+	 */
+	private fun lockGiver(userId: Long) {
+		driver.executeQuery(
+			identifier = null,
+			sql = "SELECT pg_advisory_xact_lock(hashtextextended('story_kudos', ?))",
+			mapper = { QueryResult.Value(Unit) },
+			parameters = 1,
+		) { bindLong(0, userId) }
 	}
 
-	open suspend fun giverCountForProject(projectId: Long): Long = withContext(ioDispatcher) {
-		queries.giverCountForProject(projectId).executeAsOne()
-	}
+	open suspend fun countsForProject(projectId: Long, kinds: Collection<String>): Map<String, Long> =
+		withContext(ioDispatcher) {
+			queries.countsForProject(projectId, kinds).executeAsList().associate { it.kind to it.givers }
+		}
+
+	open suspend fun giverCountForProject(projectId: Long, kinds: Collection<String>): Long =
+		withContext(ioDispatcher) {
+			queries.giverCountForProject(projectId, kinds).executeAsOne()
+		}
 
 	open suspend fun isOptedOut(projectId: Long): Boolean = withContext(ioDispatcher) {
 		queries.isOptedOut(projectId).executeAsOne()

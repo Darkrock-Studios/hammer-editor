@@ -148,7 +148,9 @@ class StoryKudosRepositoryTest : BaseTest() {
 		db.serverDatabase.storyKudosQueries.insertKudos(projectId, readers[0], "twist")
 		pick(readers[1], PROSE)
 
-		assertEquals(mapOf(PROSE to 1L), repo.tally(projectId).counts)
+		val tally = repo.tally(projectId)
+		assertEquals(mapOf(PROSE to 1L), tally.counts)
+		assertEquals(1L, tally.givers)
 		assertEquals(emptySet(), repo.picksFor(projectId, readers[0]))
 	}
 

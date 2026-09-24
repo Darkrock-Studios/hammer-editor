@@ -1,4 +1,5 @@
-<div class="story-info-panel story-info-panel--kudos" id="kudos-panel">
+<div class="story-info-panel story-info-panel--kudos" id="kudos-panel"{{^showKudosPanel}} hidden{{/showKudosPanel}}{{#kudosPanelOob}} hx-swap-oob="true"{{/kudosPanelOob}}>
+{{#showKudosPanel}}
 	<div class="info-panel-header">
 		<span class="info-panel-icon info-panel-icon--kudos"><i class="fas fa-hands-clapping"></i></span>
 		<span class="info-panel-title">{{msg.story_kudos_title}}</span>
@@ -7,7 +8,7 @@
 		{{#hasKudos}}
 			<div class="reader-total">
 				<span class="reader-total__value">{{kudosGivers}}</span>
-				<span class="reader-total__label">{{msg.story_kudos_givers_label}}</span>
+				<span class="reader-total__label">{{kudosGiversLabel}}</span>
 			</div>
 			{{#hasCraftKudos}}
 				<p class="kudos-tally__heading">{{msg.story_kudos_craft_heading}}</p>
@@ -52,4 +53,5 @@
 			<p class="kudos-panel__note">{{msg.story_kudos_disabled_note}}</p>
 		{{/kudosEnabled}}
 	</div>
+{{/showKudosPanel}}
 </div>

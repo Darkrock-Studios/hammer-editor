@@ -59,10 +59,11 @@ class StoryKudosRepository(
 	}
 
 	suspend fun tally(projectId: Long): KudosTally {
-		val counts = storyKudosDao.countsForProject(projectId)
+		val keys = KudosKind.entries.map { it.key }
+		val counts = storyKudosDao.countsForProject(projectId, keys)
 			.mapNotNull { (key, count) -> KudosKind.fromKey(key)?.let { it to count } }
 			.toMap()
-		return KudosTally(counts = counts, givers = storyKudosDao.giverCountForProject(projectId))
+		return KudosTally(counts = counts, givers = storyKudosDao.giverCountForProject(projectId, keys))
 	}
 
 	suspend fun isEnabled(projectId: Long): Boolean = !storyKudosDao.isOptedOut(projectId)

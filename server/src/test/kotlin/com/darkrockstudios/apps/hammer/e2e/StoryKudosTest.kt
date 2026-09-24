@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.e2e.util.E2eTestData
 import com.darkrockstudios.apps.hammer.e2e.util.TestProject
 import com.darkrockstudios.apps.hammer.e2e.util.WebEndToEndTest
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
+import com.darkrockstudios.apps.hammer.frontend.utils.SWAP_ERROR_HEADER
 import io.ktor.client.HttpClient
 import io.ktor.client.request.get
 import io.ktor.client.request.header
@@ -156,16 +157,27 @@ class StoryKudosTest : WebEndToEndTest() {
 
 			assertEquals(HttpStatusCode.BadRequest, response.status)
 			assertEquals(setOf("prose"), savedPicks())
+			// The rejected state is replaced by the saved one, with an error toast.
+			val body = response.bodyAsText()
+			assertContains(body, "value=\"prose\" checked")
+			assertFalse(body.contains("value=\"voice\" checked"))
+			assertContains(body, "toast-error")
+			assertEquals("true", response.headers[SWAP_ERROR_HEADER])
 		}
 	}
 
 	@Test
-	fun `a signed-out post is rejected`(): Unit = runBlocking {
+	fun `a signed-out post saves nothing and re-renders the sign-in prompt`(): Unit = runBlocking {
 		doStartServer()
 		seedStory()
 		grantAccess(password = null)
 
-		assertEquals(HttpStatusCode.Unauthorized, client().postPicks("prose").status)
+		val body = client().postPicks("prose").bodyAsText()
+
+		assertContains(body, "story-kudos__note--signin")
+		assertContains(body, "toast-info")
+		assertFalse(body.contains("value=\"prose\" checked"))
+		assertEquals(0L, database().serverDatabase.storyKudosQueries.giverCountForProject(projectRowId(), listOf("prose")).executeAsOne())
 	}
 
 	@Test
@@ -196,7 +208,31 @@ class StoryKudosTest : WebEndToEndTest() {
 
 		assertEquals(HttpStatusCode.NoContent, client().getFragment().status)
 		login(readerEmail, password).use { reader ->
-			assertEquals(HttpStatusCode.Conflict, reader.postPicks("prose").status)
+			val response = reader.postPicks("prose")
+			assertEquals(HttpStatusCode.Conflict, response.status)
+			assertContains(response.bodyAsText(), "fieldset class=\"story-kudos__group\" disabled")
+			assertEquals(emptySet(), savedPicks())
+		}
+	}
+
+	@Test
+	fun `publishing swaps in the kudos panel and a single giver reads singular`(): Unit = runBlocking {
+		doStartServer()
+		seedStory()
+
+		login(authorEmail, password).use { author ->
+			val unpublished = author.get(route("story/$segment")).bodyAsText()
+			assertContains(unpublished, "id=\"kudos-panel\" hidden")
+
+			val publish = author.post(route("story/$segment/publish")) { header("HX-Request", "true") }
+			val body = publish.bodyAsText()
+			assertContains(body, "id=\"kudos-panel\" hx-swap-oob=\"true\"")
+			assertContains(body, "Let readers leave kudos")
+		}
+
+		login(readerEmail, password).use { it.postPicks("prose") }
+		login(authorEmail, password).use { author ->
+			assertContains(author.get(route("story/$segment")).bodyAsText(), "reader left kudos")
 		}
 	}
 

@@ -7,12 +7,11 @@ import com.darkrockstudios.apps.hammer.frontend.data.UserSession
 import com.darkrockstudios.apps.hammer.frontend.utils.ProjectName
 import com.darkrockstudios.apps.hammer.frontend.utils.applyRevalidationHeaders
 import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
-import com.darkrockstudios.apps.hammer.frontend.utils.findProjectByUrlSegment
+import com.darkrockstudios.apps.hammer.frontend.utils.lookUpStory
 import com.darkrockstudios.apps.hammer.frontend.utils.matchesETag
 import com.darkrockstudios.apps.hammer.frontend.utils.metaDescription
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.pageETag
-import com.darkrockstudios.apps.hammer.frontend.utils.resolveByPenName
 import com.darkrockstudios.apps.hammer.frontend.utils.storyArticleJsonLd
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderCollector
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
@@ -52,39 +51,21 @@ fun Route.publicStoryPage(
 ) {
 	route("/a/{penName}/{projectName}") {
 		get {
-			val penNameParam = call.parameters["penName"]
-			val projectNameParam = call.parameters["projectName"]
-
-			if (penNameParam.isNullOrBlank() || projectNameParam.isNullOrBlank()) {
-				call.respond(HttpStatusCode.NotFound)
-				return@get
-			}
-
 			// Check for password and page in query parameters
 			val password = call.request.queryParameters["p"]
 			val page = call.request.queryParameters["page"]?.toIntOrNull() ?: 1
 
-			// Resolve the author by pen name (verbatim, then dashes as spaces).
-			val account = resolveByPenName(penNameParam) { accountsRepository.findAccountByPenName(it) }
-			val penName = account?.pen_name
-			if (account == null || penName == null) {
+			val lookup = call.lookUpStory(accountsRepository, projectsRepository, projectAccessRepository, password)
+			if (lookup == null) {
 				call.respond(HttpStatusCode.NotFound)
 				return@get
 			}
+			val account = lookup.account
+			val projectName = lookup.projectName
+			val result = lookup.result
 
-			// Resolve the project by the id embedded in its URL segment, scoped to this author's
-			// projects; the slug beside the id is decorative and ignored.
-			val projectName = projectsRepository.findProjectByUrlSegment(account.id, projectNameParam)?.name
-			if (projectName == null) {
-				call.respond(HttpStatusCode.NotFound)
-				return@get
-			}
-
-			val result = projectAccessRepository.findAccessibleProject(penName, projectName, password)
-
-			// Self-referential links reuse the incoming, already URL-safe segments.
-			val penNameForUrl = penNameParam
-			val projectNameForUrl = projectNameParam
+			val penNameForUrl = lookup.penNameSegment
+			val projectNameForUrl = lookup.projectSegment
 
 			when (val resolved = result) {
 				is PublicProjectResult.NotFound -> {
@@ -294,32 +275,11 @@ fun Route.publicStoryPage(
 		// never reach here. Resolution mirrors the GET exactly — including the author-skip
 		// and access checks — so a beacon can only record a read the visitor could load.
 		post("/read") {
-			val penNameParam = call.parameters["penName"]
-			val projectNameParam = call.parameters["projectName"]
-
 			// A beacon is fire-and-forget: always answer 204 and never leak resolution
 			// outcomes, so a bad beacon looks the same as a good one.
-			if (penNameParam.isNullOrBlank() || projectNameParam.isNullOrBlank()) {
-				call.respond(HttpStatusCode.NoContent)
-				return@post
-			}
-
 			val password = call.request.queryParameters["p"]
-
-			val account = resolveByPenName(penNameParam) { accountsRepository.findAccountByPenName(it) }
-			val penName = account?.pen_name
-			if (account == null || penName == null) {
-				call.respond(HttpStatusCode.NoContent)
-				return@post
-			}
-
-			val projectName = projectsRepository.findProjectByUrlSegment(account.id, projectNameParam)?.name
-			if (projectName == null) {
-				call.respond(HttpStatusCode.NoContent)
-				return@post
-			}
-
-			val resolved = projectAccessRepository.findAccessibleProject(penName, projectName, password)
+			val resolved = call.lookUpStory(accountsRepository, projectsRepository, projectAccessRepository, password)
+				?.result
 			if (resolved is PublicProjectResult.Success) {
 				// Skip the author reading their own story.
 				val viewerId = call.sessions.get<UserSession>()?.userId

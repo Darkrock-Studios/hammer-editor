@@ -22,10 +22,6 @@ CREATE TABLE story_kudos_opt_out (
     FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE
 );
 
--- Serializes one reader's concurrent pick updates so the per-group caps hold.
-lockGiver:
-SELECT id FROM account WHERE id = :userId FOR UPDATE;
-
 kindsForUser:
 SELECT kind FROM story_kudos
 WHERE project_id = :projectId AND user_id = :userId;
@@ -39,19 +35,20 @@ deleteKinds:
 DELETE FROM story_kudos
 WHERE project_id = :projectId AND user_id = :userId AND kind IN :kinds;
 
--- Soft-deleted givers are left out until the purge removes their rows.
+-- Soft-deleted givers are left out until the purge removes their rows. `kinds` is the
+-- current chip set, so rows for retired chips never count.
 countsForProject:
 SELECT k.kind, count(*) AS givers
 FROM story_kudos k
 JOIN account a ON a.id = k.user_id
-WHERE k.project_id = :projectId AND a.deleted_at IS NULL
+WHERE k.project_id = :projectId AND a.deleted_at IS NULL AND k.kind IN :kinds
 GROUP BY k.kind;
 
 giverCountForProject:
 SELECT count(DISTINCT k.user_id)
 FROM story_kudos k
 JOIN account a ON a.id = k.user_id
-WHERE k.project_id = :projectId AND a.deleted_at IS NULL;
+WHERE k.project_id = :projectId AND a.deleted_at IS NULL AND k.kind IN :kinds;
 
 isOptedOut:
 SELECT EXISTS(SELECT 1 FROM story_kudos_opt_out WHERE project_id = :projectId);
