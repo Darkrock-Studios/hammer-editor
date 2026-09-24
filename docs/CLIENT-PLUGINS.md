@@ -2,7 +2,7 @@
 
 Design note for extending the Hammer client (desktop, Android, iOS) with plugins,
 and for exposing the same API as a command line interface and an MCP server.
-Status: rollout steps 1 to 6, 11, and Android's half of 12 are built; the rest is a proposal. The server already has an equivalent
+Status: rollout steps 1 to 7, 11, and Android's half of 12 are built; the rest is a proposal. The server already has an equivalent
 plugin seam (`server/.../plugin/ServerPlugin.kt`); this mirrors it where the
 shapes match.
 
@@ -610,8 +610,14 @@ hammer mcp        # contributed by the MCP plugin
 - Output is the operation's output type as JSON. `--out FILE` writes an
   output's one binary field (an export's bytes) to a file and prints the rest,
   and `--out -` writes the bytes alone to stdout.
-- Exit codes: 0 success, 1 failure, 2 usage or invalid input, 4 not found,
-  5 another Hammer process holds the writer lock.
+- Exit codes: 0 success, 1 failure, 3 not logged in or login rejected, 4 not
+  found, 5 another Hammer process holds the writer lock, and 64 (sysexits'
+  EX_USAGE) for usage errors and invalid input. An operation can report partial
+  failure through `Operation.exitCode`: `sync.run` returns 2 when a project needs
+  resolution.
+- A field marked `@FromStdin` is read from stdin when not given as an option; a
+  secret one (the login password) is never accepted as an option, and can also
+  come from an environment variable (`HAMMER_PASSWORD`).
 - Plugin `cliCommands()` are added alongside the generated subcommands. A plugin
   command cannot shadow a generated one.
 - With a subcommand, `main` starts Koin without opening a window, runs the
@@ -729,11 +735,18 @@ hammer sync run --project "My Novel" --on-conflict server
   plus that call; no refactor needed.
 - **Conflicts.** `--on-conflict abort|local|server`, default `abort`. Abort is
   what bulk sync already does: the project stops, is reported as needing
-  resolution, and other projects continue. Idea conflicts follow the same flag.
-- **Output.** Sync log lines go to stderr. A JSON summary with each project's
-  outcome goes to stdout.
+  resolution, and other projects continue. `local` and `server` apply to idea
+  conflicts only, for now: `SyncAccountUseCase` always stops a conflicted
+  project, and resolving one headless needs the project sync to accept a
+  choice instead of aborting.
+- **Output.** A JSON summary with each project's outcome, and the sync log
+  lines, goes to stdout. (Streaming the log to stderr as it happens needs a
+  progress channel operations do not have yet.)
 - **Exit codes.** 0 all synced, 1 failure, 2 at least one project needs
-  resolution, 3 unauthorized (run `account login` again). These map from
+  resolution, 3 unauthorized (run `account login` again).
+- **Login** takes the server, email, and password (from stdin). A server that
+  asks for terms acceptance is refused with a message to log in from the app
+  once, since accepting terms stays in the GUI. These map from
   `ProjectSyncOutcome`: `Failed` is 1, `NeedsResolution` is 2, and `Success`,
   `Unchanged`, `NotOnServer`, and `Skipped` are 0, with `NotOnServer` logged as
   a warning. `onUnauthorized` gives 3.
@@ -1191,8 +1204,10 @@ design is revisited rather than `:common` bent to fit.
 6. **[MCP plugin](#mcp-plugin).** Built: `:plugins:mcp` on the MCP Kotlin SDK,
    desktop-only registration, and its settings pane. Read-only for now, and each
    tool call fails while the app is running until forwarding lands.
-7. **Headless sync.** The account and sync operations, with `sync.run` as a
-   CLI listener over `SyncAccountUseCase`. Refuses while the app is running.
+7. **Headless sync.** Built: `account.status`, `account.login`,
+   `account.logout`, `sync.status`, and `sync.run` over `SyncAccountUseCase`.
+   Refuses while the app is running, through the writer lock. Tested with fakes
+   only so far, not against a live server.
 8. **Forwarding.** Local socket in the app, "Allow external tools" setting, CLI
    prefers the running app, second app instances hand off to the first.
 9. **Write operations.** `scene.write` and `scene.append` first, then the rest.

@@ -50,4 +50,16 @@ class CliTest {
 		assertEquals(Cli.EXIT_USAGE, run("scene", "read", "--project", "X", "--id", "twelve"))
 		assertTrue("--id needs a whole number" in stderr.readUtf8())
 	}
+
+	@Test
+	fun `passwords are never taken from the command line`() {
+		assertEquals(Cli.EXIT_USAGE, run("account", "login", "--url", "hammer.ink", "--email", "a@b.c", "--password", "hunter2"))
+		assertTrue("never the command line" in stderr.readUtf8())
+
+		assertEquals(Cli.EXIT_USAGE, run("account", "login", "--json", """{"url":"h","email":"e","password":"hunter2"}"""))
+		assertTrue("never the command line" in stderr.readUtf8())
+
+		assertEquals(Cli.EXIT_OK, run("account", "login", "--help"))
+		assertTrue("<password> from stdin or HAMMER_PASSWORD" in stdout.readUtf8())
+	}
 }
