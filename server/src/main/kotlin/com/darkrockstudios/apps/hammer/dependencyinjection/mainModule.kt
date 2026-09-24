@@ -41,6 +41,7 @@ import com.darkrockstudios.apps.hammer.database.ReviewSuggestionDao
 import com.darkrockstudios.apps.hammer.database.ServerConfigDao
 import com.darkrockstudios.apps.hammer.database.StoryEntityDao
 import com.darkrockstudios.apps.hammer.database.StoryIdeaDao
+import com.darkrockstudios.apps.hammer.database.StoryKudosDao
 import com.darkrockstudios.apps.hammer.database.UserActivityDao
 import com.darkrockstudios.apps.hammer.database.UserDataPurgeDao
 import com.darkrockstudios.apps.hammer.database.WhiteListDao
@@ -65,6 +66,7 @@ import com.darkrockstudios.apps.hammer.encryption.SimpleFileBasedAesGcmKeyProvid
 import com.darkrockstudios.apps.hammer.frontend.CommunityStatsProvider
 import com.darkrockstudios.apps.hammer.frontend.og.OgImageRenderer
 import com.darkrockstudios.apps.hammer.frontend.og.OgImageService
+import com.darkrockstudios.apps.hammer.kudos.StoryKudosRepository
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MetricsCollector
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
@@ -178,6 +180,7 @@ fun mainModule(
 	single<LoginAttemptDao>()
 	single<UserActivityDao>()
 	single<PublishedStoryReaderDao>()
+	single<StoryKudosDao>()
 	single<UserDataPurgeDao>()
 
 	single<AccountsRepository>()
@@ -207,6 +210,7 @@ fun mainModule(
 	// make Koin try to inject the Int rather than honor it.
 	single { StoryReaderCollector(clock = get()) }
 	single<StoryReaderRepository>()
+	single<StoryKudosRepository>()
 	single { MonitoringState() }
 	single { RecurringTaskRegistry() }
 	single<MonitoringMaintenanceJob>()

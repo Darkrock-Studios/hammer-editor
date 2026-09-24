@@ -34,6 +34,11 @@
 			<div id="story-page-content">
 				{{> partials/story-page-content}}
 			</div>
+			{{#kudosFragmentUrl}}
+				{{^hasNextPage}}
+					<div class="story-kudos-slot" hx-get="{{kudosFragmentUrl}}" hx-trigger="intersect once" hx-swap="outerHTML"></div>
+				{{/hasNextPage}}
+			{{/kudosFragmentUrl}}
 		{{/hasContent}}
 		{{^hasContent}}
 			<article class="story-content">
