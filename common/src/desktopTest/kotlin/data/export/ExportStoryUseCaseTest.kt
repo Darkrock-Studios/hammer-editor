@@ -82,7 +82,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	@Test
-	fun `a contributed format renders through its own exporter and extension`() = runTest {
+	fun `a contributed format renders through its own exporter, with scene boundaries`() = runTest {
 		initRepo()
 		val loadsBefore = projectDataLoads
 		val exporter = object : StoryExporter {
@@ -92,7 +92,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			override val needsProjectData = false
 
 			override fun render(sink: BufferedSink, input: ExportInput) {
-				sink.writeUtf8(input.chapters.joinToString("|") { it.name })
+				sink.writeUtf8(input.chapters.joinToString("|") { "${it.name}:${it.scenes.size}" })
 			}
 		}
 
@@ -103,7 +103,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 
 		assertTrue(exportPath.path.endsWith(".txt"), "Should use the exporter's extension, got $exportPath")
 		val text = ffs.read(exportPath.toOkioPath()) { readUtf8() }
-		assertEquals("Scene ID 1|Chapter ID 2|Scene ID 6|Scene ID 7", text)
+		assertEquals("Scene ID 1:1|Chapter ID 2:3|Scene ID 6:1|Scene ID 7:1", text)
 		assertEquals(loadsBefore, projectDataLoads)
 	}
 

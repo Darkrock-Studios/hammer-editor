@@ -56,18 +56,26 @@ New code goes in a new `:operations` module between `:common` and
 `:composeUi`, rather than growing `:common`.
 
 ```
-:base <- :common <- :operations <- :composeUi <- :android, :desktop
+:base <- :common <- :operations <- :plugins:plaintext <- :composeUi <- :android, :desktop
                          ^
-                         +---- :plugins:mcp <---------------- :desktop
+                         +---- :plugins:mcp <---------------------------------- :desktop
 ```
 
 | Module | Holds |
 | --- | --- |
 | `:common` | Same role as today. Gains only extension points (below) and pluggable export |
-| `:operations` | `Operation`, `OperationRegistry`, the core operations, `ClientPlugin`, `PluginRegistry`, `ProjectPluginContext`, `PluginSettingsDatasource`, `installedPlugins()` |
-| `:composeUi` | `PluginUi`, `PluginUiRegistry`, `installedPluginUis()`, the Plugins section of Settings |
+| `:operations` | `Operation`, `OperationRegistry`, the core operations, `ClientPlugin`, `PluginRegistry`, `ProjectPluginContext`, `PluginSettingsDatasource` |
+| `:composeUi` | `PluginUi`, `PluginUiRegistry`, `installedPlugins()` and `installedPluginUis()`, the Plugins section of Settings, and the UI halves of in-tree plugins |
 | `:desktop` | The CLI adapter and `Dispatcher`, socket forwarding, the writer lock, `installedDesktopPlugins()` |
+| `:plugins:plaintext` | The data half of the [plain text plugin](#plain-text-exporter-plaintext). All platforms, depends on `:operations` |
 | `:plugins:mcp` | The MCP plugin. JVM only, depends on `:operations` and the MCP Kotlin SDK |
+
+**Why registration lives in `:composeUi`.** A plugin module depends on
+`:operations`, so `:operations` cannot list it. A plugin's UI half needs
+`:composeUi`'s design system, so it cannot sit above `:composeUi` either, and
+`:composeUi` is also what the iOS framework is built from. So a cross-platform
+plugin is split: its data half is its own module below `:composeUi`, and its UI
+half lives in `:composeUi` next to the registration files.
 
 `:wear` depends only on `:common` and gets no plugins.
 
@@ -94,7 +102,7 @@ with no plugin code present.
 
 **iOS.** Koin starts in `:common`'s iOS source set, but it is called from
 `HammerAppInit` in `:composeUi`, which already passes extra modules. That is
-where iOS picks up `installedPlugins()`.
+where iOS picks up `installedPlugins()`, from the same module.
 
 **The v2 rule, partly enforced.** `:operations` declares no dependency on
 Compose resources, Napier, or Decompose. Napier and Decompose still reach it
@@ -395,7 +403,7 @@ collects them in one pass and the plugin author sees every hook in one place.
 package com.darkrockstudios.apps.hammer.common.data.export
 
 interface StoryExporter {
-	/** Stable id, e.g. `epub`. Plugin formats are prefixed with the plugin id, e.g. `smf.docx`. */
+	/** Stable id, e.g. `epub`. Plugin formats are prefixed with the plugin id, e.g. `plaintext.txt`. */
 	val formatId: String
 	val fileExtension: String
 	val mimeType: String
@@ -482,17 +490,15 @@ dialogs) are added here when a plugin needs them, not speculatively.
 ### Registration
 
 ```kotlin
-// operations/.../plugin/InstalledPlugins.kt
-fun installedPlugins(): List<ClientPlugin> = listOf()
-
-// composeUi/.../plugin/InstalledPluginUis.kt
-fun installedPluginUis(): List<PluginUi> = listOf()
+// composeUi/.../compose/plugin/InstalledPlugins.kt
+fun installedPlugins(): List<ClientPlugin> = listOf(PlainTextPlugin)
+fun installedPluginUis(): List<PluginUi> = listOf(PlainTextPluginUi)
 ```
 
 Same rule as the server file: registering is activating, there is no separate
 enabled flag in the registry. A plugin that wants a user-facing on/off switch
 keeps that in its own settings and honors it itself. A plugin with a UI half is
-registered in both files.
+registered in both lists.
 
 Each app entry point (`desktop/.../Main.kt`, `HammerApplication`, and
 `HammerAppInit` on iOS) accepts a plugin list defaulting to `installedPlugins()`,
@@ -509,6 +515,12 @@ fun installedDesktopPlugins(): List<ClientPlugin> = listOf(McpPlugin)
 ```
 
 Android and iOS get the same kind of file when a plugin first needs one.
+
+Plugins are cross-platform by default. Only a plugin built on something a
+platform lacks, such as a local MCP server or a CLI command, is registered per
+platform. No supported-platforms field is needed while plugins are compiled in:
+the module's targets and the registration file already say where it runs. A
+plugin manager screen or runtime loading would need one.
 
 `PluginRegistry` (`:operations`) holds the plugin list. It collects Koin modules
 and operations at startup, and binds each plugin's capabilities into `:common`'s
@@ -717,11 +729,12 @@ move work because it lives inside the project.
 
 ## Strings
 
-`MenuItemDescriptor` and `PluginUi.name` take `StringResource`, which is
-module-agnostic. An in-tree or overlay plugin adds its own
-`values/<id>-strings.xml` under the module's `composeResources`; Compose merges
-value files in the same module into one `Res`. A plugin in its own Gradle module
-uses its own `Res`. Either way the plugin owns its strings.
+`PluginUi.name` and the format labels take `StringResource`, which is
+module-agnostic. An in-tree or overlay plugin's UI half adds
+`values/<id>-strings.xml` under `:composeUi`'s own `composeResources`, which
+generates a `Res` separate from the app's (the app's strings stay in `:common`).
+Crowdin picks those files up too. A plugin in its own Gradle module uses its
+own `Res`. Either way the plugin owns its strings.
 
 Operation descriptions are plain English strings. They are read by agents and
 shown in CLI help, neither of which is localized today.
@@ -732,22 +745,30 @@ Two plugins to build against v1, alongside the [MCP plugin](#mcp-plugin),
 chosen so that between them they exercise most of the seam. All three are real
 features, not test fixtures.
 
-### Standard Manuscript Format exporter (`smf`)
+### Plain text exporter (`plaintext`)
 
-Produces the DOCX layout agents and magazines ask for: 12 point Times or
-Courier, double spacing, a surname, title, and page number header, a rounded
-word count on the first page, and `#` scene breaks. It can reuse the built-in
-DOCX writer's internals.
+Built. Exports a story as plain text for pasting into submission forms, which
+want text with their own conventions for scene breaks and italics. Settings:
+scene break marker (`#`, `* * *`, or a blank line), italics (underscores,
+asterisks, or removed), paragraphs (blank line between, or indented), and
+chapter headings. Formatting comes from `:common`'s public prose parser, so it
+reads markdown the same way the built-in formats do.
 
 | Exercises | How |
 | --- | --- |
-| Exporter capability | `exporters()` returns one exporter, format id `smf.docx` |
-| Global plugin settings | Legal name, address, email, phone, font in `plugins/smf.toml` |
-| UI half | Settings pane for those settings; `exportFormatLabels()` |
-| Operations for free | `hammer project export --format smf.docx`, and export through the MCP plugin, with no plugin code |
+| Exporter capability | `exporters()` returns one exporter, format id `plaintext.txt` |
+| Global plugin settings | `plugins/plaintext.toml`, through a small store the exporter reads at render time |
+| UI half | Settings pane and `exportFormatLabels()`, with strings in `:composeUi`'s own `Res` |
+| Split module | Data half in `:plugins:plaintext`, UI half in `:composeUi` |
+| Operations for free | `hammer project export --format plaintext.txt`, and export through the MCP plugin, with no plugin code |
 
-The pen name comes from the project's existing author name, so SMF needs no
-per-project settings.
+**Manuscript format moves into core.** Standard Manuscript Format (12 point
+Times or Courier, double spacing, a surname, title, and page number header, a
+rounded word count, `#` scene breaks) was the first example plugin. It fits the
+built-in DOCX better: writers mostly want DOCX to send to agents, editors, and
+contests, all of whom expect manuscript format, and EPUB and PDF already cover
+a styled book. Converting the built-in DOCX is a separate change, pending where
+the page-one contact block comes from.
 
 ### Style report (`style`)
 
@@ -776,8 +797,8 @@ It depends on `note.create`, so it lands after write operations.
 - **No dialog or panel slot.** The style report writes a note because there is
   nowhere to show a result. A result dialog is the most likely next UI slot.
 - **No per-project settings pane.** Plugin settings are global. Per-project
-  settings would need a slot on the project settings screen. SMF avoids it by
-  reusing the project's author name.
+  settings would need a slot on the project settings screen. Neither example
+  plugin needs one yet.
 
 ## Keeping the door open
 
@@ -817,6 +838,8 @@ Most new code lives outside `:common`: in `:operations`, `:composeUi`,
 | `closeProjectScope` counts editors, closing the scope when the last one closes | A few lines | Yes. Two Android tasks on one project otherwise close the scope under each other |
 | One string, `settings_plugins_header` | Trivial | No, but it is where all UI strings live |
 | `ExportFormat` enum becomes `StoryExporterRegistry`; export moves from `components/projecthome` to the data layer | Moderate | Partly. Export logic is in the wrong layer today |
+| The prose markdown parser moves out of `PdfProseMarkdown.kt` into a public `ProseMarkdown.kt` | Small | Yes. DOCX and RTF already use it, and it had nothing to do with PDF |
+| `StoryChapter` keeps its scenes separate, with `markdown` joining them | Small | Yes. Manuscript format needs scene breaks too |
 | A draft-save method that takes text, not only the current scene content | Small | No, but it is a natural addition |
 
 Headless sync needs no `:common` change: the sync-all orchestration already
@@ -834,11 +857,6 @@ come from running it with no UI:
 Spike both before step 4: start Koin headless, run a few read operations,
 stop and restart it in a loop, and watch for leaks and failures.
 
-**Deferral.** Pluggable export (step 2) only matters for the SMF exporter. If
-that can wait, export stays as it is, and the MCP plugin and style report still
-exercise most of the seam. That leaves the lifecycle listener as the only
-plugin-specific change to `:common`.
-
 **Guardrail.** Every step's `:common` changes must make sense without plugins,
 or be listed in the table above. Anything else gets flagged in review, and the
 design is revisited rather than `:common` bent to fit.
@@ -852,7 +870,7 @@ design is revisited rather than `:common` bent to fit.
    and entry-point wiring. Proven by a test-only fake plugin.
 2. **Pluggable export.** Move export into the data layer, replace the
    `ExportFormat` enum with `StoryExporterRegistry`, port the five built-in
-   formats, then ship the [SMF exporter](#standard-manuscript-format-exporter-smf)
+   formats, then ship the [plain text exporter](#plain-text-exporter-plaintext)
    as the first real plugin.
 3. **Operation registry and read operations.** Registry, `OperationContext`,
    the Read operations from the catalog, including `project.export` and
