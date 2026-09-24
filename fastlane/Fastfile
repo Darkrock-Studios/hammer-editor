@@ -23,6 +23,13 @@ def play_bundle(module_name)
   path
 end
 
+# R8 mapping for a module's release bundle, so Play can deobfuscate crash reports.
+def play_mapping(module_name)
+  path = File.expand_path("../#{module_name}/build/outputs/mapping/release/mapping.txt", __dir__)
+  UI.user_error!("No R8 mapping at #{path}") unless File.exist?(path)
+  path
+end
+
 # Returns an App Store Connect API key hash for use in mac lanes.
 # The .p8 is gitignored in desktop/secrets/.
 private_lane :appstore_api_key do
@@ -362,14 +369,14 @@ platform :android do
   desc "Submit a new Build to Google Play Internal"
   lane :internal do
     play_build
-    upload_to_play_store(track: 'internal', aab: play_bundle("android"))
+    upload_to_play_store(track: 'internal', aab: play_bundle("android"), mapping: play_mapping("android"))
     upload_wear_bundle(track: 'wear:qa')
   end
 
   desc "Submit a new Alpha Build to Google Play Close"
   lane :alpha do
     play_build
-    upload_to_play_store(track: 'alpha', aab: play_bundle("android"))
+    upload_to_play_store(track: 'alpha', aab: play_bundle("android"), mapping: play_mapping("android"))
     # Wear OS has no default closed testing track; closed tracks on a form factor are
     # custom-named in the Play Console, so the watch app skips this lane.
   end
@@ -377,7 +384,7 @@ platform :android do
   desc "Submit a new Beta Build to Google Play Open"
   lane :beta do
     play_build
-    upload_to_play_store(track: 'beta', aab: play_bundle("android"))
+    upload_to_play_store(track: 'beta', aab: play_bundle("android"), mapping: play_mapping("android"))
     upload_wear_bundle(track: 'wear:beta')
   end
 
@@ -387,6 +394,7 @@ platform :android do
     upload_to_play_store(
       root_url: "https://androidpublisher.googleapis.com/",
       aab: play_bundle("android"),
+      mapping: play_mapping("android"),
       skip_upload_images: true,
       skip_upload_screenshots: true
     )
@@ -410,6 +418,7 @@ platform :android do
       root_url: "https://androidpublisher.googleapis.com/",
       track: options[:track],
       aab: play_bundle("wear"),
+      mapping: play_mapping("wear"),
       skip_upload_metadata: true,
       skip_upload_images: true,
       skip_upload_screenshots: true
