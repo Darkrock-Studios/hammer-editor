@@ -56,6 +56,7 @@ kotlin {
 				implementation(project(":common"))
 				implementation(project(":operations"))
 				implementation(project(":composeUi"))
+				implementation(project(":plugins:wasmhost"))
 				implementation(libs.jetbrains.compose.components.ui.tooling.preview)
 				implementation(compose.desktop.currentOs)
 				implementation(libs.cairn)

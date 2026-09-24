@@ -33,7 +33,7 @@ data class PluginManifest(
 		const val API_VERSION = 1
 
 		fun parse(toml: String): PluginManifest {
-			val manifest = Toml.decodeFromString(serializer(), toml)
+			val manifest = Toml { ignoreUnknownKeys = true }.decodeFromString(serializer(), toml)
 			require(manifest.api == API_VERSION) { "Plugin '${manifest.id}' needs host API ${manifest.api}" }
 			return manifest
 		}

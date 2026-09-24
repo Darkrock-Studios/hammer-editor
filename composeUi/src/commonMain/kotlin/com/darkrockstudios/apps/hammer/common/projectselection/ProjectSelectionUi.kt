@@ -13,6 +13,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -26,13 +27,15 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.Projec
 import com.darkrockstudios.apps.hammer.common.compose.SetScreenCharacteristics
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBarDestination
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRailDestination
+import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginUiRegistry
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.projectselection.about.AboutAppUi
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.AccountSettingsUi
 import com.darkrockstudios.apps.hammer.common.projectselection.storyideas.StoryIdeasUi
-import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginUiRegistry
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import org.koin.compose.koinInject
+import org.koin.mp.KoinPlatform.getKoin
 
 private val WIDE_SCREEN_THRESHOLD = 720.dp
 
@@ -94,6 +97,7 @@ fun ProjectSelectionUi(
 						destination.component,
 						rootSnackbar,
 						pluginSettingsPanes = koinInject<PluginUiRegistry>().settingsPanes,
+						runtimePlugins = remember { getKoin().getOrNull<RuntimePlugins>() },
 					)
 
 					is ProjectSelection.Destination.ProjectsListDestination -> ProjectListUi(

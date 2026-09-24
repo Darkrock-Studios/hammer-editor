@@ -3,4 +3,24 @@
 	<string name="plugin_setting_min">At least %1$s</string>
 	<string name="plugin_setting_max">At most %1$s</string>
 	<string name="plugin_setting_whole_number">A whole number</string>
+	<string name="plugin_runtime_header">Installed plugins</string>
+	<string name="plugin_runtime_empty">No plugins installed.</string>
+	<string name="plugin_runtime_install">Install plugin…</string>
+	<string name="plugin_runtime_uninstall">Uninstall</string>
+	<string name="plugin_runtime_uninstall_confirm">Really uninstall?</string>
+	<string name="plugin_runtime_details">Version %1$s</string>
+	<string name="plugin_runtime_unreadable">Its package can no longer be read. Uninstall it and install it again.</string>
+	<string name="plugin_runtime_restart">Restart Hammer to apply plugin changes.</string>
+	<string name="plugin_install_title">Install %1$s?</string>
+	<string name="plugin_install_close">Cancel install</string>
+	<string name="plugin_install_version">Version %1$s</string>
+	<string name="plugin_install_sandbox">Plugins run in a sandbox. This one can only use what is listed here.</string>
+	<string name="plugin_install_reads">Read: %1$s</string>
+	<string name="plugin_install_writes">Change: %1$s</string>
+	<string name="plugin_install_no_access">It asks for no access to your projects.</string>
+	<string name="plugin_install_exports">Adds export formats: %1$s</string>
+	<string name="plugin_install_replaces">Replaces the installed version %1$s.</string>
+	<string name="plugin_install_confirm">Install</string>
+	<string name="plugin_install_cancel">Cancel</string>
+	<string name="plugin_install_failed">Could not install the plugin: %1$s</string>
 </resources>
