@@ -4,7 +4,6 @@ import com.darkrockstudios.apps.hammer.base.di.dispatcherModule
 import com.darkrockstudios.apps.hammer.base.http.NetworkJsonQualifier
 import com.darkrockstudios.apps.hammer.base.http.createJsonSerializer
 import com.darkrockstudios.apps.hammer.base.http.createNetworkJsonSerializer
-import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
@@ -38,6 +37,8 @@ import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatas
 import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
+import com.darkrockstudios.apps.hammer.common.data.export.ExportStoryUseCase
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesDatasource
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
@@ -264,6 +265,8 @@ val mainModule = module {
 	single<SpellCheckRepository>()
 
 	single { StoryImporterRegistry(listOf(MarkdownStoryImporter(), RtfStoryImporter())) }
+	// Plugins contribute formats by binding StoryExporters; the built-in ones are always present.
+	single { StoryExporterRegistry(getAll()) }
 
 	scope<ProjectDefScope> {
 		scoped<ProjectDef> { get<ProjectDefScope>().projectDef }
@@ -277,6 +280,7 @@ val mainModule = module {
 		scoped {
 			ExportStoryUseCase(
 				sceneEditorRepository = get(),
+				exporters = get(),
 				projectDataDatasource = get(),
 				fileSystem = get(named(RAW_FILESYSTEM)),
 				localeResolver = get(),

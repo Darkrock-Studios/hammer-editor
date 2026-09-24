@@ -47,7 +47,6 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPickerList
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPickerRow
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
-import com.darkrockstudios.apps.hammer.common.data.ExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
 import com.darkrockstudios.apps.hammer.project_home_export_cancel
@@ -55,12 +54,7 @@ import com.darkrockstudios.apps.hammer.project_home_export_chapters_label
 import com.darkrockstudios.apps.hammer.project_home_export_close
 import com.darkrockstudios.apps.hammer.project_home_export_dialog_title
 import com.darkrockstudios.apps.hammer.project_home_export_execute
-import com.darkrockstudios.apps.hammer.project_home_export_format_docx
-import com.darkrockstudios.apps.hammer.project_home_export_format_epub
 import com.darkrockstudios.apps.hammer.project_home_export_format_label
-import com.darkrockstudios.apps.hammer.project_home_export_format_markdown
-import com.darkrockstudios.apps.hammer.project_home_export_format_pdf
-import com.darkrockstudios.apps.hammer.project_home_export_format_rtf
 import com.darkrockstudios.apps.hammer.project_home_export_help_icon_description
 import com.darkrockstudios.apps.hammer.project_home_export_limit_scenes_hint
 import com.darkrockstudios.apps.hammer.project_home_export_limit_scenes_label
@@ -69,7 +63,6 @@ import com.darkrockstudios.apps.hammer.project_home_export_scenes_label
 import com.darkrockstudios.apps.hammer.project_home_export_scenes_select_all
 import com.darkrockstudios.apps.hammer.project_home_export_scenes_selected
 import com.darkrockstudios.apps.hammer.project_home_export_section
-import org.jetbrains.compose.resources.StringResource
 
 private val DialogMaxWidth = 520.dp
 
@@ -102,6 +95,7 @@ fun ExportOptionsDialog(
 	) {
 		ExportOptionsDialogContent(
 			options = options,
+			formats = exportFormatChoices(),
 			exportableScenes = exportableScenes,
 			onOptionsChanged = onOptionsChanged,
 			onCancel = onCancel,
@@ -119,6 +113,7 @@ fun ExportOptionsDialog(
 @Composable
 internal fun ExportOptionsDialogContent(
 	options: ExportOptions,
+	formats: List<ExportFormatChoice>,
 	exportableScenes: List<ExportableScene>,
 	onOptionsChanged: (ExportOptions) -> Unit,
 	onCancel: () -> Unit,
@@ -200,10 +195,10 @@ internal fun ExportOptionsDialogContent(
 
 				HdHairlineDropdown(
 					title = Res.string.project_home_export_format_label.get(),
-					options = AVAILABLE_EXPORT_FORMATS,
-					selected = options.format,
-					onSelect = { onOptionsChanged(options.copy(format = it)) },
-					label = { (it.labelRes()).get() },
+					options = formats,
+					selected = formats.firstOrNull { it.formatId == options.format } ?: formats.first(),
+					onSelect = { onOptionsChanged(options.copy(format = it.formatId)) },
+					label = { it.label },
 				)
 
 				if (allSceneIds.isNotEmpty()) {
@@ -351,21 +346,4 @@ private fun ExportSceneRow(
 			.testTag(exportSceneRowTag(entry.id)),
 		trailing = { HdHairlineCheckbox(checked = isSelected) },
 	)
-}
-
-private val AVAILABLE_EXPORT_FORMATS =
-	listOf(
-		ExportFormat.Epub,
-		ExportFormat.Docx,
-		ExportFormat.Rtf,
-		ExportFormat.Pdf,
-		ExportFormat.Markdown,
-	)
-
-private fun ExportFormat.labelRes(): StringResource = when (this) {
-	ExportFormat.Markdown -> Res.string.project_home_export_format_markdown
-	ExportFormat.Epub -> Res.string.project_home_export_format_epub
-	ExportFormat.Pdf -> Res.string.project_home_export_format_pdf
-	ExportFormat.Docx -> Res.string.project_home_export_format_docx
-	ExportFormat.Rtf -> Res.string.project_home_export_format_rtf
 }

@@ -20,6 +20,10 @@ class PluginUiRegistry(uis: List<PluginUi>, pluginRegistry: PluginRegistry) {
 
 	val settingsPanes: List<PluginSettingsPane> =
 		this.uis.mapNotNull { ui -> ui.settingsPane?.let { PluginSettingsPane(ui.name, it) } }
+
+	val exportFormatLabels: Map<String, StringResource> = this.uis.fold(emptyMap()) { labels, ui ->
+		labels + ui.exportFormatLabels()
+	}
 }
 
 fun pluginUiModule(uis: List<PluginUi>) = module {
