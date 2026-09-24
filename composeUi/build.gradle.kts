@@ -68,6 +68,7 @@ kotlin {
 		val commonMain by getting {
 			dependencies {
 				api(project(":common"))
+				api(project(":operations"))
 				api(libs.jetbrains.compose.runtime)
 				api(libs.jetbrains.compose.components.resources)
 				api(libs.jetbrains.compose.ui.tooling.preview)
