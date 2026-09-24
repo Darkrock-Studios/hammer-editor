@@ -146,6 +146,9 @@ fun Route.publicStoryPage(
 							"authorPenNameUrl" to ProjectName.penNameForUrl(resolved.penName),
 						)
 					)
+					if (resolved.isPublic) {
+						model["kudosFragmentUrl"] = "/a/$penNameForUrl/$projectNameForUrl/kudos"
+					}
 
 					// Resolved once and reused by the render below, so the ETag costs no extra queries.
 					// A scene-limited share prepares only its scene subset; if every selected scene

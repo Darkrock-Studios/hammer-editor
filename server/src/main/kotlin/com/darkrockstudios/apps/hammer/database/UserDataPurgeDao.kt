@@ -33,7 +33,12 @@ class UserDataPurgeDao(
 			db.reviewSceneQueries.deleteAllForUser(userId)
 			db.reviewRequestQueries.deleteAllForUser(userId)
 
+			// Kudos this user gave on other authors' stories.
+			db.storyKudosQueries.deleteAllGivenByUser(userId)
+
 			// Everything hanging off the user's projects.
+			db.storyKudosQueries.deleteAllOnUserProjects(userId)
+			db.storyKudosQueries.deleteAllOptOutsForUser(userId)
 			db.publishedStoryReaderQueries.deleteAllForUser(userId)
 			db.publishedStoryReaderQueries.deleteAllTotalsForUser(userId)
 			db.deletedEntityQueries.deleteAllForUser(userId)

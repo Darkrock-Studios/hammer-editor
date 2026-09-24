@@ -1,0 +1,65 @@
+<section class="story-kudos" id="story-kudos" aria-labelledby="story-kudos-title">
+	<h2 class="story-kudos__title" id="story-kudos-title">{{msg.kudos_title}}</h2>
+
+	{{#hasHighlights}}
+		<div class="story-kudos__highlights">
+			{{#hasCraftHighlights}}
+				<p class="story-kudos__lead">{{msg.kudos_readers_loved}}</p>
+				<ul class="story-kudos__stamps">
+					{{#craftHighlights}}<li class="story-kudos__stamp">{{.}}</li>{{/craftHighlights}}
+				</ul>
+			{{/hasCraftHighlights}}
+			{{#hasReactionHighlights}}
+				<p class="story-kudos__lead">{{msg.kudos_readers_said}}</p>
+				<ul class="story-kudos__stamps">
+					{{#reactionHighlights}}<li class="story-kudos__stamp story-kudos__stamp--reaction">{{.}}</li>{{/reactionHighlights}}
+				</ul>
+			{{/hasReactionHighlights}}
+		</div>
+	{{/hasHighlights}}
+
+	{{#isAuthor}}
+		<p class="story-kudos__note">{{msg.kudos_author_note}}</p>
+	{{/isAuthor}}
+
+	{{^isAuthor}}
+		<form class="story-kudos__form"
+			  hx-post="{{kudosUrl}}"
+			  hx-trigger="change"
+			  hx-target="#story-kudos"
+			  hx-swap="outerHTML">
+			{{#isSignedOut}}
+				<p class="story-kudos__note story-kudos__note--signin"><a href="/login">{{msg.kudos_sign_in_prompt}}</a></p>
+			{{/isSignedOut}}
+			<fieldset class="story-kudos__group"{{^canGive}} disabled{{/canGive}}>
+				<legend class="story-kudos__prompt">
+					{{msg.kudos_craft_prompt}}
+					<span class="story-kudos__hint">{{msg.kudos_craft_hint}}</span>
+				</legend>
+				<div class="story-kudos__chips">
+					{{#craftChips}}
+						<input type="checkbox" class="story-kudos__input" id="kudos-{{key}}" name="kind"
+							   value="{{key}}"{{#checked}} checked{{/checked}}{{#disabled}} disabled{{/disabled}}>
+						<label class="story-kudos__chip" for="kudos-{{key}}">{{label}}</label>
+					{{/craftChips}}
+				</div>
+			</fieldset>
+
+			<fieldset class="story-kudos__group"{{^canGive}} disabled{{/canGive}}>
+				<legend class="story-kudos__prompt">
+					{{msg.kudos_reaction_prompt}}
+					<span class="story-kudos__hint">{{msg.kudos_reaction_hint}}</span>
+				</legend>
+				<div class="story-kudos__chips">
+					{{#reactionChips}}
+						<input type="checkbox" class="story-kudos__input" id="kudos-{{key}}" name="kind"
+							   value="{{key}}"{{#checked}} checked{{/checked}}{{#disabled}} disabled{{/disabled}}>
+						<label class="story-kudos__chip story-kudos__chip--reaction" for="kudos-{{key}}">{{label}}</label>
+					{{/reactionChips}}
+				</div>
+			</fieldset>
+
+			<p class="story-kudos__status" role="status">{{#justSaved}}{{msg.kudos_saved}}{{/justSaved}}</p>
+		</form>
+	{{/isAuthor}}
+</section>

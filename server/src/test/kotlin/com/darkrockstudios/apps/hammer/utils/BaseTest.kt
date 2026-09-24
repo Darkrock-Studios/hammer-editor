@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.dependencyinjection.DISPATCHER_MAIN
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECTS_SYNC_MANAGER
 import com.darkrockstudios.apps.hammer.dependencyinjection.PROJECT_SYNC_MANAGER
+import com.darkrockstudios.apps.hammer.kudos.StoryKudosRepository
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
 import com.darkrockstudios.apps.hammer.monitoring.MonitoringState
@@ -153,6 +154,7 @@ fun Application.setupKtorTestKoin(baseTest: BaseTest, vararg modules: Module) {
 				single<UserActivityCollector> { mockk(relaxed = true) }
 				single<StoryReaderRepository> { mockk(relaxed = true) }
 				single<StoryReaderCollector> { mockk(relaxed = true) }
+				single<StoryKudosRepository> { mockk(relaxed = true) }
 				single { RecurringTaskRegistry() }
 				single<SyncSessionManager<Long, ProjectsSynchronizationSession>>(named(PROJECTS_SYNC_MANAGER)) {
 					mockk(relaxed = true)

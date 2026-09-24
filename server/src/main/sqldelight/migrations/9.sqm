@@ -1,0 +1,20 @@
+-- Migration 9 -> 10: story kudos. Mirrors StoryKudos.sq for already-deployed
+-- databases; fresh installs get this from Schema.create.
+
+CREATE TABLE story_kudos (
+    project_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    kind TEXT NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT story_kudos_kind_len CHECK (length(kind) BETWEEN 1 AND 32),
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
+    PRIMARY KEY (project_id, user_id, kind)
+);
+
+CREATE INDEX story_kudos_user_idx ON story_kudos (user_id);
+
+CREATE TABLE story_kudos_opt_out (
+    project_id BIGINT NOT NULL PRIMARY KEY,
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE
+);

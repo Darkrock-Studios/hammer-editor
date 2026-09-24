@@ -2191,3 +2191,278 @@
 		border-right: none;
 	}
 }
+
+/* ========================================
+   Reader Kudos (public story page)
+   ======================================== */
+
+.story-kudos-slot {
+	min-height: 1px;
+}
+
+.story-kudos {
+	position: relative;
+	margin-top: 3rem;
+	padding: 2rem 2rem 1.5rem 3.5rem;
+	background: var(--paper-white);
+	border-radius: 0.75rem;
+	box-shadow: var(--shadow-md), inset 0 0 0 1px rgba(0, 0, 0, 0.04);
+}
+
+/* Notebook margin line */
+.story-kudos::before {
+	content: '';
+	position: absolute;
+	left: 2rem;
+	top: 0;
+	bottom: 0;
+	width: 2px;
+	background: rgba(239, 68, 68, 0.2);
+	pointer-events: none;
+}
+
+.story-kudos__title {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 1.35rem;
+	font-weight: normal;
+	color: var(--text-primary);
+	margin: 0 0 1.25rem;
+}
+
+.story-kudos__highlights {
+	margin-bottom: 1.5rem;
+	padding-bottom: 1.25rem;
+	border-bottom: 1px dashed var(--neutral-300);
+}
+
+.story-kudos__lead {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.75rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--text-secondary);
+	margin: 0 0 0.5rem;
+}
+
+.story-kudos__stamps {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	list-style: none;
+	margin: 0 0 1rem;
+	padding: 0;
+}
+
+.story-kudos__stamps:last-child {
+	margin-bottom: 0;
+}
+
+/* Rubber stamp: inked border with an alternating slight tilt */
+.story-kudos__stamp {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.8rem;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--accent-dark);
+	border: 1.5px solid var(--accent);
+	border-radius: 4px;
+	padding: 0.3rem 0.7rem;
+	transform: rotate(-1.5deg);
+}
+
+.story-kudos__stamp:nth-child(even) {
+	transform: rotate(1deg);
+}
+
+.story-kudos__stamp--reaction {
+	color: var(--primary-dark);
+	border-color: var(--primary-light);
+}
+
+.story-kudos__form {
+	margin: 0;
+}
+
+.story-kudos__group {
+	border: none;
+	margin: 0 0 1.25rem;
+	padding: 0;
+	min-width: 0;
+}
+
+.story-kudos__prompt {
+	font-family: 'Lora', Georgia, serif;
+	font-size: 1.05rem;
+	color: var(--text-primary);
+	padding: 0;
+	margin-bottom: 0.65rem;
+}
+
+.story-kudos__hint {
+	font-style: italic;
+	font-size: 0.85rem;
+	color: var(--text-tertiary);
+	margin-left: 0.35rem;
+}
+
+.story-kudos__chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+}
+
+.story-kudos__input {
+	position: absolute;
+	opacity: 0;
+	pointer-events: none;
+}
+
+.story-kudos__chip {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.85rem;
+	padding: 0.5rem 0.95rem;
+	border-radius: 8px;
+	cursor: pointer;
+	border: 1.5px solid var(--neutral-300);
+	background: #ffffff;
+	color: var(--neutral-600);
+	transition: all var(--transition-fast);
+	user-select: none;
+}
+
+.story-kudos__chip:hover {
+	border-color: var(--accent-light);
+	color: var(--accent-dark);
+}
+
+.story-kudos__input:checked + .story-kudos__chip {
+	border-color: var(--accent);
+	background: #fdf1e3;
+	color: var(--accent-dark);
+	box-shadow: var(--shadow-sm);
+}
+
+.story-kudos__input:checked + .story-kudos__chip--reaction {
+	border-color: var(--primary-light);
+	background: #eff6ff;
+	color: var(--primary-dark);
+}
+
+.story-kudos__input:focus-visible + .story-kudos__chip {
+	outline: 2px solid var(--accent);
+	outline-offset: 3px;
+}
+
+.story-kudos__input:disabled + .story-kudos__chip {
+	cursor: default;
+	opacity: 0.6;
+	border-color: var(--neutral-200);
+	color: var(--neutral-500);
+}
+
+.story-kudos__note {
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.9rem;
+	color: var(--text-secondary);
+	margin: 0;
+}
+
+.story-kudos__note--signin {
+	margin-bottom: 1rem;
+}
+
+.story-kudos__note a {
+	color: var(--accent-dark);
+	text-decoration: underline;
+	text-underline-offset: 2px;
+}
+
+.story-kudos__status {
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.9rem;
+	color: var(--accent-dark);
+	min-height: 1.35rem;
+	margin: 0.25rem 0 0;
+}
+
+@media only screen and (max-width: 480px) {
+	.story-kudos {
+		padding: 1.5rem 1.25rem 1.25rem 2.25rem;
+	}
+
+	.story-kudos::before {
+		left: 1.25rem;
+	}
+}
+
+/* ========================================
+   Kudos panel (author story page)
+   ======================================== */
+
+.info-panel-icon--kudos {
+	background: var(--accent);
+}
+
+.kudos-tally__heading {
+	font-family: 'Kingthings Typewriter', monospace;
+	font-size: 0.7rem;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--text-secondary);
+	margin: 0.75rem 0 0.35rem;
+}
+
+.kudos-tally {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.kudos-tally__row {
+	display: flex;
+	justify-content: space-between;
+	align-items: baseline;
+	padding: 0.3rem 0;
+	border-bottom: 1px dotted var(--neutral-200);
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.9rem;
+	color: var(--text-primary);
+}
+
+.kudos-tally__row:last-child {
+	border-bottom: none;
+}
+
+.kudos-tally__count {
+	font-family: 'Kingthings Typewriter', monospace;
+	color: var(--accent-dark);
+}
+
+.kudos-panel__note {
+	font-family: 'Lora', Georgia, serif;
+	font-style: italic;
+	font-size: 0.85rem;
+	color: var(--text-secondary);
+	margin: 0.5rem 0 0;
+}
+
+.kudos-panel__toggle {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	margin-top: 1rem;
+	padding-top: 0.75rem;
+	border-top: 1px dashed var(--neutral-200);
+	font-family: 'Lora', Georgia, serif;
+	font-size: 0.85rem;
+	color: var(--text-primary);
+	cursor: pointer;
+}
+
+.kudos-panel__toggle input {
+	accent-color: var(--accent);
+	width: 1rem;
+	height: 1rem;
+}

@@ -1,0 +1,55 @@
+<div class="story-info-panel story-info-panel--kudos" id="kudos-panel">
+	<div class="info-panel-header">
+		<span class="info-panel-icon info-panel-icon--kudos"><i class="fas fa-hands-clapping"></i></span>
+		<span class="info-panel-title">{{msg.story_kudos_title}}</span>
+	</div>
+	<div class="info-panel-content">
+		{{#hasKudos}}
+			<div class="reader-total">
+				<span class="reader-total__value">{{kudosGivers}}</span>
+				<span class="reader-total__label">{{msg.story_kudos_givers_label}}</span>
+			</div>
+			{{#hasCraftKudos}}
+				<p class="kudos-tally__heading">{{msg.story_kudos_craft_heading}}</p>
+				<ul class="kudos-tally">
+					{{#craftKudos}}
+						<li class="kudos-tally__row">
+							<span class="kudos-tally__label">{{label}}</span>
+							<span class="kudos-tally__count">{{count}}</span>
+						</li>
+					{{/craftKudos}}
+				</ul>
+			{{/hasCraftKudos}}
+			{{#hasReactionKudos}}
+				<p class="kudos-tally__heading">{{msg.story_kudos_reaction_heading}}</p>
+				<ul class="kudos-tally">
+					{{#reactionKudos}}
+						<li class="kudos-tally__row">
+							<span class="kudos-tally__label">{{label}}</span>
+							<span class="kudos-tally__count">{{count}}</span>
+						</li>
+					{{/reactionKudos}}
+				</ul>
+			{{/hasReactionKudos}}
+		{{/hasKudos}}
+		{{^hasKudos}}
+			<p class="kudos-panel__note">{{msg.story_kudos_empty}}</p>
+		{{/hasKudos}}
+
+		<label class="kudos-panel__toggle" for="kudos-enabled-input">
+			<input type="checkbox"
+				   id="kudos-enabled-input"
+				   name="enabled"
+				   value="true"
+				   {{#kudosEnabled}}checked{{/kudosEnabled}}
+				   hx-post="/story/{{projectNameForUrl}}/kudos-enabled"
+				   hx-trigger="change"
+				   hx-target="#kudos-panel"
+				   hx-swap="outerHTML">
+			{{msg.story_kudos_enabled_label}}
+		</label>
+		{{^kudosEnabled}}
+			<p class="kudos-panel__note">{{msg.story_kudos_disabled_note}}</p>
+		{{/kudosEnabled}}
+	</div>
+</div>
