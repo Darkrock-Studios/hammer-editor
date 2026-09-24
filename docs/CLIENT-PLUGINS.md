@@ -2,7 +2,7 @@
 
 Design note for extending the Hammer client (desktop, Android, iOS) with plugins,
 and for exposing the same API as a command line interface and an MCP server.
-Status: rollout steps 1 to 4 and 11 (runtime plugins on desktop) are built; the rest is a proposal. The server already has an equivalent
+Status: rollout steps 1 to 4, 11, and Android's half of 12 (runtime plugins) are built; the rest is a proposal. The server already has an equivalent
 plugin seam (`server/.../plugin/ServerPlugin.kt`); this mirrors it where the
 shapes match.
 
@@ -1187,8 +1187,10 @@ design is revisited rather than `:common` bent to fit.
 11. **Runtime plugins on desktop.** Built. A Kotlin/Wasm plugin from the
     `hammer-plugins` repository compiles, packages, installs, loads after a
     restart, reads its declared settings, and calls back into Hammer.
-12. **Runtime plugins on Android**, then an iOS decision. Registration changes
-    only.
+12. **Runtime plugins on Android**, then an iOS decision. Android is built:
+    registration only, through the same `RuntimePlugins.inConfigDirectory`
+    as desktop. iOS needs only the same line in `HammerAppInit`, once App
+    Review's stance on installable plugins is settled.
 
 Steps 1 and 2 restructure existing code, and step 8 changes app startup
 (single-instance hand-off). The rest are additive. Step 9 is where the
