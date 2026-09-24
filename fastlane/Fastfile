@@ -394,9 +394,7 @@ platform :android do
     upload_to_play_store(
       root_url: "https://androidpublisher.googleapis.com/",
       aab: play_bundle("android"),
-      mapping: play_mapping("android"),
-      skip_upload_images: true,
-      skip_upload_screenshots: true
+      mapping: play_mapping("android")
     )
     upload_wear_bundle(track: 'wear:production')
   end
