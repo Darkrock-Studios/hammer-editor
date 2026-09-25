@@ -672,7 +672,9 @@ speaks JSON-RPC over stdio, one message per line; the host hands each line to
 the plugin (see [Commands](#commands)). The plugin answers `initialize`,
 `ping`, `tools/list`, and `tools/call`, and ignores notifications.
 
-Its tools are what `ops.list` returns it, which is exactly what it may call.
+Its tools are what `ops.list` returns it, which is exactly what it may call,
+less `ops.list` itself: `tools/list` already describes each tool, and only it
+reflects the live edits setting.
 Tool names replace the operation's dots with underscores (`scene_read`), since
 some clients reject dots. A failed call, including one refused because Hammer
 is busy, is a tool error the agent can read, not a protocol error. Every call

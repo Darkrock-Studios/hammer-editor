@@ -83,7 +83,8 @@ class McpPluginTest {
 		val tools = serve(request(1, "tools/list")).getValue(1).result()["tools"]!!.jsonArray.map { it.jsonObject }
 		val names = tools.map { it["name"]!!.jsonPrimitive.content }
 
-		assertTrue("project_list" in names && "scene_write" in names && "ops_list" in names)
+		assertTrue("project_list" in names && "scene_write" in names)
+		assertFalse("ops_list" in names)
 		assertFalse(names.any { it.startsWith("account_") || it.startsWith("sync_") })
 		assertFalse("scene_delete" in names)
 		assertFalse("scene_append" in names)
