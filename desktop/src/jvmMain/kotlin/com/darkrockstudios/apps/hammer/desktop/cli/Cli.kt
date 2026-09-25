@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.desktop.cli
 
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
+import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
@@ -96,6 +97,9 @@ object Cli {
 			io.stdout.writeUtf8(operationHelp(op))
 			return EXIT_OK
 		}
+		if (op.access == Access.Destructive && CONFIRM !in options.flags) {
+			throw UsageException("'${op.name.replace('.', ' ')}' cannot be undone. Add --$CONFIRM to run it.")
+		}
 		val input = withStdinFields(op, options.json?.jsonObject ?: buildInput(op, options.values), io)
 		val (output, exitCode) = dispatch(plugins, op.name, input)
 		writeOutput(op, output.jsonObject, options.out, io)
@@ -119,9 +123,14 @@ object Cli {
 			val arg = args[i]
 			if (!arg.startsWith("--")) throw UsageException("Unexpected '$arg'; options look like --name value")
 			val (name, inline) = arg.removePrefix("--").split("=", limit = 2).let { it[0] to it.getOrNull(1) }
+			if (name == HELP || name == CONFIRM) {
+				if (inline != null) throw UsageException("--$name takes no value")
+				flags += name
+				i++
+				continue
+			}
 			val value = inline ?: args.getOrNull(i + 1)?.takeIf { !it.startsWith("--") }?.also { i++ }
 			when (name) {
-				HELP -> flags += HELP
 				JSON_OPTION -> json = value?.let(::parseJson) ?: throw UsageException("--$JSON_OPTION needs a value")
 				OUT_OPTION -> out = value ?: throw UsageException("--$OUT_OPTION needs a file, or - for stdout")
 				else -> values.getOrPut(camelCase(name)) { mutableListOf() } += value
@@ -258,6 +267,7 @@ object Cli {
 				}
 			}
 			appendLine()
+			if (op.access == Access.Destructive) appendLine("  --$CONFIRM             Required: this cannot be undone")
 			appendLine("  --$JSON_OPTION <object>  The whole input as JSON, instead of options")
 			if (jsonSchema(op.output.descriptor).toString().contains("base64")) {
 				appendLine("  --$OUT_OPTION <file>      Write the file to <file>, or - for stdout")
@@ -325,6 +335,7 @@ object Cli {
 	)
 
 	private const val HELP = "help"
+	private const val CONFIRM = "confirm"
 	private const val JSON_OPTION = "json"
 	private const val OUT_OPTION = "out"
 	private const val STDOUT = "-"
