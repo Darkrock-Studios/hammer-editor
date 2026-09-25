@@ -38,7 +38,7 @@ class PlainTextPluginHarness {
 		fileSystem.write(download) { write(built.readBytes()) }
 		RuntimePlugins(fileSystem, directory, emptySet()).install(download)
 
-		registry = PluginRegistry(RuntimePlugins(fileSystem, directory, emptySet()).load())
+		registry = PluginRegistry(emptyList()).also(RuntimePlugins(fileSystem, directory, emptySet())::activate)
 		GlobalContext.startKoin {
 			modules(
 				listOf(
@@ -47,7 +47,7 @@ class PlainTextPluginHarness {
 						single<Toml> { createTomlSerializer() }
 						single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.Unconfined }
 						single(named(APP_SCOPE)) { CoroutineScope(Dispatchers.Unconfined) }
-						single { StoryExporterRegistry(getAll()) }
+						single { StoryExporterRegistry(getAll(), getAll()) }
 					}
 				) + registry.koinModules()
 			)

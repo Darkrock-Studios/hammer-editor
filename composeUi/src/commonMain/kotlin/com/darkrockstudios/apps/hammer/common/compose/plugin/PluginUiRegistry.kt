@@ -7,6 +7,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.text.font.FontFamily
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.composeui.resources.Res
@@ -36,15 +37,21 @@ class PluginUiRegistry(
 	}
 
 	/**
-	 * One per plugin with declared settings, a custom pane, or CLI commands to show: the declared form,
-	 * then the pane, then how to run each command.
+	 * One per active plugin with declared settings, a custom pane, or CLI commands to show: the declared
+	 * form, then the pane, then how to run each command. Follows plugins added and removed while running.
 	 */
-	val settingsPanes: List<PluginSettingsPane> = pluginRegistry.plugins.mapNotNull { plugin ->
+	@Composable
+	fun settingsPanes(): List<PluginSettingsPane> {
+		val plugins by pluginRegistry.active.collectAsState()
+		return remember(plugins) { plugins.mapNotNull(::settingsPane) }
+	}
+
+	private fun settingsPane(plugin: ClientPlugin): PluginSettingsPane? {
 		val ui = this.uis.firstOrNull { it.id == plugin.id }
 		val custom = ui?.settingsPane
 		val commands = if (cliLauncher != null) plugin.cliCommands() else emptyList()
-		if (plugin.settings().isEmpty() && custom == null && commands.isEmpty()) return@mapNotNull null
-		PluginSettingsPane(name = { ui?.name?.get() ?: plugin.name ?: plugin.id }) {
+		if (plugin.settings().isEmpty() && custom == null && commands.isEmpty()) return null
+		return PluginSettingsPane(name = { ui?.name?.get() ?: plugin.name ?: plugin.id }) {
 			if (plugin.settings().isNotEmpty()) DeclaredSettings(plugin, ui)
 			custom?.invoke(this)
 			commands.forEach { command ->

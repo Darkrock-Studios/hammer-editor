@@ -65,7 +65,7 @@ class RuntimePluginEndToEndTest {
 		RuntimePlugins(fileSystem, directory, emptySet()).install(download)
 
 		// A fresh instance, as after a restart.
-		val registry = PluginRegistry(RuntimePlugins(fileSystem, directory, emptySet()).load())
+		val registry = PluginRegistry(emptyList()).also(RuntimePlugins(fileSystem, directory, emptySet())::activate)
 		val stats = operation<ProjectInput, Stats>("stats.project", "", Access.Read, OperationScope.Content) { Stats(totalWords = 42) }
 		GlobalContext.startKoin {
 			modules(
@@ -75,7 +75,7 @@ class RuntimePluginEndToEndTest {
 						single<Toml> { createTomlSerializer() }
 						single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.Unconfined }
 						single(named(APP_SCOPE)) { CoroutineScope(Dispatchers.Unconfined) }
-						single { StoryExporterRegistry(getAll()) }
+						single { StoryExporterRegistry(getAll(), getAll()) }
 					}
 				) + registry.koinModules() + module {
 					// After the registry's modules, so it replaces the core operations with this one.
