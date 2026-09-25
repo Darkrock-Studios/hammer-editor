@@ -497,7 +497,8 @@ changed. A replaced plugin gets a new settings store for its own declarations.
   (`TextDiagnosticsState` in ComposeTextEditor's spellcheck module): it keeps
   results by paragraph text, so after an edit only changed paragraphs go to
   the plugins, and each underline carries its diagnostic, so it moves with
-  the text. The plugins get the editor's text, markdown already rendered away,
+  the text. A change to a checking plugin's settings checks the whole text
+  again. The plugins get the editor's text, markdown already rendered away,
   and the project's language.
 
 These are the only UI slots for now. Future ones (a scene editor toolbar
