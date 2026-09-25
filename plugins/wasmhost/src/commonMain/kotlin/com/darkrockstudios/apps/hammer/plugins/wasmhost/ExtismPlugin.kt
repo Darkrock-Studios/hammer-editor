@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
+import io.github.charlietap.chasm.embedding.remainingFuel
+import io.github.charlietap.chasm.embedding.setFuel
 import io.github.charlietap.chasm.config.GCStrategy
 import io.github.charlietap.chasm.config.RuntimeConfig
 import io.github.charlietap.chasm.embedding.dsl.FunctionTypeBuilder
@@ -65,7 +67,7 @@ class ExtismPlugin(
 
 	// A module using Wasm GC keeps its objects in chasm's heap, not its capped linear memory.
 	private val guestHeap = GuestHeap(maxGuestHeapBytes)
-	private val store = guestHeap.store ?: store()
+	private val store = guestHeap.store ?: store(meterFuel = true)
 	private val instance: Instance
 	private val fuel: Global
 	private var calling = false
@@ -79,6 +81,8 @@ class ExtismPlugin(
 				?: throw PluginException("Plugin imports ${import.moduleName} ${import.entityName}, which the host does not provide")
 			Import(import.moduleName, import.entityName, function(store, host.type, host))
 		}
+		// The start function and initializers run on this, as Extism hosts do for reactor modules.
+		setFuel(store, FuelInstrumenter.DEFAULT_INSTANTIATION_FUEL)
 		instance = instance(store, module, imports, RUNTIME_CONFIG).orThrow("Plugin failed to start")
 		fuel = exports(instance).first { it.name == FuelInstrumenter.FUEL_EXPORT }.value as Global
 		// Runs on the fuel the instrumenter starts the module with, as Extism hosts do for reactor modules.
@@ -105,7 +109,7 @@ class ExtismPlugin(
 	private fun callOnce(function: String, input: ByteArray, fuel: Long): ByteArray {
 		kernel.reset()
 		kernel.setInput(input)
-		writeGlobal(store, this.fuel, NumberValue.I64(fuel)).orThrow("Could not set fuel")
+		setFuel(store, fuel)
 
 		val result = invoke(store, instance, function)
 		if (result is ChasmResult.Error) {
@@ -131,8 +135,7 @@ class ExtismPlugin(
 	val guestHeapBytes: Long
 		get() = if (guestHeap.store != null) guestHeap.committedBytes else 0
 
-	fun remainingFuel(): Long =
-		((readGlobal(store, fuel) as? ChasmResult.Success)?.result as? NumberValue.I64)?.value ?: 0
+	fun remainingFuel(): Long = remainingFuel(store)
 
 	private fun envFunctions(): List<Host> {
 		fun env(name: String, params: String, results: String, body: (Args) -> Long) =

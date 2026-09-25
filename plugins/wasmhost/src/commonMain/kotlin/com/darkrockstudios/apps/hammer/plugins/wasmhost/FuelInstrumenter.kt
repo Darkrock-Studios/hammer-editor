@@ -36,7 +36,7 @@ class FuelInstrumenter(
 				EXPORT -> Section(EXPORT, appendExport(section.body(), fuel)).also { addedExport = true }
 				TABLE -> Section(TABLE, capTables(section.body()))
 				MEMORY -> Section(MEMORY, capMemories(section.body()))
-				CODE -> Section(CODE, instrumentCode(section.body(), fuel))
+				CODE -> section
 				else -> section
 			}
 		}
