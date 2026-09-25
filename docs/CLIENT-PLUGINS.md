@@ -910,14 +910,14 @@ Preview 1 through a companion library. It does not support SIMD or Memory64.
 
 ### Languages
 
-C, through clang, is the first supported language: small modules that use
-linear memory only, which any runtime handles. Zig, Rust, AssemblyScript, and
-Go (through TinyGo; standard Go needs WASI imports the host does not provide)
-have kits too. On a whole-book report Zig and Rust run at half to two thirds of
-C's speed, and the other two at about a fifth. Kotlin/Wasm works too (the MCP plugin is written in
-it), at a cost in speed and size. hammer-plugins' `LANGUAGES.md` compares
-the languages for plugin authors: speed, size, setup, and what writing one is
-like.
+Plugins are supported in two languages: Kotlin/Wasm, for the most comfortable
+way to write one (a kit with typed requests, a `hammer.plugin` Gradle plugin that
+does the build, and unit tests on the JVM against a fake Hammer), and Rust, for
+speed (about half C's speed on a whole-book report, where Kotlin runs at about
+a fifth). Zig, C, AssemblyScript, and Go (through TinyGo) were tried too.
+hammer-plugins' `LANGUAGES.md` compares them all. Kotlin/Wasm's objects live in
+the host's Java heap, not the module's capped linear memory, so the host needs a
+limit on them before Kotlin support ships.
 
 ### Package
 

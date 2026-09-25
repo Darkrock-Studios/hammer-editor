@@ -90,6 +90,7 @@ class SpikeBenchmarkTest {
 			"rust/wordfreq/build/wordfreq.wasm",
 			"go/wordfreq/build/wordfreq.wasm",
 			"zig/wordfreq/build/wordfreq.wasm",
+			"kotlin/wordfreq/build/compileSync/wasmWasi/main/productionExecutable/optimized/wordfreq.wasm",
 			"assemblyscript/wordcount/build/wordcount.wasm",
 			"rust/wordcount/build/wordcount.wasm",
 			"go/wordcount/build/wordcount.wasm",
@@ -120,6 +121,7 @@ class SpikeBenchmarkTest {
 			"rust/style/build/style.wasm",
 			"go/style/build/style.wasm",
 			"zig/style/build/style.wasm",
+			"kotlin/style/build/compileSync/wasmWasi/main/productionExecutable/optimized/style.wasm",
 			userFunctions = listOf(dispatch, noCacheGet, noCacheSet),
 			size = novel.length,
 		)
@@ -134,7 +136,7 @@ class SpikeBenchmarkTest {
 		input: ByteArray,
 		function: String,
 		vararg builds: String,
-		userFunctions: List<ExtismPlugin.UserFunction> = listOf(noDispatch),
+		userFunctions: List<ExtismPlugin.UserFunction> = listOf(noDispatch, noCacheGet, noCacheSet),
 		size: Int = input.size,
 	) {
 		builds.forEach { build ->

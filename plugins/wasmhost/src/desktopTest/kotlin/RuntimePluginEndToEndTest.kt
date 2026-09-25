@@ -34,7 +34,7 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.test.assertTrue
 
 /**
- * Installs the word count plugin built by hammer-plugins' `kotlin/wordcount/package.sh`, loads it as a
+ * Installs the word count plugin built by hammer-plugins' `kotlin/build.sh`, loads it as a
  * restarted app would, and exports through it. Runs when HAMMER_PLUGINS points at that checkout.
  */
 @EnabledIfEnvironmentVariable(named = "HAMMER_PLUGINS", matches = ".+")
@@ -58,7 +58,7 @@ class RuntimePluginEndToEndTest {
 	@Test
 	fun `a packaged Kotlin plugin installs, loads, and exports`() {
 		val built = File(System.getenv("HAMMER_PLUGINS"), "kotlin/wordcount/build/wordcount.hammerplugin")
-		check(built.exists()) { "Run kotlin/wordcount/package.sh in hammer-plugins first" }
+		check(built.exists()) { "Run kotlin/build.sh in hammer-plugins first" }
 		val download = "/downloads/wordcount.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
