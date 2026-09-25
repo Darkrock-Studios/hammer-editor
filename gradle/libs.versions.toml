@@ -93,7 +93,7 @@ tomlkt = "0.5.0"
 krypto = "4.0.10"
 owasp_html_sanitizer = "20260924.2"
 
-sqldelight = "2.3.2"
+sqldelight = "2.4.0"
 postgresql_jdbc = "42.7.13"
 hikaricp = "7.1.0"
 embedded_postgres = "2.2.2"
