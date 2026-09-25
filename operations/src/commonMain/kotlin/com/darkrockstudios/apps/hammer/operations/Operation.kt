@@ -94,5 +94,15 @@ class OperationException(val kind: Kind, message: String) : Exception(message) {
 @Target(AnnotationTarget.PROPERTY)
 annotation class FromStdin(val secret: Boolean = false)
 
+/**
+ * Marks input that changes a scene's text in place instead of through a draft: an operation's whole
+ * input class, or one value of an enum field. Front ends that guard the manuscript, such as the MCP
+ * plugin, leave it out unless the writer allows live edits.
+ */
+@OptIn(ExperimentalSerializationApi::class)
+@SerialInfo
+@Target(AnnotationTarget.CLASS, AnnotationTarget.PROPERTY)
+annotation class LiveEdit
+
 fun notFound(message: String): Nothing = throw OperationException(OperationException.Kind.NotFound, message)
 fun invalidInput(message: String): Nothing = throw OperationException(OperationException.Kind.InvalidInput, message)

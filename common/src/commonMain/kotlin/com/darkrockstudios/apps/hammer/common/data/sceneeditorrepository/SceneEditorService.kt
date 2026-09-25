@@ -206,6 +206,16 @@ class SceneEditorService(
 		return success
 	}
 
+	/**
+	 * Replaces a scene's text from outside the editor and saves it; an open editor shows the new text.
+	 * The words are not credited to the writer's activity.
+	 */
+	suspend fun replaceSceneText(sceneItem: SceneItem, markdown: String): Boolean {
+		sceneContentRepository.replaceBuffer(SceneContent(sceneItem, markdown))
+		writingSessionTracker.rememberBaseline(sceneItem.id, markdown)
+		return storeSceneBuffer(sceneItem)
+	}
+
 	suspend fun storeAllBuffers() {
 		sceneContentRepository.forEachDirtyBuffer { scene -> storeSceneBuffer(scene) }
 	}
@@ -306,6 +316,10 @@ class SceneEditorService(
 	}
 
 	fun hasDirtyBuffers(): Boolean = sceneContentRepository.hasDirtyBuffers()
+
+	fun hasDirtyBuffer(sceneId: Int): Boolean = sceneContentRepository.hasDirtyBuffer(sceneId)
+
+	fun hasUnrestoredEdits(sceneItem: SceneItem): Boolean = sceneContentRepository.hasUnrestoredEdits(sceneItem)
 
 	suspend fun getMetadata(): ProjectMetadata = sceneMetadataRepository.getMetadata()
 

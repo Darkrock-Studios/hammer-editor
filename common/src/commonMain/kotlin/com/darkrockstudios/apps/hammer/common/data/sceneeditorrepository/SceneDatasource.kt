@@ -90,6 +90,8 @@ class SceneDatasource(
 		}
 	}
 
+	fun hasTempScene(sceneItem: SceneItem): Boolean = fileSystem.exists(getSceneBufferTempPath(sceneItem).toOkioPath())
+
 	fun getSceneTempBufferContents(): List<SceneContent> {
 		val bufferDirectory = getSceneBufferDirectory().toOkioPath()
 		return fileSystem.list(bufferDirectory)
