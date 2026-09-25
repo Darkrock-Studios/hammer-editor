@@ -1004,7 +1004,8 @@ eight bytes a plugin copies. The Hammer-specific parts:
   `OperationException` plus `PermissionDenied`.
 - An `export` function renders every export format the manifest declares. Its
   input is `{"format", "projectName", "language", "chapters": [{"name",
-  "scenes": [markdown]}]}` and its output is the file's bytes.
+  "scenes": [markdown]}], "settings": {...}}`, the last holding every declared
+  setting's current value, and its output is the file's bytes.
 - HTTP imports exist, as Extism plugins expect them, and always fail. The only
   WASI import provided is `random_get`, which Kotlin/Wasm's standard library
   needs; a module importing any other WASI function does not load.
@@ -1015,8 +1016,19 @@ eight bytes a plugin copies. The Hammer-specific parts:
 
 A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
 
-- **Loader.** At startup, reads installed packages from `<config>/plugins/`,
-  validates each manifest, and wraps each enabled one in a `WasmPlugin`.
+- **Loader.** `RuntimePlugins` keeps packages in `<config>/plugins/packages/`
+  and each plugin's enabled flag and granted operations in
+  `<config>/plugins/_runtime-plugins.toml` (plugin ids cannot start with `_`,
+  so no plugin's settings file collides with it). At startup it wraps each
+  enabled package in a `WasmPlugin` before the registry is built. A package
+  that fails to read, or takes a compiled-in plugin's id, is logged and
+  skipped; it never stops the app starting.
+- **Install.** Reads the package, checks the manifest, the settings
+  declarations, and export format prefixes, and instantiates the module once,
+  which checks its imports and runs its initializer. Only then is it copied in.
+  Installing a package with an installed id replaces it. Install, enable,
+  disable, and uninstall apply at the next start, since the registry is fixed
+  for the process; Settings says so.
 - **`WasmPlugin`** implements `ClientPlugin`. Its `exporters()` come from the
   manifest and render by calling the module; its operations register like any
   plugin's. The same `PluginRegistry` receives it, so everything built for
@@ -1050,7 +1062,9 @@ Runtime plugins are untrusted code, unlike compiled-in ones:
   carry content and never file paths.
 - **Permissions checked on every call.** The host's dispatch refuses any
   operation the manifest did not request or the user did not grant. Read and
-  Write operations are shown separately at install.
+  Write operations are shown separately at install. Accepting the install
+  prompt grants everything the manifest lists; a replaced package's grants are
+  those of the new manifest, since the user just approved them.
 - **Install and removal in Settings.** The Plugins section gains install from
   file, enable and disable, and uninstall for runtime plugins, with the
   permission prompt at install. Compiled-in plugins keep having no switch.

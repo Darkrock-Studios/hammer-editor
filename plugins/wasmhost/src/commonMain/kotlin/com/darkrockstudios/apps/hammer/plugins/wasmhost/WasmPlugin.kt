@@ -7,6 +7,8 @@ import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.OperationJson
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
+import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
@@ -21,11 +23,14 @@ import org.koin.core.component.get
 
 /**
  * A runtime plugin: a manifest plus an Extism-convention module, presented as a [ClientPlugin].
- * The module is instantiated on first use, and calls into it run one at a time.
+ * The module is instantiated on first use, and calls into it run one at a time. It may dispatch only
+ * operations that its manifest requests and the user [granted].
  */
 class WasmPlugin(
 	val manifest: PluginManifest,
 	private val wasm: ByteArray,
+	private val declaredSettings: List<SettingDeclaration> = emptyList(),
+	private val granted: Set<String> = manifest.permissions.operations.toSet(),
 	private val fuelPerCall: Long = DEFAULT_FUEL_PER_CALL,
 ) : ClientPlugin, KoinComponent {
 
@@ -40,6 +45,13 @@ class WasmPlugin(
 	private val ioDispatcher by injectIoDispatcher()
 
 	override fun exporters(): List<StoryExporter> = manifest.exporters.map(::Exporter)
+
+	override fun settings(): List<SettingDeclaration> = declaredSettings
+
+	/** Loads the module now rather than on first use, which surfaces any problem with it as a [PluginException]. */
+	fun instantiate() {
+		module
+	}
 
 	/** Runs the module's [function] on [input], off the caller's thread. */
 	suspend fun call(function: String, input: ByteArray): ByteArray =
@@ -64,7 +76,7 @@ class WasmPlugin(
 
 	// Called from inside the module, so it blocks this call's thread until the operation finishes.
 	private fun dispatch(request: DispatchRequest): DispatchReply {
-		if (request.operation !in manifest.permissions.operations) {
+		if (request.operation !in manifest.permissions.operations || request.operation !in granted) {
 			return DispatchReply.failed(PERMISSION_DENIED, "Plugin '$id' has no permission for ${request.operation}")
 		}
 		return try {
@@ -97,6 +109,7 @@ class WasmPlugin(
 				projectName = input.projectName,
 				language = input.language,
 				chapters = input.bookChapters().map { ExportRequest.Chapter(it.name, it.scenes) },
+				settings = get<PluginRegistry>().settings(id)?.values?.value ?: JsonObject(emptyMap()),
 			)
 			// Export renders on a background dispatcher already.
 			sink.write(callBlocking(EXPORT, OperationJson.encodeToString(request).encodeToByteArray()))
@@ -122,6 +135,8 @@ class WasmPlugin(
 		val projectName: String,
 		val language: String,
 		val chapters: List<Chapter>,
+		/** The plugin's declared settings, every key present. */
+		val settings: JsonObject,
 	) {
 		@Serializable
 		class Chapter(val name: String, val scenes: List<String>)
