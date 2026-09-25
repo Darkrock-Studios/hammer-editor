@@ -96,7 +96,7 @@ fun ProjectSelectionUi(
 					is ProjectSelection.Destination.AccountSettingsDestination -> AccountSettingsUi(
 						destination.component,
 						rootSnackbar,
-						pluginSettingsPanes = koinInject<PluginUiRegistry>().settingsPanes,
+						pluginSettingsPanes = koinInject<PluginUiRegistry>().settingsPanes(),
 						runtimePlugins = remember { getKoin().getOrNull<RuntimePlugins>() },
 					)
 

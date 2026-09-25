@@ -1129,20 +1129,26 @@ A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
 - **Loader.** `RuntimePlugins` keeps packages in `<config>/plugins/packages/`
   and each plugin's enabled flag and granted operations in
   `<config>/plugins/_runtime-plugins.toml` (plugin ids cannot start with `_`,
-  so no plugin's settings file collides with it). At startup it wraps each
-  enabled package in a `WasmPlugin` before the registry is built. A package
-  that fails to read, or takes a compiled-in plugin's id, is logged and
-  skipped; it never stops the app starting.
+  so no plugin's settings file collides with it). At startup `activate` wraps
+  each enabled package in a `WasmPlugin` and adds it to the registry. A package
+  that fails to read, takes a compiled-in plugin's id, or clashes with another
+  plugin, is logged and skipped; it never stops the app starting.
 - **Install.** Reads the package, checks the manifest, the settings
   declarations, and export format prefixes, and instantiates the module once,
   which checks its imports and runs its initializer. Only then is it copied in.
   Installing a package with an installed id replaces it. Install, enable,
-  disable, and uninstall apply at the next start, since the registry is fixed
-  for the process; Settings says so.
+  disable, and uninstall apply at once, and one the registry would refuse,
+  such as a command clash, is refused before anything changes.
+- **Hot plugins.** `PluginRegistry` is built with the compiled-in plugins,
+  which alone contribute Koin modules and operations and get lifecycle hooks.
+  Plugins `add`ed later can be replaced or removed while the app runs, so they
+  contribute only what is looked up live: export formats (the registry is an
+  `ExporterSource` that `StoryExporterRegistry` reads on each lookup),
+  declared settings (a store per plugin instance, made on first use), CLI
+  commands, and the Settings panes, which follow `PluginRegistry.active`. An
+  export already running on a removed plugin finishes on its old instance.
 - **`WasmPlugin`** implements `ClientPlugin`. Its `exporters()` come from the
-  manifest and render by calling the module; its operations register like any
-  plugin's. The same `PluginRegistry` receives it, so everything built for
-  compiled-in plugins applies unchanged.
+  manifest and render by calling the module.
 - **Execution.** `WasmPlugin.call` runs the module on the IO dispatcher, never
   the UI thread. Export rendering, already on a background dispatcher, calls it
   blocking. An operation the module dispatches blocks its thread until done.
@@ -1324,7 +1330,7 @@ design is revisited rather than `:common` bent to fit.
    it; spell check is wired deep into editor decorations and is not a cheap
    first proof.
 11. **Runtime plugins on desktop.** Built. A Kotlin/Wasm plugin from the
-    `hammer-plugins` repository compiles, packages, installs, loads after a
+    `hammer-plugins` repository compiles, packages, installs without a
     restart, reads its declared settings, and calls back into Hammer.
 12. **Runtime plugins on Android**, then an iOS decision. Android is built:
     registration only, through the same `RuntimePlugins.inConfigDirectory`

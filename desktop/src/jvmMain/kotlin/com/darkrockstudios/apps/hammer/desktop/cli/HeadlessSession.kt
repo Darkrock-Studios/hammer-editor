@@ -39,7 +39,7 @@ object HeadlessSession {
 	/** The plugins active for CLI calls, fresh per process: compiled-in plus enabled runtime plugins. */
 	fun pluginRegistry(): PluginRegistry {
 		val compiledIn = installedPlugins()
-		return PluginRegistry(compiledIn + RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, compiledIn).load())
+		return PluginRegistry(compiledIn).also(RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, compiledIn)::activate)
 	}
 
 	/** Runs [block] with Hammer started; [plugins] is this process's [pluginRegistry], built once. */
