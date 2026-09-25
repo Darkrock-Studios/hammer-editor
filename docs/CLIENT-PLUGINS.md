@@ -898,10 +898,12 @@ Harper builds its dictionary and rules on start-up, which takes 36 seconds
 under chasm (0.6 natively) and about 140 MB of memory. So the build runs that
 start-up under Wizer and ships the result: a 104 MB module, 18 MB zipped,
 declaring `limits.memory = 256`. Loading it takes about 1.5 seconds and a
-paragraph about 0.4. Loading briefly needs several hundred MB of JVM heap, for
-the copies of the module the host makes on the way; about 90 MB stays. That is
-likely more than Android's app heap allows; untried there. Loading the module
-with fewer copies would bring it down.
+paragraph about 0.4. It loads in a 352 MB JVM heap, not in 320: the host
+instruments the module into one exactly sized copy, without copying the
+sections it leaves alone, and lets go of the original as soon as that is done,
+which leaves chasm's decoded copy of the data and the module's memory. About
+90 MB stays. Short of that heap, the check fails and the text goes unmarked.
+Android's app heap may still be too small; untried there.
 
 ### Gaps these expose
 
