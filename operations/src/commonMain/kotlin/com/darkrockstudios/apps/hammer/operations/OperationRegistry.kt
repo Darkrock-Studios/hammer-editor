@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.operations
 
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.serializer
 
 /** Every operation in this process, core and plugin. The one place front ends dispatch through. */
 class OperationRegistry(operations: List<Operation<*, *>>, projects: ProjectResolver) {
@@ -31,6 +32,13 @@ class OperationRegistry(operations: List<Operation<*, *>>, projects: ProjectReso
 		val op = find(name) ?: notFound("No operation named '$name'")
 		return dispatch(op, input)
 	}
+
+	/**
+	 * Runs [name] through its JSON, as a front end would, and decodes the result: for plugins built
+	 * on other operations, which then depend only on the public API.
+	 */
+	suspend inline fun <reified I, reified O> call(name: String, input: I): O =
+		OperationJson.decodeFromJsonElement(serializer<O>(), dispatch(name, OperationJson.encodeToJsonElement(serializer<I>(), input)))
 
 	/** [Operation.exitCode] for [output], as [dispatch] returned it for [name]. */
 	fun exitCode(name: String, output: JsonElement): Int {

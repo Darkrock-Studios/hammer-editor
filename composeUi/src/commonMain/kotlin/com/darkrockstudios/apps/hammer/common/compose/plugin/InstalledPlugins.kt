@@ -1,8 +1,10 @@
 package com.darkrockstudios.apps.hammer.common.compose.plugin
 
 import com.darkrockstudios.apps.hammer.common.compose.plugin.plaintext.PlainTextPluginUi
+import com.darkrockstudios.apps.hammer.common.compose.plugin.style.StylePluginUi
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.plugins.plaintext.PlainTextPlugin
+import com.darkrockstudios.apps.hammer.plugins.style.StylePlugin
 
 /*
  * The plugins compiled into every platform's build, registered here because :composeUi is the one
@@ -11,6 +13,6 @@ import com.darkrockstudios.apps.hammer.plugins.plaintext.PlainTextPlugin
  * theirs here; keep this file otherwise untouched so their patch applies cleanly.
  */
 
-fun installedPlugins(): List<ClientPlugin> = listOf(PlainTextPlugin)
+fun installedPlugins(): List<ClientPlugin> = listOf(PlainTextPlugin, StylePlugin)
 
-fun installedPluginUis(): List<PluginUi> = listOf(PlainTextPluginUi)
+fun installedPluginUis(): List<PluginUi> = listOf(PlainTextPluginUi, StylePluginUi)
