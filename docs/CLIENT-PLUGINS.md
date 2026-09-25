@@ -874,19 +874,35 @@ that remains.
 
 ### Simple grammar (`simple-grammar`)
 
-Built, as a runtime plugin in C: `c/simple-grammar` in `hammer-plugins`. Underlines
-common slips in English prose as you write: repeated words, "a" and "an",
-"could of" and its kin, a lower-case "i", spacing around punctuation, and a
-sentence starting in lower case. The rules flag only what they are sure of
-("had had" passes, and "a" and "an" are left alone before words starting with
-"h" or "u"), and a project in another language gets nothing.
+Built, as a runtime plugin in C: `c/simple-grammar` in `hammer-plugins`, a
+14 KB package. Underlines slips in English prose that a spell checker passes,
+since every word in them is a real one. Its settings turn groups of rules on
+and off:
+
+| Group | Default | Rules |
+| --- | --- | --- |
+| Word mistakes | On | Repeated words, "a" and "an", "could of", "it's own", "their is", "your welcome", "these kind of", "was suppose to", "better then", and eggcorns such as "sneak peak" and "baited breath" |
+| Punctuation and capitalization | On | A lower-case "i", spacing around punctuation, doubled marks (",,", ".." but not an ellipsis), unmatched parentheses, and a sentence starting in lower case |
+| Dialogue | On | `"Wait." she said` wants a comma, `"Wait," She said` lower case, and `"Wait,"she said` a space |
+| Wordy phrases | Off | "in order to" for "to", "due to the fact that" for "because" |
+| Redundant phrases | Off | "free gift" for "gift", "revert back" for "revert" |
+| Repeated marks | Off | "!!" and "?!?" |
+| Long sentences | Off | More than a set number of words, 40 unless changed |
+
+The rules flag only what they are sure of ("had had" passes, "a" and "an" are
+left alone before words starting with "h" or "u", and "better then." at the end
+of a sentence is the time), and a project in another language gets nothing.
+Fixes use curly apostrophes where the paragraph does. Every rule is one pass
+over a paragraph with small tables: 40 paragraphs of 77 words take about 190 ms
+under chasm with every group on, against 25 to 30 ms a paragraph for English
+grammar.
 
 | Exercises | How |
 | --- | --- |
 | Text diagnostics | The manifest declares one check; the host calls the module's `diagnose` export with changed paragraphs and underlines what it returns |
+| Declared settings | Seven toggles and a number in `settings.toml`, read from the request |
 | Offsets across the boundary | Byte offsets from C, turned into the editor's UTF-16 ranges by the host |
-
-It is a proof of the seam more than a grammar checker.
+| The C kit | `hammer_diagnose.h` reads the request and writes the reply, so the plugin is its rules; `hammer_test.h` tests them natively |
 
 ### English grammar (`english-grammar`)
 
