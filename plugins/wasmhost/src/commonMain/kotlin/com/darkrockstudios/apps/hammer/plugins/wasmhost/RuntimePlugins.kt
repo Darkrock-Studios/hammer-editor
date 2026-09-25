@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
+import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginSettingsDatasource
@@ -17,12 +18,14 @@ import org.koin.dsl.module
 
 /**
  * The runtime plugins installed under [directory]: packages in `packages/`, and whether each is
- * enabled and which operations the user granted it in [STATE_FILE]. Once [activate]d, installs and
- * other changes apply to the plugin registry at once.
+ * enabled and which operations the user granted it in [STATE_FILE]. Each plugin's cache is kept in
+ * [cacheDirectory], and cleared when it is installed again or uninstalled. Once [activate]d, installs
+ * and other changes apply to the plugin registry at once.
  */
 class RuntimePlugins(
 	private val fileSystem: FileSystem,
 	private val directory: Path,
+	private val cacheDirectory: Path,
 ) {
 	private val packages = directory / PACKAGES_DIRECTORY
 	private val stateFile = directory / STATE_FILE
@@ -95,6 +98,8 @@ class RuntimePlugins(
 		val staging = packages / "$id.$STAGING_EXTENSION"
 		fileSystem.copy(source, staging)
 		fileSystem.atomicMove(staging, packagePath(id))
+		// A new version may keep different values under the same keys.
+		cache(id).clear()
 		val state = PluginState(enabled = true, granted = granted)
 		updateState { it + (id to state) }
 		registry?.let { live -> apply(live, id, state) }
@@ -112,11 +117,12 @@ class RuntimePlugins(
 		live?.let { apply(it, id, state) }
 	}
 
-	/** Removes the package and its record. Its settings file stays, in case it is installed again. */
+	/** Removes the package, its record, and its cache. Its settings file stays, in case it is installed again. */
 	fun uninstall(id: String) = changes.withLock {
 		registry?.remove(id)
 		updateState { it - id }
 		fileSystem.delete(packagePath(id), mustExist = false)
+		cache(id).clear()
 	}
 
 	/** Brings [live] in line with [id]'s [state]: its plugin added, replacing any before, or removed. */
@@ -139,7 +145,10 @@ class RuntimePlugins(
 		declaredSettings = settings,
 		granted = granted,
 		savedSettings = { PluginSettingsDatasource(fileSystem, toml, directory).loadDeclared(manifest.id, settings) },
+		cache = cache(manifest.id),
 	)
+
+	private fun cache(id: String) = PluginCache(fileSystem, cacheDirectory / id)
 
 	private fun packagePath(id: String): Path = packages / "$id.${PluginPackage.EXTENSION}"
 
@@ -182,6 +191,7 @@ class RuntimePlugins(
 		fun inConfigDirectory(fileSystem: FileSystem) = RuntimePlugins(
 			fileSystem = fileSystem,
 			directory = getConfigDirectory().toPath() / PluginSettingsDatasource.PLUGINS_DIRECTORY,
+			cacheDirectory = getCacheDirectory().toPath() / PluginSettingsDatasource.PLUGINS_DIRECTORY,
 		)
 	}
 

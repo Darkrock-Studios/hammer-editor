@@ -46,6 +46,8 @@ class WasmPlugin(
 	granted: Set<String> = manifest.permissions.operations.toSet(),
 	/** The plugin's declared settings as saved, for commands, which run without the rest of Hammer. */
 	private val savedSettings: () -> JsonObject = { JsonObject(emptyMap()) },
+	/** Where [CACHE_GET] and [CACHE_SET] keep values; without one, every get misses. */
+	private val cache: PluginCache? = null,
 	private val fuelPerCall: Long = DEFAULT_FUEL_PER_CALL,
 ) : ClientPlugin, KoinComponent {
 
@@ -57,7 +59,7 @@ class WasmPlugin(
 
 	private val lock = reentrantLock()
 	private val module by lazy {
-		ExtismPlugin(loadModule(), listOf(dispatchFunction()), log = ::log)
+		ExtismPlugin(loadModule(), listOf(dispatchFunction()) + cacheFunctions(), log = ::log)
 	}
 
 	private val appRoute by lazy { AppRoute(get()) }
@@ -137,6 +139,16 @@ class WasmPlugin(
 		}
 		write(OperationJson.encodeToString(reply).encodeToByteArray())
 	}
+
+	private fun cacheFunctions() = listOf(
+		ExtismPlugin.UserFunction(CACHE_GET, params = 1, returnsValue = true) { args ->
+			cache?.get(read(args[0]))?.let(::write) ?: 0
+		},
+		ExtismPlugin.UserFunction(CACHE_SET, params = 2, returnsValue = false) { args ->
+			cache?.set(read(args[0]), if (args[1] == 0L) null else read(args[1]))
+			0
+		},
+	)
 
 	// Called from inside the module, so it blocks this call's thread until the operation finishes.
 	private fun dispatch(request: DispatchRequest): DispatchReply = runBlocking {
@@ -306,6 +318,12 @@ class WasmPlugin(
 	companion object {
 		/** The import a module calls operations through, in `extism:host/user`. */
 		const val DISPATCH = "hammer_dispatch"
+
+		/** The import that reads the plugin's cache: a key's value, or 0 when it has none. */
+		const val CACHE_GET = "hammer_cache_get"
+
+		/** The import that writes the plugin's cache: a key and its value, or 0 (or an empty value) to remove it. */
+		const val CACHE_SET = "hammer_cache_set"
 
 		/** The export that renders every export format the manifest declares. */
 		const val EXPORT = "export"

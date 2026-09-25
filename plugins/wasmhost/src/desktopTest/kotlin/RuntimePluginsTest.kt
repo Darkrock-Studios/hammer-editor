@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.operations.cli.Dispatcher
 import com.darkrockstudios.apps.hammer.operations.core.OperationDescriptor
 import com.darkrockstudios.apps.hammer.operations.operation
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginCache
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginPackageException
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.WasmPlugin
@@ -48,12 +49,14 @@ import java.util.zip.ZipOutputStream
 import kotlin.coroutines.CoroutineContext
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class RuntimePluginsTest {
 
 	private val fileSystem = FakeFileSystem()
 	private val directory = "/config/plugins".toPath()
+	private val cacheDirectory = "/cache/plugins".toPath()
 	private val downloads = "/downloads".toPath().also { fileSystem.createDirectories(it) }
 
 	@AfterEach
@@ -61,7 +64,7 @@ class RuntimePluginsTest {
 		GlobalContext.stopKoin()
 	}
 
-	private fun runtimePlugins() = RuntimePlugins(fileSystem, directory)
+	private fun runtimePlugins() = RuntimePlugins(fileSystem, directory, cacheDirectory)
 
 	private fun manifest(
 		id: String = "echo",
@@ -279,6 +282,21 @@ class RuntimePluginsTest {
 		plugins.install(pack("echo-again"))
 
 		assertTrue(registry.plugins.single() !== first)
+	}
+
+	@Test
+	fun `reinstalling or uninstalling clears the plugin's cache`() {
+		val plugins = runtimePlugins()
+		val cache = PluginCache(fileSystem, cacheDirectory / "echo")
+		plugins.install(pack("echo"))
+		cache.set("scene".encodeToByteArray(), byteArrayOf(1))
+
+		plugins.install(pack("echo-again"))
+		assertNull(cache.get("scene".encodeToByteArray()))
+
+		cache.set("scene".encodeToByteArray(), byteArrayOf(1))
+		plugins.uninstall("echo")
+		assertNull(cache.get("scene".encodeToByteArray()))
 	}
 
 	@Test
