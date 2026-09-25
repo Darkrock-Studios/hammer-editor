@@ -78,6 +78,8 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 		val textSize: Float = GlobalSettings.DEFAULT_FONT_SIZE,
 		val editorMaxWidth: Float = GlobalSettings.DEFAULT_EDITOR_WIDTH,
 		val spellChecker: PlatformSpellChecker? = null,
+		/** The project's language, for text diagnostics; null when it has none. */
+		val language: String? = null,
 		val spellCheckingEnabled: Boolean = true,
 	)
 }

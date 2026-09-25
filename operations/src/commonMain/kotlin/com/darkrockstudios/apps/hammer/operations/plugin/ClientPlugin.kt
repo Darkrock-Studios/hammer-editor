@@ -25,6 +25,9 @@ interface ClientPlugin {
 
 	/** Items added to a project's menu. */
 	fun projectActions(): List<ProjectAction> = emptyList()
+
+	/** Checks the editor runs over the text being written, such as grammar, and underlines what they find. */
+	fun textDiagnostics(): List<TextDiagnosticsProvider> = emptyList()
 }
 
 /** A menu item on a project's home screen. */
@@ -34,4 +37,24 @@ class ProjectAction(
 	val document: Boolean = false,
 	/** Runs off the main thread on the named project; returns what to show the user, if anything. */
 	val run: suspend (project: String) -> String?,
+)
+
+/** Finds issues in paragraphs of prose, for the editor to underline. */
+class TextDiagnosticsProvider(
+	val label: String,
+	/**
+	 * The issues in each of the paragraphs, in the same order. Paragraphs are plain text, without
+	 * markdown; `language` is the project's BCP 47 tag, or null. Runs off the main thread, and returns
+	 * nothing for paragraphs it cannot check rather than throwing.
+	 */
+	val diagnose: suspend (paragraphs: List<String>, language: String?) -> List<List<TextDiagnostic>>,
+)
+
+/** An issue in one paragraph, from [start] to [end] as UTF-16 offsets into it. */
+class TextDiagnostic(
+	val start: Int,
+	val end: Int,
+	val message: String,
+	/** Replacements for the range, offered to the user. */
+	val fixes: List<String> = emptyList(),
 )

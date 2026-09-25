@@ -15,6 +15,7 @@ data class PluginManifest(
 	val exporters: List<Exporter> = emptyList(),
 	val commands: List<Command> = emptyList(),
 	val actions: List<Action> = emptyList(),
+	val diagnostics: List<Diagnostics> = emptyList(),
 ) {
 	@Serializable
 	data class Permissions(
@@ -55,6 +56,17 @@ data class PluginManifest(
 		 * host shows in a dialog the user can copy or save as a note.
 		 */
 		val output: String = OUTPUT_MESSAGE,
+	)
+
+	/**
+	 * A check the editor runs over the text being written, which calls the module's `diagnose` export
+	 * with the paragraphs that changed and underlines the issues it returns.
+	 */
+	@Serializable
+	data class Diagnostics(
+		/** Tells the module which of its checks to run. */
+		val name: String,
+		val label: String,
 	)
 
 	companion object {
