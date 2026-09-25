@@ -63,38 +63,71 @@ class SpikeBenchmarkTest {
 	}
 
 	@Test
-	fun `upper-casing a novel, C against Kotlin`() {
+	fun `upper-casing a novel`() {
 		val input = novel.encodeToByteArray()
 		compare(
 			"upper", input, "run",
 			"c/upper/build/upper.wasm",
+			"assemblyscript/upper/build/upper.wasm",
 			"kotlin/upper/build/compileSync/wasmWasi/main/developmentExecutable/kotlin/upper.wasm",
 			"kotlin/upper/build/compileSync/wasmWasi/main/productionExecutable/optimized/upper.wasm",
 		)
 	}
 
 	@Test
-	fun `a word count export of a novel, C against Kotlin`() {
+	fun `a word count export of a novel`() {
 		val scenes = novel.chunked(novel.length / SCENES).joinToString(",") { "\"${it.replace("\n", "\\n")}\"" }
 		val request = """{"format":"x","projectName":"Novel","language":"en","chapters":[{"name":"One","scenes":[$scenes]}],""" +
 			""""settings":{"perScene":true,"heading":"Word count"}}"""
 		compare(
 			"word count", request.encodeToByteArray(), "export",
 			"c/wordfreq/build/wordfreq.wasm",
+			"assemblyscript/wordfreq/build/wordfreq.wasm",
+			"assemblyscript/wordcount/build/wordcount.wasm",
 			"kotlin/wordcount/build/compileSync/wasmWasi/main/developmentExecutable/kotlin/wordcount.wasm",
 			"kotlin/wordcount/build/compileSync/wasmWasi/main/productionExecutable/optimized/wordcount.wasm",
 		)
 	}
 
+	@Test
+	fun `a style report on a novel, counted afresh`() {
+		val scenes = novel.chunked(novel.length / SCENES)
+		val nodes = scenes.indices.joinToString(",") { """{"id":${it + 1},"name":"Scene ${it + 1}","kind":"scene","children":[]}""" }
+		val dispatch = ExtismPlugin.UserFunction("hammer_dispatch", params = 1, returnsValue = true) { args ->
+			val request = read(args[0]).decodeToString()
+			val reply = if ("scene.tree" in request) {
+				"""{"output":{"nodes":[$nodes]}}"""
+			} else {
+				val id = Regex("\"id\":(\\d+)").find(request)!!.groupValues[1].toInt()
+				"""{"output":{"markdown":"${scenes[id - 1].replace("\n", "\\n")}"}}"""
+			}
+			write(reply.encodeToByteArray())
+		}
+		compare(
+			"style", """{"action":"report","project":"Novel","settings":{}}""".encodeToByteArray(), "action",
+			"c/style/build/style.wasm",
+			"assemblyscript/style/build/style.wasm",
+			userFunctions = listOf(dispatch, noCacheGet, noCacheSet),
+			size = novel.length,
+		)
+	}
+
 	/** Loads each built plugin, warms it up, and prints its load time and best of three runs. */
-	private fun compare(task: String, input: ByteArray, function: String, vararg builds: String) {
+	private fun compare(
+		task: String,
+		input: ByteArray,
+		function: String,
+		vararg builds: String,
+		userFunctions: List<ExtismPlugin.UserFunction> = listOf(noDispatch),
+		size: Int = input.size,
+	) {
 		builds.forEach { build ->
 			val wasm = pluginsRepo?.resolve(build)?.takeIf { it.exists() } ?: return@forEach println("$build not built; skipped")
 			lateinit var plugin: ExtismPlugin
-			val load = measureTime { plugin = ExtismPlugin(wasm.readBytes(), listOf(noDispatch)) }
+			val load = measureTime { plugin = ExtismPlugin(wasm.readBytes(), userFunctions) }
 			plugin.call(function, input, FUEL)
 			val best = (1..3).minOf { measureTime { plugin.call(function, input, FUEL) } }
-			println("$task, $build (${wasm.length() / 1024} KB): load $load, run $best on ${input.size / 1024} KB")
+			println("$task, $build (${wasm.length() / 1024} KB): load $load, run $best on ${size / 1024} KB")
 		}
 	}
 
@@ -102,6 +135,9 @@ class SpikeBenchmarkTest {
 	private val noDispatch = ExtismPlugin.UserFunction("hammer_dispatch", params = 1, returnsValue = true) {
 		write("""{"error":{"kind":"NotFound","message":"benchmark"}}""".encodeToByteArray())
 	}
+
+	private val noCacheGet = ExtismPlugin.UserFunction("hammer_cache_get", params = 1, returnsValue = true) { 0 }
+	private val noCacheSet = ExtismPlugin.UserFunction("hammer_cache_set", params = 2, returnsValue = false) { 0 }
 
 	private fun buildNovel(): String {
 		val words = listOf(

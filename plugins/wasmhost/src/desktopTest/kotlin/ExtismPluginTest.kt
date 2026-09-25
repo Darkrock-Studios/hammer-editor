@@ -51,6 +51,14 @@ class ExtismPluginTest {
 	}
 
 	@Test
+	fun `an error set before a trap is reported`() {
+		val plugin = ExtismPlugin(testPlugin("fail"))
+
+		val error = assertThrows<PluginException> { plugin.call("abort", ByteArray(0), FUEL) }
+		assertTrue(": no (" in error.message!!)
+	}
+
+	@Test
 	fun `HTTP is refused`() {
 		val plugin = ExtismPlugin(testPlugin("fail"))
 
