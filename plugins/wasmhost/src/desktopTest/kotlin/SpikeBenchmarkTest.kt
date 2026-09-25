@@ -72,6 +72,7 @@ class SpikeBenchmarkTest {
 			"assemblyscript/upper/build/upper.wasm",
 			"rust/upper/build/upper.wasm",
 			"go/upper/build/upper.wasm",
+			"zig/upper/build/upper.wasm",
 			"kotlin/upper/build/compileSync/wasmWasi/main/developmentExecutable/kotlin/upper.wasm",
 			"kotlin/upper/build/compileSync/wasmWasi/main/productionExecutable/optimized/upper.wasm",
 		)
@@ -88,9 +89,11 @@ class SpikeBenchmarkTest {
 			"assemblyscript/wordfreq/build/wordfreq.wasm",
 			"rust/wordfreq/build/wordfreq.wasm",
 			"go/wordfreq/build/wordfreq.wasm",
+			"zig/wordfreq/build/wordfreq.wasm",
 			"assemblyscript/wordcount/build/wordcount.wasm",
 			"rust/wordcount/build/wordcount.wasm",
 			"go/wordcount/build/wordcount.wasm",
+			"zig/wordcount/build/wordcount.wasm",
 			"kotlin/wordcount/build/compileSync/wasmWasi/main/developmentExecutable/kotlin/wordcount.wasm",
 			"kotlin/wordcount/build/compileSync/wasmWasi/main/productionExecutable/optimized/wordcount.wasm",
 		)
@@ -116,6 +119,7 @@ class SpikeBenchmarkTest {
 			"assemblyscript/style/build/style.wasm",
 			"rust/style/build/style.wasm",
 			"go/style/build/style.wasm",
+			"zig/style/build/style.wasm",
 			userFunctions = listOf(dispatch, noCacheGet, noCacheSet),
 			size = novel.length,
 		)
