@@ -16,6 +16,12 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.ProjectAction
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsProvider
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import org.koin.dsl.module
 
 class PluginSettingsPane(
@@ -49,11 +55,23 @@ class PluginUiRegistry(
 		return remember(plugins) { plugins.flatMap { it.projectActions() } }
 	}
 
-	/** Every active plugin's checks for the text being written. */
+	/**
+	 * Every active plugin's checks for the text being written, made anew whenever one of those plugins'
+	 * settings changes: the checks read them, so the editor must check its text again.
+	 */
+	@OptIn(ExperimentalCoroutinesApi::class)
+	fun textDiagnosticsFlow(): Flow<List<TextDiagnosticsProvider>> = pluginRegistry.active.flatMapLatest { plugins ->
+		val checking = plugins.filter { it.textDiagnostics().isNotEmpty() }
+		val settings = checking.mapNotNull { pluginRegistry.settings(it.id)?.values }
+		val changes = if (settings.isEmpty()) flowOf(Unit) else combine(settings) {}
+		changes.map { checking.flatMap { it.textDiagnostics() } }
+	}
+
+	/** [textDiagnosticsFlow] as state: null until it has the plugins' checks. */
 	@Composable
-	fun textDiagnostics(): List<TextDiagnosticsProvider> {
-		val plugins by pluginRegistry.active.collectAsState()
-		return remember(plugins) { plugins.flatMap { it.textDiagnostics() } }
+	fun textDiagnostics(): List<TextDiagnosticsProvider>? {
+		val flow = remember { textDiagnosticsFlow() }
+		return flow.collectAsState(initial = null).value
 	}
 
 	private fun settingsPane(plugin: ClientPlugin): PluginSettingsPane? {

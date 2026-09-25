@@ -23,7 +23,7 @@ fun rememberPluginTextDiagnostics(
 ): TextDiagnosticsState {
 	val providers = koinInject<PluginUiRegistry>().textDiagnostics()
 	val checker = remember(providers, language, languageLoaded) {
-		if (providers.isEmpty() || !languageLoaded) return@remember null
+		if (providers.isNullOrEmpty() || !languageLoaded) return@remember null
 		TextDiagnosticsChecker { lines ->
 			val merged = List(lines.size) { mutableListOf<LineDiagnostic>() }
 			providers.forEach { provider ->
