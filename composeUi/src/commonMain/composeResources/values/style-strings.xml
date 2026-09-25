@@ -1,0 +1,5 @@
+<resources>
+	<string name="style_plugin_name">Style report</string>
+	<string name="style_action_report">Style report</string>
+	<string name="style_action_report_done">Style report saved to Notes</string>
+</resources>

@@ -28,15 +28,21 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.export.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.export.exportFileName
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
+import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
+import org.jetbrains.compose.resources.StringResource
 import org.koin.core.component.inject
+import org.koin.core.qualifier.named
 import kotlin.time.Clock
 
 class ProjectHomeComponent(
@@ -54,6 +60,7 @@ class ProjectHomeComponent(
 	private val mainDispatcher by injectMainDispatcher()
 
 	private val globalSettingsStore: GlobalSettingsStore by inject()
+	private val appScope: CoroutineScope by inject(named(APP_SCOPE))
 	private val projectBackupRepository: ProjectBackupRepository by inject()
 	private val exporters: StoryExporterRegistry by inject()
 	private val sceneEditorRepository: SceneEditorService by projectInject()
@@ -208,6 +215,23 @@ class ProjectHomeComponent(
 	}
 
 	override fun supportsBackup(): Boolean = projectBackupRepository.supportsBackup()
+
+	// A plugin's failure must not take the project screen down with it. Runs in the app's scope, so
+	// leaving the home screen does not cancel it partway.
+	@Suppress("TooGenericExceptionCaught")
+	override fun runProjectAction(work: suspend () -> Unit, done: StringResource) {
+		appScope.launch(dispatcherDefault) {
+			try {
+				work()
+				showToast(done)
+			} catch (e: CancellationException) {
+				throw e
+			} catch (e: Exception) {
+				Napier.e(e) { "Project action failed" }
+				showToast(Res.string.project_home_action_plugin_failed)
+			}
+		}
+	}
 
 	override fun createBackup(callback: (ProjectBackupDef?) -> Unit) {
 		scope.launch {

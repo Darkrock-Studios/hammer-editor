@@ -18,13 +18,16 @@ class ProjectPluginContext internal constructor(
 	private val fileSystem: FileSystem,
 ) {
 	/** `<project>/.plugins/<pluginId>/`, created on first call. Included in backups, never synced. */
-	fun dataDirectory(): HPath {
-		val dir = projectDef.path.toOkioPath() / PLUGINS_DIRECTORY / pluginId
-		fileSystem.createDirectories(dir)
-		return dir.toHPath()
-	}
+	fun dataDirectory(): HPath = dataDirectory(projectDef, pluginId, fileSystem)
 
 	companion object {
 		const val PLUGINS_DIRECTORY = ".plugins"
+
+		/** [dataDirectory] for a project that need not be open, such as from an operation. */
+		fun dataDirectory(projectDef: ProjectDef, pluginId: String, fileSystem: FileSystem): HPath {
+			val dir = projectDef.path.toOkioPath() / PLUGINS_DIRECTORY / pluginId
+			fileSystem.createDirectories(dir)
+			return dir.toHPath()
+		}
 	}
 }

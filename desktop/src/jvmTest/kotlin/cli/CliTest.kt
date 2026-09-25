@@ -28,6 +28,7 @@ class CliTest {
 		val help = stdout.readUtf8()
 		assertTrue("scene read" in help)
 		assertTrue("project export" in help)
+		assertTrue("style report" in help)
 	}
 
 	@Test
