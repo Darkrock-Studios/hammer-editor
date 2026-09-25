@@ -51,6 +51,7 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 	settings: GlobalSettings,
 	darkMode: Boolean,
 	minimized: Boolean = false,
+	raiseRequests: Int = 0,
 	onProjectSelected: (projectDef: ProjectDef) -> Unit
 ) {
 	val backDispatcher = BackDispatcher()
@@ -97,6 +98,7 @@ internal fun NucleusApplicationScope.ProjectSelectionWindow(
 			}
 		}
 	) {
+		RaiseOnRequest(raiseRequests)
 		MaterialTitleBar {
 			Text(
 				text = title,

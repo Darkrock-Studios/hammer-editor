@@ -28,7 +28,10 @@ import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission.OWNER_EXECUTE
 import java.nio.file.attribute.PosixFilePermission.OWNER_READ
 import java.nio.file.attribute.PosixFilePermission.OWNER_WRITE
+import java.util.concurrent.CopyOnWriteArrayList
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 import kotlin.test.assertNull
 
 class ForwardingTest {
@@ -62,7 +65,9 @@ class ForwardingTest {
 		scope.cancel()
 	}
 
-	private fun startServer() = Forwarding.Server(socket, { allowed }, { registry }).also { it.start(scope) }
+	private val launches = CopyOnWriteArrayList<List<String>>()
+
+	private fun startServer() = Forwarding.Server(socket, { allowed }, { registry }, { launches += it }).also { it.start(scope) }
 
 	@Test
 	fun `calls run in the app and come back with their exit code`() {
@@ -106,6 +111,20 @@ class ForwardingTest {
 		startServer().use {
 			assertEquals(setOf(OWNER_READ, OWNER_WRITE, OWNER_EXECUTE), Files.getPosixFilePermissions(socket.parent))
 		}
+	}
+
+	@Test
+	fun `a second launch hands its arguments to the app, even with external tools off`() {
+		allowed = false
+		startServer().use {
+			assertTrue(Forwarding.handOff(socket, listOf("--project", "Storm", "--scene", "3")))
+		}
+		assertEquals(listOf(listOf("--project", "Storm", "--scene", "3")), launches)
+	}
+
+	@Test
+	fun `with no app listening a second launch starts as usual`() {
+		assertFalse(Forwarding.handOff(socket, listOf("--project", "Storm")))
 	}
 
 	@Test

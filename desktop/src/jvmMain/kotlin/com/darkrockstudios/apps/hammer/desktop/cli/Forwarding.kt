@@ -28,10 +28,12 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 
 /**
- * Lets CLI calls run inside the running app, against its live state, over a Unix domain socket. Each
- * connection carries one request line and one reply line.
+ * Lets CLI calls run inside the running app, against its live state, over a Unix domain socket, and
+ * a second launch of the app hand its arguments to the first. Each connection carries one request
+ * line and one reply line.
  */
 object Forwarding {
 	private const val SOCKET_DIRECTORY = "run"
@@ -51,8 +53,13 @@ object Forwarding {
 
 	private val json = Json { ignoreUnknownKeys = true }
 
+	/** An operation to run, or, when [launch] is set, a second launch's arguments. */
 	@Serializable
-	private class Request(val operation: String, val input: JsonElement)
+	private class Request(
+		val operation: String = "",
+		val input: JsonElement = JsonNull,
+		val launch: List<String>? = null,
+	)
 
 	@Serializable
 	private class Reply(val output: JsonElement? = null, val exitCode: Int = 0, val error: Error? = null) {
@@ -60,11 +67,15 @@ object Forwarding {
 		class Error(val kind: String, val message: String)
 	}
 
-	/** The app's side. [allowed] is read per request, so the setting applies without a restart. */
+	/**
+	 * The app's side. [allowed] is read per request, so the setting applies without a restart; it does
+	 * not gate [onLaunch], which gets the arguments of each second launch handed over.
+	 */
 	class Server(
 		private val socket: Path,
 		private val allowed: () -> Boolean,
 		private val registry: () -> OperationRegistry,
+		private val onLaunch: (args: List<String>) -> Unit,
 	) : AutoCloseable {
 		private val channel: ServerSocketChannel = ServerSocketChannel.open(StandardProtocolFamily.UNIX)
 
@@ -105,7 +116,12 @@ object Forwarding {
 				} ?: return
 				watchdog.cancel()
 				val request = json.decodeFromString(Request.serializer(), line)
+				val launch = request.launch
 				when {
+					launch != null -> {
+						onLaunch(launch)
+						Reply(output = JsonNull)
+					}
 					!allowed() -> Reply(error = Reply.Error(REFUSED, DISABLED_MESSAGE))
 					request.operation.substringBefore('.') in APP_ONLY || request.operation in APP_ONLY_OPERATIONS ->
 						Reply(error = Reply.Error(REFUSED, APP_ONLY_MESSAGE))
@@ -179,10 +195,39 @@ object Forwarding {
 		}
 	}
 
+	/**
+	 * Hands a second launch's [args] to the app listening on [socket]. False when no app answers or it
+	 * refuses, so this launch can start as usual.
+	 */
+	fun handOff(socket: Path, args: List<String>): Boolean {
+		val client = try {
+			SocketChannel.open(UnixDomainSocketAddress.of(socket))
+		} catch (e: IOException) {
+			return false
+		}
+		val timeout = Timer(true).apply { schedule(timerTask { client.close() }, HAND_OFF_TIMEOUT.inWholeMilliseconds) }
+		return try {
+			client.use {
+				val writer = Channels.newWriter(client, Charsets.UTF_8).buffered()
+				writer.write(json.encodeToString(Request.serializer(), Request(launch = args)))
+				writer.newLine()
+				writer.flush()
+				val line = Channels.newReader(client, Charsets.UTF_8).buffered().readLine() ?: return false
+				json.decodeFromString(Reply.serializer(), line).error == null
+			}
+		} catch (e: IOException) {
+			Napier.w(e) { "Could not hand this launch to the running app" }
+			false
+		} finally {
+			timeout.cancel()
+		}
+	}
+
 	private const val REFUSED = "Refused"
 	private const val FAILED = "Failed"
 	private val REQUEST_TIMEOUT = 10.seconds
 	private val REPLY_TIMEOUT = 10.minutes
+	private val HAND_OFF_TIMEOUT = 5.seconds
 	private const val APP_ONLY_MESSAGE =
 		"Hammer is open, and this has to wait until it is closed. Use the app, or close it and run this again."
 	private const val DISABLED_MESSAGE =
