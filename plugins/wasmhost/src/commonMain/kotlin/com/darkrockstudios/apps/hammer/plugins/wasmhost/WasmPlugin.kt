@@ -67,6 +67,8 @@ class WasmPlugin(
 	private val cache: PluginCache? = null,
 	private val fuelPerCall: Long = DEFAULT_FUEL_PER_CALL,
 	private val releaseGuestHeapAbove: Long = DEFAULT_RELEASE_GUEST_HEAP_ABOVE,
+	/** The UI's BCP 47 tag, sent with every call so a plugin can reply in it. */
+	private val locale: String? = null,
 ) : ClientPlugin, KoinComponent {
 
 	override val id: String = manifest.id
@@ -125,6 +127,7 @@ class WasmPlugin(
 			input = call.input,
 			context = ActionRequest.Context(call.place.id, call.itemId),
 			button = call.button,
+			locale = locale,
 		)
 		val reply = withContext(ioDispatcher) {
 			lock.withLock {
@@ -160,7 +163,7 @@ class WasmPlugin(
 
 	override fun textDiagnostics(): List<TextDiagnosticsProvider> = manifest.diagnostics.map { check ->
 		TextDiagnosticsProvider(check.label) { paragraphs, language ->
-			val request = DiagnoseRequest(check.name, paragraphs, language, settingsValues())
+			val request = DiagnoseRequest(check.name, paragraphs, language, settingsValues(), locale)
 			val found = List(paragraphs.size) { mutableListOf<TextDiagnostic>() }
 			try {
 				val reply = call(DIAGNOSE, OperationJson.encodeToString(request).encodeToByteArray()).decodeToString()
@@ -313,7 +316,7 @@ class WasmPlugin(
 			while (true) {
 				val line = io.stdin.readUtf8Line() ?: return 0
 				// Settings are read again for each line, so a change in Hammer applies at once.
-				val request = CommandRequest(name, args, savedSettings(), line)
+				val request = CommandRequest(name, args, savedSettings(), line, locale)
 				val reply = try {
 					callBlocking(COMMAND, OperationJson.encodeToString(request).encodeToByteArray(), route)
 				} catch (e: PluginException) {
@@ -369,6 +372,7 @@ class WasmPlugin(
 					}
 				},
 				settings = settingsValues(),
+				locale = locale,
 			)
 			// Export renders on a background dispatcher already.
 			sink.write(callBlocking(EXPORT, OperationJson.encodeToString(request).encodeToByteArray()))
@@ -385,7 +389,9 @@ class WasmPlugin(
 		val input: JsonObject,
 		val context: Context,
 		/** The id of the button pressed, for an interactive action's later calls. */
-		val button: String? = null,
+		val button: String?,
+		/** The UI's BCP 47 tag, or null when Hammer does not know it. */
+		val locale: String?,
 	) {
 		/** The screen the action was run from, and the id of the item it shows there. */
 		@Serializable
@@ -416,6 +422,8 @@ class WasmPlugin(
 		val language: String?,
 		/** The plugin's declared settings, every key present. */
 		val settings: JsonObject,
+		/** The UI's BCP 47 tag, or null when Hammer does not know it. */
+		val locale: String?,
 	)
 
 	/**
@@ -444,6 +452,8 @@ class WasmPlugin(
 		val settings: JsonObject,
 		/** One line of standard input, without its line break. */
 		val line: String,
+		/** The UI's BCP 47 tag, or null when Hammer does not know it. */
+		val locale: String?,
 	)
 
 	@Serializable
@@ -480,6 +490,8 @@ class WasmPlugin(
 		val chapters: List<Chapter>,
 		/** The plugin's declared settings, every key present. */
 		val settings: JsonObject,
+		/** The UI's BCP 47 tag, or null when Hammer does not know it. */
+		val locale: String?,
 	) {
 		/** Each scene in [scenes] as markdown, or in [prose] as blocks, as the exporter's `input` asks. */
 		@Serializable

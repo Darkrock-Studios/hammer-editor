@@ -17,22 +17,35 @@ import okio.Path.Companion.toPath
 import okio.openZip
 
 /**
- * A `.hammerplugin` package: a zip of `manifest.toml`, `plugin.wasm`, and optionally `settings.toml`.
- * The module, by far the largest part, is read only when [readModule] is called.
+ * A `.hammerplugin` package: a zip of `manifest.toml`, `plugin.wasm`, and optionally `settings.toml` and
+ * translations in `locales/<tag>.toml`. The module, by far the largest part, is read only when
+ * [readModule] is called.
  */
 class PluginPackage(
 	val manifest: PluginManifest,
 	val settings: List<SettingDeclaration>,
 	private val moduleReader: () -> ByteArray,
+	/** By language tag, as named in the package. */
+	val translations: Map<String, PluginTranslation> = emptyMap(),
 ) {
 	/** Reads the module from the package; each call reads it again, so callers need not keep it. */
 	fun readModule(): ByteArray = moduleReader()
+
+	/** This package with its manifest's and settings' words in [locale], where it has them. */
+	fun localized(locale: String?): PluginPackage {
+		val chosen = PluginTranslation.forLocale(translations, locale)
+		if (chosen.isEmpty()) return this
+		return PluginPackage(translate(manifest, chosen), translate(settings, chosen), moduleReader, translations)
+	}
 
 	companion object {
 		const val EXTENSION = "hammerplugin"
 		private const val MANIFEST = "manifest.toml"
 		private const val MODULE = "plugin.wasm"
 		private const val SETTINGS = "settings.toml"
+		private const val LOCALES = "locales"
+		private const val MAX_LOCALES = 200
+		private val LOCALE_TAG = Regex("[A-Za-z]{2,3}([-_][A-Za-z0-9]{2,8})*")
 		private const val MAX_TEXT_BYTES = 256L * 1024
 		private const val BYTES_PER_MIB = 1024L * 1024
 		private const val MAX_CODE_BYTES = 32 * BYTES_PER_MIB
@@ -78,7 +91,9 @@ class PluginPackage(
 				emptyList()
 			}
 
-			val moduleSize = zip.metadataOrNull(root / MODULE)?.size ?: throw PluginPackageException("Package has no $MODULE")
+			val translations = if (zip.exists(root / LOCALES)) readTranslations(zip.list(root / LOCALES), ::text) else emptyMap()
+
+		val moduleSize = zip.metadataOrNull(root / MODULE)?.size ?: throw PluginPackageException("Package has no $MODULE")
 			// A module's data has to fit its memory, so a pre-initialized one may be as large as that.
 			val maxModuleBytes = manifest.limits.memory * BYTES_PER_MIB + MAX_CODE_BYTES
 			if (moduleSize > maxModuleBytes) throw PluginPackageException("$MODULE is larger than $maxModuleBytes bytes")
@@ -89,7 +104,21 @@ class PluginPackage(
 					throw PluginException("Could not read $MODULE: ${e.message}")
 				}
 			}
-			return PluginPackage(manifest, settings, reader).also { if (checkModule) it.checkModule() }
+			return PluginPackage(manifest, settings, reader, translations).also { if (checkModule) it.checkModule() }
+		}
+
+		private fun readTranslations(files: List<Path>, text: (String) -> String): Map<String, PluginTranslation> {
+			val toml = files.filter { it.name.endsWith(".toml") }
+			if (toml.size > MAX_LOCALES) throw PluginPackageException("More than $MAX_LOCALES translations in $LOCALES")
+			return toml.associate { path ->
+				val tag = path.name.removeSuffix(".toml")
+				if (!LOCALE_TAG.matches(tag)) throw PluginPackageException("$LOCALES/${path.name} is not named for a language tag")
+				tag to try {
+					PluginTranslation.parse(text("$LOCALES/${path.name}"))
+				} catch (e: IllegalArgumentException) {
+					throw PluginPackageException("Invalid $LOCALES/${path.name}: ${e.message}")
+				}
+			}
 		}
 
 		// Into one array of the known size: readByteArray() buffers it all and then copies it.
