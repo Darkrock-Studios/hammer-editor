@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.projectroot
 
+import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginActionHost
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -109,17 +110,19 @@ fun ProjectRootUi(
 		}
 	}
 
-	SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
-		FeatureContent(
-			modifier.fillMaxSize(),
-			component,
-			rootSnackbar,
-			navWidth,
-		)
-	}
+	PluginActionHost(component.projectDef.name, rootSnackbar) {
+		SetScreenCharacteristics(WIDE_SCREEN_THRESHOLD) {
+			FeatureContent(
+				modifier.fillMaxSize(),
+				component,
+				rootSnackbar,
+				navWidth,
+			)
+		}
 
-	ModalContent(component) { message ->
-		rootSnackbar.showSnackbar(message)
+		ModalContent(component) { message ->
+			rootSnackbar.showSnackbar(message)
+		}
 	}
 }
 

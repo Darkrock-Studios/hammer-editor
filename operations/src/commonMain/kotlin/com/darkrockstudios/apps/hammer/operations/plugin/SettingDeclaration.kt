@@ -130,10 +130,14 @@ fun parseSettingDeclarations(toml: String): List<SettingDeclaration> =
 	Toml { ignoreUnknownKeys = true }.decodeFromString(SettingsFile.serializer(), toml).setting.map { it.toDeclaration() }
 
 @Serializable
-private class SettingsFile(val setting: List<RawSetting> = emptyList())
+private class SettingsFile(val setting: List<FieldTable> = emptyList())
 
+/**
+ * A field as a plugin declares it in TOML: a `[[setting]]` in `settings.toml`, or an action's
+ * `[[actions.field]]`, which may also be `scenes`, with `multiple` and `required`.
+ */
 @Serializable
-private class RawSetting(
+class FieldTable(
 	val key: String,
 	val type: String,
 	val label: String,
@@ -142,8 +146,14 @@ private class RawSetting(
 	val min: Long? = null,
 	val max: Long? = null,
 	val multiline: Boolean = false,
-	val options: List<RawOption> = emptyList(),
+	val options: List<FieldOption> = emptyList(),
+	val multiple: Boolean = true,
+	val required: Boolean = false,
 ) {
+	/** Throws [IllegalArgumentException] for an unknown type. */
+	fun toActionField(): ActionField =
+		if (type == SCENES) ActionField.Scenes(key, label, hint, multiple, required) else ActionField.Setting(toDeclaration())
+
 	fun toDeclaration(): SettingDeclaration {
 		val default = default?.toJsonPrimitive()
 		return when (type) {
@@ -163,4 +173,6 @@ private class RawSetting(
 }
 
 @Serializable
-private class RawOption(val value: String, val label: String)
+class FieldOption(val value: String, val label: String)
+
+private const val SCENES = "scenes"

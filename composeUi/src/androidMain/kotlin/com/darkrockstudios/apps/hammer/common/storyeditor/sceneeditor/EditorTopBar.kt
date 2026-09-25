@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor
 
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
+import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginActionMenuItems
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -66,7 +68,8 @@ actual fun EditorTopBar(
 	TopBar(
 		title = title,
 		onClose = component::closeEditor,
-		menuItems = state.menuItems
+		menuItems = state.menuItems,
+		extraMenuItems = { close -> PluginActionMenuItems(ActionPlace.Scene, state.sceneItem.id, onChosen = close) },
 	) {
 		val unsaved = state.sceneBuffer?.dirty == true
 		if (unsaved) {

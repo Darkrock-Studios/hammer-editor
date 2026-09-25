@@ -25,7 +25,7 @@
 	<string name="plugin_settings_open">Settings</string>
 	<string name="plugin_settings_close">Close settings</string>
 	<string name="plugin_command_run">%1$s Run it with:</string>
-	<string name="plugin_install_actions">Adds to each project's menu: %1$s</string>
+	<string name="plugin_install_actions">Adds actions: %1$s</string>
 	<string name="plugin_install_commands">Adds commands: %1$s</string>
 	<string name="plugin_install_diagnostics">Checks your writing: %1$s</string>
 	<string name="plugin_install_memory">Uses up to %1$s MB of memory.</string>
@@ -38,4 +38,20 @@
 	<string name="plugin_document_copied">Copied</string>
 	<string name="plugin_document_save">Save as note</string>
 	<string name="plugin_document_close">× CLOSE</string>
+	<string name="plugin_action_run">Run</string>
+	<string name="plugin_action_cancel">Cancel</string>
+	<string name="plugin_action_stop">Stop</string>
+	<string name="plugin_action_working">Working…</string>
+	<string name="plugin_action_done">Done</string>
+	<string name="plugin_action_failed">That did not finish. The log has the details.</string>
+	<string name="plugin_action_stopped">Stopped</string>
+	<string name="plugin_action_busy">Another action is still running</string>
+	<string name="plugin_action_saved">Saved to Notes</string>
+	<string name="plugin_action_saved_cut">Saved to Notes, cut to fit a note</string>
+	<string name="plugin_action_save_failed">Could not save it as a note</string>
+	<string name="plugin_action_scenes_choose">Choose</string>
+	<string name="plugin_action_scenes_all">All scenes</string>
+	<string name="plugin_action_scenes_none">None chosen</string>
+	<string name="plugin_action_scenes_more">%1$s and %2$d more</string>
+	<string name="plugin_action_scenes_done">Done</string>
 </resources>

@@ -1,5 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor
 
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
+import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginActionMenuItems
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement.Start
 import androidx.compose.foundation.text.ClickableText
@@ -131,7 +133,10 @@ actual fun EditorTopBar(
 				)
 			}
 
-			TopAppBarDropdownMenu(menuItems = state.menuItems)
+			TopAppBarDropdownMenu(
+				menuItems = state.menuItems,
+				extraItems = { close -> PluginActionMenuItems(ActionPlace.Scene, state.sceneItem.id, onChosen = close) },
+			)
 		}
 	}
 }

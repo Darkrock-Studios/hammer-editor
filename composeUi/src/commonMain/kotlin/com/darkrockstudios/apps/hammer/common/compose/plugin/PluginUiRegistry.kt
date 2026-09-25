@@ -12,9 +12,10 @@ import androidx.compose.ui.text.font.FontFamily
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.composeui.resources.Res
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_command_run
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
-import com.darkrockstudios.apps.hammer.operations.plugin.ProjectAction
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsProvider
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -48,11 +49,11 @@ class PluginUiRegistry(
 		return remember(plugins) { plugins.mapNotNull(::settingsPane) }
 	}
 
-	/** Every active plugin's items for a project's menu. */
+	/** Every active plugin's actions for the menu of the screen at [place]. */
 	@Composable
-	fun projectActions(): List<ProjectAction> {
+	fun actions(place: ActionPlace): List<PluginAction> {
 		val plugins by pluginRegistry.active.collectAsState()
-		return remember(plugins) { plugins.flatMap { it.projectActions() } }
+		return remember(plugins, place) { plugins.flatMap { it.actions() }.filter { place in it.places } }
 	}
 
 	/**

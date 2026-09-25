@@ -8,12 +8,18 @@ import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.ProjectResolver
 import com.darkrockstudios.apps.hammer.operations.operation
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionCall
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionOutput
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionProgress
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
 import kotlinx.serialization.json.jsonPrimitive
@@ -95,17 +101,36 @@ class StylePluginTest {
 				module { single { OperationRegistry(listOf(tree, read), NoProjects) } },
 			)
 		}
-		registry.plugins.single().projectActions().single().also {
+		registry.plugins.single().actions().single().also {
 			assertEquals("Style report", it.label)
-			assertTrue(it.document)
+			assertEquals(ActionOutput.Document, it.output)
 		}
 	}
 
-	/** Runs the report on [scenes], grouped under one part, and returns its markdown. */
-	private fun report(scenes: List<String>, names: List<String> = scenes.indices.map { "Scene ${it + 1}" }): String {
+	/**
+	 * Runs the report on [scenes], grouped under one part, or on the ones with the ids in [chosen], and
+	 * returns its markdown.
+	 */
+	private fun report(
+		scenes: List<String>,
+		names: List<String> = scenes.indices.map { "Scene ${it + 1}" },
+		chosen: List<Int> = emptyList(),
+		onProgress: (ActionProgress) -> Unit = {},
+	): String {
 		this.scenes = scenes
 		this.names = names
-		return runBlocking { action.run("Storm") }!!
+		val input = JsonObject(mapOf("scenes" to JsonArray(chosen.map(::JsonPrimitive))))
+		return runBlocking { action.run(ActionCall("Storm", ActionPlace.Project, null, input, onProgress = onProgress)) }.markdown!!
+	}
+
+	@Test
+	fun `the report covers only the chosen scenes, and reports its progress scene by scene`() {
+		val progress = mutableListOf<String?>()
+		val report = report(listOf("One two three.", "Four five.", "Six."), chosen = listOf(3, 1), onProgress = { progress += it.message })
+
+		assertTrue(report.startsWith("# Style report\n\n## Chosen scenes\n\n- **Words:** 4 in 2 sentences"), report)
+		assertTrue("### Scene 1" in report && "### Scene 3" in report && "### Scene 2" !in report, report)
+		assertEquals(listOf<String?>("Scene 1 of 2", "Scene 2 of 2"), progress)
 	}
 
 	@Test
