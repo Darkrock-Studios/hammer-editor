@@ -48,7 +48,7 @@ class StylePluginTest {
 	}
 
 	/** Runs the report on [scenes], grouped under one part, and returns the note it saves. */
-	private fun report(scenes: List<String>): JsonObject {
+	private fun report(scenes: List<String>, names: List<String> = scenes.indices.map { "Scene ${it + 1}" }): JsonObject {
 		var saved: JsonObject? = null
 		val tree = operation<JsonObject, JsonObject>("scene.tree", "", Access.Read, OperationScope.Content) {
 			buildJsonObject {
@@ -57,7 +57,7 @@ class StylePluginTest {
 						put("id", 1000); put("name", "Part One"); put("kind", "group"); put("wordCount", 0)
 						putJsonArray("children") {
 							scenes.indices.forEach { i ->
-								add(buildJsonObject { put("id", i + 1); put("name", "Scene ${i + 1}"); put("kind", "scene"); put("wordCount", 0); putJsonArray("children") {} })
+								add(buildJsonObject { put("id", i + 1); put("name", names[i]); put("kind", "scene"); put("wordCount", 0); putJsonArray("children") {} })
 							}
 						}
 					})
@@ -109,14 +109,23 @@ class StylePluginTest {
 		assertEquals(listOf("style-report"), note["tags"]!!.jsonArray.map { it.jsonPrimitive.content })
 		assertEquals(
 			"""
-			Style report
+			# Style report
 
-			Whole story: 14 words in 4 sentences. Reading ease 94.5, grade 0.9. 71.4 adverbs per 1,000 words. 21% dialogue.
-			Adverbs: quickly (1)
+			## Whole story
 
-			Scenes
-			Scene 1: 9 words in 2 sentences. Reading ease 89.5, grade 1.9. 111.1 adverbs per 1,000 words. 0% dialogue.
-			Scene 2: 5 words in 2 sentences. Reading ease 102.8, grade -0.5. 0.0 adverbs per 1,000 words. 60% dialogue.
+			- **Words:** 14 in 4 sentences
+			- **Reading ease:** 94.5, grade 0.9
+			- **Adverbs:** 71.4 per 1,000 words
+			- **Dialogue:** 21%
+			- **Most used adverbs:** quickly (1)
+
+			## Scenes
+
+			### Scene 1
+			9 words in 2 sentences. Reading ease 89.5, grade 1.9. 111.1 adverbs per 1,000 words. 0% dialogue.
+
+			### Scene 2
+			5 words in 2 sentences. Reading ease 102.8, grade -0.5. 0.0 adverbs per 1,000 words. 60% dialogue.
 			""".trimIndent(),
 			note.content(),
 		)
@@ -134,12 +143,17 @@ class StylePluginTest {
 			)
 		).content().lines()
 
-		fun scene(n: Int) = lines.single { it.startsWith("Scene $n: ") }
-		assertTrue(scene(1).startsWith("Scene 1: 3 words in 2 sentences.") && scene(1).endsWith(" 33% dialogue."))
-		assertTrue(scene(2).startsWith("Scene 2: 5 words in 1 sentences."))
-		assertTrue(scene(3).startsWith("Scene 3: 6 words in 1 sentences."))
-		assertTrue(scene(4).startsWith("Scene 4: 4 words in 2 sentences."))
-		assertTrue(scene(5).endsWith(" Repeats: lighthouse (3)."))
+		fun scene(n: Int, line: Int = 1) = lines[lines.indexOf("### Scene $n") + line]
+		assertTrue(scene(1).startsWith("3 words in 2 sentences.") && scene(1).endsWith(" 33% dialogue."))
+		assertTrue(scene(2).startsWith("5 words in 1 sentence."))
+		assertTrue(scene(3).startsWith("6 words in 1 sentence."))
+		assertTrue(scene(4).startsWith("4 words in 2 sentences."))
+		assertEquals("Repeats: lighthouse (3)", scene(5, line = 3))
+	}
+
+	@Test
+	fun `scene names cannot format the note`() {
+		assertTrue("### \\*Interlude\\* at the\\_end" in report(listOf("Rain."), listOf("*Interlude* at the_end")).content().lines())
 	}
 
 	@Test
@@ -147,7 +161,7 @@ class StylePluginTest {
 		val content = report(List(400) { "The storm came early that year." }).content()
 
 		assertTrue(content.length <= 10_000)
-		assertTrue(content.endsWith(" more scenes."))
+		assertTrue(content.endsWith(" more scenes._"))
 	}
 
 	private object NoProjects : ProjectResolver {
