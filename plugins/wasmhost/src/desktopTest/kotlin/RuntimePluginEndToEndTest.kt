@@ -42,6 +42,7 @@ class RuntimePluginEndToEndTest {
 
 	private val fileSystem = FakeFileSystem()
 	private val directory = "/config/plugins".toPath()
+	private val cacheDirectory = "/cache/plugins".toPath()
 
 	@AfterEach
 	fun tearDown() {
@@ -62,10 +63,10 @@ class RuntimePluginEndToEndTest {
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
 
-		RuntimePlugins(fileSystem, directory).install(download)
+		RuntimePlugins(fileSystem, directory, cacheDirectory).install(download)
 
 		// A fresh instance, as after a restart.
-		val registry = PluginRegistry().also(RuntimePlugins(fileSystem, directory)::activate)
+		val registry = PluginRegistry().also(RuntimePlugins(fileSystem, directory, cacheDirectory)::activate)
 		val stats = operation<ProjectInput, Stats>("stats.project", "", Access.Read, OperationScope.Content) { Stats(totalWords = 42) }
 		GlobalContext.startKoin {
 			modules(

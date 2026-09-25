@@ -47,9 +47,14 @@ class StylePluginTest {
 		GlobalContext.stopKoin()
 	}
 
-	/** Runs the report on [scenes], grouped under one part, and returns the note it saves. */
-	private fun report(scenes: List<String>, names: List<String> = scenes.indices.map { "Scene ${it + 1}" }): JsonObject {
-		var saved: JsonObject? = null
+	private val cacheDirectory = "/cache/plugins/style".toPath()
+
+	// What the fake operations serve and save.
+	private var scenes = emptyList<String>()
+	private var names = emptyList<String>()
+	private var saved: JsonObject? = null
+
+	private val action by lazy {
 		val tree = operation<JsonObject, JsonObject>("scene.tree", "", Access.Read, OperationScope.Content) {
 			buildJsonObject {
 				putJsonArray("nodes") {
@@ -77,7 +82,7 @@ class StylePluginTest {
 		val download = "/downloads/style.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
-		val plugins = RuntimePlugins(fileSystem, "/config/plugins".toPath())
+		val plugins = RuntimePlugins(fileSystem, "/config/plugins".toPath(), cacheDirectory.parent!!)
 		plugins.install(download)
 		val registry = PluginRegistry().also(plugins::activate)
 		GlobalContext.startKoin {
@@ -92,9 +97,13 @@ class StylePluginTest {
 				module { single { OperationRegistry(listOf(tree, read, create), NoProjects) } },
 			)
 		}
+		registry.plugins.single().projectActions().single().also { assertEquals("Style report", it.label) }
+	}
 
-		val action = registry.plugins.single().projectActions().single()
-		assertEquals("Style report", action.label)
+	/** Runs the report on [scenes], grouped under one part, and returns the note it saves. */
+	private fun report(scenes: List<String>, names: List<String> = scenes.indices.map { "Scene ${it + 1}" }): JsonObject {
+		this.scenes = scenes
+		this.names = names
 		assertEquals("Style report saved to Notes", runBlocking { action.run("Storm") })
 		return saved!!
 	}
@@ -162,6 +171,39 @@ class StylePluginTest {
 
 		assertTrue(content.length <= 10_000)
 		assertTrue(content.endsWith(" more scenes._"))
+	}
+
+	@Test
+	fun `each scene's counts are cached by its text`() {
+		val story = listOf("The storm came *early* that year. Alice ran quickly!", "“Get inside,” she said. “Now.”", "Rain.")
+		val cold = report(story).content()
+		assertEquals(story.size, fileSystem.list(cacheDirectory).size)
+
+		assertEquals(cold, report(story).content())
+		report(story + "Thunder rolled.")
+		assertEquals(story.size + 1, fileSystem.list(cacheDirectory).size)
+	}
+
+	@Test
+	fun `cached counts are used in place of counting`() {
+		report(listOf("One two three four five six seven eight nine ten.", "Short."))
+		val (small, large) = fileSystem.list(cacheDirectory).sortedBy { fileSystem.metadata(it).size }
+		val smallBytes = fileSystem.read(small) { readByteArray() }
+		fileSystem.write(small) { write(fileSystem.read(large) { readByteArray() }) }
+		fileSystem.write(large) { write(smallBytes) }
+
+		val lines = report(listOf("One two three four five six seven eight nine ten.", "Short.")).content().lines()
+
+		assertTrue(lines[lines.indexOf("### Scene 1") + 1].startsWith("1 word in 1 sentence."))
+	}
+
+	@Test
+	fun `a damaged cache entry is counted again`() {
+		val story = listOf("The storm came *early* that year. Alice ran quickly!", "“Get inside,” she said. “Now.”")
+		val cold = report(story).content()
+		fileSystem.list(cacheDirectory).forEach { entry -> fileSystem.write(entry) { writeUtf8("damaged") } }
+
+		assertEquals(cold, report(story).content())
 	}
 
 	private object NoProjects : ProjectResolver {
