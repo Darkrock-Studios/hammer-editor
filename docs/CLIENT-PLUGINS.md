@@ -820,7 +820,7 @@ in CLI help, neither of which is localized today.
 
 Four plugins, all real features rather than test fixtures, chosen so that
 between them they exercise every slot: the plain text exporter, the style
-report, the grammar check, and the [MCP plugin](#mcp-plugin).
+report, the simple grammar check, and the [MCP plugin](#mcp-plugin).
 
 ### Plain text exporter (`plaintext`)
 
@@ -872,9 +872,9 @@ second pass. Its repeated phrases are those repeated within a scene. On a
 seconds and a run with nothing changed about 1, the reading of every scene
 that remains.
 
-### Grammar (`grammar`)
+### Simple grammar (`simple-grammar`)
 
-Built, as a runtime plugin in C: `c/grammar` in `hammer-plugins`. Underlines
+Built, as a runtime plugin in C: `c/simple-grammar` in `hammer-plugins`. Underlines
 common slips in English prose as you write: repeated words, "a" and "an",
 "could of" and its kin, a lower-case "i", spacing around punctuation, and a
 sentence starting in lower case. The rules flag only what they are sure of
@@ -1414,7 +1414,7 @@ design is revisited rather than `:common` bent to fit.
    scenes, and the result dialog, where the style report now appears.
 10. **Text diagnostics.** Built: `TextDiagnosticsProvider`, the `diagnose`
    export, and a diagnostics layer in the editor library, with the
-   [grammar](#grammar-grammar) plugin against it. Spell check stays separate:
+   [simple grammar](#simple-grammar-simple-grammar) plugin against it. Spell check stays separate:
    it loads suggestions only when a word is clicked and re-checks single words,
    where diagnostics carry their fixes up front and re-check whole paragraphs.
    Moving it over waits until diagnostics can load fixes on demand.
