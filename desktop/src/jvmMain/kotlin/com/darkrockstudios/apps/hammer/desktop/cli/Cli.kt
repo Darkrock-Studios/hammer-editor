@@ -48,8 +48,16 @@ object Cli {
 
 	private val pretty = Json { prettyPrint = true }
 
-	/** A CLI call starts with a command word; the app's own launch options all start with `-`. */
-	fun isInvocation(args: Array<String>): Boolean = args.isNotEmpty() && !args[0].startsWith("-")
+	/** Given before the command, as `hammer --dev project list`, uses development data, as it does for the app. */
+	private val DEV_FLAGS = setOf("--dev", "-d")
+
+	/** A CLI call starts with a command word, after any `--dev`; the app's own launch options all start with `-`. */
+	fun isInvocation(args: Array<String>): Boolean = commandArgs(args).firstOrNull()?.startsWith("-") == false
+
+	fun isDevInvocation(args: Array<String>): Boolean = args.firstOrNull() in DEV_FLAGS
+
+	/** The command and what follows it. */
+	fun commandArgs(args: Array<String>): List<String> = args.dropWhile { it in DEV_FLAGS }
 
 	fun run(args: List<String>, io: CliIo = systemIo()): Int {
 		val plugins = HeadlessSession.pluginRegistry()
