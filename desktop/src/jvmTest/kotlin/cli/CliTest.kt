@@ -60,6 +60,15 @@ class CliTest {
 	}
 
 	@Test
+	fun `file inputs come from --in`() {
+		assertEquals(Cli.EXIT_OK, run("entry", "image", "set", "--help"))
+		assertTrue("--in <file>" in stdout.readUtf8())
+
+		assertEquals(Cli.EXIT_USAGE, run("note", "read", "--project", "X", "--id", "1", "--in", "notes.txt"))
+		assertTrue("no file input" in stderr.readUtf8())
+	}
+
+	@Test
 	fun `unknown commands and options are usage errors`() {
 		assertEquals(Cli.EXIT_USAGE, run("scene", "reed"))
 		assertTrue("Unknown command 'scene reed'" in stderr.readUtf8())
