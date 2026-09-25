@@ -511,6 +511,8 @@ hammer mcp        # the MCP plugin's command
   output's one binary field (an export's bytes) to a file and prints the rest,
   and `--out -` writes the bytes alone to stdout. `--in FILE` (or `--in -`)
   fills an input's one binary field, such as an entry image, the same way.
+- `--dev` before the command, as in `hammer --dev project list`, uses
+  development data, as it does for the app, and so reaches a `--dev` window.
 - Destructive operations need `--confirm`; without it the CLI refuses before
   starting Hammer.
 - Exit codes: 0 success, 1 failure, 3 not logged in or login rejected, 4 not
