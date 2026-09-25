@@ -914,7 +914,7 @@ C, through clang, is the first supported language: small modules that use
 linear memory only, which any runtime handles. AssemblyScript has a kit too,
 and runs about five times slower than C on a whole-book report; Rust, Go, and
 Zig should work the same way. Kotlin/Wasm works too (the MCP plugin is written
-in it), at a cost in speed and size. hammer-plugins' `PERFORMANCE.md` compares
+in it), at a cost in speed and size. hammer-plugins' `LANGUAGES.md` compares
 the languages for plugin authors: speed, size, setup, and what writing one is
 like.
 
