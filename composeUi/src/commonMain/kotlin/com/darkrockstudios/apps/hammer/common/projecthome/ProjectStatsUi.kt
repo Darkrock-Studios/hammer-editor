@@ -144,6 +144,11 @@ fun ProjectStatsUi(
 		working = state.isExporting || state.showExportFilePicker,
 	)
 	ExportDirectoryPicker(state.showExportFilePicker, component, scope)
+	ActionDocumentDialog(
+		document = state.actionDocument,
+		onSave = component::saveActionDocumentAsNote,
+		onDismiss = component::dismissActionDocument,
+	)
 }
 
 @Composable
@@ -1390,7 +1395,7 @@ private fun ProjectHomeMenu(
 					onClick = {
 						expanded = false
 						val project = component.state.value.projectDef.name
-						component.runProjectAction { action.run(project) }
+						component.runProjectAction(action.label, action.document) { action.run(project) }
 					},
 				)
 			}

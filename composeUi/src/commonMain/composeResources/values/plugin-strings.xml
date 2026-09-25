@@ -32,4 +32,8 @@
 	<string name="plugin_install_scope_account_read">your sync account's status</string>
 	<string name="plugin_install_scope_account_write">your sync account: log in, log out, and sync</string>
 	<string name="plugin_install_failed">The plugin change failed: %1$s</string>
+	<string name="plugin_document_copy">Copy</string>
+	<string name="plugin_document_copied">Copied</string>
+	<string name="plugin_document_save">Save as note</string>
+	<string name="plugin_document_close">× CLOSE</string>
 </resources>
