@@ -20,7 +20,7 @@ import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.PluginSettingsSection
 import com.darkrockstudios.apps.hammer.settings_plugins_header
 
-private val previewPane = PluginSettingsPane({ Res.string.settings_plugins_header.get() }) {
+private val previewPane = PluginSettingsPane("example", compiledIn = true, { Res.string.settings_plugins_header.get() }) {
 	var enabled by remember { mutableStateOf(true) }
 	HdHairlineToggleRow(
 		checked = enabled,
@@ -40,7 +40,7 @@ internal fun PluginSettingsSectionPreview() {
 			modifier = Modifier.background(MaterialTheme.colorScheme.surface).padding(24.dp),
 			contentSpacing = 24.dp,
 		) {
-			PluginSettingsSection(listOf(previewPane))
+			PluginSettingsSection(listOf(previewPane), runtimePlugins = null)
 		}
 	}
 }

@@ -18,7 +18,13 @@ import io.github.aakira.napier.Napier
 import org.jetbrains.compose.resources.StringResource
 import org.koin.dsl.module
 
-class PluginSettingsPane(val name: @Composable () -> String, val content: @Composable ColumnScope.() -> Unit)
+class PluginSettingsPane(
+	val pluginId: String,
+	/** Compiled in, so it has no install controls. */
+	val compiledIn: Boolean,
+	val name: @Composable () -> String,
+	val content: @Composable ColumnScope.() -> Unit,
+)
 
 /**
  * The registered plugin UI halves whose plugin is also registered. [cliLauncher] runs `hammer` where
@@ -51,7 +57,11 @@ class PluginUiRegistry(
 		val custom = ui?.settingsPane
 		val commands = if (cliLauncher != null) plugin.cliCommands() else emptyList()
 		if (plugin.settings().isEmpty() && custom == null && commands.isEmpty()) return null
-		return PluginSettingsPane(name = { ui?.name?.get() ?: plugin.name ?: plugin.id }) {
+		return PluginSettingsPane(
+			pluginId = plugin.id,
+			compiledIn = pluginRegistry.isCompiledIn(plugin.id),
+			name = { ui?.name?.get() ?: plugin.name ?: plugin.id },
+		) {
 			if (plugin.settings().isNotEmpty()) DeclaredSettings(plugin, ui)
 			custom?.invoke(this)
 			commands.forEach { command ->
