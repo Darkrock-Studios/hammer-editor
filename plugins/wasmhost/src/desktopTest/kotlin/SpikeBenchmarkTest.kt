@@ -1,4 +1,5 @@
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.ExtismPlugin
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginException
 import io.github.charlietap.chasm.embedding.dsl.imports
 import io.github.charlietap.chasm.embedding.instance
 import io.github.charlietap.chasm.embedding.invoke
@@ -69,6 +70,8 @@ class SpikeBenchmarkTest {
 			"upper", input, "run",
 			"c/upper/build/upper.wasm",
 			"assemblyscript/upper/build/upper.wasm",
+			"rust/upper/build/upper.wasm",
+			"go/upper/build/upper.wasm",
 			"kotlin/upper/build/compileSync/wasmWasi/main/developmentExecutable/kotlin/upper.wasm",
 			"kotlin/upper/build/compileSync/wasmWasi/main/productionExecutable/optimized/upper.wasm",
 		)
@@ -83,7 +86,11 @@ class SpikeBenchmarkTest {
 			"word count", request.encodeToByteArray(), "export",
 			"c/wordfreq/build/wordfreq.wasm",
 			"assemblyscript/wordfreq/build/wordfreq.wasm",
+			"rust/wordfreq/build/wordfreq.wasm",
+			"go/wordfreq/build/wordfreq.wasm",
 			"assemblyscript/wordcount/build/wordcount.wasm",
+			"rust/wordcount/build/wordcount.wasm",
+			"go/wordcount/build/wordcount.wasm",
 			"kotlin/wordcount/build/compileSync/wasmWasi/main/developmentExecutable/kotlin/wordcount.wasm",
 			"kotlin/wordcount/build/compileSync/wasmWasi/main/productionExecutable/optimized/wordcount.wasm",
 		)
@@ -107,12 +114,17 @@ class SpikeBenchmarkTest {
 			"style", """{"action":"report","project":"Novel","settings":{}}""".encodeToByteArray(), "action",
 			"c/style/build/style.wasm",
 			"assemblyscript/style/build/style.wasm",
+			"rust/style/build/style.wasm",
+			"go/style/build/style.wasm",
 			userFunctions = listOf(dispatch, noCacheGet, noCacheSet),
 			size = novel.length,
 		)
 	}
 
-	/** Loads each built plugin, warms it up, and prints its load time and best of three runs. */
+	/**
+	 * Loads each built plugin, warms it up, and prints its load time and best of three runs, or how it
+	 * failed.
+	 */
 	private fun compare(
 		task: String,
 		input: ByteArray,
@@ -125,8 +137,12 @@ class SpikeBenchmarkTest {
 			val wasm = pluginsRepo?.resolve(build)?.takeIf { it.exists() } ?: return@forEach println("$build not built; skipped")
 			lateinit var plugin: ExtismPlugin
 			val load = measureTime { plugin = ExtismPlugin(wasm.readBytes(), userFunctions) }
-			plugin.call(function, input, FUEL)
-			val best = (1..3).minOf { measureTime { plugin.call(function, input, FUEL) } }
+			val best = try {
+				plugin.call(function, input, FUEL)
+				(1..3).minOf { measureTime { plugin.call(function, input, FUEL) } }
+			} catch (e: PluginException) {
+				return@forEach println("$task, $build failed: ${e.message}")
+			}
 			println("$task, $build (${wasm.length() / 1024} KB): load $load, run $best on ${size / 1024} KB")
 		}
 	}
