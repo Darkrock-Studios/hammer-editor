@@ -22,12 +22,18 @@ class ProjectMetadataDatasource(
 		return (projectDef.path.toOkioPath() / ProjectMetadata.FILENAME).toHPath()
 	}
 
+	/** The stored metadata, or null when it is missing or unreadable. Unlike [loadMetadata], never writes. */
+	fun readMetadata(projectDef: ProjectDef): ProjectMetadata? {
+		val path = getMetadataPath(projectDef).toOkioPath()
+		return fileSystem.readTomlOrNull<ProjectMetadata>(path, toml) { e ->
+			Napier.e("Failed to load project metadata: ${path.toHPath().path}", e)
+		}
+	}
+
 	fun loadMetadata(projectDef: ProjectDef): ProjectMetadata {
 		val path = getMetadataPath(projectDef).toOkioPath()
 
-		return fileSystem.readTomlOrNull<ProjectMetadata>(path, toml) { e ->
-			Napier.e("Failed to load project metadata: ${path.toHPath().path}", e)
-		} ?: run {
+		return readMetadata(projectDef) ?: run {
 			// Missing or corrupt (tomlkt throws beyond SerializationException): drop the
 			// bad file and start fresh so migrators re-run instead of crashing the load.
 			fileSystem.delete(path, false)

@@ -90,13 +90,14 @@ class SceneContentRepository(
 
 	private val storeTempJobs = mutableMapOf<Int, Job>()
 
-	/** Loads any temp (unsaved) buffers from disk and starts the content debounce pipeline. */
-	suspend fun initialize() {
-		val tempContent = sceneDatasource.getSceneTempBufferContents()
-		for (content in tempContent) {
-			val buffer = SceneBuffer(content, true, UpdateSource.Repository)
-			updateSceneBuffer(buffer)
-		}
+	private val tempBuffersRestored = atomic(false)
+
+	/**
+	 * Starts the content debounce pipeline, restoring temp (unsaved) buffers from disk only when
+	 * [restoreTempBuffers] is set. A scope that never restored them leaves them on disk at close.
+	 */
+	suspend fun initialize(restoreTempBuffers: Boolean = true) {
+		if (restoreTempBuffers) restoreTempBuffers()
 
 		contentUpdateJob = editorScope.launch {
 			contentFlow.debounceUntilQuiescentBy({ it.content.scene.id }, BUFFER_COOL_DOWN)
@@ -282,6 +283,14 @@ class SceneContentRepository(
 		return success
 	}
 
+	/** Loads temp (unsaved) buffers from disk as dirty buffers. Only the first call does anything. */
+	fun restoreTempBuffers() {
+		if (!tempBuffersRestored.compareAndSet(expect = false, update = true)) return
+		for (content in sceneDatasource.getSceneTempBufferContents()) {
+			updateSceneBuffer(SceneBuffer(content, true, UpdateSource.Repository))
+		}
+	}
+
 	private fun clearTempScene(sceneItem: SceneItem) = sceneDatasource.clearTempScene(sceneItem)
 
 	override fun onScopeClose(scope: Scope) {
@@ -294,8 +303,10 @@ class SceneContentRepository(
 		}
 		editorScope.cancel("Editor Closed")
 		// During a proper shutdown, we clear any remaining temp buffers that haven't been saved yet
-		sceneDatasource.getSceneTempBufferContents().forEach {
-			clearTempScene(it.scene)
+		if (tempBuffersRestored.value) {
+			sceneDatasource.getSceneTempBufferContents().forEach {
+				clearTempScene(it.scene)
+			}
 		}
 		Napier.i("SceneContentRepository Closed.")
 	}
