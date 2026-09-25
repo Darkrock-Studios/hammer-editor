@@ -107,6 +107,11 @@ class PluginPackage(
 				throw PluginPackageException("Actions declared twice: $it")
 			}
 			actions.firstOrNull { !PluginRegistry.isValidId(it) }?.let { throw PluginPackageException("Invalid action name '$it'") }
+			manifest.actions.forEach { action ->
+				if (action.output != PluginManifest.OUTPUT_MESSAGE && action.output != PluginManifest.OUTPUT_DOCUMENT) {
+					throw PluginPackageException("Action '${action.name}' has unknown output '${action.output}'")
+				}
+			}
 		}
 
 		// Checked here, since a clash the plugin registry found would stop Hammer from starting.

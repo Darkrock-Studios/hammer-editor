@@ -50,12 +50,19 @@ data class PluginManifest(
 		/** Tells the module which of its actions to run. */
 		val name: String,
 		val label: String,
+		/**
+		 * What the module's output is: `message`, a line to show briefly, or `document`, markdown the
+		 * host shows in a dialog the user can copy or save as a note.
+		 */
+		val output: String = OUTPUT_MESSAGE,
 	)
 
 	companion object {
 		const val API_VERSION = 1
 		const val INPUT_MARKDOWN = "markdown"
 		const val INPUT_PROSE = "prose"
+		const val OUTPUT_MESSAGE = "message"
+		const val OUTPUT_DOCUMENT = "document"
 
 		fun parse(toml: String): PluginManifest {
 			val manifest = Toml { ignoreUnknownKeys = true }.decodeFromString(serializer(), toml)
