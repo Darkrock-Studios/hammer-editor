@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.Base64Bytes
 import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.Operation
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.notFound
 import com.darkrockstudios.apps.hammer.operations.operation
 import kotlinx.serialization.SerialName
@@ -26,7 +27,7 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 		name = "note.list",
 		description = "A project's notes, optionally only those with a tag.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val notes = project.scope.get<NotesRepository>().notesListFlow.loaded("Notes").map { it.note }
@@ -37,7 +38,7 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 		name = "note.read",
 		description = "One note.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val notes = project.scope.get<NotesRepository>().notesListFlow.loaded("Notes")
@@ -49,7 +50,7 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 		name = "entry.list",
 		description = "A project's encyclopedia entries, optionally only one type or those with a tag.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val tagged = input.tag?.let { tag -> project.tagIndex().entitiesWithTag(tag, TaggedEntityType.Encyclopedia) }
@@ -63,7 +64,7 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 		name = "entry.read",
 		description = "An encyclopedia entry, with the scenes confirmed to reference it.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project -> project.readEntry(input.id) }
 	},
@@ -71,7 +72,7 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 		name = "entry.image.get",
 		description = "An encyclopedia entry's image.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val encyclopedia = project.scope.get<EncyclopediaRepository>()
@@ -85,7 +86,7 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 		name = "timeline.list",
 		description = "A project's timeline events in order.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val timeline = project.scope.get<TimeLineRepository>().timelineFlow.loaded("Timeline")
@@ -96,7 +97,7 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 		name = "timeline.read",
 		description = "One timeline event.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val timeline = project.scope.get<TimeLineRepository>().timelineFlow.loaded("Timeline")
@@ -108,7 +109,7 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 		name = "idea.list",
 		description = "Story ideas, which belong to the account rather than a project.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		val ideas = koinGet<IdeasRepository>().ideasFlow.loaded("Ideas")
 			.filter { input.archived == null || (it.archived != null) == input.archived }

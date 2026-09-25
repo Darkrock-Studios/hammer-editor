@@ -5,7 +5,6 @@ import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
-import com.darkrockstudios.apps.hammer.desktop.plugin.installedDesktopPlugins
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
@@ -39,7 +38,7 @@ object HeadlessSession {
 
 	/** The plugins active for CLI calls, fresh per process: compiled-in plus enabled runtime plugins. */
 	fun pluginRegistry(): PluginRegistry {
-		val compiledIn = installedPlugins() + installedDesktopPlugins()
+		val compiledIn = installedPlugins()
 		return PluginRegistry(compiledIn + RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, compiledIn).load())
 	}
 

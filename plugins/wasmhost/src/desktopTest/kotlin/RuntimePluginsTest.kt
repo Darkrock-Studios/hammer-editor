@@ -9,7 +9,11 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSeri
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.ProjectResolver
+import com.darkrockstudios.apps.hammer.operations.cli.CliIo
+import com.darkrockstudios.apps.hammer.operations.cli.Dispatcher
+import com.darkrockstudios.apps.hammer.operations.core.OperationDescriptor
 import com.darkrockstudios.apps.hammer.operations.operation
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginPackageException
@@ -17,8 +21,10 @@ import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.WasmPlugin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonArray
@@ -58,7 +64,12 @@ class RuntimePluginsTest {
 	private fun runtimePlugins(compiledIn: Set<String> = setOf("style")) =
 		RuntimePlugins(fileSystem, directory, compiledIn)
 
-	private fun manifest(id: String = "echo", operations: String = "\"greet\"", format: String = "$id.txt") = """
+	private fun manifest(
+		id: String = "echo",
+		operations: String = "\"greet\"",
+		format: String = "$id.txt",
+		command: String? = null,
+	) = """
 		id = "$id"
 		name = "Echo"
 		version = "1.0.0"
@@ -72,7 +83,7 @@ class RuntimePluginsTest {
 		extension = "txt"
 		mime = "text/plain"
 		label = "Echo (TXT)"
-	""".trimIndent()
+	""".trimIndent() + command?.let { "\n\n[[commands]]\nname = \"$it\"\nhelp = \"Echoes.\"" }.orEmpty()
 
 	private val settings = """
 		[[setting]]
@@ -140,6 +151,12 @@ class RuntimePluginsTest {
 			pack("bad-settings", settingsToml = "[[setting]]\nkey = \"x\"\ntype = \"colour\"\nlabel = \"X\""),
 			pack("bad-module", module = "wasi"),
 			pack("twice", manifest = manifest() + "\n\n" + manifest().substringAfter("[[exporters]]").let { "[[exporters]]$it" }),
+			pack("destructive-scope", manifest = manifest(operations = "\"content:destructive\"")),
+			pack("unknown-scope", manifest = manifest(operations = "\"everything:read\"")),
+			pack("operation-command", manifest = manifest(command = "scene")),
+			pack("help-command", manifest = manifest(command = "help")),
+			pack("bad-command", manifest = manifest(command = "Echo Back")),
+			pack("command-twice", manifest = manifest(command = "echo") + "\n\n[[commands]]\nname = \"echo\"\nhelp = \"Again.\""),
 			(downloads / "not-a-zip.hammerplugin").also { fileSystem.write(it) { writeUtf8("hello") } },
 		)
 		bad.forEach { assertThrows<PluginPackageException> { plugins.install(it) } }
@@ -147,8 +164,9 @@ class RuntimePluginsTest {
 	}
 
 	@Test
-	fun `a plugin cannot take a built-in plugin's id`() {
+	fun `a plugin cannot take a built-in plugin's id, or its operations' command word`() {
 		assertThrows<PluginPackageException> { runtimePlugins().install(pack("style", manifest(id = "style"))) }
+		assertThrows<PluginPackageException> { runtimePlugins().install(pack("echo", manifest(command = "style"))) }
 	}
 
 	@Test
@@ -194,9 +212,44 @@ class RuntimePluginsTest {
 		assertEquals(WasmPlugin.PERMISSION_DENIED, error["kind"]!!.jsonPrimitive.content)
 	}
 
+	@Test
+	fun `a command answers each line of input with the plugin's saved settings`() {
+		val plugins = runtimePlugins()
+		plugins.install(pack("echo", manifest(command = "echo-back")))
+		fileSystem.write(directory / "echo.toml") { writeUtf8("shout = true\n") }
+		val command = plugins.load().single().cliCommands().single()
+		assertEquals("echo-back", command.name)
+		assertEquals("Echoes.", command.help)
+
+		val stdout = Buffer()
+		val io = CliIo(Buffer().writeUtf8("first\nsecond"), stdout, Buffer())
+		val code = runBlocking { command.run(listOf("--verbose"), io, UnusedDispatcher) }
+
+		assertEquals(0, code)
+		val requests = stdout.readUtf8().lines().filter { it.isNotEmpty() }.map { Json.parseToJsonElement(it).jsonObject }
+		assertEquals(listOf("first", "second"), requests.map { it["line"]!!.jsonPrimitive.content })
+		assertEquals(JsonPrimitive(true), requests.first()["settings"]!!.jsonObject["shout"])
+		assertEquals("echo-back", requests.first()["command"]!!.jsonPrimitive.content)
+		assertEquals(listOf("--verbose"), requests.first()["args"]!!.jsonArray.map { it.jsonPrimitive.content })
+	}
+
+	@Test
+	fun `a plugin adding a command another has is skipped`() {
+		val plugins = runtimePlugins()
+		plugins.install(pack("one", manifest(id = "one", command = "echo-back")))
+		plugins.install(pack("two", manifest(id = "two", command = "echo-back")))
+
+		assertEquals(listOf("one"), plugins.load().map { it.id })
+	}
+
+	private object UnusedDispatcher : Dispatcher {
+		override suspend fun dispatch(operation: String, input: JsonElement): JsonElement = error("unused")
+		override suspend fun operations(): List<OperationDescriptor> = error("unused")
+	}
+
 	private fun startKoin(plugins: RuntimePlugins): PluginRegistry {
 		val registry = PluginRegistry(plugins.load())
-		val greet = operation<Greeting, Greeting>("greet", "", Access.Read) { it }
+		val greet = operation<Greeting, Greeting>("greet", "", Access.Read, OperationScope.Content) { it }
 		val base = module {
 			single<FileSystem> { fileSystem }
 			single<Toml> { createTomlSerializer() }

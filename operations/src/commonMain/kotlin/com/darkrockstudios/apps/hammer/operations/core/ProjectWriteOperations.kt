@@ -17,6 +17,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsSe
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.Base64Bytes
 import com.darkrockstudios.apps.hammer.operations.Operation
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.invalidInput
 import com.darkrockstudios.apps.hammer.operations.operation
 import kotlinx.coroutines.CancellationException
@@ -28,7 +29,7 @@ internal fun projectWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "project.create",
 		description = "Create an empty project.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		ProjectName(createProject(input.name).name)
 	},
@@ -36,7 +37,7 @@ internal fun projectWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "project.rename",
 		description = "Rename a project. It must not be open in Hammer.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		val def = requireClosed(projects.resolve(input.project))
 		val newName = input.name.trim()
@@ -53,6 +54,7 @@ internal fun projectWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "project.delete",
 		description = "Delete a project, and everything in it, for good. It must not be open in Hammer.",
 		access = Access.Destructive,
+		scope = OperationScope.Content,
 	) { input ->
 		val def = requireClosed(projects.resolve(input.project))
 		if (!koinGet<ProjectsService>().deleteProject(def)) error("Could not delete '${def.name}'")
@@ -62,7 +64,7 @@ internal fun projectWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "project.import",
 		description = "Create a project from a Markdown or RTF manuscript, split into scenes by its headings or a chapter pattern.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		val preview = preview(input)
 		if (preview.isEmpty) invalidInput("The file has nothing to import")
@@ -83,7 +85,7 @@ internal fun projectWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "backup.create",
 		description = "Back up a project's saved files.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		val def = projects.resolve(input.project)
 		val backups = koinGet<ProjectBackupRepository>()

@@ -16,14 +16,13 @@ interface Operation<I, O> {
 	/** Dotted, e.g. `scene.read`. Plugin operations are prefixed with the plugin id. */
 	val name: String
 
-	/** English. Used for CLI help and agent tool descriptions. */
+	/** English. Used for CLI help and by plugins that describe operations to others. */
 	val description: String
 	val input: KSerializer<I>
 	val output: KSerializer<O>
 	val access: Access
 
-	/** Safe to offer to automated agents. The registry rejects Destructive operations that set it. */
-	val agentVisible: Boolean get() = false
+	val scope: OperationScope
 
 	/** Override only when the input's valid values are known at runtime, such as registered export formats. */
 	fun inputSchema(): JsonObject = jsonSchema(input.descriptor)
@@ -41,6 +40,16 @@ enum class Access {
 	@SerialName("destructive") Destructive,
 }
 
+/** What an operation reaches into. A plugin can be granted every Read or Write operation in a scope at once. */
+@Serializable
+enum class OperationScope {
+	/** Projects and everything in them. */
+	@SerialName("content") Content,
+
+	/** The sync account: its credentials and the server. */
+	@SerialName("account") Account,
+}
+
 /** Input of an operation that takes none; `{}` in JSON. */
 @Serializable
 data object NoInput
@@ -49,7 +58,7 @@ inline fun <reified I, reified O> operation(
 	name: String,
 	description: String,
 	access: Access,
-	agentVisible: Boolean = false,
+	scope: OperationScope,
 	noinline run: suspend OperationContext.(I) -> O,
 ): Operation<I, O> = LambdaOperation(
 	name = name,
@@ -57,7 +66,7 @@ inline fun <reified I, reified O> operation(
 	input = serializer(),
 	output = serializer(),
 	access = access,
-	agentVisible = agentVisible,
+	scope = scope,
 	block = run,
 )
 
@@ -68,7 +77,7 @@ internal class LambdaOperation<I, O>(
 	override val input: KSerializer<I>,
 	override val output: KSerializer<O>,
 	override val access: Access,
-	override val agentVisible: Boolean,
+	override val scope: OperationScope,
 	private val block: suspend OperationContext.(I) -> O,
 ) : Operation<I, O> {
 	override suspend fun run(context: OperationContext, input: I): O = context.block(input)
@@ -97,7 +106,7 @@ annotation class FromStdin(val secret: Boolean = false)
 /**
  * Marks input that changes a scene's text in place instead of through a draft: an operation's whole
  * input class, or one value of an enum field. Front ends that guard the manuscript, such as the MCP
- * plugin, leave it out unless the writer allows live edits.
+ * plugin, can leave it out unless the writer allows live edits.
  */
 @OptIn(ExperimentalSerializationApi::class)
 @SerialInfo

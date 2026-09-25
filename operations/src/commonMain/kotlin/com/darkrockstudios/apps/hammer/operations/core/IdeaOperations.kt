@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasReposito
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.FromStdin
 import com.darkrockstudios.apps.hammer.operations.Operation
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.invalidInput
 import com.darkrockstudios.apps.hammer.operations.notFound
 import com.darkrockstudios.apps.hammer.operations.operation
@@ -20,7 +21,7 @@ internal fun ideaOperations(): List<Operation<*, *>> = listOf(
 		name = "idea.create",
 		description = "Add a story idea.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		val ideas = koinGet<IdeasRepository>()
 		ideas.requireValid(input.content, input.tags.toSet())
@@ -32,7 +33,7 @@ internal fun ideaOperations(): List<Operation<*, *>> = listOf(
 		name = "idea.update",
 		description = "Replace a story idea's text, and its title or tags when given. An empty title clears it.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		val ideas = koinGet<IdeasRepository>()
 		val idea = requireIdea(input.id)
@@ -44,7 +45,7 @@ internal fun ideaOperations(): List<Operation<*, *>> = listOf(
 		name = "idea.archive",
 		description = "Archive a story idea.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		Idea(koinGet<IdeasRepository>().archiveIdea(requireIdea(input.id).id).require())
 	},
@@ -52,7 +53,7 @@ internal fun ideaOperations(): List<Operation<*, *>> = listOf(
 		name = "idea.unarchive",
 		description = "Return an archived story idea to the active ones.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		Idea(koinGet<IdeasRepository>().unarchiveIdea(requireIdea(input.id).id).require())
 	},
@@ -60,6 +61,7 @@ internal fun ideaOperations(): List<Operation<*, *>> = listOf(
 		name = "idea.delete",
 		description = "Delete a story idea for good.",
 		access = Access.Destructive,
+		scope = OperationScope.Content,
 	) { input ->
 		val idea = requireIdea(input.id)
 		koinGet<IdeasRepository>().deleteIdea(idea.id)

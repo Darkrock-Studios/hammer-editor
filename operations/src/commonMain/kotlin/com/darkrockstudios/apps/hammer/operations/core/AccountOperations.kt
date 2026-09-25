@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.FromStdin
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationException
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.invalidInput
 import com.darkrockstudios.apps.hammer.operations.NoInput
 import com.darkrockstudios.apps.hammer.operations.operation
@@ -22,6 +23,7 @@ internal fun accountOperations(): List<Operation<*, *>> = listOf(
 		name = "account.status",
 		description = "The sync server and account this install uses, and optionally whether the server still accepts it.",
 		access = Access.Read,
+		scope = OperationScope.Account,
 	) { input ->
 		val settings = koinGet<GlobalSettingsStore>().serverSettings
 		val loggedIn = settings != null && settings.userId > -1 && settings.bearerToken != null
@@ -37,6 +39,7 @@ internal fun accountOperations(): List<Operation<*, *>> = listOf(
 		name = "account.login",
 		description = "Log in to a sync server with an existing account. Accounts are created in the app.",
 		access = Access.Write,
+		scope = OperationScope.Account,
 	) { input ->
 		val server = parseServerUrl(input.url)
 		val current = koinGet<GlobalSettingsStore>().serverSettings
@@ -64,6 +67,7 @@ internal fun accountOperations(): List<Operation<*, *>> = listOf(
 		name = "account.logout",
 		description = "Forget the sync server and unlink every project from it, as removing the server in Settings does.",
 		access = Access.Write,
+		scope = OperationScope.Account,
 	) {
 		koinGet<GlobalSettingsStore>().deleteServerSettings()
 		val projects = koinGet<ProjectsRepository>()

@@ -14,10 +14,7 @@ class OperationRegistry(operations: List<Operation<*, *>>, projects: ProjectReso
 
 	init {
 		operations.forEach { op ->
-			require(NAME.matches(op.name)) { "Invalid operation name '${op.name}'" }
-			require(!(op.agentVisible && op.access == Access.Destructive)) {
-				"Destructive operation '${op.name}' cannot be agent-visible"
-			}
+			require(isValidName(op.name)) { "Invalid operation name '${op.name}'" }
 		}
 		val duplicates = operations.groupBy { it.name }.filterValues { it.size > 1 }.keys
 		require(duplicates.isEmpty()) { "Duplicate operation names: $duplicates" }
@@ -59,7 +56,10 @@ class OperationRegistry(operations: List<Operation<*, *>>, projects: ProjectReso
 		return OperationJson.encodeToJsonElement(op.output, run(op, decoded))
 	}
 
-	private companion object {
-		val NAME = Regex("[a-z0-9][a-z0-9_-]*(\\.[a-z0-9][a-z0-9_-]*)*")
+	companion object {
+		private val NAME = Regex("[a-z0-9][a-z0-9_-]*(\\.[a-z0-9][a-z0-9_-]*)*")
+
+		/** Dotted lowercase words: letters, digits, `-` and `_`. */
+		fun isValidName(name: String): Boolean = NAME.matches(name)
 	}
 }
