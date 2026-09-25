@@ -492,8 +492,8 @@ interface PluginUi {
 	/** Display names for the export formats this plugin contributes, keyed by format id. */
 	fun exportFormatLabels(): Map<String, StringResource> = emptyMap()
 
-	/** Localized labels for the plugin's declared settings, keyed by setting key. */
-	fun settingLabels(): Map<String, StringResource> = emptyMap()
+	/** Localized text for the plugin's declared settings, keyed by setting key. */
+	fun settingLabels(): Map<String, SettingLabels> = emptyMap()
 
 	/** Shown under the plugin's name in the Plugins section of Settings. Null for no pane. */
 	val settingsPane: (@Composable ColumnScope.() -> Unit)? get() = null
@@ -811,8 +811,12 @@ max = 20
 - **Rendering.** `:composeUi` turns a declaration into Hd components: a toggle
   row, a number field, a text field, or a dropdown. Labels are plain strings in
   the declaration. A compiled-in plugin's UI half can localize them with
-  `PluginUi.settingLabels()`, keyed by setting key, the same way
-  `exportFormatLabels()` works.
+  `PluginUi.settingLabels()`, keyed by setting key: a `SettingLabels` holding
+  the label, hint, and choice option labels.
+- **Access.** `PluginRegistry.settings(pluginId)` is the plugin's
+  `DeclaredSettingsStore`: current values as a `StateFlow<JsonObject>`,
+  `decode(serializer)` into the plugin's own class, and `set(key, value)`,
+  which ignores undeclared keys and invalid values.
 - **Custom panes remain.** `PluginUi.settingsPane` stays for settings a form
   cannot express (MCP's config snippet, say). If a plugin has both, the
   declared form renders first and the custom pane follows it.
@@ -1185,6 +1189,29 @@ concurrency design gets tested for real.
 
 `hammer batch`, described under [CLI](#cli). One process, operations in as
 JSON lines, results out as JSON lines.
+
+### Sync backends
+
+Could a plugin sync projects through Google Drive (or Dropbox, WebDAV, a git
+remote) instead of a Hammer server? Not with this design, but it can be added:
+
+- **A sync capability.** Today sync is `SyncAccountUseCase` talking to the
+  Hammer server's API. A plugin backend needs a `syncBackend()` capability
+  that the sync use case calls instead: push and pull whole entities, list what
+  changed since a marker. The entity journal and conflict handling stay in
+  core; only the transport is the plugin's.
+- **Compiled-in first.** A Drive backend needs OAuth (a browser sign-in and
+  token refresh), HTTP, background scheduling, and a place for tokens. A
+  compiled-in plugin has all of these through Kotlin and Koin, so an overlay
+  repo could ship one once the capability exists.
+- **Runtime plugins need more host.** An HTTP permission limited to hosts the
+  manifest names (Extism's `http_request` already fits), an OAuth flow the
+  host runs on the plugin's behalf, and secret storage, since declared settings
+  are plain TOML and have no secret type. All three are worth doing only once a
+  real backend needs them.
+- **No shared server semantics.** Drive has no server-side merge, so the
+  backend would store a journal alongside the files and resolve conflicts
+  client-side, as sync already does for the Hammer server's reported changes.
 
 ### Native CLI
 

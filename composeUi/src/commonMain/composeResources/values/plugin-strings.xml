@@ -1,0 +1,6 @@
+<resources>
+	<string name="plugin_setting_range">%1$s to %2$s</string>
+	<string name="plugin_setting_min">At least %1$s</string>
+	<string name="plugin_setting_max">At most %1$s</string>
+	<string name="plugin_setting_whole_number">A whole number</string>
+</resources>

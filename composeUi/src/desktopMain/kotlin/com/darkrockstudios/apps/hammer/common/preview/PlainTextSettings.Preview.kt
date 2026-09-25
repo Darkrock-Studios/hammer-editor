@@ -12,19 +12,28 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
+import com.darkrockstudios.apps.hammer.common.compose.plugin.DeclaredSettingsForm
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginSettingsPane
 import com.darkrockstudios.apps.hammer.common.compose.plugin.plaintext.PlainTextPluginUi
-import com.darkrockstudios.apps.hammer.common.compose.plugin.plaintext.PlainTextSettingsContent
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.PluginSettingsSection
-import com.darkrockstudios.apps.hammer.plugins.plaintext.PlainTextSettings
+import com.darkrockstudios.apps.hammer.operations.plugin.resolve
+import com.darkrockstudios.apps.hammer.plugins.plaintext.PlainTextPlugin
+import kotlinx.serialization.json.JsonObject
 
 @Preview
 @Composable
 internal fun PlainTextSettingsPreview() {
-	val pane = PluginSettingsPane(PlainTextPluginUi.name) {
-		var settings by remember { mutableStateOf(PlainTextSettings()) }
-		PlainTextSettingsContent(settings = settings, onChange = { settings = it(settings) })
+	val declarations = PlainTextPlugin.settings()
+	val pane = PluginSettingsPane({ PlainTextPluginUi.name.get() }) {
+		var values by remember { mutableStateOf(declarations.resolve(emptyMap())) }
+		DeclaredSettingsForm(
+			declarations = declarations,
+			values = values,
+			labels = PlainTextPluginUi.settingLabels(),
+			onChange = { key, value -> values = JsonObject(values + (key to value)) },
+		)
 	}
 	AppTheme(globalSettingsPreview) {
 		HdHairlineSection(
