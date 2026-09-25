@@ -70,8 +70,12 @@ class WasmPlugin(
 	// Only touched while holding the lock.
 	private var loaded: ExtismPlugin? = null
 	private val module: ExtismPlugin
-		get() = loaded ?: ExtismPlugin(loadModule(), listOf(dispatchFunction()) + cacheFunctions(), log = ::log)
-			.also { loaded = it }
+		get() = loaded ?: ExtismPlugin(
+			loadModule(),
+			listOf(dispatchFunction()) + cacheFunctions(),
+			log = ::log,
+			instrumenter = FuelInstrumenter(maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB),
+		).also { loaded = it }
 
 	private val appRoute by lazy { AppRoute(get()) }
 
@@ -399,6 +403,8 @@ class WasmPlugin(
 		const val FAILED = "Failed"
 
 		private const val COMMAND_FAILED = 1
+
+		private const val PAGES_PER_MIB = 16
 
 		/** Function calls plus loop iterations allowed per call before the module is stopped. */
 		const val DEFAULT_FUEL_PER_CALL = 2_000_000_000L

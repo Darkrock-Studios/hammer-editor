@@ -168,6 +168,8 @@ class RuntimePluginsTest {
 			pack("bad-output", manifest = manifest(action = "report", output = "dialog")),
 			pack("bad-diagnostics", manifest = manifest() + diagnostics("Grammar Check")),
 			pack("diagnostics-twice", manifest = manifest() + diagnostics("grammar") + diagnostics("grammar")),
+			pack("no-memory", manifest = manifest() + "\n\n[limits]\nmemory = 0"),
+			pack("too-much-memory", manifest = manifest() + "\n\n[limits]\nmemory = 2048"),
 			pack("command-twice", manifest = manifest(command = "echo") + "\n\n[[commands]]\nname = \"echo\"\nhelp = \"Again.\""),
 			(downloads / "not-a-zip.hammerplugin").also { fileSystem.write(it) { writeUtf8("hello") } },
 		)
@@ -269,6 +271,15 @@ class RuntimePluginsTest {
 		val issue = found[0].single()
 		assertEquals(listOf(3, 10, "Repeated word", listOf("the")), listOf(issue.start, issue.end, issue.message, issue.fixes))
 		assertTrue(found[1].isEmpty())
+	}
+
+	@Test
+	fun `a module needing more memory than the default installs only when its manifest asks for it`() {
+		val plugins = runtimePlugins()
+		assertThrows<PluginPackageException> { plugins.install(pack("small", manifest(id = "small", action = "run"), module = "big_memory")) }
+		plugins.install(pack("big", manifest(id = "big", action = "run") + "\n\n[limits]\nmemory = 128", module = "big_memory"))
+
+		assertEquals(null, runBlocking { startKoin(plugins).plugins.single().projectActions().single().run("Storm") })
 	}
 
 	@Test

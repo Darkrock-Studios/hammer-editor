@@ -29,7 +29,8 @@ class PluginPackage(
 		private const val MODULE = "plugin.wasm"
 		private const val SETTINGS = "settings.toml"
 		private const val MAX_TEXT_BYTES = 256L * 1024
-		private const val MAX_MODULE_BYTES = 32L * 1024 * 1024
+		private const val BYTES_PER_MIB = 1024L * 1024
+		private const val MAX_CODE_BYTES = 32 * BYTES_PER_MIB
 
 		/** Words the CLI handles itself. */
 		private val RESERVED_COMMANDS = setOf("help")
@@ -73,7 +74,9 @@ class PluginPackage(
 			}
 
 			val moduleSize = zip.metadataOrNull(root / MODULE)?.size ?: throw PluginPackageException("Package has no $MODULE")
-			if (moduleSize > MAX_MODULE_BYTES) throw PluginPackageException("$MODULE is larger than $MAX_MODULE_BYTES bytes")
+			// A module's data has to fit its memory, so a pre-initialized one may be as large as that.
+			val maxModuleBytes = manifest.limits.memory * BYTES_PER_MIB + MAX_CODE_BYTES
+			if (moduleSize > maxModuleBytes) throw PluginPackageException("$MODULE is larger than $maxModuleBytes bytes")
 			val reader = {
 				try {
 					fileSystem.openZip(path).read(root / MODULE) { readByteArray() }
@@ -111,6 +114,9 @@ class PluginPackage(
 				if (action.output != PluginManifest.OUTPUT_MESSAGE && action.output != PluginManifest.OUTPUT_DOCUMENT) {
 					throw PluginPackageException("Action '${action.name}' has unknown output '${action.output}'")
 				}
+			}
+			if (manifest.limits.memory !in 1..PluginManifest.MAX_MEMORY_MIB) {
+				throw PluginPackageException("Memory limit must be from 1 to ${PluginManifest.MAX_MEMORY_MIB} MiB")
 			}
 			val diagnostics = manifest.diagnostics.map { it.name }
 			diagnostics.groupBy { it }.filterValues { it.size > 1 }.keys.takeIf { it.isNotEmpty() }?.let {
