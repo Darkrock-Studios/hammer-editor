@@ -40,7 +40,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
-import org.jetbrains.compose.resources.StringResource
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import kotlin.time.Clock
@@ -219,11 +218,15 @@ class ProjectHomeComponent(
 	// A plugin's failure must not take the project screen down with it. Runs in the app's scope, so
 	// leaving the home screen does not cancel it partway.
 	@Suppress("TooGenericExceptionCaught")
-	override fun runProjectAction(work: suspend () -> Unit, done: StringResource) {
+	override fun runProjectAction(work: suspend () -> String?) {
 		appScope.launch(dispatcherDefault) {
 			try {
-				work()
-				showToast(done)
+				val message = work()?.trim()
+				when {
+					message.isNullOrEmpty() -> showToast(Res.string.project_home_action_plugin_done)
+					message.length > MAX_ACTION_MESSAGE -> showToast(message.take(MAX_ACTION_MESSAGE).trimEnd() + "…")
+					else -> showToast(message)
+				}
 			} catch (e: CancellationException) {
 				throw e
 			} catch (e: Exception) {
@@ -391,3 +394,6 @@ class ProjectHomeComponent(
 
 	override fun onBack() = contentRouter.onBack()
 }
+
+/** Longer plugin messages are cut, since a toast is not the place for a report. */
+private const val MAX_ACTION_MESSAGE = 200

@@ -61,14 +61,14 @@ class RuntimePluginsTest {
 		GlobalContext.stopKoin()
 	}
 
-	private fun runtimePlugins(compiledIn: Set<String> = setOf("style")) =
-		RuntimePlugins(fileSystem, directory, compiledIn)
+	private fun runtimePlugins() = RuntimePlugins(fileSystem, directory)
 
 	private fun manifest(
 		id: String = "echo",
 		operations: String = "\"greet\"",
 		format: String = "$id.txt",
 		command: String? = null,
+		action: String? = null,
 	) = """
 		id = "$id"
 		name = "Echo"
@@ -83,7 +83,8 @@ class RuntimePluginsTest {
 		extension = "txt"
 		mime = "text/plain"
 		label = "Echo (TXT)"
-	""".trimIndent() + command?.let { "\n\n[[commands]]\nname = \"$it\"\nhelp = \"Echoes.\"" }.orEmpty()
+	""".trimIndent() + command?.let { "\n\n[[commands]]\nname = \"$it\"\nhelp = \"Echoes.\"" }.orEmpty() +
+		action?.let { "\n\n[[actions]]\nname = \"$it\"\nlabel = \"Echo it\"" }.orEmpty()
 
 	private val settings = """
 		[[setting]]
@@ -156,17 +157,12 @@ class RuntimePluginsTest {
 			pack("operation-command", manifest = manifest(command = "scene")),
 			pack("help-command", manifest = manifest(command = "help")),
 			pack("bad-command", manifest = manifest(command = "Echo Back")),
+			pack("bad-action", manifest = manifest(action = "Echo It")),
 			pack("command-twice", manifest = manifest(command = "echo") + "\n\n[[commands]]\nname = \"echo\"\nhelp = \"Again.\""),
 			(downloads / "not-a-zip.hammerplugin").also { fileSystem.write(it) { writeUtf8("hello") } },
 		)
 		bad.forEach { assertThrows<PluginPackageException> { plugins.install(it) } }
 		assertTrue(plugins.installed().isEmpty())
-	}
-
-	@Test
-	fun `a plugin cannot take a built-in plugin's id, or its operations' command word`() {
-		assertThrows<PluginPackageException> { runtimePlugins().install(pack("style", manifest(id = "style"))) }
-		assertThrows<PluginPackageException> { runtimePlugins().install(pack("echo", manifest(command = "style"))) }
 	}
 
 	@Test
@@ -234,18 +230,34 @@ class RuntimePluginsTest {
 	}
 
 	@Test
+	fun `a project action runs the module on the project with the plugin's settings`() {
+		val plugins = runtimePlugins()
+		plugins.install(pack("echo", manifest(action = "report")))
+		val registry = startKoin(plugins)
+		registry.settings("echo")!!.set("shout", JsonPrimitive(true))
+
+		val action = registry.plugins.single().projectActions().single()
+		assertEquals("Echo it", action.label)
+		val request = Json.parseToJsonElement(runBlocking { action.run("Storm") }!!).jsonObject
+
+		assertEquals("report", request["action"]!!.jsonPrimitive.content)
+		assertEquals("Storm", request["project"]!!.jsonPrimitive.content)
+		assertEquals(JsonPrimitive(true), request["settings"]!!.jsonObject["shout"])
+	}
+
+	@Test
 	fun `a plugin adding a command another has is not activated`() {
 		val plugins = runtimePlugins()
 		plugins.install(pack("one", manifest(id = "one", command = "echo-back")))
 		plugins.install(pack("two", manifest(id = "two", command = "echo-back")))
 
-		assertEquals(listOf("one"), PluginRegistry(emptyList()).also(plugins::activate).plugins.map { it.id })
+		assertEquals(listOf("one"), PluginRegistry().also(plugins::activate).plugins.map { it.id })
 	}
 
 	@Test
 	fun `once activated, changes apply to the registry at once`() {
 		val plugins = runtimePlugins()
-		val registry = PluginRegistry(emptyList()).also(plugins::activate)
+		val registry = PluginRegistry().also(plugins::activate)
 
 		plugins.install(pack("echo"))
 		assertEquals(listOf("echo.txt"), registry.exporters().map { it.formatId })
@@ -260,7 +272,7 @@ class RuntimePluginsTest {
 	@Test
 	fun `reinstalling replaces the active plugin`() {
 		val plugins = runtimePlugins()
-		val registry = PluginRegistry(emptyList()).also(plugins::activate)
+		val registry = PluginRegistry().also(plugins::activate)
 		plugins.install(pack("echo"))
 		val first = registry.plugins.single()
 
@@ -272,7 +284,7 @@ class RuntimePluginsTest {
 	@Test
 	fun `a change the registry would refuse is not made`() {
 		val plugins = runtimePlugins()
-		val registry = PluginRegistry(emptyList()).also(plugins::activate)
+		val registry = PluginRegistry().also(plugins::activate)
 		plugins.install(pack("one", manifest(id = "one", command = "echo-back")))
 
 		assertThrows<PluginPackageException> { plugins.install(pack("two", manifest(id = "two", command = "echo-back"))) }
@@ -291,7 +303,7 @@ class RuntimePluginsTest {
 	}
 
 	private fun startKoin(plugins: RuntimePlugins): PluginRegistry {
-		val registry = PluginRegistry(emptyList()).also(plugins::activate)
+		val registry = PluginRegistry().also(plugins::activate)
 		val greet = operation<Greeting, Greeting>("greet", "", Access.Read, OperationScope.Content) { it }
 		val base = module {
 			single<FileSystem> { fileSystem }
@@ -301,7 +313,7 @@ class RuntimePluginsTest {
 			single { StoryExporterRegistry(getAll(), getAll()) }
 		}
 		GlobalContext.startKoin {
-			modules(listOf(base) + registry.koinModules() + module {
+			modules(listOf(base) + listOf(registry.koinModule()) + module {
 				single { OperationRegistry(listOf(greet), NoProjects) }
 			})
 		}

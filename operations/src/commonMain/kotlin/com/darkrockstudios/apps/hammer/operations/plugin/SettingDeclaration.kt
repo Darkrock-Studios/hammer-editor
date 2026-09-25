@@ -17,10 +17,9 @@ import net.peanuuutz.tomlkt.toLongOrNull
  * memory and literals in the plugin's settings file, one key per setting.
  */
 sealed class SettingDeclaration {
-	/** Also the key in the settings file, and the property name a plugin decodes it into. */
+	/** Also the key in the settings file and in the settings a plugin is sent. */
 	abstract val key: String
 
-	/** Shown when the plugin's UI half has no localized label. */
 	abstract val label: String
 	abstract val hint: String?
 	abstract val default: JsonPrimitive

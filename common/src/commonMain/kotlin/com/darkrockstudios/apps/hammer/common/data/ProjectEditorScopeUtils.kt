@@ -96,7 +96,7 @@ suspend fun openProjectScope(projectDef: ProjectDef, temporary: Boolean = false)
 	if (needsInit) {
 		initializeProjectScope(projectDef, temporary)
 	} else if (!temporary && markOpenedForEditing(scopeId)) {
-		onOpenedForEditing(projectDef, projScope)
+		onOpenedForEditing(projScope)
 	}
 
 	return projScope
@@ -117,27 +117,14 @@ suspend fun initializeProjectScope(projectDef: ProjectDef, temporary: Boolean = 
 		// Skipped for temporary scopes (background sync, import): loading session words
 		// there only churns the shared checker while the sync rewrites entries.
 		if (!temporary && markOpenedForEditing(defScope.getScopeId())) {
-			onOpenedForEditing(projectDef, projScope)
+			onOpenedForEditing(projScope)
 		}
 	} ?: throw IllegalStateException("No scope found for $projectDef")
 }
 
-private fun onOpenedForEditing(projectDef: ProjectDef, projScope: Scope) {
+private fun onOpenedForEditing(projScope: Scope) {
 	projScope.get<SceneEditorService>().restoreUnsavedEdits()
 	projScope.get<ProjectDictionaryService>().initialize()
-	notifyLifecycleListeners(projectDef) { it.onProjectOpened(projectDef, projScope) }
-}
-
-// A misbehaving listener must not be able to stop a project opening or closing.
-@Suppress("TooGenericExceptionCaught")
-private fun notifyLifecycleListeners(projectDef: ProjectDef, event: (ProjectLifecycleListener) -> Unit) {
-	getKoin().getAll<ProjectLifecycleListener>().forEach { listener ->
-		try {
-			event(listener)
-		} catch (e: Exception) {
-			Napier.e(e) { "Project lifecycle listener failed for ${projectDef.name}" }
-		}
-	}
 }
 
 /** Counts an editor on [scopeId]; returns true for the first one. */
@@ -156,9 +143,6 @@ fun closeProjectScope(projectScope: Scope, projectDef: ProjectDef) {
 	}[scopeId] ?: 0
 
 	if (editors > 1) return
-	if (editors == 1) {
-		notifyLifecycleListeners(projectDef) { it.onProjectClosed(projectDef) }
-	}
 	projectScope.close()
 }
 

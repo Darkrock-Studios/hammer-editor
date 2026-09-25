@@ -18,8 +18,6 @@ import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.compose.getDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.getMainDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.plugin.cliLauncher
-import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPluginUis
-import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPlugins
 import com.darkrockstudios.apps.hammer.common.compose.plugin.pluginUiModule
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -194,9 +192,8 @@ fun main(args: Array<String>) {
 	logStartupBanner()
 	installGlobalExceptionHandler()
 
-	val compiledInPlugins = installedPlugins()
-	val runtimePlugins = RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, compiledInPlugins)
-	val pluginRegistry = PluginRegistry(compiledInPlugins).also(runtimePlugins::activate)
+	val runtimePlugins = RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM)
+	val pluginRegistry = PluginRegistry().also(runtimePlugins::activate)
 
 	GlobalContext.startKoin {
 		logger(NapierLogger())
@@ -207,9 +204,10 @@ fun main(args: Array<String>) {
 				aboutLibrariesModule,
 				desktopModule,
 				appModule(appScope),
-				pluginUiModule(installedPluginUis(), cliLauncher()),
+				pluginUiModule(cliLauncher()),
 				runtimePlugins.koinModule(),
-			) + pluginRegistry.koinModules()
+				pluginRegistry.koinModule(),
+			)
 		)
 	}
 
@@ -217,7 +215,6 @@ fun main(args: Array<String>) {
 
 	Napier.i("Startup: running data migration")
 	runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }
-	pluginRegistry.start()
 	val forwarding = if (appWriterLock != null) startForwarding(appScope) else null
 
 	val initialProject: ProjectDef? = launchArgs.projectName?.let { name ->
