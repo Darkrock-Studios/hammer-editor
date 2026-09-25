@@ -73,7 +73,7 @@ class PluginUiRegistry(
 	}
 }
 
-private fun shellQuoted(word: String): String =
+internal fun shellQuoted(word: String): String =
 	if (word.all { it.isLetterOrDigit() || it in "/._-" }) word else "'" + word.replace("'", "'\\''") + "'"
 
 fun pluginUiModule(cliLauncher: List<String>? = null) = module {

@@ -1,0 +1,16 @@
+<resources>
+	<string name="cli_path_title">Command line</string>
+	<string name="cli_path_absent">Add a hammer command for running Hammer, and its plugins such as the MCP server, from a terminal. It goes in %1$s.</string>
+	<string name="cli_path_installed">The hammer command is at %1$s.</string>
+	<string name="cli_path_stale">The hammer command at %1$s runs an older copy of Hammer. Update it to run this one.</string>
+	<string name="cli_path_taken">%1$s is already there and is not Hammer's, so Hammer leaves it alone.</string>
+	<string name="cli_path_off_path">%1$s is not on your PATH yet. Log out and back in, or add it to PATH in your shell's profile.</string>
+	<string name="cli_path_provided">Run Hammer from a terminal as %1$s.</string>
+	<string name="cli_path_manual">To run Hammer from a terminal as hammer, run this once in Terminal:</string>
+	<string name="cli_path_admin">Adding it asks for an administrator password.</string>
+	<string name="cli_path_add">Add hammer to PATH</string>
+	<string name="cli_path_update">Update hammer on PATH</string>
+	<string name="cli_path_remove">Remove hammer from PATH</string>
+	<string name="cli_path_failed">That did not work: %1$s</string>
+	<string name="cli_path_launcher">Launcher, for MCP clients and scripts</string>
+</resources>
