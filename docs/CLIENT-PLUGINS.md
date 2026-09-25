@@ -532,9 +532,43 @@ hammer mcp        # the MCP plugin's command
   operations as JSON lines on stdin and writing one JSON result line per
   operation to stdout. It is a few lines on top of `Dispatcher`, the same loop
   the MCP plugin runs with MCP framing.
-- Getting `hammer` onto PATH differs per package: Flatpak needs a `flatpak run`
-  wrapper, MSIX needs an app execution alias, the Mac bundle needs a symlink or
-  documented path.
+- Getting `hammer` onto PATH differs per package; see
+  [Getting onto PATH](#getting-onto-path).
+
+### Getting onto PATH
+
+Desktop Settings has a Command line section. It shows the launcher, the
+command an MCP client or script runs (`cliLauncher()`), and, where Hammer can,
+a button that adds a `hammer` command to PATH, or updates or removes it:
+
+| Package | `hammer` comes from |
+| --- | --- |
+| Snap | The package: the app is `hammer-editor` in `/snap/bin`. A `hammer` alias needs a Snap Store request |
+| Flatpak | A script in `~/.local/bin` running `flatpak run studio.darkrock.hammer`; `--filesystem=home` lets the app write it |
+| AppImage | A script in `~/.local/bin` running the `.AppImage` file (`$APPIMAGE`), since the mounted image moves each run |
+| deb, rpm | A script in `~/.local/bin` running `/opt/hammer/bin/hammer`. jpackage's post-install scripts are not reachable through Compose Desktop |
+| Mac DMG, pkg | A script in `/usr/local/bin`, written through macOS's own administrator prompt when that directory is not writable |
+| Mac App Store | The sandbox keeps the app from writing it, so Settings shows a command to paste into Terminal |
+| Windows MSI, EXE | `hammer.cmd` in `%LOCALAPPDATA%\Hammer\bin` running `hammer-cli.exe`, with that folder added to the user's own PATH |
+| Microsoft Store | An app execution alias, `hammer.exe`, on a second, hidden app entry for `hammer-cli.exe` |
+
+Each script carries a marker line, so Hammer only ever replaces or removes its
+own; a `hammer` someone else put there is left alone. On Linux, Settings says
+when the script's directory is not on PATH yet.
+
+**Windows needs a console launcher.** jpackage gives the app one launcher,
+`hammer.exe`, built as a GUI program, which a terminal does not wait for and
+whose output it never shows. The build adds `hammer-cli.exe` beside it: the
+same binary with its PE subsystem set to console, as `editbin
+/SUBSYSTEM:CONSOLE` would, plus its own copy of `app/hammer.cfg`, since the
+launcher finds its config by its own name (`addWindowsConsoleLauncher` in
+`buildSrc`). The installers and the MSIX are built from that app image. Store
+apps cannot be run from their install folder, so the alias is also what MCP
+clients use there. Not yet run on Windows: the console launcher, the alias, and
+the PATH change (PowerShell writing `HKCU\Environment` and broadcasting
+`WM_SETTINGCHANGE`) need one check there before release. `hammer.cmd` is read
+in the OEM code page, so an install path with non-ASCII characters breaks it,
+and uninstalling Hammer leaves the script and PATH entry behind.
 
 ## Concurrency
 
@@ -1171,8 +1205,9 @@ design is revisited rather than `:common` bent to fit.
    holder writes `writer.owner` beside the lock, so nobody waits on the app,
    while a CLI call waits briefly for another to finish. A second app window
    that cannot take the lock runs without, as before; forwarding (step 8) is
-   what makes the app single-instance. Getting `hammer` onto PATH
-   in each package format is not done.
+   what makes the app single-instance. [Getting `hammer` onto
+   PATH](#getting-onto-path) is a Settings button on each package format that
+   allows it.
 6. **[MCP plugin](#mcp-plugin).** Built, as a runtime plugin on plugin
    commands and scope grants.
 7. **Headless sync.** Built: `account.status`, `account.login`,
