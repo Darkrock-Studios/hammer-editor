@@ -105,11 +105,19 @@ class WasmPlugin(
 		override val needsProjectData = false
 
 		override fun render(sink: BufferedSink, input: ExportInput) {
+			val prose = format.input == PluginManifest.INPUT_PROSE
 			val request = ExportRequest(
 				format = formatId,
 				projectName = input.projectName,
 				language = input.language,
-				chapters = input.bookChapters().map { ExportRequest.Chapter(it.name, it.scenes) },
+				topLevelAsChapters = input.treatTopLevelAsChapters,
+				chapters = input.bookChapters().map { chapter ->
+					if (prose) {
+						ExportRequest.Chapter(chapter.name, prose = chapter.scenes.map(::proseOf))
+					} else {
+						ExportRequest.Chapter(chapter.name, scenes = chapter.scenes)
+					}
+				},
 				settings = get<PluginRegistry>().settings(id)?.values?.value ?: JsonObject(emptyMap()),
 			)
 			// Export renders on a background dispatcher already.
@@ -135,12 +143,22 @@ class WasmPlugin(
 		val format: String,
 		val projectName: String,
 		val language: String,
+		/**
+		 * Whether the story's top-level groups are chapters. When not, [chapters] holds one, named for
+		 * the project, with every scene.
+		 */
+		val topLevelAsChapters: Boolean,
 		val chapters: List<Chapter>,
 		/** The plugin's declared settings, every key present. */
 		val settings: JsonObject,
 	) {
+		/** Each scene in [scenes] as markdown, or in [prose] as blocks, as the exporter's `input` asks. */
 		@Serializable
-		class Chapter(val name: String, val scenes: List<String>)
+		class Chapter(
+			val name: String,
+			val scenes: List<String> = emptyList(),
+			val prose: List<List<ExportBlock>> = emptyList(),
+		)
 	}
 
 	companion object {

@@ -27,10 +27,14 @@ data class PluginManifest(
 		val extension: String,
 		val mime: String,
 		val label: String,
+		/** What each scene arrives as: `markdown`, its text, or `prose`, the host's parse of it. */
+		val input: String = INPUT_MARKDOWN,
 	)
 
 	companion object {
 		const val API_VERSION = 1
+		const val INPUT_MARKDOWN = "markdown"
+		const val INPUT_PROSE = "prose"
 
 		fun parse(toml: String): PluginManifest {
 			val manifest = Toml { ignoreUnknownKeys = true }.decodeFromString(serializer(), toml)
