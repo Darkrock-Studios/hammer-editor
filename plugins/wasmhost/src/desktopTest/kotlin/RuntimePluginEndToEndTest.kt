@@ -62,10 +62,10 @@ class RuntimePluginEndToEndTest {
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
 
-		RuntimePlugins(fileSystem, directory, emptySet()).install(download)
+		RuntimePlugins(fileSystem, directory).install(download)
 
 		// A fresh instance, as after a restart.
-		val registry = PluginRegistry(emptyList()).also(RuntimePlugins(fileSystem, directory, emptySet())::activate)
+		val registry = PluginRegistry().also(RuntimePlugins(fileSystem, directory)::activate)
 		val stats = operation<ProjectInput, Stats>("stats.project", "", Access.Read, OperationScope.Content) { Stats(totalWords = 42) }
 		GlobalContext.startKoin {
 			modules(
@@ -77,7 +77,7 @@ class RuntimePluginEndToEndTest {
 						single(named(APP_SCOPE)) { CoroutineScope(Dispatchers.Unconfined) }
 						single { StoryExporterRegistry(getAll(), getAll()) }
 					}
-				) + registry.koinModules() + module {
+				) + listOf(registry.koinModule()) + module {
 					// After the registry's modules, so it replaces the core operations with this one.
 					single { OperationRegistry(listOf(stats), NoProjects) }
 				}

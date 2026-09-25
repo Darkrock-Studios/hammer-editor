@@ -14,37 +14,26 @@ import com.darkrockstudios.apps.hammer.composeui.resources.Res
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_command_run
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
-import io.github.aakira.napier.Napier
-import org.jetbrains.compose.resources.StringResource
+import com.darkrockstudios.apps.hammer.operations.plugin.ProjectAction
 import org.koin.dsl.module
 
 class PluginSettingsPane(
 	val pluginId: String,
-	/** Compiled in, so it has no install controls. */
-	val compiledIn: Boolean,
-	val name: @Composable () -> String,
+	val name: String,
 	val content: @Composable ColumnScope.() -> Unit,
 )
 
 /**
- * The registered plugin UI halves whose plugin is also registered. [cliLauncher] runs `hammer` where
- * there is a CLI, to show how to run plugins' commands.
+ * What active plugins show in the UI, following them as they are added and removed. [cliLauncher]
+ * runs `hammer` where there is a CLI, to show how to run plugins' commands.
  */
 class PluginUiRegistry(
-	uis: List<PluginUi>,
 	private val pluginRegistry: PluginRegistry,
 	private val cliLauncher: List<String>? = null,
 ) {
-	val uis: List<PluginUi> = run {
-		val pluginIds = pluginRegistry.plugins.map { it.id }.toSet()
-		val (paired, orphaned) = uis.partition { it.id in pluginIds }
-		orphaned.forEach { Napier.w { "Plugin UI '${it.id}' has no registered plugin; ignoring it" } }
-		paired
-	}
-
 	/**
-	 * One per active plugin with declared settings, a custom pane, or CLI commands to show: the declared
-	 * form, then the pane, then how to run each command. Follows plugins added and removed while running.
+	 * One per active plugin with declared settings or CLI commands to show: the declared form, then
+	 * how to run each command.
 	 */
 	@Composable
 	fun settingsPanes(): List<PluginSettingsPane> {
@@ -52,18 +41,18 @@ class PluginUiRegistry(
 		return remember(plugins) { plugins.mapNotNull(::settingsPane) }
 	}
 
+	/** Every active plugin's items for a project's menu. */
+	@Composable
+	fun projectActions(): List<ProjectAction> {
+		val plugins by pluginRegistry.active.collectAsState()
+		return remember(plugins) { plugins.flatMap { it.projectActions() } }
+	}
+
 	private fun settingsPane(plugin: ClientPlugin): PluginSettingsPane? {
-		val ui = this.uis.firstOrNull { it.id == plugin.id }
-		val custom = ui?.settingsPane
 		val commands = if (cliLauncher != null) plugin.cliCommands() else emptyList()
-		if (plugin.settings().isEmpty() && custom == null && commands.isEmpty()) return null
-		return PluginSettingsPane(
-			pluginId = plugin.id,
-			compiledIn = pluginRegistry.isCompiledIn(plugin.id),
-			name = { ui?.name?.get() ?: plugin.name ?: plugin.id },
-		) {
-			if (plugin.settings().isNotEmpty()) DeclaredSettings(plugin, ui)
-			custom?.invoke(this)
+		if (plugin.settings().isEmpty() && commands.isEmpty()) return null
+		return PluginSettingsPane(pluginId = plugin.id, name = plugin.name ?: plugin.id) {
+			if (plugin.settings().isNotEmpty()) DeclaredSettings(plugin)
 			commands.forEach { command ->
 				Text(Res.string.plugin_command_run.get(command.help), style = MaterialTheme.typography.bodyMedium)
 				SelectionContainer {
@@ -76,28 +65,17 @@ class PluginUiRegistry(
 		}
 	}
 
-	val exportFormatLabels: Map<String, StringResource> = this.uis.fold(emptyMap()) { labels, ui ->
-		labels + ui.exportFormatLabels()
-	}
-
-	val projectActions: List<ProjectAction> = this.uis.flatMap { it.projectActions() }
-
 	@Composable
-	private fun ColumnScope.DeclaredSettings(plugin: ClientPlugin, ui: PluginUi?) {
+	private fun ColumnScope.DeclaredSettings(plugin: ClientPlugin) {
 		val store = pluginRegistry.settings(plugin.id) ?: return
 		val values by store.values.collectAsState()
-		DeclaredSettingsForm(
-			declarations = store.declarations,
-			values = values,
-			labels = ui?.settingLabels().orEmpty(),
-			onChange = store::set,
-		)
+		DeclaredSettingsForm(declarations = store.declarations, values = values, onChange = store::set)
 	}
 }
 
 private fun shellQuoted(word: String): String =
 	if (word.all { it.isLetterOrDigit() || it in "/._-" }) word else "'" + word.replace("'", "'\\''") + "'"
 
-fun pluginUiModule(uis: List<PluginUi>, cliLauncher: List<String>? = null) = module {
-	single { PluginUiRegistry(uis, get(), cliLauncher) }
+fun pluginUiModule(cliLauncher: List<String>? = null) = module {
+	single { PluginUiRegistry(get(), cliLauncher) }
 }

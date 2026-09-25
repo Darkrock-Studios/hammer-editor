@@ -106,21 +106,24 @@ class ExportOptionsDialogTest : BaseTest() {
 	}
 
 	@Test
-	fun `A contributed format shows its plugin label, or its extension without one`() {
+	fun `A contributed format shows its own label, or its extension without one`() {
 		var choices: List<ExportFormatChoice> = emptyList()
 		compose.setContent {
 			choices = exportFormatChoices(
-				exporters = StoryExporterRegistry(listOf(FakeExporter("a.fdx", "fdx"), FakeExporter("b.txt", "txt"))).exporters,
-				pluginLabels = mapOf("b.txt" to Res.string.settings_plugins_header),
+				StoryExporterRegistry(listOf(FakeExporter("a.fdx", "fdx"), FakeExporter("b.txt", "txt", "Plain text"))).exporters,
 			)
 		}
 		compose.waitForIdle()
 
 		assertEquals("FDX", choices.single { it.formatId == "a.fdx" }.label)
-		assertEquals("Plugins", choices.single { it.formatId == "b.txt" }.label)
+		assertEquals("Plain text", choices.single { it.formatId == "b.txt" }.label)
 	}
 
-	private class FakeExporter(override val formatId: String, override val fileExtension: String) : StoryExporter {
+	private class FakeExporter(
+		override val formatId: String,
+		override val fileExtension: String,
+		override val label: String? = null,
+	) : StoryExporter {
 		override val mimeType = "text/plain"
 		override fun render(sink: BufferedSink, input: ExportInput) = Unit
 	}

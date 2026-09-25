@@ -49,7 +49,7 @@ abstract class KoinOperationsTest : KoinComponent {
 		}
 		GlobalContext.startKoin {
 			allowOverride(true)
-			modules(listOf(mainModule, overrides) + PluginRegistry(emptyList()).koinModules())
+			modules(listOf(mainModule, overrides) + listOf(PluginRegistry().koinModule()))
 		}
 	}
 

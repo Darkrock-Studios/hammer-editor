@@ -36,9 +36,9 @@ class PlainTextPluginHarness {
 		val directory = "/config/plugins".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
-		RuntimePlugins(fileSystem, directory, emptySet()).install(download)
+		RuntimePlugins(fileSystem, directory).install(download)
 
-		registry = PluginRegistry(emptyList()).also(RuntimePlugins(fileSystem, directory, emptySet())::activate)
+		registry = PluginRegistry().also(RuntimePlugins(fileSystem, directory)::activate)
 		GlobalContext.startKoin {
 			modules(
 				listOf(
@@ -49,7 +49,7 @@ class PlainTextPluginHarness {
 						single(named(APP_SCOPE)) { CoroutineScope(Dispatchers.Unconfined) }
 						single { StoryExporterRegistry(getAll(), getAll()) }
 					}
-				) + registry.koinModules()
+				) + listOf(registry.koinModule())
 			)
 		}
 	}

@@ -312,6 +312,12 @@ private fun InstallDialog(
 						style = MaterialTheme.typography.bodyMedium,
 					)
 				}
+				if (manifest.actions.isNotEmpty()) {
+					Text(
+						text = Res.string.plugin_install_actions.get(manifest.actions.joinToString { it.label }),
+						style = MaterialTheme.typography.bodyMedium,
+					)
+				}
 				if (manifest.commands.isNotEmpty()) {
 					Text(
 						text = Res.string.plugin_install_commands.get(manifest.commands.joinToString { "hammer ${it.name}" }),

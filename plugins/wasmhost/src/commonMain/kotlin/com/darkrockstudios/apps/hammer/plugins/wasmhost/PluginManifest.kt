@@ -14,6 +14,7 @@ data class PluginManifest(
 	val permissions: Permissions = Permissions(),
 	val exporters: List<Exporter> = emptyList(),
 	val commands: List<Command> = emptyList(),
+	val actions: List<Action> = emptyList(),
 ) {
 	@Serializable
 	data class Permissions(
@@ -23,7 +24,7 @@ data class PluginManifest(
 
 	@Serializable
 	data class Exporter(
-		/** Prefixed with the plugin id, as for compiled-in plugins. */
+		/** Prefixed with the plugin id. */
 		val format: String,
 		val extension: String,
 		val mime: String,
@@ -41,6 +42,14 @@ data class PluginManifest(
 		val name: String,
 		/** One line, for `hammer help`. */
 		val help: String,
+	)
+
+	/** An item in each project's menu, which calls the module's `action` export on that project. */
+	@Serializable
+	data class Action(
+		/** Tells the module which of its actions to run. */
+		val name: String,
+		val label: String,
 	)
 
 	companion object {

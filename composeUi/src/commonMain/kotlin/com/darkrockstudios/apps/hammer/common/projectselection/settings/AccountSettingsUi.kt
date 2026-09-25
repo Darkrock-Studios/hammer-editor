@@ -50,7 +50,7 @@ internal fun AccountSettingsUi(
 ) {
 	val state by component.state.subscribeAsState()
 	val scope = rememberCoroutineScope()
-	val showPlugins = pluginSettingsPanes.isNotEmpty() || runtimePlugins != null
+	val showPlugins = runtimePlugins != null
 	val sectionCount = CORE_SECTION_COUNT + if (showPlugins) 1 else 0
 	val screen = LocalScreenCharacteristic.current
 	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
@@ -168,7 +168,7 @@ internal fun AccountSettingsUi(
 							ExampleProjectSection(component, rootSnackbar)
 						}
 
-						if (showPlugins) {
+						if (runtimePlugins != null) {
 							HdHairlineSection(
 								section = CORE_SECTION_COUNT + 1,
 								title = Res.string.settings_plugins_header.get(),

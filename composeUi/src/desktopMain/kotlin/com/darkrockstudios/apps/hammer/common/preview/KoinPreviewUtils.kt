@@ -33,7 +33,7 @@ fun KoinApplicationPreview(
 			single { fakeSpellCheckRepository() }
 			single { previewImageLoader() }
 			single { StoryExporterRegistry(emptyList()) }
-			single { PluginUiRegistry(emptyList(), PluginRegistry(emptyList())) }
+			single { PluginUiRegistry(PluginRegistry()) }
 
 			if (application != null) application()
 		}))

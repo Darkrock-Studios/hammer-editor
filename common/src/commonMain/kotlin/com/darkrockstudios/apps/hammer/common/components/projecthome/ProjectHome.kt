@@ -17,7 +17,6 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import kotlinx.datetime.LocalDate
-import org.jetbrains.compose.resources.StringResource
 import kotlinx.serialization.Serializable
 
 interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToaster {
@@ -44,8 +43,8 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 	fun supportsBackup(): Boolean
 	fun createBackup(callback: (ProjectBackupDef?) -> Unit)
 
-	/** Runs a plugin's project action off the main thread, then toasts [done], or a failure. */
-	fun runProjectAction(work: suspend () -> Unit, done: StringResource)
+	/** Runs a plugin's project action off the main thread, then toasts what it returns, or a failure. */
+	fun runProjectAction(work: suspend () -> String?)
 	fun getExportStoryFileName(format: String): String
 	fun refreshStatistics()
 

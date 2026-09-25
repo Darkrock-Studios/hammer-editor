@@ -8,7 +8,7 @@ import kotlinx.serialization.Serializable
 import org.koin.mp.KoinPlatform
 import kotlin.time.Duration.Companion.seconds
 
-/** The operations every build has. Plugin operations are added alongside these. */
+/** Every operation; plugins do not add any. */
 fun coreOperations(): List<Operation<*, *>> =
 	projectOperations() +
 		projectWriteOperations() +

@@ -40,7 +40,7 @@ class McpPluginTest {
 		val download = "/downloads/mcp.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
-		val plugins = RuntimePlugins(fileSystem, directory, emptySet())
+		val plugins = RuntimePlugins(fileSystem, directory)
 		plugins.install(download)
 		fileSystem.write(directory / "mcp.toml") { writeUtf8("liveEdits = $liveEdits\n") }
 

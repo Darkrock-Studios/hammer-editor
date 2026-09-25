@@ -1,7 +1,6 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
-import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginSettingsDatasource
 import io.github.aakira.napier.Napier
@@ -18,14 +17,12 @@ import org.koin.dsl.module
 
 /**
  * The runtime plugins installed under [directory]: packages in `packages/`, and whether each is
- * enabled and which operations the user granted it in [STATE_FILE]. A runtime plugin can never take
- * one of [compiledInIds]. Once [activate]d, installs and other changes apply to the plugin registry at
- * once.
+ * enabled and which operations the user granted it in [STATE_FILE]. Once [activate]d, installs and
+ * other changes apply to the plugin registry at once.
  */
 class RuntimePlugins(
 	private val fileSystem: FileSystem,
 	private val directory: Path,
-	private val compiledInIds: Set<String>,
 ) {
 	private val packages = directory / PACKAGES_DIRECTORY
 	private val stateFile = directory / STATE_FILE
@@ -55,10 +52,6 @@ class RuntimePlugins(
 
 	private fun load(id: String, state: PluginState): WasmPlugin? {
 		if (!state.enabled) return null
-		if (id in compiledInIds) {
-			Napier.w { "Runtime plugin '$id' shares an id with a compiled-in plugin; not loading it" }
-			return null
-		}
 		return try {
 			val plugin = PluginPackage.read(fileSystem, packagePath(id))
 			if (plugin.manifest.id != id) throw PluginPackageException("Package id changed to '${plugin.manifest.id}'")
@@ -95,10 +88,6 @@ class RuntimePlugins(
 	fun install(source: Path, inspected: PluginPackage = inspect(source)): PluginPackage = changes.withLock {
 		val plugin = inspected
 		val id = plugin.manifest.id
-		if (id in compiledInIds) throw PluginPackageException("Plugin id '$id' is taken by a built-in plugin")
-		plugin.manifest.commands.firstOrNull { it.name in compiledInIds }?.let {
-			throw PluginPackageException("Command '${it.name}' is taken by a built-in plugin")
-		}
 		val granted = plugin.manifest.permissions.operations
 		registry?.let { live -> refused { live.validate(plugin.toWasmPlugin(granted.toSet())) } }
 
@@ -190,10 +179,9 @@ class RuntimePlugins(
 		private val toml = Toml { ignoreUnknownKeys = true }
 
 		/** The app's runtime plugins, kept beside plugin settings files in the config directory. */
-		fun inConfigDirectory(fileSystem: FileSystem, compiledIn: List<ClientPlugin>) = RuntimePlugins(
+		fun inConfigDirectory(fileSystem: FileSystem) = RuntimePlugins(
 			fileSystem = fileSystem,
 			directory = getConfigDirectory().toPath() / PluginSettingsDatasource.PLUGINS_DIRECTORY,
-			compiledInIds = compiledIn.map { it.id }.toSet(),
 		)
 	}
 
