@@ -46,6 +46,9 @@ object Forwarding {
 	/** Operations that stay with the app while it runs: its own sync and login must not be raced. */
 	private val APP_ONLY = setOf("account", "sync")
 
+	/** Moving a project's directory would race anything in the app that opens it, such as a sync. */
+	private val APP_ONLY_OPERATIONS = setOf("project.rename", "project.delete")
+
 	private val json = Json { ignoreUnknownKeys = true }
 
 	@Serializable
@@ -104,7 +107,8 @@ object Forwarding {
 				val request = json.decodeFromString(Request.serializer(), line)
 				when {
 					!allowed() -> Reply(error = Reply.Error(REFUSED, DISABLED_MESSAGE))
-					request.operation.substringBefore('.') in APP_ONLY -> Reply(error = Reply.Error(REFUSED, APP_ONLY_MESSAGE))
+					request.operation.substringBefore('.') in APP_ONLY || request.operation in APP_ONLY_OPERATIONS ->
+						Reply(error = Reply.Error(REFUSED, APP_ONLY_MESSAGE))
 					else -> {
 						val output = registry().dispatch(request.operation, request.input)
 						Reply(output = output, exitCode = registry().exitCode(request.operation, output))
@@ -180,7 +184,7 @@ object Forwarding {
 	private val REQUEST_TIMEOUT = 10.seconds
 	private val REPLY_TIMEOUT = 10.minutes
 	private const val APP_ONLY_MESSAGE =
-		"Hammer is open, and it syncs and logs in itself. Use the app, or close it and run this again."
+		"Hammer is open, and this has to wait until it is closed. Use the app, or close it and run this again."
 	private const val DISABLED_MESSAGE =
 		"Hammer is running with external tools turned off. Turn on 'Let tools use Hammer while it is open' in Settings, or close Hammer."
 }
