@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.desktop
 
 import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeepLink
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.CliktError
 import com.github.ajalt.clikt.core.PrintHelpMessage
 import com.github.ajalt.clikt.core.UsageError
 import com.github.ajalt.clikt.core.parse
@@ -61,9 +62,22 @@ fun parseDesktopLaunchArgs(args: Array<String>): DesktopLaunchArgs {
 		command.echoFormattedHelp(e)
 		exitProcess(e.statusCode)
 	}
-	return DesktopLaunchArgs(
-		devMode = command.devMode,
-		projectName = command.projectName,
-		deepLink = command.deepLink,
-	)
+	return command.launchArgs()
 }
+
+/** Parses the arguments of a launch handed over from another process; null, never exiting, if they do not parse. */
+fun parseHandedOffLaunchArgs(args: List<String>): DesktopLaunchArgs? {
+	val command = DesktopArgsCommand()
+	return try {
+		command.parse(args)
+		command.launchArgs()
+	} catch (e: CliktError) {
+		null
+	}
+}
+
+private fun DesktopArgsCommand.launchArgs() = DesktopLaunchArgs(
+	devMode = devMode,
+	projectName = projectName,
+	deepLink = deepLink,
+)
