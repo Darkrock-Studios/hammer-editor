@@ -1,8 +1,13 @@
+import com.darkrockstudios.apps.hammer.base.DistributionChannel
 import com.darkrockstudios.apps.hammer.common.HostOs
 import com.darkrockstudios.apps.hammer.common.compose.plugin.CliPath
 import com.darkrockstudios.apps.hammer.common.compose.plugin.CliPathInstaller
 import com.darkrockstudios.apps.hammer.common.compose.plugin.CliPathState
+import com.darkrockstudios.apps.hammer.common.compose.plugin.WindowsUserPath
+import com.darkrockstudios.apps.hammer.common.compose.plugin.cliLauncher
 import com.darkrockstudios.apps.hammer.common.compose.plugin.manualCommand
+import com.darkrockstudios.apps.hammer.common.compose.plugin.withPathEntry
+import com.darkrockstudios.apps.hammer.common.compose.plugin.withoutPathEntry
 import java.io.IOException
 import java.nio.file.Files
 import java.nio.file.Path
@@ -33,7 +38,8 @@ class CliPathTest {
 		env: Map<String, String> = emptyMap(),
 		appPath: String? = "/opt/hammer/bin/hammer",
 		appStore: Boolean = false,
-	) = CliPath.detect(os, env, appPath, appStore, home)
+		channel: DistributionChannel = DistributionChannel.GITHUB,
+	) = CliPath.detect(os, env, appPath, appStore, channel, home)
 
 	@Test
 	fun `each package puts hammer on PATH its own way`() {
@@ -50,7 +56,64 @@ class CliPathTest {
 		assertEquals(CliPath.Script(Paths.get("/usr/local/bin/hammer"), listOf(mac), needsAdmin = true), detect(HostOs.MacOs, appPath = mac))
 		assertTrue(detect(HostOs.MacOs, appPath = mac, appStore = true) is CliPath.Manual)
 		assertEquals(CliPath.Unavailable, detect(appPath = null))
-		assertEquals(CliPath.Unavailable, detect(HostOs.Windows, appPath = "C:\\Hammer\\hammer.exe"))
+		assertEquals(
+			CliPath.Script(home.resolve(".local/bin/hammer"), listOf("/home/a/Apps/hammer.AppImage"), needsAdmin = false),
+			detect(env = mapOf("APPIMAGE" to "/home/a/Apps/hammer.AppImage"), appPath = "/tmp/.mount_hammerX/usr/bin/hammer"),
+		)
+	}
+
+	@Test
+	fun `on Windows a batch file runs the console launcher, except from the Store`() {
+		val local = "C:\\Users\\a\\AppData\\Local"
+		assertEquals(
+			CliPath.Script(
+				Paths.get(local, "Hammer", "bin", "hammer.cmd"),
+				listOf("C:\\Program Files\\Hammer\\hammer-cli.exe"),
+				needsAdmin = false,
+				windows = true,
+			),
+			detect(HostOs.Windows, env = mapOf("LOCALAPPDATA" to local), appPath = "C:\\Program Files\\Hammer\\hammer.exe"),
+		)
+		assertEquals(
+			CliPath.Provided("hammer"),
+			detect(HostOs.Windows, appPath = "C:\\Program Files\\WindowsApps\\x\\hammer.exe", channel = DistributionChannel.MICROSOFT_STORE),
+		)
+		assertEquals(listOf("hammer"), cliLauncher(emptyMap(), "C:\\x\\hammer.exe", HostOs.Windows, DistributionChannel.MICROSOFT_STORE))
+		assertEquals(
+			"@echo off\r\nrem ${CliPath.MARKER}\r\n\"C:\\100%%\\hammer-cli.exe\" %*\r\n",
+			CliPath.Script(Paths.get("x"), listOf("C:\\100%\\hammer-cli.exe"), needsAdmin = false, windows = true).content,
+		)
+	}
+
+	@Test
+	fun `a Windows script's folder is added to the user's PATH once, and removed with it`() {
+		val userPath = object : WindowsUserPath {
+			var value = "%USERPROFILE%\\bin;C:\\Tools"
+			override fun read() = value
+			override fun write(value: String) {
+				this.value = value
+			}
+		}
+		val installer = CliPathInstaller(userPath = userPath)
+		val script = CliPath.Script(home.resolve("bin/hammer.cmd"), listOf("C:\\Hammer\\hammer-cli.exe"), needsAdmin = false, windows = true)
+		val dir = script.file.parent.toString()
+
+		installer.install(script)
+		installer.install(script)
+		assertEquals("%USERPROFILE%\\bin;C:\\Tools;$dir", userPath.value)
+
+		installer.remove(script)
+		assertEquals("%USERPROFILE%\\bin;C:\\Tools", userPath.value)
+		assertFalse(Files.exists(script.file))
+	}
+
+	@Test
+	fun `PATH entries match whatever their case or trailing backslash`() {
+		assertEquals(null, withPathEntry("C:\\Tools;c:\\hammer\\bin\\", "C:\\Hammer\\bin"))
+		assertEquals("C:\\Tools;C:\\Hammer\\bin", withPathEntry("C:\\Tools;", "C:\\Hammer\\bin"))
+		assertEquals("C:\\Hammer\\bin", withPathEntry("", "C:\\Hammer\\bin"))
+		assertEquals("C:\\Tools", withoutPathEntry("C:\\Tools;C:\\HAMMER\\bin", "C:\\Hammer\\bin"))
+		assertEquals(null, withoutPathEntry("C:\\Tools", "C:\\Hammer\\bin"))
 	}
 
 	@Test
