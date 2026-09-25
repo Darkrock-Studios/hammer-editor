@@ -269,7 +269,8 @@ class RuntimePluginsTest {
 		assertEquals("Grammar", check.label)
 		assertEquals(2, found.size)
 		val issue = found[0].single()
-		assertEquals(listOf(3, 10, "Repeated word", listOf("the")), listOf(issue.start, issue.end, issue.message, issue.fixes))
+		assertEquals(listOf(3, 10, "Repeated word"), listOf(issue.start, issue.end, issue.message))
+		assertEquals(listOf("the" to "the", "" to "Remove the repeat"), issue.fixes.map { it.replacement to it.label })
 		assertTrue(found[1].isEmpty())
 	}
 

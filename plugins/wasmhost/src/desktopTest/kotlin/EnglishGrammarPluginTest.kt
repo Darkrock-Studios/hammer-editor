@@ -67,7 +67,7 @@ class EnglishGrammarPluginTest {
 	/** Each issue in [paragraph] as the text it covers, then its fixes. */
 	private fun issues(paragraph: String, language: String? = "en"): List<String> {
 		val found = runBlocking { check.diagnose(listOf(paragraph), language) }.single()
-		return found.map { paragraph.substring(it.start, it.end) + " -> " + it.fixes.joinToString("|") }
+		return found.map { paragraph.substring(it.start, it.end) + " -> " + it.fixes.joinToString("|") { fix -> fix.replacement } }
 	}
 
 	/** The messages of the issues in [paragraph]. */
@@ -89,6 +89,25 @@ class EnglishGrammarPluginTest {
 
 		assertTrue(messages(long).none { "words long" in it }, messages(long).toString())
 		assertEquals(emptyList(), messages(agreement))
+	}
+
+	@Test
+	fun `the same words get one issue, with every rule's fixes`() {
+		val paragraph = "He said that that the plan was fine."
+		val found = runBlocking { check.diagnose(listOf(paragraph), "en") }.single()
+			.filter { paragraph.substring(it.start, it.end) == "that that" }
+
+		assertEquals(1, found.size, found.map { it.message }.toString())
+		val replacements = found.single().fixes.map { it.replacement }
+		assertTrue("that" in replacements && "that which" in replacements, replacements.toString())
+		assertEquals(replacements.distinct(), replacements)
+	}
+
+	@Test
+	fun `a fix that inserts says what it inserts`() {
+		val fixes = runBlocking { check.diagnose(listOf("However the plan worked."), "en") }.single().flatMap { it.fixes }
+
+		assertTrue(fixes.any { it.label == "Insert “,”" && it.replacement == "However," }, fixes.map { it.replacement to it.label }.toString())
 	}
 
 	@Test
