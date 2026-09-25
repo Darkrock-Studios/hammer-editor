@@ -1,19 +1,30 @@
 package com.darkrockstudios.apps.hammer.common.data.export
 
-/** Every available export format: the built-in ones in menu order, then contributed ones by id. */
-class StoryExporterRegistry(contributed: List<StoryExporter>) {
-	val exporters: List<StoryExporter> = builtInStoryExporters + contributed.sortedBy { it.formatId }
+/** Export formats that can change while the app runs, such as those of plugins installed from Settings. */
+fun interface ExporterSource {
+	fun exporters(): List<StoryExporter>
+}
 
-	private val byId: Map<String, StoryExporter> = exporters.associateBy { it.formatId }
-
+/**
+ * Every available export format: the built-in ones in menu order, then the others by id. Formats from
+ * [sources] are read afresh on each lookup.
+ */
+class StoryExporterRegistry(
+	private val contributed: List<StoryExporter>,
+	private val sources: List<ExporterSource> = emptyList(),
+) {
 	init {
-		require(byId.size == exporters.size) {
-			"Duplicate export format ids: ${exporters.groupBy { it.formatId }.filterValues { it.size > 1 }.keys}"
+		val ids = (builtInStoryExporters + contributed).groupBy { it.formatId }
+		require(ids.all { it.value.size == 1 }) {
+			"Duplicate export format ids: ${ids.filterValues { it.size > 1 }.keys}"
 		}
 	}
 
-	fun isRegistered(formatId: String): Boolean = formatId in byId
+	val exporters: List<StoryExporter>
+		get() = builtInStoryExporters + (contributed + sources.flatMap { it.exporters() }).sortedBy { it.formatId }
+
+	fun isRegistered(formatId: String): Boolean = exporters.any { it.formatId == formatId }
 
 	fun forFormat(formatId: String): StoryExporter =
-		byId[formatId] ?: throw IllegalArgumentException("Unknown export format '$formatId'")
+		exporters.firstOrNull { it.formatId == formatId } ?: throw IllegalArgumentException("Unknown export format '$formatId'")
 }

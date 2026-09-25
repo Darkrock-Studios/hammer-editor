@@ -196,7 +196,7 @@ fun main(args: Array<String>) {
 
 	val compiledInPlugins = installedPlugins()
 	val runtimePlugins = RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, compiledInPlugins)
-	val pluginRegistry = PluginRegistry(compiledInPlugins + runtimePlugins.load())
+	val pluginRegistry = PluginRegistry(compiledInPlugins).also(runtimePlugins::activate)
 
 	GlobalContext.startKoin {
 		logger(NapierLogger())

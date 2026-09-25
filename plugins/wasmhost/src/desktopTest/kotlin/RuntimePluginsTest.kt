@@ -234,12 +234,55 @@ class RuntimePluginsTest {
 	}
 
 	@Test
-	fun `a plugin adding a command another has is skipped`() {
+	fun `a plugin adding a command another has is not activated`() {
 		val plugins = runtimePlugins()
 		plugins.install(pack("one", manifest(id = "one", command = "echo-back")))
 		plugins.install(pack("two", manifest(id = "two", command = "echo-back")))
 
-		assertEquals(listOf("one"), plugins.load().map { it.id })
+		assertEquals(listOf("one"), PluginRegistry(emptyList()).also(plugins::activate).plugins.map { it.id })
+	}
+
+	@Test
+	fun `once activated, changes apply to the registry at once`() {
+		val plugins = runtimePlugins()
+		val registry = PluginRegistry(emptyList()).also(plugins::activate)
+
+		plugins.install(pack("echo"))
+		assertEquals(listOf("echo.txt"), registry.exporters().map { it.formatId })
+		plugins.setEnabled("echo", false)
+		assertTrue(registry.plugins.isEmpty())
+		plugins.setEnabled("echo", true)
+		assertEquals(listOf("echo"), registry.plugins.map { it.id })
+		plugins.uninstall("echo")
+		assertTrue(registry.plugins.isEmpty())
+	}
+
+	@Test
+	fun `reinstalling replaces the active plugin`() {
+		val plugins = runtimePlugins()
+		val registry = PluginRegistry(emptyList()).also(plugins::activate)
+		plugins.install(pack("echo"))
+		val first = registry.plugins.single()
+
+		plugins.install(pack("echo-again"))
+
+		assertTrue(registry.plugins.single() !== first)
+	}
+
+	@Test
+	fun `a change the registry would refuse is not made`() {
+		val plugins = runtimePlugins()
+		val registry = PluginRegistry(emptyList()).also(plugins::activate)
+		plugins.install(pack("one", manifest(id = "one", command = "echo-back")))
+
+		assertThrows<PluginPackageException> { plugins.install(pack("two", manifest(id = "two", command = "echo-back"))) }
+		assertEquals(listOf("one"), plugins.installed().map { it.id })
+
+		plugins.setEnabled("one", false)
+		plugins.install(pack("two", manifest(id = "two", command = "echo-back")))
+		assertThrows<PluginPackageException> { plugins.setEnabled("one", true) }
+		assertEquals(false, plugins.installed().single { it.id == "one" }.enabled)
+		assertEquals(listOf("two"), registry.plugins.map { it.id })
 	}
 
 	private object UnusedDispatcher : Dispatcher {
@@ -248,14 +291,14 @@ class RuntimePluginsTest {
 	}
 
 	private fun startKoin(plugins: RuntimePlugins): PluginRegistry {
-		val registry = PluginRegistry(plugins.load())
+		val registry = PluginRegistry(emptyList()).also(plugins::activate)
 		val greet = operation<Greeting, Greeting>("greet", "", Access.Read, OperationScope.Content) { it }
 		val base = module {
 			single<FileSystem> { fileSystem }
 			single<Toml> { createTomlSerializer() }
 			single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.Unconfined }
 			single(named(APP_SCOPE)) { CoroutineScope(Dispatchers.Unconfined) }
-			single { StoryExporterRegistry(getAll()) }
+			single { StoryExporterRegistry(getAll(), getAll()) }
 		}
 		GlobalContext.startKoin {
 			modules(listOf(base) + registry.koinModules() + module {

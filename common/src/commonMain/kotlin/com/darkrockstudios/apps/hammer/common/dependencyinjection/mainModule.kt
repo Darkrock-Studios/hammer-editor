@@ -269,7 +269,7 @@ val mainModule = module {
 
 	single { StoryImporterRegistry(listOf(MarkdownStoryImporter(), RtfStoryImporter())) }
 	// Plugins contribute formats by binding StoryExporters; the built-in ones are always present.
-	single { StoryExporterRegistry(getAll()) }
+	single { StoryExporterRegistry(getAll(), getAll()) }
 
 	scope<ProjectDefScope> {
 		scoped<ProjectDef> { get<ProjectDefScope>().projectDef }

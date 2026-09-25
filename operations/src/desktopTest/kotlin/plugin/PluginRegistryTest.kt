@@ -12,7 +12,9 @@ import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toHPath
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
 import com.darkrockstudios.apps.hammer.operations.Access
@@ -24,6 +26,7 @@ import com.darkrockstudios.apps.hammer.operations.operation
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.ProjectPluginContext
+import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import io.mockk.mockk
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,6 +37,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
+import net.peanuuutz.tomlkt.Toml
 import okio.BufferedSink
 import okio.FileSystem
 import okio.Path.Companion.toPath
@@ -70,8 +74,10 @@ class PluginRegistryTest : KoinComponent {
 		val base = module {
 			single<FileSystem> { fileSystem }
 			single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { dispatcher }
+			single<CoroutineContext>(named(DISPATCHER_IO)) { dispatcher }
+			single<Toml> { createTomlSerializer() }
 			single(named(APP_SCOPE)) { CoroutineScope(Dispatchers.Unconfined) }
-			single { StoryExporterRegistry(getAll()) }
+			single { StoryExporterRegistry(getAll(), getAll()) }
 			scope<ProjectDefScope> {
 				scoped { projectDef }
 				scoped<SceneEditorService> { mockk(relaxed = true) }
@@ -113,6 +119,59 @@ class PluginRegistryTest : KoinComponent {
 		startKoin(registry)
 
 		assertSame(exporter, getKoin().get<StoryExporterRegistry>().forFormat("recorder.txt"))
+	}
+
+	@Test
+	fun `added plugins join and leave the exporters while running`() {
+		val registry = PluginRegistry(emptyList())
+		startKoin(registry)
+		val exporters = getKoin().get<StoryExporterRegistry>()
+
+		registry.add(RecordingPlugin("recorder", exporters = listOf(FakeExporter("recorder.txt"))))
+		assertTrue(exporters.isRegistered("recorder.txt"))
+		assertEquals(listOf("recorder"), registry.active.value.map { it.id })
+
+		registry.remove("recorder")
+		assertFalse(exporters.isRegistered("recorder.txt"))
+	}
+
+	@Test
+	fun `adding a plugin with an id already added replaces it, but compiled-in plugins stay`() {
+		val compiled = RecordingPlugin("compiled")
+		val registry = PluginRegistry(listOf(compiled))
+		val replacement = RecordingPlugin("added")
+		registry.add(RecordingPlugin("added"))
+		registry.add(replacement)
+
+		assertEquals(listOf(compiled, replacement), registry.plugins)
+		assertThrows<IllegalArgumentException> { registry.add(RecordingPlugin("compiled")) }
+		registry.remove("compiled")
+		assertEquals(listOf(compiled, replacement), registry.plugins)
+	}
+
+	@Test
+	fun `a replaced plugin gets a settings store for its own declarations`() {
+		val registry = PluginRegistry(emptyList())
+		startKoin(registry)
+		registry.add(SettingsPlugin("tuned", SettingDeclaration.Toggle("loud", "Loud", defaultValue = false)))
+		val first = registry.settings("tuned")!!
+		assertSame(first, registry.settings("tuned"))
+
+		registry.add(SettingsPlugin("tuned", SettingDeclaration.Toggle("quiet", "Quiet", defaultValue = true)))
+		assertEquals(listOf("quiet"), registry.settings("tuned")!!.declarations.map { it.key })
+
+		registry.remove("tuned")
+		assertNull(registry.settings("tuned"))
+	}
+
+	@Test
+	fun `added plugins cannot bring operations or Koin modules`() {
+		val registry = PluginRegistry(emptyList())
+		val op = operation<NoInput, NoInput>("recorder.ping", "", Access.Read, OperationScope.Content) { NoInput }
+
+		assertThrows<IllegalArgumentException> { registry.add(RecordingPlugin("recorder", operations = listOf(op))) }
+		assertThrows<IllegalArgumentException> { registry.validate(RecordingPlugin("recorder", module { })) }
+		assertTrue(registry.plugins.isEmpty())
 	}
 
 	@Test
@@ -256,6 +315,10 @@ class PluginRegistryTest : KoinComponent {
 		override val fileExtension = "txt"
 		override val mimeType = "text/plain"
 		override fun render(sink: BufferedSink, input: ExportInput) = Unit
+	}
+
+	private class SettingsPlugin(override val id: String, private val declaration: SettingDeclaration) : ClientPlugin {
+		override fun settings() = listOf(declaration)
 	}
 
 	private class RecordingPlugin(

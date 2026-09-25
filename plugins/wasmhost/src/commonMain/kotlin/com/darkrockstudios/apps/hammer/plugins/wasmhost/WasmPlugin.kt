@@ -201,6 +201,13 @@ class WasmPlugin(
 		}
 	}
 
+	// An export can start just as this plugin is removed or replaced, when the registry's store is not its own.
+	private fun settingsValues(): JsonObject {
+		val registry = get<PluginRegistry>()
+		if (registry.plugins.none { it === this }) return savedSettings()
+		return registry.settings(id)?.values?.value ?: JsonObject(emptyMap())
+	}
+
 	private inner class Exporter(private val format: PluginManifest.Exporter) : StoryExporter {
 		override val formatId = format.format
 		override val fileExtension = format.extension
@@ -222,7 +229,7 @@ class WasmPlugin(
 						ExportRequest.Chapter(chapter.name, scenes = chapter.scenes)
 					}
 				},
-				settings = get<PluginRegistry>().settings(id)?.values?.value ?: JsonObject(emptyMap()),
+				settings = settingsValues(),
 			)
 			// Export renders on a background dispatcher already.
 			sink.write(callBlocking(EXPORT, OperationJson.encodeToString(request).encodeToByteArray()))
