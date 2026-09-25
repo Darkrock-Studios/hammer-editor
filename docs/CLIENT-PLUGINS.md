@@ -249,10 +249,8 @@ recreate it; archiving saves the buffer first.
 
 Input that edits scene text in place is marked `@LiveEdit`: the whole input of
 `scene.append` and `draft.apply`, and `scene.write`'s `live` mode. The schema carries it as
-`x-hammer-live`. The MCP plugin leaves marked operations out, and marked enum
-values out of its tool schemas (refusing them if sent anyway), unless its
-"Let AI agents change scenes directly" setting is on. Only top-level fields are
-checked.
+`x-hammer-live`, so a client can tell an edit a writer reviews from one that
+lands in place.
 
 ### Notes, encyclopedia, timeline
 
@@ -623,7 +621,7 @@ answer, the app could not open it, and the CLI fails saying Hammer is running.
 Forwarding is always on; there is no setting for it. Anything that can reach
 the socket runs as the same user, who could edit the project files directly, and
 the socket's directory is theirs alone. What an agent may do is decided where it
-is installed: the MCP plugin's granted operations and its live edits setting.
+is installed: the MCP plugin's granted operations and its settings.
 Refusing while the app is open would only push tools to wait for it to close,
 or to edit files under it.
 
@@ -666,17 +664,15 @@ MCP is a runtime plugin, in hammer-plugins' `kotlin/mcp`, written in
 Kotlin/Wasm. The host provides only generic pieces: plugin commands, scope
 grants, and `ops.list` filtered to the grants.
 
-Its manifest requests `content:read` and `content:write`, the deletes of
-everything inside a project by name (`scene.delete`, `draft.delete`,
-`note.delete`, `entry.delete`, `timeline.delete`, `idea.delete`), and declares a
-`mcp` command. An MCP client launches `hammer mcp` as a child process and
+Its manifest requests `content:read`, then by name the writes that organize a
+project and the deletes of everything inside one, and declares a `mcp` command. An MCP client launches `hammer mcp` as a child process and
 speaks JSON-RPC over stdio, one message per line; the host hands each line to
 the plugin (see [Commands](#commands)). The plugin answers `initialize`,
 `ping`, `tools/list`, and `tools/call`, and ignores notifications.
 
 Its tools are what `ops.list` returns it, which is exactly what it may call,
 less `ops.list` itself: `tools/list` already describes each tool, and only it
-reflects the live edits setting.
+reflects the plugin's settings.
 Tool names replace the operation's dots with underscores (`scene_read`), since
 some clients reject dots. A failed call, including one refused because Hammer
 is busy, is a tool error the agent can read, not a protocol error. Every call
@@ -684,19 +680,25 @@ goes through the CLI's `Dispatcher`, so it works against the running app's live
 state or, with no app running, directly against the files. No network port and
 no token management.
 
-**Live edits.** Its one setting, "Let AI agents change scenes directly", is
-off by default. While off, it drops tools whose input is marked
-[`@LiveEdit`](#operations) (`x-hammer-live` in the schema), drops live values
-from enum fields such as `scene.write`'s `mode`, and refuses them if sent
-anyway, so agents' scene edits land as drafts. Settings are read for every
-message, so a change applies to a running server.
+**No prose.** Hammer's stance on AI is a tool for the writer, not a
+replacement, so the plugin requests no operation that writes a scene's text:
+not `scene.write`, `scene.append`, `draft.apply`, or `project.import`. An agent
+can read the whole story and help around it, with the encyclopedia, timeline,
+notes, outlines, and structure, but the prose stays the writer's. This is a
+stance rather than a lock: projects are markdown on disk, and the CLI still
+writes scenes for the writer's own scripts.
 
-**Deletes.** A second setting, "Let AI agents delete things", also off by
-default, offers the granted deletes as tools, with MCP's `destructiveHint`, so
-a client can warn before running one; while off they are not tools at all.
-`project.delete` is never requested. Granting deletes by name at install, the
-setting, and the client's own prompt before a tool call stand in for the CLI's
-`--confirm`.
+**Settings.** Two settings, both off by default, gate what it does request.
+"Let AI agents make changes" offers the writes: creating, renaming, moving, and
+archiving scenes, scene outlines and tags, drafts as snapshots, notes,
+encyclopedia entries and their images, the timeline, ideas, projects, and
+backups. "Let AI agents delete things" offers the deletes, with MCP's
+`destructiveHint`, so a client can warn before running one; `project.delete` is
+never requested. While a setting is off, its tools are not tools at all.
+Granting by name at install, the setting, and the client's own prompt before a
+tool call stand in for the CLI's `--confirm`. Settings are read for every
+message, so turning one off applies to a running server; tools a setting adds
+appear once the client lists tools again, which most do on reconnecting.
 
 Installing and enabling the plugin is what turns MCP on. Settings shows the
 command line to give an MCP client.
@@ -1431,7 +1433,7 @@ design is revisited rather than `:common` bent to fit.
    those itself, and the CLI and MCP try the socket before running headless. A second app launch hands its arguments to the first window and
    exits (see [Multiple app instances](#concurrency)).
 9. **Write operations.** Built: every write operation in the catalog, the MCP
-   plugin's live edits setting, and the CLI's `--confirm` and `--in`. Project
+   plugin's settings, and the CLI's `--confirm` and `--in`. Project
    create, rename, and delete go through `ProjectsService`, shared with the
    projects list, so they queue for account sync the same way. Deliberately
    after forwarding, so live writes always go through the app when it is up.
