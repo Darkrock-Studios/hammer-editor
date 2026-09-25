@@ -57,7 +57,7 @@ class GrammarPluginTest {
 	/** Each issue in [paragraph] as the text it covers, then its fixes. */
 	private fun issues(paragraph: String, language: String? = "en"): List<String> {
 		val found = runBlocking { check.diagnose(listOf(paragraph), language) }.single()
-		return found.map { paragraph.substring(it.start, it.end) + " -> " + it.fixes.joinToString("|") }
+		return found.map { paragraph.substring(it.start, it.end) + " -> " + it.fixes.joinToString("|") { fix -> fix.replacement } }
 	}
 
 	@Test

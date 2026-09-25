@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ProjectAction
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnostic
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsProvider
+import com.darkrockstudios.apps.hammer.operations.plugin.TextFix
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
@@ -32,6 +33,8 @@ import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.contentOrNull
 import okio.BufferedSink
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
@@ -108,7 +111,7 @@ class WasmPlugin(
 					val paragraph = paragraphs.getOrNull(item.paragraph) ?: return@forEach
 					val start = utf16Offset(paragraph, item.start) ?: return@forEach
 					val end = utf16Offset(paragraph, item.end) ?: return@forEach
-					if (start < end) found[item.paragraph] += TextDiagnostic(start, end, item.message, item.fixes)
+					if (start < end) found[item.paragraph] += TextDiagnostic(start, end, item.message, item.fixes.mapNotNull(::textFix))
 				}
 			} catch (e: PluginException) {
 				Napier.w(e) { "Plugin '$id' could not check text" }
@@ -315,11 +318,22 @@ class WasmPlugin(
 		val settings: JsonObject,
 	)
 
-	/** Offsets are UTF-8 byte offsets into the paragraph, which is what C and Rust index by. */
+	/**
+	 * Offsets are UTF-8 byte offsets into the paragraph, which is what C and Rust index by. A fix is a
+	 * replacement, or `{"replacement", "label"}` where the replacement alone would not say what it does.
+	 */
 	@Serializable
 	private class DiagnoseReply(val diagnostics: List<Item> = emptyList()) {
 		@Serializable
-		class Item(val paragraph: Int, val start: Int, val end: Int, val message: String, val fixes: List<String> = emptyList())
+		class Item(val paragraph: Int, val start: Int, val end: Int, val message: String, val fixes: List<JsonElement> = emptyList())
+	}
+
+	private fun textFix(fix: JsonElement): TextFix? = when (fix) {
+		is JsonPrimitive -> fix.contentOrNull?.takeIf { fix.isString }?.let(::TextFix)
+		is JsonObject -> (fix["replacement"] as? JsonPrimitive)?.takeIf { it.isString }?.content?.let { replacement ->
+			TextFix(replacement, (fix["label"] as? JsonPrimitive)?.contentOrNull ?: replacement)
+		}
+		else -> null
 	}
 
 	@Serializable
