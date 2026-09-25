@@ -25,6 +25,9 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexServ
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
+import com.darkrockstudios.apps.hammer.common.data.export.ExportStoryUseCase
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
+import com.darkrockstudios.apps.hammer.common.data.export.exportFileName
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
@@ -52,6 +55,7 @@ class ProjectHomeComponent(
 
 	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectBackupRepository: ProjectBackupRepository by inject()
+	private val exporters: StoryExporterRegistry by inject()
 	private val sceneEditorRepository: SceneEditorService by projectInject()
 	private val exportStoryUseCase: ExportStoryUseCase by projectInject()
 	private val encyclopediaService: EncyclopediaService by projectInject()
@@ -82,7 +86,8 @@ class ProjectHomeComponent(
 	override fun beginProjectExport() {
 		_state.getAndUpdate {
 			// A scene limit from a previous export would silently narrow this one.
-			val options = it.exportOptions.copy(sceneIds = null)
+			val format = it.exportOptions.format.takeIf(exporters::isRegistered) ?: ExportOptions().format
+			val options = it.exportOptions.copy(format = format, sceneIds = null)
 			exportOptionsBeforeDialog = options
 			it.copy(
 				showExportDialog = true,
@@ -350,7 +355,8 @@ class ProjectHomeComponent(
 
 	override fun isAtRoot() = true
 	override fun shouldConfirmClose() = emptySet<CloseConfirm>()
-	override fun getExportStoryFileName(format: ExportFormat) = exportFileName(projectDef.name, format)
+	override fun getExportStoryFileName(format: String) =
+		exportFileName(projectDef.name, exporters.forFormat(format).fileExtension)
 
 	override fun showProjectStats() = contentRouter.showProjectStats()
 	override fun showProjectSettings() = contentRouter.showProjectSettings()

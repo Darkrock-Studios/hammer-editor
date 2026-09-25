@@ -3,6 +3,9 @@ package plugin
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectLifecycleListener
 import com.darkrockstudios.apps.hammer.common.data.closeProjectScope
+import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.openProjectScope
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
@@ -25,6 +28,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
+import okio.BufferedSink
 import okio.FileSystem
 import okio.Path.Companion.toPath
 import okio.fakefilesystem.FakeFileSystem
@@ -61,6 +65,7 @@ class PluginRegistryTest : KoinComponent {
 			single<FileSystem> { fileSystem }
 			single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { dispatcher }
 			single(named(APP_SCOPE)) { CoroutineScope(Dispatchers.Unconfined) }
+			single { StoryExporterRegistry(getAll()) }
 			scope<ProjectDefScope> {
 				scoped { projectDef }
 				scoped<SceneEditorService> { mockk(relaxed = true) }
@@ -93,6 +98,22 @@ class PluginRegistryTest : KoinComponent {
 
 		assertSame(Marker, getKoin().get<Marker>())
 		assertSame(registry, getKoin().getAll<ProjectLifecycleListener>().single())
+	}
+
+	@Test
+	fun `plugin export formats join the exporter registry`() {
+		val exporter = FakeExporter("recorder.txt")
+		val registry = PluginRegistry(listOf(RecordingPlugin("recorder", exporters = listOf(exporter))))
+		startKoin(registry)
+
+		assertSame(exporter, getKoin().get<StoryExporterRegistry>().forFormat("recorder.txt"))
+	}
+
+	@Test
+	fun `rejects export formats not prefixed with the plugin id`() {
+		assertThrows<IllegalArgumentException> {
+			PluginRegistry(listOf(RecordingPlugin("recorder", exporters = listOf(FakeExporter("txt")))))
+		}
 	}
 
 	@Test
@@ -198,17 +219,26 @@ class PluginRegistryTest : KoinComponent {
 
 	private object Marker
 
+	private class FakeExporter(override val formatId: String) : StoryExporter {
+		override val fileExtension = "txt"
+		override val mimeType = "text/plain"
+		override fun render(sink: BufferedSink, input: ExportInput) = Unit
+	}
+
 	private class RecordingPlugin(
 		override val id: String,
 		private val module: Module? = null,
 		private val failOnStart: Boolean = false,
 		private val onOpened: (ProjectPluginContext) -> Unit = {},
+		private val exporters: List<StoryExporter> = emptyList(),
 	) : ClientPlugin {
 		var started = false
 		var opened: ProjectPluginContext? = null
 		var closed: ProjectPluginContext? = null
 
 		override fun koinModule(): Module? = module
+
+		override fun exporters(): List<StoryExporter> = exporters
 
 		override fun onAppStart(appScope: CoroutineScope) {
 			check(!failOnStart) { "boom" }

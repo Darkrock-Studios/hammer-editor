@@ -1,9 +1,12 @@
-package components.projecthome
+package data.export
 
 import PROJECT_1_NAME
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
-import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStoryUseCase
-import com.darkrockstudios.apps.hammer.common.data.ExportFormat
+import com.darkrockstudios.apps.hammer.common.data.export.ExportStoryUseCase
+import com.darkrockstudios.apps.hammer.common.data.export.BuiltInExportFormat
+import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectdata.StoredProjectData
@@ -18,8 +21,10 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.jetbrains.compose.resources.StringResource
 import org.junit.jupiter.api.BeforeEach
+import okio.BufferedSink
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
 class ExportStoryUseCaseTest : BaseIntegrationTest() {
@@ -28,14 +33,19 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	private lateinit var storedProjectData: StoredProjectData
 	private lateinit var localeResolver: DeviceLocaleResolver
 	private lateinit var strRes: StrRes
+	private var projectDataLoads = 0
 
 	@BeforeEach
 	override fun setup() {
 		super.setup()
 		configureProject(PROJECT_1_NAME)
 		storedProjectData = StoredProjectData(data = ProjectData())
+		projectDataLoads = 0
 		projectDataDatasource = mockk {
-			coEvery { load() } answers { storedProjectData }
+			coEvery { load() } answers {
+				projectDataLoads++
+				storedProjectData
+			}
 		}
 		localeResolver = mockk {
 			every { getCurrentLocale() } returns Locale.forLanguageTag("en-US")
@@ -47,8 +57,9 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		sceneEditorRepository.initializeSceneEditor()
 	}
 
-	private fun useCase() = ExportStoryUseCase(
+	private fun useCase(contributed: List<StoryExporter> = emptyList()) = ExportStoryUseCase(
 		sceneEditorRepository = sceneEditorService,
+		exporters = StoryExporterRegistry(contributed),
 		projectDataDatasource = projectDataDatasource,
 		fileSystem = ffs,
 		localeResolver = localeResolver,
@@ -61,12 +72,48 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 
 		val exportPath = useCase().execute(
 			exportDir = projectPath,
-			options = ExportOptions(format = ExportFormat.Markdown, treatTopLevelAsChapters = true),
+			options = ExportOptions(format = BuiltInExportFormat.MARKDOWN, treatTopLevelAsChapters = true),
 		)
 
 		assertTrue(exportPath.path.endsWith(".md"), "Should produce a .md file, got $exportPath")
 		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
 		assertEquals(EXPECTED_PROJECT_1_MARKDOWN.trim(), text.trim())
+		assertEquals(0, projectDataLoads)
+	}
+
+	@Test
+	fun `a contributed format renders through its own exporter and extension`() = runTest {
+		initRepo()
+		val loadsBefore = projectDataLoads
+		val exporter = object : StoryExporter {
+			override val formatId = "fake.txt"
+			override val fileExtension = "txt"
+			override val mimeType = "text/plain"
+			override val needsProjectData = false
+
+			override fun render(sink: BufferedSink, input: ExportInput) {
+				sink.writeUtf8(input.chapters.joinToString("|") { it.name })
+			}
+		}
+
+		val exportPath = useCase(listOf(exporter)).execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = "fake.txt"),
+		)
+
+		assertTrue(exportPath.path.endsWith(".txt"), "Should use the exporter's extension, got $exportPath")
+		val text = ffs.read(exportPath.toOkioPath()) { readUtf8() }
+		assertEquals("Scene ID 1|Chapter ID 2|Scene ID 6|Scene ID 7", text)
+		assertEquals(loadsBefore, projectDataLoads)
+	}
+
+	@Test
+	fun `an unknown format is rejected`() = runTest {
+		initRepo()
+
+		assertFailsWith<IllegalArgumentException> {
+			useCase().execute(exportDir = projectPath, options = ExportOptions(format = "missing"))
+		}
 	}
 
 	@Test
@@ -76,7 +123,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 
 		val exportPath = useCase().execute(
 			exportDir = projectPath,
-			options = ExportOptions(format = ExportFormat.Epub, treatTopLevelAsChapters = true),
+			options = ExportOptions(format = BuiltInExportFormat.EPUB, treatTopLevelAsChapters = true),
 		)
 
 		assertTrue(exportPath.path.endsWith(".epub"), "Should produce a .epub file, got $exportPath")
@@ -94,7 +141,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 
 		val exportPath = useCase().execute(
 			exportDir = projectPath,
-			options = ExportOptions(format = ExportFormat.Pdf, treatTopLevelAsChapters = true),
+			options = ExportOptions(format = BuiltInExportFormat.PDF, treatTopLevelAsChapters = true),
 		)
 
 		assertTrue(exportPath.path.endsWith(".pdf"), "Should produce a .pdf file, got $exportPath")
@@ -114,7 +161,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 
 		val exportPath = useCase().execute(
 			exportDir = projectPath,
-			options = ExportOptions(format = ExportFormat.Docx, treatTopLevelAsChapters = true),
+			options = ExportOptions(format = BuiltInExportFormat.DOCX, treatTopLevelAsChapters = true),
 		)
 
 		assertTrue(
@@ -138,7 +185,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 
 		val exportPath = useCase().execute(
 			exportDir = projectPath,
-			options = ExportOptions(format = ExportFormat.Rtf, treatTopLevelAsChapters = true),
+			options = ExportOptions(format = BuiltInExportFormat.RTF, treatTopLevelAsChapters = true),
 		)
 
 		assertTrue(exportPath.path.endsWith(".rtf"), "Should produce a .rtf file, got $exportPath")
@@ -160,7 +207,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 
 		val exportPath = useCase().execute(
 			exportDir = projectPath,
-			options = ExportOptions(format = ExportFormat.Rtf, treatTopLevelAsChapters = true),
+			options = ExportOptions(format = BuiltInExportFormat.RTF, treatTopLevelAsChapters = true),
 		)
 
 		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
@@ -179,7 +226,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 			val exportPath = useCase().execute(
 				exportDir = projectPath,
 				options = ExportOptions(
-					format = ExportFormat.Docx,
+					format = BuiltInExportFormat.DOCX,
 					treatTopLevelAsChapters = false
 				),
 			)
@@ -194,7 +241,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 
 		val exportPath = useCase().execute(
 			exportDir = projectPath,
-			options = ExportOptions(format = ExportFormat.Pdf, treatTopLevelAsChapters = false),
+			options = ExportOptions(format = BuiltInExportFormat.PDF, treatTopLevelAsChapters = false),
 		)
 
 		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
@@ -208,7 +255,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 
 		val exportPath = useCase().execute(
 			exportDir = projectPath,
-			options = ExportOptions(format = ExportFormat.Epub, treatTopLevelAsChapters = true),
+			options = ExportOptions(format = BuiltInExportFormat.EPUB, treatTopLevelAsChapters = true),
 		)
 
 		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
@@ -225,7 +272,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 
 		val exportPath = useCase().execute(
 			exportDir = projectPath,
-			options = ExportOptions(format = ExportFormat.Epub, treatTopLevelAsChapters = true),
+			options = ExportOptions(format = BuiltInExportFormat.EPUB, treatTopLevelAsChapters = true),
 		)
 
 		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
@@ -252,7 +299,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 
 		val exportPath = useCase().execute(
 			exportDir = projectPath,
-			options = ExportOptions(format = ExportFormat.Epub, treatTopLevelAsChapters = false),
+			options = ExportOptions(format = BuiltInExportFormat.EPUB, treatTopLevelAsChapters = false),
 		)
 
 		val bytes = ffs.read(exportPath.toOkioPath()) { readByteArray() }
@@ -266,7 +313,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		val exportPath = useCase().execute(
 			exportDir = projectPath,
 			options = ExportOptions(
-				format = ExportFormat.Markdown,
+				format = BuiltInExportFormat.MARKDOWN,
 				treatTopLevelAsChapters = true,
 				sceneIds = setOf(1, 4),
 			),
@@ -283,7 +330,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		val exportPath = useCase().execute(
 			exportDir = projectPath,
 			options = ExportOptions(
-				format = ExportFormat.Markdown,
+				format = BuiltInExportFormat.MARKDOWN,
 				treatTopLevelAsChapters = true,
 				sceneIds = setOf(6),
 			),
@@ -308,7 +355,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		val exportPath = useCase().execute(
 			exportDir = projectPath,
 			options = ExportOptions(
-				format = ExportFormat.Markdown,
+				format = BuiltInExportFormat.MARKDOWN,
 				treatTopLevelAsChapters = false,
 				sceneIds = setOf(3, 6),
 			),
@@ -328,7 +375,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		val exportPath = useCase().execute(
 			exportDir = projectPath,
 			options = ExportOptions(
-				format = ExportFormat.Markdown,
+				format = BuiltInExportFormat.MARKDOWN,
 				treatTopLevelAsChapters = true,
 				sceneIds = setOf(1, 4, 999),
 			),
@@ -345,7 +392,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		val exportPath = useCase().execute(
 			exportDir = projectPath,
 			options = ExportOptions(
-				format = ExportFormat.Markdown,
+				format = BuiltInExportFormat.MARKDOWN,
 				treatTopLevelAsChapters = true,
 				sceneIds = emptySet(),
 			),
@@ -363,7 +410,7 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 		val exportPath = useCase().execute(
 			exportDir = projectPath,
 			options = ExportOptions(
-				format = ExportFormat.Epub,
+				format = BuiltInExportFormat.EPUB,
 				treatTopLevelAsChapters = true,
 				sceneIds = setOf(4),
 			),

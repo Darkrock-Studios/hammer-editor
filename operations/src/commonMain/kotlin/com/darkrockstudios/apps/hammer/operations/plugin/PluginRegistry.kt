@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.operations.plugin
 
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.ProjectLifecycleListener
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcherNow
 import io.github.aakira.napier.Napier
@@ -37,6 +38,14 @@ class PluginRegistry(val plugins: List<ClientPlugin>) : ProjectLifecycleListener
 		plugins.forEach { Napier.i { "Client plugin '${it.id}' installed" } }
 	}
 
+	private val exporters: List<StoryExporter> = plugins.flatMap { plugin ->
+		plugin.exporters().onEach { exporter ->
+			require(exporter.formatId.startsWith("${plugin.id}.")) {
+				"Plugin '${plugin.id}' export format '${exporter.formatId}' must start with '${plugin.id}.'"
+			}
+		}
+	}
+
 	private val openProjects = MutableStateFlow<Map<ProjectDef, OpenProject>>(emptyMap())
 
 	private class OpenProject(
@@ -49,6 +58,9 @@ class PluginRegistry(val plugins: List<ClientPlugin>) : ProjectLifecycleListener
 		val own = module {
 			single { registry } bind ProjectLifecycleListener::class
 			single { PluginSettingsDatasource(get(), get()) }
+			exporters.forEach { exporter ->
+				single<StoryExporter>(named("export:${exporter.formatId}")) { exporter }
+			}
 		}
 		return listOf(own) + plugins.mapNotNull { it.koinModule() }
 	}

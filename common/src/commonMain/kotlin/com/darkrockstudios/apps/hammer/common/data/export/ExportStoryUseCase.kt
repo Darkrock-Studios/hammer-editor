@@ -1,7 +1,6 @@
-package com.darkrockstudios.apps.hammer.common.components.projecthome
+package com.darkrockstudios.apps.hammer.common.data.export
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
-import com.darkrockstudios.apps.hammer.common.data.ExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
@@ -22,31 +21,10 @@ import okio.Buffer
 import okio.FileSystem
 import org.koin.core.component.KoinComponent
 
-data class StoryChapter(val name: String, val markdown: String)
-
-/** Source data read from disk before rendering; [projectData] is null only for Markdown, which doesn't need it. */
-private class ExportSource(
-	val perNodeChapters: List<StoryChapter>,
-	val projectData: ProjectData?,
-	val language: String,
-) {
-	fun requireProjectData(): ProjectData =
-		requireNotNull(projectData) { "Project data is required for this export format" }
-}
-
-fun exportFileName(projectName: String, format: ExportFormat): String {
+fun exportFileName(projectName: String, fileExtension: String): String {
 	val safeName = projectName.sanitizedFileName().ifBlank { "story" }
-	return "$safeName.${format.fileExtension}"
+	return "$safeName.$fileExtension"
 }
-
-val ExportFormat.fileExtension: String
-	get() = when (this) {
-		ExportFormat.Markdown -> "md"
-		ExportFormat.Epub -> "epub"
-		ExportFormat.Pdf -> "pdf"
-		ExportFormat.Docx -> "docx"
-		ExportFormat.Rtf -> "rtf"
-	}
 
 /** Strips characters that have meaning in file paths or the SAF picker; covers project names that came from sync. */
 private val unsafeFileNameChars = Regex("""[/\\:*?"<>|\x00-\x1F]""")
@@ -55,6 +33,7 @@ private fun String.sanitizedFileName(): String =
 
 class ExportStoryUseCase(
 	private val sceneEditorRepository: SceneEditorService,
+	private val exporters: StoryExporterRegistry,
 	private val projectDataDatasource: ProjectDataDatasource,
 	private val fileSystem: FileSystem,
 	private val localeResolver: DeviceLocaleResolver,
@@ -66,7 +45,8 @@ class ExportStoryUseCase(
 
 	suspend fun execute(exportDir: HPath, options: ExportOptions): HPath {
 		val projectName = sceneEditorRepository.projectDef.name
-		val targetFile = (exportDir.toOkioPath() / exportFileName(projectName, options.format)).toHPath()
+		val fileExtension = exporters.forFormat(options.format).fileExtension
+		val targetFile = (exportDir.toOkioPath() / exportFileName(projectName, fileExtension)).toHPath()
 		return executeToFile(targetFile, options)
 	}
 
@@ -92,65 +72,28 @@ class ExportStoryUseCase(
 
 	/** Reads source data off [ioDispatcher], then renders the document into an in-memory buffer on [defaultDispatcher]. */
 	private suspend fun render(projectName: String, options: ExportOptions): Buffer {
-		val source = withContext(ioDispatcher) {
-			val perNodeChapters = sceneEditorRepository.getSceneTree().root.children.mapNotNull { node ->
+		val exporter = exporters.forFormat(options.format)
+		val input = withContext(ioDispatcher) {
+			val chapters = sceneEditorRepository.getSceneTree().root.children.mapNotNull { node ->
 				chapterFor(node, options.sceneIds)
 			}
-			val projectData =
-				if (options.format == ExportFormat.Markdown) null else projectDataDatasource.load().data
+			val projectData = if (exporter.needsProjectData) projectDataDatasource.load().data else null
 			// The project's declared language wins; the device locale is only a fallback.
 			val language = projectData?.language?.takeIf { it.isNotBlank() }
 				?: localeResolver.getCurrentLocale().language?.takeIf { it.isNotBlank() }
 				?: "en"
-			ExportSource(perNodeChapters, projectData, language)
+			ExportInput(
+				projectName = projectName,
+				projectData = projectData,
+				chapters = chapters,
+				treatTopLevelAsChapters = options.treatTopLevelAsChapters,
+				language = language,
+				strings = resolveExportStrings(projectData),
+			)
 		}
 
-		val exportStrings = resolveExportStrings(source.projectData)
-
 		return withContext(defaultDispatcher) {
-			val buffer = Buffer()
-			when (options.format) {
-				ExportFormat.Markdown -> writeStoryAsMarkdown(
-					sink = buffer,
-					projectName = projectName,
-					chapters = source.perNodeChapters,
-					treatTopLevelAsChapters = options.treatTopLevelAsChapters,
-				)
-
-				ExportFormat.Epub -> writeStoryAsEpub(
-					sink = buffer,
-					projectName = projectName,
-					projectData = source.requireProjectData(),
-					chapters = chaptersFor(options, projectName, source.perNodeChapters),
-					language = source.language,
-					strings = exportStrings,
-				)
-
-				ExportFormat.Pdf -> writeStoryAsPdf(
-					sink = buffer,
-					projectName = projectName,
-					projectData = source.requireProjectData(),
-					chapters = chaptersFor(options, projectName, source.perNodeChapters),
-					strings = exportStrings,
-				)
-
-				ExportFormat.Docx -> writeStoryAsDocx(
-					sink = buffer,
-					projectName = projectName,
-					projectData = source.requireProjectData(),
-					chapters = chaptersFor(options, projectName, source.perNodeChapters),
-					strings = exportStrings,
-				)
-
-				ExportFormat.Rtf -> writeStoryAsRtf(
-					sink = buffer,
-					projectName = projectName,
-					projectData = source.requireProjectData(),
-					chapters = chaptersFor(options, projectName, source.perNodeChapters),
-					strings = exportStrings,
-				)
-			}
-			buffer
+			Buffer().also { exporter.render(it, input) }
 		}
 	}
 
@@ -161,17 +104,6 @@ class ExportStoryUseCase(
 			contentsTitle = strRes.get(Res.string.project_home_export_contents_title),
 			authorByline = authorName?.let { strRes.get(Res.string.project_home_export_byline, it) },
 		)
-	}
-
-	/** Per-node chapters when treating top-level scenes as chapters; otherwise a single chapter named after the project. */
-	private fun chaptersFor(
-		options: ExportOptions,
-		projectName: String,
-		perNodeChapters: List<StoryChapter>,
-	): List<StoryChapter> = if (options.treatTopLevelAsChapters) {
-		perNodeChapters
-	} else {
-		listOf(StoryChapter(projectName, perNodeChapters.joinToString("\n\n") { it.markdown }))
 	}
 
 	/**
