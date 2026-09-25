@@ -44,6 +44,8 @@ import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPluginUis
 import com.darkrockstudios.apps.hammer.common.compose.plugin.pluginUiModule
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPlugins
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
+import okio.FileSystem
 
 class HammerApplication : Application(), SingletonImageLoader.Factory {
 
@@ -57,7 +59,9 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 		installGlobalExceptionHandler()
 		logStartupBanner()
 
-		val pluginRegistry = PluginRegistry(installedPlugins())
+		val compiledInPlugins = installedPlugins()
+		val runtimePlugins = RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, compiledInPlugins)
+		val pluginRegistry = PluginRegistry(compiledInPlugins + runtimePlugins.load())
 
 		startKoin {
 			logger(NapierLogger())
@@ -70,6 +74,7 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 					shortcutsModule,
 					appModule(applicationScope),
 					pluginUiModule(installedPluginUis()),
+					runtimePlugins.koinModule(),
 				) + playServicesModules + pluginRegistry.koinModules()
 			)
 		}
