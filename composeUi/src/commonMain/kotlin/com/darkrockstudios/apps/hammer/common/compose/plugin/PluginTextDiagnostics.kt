@@ -11,12 +11,19 @@ import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CancellationException
 import org.koin.compose.koinInject
 
-/** Underlines what active plugins' text checks find in [textState], written in [language]. */
+/**
+ * Underlines what active plugins' text checks find in [textState], written in [language]. Nothing is
+ * checked until [languageLoaded], so a check never runs with the wrong language.
+ */
 @Composable
-fun rememberPluginTextDiagnostics(textState: TextEditorState, language: String?): TextDiagnosticsState {
+fun rememberPluginTextDiagnostics(
+	textState: TextEditorState,
+	language: String?,
+	languageLoaded: Boolean,
+): TextDiagnosticsState {
 	val providers = koinInject<PluginUiRegistry>().textDiagnostics()
-	val checker = remember(providers, language) {
-		if (providers.isEmpty()) return@remember null
+	val checker = remember(providers, language, languageLoaded) {
+		if (providers.isEmpty() || !languageLoaded) return@remember null
 		TextDiagnosticsChecker { lines ->
 			val merged = List(lines.size) { mutableListOf<LineDiagnostic>() }
 			providers.forEach { provider ->
