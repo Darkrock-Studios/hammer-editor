@@ -24,7 +24,7 @@ rootProject.name = "hammer"
 val isFDroidBuild = providers.gradleProperty("fdroid").orNull?.isNotEmpty() == true ||
     System.getenv("FDROID_BUILD") != null
 
-val modules = mutableListOf(":base", ":android", ":composeUi", ":common", ":operations", ":plugins:plaintext", ":plugins:style", ":plugins:wasmhost", ":plugins:mcp", ":server", ":integrationTests")
+val modules = mutableListOf(":base", ":android", ":composeUi", ":common", ":operations", ":plugins:style", ":plugins:wasmhost", ":plugins:mcp", ":server", ":integrationTests")
 if (!isFDroidBuild) {
     modules += ":desktop"
     // Depends on Google Play services for phone pairing, so it is not an F-Droid module.

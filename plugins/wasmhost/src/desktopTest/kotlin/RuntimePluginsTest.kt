@@ -55,7 +55,7 @@ class RuntimePluginsTest {
 		GlobalContext.stopKoin()
 	}
 
-	private fun runtimePlugins(compiledIn: Set<String> = setOf("plaintext")) =
+	private fun runtimePlugins(compiledIn: Set<String> = setOf("style")) =
 		RuntimePlugins(fileSystem, directory, compiledIn)
 
 	private fun manifest(id: String = "echo", operations: String = "\"greet\"", format: String = "$id.txt") = """
@@ -148,7 +148,7 @@ class RuntimePluginsTest {
 
 	@Test
 	fun `a plugin cannot take a built-in plugin's id`() {
-		assertThrows<PluginPackageException> { runtimePlugins().install(pack("plaintext", manifest(id = "plaintext"))) }
+		assertThrows<PluginPackageException> { runtimePlugins().install(pack("style", manifest(id = "style"))) }
 	}
 
 	@Test
