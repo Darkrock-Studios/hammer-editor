@@ -1099,8 +1099,10 @@ eight bytes a plugin copies. The Hammer-specific parts:
   under `[[diagnostics]]` (`name`, `label`). Its input is `{"diagnostics",
   "paragraphs": [text], "language", "settings"}`, `language` a BCP 47 tag or
   null, and its output `{"diagnostics": [{"paragraph", "start", "end",
-  "message", "fixes": [text]}]}`, `start` and `end` UTF-8 byte offsets into
-  the paragraph, which is how C and Rust index text. The host converts them,
+  "message", "fixes": [...]}]}`, `start` and `end` UTF-8 byte offsets into
+  the paragraph, which is how C and Rust index text. A fix is its replacement,
+  shown to the user as itself, or `{"replacement", "label"}` where the
+  replacement alone would not say what it does, such as removing a word. The host converts them,
   and drops an issue whose paragraph does not exist or whose offsets fall past
   the end or inside a character. A module that fails, or replies with nothing,
   leaves the text unmarked.

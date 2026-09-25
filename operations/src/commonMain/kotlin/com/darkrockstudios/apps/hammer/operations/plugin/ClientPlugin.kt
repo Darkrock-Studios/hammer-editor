@@ -55,6 +55,12 @@ class TextDiagnostic(
 	val start: Int,
 	val end: Int,
 	val message: String,
-	/** Replacements for the range, offered to the user. */
-	val fixes: List<String> = emptyList(),
+	/** Offered to the user. */
+	val fixes: List<TextFix> = emptyList(),
+)
+
+/** [replacement] for a [TextDiagnostic]'s range, shown to the user as [label]. */
+class TextFix(
+	val replacement: String,
+	val label: String = replacement,
 )

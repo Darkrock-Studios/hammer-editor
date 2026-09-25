@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.compose.plugin
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import com.darkrockstudios.texteditor.spellcheck.diagnostics.DiagnosticFix
 import com.darkrockstudios.texteditor.spellcheck.diagnostics.LineDiagnostic
 import com.darkrockstudios.texteditor.spellcheck.diagnostics.TextDiagnosticsChecker
 import com.darkrockstudios.texteditor.spellcheck.diagnostics.TextDiagnosticsState
@@ -37,7 +38,11 @@ fun rememberPluginTextDiagnostics(
 					emptyList()
 				}
 				found.forEachIndexed { index, diagnostics ->
-					merged.getOrNull(index)?.addAll(diagnostics.map { LineDiagnostic(it.start, it.end, it.message, it.fixes) })
+					merged.getOrNull(index)?.addAll(
+						diagnostics.map { issue ->
+							LineDiagnostic(issue.start, issue.end, issue.message, issue.fixes.map { DiagnosticFix(it.replacement, it.label) })
+						}
+					)
 				}
 			}
 			merged
