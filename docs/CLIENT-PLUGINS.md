@@ -3,7 +3,7 @@
 Design note for extending the Hammer client (desktop, Android, iOS) with plugins,
 and for exposing the same API as a command line interface and an MCP server.
 Status: rollout steps 1 to 8 (without the single-instance hand-off), 11, Android's half of 12,
-and step 9's scene, draft, note, encyclopedia, and timeline operations are built; the rest is a proposal. The server already has an equivalent
+and step 9's write operations are built; the rest is a proposal. The server already has an equivalent
 plugin seam (`server/.../plugin/ServerPlugin.kt`); this mirrors it where the
 shapes match.
 
@@ -216,8 +216,8 @@ Conventions:
 | `project.list` | Read | Name, server project id, word count, last modified |
 | `project.info` | Read | Metadata, statistics, sync linkage |
 | `project.create` | Write | |
-| `project.rename` | Write | |
-| `project.delete` | Destructive | |
+| `project.rename` | Write | Refused while the project is open, and while the app runs (not forwarded) |
+| `project.delete` | Destructive | Refused while the project is open, and while the app runs (not forwarded) |
 | `project.export` | Read | Format id and scene subset as in `ExportOptions`; returns the file's bytes |
 | `export.formats` | Read | Available export formats: id, file extension, MIME type |
 | `project.import` | Write | Format and split options as in `ImportOptions`, plus the file's bytes |
@@ -1249,9 +1249,11 @@ design is revisited rather than `:common` bent to fit.
    default) gates it per call, and the CLI and MCP try the socket before running
    headless. Second app instances still start their own window without the
    lock; handing their launch arguments to the first window is not built.
-9. **Write operations.** The scene, draft, note, encyclopedia, and timeline
-   operations are built, with the MCP plugin's live edits setting and the
-   CLI's `--confirm` and `--in`; ideas and projects are next.
+9. **Write operations.** Built: every write operation in the catalog, the MCP
+   plugin's live edits setting, and the CLI's `--confirm` and `--in`. Project
+   create, rename, and delete go through `ProjectsService`, shared with the
+   projects list, so they queue for account sync the same way. The
+   [style report](#style-report-style) plugin is next.
    Deliberately after forwarding, so live writes always go through the app when
    it is up. Then the [style report](#style-report-style) plugin.
 10. **Text diagnostics.** Define `TextDiagnosticsProvider` (text in, ranges plus

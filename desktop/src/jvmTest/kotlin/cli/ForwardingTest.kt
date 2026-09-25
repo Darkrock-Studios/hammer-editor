@@ -92,10 +92,11 @@ class ForwardingTest {
 	}
 
 	@Test
-	fun `the app keeps its own sync and login`() {
+	fun `the app keeps its own sync and login, and project moves`() {
 		startServer().use {
 			assertThrows<Forwarding.Refused> { Forwarding.dispatch(socket, "sync.run", buildJsonObject {}) }
 			assertThrows<Forwarding.Refused> { Forwarding.dispatch(socket, "account.logout", buildJsonObject {}) }
+			assertThrows<Forwarding.Refused> { Forwarding.dispatch(socket, "project.delete", buildJsonObject {}) }
 		}
 	}
 
