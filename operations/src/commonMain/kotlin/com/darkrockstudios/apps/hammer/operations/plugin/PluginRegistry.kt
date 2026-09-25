@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispat
 import com.darkrockstudios.apps.hammer.operations.KoinProjectResolver
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import com.darkrockstudios.apps.hammer.operations.cli.CliCommand
 import com.darkrockstudios.apps.hammer.operations.core.coreOperations
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
@@ -60,8 +61,19 @@ class PluginRegistry(val plugins: List<ClientPlugin>) : ProjectLifecycleListener
 		}
 	}
 
+	/** Every plugin's CLI commands, checked against each other and the operations' first words. */
+	val cliCommands: List<CliCommand> = plugins.flatMap { it.cliCommands() }.also { commands ->
+		val duplicates = commands.groupBy { it.name }.filterValues { it.size > 1 }.keys
+		require(duplicates.isEmpty()) { "CLI commands registered more than once: $duplicates" }
+		val operationWords = (coreOperations() + operations).map { it.name.substringBefore('.') }.toSet()
+		commands.forEach { command ->
+			require(isValidId(command.name)) { "Invalid CLI command name '${command.name}'" }
+			require(command.name !in operationWords) { "CLI command '${command.name}' would shadow operations" }
+		}
+	}
+
 	/** Built here so a bad plugin operation fails at startup, not on first use. */
-	private val operationRegistry = OperationRegistry(coreOperations() + operations, KoinProjectResolver())
+	val operationRegistry = OperationRegistry(coreOperations() + operations, KoinProjectResolver())
 
 	// Each reads its file on first use, so one plugin's settings never load another's.
 	private val settingsStores: Map<String, Lazy<DeclaredSettingsStore>> =
