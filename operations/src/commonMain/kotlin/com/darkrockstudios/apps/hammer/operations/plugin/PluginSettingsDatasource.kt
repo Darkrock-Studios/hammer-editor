@@ -4,7 +4,10 @@ import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import io.github.aakira.napier.Napier
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.JsonObject
 import net.peanuuutz.tomlkt.Toml
+import net.peanuuutz.tomlkt.TomlElement
+import net.peanuuutz.tomlkt.TomlTable
 import okio.FileSystem
 import okio.IOException
 import okio.Path
@@ -47,6 +50,10 @@ class PluginSettingsDatasource(
 		}
 		fileSystem.atomicMove(staging, path)
 	}
+
+	/** A plugin's declared settings as stored, with defaults for anything missing or invalid. */
+	fun loadDeclared(pluginId: String, declarations: List<SettingDeclaration>): JsonObject =
+		declarations.resolve(load(pluginId, TomlTable.serializer()) { TomlTable(emptyMap<String, TomlElement>()) }.toSettingValues())
 
 	private fun settingsPath(pluginId: String): Path = pluginsDirectory / "$pluginId.toml"
 
