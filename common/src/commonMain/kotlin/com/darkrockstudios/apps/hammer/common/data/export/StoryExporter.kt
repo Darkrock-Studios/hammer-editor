@@ -16,7 +16,12 @@ interface StoryExporter {
 	fun render(sink: BufferedSink, input: ExportInput)
 }
 
-data class StoryChapter(val name: String, val markdown: String)
+/** One top-level node of the scene tree, holding the markdown of each scene under it in order. */
+data class StoryChapter(val name: String, val scenes: List<String>) {
+	constructor(name: String, markdown: String) : this(name, listOf(markdown))
+
+	val markdown: String get() = scenes.joinToString("\n\n")
+}
 
 class ExportInput(
 	val projectName: String,
@@ -35,6 +40,6 @@ class ExportInput(
 	fun bookChapters(): List<StoryChapter> = if (treatTopLevelAsChapters) {
 		chapters
 	} else {
-		listOf(StoryChapter(projectName, chapters.joinToString("\n\n") { it.markdown }))
+		listOf(StoryChapter(projectName, chapters.flatMap { it.scenes }))
 	}
 }

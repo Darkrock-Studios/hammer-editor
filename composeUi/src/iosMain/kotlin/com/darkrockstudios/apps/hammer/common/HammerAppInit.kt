@@ -6,7 +6,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingMo
 import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPluginUis
 import com.darkrockstudios.apps.hammer.common.compose.plugin.pluginUiModule
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
-import com.darkrockstudios.apps.hammer.operations.plugin.installedPlugins
+import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPlugins
 import kotlinx.coroutines.runBlocking
 import org.koin.mp.KoinPlatform.getKoin
 

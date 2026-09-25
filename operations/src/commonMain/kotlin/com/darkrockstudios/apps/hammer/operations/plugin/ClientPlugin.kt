@@ -5,7 +5,7 @@ import kotlinx.coroutines.CoroutineScope
 import org.koin.core.module.Module
 
 /**
- * An in-process extension to the client. Registering it in [installedPlugins] (or a platform's
+ * An in-process extension to the client. Registering it in `installedPlugins()` (or a platform's
  * own registration file) is what activates it; there is no separate enablement switch.
  *
  * Hooks run synchronously on the caller's thread, which is often the UI thread during startup or a
