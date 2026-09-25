@@ -9,8 +9,8 @@ shapes match.
 ## Scope
 
 **Now: headless plugins.** A plugin that adds behavior without adding a feature
-surface. It may still contribute menu items and a settings pane; that does not
-make it a UI plugin. Examples: a grammar checker, an exporter, a backup target,
+surface. It may still contribute a settings pane (and later, project actions);
+that does not make it a UI plugin. Examples: a grammar checker, an exporter, a backup target,
 a statistics collector.
 
 **Now: one API, several front ends.** The operations plugins use (list projects,
@@ -64,8 +64,8 @@ New code goes in a new `:operations` module between `:common` and
 | Module | Holds |
 | --- | --- |
 | `:common` | Same role as today. Gains only extension points (below) and pluggable export |
-| `:operations` | `Operation`, `OperationRegistry`, the core operations, `ClientPlugin`, `PluginRegistry`, `ProjectPluginContext`, `PluginSettingsStore`, `installedPlugins()` |
-| `:composeUi` | `PluginUi`, `PluginUiRegistry`, `installedPluginUis()`, the Settings > Plugins page |
+| `:operations` | `Operation`, `OperationRegistry`, the core operations, `ClientPlugin`, `PluginRegistry`, `ProjectPluginContext`, `PluginSettingsDatasource`, `installedPlugins()` |
+| `:composeUi` | `PluginUi`, `PluginUiRegistry`, `installedPluginUis()`, the Plugins section of Settings |
 | `:desktop` | The CLI adapter and `Dispatcher`, socket forwarding, the writer lock, `installedDesktopPlugins()` |
 | `:plugins:mcp` | The MCP plugin. JVM only, depends on `:operations` and the MCP Kotlin SDK |
 
@@ -81,10 +81,12 @@ contributions into them:
 - **Exporters.** `StoryExporterRegistry` takes every `StoryExporter` bound in
   Koin. Built-in formats are bound in `mainModule`; `PluginRegistry` binds each
   plugin's `exporters()`. Text diagnostics providers work the same way.
-- **Project lifecycle.** `ProjectRootComponent` notifies every
-  `ProjectLifecycleListener` bound in Koin when a project opens and closes.
-  `PluginRegistry` binds one that builds the `ProjectPluginContext`, calls each
-  plugin's hooks, and holds the context so the UI layer can fetch it for menus.
+- **Project lifecycle.** `openProjectScope` and `closeProjectScope` notify
+  every `ProjectLifecycleListener` bound in Koin when a project is opened for
+  editing and when that session closes. Every platform already opens and
+  closes projects through these, and temporary scopes (sync, import) are not
+  reported. `PluginRegistry` binds a listener that builds each plugin's
+  `ProjectPluginContext`, calls its hooks, and holds the contexts for lookup.
 
 This keeps the dependency arrows pointing one way, and `:common` stays testable
 with no plugin code present.
@@ -313,7 +315,7 @@ Two interfaces, paired by `id` and registered separately. The data half lives in
 `:operations`, and its signature uses no Compose types, Compose resources included,
 so it can move into a UI-free core module later (see
 [Native CLI](#native-cli)). The UI half lives in `:composeUi` and owns
-everything user-facing: name, menus, settings pane.
+everything user-facing: name, settings pane, labels.
 
 ### `ClientPlugin` (`:operations`)
 
@@ -347,13 +349,15 @@ interface ClientPlugin {
 }
 
 class ProjectPluginContext(
+	val pluginId: String,
 	val projectDef: ProjectDef,
-	val scope: ProjectDefScope,
-	/** `<project>/.plugins/<id>/`, created on first use. */
-	val dataDirectory: HPath,
+	val projectScope: Scope,
 	/** Cancelled when the project closes. */
 	val coroutineScope: CoroutineScope,
-)
+) {
+	/** `<project>/.plugins/<pluginId>/`, created on first call. Included in backups, never synced. */
+	fun dataDirectory(): HPath
+}
 ```
 
 Plugins call operations through the registry as the supported API. Koin stays
@@ -444,20 +448,26 @@ interface PluginUi {
 	val id: String
 	val name: StringResource
 
-	/** Menus added to the project window while the project is open. */
-	fun projectMenus(project: ProjectPluginContext): List<MenuDescriptor> = emptyList()
-
 	/** Display names for the export formats this plugin contributes, keyed by format id. */
 	fun exportFormatLabels(): Map<String, StringResource> = emptyMap()
 
-	/** Hosted inside Settings > Plugins, under the plugin's name. */
-	@Composable
-	fun SettingsPane() {}
+	/** Shown under the plugin's name in the Plugins section of Settings. Null for no pane. */
+	val settingsPane: (@Composable ColumnScope.() -> Unit)? get() = null
 }
 ```
 
-Settings pane, project menus, and labels for contributed ids are deliberately
-the only UI hooks for now.
+The settings pane is a nullable property rather than a function so Settings can
+tell which plugins have one. The Plugins section only appears when at least one
+does, so a build with no plugins looks exactly as it does today.
+
+**No project menus yet.** `MenuDescriptor` and the `addMenu` callback look like
+a menu slot, but every platform passes a no-op: menu items now render inside
+each screen. A project-level action slot therefore needs a real in-UI home
+(most likely the project root's overflow or navigation rail). It is added when
+the style report needs it.
+
+The settings pane and labels for contributed ids are deliberately the only UI
+hooks for now.
 Future slots (project navigation destination, scene editor toolbar action,
 dialogs) are added here when a plugin needs them, not speculatively.
 
@@ -496,24 +506,30 @@ Android and iOS get the same kind of file when a plugin first needs one.
 and operations at startup, and binds each plugin's capabilities into `:common`'s
 extension points. `PluginUiRegistry` (`:composeUi`) holds the UI list,
 pairs each entry with its plugin by id, and logs a warning for a UI half whose
-plugin is not registered. The Plugins settings page and menu collection read it.
+plugin is not registered. The Plugins section of Settings reads it.
 
 ## Lifecycle
 
 - **Process start.** Registry built before Koin starts (plugins may inject in
   their hooks, so anything they construct must be lazy). Plugin modules
   installed with the main modules. `onAppStart` runs after Koin is up and data
-  migration has run. This is the same in the app and in headless runs, so a
+  migration has run, and receives the Koin-bound `APP_SCOPE`. This is the same in the app and in headless runs, so a
   plugin's operations see the same initialized state either way. Each headless
   call starts its own Koin application (see [Concurrency](#concurrency)), so
   `onAppStart` runs per call and must be cheap.
-- **Project open.** `ProjectRootComponent` (the existing owner of the project
-  Koin scope) notifies its `ProjectLifecycleListener`s. The plugin listener
-  builds the `ProjectPluginContext` and calls `onProjectOpened`. The UI layer
-  that already supplies the component's `addMenu` callback fetches that context
-  from `PluginRegistry` and collects `PluginUi.projectMenus` with it.
-- **Project close.** Menus removed, `onProjectClosed`, context scope cancelled,
-  then the Koin scope closes as today.
+- **Project open.** `openProjectScope`, when opening for editing, notifies the
+  `ProjectLifecycleListener`s. The plugin listener builds each plugin's
+  `ProjectPluginContext` and calls `onProjectOpened`.
+- **Project close.** `closeProjectScope` counts editors per project (Android
+  can show one project in two tasks), so the close event and the Koin scope
+  close happen when the last editor closes. The listeners are notified first.
+  Each plugin gets `onProjectClosed`, then the shared context coroutine scope is
+  cancelled and joined, with a short timeout, so no plugin work outlives the
+  Koin scope.
+- **Hooks are synchronous.** They run on the caller's thread, often the UI
+  thread, so they stay quick and launch real work into the scope they are given.
+- **Failures are contained.** A throwing hook is logged and skipped; it cannot
+  stop a project opening or closing, or keep other plugins from running.
 - **Project-scoped operations** never rely on the project hooks. Headless runs
   do not open projects in the UI sense, so any per-project plugin state an
   operation needs must be reachable lazily through the Koin project scope.
@@ -679,7 +695,10 @@ lands in v2 (see [CLI](#cli)).
 
 Plugins do not add fields to `GlobalSettings`. Each gets its own file in the
 settings directory, `plugins/<id>.toml`, read and written through a
-`PluginSettingsStore` that takes the plugin's serializable settings type. This
+`PluginSettingsDatasource` that takes the plugin's serializable settings type
+and replaces the file atomically, so an interrupted write cannot reset it.
+(It is a datasource by name because `:common`'s architecture rule keeps raw TOML
+I/O in datasource files.) This
 keeps plugin schemas out of the core settings migrations and lets an overlay
 plugin change its settings shape without touching upstream files.
 
@@ -731,8 +750,8 @@ adverb density, dialogue ratio, and repeated words and phrases.
 | --- | --- |
 | Plugin operations | `operations()` returns `style.report`; it appears in the CLI and as an MCP tool |
 | Headless parity | Word lists load in `onAppStart`, which runs headless too, so results match |
-| Plugin as API consumer | Reads through `scene.tree` and `scene.read`. A "Style report" menu item writes the report to a note through `note.create` |
-| Menus | `PluginUi.projectMenus` |
+| Plugin as API consumer | Reads through `scene.tree` and `scene.read`. A "Style report" project action writes the report to a note through `note.create` |
+| Project actions | The first user of the project action slot, which it adds (see [`PluginUi`](#pluginui-composeui)) |
 | Per-project storage | Per-scene results cached in `<project>/.plugins/style/`, keyed by content hash |
 
 It depends on `note.create`, so it lands after write operations.
@@ -744,6 +763,8 @@ It depends on `note.create`, so it lands after write operations.
   avoids needing one by keying its cache on content hashes. The likely shape is
   a `changes` flow on `ProjectPluginContext`, built on `SceneEditorService`'s
   existing scene update subscriptions. Deferred until a plugin needs it.
+- **No project action slot.** Menu contributions are a no-op on every platform,
+  so the style report brings the first real in-UI action slot with it.
 - **No dialog or panel slot.** The style report writes a note because there is
   nowhere to show a result. A result dialog is the most likely next UI slot.
 - **No per-project settings pane.** Plugin settings are global. Per-project
@@ -784,7 +805,9 @@ Most new code lives outside `:common`: in `:operations`, `:composeUi`,
 
 | Change | Size | Justified without plugins? |
 | --- | --- | --- |
-| `ProjectRootComponent` notifies Koin-bound `ProjectLifecycleListener`s on open and close | A few lines | No. The one piece of pure plugin plumbing |
+| `openProjectScope` and `closeProjectScope` notify Koin-bound `ProjectLifecycleListener`s | A few lines | No. The one piece of pure plugin plumbing |
+| `closeProjectScope` counts editors, closing the scope when the last one closes | A few lines | Yes. Two Android tasks on one project otherwise close the scope under each other |
+| One string, `settings_plugins_header` | Trivial | No, but it is where all UI strings live |
 | `ExportFormat` enum becomes `StoryExporterRegistry`; export moves from `components/projecthome` to the data layer | Moderate | Partly. Export logic is in the wrong layer today |
 | A draft-save method that takes text, not only the current scene content | Small | No, but it is a natural addition |
 
@@ -817,7 +840,7 @@ design is revisited rather than `:common` bent to fit.
 1. **Seam.** The `:operations` module, `:common`'s extension points
    (`ProjectLifecycleListener` and Koin-collected contributions), `ClientPlugin`,
    `PluginUi`, `ProjectPluginContext`, both registries, both registration files,
-   `PluginSettingsStore`, the `.plugins` directory, the Settings > Plugins page,
+   `PluginSettingsDatasource`, the `.plugins` directory, the Plugins section of Settings,
    and entry-point wiring. Proven by a test-only fake plugin.
 2. **Pluggable export.** Move export into the data layer, replace the
    `ExportFormat` enum with `StoryExporterRegistry`, port the five built-in

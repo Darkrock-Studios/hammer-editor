@@ -9,7 +9,6 @@ import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.getAndUpdate
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
-import kotlinx.atomicfu.update
 import org.koin.core.Koin
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.getScopeId
@@ -23,10 +22,11 @@ private val temporaryScopeLock = reentrantLock()
 private val temporaryScopeUsers = mutableMapOf<ScopeID, Int>()
 private val temporaryScopesToClose = mutableSetOf<ScopeID>()
 
-// Scopes an editor has opened. A temporary task that created the scope must not close it
-// once an editor owns it, and an editor opening an existing temporary scope must still
-// start the editor-only services.
-private val editorScopes = atomic(emptySet<ScopeID>())
+// How many editors have each scope open. A temporary task that created the scope must not close
+// it once an editor owns it, an editor opening an existing temporary scope must still start the
+// editor-only services, and the scope stays open until its last editor closes (Android can show
+// one project in two tasks).
+private val editorScopes = atomic(emptyMap<ScopeID, Int>())
 
 /**
  * Opens a project scope for [block], closing it afterwards only if this call is what brought it
@@ -92,7 +92,7 @@ suspend fun openProjectScope(projectDef: ProjectDef, temporary: Boolean = false)
 	if (needsInit) {
 		initializeProjectScope(projectDef, temporary)
 	} else if (!temporary && markOpenedForEditing(scopeId)) {
-		initializeEditorServices(projScope)
+		onOpenedForEditing(projectDef, projScope)
 	}
 
 	return projScope
@@ -112,24 +112,47 @@ suspend fun initializeProjectScope(projectDef: ProjectDef, temporary: Boolean = 
 		// Skipped for temporary scopes (background sync, import): loading session words
 		// there only churns the shared checker while the sync rewrites entries.
 		if (!temporary && markOpenedForEditing(defScope.getScopeId())) {
-			initializeEditorServices(projScope)
+			onOpenedForEditing(projectDef, projScope)
 		}
 	} ?: throw IllegalStateException("No scope found for $projectDef")
 }
 
-private fun initializeEditorServices(projScope: Scope) {
+private fun onOpenedForEditing(projectDef: ProjectDef, projScope: Scope) {
 	projScope.get<ProjectDictionaryService>().initialize()
+	notifyLifecycleListeners(projectDef) { it.onProjectOpened(projectDef, projScope) }
 }
 
-/** Returns true the first time [scopeId] is marked. */
+// A misbehaving listener must not be able to stop a project opening or closing.
+@Suppress("TooGenericExceptionCaught")
+private fun notifyLifecycleListeners(projectDef: ProjectDef, event: (ProjectLifecycleListener) -> Unit) {
+	getKoin().getAll<ProjectLifecycleListener>().forEach { listener ->
+		try {
+			event(listener)
+		} catch (e: Exception) {
+			Napier.e(e) { "Project lifecycle listener failed for ${projectDef.name}" }
+		}
+	}
+}
+
+/** Counts an editor on [scopeId]; returns true for the first one. */
 private fun markOpenedForEditing(scopeId: ScopeID): Boolean {
-	val before = editorScopes.getAndUpdate { it + scopeId }
+	val before = editorScopes.getAndUpdate { it + (scopeId to (it[scopeId] ?: 0) + 1) }
 	return scopeId !in before
 }
 
+/** Releases one editor's hold on the scope, closing it once no editor has it open. */
 fun closeProjectScope(projectScope: Scope, projectDef: ProjectDef) {
 	Napier.d { "closeProjectScope: ${projectDef.name}" }
-	editorScopes.update { it - ProjectDefScope(projectDef).getScopeId() }
+	val scopeId = ProjectDefScope(projectDef).getScopeId()
+	val editors = editorScopes.getAndUpdate { open ->
+		val remaining = (open[scopeId] ?: 0) - 1
+		if (remaining > 0) open + (scopeId to remaining) else open - scopeId
+	}[scopeId] ?: 0
+
+	if (editors > 1) return
+	if (editors == 1) {
+		notifyLifecycleListeners(projectDef) { it.onProjectClosed(projectDef) }
+	}
 	projectScope.close()
 }
 
