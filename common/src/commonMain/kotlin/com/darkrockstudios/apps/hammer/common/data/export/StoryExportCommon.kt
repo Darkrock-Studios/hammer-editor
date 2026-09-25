@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.components.projecthome
+package com.darkrockstudios.apps.hammer.common.data.export
 
 /**
  * Localized strings that appear in the exported document body. Resolved once by the export use case

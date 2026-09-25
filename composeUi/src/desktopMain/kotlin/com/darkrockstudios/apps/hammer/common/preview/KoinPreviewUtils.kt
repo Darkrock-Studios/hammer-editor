@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.preview
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginUiRegistry
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_MAIN
@@ -9,6 +11,7 @@ import com.darkrockstudios.apps.hammer.common.platformDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.platformIoDispatcher
 import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
 import com.darkrockstudios.apps.hammer.common.util.StrRes
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import org.koin.core.context.GlobalContext
 import org.koin.core.qualifier.named
 import org.koin.dsl.KoinAppDeclaration
@@ -29,6 +32,8 @@ fun KoinApplicationPreview(
 			single { PreviewStrRes() } bind StrRes::class
 			single { fakeSpellCheckRepository() }
 			single { previewImageLoader() }
+			single { StoryExporterRegistry(emptyList()) }
+			single { PluginUiRegistry(emptyList(), PluginRegistry(emptyList())) }
 
 			if (application != null) application()
 		}))

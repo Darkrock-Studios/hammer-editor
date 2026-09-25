@@ -78,9 +78,10 @@ iOS), because in-process plugins run everywhere.
 contributions collected from Koin, and `:operations` installs each plugin's
 contributions into them:
 
-- **Exporters.** `StoryExporterRegistry` takes every `StoryExporter` bound in
-  Koin. Built-in formats are bound in `mainModule`; `PluginRegistry` binds each
-  plugin's `exporters()`. Text diagnostics providers work the same way.
+- **Exporters.** `StoryExporterRegistry` always holds the built-in formats and
+  adds every `StoryExporter` bound in Koin. `PluginRegistry` binds each plugin's
+  `exporters()`, after checking each format id carries the plugin's prefix. Text
+  diagnostics providers work the same way.
 - **Project lifecycle.** `openProjectScope` and `closeProjectScope` notify
   every `ProjectLifecycleListener` bound in Koin when a project is opened for
   editing and when that session closes. Every platform already opens and
@@ -412,7 +413,11 @@ class ExportInput(
 	val treatTopLevelAsChapters: Boolean,
 	val language: String,
 	val strings: ExportStrings,
-)
+) {
+	fun requireProjectData(): ProjectData
+	/** [chapters], or one chapter named after the project when top-level nodes are not chapters. */
+	fun bookChapters(): List<StoryChapter>
+}
 ```
 
 The five built-in renderers already share this shape (sink, project name,
@@ -424,16 +429,19 @@ lifted from them rather than invented. What changes:
   render dispatch in `ExportStoryUseCase`, the Android MIME type in
   `ExportDirectoryPicker`, the format list and labels in `ExportOptionsDialog`)
   read from a `StoryExporterRegistry` in `:common` instead, which mirrors the
-  existing `StoryImporterRegistry` and is filled from Koin (see
-  [Modules](#modules)).
-- **All five built-in formats become `StoryExporter`s**, bound in
-  `mainModule`, so built-in and plugin formats take the same path.
+  existing `StoryImporterRegistry` and adds contributed formats from Koin (see
+  [Modules](#modules)). It lists the built-in formats first, in their menu
+  order, then contributed ones by id.
+- **All five built-in formats become `StoryExporter`s**, with ids `epub`,
+  `docx`, `rtf`, `pdf`, and `markdown`, so built-in and plugin formats take the
+  same path.
 - **Export moves to the data layer.** `ExportStoryUseCase` and the renderers
-  live in `components/projecthome` today. They move next to the importers,
+  move from `components/projecthome` to `data/export`, next to the importers,
   where operations and a future core module can reach them.
 - **Labels come from the UI half.** Built-in labels stay in `:composeUi`.
   A plugin's labels come from `PluginUi.exportFormatLabels()`. A format with no
-  label shows its file extension in upper case.
+  label shows its file extension in upper case. The Android save picker takes
+  the exporter's MIME type, and the desktop one its extension.
 
 Importers could follow the same pattern (`ImportFormat` is the same kind of
 closed enum). Not in v1.

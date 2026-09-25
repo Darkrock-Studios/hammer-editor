@@ -4,8 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
-import com.darkrockstudios.apps.hammer.common.components.projecthome.fileExtension
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.rememberKoinInject
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.project_home_action_export_toast_failure
 import com.darkrockstudios.apps.hammer.project_home_action_export_toast_success
 import io.github.aakira.napier.Napier
@@ -23,6 +24,7 @@ actual fun ExportDirectoryPicker(
 	scope: CoroutineScope,
 ) {
 	val defaultDispatcher = rememberDefaultDispatcher()
+	val exporters: StoryExporterRegistry = rememberKoinInject()
 
 	LaunchedEffect(show) {
 		if (show) {
@@ -31,7 +33,7 @@ actual fun ExportDirectoryPicker(
 			val options = component.state.value.exportOptions
 			val format = options.format
 			val suggested = component.getExportStoryFileName(format)
-			val extension = format.fileExtension
+			val extension = exporters.forFormat(format).fileExtension
 			val baseName = suggested.removeSuffix(".$extension")
 			val file = FileKit.openFileSaver(suggestedName = baseName, defaultExtension = extension)
 			if (file != null) {

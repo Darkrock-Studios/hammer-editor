@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.common.data.ExportableScene
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.preview.globalSettingsPreview
 import com.darkrockstudios.apps.hammer.common.projecthome.ExportOptionsDialogContent
+import com.darkrockstudios.apps.hammer.common.projecthome.exportFormatChoices
 
 private val previewScenes = listOf(
 	ExportableScene(id = 1, name = "Prologue", isGroup = false, depth = 0),
@@ -37,6 +38,7 @@ private fun ExportOptionsPreviewFrame(options: ExportOptions) {
 			) {
 				ExportOptionsDialogContent(
 					options = options,
+					formats = exportFormatChoices(),
 					exportableScenes = previewScenes,
 					onOptionsChanged = {},
 					onCancel = {},
