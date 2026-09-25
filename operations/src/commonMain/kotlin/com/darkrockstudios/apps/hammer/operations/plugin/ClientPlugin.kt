@@ -16,6 +16,9 @@ interface ClientPlugin {
 	/** Stable, lowercase, directory-safe. Keys this plugin's settings file and project data directory. */
 	val id: String
 
+	/** Shown when the plugin has no UI half to name it, as for runtime plugins. */
+	val name: String? get() = null
+
 	/** Installed alongside the app's own modules. */
 	fun koinModule(): Module? = null
 
@@ -33,4 +36,7 @@ interface ClientPlugin {
 
 	/** Export formats this plugin adds. Each format id must start with `<id>.`, e.g. `smf.docx`. */
 	fun exporters(): List<StoryExporter> = emptyList()
+
+	/** Typed settings the host renders as a form and stores in the plugin's settings file. */
+	fun settings(): List<SettingDeclaration> = emptyList()
 }

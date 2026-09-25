@@ -30,6 +30,7 @@ class WasmPlugin(
 ) : ClientPlugin, KoinComponent {
 
 	override val id: String = manifest.id
+	override val name: String = manifest.name
 
 	private val lock = reentrantLock()
 	private val module by lazy {
@@ -87,6 +88,7 @@ class WasmPlugin(
 		override val formatId = format.format
 		override val fileExtension = format.extension
 		override val mimeType = format.mime
+		override val label = format.label
 		override val needsProjectData = false
 
 		override fun render(sink: BufferedSink, input: ExportInput) {

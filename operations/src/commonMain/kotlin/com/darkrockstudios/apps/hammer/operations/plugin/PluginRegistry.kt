@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectLifecycleListener
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcherNow
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcherNow
 import com.darkrockstudios.apps.hammer.operations.KoinProjectResolver
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
@@ -39,6 +40,7 @@ class PluginRegistry(val plugins: List<ClientPlugin>) : ProjectLifecycleListener
 		plugins.forEach { require(PLUGIN_ID.matches(it.id)) { "Invalid plugin id '${it.id}'" } }
 		val duplicates = plugins.groupBy { it.id }.filterValues { it.size > 1 }.keys
 		require(duplicates.isEmpty()) { "Duplicate plugin ids: $duplicates" }
+		plugins.forEach { validateSettings(it.id, it.settings()) }
 		plugins.forEach { Napier.i { "Client plugin '${it.id}' installed" } }
 	}
 
@@ -60,6 +62,23 @@ class PluginRegistry(val plugins: List<ClientPlugin>) : ProjectLifecycleListener
 
 	/** Built here so a bad plugin operation fails at startup, not on first use. */
 	private val operationRegistry = OperationRegistry(coreOperations() + operations, KoinProjectResolver())
+
+	// Each reads its file on first use, so one plugin's settings never load another's.
+	private val settingsStores: Map<String, Lazy<DeclaredSettingsStore>> =
+		plugins.filter { it.settings().isNotEmpty() }.associate { plugin ->
+			plugin.id to lazy {
+				DeclaredSettingsStore(
+					pluginId = plugin.id,
+					declarations = plugin.settings(),
+					datasource = get(),
+					ioDispatcher = injectIoDispatcherNow(),
+					saveScope = get(named(APP_SCOPE)),
+				)
+			}
+		}
+
+	/** The declared settings of [pluginId], or null when it declares none. Only once Koin is up. */
+	fun settings(pluginId: String): DeclaredSettingsStore? = settingsStores[pluginId]?.value
 
 	private val openProjects = MutableStateFlow<Map<ProjectDef, OpenProject>>(emptyMap())
 
