@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.operations.plugin
 
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import kotlinx.coroutines.CoroutineScope
 import org.koin.core.module.Module
 
@@ -25,4 +26,7 @@ interface ClientPlugin {
 
 	/** The project's coroutine scope is cancelled, and briefly awaited, after this returns. */
 	fun onProjectClosed(project: ProjectPluginContext) {}
+
+	/** Export formats this plugin adds. Each format id must start with `<id>.`, e.g. `smf.docx`. */
+	fun exporters(): List<StoryExporter> = emptyList()
 }

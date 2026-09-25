@@ -4,10 +4,18 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
+import com.darkrockstudios.apps.hammer.common.data.export.ExportInput
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
+import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
+import com.darkrockstudios.apps.hammer.common.projecthome.ExportFormatChoice
 import com.darkrockstudios.apps.hammer.common.projecthome.ExportOptionsDialogContent
+import com.darkrockstudios.apps.hammer.common.projecthome.exportFormatChoices
+import com.darkrockstudios.apps.hammer.settings_plugins_header
+import okio.BufferedSink
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -32,6 +40,7 @@ class ExportOptionsDialogTest : BaseTest() {
 			KoinApplicationPreview {
 				ExportOptionsDialogContent(
 					options = options,
+					formats = exportFormatChoices(),
 					exportableScenes = entries,
 					onOptionsChanged = { options = it },
 					onCancel = {},
@@ -59,6 +68,7 @@ class ExportOptionsDialogTest : BaseTest() {
 			KoinApplicationPreview {
 				ExportOptionsDialogContent(
 					options = options,
+					formats = exportFormatChoices(),
 					exportableScenes = entries,
 					onOptionsChanged = { options = it },
 					onCancel = {},
@@ -80,6 +90,7 @@ class ExportOptionsDialogTest : BaseTest() {
 			KoinApplicationPreview {
 				ExportOptionsDialogContent(
 					options = ExportOptions(),
+					formats = exportFormatChoices(),
 					exportableScenes = listOf(
 						ExportableScene(id = 9, name = "Empty Group", isGroup = true, depth = 0),
 					),
@@ -92,5 +103,25 @@ class ExportOptionsDialogTest : BaseTest() {
 		}
 
 		compose.onNodeWithText("Limit to specific scenes").assertDoesNotExist()
+	}
+
+	@Test
+	fun `A contributed format shows its plugin label, or its extension without one`() {
+		var choices: List<ExportFormatChoice> = emptyList()
+		compose.setContent {
+			choices = exportFormatChoices(
+				exporters = StoryExporterRegistry(listOf(FakeExporter("a.fdx", "fdx"), FakeExporter("b.txt", "txt"))).exporters,
+				pluginLabels = mapOf("b.txt" to Res.string.settings_plugins_header),
+			)
+		}
+		compose.waitForIdle()
+
+		assertEquals("FDX", choices.single { it.formatId == "a.fdx" }.label)
+		assertEquals("Plugins", choices.single { it.formatId == "b.txt" }.label)
+	}
+
+	private class FakeExporter(override val formatId: String, override val fileExtension: String) : StoryExporter {
+		override val mimeType = "text/plain"
+		override fun render(sink: BufferedSink, input: ExportInput) = Unit
 	}
 }
