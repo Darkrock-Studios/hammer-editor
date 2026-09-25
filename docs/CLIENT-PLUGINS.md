@@ -63,11 +63,13 @@ New code goes in a new `:operations` module between `:common` and
 
 | Module | Holds |
 | --- | --- |
-| `:common` | Same role as today. Gains only extension points (below), the sync-all use case, and pluggable export |
+| `:common` | Same role as today. Gains only extension points (below) and pluggable export |
 | `:operations` | `Operation`, `OperationRegistry`, the core operations, `ClientPlugin`, `PluginRegistry`, `ProjectPluginContext`, `PluginSettingsStore`, `installedPlugins()` |
 | `:composeUi` | `PluginUi`, `PluginUiRegistry`, `installedPluginUis()`, the Settings > Plugins page |
 | `:desktop` | The CLI adapter and `Dispatcher`, socket forwarding, the writer lock, `installedDesktopPlugins()` |
 | `:plugins:mcp` | The MCP plugin. JVM only, depends on `:operations` and the MCP Kotlin SDK |
+
+`:wear` depends only on `:common` and gets no plugins.
 
 `:operations` targets the same platforms as `:common` (Android, desktop JVM,
 iOS), because in-process plugins run everywhere.
@@ -144,9 +146,11 @@ Rules that keep this a stable API rather than a mirror of internals:
   or write. Reading and writing local files is the CLI adapter's job, so an
   agent can only hand Hammer content it already has and only receives content
   back.
-- Operation code, and the sync-all use case, do not use Compose resources,
-  Napier, or Decompose, so they can move into a native-capable core module
-  unchanged. See [Native CLI](#native-cli) under v2.
+- Operation code does not use Compose resources, Napier, or Decompose, so it
+  can move into a native-capable core module unchanged. See
+  [Native CLI](#native-cli) under v2. (`SyncAccountUseCase` already localizes its
+  log lines through Compose resources; that is covered by the v2 plan for
+  structured sync logs.)
 
 ## Operation catalog
 
@@ -640,17 +644,20 @@ hammer sync run
 hammer sync run --project "My Novel" --on-conflict server
 ```
 
-- **Prerequisite refactor.** The sync-all orchestration lives in
-  `ProjectsListComponent` today. It moves into a data-layer use case that both
-  the component and `sync.run` call. This is the only real refactor headless
-  sync needs; the synchronizers themselves are already UI-free.
+- **Already in place.** `SyncAccountUseCase` in the data layer holds the
+  sync-all orchestration. It reports through a `SyncAccountListener`, takes a project filter,
+  and returns a per-project `ProjectSyncOutcome`. `sync.run` is a CLI listener
+  plus that call; no refactor needed.
 - **Conflicts.** `--on-conflict abort|local|server`, default `abort`. Abort is
   what bulk sync already does: the project stops, is reported as needing
   resolution, and other projects continue. Idea conflicts follow the same flag.
 - **Output.** Sync log lines go to stderr. A JSON summary with each project's
   outcome goes to stdout.
 - **Exit codes.** 0 all synced, 1 failure, 2 at least one project needs
-  resolution, 3 unauthorized (run `account login` again).
+  resolution, 3 unauthorized (run `account login` again). These map from
+  `ProjectSyncOutcome`: `Failed` is 1, `NeedsResolution` is 2, and `Success`,
+  `Unchanged`, `NotOnServer`, and `Skipped` are 0, with `NotOnServer` logged as
+  a warning. `onUnauthorized` gives 3.
 - **Credentials.** The desktop token store is an AES-encrypted file keyed on
   the user name and home directory. It needs no keyring or desktop session, so it
   works on a bare Linux box.
@@ -779,8 +786,10 @@ Most new code lives outside `:common`: in `:operations`, `:composeUi`,
 | --- | --- | --- |
 | `ProjectRootComponent` notifies Koin-bound `ProjectLifecycleListener`s on open and close | A few lines | No. The one piece of pure plugin plumbing |
 | `ExportFormat` enum becomes `StoryExporterRegistry`; export moves from `components/projecthome` to the data layer | Moderate | Partly. Export logic is in the wrong layer today |
-| Sync-all orchestration moves from `ProjectsListComponent` into a use case | Moderate | Yes. It is data-layer logic living in a component |
 | A draft-save method that takes text, not only the current scene content | Small | No, but it is a natural addition |
+
+Headless sync needs no `:common` change: the sync-all orchestration already
+lives in the data layer as `SyncAccountUseCase`.
 
 **Hidden costs.** Two assumptions could push fixes into `:common`, and both
 come from running it with no UI:
@@ -797,8 +806,7 @@ stop and restart it in a loop, and watch for leaks and failures.
 **Deferral.** Pluggable export (step 2) only matters for the SMF exporter. If
 that can wait, export stays as it is, and the MCP plugin and style report still
 exercise most of the seam. That leaves the lifecycle listener as the only
-plugin-specific change to `:common`, with the sync refactor needed only for
-headless sync.
+plugin-specific change to `:common`.
 
 **Guardrail.** Every step's `:common` changes must make sense without plugins,
 or be listed in the table above. Anything else gets flagged in review, and the
@@ -826,8 +834,8 @@ design is revisited rather than `:common` bent to fit.
 5. **[MCP plugin](#mcp-plugin).** `:plugins:mcp`, desktop-only registration,
    settings pane. Read-only at this point, and refuses while the app is running
    until forwarding lands.
-6. **Headless sync.** Lift sync-all into a use case, then the account and sync
-   operations. Refuses while the app is running.
+6. **Headless sync.** The account and sync operations, with `sync.run` as a
+   CLI listener over `SyncAccountUseCase`. Refuses while the app is running.
 7. **Forwarding.** Local socket in the app, "Allow external tools" setting, CLI
    prefers the running app, second app instances hand off to the first.
 8. **Write operations.** `scene.write` and `scene.append` first, then the rest.
@@ -839,7 +847,7 @@ design is revisited rather than `:common` bent to fit.
    it; spell check is wired deep into editor decorations and is not a cheap
    first proof.
 
-Steps 1, 2, and 6 restructure existing code, and step 7 changes app startup
+Steps 1 and 2 restructure existing code, and step 7 changes app startup
 (single-instance hand-off). The rest are additive. Step 8 is where the
 concurrency design gets tested for real.
 
