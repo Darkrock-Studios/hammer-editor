@@ -37,7 +37,7 @@ import kotlin.time.Duration.Companion.seconds
 class PluginRegistry(val plugins: List<ClientPlugin>) : ProjectLifecycleListener, KoinComponent {
 
 	init {
-		plugins.forEach { require(PLUGIN_ID.matches(it.id)) { "Invalid plugin id '${it.id}'" } }
+		plugins.forEach { require(isValidId(it.id)) { "Invalid plugin id '${it.id}'" } }
 		val duplicates = plugins.groupBy { it.id }.filterValues { it.size > 1 }.keys
 		require(duplicates.isEmpty()) { "Duplicate plugin ids: $duplicates" }
 		plugins.forEach { validateSettings(it.id, it.settings()) }
@@ -154,8 +154,11 @@ class PluginRegistry(val plugins: List<ClientPlugin>) : ProjectLifecycleListener
 		}
 	}
 
-	private companion object {
-		val PLUGIN_ID = Regex("[a-z0-9][a-z0-9_-]*")
-		val STOP_TIMEOUT = 1.seconds
+	companion object {
+		private val PLUGIN_ID = Regex("[a-z0-9][a-z0-9_-]*")
+		private val STOP_TIMEOUT = 1.seconds
+
+		/** Lowercase and directory-safe: letters, digits, `-` and `_`, starting with a letter or digit. */
+		fun isValidId(id: String): Boolean = PLUGIN_ID.matches(id)
 	}
 }

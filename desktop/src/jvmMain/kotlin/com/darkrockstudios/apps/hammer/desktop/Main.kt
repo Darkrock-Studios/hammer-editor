@@ -17,6 +17,9 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.compose.getDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.getMainDispatcher
+import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPluginUis
+import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPlugins
+import com.darkrockstudios.apps.hammer.common.compose.plugin.pluginUiModule
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
@@ -28,19 +31,19 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
-import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPluginUis
-import com.darkrockstudios.apps.hammer.common.compose.plugin.pluginUiModule
-import com.darkrockstudios.apps.hammer.desktop.plugin.installedDesktopPlugins
-import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
-import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPlugins
+import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.getLogDirectory
 import com.darkrockstudios.apps.hammer.common.logStartupBanner
-import com.darkrockstudios.apps.hammer.common.startupBanner
 import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
+import com.darkrockstudios.apps.hammer.common.startupBanner
 import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModule
+import com.darkrockstudios.apps.hammer.desktop.plugin.installedDesktopPlugins
 import com.darkrockstudios.apps.hammer.desktop.sandbox.SandboxStartup
 import com.darkrockstudios.apps.hammer.desktop.shortcuts.QuickShortcuts
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginSettingsDatasource
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import dev.nucleusframework.application.NucleusApplicationScope
 import dev.nucleusframework.application.NucleusBackend
 import dev.nucleusframework.application.nucleusApplication
@@ -49,6 +52,11 @@ import dev.nucleusframework.window.NucleusDecoratedWindowTheme
 import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import io.github.vinceglb.filekit.FileKit
+import java.io.File
+import java.util.logging.ConsoleHandler
+import java.util.logging.Level
+import kotlin.system.exitProcess
+import kotlin.time.Clock
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -56,13 +64,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import okio.FileSystem
+import okio.Path.Companion.toPath
 import org.koin.core.context.GlobalContext
+import org.koin.dsl.module
 import org.koin.java.KoinJavaComponent.getKoin
-import java.io.File
-import java.util.logging.ConsoleHandler
-import java.util.logging.Level
-import kotlin.system.exitProcess
-import kotlin.time.Clock
 
 private fun handleArguments(args: Array<String>): DesktopLaunchArgs {
 	val launchArgs = parseDesktopLaunchArgs(args)
@@ -136,7 +142,13 @@ fun main(args: Array<String>) {
 	logStartupBanner()
 	installGlobalExceptionHandler()
 
-	val pluginRegistry = PluginRegistry(installedPlugins() + installedDesktopPlugins())
+	val compiledInPlugins = installedPlugins() + installedDesktopPlugins()
+	val runtimePlugins = RuntimePlugins(
+		fileSystem = FileSystem.SYSTEM,
+		directory = getConfigDirectory().toPath() / PluginSettingsDatasource.PLUGINS_DIRECTORY,
+		compiledInIds = compiledInPlugins.map { it.id }.toSet(),
+	)
+	val pluginRegistry = PluginRegistry(compiledInPlugins + runtimePlugins.load())
 
 	GlobalContext.startKoin {
 		logger(NapierLogger())
@@ -148,6 +160,7 @@ fun main(args: Array<String>) {
 				desktopModule,
 				appModule(appScope),
 				pluginUiModule(installedPluginUis()),
+				module { single { runtimePlugins } },
 			) + pluginRegistry.koinModules()
 		)
 	}

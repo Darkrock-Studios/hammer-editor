@@ -27,6 +27,7 @@ import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginSettingsPane
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
@@ -45,10 +46,12 @@ internal fun AccountSettingsUi(
 	rootSnackbar: RootSnackbarHostState,
 	modifier: Modifier = Modifier,
 	pluginSettingsPanes: List<PluginSettingsPane> = emptyList(),
+	runtimePlugins: RuntimePlugins? = null,
 ) {
 	val state by component.state.subscribeAsState()
 	val scope = rememberCoroutineScope()
-	val sectionCount = CORE_SECTION_COUNT + if (pluginSettingsPanes.isEmpty()) 0 else 1
+	val showPlugins = pluginSettingsPanes.isNotEmpty() || runtimePlugins != null
+	val sectionCount = CORE_SECTION_COUNT + if (showPlugins) 1 else 0
 	val screen = LocalScreenCharacteristic.current
 	val isCompact = screen.windowWidthClass == WindowWidthSizeClass.Compact
 
@@ -165,13 +168,14 @@ internal fun AccountSettingsUi(
 							ExampleProjectSection(component, rootSnackbar)
 						}
 
-						if (pluginSettingsPanes.isNotEmpty()) {
+						if (showPlugins) {
 							HdHairlineSection(
 								section = CORE_SECTION_COUNT + 1,
 								title = Res.string.settings_plugins_header.get(),
 								contentSpacing = 24.dp,
 							) {
 								PluginSettingsSection(pluginSettingsPanes)
+								runtimePlugins?.let { RuntimePluginsSection(it) }
 							}
 						}
 
