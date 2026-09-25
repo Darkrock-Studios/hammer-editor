@@ -80,6 +80,7 @@ internal fun ActionDocumentDialog(
 						.heightIn(max = 520.dp)
 						.verticalScroll(rememberScrollState())
 						.padding(Ui.Padding.XL),
+					isSelectable = true,
 				)
 				Row(
 					modifier = Modifier
