@@ -10,8 +10,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import com.darkrockstudios.apps.hammer.common.compose.WindowSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.rememberWindowSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -36,7 +35,6 @@ import kotlinx.coroutines.withContext
 private val DialogMaxWidth = 800.dp
 private val DialogBodyMinHeight = 280.dp
 
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 internal fun ProjectSynchronization(
 	component: ProjectSynchronization,

@@ -1,14 +1,13 @@
 package com.darkrockstudios.apps.hammer.common.projectroot
 
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -31,6 +30,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
 import com.darkrockstudios.apps.hammer.common.compose.fab
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.rememberWindowSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.rootElement
 import com.darkrockstudios.apps.hammer.common.compose.theme.ProjectThemeOverride
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
@@ -42,7 +42,6 @@ const val NAV_NOTES_TAG = "nav-Notes"
 const val NAV_ENCYCLOPEDIA_TAG = "nav-Encyclopedia"
 const val NAV_TIMELINE_TAG = "nav-TimeLine"
 
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
 @Composable
 fun ProjectRootScaffold(
 	component: ProjectRoot,
@@ -55,11 +54,13 @@ fun ProjectRootScaffold(
 	val coroutineScope = rememberCoroutineScope()
 
 	ProjectThemeOverride(themeState.theme) {
-		val windowSizeClass = calculateWindowSizeClass()
-		when (windowSizeClass.widthSizeClass) {
-			WindowWidthSizeClass.Compact -> CompactNavigation(component, rootSnackbar, shortcutHost)
-			WindowWidthSizeClass.Medium,
-			WindowWidthSizeClass.Expanded -> RailNavigation(component, rootSnackbar, shortcutHost)
+		BoxWithConstraints {
+			val windowSizeClass = rememberWindowSizeClass(constraints)
+			when (windowSizeClass.widthSizeClass) {
+				WindowWidthSizeClass.Compact -> CompactNavigation(component, rootSnackbar, shortcutHost)
+				WindowWidthSizeClass.Medium,
+				WindowWidthSizeClass.Expanded -> RailNavigation(component, rootSnackbar, shortcutHost)
+			}
 		}
 
 		if (shouldConfirmClose.isNotEmpty()) {

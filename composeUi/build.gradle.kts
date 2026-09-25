@@ -77,7 +77,6 @@ kotlin {
 				api(libs.jetbrains.compose.animation)
 				api(libs.jetbrains.compose.animation.graphics)
 				api(libs.jetbrains.compose.material.icons.extended)
-				api(libs.multiplatform.window.size)
 				api(libs.jetbrains.compose.ui.util)
 				api(libs.jetbrains.compose.ui.text)
 				api(libs.jetbrains.compose.ui.backhandler)
