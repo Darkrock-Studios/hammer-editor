@@ -5,6 +5,10 @@ import com.darkrockstudios.apps.hammer.common.data.ProjectLifecycleListener
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcherNow
+import com.darkrockstudios.apps.hammer.operations.KoinProjectResolver
+import com.darkrockstudios.apps.hammer.operations.Operation
+import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import com.darkrockstudios.apps.hammer.operations.core.coreOperations
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -46,6 +50,17 @@ class PluginRegistry(val plugins: List<ClientPlugin>) : ProjectLifecycleListener
 		}
 	}
 
+	private val operations: List<Operation<*, *>> = plugins.flatMap { plugin ->
+		plugin.operations().onEach { op ->
+			require(op.name.startsWith("${plugin.id}.")) {
+				"Plugin '${plugin.id}' operation '${op.name}' must start with '${plugin.id}.'"
+			}
+		}
+	}
+
+	/** Built here so a bad plugin operation fails at startup, not on first use. */
+	private val operationRegistry = OperationRegistry(coreOperations() + operations, KoinProjectResolver())
+
 	private val openProjects = MutableStateFlow<Map<ProjectDef, OpenProject>>(emptyMap())
 
 	private class OpenProject(
@@ -58,6 +73,7 @@ class PluginRegistry(val plugins: List<ClientPlugin>) : ProjectLifecycleListener
 		val own = module {
 			single { registry } bind ProjectLifecycleListener::class
 			single { PluginSettingsDatasource(get(), get()) }
+			single { operationRegistry }
 			exporters.forEach { exporter ->
 				single<StoryExporter>(named("export:${exporter.formatId}")) { exporter }
 			}

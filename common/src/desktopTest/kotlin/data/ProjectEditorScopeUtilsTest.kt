@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRe
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
 import getProjectDef
+import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.test.runTest
@@ -25,15 +26,17 @@ class ProjectEditorScopeUtilsTest : BaseTest() {
 
 	private val projectDef = getProjectDef(PROJECT_EMPTY_NAME)
 	private lateinit var dictionaryService: ProjectDictionaryService
+	private lateinit var sceneEditorService: SceneEditorService
 
 	@BeforeEach
 	override fun setup() {
 		super.setup()
 		dictionaryService = mockk(relaxed = true)
+		sceneEditorService = mockk(relaxed = true)
 		setupKoin(module {
 			scope<ProjectDefScope> {
 				scoped { projectDef }
-				scoped<SceneEditorService> { mockk(relaxed = true) }
+				scoped { sceneEditorService }
 				scoped<TimeLineRepository> { mockk(relaxed = true) }
 				scoped { dictionaryService }
 			}
@@ -62,6 +65,19 @@ class ProjectEditorScopeUtilsTest : BaseTest() {
 			val scope = assertNotNull(scopeOrNull())
 			closeProjectScope(scope, projectDef)
 		}
+
+	@Test
+	fun `unsaved edits are restored for editors only`() = runTest {
+		temporaryProjectTask(projectDef) {
+			coVerify { sceneEditorService.initialize(restoreUnsavedEdits = false) }
+			verify(exactly = 0) { sceneEditorService.restoreUnsavedEdits() }
+
+			openProjectScope(projectDef)
+			verify(exactly = 1) { sceneEditorService.restoreUnsavedEdits() }
+		}
+
+		closeProjectScope(assertNotNull(scopeOrNull()), projectDef)
+	}
 
 	@Test
 	fun `reopening for editing does not start the editor services twice`() = runTest {

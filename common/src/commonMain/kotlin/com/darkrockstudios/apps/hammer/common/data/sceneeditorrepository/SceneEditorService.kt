@@ -84,11 +84,14 @@ class SceneEditorService(
 	 * Project-open entry point: loads the scene tree, then starts the content (autosave) and
 	 * metadata engines, in order.
 	 */
-	suspend fun initialize() {
+	suspend fun initialize(restoreUnsavedEdits: Boolean = true) {
 		sceneEditorRepository.initializeSceneEditor()
-		sceneContentRepository.initialize()
+		sceneContentRepository.initialize(restoreUnsavedEdits)
 		sceneMetadataRepository.initialize()
 	}
+
+	/** Restores unsaved edits left by a previous session, for a scope opened without them. */
+	fun restoreUnsavedEdits() = sceneContentRepository.restoreTempBuffers()
 
 	suspend fun createScene(
 		parent: SceneItem?,

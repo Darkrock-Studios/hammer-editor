@@ -51,10 +51,9 @@ class ExportStoryUseCase(
 	}
 
 	suspend fun executeToFile(exportFile: HPath, options: ExportOptions): HPath {
-		val projectName = sceneEditorRepository.projectDef.name
 		val exportPath = exportFile.toOkioPath()
 
-		val rendered = render(projectName, options)
+		val rendered = render(options)
 
 		withContext(ioDispatcher) {
 			try {
@@ -71,7 +70,8 @@ class ExportStoryUseCase(
 	}
 
 	/** Reads source data off [ioDispatcher], then renders the document into an in-memory buffer on [defaultDispatcher]. */
-	private suspend fun render(projectName: String, options: ExportOptions): Buffer {
+	suspend fun render(options: ExportOptions): Buffer {
+		val projectName = sceneEditorRepository.projectDef.name
 		val exporter = exporters.forFormat(options.format)
 		val input = withContext(ioDispatcher) {
 			val chapters = sceneEditorRepository.getSceneTree().root.children.mapNotNull { node ->

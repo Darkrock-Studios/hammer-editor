@@ -104,7 +104,8 @@ suspend fun initializeProjectScope(projectDef: ProjectDef, temporary: Boolean = 
 		// Creates the service (activating its autosave side-effect subscription from project open)
 		// and runs the scene-editor init sequence: tree, then content (autosave), then metadata.
 		val sceneEditorService: SceneEditorService = projScope.get()
-		sceneEditorService.initialize()
+		// Unsaved edits belong to editors; a temporary scope must neither restore nor discard them.
+		sceneEditorService.initialize(restoreUnsavedEdits = !temporary)
 
 		val timeLineRepository: TimeLineRepository = projScope.get { parametersOf(projectDef) }
 		timeLineRepository.initialize()
@@ -118,6 +119,7 @@ suspend fun initializeProjectScope(projectDef: ProjectDef, temporary: Boolean = 
 }
 
 private fun onOpenedForEditing(projectDef: ProjectDef, projScope: Scope) {
+	projScope.get<SceneEditorService>().restoreUnsavedEdits()
 	projScope.get<ProjectDictionaryService>().initialize()
 	notifyLifecycleListeners(projectDef) { it.onProjectOpened(projectDef, projScope) }
 }
