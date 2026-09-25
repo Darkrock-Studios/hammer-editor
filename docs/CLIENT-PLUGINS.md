@@ -832,10 +832,46 @@ max = 20
 
 ## Strings
 
-A plugin's name, labels, and setting text are plain strings in its manifest and
-`settings.toml`, not localized. Localized manifests can come later. Operation
-descriptions are plain English strings too: they are read by agents and shown
-in CLI help, neither of which is localized today.
+Hammer's own words around plugins (Run, Cancel, the install dialog) are string
+resources, translated with the rest of the app. A plugin's own words come in
+two kinds, each translated by the plugin's author:
+
+- **Declared words.** The manifest's name and labels, command help, and
+  `settings.toml`'s labels, hints, and option labels. A package may carry
+  translations of them in `locales/<tag>.toml`, one file per language, keyed
+  as the manifest keys them:
+
+  ```toml
+  name = "Générateur de noms"
+
+  [actions.names]
+  label = "Générer des noms"
+
+  [actions.names.fields.style]
+  label = "Style"
+  options = { everyday = "Anglais courant", norse = "Nordique" }
+
+  [settings.greeting]
+  label = "Salutation"
+
+  [exporters."names.txt"]
+  label = "Noms (TXT)"
+  ```
+
+  Hammer reads them when it loads the plugin, and for the install dialog, and
+  takes each string from the most specific file for the UI's language (`fr-CA`,
+  then `fr`), falling back to the manifest's. Ids, keys, and values never
+  change. Install refuses a file that does not parse or is not named for a
+  language tag.
+- **Replies.** Messages, documents, and check messages a plugin writes at run
+  time. Every call carries `locale`, the UI's BCP 47 tag, so the plugin can
+  write them in the user's language. It is not the project's `language`, which
+  says what the story is written in: a French writer may write in English.
+
+The UI's language is the system's, as for the rest of Hammer, so a plugin's
+declared words are chosen once, when it loads. Operation descriptions are plain
+English strings: they are read by agents and shown in CLI help, neither of which
+is localized today.
 
 ## Example plugins
 
@@ -1086,7 +1122,8 @@ that scope and access. A scope never covers a Destructive operation; a plugin
 that needs one names it.
 
 There is no platforms field: a WASM module runs anywhere the host does.
-Labels are plain strings in the manifest. Localized manifests can come later.
+Labels are plain strings in the manifest; see [Strings](#strings) for
+translating them.
 
 ### Calling convention
 
@@ -1120,6 +1157,8 @@ eight bytes a plugin copies. The Hammer-specific parts:
   take a large output's text as it is, without parsing it. The host answers
   `ops.list` itself, listing only the operations the plugin may call, so it
   works even while Hammer is busy.
+- Every export's input also has `locale`, the UI's BCP 47 tag or null; see
+  [Strings](#strings).
 - An `export` function renders every export format the manifest declares. Its
   input is `{"format", "projectName", "language", "topLevelAsChapters",
   "chapters": [{"name", "scenes": [markdown], "prose": []}], "settings": {...}}`,

@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
+import com.darkrockstudios.apps.hammer.common.util.DeviceLocaleResolver
 import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
@@ -26,6 +27,8 @@ class RuntimePlugins(
 	private val fileSystem: FileSystem,
 	private val directory: Path,
 	private val cacheDirectory: Path,
+	/** The UI's BCP 47 tag, which plugins' translations are chosen by and which their calls are told. */
+	private val locale: String? = null,
 ) {
 	private val packages = directory / PACKAGES_DIRECTORY
 	private val stateFile = directory / STATE_FILE
@@ -56,7 +59,7 @@ class RuntimePlugins(
 	private fun load(id: String, state: PluginState): WasmPlugin? {
 		if (!state.enabled) return null
 		return try {
-			val plugin = PluginPackage.read(fileSystem, packagePath(id))
+			val plugin = PluginPackage.read(fileSystem, packagePath(id)).localized(locale)
 			if (plugin.manifest.id != id) throw PluginPackageException("Package id changed to '${plugin.manifest.id}'")
 			plugin.toWasmPlugin(state.granted.toSet())
 		} catch (e: PluginPackageException) {
@@ -71,7 +74,7 @@ class RuntimePlugins(
 	/** Everything installed, loadable or not, for Settings. */
 	fun installed(): List<InstalledPlugin> = readState().plugins.map { (id, state) ->
 		val manifest = try {
-			PluginPackage.read(fileSystem, packagePath(id)).manifest
+			PluginPackage.read(fileSystem, packagePath(id)).localized(locale).manifest
 		} catch (e: PluginPackageException) {
 			null
 		} catch (e: IOException) {
@@ -81,7 +84,7 @@ class RuntimePlugins(
 	}
 
 	/** Reads and checks the package at [source] without installing it, for the permission prompt. */
-	fun inspect(source: Path): PluginPackage = PluginPackage.read(fileSystem, source, checkModule = true)
+	fun inspect(source: Path): PluginPackage = PluginPackage.read(fileSystem, source, checkModule = true).localized(locale)
 
 	/**
 	 * Installs, or replaces, the package at [source], enabled and granted every operation its manifest
@@ -146,6 +149,7 @@ class RuntimePlugins(
 		granted = granted,
 		savedSettings = { PluginSettingsDatasource(fileSystem, toml, directory).loadDeclared(manifest.id, settings) },
 		cache = cache(manifest.id),
+		locale = locale,
 	)
 
 	private fun cache(id: String) = PluginCache(fileSystem, cacheDirectory / id)
@@ -192,6 +196,7 @@ class RuntimePlugins(
 			fileSystem = fileSystem,
 			directory = getConfigDirectory().toPath() / PluginSettingsDatasource.PLUGINS_DIRECTORY,
 			cacheDirectory = getCacheDirectory().toPath() / PluginSettingsDatasource.PLUGINS_DIRECTORY,
+			locale = DeviceLocaleResolver().getCurrentLocale().toLanguageTag().ifBlank { null },
 		)
 	}
 
