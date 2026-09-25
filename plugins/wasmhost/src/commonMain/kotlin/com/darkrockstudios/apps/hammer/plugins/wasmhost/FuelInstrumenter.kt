@@ -15,8 +15,8 @@ class FuelInstrumenter(
 
 	fun instrument(wasm: ByteArray): ByteArray {
 		val sections = readSections(wasm)
-		val importedGlobals = sections.firstOrNull { it.id == IMPORT }?.let { countImportedGlobals(it.body) } ?: 0
-		val definedGlobals = sections.firstOrNull { it.id == GLOBAL }?.let { Reader(it.body).u32() } ?: 0
+		val importedGlobals = sections.firstOrNull { it.id == IMPORT }?.let { countImportedGlobals(it.body()) } ?: 0
+		val definedGlobals = sections.firstOrNull { it.id == GLOBAL }?.let { Reader(it.body()).u32() } ?: 0
 		val fuel = importedGlobals + definedGlobals
 
 		val out = mutableListOf<Section>()
@@ -32,28 +32,45 @@ class FuelInstrumenter(
 				addedExport = true
 			}
 			out += when (section.id) {
-				GLOBAL -> Section(GLOBAL, appendGlobal(section.body)).also { addedGlobal = true }
-				EXPORT -> Section(EXPORT, appendExport(section.body, fuel)).also { addedExport = true }
-				TABLE -> Section(TABLE, capTables(section.body))
-				MEMORY -> Section(MEMORY, capMemories(section.body))
-				CODE -> Section(CODE, instrumentCode(section.body, fuel))
+				GLOBAL -> Section(GLOBAL, appendGlobal(section.body())).also { addedGlobal = true }
+				EXPORT -> Section(EXPORT, appendExport(section.body(), fuel)).also { addedExport = true }
+				TABLE -> Section(TABLE, capTables(section.body()))
+				MEMORY -> Section(MEMORY, capMemories(section.body()))
+				CODE -> Section(CODE, instrumentCode(section.body(), fuel))
 				else -> section
 			}
 		}
 		if (!addedGlobal) out += Section(GLOBAL, appendGlobal(null))
 		if (!addedExport) out += Section(EXPORT, appendExport(null, fuel))
 
-		return Writer().apply {
+		// Sized exactly, so the output is allocated once: a pre-initialized module is mostly its data section.
+		val size = HEADER_SIZE + out.sumOf { 1 + u32Size(it.size) + it.size }
+		return Writer(size).apply {
 			bytes(wasm, 0, HEADER_SIZE)
 			out.forEach { section ->
 				byte(section.id)
-				u32(section.body.size)
-				bytes(section.body)
+				u32(section.size)
+				bytes(section.source, section.offset, section.size)
 			}
 		}.toByteArray()
 	}
 
-	private class Section(val id: Int, val body: ByteArray)
+	/** A section's body, [size] bytes of [source] from [offset], so an unchanged one is never copied. */
+	private class Section(val id: Int, val source: ByteArray, val offset: Int, val size: Int) {
+		constructor(id: Int, body: ByteArray) : this(id, body, 0, body.size)
+
+		fun body(): ByteArray = if (offset == 0 && size == source.size) source else source.copyOfRange(offset, offset + size)
+	}
+
+	private fun u32Size(value: Int): Int {
+		var remaining = value.toLong() and 0xFFFFFFFFL
+		var bytes = 1
+		while (remaining >= 0x80) {
+			remaining = remaining ushr 7
+			bytes++
+		}
+		return bytes
+	}
 
 	private fun readSections(wasm: ByteArray): List<Section> {
 		require(wasm.size >= HEADER_SIZE && wasm.copyOfRange(0, 4).contentEquals(MAGIC)) { "Not a wasm module" }
@@ -62,7 +79,8 @@ class FuelInstrumenter(
 		while (!reader.atEnd) {
 			val id = reader.byte()
 			val size = reader.u32()
-			sections += Section(id, reader.bytes(size))
+			sections += Section(id, wasm, reader.pos, size)
+			reader.skip(size)
 		}
 		return sections
 	}
@@ -361,8 +379,8 @@ class FuelInstrumenter(
 		}
 	}
 
-	private class Writer {
-		private var buffer = ByteArray(256)
+	private class Writer(capacity: Int = 256) {
+		private var buffer = ByteArray(capacity)
 		private var size = 0
 
 		fun byte(value: Int) {
@@ -403,7 +421,7 @@ class FuelInstrumenter(
 			bytes(encoded)
 		}
 
-		fun toByteArray(): ByteArray = buffer.copyOf(size)
+		fun toByteArray(): ByteArray = if (size == buffer.size) buffer else buffer.copyOf(size)
 
 		private fun ensure(extra: Int) {
 			if (size + extra > buffer.size) buffer = buffer.copyOf(maxOf(buffer.size * 2, size + extra))

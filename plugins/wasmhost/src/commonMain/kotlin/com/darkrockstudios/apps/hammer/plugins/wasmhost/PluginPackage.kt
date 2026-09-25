@@ -5,6 +5,8 @@ import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.parseSettingDeclarations
 import com.darkrockstudios.apps.hammer.operations.plugin.validateSettings
+import okio.BufferedSource
+import okio.EOFException
 import okio.FileSystem
 import okio.IOException
 import okio.Path
@@ -79,12 +81,24 @@ class PluginPackage(
 			if (moduleSize > maxModuleBytes) throw PluginPackageException("$MODULE is larger than $maxModuleBytes bytes")
 			val reader = {
 				try {
-					fileSystem.openZip(path).read(root / MODULE) { readByteArray() }
+					fileSystem.openZip(path).read(root / MODULE) { readExactly(moduleSize) }
 				} catch (e: IOException) {
 					throw PluginException("Could not read $MODULE: ${e.message}")
 				}
 			}
 			return PluginPackage(manifest, settings, reader).also { if (checkModule) it.checkModule() }
+		}
+
+		// Into one array of the known size: readByteArray() buffers it all and then copies it.
+		private fun BufferedSource.readExactly(size: Long): ByteArray {
+			val bytes = ByteArray(size.toInt())
+			var read = 0
+			while (read < bytes.size) {
+				val count = read(bytes, read, bytes.size - read)
+				if (count == -1) throw EOFException("$MODULE ended after $read of ${bytes.size} bytes")
+				read += count
+			}
+			return bytes
 		}
 
 		private fun check(manifest: PluginManifest) {

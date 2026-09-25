@@ -40,13 +40,26 @@ import kotlin.time.TimeSource
  * WASI file or socket import, fails the load. HTTP imports exist for compatibility and always fail the call.
  */
 class ExtismPlugin(
-	wasm: ByteArray,
+	/**
+	 * The module's bytes, asked for once, inside the constructor: held by nothing, they can be collected
+	 * as soon as they are instrumented, which matters for a pre-initialized module of 100 MB or more.
+	 */
+	loadWasm: () -> ByteArray,
 	userFunctions: List<UserFunction> = emptyList(),
 	private val config: Map<String, String> = emptyMap(),
 	private val log: (level: LogLevel, message: String) -> Unit = { _, _ -> },
 	instrumenter: FuelInstrumenter = FuelInstrumenter(),
 	maxGuestHeapBytes: Long = DEFAULT_MAX_GUEST_HEAP_BYTES,
 ) {
+	constructor(
+		wasm: ByteArray,
+		userFunctions: List<UserFunction> = emptyList(),
+		config: Map<String, String> = emptyMap(),
+		log: (level: LogLevel, message: String) -> Unit = { _, _ -> },
+		instrumenter: FuelInstrumenter = FuelInstrumenter(),
+		maxGuestHeapBytes: Long = DEFAULT_MAX_GUEST_HEAP_BYTES,
+	) : this({ wasm }, userFunctions, config, log, instrumenter, maxGuestHeapBytes)
+
 	private val kernel = ExtismKernel()
 	private val vars = mutableMapOf<String, ByteArray>()
 
@@ -58,7 +71,7 @@ class ExtismPlugin(
 	private var calling = false
 
 	init {
-		val module = module(instrumenter.instrument(wasm)).orThrow("Invalid plugin module")
+		val module = module(instrumenter.instrument(loadWasm())).orThrow("Invalid plugin module")
 		val provided = (envFunctions() + userFunctions.map { it.toHost(kernel) } + RandomGet + ClockTimeGet)
 			.associateBy { it.module to it.name }
 		val imports = module.imports.map { import ->
