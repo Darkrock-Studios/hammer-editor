@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.operations
 
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialInfo
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
@@ -25,6 +27,9 @@ interface Operation<I, O> {
 
 	/** Override only when the input's valid values are known at runtime, such as registered export formats. */
 	fun inputSchema(): JsonObject = jsonSchema(input.descriptor)
+
+	/** For front ends that report success as a number, like the CLI: nonzero when [output] records a partial failure. */
+	fun exitCode(output: O): Int = 0
 
 	suspend fun run(context: OperationContext, input: I): O
 }
@@ -71,8 +76,23 @@ internal class LambdaOperation<I, O>(
 
 /** A failure the caller caused, reported to them as-is. Anything else thrown by an operation is a bug. */
 class OperationException(val kind: Kind, message: String) : Exception(message) {
-	enum class Kind { NotFound, InvalidInput }
+	enum class Kind {
+		NotFound,
+		InvalidInput,
+
+		/** The sync server rejected the stored credentials; log in again. */
+		Unauthorized,
+	}
 }
+
+/**
+ * Marks an input field front ends read from standard input rather than an option, such as a scene's
+ * text. A [secret] field is never accepted as an option, so it cannot land in shell history.
+ */
+@OptIn(ExperimentalSerializationApi::class)
+@SerialInfo
+@Target(AnnotationTarget.PROPERTY)
+annotation class FromStdin(val secret: Boolean = false)
 
 fun notFound(message: String): Nothing = throw OperationException(OperationException.Kind.NotFound, message)
 fun invalidInput(message: String): Nothing = throw OperationException(OperationException.Kind.InvalidInput, message)

@@ -485,7 +485,9 @@ class ReadOperationsTest : KoinComponent {
 		val export = ops.operations.single { it.name == "project.export" }
 		val formats = export.input["properties"]!!.jsonObject["format"]!!.jsonObject["enum"]!!.jsonArray
 		assertTrue(JsonPrimitive("markdown") in formats)
-		assertTrue(ops.operations.all { it.agentVisible })
+		val (credentials, others) = ops.operations.partition { it.name.startsWith("account.") || it.name.startsWith("sync.") }
+		assertTrue(others.all { it.agentVisible })
+		assertTrue(credentials.none { it.agentVisible })
 
 		val content = export.output["properties"]!!.jsonObject["content"]!!.jsonObject
 		assertEquals(JsonPrimitive("base64"), content["contentEncoding"])

@@ -14,7 +14,9 @@ fun coreOperations(): List<Operation<*, *>> =
 		sceneOperations() +
 		contentOperations() +
 		searchOperations() +
-		statsOperations()
+		statsOperations() +
+		accountOperations() +
+		syncOperations()
 
 @Serializable
 data class ProjectInput(
