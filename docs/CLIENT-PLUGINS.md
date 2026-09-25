@@ -2,8 +2,7 @@
 
 Design note for extending the Hammer client (desktop, Android, iOS) with plugins,
 and for exposing the same API as a command line interface and an MCP server.
-Status: rollout steps 1 to 9 (step 8 without the single-instance hand-off), 11, and Android's
-half of 12 are built; the rest is a proposal. The server has its own plugin
+Status: rollout steps 1 to 9, 11, and Android's half of 12 are built; the rest is a proposal. The server has its own plugin
 seam (`server/.../plugin/ServerPlugin.kt`) for the hammer.ink overlay; the
 client does not follow it (see below).
 
@@ -564,12 +563,23 @@ and runs the operation in-process. If the lock is held but the socket does not
 answer, the app is running with "Allow external tools" off, and the CLI fails
 with a message saying so.
 
-**Multiple app instances.** The desktop app currently runs with
-`enableSingleInstance = false`, so several can start. Under this design a second
-instance cannot take the writer lock. It forwards its launch arguments (for
-example, a project to open) to the first over the socket and exits, which makes
-the app effectively single-instance. Why single-instance is off today (possibly
-a Nucleus or Tao backend constraint) needs checking before this lands.
+**Multiple app instances.** A second launch of the app finds the writer lock
+held by the app, hands its launch arguments to the first over the socket, and
+exits, so the app is effectively single-instance. The first comes to the front
+and acts on them as its own: a `--project` (with any `--scene`, `--note`,
+`--entry`, or `--timeline-event`) opens that project, going straight there if it
+is already open, or first closing the open one the usual way, with its
+unsaved-changes prompts; declining the prompt drops the request. Launch
+hand-offs are not gated by "Let tools use Hammer while it is open", since they
+only do what the launcher could. A launch that cannot hand off (no answer, or a
+CLI call holding the lock) starts its own window without the lock, as before.
+Windows jump-list items, which relaunch the executable, go through the same
+path, as do the Linux quicklist and macOS Dock menu in-process.
+
+Nucleus's own single-instance mode (`enableSingleInstance`) stays off: its lock
+lives in the temp directory under one app id, so a `--dev` window and a normal
+one would block each other, and it hands over only a deep-link URI, not launch
+flags. The writer lock and socket are already per config directory.
 
 **No state between calls.** Each headless call, including each dispatch from a
 long-running plugin command like `hammer mcp`, starts Koin, runs, and stops it.
@@ -1175,8 +1185,8 @@ design is revisited rather than `:common` bent to fit.
    those itself, and the
    "Let tools use Hammer while it is open" setting (desktop Settings, off by
    default) gates it per call, and the CLI and MCP try the socket before running
-   headless. Second app instances still start their own window without the
-   lock; handing their launch arguments to the first window is not built.
+   headless. A second app launch hands its arguments to the first window and
+   exits (see [Multiple app instances](#concurrency)).
 9. **Write operations.** Built: every write operation in the catalog, the MCP
    plugin's live edits setting, and the CLI's `--confirm` and `--in`. Project
    create, rename, and delete go through `ProjectsService`, shared with the
