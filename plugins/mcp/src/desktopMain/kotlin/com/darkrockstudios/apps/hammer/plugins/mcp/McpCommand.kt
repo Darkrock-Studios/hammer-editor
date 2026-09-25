@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.plugins.mcp
 
+import com.darkrockstudios.apps.hammer.operations.LIVE_EDIT_KEY
 import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.OperationJson
 import com.darkrockstudios.apps.hammer.operations.cli.CliCommand
@@ -22,8 +23,10 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.io.asSink
 import kotlinx.io.asSource
 import kotlinx.io.buffered
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.boolean
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
@@ -31,13 +34,14 @@ import kotlinx.serialization.json.jsonPrimitive
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 
-/** [isEnabled] reads the plugin's Enable setting. */
-internal class McpCommand(private val isEnabled: () -> Boolean = ::enabledInSettings) : CliCommand {
+/** [settings] reads the plugin's settings, once per server run. */
+internal class McpCommand(private val settings: () -> McpSettings = ::savedSettings) : CliCommand {
 	override val name = McpPlugin.ID
 	override val help = "Serve Hammer to AI agents over MCP on stdin and stdout. Turn it on in Settings first."
 
 	override suspend fun run(args: List<String>, io: CliIo, dispatcher: Dispatcher): Int {
-		if (!isEnabled()) {
+		val settings = settings()
+		if (!settings.enabled) {
 			io.stderr.writeUtf8("MCP is off. Turn it on in Hammer's Settings, under Plugins.\n")
 			return DISABLED
 		}
@@ -47,10 +51,11 @@ internal class McpCommand(private val isEnabled: () -> Boolean = ::enabledInSett
 			ServerOptions(ServerCapabilities(tools = ServerCapabilities.Tools(listChanged = false))),
 		)
 		dispatcher.operations().filter { it.agentVisible }
-			.groupBy { toolName(it.name) }
-			.forEach { (tool, operations) ->
-				if (operations.size > 1) Napier.w { "MCP tool '$tool' would serve ${operations.map { it.name }}; offering none of them" }
-				else server.addTool(tool, operations.single(), dispatcher)
+			.mapNotNull { if (settings.liveEdits) Tool(it, emptyMap()) else withoutLiveEdits(it) }
+			.groupBy { toolName(it.op.name) }
+			.forEach { (name, tools) ->
+				if (tools.size > 1) Napier.w { "MCP tool '$name' would serve ${tools.map { it.op.name }}; offering none of them" }
+				else server.addTool(name, tools.single(), dispatcher)
 			}
 
 		val closed = CompletableDeferred<Unit>()
@@ -63,17 +68,54 @@ internal class McpCommand(private val isEnabled: () -> Boolean = ::enabledInSett
 		return 0
 	}
 
-	private fun Server.addTool(tool: String, op: OperationDescriptor, dispatcher: Dispatcher) = addTool(
-		name = tool,
-		description = op.description,
+	/** An operation offered as a tool, and the values of its input fields it refuses. */
+	private class Tool(val op: OperationDescriptor, val refused: Map<String, Set<JsonElement>>)
+
+	/**
+	 * [op] without its live edits: null when its input, or a field's object, is one; otherwise with the
+	 * live values of its enum fields dropped from its schema and refused when called. Only top-level
+	 * fields are looked at.
+	 */
+	private fun withoutLiveEdits(op: OperationDescriptor): Tool? {
+		if (op.input[LIVE_EDIT_KEY] == JsonPrimitive(true)) return null
+		val properties = op.input["properties"]?.jsonObject ?: return Tool(op, emptyMap())
+		val markers = properties.mapNotNull { (field, schema) -> schema.jsonObject[LIVE_EDIT_KEY]?.let { field to it } }.toMap()
+		if (markers.values.any { it !is JsonArray }) return null
+		val refused = markers.mapValues { (_, values) -> values.jsonArray.toSet() }
+		if (refused.isEmpty()) return Tool(op, emptyMap())
+
+		val narrowed = properties.mapValues { (field, schema) ->
+			val live = refused[field] ?: return@mapValues schema
+			val allowed = schema.jsonObject.getValue("enum").jsonArray.filter { it !in live }
+			JsonObject(schema.jsonObject - LIVE_EDIT_KEY + ("enum" to JsonArray(allowed)))
+		}
+		val note = refused.keys.joinToString(" ") { field ->
+			"Live edits are off, so $field can only be ${narrowed.getValue(field).jsonObject.getValue("enum").jsonArray.joinToString(" or ")}."
+		}
+		return Tool(
+			op.copy(description = "${op.description} $note", input = JsonObject(op.input + ("properties" to JsonObject(narrowed)))),
+			refused,
+		)
+	}
+
+	private fun Server.addTool(name: String, tool: Tool, dispatcher: Dispatcher) = addTool(
+		name = name,
+		description = tool.op.description,
 		inputSchema = ToolSchema(
-			properties = op.input["properties"]?.jsonObject,
-			required = op.input["required"]?.jsonArray?.map { it.jsonPrimitive.content },
-			defs = op.input["\$defs"]?.jsonObject,
+			properties = tool.op.input["properties"]?.jsonObject,
+			required = tool.op.input["required"]?.jsonArray?.map { it.jsonPrimitive.content },
+			defs = tool.op.input["\$defs"]?.jsonObject,
 		),
 	) { request ->
+		val op = tool.op
+		val arguments = request.arguments ?: JsonObject(emptyMap())
+		val refused = tool.refused.keys.firstOrNull { arguments[it] in tool.refused.getValue(it) }
+		if (refused != null) {
+			val message = "Live edits are off in Hammer's settings, so $refused cannot be ${arguments[refused]}."
+			return@addTool CallToolResult(content = listOf(TextContent(message)), isError = true)
+		}
 		try {
-			val output = dispatcher.dispatch(op.name, request.arguments ?: JsonObject(emptyMap()))
+			val output = dispatcher.dispatch(op.name, arguments)
 			CallToolResult(content = listOf(TextContent(OperationJson.encodeToString(JsonElement.serializer(), output))))
 		} catch (e: CancellationException) {
 			throw e
@@ -107,7 +149,12 @@ internal class McpCommand(private val isEnabled: () -> Boolean = ::enabledInSett
 	}
 }
 
+internal data class McpSettings(val enabled: Boolean, val liveEdits: Boolean)
+
 // Read directly: a CLI command reaches Hammer's data only through the dispatcher, and this is the plugin's own file.
-private fun enabledInSettings(): Boolean =
-	PluginSettingsDatasource(FileSystem.SYSTEM, Toml { ignoreUnknownKeys = true })
-		.loadDeclared(McpPlugin.ID, McpPlugin.settings())[McpPlugin.ENABLED]?.jsonPrimitive?.boolean == true
+private fun savedSettings(): McpSettings {
+	val saved = PluginSettingsDatasource(FileSystem.SYSTEM, Toml { ignoreUnknownKeys = true })
+		.loadDeclared(McpPlugin.ID, McpPlugin.settings())
+	fun toggle(key: String) = saved[key]?.jsonPrimitive?.boolean == true
+	return McpSettings(enabled = toggle(McpPlugin.ENABLED), liveEdits = toggle(McpPlugin.LIVE_EDITS))
+}
