@@ -31,7 +31,6 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
-import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.getLogDirectory
 import com.darkrockstudios.apps.hammer.common.logStartupBanner
@@ -42,7 +41,6 @@ import com.darkrockstudios.apps.hammer.desktop.plugin.installedDesktopPlugins
 import com.darkrockstudios.apps.hammer.desktop.sandbox.SandboxStartup
 import com.darkrockstudios.apps.hammer.desktop.shortcuts.QuickShortcuts
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
-import com.darkrockstudios.apps.hammer.operations.plugin.PluginSettingsDatasource
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import dev.nucleusframework.application.NucleusApplicationScope
 import dev.nucleusframework.application.NucleusBackend
@@ -65,9 +63,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import okio.FileSystem
-import okio.Path.Companion.toPath
 import org.koin.core.context.GlobalContext
-import org.koin.dsl.module
 import org.koin.java.KoinJavaComponent.getKoin
 
 private fun handleArguments(args: Array<String>): DesktopLaunchArgs {
@@ -143,11 +139,7 @@ fun main(args: Array<String>) {
 	installGlobalExceptionHandler()
 
 	val compiledInPlugins = installedPlugins() + installedDesktopPlugins()
-	val runtimePlugins = RuntimePlugins(
-		fileSystem = FileSystem.SYSTEM,
-		directory = getConfigDirectory().toPath() / PluginSettingsDatasource.PLUGINS_DIRECTORY,
-		compiledInIds = compiledInPlugins.map { it.id }.toSet(),
-	)
+	val runtimePlugins = RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, compiledInPlugins)
 	val pluginRegistry = PluginRegistry(compiledInPlugins + runtimePlugins.load())
 
 	GlobalContext.startKoin {
@@ -160,7 +152,7 @@ fun main(args: Array<String>) {
 				desktopModule,
 				appModule(appScope),
 				pluginUiModule(installedPluginUis()),
-				module { single { runtimePlugins } },
+				runtimePlugins.koinModule(),
 			) + pluginRegistry.koinModules()
 		)
 	}
