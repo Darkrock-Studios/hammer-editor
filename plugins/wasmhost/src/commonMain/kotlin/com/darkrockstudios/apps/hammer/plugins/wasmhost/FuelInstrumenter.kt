@@ -417,8 +417,8 @@ class FuelInstrumenter(
 
 		const val DEFAULT_MAX_TABLE_ELEMENTS = 100_000
 
-		/** 64 MiB. */
-		const val DEFAULT_MAX_MEMORY_PAGES = 1024
+		/** [PluginManifest.DEFAULT_MEMORY_MIB]. */
+		const val DEFAULT_MAX_MEMORY_PAGES = PluginManifest.DEFAULT_MEMORY_MIB * 16
 
 		private val MAGIC = byteArrayOf(0x00, 0x61, 0x73, 0x6D)
 		private const val HEADER_SIZE = 8

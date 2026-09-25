@@ -16,6 +16,7 @@ data class PluginManifest(
 	val commands: List<Command> = emptyList(),
 	val actions: List<Action> = emptyList(),
 	val diagnostics: List<Diagnostics> = emptyList(),
+	val limits: Limits = Limits(),
 ) {
 	@Serializable
 	data class Permissions(
@@ -69,8 +70,16 @@ data class PluginManifest(
 		val label: String,
 	)
 
+	@Serializable
+	data class Limits(
+		/** MiB of linear memory the module may grow to, from 1 to [MAX_MEMORY_MIB]. */
+		val memory: Int = DEFAULT_MEMORY_MIB,
+	)
+
 	companion object {
 		const val API_VERSION = 1
+		const val DEFAULT_MEMORY_MIB = 64
+		const val MAX_MEMORY_MIB = 1024
 		const val INPUT_MARKDOWN = "markdown"
 		const val INPUT_PROSE = "prose"
 		const val OUTPUT_MESSAGE = "message"

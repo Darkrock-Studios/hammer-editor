@@ -885,8 +885,23 @@ sentence starting in lower case. The rules flag only what they are sure of
 | Text diagnostics | The manifest declares one check; the host calls the module's `diagnose` export with changed paragraphs and underlines what it returns |
 | Offsets across the boundary | Byte offsets from C, turned into the editor's UTF-16 ranges by the host |
 
-It is a proof of the seam more than a grammar checker. A real engine, such as
-Harper compiled to Wasm, can replace it behind the same export.
+It is a proof of the seam more than a grammar checker.
+
+### English grammar (`english-grammar`)
+
+Built, as a runtime plugin in Rust: `rust/english-grammar` in
+`hammer-plugins`, on [Harper](https://github.com/Automattic/harper), with
+Harper's spell check turned off. English only; the project's language picks
+the dialect (American, British, Canadian, Australian, or Indian).
+
+Harper builds its dictionary and rules on start-up, which takes 36 seconds
+under chasm (0.6 natively) and about 140 MB of memory. So the build runs that
+start-up under Wizer and ships the result: a 104 MB module, 18 MB zipped,
+declaring `limits.memory = 256`. Loading it takes about 1.5 seconds and a
+paragraph about 0.4. Loading briefly needs several hundred MB of JVM heap, for
+the copies of the module the host makes on the way; about 90 MB stays. That is
+likely more than Android's app heap allows; untried there. Loading the module
+with fewer copies would bring it down.
 
 ### Gaps these expose
 
@@ -961,6 +976,18 @@ holds all it allocates: the Kotlin style report on a 300,000-word novel needs
 after a call is dropped and loaded afresh when next used. The cap needs the JVM:
 on iOS the heap is uncapped.
 
+Rust has a kit of its own in `hammer-plugins` (`rust/hammer`): Hammer's
+imports, operations, and the cache, the `diagnose` request and reply types,
+character to byte offsets, an optional `getrandom` backend on the host's
+`random_get`, panics reported as the call's error, and an allocator that
+zeroes freed memory. Its `tools/finish.py` strips what crates written for
+the browser leave behind (wasm-bindgen's exports, and a trap in place of any of
+its imports still reachable) and fails the build if the module imports
+anything Hammer does not offer. A plugin whose start-up is slow can run it at
+build time under [Wizer](https://github.com/bytecodealliance/wizer), which
+saves the memory start-up leaves into the module; the zeroing allocator keeps
+what start-up threw away out of it.
+
 ### Package
 
 A `.hammerplugin` file is a zip holding `manifest.toml`, `plugin.wasm`, and,
@@ -988,7 +1015,14 @@ label = "Word frequency report"
 [[commands]]                  # optional; see Commands
 name = "wordfreq"
 help = "Counts words in stdin."
+
+[limits]                      # optional
+memory = 64                   # MiB of linear memory, 1 to 1024; 64 by default
 ```
+
+A module may be as large as its memory limit plus 32 MiB, since a
+pre-initialized module carries its memory's data. The install dialog says when
+a plugin asks for more memory than the default.
 
 Each `permissions.operations` entry is an operation's name, or a scope with
 `read` or `write`, such as `content:read`, which covers every operation of
@@ -1129,7 +1163,7 @@ A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
   binary before loading it (`FuelInstrumenter`): a mutable i64 global,
   decremented on every function entry and loop iteration, traps the module at
   zero. The host sets it before each call. The same pass caps linear memory
-  (64 MiB) and tables (100,000 entries), and rejects SIMD, threads, and shared
+  (the manifest's `limits.memory`, 64 MiB by default) and tables (100,000 entries), and rejects SIMD, threads, and shared
   or 64-bit memories. A module cannot call itself again from inside a call.
   Setting the global to zero from another thread does not stop a running call:
   the interpreter never sees the write. User-initiated cancellation therefore
