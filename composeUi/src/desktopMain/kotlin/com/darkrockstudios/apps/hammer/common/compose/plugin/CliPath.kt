@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.compose.plugin
 
+import com.darkrockstudios.apps.hammer.base.DistributionChannel
 import com.darkrockstudios.apps.hammer.common.HostOs
 import com.darkrockstudios.apps.hammer.common.IS_APP_STORE
 import com.darkrockstudios.apps.hammer.common.hostOs
@@ -11,6 +12,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.nio.file.attribute.PosixFilePermissions
+import java.util.Base64
 import kotlin.io.path.exists
 import kotlin.io.path.readText
 
@@ -19,9 +21,21 @@ sealed interface CliPath {
 	/** The package puts it there already, as [command]. */
 	data class Provided(val command: String) : CliPath
 
-	/** Hammer can write a script at [file] that runs [launcher]; writing it may take an admin password. */
-	data class Script(val file: Path, val launcher: List<String>, val needsAdmin: Boolean) : CliPath {
-		val content: String = "#!/bin/sh\n$MARKER\nexec ${launcher.joinToString(" ", transform = ::shellQuoted)} \"\$@\"\n"
+	/**
+	 * Hammer can write a script at [file] that runs [launcher]; writing it may take an admin password.
+	 * A [windows] one is a batch file, whose folder Hammer also adds to the user's PATH.
+	 */
+	data class Script(
+		val file: Path,
+		val launcher: List<String>,
+		val needsAdmin: Boolean,
+		val windows: Boolean = false,
+	) : CliPath {
+		val content: String = if (windows) {
+			"@echo off\r\nrem $MARKER\r\n${launcher.joinToString(" ", transform = ::batchQuoted)} %*\r\n"
+		} else {
+			"#!/bin/sh\n$MARKER\nexec ${launcher.joinToString(" ", transform = ::shellQuoted)} \"\$@\"\n"
+		}
 
 		/** Whether [file]'s directory is on [path], a PATH value, so `hammer` runs once the script is written. */
 		fun onPath(path: String?): Boolean =
@@ -43,25 +57,36 @@ sealed interface CliPath {
 			env: Map<String, String> = System.getenv(),
 			appPath: String? = System.getProperty("jpackage.app-path"),
 			appStore: Boolean = IS_APP_STORE,
+			channel: DistributionChannel = DistributionChannel.current,
 			home: Path = Paths.get(System.getProperty("user.home")),
 		): CliPath {
 			env["SNAP_NAME"]?.let { return Provided(it) }
-			env["FLATPAK_ID"]?.let { return Script(home / ".local/bin/hammer", listOf("flatpak", "run", it), needsAdmin = false) }
+			if (os == HostOs.Windows && channel == DistributionChannel.MICROSOFT_STORE) return Provided("hammer")
+			val launcher = cliLauncher(env, appPath, os, channel)
+			if (env["FLATPAK_ID"] != null || env["APPIMAGE"] != null) {
+				return Script(home / ".local/bin/hammer", launcher, needsAdmin = false)
+			}
 			if (appPath == null) return Unavailable
 			return when (os) {
-				HostOs.Linux -> Script(home / ".local/bin/hammer", listOf(appPath), needsAdmin = false)
+				HostOs.Linux -> Script(home / ".local/bin/hammer", launcher, needsAdmin = false)
 				HostOs.MacOs -> {
-					val script = Script(Paths.get("/usr/local/bin/hammer"), listOf(appPath), needsAdmin = true)
+					val script = Script(Paths.get("/usr/local/bin/hammer"), launcher, needsAdmin = true)
 					// The sandbox keeps the app from writing outside its container, with or without a password.
 					if (appStore) Manual(script.manualCommand()) else script
 				}
-				HostOs.Windows, HostOs.Other -> Unavailable
+				HostOs.Windows -> env["LOCALAPPDATA"]?.let { local ->
+					Script(Paths.get(local, "Hammer", "bin", "hammer.cmd"), launcher, needsAdmin = false, windows = true)
+				} ?: Unavailable
+				HostOs.Other -> Unavailable
 			}
 		}
 
 		private operator fun Path.div(other: String): Path = resolve(other)
 	}
 }
+
+// cmd expands %VAR% even inside quotes; a path cannot contain a double quote.
+private fun batchQuoted(word: String): String = "\"" + word.replace("%", "%%") + "\""
 
 /** A command that writes this script from a terminal. */
 fun CliPath.Script.manualCommand(): String {
@@ -89,10 +114,12 @@ enum class CliPathState {
 
 /**
  * Writes and removes a [CliPath.Script]. [runAsAdmin] runs a shell command with an administrator's
- * rights, asking for their password, and says whether it succeeded.
+ * rights, asking for their password, and says whether it succeeded. [userPath] is the Windows user's
+ * own PATH, which a Windows script's folder is added to and removed from.
  */
 class CliPathInstaller(
 	private val runAsAdmin: (shellCommand: String) -> Boolean = ::runAsMacAdmin,
+	private val userPath: WindowsUserPath = PowerShellUserPath,
 ) {
 	fun state(script: CliPath.Script): CliPathState {
 		val file = script.file
@@ -121,6 +148,7 @@ class CliPathInstaller(
 		} finally {
 			Files.deleteIfExists(staged)
 		}
+		if (script.windows) withPathEntry(userPath.read(), script.file.parent.toString())?.let(userPath::write)
 	}
 
 	/** Removes the script if it is Hammer's. Throws [IOException] when that fails. */
@@ -129,13 +157,16 @@ class CliPathInstaller(
 		val removed = tryDirectly { Files.deleteIfExists(script.file) } ||
 			(script.needsAdmin && runAsAdmin("rm -f ${shellQuoted(script.file.toString())}"))
 		if (!removed) throw IOException("Could not remove ${script.file}")
+		if (script.windows) withoutPathEntry(userPath.read(), script.file.parent.toString())?.let(userPath::write)
 	}
 
 	private fun place(staged: Path, file: Path) {
 		Files.createDirectories(file.parent)
 		val next = file.resolveSibling(".${file.fileName}.partial")
 		Files.copy(staged, next, StandardCopyOption.REPLACE_EXISTING)
-		Files.setPosixFilePermissions(next, PosixFilePermissions.fromString("rwxr-xr-x"))
+		if ("posix" in next.fileSystem.supportedFileAttributeViews()) {
+			Files.setPosixFilePermissions(next, PosixFilePermissions.fromString("rwxr-xr-x"))
+		}
 		Files.move(next, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
 	}
 
@@ -152,6 +183,73 @@ class CliPathInstaller(
 		true
 	} catch (e: AccessDeniedException) {
 		false
+	}
+}
+
+/** [path], a PATH value, with [dir] added at the end; null when it is there already. */
+fun withPathEntry(path: String, dir: String): String? {
+	val entries = pathEntries(path)
+	if (entries.any { samePathEntry(it, dir) }) return null
+	return (entries + dir).joinToString(";")
+}
+
+/** [path], a PATH value, without [dir]; null when it was not there. */
+fun withoutPathEntry(path: String, dir: String): String? {
+	val entries = pathEntries(path)
+	val kept = entries.filterNot { samePathEntry(it, dir) }
+	return if (kept.size == entries.size) null else kept.joinToString(";")
+}
+
+private fun pathEntries(path: String) = path.split(';').filter { it.isNotBlank() }
+
+private fun samePathEntry(entry: String, dir: String) =
+	entry.trim().trimEnd('\\').equals(dir.trimEnd('\\'), ignoreCase = true)
+
+/** The PATH the Windows user sets for themselves, as stored, before `%VARIABLES%` are expanded. */
+interface WindowsUserPath {
+	fun read(): String
+
+	/** Stores [value], and tells running programs, such as Explorer, so new terminals see it. */
+	fun write(value: String)
+}
+
+private object PowerShellUserPath : WindowsUserPath {
+	override fun read(): String = run(
+		"""
+		[Console]::OutputEncoding = [Text.Encoding]::UTF8
+		${'$'}key = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Environment')
+		if (${'$'}key) { [Console]::Out.Write(${'$'}key.GetValue('Path', '', [Microsoft.Win32.RegistryValueOptions]::DoNotExpandEnvironmentNames)) }
+		""".trimIndent()
+	)
+
+	override fun write(value: String) {
+		val store = if (value.isEmpty()) {
+			"${'$'}key.DeleteValue('Path', ${'$'}false)"
+		} else {
+			"${'$'}key.SetValue('Path', '${value.replace("'", "''")}', [Microsoft.Win32.RegistryValueKind]::ExpandString)"
+		}
+		run(
+			"""
+			${'$'}ErrorActionPreference = 'Stop'
+			${'$'}key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey('Environment')
+			$store
+			${'$'}key.Close()
+			Add-Type -Namespace Hammer -Name Native -MemberDefinition '[DllImport("user32.dll", CharSet = CharSet.Unicode)] public static extern IntPtr SendMessageTimeout(IntPtr window, uint message, UIntPtr wParam, string lParam, uint flags, uint timeout, out UIntPtr result);'
+			${'$'}result = [UIntPtr]::Zero
+			[void][Hammer.Native]::SendMessageTimeout([IntPtr]0xffff, 0x1A, [UIntPtr]::Zero, 'Environment', 2, 5000, [ref]${'$'}result)
+			""".trimIndent()
+		)
+	}
+
+	// Encoded, so the script reaches PowerShell intact whatever quotes and spaces it holds. Standard
+	// error stays apart, since PowerShell writes progress records there that are no part of the PATH.
+	private fun run(script: String): String {
+		val encoded = Base64.getEncoder().encodeToString(script.toByteArray(Charsets.UTF_16LE))
+		val process = ProcessBuilder("powershell.exe", "-NoProfile", "-NonInteractive", "-EncodedCommand", encoded).start()
+		val output = process.inputStream.readAllBytes().toString(Charsets.UTF_8)
+		val errors = process.errorStream.readAllBytes().toString(Charsets.UTF_8)
+		if (process.waitFor() != 0) throw IOException("Could not change the user PATH: ${errors.trim()}")
+		return output.trimEnd('\r', '\n')
 	}
 }
 

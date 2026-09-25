@@ -1,3 +1,4 @@
+import com.darkrockstudios.build.addWindowsConsoleLauncher
 import com.darkrockstudios.build.registerLinuxDistributionTasks
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import java.util.zip.ZipFile
@@ -347,6 +348,18 @@ val signMacAppResources = tasks.register("signMacAppResources") {
 		}.result.get()
 	}
 }
+// jpackage gives the app one launcher, and a GUI one shows no output in a terminal, so the command
+// line gets a console twin of it. The installers and the MSIX are built from this app image.
+tasks.matching { it.name == "createDistributable" || it.name == "createReleaseDistributable" }.configureEach {
+	doLast {
+		if (org.gradle.internal.os.OperatingSystem.current().isWindows) {
+			val variant = if (name == "createReleaseDistributable") "main-release" else "main"
+			val appImage = project.layout.buildDirectory.dir("installers/$variant/app/hammer").get().asFile
+			addWindowsConsoleLauncher(appImage, launcher = "hammer", name = "hammer-cli")
+		}
+	}
+}
+
 tasks.matching { it.name == "packageReleasePkg" }.configureEach {
 	dependsOn(signMacAppResources)
 }

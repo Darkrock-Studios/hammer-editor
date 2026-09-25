@@ -7,6 +7,7 @@
 	<string name="cli_path_off_path">%1$s is not on your PATH yet. Log out and back in, or add it to PATH in your shell's profile.</string>
 	<string name="cli_path_provided">Run Hammer from a terminal as %1$s.</string>
 	<string name="cli_path_manual">To run Hammer from a terminal as hammer, run this once in Terminal:</string>
+	<string name="cli_path_new_terminals">Its folder is on your PATH. Terminals already open need restarting to find it.</string>
 	<string name="cli_path_admin">Adding it asks for an administrator password.</string>
 	<string name="cli_path_add">Add hammer to PATH</string>
 	<string name="cli_path_update">Update hammer on PATH</string>
