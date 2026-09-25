@@ -15,11 +15,12 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineSection
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginSettingsPane
+import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.PluginSettingsSection
 import com.darkrockstudios.apps.hammer.settings_plugins_header
 
-private val previewPane = PluginSettingsPane(Res.string.settings_plugins_header) {
+private val previewPane = PluginSettingsPane({ Res.string.settings_plugins_header.get() }) {
 	var enabled by remember { mutableStateOf(true) }
 	HdHairlineToggleRow(
 		checked = enabled,

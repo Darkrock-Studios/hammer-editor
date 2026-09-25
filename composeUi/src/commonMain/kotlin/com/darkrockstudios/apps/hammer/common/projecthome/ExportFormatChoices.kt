@@ -25,14 +25,14 @@ private val builtInLabels: Map<String, StringResource> = mapOf(
 	BuiltInExportFormat.MARKDOWN to Res.string.project_home_export_format_markdown,
 )
 
-/** A format with no label, built-in or from its plugin, shows its file extension. */
+/** A format with no label, built-in, from its plugin's UI half, or its own, shows its file extension. */
 @Composable
 internal fun exportFormatChoices(
 	exporters: List<StoryExporter>,
 	pluginLabels: Map<String, StringResource>,
 ): List<ExportFormatChoice> = exporters.map { exporter ->
 	val label = builtInLabels[exporter.formatId] ?: pluginLabels[exporter.formatId]
-	ExportFormatChoice(exporter.formatId, label?.get() ?: exporter.fileExtension.uppercase())
+	ExportFormatChoice(exporter.formatId, label?.get() ?: exporter.label ?: exporter.fileExtension.uppercase())
 }
 
 @Composable
