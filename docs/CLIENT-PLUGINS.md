@@ -666,7 +666,9 @@ MCP is a runtime plugin, in hammer-plugins' `kotlin/mcp`, written in
 Kotlin/Wasm. The host provides only generic pieces: plugin commands, scope
 grants, and `ops.list` filtered to the grants.
 
-Its manifest requests `content:read` and `content:write`, and declares a
+Its manifest requests `content:read` and `content:write`, the deletes of
+everything inside a project by name (`scene.delete`, `draft.delete`,
+`note.delete`, `entry.delete`, `timeline.delete`, `idea.delete`), and declares a
 `mcp` command. An MCP client launches `hammer mcp` as a child process and
 speaks JSON-RPC over stdio, one message per line; the host hands each line to
 the plugin (see [Commands](#commands)). The plugin answers `initialize`,
@@ -688,6 +690,13 @@ off by default. While off, it drops tools whose input is marked
 from enum fields such as `scene.write`'s `mode`, and refuses them if sent
 anyway, so agents' scene edits land as drafts. Settings are read for every
 message, so a change applies to a running server.
+
+**Deletes.** A second setting, "Let AI agents delete things", also off by
+default, offers the granted deletes as tools, with MCP's `destructiveHint`, so
+a client can warn before running one; while off they are not tools at all.
+`project.delete` is never requested. Granting deletes by name at install, the
+setting, and the client's own prompt before a tool call stand in for the CLI's
+`--confirm`.
 
 Installing and enabling the plugin is what turns MCP on. Settings shows the
 command line to give an MCP client.
