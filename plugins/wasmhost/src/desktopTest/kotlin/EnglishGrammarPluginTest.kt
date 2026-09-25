@@ -17,6 +17,8 @@ import org.koin.core.context.GlobalContext
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import java.io.File
+import java.lang.management.ManagementFactory
+import java.lang.management.MemoryType
 import kotlin.coroutines.CoroutineContext
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -67,9 +69,12 @@ class EnglishGrammarPluginTest {
 
 	@Test
 	fun `grammar is checked in English and nothing else`() {
+		val heap = ManagementFactory.getMemoryPoolMXBeans().filter { it.type == MemoryType.HEAP }
+		heap.forEach { it.resetPeakUsage() }
 		val loaded = measureTimedValue { check }
 		val first = measureTimedValue { issues("This is a apple, and the the store is closed.") }
-		println("Install: ${loaded.duration}, first check: ${first.duration}")
+		val peak = heap.sumOf { it.peakUsage.used } / (1024 * 1024)
+		println("Install: ${loaded.duration}, first check: ${first.duration}, peak heap: $peak MB")
 		assertTrue("a -> an" in first.value, first.value.toString())
 		assertTrue("the the -> the" in first.value, first.value.toString())
 
