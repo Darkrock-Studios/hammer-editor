@@ -1,0 +1,61 @@
+<div class="story-info-panel story-info-panel--kudos" id="kudos-panel"{{^showKudosPanel}} hidden{{/showKudosPanel}}{{#kudosPanelOob}} hx-swap-oob="true"{{/kudosPanelOob}}>
+{{#showKudosPanel}}
+	<div class="info-panel-header">
+		<span class="info-panel-icon info-panel-icon--kudos"><i class="fas fa-hands-clapping"></i></span>
+		<span class="info-panel-title">{{msg.story_kudos_title}}</span>
+	</div>
+	<div class="info-panel-content">
+		{{#hasKudos}}
+			<div class="reader-total">
+				<span class="reader-total__value">{{kudosGivers}}</span>
+				<span class="reader-total__label">{{kudosGiversLabel}}</span>
+			</div>
+			{{#hasCraftKudos}}
+				<p class="kudos-tally__heading">{{msg.story_kudos_craft_heading}}</p>
+				<ul class="kudos-tally">
+					{{#craftKudos}}
+						{{> story-kudos-tally-row}}
+					{{/craftKudos}}
+				</ul>
+			{{/hasCraftKudos}}
+			{{#hasReactionKudos}}
+				<p class="kudos-tally__heading">{{msg.story_kudos_reaction_heading}}</p>
+				<ul class="kudos-tally kudos-tally--reaction">
+					{{#reactionKudos}}
+						{{> story-kudos-tally-row}}
+					{{/reactionKudos}}
+				</ul>
+			{{/hasReactionKudos}}
+			{{#hasPublicKudos}}
+				<p class="kudos-tally__legend">
+					<i class="fa-solid fa-stamp" aria-hidden="true"></i> {{msg.story_kudos_public_legend}}
+				</p>
+			{{/hasPublicKudos}}
+		{{/hasKudos}}
+		{{^hasKudos}}
+			<div class="kudos-panel__empty">
+				<i class="fa-solid fa-hands-clapping" aria-hidden="true"></i>
+				<p>{{msg.story_kudos_empty}}</p>
+			</div>
+		{{/hasKudos}}
+
+		<label class="kudos-panel__toggle publish-toggle" for="kudos-enabled-input">
+			<span class="kudos-panel__toggle-text">{{msg.story_kudos_enabled_label}}</span>
+			<input type="checkbox"
+				   class="publish-toggle-checkbox"
+				   id="kudos-enabled-input"
+				   name="enabled"
+				   value="true"
+				   {{#kudosEnabled}}checked{{/kudosEnabled}}
+				   hx-post="/story/{{projectNameForUrl}}/kudos-enabled"
+				   hx-trigger="change"
+				   hx-target="#kudos-panel"
+				   hx-swap="outerHTML">
+			<span class="publish-toggle-track"><span class="publish-toggle-thumb"></span></span>
+		</label>
+		{{^kudosEnabled}}
+			<p class="kudos-panel__note">{{msg.story_kudos_disabled_note}}</p>
+		{{/kudosEnabled}}
+	</div>
+{{/showKudosPanel}}
+</div>

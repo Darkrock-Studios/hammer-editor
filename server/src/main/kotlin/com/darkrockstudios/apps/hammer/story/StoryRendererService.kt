@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.base.ProjectId
 import com.darkrockstudios.apps.hammer.base.http.ApiProjectEntity
 import com.darkrockstudios.apps.hammer.base.http.ApiSceneType
 import com.darkrockstudios.apps.hammer.base.http.EntityHash
+import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ProjectEntityDatasource
 import com.darkrockstudios.apps.hammer.utilities.MarkdownService
@@ -57,7 +58,7 @@ class StoryRendererService(
 			// Calculate total word count from scene content only (not group names)
 			val totalWordCount = scenes
 				.filter { it.sceneType == ApiSceneType.Scene }
-				.sumOf { WordCountUtils.countWords(it.content) }
+				.sumOf { countWords(it.content) }
 
 			StoryRenderResult.Success(
 				projectName = projectDef.name,
@@ -125,7 +126,7 @@ class StoryRendererService(
 			if (child.sceneType == ApiSceneType.Scene) {
 				if (child.content.isNotBlank()) {
 					builder.appendScene(child.content)
-					wordCount += WordCountUtils.countWords(child.content)
+					wordCount += countWords(child.content)
 				}
 			} else {
 				wordCount += writeGroupChildren(builder, child.id, scenesByParent)
@@ -341,7 +342,7 @@ class StoryRendererService(
 		val processedScenes = selected.map { scene ->
 			ProcessedScene(
 				scene = scene,
-				wordCount = WordCountUtils.countWords(scene.content),
+				wordCount = countWords(scene.content),
 				markdown = scene.content
 			)
 		}
@@ -602,7 +603,7 @@ class StoryRendererService(
 				} else {
 					"## ${targetScene.name}\n"
 				}
-				content to WordCountUtils.countWords(targetScene.content)
+				content to countWords(targetScene.content)
 			} else {
 				// Group - collect all child scenes' content
 				buildGroupMarkdown(targetScene, scenesByParent)

@@ -1,7 +1,6 @@
-package repositories.projectstatistics
+package com.darkrockstudios.apps.hammer.base.markdown
 
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.countWords
-import org.junit.jupiter.api.Test
+import kotlin.test.Test
 import kotlin.test.assertEquals
 
 class WordCountTest {
@@ -50,5 +49,34 @@ class WordCountTest {
 	@Test
 	fun `a non-breaking space separates words`() {
 		assertEquals(2, countWords("hello world"))
+	}
+
+	@Test
+	fun `horizontal rule is not a word`() {
+		assertEquals(2, countWords("one\n\n---\n\ntwo"))
+		assertEquals(0, countWords("***"))
+		assertEquals(0, countWords("___"))
+	}
+
+	@Test
+	fun `heading marker is not a word`() {
+		assertEquals(1, countWords("# Heading"))
+	}
+
+	@Test
+	fun `bullet markers are not words`() {
+		assertEquals(2, countWords("- a\n- b"))
+	}
+
+	@Test
+	fun `blockquote marker is not a word`() {
+		assertEquals(2, countWords("> quoted text"))
+	}
+
+	@Test
+	fun `attached punctuation stays part of the word`() {
+		assertEquals(1, countWords("**bold**"))
+		assertEquals(1, countWords("don't"))
+		assertEquals(1, countWords("end."))
 	}
 }

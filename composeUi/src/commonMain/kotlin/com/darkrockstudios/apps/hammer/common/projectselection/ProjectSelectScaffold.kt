@@ -1,15 +1,14 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.ExperimentalMaterialApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
-import androidx.compose.material3.windowsizeclass.calculateWindowSizeClass
+import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.getValue
@@ -23,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.compose.defaultScaffold
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdNavRail
+import com.darkrockstudios.apps.hammer.common.compose.rememberWindowSizeClass
 import com.darkrockstudios.apps.hammer.common.compose.rootElement
 import com.darkrockstudios.apps.hammer.common.util.getAppVersionString
 import com.darkrockstudios.cairn.CairnAboutOverlay
@@ -30,18 +30,17 @@ import com.darkrockstudios.cairn.CairnAppId
 import com.darkrockstudios.cairn.CairnConfig
 
 @OptIn(
-	ExperimentalMaterial3WindowSizeClassApi::class,
 	ExperimentalMaterialApi::class,
 	ExperimentalComposeApi::class,
 )
 @Composable
 fun ProjectSelectScaffold(component: ProjectSelection) {
-	val windowSizeClass = calculateWindowSizeClass()
 	var showStudio by remember { mutableStateOf(false) }
 
 	// The overlay is hoisted above the nav rail/bottom bar so its ceremony
 	// covers the whole window, not just the content pane.
-	Box(modifier = Modifier.fillMaxSize()) {
+	BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+		val windowSizeClass = rememberWindowSizeClass(constraints)
 		when (windowSizeClass.widthSizeClass) {
 			WindowWidthSizeClass.Compact -> CompactNavigation(
 				component = component,

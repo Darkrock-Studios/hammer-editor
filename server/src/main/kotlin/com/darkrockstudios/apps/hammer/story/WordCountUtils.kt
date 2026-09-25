@@ -1,13 +1,6 @@
 package com.darkrockstudios.apps.hammer.story
 
 object WordCountUtils {
-	private val wordsRegex = "\\s+".toRegex()
-
-	fun countWords(text: String): Int {
-		val trimmed = text.trim()
-		return if (trimmed.isEmpty()) 0 else trimmed.split(wordsRegex).size
-	}
-
 	fun estimateReadingTimeMinutes(wordCount: Int, wordsPerMinute: Int = 225): Int {
 		return ((wordCount + wordsPerMinute - 1) / wordsPerMinute).coerceAtLeast(1)
 	}

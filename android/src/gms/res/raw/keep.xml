@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+	Thar be dragons: only the Wearable Data Layer reads this array, by name, at runtime, so
+	resource shrinking drops it unless it is kept here. A keep attribute is honoured only in a
+	res/raw keep file; one on the values file itself is silently ignored, and the watch then
+	never finds the phone.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+	tools:keep="@array/android_wear_capabilities" />

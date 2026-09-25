@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.requireUser
 import com.darkrockstudios.apps.hammer.frontend.utils.respondHtmlWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.respondTemplateWithToast
 import com.darkrockstudios.apps.hammer.frontend.utils.sceneTreeModel
+import com.darkrockstudios.apps.hammer.kudos.StoryKudosRepository
 import com.darkrockstudios.apps.hammer.monitoring.StoryReaderRepository
 import com.darkrockstudios.apps.hammer.project.ProjectDefinition
 import com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository
@@ -55,6 +56,7 @@ fun Route.storyPage(
 	accountsRepository: AccountsRepository,
 	reviewRepository: com.darkrockstudios.apps.hammer.review.ReviewRepository,
 	storyReaderRepository: StoryReaderRepository,
+	storyKudosRepository: StoryKudosRepository,
 	serverProjectDataRepository: ServerProjectDataRepository,
 	projectDao: ProjectDao,
 	clock: kotlin.time.Clock,
@@ -186,6 +188,9 @@ fun Route.storyPage(
 								"hasScenes" to sceneHierarchy.isNotEmpty()
 							)
 						)
+						if (numericProjectId != null) {
+							model.putAll(call.kudosPanelModel(storyKudosRepository, numericProjectId, isPublished, model))
+						}
 						call.respond(MustacheContent("story.mustache", model))
 					}
 
@@ -350,12 +355,46 @@ fun Route.storyPage(
 					)
 				)
 
-				respondTemplateWithToast(
-					templatePath = "partials/story-publish.mustache",
-					model = model,
+				// Publishing is what makes the Kudos panel relevant, so it swaps in out of band.
+				val kudosPanelHtml = projectDao.getProjectIdOrNull(session.userId, projectId)?.let { numericId ->
+					model.putAll(call.kudosPanelModel(storyKudosRepository, numericId, newIsPublished, model))
+					model["kudosPanelOob"] = true
+					renderTemplate("partials/story-kudos-panel.mustache", model)
+				}.orEmpty()
+
+				respondHtmlWithToast(
+					content = renderTemplate("partials/story-publish.mustache", model) + kudosPanelHtml,
 					message = toastMessage,
 					toast = toastType
 				)
+			}
+
+			hx.post("/kudos-enabled") {
+				val session = call.sessions.requireUser()
+				val projectNameParam = call.parameters["projectName"]
+				if (projectNameParam.isNullOrBlank()) {
+					call.respond(HttpStatusCode.BadRequest)
+					return@post
+				}
+
+				val project = projectsRepository.findProjectByUrlSegment(session.userId, projectNameParam)
+				val numericProjectId = project?.let {
+					projectDao.getProjectIdOrNull(session.userId, ProjectId(it.uuid))
+				}
+				if (project == null || numericProjectId == null) {
+					call.respond(HttpStatusCode.NotFound)
+					return@post
+				}
+
+				val enabled = call.receiveParameters()["enabled"] == "true"
+				storyKudosRepository.setEnabled(numericProjectId, enabled)
+
+				val model = call.withDefaults(
+					mapOf("projectNameForUrl" to ProjectName.projectSegment(project.name, project.uuid))
+				)
+				val isPublished = projectAccessRepository.isPublished(session.userId, ProjectId(project.uuid))
+				model.putAll(call.kudosPanelModel(storyKudosRepository, numericProjectId, isPublished, model))
+				call.respond(MustacheContent("partials/story-kudos-panel.mustache", model))
 			}
 
 			hx.get("/share-dialog") {

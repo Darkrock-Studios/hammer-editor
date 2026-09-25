@@ -22,6 +22,7 @@ import com.darkrockstudios.apps.hammer.frontend.utils.canonicalUrl
 import com.darkrockstudios.apps.hammer.frontend.utils.localizedMsg
 import com.darkrockstudios.apps.hammer.frontend.utils.msg
 import com.darkrockstudios.apps.hammer.frontend.utils.withMessages
+import com.darkrockstudios.apps.hammer.kudos.StoryKudosRepository
 import com.darkrockstudios.apps.hammer.monitoring.ActivityType
 import com.darkrockstudios.apps.hammer.monitoring.ErrorRepository
 import com.darkrockstudios.apps.hammer.monitoring.MetricsRepository
@@ -101,6 +102,7 @@ fun Route.frontend() {
 	val userActivityRepository: UserActivityRepository by inject()
 	val storyReaderRepository: StoryReaderRepository by inject()
 	val storyReaderCollector: StoryReaderCollector by inject()
+	val storyKudosRepository: StoryKudosRepository by inject()
 	val serverProjectDataRepository: com.darkrockstudios.apps.hammer.project.ServerProjectDataRepository by inject()
 	val recurringTaskRegistry: com.darkrockstudios.apps.hammer.scheduling.RecurringTaskRegistry by inject()
 	val clock: kotlin.time.Clock by inject()
@@ -152,7 +154,7 @@ fun Route.frontend() {
 		projectsRepository,
 		accountsRepository,
 		reviewRepository,
-		storyReaderRepository, serverProjectDataRepository, projectDao, clock,
+		storyReaderRepository, storyKudosRepository, serverProjectDataRepository, projectDao, clock,
 	)
 	reviewFrontend(
 		reviewRepository = reviewRepository,
@@ -175,6 +177,13 @@ fun Route.frontend() {
 		projectsRepository,
 		serverProjectDataRepository,
 		serverConfig,
+	)
+	storyKudosRoutes(
+		accountsRepository,
+		projectsRepository,
+		projectAccessRepository,
+		projectDao,
+		storyKudosRepository,
 	)
 	if (serverConfig.richLinkPreviews) {
 		val ogImageService by inject<OgImageService>()

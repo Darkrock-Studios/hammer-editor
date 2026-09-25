@@ -1,4 +1,6 @@
--dontobfuscate
+# Line numbers for retraced stack traces; the mapping file is uploaded to Play by fastlane.
+-keepattributes SourceFile,LineNumberTable
+-renamesourcefileattribute SourceFile
 
 # Keep exception class names and their constructors for proper stack traces
 -keep class * extends java.lang.Exception { *; }

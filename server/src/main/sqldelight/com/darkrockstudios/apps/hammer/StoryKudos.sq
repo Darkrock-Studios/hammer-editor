@@ -1,0 +1,72 @@
+import kotlin.time.Instant;
+
+-- Kudos readers leave on a publicly published story: one row per (story, reader, chip).
+-- The giver's id is only for dedup, editing picks, and purge; authors see aggregate
+-- counts, never who gave what. `kind` is a stable key from the KudosKind enum.
+CREATE TABLE story_kudos (
+    project_id BIGINT NOT NULL,
+    user_id BIGINT NOT NULL,
+    kind TEXT NOT NULL,
+    created_at TIMESTAMPTZ AS Instant NOT NULL DEFAULT NOW(),
+    CONSTRAINT story_kudos_kind_len CHECK (length(kind) BETWEEN 1 AND 32),
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE,
+    FOREIGN KEY(user_id) REFERENCES account(id) ON DELETE CASCADE,
+    PRIMARY KEY (project_id, user_id, kind)
+);
+
+CREATE INDEX story_kudos_user_idx ON story_kudos (user_id);
+
+-- A row here means the author turned kudos off for the story.
+CREATE TABLE story_kudos_opt_out (
+    project_id BIGINT NOT NULL PRIMARY KEY,
+    FOREIGN KEY(project_id) REFERENCES project(id) ON DELETE CASCADE
+);
+
+kindsForUser:
+SELECT kind FROM story_kudos
+WHERE project_id = :projectId AND user_id = :userId;
+
+insertKudos:
+INSERT INTO story_kudos(project_id, user_id, kind)
+VALUES (:projectId, :userId, :kind)
+ON CONFLICT (project_id, user_id, kind) DO NOTHING;
+
+deleteKinds:
+DELETE FROM story_kudos
+WHERE project_id = :projectId AND user_id = :userId AND kind IN :kinds;
+
+-- Soft-deleted givers are left out until the purge removes their rows. `kinds` is the
+-- current chip set, so rows for retired chips never count.
+countsForProject:
+SELECT k.kind, count(*) AS givers
+FROM story_kudos k
+JOIN account a ON a.id = k.user_id
+WHERE k.project_id = :projectId AND a.deleted_at IS NULL AND k.kind IN :kinds
+GROUP BY k.kind;
+
+giverCountForProject:
+SELECT count(DISTINCT k.user_id)
+FROM story_kudos k
+JOIN account a ON a.id = k.user_id
+WHERE k.project_id = :projectId AND a.deleted_at IS NULL AND k.kind IN :kinds;
+
+isOptedOut:
+SELECT EXISTS(SELECT 1 FROM story_kudos_opt_out WHERE project_id = :projectId);
+
+optOut:
+INSERT INTO story_kudos_opt_out(project_id) VALUES (:projectId)
+ON CONFLICT (project_id) DO NOTHING;
+
+optIn:
+DELETE FROM story_kudos_opt_out WHERE project_id = :projectId;
+
+deleteAllGivenByUser:
+DELETE FROM story_kudos WHERE user_id = :userId;
+
+deleteAllOnUserProjects:
+DELETE FROM story_kudos
+WHERE project_id IN (SELECT id FROM project WHERE user_id = :userId);
+
+deleteAllOptOutsForUser:
+DELETE FROM story_kudos_opt_out
+WHERE project_id IN (SELECT id FROM project WHERE user_id = :userId);

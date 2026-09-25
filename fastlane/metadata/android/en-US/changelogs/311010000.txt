@@ -1,0 +1,10 @@
+New
+- Web: readers can leave kudos on published stories
+Improve
+- Word counts skip Markdown markers like rules and bullets
+Fix
+- Editor: numpad keys, keyboard input, spelling underline and cursor fixes
+- Wear OS: phone pairing works in release builds
+
+Full changelog:
+https://github.com/Darkrock-Studios/hammer-editor/releases/tag/v3.11.0

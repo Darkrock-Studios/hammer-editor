@@ -2,7 +2,7 @@ package com.darkrockstudios.apps.hammer.common.data.importer
 
 import com.darkrockstudios.apps.hammer.common.data.ImportFormat
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
-import com.darkrockstudios.apps.hammer.common.data.projectstatistics.countWords
+import com.darkrockstudios.apps.hammer.base.markdown.countWords
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
 
