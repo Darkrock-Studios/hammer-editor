@@ -2,7 +2,7 @@
 
 Design note for extending the Hammer client (desktop, Android, iOS) with plugins,
 and for exposing the same API as a command line interface and an MCP server.
-Status: rollout steps 1 to 3 are built and step 4, the runtime plugin spike, is done; the rest is a proposal. The server already has an equivalent
+Status: rollout steps 1 to 4 and 11 (runtime plugins on desktop) are built; the rest is a proposal. The server already has an equivalent
 plugin seam (`server/.../plugin/ServerPlugin.kt`); this mirrors it where the
 shapes match.
 
@@ -1007,8 +1007,9 @@ eight bytes a plugin copies. The Hammer-specific parts:
   "scenes": [markdown]}], "settings": {...}}`, the last holding every declared
   setting's current value, and its output is the file's bytes.
 - HTTP imports exist, as Extism plugins expect them, and always fail. The only
-  WASI import provided is `random_get`, which Kotlin/Wasm's standard library
-  needs; a module importing any other WASI function does not load.
+  WASI imports provided are `random_get` and `clock_time_get`, which Kotlin/Wasm
+  and kotlinx.serialization need and which grant no access to anything; a
+  module importing any other WASI function does not load.
 - `_initialize`, or else `__wasm_call_ctors`, runs once after instantiation, as
   in other Extism hosts.
 
@@ -1057,8 +1058,8 @@ A module cannot supply Compose UI, so its settings are
 
 Runtime plugins are untrusted code, unlike compiled-in ones:
 
-- **No ambient access.** No WASI filesystem preopens, no sockets, no clock
-  beyond what WASI Preview 1 requires. Everything goes through operations, which
+- **No ambient access.** No WASI filesystem, sockets, environment, or
+  arguments: only randomness and clocks. Everything goes through operations, which
   carry content and never file paths.
 - **Permissions checked on every call.** The host's dispatch refuses any
   operation the manifest did not request or the user did not grant. Read and
@@ -1183,13 +1184,9 @@ design is revisited rather than `:common` bent to fit.
    check onto the same interface only if the editor integration gets simpler for
    it; spell check is wired deep into editor decorations and is not a cheap
    first proof.
-11. **Runtime plugins on desktop.** [Declared settings](#declared-settings)
-    first, with the plain text plugin moving onto them (this part can land any
-    time before). Then the package format and loader on top of the spike's
-    `:plugins:wasmhost`, permissions, and install, enable, and uninstall in
-    Settings. Can move up
-    to follow the spike directly if the spike goes well; it needs only read
-    operations to be useful, and write permissions once step 9 lands.
+11. **Runtime plugins on desktop.** Built. A Kotlin/Wasm plugin from the
+    `hammer-plugins` repository compiles, packages, installs, loads after a
+    restart, reads its declared settings, and calls back into Hammer.
 12. **Runtime plugins on Android**, then an iOS decision. Registration changes
     only.
 
