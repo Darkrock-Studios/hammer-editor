@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common.projecthome
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,6 +25,7 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ProjectHome
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
+import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
@@ -31,6 +33,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.rememberClipboardCopier
+import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.composeui.resources.Res
 import com.darkrockstudios.apps.hammer.composeui.resources.plugin_document_close
@@ -73,15 +76,18 @@ internal fun ActionDocumentDialog(
 					trailing = { HdMastheadAction(label = Res.string.plugin_document_close.get(), onClick = onDismiss) },
 				)
 				HdFolioDivider()
-				MarkdownView(
-					markdown = current.markdown,
-					modifier = Modifier
-						.fillMaxWidth()
-						.heightIn(max = 520.dp)
-						.verticalScroll(rememberScrollState())
-						.padding(Ui.Padding.XL),
-					selectable = true,
-				)
+				val scrollState = rememberScrollState()
+				Box(modifier = Modifier.fillMaxWidth().heightIn(max = 520.dp)) {
+					MarkdownView(
+						markdown = current.markdown,
+						modifier = Modifier
+							.fillMaxWidth()
+							.verticalScroll(scrollState)
+							.padding(Ui.Padding.XL),
+						selectable = true,
+					)
+					MpScrollBarColumn(modifier = scrollBarOverlay(), state = scrollState)
+				}
 				Row(
 					modifier = Modifier
 						.fillMaxWidth()
