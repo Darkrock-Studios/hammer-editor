@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
+import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginSettingsDatasource
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -10,6 +12,9 @@ import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.IOException
 import okio.Path
+import okio.Path.Companion.toPath
+import org.koin.core.module.Module
+import org.koin.dsl.module
 
 /**
  * The runtime plugins installed under [directory]: packages in `packages/`, and whether each is
@@ -130,7 +135,17 @@ class RuntimePlugins(
 		const val STATE_FILE = "_runtime-plugins.toml"
 		private const val STAGING_EXTENSION = "partial"
 		private val toml = Toml { ignoreUnknownKeys = true }
+
+		/** The app's runtime plugins, kept beside plugin settings files in the config directory. */
+		fun inConfigDirectory(fileSystem: FileSystem, compiledIn: List<ClientPlugin>) = RuntimePlugins(
+			fileSystem = fileSystem,
+			directory = getConfigDirectory().toPath() / PluginSettingsDatasource.PLUGINS_DIRECTORY,
+			compiledInIds = compiledIn.map { it.id }.toSet(),
+		)
 	}
+
+	/** Makes these plugins available to Settings. */
+	fun koinModule(): Module = module { single { this@RuntimePlugins } }
 }
 
 /** [manifest] is null when the installed package can no longer be read. */

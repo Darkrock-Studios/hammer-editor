@@ -30,6 +30,7 @@ repositories {
 
 dependencies {
 	api(project(":composeUi"))
+	implementation(project(":plugins:wasmhost"))
 	implementation(libs.activity.compose)
 	implementation(libs.koin.android)
 	implementation(libs.glance)
