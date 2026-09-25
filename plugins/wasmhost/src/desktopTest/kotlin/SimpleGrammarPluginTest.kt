@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonPrimitive
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path.Companion.toPath
@@ -31,6 +32,8 @@ class SimpleGrammarPluginTest {
 		GlobalContext.stopKoin()
 	}
 
+	private lateinit var registry: PluginRegistry
+
 	private val check by lazy {
 		val built = File(System.getenv("HAMMER_PLUGINS"), "c/simple-grammar/build/simple-grammar.hammerplugin")
 		check(built.exists()) { "Run c/build.sh simple-grammar in hammer-plugins first" }
@@ -39,7 +42,7 @@ class SimpleGrammarPluginTest {
 		fileSystem.write(download) { write(built.readBytes()) }
 		val plugins = RuntimePlugins(fileSystem, "/config/plugins".toPath(), "/cache/plugins".toPath())
 		plugins.install(download)
-		val registry = PluginRegistry().also(plugins::activate)
+		registry = PluginRegistry().also(plugins::activate)
 		GlobalContext.startKoin {
 			modules(
 				module {
@@ -98,6 +101,40 @@ class SimpleGrammarPluginTest {
 	@Test
 	fun `offsets count UTF-16 units past accented letters`() {
 		assertEquals(listOf("the the -> the"), issues("Café the the end."))
+	}
+
+	@Test
+	fun `mixed-up words and phrases, with the paragraph's apostrophes`() {
+		assertEquals(
+			listOf("Your the -> You’re the", "sneak peak -> sneak peek", "peaked her interest -> piqued her interest", "then -> than"),
+			issues("Your the best, it’s true: a sneak peak, better then me, peaked her interest."),
+		)
+	}
+
+	@Test
+	fun `dialogue tags and the spaces around quotes`() {
+		assertEquals(listOf(". -> ,", "S -> s"), issues("\"Wait.\" she said. \"Go,\" She said."))
+		val found = runBlocking { check.diagnose(listOf("\"Wait,\"she said."), "en") }.single().single()
+		assertEquals(listOf("\" " to "Add a space"), found.fixes.map { it.replacement to it.label })
+	}
+
+	@Test
+	fun `settings turn groups of rules on and off`() {
+		val paragraph = "In order to win a free gift, we waited for one two three four five six seven eight nine ten days!!"
+		assertEquals(emptyList(), issues(paragraph))
+
+		val settings = registry.settings("simple-grammar")!!
+		settings.set("wordiness", JsonPrimitive(true))
+		settings.set("redundancy", JsonPrimitive(true))
+		settings.set("repeatedMarks", JsonPrimitive(true))
+		settings.set("longSentences", JsonPrimitive(true))
+		settings.set("longSentenceWords", JsonPrimitive(30))
+		assertEquals(listOf("In order to -> To", "free gift -> gift", "!! -> !"), issues(paragraph))
+
+		settings.set("longSentenceWords", JsonPrimitive(10))
+		settings.set("mistakes", JsonPrimitive(false))
+		assertEquals(listOf("In order to -> To", "free gift -> gift", "!! -> !", "${paragraph.dropLast(2)} -> "), issues(paragraph))
+		assertEquals(emptyList(), issues("It was a apple."))
 	}
 
 	@Test
