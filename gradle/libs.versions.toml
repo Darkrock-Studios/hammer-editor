@@ -238,6 +238,8 @@ koin_compose = { group = "io.insert-koin", name = "koin-compose" }
 
 tomlkt = { group = "net.peanuuutz.tomlkt", name = "tomlkt", version.ref = "tomlkt" }
 chasm = { group = "io.github.charlietap.chasm", name = "chasm", version.ref = "chasm" }
+chasm_core = { group = "io.github.charlietap.chasm", name = "core", version.ref = "chasm" }
+chasm_gc = { group = "io.github.charlietap.chasm", name = "gc", version.ref = "chasm" }
 
 ktor_client_core = { group = "io.ktor", name = "ktor-client-core", version.ref = "ktor" }
 ktor_client_auth = { group = "io.ktor", name = "ktor-client-auth", version.ref = "ktor" }
