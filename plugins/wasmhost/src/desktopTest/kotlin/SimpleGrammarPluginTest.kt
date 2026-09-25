@@ -20,9 +20,9 @@ import java.io.File
 import kotlin.coroutines.CoroutineContext
 import kotlin.test.assertEquals
 
-/** The grammar plugin from hammer-plugins, run by the host. Runs when HAMMER_PLUGINS points at that checkout. */
+/** The simple grammar plugin from hammer-plugins, run by the host. Runs when HAMMER_PLUGINS points at that checkout. */
 @EnabledIfEnvironmentVariable(named = "HAMMER_PLUGINS", matches = ".+")
-class GrammarPluginTest {
+class SimpleGrammarPluginTest {
 
 	private val fileSystem = FakeFileSystem()
 
@@ -32,9 +32,9 @@ class GrammarPluginTest {
 	}
 
 	private val check by lazy {
-		val built = File(System.getenv("HAMMER_PLUGINS"), "c/grammar/build/grammar.hammerplugin")
-		check(built.exists()) { "Run c/build.sh grammar in hammer-plugins first" }
-		val download = "/downloads/grammar.hammerplugin".toPath()
+		val built = File(System.getenv("HAMMER_PLUGINS"), "c/simple-grammar/build/simple-grammar.hammerplugin")
+		check(built.exists()) { "Run c/build.sh simple-grammar in hammer-plugins first" }
+		val download = "/downloads/simple-grammar.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
 		val plugins = RuntimePlugins(fileSystem, "/config/plugins".toPath(), "/cache/plugins".toPath())
