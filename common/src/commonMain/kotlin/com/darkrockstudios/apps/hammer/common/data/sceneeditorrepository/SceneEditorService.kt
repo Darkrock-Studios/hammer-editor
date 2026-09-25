@@ -322,6 +322,8 @@ class SceneEditorService(
 
 	fun hasDirtyBuffer(sceneId: Int): Boolean = sceneContentRepository.hasDirtyBuffer(sceneId)
 
+	fun hasUnrestoredEdits(sceneItem: SceneItem): Boolean = sceneContentRepository.hasUnrestoredEdits(sceneItem)
+
 	suspend fun getMetadata(): ProjectMetadata = sceneMetadataRepository.getMetadata()
 
 	suspend fun loadSceneMetadata(sceneId: Int): SceneMetadata =

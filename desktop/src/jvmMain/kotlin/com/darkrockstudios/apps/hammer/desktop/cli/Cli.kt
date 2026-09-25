@@ -139,20 +139,22 @@ object Cli {
 		val properties = jsonSchema(op.input.descriptor)["properties"]?.jsonObject ?: JsonObject(emptyMap())
 		val fromStdin = properties.filterValues { it.jsonObject[STDIN_KEY] != null }
 		fromStdin.forEach { (name, schema) ->
-			if (name in input && schema.jsonObject[STDIN_KEY] == JsonPrimitive(SECRET)) {
+			if (name in input && schema.isSecret()) {
 				throw UsageException("${kebabCase(name)} is read from stdin or ${envName(name)}, never the command line")
 			}
 		}
 		val missing = fromStdin.filterKeys { it !in input }
-		val fromStream = missing.filterKeys { System.getenv(envName(it)) == null }
+		val fromEnv = missing.mapValues { (name, schema) -> if (schema.isSecret()) System.getenv(envName(name)) else null }
+		val fromStream = missing.filterKeys { fromEnv[it] == null }
 		if (fromStream.size > 1) {
 			throw UsageException("Only one of ${fromStream.keys.joinToString { kebabCase(it) }} can come from stdin; give the others as options")
 		}
 		return JsonObject(input + missing.mapValues { (name, schema) ->
-			val secret = schema.jsonObject[STDIN_KEY] == JsonPrimitive(SECRET)
-			JsonPrimitive(System.getenv(envName(name)) ?: readStdin(name, secret, io))
+			JsonPrimitive(fromEnv[name] ?: readStdin(name, schema.isSecret(), io))
 		})
 	}
+
+	private fun JsonElement.isSecret() = jsonObject[STDIN_KEY] == JsonPrimitive(SECRET)
 
 	/** A secret at a terminal is prompted for and read without echo; otherwise stdin is read to its end. */
 	private fun readStdin(name: String, secret: Boolean, io: CliIo): String {
@@ -311,7 +313,7 @@ object Cli {
 		if (i == 0) part else part.replaceFirstChar { it.uppercase() }
 	}.joinToString("")
 
-	/** Where a stdin field can come from instead, for scripts: `HAMMER_PASSWORD` for `password`. */
+	/** Where a secret stdin field can come from instead, for scripts: `HAMMER_PASSWORD` for `password`. */
 	private fun envName(field: String) = "HAMMER_" + kebabCase(field).replace('-', '_').uppercase()
 
 	private fun kebabCase(field: String) = field.replace(Regex("([a-z0-9])([A-Z])"), "$1-$2").lowercase()

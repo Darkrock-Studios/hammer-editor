@@ -25,6 +25,7 @@ object McpPluginUi : PluginUi {
 
 	override fun settingLabels(): Map<String, SettingLabels> = mapOf(
 		McpPlugin.ENABLED to SettingLabels(label = Res.string.mcp_enabled_label, hint = Res.string.mcp_enabled_hint),
+		McpPlugin.LIVE_EDITS to SettingLabels(label = Res.string.mcp_live_edits_label, hint = Res.string.mcp_live_edits_hint),
 	)
 
 	override val settingsPane: @Composable ColumnScope.() -> Unit = {

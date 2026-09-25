@@ -143,6 +143,10 @@ class SceneContentRepository(
 		}
 	}
 
+	/** True when the scene has unsaved edits from an earlier session that this scope has not restored. */
+	fun hasUnrestoredEdits(sceneItem: SceneItem): Boolean =
+		!tempBuffersRestored.value && sceneDatasource.hasTempScene(sceneItem)
+
 	/** Held under the lock throughout, so a [replaceBuffer] cannot land between the staleness check and the update. */
 	private fun updateSceneBufferContent(update: SceneContentUpdate): Boolean = sceneBuffersLock.withLock {
 		val (content, source) = update

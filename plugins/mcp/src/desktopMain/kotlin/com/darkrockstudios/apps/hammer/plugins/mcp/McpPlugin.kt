@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 object McpPlugin : ClientPlugin {
 	const val ID = "mcp"
 	const val ENABLED = "enabled"
+	const val LIVE_EDITS = "liveEdits"
 
 	override val id = ID
 	override val name = "MCP server"
@@ -17,7 +18,13 @@ object McpPlugin : ClientPlugin {
 			key = ENABLED,
 			label = "Let AI agents use Hammer",
 			defaultValue = false,
-			hint = "Agents can read your projects through 'hammer mcp'.",
+			hint = "Agents can read your projects and suggest scene edits as drafts through 'hammer mcp'.",
+		),
+		SettingDeclaration.Toggle(
+			key = LIVE_EDITS,
+			label = "Let AI agents change scenes directly",
+			defaultValue = false,
+			hint = "Otherwise their scene edits are saved as drafts for you to review.",
 		),
 	)
 

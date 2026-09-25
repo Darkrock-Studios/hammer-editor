@@ -19,6 +19,9 @@ import kotlinx.serialization.json.putJsonObject
 /** Set on a [FromStdin] field's schema: `text`, or `secret` for one never taken as an option. */
 const val STDIN_KEY = "x-hammer-stdin"
 
+/** Set by [LiveEdit]: `true` on an input object, or on an enum the list of its live values. */
+const val LIVE_EDIT_KEY = "x-hammer-live"
+
 /** JSON Schema for what [OperationJson] reads and writes for [descriptor]. Recursive types go in `$defs`. */
 fun jsonSchema(descriptor: SerialDescriptor): JsonObject {
 	val builder = SchemaBuilder()
@@ -59,6 +62,10 @@ private class SchemaBuilder {
 			SerialKind.ENUM -> buildJsonObject {
 				put("type", "string")
 				putJsonArray("enum") { descriptor.elementNames.forEach { add(JsonPrimitive(it)) } }
+				val live = (0 until descriptor.elementsCount)
+					.filter { i -> descriptor.getElementAnnotations(i).any { it is LiveEdit } }
+					.map { descriptor.getElementName(it) }
+				if (live.isNotEmpty()) putJsonArray(LIVE_EDIT_KEY) { live.forEach { add(JsonPrimitive(it)) } }
 			}
 
 			StructureKind.LIST -> buildJsonObject {
@@ -98,6 +105,7 @@ private class SchemaBuilder {
 				.map { descriptor.getElementName(it) }
 			if (required.isNotEmpty()) putJsonArray("required") { required.forEach { add(JsonPrimitive(it)) } }
 			put("additionalProperties", false)
+			if (descriptor.annotations.any { it is LiveEdit }) put(LIVE_EDIT_KEY, true)
 		}
 		expanding -= name
 

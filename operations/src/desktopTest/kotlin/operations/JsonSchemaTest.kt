@@ -1,13 +1,19 @@
 package operations
 
 import com.darkrockstudios.apps.hammer.operations.Base64Bytes
+import com.darkrockstudios.apps.hammer.operations.LIVE_EDIT_KEY
+import com.darkrockstudios.apps.hammer.operations.LiveEdit
 import com.darkrockstudios.apps.hammer.operations.jsonSchema
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 class JsonSchemaTest {
 
@@ -36,6 +42,21 @@ class JsonSchemaTest {
 	@Serializable
 	data class Forest(val first: Node, val second: Node)
 
+	@Serializable
+	enum class Mode {
+		@SerialName("draft") Draft,
+
+		@LiveEdit
+		@SerialName("live") Live,
+	}
+
+	@Serializable
+	class Edit(val mode: Mode)
+
+	@LiveEdit
+	@Serializable
+	class Append(val text: String)
+
 	private fun parse(json: String): JsonObject = Json.parseToJsonElement(json) as JsonObject
 
 	@Test
@@ -61,6 +82,14 @@ class JsonSchemaTest {
 		)
 
 		assertEquals(expected, jsonSchema(Sample.serializer().descriptor))
+	}
+
+	@Test
+	fun `live edits are marked on enum values and whole inputs`() {
+		val edit = jsonSchema(Edit.serializer().descriptor)["properties"]!!.jsonObject["mode"]!!.jsonObject
+		assertEquals(JsonArray(listOf(JsonPrimitive("live"))), edit[LIVE_EDIT_KEY])
+		assertNull(jsonSchema(Edit.serializer().descriptor)[LIVE_EDIT_KEY])
+		assertEquals(JsonPrimitive(true), jsonSchema(Append.serializer().descriptor)[LIVE_EDIT_KEY])
 	}
 
 	@Test

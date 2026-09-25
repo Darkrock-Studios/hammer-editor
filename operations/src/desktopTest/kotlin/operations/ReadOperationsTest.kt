@@ -20,16 +20,8 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.sceneme
 import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_MAIN
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.RAW_FILESYSTEM
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
-import com.darkrockstudios.apps.hammer.common.getDefaultRootDocumentDirectory
-import com.darkrockstudios.apps.hammer.common.util.StrRes
 import com.darkrockstudios.apps.hammer.operations.NoInput
-import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.core.Activity
@@ -74,10 +66,6 @@ import com.darkrockstudios.apps.hammer.operations.core.TaggedEntity
 import com.darkrockstudios.apps.hammer.operations.core.Tags
 import com.darkrockstudios.apps.hammer.operations.core.Timeline
 import com.darkrockstudios.apps.hammer.operations.core.TimelineEntry
-import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
-import io.mockk.mockk
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.atStartOfDayIn
@@ -86,20 +74,9 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
-import okio.FileSystem
-import okio.Path.Companion.toPath
-import okio.fakefilesystem.FakeFileSystem
-import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
-import org.koin.core.context.GlobalContext
-import org.koin.core.qualifier.named
-import org.koin.dsl.bind
-import org.koin.dsl.module
-import java.util.concurrent.Executors
-import kotlin.coroutines.CoroutineContext
 import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -110,12 +87,8 @@ import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.minutes
 
 /** Runs the read operations against the app's real Koin graph over a fake filesystem. */
-class ReadOperationsTest : KoinComponent {
+class ReadOperationsTest : KoinOperationsTest() {
 
-	private val ffs = FakeFileSystem()
-
-	// FakeFileSystem is not thread-safe, so the test and every dispatcher share one thread.
-	private val thread = Executors.newSingleThreadExecutor().asCoroutineDispatcher()
 	private lateinit var ids: Seeded
 
 	private class Seeded(
@@ -130,30 +103,8 @@ class ReadOperationsTest : KoinComponent {
 
 	@BeforeEach
 	fun setUp() {
-		ffs.createDirectories(getDefaultRootDocumentDirectory().toPath())
-		val strRes = mockk<StrRes>(relaxed = true)
-		val overrides = module {
-			single<FileSystem> { ffs }
-			single(named(RAW_FILESYSTEM)) { ffs } bind FileSystem::class
-			single { strRes }
-			single<CoroutineContext>(named(DISPATCHER_MAIN)) { thread }
-			single<CoroutineContext>(named(DISPATCHER_DEFAULT)) { thread }
-			single<CoroutineContext>(named(DISPATCHER_IO)) { thread }
-		}
-		GlobalContext.startKoin {
-			allowOverride(true)
-			modules(listOf(mainModule, overrides) + PluginRegistry(emptyList()).koinModules())
-		}
 		ids = onTestThread { seed() }
 	}
-
-	@AfterEach
-	fun tearDown() {
-		GlobalContext.stopKoin()
-		thread.close()
-	}
-
-	private fun <T> onTestThread(block: suspend () -> T): T = runBlocking(thread) { block() }
 
 	private suspend fun seed(): Seeded {
 		val created = get<ProjectsRepository>().createProject(PROJECT, seedDefaultLanguage = false)
@@ -217,12 +168,6 @@ class ReadOperationsTest : KoinComponent {
 	private fun session(day: LocalDate, words: Int) = day.atStartOfDayIn(TimeZone.currentSystemDefault())
 		.plus(9.hours)
 		.let { WritingSession(startedAt = it, endedAt = it.plus(30.minutes), wordsWritten = words) }
-
-	private suspend fun <I, O> run(op: String, input: I): O {
-		val registry = get<OperationRegistry>()
-		@Suppress("UNCHECKED_CAST")
-		return registry.run(registry.find(op) as Operation<I, O>, input)
-	}
 
 	@Test
 	fun `project list and info describe the project`() = onTestThread {

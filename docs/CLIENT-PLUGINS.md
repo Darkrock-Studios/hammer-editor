@@ -2,7 +2,8 @@
 
 Design note for extending the Hammer client (desktop, Android, iOS) with plugins,
 and for exposing the same API as a command line interface and an MCP server.
-Status: rollout steps 1 to 7, 11, and Android's half of 12 are built; the rest is a proposal. The server already has an equivalent
+Status: rollout steps 1 to 8 (without the single-instance hand-off), 11, Android's half of 12,
+and `scene.write` and `scene.append` from step 9 are built; the rest is a proposal. The server already has an equivalent
 plugin seam (`server/.../plugin/ServerPlugin.kt`); this mirrors it where the
 shapes match.
 
@@ -247,8 +248,20 @@ Conventions:
 `scene.write` has no default mode. `mode: draft` saves the new text as a named
 draft and leaves the scene alone. `mode: live` replaces the scene text through
 the same service the editor uses, so an open editor sees the change instead of
-clobbering it. The MCP plugin offers only `draft` unless its "Allow live edits"
-setting is on.
+clobbering it. It first saves the text it replaces, including an open editor's
+unsaved edits, as a draft named "Before external edit", so a live write is
+undoable and stays a Write. Edits the editor typed but had not yet debounced
+into its buffer are dropped rather than landing on top. Neither a live write nor
+`scene.append` credits the writer's activity. Both refuse archived scenes, and
+scenes with unsaved edits left by a session that did not close, since saving
+would discard them; opening the project in Hammer restores those first.
+
+Input that edits scene text in place is marked `@LiveEdit`: `scene.append`'s
+whole input, and `scene.write`'s `live` mode. The schema carries it as
+`x-hammer-live`. The MCP plugin leaves marked operations out, and marked enum
+values out of its tool schemas (refusing them if sent anyway), unless its
+"Let AI agents change scenes directly" setting is on. Only top-level fields are
+checked.
 
 ### Notes, encyclopedia, timeline
 
@@ -604,8 +617,8 @@ hammer mcp        # contributed by the MCP plugin
 - Subcommands are generated from the operation registry: `scene.meta.read` is
   `hammer scene meta read`. Each input field becomes a kebab-case option typed
   by its schema; list fields repeat the option, booleans may omit `true`, and
-  `--json` passes the whole input instead. A text field marked as the body will
-  read from stdin once write operations exist. `hammer help` lists everything,
+  `--json` passes the whole input instead. A body text field, such as
+  `scene.write`'s `markdown`, is read from stdin when not given. `hammer help` lists everything,
   and `--help` after a command lists its options.
 - Output is the operation's output type as JSON. `--out FILE` writes an
   output's one binary field (an export's bytes) to a file and prints the rest,
@@ -706,7 +719,7 @@ no token management.
 | Plugin as API consumer | Tool list and every call go through `Dispatcher` |
 | Plugin in its own module | `:plugins:mcp`, with its own `Res` for strings |
 | Platform-specific registration | Registered in `installedDesktopPlugins()`, since only desktop has the CLI |
-| Global plugin settings | A declared "Enable" setting in `plugins/mcp.toml`; "Allow live edits" joins it with the write operations |
+| Global plugin settings | Declared "Enable" and "Let AI agents change scenes directly" settings in `plugins/mcp.toml` |
 | UI half | `McpPluginUi` in `:composeUi`'s desktop source set: the declared toggle and the config snippet to paste into an agent |
 
 **Off until enabled.** "Enable MCP" defaults to off, and `hammer mcp` exits with
@@ -1214,8 +1227,7 @@ design is revisited rather than `:common` bent to fit.
    what makes the app single-instance. Getting `hammer` onto PATH
    in each package format is not done.
 6. **[MCP plugin](#mcp-plugin).** Built: `:plugins:mcp` on the MCP Kotlin SDK,
-   desktop-only registration, and its settings pane. Read-only for now, and each
-   tool call fails while the app is running until forwarding lands.
+   desktop-only registration, and its settings pane.
 7. **Headless sync.** Built: `account.status`, `account.login`,
    `account.logout`, `sync.status`, and `sync.run` over `SyncAccountUseCase`.
    Refuses while the app is running, through the writer lock. Tested with fakes
@@ -1228,7 +1240,8 @@ design is revisited rather than `:common` bent to fit.
    default) gates it per call, and the CLI and MCP try the socket before running
    headless. Second app instances still start their own window without the
    lock; handing their launch arguments to the first window is not built.
-9. **Write operations.** `scene.write` and `scene.append` first, then the rest.
+9. **Write operations.** `scene.write` and `scene.append` are built, with the
+   MCP plugin's live edits setting; the rest are next.
    Deliberately after forwarding, so live writes always go through the app when
    it is up. Then the [style report](#style-report-style) plugin.
 10. **Text diagnostics.** Define `TextDiagnosticsProvider` (text in, ranges plus
