@@ -716,7 +716,14 @@ class SceneRepository(
 			val sceneNode = getSceneNodeFromId(scene.id)
 
 			val parent = sceneNode?.parent
-			if (parent != null) {
+			if (scene.archived) {
+				// Archived scenes are not in the tree; the file was all there was.
+				if (syncJournal.isServerSynchronized()) {
+					syncJournal.recordIdDeletion(scene.id)
+				}
+				Napier.w("Archived scene ${scene.id} deleted")
+				true
+			} else if (parent != null) {
 				val parentId: Int = parent.value.id
 				parent.removeChild(sceneNode)
 

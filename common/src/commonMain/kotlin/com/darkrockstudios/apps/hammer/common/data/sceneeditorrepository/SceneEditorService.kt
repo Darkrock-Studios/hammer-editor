@@ -118,6 +118,7 @@ class SceneEditorService(
 	suspend fun deleteScene(scene: SceneItem): Boolean {
 		val deleted = sceneEditorRepository.deleteScene(scene)
 		if (deleted) {
+			sceneContentRepository.forgetBuffer(scene)
 			statisticsRepository.markDirty()
 			referenceIndexRepository.markSceneDeleted(scene.id)
 			writingSessionTracker.forgetBaseline(scene.id)
@@ -136,9 +137,14 @@ class SceneEditorService(
 
 	suspend fun moveScene(moveRequest: MoveRequest) = sceneEditorRepository.moveScene(moveRequest)
 
+	/** Saves the scene's unsaved edits first, so they are archived with it. */
 	suspend fun archiveScene(scene: SceneItem): Boolean {
+		if (sceneContentRepository.hasDirtyBuffer(scene.id) && !storeSceneBuffer(scene)) return false
 		val archived = sceneEditorRepository.archiveScene(scene)
-		if (archived) statisticsRepository.markDirty()
+		if (archived) {
+			sceneContentRepository.forgetBuffer(scene)
+			statisticsRepository.markDirty()
+		}
 		return archived
 	}
 

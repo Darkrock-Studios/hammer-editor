@@ -48,6 +48,18 @@ class CliTest {
 	}
 
 	@Test
+	fun `destructive commands need confirming`() {
+		assertEquals(Cli.EXIT_USAGE, run("scene", "delete", "--project", "X", "--id", "1"))
+		assertTrue("--confirm" in stderr.readUtf8())
+
+		assertEquals(Cli.EXIT_USAGE, run("scene", "delete", "--confirm=yes", "--project", "X", "--id", "1"))
+		assertTrue("takes no value" in stderr.readUtf8())
+
+		assertEquals(Cli.EXIT_OK, run("scene", "delete", "--help"))
+		assertTrue("--confirm" in stdout.readUtf8())
+	}
+
+	@Test
 	fun `unknown commands and options are usage errors`() {
 		assertEquals(Cli.EXIT_USAGE, run("scene", "reed"))
 		assertTrue("Unknown command 'scene reed'" in stderr.readUtf8())
