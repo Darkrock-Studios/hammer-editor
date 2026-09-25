@@ -174,8 +174,7 @@ internal fun AccountSettingsUi(
 								title = Res.string.settings_plugins_header.get(),
 								contentSpacing = 24.dp,
 							) {
-								PluginSettingsSection(pluginSettingsPanes)
-								runtimePlugins?.let { RuntimePluginsSection(it) }
+								PluginSettingsSection(pluginSettingsPanes, runtimePlugins)
 							}
 						}
 
