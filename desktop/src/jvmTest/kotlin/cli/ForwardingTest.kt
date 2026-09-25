@@ -40,7 +40,6 @@ class ForwardingTest {
 	lateinit var directory: File
 
 	private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-	private var allowed = true
 
 	@Serializable
 	data class Greeting(val name: String)
@@ -67,7 +66,7 @@ class ForwardingTest {
 
 	private val launches = CopyOnWriteArrayList<List<String>>()
 
-	private fun startServer() = Forwarding.Server(socket, { allowed }, { registry }, { launches += it }).also { it.start(scope) }
+	private fun startServer() = Forwarding.Server(socket, { registry }, { launches += it }).also { it.start(scope) }
 
 	@Test
 	fun `calls run in the app and come back with their exit code`() {
@@ -90,14 +89,6 @@ class ForwardingTest {
 	}
 
 	@Test
-	fun `an app with external tools off refuses`() {
-		allowed = false
-		startServer().use {
-			assertThrows<Forwarding.Refused> { Forwarding.dispatch(socket, "greet", buildJsonObject { put("name", "Ada") }) }
-		}
-	}
-
-	@Test
 	fun `the app keeps its own sync and login, and project moves`() {
 		startServer().use {
 			assertThrows<Forwarding.Refused> { Forwarding.dispatch(socket, "sync.run", buildJsonObject {}) }
@@ -114,8 +105,7 @@ class ForwardingTest {
 	}
 
 	@Test
-	fun `a second launch hands its arguments to the app, even with external tools off`() {
-		allowed = false
+	fun `a second launch hands its arguments to the app`() {
 		startServer().use {
 			assertTrue(Forwarding.handOff(socket, listOf("--project", "Storm", "--scene", "3")))
 		}
