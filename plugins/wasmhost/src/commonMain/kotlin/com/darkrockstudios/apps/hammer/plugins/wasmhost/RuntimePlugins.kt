@@ -35,17 +35,40 @@ class RuntimePlugins(
 	/** True once anything was installed, enabled, disabled, or uninstalled since this process started. */
 	val restartNeeded: StateFlow<Boolean> = _restartNeeded.asStateFlow()
 
-	/** The enabled, readable plugins. Never throws: a plugin that cannot load is logged and skipped. */
-	fun load(): List<ClientPlugin> = readState().plugins.mapNotNull { (id, state) ->
-		if (!state.enabled) return@mapNotNull null
+	/**
+	 * The enabled, readable plugins. Never throws: a plugin that cannot load, or would add a command
+	 * another already has, is logged and skipped.
+	 */
+	fun load(): List<ClientPlugin> {
+		// A compiled-in plugin's operations start with its id, so a command of that name would shadow them.
+		val commands = compiledInIds.toMutableSet()
+		return readState().plugins.mapNotNull { (id, state) ->
+			load(id, state)?.takeIf { plugin ->
+				val names = plugin.manifest.commands.map { it.name }
+				val clash = names.firstOrNull { it in commands }
+				if (clash != null) Napier.e { "Runtime plugin '$id' adds the command '$clash', which is taken; not loading it" }
+				else commands += names
+				clash == null
+			}
+		}
+	}
+
+	private fun load(id: String, state: PluginState): WasmPlugin? {
+		if (!state.enabled) return null
 		if (id in compiledInIds) {
 			Napier.w { "Runtime plugin '$id' shares an id with a compiled-in plugin; not loading it" }
-			return@mapNotNull null
+			return null
 		}
-		try {
+		return try {
 			val plugin = PluginPackage.read(fileSystem, packagePath(id))
 			if (plugin.manifest.id != id) throw PluginPackageException("Package id changed to '${plugin.manifest.id}'")
-			WasmPlugin(plugin.manifest, plugin::readModule, plugin.settings, granted = state.granted.toSet())
+			WasmPlugin(
+				manifest = plugin.manifest,
+				loadModule = plugin::readModule,
+				declaredSettings = plugin.settings,
+				granted = state.granted.toSet(),
+				savedSettings = { PluginSettingsDatasource(fileSystem, toml, directory).loadDeclared(id, plugin.settings) },
+			)
 		} catch (e: PluginPackageException) {
 			Napier.e { "Runtime plugin '$id' could not load: ${e.message}" }
 			null
@@ -79,6 +102,9 @@ class RuntimePlugins(
 		val plugin = inspected
 		val id = plugin.manifest.id
 		if (id in compiledInIds) throw PluginPackageException("Plugin id '$id' is taken by a built-in plugin")
+		plugin.manifest.commands.firstOrNull { it.name in compiledInIds }?.let {
+			throw PluginPackageException("Command '${it.name}' is taken by a built-in plugin")
+		}
 
 		fileSystem.createDirectories(packages)
 		val staging = packages / "$id.$STAGING_EXTENSION"

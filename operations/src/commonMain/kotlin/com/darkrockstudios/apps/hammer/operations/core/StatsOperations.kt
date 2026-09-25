@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OperationContext
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.invalidInput
 import com.darkrockstudios.apps.hammer.operations.operation
@@ -21,7 +22,7 @@ internal fun statsOperations(): List<Operation<*, *>> = listOf(
 		name = "stats.project",
 		description = "A project's statistics, as its Home screen shows them.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val service = project.scope.get<StatisticsService>()
@@ -56,7 +57,7 @@ internal fun statsOperations(): List<Operation<*, *>> = listOf(
 		name = "stats.activity",
 		description = "Words written per day over a date range, plus lifetime words per device.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		val logs = loadLogs(input)
 		val timeZone = TimeZone.currentSystemDefault()
@@ -78,7 +79,7 @@ internal fun statsOperations(): List<Operation<*, *>> = listOf(
 		name = "stats.sessions",
 		description = "Writing sessions over a date range, from every device.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		val timeZone = TimeZone.currentSystemDefault()
 		val sessions = loadLogs(input).flatMap { log ->

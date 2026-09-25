@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.NoInput
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationContext
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.operation
 import kotlinx.serialization.KSerializer
@@ -36,6 +37,7 @@ internal fun syncOperations(): List<Operation<*, *>> = listOf(
 		name = "sync.status",
 		description = "Each project's link to the sync server, its last sync, and how many of its changes are waiting to sync.",
 		access = Access.Read,
+		scope = OperationScope.Account,
 	) {
 		val metadata = koinGet<ProjectMetadataDatasource>()
 		val projects = koinGet<ProjectsRepository>().getProjects().map { def ->
@@ -73,6 +75,7 @@ private class SyncRunOperation : Operation<SyncRunInput, SyncRunResult> {
 	override val input: KSerializer<SyncRunInput> = serializer()
 	override val output: KSerializer<SyncRunResult> = serializer()
 	override val access = Access.Write
+	override val scope = OperationScope.Account
 
 	override fun exitCode(output: SyncRunResult): Int = when {
 		!output.accountSynced || !output.ideasSynced || output.projects.any { it.outcome == SyncOutcome.Failed } -> 1

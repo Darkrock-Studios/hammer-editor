@@ -30,7 +30,9 @@ import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import com.darkrockstudios.apps.hammer.composeui.resources.*
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.InstalledPlugin
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.OperationGrant
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginPackage
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginPackageException
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
@@ -156,6 +158,23 @@ internal fun ColumnScope.RuntimePluginsSection(runtimePlugins: RuntimePlugins) {
 
 private class PendingInstall(val path: Path, val plugin: PluginPackage)
 
+/** Null for an operation this version of Hammer does not have, which is shown with the changes. */
+private fun OperationGrant.access(operations: OperationRegistry): Access? = when (this) {
+	is OperationGrant.Named -> operations.find(name)?.access
+	is OperationGrant.Scoped -> access
+}
+
+@Composable
+private fun OperationGrant.label(): String = when (this) {
+	is OperationGrant.Named -> name
+	is OperationGrant.Scoped -> when (scope) {
+		OperationScope.Content ->
+			if (access == Access.Read) Res.string.plugin_install_scope_content_read.get() else Res.string.plugin_install_scope_content_write.get()
+		OperationScope.Account ->
+			if (access == Access.Read) Res.string.plugin_install_scope_account_read.get() else Res.string.plugin_install_scope_account_write.get()
+	}
+}
+
 /**
  * A copy under the cache directory, since a picked file may only be readable while the picker's grant
  * lasts. Each pick gets its own name, so a later pick cannot replace the package a prompt is showing.
@@ -229,8 +248,12 @@ private fun InstallDialog(
 				}
 				Text(Res.string.plugin_install_sandbox.get(), style = MaterialTheme.typography.bodyMedium)
 
-				val (reads, changes) = manifest.permissions.operations.partition { operations.find(it)?.access == Access.Read }
-				if (reads.isEmpty() && changes.isEmpty()) {
+				val grants = manifest.permissions.operations.mapNotNull(OperationGrant::parse)
+				val byAccess = grants.groupBy { it.access(operations) }
+				val reads = byAccess[Access.Read].orEmpty().map { it.label() }
+				val changes = (byAccess[Access.Write].orEmpty() + byAccess[null].orEmpty()).map { it.label() }
+				val deletes = byAccess[Access.Destructive].orEmpty().map { it.label() }
+				if (grants.isEmpty()) {
 					Text(Res.string.plugin_install_no_access.get(), style = MaterialTheme.typography.bodyMedium)
 				}
 				if (reads.isNotEmpty()) {
@@ -243,9 +266,22 @@ private fun InstallDialog(
 						color = MaterialTheme.colorScheme.error,
 					)
 				}
+				if (deletes.isNotEmpty()) {
+					Text(
+						text = Res.string.plugin_install_deletes.get(deletes.joinToString()),
+						style = MaterialTheme.typography.bodyMedium,
+						color = MaterialTheme.colorScheme.error,
+					)
+				}
 				if (manifest.exporters.isNotEmpty()) {
 					Text(
 						text = Res.string.plugin_install_exports.get(manifest.exporters.joinToString { it.label }),
+						style = MaterialTheme.typography.bodyMedium,
+					)
+				}
+				if (manifest.commands.isNotEmpty()) {
+					Text(
+						text = Res.string.plugin_install_commands.get(manifest.commands.joinToString { "hammer ${it.name}" }),
 						style = MaterialTheme.typography.bodyMedium,
 					)
 				}

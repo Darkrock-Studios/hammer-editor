@@ -17,7 +17,7 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.AppCloseManager
 import com.darkrockstudios.apps.hammer.common.compose.getDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.getMainDispatcher
-import com.darkrockstudios.apps.hammer.common.compose.plugin.installedDesktopPluginUis
+import com.darkrockstudios.apps.hammer.common.compose.plugin.cliLauncher
 import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPluginUis
 import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPlugins
 import com.darkrockstudios.apps.hammer.common.compose.plugin.pluginUiModule
@@ -42,7 +42,6 @@ import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModu
 import com.darkrockstudios.apps.hammer.desktop.cli.Cli
 import com.darkrockstudios.apps.hammer.desktop.cli.Forwarding
 import com.darkrockstudios.apps.hammer.desktop.cli.WriterLock
-import com.darkrockstudios.apps.hammer.desktop.plugin.installedDesktopPlugins
 import com.darkrockstudios.apps.hammer.desktop.sandbox.SandboxStartup
 import com.darkrockstudios.apps.hammer.desktop.shortcuts.QuickShortcuts
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
@@ -195,7 +194,7 @@ fun main(args: Array<String>) {
 	logStartupBanner()
 	installGlobalExceptionHandler()
 
-	val compiledInPlugins = installedPlugins() + installedDesktopPlugins()
+	val compiledInPlugins = installedPlugins()
 	val runtimePlugins = RuntimePlugins.inConfigDirectory(FileSystem.SYSTEM, compiledInPlugins)
 	val pluginRegistry = PluginRegistry(compiledInPlugins + runtimePlugins.load())
 
@@ -208,7 +207,7 @@ fun main(args: Array<String>) {
 				aboutLibrariesModule,
 				desktopModule,
 				appModule(appScope),
-				pluginUiModule(installedPluginUis() + installedDesktopPluginUis()),
+				pluginUiModule(installedPluginUis(), cliLauncher()),
 				runtimePlugins.koinModule(),
 			) + pluginRegistry.koinModules()
 		)

@@ -17,10 +17,17 @@
 	<string name="plugin_install_sandbox">Plugins run in a sandbox. This one can only use what is listed here.</string>
 	<string name="plugin_install_reads">Read: %1$s</string>
 	<string name="plugin_install_writes">Change: %1$s</string>
+	<string name="plugin_install_deletes">Delete, which cannot be undone: %1$s</string>
 	<string name="plugin_install_no_access">It asks for no access to your projects.</string>
 	<string name="plugin_install_exports">Adds export formats: %1$s</string>
 	<string name="plugin_install_replaces">Replaces the installed version %1$s.</string>
 	<string name="plugin_install_confirm">Install</string>
 	<string name="plugin_install_cancel">Cancel</string>
+	<string name="plugin_command_run">%1$s Run it with:</string>
+	<string name="plugin_install_commands">Adds commands: %1$s</string>
+	<string name="plugin_install_scope_content_read">everything in your projects</string>
+	<string name="plugin_install_scope_content_write">anything in your projects, but never delete</string>
+	<string name="plugin_install_scope_account_read">your sync account's status</string>
+	<string name="plugin_install_scope_account_write">your sync account: log in, log out, and sync</string>
 	<string name="plugin_install_failed">Could not install the plugin: %1$s</string>
 </resources>

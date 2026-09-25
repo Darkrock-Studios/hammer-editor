@@ -7,8 +7,8 @@ import com.darkrockstudios.apps.hammer.plugins.style.StylePlugin
 /*
  * The plugins compiled into every platform's build, registered here because :composeUi is the one
  * module every app (and the iOS framework) is built from. A plugin with a UI half is listed in both.
- * Desktop-only plugins go in :desktop's installedDesktopPlugins(). Downstream distributions register
- * theirs here; keep this file otherwise untouched so their patch applies cleanly.
+ * Downstream distributions register theirs here; keep this file otherwise untouched so their patch
+ * applies cleanly.
  */
 
 fun installedPlugins(): List<ClientPlugin> = listOf(StylePlugin)

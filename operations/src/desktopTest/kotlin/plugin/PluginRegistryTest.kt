@@ -19,6 +19,7 @@ import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.NoInput
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.operation
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
@@ -123,7 +124,7 @@ class PluginRegistryTest : KoinComponent {
 
 	@Test
 	fun `plugin operations join the core operations`() {
-		val op = operation<NoInput, NoInput>("recorder.ping", "", Access.Read) { NoInput }
+		val op = operation<NoInput, NoInput>("recorder.ping", "", Access.Read, OperationScope.Content) { NoInput }
 		val registry = PluginRegistry(listOf(RecordingPlugin("recorder", operations = listOf(op))))
 		startKoin(registry)
 
@@ -134,7 +135,7 @@ class PluginRegistryTest : KoinComponent {
 
 	@Test
 	fun `rejects operations not prefixed with the plugin id`() {
-		val op = operation<NoInput, NoInput>("scene.ping", "", Access.Read) { NoInput }
+		val op = operation<NoInput, NoInput>("scene.ping", "", Access.Read, OperationScope.Content) { NoInput }
 		assertThrows<IllegalArgumentException> {
 			PluginRegistry(listOf(RecordingPlugin("recorder", operations = listOf(op))))
 		}
@@ -142,7 +143,7 @@ class PluginRegistryTest : KoinComponent {
 
 	@Test
 	fun `rejects malformed operation names at construction`() {
-		val op = operation<NoInput, NoInput>("recorder.Ping", "", Access.Read) { NoInput }
+		val op = operation<NoInput, NoInput>("recorder.Ping", "", Access.Read, OperationScope.Content) { NoInput }
 		assertThrows<IllegalArgumentException> {
 			PluginRegistry(listOf(RecordingPlugin("recorder", operations = listOf(op))))
 		}

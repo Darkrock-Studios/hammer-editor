@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.plugins.style
 
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OperationContext
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.core.ProjectInput
 import com.darkrockstudios.apps.hammer.operations.core.ProjectItemInput
@@ -28,7 +29,7 @@ object StylePlugin : ClientPlugin {
 			description = "A style report on a project's English prose: per scene and in total, readability, " +
 				"adverbs, the share of dialogue, and repeated words and phrases.",
 			access = Access.Read,
-			agentVisible = true,
+			scope = OperationScope.Content,
 		) { input -> report(input) },
 	)
 }

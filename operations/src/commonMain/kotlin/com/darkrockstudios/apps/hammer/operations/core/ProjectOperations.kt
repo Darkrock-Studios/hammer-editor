@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.operations.Base64Bytes
 import com.darkrockstudios.apps.hammer.operations.NoInput
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationContext
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.invalidInput
 import com.darkrockstudios.apps.hammer.operations.jsonSchema
 import com.darkrockstudios.apps.hammer.operations.operation
@@ -35,7 +36,7 @@ internal fun projectOperations(): List<Operation<*, *>> = listOf(
 		name = "project.list",
 		description = "List every project with its word count and when it was last edited.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) {
 		val metadata = koinGet<ProjectMetadataDatasource>()
 		val stats = koinGet<ProjectStatisticsCacheReader>()
@@ -57,7 +58,7 @@ internal fun projectOperations(): List<Operation<*, *>> = listOf(
 		name = "project.info",
 		description = "A project's details: author, language, tags, word count goal, cached totals, and sync linkage.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		val def = projects.resolve(input.project)
 		val info = koinGet<ProjectMetadataDatasource>().readMetadata(def)?.info
@@ -82,7 +83,7 @@ internal fun projectOperations(): List<Operation<*, *>> = listOf(
 		name = "export.formats",
 		description = "The formats project.export can produce.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) {
 		ExportFormats(
 			koinGet<StoryExporterRegistry>().exporters.map {
@@ -94,7 +95,7 @@ internal fun projectOperations(): List<Operation<*, *>> = listOf(
 		name = "backup.list",
 		description = "A project's backups, oldest first.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		val def = projects.resolve(input.project)
 		Backups(koinGet<ProjectBackupRepository>().getBackups(def).map { Backup(it.date) })
@@ -107,7 +108,7 @@ private class ProjectExportOperation : Operation<ProjectExportInput, ExportedFil
 	override val input: KSerializer<ProjectExportInput> = serializer()
 	override val output: KSerializer<ExportedFile> = serializer()
 	override val access = Access.Read
-	override val agentVisible = true
+	override val scope = OperationScope.Content
 
 	override fun inputSchema(): JsonObject {
 		val schema = jsonSchema(input.descriptor)
