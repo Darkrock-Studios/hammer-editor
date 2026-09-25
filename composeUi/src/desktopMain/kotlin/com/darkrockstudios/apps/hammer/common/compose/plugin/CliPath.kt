@@ -62,7 +62,8 @@ sealed interface CliPath {
 		): CliPath {
 			env["SNAP_NAME"]?.let { return Provided(it) }
 			if (os == HostOs.Windows && channel == DistributionChannel.MICROSOFT_STORE) return Provided("hammer")
-			val launcher = cliLauncher(env, appPath, os, channel)
+			// The `hammer` command itself; `--dev` is for whoever runs it to add.
+			val launcher = cliLauncher(env, appPath, os, channel, dev = false)
 			if (env["FLATPAK_ID"] != null || env["APPIMAGE"] != null) {
 				return Script(home / ".local/bin/hammer", launcher, needsAdmin = false)
 			}

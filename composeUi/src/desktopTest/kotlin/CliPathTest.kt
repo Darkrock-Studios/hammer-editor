@@ -78,7 +78,7 @@ class CliPathTest {
 			CliPath.Provided("hammer"),
 			detect(HostOs.Windows, appPath = "C:\\Program Files\\WindowsApps\\x\\hammer.exe", channel = DistributionChannel.MICROSOFT_STORE),
 		)
-		assertEquals(listOf("hammer"), cliLauncher(emptyMap(), "C:\\x\\hammer.exe", HostOs.Windows, DistributionChannel.MICROSOFT_STORE))
+		assertEquals(listOf("hammer"), cliLauncher(emptyMap(), "C:\\x\\hammer.exe", HostOs.Windows, DistributionChannel.MICROSOFT_STORE, dev = false))
 		assertEquals(
 			"@echo off\r\nrem ${CliPath.MARKER}\r\n\"C:\\100%%\\hammer-cli.exe\" %*\r\n",
 			CliPath.Script(Paths.get("x"), listOf("C:\\100%\\hammer-cli.exe"), needsAdmin = false, windows = true).content,
@@ -105,6 +105,16 @@ class CliPathTest {
 		installer.remove(script)
 		assertEquals("%USERPROFILE%\\bin;C:\\Tools", userPath.value)
 		assertFalse(Files.exists(script.file))
+	}
+
+	@Test
+	fun `a dev window's commands use development data, but the PATH script does not`() {
+		assertEquals(
+			listOf("flatpak", "run", "studio.darkrock.hammer", "--dev"),
+			cliLauncher(mapOf("FLATPAK_ID" to "studio.darkrock.hammer"), null, HostOs.Linux, DistributionChannel.FLATHUB, dev = true),
+		)
+		val script = CliPath.detect(HostOs.Linux, emptyMap(), "/opt/hammer/bin/hammer", false, DistributionChannel.GITHUB, home)
+		assertEquals(listOf("/opt/hammer/bin/hammer"), (script as CliPath.Script).launcher)
 	}
 
 	@Test

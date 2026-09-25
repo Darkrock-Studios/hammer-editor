@@ -555,7 +555,9 @@ a button that adds a `hammer` command to PATH, or updates or removes it:
 | Microsoft Store | An app execution alias, `hammer.exe`, on a second, hidden app entry for `hammer-cli.exe` |
 
 Each script carries a marker line, so Hammer only ever replaces or removes its
-own; a `hammer` someone else put there is left alone. On Linux, Settings says
+own; a `hammer` someone else put there is left alone. In a `--dev` window, the
+full command shown in Settings and in plugin dialogs ends in `--dev`, so what
+is set up from it reaches that window; the PATH script never does. On Linux, Settings says
 when the script's directory is not on PATH yet.
 
 **Windows needs a console launcher.** jpackage gives the app one launcher,
@@ -1218,7 +1220,7 @@ design is revisited rather than `:common` bent to fit.
    `account.logout`, `sync.status`, and `sync.run` over `SyncAccountUseCase`.
    Refuses while the app is running, through the writer lock. Tested with fakes
    only so far, not against a live server.
-8. **Forwarding.** Built, except the hand-off: the app listens on
+8. **Forwarding.** Built: the app listens on
    `run/hammer.sock` in the config directory (`run/` is owner-only) while it
    holds the writer lock, refuses account and sync operations since it runs
    those itself, and the CLI and MCP try the socket before running headless. A second app launch hands its arguments to the first window and
