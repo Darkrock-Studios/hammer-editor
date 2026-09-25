@@ -6,8 +6,7 @@ import okio.BufferedSink
 import okio.BufferedSource
 
 /**
- * A top-level CLI command a plugin adds, such as `hammer mcp`. For protocols and long-running tools;
- * a plugin's features belong in operations, which get a CLI command of their own.
+ * A top-level CLI command a plugin adds, such as `hammer mcp`.
  */
 interface CliCommand {
 	/** The word after `hammer`. Must not be the first word of any operation's name. */

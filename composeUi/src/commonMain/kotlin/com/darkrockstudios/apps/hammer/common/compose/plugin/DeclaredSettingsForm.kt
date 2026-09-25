@@ -18,28 +18,17 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.longOrNull
-import org.jetbrains.compose.resources.StringResource
-
-/** Localized text for one declared setting, from a plugin's UI half. Missing pieces use the declaration's own. */
-class SettingLabels(
-	val label: StringResource? = null,
-	val hint: StringResource? = null,
-	/** Keyed by option value, for choice settings. */
-	val options: Map<String, StringResource> = emptyMap(),
-)
 
 /** A plugin's declared settings as a form, one field per declaration in order. */
 @Composable
 fun ColumnScope.DeclaredSettingsForm(
 	declarations: List<SettingDeclaration>,
 	values: JsonObject,
-	labels: Map<String, SettingLabels>,
 	onChange: (key: String, value: JsonPrimitive) -> Unit,
 ) {
 	declarations.forEach { setting ->
-		val text = labels[setting.key]
-		val label = text?.label?.get() ?: setting.label
-		val hint = text?.hint?.get() ?: setting.hint
+		val label = setting.label
+		val hint = setting.hint
 		val value = values[setting.key]?.jsonPrimitive ?: setting.default
 		when (setting) {
 			is SettingDeclaration.Toggle -> HdHairlineToggleRow(
@@ -54,7 +43,7 @@ fun ColumnScope.DeclaredSettingsForm(
 				options = setting.options,
 				selected = setting.options.first { it.value == value.content },
 				onSelect = { onChange(setting.key, JsonPrimitive(it.value)) },
-				label = { option -> text?.options?.get(option.value)?.get() ?: option.label },
+				label = { option -> option.label },
 			)
 
 			is SettingDeclaration.Number -> NumberField(setting, label, hint, value.longOrNull ?: setting.defaultValue) {

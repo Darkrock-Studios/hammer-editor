@@ -13,7 +13,7 @@ import kotlinx.serialization.serializer
  * a rename is a new operation.
  */
 interface Operation<I, O> {
-	/** Dotted, e.g. `scene.read`. Plugin operations are prefixed with the plugin id. */
+	/** Dotted, e.g. `scene.read`. */
 	val name: String
 
 	/** English. Used for CLI help and by plugins that describe operations to others. */
