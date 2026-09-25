@@ -335,7 +335,10 @@ class WasmPlugin(
 	@Serializable
 	private class DispatchRequest(val operation: String, val input: JsonElement = JsonObject(emptyMap()))
 
-	/** Has either [output] or [error], never both. */
+	/**
+	 * Has either [output] or [error], never both, and no other key: kits take the output's text out of
+	 * the reply without parsing it.
+	 */
 	@OptIn(ExperimentalSerializationApi::class)
 	@Serializable
 	private class DispatchReply(
