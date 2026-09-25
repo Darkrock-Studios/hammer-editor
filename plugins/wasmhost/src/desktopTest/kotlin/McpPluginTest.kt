@@ -37,7 +37,7 @@ class McpPluginTest {
 	/** The replies to [messages], one line each, by the id they answer. */
 	private fun serve(vararg messages: String, liveEdits: Boolean = false): Map<Int, JsonObject> {
 		val built = File(System.getenv("HAMMER_PLUGINS"), "kotlin/mcp/build/mcp.hammerplugin")
-		check(built.exists()) { "Run kotlin/mcp/package.sh in hammer-plugins first" }
+		check(built.exists()) { "Run kotlin/build.sh in hammer-plugins first" }
 		val download = "/downloads/mcp.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
