@@ -67,4 +67,11 @@ class DesktopLaunchArgsTest {
 			parseDesktopLaunchArgs(arrayOf("--scene", "1"))
 		}
 	}
+
+	@Test
+	fun `a handed-over launch parses without exiting`() {
+		assertEquals(ProjectDeepLink.Note(7), parseHandedOffLaunchArgs(listOf("--project", "Novel", "--note", "7"))?.deepLink)
+		assertNull(parseHandedOffLaunchArgs(listOf("--help")))
+		assertNull(parseHandedOffLaunchArgs(listOf("--scene", "3")))
+	}
 }
