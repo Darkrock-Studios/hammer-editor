@@ -41,9 +41,15 @@ kotlin {
 			dependencies {
 				api(project(":operations"))
 				implementation(libs.chasm)
+				// The runtime store and guest heap, to cap the memory GC-language plugins allocate.
+				implementation(libs.chasm.core)
+				implementation(libs.chasm.gc)
 				implementation(libs.tomlkt)
 			}
 		}
+		// One file for both JVM targets, which the default hierarchy gives no source set of their own.
+		val desktopMain by getting { kotlin.srcDir("src/jvmSharedMain/kotlin") }
+		val androidMain by getting { kotlin.srcDir("src/jvmSharedMain/kotlin") }
 		val commonTest by getting {
 			dependencies {
 				implementation(kotlin("test"))
@@ -68,4 +74,10 @@ powerAssert {
 		"kotlin.test.assertNull"
 	)
 	includedSourceSets = listOf("commonTest", "desktopTest")
+}
+
+// A Kotlin/Wasm plugin holds everything a call allocates until the call returns, and may take up to half
+// the heap: the whole-book plugin tests and benchmarks need room.
+tasks.withType<Test>().configureEach {
+	maxHeapSize = "2g"
 }

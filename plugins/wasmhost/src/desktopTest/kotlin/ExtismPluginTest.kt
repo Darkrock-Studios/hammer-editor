@@ -84,6 +84,22 @@ class ExtismPluginTest {
 	}
 
 	@Test
+	fun `GC objects a plugin keeps cannot grow past the cap`() {
+		val plugin = ExtismPlugin(testPlugin("gc_heap"), maxGuestHeapBytes = 4L * 1024 * 1024)
+
+		val error = assertThrows<PluginException> { plugin.call("hoard", ByteArray(0), FUEL) }
+		assertEquals("Plugin ran out of memory in hoard", error.message)
+	}
+
+	@Test
+	fun `GC objects a call leaves behind are freed when it returns`() {
+		// Each call allocates about 10 MiB and keeps none of it: twenty calls far outrun the cap.
+		val plugin = ExtismPlugin(testPlugin("gc_heap"), maxGuestHeapBytes = 16L * 1024 * 1024)
+
+		repeat(20) { plugin.call("churn", ByteArray(0), FUEL) }
+	}
+
+	@Test
 	fun `linear memory cannot grow past the cap`() {
 		val plugin = ExtismPlugin(testPlugin("count"), instrumenter = FuelInstrumenter(maxMemoryPages = 16))
 

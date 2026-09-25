@@ -916,8 +916,14 @@ does the build, and unit tests on the JVM against a fake Hammer), and Rust, for
 speed (about half C's speed on a whole-book report, where Kotlin runs at about
 a fifth). Zig, C, AssemblyScript, and Go (through TinyGo) were tried too.
 hammer-plugins' `LANGUAGES.md` compares them all. Kotlin/Wasm's objects live in
-the host's Java heap, not the module's capped linear memory, so the host needs a
-limit on them before Kotlin support ships.
+chasm's guest heap rather than the module's linear memory, so that heap has a cap
+of its own: 1 GiB, or half the JVM's heap if that is less, beyond which a call
+fails with "ran out of memory". chasm frees a call's garbage when the call returns
+(its collector that runs during a call corrupts live objects in 2.0.0), so a call
+holds all it allocates: the Kotlin style report on a 300,000-word novel needs
+768 MiB. The heap never gives pages back, so a plugin left holding more than 64 MiB
+after a call is dropped and loaded afresh when next used. The cap needs the JVM:
+on iOS the heap is uncapped.
 
 ### Package
 

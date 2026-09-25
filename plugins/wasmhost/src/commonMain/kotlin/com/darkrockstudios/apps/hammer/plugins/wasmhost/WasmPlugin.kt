@@ -40,7 +40,10 @@ import org.koin.core.component.get
  */
 class WasmPlugin(
 	val manifest: PluginManifest,
-	/** Called once, when the module is first needed, so the bytes are not held until then. */
+	/**
+	 * Called when the module is first needed, so the bytes are not held until then, and again after a call
+	 * that left it holding more than [releaseGuestHeapAbove].
+	 */
 	private val loadModule: () -> ByteArray,
 	private val declaredSettings: List<SettingDeclaration> = emptyList(),
 	granted: Set<String> = manifest.permissions.operations.toSet(),
@@ -49,6 +52,7 @@ class WasmPlugin(
 	/** Where [CACHE_GET] and [CACHE_SET] keep values; without one, every get misses. */
 	private val cache: PluginCache? = null,
 	private val fuelPerCall: Long = DEFAULT_FUEL_PER_CALL,
+	private val releaseGuestHeapAbove: Long = DEFAULT_RELEASE_GUEST_HEAP_ABOVE,
 ) : ClientPlugin, KoinComponent {
 
 	override val id: String = manifest.id
@@ -58,9 +62,12 @@ class WasmPlugin(
 		manifest.permissions.operations.filter { it in granted }.mapNotNull(OperationGrant::parse)
 
 	private val lock = reentrantLock()
-	private val module by lazy {
-		ExtismPlugin(loadModule(), listOf(dispatchFunction()) + cacheFunctions(), log = ::log)
-	}
+
+	// Only touched while holding the lock.
+	private var loaded: ExtismPlugin? = null
+	private val module: ExtismPlugin
+		get() = loaded ?: ExtismPlugin(loadModule(), listOf(dispatchFunction()) + cacheFunctions(), log = ::log)
+			.also { loaded = it }
 
 	private val appRoute by lazy { AppRoute(get()) }
 
@@ -84,7 +91,7 @@ class WasmPlugin(
 
 	/** Loads the module now rather than on first use, which surfaces any problem with it as a [PluginException]. */
 	fun instantiate() {
-		module
+		lock.withLock { module }
 	}
 
 	/** Runs the module's [function] on [input], off the caller's thread. */
@@ -103,6 +110,9 @@ class WasmPlugin(
 			module.call(function, input, fuelPerCall)
 		} finally {
 			activeRoute = outer
+			// chasm never gives back the guest heap a call grew, so a module that needed a lot is dropped and
+			// loaded afresh when next used.
+			if (outer == null && (loaded?.guestHeapBytes ?: 0) > releaseGuestHeapAbove) loaded = null
 		}
 	}
 
@@ -343,5 +353,8 @@ class WasmPlugin(
 
 		/** Function calls plus loop iterations allowed per call before the module is stopped. */
 		const val DEFAULT_FUEL_PER_CALL = 2_000_000_000L
+
+		/** Guest heap a module may keep between calls; a Kotlin/Wasm plugin's small calls need a few MiB. */
+		const val DEFAULT_RELEASE_GUEST_HEAP_ABOVE = 64L * 1024 * 1024
 	}
 }

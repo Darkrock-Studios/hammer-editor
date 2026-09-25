@@ -1,7 +1,10 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
+import io.github.charlietap.chasm.config.GCStrategy
+import io.github.charlietap.chasm.config.RuntimeConfig
 import io.github.charlietap.chasm.embedding.dsl.FunctionTypeBuilder
 import io.github.charlietap.chasm.embedding.dsl.ValueTypeListBuilder
+import io.github.charlietap.chasm.embedding.error.ChasmError
 import io.github.charlietap.chasm.embedding.exports
 import io.github.charlietap.chasm.embedding.function
 import io.github.charlietap.chasm.embedding.global.readGlobal
@@ -42,10 +45,14 @@ class ExtismPlugin(
 	private val config: Map<String, String> = emptyMap(),
 	private val log: (level: LogLevel, message: String) -> Unit = { _, _ -> },
 	instrumenter: FuelInstrumenter = FuelInstrumenter(),
+	maxGuestHeapBytes: Long = DEFAULT_MAX_GUEST_HEAP_BYTES,
 ) {
 	private val kernel = ExtismKernel()
 	private val vars = mutableMapOf<String, ByteArray>()
-	private val store = store()
+
+	// A module using Wasm GC keeps its objects in chasm's heap, not its capped linear memory.
+	private val guestHeap = GuestHeap(maxGuestHeapBytes)
+	private val store = guestHeap.store ?: store()
 	private val instance: Instance
 	private val fuel: Global
 	private var calling = false
@@ -59,7 +66,7 @@ class ExtismPlugin(
 				?: throw PluginException("Plugin imports ${import.moduleName} ${import.entityName}, which the host does not provide")
 			Import(import.moduleName, import.entityName, function(store, host.type, host))
 		}
-		instance = instance(store, module, imports).orThrow("Plugin failed to start")
+		instance = instance(store, module, imports, RUNTIME_CONFIG).orThrow("Plugin failed to start")
 		fuel = exports(instance).first { it.name == FuelInstrumenter.FUEL_EXPORT }.value as Global
 		// Runs on the fuel the instrumenter starts the module with, as Extism hosts do for reactor modules.
 		INITIALIZERS.firstOrNull { name -> module.exports.any { it.name == name } }?.let { initializer ->
@@ -90,6 +97,9 @@ class ExtismPlugin(
 		val result = invoke(store, instance, function)
 		if (result is ChasmResult.Error) {
 			if (remainingFuel() == 0L) throw PluginException("Plugin ran out of fuel in $function")
+			if ((result.error as? ChasmError.ExecutionError)?.error == GUEST_HEAP_EXHAUSTED) {
+				throw PluginException("Plugin ran out of memory in $function")
+			}
 			// A module may set an error and then trap, as AssemblyScript's abort does.
 			val reason = reportedError()?.let { "$it (${result.error})" } ?: result.error
 			throw PluginException("Plugin failed in $function: $reason")
@@ -100,6 +110,13 @@ class ExtismPlugin(
 	}
 
 	private fun reportedError(): String? = kernel.error.takeIf { it != 0L }?.let { kernel.read(it).decodeToString() }
+
+	/**
+	 * What the module's Wasm GC objects hold from the host, at the most any call has needed so far: chasm
+	 * keeps the pages for reuse. 0 where the heap is not the host's to measure.
+	 */
+	val guestHeapBytes: Long
+		get() = if (guestHeap.store != null) guestHeap.committedBytes else 0
 
 	fun remainingFuel(): Long =
 		((readGlobal(store, fuel) as? ChasmResult.Success)?.result as? NumberValue.I64)?.value ?: 0
@@ -260,10 +277,23 @@ class ExtismPlugin(
 		const val ENV = "extism:host/env"
 		const val USER = "extism:host/user"
 		val INITIALIZERS = listOf("_initialize", "__wasm_call_ctors")
+
+		// ARENA frees a call's garbage when the call returns. chasm 2.0.0's TRADITIONAL, which collects while
+		// a call runs, corrupts live Kotlin/Wasm objects.
+		val RUNTIME_CONFIG = RuntimeConfig(gcStrategy = GCStrategy.ARENA)
+
+		/** chasm's error when a module's guest heap is at its cap and collecting frees too little. */
+		const val GUEST_HEAP_EXHAUSTED = "GuestHeapOutOfMemory"
 	}
 }
 
 class PluginException(message: String) : Exception(message)
+
+/**
+ * How much a plugin's Wasm GC objects may hold at once. A call holds everything it allocates until it
+ * returns; Kotlin/Wasm's style report on a 300,000-word novel needs 768 MiB.
+ */
+const val DEFAULT_MAX_GUEST_HEAP_BYTES = 1024L * 1024 * 1024
 
 private fun <S> ChasmResult<S, *>.orThrow(context: String): S = when (this) {
 	is ChasmResult.Success -> result
