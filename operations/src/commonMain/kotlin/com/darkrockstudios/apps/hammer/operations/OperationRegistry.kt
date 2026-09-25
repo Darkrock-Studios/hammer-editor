@@ -32,6 +32,15 @@ class OperationRegistry(operations: List<Operation<*, *>>, projects: ProjectReso
 		return dispatch(op, input)
 	}
 
+	/** [Operation.exitCode] for [output], as [dispatch] returned it for [name]. */
+	fun exitCode(name: String, output: JsonElement): Int {
+		val op = find(name) ?: notFound("No operation named '$name'")
+		return exitCode(op, output)
+	}
+
+	private fun <O> exitCode(op: Operation<*, O>, output: JsonElement): Int =
+		op.exitCode(OperationJson.decodeFromJsonElement(op.output, output))
+
 	private suspend fun <I, O> dispatch(op: Operation<I, O>, input: JsonElement): JsonElement {
 		val decoded = try {
 			OperationJson.decodeFromJsonElement(op.input, input)

@@ -16,6 +16,9 @@ import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import kotlinx.serialization.json.putJsonObject
 
+/** Set on a [FromStdin] field's schema: `text`, or `secret` for one never taken as an option. */
+const val STDIN_KEY = "x-hammer-stdin"
+
 /** JSON Schema for what [OperationJson] reads and writes for [descriptor]. Recursive types go in `$defs`. */
 fun jsonSchema(descriptor: SerialDescriptor): JsonObject {
 	val builder = SchemaBuilder()
@@ -84,8 +87,10 @@ private class SchemaBuilder {
 		val schema = buildJsonObject {
 			put("type", "object")
 			putJsonObject("properties") {
-				descriptor.elementNames.zip(descriptor.elementDescriptors.toList()).forEach { (field, element) ->
-					put(field, schema(element))
+				descriptor.elementNames.zip(descriptor.elementDescriptors.toList()).forEachIndexed { index, (field, element) ->
+					val stdin = descriptor.getElementAnnotations(index).filterIsInstance<FromStdin>().firstOrNull()
+					val fieldSchema = schema(element)
+					put(field, if (stdin == null) fieldSchema else JsonObject(fieldSchema + (STDIN_KEY to JsonPrimitive(stdin.kind))))
 				}
 			}
 			val required = (0 until descriptor.elementsCount)
@@ -100,6 +105,8 @@ private class SchemaBuilder {
 		defs[name] = schema
 		return ref(name)
 	}
+
+	private val FromStdin.kind get() = if (secret) "secret" else "text"
 
 	private fun ref(name: String) = JsonObject(mapOf("\$ref" to JsonPrimitive("#/\$defs/$name")))
 
