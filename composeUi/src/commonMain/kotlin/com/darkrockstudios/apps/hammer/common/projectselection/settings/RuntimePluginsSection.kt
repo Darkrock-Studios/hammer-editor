@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.windowsizeclass.WindowWidthSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -18,10 +19,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
+import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginSettingsPane
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
@@ -50,9 +53,16 @@ import org.koin.compose.koinInject
 import org.koin.core.qualifier.named
 import kotlin.random.Random
 
-/** Install, enable, disable, and uninstall runtime plugins. Every change applies at once. */
+/**
+ * Install, enable, disable, and uninstall runtime plugins, and open the settings of an active one
+ * that has a pane in [settings]. Every change applies at once.
+ */
 @Composable
-internal fun ColumnScope.RuntimePluginsSection(runtimePlugins: RuntimePlugins) {
+internal fun ColumnScope.RuntimePluginsSection(
+	runtimePlugins: RuntimePlugins,
+	settings: (pluginId: String) -> PluginSettingsPane?,
+	onOpenSettings: (pluginId: String) -> Unit,
+) {
 	val scope = rememberCoroutineScope()
 	// Changes run on the app scope so leaving Settings cannot cancel one half done.
 	val appScope = koinInject<CoroutineScope>(named(APP_SCOPE))
@@ -99,6 +109,7 @@ internal fun ColumnScope.RuntimePluginsSection(runtimePlugins: RuntimePlugins) {
 		InstalledPluginRow(
 			plugin = plugin,
 			onEnabledChange = { enabled -> change { runtimePlugins.setEnabled(plugin.id, enabled) } },
+			onSettings = settings(plugin.id)?.let { { onOpenSettings(plugin.id) } },
 			onUninstall = { change { runtimePlugins.uninstall(plugin.id) } },
 		)
 	}
@@ -197,14 +208,12 @@ private const val STAGING_DIRECTORY = "plugin-install"
 private fun InstalledPluginRow(
 	plugin: InstalledPlugin,
 	onEnabledChange: (Boolean) -> Unit,
+	/** Null when the plugin is not active or has no settings. */
+	onSettings: (() -> Unit)?,
 	onUninstall: () -> Unit,
 ) {
-	Row(
-		modifier = Modifier.fillMaxWidth(),
-		verticalAlignment = Alignment.CenterVertically,
-		horizontalArrangement = Arrangement.spacedBy(12.dp),
-	) {
-		val manifest = plugin.manifest
+	val manifest = plugin.manifest
+	val toggle: @Composable (Modifier) -> Unit = { modifier ->
 		HdHairlineToggleRow(
 			checked = plugin.enabled,
 			onCheckedChange = onEnabledChange,
@@ -215,14 +224,34 @@ private fun InstalledPluginRow(
 				Res.string.plugin_runtime_unreadable.get()
 			},
 			enabled = manifest != null,
-			modifier = Modifier.weight(1f),
+			modifier = modifier,
 		)
+	}
+	val buttons: @Composable () -> Unit = {
+		onSettings?.let { HdHairlineButton(label = Res.string.plugin_settings_open.get(), onClick = it) }
 		var confirming by remember(plugin.id) { mutableStateOf(false) }
 		HdHairlineButton(
 			label = if (confirming) Res.string.plugin_runtime_uninstall_confirm.get() else Res.string.plugin_runtime_uninstall.get(),
 			onClick = { if (confirming) onUninstall() else confirming = true },
 			danger = true,
 		)
+	}
+
+	// On a phone the buttons go under the toggle, which would otherwise be squeezed to a sliver.
+	if (LocalScreenCharacteristic.current.windowWidthClass == WindowWidthSizeClass.Compact) {
+		Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+			toggle(Modifier.fillMaxWidth())
+			Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) { buttons() }
+		}
+	} else {
+		Row(
+			modifier = Modifier.fillMaxWidth(),
+			verticalAlignment = Alignment.CenterVertically,
+			horizontalArrangement = Arrangement.spacedBy(12.dp),
+		) {
+			toggle(Modifier.weight(1f))
+			buttons()
+		}
 	}
 }
 
