@@ -60,7 +60,7 @@ class WasmPluginTest {
 			operations = ["greet"]
 			""".trimIndent()
 		),
-		testPlugin("dispatch_echo"),
+		{ testPlugin("dispatch_echo") },
 	)
 
 	private fun dispatch(request: String): JsonObject =

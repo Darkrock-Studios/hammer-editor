@@ -10,12 +10,18 @@ import okio.Path
 import okio.Path.Companion.toPath
 import okio.openZip
 
-/** A `.hammerplugin` package: a zip of `manifest.toml`, `plugin.wasm`, and optionally `settings.toml`. */
+/**
+ * A `.hammerplugin` package: a zip of `manifest.toml`, `plugin.wasm`, and optionally `settings.toml`.
+ * The module, by far the largest part, is read only when [readModule] is called.
+ */
 class PluginPackage(
 	val manifest: PluginManifest,
-	val wasm: ByteArray,
 	val settings: List<SettingDeclaration>,
+	private val moduleReader: () -> ByteArray,
 ) {
+	/** Reads the module from the package; each call reads it again, so callers need not keep it. */
+	fun readModule(): ByteArray = moduleReader()
+
 	companion object {
 		const val EXTENSION = "hammerplugin"
 		private const val MANIFEST = "manifest.toml"
@@ -62,12 +68,16 @@ class PluginPackage(
 				emptyList()
 			}
 
-			val wasm = try {
-				bytes(MODULE, MAX_MODULE_BYTES)
-			} catch (e: IOException) {
-				throw PluginPackageException("Package has no $MODULE")
+			val moduleSize = zip.metadataOrNull(root / MODULE)?.size ?: throw PluginPackageException("Package has no $MODULE")
+			if (moduleSize > MAX_MODULE_BYTES) throw PluginPackageException("$MODULE is larger than $MAX_MODULE_BYTES bytes")
+			val reader = {
+				try {
+					fileSystem.openZip(path).read(root / MODULE) { readByteArray() }
+				} catch (e: IOException) {
+					throw PluginException("Could not read $MODULE: ${e.message}")
+				}
 			}
-			return PluginPackage(manifest, wasm, settings).also { if (checkModule) it.checkModule() }
+			return PluginPackage(manifest, settings, reader).also { if (checkModule) it.checkModule() }
 		}
 
 		private fun check(manifest: PluginManifest) {
@@ -85,7 +95,7 @@ class PluginPackage(
 
 		private fun PluginPackage.checkModule() {
 			try {
-				WasmPlugin(manifest, wasm, settings).instantiate()
+				WasmPlugin(manifest, ::readModule, settings).instantiate()
 			} catch (e: PluginException) {
 				throw PluginPackageException(e.message.orEmpty())
 			} catch (e: IllegalArgumentException) {

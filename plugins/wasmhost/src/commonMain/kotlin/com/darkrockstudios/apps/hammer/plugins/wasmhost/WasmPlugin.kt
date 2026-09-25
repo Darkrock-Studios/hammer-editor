@@ -28,7 +28,8 @@ import org.koin.core.component.get
  */
 class WasmPlugin(
 	val manifest: PluginManifest,
-	private val wasm: ByteArray,
+	/** Called once, when the module is first needed, so the bytes are not held until then. */
+	private val loadModule: () -> ByteArray,
 	private val declaredSettings: List<SettingDeclaration> = emptyList(),
 	private val granted: Set<String> = manifest.permissions.operations.toSet(),
 	private val fuelPerCall: Long = DEFAULT_FUEL_PER_CALL,
@@ -39,7 +40,7 @@ class WasmPlugin(
 
 	private val lock = reentrantLock()
 	private val module by lazy {
-		ExtismPlugin(wasm, listOf(dispatchFunction()), log = ::log)
+		ExtismPlugin(loadModule(), listOf(dispatchFunction()), log = ::log)
 	}
 
 	private val ioDispatcher by injectIoDispatcher()
