@@ -9,6 +9,7 @@ import com.darkrockstudios.libs.platformspellchecker.PlatformSpellChecker
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 
@@ -44,9 +45,10 @@ class ProjectSpellCheckRepository(
 		if (allowed) checker else null
 	}.distinctUntilChanged()
 
-	/** The project's declared language, a BCP 47 tag, or null when it has none. */
+	/** The project's declared language, a BCP 47 tag, or null when it has none. Emits once it is loaded. */
 	val projectLanguage: Flow<String?> = projectDataRepository.state
-		.map { it?.data?.language }
+		.filterNotNull()
+		.map { it.data?.language }
 		.onStart { projectDataRepository.load() }
 		.distinctUntilChanged()
 
