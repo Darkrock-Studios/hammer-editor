@@ -11,10 +11,12 @@ import kotlin.time.Duration.Companion.seconds
 /** The operations every build has. Plugin operations are added alongside these. */
 fun coreOperations(): List<Operation<*, *>> =
 	projectOperations() +
+		projectWriteOperations() +
 		sceneOperations() +
 		sceneWriteOperations() +
 		contentOperations() +
 		contentWriteOperations() +
+		ideaOperations() +
 		searchOperations() +
 		statsOperations() +
 		accountOperations() +
