@@ -65,7 +65,12 @@ class SpikeBenchmarkTest {
 	@Test
 	fun `upper-casing a novel, C against Kotlin`() {
 		val input = novel.encodeToByteArray()
-		compare("upper", input, "run", "c/upper/build/upper.wasm", "kotlin/upper/build/compileSync/wasmWasi/main/developmentExecutable/kotlin/upper.wasm")
+		compare(
+			"upper", input, "run",
+			"c/upper/build/upper.wasm",
+			"kotlin/upper/build/compileSync/wasmWasi/main/developmentExecutable/kotlin/upper.wasm",
+			"kotlin/upper/build/compileSync/wasmWasi/main/productionExecutable/optimized/upper.wasm",
+		)
 	}
 
 	@Test
@@ -73,7 +78,12 @@ class SpikeBenchmarkTest {
 		val scenes = novel.chunked(novel.length / SCENES).joinToString(",") { "\"${it.replace("\n", "\\n")}\"" }
 		val request = """{"format":"x","projectName":"Novel","language":"en","chapters":[{"name":"One","scenes":[$scenes]}],""" +
 			""""settings":{"perScene":true,"heading":"Word count"}}"""
-		compare("word count", request.encodeToByteArray(), "export", "c/wordfreq/build/wordfreq.wasm", "kotlin/wordcount/build/package/plugin.wasm")
+		compare(
+			"word count", request.encodeToByteArray(), "export",
+			"c/wordfreq/build/wordfreq.wasm",
+			"kotlin/wordcount/build/compileSync/wasmWasi/main/developmentExecutable/kotlin/wordcount.wasm",
+			"kotlin/wordcount/build/compileSync/wasmWasi/main/productionExecutable/optimized/wordcount.wasm",
+		)
 	}
 
 	/** Loads each built plugin, warms it up, and prints its load time and best of three runs. */

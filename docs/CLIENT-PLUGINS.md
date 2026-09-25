@@ -1108,22 +1108,23 @@ Desktop JVM, warm, chasm 2.0.0:
 | Tight loop, 20M iterations | 358 ms bare, 738 ms with fuel checks |
 | 557 KB of text (100k words) through a WAT plugin, two host calls per byte | 63 ms |
 
-The same two jobs in C and Kotlin/Wasm (development build), on that text:
+The same two jobs in C and Kotlin/Wasm, on that text. The Kotlin production
+build is optimized by binaryen; the development build is not:
 
-| Job | C | Kotlin/Wasm |
-| --- | --- | --- |
-| Upper-case it | 36 ms | 1.8 s |
-| Word count export of it | 120 ms | 4.3 s |
-| Load the module (after the first, which warms chasm itself) | ~30 ms | 0.4 to 0.6 s |
-| Module size | 1 to 4 KB | 0.6 to 1.9 MB |
+| Job | C | Kotlin production | Kotlin development |
+| --- | --- | --- | --- |
+| Upper-case it | 35 ms | 680 ms | 1.8 s |
+| Word count export of it | 121 ms | 1.95 s | 4.5 s |
+| Load the module (after the first, which warms chasm itself) | under 25 ms | 25 to 135 ms | 0.4 to 0.5 s |
+| Module size | 1 to 4 KB | 12 to 325 KB | 0.6 to 1.9 MB |
 
 - **Kotlin/Wasm works** on the same host, `wasmWasi` target, with
   `@WasmImport` for the Extism functions and only `random_get` and
-  `clock_time_get` from WASI. It is 35 to 50 times slower than C here: part is
-  doing more (Unicode case rules, kotlinx.serialization), most is its GC-heavy
-  standard library under an interpreter. Fine for occasional jobs; C, Rust,
-  Zig, or AssemblyScript suit exports that run over a whole book. A production
-  (binaryen-optimized) build is untried.
+  `clock_time_get` from WASI. Optimized, it is 15 to 20 times slower than C
+  here: part is doing more (Unicode case rules, kotlinx.serialization), most is
+  its GC-heavy standard library under an interpreter. Fine for occasional jobs;
+  C, Rust, Zig, or AssemblyScript suit exports that run over a whole book.
+  Plugin authors should ship the production build.
 - **C works freestanding.** Extism's C PDK compiles with no libc
   (`--target=wasm32-unknown-unknown -nostdlib`), so a C plugin imports nothing
   but Extism and Hammer functions. `hammer.h` supplies the `memset`, `memcpy`,
