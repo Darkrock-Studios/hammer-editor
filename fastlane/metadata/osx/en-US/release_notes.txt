@@ -1,12 +1,10 @@
-[New]
-- A per-project spelling dictionary, so invented words aren't flagged
-- Encyclopedia and draft names accept punctuation and non-Latin letters
+Improvements
+- Word counts no longer count Markdown markers such as horizontal rules, heading marks, bullets and blockquote markers as words
+- General stability and performance improvements
 
-[Improved]
-- A failed login says why, instead of a generic error
-- Translations updated for six languages
-
-[Fixed]
-- Credential fields no longer capitalize what you type
-- Spelling suggestions could stick on "Loading"
-- Sync no longer fails on an unknown field
+Fixes
+- Numpad navigation keys and numpad Enter now work in the editor
+- Keyboard input in the editor is more reliable
+- Spelling underlines stay on the right words while you type
+- The text formatting you choose is kept while you keep writing
+- Fixed crashes and misplaced cursors in the editor

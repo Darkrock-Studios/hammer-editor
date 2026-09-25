@@ -32,6 +32,20 @@
 	<content_rating type="oars-1.1" />
 
 	<releases>
+        <release version="3.11.0" date="2026-09-24">
+            <description>
+                <p>New features</p>
+                <p>- Word counts no longer count standalone Markdown markers such as horizontal rules, heading marks, bullets and blockquote markers as words. The server now counts the same way, so both give the same number</p>
+                <p>- Android and Wear OS builds are now shrunk and obfuscated with R8</p>
+                <p>- Translations and dependencies updated</p>
+                <p>Fixes</p>
+                <p>- Text editor: numpad navigation keys and numpad Enter now work</p>
+                <p>- Text editor: keyboard (IME) edits are applied right away, and the keyboard is told about each one only once</p>
+                <p>- Text editor: spelling underlines stay on the right words while you keep typing</p>
+                <p>- Text editor: the formatting you picked for new text is kept after unrelated updates</p>
+                <p>- Text editor: fixed crashes and misplaced carets when drawing the cursor or moving it during a layout change</p>
+            </description>
+        </release>
         <release version="3.10.0" date="2026-09-20">
             <description>
                 <p>[New]</p>
