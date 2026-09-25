@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.desktop.cli
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import com.darkrockstudios.apps.hammer.operations.STDIN_KEY
 import com.darkrockstudios.apps.hammer.operations.cli.CliCommand
 import com.darkrockstudios.apps.hammer.operations.cli.CliIo
 import com.darkrockstudios.apps.hammer.operations.cli.Dispatcher
@@ -33,9 +34,12 @@ import kotlin.io.encoding.Base64
 object Cli {
 	const val EXIT_OK = 0
 	const val EXIT_FAILURE = 1
-	const val EXIT_USAGE = 2
+	const val EXIT_UNAUTHORIZED = 3
 	const val EXIT_NOT_FOUND = 4
 	const val EXIT_BUSY = 5
+
+	/** sysexits' EX_USAGE, clear of the small codes operations such as sync.run use for their own outcomes. */
+	const val EXIT_USAGE = 64
 
 	private val pretty = Json { prettyPrint = true }
 
@@ -60,6 +64,7 @@ object Cli {
 			when (e.kind) {
 				OperationException.Kind.NotFound -> EXIT_NOT_FOUND
 				OperationException.Kind.InvalidInput -> EXIT_USAGE
+				OperationException.Kind.Unauthorized -> EXIT_UNAUTHORIZED
 			}
 		} catch (e: HeadlessSession.Busy) {
 			io.stderr.writeUtf8("${e.message}\n")
@@ -85,10 +90,10 @@ object Cli {
 			io.stdout.writeUtf8(operationHelp(op))
 			return EXIT_OK
 		}
-		val input = options.json ?: buildInput(op, options.values)
+		val input = withStdinFields(op, options.json?.jsonObject ?: buildInput(op, options.values), io)
 		val output = runBlocking { HeadlessSession.run(plugins) { it.dispatch(op.name, input) } }
 		writeOutput(op, output.jsonObject, options.out, io)
-		return EXIT_OK
+		return registry.exitCode(op.name, output)
 	}
 
 	private class Options(
@@ -118,6 +123,38 @@ object Cli {
 			i++
 		}
 		return Options(values, flags, json, out)
+	}
+
+	/**
+	 * Fills in the fields read from stdin that [input] lacks, and refuses a secret one given on the
+	 * command line, whether as an option or inside `--json`.
+	 */
+	private fun withStdinFields(op: Operation<*, *>, input: JsonObject, io: CliIo): JsonObject {
+		val properties = jsonSchema(op.input.descriptor)["properties"]?.jsonObject ?: JsonObject(emptyMap())
+		val fromStdin = properties.filterValues { it.jsonObject[STDIN_KEY] != null }
+		fromStdin.forEach { (name, schema) ->
+			if (name in input && schema.jsonObject[STDIN_KEY] == JsonPrimitive(SECRET)) {
+				throw UsageException("${kebabCase(name)} is read from stdin or ${envName(name)}, never the command line")
+			}
+		}
+		val missing = fromStdin.filterKeys { it !in input }
+		val fromStream = missing.filterKeys { System.getenv(envName(it)) == null }
+		if (fromStream.size > 1) {
+			throw UsageException("Only one of ${fromStream.keys.joinToString { kebabCase(it) }} can come from stdin; give the others as options")
+		}
+		return JsonObject(input + missing.mapValues { (name, schema) ->
+			val secret = schema.jsonObject[STDIN_KEY] == JsonPrimitive(SECRET)
+			JsonPrimitive(System.getenv(envName(name)) ?: readStdin(name, secret, io))
+		})
+	}
+
+	/** A secret at a terminal is prompted for and read without echo; otherwise stdin is read to its end. */
+	private fun readStdin(name: String, secret: Boolean, io: CliIo): String {
+		val console = System.console()
+		if (secret && console != null) {
+			return console.readPassword("%s: ", kebabCase(name).replaceFirstChar { it.uppercase() })?.concatToString().orEmpty()
+		}
+		return io.stdin.readUtf8().removeSuffix("\n").removeSuffix("\r")
 	}
 
 	private fun buildInput(op: Operation<*, *>, values: Map<String, List<String?>>): JsonObject {
@@ -205,7 +242,11 @@ object Cli {
 					val kind = value["enum"]?.jsonArray?.joinToString("|") { it.jsonPrimitive.content } ?: value.type()
 					val repeat = if (repeated) ", repeatable" else ""
 					val need = if (name in required) " (required)" else ""
-					appendLine("  --${kebabCase(name)} <$kind>$repeat$need")
+					when (property.jsonObject[STDIN_KEY]) {
+						JsonPrimitive(SECRET) -> appendLine("  <$name> from stdin or ${envName(name)}")
+						null -> appendLine("  --${kebabCase(name)} <$kind>$repeat$need")
+						else -> appendLine("  --${kebabCase(name)} <$kind>$repeat, or stdin")
+					}
 				}
 			}
 			appendLine()
@@ -254,6 +295,9 @@ object Cli {
 		if (i == 0) part else part.replaceFirstChar { it.uppercase() }
 	}.joinToString("")
 
+	/** Where a stdin field can come from instead, for scripts: `HAMMER_PASSWORD` for `password`. */
+	private fun envName(field: String) = "HAMMER_" + kebabCase(field).replace('-', '_').uppercase()
+
 	private fun kebabCase(field: String) = field.replace(Regex("([a-z0-9])([A-Z])"), "$1-$2").lowercase()
 
 	private fun systemIo() = CliIo(
@@ -266,4 +310,5 @@ object Cli {
 	private const val JSON_OPTION = "json"
 	private const val OUT_OPTION = "out"
 	private const val STDOUT = "-"
+	private const val SECRET = "secret"
 }
