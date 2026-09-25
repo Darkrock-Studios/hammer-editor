@@ -1098,7 +1098,77 @@ Plugins are untrusted code:
 - **Install and removal in Settings.** The Plugins section has install from
   file, enable and disable, and uninstall, with the permission prompt at
   install.
-- **Signing** is deferred. An unsigned package is the norm at first.
+- **Signing** is of the [plugin index](#plugin-index), not of packages: the
+  signed index pins each package's hash. A package installed from a file is
+  unsigned.
+
+### Plugin index
+
+A public, curated list of plugins the app can browse and install from. It holds
+listings, not packages.
+
+**Submitting.** A plugin gets one file in a `hammer-plugin-index` repository,
+added by pull request. `hammer-plugins` stays the first-party plugins' source
+and is the index's first submitter, attaching each package to a GitHub release.
+
+```toml
+# plugins/style.toml
+id = "style"
+name = "Style Report"
+summary = "Sentence length, adverbs, and repeated words, per scene."
+source = "https://github.com/Wavesonics/hammer-plugins/tree/main/c/style"
+license = "MIT"
+maintainers = ["Wavesonics"]
+
+[[releases]]
+version = "1.2.0"
+url = "https://github.com/Wavesonics/hammer-plugins/releases/download/style-1.2.0/style.hammerplugin"
+sha256 = "9f2c..."
+```
+
+Packages stay where their authors host them: a `.wasm` is not reviewable in a
+diff, and the pinned hash keeps an author from swapping one after review. A
+listing needs a public source link.
+
+**Checks on each pull request.** CI downloads each new release and checks:
+
+- Its hash, and that it passes the install checks the app runs, through a
+  `hammer plugin check <file>` command authors can run too.
+- Its id is the listing's, its version is above the last, and its `api` is one
+  a released app supports.
+- For an existing listing, the pull request's author is one of its
+  `maintainers`.
+
+**Review.** Plugins have no ambient access (see [Trust](#trust)), so a plugin
+cannot send anything anywhere; review asks whether it could damage a project
+and whether it does what it says. A person approves new listings, releases that
+request more permissions than the last, and any Destructive operation. Other releases merge
+once the checks pass.
+
+**Publishing.** On merge, CI builds `index.json` and publishes it, with its
+signature, at a fixed URL on a Hammer domain, so hosting can move. Permissions,
+commands, actions, and exporters in it are read from each package's manifest,
+never from the listing, so a listing cannot misstate what a plugin requests.
+
+**Signing.** CI signs `index.json` with an Ed25519 key held as a repository
+secret; the app ships the public keys it accepts, and a rotation ships in an app
+release. The app refuses an index whose signature fails, and one generated
+before the newest it has seen, so an old index cannot be replayed to hide an
+update. The signature covers the index and the index pins every package hash,
+so packages need no signatures of their own.
+
+**In the app.** The Plugins section of Settings gets a Browse tab. It fetches
+the index only when opened, or when checking installed plugins for updates,
+lists the releases whose `api` the app supports, and installs one by
+downloading it, checking its hash, and passing it to the usual install and its
+permission prompt. An update that requests more asks again, as any
+[replaced package](#trust) does. Install from file stays for plugins outside
+the index.
+
+**Later.** Verified builds: CI builds a release from source at a pinned commit
+and marks the listing when the result matches the package. It needs a toolchain
+per language, so it is a mark, not a requirement. A browse page on hammer.ink
+can read the same `index.json`.
 
 ### Spike results
 
@@ -1148,7 +1218,9 @@ tests do not need that checkout.
 
 The host is common code, so enabling a platform is a registration change: the
 platform's entry point calls the loader. Desktop comes first. Android follows
-with no new host code. iOS can run it technically; whether App Review accepts
+with no new host code. Play's rule against downloaded code exempts code run in
+an interpreter, which covers installing from the [plugin index](#plugin-index);
+confirm before shipping the Browse tab there. iOS can run it technically; whether App Review accepts
 installable plugins is a policy question to settle before shipping it there,
 not an architecture one.
 
@@ -1246,6 +1318,10 @@ design is revisited rather than `:common` bent to fit.
     registration only, through the same `RuntimePlugins.inConfigDirectory`
     as desktop. iOS needs only the same line in `HammerAppInit`, once App
     Review's stance on installable plugins is settled.
+13. **[Plugin index](#plugin-index).** `hammer plugin check`, then the
+    `hammer-plugin-index` repository with its checks and signed `index.json`,
+    with the first-party plugins as its first listings, then the Browse tab and
+    update checks.
 
 Steps 1 and 2 restructure existing code, and step 8 changes app startup
 (single-instance hand-off). The rest are additive. Step 9 is where the
