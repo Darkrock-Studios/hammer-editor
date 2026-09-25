@@ -124,9 +124,6 @@ private val component = object : ProjectHome {
 	override fun showEntry(entry: EntryAppearance) {}
 	override fun supportsBackup(): Boolean = true
 	override fun createBackup(callback: (ProjectBackupDef?) -> Unit) {}
-	override fun runProjectAction(title: String, document: Boolean, work: suspend () -> String?) {}
-	override fun dismissActionDocument() {}
-	override fun saveActionDocumentAsNote() {}
 	override fun getExportStoryFileName(format: String): String = "story"
 	override fun refreshStatistics() {}
 	override fun showProjectStats() {}

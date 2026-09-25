@@ -15,8 +15,15 @@ import com.darkrockstudios.apps.hammer.operations.cli.CliIo
 import com.darkrockstudios.apps.hammer.operations.cli.Dispatcher
 import com.darkrockstudios.apps.hammer.operations.core.OperationDescriptor
 import com.darkrockstudios.apps.hammer.operations.operation
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionCall
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionCancelledException
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionField
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionOutput
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
+import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginCache
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginException
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginPackageException
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.WasmPlugin
@@ -248,14 +255,100 @@ class RuntimePluginsTest {
 		val registry = startKoin(plugins)
 		registry.settings("echo")!!.set("shout", JsonPrimitive(true))
 
-		val action = registry.plugins.single().projectActions().single()
+		val action = registry.plugins.single().actions().single()
 		assertEquals("Echo it", action.label)
-		assertEquals(false, action.document)
-		val request = Json.parseToJsonElement(runBlocking { action.run("Storm") }!!).jsonObject
+		assertEquals(ActionOutput.Message, action.output)
+		assertEquals(setOf(ActionPlace.Project), action.places)
+		val reply = runBlocking { action.run(ActionCall("Storm", ActionPlace.Project, null, JsonObject(emptyMap()))) }
+		val request = Json.parseToJsonElement(reply.message!!).jsonObject
 
 		assertEquals("report", request["action"]!!.jsonPrimitive.content)
 		assertEquals("Storm", request["project"]!!.jsonPrimitive.content)
 		assertEquals(JsonPrimitive(true), request["settings"]!!.jsonObject["shout"])
+		assertEquals(JsonObject(emptyMap()), request["input"])
+		assertEquals("project", request["context"]!!.jsonObject["place"]!!.jsonPrimitive.content)
+	}
+
+	@Test
+	fun `an action declares its places and fields, and gets the input and the item it was run on`() {
+		val plugins = runtimePlugins()
+		val action = """
+			places = ["scene", "entry"]
+
+			[[actions.field]]
+			key = "count"
+			type = "int"
+			label = "How many"
+			default = 5
+			max = 10
+
+			[[actions.field]]
+			key = "scenes"
+			type = "scenes"
+			label = "Scenes"
+			multiple = false
+		""".trimIndent()
+		plugins.install(pack("echo", manifest(action = "report") + "\n" + action))
+
+		val loaded = startKoin(plugins).plugins.single().actions().single()
+		assertEquals(setOf(ActionPlace.Scene, ActionPlace.Entry), loaded.places)
+		val (count, scenes) = loaded.fields
+		assertEquals(5L, ((count as ActionField.Setting).declaration as SettingDeclaration.Number).defaultValue)
+		assertEquals(false, (scenes as ActionField.Scenes).multiple)
+
+		val input = JsonObject(mapOf("count" to JsonPrimitive(3), "scenes" to JsonPrimitive(12)))
+		val reply = runBlocking { loaded.run(ActionCall("Storm", ActionPlace.Entry, 7, input, button = "again")) }
+		val request = Json.parseToJsonElement(reply.message!!).jsonObject
+		assertEquals(input, request["input"])
+		assertEquals(Json.parseToJsonElement("""{"place":"entry","id":7}"""), request["context"])
+		assertEquals("again", request["button"]!!.jsonPrimitive.content)
+	}
+
+	@Test
+	fun `actions with unknown places or broken fields are refused`() {
+		val plugins = runtimePlugins()
+		fun refused(extra: String) = assertThrows<PluginPackageException> {
+			plugins.install(pack("echo", manifest(action = "report") + "\n" + extra.trimIndent()))
+		}
+		refused("places = [\"sidebar\"]")
+		refused("places = []")
+		refused("[[actions.field]]\nkey = \"a\"\ntype = \"colour\"\nlabel = \"A\"")
+		refused("[[actions.field]]\nkey = \"a\"\ntype = \"int\"\nlabel = \"A\"\ndefault = 20\nmax = 10")
+		refused("[[actions.field]]\nkey = \"a\"\ntype = \"bool\"\nlabel = \"A\"\n\n[[actions.field]]\nkey = \"a\"\ntype = \"bool\"\nlabel = \"B\"")
+	}
+
+	@Test
+	fun `an interactive action's reply is its markdown, buttons, and message`() {
+		val plugins = runtimePlugins()
+		plugins.install(pack("names", manifest(id = "names", action = "report", output = "interactive"), module = "interactive"))
+		plugins.install(pack("broken", manifest(id = "broken", action = "report", output = "interactive"), module = "progress"))
+		val (names, broken) = startKoin(plugins).plugins.sortedByDescending { it.id }.map { it.actions().single() }
+		val call = ActionCall("Storm", ActionPlace.Project, null, JsonObject(emptyMap()))
+
+		val reply = runBlocking { names.run(call) }
+		assertEquals(listOf("# Names", "Made"), listOf(reply.markdown, reply.message))
+		assertEquals(listOf("a" to "Aldric"), reply.buttons.map { it.id to it.label })
+		// It replies "done", which is not JSON.
+		assertThrows<PluginException> { runBlocking { broken.run(call) } }
+	}
+
+	@Test
+	fun `an action reports its progress, and a cancelled one stops at its next report`() {
+		val plugins = runtimePlugins()
+		plugins.install(pack("echo", manifest(action = "report"), module = "progress"))
+		val action = startKoin(plugins).plugins.single().actions().single()
+		val reported = mutableListOf<Pair<Float?, String?>>()
+
+		val reply = runBlocking {
+			action.run(ActionCall("Storm", ActionPlace.Project, null, JsonObject(emptyMap()), onProgress = { reported += it.fraction to it.message }))
+		}
+		assertEquals("done", reply.message)
+		assertEquals(listOf<Pair<Float?, String?>>(0.5f to "Half"), reported)
+
+		assertThrows<ActionCancelledException> {
+			runBlocking { action.run(ActionCall("Storm", ActionPlace.Project, null, JsonObject(emptyMap()), cancelled = { true })) }
+		}
+		assertEquals("done", runBlocking { action.run(ActionCall("Storm", ActionPlace.Project, null, JsonObject(emptyMap()))) }.message)
 	}
 
 	@Test
@@ -280,7 +373,8 @@ class RuntimePluginsTest {
 		assertThrows<PluginPackageException> { plugins.install(pack("small", manifest(id = "small", action = "run"), module = "big_memory")) }
 		plugins.install(pack("big", manifest(id = "big", action = "run") + "\n\n[limits]\nmemory = 128", module = "big_memory"))
 
-		assertEquals(null, runBlocking { startKoin(plugins).plugins.single().projectActions().single().run("Storm") })
+		val action = startKoin(plugins).plugins.single().actions().single()
+		assertEquals(null, runBlocking { action.run(ActionCall("Storm", ActionPlace.Project, null, JsonObject(emptyMap()))) }.message)
 	}
 
 	@Test
@@ -298,7 +392,7 @@ class RuntimePluginsTest {
 		val plugins = runtimePlugins()
 		plugins.install(pack("echo", manifest(action = "report", output = "document")))
 
-		assertEquals(true, startKoin(plugins).plugins.single().projectActions().single().document)
+		assertEquals(ActionOutput.Document, startKoin(plugins).plugins.single().actions().single().output)
 	}
 
 	@Test

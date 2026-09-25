@@ -1,6 +1,9 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
 import com.darkrockstudios.apps.hammer.operations.core.coreOperations
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionField
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionOutput
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.parseSettingDeclarations
@@ -124,11 +127,7 @@ class PluginPackage(
 				throw PluginPackageException("Actions declared twice: $it")
 			}
 			actions.firstOrNull { !PluginRegistry.isValidId(it) }?.let { throw PluginPackageException("Invalid action name '$it'") }
-			manifest.actions.forEach { action ->
-				if (action.output != PluginManifest.OUTPUT_MESSAGE && action.output != PluginManifest.OUTPUT_DOCUMENT) {
-					throw PluginPackageException("Action '${action.name}' has unknown output '${action.output}'")
-				}
-			}
+			manifest.actions.forEach(::checkAction)
 			if (manifest.limits.memory !in 1..PluginManifest.MAX_MEMORY_MIB) {
 				throw PluginPackageException("Memory limit must be from 1 to ${PluginManifest.MAX_MEMORY_MIB} MiB")
 			}
@@ -137,6 +136,35 @@ class PluginPackage(
 				throw PluginPackageException("Diagnostics declared twice: $it")
 			}
 			diagnostics.firstOrNull { !PluginRegistry.isValidId(it) }?.let { throw PluginPackageException("Invalid diagnostics name '$it'") }
+		}
+
+		private fun checkAction(action: PluginManifest.Action) {
+			val name = action.name
+			if (ActionOutput.of(action.output) == null) throw PluginPackageException("Action '$name' has unknown output '${action.output}'")
+			if (action.places.isEmpty()) throw PluginPackageException("Action '$name' appears nowhere: give it places")
+			action.places.firstOrNull { ActionPlace.of(it) == null }?.let {
+				throw PluginPackageException("Action '$name' has unknown place '$it'")
+			}
+			val fields = action.field.map { table ->
+				try {
+					table.toActionField()
+				} catch (e: IllegalArgumentException) {
+					throw PluginPackageException("Action '$name': ${e.message}")
+				}
+			}
+			fields.groupBy { it.key }.filterValues { it.size > 1 }.keys.takeIf { it.isNotEmpty() }?.let {
+				throw PluginPackageException("Action '$name' declares fields twice: $it")
+			}
+			fields.forEach { field ->
+				if (field.key.isBlank()) throw PluginPackageException("Action '$name' has a field with no key")
+				val declaration = (field as? ActionField.Setting)?.declaration ?: return@forEach
+				if (declaration is SettingDeclaration.Choice && declaration.options.isEmpty()) {
+					throw PluginPackageException("Action '$name' field '${field.key}' is a choice with no options")
+				}
+				if (declaration.accept(declaration.default) == null) {
+					throw PluginPackageException("Action '$name' field '${field.key}' has an invalid default")
+				}
+			}
 		}
 
 		// Checked here, since a clash the plugin registry found would stop Hammer from starting.

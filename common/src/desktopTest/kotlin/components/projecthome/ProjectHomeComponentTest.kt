@@ -38,12 +38,8 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityRef
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
-import com.darkrockstudios.apps.hammer.common.data.CResult
-import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
-import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_failure
-import com.darkrockstudios.apps.hammer.project_home_action_document_saved
 import com.darkrockstudios.apps.hammer.project_home_action_backup_toast_success
 import com.darkrockstudios.libs.platformspellchecker.PlatformSpellCheckerFactory
 import io.mockk.coEvery
@@ -85,8 +81,6 @@ class ProjectHomeComponentTest : ComponentTest() {
 	private lateinit var statisticsService: StatisticsService
 	private lateinit var tagIndexService: TagIndexService
 	private lateinit var referenceIndexService: ReferenceIndexService
-	private lateinit var notesRepository: NotesRepository
-	private val savedNotes = mutableListOf<String>()
 
 	private lateinit var statsFlow: MutableSharedFlow<ProjectStatistics>
 	private lateinit var isDirtyFlow: MutableStateFlow<Boolean>
@@ -151,13 +145,6 @@ class ProjectHomeComponentTest : ComponentTest() {
 
 		referenceIndexService = mockk(relaxed = true)
 
-		savedNotes.clear()
-		notesRepository = mockk()
-		coEvery { notesRepository.createNote(any(), any()) } coAnswers {
-			savedNotes += firstArg<String>()
-			CResult.success(mockk<NoteContent>())
-		}
-
 		setupComponentKoin(module {
 			single { globalSettingsStore }
 			single { StoryExporterRegistry(emptyList()) }
@@ -175,7 +162,6 @@ class ProjectHomeComponentTest : ComponentTest() {
 				scoped { statisticsService }
 				scoped { tagIndexService }
 				scoped { referenceIndexService }
-				scoped { notesRepository }
 				scoped<ProjectDataRepository> {
 					mockk(relaxed = true) { every { state } returns MutableStateFlow(null) }
 				}
@@ -492,60 +478,6 @@ class ProjectHomeComponentTest : ComponentTest() {
 			),
 			toasts,
 		)
-	}
-
-	@Test
-	fun `A document action's output is shown, then saved as a note`() = runTest(mainTestDispatcher) {
-		val comp = newComponent()
-		context.resume()
-		advanceUntilIdle()
-		val toasts = mutableListOf<ToastMessage>()
-		val collectJob = launch { comp.toast.collect { toasts.add(it) } }
-
-		comp.runProjectAction("Style report", document = true) { "# Style report\n\nFine.\n" }
-		advanceUntilIdle()
-		assertEquals(ProjectHome.Document("Style report", "# Style report\n\nFine."), comp.state.value.actionDocument)
-
-		comp.saveActionDocumentAsNote()
-		advanceUntilIdle()
-		collectJob.cancel()
-
-		assertEquals(listOf("# Style report\n\nFine."), savedNotes)
-		assertNull(comp.state.value.actionDocument)
-		assertEquals(listOf<ToastMessage>(ToastMessage.Resource(Res.string.project_home_action_document_saved)), toasts)
-	}
-
-	@Test
-	fun `A document too long for a note is saved cut at a line break`() = runTest(mainTestDispatcher) {
-		val comp = newComponent()
-		context.resume()
-		advanceUntilIdle()
-		val line = "x".repeat(99)
-		comp.runProjectAction("Report", document = true) { List(200) { line }.joinToString("\n") }
-		advanceUntilIdle()
-
-		comp.saveActionDocumentAsNote()
-		advanceUntilIdle()
-
-		val saved = savedNotes.single()
-		assertTrue(saved.length <= NotesRepository.MAX_NOTE_SIZE)
-		assertTrue(saved.endsWith("$line\n\n…"))
-	}
-
-	@Test
-	fun `A message action's output is toasted`() = runTest(mainTestDispatcher) {
-		val comp = newComponent()
-		context.resume()
-		advanceUntilIdle()
-		val toasts = mutableListOf<ToastMessage>()
-		val collectJob = launch { comp.toast.collect { toasts.add(it) } }
-
-		comp.runProjectAction("Count", document = false) { "Counted 3 scenes" }
-		advanceUntilIdle()
-		collectJob.cancel()
-
-		assertNull(comp.state.value.actionDocument)
-		assertEquals(listOf<ToastMessage>(ToastMessage.Literal("Counted 3 scenes")), toasts)
 	}
 
 	@Test

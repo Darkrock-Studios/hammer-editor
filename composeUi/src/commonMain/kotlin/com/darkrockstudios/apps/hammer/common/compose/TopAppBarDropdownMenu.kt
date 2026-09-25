@@ -19,7 +19,9 @@ import com.darkrockstudios.apps.hammer.more_menu_button
 @Composable
 fun TopAppBarDropdownMenu(
 	modifier: Modifier = Modifier,
-	menuItems: Set<MenuItemDescriptor>
+	menuItems: Set<MenuItemDescriptor>,
+	/** More items after [menuItems], given a function that closes the menu. */
+	extraItems: @Composable (close: () -> Unit) -> Unit = {},
 ) {
 	var expanded by rememberSaveable { mutableStateOf(false) }
 
@@ -48,6 +50,7 @@ fun TopAppBarDropdownMenu(
 					}
 				)
 			}
+			extraItems { expanded = false }
 		}
 	}
 }

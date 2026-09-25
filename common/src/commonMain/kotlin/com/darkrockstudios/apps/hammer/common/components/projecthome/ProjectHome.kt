@@ -43,15 +43,6 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 	fun supportsBackup(): Boolean
 	fun createBackup(callback: (ProjectBackupDef?) -> Unit)
 
-	/**
-	 * Runs a plugin's project action off the main thread. What it returns is shown as a [Document]
-	 * titled [title] when [document] is set, or else toasted; a failure is toasted.
-	 */
-	fun runProjectAction(title: String, document: Boolean, work: suspend () -> String?)
-	fun dismissActionDocument()
-
-	/** Saves the shown [Document] as a note, cut at a line break if it is too long for one. */
-	fun saveActionDocumentAsNote()
 	fun getExportStoryFileName(format: String): String
 	fun refreshStatistics()
 
@@ -96,15 +87,10 @@ interface ProjectHome : Router, HammerComponent, BackHandlerOwner, ComponentToas
 		val hasServer: Boolean = false,
 		val isLoadingStats: Boolean = false,
 		val isStatsDirty: Boolean = false,
-		val actionDocument: Document? = null,
 	) {
 		val averageWordsPerScene: Int
 			get() = if (numberOfScenes > 0) totalWords / numberOfScenes else 0
 	}
-
-	/** Markdown a project action returned for the user to read. */
-	@Serializable
-	data class Document(val title: String, val markdown: String)
 
 	sealed class ContentDestination {
 		data object Stats : ContentDestination()

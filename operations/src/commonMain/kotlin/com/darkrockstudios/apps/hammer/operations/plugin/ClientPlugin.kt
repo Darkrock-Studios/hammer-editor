@@ -23,21 +23,12 @@ interface ClientPlugin {
 	/** Extra top-level CLI commands, such as `hammer mcp`. Desktop only; ignored elsewhere. */
 	fun cliCommands(): List<CliCommand> = emptyList()
 
-	/** Items added to a project's menu. */
-	fun projectActions(): List<ProjectAction> = emptyList()
+	/** Items added to the menus of a project's screens. */
+	fun actions(): List<PluginAction> = emptyList()
 
 	/** Checks the editor runs over the text being written, such as grammar, and underlines what they find. */
 	fun textDiagnostics(): List<TextDiagnosticsProvider> = emptyList()
 }
-
-/** A menu item on a project's home screen. */
-class ProjectAction(
-	val label: String,
-	/** Whether [run] returns a markdown document to show in a dialog, rather than a short message. */
-	val document: Boolean = false,
-	/** Runs off the main thread on the named project; returns what to show the user, if anything. */
-	val run: suspend (project: String) -> String?,
-)
 
 /** Finds issues in paragraphs of prose, for the editor to underline. */
 class TextDiagnosticsProvider(

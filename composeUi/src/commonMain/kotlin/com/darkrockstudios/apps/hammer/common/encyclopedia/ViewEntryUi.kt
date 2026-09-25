@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.encyclopedia
 
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import androidx.compose.animation.AnimatedVisibilityScope
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionScope
@@ -277,7 +278,7 @@ internal fun ViewEntryUi(
 						Column {
 							CrumbRow(
 								title = entryNameText.ifBlank { state.entryDef.name }.uppercase(),
-								menuSlot = { DetailViewDropdownMenu(menuItems = state.menuItems) },
+								menuSlot = { DetailViewDropdownMenu(state.menuItems, ActionPlace.Entry, state.entryDef.id) },
 								onClose = {
 									val isDirty = content != null &&
 										(entryNameText != content.name || entryText != content.text)

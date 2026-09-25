@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionOutput
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
+import com.darkrockstudios.apps.hammer.operations.plugin.FieldTable
 import kotlinx.serialization.Serializable
 import net.peanuuutz.tomlkt.Toml
 
@@ -46,17 +49,20 @@ data class PluginManifest(
 		val help: String,
 	)
 
-	/** An item in each project's menu, which calls the module's `action` export on that project. */
+	/**
+	 * An item in the menus of the screens in [places], which asks for any [field]s and then calls the
+	 * module's `action` export on the project and the item the screen shows.
+	 */
 	@Serializable
 	data class Action(
 		/** Tells the module which of its actions to run. */
 		val name: String,
 		val label: String,
-		/**
-		 * What the module's output is: `message`, a line to show briefly, or `document`, markdown the
-		 * host shows in a dialog the user can copy or save as a note.
-		 */
-		val output: String = OUTPUT_MESSAGE,
+		/** An [ActionOutput] id: `message`, `document`, or `interactive`. */
+		val output: String = ActionOutput.Message.id,
+		/** [ActionPlace] ids: `project`, `scene`, `note`, `entry`, or `event`. */
+		val places: List<String> = listOf(ActionPlace.Project.id),
+		val field: List<FieldTable> = emptyList(),
 	)
 
 	/**
@@ -82,8 +88,6 @@ data class PluginManifest(
 		const val MAX_MEMORY_MIB = 1024
 		const val INPUT_MARKDOWN = "markdown"
 		const val INPUT_PROSE = "prose"
-		const val OUTPUT_MESSAGE = "message"
-		const val OUTPUT_DOCUMENT = "document"
 
 		fun parse(toml: String): PluginManifest {
 			val manifest = Toml { ignoreUnknownKeys = true }.decodeFromString(serializer(), toml)

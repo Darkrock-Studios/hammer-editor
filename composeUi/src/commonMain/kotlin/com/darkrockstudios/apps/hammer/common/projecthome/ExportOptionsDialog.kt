@@ -66,10 +66,6 @@ import com.darkrockstudios.apps.hammer.project_home_export_section
 
 private val DialogMaxWidth = 520.dp
 
-internal fun exportSceneRowTag(id: Int) = "export-scene-row-$id"
-internal fun exportGroupRowTag(id: Int) = "export-group-row-$id"
-internal const val EXPORT_SCENE_MASTER_TOGGLE_TAG = "export-scene-master-toggle"
-
 /**
  * Fully controlled: all option state lives in the component's retained state so
  * in-dialog edits survive configuration changes (see issue #885).
@@ -213,10 +209,10 @@ internal fun ExportOptionsDialogContent(
 
 					val selectedIds = options.sceneIds
 					if (selectedIds != null) {
-						ExportSceneSelector(
+						SceneSelector(
 							entries = exportableScenes,
-							allIds = allSceneIds,
 							selected = selectedIds,
+							multiple = true,
 							onSelectionChanged = { onOptionsChanged(options.copy(sceneIds = it)) },
 						)
 					}
@@ -246,104 +242,4 @@ internal fun ExportOptionsDialogContent(
 			)
 		}
 	}
-}
-
-@Composable
-private fun ExportSceneSelector(
-	entries: List<ExportableScene>,
-	allIds: Set<Int>,
-	selected: Set<Int>,
-	onSelectionChanged: (Set<Int>) -> Unit,
-) {
-	val allSelected = allIds.isNotEmpty() && selected.containsAll(allIds)
-
-	Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
-		Row(
-			modifier = Modifier.fillMaxWidth(),
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-		) {
-			HdMonoLabel(text = Res.string.project_home_export_scenes_label.get())
-			Text(
-				text = Res.string.project_home_export_scenes_selected.get(selected.size, allIds.size),
-				style = MaterialTheme.typography.bodySmall,
-				color = MaterialTheme.colorScheme.onSurfaceVariant,
-				modifier = Modifier.weight(1f),
-			)
-			HdHairlineButton(
-				label = if (allSelected) {
-					Res.string.project_home_export_scenes_clear_all.get()
-				} else {
-					Res.string.project_home_export_scenes_select_all.get()
-				},
-				onClick = { onSelectionChanged(if (allSelected) emptySet() else allIds) },
-				modifier = Modifier.testTag(EXPORT_SCENE_MASTER_TOGGLE_TAG),
-			)
-		}
-
-		HdPickerList {
-			items(items = entries, key = { it.id }) { entry ->
-				if (entry.isGroup) {
-					ExportGroupRow(
-						entry = entry,
-						fullySelected = isGroupFullySelected(entries, selected, entry),
-						hasScenes = descendantSceneIds(entries, entry).isNotEmpty(),
-						onToggle = { onSelectionChanged(toggleGroup(entries, selected, entry)) },
-					)
-				} else {
-					ExportSceneRow(
-						entry = entry,
-						isSelected = entry.id in selected,
-						onToggle = { onSelectionChanged(toggleScene(selected, entry.id)) },
-					)
-				}
-			}
-		}
-	}
-}
-
-@Composable
-private fun ExportGroupRow(
-	entry: ExportableScene,
-	fullySelected: Boolean,
-	hasScenes: Boolean,
-	onToggle: () -> Unit,
-) {
-	val interaction = if (hasScenes) {
-		Modifier.toggleable(
-			value = fullySelected,
-			role = Role.Checkbox,
-			onValueChange = { onToggle() },
-		)
-	} else {
-		// Nothing beneath it to select; an inert checkbox would just mislead.
-		Modifier
-	}
-	HdPickerRow(
-		label = entry.name,
-		depth = entry.depth,
-		icon = Icons.Filled.Folder,
-		modifier = interaction.testTag(exportGroupRowTag(entry.id)),
-		trailing = { if (hasScenes) HdHairlineCheckbox(checked = fullySelected) },
-	)
-}
-
-@Composable
-private fun ExportSceneRow(
-	entry: ExportableScene,
-	isSelected: Boolean,
-	onToggle: () -> Unit,
-) {
-	HdPickerRow(
-		label = entry.name,
-		depth = entry.depth,
-		modifier = Modifier
-			.toggleable(
-				value = isSelected,
-				role = Role.Checkbox,
-				onValueChange = { onToggle() },
-			)
-			.testTag(exportSceneRowTag(entry.id)),
-		trailing = { HdHairlineCheckbox(checked = isSelected) },
-	)
 }
