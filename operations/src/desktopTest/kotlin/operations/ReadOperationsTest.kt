@@ -21,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.data.temporaryProjectTask
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
 import com.darkrockstudios.apps.hammer.common.fileio.okio.toOkioPath
+import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.NoInput
 import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
@@ -431,7 +432,9 @@ class ReadOperationsTest : KoinOperationsTest() {
 		val formats = export.input["properties"]!!.jsonObject["format"]!!.jsonObject["enum"]!!.jsonArray
 		assertTrue(JsonPrimitive("markdown") in formats)
 		val (credentials, others) = ops.operations.partition { it.name.startsWith("account.") || it.name.startsWith("sync.") }
-		assertTrue(others.all { it.agentVisible })
+		val (destructive, safe) = others.partition { it.access == Access.Destructive }
+		assertTrue(safe.all { it.agentVisible })
+		assertTrue(destructive.isNotEmpty() && destructive.none { it.agentVisible })
 		assertTrue(credentials.none { it.agentVisible })
 
 		val content = export.output["properties"]!!.jsonObject["content"]!!.jsonObject

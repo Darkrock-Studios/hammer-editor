@@ -3,7 +3,7 @@
 Design note for extending the Hammer client (desktop, Android, iOS) with plugins,
 and for exposing the same API as a command line interface and an MCP server.
 Status: rollout steps 1 to 8 (without the single-instance hand-off), 11, Android's half of 12,
-and `scene.write` and `scene.append` from step 9 are built; the rest is a proposal. The server already has an equivalent
+and step 9's scene and draft operations are built; the rest is a proposal. The server already has an equivalent
 plugin seam (`server/.../plugin/ServerPlugin.kt`); this mirrors it where the
 shapes match.
 
@@ -256,8 +256,12 @@ into its buffer are dropped rather than landing on top. Neither a live write nor
 scenes with unsaved edits left by a session that did not close, since saving
 would discard them; opening the project in Hammer restores those first.
 
-Input that edits scene text in place is marked `@LiveEdit`: `scene.append`'s
-whole input, and `scene.write`'s `live` mode. The schema carries it as
+`draft.apply` replaces the text the same way, backup draft included. Deleting
+or archiving a scene drops its in-memory buffer, so an editor's save-all cannot
+recreate it; archiving saves the buffer first.
+
+Input that edits scene text in place is marked `@LiveEdit`: the whole input of
+`scene.append` and `draft.apply`, and `scene.write`'s `live` mode. The schema carries it as
 `x-hammer-live`. The MCP plugin leaves marked operations out, and marked enum
 values out of its tool schemas (refusing them if sent anyway), unless its
 "Let AI agents change scenes directly" setting is on. Only top-level fields are
@@ -1240,8 +1244,8 @@ design is revisited rather than `:common` bent to fit.
    default) gates it per call, and the CLI and MCP try the socket before running
    headless. Second app instances still start their own window without the
    lock; handing their launch arguments to the first window is not built.
-9. **Write operations.** `scene.write` and `scene.append` are built, with the
-   MCP plugin's live edits setting; the rest are next.
+9. **Write operations.** The scene and draft operations are built, with the
+   MCP plugin's live edits setting and the CLI's `--confirm`; the rest are next.
    Deliberately after forwarding, so live writes always go through the app when
    it is up. Then the [style report](#style-report-style) plugin.
 10. **Text diagnostics.** Define `TextDiagnosticsProvider` (text in, ranges plus
