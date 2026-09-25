@@ -3,7 +3,7 @@
 Design note for extending the Hammer client (desktop, Android, iOS) with plugins,
 and for exposing the same API as a command line interface and an MCP server.
 Status: rollout steps 1 to 8 (without the single-instance hand-off), 11, Android's half of 12,
-and step 9's scene and draft operations are built; the rest is a proposal. The server already has an equivalent
+and step 9's scene, draft, note, encyclopedia, and timeline operations are built; the rest is a proposal. The server already has an equivalent
 plugin seam (`server/.../plugin/ServerPlugin.kt`); this mirrors it where the
 shapes match.
 
@@ -196,7 +196,9 @@ Conventions:
   server project id.
 - Entity ids are the project's own ids, which are stable across sync.
 - Body text (scene, note, entry, timeline event, idea) is read from stdin on the
-  CLI.
+  CLI. An update replaces the body, so the body is required there too; the
+  other fields keep their value when left out. An optional body would leave
+  `hammer note update --tags x` waiting on stdin.
 - **Read** operations change nothing. **Write** operations change content.
   **Destructive** operations delete or overwrite in a way a draft cannot undo;
   the CLI requires `--confirm` and they are never agent-visible.
@@ -626,7 +628,10 @@ hammer mcp        # contributed by the MCP plugin
   and `--help` after a command lists its options.
 - Output is the operation's output type as JSON. `--out FILE` writes an
   output's one binary field (an export's bytes) to a file and prints the rest,
-  and `--out -` writes the bytes alone to stdout.
+  and `--out -` writes the bytes alone to stdout. `--in FILE` (or `--in -`)
+  fills an input's one binary field, such as an entry image, the same way.
+- Destructive operations need `--confirm`; without it the CLI refuses before
+  starting Hammer.
 - Exit codes: 0 success, 1 failure, 3 not logged in or login rejected, 4 not
   found, 5 another Hammer process holds the writer lock, and 64 (sysexits'
   EX_USAGE) for usage errors and invalid input. An operation can report partial
@@ -1244,8 +1249,9 @@ design is revisited rather than `:common` bent to fit.
    default) gates it per call, and the CLI and MCP try the socket before running
    headless. Second app instances still start their own window without the
    lock; handing their launch arguments to the first window is not built.
-9. **Write operations.** The scene and draft operations are built, with the
-   MCP plugin's live edits setting and the CLI's `--confirm`; the rest are next.
+9. **Write operations.** The scene, draft, note, encyclopedia, and timeline
+   operations are built, with the MCP plugin's live edits setting and the
+   CLI's `--confirm` and `--in`; ideas and projects are next.
    Deliberately after forwarding, so live writes always go through the app when
    it is up. Then the [style report](#style-report-style) plugin.
 10. **Text diagnostics.** Define `TextDiagnosticsProvider` (text in, ranges plus

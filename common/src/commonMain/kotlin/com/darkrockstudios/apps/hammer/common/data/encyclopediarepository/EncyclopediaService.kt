@@ -64,6 +64,9 @@ class EncyclopediaService(
 	suspend fun setEntryImage(entryDef: EntryDef, imagePath: String?) =
 		repository.setEntryImage(entryDef, imagePath)
 
+	suspend fun setEntryImage(entryDef: EntryDef, extension: String, image: ByteArray): Boolean =
+		repository.setEntryImage(entryDef, extension, image)
+
 	suspend fun removeEntryImage(entryDef: EntryDef): Boolean =
 		repository.removeEntryImage(entryDef)
 
