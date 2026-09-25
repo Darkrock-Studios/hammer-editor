@@ -2,11 +2,9 @@ package com.darkrockstudios.apps.hammer.common.preview
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.material3.windowsizeclass.ExperimentalMaterial3WindowSizeClassApi
-import androidx.compose.material3.windowsizeclass.WindowSizeClass
+import com.darkrockstudios.apps.hammer.common.compose.WindowSizeClass
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Density
@@ -33,17 +31,11 @@ import kotlin.time.Clock
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.seconds
 
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
-private fun expandedSize(): WindowSizeClass = WindowSizeClass.calculateFromSize(
-	size = Size.Zero.copy(1920f, 1280f),
-	density = Density(1f)
-)
+private fun expandedSize(): WindowSizeClass =
+	WindowSizeClass.calculateFromSize(widthPx = 1920, heightPx = 1280, density = Density(1f))
 
-@OptIn(ExperimentalMaterial3WindowSizeClassApi::class)
-private fun compactSize(): WindowSizeClass = WindowSizeClass.calculateFromSize(
-	size = Size.Zero.copy(420f, 900f),
-	density = Density(1f)
-)
+private fun compactSize(): WindowSizeClass =
+	WindowSizeClass.calculateFromSize(widthPx = 420, heightPx = 900, density = Density(1f))
 
 @Preview
 @Composable

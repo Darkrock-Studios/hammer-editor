@@ -85,7 +85,6 @@ play_services_wearable = "20.0.1"
 lifecycle_process = "2.11.0"
 core_splashscreen = "1.2.0"
 
-multiplatform_window_size = "0.5.0"
 mockk = "1.14.11"
 
 tomlkt = "0.5.0"
@@ -196,7 +195,6 @@ xmlutil_core = { module = "io.github.pdvrieze.xmlutil:core", version.ref = "xmlu
 poi_ooxml = { module = "org.apache.poi:poi-ooxml", version.ref = "poi" }
 pdfkmp = { module = "io.github.conamobiledev:pdfkmp", version.ref = "pdfkmp" }
 kotlinx_html = { module = "org.jetbrains.kotlinx:kotlinx-html", version.ref = "kotlinx_html" }
-multiplatform_window_size = { group = "dev.chrisbanes.material3", name = "material3-window-size-class-multiplatform", version.ref = "multiplatform_window_size" }
 material = { module = "com.google.android.material:material", version.ref = "material" }
 filekit_dialogs_compose = { module = "io.github.vinceglb:filekit-dialogs-compose", version.ref = "filekit" }
 napier = { group = "io.github.aakira", name = "napier", version.ref = "napier" }
