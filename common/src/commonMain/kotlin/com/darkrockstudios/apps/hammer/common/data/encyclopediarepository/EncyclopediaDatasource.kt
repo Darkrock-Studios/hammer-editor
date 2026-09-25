@@ -118,6 +118,10 @@ class EncyclopediaDatasource(
 	fun findEntryImageExtension(entryDef: EntryDef): String? =
 		findEntryImagePath(entryDef)?.name?.substringAfterLast('.')
 
+	fun deleteEntryImage(entryDef: EntryDef, fileExtension: String) {
+		resolveEntryImagePath(entryDef, fileExtension)?.let(fileSystem::delete)
+	}
+
 	suspend fun removeEntryImage(entryDef: EntryDef): Boolean {
 		val imagePath = findEntryImagePath(entryDef)?.toOkioPath() ?: return false
 
@@ -424,6 +428,19 @@ class EncyclopediaDatasource(
 
 		const val MAX_IMAGE_SIZE_MB = 16
 		const val MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024L * 1024
+
+		/** Whether [bytes] start the way an image of [extension] does. */
+		fun isImage(bytes: ByteArray, extension: String): Boolean {
+			fun startsWith(offset: Int, vararg signature: Int) =
+				bytes.size >= offset + signature.size &&
+					signature.indices.all { bytes[offset + it] == signature[it].toByte() }
+			return when (extension.lowercase()) {
+				"png" -> startsWith(0, 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A)
+				"jpg", "jpeg" -> startsWith(0, 0xFF, 0xD8, 0xFF)
+				"webp" -> startsWith(0, 0x52, 0x49, 0x46, 0x46) && startsWith(8, 0x57, 0x45, 0x42, 0x50)
+				else -> false
+			}
+		}
 
 		fun getTypeDirectory(
 			projectDef: ProjectDef,

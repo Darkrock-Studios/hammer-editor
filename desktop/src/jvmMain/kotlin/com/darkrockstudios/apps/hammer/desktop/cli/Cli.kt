@@ -100,7 +100,8 @@ object Cli {
 		if (op.access == Access.Destructive && CONFIRM !in options.flags) {
 			throw UsageException("'${op.name.replace('.', ' ')}' cannot be undone. Add --$CONFIRM to run it.")
 		}
-		val input = withStdinFields(op, options.json?.jsonObject ?: buildInput(op, options.values), io)
+		val given = options.json?.jsonObject ?: buildInput(op, options.values)
+		val input = withStdinFields(op, withFileInput(op, given, options.inFile, io), io)
 		val (output, exitCode) = dispatch(plugins, op.name, input)
 		writeOutput(op, output.jsonObject, options.out, io)
 		return exitCode
@@ -111,12 +112,14 @@ object Cli {
 		val flags: Set<String>,
 		val json: JsonElement?,
 		val out: String?,
+		val inFile: String?,
 	)
 
 	private fun parseOptions(args: List<String>): Options {
 		val values = linkedMapOf<String, MutableList<String?>>()
 		var json: JsonElement? = null
 		var out: String? = null
+		var inFile: String? = null
 		val flags = mutableSetOf<String>()
 		var i = 0
 		while (i < args.size) {
@@ -133,12 +136,36 @@ object Cli {
 			when (name) {
 				JSON_OPTION -> json = value?.let(::parseJson) ?: throw UsageException("--$JSON_OPTION needs a value")
 				OUT_OPTION -> out = value ?: throw UsageException("--$OUT_OPTION needs a file, or - for stdout")
+				IN_OPTION -> inFile = value ?: throw UsageException("--$IN_OPTION needs a file, or - for stdin")
 				else -> values.getOrPut(camelCase(name)) { mutableListOf() } += value
 			}
 			i++
 		}
-		return Options(values, flags, json, out)
+		return Options(values, flags, json, out, inFile)
 	}
+
+	/** With [inFile], reads a file (or stdin for `-`) into the input's one binary field. */
+	private fun withFileInput(op: Operation<*, *>, input: JsonObject, inFile: String?, io: CliIo): JsonObject {
+		if (inFile == null) return input
+		val field = binaryFields(jsonSchema(op.input.descriptor)).singleOrNull()
+			?: throw UsageException("'${op.name}' has no file input for --$IN_OPTION")
+		if (field in input) throw UsageException("Give ${kebabCase(field)} or --$IN_OPTION, not both")
+		val schema = jsonSchema(op.input.descriptor)["properties"]?.jsonObject.orEmpty()
+		if (inFile == STREAM && schema.any { (name, property) -> name !in input && property.jsonObject[STDIN_KEY] != null }) {
+			throw UsageException("stdin is already read for another field; give --$IN_OPTION a file")
+		}
+		val bytes = if (inFile == STREAM) io.stdin.readByteArray() else readFile(inFile)
+		return JsonObject(input + (field to JsonPrimitive(Base64.encode(bytes))))
+	}
+
+	private fun readFile(path: String): ByteArray = try {
+		File(path).readBytes()
+	} catch (e: java.io.IOException) {
+		throw UsageException("Cannot read $path: ${e.message}")
+	}
+
+	private fun binaryFields(schema: JsonObject): Set<String> =
+		schema["properties"]?.jsonObject.orEmpty().filterValues { it.jsonObject["contentEncoding"] == JsonPrimitive("base64") }.keys
 
 	/**
 	 * Fills in the fields read from stdin that [input] lacks, and refuses a secret one given on the
@@ -212,11 +239,10 @@ object Cli {
 			io.stdout.writeUtf8(pretty.encodeToString(JsonElement.serializer(), output) + "\n")
 			return
 		}
-		val properties = jsonSchema(op.output.descriptor)["properties"]?.jsonObject ?: JsonObject(emptyMap())
-		val binary = properties.filterValues { it.jsonObject["contentEncoding"] == JsonPrimitive("base64") }.keys
-		val field = binary.singleOrNull() ?: throw UsageException("'${op.name}' has no file output for --$OUT_OPTION")
+		val field = binaryFields(jsonSchema(op.output.descriptor)).singleOrNull()
+			?: throw UsageException("'${op.name}' has no file output for --$OUT_OPTION")
 		val bytes = Base64.decode(output.getValue(field).jsonPrimitive.content)
-		if (out == STDOUT) {
+		if (out == STREAM) {
 			io.stdout.write(bytes)
 		} else {
 			File(out).writeBytes(bytes)
@@ -269,7 +295,10 @@ object Cli {
 			appendLine()
 			if (op.access == Access.Destructive) appendLine("  --$CONFIRM             Required: this cannot be undone")
 			appendLine("  --$JSON_OPTION <object>  The whole input as JSON, instead of options")
-			if (jsonSchema(op.output.descriptor).toString().contains("base64")) {
+			if (binaryFields(schema).size == 1) {
+				appendLine("  --$IN_OPTION <file>       Read ${kebabCase(binaryFields(schema).single())} from <file>, or - for stdin")
+			}
+			if (binaryFields(jsonSchema(op.output.descriptor)).size == 1) {
 				appendLine("  --$OUT_OPTION <file>      Write the file to <file>, or - for stdout")
 			}
 		}
@@ -338,6 +367,8 @@ object Cli {
 	private const val CONFIRM = "confirm"
 	private const val JSON_OPTION = "json"
 	private const val OUT_OPTION = "out"
-	private const val STDOUT = "-"
+	private const val IN_OPTION = "in"
+	/** `-` for a file option: stdin or stdout. */
+	private const val STREAM = "-"
 	private const val SECRET = "secret"
 }

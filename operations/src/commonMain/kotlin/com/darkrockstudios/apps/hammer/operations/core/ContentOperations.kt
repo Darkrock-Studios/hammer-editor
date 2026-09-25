@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineEv
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.Base64Bytes
+import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.notFound
 import com.darkrockstudios.apps.hammer.operations.operation
@@ -64,23 +65,7 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 		access = Access.Read,
 		agentVisible = true,
 	) { input ->
-		projects.withProject(input.project) { project ->
-			val encyclopedia = project.scope.get<EncyclopediaRepository>()
-			encyclopedia.ensureEntriesLoaded()
-			val def = encyclopedia.findEntryDef(input.id) ?: notFound("No entry ${input.id}")
-			val entry = encyclopedia.loadEntry(def).entry
-			val scenes = project.scope.get<ReferenceIndexService>().getScenesReferencing(def.id)
-			Entry(
-				id = entry.id,
-				name = entry.name,
-				type = EntryKind.of(entry.type),
-				text = entry.text,
-				tags = entry.tags.sorted(),
-				aliases = entry.aliases,
-				hasImage = encyclopedia.findEntryImageExtension(def) != null,
-				referencedBy = scenes.sorted(),
-			)
-		}
+		projects.withProject(input.project) { project -> project.readEntry(input.id) }
 	},
 	operation<ProjectItemInput, EntryImage>(
 		name = "entry.image.get",
@@ -131,6 +116,24 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 	},
 )
 
+/** The entry as entry.read shows it. */
+internal suspend fun OpenProject.readEntry(id: Int): Entry {
+	val encyclopedia = scope.get<EncyclopediaRepository>()
+	encyclopedia.ensureEntriesLoaded()
+	val def = encyclopedia.findEntryDef(id) ?: notFound("No entry $id")
+	val entry = encyclopedia.loadEntry(def).entry
+	return Entry(
+		id = entry.id,
+		name = entry.name,
+		type = EntryKind.of(entry.type),
+		text = entry.text,
+		tags = entry.tags.sorted(),
+		aliases = entry.aliases,
+		hasImage = encyclopedia.findEntryImageExtension(def) != null,
+		referencedBy = scope.get<ReferenceIndexService>().getScenesReferencing(def.id).sorted(),
+	)
+}
+
 /** Matches tags the way the tag index keys them, so filters agree with tag.list and tag.find. */
 private fun Set<String>.hasTag(tag: String): Boolean {
 	val needle = normalizeTagNeedle(tag)
@@ -155,6 +158,14 @@ enum class EntryKind {
 	@SerialName("thing") Thing,
 	@SerialName("event") Event,
 	@SerialName("idea") Idea;
+
+	fun toType(): EntryType = when (this) {
+		Person -> EntryType.PERSON
+		Place -> EntryType.PLACE
+		Thing -> EntryType.THING
+		Event -> EntryType.EVENT
+		Idea -> EntryType.IDEA
+	}
 
 	companion object {
 		fun of(type: EntryType): EntryKind = when (type) {
