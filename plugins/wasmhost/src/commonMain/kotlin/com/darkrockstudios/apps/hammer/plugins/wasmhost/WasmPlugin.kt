@@ -76,7 +76,7 @@ class WasmPlugin(
 	override fun cliCommands(): List<CliCommand> = manifest.commands.map(::Command)
 
 	override fun projectActions(): List<ProjectAction> = manifest.actions.map { action ->
-		ProjectAction(action.label) { project ->
+		ProjectAction(action.label, document = action.output == PluginManifest.OUTPUT_DOCUMENT) { project ->
 			val request = ActionRequest(action.name, project, settingsValues())
 			call(ACTION, OperationJson.encodeToString(request).encodeToByteArray()).decodeToString().ifBlank { null }
 		}

@@ -30,6 +30,8 @@ interface ClientPlugin {
 /** A menu item on a project's home screen. */
 class ProjectAction(
 	val label: String,
-	/** Runs off the main thread on the named project; returns what to tell the user, if anything. */
+	/** Whether [run] returns a markdown document to show in a dialog, rather than a short message. */
+	val document: Boolean = false,
+	/** Runs off the main thread on the named project; returns what to show the user, if anything. */
 	val run: suspend (project: String) -> String?,
 )
