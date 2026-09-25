@@ -43,6 +43,7 @@ import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.findShortcutModifier
+import com.darkrockstudios.apps.hammer.common.compose.plugin.rememberPluginTextDiagnostics
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResizeHandle
@@ -86,6 +87,7 @@ fun FocusModeUi(component: FocusMode) {
 	val markdownExtension = remember { textEditorState.withMarkdown(markdownConfig) }
 
 	val findState = rememberFindState(textEditorState.textState)
+	val textDiagnostics = rememberPluginTextDiagnostics(textEditorState.textState, state.language)
 	var showFindBar by remember { mutableStateOf(false) }
 
 	LaunchedEffect(markdownConfig) {
@@ -200,6 +202,7 @@ fun FocusModeUi(component: FocusMode) {
 						contentPadding = PaddingValues(Ui.Padding.XL),
 						enabled = hasReceivedInitialBuffer,
 						spellCheckMenuItems = spellCheckMenuItems,
+						diagnostics = textDiagnostics,
 						style = rememberTextEditorStyle(
 							textStyle = TextStyle.Default.copy(
 								textIndent = TextIndent(firstLine = 24.sp)

@@ -44,6 +44,12 @@ class ProjectSpellCheckRepository(
 		if (allowed) checker else null
 	}.distinctUntilChanged()
 
+	/** The project's declared language, a BCP 47 tag, or null when it has none. */
+	val projectLanguage: Flow<String?> = projectDataRepository.state
+		.map { it?.data?.language }
+		.onStart { projectDataRepository.load() }
+		.distinctUntilChanged()
+
 	/** The global spell-check master switch. */
 	val spellCheckEnabled: Flow<Boolean> = globalSettingsStore.globalSettingsUpdates
 		.map { it.spellCheckSettings.enabled }

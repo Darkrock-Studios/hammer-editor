@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.composeui.resources.plugin_command_run
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.ProjectAction
+import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsProvider
 import org.koin.dsl.module
 
 class PluginSettingsPane(
@@ -46,6 +47,13 @@ class PluginUiRegistry(
 	fun projectActions(): List<ProjectAction> {
 		val plugins by pluginRegistry.active.collectAsState()
 		return remember(plugins) { plugins.flatMap { it.projectActions() } }
+	}
+
+	/** Every active plugin's checks for the text being written. */
+	@Composable
+	fun textDiagnostics(): List<TextDiagnosticsProvider> {
+		val plugins by pluginRegistry.active.collectAsState()
+		return remember(plugins) { plugins.flatMap { it.textDiagnostics() } }
 	}
 
 	private fun settingsPane(plugin: ClientPlugin): PluginSettingsPane? {

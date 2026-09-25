@@ -54,6 +54,7 @@ import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
 import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.plugin.rememberPluginTextDiagnostics
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
@@ -113,6 +114,7 @@ fun SceneEditorUi(
 	val markdownExtension = remember { textEditorState.withMarkdown(markdownConfig) }
 
 	val findState = rememberFindState(textEditorState.textState)
+	val textDiagnostics = rememberPluginTextDiagnostics(textEditorState.textState, state.language)
 	var showFindBar by remember { mutableStateOf(false) }
 
 	LaunchedEffect(markdownConfig) {
@@ -236,6 +238,7 @@ fun SceneEditorUi(
 						contentPadding = PaddingValues(Ui.Padding.XL),
 						enabled = hasReceivedInitialBuffer,
 						spellCheckMenuItems = spellCheckMenuItems,
+						diagnostics = textDiagnostics,
 						style = rememberTextEditorStyle(
 							textStyle = TextStyle.Default.copy(
 								textIndent = TextIndent(firstLine = 24.sp)

@@ -371,12 +371,21 @@ interface ClientPlugin {
 
 	/** Items added to a project's menu. */
 	fun projectActions(): List<ProjectAction> = emptyList()
+
+	/** Checks the editor runs over the text being written, such as grammar. */
+	fun textDiagnostics(): List<TextDiagnosticsProvider> = emptyList()
 }
 
 class ProjectAction(
 	val label: String,
 	/** Runs off the main thread on the named project; returns what to tell the user, if anything. */
 	val run: suspend (project: String) -> String?,
+)
+
+class TextDiagnosticsProvider(
+	val label: String,
+	/** The issues in each paragraph, as UTF-16 ranges plus a message and fixes. */
+	val diagnose: suspend (paragraphs: List<String>, language: String?) -> List<List<TextDiagnostic>>,
 )
 
 interface CliCommand {
@@ -480,6 +489,16 @@ changed. A replaced plugin gets a new settings store for its own declarations.
   label, with Copy and Save as note. Hammer runs both, so saving needs no
   permission from the plugin. A document longer than a note allows is saved cut
   at a line break, ending in "…", and the toast says so.
+
+- **Text diagnostics.** The scene editor and focus mode run every active
+  plugin's checks, underlining what they find in blue, apart from spell
+  check's red. A right-click or tap on an underline shows its message and
+  fixes; picking a fix replaces the text. The editor library does the work
+  (`TextDiagnosticsState` in ComposeTextEditor's spellcheck module): it keeps
+  results by paragraph text, so after an edit only changed paragraphs go to
+  the plugins, and each underline carries its diagnostic, so it moves with
+  the text. The plugins get the editor's text, markdown already rendered away,
+  and the project's language.
 
 These are the only UI slots for now. Future ones (a scene editor toolbar
 action) are added when a plugin needs them, not speculatively.
@@ -798,9 +817,9 @@ in CLI help, neither of which is localized today.
 
 ## Example plugins
 
-Three plugins, all real features rather than test fixtures, chosen so that
+Four plugins, all real features rather than test fixtures, chosen so that
 between them they exercise every slot: the plain text exporter, the style
-report, and the [MCP plugin](#mcp-plugin).
+report, the grammar check, and the [MCP plugin](#mcp-plugin).
 
 ### Plain text exporter (`plaintext`)
 
@@ -851,6 +870,23 @@ second pass. Its repeated phrases are those repeated within a scene. On a
 300,000-word book a first run takes about 7
 seconds and a run with nothing changed about 1, the reading of every scene
 that remains.
+
+### Grammar (`grammar`)
+
+Built, as a runtime plugin in C: `c/grammar` in `hammer-plugins`. Underlines
+common slips in English prose as you write: repeated words, "a" and "an",
+"could of" and its kin, a lower-case "i", spacing around punctuation, and a
+sentence starting in lower case. The rules flag only what they are sure of
+("had had" passes, and "a" and "an" are left alone before words starting with
+"h" or "u"), and a project in another language gets nothing.
+
+| Exercises | How |
+| --- | --- |
+| Text diagnostics | The manifest declares one check; the host calls the module's `diagnose` export with changed paragraphs and underlines what it returns |
+| Offsets across the boundary | Byte offsets from C, turned into the editor's UTF-16 ranges by the host |
+
+It is a proof of the seam more than a grammar checker. A real engine, such as
+Harper compiled to Wasm, can replace it behind the same export.
 
 ### Gaps these expose
 
@@ -1017,6 +1053,15 @@ eight bytes a plugin copies. The Hammer-specific parts:
   `{"action", "project", "settings"}`, and its output, if any, is shown to the
   user when it finishes: as a brief message, or, when the action's manifest
   entry sets `output = "document"`, as markdown in the result dialog.
+- A `diagnose` export runs a text diagnostics check the manifest declares
+  under `[[diagnostics]]` (`name`, `label`). Its input is `{"diagnostics",
+  "paragraphs": [text], "language", "settings"}`, `language` a BCP 47 tag or
+  null, and its output `{"diagnostics": [{"paragraph", "start", "end",
+  "message", "fixes": [text]}]}`, `start` and `end` UTF-8 byte offsets into
+  the paragraph, which is how C and Rust index text. The host converts them,
+  and drops an issue whose paragraph does not exist or whose offsets fall past
+  the end or inside a character. A module that fails, or replies with nothing,
+  leaves the text unmarked.
 - `_initialize`, or else `__wasm_call_ctors`, runs once after instantiation, as
   in other Extism hosts.
 
@@ -1319,11 +1364,12 @@ design is revisited rather than `:common` bent to fit.
    the project action slot it needed.
    Then the plugin [cache](#cache), so a style report counts only changed
    scenes, and the result dialog, where the style report now appears.
-10. **Text diagnostics.** Define `TextDiagnosticsProvider` (text in, ranges plus
-   messages plus fixes out) and add a grammar plugin against it. Migrate spell
-   check onto the same interface only if the editor integration gets simpler for
-   it; spell check is wired deep into editor decorations and is not a cheap
-   first proof.
+10. **Text diagnostics.** Built: `TextDiagnosticsProvider`, the `diagnose`
+   export, and a diagnostics layer in the editor library, with the
+   [grammar](#grammar-grammar) plugin against it. Spell check stays separate:
+   it loads suggestions only when a word is clicked and re-checks single words,
+   where diagnostics carry their fixes up front and re-check whole paragraphs.
+   Moving it over waits until diagnostics can load fixes on demand.
 11. **Runtime plugins on desktop.** Built. Plugins from the `hammer-plugins`
     repository compile, package, install without a restart, read their
     declared settings, and call back into Hammer. Compiled-in plugins are gone.
