@@ -911,10 +911,11 @@ Preview 1 through a companion library. It does not support SIMD or Memory64.
 ### Languages
 
 C, through clang, is the first supported language: small modules that use
-linear memory only, which any runtime handles. AssemblyScript has a kit too,
-and runs about five times slower than C on a whole-book report; Rust, Go, and
-Zig should work the same way. Kotlin/Wasm works too (the MCP plugin is written
-in it), at a cost in speed and size. hammer-plugins' `LANGUAGES.md` compares
+linear memory only, which any runtime handles. Rust, AssemblyScript, and Go
+(through TinyGo; standard Go needs WASI imports the host does not provide)
+have kits too. On a whole-book report Rust runs about half C's speed and the
+other two about a fifth. Kotlin/Wasm works too (the MCP plugin is written in
+it), at a cost in speed and size. hammer-plugins' `LANGUAGES.md` compares
 the languages for plugin authors: speed, size, setup, and what writing one is
 like.
 
