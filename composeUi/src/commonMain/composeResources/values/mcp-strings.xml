@@ -1,0 +1,6 @@
+<resources>
+	<string name="mcp_plugin_name">MCP server</string>
+	<string name="mcp_enabled_label">Let AI agents use Hammer</string>
+	<string name="mcp_enabled_hint">Agents you set up can read your projects while Hammer is closed.</string>
+	<string name="mcp_config_intro">Add this to your agent's MCP settings:</string>
+</resources>

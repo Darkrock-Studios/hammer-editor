@@ -2,13 +2,11 @@ package com.darkrockstudios.apps.hammer.desktop.cli
 
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationException
-import com.darkrockstudios.apps.hammer.operations.OperationJson
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.cli.CliCommand
 import com.darkrockstudios.apps.hammer.operations.cli.CliIo
 import com.darkrockstudios.apps.hammer.operations.cli.Dispatcher
 import com.darkrockstudios.apps.hammer.operations.core.OperationDescriptor
-import com.darkrockstudios.apps.hammer.operations.core.OperationList
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.jsonSchema
 import io.github.aakira.napier.Napier
@@ -222,9 +220,20 @@ object Cli {
 		override suspend fun dispatch(operation: String, input: JsonElement): JsonElement =
 			HeadlessSession.run(plugins) { it.dispatch(operation, input) }
 
-		override suspend fun operations(): List<OperationDescriptor> = HeadlessSession.run(plugins) {
-			OperationJson.decodeFromJsonElement(OperationList.serializer(), it.dispatch("ops.list", JsonObject(emptyMap())))
-		}.operations
+		/**
+		 * From the registry alone, so it works while the app holds the writer lock. Schemas that only
+		 * runtime values narrow, such as project.export's formats, are left open here.
+		 */
+		override suspend fun operations(): List<OperationDescriptor> = plugins.operationRegistry.operations.map { op ->
+			OperationDescriptor(
+				name = op.name,
+				description = op.description,
+				access = op.access,
+				agentVisible = op.agentVisible,
+				input = jsonSchema(op.input.descriptor),
+				output = jsonSchema(op.output.descriptor),
+			)
+		}
 	}
 
 	private class UsageException(message: String) : Exception(message)
