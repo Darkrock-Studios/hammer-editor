@@ -31,6 +31,7 @@ class DesktopPlatformSettingsComponent(componentContext: ComponentContext) : Des
 	private val _state by savableState {
 		DesktopPlatformSettings.PlatformState(
 			projectsDir = projectsRepository.getProjectsDirectory(),
+			allowExternalTools = globalSettingsStore.globalSettings.allowExternalTools,
 		)
 	}
 
@@ -50,10 +51,17 @@ class DesktopPlatformSettingsComponent(componentContext: ComponentContext) : Des
 						val projectsPath = settings.projectsDirectory.toPath().toHPath()
 						it.copy(
 							projectsDir = projectsPath,
+							allowExternalTools = settings.allowExternalTools,
 						)
 					}
 				}
 			}
+		}
+	}
+
+	override fun setAllowExternalTools(allow: Boolean) {
+		scope.launch {
+			globalSettingsStore.updateSettings { it.copy(allowExternalTools = allow) }
 		}
 	}
 

@@ -40,10 +40,12 @@ import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.startupBanner
 import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModule
 import com.darkrockstudios.apps.hammer.desktop.cli.Cli
+import com.darkrockstudios.apps.hammer.desktop.cli.Forwarding
 import com.darkrockstudios.apps.hammer.desktop.cli.WriterLock
 import com.darkrockstudios.apps.hammer.desktop.plugin.installedDesktopPlugins
 import com.darkrockstudios.apps.hammer.desktop.sandbox.SandboxStartup
 import com.darkrockstudios.apps.hammer.desktop.shortcuts.QuickShortcuts
+import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import dev.nucleusframework.application.NucleusApplicationScope
@@ -160,6 +162,18 @@ private fun acquireAppWriterLock(): WriterLock? = try {
 	null
 }
 
+/** Serves CLI calls from this window, for as long as it holds the writer lock. */
+private fun startForwarding(appScope: CoroutineScope): Forwarding.Server? = try {
+	Forwarding.Server(
+		socket = Forwarding.socketPath(File(getConfigDirectory())),
+		allowed = { getKoin().get<GlobalSettingsStore>().globalSettings.allowExternalTools },
+		registry = { getKoin().get<OperationRegistry>() },
+	).also { it.start(appScope) }
+} catch (e: IOException) {
+	Napier.w(e) { "Could not open the CLI socket; CLI calls will refuse while Hammer runs" }
+	null
+}
+
 /**
  * Held for the app's whole run, so a CLI call cannot write under it; a field so it is never collected.
  * A second window of the app cannot take it and runs without, as it did before the lock existed.
@@ -205,6 +219,7 @@ fun main(args: Array<String>) {
 	Napier.i("Startup: running data migration")
 	runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }
 	pluginRegistry.start()
+	val forwarding = if (appWriterLock != null) startForwarding(appScope) else null
 
 	val initialProject: ProjectDef? = launchArgs.projectName?.let { name ->
 		val match = getKoin().get<ProjectsRepository>().findProject(name)
@@ -317,6 +332,7 @@ fun main(args: Array<String>) {
 		}
 	}
 
+	forwarding?.close()
 	settingsUpdateJob.cancel()
 	scope.cancel("Program ending")
 	quickShortcuts.dispose()

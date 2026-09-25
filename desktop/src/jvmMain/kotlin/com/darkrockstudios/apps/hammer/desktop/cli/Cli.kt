@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.desktop.cli
 
+import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
@@ -8,10 +9,14 @@ import com.darkrockstudios.apps.hammer.operations.cli.CliCommand
 import com.darkrockstudios.apps.hammer.operations.cli.CliIo
 import com.darkrockstudios.apps.hammer.operations.cli.Dispatcher
 import com.darkrockstudios.apps.hammer.operations.core.OperationDescriptor
-import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.jsonSchema
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import io.github.aakira.napier.Napier
+import java.io.File
+import kotlin.io.encoding.Base64
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonArray
@@ -24,8 +29,6 @@ import kotlinx.serialization.json.jsonPrimitive
 import okio.buffer
 import okio.sink
 import okio.source
-import java.io.File
-import kotlin.io.encoding.Base64
 
 /**
  * `hammer <operation words> [--field value]...`: every operation as a command, its input fields as
@@ -69,6 +72,9 @@ object Cli {
 		} catch (e: HeadlessSession.Busy) {
 			io.stderr.writeUtf8("${e.message}\n")
 			EXIT_BUSY
+		} catch (e: Forwarding.Refused) {
+			io.stderr.writeUtf8("${e.message}\n")
+			EXIT_BUSY
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
 			Napier.e(e) { "CLI call failed: $args" }
 			io.stderr.writeUtf8("Failed: ${e.message}\n")
@@ -91,9 +97,9 @@ object Cli {
 			return EXIT_OK
 		}
 		val input = withStdinFields(op, options.json?.jsonObject ?: buildInput(op, options.values), io)
-		val output = runBlocking { HeadlessSession.run(plugins) { it.dispatch(op.name, input) } }
+		val (output, exitCode) = dispatch(plugins, op.name, input)
 		writeOutput(op, output.jsonObject, options.out, io)
-		return registry.exitCode(op.name, output)
+		return exitCode
 	}
 
 	private class Options(
@@ -257,9 +263,19 @@ object Cli {
 		}
 	}
 
+	/** Runs [operation] in the open app when there is one, else headless; returns its output and exit code. */
+	private fun dispatch(plugins: PluginRegistry, operation: String, input: JsonElement): Pair<JsonElement, Int> =
+		Forwarding.dispatch(Forwarding.socketPath(File(getConfigDirectory())), operation, input)
+			?: runBlocking {
+				HeadlessSession.run(plugins) {
+					val output = it.dispatch(operation, input)
+					output to it.exitCode(operation, output)
+				}
+			}
+
 	private class HeadlessDispatcher(private val plugins: PluginRegistry) : Dispatcher {
 		override suspend fun dispatch(operation: String, input: JsonElement): JsonElement =
-			HeadlessSession.run(plugins) { it.dispatch(operation, input) }
+			withContext(Dispatchers.IO) { dispatch(plugins, operation, input).first }
 
 		/**
 		 * From the registry alone, so it works while the app holds the writer lock. Schemas that only
