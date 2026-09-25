@@ -76,5 +76,6 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 			label = Res.string.settings_external_tools.get(),
 			hint = Res.string.settings_external_tools_hint.get(),
 		)
+		CommandLineSettings()
 	}
 }
