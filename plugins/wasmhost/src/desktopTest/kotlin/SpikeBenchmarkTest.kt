@@ -11,7 +11,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable
 import java.io.File
 import kotlin.random.Random
-import kotlin.test.assertTrue
 import kotlin.time.measureTime
 
 /**
@@ -64,36 +63,34 @@ class SpikeBenchmarkTest {
 	}
 
 	@Test
-	fun `a novel through the Kotlin plugin`() {
-		val wasm = pluginsRepo?.resolve("kotlin/upper/build/compileSync/wasmWasi/main/developmentExecutable/kotlin/upper.wasm")
-		if (wasm?.exists() != true) return println("Kotlin plugin not built; skipped")
-
-		lateinit var plugin: ExtismPlugin
-		val load = measureTime { plugin = ExtismPlugin(wasm.readBytes()) }
+	fun `upper-casing a novel, C against Kotlin`() {
 		val input = novel.encodeToByteArray()
-		val output = plugin.call("run", "warm up".encodeToByteArray(), FUEL)
-		assertTrue(output.decodeToString() == "WARM UP")
-
-		val time = measureTime { plugin.call("run", input, FUEL) }
-		println("Kotlin upper: load $load, ${input.size} bytes in $time")
+		compare("upper", input, "run", "c/upper/build/upper.wasm", "kotlin/upper/build/compileSync/wasmWasi/main/developmentExecutable/kotlin/upper.wasm")
 	}
 
 	@Test
-	fun `a novel through the C word frequency plugin`() {
-		val wasm = pluginsRepo?.resolve("c/wordfreq/build/wordfreq.wasm")
-		if (wasm?.exists() != true) return println("C plugin not built; skipped")
+	fun `a word count export of a novel, C against Kotlin`() {
+		val scenes = novel.chunked(novel.length / SCENES).joinToString(",") { "\"${it.replace("\n", "\\n")}\"" }
+		val request = """{"format":"x","projectName":"Novel","language":"en","chapters":[{"name":"One","scenes":[$scenes]}],""" +
+			""""settings":{"perScene":true,"heading":"Word count"}}"""
+		compare("word count", request.encodeToByteArray(), "export", "c/wordfreq/build/wordfreq.wasm", "kotlin/wordcount/build/package/plugin.wasm")
+	}
 
-		lateinit var plugin: ExtismPlugin
-		val load = measureTime { plugin = ExtismPlugin(wasm.readBytes()) }
-		val chapters = novel.chunked(novel.length / SCENES).joinToString(",") { "\"${it.replace("\n", "\\n")}\"" }
-		val request = """{"format":"wordfreq.csv","projectName":"Novel","language":"en","chapters":[{"name":"One","scenes":[$chapters]}]}"""
-		val input = request.encodeToByteArray()
-		plugin.call("export", input, FUEL)
+	/** Loads each built plugin, warms it up, and prints its load time and best of three runs. */
+	private fun compare(task: String, input: ByteArray, function: String, vararg builds: String) {
+		builds.forEach { build ->
+			val wasm = pluginsRepo?.resolve(build)?.takeIf { it.exists() } ?: return@forEach println("$build not built; skipped")
+			lateinit var plugin: ExtismPlugin
+			val load = measureTime { plugin = ExtismPlugin(wasm.readBytes(), listOf(noDispatch)) }
+			plugin.call(function, input, FUEL)
+			val best = (1..3).minOf { measureTime { plugin.call(function, input, FUEL) } }
+			println("$task, $build (${wasm.length() / 1024} KB): load $load, run $best on ${input.size / 1024} KB")
+		}
+	}
 
-		lateinit var csv: String
-		val time = measureTime { csv = plugin.call("export", input, FUEL).decodeToString() }
-		println("C wordfreq: load $load, ${input.size} bytes in $time")
-		println(csv.lines().take(6).joinToString(" | "))
+	/** Plugins that call back into Hammer get an error reply, which they are written to tolerate. */
+	private val noDispatch = ExtismPlugin.UserFunction("hammer_dispatch", params = 1, returnsValue = true) {
+		write("""{"error":{"kind":"NotFound","message":"benchmark"}}""".encodeToByteArray())
 	}
 
 	private fun buildNovel(): String {
