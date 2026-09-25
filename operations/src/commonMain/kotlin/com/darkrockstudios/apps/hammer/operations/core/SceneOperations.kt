@@ -10,6 +10,7 @@ import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.Operation
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.notFound
 import com.darkrockstudios.apps.hammer.operations.operation
 import kotlinx.serialization.SerialName
@@ -21,7 +22,7 @@ internal fun sceneOperations(): List<Operation<*, *>> = listOf(
 		name = "scene.tree",
 		description = "A project's scenes and groups in story order, with word counts.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val service = project.scope.get<SceneEditorService>()
@@ -33,7 +34,7 @@ internal fun sceneOperations(): List<Operation<*, *>> = listOf(
 		name = "scene.read",
 		description = "A scene's markdown, including unsaved edits, with its outline, notes, and tags.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val service = project.scope.get<SceneEditorService>()
@@ -59,7 +60,7 @@ internal fun sceneOperations(): List<Operation<*, *>> = listOf(
 		name = "scene.archived",
 		description = "A project's archived scenes.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val archived = project.scope.get<SceneEditorService>().getArchivedScenes()
@@ -70,7 +71,7 @@ internal fun sceneOperations(): List<Operation<*, *>> = listOf(
 		name = "scene.meta.read",
 		description = "A scene's outline, notes, and tags.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val scene = project.requireScene(input.id)
@@ -81,7 +82,7 @@ internal fun sceneOperations(): List<Operation<*, *>> = listOf(
 		name = "draft.list",
 		description = "A scene's saved drafts, oldest first.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val scene = project.requireScene(input.sceneId)
@@ -93,7 +94,7 @@ internal fun sceneOperations(): List<Operation<*, *>> = listOf(
 		name = "draft.read",
 		description = "A draft's markdown.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val drafts = project.scope.get<SceneDraftRepository>()

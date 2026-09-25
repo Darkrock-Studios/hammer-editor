@@ -6,14 +6,24 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispat
 import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.OperationJson
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import com.darkrockstudios.apps.hammer.operations.cli.CliCommand
+import com.darkrockstudios.apps.hammer.operations.cli.CliIo
+import com.darkrockstudios.apps.hammer.operations.cli.Dispatcher
+import com.darkrockstudios.apps.hammer.operations.core.OPS_LIST
+import com.darkrockstudios.apps.hammer.operations.core.OperationDescriptor
+import com.darkrockstudios.apps.hammer.operations.core.OperationList
+import com.darkrockstudios.apps.hammer.operations.core.descriptor
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
@@ -24,30 +34,43 @@ import org.koin.core.component.get
 /**
  * A runtime plugin: a manifest plus an Extism-convention module, presented as a [ClientPlugin].
  * The module is instantiated on first use, and calls into it run one at a time. It may dispatch only
- * operations that its manifest requests and the user [granted].
+ * operations covered by an [OperationGrant] that its manifest requests and the user [granted], and
+ * `ops.list` shows it only those.
  */
 class WasmPlugin(
 	val manifest: PluginManifest,
 	/** Called once, when the module is first needed, so the bytes are not held until then. */
 	private val loadModule: () -> ByteArray,
 	private val declaredSettings: List<SettingDeclaration> = emptyList(),
-	private val granted: Set<String> = manifest.permissions.operations.toSet(),
+	granted: Set<String> = manifest.permissions.operations.toSet(),
+	/** The plugin's declared settings as saved, for commands, which run without the rest of Hammer. */
+	private val savedSettings: () -> JsonObject = { JsonObject(emptyMap()) },
 	private val fuelPerCall: Long = DEFAULT_FUEL_PER_CALL,
 ) : ClientPlugin, KoinComponent {
 
 	override val id: String = manifest.id
 	override val name: String = manifest.name
 
+	private val grants: List<OperationGrant> =
+		manifest.permissions.operations.filter { it in granted }.mapNotNull(OperationGrant::parse)
+
 	private val lock = reentrantLock()
 	private val module by lazy {
 		ExtismPlugin(loadModule(), listOf(dispatchFunction()), log = ::log)
 	}
+
+	private val appRoute by lazy { AppRoute(get()) }
+
+	// The route of the call running now; only touched while holding the lock.
+	private var activeRoute: Route? = null
 
 	private val ioDispatcher by injectIoDispatcher()
 
 	override fun exporters(): List<StoryExporter> = manifest.exporters.map(::Exporter)
 
 	override fun settings(): List<SettingDeclaration> = declaredSettings
+
+	override fun cliCommands(): List<CliCommand> = manifest.commands.map(::Command)
 
 	/** Loads the module now rather than on first use, which surfaces any problem with it as a [PluginException]. */
 	fun instantiate() {
@@ -60,10 +83,42 @@ class WasmPlugin(
 
 	/**
 	 * Runs the module's [function] on [input], blocking the calling thread for the whole call, operations
-	 * the module dispatches included. Never call it from the main thread.
+	 * the module dispatches included. Never call it from the main thread. The module's operations go
+	 * through [route], by default the app's own registry.
 	 */
-	fun callBlocking(function: String, input: ByteArray): ByteArray = lock.withLock {
-		module.call(function, input, fuelPerCall)
+	fun callBlocking(function: String, input: ByteArray, route: Route? = null): ByteArray = lock.withLock {
+		val outer = activeRoute
+		activeRoute = route ?: appRoute
+		try {
+			module.call(function, input, fuelPerCall)
+		} finally {
+			activeRoute = outer
+		}
+	}
+
+	/**
+	 * Where a module's operations run. Asks [dispatcher] for the operations once, when first needed;
+	 * the host answers `ops.list` from those itself, so listing needs no call into Hammer.
+	 */
+	open class Route(private val dispatcher: Dispatcher) {
+		private var operations: Map<String, OperationDescriptor>? = null
+
+		internal suspend fun operations(): Collection<OperationDescriptor> =
+			(operations ?: dispatcher.operations().associateBy { it.name }.also { operations = it }).values
+
+		internal open suspend fun find(name: String): OperationDescriptor? = operations().firstOrNull { it.name == name }
+
+		internal suspend fun dispatch(name: String, input: JsonElement): JsonElement = dispatcher.dispatch(name, input)
+	}
+
+	// Looks up one operation in the registry, rather than describing them all, to check a dispatch.
+	private class AppRoute(private val registry: OperationRegistry) : Route(RegistryDispatcher(registry)) {
+		override suspend fun find(name: String) = registry.find(name)?.descriptor()
+	}
+
+	private class RegistryDispatcher(private val registry: OperationRegistry) : Dispatcher {
+		override suspend fun dispatch(operation: String, input: JsonElement) = registry.dispatch(operation, input)
+		override suspend fun operations() = registry.operations.map { it.descriptor(it.inputSchema()) }
 	}
 
 	private fun dispatchFunction() = ExtismPlugin.UserFunction(DISPATCH, params = 1, returnsValue = true) { args ->
@@ -76,14 +131,63 @@ class WasmPlugin(
 	}
 
 	// Called from inside the module, so it blocks this call's thread until the operation finishes.
-	private fun dispatch(request: DispatchRequest): DispatchReply {
-		if (request.operation !in manifest.permissions.operations || request.operation !in granted) {
-			return DispatchReply.failed(PERMISSION_DENIED, "Plugin '$id' has no permission for ${request.operation}")
-		}
-		return try {
-			DispatchReply(output = runBlocking { get<OperationRegistry>().dispatch(request.operation, request.input) })
+	private fun dispatch(request: DispatchRequest): DispatchReply = runBlocking {
+		val route = checkNotNull(activeRoute) { "Dispatch outside a call" }
+		try {
+			val op = route.find(request.operation)
+				?: return@runBlocking DispatchReply.failed(OperationException.Kind.NotFound.name, "No operation named '${request.operation}'")
+			if (grants.none { it.covers(op) }) {
+				return@runBlocking DispatchReply.failed(PERMISSION_DENIED, "Plugin '$id' has no permission for ${op.name}")
+			}
+			val output = if (op.name == OPS_LIST) {
+				val permitted = route.operations().filter { listed -> grants.any { it.covers(listed) } }
+				OperationJson.encodeToJsonElement(OperationList.serializer(), OperationList(permitted))
+			} else {
+				route.dispatch(op.name, request.input)
+			}
+			DispatchReply(output = output)
 		} catch (e: OperationException) {
 			DispatchReply.failed(e.kind.name, e.message.orEmpty())
+		} catch (e: CancellationException) {
+			throw e
+		} catch (e: PluginException) {
+			throw e
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+			// Such as a CLI command finding Hammer busy: the module can say so, where a trap would end it.
+			Napier.e(e) { "Plugin '$id' dispatch of ${request.operation} failed" }
+			DispatchReply.failed(FAILED, e.message ?: "Failed")
+		}
+	}
+
+	private inner class Command(private val command: PluginManifest.Command) : CliCommand {
+		override val name = command.name
+		override val help = command.help
+
+		override suspend fun run(args: List<String>, io: CliIo, dispatcher: Dispatcher): Int {
+			try {
+				instantiate()
+			} catch (e: PluginException) {
+				io.stderr.writeUtf8("Plugin '$id' could not start: ${e.message}\n")
+				return COMMAND_FAILED
+			}
+			val route = Route(dispatcher)
+			while (true) {
+				val line = io.stdin.readUtf8Line() ?: return 0
+				// Settings are read again for each line, so a change in Hammer applies at once.
+				val request = CommandRequest(name, args, savedSettings(), line)
+				val reply = try {
+					callBlocking(COMMAND, OperationJson.encodeToString(request).encodeToByteArray(), route)
+				} catch (e: PluginException) {
+					io.stderr.writeUtf8("Plugin '$id' failed: ${e.message}\n")
+					io.stderr.flush()
+					continue
+				}
+				if (reply.isNotEmpty()) {
+					io.stdout.write(reply)
+					if (reply.last() != '\n'.code.toByte()) io.stdout.writeUtf8("\n")
+					io.stdout.flush()
+				}
+			}
 		}
 	}
 
@@ -126,10 +230,25 @@ class WasmPlugin(
 	}
 
 	@Serializable
-	private class DispatchRequest(val operation: String, val input: JsonElement = JsonObject(emptyMap()))
+	private class CommandRequest(
+		val command: String,
+		val args: List<String>,
+		/** The plugin's declared settings, every key present. */
+		val settings: JsonObject,
+		/** One line of standard input, without its line break. */
+		val line: String,
+	)
 
 	@Serializable
-	private class DispatchReply(val output: JsonElement? = null, val error: Error? = null) {
+	private class DispatchRequest(val operation: String, val input: JsonElement = JsonObject(emptyMap()))
+
+	/** Has either [output] or [error], never both. */
+	@OptIn(ExperimentalSerializationApi::class)
+	@Serializable
+	private class DispatchReply(
+		@EncodeDefault(EncodeDefault.Mode.NEVER) val output: JsonElement? = null,
+		@EncodeDefault(EncodeDefault.Mode.NEVER) val error: Error? = null,
+	) {
 		@Serializable
 		class Error(val kind: String, val message: String)
 
@@ -168,7 +287,15 @@ class WasmPlugin(
 		/** The export that renders every export format the manifest declares. */
 		const val EXPORT = "export"
 
+		/** The export that answers each line of input to a command the manifest declares. */
+		const val COMMAND = "command"
+
 		const val PERMISSION_DENIED = "PermissionDenied"
+
+		/** An operation that failed for a reason other than the caller's input, such as Hammer being busy. */
+		const val FAILED = "Failed"
+
+		private const val COMMAND_FAILED = 1
 
 		/** Function calls plus loop iterations allowed per call before the module is stopped. */
 		const val DEFAULT_FUEL_PER_CALL = 2_000_000_000L

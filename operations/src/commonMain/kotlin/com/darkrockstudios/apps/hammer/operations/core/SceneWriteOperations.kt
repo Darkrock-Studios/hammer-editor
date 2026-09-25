@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.operations.FromStdin
 import com.darkrockstudios.apps.hammer.operations.LiveEdit
 import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.Operation
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.invalidInput
 import com.darkrockstudios.apps.hammer.operations.notFound
 import com.darkrockstudios.apps.hammer.operations.operation
@@ -25,7 +26,7 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 		description = "Replace a scene's text with markdown. Mode draft saves it as a new draft of the scene and leaves " +
 			"the scene alone. Mode live replaces the scene's text, saving the old text as a draft first.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val scene = project.requireEditableScene(input.id)
@@ -49,7 +50,7 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "scene.append",
 		description = "Add markdown to the end of a scene's text, as a new paragraph.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		if (input.markdown.isBlank()) invalidInput("Nothing to append")
 		projects.withProject(input.project) { project ->
@@ -66,7 +67,7 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "scene.create",
 		description = "Create an empty scene or group, at the end of its parent unless an index is given.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val service = project.scope.get<SceneEditorService>()
@@ -86,7 +87,7 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "scene.rename",
 		description = "Rename a scene or group.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val item = project.requireTreeItem(input.id)
@@ -101,7 +102,7 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 		description = "Move a scene or group to a position within a group, or the top level when parentId is left out. " +
 			"index is its position there after the move.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val item = project.requireTreeItem(input.id)
@@ -114,7 +115,7 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "scene.archive",
 		description = "Archive a scene: take it out of the story, keeping its text, drafts, and notes.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val scene = project.requireEditableScene(input.id)
@@ -127,7 +128,7 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "scene.unarchive",
 		description = "Return an archived scene to the story, at the end of the top level.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val scene = project.requireScene(input.id)
@@ -141,6 +142,7 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "scene.delete",
 		description = "Delete a scene, archived or not, or an empty group, for good.",
 		access = Access.Destructive,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val service = project.scope.get<SceneEditorService>()
@@ -163,7 +165,7 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "scene.meta.write",
 		description = "Change a scene's outline, notes, or tags. Fields left out keep their value.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val scene = project.requireScene(input.id)
@@ -182,7 +184,7 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "draft.create",
 		description = "Save a scene's current text as a named draft.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val scene = project.requireEditableScene(input.sceneId)
@@ -196,7 +198,7 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "draft.apply",
 		description = "Replace a scene's text with one of its drafts, saving the replaced text as a draft first.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val drafts = project.scope.get<SceneDraftRepository>()
@@ -210,6 +212,7 @@ internal fun sceneWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "draft.delete",
 		description = "Delete a draft for good.",
 		access = Access.Destructive,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val drafts = project.scope.get<SceneDraftRepository>()

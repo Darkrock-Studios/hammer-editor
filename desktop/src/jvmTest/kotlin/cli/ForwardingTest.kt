@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.ProjectResolver
 import com.darkrockstudios.apps.hammer.operations.notFound
 import com.darkrockstudios.apps.hammer.operations.operation
@@ -43,7 +44,7 @@ class ForwardingTest {
 
 	private val registry = OperationRegistry(
 		listOf(
-			operation<Greeting, Greeting>("greet", "", Access.Read) {
+			operation<Greeting, Greeting>("greet", "", Access.Read, OperationScope.Content) {
 				if (it.name.isBlank()) notFound("Nobody to greet")
 				Greeting("Hello, ${it.name}")
 			}

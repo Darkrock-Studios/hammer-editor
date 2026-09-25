@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.NoInput
 import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.Operation
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.invalidInput
 import com.darkrockstudios.apps.hammer.operations.jsonSchema
 import com.darkrockstudios.apps.hammer.operations.operation
@@ -25,7 +26,7 @@ internal fun searchOperations(): List<Operation<*, *>> = listOf(
 		name = "search",
 		description = "Search a project's scenes, notes, encyclopedia, and timeline. #tag in the query filters by tag.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			// The search reads notes from memory, which fills asynchronously once the scope opens.
@@ -38,7 +39,7 @@ internal fun searchOperations(): List<Operation<*, *>> = listOf(
 		name = "tag.list",
 		description = "The tags used in a project, most used first, optionally counting one kind of entity.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		if (input.limit != null && input.limit < 1) invalidInput("limit must be at least 1")
 		projects.withProject(input.project) { project ->
@@ -52,7 +53,7 @@ internal fun searchOperations(): List<Operation<*, *>> = listOf(
 		name = "tag.find",
 		description = "Every scene, note, entry, and timeline event carrying a tag.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val refs = project.tagIndex().tagToEntities[normalizeTagNeedle(input.tag)].orEmpty()
@@ -63,23 +64,12 @@ internal fun searchOperations(): List<Operation<*, *>> = listOf(
 		}
 	},
 	operation<NoInput, OperationList>(
-		name = "ops.list",
-		description = "Every operation, with JSON schemas for its input and output.",
+		name = OPS_LIST,
+		description = "Every operation you may call, with JSON schemas for its input and output.",
 		access = Access.Read,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) {
-		OperationList(
-			operations.operations.map { op ->
-				OperationDescriptor(
-					name = op.name,
-					description = op.description,
-					access = op.access,
-					agentVisible = op.agentVisible,
-					input = op.inputSchema(),
-					output = jsonSchema(op.output.descriptor),
-				)
-			}
-		)
+		OperationList(operations.operations.map { op -> op.descriptor(op.inputSchema()) })
 	},
 )
 
@@ -181,6 +171,8 @@ data class TaggedEntities(val entities: List<TaggedEntity>)
 @Serializable
 data class TaggedEntity(val kind: EntityKind, val id: Int)
 
+const val OPS_LIST = "ops.list"
+
 @Serializable
 data class OperationList(val operations: List<OperationDescriptor>)
 
@@ -189,7 +181,20 @@ data class OperationDescriptor(
 	val name: String,
 	val description: String,
 	val access: Access,
-	val agentVisible: Boolean,
+	val scope: OperationScope,
 	val input: JsonObject,
 	val output: JsonObject,
+)
+
+/**
+ * Describes this operation with [input] as its input schema. The default comes from the input type
+ * alone, without the runtime values [Operation.inputSchema] may narrow it with.
+ */
+fun Operation<*, *>.descriptor(input: JsonObject = jsonSchema(this.input.descriptor)) = OperationDescriptor(
+	name = name,
+	description = description,
+	access = access,
+	scope = scope,
+	input = input,
+	output = jsonSchema(output.descriptor),
 )

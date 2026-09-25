@@ -16,6 +16,7 @@ import com.darkrockstudios.apps.hammer.operations.Base64Bytes
 import com.darkrockstudios.apps.hammer.operations.FromStdin
 import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.Operation
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.invalidInput
 import com.darkrockstudios.apps.hammer.operations.notFound
 import com.darkrockstudios.apps.hammer.operations.operation
@@ -26,7 +27,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "note.create",
 		description = "Add a note to a project.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val notes = project.scope.get<NotesRepository>()
@@ -39,7 +40,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "note.update",
 		description = "Replace a note's text, and its tags when given.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val notes = project.scope.get<NotesRepository>()
@@ -54,6 +55,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "note.delete",
 		description = "Delete a note for good.",
 		access = Access.Destructive,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val note = project.requireNote(input.id)
@@ -65,7 +67,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "entry.create",
 		description = "Add an encyclopedia entry to a project.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val result = project.scope.get<EncyclopediaService>().createEntry(
@@ -84,7 +86,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "entry.update",
 		description = "Replace an encyclopedia entry's text, and its name, tags, or aliases when given.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val encyclopedia = project.scope.get<EncyclopediaService>()
@@ -106,6 +108,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "entry.delete",
 		description = "Delete an encyclopedia entry, and its image, for good.",
 		access = Access.Destructive,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val def = project.requireEntry(input.id)
@@ -118,7 +121,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 		description = "Set an encyclopedia entry's image, replacing any it has. The extension is jpg, jpeg, png, or webp, " +
 			"and must match the image.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val def = project.requireEntry(input.id)
@@ -133,7 +136,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "entry.image.remove",
 		description = "Remove an encyclopedia entry's image.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val def = project.requireEntry(input.id)
@@ -145,7 +148,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "timeline.create",
 		description = "Add an event to a project's timeline, at the end unless an index is given.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val timeline = project.scope.get<TimeLineRepository>()
@@ -161,7 +164,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "timeline.update",
 		description = "Replace a timeline event's text, and its date or tags when given. An empty date clears it.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val timeline = project.scope.get<TimeLineRepository>()
@@ -177,7 +180,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "timeline.move",
 		description = "Move a timeline event to a position; index is its position after the move.",
 		access = Access.Write,
-		agentVisible = true,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			project.requireEvent(input.id)
@@ -189,6 +192,7 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 		name = "timeline.delete",
 		description = "Delete a timeline event for good.",
 		access = Access.Destructive,
+		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val event = project.requireEvent(input.id)

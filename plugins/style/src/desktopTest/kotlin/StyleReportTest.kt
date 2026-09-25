@@ -5,6 +5,7 @@ import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.ProjectResolver
 import com.darkrockstudios.apps.hammer.operations.core.ProjectInput
 import com.darkrockstudios.apps.hammer.operations.core.ProjectItemInput
@@ -57,12 +58,12 @@ class StyleReportTest {
 
 	private val registry = OperationRegistry(
 		StylePlugin.operations() + listOf<Operation<*, *>>(
-			operation<ProjectInput, SceneTree>("scene.tree", "", Access.Read) { tree },
-			operation<NoteCreateInput, Note>("note.create", "", Access.Write) { input ->
+			operation<ProjectInput, SceneTree>("scene.tree", "", Access.Read, OperationScope.Content) { tree },
+			operation<NoteCreateInput, Note>("note.create", "", Access.Write, OperationScope.Content) { input ->
 				notes += input
 				Note(1, Instant.DISTANT_PAST, input.tags, input.content)
 			},
-			operation<ProjectItemInput, SceneText>("scene.read", "", Access.Read) { input ->
+			operation<ProjectItemInput, SceneText>("scene.read", "", Access.Read, OperationScope.Content) { input ->
 				reads++
 				val markdown = texts.getValue(input.id)
 				SceneText(input.id, "", false, markdown, 0, SceneMeta("", "", emptyList(), "", null, null))

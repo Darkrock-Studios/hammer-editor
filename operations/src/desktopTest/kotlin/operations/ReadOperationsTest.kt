@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.NoInput
 import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.core.Activity
 import com.darkrockstudios.apps.hammer.operations.core.ArchivedScenes
 import com.darkrockstudios.apps.hammer.operations.core.DateRangeInput
@@ -431,11 +432,9 @@ class ReadOperationsTest : KoinOperationsTest() {
 		val export = ops.operations.single { it.name == "project.export" }
 		val formats = export.input["properties"]!!.jsonObject["format"]!!.jsonObject["enum"]!!.jsonArray
 		assertTrue(JsonPrimitive("markdown") in formats)
-		val (credentials, others) = ops.operations.partition { it.name.startsWith("account.") || it.name.startsWith("sync.") }
-		val (destructive, safe) = others.partition { it.access == Access.Destructive }
-		assertTrue(safe.all { it.agentVisible })
-		assertTrue(destructive.isNotEmpty() && destructive.none { it.agentVisible })
-		assertTrue(credentials.none { it.agentVisible })
+		val (account, projectContent) = ops.operations.partition { it.name.startsWith("account.") || it.name.startsWith("sync.") }
+		assertTrue(account.all { it.scope == OperationScope.Account })
+		assertTrue(projectContent.all { it.scope == OperationScope.Content })
 
 		val content = export.output["properties"]!!.jsonObject["content"]!!.jsonObject
 		assertEquals(JsonPrimitive("base64"), content["contentEncoding"])

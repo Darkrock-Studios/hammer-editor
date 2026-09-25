@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
+import com.darkrockstudios.apps.hammer.operations.core.coreOperations
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.parseSettingDeclarations
@@ -29,6 +30,9 @@ class PluginPackage(
 		private const val SETTINGS = "settings.toml"
 		private const val MAX_TEXT_BYTES = 256L * 1024
 		private const val MAX_MODULE_BYTES = 32L * 1024 * 1024
+
+		/** Words the CLI handles itself. */
+		private val RESERVED_COMMANDS = setOf("help")
 
 		/**
 		 * Reads and checks the package at [path]: a well-formed manifest for this host's API, formats
@@ -93,6 +97,22 @@ class PluginPackage(
 				if (exporter.input != PluginManifest.INPUT_MARKDOWN && exporter.input != PluginManifest.INPUT_PROSE) {
 					throw PluginPackageException("Export format '${exporter.format}' has unknown input '${exporter.input}'")
 				}
+			}
+			manifest.permissions.operations.forEach { entry ->
+				if (OperationGrant.parse(entry) == null) throw PluginPackageException("Unknown permission '$entry'")
+			}
+			checkCommands(manifest)
+		}
+
+		// Checked here, since a clash the plugin registry found would stop Hammer from starting.
+		private fun checkCommands(manifest: PluginManifest) {
+			val names = manifest.commands.map { it.name }
+			val duplicates = names.groupBy { it }.filterValues { it.size > 1 }.keys
+			if (duplicates.isNotEmpty()) throw PluginPackageException("Commands declared twice: $duplicates")
+			val taken = coreOperations().map { it.name.substringBefore('.') }.toSet() + RESERVED_COMMANDS
+			names.forEach { name ->
+				if (!PluginRegistry.isValidId(name)) throw PluginPackageException("Invalid command name '$name'")
+				if (name in taken) throw PluginPackageException("Command '$name' is taken by Hammer")
 			}
 		}
 
