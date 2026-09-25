@@ -474,11 +474,16 @@ changed. A replaced plugin gets a new settings store for its own declarations.
   then how to run each command.
 - **Project actions.** A plugin's actions appear in the project home's
   overflow menu. The home screen's component runs one in the app's scope, off
-  the main thread, and toasts what it returns, or a failure, so a plugin needs
-  no UI state of its own.
+  the main thread, so a plugin needs no UI state of its own. What it returns
+  is toasted, or, for an action declaring `output = "document"`, shown as
+  markdown in a result dialog; a failure is toasted.
+- **Result dialog.** Shows an action's document, titled with the action's
+  label, with Copy and Save as note. Hammer runs both, so saving needs no
+  permission from the plugin. A document longer than a note allows is saved cut
+  at a line break, ending in "…", and the toast says so.
 
-These are the only UI slots for now. Future ones (a result dialog, a scene
-editor toolbar action) are added when a plugin needs them, not speculatively.
+These are the only UI slots for now. Future ones (a scene editor toolbar
+action) are added when a plugin needs them, not speculatively.
 
 ## CLI
 
@@ -778,22 +783,22 @@ the page-one contact block comes from.
 Built, as a runtime plugin in C: `c/style` in `hammer-plugins`, a 16 KB
 package. A "Style report" item in the project menu reports, per scene and for
 the whole story, Flesch reading ease and grade level, adverbs per thousand
-words, the share of dialogue, and repeated words and phrases, and saves it as a
-note tagged `style-report`. The rules are English only. Dialogue is text in
+words, the share of dialogue, and repeated words and phrases, and shows it in
+the result dialog, from which it can be saved as a note. The rules are English
+only. Dialogue is text in
 double quotes or curly single quotes; straight single quotes are too often
 apostrophes to count.
 
 | Exercises | How |
 | --- | --- |
-| Project actions | The manifest declares one action; the host calls the module's `action` export on the project |
-| Plugin as API consumer | Reads through `scene.tree` and `scene.read` and saves through `note.create`, the three operations it asks for by name |
+| Project actions | The manifest declares one action with document output; the host calls the module's `action` export on the project and shows the markdown it returns |
+| Plugin as API consumer | Reads through `scene.tree` and `scene.read`, the two operations it asks for by name, and nothing else: saving is the user's choice, in the dialog |
 | A full-book job in C | Counts in the module's own hash maps and arenas, reused scene to scene, so a novel fits the 64 MiB memory cap |
 | The plugin cache | Keeps each scene's counts under a hash of its text, so a run counts only scenes that changed |
 
 The whole story's figures are the sum of its scenes' counts, so they need no
-second pass. Its repeated phrases are those repeated within a scene. A note
-holds at most 10,000 characters, so the note lists as many scenes as fit and
-says how many it left out. On a 300,000-word book a first run takes about 7
+second pass. Its repeated phrases are those repeated within a scene. On a
+300,000-word book a first run takes about 7
 seconds and a run with nothing changed about 1, the reading of every scene
 that remains.
 
@@ -802,8 +807,17 @@ that remains.
 - **No content-change events.** A plugin that wants to react to edits (live
   stats, a background linter) has nothing to subscribe to. Deferred until a
   plugin needs it.
-- **No dialog or panel slot.** The style report writes a note because there is
-  nowhere to show a result. A result dialog is the most likely next UI slot.
+- **No plugin-defined buttons.** The result dialog's buttons are Hammer's own
+  (Copy, Save as note). A plugin may later want buttons of its own on a result,
+  such as "Apply suggestion" or "Open scene". The likely shape: a new
+  `output = "interactive"` kind whose output is JSON, `{"markdown", "buttons":
+  [{"id", "label"}]}`, a click calling the `action` export again with the
+  button's id, and the reply a message or a new document. That needs an output
+  schema, a second kind of call, a way to carry state between the calls (the
+  plugin rebuilding it, the host echoing the document back, or the plugin
+  cache), a rule for whether the dialog updates or closes, and a button doing
+  only what the plugin's grants allow. Plain `document` output stays as it is,
+  so this is additive. Deferred until a plugin needs one.
 - **No per-project settings.** Plugin settings are global. Neither example
   plugin needs per-project ones yet.
 
@@ -938,7 +952,8 @@ eight bytes a plugin copies. The Hammer-specific parts:
   0 for a key with no value; a set with 0, or an empty value, removes the key.
 - An `action` export runs a project action the manifest declares. Its input is
   `{"action", "project", "settings"}`, and its output, if any, is shown to the
-  user when it finishes.
+  user when it finishes: as a brief message, or, when the action's manifest
+  entry sets `output = "document"`, as markdown in the result dialog.
 - `_initialize`, or else `__wasm_call_ctors`, runs once after instantiation, as
   in other Extism hosts.
 
@@ -1101,6 +1116,7 @@ Most new code lives outside `:common`: in `:operations`, `:composeUi`,
 | The prose markdown parser moves out of `PdfProseMarkdown.kt` into a public `ProseMarkdown.kt` | Small | Yes. DOCX and RTF already use it, and it had nothing to do with PDF |
 | `StoryChapter` keeps its scenes separate, with `markdown` joining them | Small | Yes. Manuscript format needs scene breaks too |
 | A draft-save method that takes text, not only the current scene content | Small | No, but it is a natural addition |
+| `ProjectHome.runProjectAction` toasts an action's message or shows its document, which can be saved as a note | Small | No. The project action slot's state lives in the home screen's component |
 
 Headless sync needs no `:common` change: the sync-all orchestration already
 lives in the data layer as `SyncAccountUseCase`. Neither do runtime plugins:
@@ -1169,7 +1185,7 @@ design is revisited rather than `:common` bent to fit.
    Then the [style report](#style-report-style) plugin, now a runtime one with
    the project action slot it needed.
    Then the plugin [cache](#cache), so a style report counts only changed
-   scenes.
+   scenes, and the result dialog, where the style report now appears.
 10. **Text diagnostics.** Define `TextDiagnosticsProvider` (text in, ranges plus
    messages plus fixes out) and add a grammar plugin against it. Migrate spell
    check onto the same interface only if the editor integration gets simpler for

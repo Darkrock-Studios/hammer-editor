@@ -16,7 +16,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.int
-import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
@@ -49,10 +48,9 @@ class StylePluginTest {
 
 	private val cacheDirectory = "/cache/plugins/style".toPath()
 
-	// What the fake operations serve and save.
+	// What the fake operations serve.
 	private var scenes = emptyList<String>()
 	private var names = emptyList<String>()
-	private var saved: JsonObject? = null
 
 	private val action by lazy {
 		val tree = operation<JsonObject, JsonObject>("scene.tree", "", Access.Read, OperationScope.Content) {
@@ -72,10 +70,6 @@ class StylePluginTest {
 		val read = operation<JsonObject, JsonObject>("scene.read", "", Access.Read, OperationScope.Content) { input ->
 			buildJsonObject { put("markdown", scenes[input["id"]!!.jsonPrimitive.int - 1]) }
 		}
-		val create = operation<JsonObject, JsonObject>("note.create", "", Access.Write, OperationScope.Content) { input ->
-			saved = input
-			buildJsonObject { put("id", 1) }
-		}
 
 		val built = File(System.getenv("HAMMER_PLUGINS"), "c/style/build/style.hammerplugin")
 		check(built.exists()) { "Run c/style/build.sh in hammer-plugins first" }
@@ -94,28 +88,26 @@ class StylePluginTest {
 					single(named(APP_SCOPE)) { CoroutineScope(Dispatchers.Unconfined) }
 				},
 				registry.koinModule(),
-				module { single { OperationRegistry(listOf(tree, read, create), NoProjects) } },
+				module { single { OperationRegistry(listOf(tree, read), NoProjects) } },
 			)
 		}
-		registry.plugins.single().projectActions().single().also { assertEquals("Style report", it.label) }
+		registry.plugins.single().projectActions().single().also {
+			assertEquals("Style report", it.label)
+			assertTrue(it.document)
+		}
 	}
 
-	/** Runs the report on [scenes], grouped under one part, and returns the note it saves. */
-	private fun report(scenes: List<String>, names: List<String> = scenes.indices.map { "Scene ${it + 1}" }): JsonObject {
+	/** Runs the report on [scenes], grouped under one part, and returns its markdown. */
+	private fun report(scenes: List<String>, names: List<String> = scenes.indices.map { "Scene ${it + 1}" }): String {
 		this.scenes = scenes
 		this.names = names
-		assertEquals("Style report saved to Notes", runBlocking { action.run("Storm") })
-		return saved!!
+		return runBlocking { action.run("Storm") }!!
 	}
 
-	private fun JsonObject.content() = this["content"]!!.jsonPrimitive.content
-
 	@Test
-	fun `the report is saved as a note, the whole story first`() {
-		val note = report(listOf("The storm came *early* that year. Alice ran quickly!", "“Get inside,” she said. “Now.”"))
+	fun `the report is a markdown document, the whole story first`() {
+		val report = report(listOf("The storm came *early* that year. Alice ran quickly!", "“Get inside,” she said. “Now.”"))
 
-		assertEquals("Storm", note["project"]!!.jsonPrimitive.content)
-		assertEquals(listOf("style-report"), note["tags"]!!.jsonArray.map { it.jsonPrimitive.content })
 		assertEquals(
 			"""
 			# Style report
@@ -136,7 +128,7 @@ class StylePluginTest {
 			### Scene 2
 			5 words in 2 sentences. Reading ease 102.8, grade -0.5. 0.0 adverbs per 1,000 words. 60% dialogue.
 			""".trimIndent(),
-			note.content(),
+			report,
 		)
 	}
 
@@ -150,7 +142,7 @@ class StylePluginTest {
 				"Don’t stop. It’s fine!",
 				"The old lighthouse stood. The old lighthouse leaned. The old lighthouse fell.",
 			)
-		).content().lines()
+		).lines()
 
 		fun scene(n: Int, line: Int = 1) = lines[lines.indexOf("### Scene $n") + line]
 		assertTrue(scene(1).startsWith("3 words in 2 sentences.") && scene(1).endsWith(" 33% dialogue."))
@@ -162,24 +154,24 @@ class StylePluginTest {
 
 	@Test
 	fun `scene names cannot format the note`() {
-		assertTrue("### \\*Interlude\\* at the\\_end" in report(listOf("Rain."), listOf("*Interlude* at the_end")).content().lines())
+		assertTrue("### \\*Interlude\\* at the\\_end" in report(listOf("Rain."), listOf("*Interlude* at the_end")).lines())
 	}
 
 	@Test
-	fun `a long report is cut to fit a note`() {
-		val content = report(List(400) { "The storm came early that year." }).content()
+	fun `a long report lists every scene`() {
+		val report = report(List(400) { "The storm came early that year." })
 
-		assertTrue(content.length <= 10_000)
-		assertTrue(content.endsWith(" more scenes._"))
+		assertEquals(400, report.lines().count { it.startsWith("### Scene ") })
+		assertTrue(report.lines().last().startsWith("6 words in 1 sentence."))
 	}
 
 	@Test
 	fun `each scene's counts are cached by its text`() {
 		val story = listOf("The storm came *early* that year. Alice ran quickly!", "“Get inside,” she said. “Now.”", "Rain.")
-		val cold = report(story).content()
+		val cold = report(story)
 		assertEquals(story.size, fileSystem.list(cacheDirectory).size)
 
-		assertEquals(cold, report(story).content())
+		assertEquals(cold, report(story))
 		report(story + "Thunder rolled.")
 		assertEquals(story.size + 1, fileSystem.list(cacheDirectory).size)
 	}
@@ -192,7 +184,7 @@ class StylePluginTest {
 		fileSystem.write(small) { write(fileSystem.read(large) { readByteArray() }) }
 		fileSystem.write(large) { write(smallBytes) }
 
-		val lines = report(listOf("One two three four five six seven eight nine ten.", "Short.")).content().lines()
+		val lines = report(listOf("One two three four five six seven eight nine ten.", "Short.")).lines()
 
 		assertTrue(lines[lines.indexOf("### Scene 1") + 1].startsWith("1 word in 1 sentence."))
 	}
@@ -200,10 +192,10 @@ class StylePluginTest {
 	@Test
 	fun `a damaged cache entry is counted again`() {
 		val story = listOf("The storm came *early* that year. Alice ran quickly!", "“Get inside,” she said. “Now.”")
-		val cold = report(story).content()
+		val cold = report(story)
 		fileSystem.list(cacheDirectory).forEach { entry -> fileSystem.write(entry) { writeUtf8("damaged") } }
 
-		assertEquals(cold, report(story).content())
+		assertEquals(cold, report(story))
 	}
 
 	private object NoProjects : ProjectResolver {

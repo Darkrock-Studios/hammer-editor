@@ -72,6 +72,7 @@ class RuntimePluginsTest {
 		format: String = "$id.txt",
 		command: String? = null,
 		action: String? = null,
+		output: String? = null,
 	) = """
 		id = "$id"
 		name = "Echo"
@@ -87,7 +88,8 @@ class RuntimePluginsTest {
 		mime = "text/plain"
 		label = "Echo (TXT)"
 	""".trimIndent() + command?.let { "\n\n[[commands]]\nname = \"$it\"\nhelp = \"Echoes.\"" }.orEmpty() +
-		action?.let { "\n\n[[actions]]\nname = \"$it\"\nlabel = \"Echo it\"" }.orEmpty()
+		action?.let { "\n\n[[actions]]\nname = \"$it\"\nlabel = \"Echo it\"" }.orEmpty() +
+		output?.let { "\noutput = \"$it\"" }.orEmpty()
 
 	private val settings = """
 		[[setting]]
@@ -161,6 +163,7 @@ class RuntimePluginsTest {
 			pack("help-command", manifest = manifest(command = "help")),
 			pack("bad-command", manifest = manifest(command = "Echo Back")),
 			pack("bad-action", manifest = manifest(action = "Echo It")),
+			pack("bad-output", manifest = manifest(action = "report", output = "dialog")),
 			pack("command-twice", manifest = manifest(command = "echo") + "\n\n[[commands]]\nname = \"echo\"\nhelp = \"Again.\""),
 			(downloads / "not-a-zip.hammerplugin").also { fileSystem.write(it) { writeUtf8("hello") } },
 		)
@@ -241,11 +244,20 @@ class RuntimePluginsTest {
 
 		val action = registry.plugins.single().projectActions().single()
 		assertEquals("Echo it", action.label)
+		assertEquals(false, action.document)
 		val request = Json.parseToJsonElement(runBlocking { action.run("Storm") }!!).jsonObject
 
 		assertEquals("report", request["action"]!!.jsonPrimitive.content)
 		assertEquals("Storm", request["project"]!!.jsonPrimitive.content)
 		assertEquals(JsonPrimitive(true), request["settings"]!!.jsonObject["shout"])
+	}
+
+	@Test
+	fun `an action declaring document output is shown as a document`() {
+		val plugins = runtimePlugins()
+		plugins.install(pack("echo", manifest(action = "report", output = "document")))
+
+		assertEquals(true, startKoin(plugins).plugins.single().projectActions().single().document)
 	}
 
 	@Test
