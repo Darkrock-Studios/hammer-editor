@@ -23,7 +23,7 @@ was removed. A feature that needs Kotlin and Koin belongs in core.
 ## Scope
 
 **Now: headless plugins.** A plugin that adds behavior without adding a feature
-surface: export formats, project actions, CLI commands, and a settings form the
+surface: export formats, actions, CLI commands, and a settings form the
 host renders. Examples: an exporter, a style report, an MCP server, and later a
 grammar checker.
 
@@ -74,7 +74,7 @@ New code goes in a new `:operations` module between `:common` and
 | `:common` | Same role as today. Gains only pluggable export (below) |
 | `:operations` | `Operation`, `OperationRegistry`, the core operations, `ClientPlugin`, `PluginRegistry`, `PluginSettingsDatasource` |
 | `:plugins:wasmhost` | The [runtime plugin](#runtime-plugins-wasm) host: chasm, the package loader, `RuntimePlugins`, and `WasmPlugin`. All platforms |
-| `:composeUi` | `PluginUiRegistry`, the Plugins section of Settings, and the plugins' project actions in the project menu |
+| `:composeUi` | `PluginUiRegistry`, the Plugins section of Settings, and the plugins' actions: their menu items, and the runner that asks for their input and shows their progress and results |
 | `:desktop` | The CLI adapter and `Dispatcher`, socket forwarding, the writer lock |
 
 `:wear` depends only on `:common` and gets no plugins.
@@ -367,17 +367,25 @@ interface ClientPlugin {
 	/** Extra top-level CLI commands, such as `hammer mcp`. Desktop only. */
 	fun cliCommands(): List<CliCommand> = emptyList()
 
-	/** Items added to a project's menu. */
-	fun projectActions(): List<ProjectAction> = emptyList()
+	/** Items added to the menus of a project's screens. */
+	fun actions(): List<PluginAction> = emptyList()
 
 	/** Checks the editor runs over the text being written, such as grammar. */
 	fun textDiagnostics(): List<TextDiagnosticsProvider> = emptyList()
 }
 
-class ProjectAction(
+class PluginAction(
+	val pluginId: String,
+	val name: String,
 	val label: String,
-	/** Runs off the main thread on the named project; returns what to tell the user, if anything. */
-	val run: suspend (project: String) -> String?,
+	/** The screens whose menus it is in: project, scene, note, entry, event. */
+	val places: Set<ActionPlace>,
+	/** What the user fills in first: a setting-like value, or scenes picked from the tree. */
+	val fields: List<ActionField>,
+	/** Message, document, or interactive. */
+	val output: ActionOutput,
+	/** Runs off the main thread with the project, place, item, input, and pressed button, reporting progress as it goes. */
+	val run: suspend (ActionCall) -> ActionReply,
 )
 
 class TextDiagnosticsProvider(
@@ -831,9 +839,9 @@ in CLI help, neither of which is localized today.
 
 ## Example plugins
 
-Four plugins, all real features rather than test fixtures, chosen so that
-between them they exercise every slot: the plain text exporter, the style
-report, the simple grammar check, and the [MCP plugin](#mcp-plugin).
+Real features rather than test fixtures, chosen so that between them they
+exercise every slot: the plain text exporter, the style report, the name
+generator, the simple grammar check, and the [MCP plugin](#mcp-plugin).
 
 ### Plain text exporter (`plaintext`)
 
@@ -865,7 +873,7 @@ the page-one contact block comes from.
 
 Built, as a runtime plugin in C: `c/style` in `hammer-plugins`, a 16 KB
 package. A "Style report" item in the project menu reports, per scene and for
-the whole story, Flesch reading ease and grade level, adverbs per thousand
+the whole story or the scenes chosen, Flesch reading ease and grade level, adverbs per thousand
 words, the share of dialogue, and repeated words and phrases, and shows it in
 the result dialog, from which it can be saved as a note. The rules are English
 only. Dialogue is text in
@@ -874,7 +882,7 @@ apostrophes to count.
 
 | Exercises | How |
 | --- | --- |
-| Project actions | The manifest declares one action with document output; the host calls the module's `action` export on the project and shows the markdown it returns |
+| Actions | The manifest declares one action with document output and a `scenes` field; the host asks which scenes, calls the module's `action` export, shows its progress scene by scene, and shows the markdown it returns |
 | Plugin as API consumer | Reads through `scene.tree` and `scene.read`, the two operations it asks for by name, and nothing else: saving is the user's choice, in the dialog |
 | A full-book job in C | Counts in the module's own hash maps and arenas, reused scene to scene, so a novel fits the 64 MiB memory cap |
 | The plugin cache | Keeps each scene's counts under a hash of its text, so a run counts only scenes that changed |
@@ -917,6 +925,21 @@ grammar.
 | Offsets across the boundary | Byte offsets from C, turned into the editor's UTF-16 ranges by the host |
 | The C kit | `hammer_diagnose.h` reads the request and writes the reply, so the plugin is its rules; `hammer_test.h` tests them natively |
 
+### Name generator (`name-generator`)
+
+Built, as a runtime plugin in C: `c/name-generator` in `hammer-plugins`. A
+"Generate names" item on Project Home and encyclopedia entries asks for a
+style (everyday English, Norse, or Elvish), feminine, masculine, or either
+given names, how many, and whether with surnames, and lists them with a button
+for each that adds it to the encyclopedia as a person. It asks for
+`entry.create` and nothing else.
+
+| Exercises | How |
+| --- | --- |
+| Action fields | Two choices, a number, and a toggle, asked for before it runs |
+| Interactive output | A button per name; pressing one calls the action again, which adds the entry and replies with the list, that name marked |
+| State across calls | The list's seed rides in the button ids, so each call rebuilds the same names; `random_get` seeds the first |
+
 ### English grammar (`english-grammar`)
 
 Built, as a runtime plugin in Rust: `rust/english-grammar` in
@@ -944,17 +967,6 @@ Android's app heap may still be too small; untried there.
 - **No content-change events.** A plugin that wants to react to edits (live
   stats, a background linter) has nothing to subscribe to. Deferred until a
   plugin needs it.
-- **No plugin-defined buttons.** The result dialog's buttons are Hammer's own
-  (Copy, Save as note). A plugin may later want buttons of its own on a result,
-  such as "Apply suggestion" or "Open scene". The likely shape: a new
-  `output = "interactive"` kind whose output is JSON, `{"markdown", "buttons":
-  [{"id", "label"}]}`, a click calling the `action` export again with the
-  button's id, and the reply a message or a new document. That needs an output
-  schema, a second kind of call, a way to carry state between the calls (the
-  plugin rebuilding it, the host echoing the document back, or the plugin
-  cache), a rule for whether the dialog updates or closes, and a button doing
-  only what the plugin's grants allow. Plain `document` output stays as it is,
-  so this is additive. Deferred until a plugin needs one.
 - **No per-project settings.** Plugin settings are global. Neither example
   plugin needs per-project ones yet.
 
@@ -1044,9 +1056,17 @@ extension = "csv"
 mime = "text/csv"
 label = "Word frequency (CSV)"
 
-[[actions]]                   # optional; an item in each project's menu
+[[actions]]                   # optional; see Actions
 name = "report"
 label = "Word frequency report"
+output = "document"           # message (default), document, or interactive
+places = ["project", "scene"] # where its menu item is; project by default
+
+[[actions.field]]             # optional; asked for before it runs
+key = "scenes"
+type = "scenes"               # bool, int, string, choice, as settings are, or scenes
+label = "Scenes"
+multiple = true
 
 [[commands]]                  # optional; see Commands
 name = "wordfreq"
@@ -1120,10 +1140,14 @@ eight bytes a plugin copies. The Hammer-specific parts:
 - `extism:host/user` `hammer_cache_get(key) -> value` and
   `hammer_cache_set(key, value)`: the plugin's [cache](#cache). A get returns
   0 for a key with no value; a set with 0, or an empty value, removes the key.
-- An `action` export runs a project action the manifest declares. Its input is
-  `{"action", "project", "settings"}`, and its output, if any, is shown to the
-  user when it finishes: as a brief message, or, when the action's manifest
-  entry sets `output = "document"`, as markdown in the result dialog.
+- An `action` export runs an action the manifest declares; see
+  [Actions](#actions). Its input is `{"action", "project", "settings", "input",
+  "context": {"place", "id"}, "button"}`, and its output is shown when it
+  finishes, as the action's `output` says.
+- `extism:host/user` `hammer_progress(report)`: how far an action has got,
+  `{"fraction": 0.5, "message": "Scene 3 of 6"}`, either key optional. The
+  host shows it while the action runs. Once the user has stopped the run, the
+  report traps, ending the action there. Outside an action it does nothing.
 - A `diagnose` export runs a text diagnostics check the manifest declares
   under `[[diagnostics]]` (`name`, `label`). Its input is `{"diagnostics",
   "paragraphs": [text], "language", "settings"}`, `language` a BCP 47 tag or
@@ -1156,6 +1180,43 @@ values under the same keys. A call still running on the old version can write
 after the clear, so plugins put a format version in their keys. Everything about it is best effort: a failed read
 is a miss and a failed write is dropped. A CLI command and the app may use one
 plugin's cache at once; each write is atomic, and the last one wins.
+
+### Actions
+
+A manifest's `[[actions]]` add items to the overflow menus of the screens in
+their `places`: `project` (Project Home, the default), `scene` (the scene
+editor), `note`, `entry`, and `event` (a timeline event). Choosing one asks
+for its fields, if it has any, then calls the module's `action` export with
+the project, the screen and the id of the item it shows (null on Project
+Home), and the values given:
+
+```json
+{"action": "names", "project": "Storm", "settings": {...},
+ "input": {"count": 8, "scenes": [3, 7]},
+ "context": {"place": "entry", "id": 12}, "button": null}
+```
+
+- **Fields.** `[[actions.field]]` tables take the settings types (`bool`,
+  `int`, `string` with `multiline`, `choice`), validated as settings are, and
+  `scenes`: a button opening the scene tree to pick from, the pick shown in
+  brief beside it. A `scenes` field with `multiple` (the default) sends a list
+  of ids, and without it one id or null; `required` keeps Run disabled until
+  something is picked. The dialog remembers the values given each action for
+  as long as the project is open.
+- **Output.** `message` is a brief line. `document` is markdown in a dialog
+  the user can copy or save as a note. `interactive` is JSON, `{"markdown",
+  "buttons": [{"id", "label"}], "message"}`: the markdown is shown with the
+  plugin's buttons under it, and pressing one calls the action again with the
+  same input and context and the button's id as `button`. A reply with
+  markdown updates the dialog; one without closes it; a message is shown
+  either way. The plugin carries any state between calls in its button ids,
+  as the name generator does with its seed.
+- **Progress.** A run that takes a moment shows a dialog with a Stop button,
+  and a bar and a line the plugin sets through `hammer_progress`; without
+  reports the bar is indeterminate. Stop ends the wait at once, and the
+  plugin at its next report.
+- **One at a time.** Each project window runs one action at a time. A failure
+  shows a short message; the log has the rest.
 
 ### Commands
 
@@ -1193,7 +1254,7 @@ A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
   restart. An export already running on a removed plugin finishes on its old
   instance.
 - **`WasmPlugin`** implements `ClientPlugin`. Its exporters, commands, and
-  project actions come from the manifest and call the module.
+  actions come from the manifest and call the module.
 - **Execution.** `WasmPlugin.call` runs the module on the IO dispatcher, never
   the UI thread. Export rendering, already on a background dispatcher, calls it
   blocking. An operation the module dispatches blocks its thread until done.
@@ -1373,7 +1434,7 @@ Most new code lives outside `:common`: in `:operations`, `:composeUi`,
 | The prose markdown parser moves out of `PdfProseMarkdown.kt` into a public `ProseMarkdown.kt` | Small | Yes. DOCX and RTF already use it, and it had nothing to do with PDF |
 | `StoryChapter` keeps its scenes separate, with `markdown` joining them | Small | Yes. Manuscript format needs scene breaks too |
 | A draft-save method that takes text, not only the current scene content | Small | No, but it is a natural addition |
-| `ProjectHome.runProjectAction` toasts an action's message or shows its document, which can be saved as a note | Small | No. The project action slot's state lives in the home screen's component |
+| Detail screens' overflow menus take extra items, and the project root hosts `PluginActionHost`, which runs actions and shows their dialogs | Small | No. Plugin actions appear on every screen that shows an item |
 
 Headless sync needs no `:common` change: the sync-all orchestration already
 lives in the data layer as `SyncAccountUseCase`. Neither do runtime plugins:

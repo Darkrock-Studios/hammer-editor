@@ -11,7 +11,7 @@ import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
 import com.darkrockstudios.apps.hammer.common.projecthome.ExportOptionsDialog
-import com.darkrockstudios.apps.hammer.common.projecthome.exportSceneRowTag
+import com.darkrockstudios.apps.hammer.common.projecthome.sceneSelectorSceneTag
 import org.junit.Rule
 import org.junit.Test
 import kotlin.test.assertEquals
@@ -57,7 +57,7 @@ class ExportOptionsDialogRotationTest : BaseTest() {
 			}
 		}
 
-		compose.onNodeWithTag(exportSceneRowTag(3)).performClick()
+		compose.onNodeWithTag(sceneSelectorSceneTag(3)).performClick()
 		compose.waitForIdle()
 		assertEquals(setOf(3), options.sceneIds)
 
@@ -65,6 +65,6 @@ class ExportOptionsDialogRotationTest : BaseTest() {
 		compose.waitForIdle()
 
 		assertEquals(2, buildCount, "The subtree should have been thrown away and built again")
-		compose.onNodeWithTag(exportSceneRowTag(3)).assertIsOn()
+		compose.onNodeWithTag(sceneSelectorSceneTag(3)).assertIsOn()
 	}
 }

@@ -15,7 +15,6 @@ import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.Encycl
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
-import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupDef
 import com.darkrockstudios.apps.hammer.common.data.projectbackup.ProjectBackupRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.EntryAppearance
@@ -29,20 +28,15 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.export.ExportStoryUseCase
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporterRegistry
 import com.darkrockstudios.apps.hammer.common.data.export.exportFileName
-import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.formatLocal
-import io.github.aakira.napier.Napier
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
 import org.koin.core.component.inject
-import org.koin.core.qualifier.named
 import kotlin.time.Clock
 
 class ProjectHomeComponent(
@@ -60,7 +54,6 @@ class ProjectHomeComponent(
 	private val mainDispatcher by injectMainDispatcher()
 
 	private val globalSettingsStore: GlobalSettingsStore by inject()
-	private val appScope: CoroutineScope by inject(named(APP_SCOPE))
 	private val projectBackupRepository: ProjectBackupRepository by inject()
 	private val exporters: StoryExporterRegistry by inject()
 	private val sceneEditorRepository: SceneEditorService by projectInject()
@@ -70,7 +63,6 @@ class ProjectHomeComponent(
 	private val statisticsService: StatisticsService by projectInject()
 	private val tagIndexService: TagIndexService by projectInject()
 	private val referenceIndexService: ReferenceIndexService by projectInject()
-	private val notesRepository: NotesRepository by projectInject()
 
 	private val contentRouter = ProjectHomeContentRouter(componentContext, projectDef)
 	override val contentRouterState: Value<ChildStack<ProjectHomeContentRouter.Config, ProjectHome.ContentDestination>> =
@@ -91,8 +83,6 @@ class ProjectHomeComponent(
 	// it is dialog-session bookkeeping, not something the UI renders.
 	private var exportOptionsBeforeDialog: ExportOptions? = null
 
-	// Touched on the main thread only.
-	private var savingDocument = false
 
 	override fun beginProjectExport() {
 		_state.getAndUpdate {
@@ -219,65 +209,6 @@ class ProjectHomeComponent(
 	}
 
 	override fun supportsBackup(): Boolean = projectBackupRepository.supportsBackup()
-
-	// A plugin's failure must not take the project screen down with it. Runs in the app's scope, so
-	// leaving the home screen does not cancel it partway.
-	@Suppress("TooGenericExceptionCaught")
-	override fun runProjectAction(title: String, document: Boolean, work: suspend () -> String?) {
-		appScope.launch(dispatcherDefault) {
-			try {
-				val message = work()?.trim()
-				when {
-					message.isNullOrEmpty() -> showToast(Res.string.project_home_action_plugin_done)
-					document -> withContext(mainDispatcher) {
-						_state.getAndUpdate { it.copy(actionDocument = ProjectHome.Document(title, message)) }
-					}
-					message.length > MAX_ACTION_MESSAGE -> showToast(message.take(MAX_ACTION_MESSAGE).trimEnd() + "…")
-					else -> showToast(message)
-				}
-			} catch (e: CancellationException) {
-				throw e
-			} catch (e: Exception) {
-				Napier.e(e) { "Project action failed" }
-				showToast(Res.string.project_home_action_plugin_failed)
-			}
-		}
-	}
-
-	override fun dismissActionDocument() {
-		_state.getAndUpdate { it.copy(actionDocument = null) }
-	}
-
-	override fun saveActionDocumentAsNote() {
-		val document = state.value.actionDocument ?: return
-		// A second press while the first save runs would make a second note.
-		if (savingDocument) return
-		savingDocument = true
-		scope.launch {
-			val markdown = document.markdown.trim()
-			val fits = markdown.length <= NotesRepository.MAX_NOTE_SIZE
-			val text = if (fits) markdown else cutToFit(markdown, NotesRepository.MAX_NOTE_SIZE)
-			val saved = try {
-				notesRepository.createNote(text).isSuccess
-			} catch (e: CancellationException) {
-				throw e
-			} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-				Napier.e(e) { "Could not save a project action's document" }
-				false
-			}
-			withContext(mainDispatcher) {
-				savingDocument = false
-				if (saved) dismissActionDocument()
-			}
-			showToast(
-				when {
-					!saved -> Res.string.project_home_action_document_save_failed
-					fits -> Res.string.project_home_action_document_saved
-					else -> Res.string.project_home_action_document_saved_cut
-				}
-			)
-		}
-	}
 
 	override fun createBackup(callback: (ProjectBackupDef?) -> Unit) {
 		scope.launch {
@@ -438,13 +369,3 @@ class ProjectHomeComponent(
 	override fun onBack() = contentRouter.onBack()
 }
 
-/** Longer plugin messages are cut, since a toast is not the place for a report. */
-private const val MAX_ACTION_MESSAGE = 200
-private const val CUT_MARKER = "\n\n…"
-
-// Whole lines of [markdown] that fit in [limit] characters with the marker after them.
-private fun cutToFit(markdown: String, limit: Int): String {
-	val room = markdown.take(limit - CUT_MARKER.length)
-	val lines = room.substringBeforeLast('\n', missingDelimiterValue = room)
-	return lines.trimEnd() + CUT_MARKER
-}

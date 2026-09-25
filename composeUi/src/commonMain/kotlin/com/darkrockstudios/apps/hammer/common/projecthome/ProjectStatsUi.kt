@@ -38,7 +38,8 @@ import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
-import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginUiRegistry
+import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginActionMenuItems
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
@@ -59,7 +60,6 @@ import io.github.koalaplot.core.util.generateHueColorPalette
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
-import org.koin.compose.koinInject
 import kotlin.random.Random
 import kotlin.time.Clock
 
@@ -144,11 +144,6 @@ fun ProjectStatsUi(
 		working = state.isExporting || state.showExportFilePicker,
 	)
 	ExportDirectoryPicker(state.showExportFilePicker, component, scope)
-	ActionDocumentDialog(
-		document = state.actionDocument,
-		onSave = component::saveActionDocumentAsNote,
-		onDismiss = component::dismissActionDocument,
-	)
 }
 
 @Composable
@@ -1337,7 +1332,6 @@ private fun ProjectHomeMenu(
 	hasServer: Boolean,
 ) {
 	var expanded by remember { mutableStateOf(false) }
-	val projectActions = koinInject<PluginUiRegistry>().projectActions()
 
 	Box {
 		IconButton(onClick = { expanded = true }) {
@@ -1389,16 +1383,7 @@ private fun ProjectHomeMenu(
 				)
 			}
 
-			projectActions.forEach { action ->
-				DropdownMenuItem(
-					text = { Text(action.label) },
-					onClick = {
-						expanded = false
-						val project = component.state.value.projectDef.name
-						component.runProjectAction(action.label, action.document) { action.run(project) }
-					},
-				)
-			}
+			PluginActionMenuItems(ActionPlace.Project, itemId = null, onChosen = { expanded = false })
 
 			HorizontalDivider()
 			DropdownMenuItem(

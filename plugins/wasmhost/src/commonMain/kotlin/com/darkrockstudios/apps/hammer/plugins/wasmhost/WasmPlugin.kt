@@ -13,9 +13,16 @@ import com.darkrockstudios.apps.hammer.operations.core.OPS_LIST
 import com.darkrockstudios.apps.hammer.operations.core.OperationDescriptor
 import com.darkrockstudios.apps.hammer.operations.core.OperationList
 import com.darkrockstudios.apps.hammer.operations.core.descriptor
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionButton
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionCall
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionCancelledException
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionOutput
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionProgress
+import com.darkrockstudios.apps.hammer.operations.plugin.ActionReply
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
-import com.darkrockstudios.apps.hammer.operations.plugin.ProjectAction
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnostic
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsProvider
@@ -75,7 +82,7 @@ class WasmPlugin(
 	private val module: ExtismPlugin
 		get() = loaded ?: ExtismPlugin(
 			loadModule,
-			listOf(dispatchFunction()) + cacheFunctions(),
+			listOf(dispatchFunction(), progressFunction()) + cacheFunctions(),
 			log = ::log,
 			instrumenter = FuelInstrumenter(maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB),
 		).also { loaded = it }
@@ -85,6 +92,11 @@ class WasmPlugin(
 	// The route of the call running now; only touched while holding the lock.
 	private var activeRoute: Route? = null
 
+	// The action run in progress, which progress reports go to, and whether it was cancelled; only
+	// touched while holding the lock.
+	private var activeAction: ActionCall? = null
+	private var actionCancelled = false
+
 	private val ioDispatcher by injectIoDispatcher()
 
 	override fun exporters(): List<StoryExporter> = manifest.exporters.map(::Exporter)
@@ -93,10 +105,56 @@ class WasmPlugin(
 
 	override fun cliCommands(): List<CliCommand> = manifest.commands.map(::Command)
 
-	override fun projectActions(): List<ProjectAction> = manifest.actions.map { action ->
-		ProjectAction(action.label, document = action.output == PluginManifest.OUTPUT_DOCUMENT) { project ->
-			val request = ActionRequest(action.name, project, settingsValues())
-			call(ACTION, OperationJson.encodeToString(request).encodeToByteArray()).decodeToString().ifBlank { null }
+	override fun actions(): List<PluginAction> = manifest.actions.map { action ->
+		val output = ActionOutput.of(action.output) ?: ActionOutput.Message
+		PluginAction(
+			pluginId = id,
+			name = action.name,
+			label = action.label,
+			places = action.places.mapNotNull(ActionPlace::of).toSet(),
+			fields = action.field.map { it.toActionField() },
+			output = output,
+		) { call -> runAction(action.name, output, call) }
+	}
+
+	private suspend fun runAction(name: String, output: ActionOutput, call: ActionCall): ActionReply {
+		val request = ActionRequest(
+			action = name,
+			project = call.project,
+			settings = settingsValues(),
+			input = call.input,
+			context = ActionRequest.Context(call.place.id, call.itemId),
+			button = call.button,
+		)
+		val reply = withContext(ioDispatcher) {
+			lock.withLock {
+				activeAction = call
+				actionCancelled = false
+				try {
+					callBlocking(ACTION, OperationJson.encodeToString(request).encodeToByteArray())
+				} catch (e: PluginException) {
+					if (actionCancelled) throw ActionCancelledException()
+					throw e
+				} finally {
+					activeAction = null
+				}
+			}
+		}.decodeToString().trim()
+		if (reply.isEmpty()) return ActionReply()
+		return when (output) {
+			ActionOutput.Message -> ActionReply(message = reply)
+			ActionOutput.Document -> ActionReply(markdown = reply)
+			ActionOutput.Interactive -> try {
+				ReplyJson.decodeFromString<InteractiveReply>(reply).let { interactive ->
+					ActionReply(
+						message = interactive.message?.ifBlank { null },
+						markdown = interactive.markdown?.ifBlank { null },
+						buttons = interactive.buttons.map { ActionButton(it.id, it.label) },
+					)
+				}
+			} catch (e: IllegalArgumentException) {
+				throw PluginException("Plugin '$id' sent a malformed reply from action '$name': ${e.message}")
+			}
 		}
 	}
 
@@ -181,6 +239,24 @@ class WasmPlugin(
 			DispatchReply.failed(OperationException.Kind.InvalidInput.name, "Malformed dispatch request: ${e.message}")
 		}
 		write(OperationJson.encodeToString(reply).encodeToByteArray())
+	}
+
+	// Reports go to the action running, if any; a cancelled one is stopped here, by trapping.
+	private fun progressFunction() = ExtismPlugin.UserFunction(PROGRESS, params = 1, returnsValue = false) { args ->
+		val call = activeAction ?: return@UserFunction 0
+		if (call.cancelled()) {
+			actionCancelled = true
+			throw IllegalStateException("Cancelled")
+		}
+		val report = try {
+			ReplyJson.decodeFromString<ProgressReport>(read(args[0]).decodeToString())
+		} catch (e: SerializationException) {
+			null
+		} catch (e: IllegalArgumentException) {
+			null
+		}
+		report?.let { call.onProgress(ActionProgress(it.fraction?.coerceIn(0f, 1f), it.message?.ifBlank { null })) }
+		0
 	}
 
 	private fun cacheFunctions() = listOf(
@@ -305,7 +381,31 @@ class WasmPlugin(
 		val project: String,
 		/** The plugin's declared settings, every key present. */
 		val settings: JsonObject,
-	)
+		/** The action's fields, every key present. */
+		val input: JsonObject,
+		val context: Context,
+		/** The id of the button pressed, for an interactive action's later calls. */
+		val button: String? = null,
+	) {
+		/** The screen the action was run from, and the id of the item it shows there. */
+		@Serializable
+		class Context(val place: String, val id: Int?)
+	}
+
+	/** An interactive action's output: markdown with buttons to show, a message, or both. */
+	@Serializable
+	private class InteractiveReply(
+		val markdown: String? = null,
+		val buttons: List<Button> = emptyList(),
+		val message: String? = null,
+	) {
+		@Serializable
+		class Button(val id: String, val label: String)
+	}
+
+	/** What `hammer_progress` is given: how far along, from 0 to 1 if known, and a line saying what it is doing. */
+	@Serializable
+	private class ProgressReport(val fraction: Float? = null, val message: String? = null)
 
 	@Serializable
 	private class DiagnoseRequest(
@@ -394,6 +494,9 @@ class WasmPlugin(
 		/** The import a module calls operations through, in `extism:host/user`. */
 		const val DISPATCH = "hammer_dispatch"
 
+		/** The import an action reports its progress through, in `extism:host/user`; see [ProgressReport]. */
+		const val PROGRESS = "hammer_progress"
+
 		/** The import that reads the plugin's cache: a key's value, or 0 when it has none. */
 		const val CACHE_GET = "hammer_cache_get"
 
@@ -406,7 +509,7 @@ class WasmPlugin(
 		/** The export that answers each line of input to a command the manifest declares. */
 		const val COMMAND = "command"
 
-		/** The export that runs a project action the manifest declares; its output is shown to the user. */
+		/** The export that runs an action the manifest declares; its output is shown to the user. */
 		const val ACTION = "action"
 
 		/** The export that checks paragraphs for a text diagnostics check the manifest declares. */
