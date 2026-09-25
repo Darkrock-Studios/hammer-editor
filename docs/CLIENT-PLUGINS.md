@@ -1067,9 +1067,10 @@ eight bytes a plugin copies. The Hammer-specific parts:
   `{"operation": "...", "input": {...}}`; the reply is `{"output": ...}` or
   `{"error": {"kind": "...", "message": "..."}}`, with the kinds of
   `OperationException`, `PermissionDenied`, and `Failed` for anything else,
-  such as Hammer being busy. The host answers `ops.list` itself, listing
-  only the operations the plugin may call, so it works even while Hammer is
-  busy.
+  such as Hammer being busy. A reply never has another key, so a kit may
+  take a large output's text as it is, without parsing it. The host answers
+  `ops.list` itself, listing only the operations the plugin may call, so it
+  works even while Hammer is busy.
 - An `export` function renders every export format the manifest declares. Its
   input is `{"format", "projectName", "language", "topLevelAsChapters",
   "chapters": [{"name", "scenes": [markdown], "prose": []}], "settings": {...}}`,
