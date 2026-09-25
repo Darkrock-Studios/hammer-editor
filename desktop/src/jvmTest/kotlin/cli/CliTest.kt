@@ -40,6 +40,14 @@ class CliTest {
 	}
 
 	@Test
+	fun `scene text comes from stdin`() {
+		assertEquals(Cli.EXIT_OK, run("scene", "write", "--help"))
+		val help = stdout.readUtf8()
+		assertTrue("--markdown <string>, or stdin" in help)
+		assertTrue("--mode <draft|live> (required)" in help)
+	}
+
+	@Test
 	fun `unknown commands and options are usage errors`() {
 		assertEquals(Cli.EXIT_USAGE, run("scene", "reed"))
 		assertTrue("Unknown command 'scene reed'" in stderr.readUtf8())
