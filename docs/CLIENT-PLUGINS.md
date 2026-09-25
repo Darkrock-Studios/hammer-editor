@@ -2,7 +2,7 @@
 
 Design note for extending the Hammer client (desktop, Android, iOS) with plugins,
 and for exposing the same API as a command line interface and an MCP server.
-Status: proposal, nothing implemented yet. The server already has an equivalent
+Status: rollout steps 1 and 2 are built; the rest is a proposal. The server already has an equivalent
 plugin seam (`server/.../plugin/ServerPlugin.kt`); this mirrors it where the
 shapes match.
 
@@ -25,8 +25,9 @@ own data type, screen, sync, and search integration (brainstorming cards, say).
 Out of scope for this note. The only requirement is that nothing here makes it
 impossible. See [Keeping the door open](#keeping-the-door-open).
 
-**Not planned: runtime-loaded code.** Only the JVM can load jars at runtime;
-Android and iOS cannot. Plugins compile into the app.
+**Later: runtime plugins.** Only the JVM can load jars, so native code never
+loads at runtime. Plugins anyone can install run as sandboxed WebAssembly
+instead, on every platform. See [Runtime plugins](#runtime-plugins-wasm).
 
 ## Architecture
 
@@ -46,9 +47,10 @@ Android and iOS cannot. Plugins compile into the app.
 ```
 
 Compile-time plugins are how an overlay repo or fork adds behavior (the
-hammer.ink server plugin is the existing example). External tools never load
-code into Hammer; they call operations through the CLI, or through a plugin's
-CLI command such as `hammer mcp`.
+hammer.ink server plugin is the existing example). External tools call
+operations through the CLI, or through a plugin's CLI command such as
+`hammer mcp`. The only code loaded at runtime is sandboxed WebAssembly, through
+the same operations (see [Runtime plugins](#runtime-plugins-wasm)).
 
 ## Modules
 
@@ -69,6 +71,7 @@ New code goes in a new `:operations` module between `:common` and
 | `:desktop` | The CLI adapter and `Dispatcher`, socket forwarding, the writer lock, `installedDesktopPlugins()` |
 | `:plugins:plaintext` | The data half of the [plain text plugin](#plain-text-exporter-plaintext). All platforms, depends on `:operations` |
 | `:plugins:mcp` | The MCP plugin. JVM only, depends on `:operations` and the MCP Kotlin SDK |
+| `:plugins:wasmhost` | The [runtime plugin](#runtime-plugins-wasm) host: chasm, the package loader, and `WasmPlugin`. All platforms |
 
 **Why registration lives in `:composeUi`.** A plugin module depends on
 `:operations`, so `:operations` cannot list it. A plugin's UI half needs
@@ -355,6 +358,9 @@ interface ClientPlugin {
 	// Added as each is needed; these are the expected near-term ones.
 	fun textDiagnostics(): TextDiagnosticsProvider? = null
 	fun exporters(): List<StoryExporter> = emptyList()
+
+	/** Typed settings the host renders as a form. See Declared settings. */
+	fun settings(): List<SettingDeclaration> = emptyList()
 }
 
 class ProjectPluginContext(
@@ -467,6 +473,9 @@ interface PluginUi {
 	/** Display names for the export formats this plugin contributes, keyed by format id. */
 	fun exportFormatLabels(): Map<String, StringResource> = emptyMap()
 
+	/** Localized labels for the plugin's declared settings, keyed by setting key. */
+	fun settingLabels(): Map<String, StringResource> = emptyMap()
+
 	/** Shown under the plugin's name in the Plugins section of Settings. Null for no pane. */
 	val settingsPane: (@Composable ColumnScope.() -> Unit)? get() = null
 }
@@ -518,9 +527,9 @@ Android and iOS get the same kind of file when a plugin first needs one.
 
 Plugins are cross-platform by default. Only a plugin built on something a
 platform lacks, such as a local MCP server or a CLI command, is registered per
-platform. No supported-platforms field is needed while plugins are compiled in:
-the module's targets and the registration file already say where it runs. A
-plugin manager screen or runtime loading would need one.
+platform. No supported-platforms field is needed: for a compiled-in plugin the
+module's targets and the registration file already say where it runs, and a
+runtime plugin runs wherever the WASM host does.
 
 `PluginRegistry` (`:operations`) holds the plugin list. It collects Koin modules
 and operations at startup, and binds each plugin's capabilities into `:common`'s
@@ -727,6 +736,73 @@ included in backups for free (backups zip the project directory) and ignored by
 sync for free (sync is entity-based, it never walks the directory). Rename and
 move work because it lives inside the project.
 
+### Declared settings
+
+Most plugin settings are a handful of typed values, so a plugin declares them
+and the host renders the form, instead of each plugin writing Compose. This is
+the only way a [runtime plugin](#runtime-plugins-wasm) can have settings, and
+the default for compiled-in ones.
+
+A declaration is a list of typed fields:
+
+```toml
+[[setting]]
+key = "scene_break"
+type = "choice"
+label = "Scene break"
+default = "hash"
+options = [
+	{ value = "hash", label = "#" },
+	{ value = "asterisks", label = "* * *" },
+	{ value = "blank", label = "Blank line" },
+]
+
+[[setting]]
+key = "chapter_headings"
+type = "bool"
+label = "Chapter headings"
+hint = "Only when top-level scenes are exported as chapters."
+default = true
+
+[[setting]]
+key = "min_length"
+type = "int"
+label = "Shortest word counted"
+default = 3
+min = 1
+max = 20
+```
+
+- **Types.** `bool` (toggle), `int` with optional `min` and `max`, `string`
+  with optional `multiline`, and `choice` (dropdown). More types are added when
+  a plugin needs one. There is no secret type: plugin settings are plain TOML,
+  so credentials do not belong in them.
+- **Where it lives.** A runtime plugin ships `settings.toml` in its package. A
+  compiled-in plugin returns the same model from `ClientPlugin.settings()` in
+  Kotlin (`:operations`, no Compose types), so both kinds share one parser-free
+  path from the model onward.
+- **Storage.** Values go in the plugin's existing `plugins/<id>.toml`, one key
+  per setting. On load, each value is checked against its declaration; a
+  missing, mistyped, or out-of-range value falls back to its default, and keys
+  no longer declared are dropped on the next write.
+- **Reading values.** A compiled-in plugin can decode the file into its own
+  `@Serializable` class, as today, since the keys are the property names. A
+  runtime plugin receives its current settings as JSON with every call, so it
+  never needs a host call to read them.
+- **Rendering.** `:composeUi` turns a declaration into Hd components: a toggle
+  row, a number field, a text field, or a dropdown. Labels are plain strings in
+  the declaration. A compiled-in plugin's UI half can localize them with
+  `PluginUi.settingLabels()`, keyed by setting key, the same way
+  `exportFormatLabels()` works.
+- **Custom panes remain.** `PluginUi.settingsPane` stays for settings a form
+  cannot express (MCP's config snippet, say). If a plugin has both, the
+  declared form renders first and the custom pane follows it.
+
+Each plugin currently gets a block in the Plugins section of Settings. Once
+runtime plugins can be installed, the list may grow long enough that each
+plugin needs its own settings screen, opened from that list. The declared form
+works the same either way.
+
 ## Strings
 
 `PluginUi.name` and the format labels take `StringResource`, which is
@@ -759,6 +835,7 @@ reads markdown the same way the built-in formats do.
 | Exporter capability | `exporters()` returns one exporter, format id `plaintext.txt` |
 | Global plugin settings | `plugins/plaintext.toml`, through a small store the exporter reads at render time |
 | UI half | Settings pane and `exportFormatLabels()`, with strings in `:composeUi`'s own `Res` |
+| Declared settings (next) | Its four settings are three choices and a toggle, so it moves to a [declaration](#declared-settings) and drops its hand-written pane, proving the form before runtime plugins depend on it |
 | Split module | Data half in `:plugins:plaintext`, UI half in `:composeUi` |
 | Operations for free | `hammer project export --format plaintext.txt`, and export through the MCP plugin, with no plugin code |
 
@@ -827,6 +904,113 @@ later are:
 5. A feature plugin's operations register the same way as any other, so its data
    type is scriptable and agent-accessible the day it ships.
 
+## Runtime plugins (WASM)
+
+Compiled-in plugins need a fork or overlay repo. Runtime plugins let anyone
+write a plugin and let users install it, by running WebAssembly in a sandbox.
+They are a second way to produce a `ClientPlugin`, not a second plugin system.
+
+### Runtime
+
+[chasm](https://github.com/CharlieTap/chasm), a WebAssembly interpreter written
+in Kotlin Multiplatform, MIT and Apache licensed. It is published for JVM,
+Android, iOS, macOS, Linux, and Windows, so one host in `commonMain` covers
+every target with no native libraries to package. It never generates code at
+runtime, which iOS forbids. It supports Wasm 3.0 plus GC, exception handling,
+and typed function references (what Kotlin/Wasm output needs), and WASI
+Preview 1 through a companion library. It does not support SIMD or Memory64.
+
+### Languages
+
+C, through clang and wasi-sdk, is the first supported language: small modules
+that use linear memory only, which any runtime handles. Rust, Go, Zig, and
+AssemblyScript work the same way. Kotlin/Wasm might run, since chasm supports
+the proposals it needs, but that is unproven until the spike tries it.
+
+### Package
+
+A `.hammerplugin` file is a zip holding `manifest.toml`, `plugin.wasm`, and,
+if the plugin has settings, a [`settings.toml`](#declared-settings).
+
+```toml
+id = "wordfreq"               # same rules as compiled-in ids
+name = "Word Frequency"
+version = "1.0.0"
+api = 1                       # host API version the plugin was built against
+
+[permissions]
+operations = ["project.read", "scene.tree", "scene.read"]
+
+[[exporters]]
+format = "wordfreq.csv"       # prefixed with the id, as for compiled-in plugins
+extension = "csv"
+mime = "text/csv"
+label = "Word frequency (CSV)"
+```
+
+There is no platforms field: a WASM module runs anywhere the host does.
+Labels are plain strings in the manifest. Localized manifests can come later.
+
+### Calling convention
+
+Everything crosses the boundary as JSON in the plugin's linear memory, so the
+host needs no knowledge of plugin types:
+
+- **Plugin to host:** one import that dispatches an operation, plus logging.
+  This is the [`Dispatcher`](#clientplugin-operations) call, so a runtime plugin
+  reaches exactly the API an in-process plugin or the CLI does.
+- **Host to plugin:** exports for each capability: render an export, run one of
+  the plugin's own operations, describe itself.
+
+**Decision for the spike: Extism compatibility.** Extism already publishes
+plugin libraries for C, Rust, Go, Zig, JavaScript, AssemblyScript, .NET, and
+Haskell, with documentation. Since anyone can write plugins, adopting its
+convention gives authors that head start. The cost is implementing Extism's
+host side on chasm; its Java SDK does the same on the Chicory runtime and is
+the reference. If the port proves too large, the fallback is a small
+convention of our own (allocate, call, dispatch, log) plus a C header.
+
+### Host
+
+A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
+
+- **Loader.** At startup, reads installed packages from `<config>/plugins/`,
+  validates each manifest, and wraps each enabled one in a `WasmPlugin`.
+- **`WasmPlugin`** implements `ClientPlugin`. Its `exporters()` come from the
+  manifest and render by calling the module; its operations register like any
+  plugin's. The same `PluginRegistry` receives it, so everything built for
+  compiled-in plugins applies unchanged.
+- **Execution.** Modules run on their own dispatcher, never the UI thread. A
+  runaway plugin must be stoppable; how chasm supports that (fuel, instruction
+  counting, or cancellation) is a spike question.
+
+Runtime plugins stay headless: operations, exporters, and later diagnostics.
+A module cannot supply Compose UI, so its settings are
+[declared](#declared-settings) in `settings.toml` and the host renders the form.
+
+### Trust
+
+Runtime plugins are untrusted code, unlike compiled-in ones:
+
+- **No ambient access.** No WASI filesystem preopens, no sockets, no clock
+  beyond what WASI Preview 1 requires. Everything goes through operations, which
+  carry content and never file paths.
+- **Permissions checked on every call.** The host's dispatch refuses any
+  operation the manifest did not request or the user did not grant. Read and
+  Write operations are shown separately at install.
+- **Install and removal in Settings.** The Plugins section gains install from
+  file, enable and disable, and uninstall for runtime plugins, with the
+  permission prompt at install. Compiled-in plugins keep having no switch.
+- **Signing** is deferred. An unsigned package is the norm at first.
+
+### Platforms
+
+The host is common code, so enabling a platform is a registration change: the
+platform's entry point calls the loader. Desktop comes first. Android follows
+with no new host code. iOS can run it technically; whether App Review accepts
+installable plugins is a policy question to settle before shipping it there,
+not an architecture one.
+
 ## Cost to `:common`
 
 Most new code lives outside `:common`: in `:operations`, `:composeUi`,
@@ -843,7 +1027,8 @@ Most new code lives outside `:common`: in `:operations`, `:composeUi`,
 | A draft-save method that takes text, not only the current scene content | Small | No, but it is a natural addition |
 
 Headless sync needs no `:common` change: the sync-all orchestration already
-lives in the data layer as `SyncAccountUseCase`.
+lives in the data layer as `SyncAccountUseCase`. Neither do runtime plugins:
+they reach `:common` only through operations.
 
 **Hidden costs.** Two assumptions could push fixes into `:common`, and both
 come from running it with no UI:
@@ -854,7 +1039,7 @@ come from running it with no UI:
   works if project and app scopes shut down cleanly. A repository that leaves a
   coroutine running or holds static state would need fixing.
 
-Spike both before step 4: start Koin headless, run a few read operations,
+Spike both before step 5: start Koin headless, run a few read operations,
 stop and restart it in a loop, and watch for leaks and failures.
 
 **Guardrail.** Every step's `:common` changes must make sense without plugins,
@@ -875,29 +1060,41 @@ design is revisited rather than `:common` bent to fit.
 3. **Operation registry and read operations.** Registry, `OperationContext`,
    the Read operations from the catalog, including `project.export` and
    `export.formats`. Tested directly, no front end yet.
-4. **Headless CLI.** Preceded by the headless spike in
+4. **Runtime plugin spike.** On desktop, load a C plugin through chasm and
+   call `project.read` from it through the dispatch import. Measure export
+   speed on a novel-length project, find how to stop a runaway module, size the
+   Extism host port, and try a Kotlin/Wasm plugin on the same host.
+5. **Headless CLI.** Preceded by the headless spike in
    [Cost to `:common`](#cost-to-common). Subcommands generated from the
    registry, `Dispatcher`,
    the `cliCommands()` capability, per-call Koin startup, the writer lock (held
    by the app for its lifetime too).
-5. **[MCP plugin](#mcp-plugin).** `:plugins:mcp`, desktop-only registration,
+6. **[MCP plugin](#mcp-plugin).** `:plugins:mcp`, desktop-only registration,
    settings pane. Read-only at this point, and refuses while the app is running
    until forwarding lands.
-6. **Headless sync.** The account and sync operations, with `sync.run` as a
+7. **Headless sync.** The account and sync operations, with `sync.run` as a
    CLI listener over `SyncAccountUseCase`. Refuses while the app is running.
-7. **Forwarding.** Local socket in the app, "Allow external tools" setting, CLI
+8. **Forwarding.** Local socket in the app, "Allow external tools" setting, CLI
    prefers the running app, second app instances hand off to the first.
-8. **Write operations.** `scene.write` and `scene.append` first, then the rest.
+9. **Write operations.** `scene.write` and `scene.append` first, then the rest.
    Deliberately after forwarding, so live writes always go through the app when
    it is up. Then the [style report](#style-report-style) plugin.
-9. **Text diagnostics.** Define `TextDiagnosticsProvider` (text in, ranges plus
+10. **Text diagnostics.** Define `TextDiagnosticsProvider` (text in, ranges plus
    messages plus fixes out) and add a grammar plugin against it. Migrate spell
    check onto the same interface only if the editor integration gets simpler for
    it; spell check is wired deep into editor decorations and is not a cheap
    first proof.
+11. **Runtime plugins on desktop.** [Declared settings](#declared-settings)
+    first, with the plain text plugin moving onto them (this part can land any
+    time before). Then `:plugins:wasmhost`, the package format, permissions,
+    and install, enable, and uninstall in Settings. Can move up
+    to follow the spike directly if the spike goes well; it needs only read
+    operations to be useful, and write permissions once step 9 lands.
+12. **Runtime plugins on Android**, then an iOS decision. Registration changes
+    only.
 
-Steps 1 and 2 restructure existing code, and step 7 changes app startup
-(single-instance hand-off). The rest are additive. Step 8 is where the
+Steps 1 and 2 restructure existing code, and step 8 changes app startup
+(single-instance hand-off). The rest are additive. Step 9 is where the
 concurrency design gets tested for real.
 
 ## v2
