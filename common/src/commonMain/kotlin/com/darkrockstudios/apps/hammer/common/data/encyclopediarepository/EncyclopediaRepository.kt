@@ -199,6 +199,23 @@ class EncyclopediaRepository(
 		return true
 	}
 
+	/**
+	 * Replaces the entry's image; false for an unsupported extension, an image over the size limit,
+	 * or bytes that are not that kind of image. The old image goes only once the new one is written.
+	 */
+	suspend fun setEntryImage(entryDef: EntryDef, extension: String, image: ByteArray): Boolean {
+		val normalized = extension.removePrefix(".").lowercase()
+		if (!EncyclopediaDatasource.isImage(image, normalized)) return false
+		if (image.size > EncyclopediaDatasource.MAX_IMAGE_SIZE_BYTES) return false
+		markForSynchronization(entryDef)
+		val previous = datasource.findEntryImageExtension(entryDef)
+		datasource.writeEntryImage(entryDef, image, normalized)
+		if (previous != null && !previous.equals(normalized, ignoreCase = true)) {
+			datasource.deleteEntryImage(entryDef, previous)
+		}
+		return true
+	}
+
 	suspend fun setEntryImage(entryDef: EntryDef, imagePath: String?) {
 		markForSynchronization(entryDef)
 		datasource.setEntryImage(entryDef, imagePath)
