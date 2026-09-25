@@ -35,7 +35,10 @@ import kotlin.coroutines.CoroutineContext
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-/** The style report plugin from hammer-plugins, run by the host. Runs when HAMMER_PLUGINS points at that checkout. */
+/**
+ * The style report plugin from hammer-plugins, run by the host. Runs when HAMMER_PLUGINS points at that checkout;
+ * HAMMER_STYLE_PLUGIN picks another build of it there, such as assemblyscript/style/build/style.hammerplugin.
+ */
 @EnabledIfEnvironmentVariable(named = "HAMMER_PLUGINS", matches = ".+")
 class StylePluginTest {
 
@@ -71,8 +74,9 @@ class StylePluginTest {
 			buildJsonObject { put("markdown", scenes[input["id"]!!.jsonPrimitive.int - 1]) }
 		}
 
-		val built = File(System.getenv("HAMMER_PLUGINS"), "c/style/build/style.hammerplugin")
-		check(built.exists()) { "Run c/style/build.sh in hammer-plugins first" }
+		val build = System.getenv("HAMMER_STYLE_PLUGIN") ?: "c/style/build/style.hammerplugin"
+		val built = File(System.getenv("HAMMER_PLUGINS"), build)
+		check(built.exists()) { "Build $build in hammer-plugins first" }
 		val download = "/downloads/style.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }

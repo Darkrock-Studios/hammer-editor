@@ -911,9 +911,12 @@ Preview 1 through a companion library. It does not support SIMD or Memory64.
 ### Languages
 
 C, through clang, is the first supported language: small modules that use
-linear memory only, which any runtime handles. Rust, Go, Zig, and
-AssemblyScript work the same way. Kotlin/Wasm works too (the MCP plugin is
-written in it), at a cost in speed and size; see [Spike results](#spike-results).
+linear memory only, which any runtime handles. AssemblyScript has a kit too,
+and runs about five times slower than C on a whole-book report; Rust, Go, and
+Zig should work the same way. Kotlin/Wasm works too (the MCP plugin is written
+in it), at a cost in speed and size. hammer-plugins' `PERFORMANCE.md` compares
+the languages for plugin authors: speed, size, setup, and what writing one is
+like.
 
 ### Package
 
@@ -993,6 +996,9 @@ eight bytes a plugin copies. The Hammer-specific parts:
   `blank`, `heading`, `list`, `quote`, `code`, `rule`, `table`) of styled
   spans. A plugin then needs no markdown parser, and reads text exactly as the
   built-in formats do. The C kit's `hammer_json.h` reads either form.
+- A function fails by returning non-zero or by trapping. Either way, the
+  message it set with `error_set` is what the user sees, if it set one:
+  AssemblyScript's `abort` sets one and then traps.
 - HTTP imports exist, as Extism plugins expect them, and always fail. The only
   WASI imports provided are `random_get` and `clock_time_get`, which Kotlin/Wasm
   and kotlinx.serialization need and which grant no access to anything; a

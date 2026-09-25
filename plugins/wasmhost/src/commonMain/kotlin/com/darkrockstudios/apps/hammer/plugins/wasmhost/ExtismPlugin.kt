@@ -90,15 +90,16 @@ class ExtismPlugin(
 		val result = invoke(store, instance, function)
 		if (result is ChasmResult.Error) {
 			if (remainingFuel() == 0L) throw PluginException("Plugin ran out of fuel in $function")
-			throw PluginException("Plugin failed in $function: ${result.error}")
+			// A module may set an error and then trap, as AssemblyScript's abort does.
+			val reason = reportedError()?.let { "$it (${result.error})" } ?: result.error
+			throw PluginException("Plugin failed in $function: $reason")
 		}
 		val code = ((result as ChasmResult.Success).result.singleOrNull() as? NumberValue.I32)?.value
-		if (code != 0) {
-			val message = kernel.error.takeIf { it != 0L }?.let { kernel.read(it).decodeToString() }
-			throw PluginException("Plugin reported failure from $function: ${message ?: "code $code"}")
-		}
+		if (code != 0) throw PluginException("Plugin reported failure from $function: ${reportedError() ?: "code $code"}")
 		return kernel.read(kernel.output, kernel.outputLength)
 	}
+
+	private fun reportedError(): String? = kernel.error.takeIf { it != 0L }?.let { kernel.read(it).decodeToString() }
 
 	fun remainingFuel(): Long =
 		((readGlobal(store, fuel) as? ChasmResult.Success)?.result as? NumberValue.I64)?.value ?: 0
