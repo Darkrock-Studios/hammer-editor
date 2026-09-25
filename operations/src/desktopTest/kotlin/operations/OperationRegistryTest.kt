@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationException
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.ProjectResolver
 import com.darkrockstudios.apps.hammer.operations.operation
 import kotlinx.coroutines.test.runTest
@@ -25,7 +26,7 @@ class OperationRegistryTest {
 	@Serializable
 	data class Reply(val text: String)
 
-	private val greet = operation<Greeting, Reply>("greet", "Says hello.", Access.Read) {
+	private val greet = operation<Greeting, Reply>("greet", "Says hello.", Access.Read, OperationScope.Content) {
 		Reply("Hello, ${it.name}${if (it.excited) "!" else "."}")
 	}
 
@@ -65,8 +66,8 @@ class OperationRegistryTest {
 
 	@Test
 	fun `operations are listed by name`() {
-		val wave = operation<Greeting, Reply>("wave", "Waves.", Access.Read) { Reply("~") }
-		val apply = operation<Greeting, Reply>("a.b", "Nested.", Access.Read) { Reply("") }
+		val wave = operation<Greeting, Reply>("wave", "Waves.", Access.Read, OperationScope.Content) { Reply("~") }
+		val apply = operation<Greeting, Reply>("a.b", "Nested.", Access.Read, OperationScope.Content) { Reply("") }
 
 		assertEquals(listOf("a.b", "greet", "wave"), registry(wave, greet, apply).operations.map { it.name })
 	}
@@ -76,15 +77,8 @@ class OperationRegistryTest {
 		assertThrows<IllegalArgumentException> { registry(greet, greet) }
 		listOf("Greet", "greet.", ".greet", "greet..now", "greet now").forEach { name ->
 			assertThrows<IllegalArgumentException> {
-				registry(operation<Greeting, Reply>(name, "", Access.Read) { Reply("") })
+				registry(operation<Greeting, Reply>(name, "", Access.Read, OperationScope.Content) { Reply("") })
 			}
-		}
-	}
-
-	@Test
-	fun `rejects agent-visible destructive operations`() {
-		assertThrows<IllegalArgumentException> {
-			registry(operation<Greeting, Reply>("scene.delete", "", Access.Destructive, agentVisible = true) { Reply("") })
 		}
 	}
 

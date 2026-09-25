@@ -123,7 +123,6 @@ kotlin {
 			dependencies {
 				api(libs.jetbrains.compose.ui.tooling)
 				implementation(compose.desktop.currentOs)
-				implementation(project(":plugins:mcp"))
 			}
 		}
 		val iosMain by getting

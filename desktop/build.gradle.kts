@@ -57,7 +57,6 @@ kotlin {
 				implementation(project(":operations"))
 				implementation(project(":composeUi"))
 				implementation(project(":plugins:wasmhost"))
-				implementation(project(":plugins:mcp"))
 				implementation(libs.jetbrains.compose.components.ui.tooling.preview)
 				implementation(compose.desktop.currentOs)
 				implementation(libs.cairn)

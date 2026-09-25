@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSeri
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
+import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.ProjectResolver
 import com.darkrockstudios.apps.hammer.operations.operation
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
@@ -65,7 +66,7 @@ class RuntimePluginEndToEndTest {
 
 		// A fresh instance, as after a restart.
 		val registry = PluginRegistry(RuntimePlugins(fileSystem, directory, emptySet()).load())
-		val stats = operation<ProjectInput, Stats>("stats.project", "", Access.Read) { Stats(totalWords = 42) }
+		val stats = operation<ProjectInput, Stats>("stats.project", "", Access.Read, OperationScope.Content) { Stats(totalWords = 42) }
 		GlobalContext.startKoin {
 			modules(
 				listOf(

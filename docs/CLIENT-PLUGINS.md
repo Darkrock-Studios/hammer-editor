@@ -10,9 +10,10 @@ shapes match.
 **Change of direction.** Compiled-in plugins are being retired: a plugin is a
 runtime plugin, installed from a package, or the feature belongs in core.
 Plugins also do not add operations; the operation API is Hammer's own. The
-plain text exporter has moved out already. The style report is next, as a
-runtime plugin run only from the UI, which needs project actions for runtime
-plugins; `style.report` then leaves the CLI and MCP. Sections below that
+plain text exporter and the MCP server have moved out already, to
+hammer-plugins. The style report is next, as a runtime plugin run only from
+the UI, which needs project actions for runtime plugins; `style.report` then
+leaves the CLI and MCP. Sections below that
 describe compiled-in plugins or plugin operations record what was built, and
 will be revised as each piece moves.
 
@@ -43,7 +44,7 @@ instead, on every platform. See [Runtime plugins](#runtime-plugins-wasm).
 
 ```
             in-process plugins       hammer <command>        hammer mcp
-                    |                       |              (MCP plugin's
+                    |                       |             (a runtime plugin's
                     |                  CLI adapter          CLI command)
                     |                       \                     /
                     |                        running app? --yes--> forward over local socket
@@ -68,9 +69,7 @@ New code goes in a new `:operations` module between `:common` and
 `:composeUi`, rather than growing `:common`.
 
 ```
-:base <- :common <- :operations <- :plugins:plaintext <- :composeUi <- :android, :desktop
-                         ^
-                         +---- :plugins:mcp <---------------------------------- :desktop
+:base <- :common <- :operations <- :plugins:wasmhost <- :composeUi <- :android, :desktop
 ```
 
 | Module | Holds |
@@ -78,9 +77,7 @@ New code goes in a new `:operations` module between `:common` and
 | `:common` | Same role as today. Gains only extension points (below) and pluggable export |
 | `:operations` | `Operation`, `OperationRegistry`, the core operations, `ClientPlugin`, `PluginRegistry`, `ProjectPluginContext`, `PluginSettingsDatasource` |
 | `:composeUi` | `PluginUi`, `PluginUiRegistry`, `installedPlugins()` and `installedPluginUis()`, the Plugins section of Settings, and the UI halves of in-tree plugins |
-| `:desktop` | The CLI adapter and `Dispatcher`, socket forwarding, the writer lock, `installedDesktopPlugins()` |
-| `:plugins:plaintext` | The data half of the [plain text plugin](#plain-text-exporter-plaintext). All platforms, depends on `:operations` |
-| `:plugins:mcp` | The MCP plugin. JVM only, depends on `:operations` and the MCP Kotlin SDK |
+| `:desktop` | The CLI adapter and `Dispatcher`, socket forwarding, the writer lock |
 | `:plugins:wasmhost` | The [runtime plugin](#runtime-plugins-wasm) host: chasm, the package loader, and `WasmPlugin`. All platforms |
 
 **Why registration lives in `:composeUi`.** A plugin module depends on
@@ -133,13 +130,12 @@ package com.darkrockstudios.apps.hammer.operations
 interface Operation<I, O> {
 	/** Dotted, e.g. `scene.read`. Plugin operations are prefixed with the plugin id. */
 	val name: String
-	/** English. Used for CLI help and agent tool descriptions. */
+	/** English. Used for CLI help and by plugins that describe operations to others. */
 	val description: String
 	val input: KSerializer<I>
 	val output: KSerializer<O>
 	val access: Access
-	/** Safe to offer to automated agents. Opt-in; the registry rejects Destructive operations that set it. */
-	val agentVisible: Boolean get() = false
+	val scope: OperationScope
 	/** Overridden only when valid values are known at runtime, such as `project.export`'s formats. */
 	fun inputSchema(): JsonObject = jsonSchema(input.descriptor)
 
@@ -147,6 +143,9 @@ interface Operation<I, O> {
 }
 
 enum class Access { Read, Write, Destructive }
+
+/** What an operation reaches into. A plugin can be granted every Read or Write operation in a scope at once. */
+enum class OperationScope { Content, Account }
 
 class OperationContext(
 	val projects: ProjectResolver,
@@ -210,7 +209,11 @@ Conventions:
   `hammer note update --tags x` waiting on stdin.
 - **Read** operations change nothing. **Write** operations change content.
   **Destructive** operations delete or overwrite in a way a draft cannot undo;
-  the CLI requires `--confirm` and they are never agent-visible.
+  the CLI requires `--confirm`, and a plugin only gets one by naming it.
+- Each operation declares its **scope**: `content` (projects and everything in
+  them) or `account` (credentials and the sync server). Nothing in the
+  operation API knows about agents; a plugin that serves them, like the MCP
+  plugin, offers what its grants allow.
 - Operations whose input or output is a file (import, export, entry images)
   carry the bytes. The CLI maps them to `--in FILE` and `--out FILE`, or to
   stdin and stdout.
@@ -356,7 +359,8 @@ when the list is generated, and `export.formats` returns the same set.
 | `sync.status` | Read | Per project: linked or not, last sync, count of locally changed entities |
 | `sync.run` | Write | See [Headless sync](#headless-sync) |
 
-None of these are agent-visible.
+These are the `account` scope, so a plugin granted `content:read` and
+`content:write`, such as the MCP plugin, cannot reach them.
 
 ### Deliberately excluded
 
@@ -571,15 +575,8 @@ so tests can supply fakes the way `EndToEndTest` does for the server. The deskto
 Android entry points take a `PluginUi` list the same way.
 
 **Platform-specific plugins.** `installedPlugins()` is for plugins that run on
-every platform. A plugin that only builds for one platform, like the MCP plugin,
-is registered in that platform's own file, and the entry point appends it:
-
-```kotlin
-// desktop/.../plugin/InstalledDesktopPlugins.kt
-fun installedDesktopPlugins(): List<ClientPlugin> = listOf(McpPlugin)
-```
-
-Android and iOS get the same kind of file when a plugin first needs one.
+every platform. A plugin that only builds for one platform would be registered
+in that platform's own file, appended by its entry point; none needs one now.
 
 Plugins are cross-platform by default. Only a plugin built on something a
 platform lacks, such as a local MCP server or a CLI command, is registered per
@@ -725,34 +722,33 @@ single process.
 
 ## MCP plugin
 
-MCP is a plugin, not core, and one of the first built. The core only provides
-the CLI, `Dispatcher`, and the `cliCommands()` capability; everything
-MCP-specific lives in `:plugins:mcp`.
+MCP is a runtime plugin, in hammer-plugins' `kotlin/mcp`, written in
+Kotlin/Wasm. The host provides only generic pieces: plugin commands, scope
+grants, and `ops.list` filtered to the grants.
 
-`hammer mcp` speaks MCP over stdio, which every MCP client supports, and the
-agent launches it as a child process. It builds its tool list from
-`Dispatcher.operations()`, keeping only agent-visible ones, and sends each tool
-call through `Dispatcher.dispatch`. Tool names replace the operation's dots
-with underscores (`scene_read`), since some clients reject dots. A failed call,
-including one refused because the app holds the writer lock, is a tool error
-the agent can read, not a protocol error. The tool list comes from the registry
-without starting Hammer, so the server starts even while the app is open. So it works against the running app's live
+Its manifest requests `content:read` and `content:write`, and declares a
+`mcp` command. An MCP client launches `hammer mcp` as a child process and
+speaks JSON-RPC over stdio, one message per line; the host hands each line to
+the plugin (see [Commands](#commands)). The plugin answers `initialize`,
+`ping`, `tools/list`, and `tools/call`, and ignores notifications.
+
+Its tools are what `ops.list` returns it, which is exactly what it may call.
+Tool names replace the operation's dots with underscores (`scene_read`), since
+some clients reject dots. A failed call, including one refused because Hammer
+is busy, is a tool error the agent can read, not a protocol error. Every call
+goes through the CLI's `Dispatcher`, so it works against the running app's live
 state or, with no app running, directly against the files. No network port and
 no token management.
 
-| Exercises | How |
-| --- | --- |
-| `cliCommands()` capability | Contributes `mcp` |
-| Plugin as API consumer | Tool list and every call go through `Dispatcher` |
-| Plugin in its own module | `:plugins:mcp`, with its own `Res` for strings |
-| Platform-specific registration | Registered in `installedDesktopPlugins()`, since only desktop has the CLI |
-| Global plugin settings | Declared "Enable" and "Let AI agents change scenes directly" settings in `plugins/mcp.toml` |
-| UI half | `McpPluginUi` in `:composeUi`'s desktop source set: the declared toggle and the config snippet to paste into an agent |
+**Live edits.** Its one setting, "Let AI agents change scenes directly", is
+off by default. While off, it drops tools whose input is marked
+[`@LiveEdit`](#operations) (`x-hammer-live` in the schema), drops live values
+from enum fields such as `scene.write`'s `mode`, and refuses them if sent
+anyway, so agents' scene edits land as drafts. Settings are read for every
+message, so a change applies to a running server.
 
-**Off until enabled.** "Enable MCP" defaults to off, and `hammer mcp` exits with
-a message pointing to the setting. Many writers will not want agent access at
-all. For a distribution that shouldn't ship it, removing one registration line
-removes it entirely.
+Installing and enabling the plugin is what turns MCP on. Settings shows the
+command line to give an MCP client.
 
 "Allow external tools" still gates forwarding to the running app, for the CLI
 and the MCP plugin alike.
@@ -943,7 +939,7 @@ the page-one contact block comes from.
 
 ### Style report (`style`)
 
-Built. Adds a `style.report` operation (Read, agent-visible): per scene and for
+Built. Adds a `style.report` operation (Read): per scene and for
 the whole story, Flesch reading ease and grade level, adverbs per thousand
 words, the share of dialogue, and repeated words and phrases. It covers the
 whole story, or given scenes and groups. The rules are English only. Dialogue
@@ -1043,14 +1039,23 @@ version = "1.0.0"
 api = 1                       # host API version the plugin was built against
 
 [permissions]
-operations = ["project.read", "scene.tree", "scene.read"]
+operations = ["project.info", "scene.tree", "scene.read"]
 
 [[exporters]]
 format = "wordfreq.csv"       # prefixed with the id, as for compiled-in plugins
 extension = "csv"
 mime = "text/csv"
 label = "Word frequency (CSV)"
+
+[[commands]]                  # optional; see Commands
+name = "wordfreq"
+help = "Counts words in stdin."
 ```
+
+Each `permissions.operations` entry is an operation's name, or a scope with
+`read` or `write`, such as `content:read`, which covers every operation of
+that scope and access. A scope never covers a Destructive operation; a plugin
+that needs one names it.
 
 There is no platforms field: a WASM module runs anywhere the host does.
 Labels are plain strings in the manifest. Localized manifests can come later.
@@ -1082,7 +1087,10 @@ eight bytes a plugin copies. The Hammer-specific parts:
 - `extism:host/user` `hammer_dispatch(request) -> reply`. The request is
   `{"operation": "...", "input": {...}}`; the reply is `{"output": ...}` or
   `{"error": {"kind": "...", "message": "..."}}`, with the kinds of
-  `OperationException` plus `PermissionDenied`.
+  `OperationException`, `PermissionDenied`, and `Failed` for anything else,
+  such as Hammer being busy. The host answers `ops.list` itself, listing
+  only the operations the plugin may call, so it works even while Hammer is
+  busy.
 - An `export` function renders every export format the manifest declares. Its
   input is `{"format", "projectName", "language", "topLevelAsChapters",
   "chapters": [{"name", "scenes": [markdown], "prose": []}], "settings": {...}}`,
@@ -1099,6 +1107,20 @@ eight bytes a plugin copies. The Hammer-specific parts:
   module importing any other WASI function does not load.
 - `_initialize`, or else `__wasm_call_ctors`, runs once after instantiation, as
   in other Extism hosts.
+
+### Commands
+
+A manifest's `[[commands]]` add top-level CLI commands, desktop only. For
+`hammer <name> [args]`, the host reads standard input a line at a time and
+calls the module's `command` export with `{"command", "args", "settings",
+"line"}`, `settings` read afresh from the plugin's settings file each time. A
+non-empty output is written to standard output as one line; the loop ends at
+the end of input. The module never touches stdio itself, and its dispatches go
+through the CLI's `Dispatcher`, forwarded to the running app or run headless.
+Only a plugin the user installed and enabled runs, and only when its command is
+invoked. A command may not shadow `help` or an operation's first word, and a
+plugin adding a command another already has does not load. If the module
+cannot load, the command exits with an error rather than reading input.
 
 ### Host
 
@@ -1149,8 +1171,9 @@ Runtime plugins are untrusted code, unlike compiled-in ones:
   arguments: only randomness and clocks. Everything goes through operations, which
   carry content and never file paths.
 - **Permissions checked on every call.** The host's dispatch refuses any
-  operation the manifest did not request or the user did not grant. Read and
-  Write operations are shown separately at install. Accepting the install
+  operation no grant covers that the manifest requested and the user granted.
+  Reads and changes are shown separately at install, scope grants described in
+  words, along with any commands the plugin adds. Accepting the install
   prompt grants everything the manifest lists; a replaced package's grants are
   those of the new manifest, since the user just approved them.
 - **Install and removal in Settings.** The Plugins section gains install from
@@ -1272,8 +1295,9 @@ design is revisited rather than `:common` bent to fit.
    that cannot take the lock runs without, as before; forwarding (step 8) is
    what makes the app single-instance. Getting `hammer` onto PATH
    in each package format is not done.
-6. **[MCP plugin](#mcp-plugin).** Built: `:plugins:mcp` on the MCP Kotlin SDK,
-   desktop-only registration, and its settings pane.
+6. **[MCP plugin](#mcp-plugin).** Built, first compiled in on the MCP Kotlin
+   SDK, now a runtime plugin in hammer-plugins on plugin commands and scope
+   grants.
 7. **Headless sync.** Built: `account.status`, `account.login`,
    `account.logout`, `sync.status`, and `sync.run` over `SyncAccountUseCase`.
    Refuses while the app is running, through the writer lock. Tested with fakes
