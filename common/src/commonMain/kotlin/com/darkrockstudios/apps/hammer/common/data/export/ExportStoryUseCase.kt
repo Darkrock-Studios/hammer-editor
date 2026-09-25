@@ -121,7 +121,7 @@ class ExportStoryUseCase(
 		if (sceneFilter != null && included.isEmpty()) return null
 		return StoryChapter(
 			name = chapter.chapter.name,
-			markdown = included.joinToString("\n\n") { sceneEditorRepository.loadSceneMarkdownRaw(it) },
+			scenes = included.map { sceneEditorRepository.loadSceneMarkdownRaw(it) },
 		)
 	}
 

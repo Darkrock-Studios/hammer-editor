@@ -32,7 +32,7 @@ import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPluginUis
 import com.darkrockstudios.apps.hammer.common.compose.plugin.pluginUiModule
 import com.darkrockstudios.apps.hammer.desktop.plugin.installedDesktopPlugins
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
-import com.darkrockstudios.apps.hammer.operations.plugin.installedPlugins
+import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPlugins
 import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.getLogDirectory
 import com.darkrockstudios.apps.hammer.common.logStartupBanner
