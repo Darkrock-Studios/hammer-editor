@@ -71,7 +71,7 @@ class RuntimePluginsTest {
 		GlobalContext.stopKoin()
 	}
 
-	private fun runtimePlugins() = RuntimePlugins(fileSystem, directory, cacheDirectory)
+	private fun runtimePlugins(locale: String? = null) = RuntimePlugins(fileSystem, directory, cacheDirectory, locale)
 
 	private fun manifest(
 		id: String = "echo",
@@ -113,6 +113,7 @@ class RuntimePluginsTest {
 		manifest: String? = manifest(),
 		module: String = "export_echo",
 		settingsToml: String? = settings,
+		files: Map<String, String> = emptyMap(),
 	): Path {
 		val bytes = ByteArrayOutputStream().also { out ->
 			ZipOutputStream(out).use { zip ->
@@ -124,6 +125,7 @@ class RuntimePluginsTest {
 				manifest?.let { entry("manifest.toml", it.encodeToByteArray()) }
 				settingsToml?.let { entry("settings.toml", it.encodeToByteArray()) }
 				entry("plugin.wasm", testPlugin(module))
+				files.forEach { (entryName, content) -> entry(entryName, content.encodeToByteArray()) }
 			}
 		}.toByteArray()
 		return (downloads / "$name.hammerplugin").also { path -> fileSystem.write(path) { write(bytes) } }
@@ -302,6 +304,73 @@ class RuntimePluginsTest {
 		assertEquals(input, request["input"])
 		assertEquals(Json.parseToJsonElement("""{"place":"entry","id":7}"""), request["context"])
 		assertEquals("again", request["button"]!!.jsonPrimitive.content)
+	}
+
+	private val translatable = manifest(action = "report") + """
+
+		[[actions.field]]
+		key = "tone"
+		type = "choice"
+		label = "Tone"
+		options = [{ value = "warm", label = "Warm" }, { value = "cool", label = "Cool" }]
+	""".trimIndent()
+
+	private val translations = mapOf(
+		"locales/fr.toml" to """
+			name = "Écho"
+
+			[exporters."echo.txt"]
+			label = "Écho (TXT)"
+
+			[actions.report]
+			label = "Répète-le"
+
+			[actions.report.fields.tone]
+			label = "Ton"
+			options = { warm = "Chaleureux" }
+
+			[settings.shout]
+			label = "Crier"
+		""".trimIndent(),
+		"locales/fr-CA.toml" to """
+			[actions.report]
+			label = "Répète ça"
+		""".trimIndent(),
+	)
+
+	@Test
+	fun `a package's words come in the UI's language, the most specific translation first`() {
+		val plugins = runtimePlugins(locale = "fr-CA")
+		plugins.install(pack("echo", translatable, files = translations))
+		val plugin = startKoin(plugins).plugins.single()
+
+		assertEquals("Écho", plugin.name)
+		assertEquals("Écho (TXT)", plugin.exporters().single().label)
+		assertEquals("Crier", plugin.settings().single().label)
+		val action = plugin.actions().single()
+		assertEquals("Répète ça", action.label)
+		val tone = (action.fields.single() as ActionField.Setting).declaration as SettingDeclaration.Choice
+		assertEquals("Ton", tone.label)
+		assertEquals(listOf("Chaleureux", "Cool"), tone.options.map { it.label })
+		assertEquals("Écho", plugins.installed().single().manifest?.name)
+	}
+
+	@Test
+	fun `without a translation for the UI's language, a package keeps its own words, and calls are told the language`() {
+		val plugins = runtimePlugins(locale = "de-DE")
+		plugins.install(pack("echo", translatable, files = translations))
+		val action = startKoin(plugins).plugins.single().actions().single()
+
+		assertEquals("Echo it", action.label)
+		val reply = runBlocking { action.run(ActionCall("Storm", ActionPlace.Project, null, JsonObject(emptyMap()))) }
+		assertEquals("de-DE", Json.parseToJsonElement(reply.message!!).jsonObject["locale"]!!.jsonPrimitive.content)
+	}
+
+	@Test
+	fun `a broken translation, or one not named for a language, is refused`() {
+		val plugins = runtimePlugins()
+		assertThrows<PluginPackageException> { plugins.install(pack("echo", files = mapOf("locales/fr.toml" to "name = [1, 2"))) }
+		assertThrows<PluginPackageException> { plugins.install(pack("echo", files = mapOf("locales/français.toml" to "name = \"Écho\""))) }
 	}
 
 	@Test

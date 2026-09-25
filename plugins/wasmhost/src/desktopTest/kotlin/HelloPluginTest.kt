@@ -55,7 +55,9 @@ class HelloPluginTest {
 		GlobalContext.stopKoin()
 	}
 
-	private val plugin: ClientPlugin by lazy {
+	private val plugin: ClientPlugin by lazy { load(locale = null) }
+
+	private fun load(locale: String?): ClientPlugin {
 		val tree = operation<JsonObject, JsonObject>("scene.tree", "", Access.Read, OperationScope.Content) {
 			buildJsonObject {
 				putJsonArray("nodes") {
@@ -72,7 +74,7 @@ class HelloPluginTest {
 		val download = "/downloads/hello.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
-		val plugins = RuntimePlugins(fileSystem, "/config/plugins".toPath(), "/cache/plugins".toPath())
+		val plugins = RuntimePlugins(fileSystem, "/config/plugins".toPath(), "/cache/plugins".toPath(), locale)
 		plugins.install(download)
 		val registry = PluginRegistry().also(plugins::activate)
 		GlobalContext.startKoin {
@@ -87,7 +89,7 @@ class HelloPluginTest {
 				module { single { OperationRegistry(listOf(tree, read), NoProjects) } },
 			)
 		}
-		registry.plugins.single()
+		return registry.plugins.single()
 	}
 
 	private fun run(name: String, input: JsonObject = JsonObject(emptyMap()), button: String? = null, onProgress: (String?) -> Unit = {}) =
@@ -125,6 +127,16 @@ class HelloPluginTest {
 		val found = runBlocking { plugin.textDiagnostics().single().diagnose(listOf(paragraph), "en") }.single().single()
 		assertEquals("very ", paragraph.substring(found.start, found.end))
 		assertEquals(listOf("" to "Remove “very”"), found.fixes.map { it.replacement to it.label })
+	}
+
+	@Test
+	fun `in French, its labels come from its translation and its replies from the locale`() {
+		val french = load(locale = "fr-FR")
+		val wave = french.actions().single { it.name == "wave" }
+		assertEquals("Saluer", wave.label)
+		assertEquals("Scènes", french.actions().single { it.name == "count" }.fields.single().label)
+		val reply = runBlocking { wave.run(ActionCall("Storm", ActionPlace.Project, null, JsonObject(emptyMap()), "once")) }
+		assertEquals("Vous avez salué", reply.message)
 	}
 
 	private object NoProjects : ProjectResolver {
