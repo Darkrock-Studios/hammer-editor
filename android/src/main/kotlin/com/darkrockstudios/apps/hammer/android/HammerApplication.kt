@@ -40,6 +40,10 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.core.context.GlobalContext.startKoin
 import org.koin.java.KoinJavaComponent
 import org.koin.java.KoinJavaComponent.getKoin
+import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPluginUis
+import com.darkrockstudios.apps.hammer.common.compose.plugin.pluginUiModule
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
+import com.darkrockstudios.apps.hammer.operations.plugin.installedPlugins
 
 class HammerApplication : Application(), SingletonImageLoader.Factory {
 
@@ -53,6 +57,8 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 		installGlobalExceptionHandler()
 		logStartupBanner()
 
+		val pluginRegistry = PluginRegistry(installedPlugins())
+
 		startKoin {
 			logger(NapierLogger())
 			androidContext(this@HammerApplication)
@@ -63,11 +69,13 @@ class HammerApplication : Application(), SingletonImageLoader.Factory {
 					aboutLibrariesModule,
 					shortcutsModule,
 					appModule(applicationScope),
-				) + playServicesModules
+					pluginUiModule(installedPluginUis()),
+				) + playServicesModules + pluginRegistry.koinModules()
 			)
 		}
 
 		runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }
+		pluginRegistry.start()
 
 		applicationScope.launch {
 			getKoin().get<ProjectShortcutsManager>().refresh()

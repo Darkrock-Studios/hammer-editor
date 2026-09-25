@@ -54,6 +54,7 @@ kotlin {
 			dependencies {
 				implementation(project(":base"))
 				implementation(project(":common"))
+				implementation(project(":operations"))
 				implementation(project(":composeUi"))
 				implementation(libs.jetbrains.compose.components.ui.tooling.preview)
 				implementation(compose.desktop.currentOs)
