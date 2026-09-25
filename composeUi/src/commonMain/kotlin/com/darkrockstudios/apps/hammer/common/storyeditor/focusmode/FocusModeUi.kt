@@ -87,7 +87,7 @@ fun FocusModeUi(component: FocusMode) {
 	val markdownExtension = remember { textEditorState.withMarkdown(markdownConfig) }
 
 	val findState = rememberFindState(textEditorState.textState)
-	val textDiagnostics = rememberPluginTextDiagnostics(textEditorState.textState, state.language)
+	val textDiagnostics = rememberPluginTextDiagnostics(textEditorState.textState, state.language, state.languageLoaded)
 	var showFindBar by remember { mutableStateOf(false) }
 
 	LaunchedEffect(markdownConfig) {

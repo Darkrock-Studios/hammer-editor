@@ -156,6 +156,25 @@ class SceneEditorComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `the project language counts as loaded only once read, even when it is none`() = runTest(mainTestDispatcher) {
+		val language = MutableSharedFlow<String?>()
+		every { spellCheck.projectLanguage } returns language
+		val comp = newComponent()
+		comp.onCreate()
+		advanceUntilIdle()
+
+		assertFalse(comp.state.value.languageLoaded)
+
+		language.emit(null)
+		advanceUntilIdle()
+		assertTrue(comp.state.value.languageLoaded)
+
+		language.emit("fr")
+		advanceUntilIdle()
+		assertEquals("fr", comp.state.value.language)
+	}
+
+	@Test
 	fun `addWordToDictionary delegates to the project dictionary`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 		comp.onCreate()
