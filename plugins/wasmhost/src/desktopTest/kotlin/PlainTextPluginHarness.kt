@@ -34,11 +34,12 @@ class PlainTextPluginHarness {
 		check(built.exists()) { "Run c/plaintext/build.sh in hammer-plugins first" }
 		val download = "/downloads/plaintext.hammerplugin".toPath()
 		val directory = "/config/plugins".toPath()
+		val cacheDirectory = "/cache/plugins".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
-		RuntimePlugins(fileSystem, directory).install(download)
+		RuntimePlugins(fileSystem, directory, cacheDirectory).install(download)
 
-		registry = PluginRegistry().also(RuntimePlugins(fileSystem, directory)::activate)
+		registry = PluginRegistry().also(RuntimePlugins(fileSystem, directory, cacheDirectory)::activate)
 		GlobalContext.startKoin {
 			modules(
 				listOf(

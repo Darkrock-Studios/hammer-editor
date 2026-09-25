@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.operations.core.OPS_LIST
 import com.darkrockstudios.apps.hammer.operations.core.OperationDescriptor
 import com.darkrockstudios.apps.hammer.operations.notFound
 import com.darkrockstudios.apps.hammer.operations.operation
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginCache
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginException
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginManifest
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.WasmPlugin
@@ -21,6 +22,8 @@ import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
+import okio.Path.Companion.toPath
+import okio.fakefilesystem.FakeFileSystem
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -140,6 +143,32 @@ class WasmPluginTest {
 
 		assertEquals(WasmPlugin.FAILED, reply.errorKind())
 		assertEquals("Hammer is busy", reply["error"]!!.jsonObject["message"]!!.jsonPrimitive.content)
+	}
+
+	@Test
+	fun `a module keeps values in its cache`() {
+		val cached = WasmPlugin(
+			PluginManifest.parse("id = \"cache\"\nname = \"Cache\"\nversion = \"1\"\napi = 1"),
+			{ testPlugin("cache") },
+			cache = PluginCache(FakeFileSystem(), "/cache/plugins/cache".toPath()),
+		)
+		fun get(key: String) = cached.callBlocking("get", key.encodeToByteArray()).decodeToString()
+
+		assertEquals("", get("scene-1"))
+		cached.callBlocking("set", "scene-1=412 words".encodeToByteArray())
+		assertEquals("412 words", get("scene-1"))
+		cached.callBlocking("set", "scene-1=".encodeToByteArray())
+		assertEquals("", get("scene-1"))
+	}
+
+	@Test
+	fun `without a cache every get misses`() {
+		val uncached = WasmPlugin(
+			PluginManifest.parse("id = \"cache\"\nname = \"Cache\"\nversion = \"1\"\napi = 1"),
+			{ testPlugin("cache") },
+		)
+		uncached.callBlocking("set", "scene-1=412 words".encodeToByteArray())
+		assertEquals("", uncached.callBlocking("get", "scene-1".encodeToByteArray()).decodeToString())
 	}
 
 	private fun pluginGranted(operations: String) = WasmPlugin(
