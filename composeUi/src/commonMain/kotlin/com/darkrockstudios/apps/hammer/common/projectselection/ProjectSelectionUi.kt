@@ -31,6 +31,8 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.projectselection.about.AboutAppUi
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.AccountSettingsUi
 import com.darkrockstudios.apps.hammer.common.projectselection.storyideas.StoryIdeasUi
+import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginUiRegistry
+import org.koin.compose.koinInject
 
 private val WIDE_SCREEN_THRESHOLD = 720.dp
 
@@ -91,6 +93,7 @@ fun ProjectSelectionUi(
 					is ProjectSelection.Destination.AccountSettingsDestination -> AccountSettingsUi(
 						destination.component,
 						rootSnackbar,
+						pluginSettingsPanes = koinInject<PluginUiRegistry>().settingsPanes,
 					)
 
 					is ProjectSelection.Destination.ProjectsListDestination -> ProjectListUi(

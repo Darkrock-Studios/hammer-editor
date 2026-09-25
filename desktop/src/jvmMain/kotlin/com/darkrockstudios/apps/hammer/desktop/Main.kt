@@ -28,6 +28,11 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
+import com.darkrockstudios.apps.hammer.common.compose.plugin.installedPluginUis
+import com.darkrockstudios.apps.hammer.common.compose.plugin.pluginUiModule
+import com.darkrockstudios.apps.hammer.desktop.plugin.installedDesktopPlugins
+import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
+import com.darkrockstudios.apps.hammer.operations.plugin.installedPlugins
 import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.getLogDirectory
 import com.darkrockstudios.apps.hammer.common.logStartupBanner
@@ -131,15 +136,27 @@ fun main(args: Array<String>) {
 	logStartupBanner()
 	installGlobalExceptionHandler()
 
+	val pluginRegistry = PluginRegistry(installedPlugins() + installedDesktopPlugins())
+
 	GlobalContext.startKoin {
 		logger(NapierLogger())
-		modules(mainModule, imageLoadingModule, aboutLibrariesModule, desktopModule, appModule(appScope))
+		modules(
+			listOf(
+				mainModule,
+				imageLoadingModule,
+				aboutLibrariesModule,
+				desktopModule,
+				appModule(appScope),
+				pluginUiModule(installedPluginUis()),
+			) + pluginRegistry.koinModules()
+		)
 	}
 
 	SandboxStartup.ensureProjectsDirAccess()
 
 	Napier.i("Startup: running data migration")
 	runBlocking { getKoin().get<DataMigrator>(DataMigrator::class).handleDataMigration() }
+	pluginRegistry.start()
 
 	val initialProject: ProjectDef? = launchArgs.projectName?.let { name ->
 		val match = getKoin().get<ProjectsRepository>().findProject(name)
