@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.operations.notFound
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -112,17 +113,34 @@ class McpPluginTest {
 		assertEquals(listOf("project.list", "scene.read"), dispatcher.dispatched)
 	}
 
+	@Test
+	fun `text of every UTF-8 width passes through intact`() {
+		// Each width of character at each offset within the kit's 8-byte reads.
+		val names = listOf("é", "“", "中", "😀").flatMap { c -> (0 until 8).map { "x".repeat(it) + c + "y".repeat(9) } }
+		dispatcher.projects = names
+		val note = names.joinToString(" ")
+
+		val listed = serve(call(1, "project_list", """{"note":"$note"}""")).getValue(1).result()
+
+		assertEquals(note, dispatcher.inputs.single().jsonObject["note"]!!.jsonPrimitive.content)
+		val text = listed["content"]!!.jsonArray.single().jsonObject["text"]!!.jsonPrimitive.content
+		assertEquals(names, Json.parseToJsonElement(text).jsonObject["projects"]!!.jsonArray.map { it.jsonPrimitive.content })
+	}
+
 	/** Hammer's own operations and schemas; every operation but project.list fails as not found. */
 	private class RecordingDispatcher : Dispatcher {
 		val dispatched = mutableListOf<String>()
+		val inputs = mutableListOf<JsonElement>()
+		var projects = emptyList<String>()
 		private val operations = coreOperations().map { it.descriptor() }
 
 		override suspend fun operations(): List<OperationDescriptor> = operations
 
 		override suspend fun dispatch(operation: String, input: JsonElement): JsonElement {
 			dispatched += operation
+			inputs += input
 			return when (operation) {
-				"project.list" -> buildJsonObject { put("projects", Json.parseToJsonElement("[]")) }
+				"project.list" -> buildJsonObject { put("projects", JsonArray(projects.map(::JsonPrimitive))) }
 				else -> notFound("No project 'Missing'")
 			}
 		}
