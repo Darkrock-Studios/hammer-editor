@@ -102,6 +102,11 @@ class PluginPackage(
 				if (OperationGrant.parse(entry) == null) throw PluginPackageException("Unknown permission '$entry'")
 			}
 			checkCommands(manifest)
+			val actions = manifest.actions.map { it.name }
+			actions.groupBy { it }.filterValues { it.size > 1 }.keys.takeIf { it.isNotEmpty() }?.let {
+				throw PluginPackageException("Actions declared twice: $it")
+			}
+			actions.firstOrNull { !PluginRegistry.isValidId(it) }?.let { throw PluginPackageException("Invalid action name '$it'") }
 		}
 
 		// Checked here, since a clash the plugin registry found would stop Hammer from starting.

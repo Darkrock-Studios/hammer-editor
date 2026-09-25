@@ -25,6 +25,7 @@
 	<string name="plugin_settings_open">Settings</string>
 	<string name="plugin_settings_close">Close settings</string>
 	<string name="plugin_command_run">%1$s Run it with:</string>
+	<string name="plugin_install_actions">Adds to each project's menu: %1$s</string>
 	<string name="plugin_install_commands">Adds commands: %1$s</string>
 	<string name="plugin_install_scope_content_read">everything in your projects</string>
 	<string name="plugin_install_scope_content_write">anything in your projects, but never delete</string>

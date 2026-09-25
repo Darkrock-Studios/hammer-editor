@@ -15,6 +15,7 @@ import com.darkrockstudios.apps.hammer.operations.core.OperationList
 import com.darkrockstudios.apps.hammer.operations.core.descriptor
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
+import com.darkrockstudios.apps.hammer.operations.plugin.ProjectAction
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
@@ -71,6 +72,13 @@ class WasmPlugin(
 	override fun settings(): List<SettingDeclaration> = declaredSettings
 
 	override fun cliCommands(): List<CliCommand> = manifest.commands.map(::Command)
+
+	override fun projectActions(): List<ProjectAction> = manifest.actions.map { action ->
+		ProjectAction(action.label) { project ->
+			val request = ActionRequest(action.name, project, settingsValues())
+			call(ACTION, OperationJson.encodeToString(request).encodeToByteArray()).decodeToString().ifBlank { null }
+		}
+	}
 
 	/** Loads the module now rather than on first use, which surfaces any problem with it as a [PluginException]. */
 	fun instantiate() {
@@ -237,6 +245,14 @@ class WasmPlugin(
 	}
 
 	@Serializable
+	private class ActionRequest(
+		val action: String,
+		val project: String,
+		/** The plugin's declared settings, every key present. */
+		val settings: JsonObject,
+	)
+
+	@Serializable
 	private class CommandRequest(
 		val command: String,
 		val args: List<String>,
@@ -296,6 +312,9 @@ class WasmPlugin(
 
 		/** The export that answers each line of input to a command the manifest declares. */
 		const val COMMAND = "command"
+
+		/** The export that runs a project action the manifest declares; its output is shown to the user. */
+		const val ACTION = "action"
 
 		const val PERMISSION_DENIED = "PermissionDenied"
 

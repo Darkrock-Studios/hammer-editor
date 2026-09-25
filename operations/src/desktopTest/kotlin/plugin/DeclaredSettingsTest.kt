@@ -77,14 +77,14 @@ class DeclaredSettingsTest {
 	}
 
 	private fun registry(): PluginRegistry {
-		val registry = PluginRegistry(listOf(Declaring("demo", declarations)))
+		val registry = PluginRegistry().apply { add(Declaring("demo", declarations)) }
 		val base = module {
 			single<FileSystem> { fileSystem }
 			single<Toml> { createTomlSerializer() }
 			single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.Unconfined }
 			single(named(APP_SCOPE)) { CoroutineScope(Dispatchers.Unconfined) }
 		}
-		GlobalContext.startKoin { modules(listOf(base) + registry.koinModules()) }
+		GlobalContext.startKoin { modules(base, registry.koinModule()) }
 		return registry
 	}
 
@@ -149,10 +149,10 @@ class DeclaredSettingsTest {
 	}
 
 	@Test
-	fun `invalid declarations stop the registry`() {
+	fun `a plugin with invalid declarations is refused`() {
 		val badDefault = SettingDeclaration.Number("n", "N", defaultValue = 50, max = 10)
-		assertThrows<IllegalArgumentException> { PluginRegistry(listOf(Declaring("bad", listOf(badDefault)))) }
+		assertThrows<IllegalArgumentException> { PluginRegistry().add(Declaring("bad", listOf(badDefault))) }
 		val twice = SettingDeclaration.Toggle("t", "T", defaultValue = true)
-		assertThrows<IllegalArgumentException> { PluginRegistry(listOf(Declaring("dup", listOf(twice, twice)))) }
+		assertThrows<IllegalArgumentException> { PluginRegistry().add(Declaring("dup", listOf(twice, twice))) }
 	}
 }

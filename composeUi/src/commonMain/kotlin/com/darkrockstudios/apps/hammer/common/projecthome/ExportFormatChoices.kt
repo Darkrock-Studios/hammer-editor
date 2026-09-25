@@ -2,7 +2,6 @@ package com.darkrockstudios.apps.hammer.common.projecthome
 
 import androidx.compose.runtime.Composable
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginUiRegistry
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.export.BuiltInExportFormat
 import com.darkrockstudios.apps.hammer.common.data.export.StoryExporter
@@ -25,18 +24,12 @@ private val builtInLabels: Map<String, StringResource> = mapOf(
 	BuiltInExportFormat.MARKDOWN to Res.string.project_home_export_format_markdown,
 )
 
-/** A format with no label, built-in, from its plugin's UI half, or its own, shows its file extension. */
+/** A format with no label, built-in or its own, shows its file extension. */
 @Composable
-internal fun exportFormatChoices(
-	exporters: List<StoryExporter>,
-	pluginLabels: Map<String, StringResource>,
-): List<ExportFormatChoice> = exporters.map { exporter ->
-	val label = builtInLabels[exporter.formatId] ?: pluginLabels[exporter.formatId]
-	ExportFormatChoice(exporter.formatId, label?.get() ?: exporter.label ?: exporter.fileExtension.uppercase())
+internal fun exportFormatChoices(exporters: List<StoryExporter>): List<ExportFormatChoice> = exporters.map { exporter ->
+	val label = builtInLabels[exporter.formatId]?.get() ?: exporter.label
+	ExportFormatChoice(exporter.formatId, label ?: exporter.fileExtension.uppercase())
 }
 
 @Composable
-internal fun exportFormatChoices(): List<ExportFormatChoice> = exportFormatChoices(
-	exporters = koinInject<StoryExporterRegistry>().exporters,
-	pluginLabels = koinInject<PluginUiRegistry>().exportFormatLabels,
-)
+internal fun exportFormatChoices(): List<ExportFormatChoice> = exportFormatChoices(koinInject<StoryExporterRegistry>().exporters)
