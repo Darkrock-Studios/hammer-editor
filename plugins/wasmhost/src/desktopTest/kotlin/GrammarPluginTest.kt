@@ -33,7 +33,7 @@ class GrammarPluginTest {
 
 	private val check by lazy {
 		val built = File(System.getenv("HAMMER_PLUGINS"), "c/grammar/build/grammar.hammerplugin")
-		check(built.exists()) { "Run c/grammar/build.sh in hammer-plugins first" }
+		check(built.exists()) { "Run c/build.sh grammar in hammer-plugins first" }
 		val download = "/downloads/grammar.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }

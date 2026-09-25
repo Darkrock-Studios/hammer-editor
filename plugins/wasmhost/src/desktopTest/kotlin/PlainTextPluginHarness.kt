@@ -22,7 +22,7 @@ import java.io.File
 import kotlin.coroutines.CoroutineContext
 
 /**
- * The plain text plugin built by hammer-plugins' `c/plaintext/build.sh`, installed and loaded as a
+ * The plain text plugin built by hammer-plugins' `c/build.sh plaintext`, installed and loaded as a
  * restarted app would. Starts Koin; the caller stops it.
  */
 class PlainTextPluginHarness {
@@ -31,7 +31,7 @@ class PlainTextPluginHarness {
 
 	init {
 		val built = File(System.getenv("HAMMER_PLUGINS"), "c/plaintext/build/plaintext.hammerplugin")
-		check(built.exists()) { "Run c/plaintext/build.sh in hammer-plugins first" }
+		check(built.exists()) { "Run c/build.sh plaintext in hammer-plugins first" }
 		val download = "/downloads/plaintext.hammerplugin".toPath()
 		val directory = "/config/plugins".toPath()
 		val cacheDirectory = "/cache/plugins".toPath()
