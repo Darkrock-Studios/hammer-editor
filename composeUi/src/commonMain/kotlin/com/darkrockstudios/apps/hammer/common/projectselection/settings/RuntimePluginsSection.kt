@@ -35,6 +35,7 @@ import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.InstalledPlugin
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.OperationGrant
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginManifest
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginPackage
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginPackageException
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
@@ -321,6 +322,18 @@ private fun InstallDialog(
 				if (manifest.commands.isNotEmpty()) {
 					Text(
 						text = Res.string.plugin_install_commands.get(manifest.commands.joinToString { "hammer ${it.name}" }),
+						style = MaterialTheme.typography.bodyMedium,
+					)
+				}
+				if (manifest.diagnostics.isNotEmpty()) {
+					Text(
+						text = Res.string.plugin_install_diagnostics.get(manifest.diagnostics.joinToString { it.label }),
+						style = MaterialTheme.typography.bodyMedium,
+					)
+				}
+				if (manifest.limits.memory > PluginManifest.DEFAULT_MEMORY_MIB) {
+					Text(
+						text = Res.string.plugin_install_memory.get(manifest.limits.memory.toString()),
 						style = MaterialTheme.typography.bodyMedium,
 					)
 				}

@@ -27,6 +27,8 @@
 	<string name="plugin_command_run">%1$s Run it with:</string>
 	<string name="plugin_install_actions">Adds to each project's menu: %1$s</string>
 	<string name="plugin_install_commands">Adds commands: %1$s</string>
+	<string name="plugin_install_diagnostics">Checks your writing: %1$s</string>
+	<string name="plugin_install_memory">Uses up to %1$s MB of memory.</string>
 	<string name="plugin_install_scope_content_read">everything in your projects</string>
 	<string name="plugin_install_scope_content_write">anything in your projects, but never delete</string>
 	<string name="plugin_install_scope_account_read">your sync account's status</string>
