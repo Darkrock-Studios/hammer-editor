@@ -31,6 +31,7 @@ fun MarkdownView(
 	markdown: String,
 	modifier: Modifier = Modifier,
 	contentPadding: PaddingValues = PaddingValues(0.dp),
+	selectable: Boolean = false,
 ) {
 	val markdownConfig = LocalMarkdownConfig.current
 	val state = rememberTextEditorState()
@@ -42,6 +43,7 @@ fun MarkdownView(
 		state = state,
 		modifier = modifier.semantics { text = AnnotatedString(markdown) },
 		contentPadding = contentPadding,
+		isSelectable = selectable,
 		style = rememberTextEditorStyle(
 			textStyle = TextStyle.Default.copy(
 				textIndent = TextIndent(firstLine = 24.sp)
