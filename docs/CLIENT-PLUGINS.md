@@ -775,7 +775,7 @@ the page-one contact block comes from.
 
 ### Style report (`style`)
 
-Built, as a runtime plugin in C: `c/style` in `hammer-plugins`, a 14 KB
+Built, as a runtime plugin in C: `c/style` in `hammer-plugins`, a 16 KB
 package. A "Style report" item in the project menu reports, per scene and for
 the whole story, Flesch reading ease and grade level, adverbs per thousand
 words, the share of dialogue, and repeated words and phrases, and saves it as a
@@ -788,21 +788,17 @@ apostrophes to count.
 | Project actions | The manifest declares one action; the host calls the module's `action` export on the project |
 | Plugin as API consumer | Reads through `scene.tree` and `scene.read` and saves through `note.create`, the three operations it asks for by name |
 | A full-book job in C | Counts in the module's own hash maps and arenas, reused scene to scene, so a novel fits the 64 MiB memory cap |
+| The plugin cache | Keeps each scene's counts under a hash of its text, so a run counts only scenes that changed |
 
 The whole story's figures are the sum of its scenes' counts, so they need no
 second pass. Its repeated phrases are those repeated within a scene. A note
 holds at most 10,000 characters, so the note lists as many scenes as fit and
-says how many it left out. Every run recounts every scene, since a plugin has
-nowhere to keep counts between runs.
+says how many it left out. On a 300,000-word book a first run takes about 7
+seconds and a run with nothing changed about 1, the reading of every scene
+that remains.
 
 ### Gaps these expose
 
-- **No per-plugin storage.** A plugin keeps nothing between calls but its
-  settings, so the style report recounts the whole book every time. A
-  per-plugin cache would let it recount only changed scenes, keyed by a hash of
-  each scene's text: a small key-value store per plugin, and per project, that
-  the host keeps under the project, never synced, cleared on uninstall, and
-  capped in size. Worth adding once reports on long books feel slow.
 - **No content-change events.** A plugin that wants to react to edits (live
   stats, a background linter) has nothing to subscribe to. Deferred until a
   plugin needs it.
@@ -937,11 +933,33 @@ eight bytes a plugin copies. The Hammer-specific parts:
   WASI imports provided are `random_get` and `clock_time_get`, which Kotlin/Wasm
   and kotlinx.serialization need and which grant no access to anything; a
   module importing any other WASI function does not load.
+- `extism:host/user` `hammer_cache_get(key) -> value` and
+  `hammer_cache_set(key, value)`: the plugin's [cache](#cache). A get returns
+  0 for a key with no value; a set with 0, or an empty value, removes the key.
 - An `action` export runs a project action the manifest declares. Its input is
   `{"action", "project", "settings"}`, and its output, if any, is shown to the
   user when it finishes.
 - `_initialize`, or else `__wasm_call_ctors`, runs once after instantiation, as
   in other Extism hosts.
+
+### Cache
+
+Each plugin has a key-value cache of bytes, for work worth keeping between
+runs, such as the style report's per-scene counts. It is one store per plugin,
+not per project: a plugin that wants per-project entries puts the project in
+the key, and one keyed by content, as the style report is, shares entries
+across projects for free.
+
+It lives in the platform cache directory (`<cache>/plugins/<id>/`), one file
+per key named for the key's SHA-256, so it is never synced or backed up and the
+OS may clear it. Keys are at most 1 KiB and values at most 1 MiB; a larger one
+traps the call. Past 32 MiB for a plugin, the host drops the oldest written
+entries down to three quarters of that. Installing a plugin again or
+uninstalling it clears its cache, since a new version may keep different
+values under the same keys. A call still running on the old version can write
+after the clear, so plugins put a format version in their keys. Everything about it is best effort: a failed read
+is a miss and a failed write is dropped. A CLI command and the app may use one
+plugin's cache at once; each write is atomic, and the last one wins.
 
 ### Commands
 
@@ -961,9 +979,9 @@ cannot load, the command exits with an error rather than reading input.
 
 A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
 
-- **Loader.** `RuntimePlugins` keeps packages in `<config>/plugins/packages/`
-  and each plugin's enabled flag and granted operations in
-  `<config>/plugins/_runtime-plugins.toml` (plugin ids cannot start with `_`,
+- **Loader.** `RuntimePlugins` keeps packages in `<config>/plugins/packages/`,
+  each plugin's enabled flag and granted operations in
+  `<config>/plugins/_runtime-plugins.toml`, and caches under `<cache>/plugins/` (plugin ids cannot start with `_`,
   so no plugin's settings file collides with it). At startup `activate` wraps
   each enabled package in a `WasmPlugin` and adds it to the registry. A package
   that fails to read, or clashes with another plugin, is logged and skipped; it
@@ -1150,6 +1168,8 @@ design is revisited rather than `:common` bent to fit.
    after forwarding, so live writes always go through the app when it is up.
    Then the [style report](#style-report-style) plugin, now a runtime one with
    the project action slot it needed.
+   Then the plugin [cache](#cache), so a style report counts only changed
+   scenes.
 10. **Text diagnostics.** Define `TextDiagnosticsProvider` (text in, ranges plus
    messages plus fixes out) and add a grammar plugin against it. Migrate spell
    check onto the same interface only if the editor integration gets simpler for

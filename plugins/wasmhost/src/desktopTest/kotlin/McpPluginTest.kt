@@ -31,6 +31,7 @@ class McpPluginTest {
 
 	private val fileSystem = FakeFileSystem()
 	private val directory = "/config/plugins".toPath()
+	private val cacheDirectory = "/cache/plugins".toPath()
 	private val dispatcher = RecordingDispatcher()
 
 	/** The replies to [messages], one line each, by the id they answer. */
@@ -40,7 +41,7 @@ class McpPluginTest {
 		val download = "/downloads/mcp.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
-		val plugins = RuntimePlugins(fileSystem, directory)
+		val plugins = RuntimePlugins(fileSystem, directory, cacheDirectory)
 		plugins.install(download)
 		fileSystem.write(directory / "mcp.toml") { writeUtf8("liveEdits = $liveEdits\n") }
 
