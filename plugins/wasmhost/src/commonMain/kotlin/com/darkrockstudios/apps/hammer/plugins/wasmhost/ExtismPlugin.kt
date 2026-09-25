@@ -27,12 +27,14 @@ import io.github.charlietap.chasm.host.writeI32
 import io.github.charlietap.chasm.runtime.value.NumberValue
 import io.github.charlietap.chasm.type.FunctionType
 import kotlin.random.Random
+import kotlin.time.Clock
+import kotlin.time.TimeSource
 
 /**
  * One instance of an Extism-convention plugin on chasm. Not thread-safe: calls run one at a time.
  *
  * Plugins may import only what the host lists here plus [userFunctions]; anything else, such as a
- * WASI file or clock import, fails the load. HTTP imports exist for compatibility and always fail the call.
+ * WASI file or socket import, fails the load. HTTP imports exist for compatibility and always fail the call.
  */
 class ExtismPlugin(
 	wasm: ByteArray,
@@ -50,7 +52,7 @@ class ExtismPlugin(
 
 	init {
 		val module = module(instrumenter.instrument(wasm)).orThrow("Invalid plugin module")
-		val provided = (envFunctions() + userFunctions.map { it.toHost(kernel) } + RandomGet)
+		val provided = (envFunctions() + userFunctions.map { it.toHost(kernel) } + RandomGet + ClockTimeGet)
 			.associateBy { it.module to it.name }
 		val imports = module.imports.map { import ->
 			val host = provided[import.moduleName to import.entityName]
@@ -185,6 +187,15 @@ class ExtismPlugin(
 		private fun Char.valueType(list: ValueTypeListBuilder) {
 			if (this == 'I') list.i64() else list.i32()
 		}
+
+		/** Turns a failure, such as a pointer outside the plugin's memory, into a trap with [name]. */
+		protected inline fun <T> trapping(block: () -> T): T = try {
+			block()
+		} catch (e: HostFunctionException) {
+			throw e
+		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+			throw HostFunctionException("$name: ${e.message}")
+		}
 	}
 
 	/** A failure in [body] traps the plugin with its message. */
@@ -213,15 +224,35 @@ class ExtismPlugin(
 		}
 	}
 
-	/** WASI's randomness, which Kotlin/Wasm's standard library needs. The only WASI import provided. */
+	/** WASI's randomness, which Kotlin/Wasm's standard library needs. */
 	private object RandomGet : Provided("wasi_snapshot_preview1", "random_get", "ii", "i") {
 		context(stack: HostStack, module: HostModuleInstance, resources: HostResources)
 		override fun invoke(parameters: HostParameters, results: HostResults) {
 			val pointer = parameters.readI32(0)
-			val bytes = Random.nextBytes(parameters.readI32(1))
-			withMemory(0) { bytes.forEachIndexed { i, byte -> writeI8(pointer + i, byte) } }
+			val bytes = trapping { Random.nextBytes(parameters.readI32(1)) }
+			trapping { withMemory(0) { bytes.forEachIndexed { i, byte -> writeI8(pointer + i, byte) } } }
 			results.writeI32(0, 0)
 		}
+	}
+
+	/** WASI's clocks, which kotlinx.serialization on Kotlin/Wasm needs: wall time, and a monotonic time for anything else. */
+	private object ClockTimeGet : Provided("wasi_snapshot_preview1", "clock_time_get", "iIi", "i") {
+		private val start = TimeSource.Monotonic.markNow()
+
+		context(stack: HostStack, module: HostModuleInstance, resources: HostResources)
+		override fun invoke(parameters: HostParameters, results: HostResults) {
+			val nanos = if (parameters.readI32(0) == REALTIME) {
+				Clock.System.now().let { it.epochSeconds * NANOS_PER_SECOND + it.nanosecondsOfSecond }
+			} else {
+				start.elapsedNow().inWholeNanoseconds
+			}
+			val pointer = parameters.readI32(2)
+			trapping { withMemory(0) { writeI64(pointer, nanos) } }
+			results.writeI32(0, 0)
+		}
+
+		private const val REALTIME = 0
+		private const val NANOS_PER_SECOND = 1_000_000_000L
 	}
 
 	private companion object {
