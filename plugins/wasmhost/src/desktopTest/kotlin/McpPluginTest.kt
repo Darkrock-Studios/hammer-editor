@@ -36,7 +36,7 @@ class McpPluginTest {
 	private val dispatcher = RecordingDispatcher()
 
 	/** The replies to [messages], one line each, by the id they answer. */
-	private fun serve(vararg messages: String, liveEdits: Boolean = false): Map<Int, JsonObject> {
+	private fun serve(vararg messages: String, liveEdits: Boolean = false, deletes: Boolean = false): Map<Int, JsonObject> {
 		val built = File(System.getenv("HAMMER_PLUGINS"), "kotlin/mcp/build/mcp.hammerplugin")
 		check(built.exists()) { "Run kotlin/build.sh in hammer-plugins first" }
 		val download = "/downloads/mcp.hammerplugin".toPath()
@@ -44,7 +44,7 @@ class McpPluginTest {
 		fileSystem.write(download) { write(built.readBytes()) }
 		val plugins = RuntimePlugins(fileSystem, directory, cacheDirectory)
 		plugins.install(download)
-		fileSystem.write(directory / "mcp.toml") { writeUtf8("liveEdits = $liveEdits\n") }
+		fileSystem.write(directory / "mcp.toml") { writeUtf8("liveEdits = $liveEdits\ndeletes = $deletes\n") }
 
 		val stdout = Buffer()
 		val io = CliIo(Buffer().writeUtf8(messages.joinToString("\n")), stdout, Buffer())
@@ -94,6 +94,22 @@ class McpPluginTest {
 
 		val live = serve(request(1, "tools/list"), liveEdits = true).getValue(1).result()["tools"]!!.jsonArray
 		assertTrue(live.any { it.jsonObject["name"]!!.jsonPrimitive.content == "scene_append" })
+	}
+
+	@Test
+	fun `deletes are tools only when allowed, and never a project's`() {
+		fun tools(deletes: Boolean) = serve(request(1, "tools/list"), deletes = deletes).getValue(1).result()["tools"]!!
+			.jsonArray.map { it.jsonObject }.associateBy { it["name"]!!.jsonPrimitive.content }
+
+		assertEquals(emptyList(), tools(deletes = false).keys.filter { it.endsWith("_delete") })
+		val allowed = tools(deletes = true)
+		assertEquals(
+			setOf("scene_delete", "draft_delete", "note_delete", "entry_delete", "timeline_delete", "idea_delete"),
+			allowed.keys.filter { it.endsWith("_delete") }.toSet(),
+		)
+		val hints = allowed.getValue("note_delete")["annotations"]!!.jsonObject
+		assertEquals(JsonPrimitive(true), hints["destructiveHint"])
+		assertEquals(-32602, serve(call(1, "note_delete", "{}")).getValue(1)["error"]!!.jsonObject["code"]!!.jsonPrimitive.content.toInt())
 	}
 
 	@Test
