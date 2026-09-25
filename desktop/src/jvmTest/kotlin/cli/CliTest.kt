@@ -20,6 +20,11 @@ class CliTest {
 		assertTrue(Cli.isInvocation(arrayOf("project", "list")))
 		assertEquals(false, Cli.isInvocation(arrayOf("--project", "Novel")))
 		assertEquals(false, Cli.isInvocation(emptyArray()))
+		assertTrue(Cli.isInvocation(arrayOf("--dev", "project", "list")))
+		assertTrue(Cli.isDevInvocation(arrayOf("--dev", "project", "list")))
+		assertEquals(listOf("project", "list"), Cli.commandArgs(arrayOf("--dev", "project", "list")))
+		assertEquals(false, Cli.isInvocation(arrayOf("--dev")))
+		assertEquals(false, Cli.isInvocation(arrayOf("--dev", "--project", "Novel")))
 	}
 
 	@Test

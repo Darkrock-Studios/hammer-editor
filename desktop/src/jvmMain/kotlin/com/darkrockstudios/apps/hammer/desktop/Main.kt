@@ -43,6 +43,7 @@ import com.darkrockstudios.apps.hammer.desktop.cli.Forwarding
 import com.darkrockstudios.apps.hammer.desktop.cli.WriterLock
 import com.darkrockstudios.apps.hammer.desktop.sandbox.SandboxStartup
 import com.darkrockstudios.apps.hammer.desktop.shortcuts.QuickShortcuts
+import com.github.ajalt.clikt.core.CliktError
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
@@ -77,7 +78,13 @@ import org.koin.core.context.GlobalContext
 import org.koin.java.KoinJavaComponent.getKoin
 
 private fun handleArguments(args: Array<String>): DesktopLaunchArgs {
-	val launchArgs = parseDesktopLaunchArgs(args)
+	val launchArgs = try {
+		parseDesktopLaunchArgs(args)
+	} catch (e: CliktError) {
+		System.err.println(describeLaunchArgsError(e))
+		System.err.println("Run hammer help for its commands.")
+		exitProcess(Cli.EXIT_USAGE)
+	}
 	setInDevelopmentMode(launchArgs.devMode)
 	return launchArgs
 }
@@ -136,13 +143,13 @@ private fun configureJnaForPackagedRuntime() {
 }
 
 /** Logs go to the log file only, since stdout carries the command's JSON, and are flushed before exit. */
-private fun runCli(args: Array<String>): Int {
+private fun runCli(args: List<String>): Int {
 	// Libraries logging through SLF4J must not write to stdout either; MCP speaks on it.
 	System.setProperty("org.slf4j.simpleLogger.logFile", "System.err")
 	val logScope = CoroutineScope(Dispatchers.IO)
 	val logger = FileLogger(scope = logScope)
 	Napier.base(DebugAntilog(handler = listOf(logger)))
-	val code = Cli.run(args.toList())
+	val code = Cli.run(args)
 	logger.close()
 	runBlocking { withTimeoutOrNull(2.seconds) { logScope.coroutineContext.job.children.forEach { it.join() } } }
 	return code
@@ -199,7 +206,10 @@ private var appWriterLock: WriterLock? = null
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 fun main(args: Array<String>) {
-	if (Cli.isInvocation(args)) exitProcess(runCli(args))
+	if (Cli.isInvocation(args)) {
+		setInDevelopmentMode(Cli.isDevInvocation(args))
+		exitProcess(runCli(Cli.commandArgs(args)))
+	}
 	configureJnaForPackagedRuntime()
 	FileKit.init(appId = "com.darkrockstudios.apps.hammer")
 	val launchArgs = handleArguments(args)

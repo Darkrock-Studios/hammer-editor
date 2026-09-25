@@ -76,6 +76,10 @@ fun parseHandedOffLaunchArgs(args: List<String>): DesktopLaunchArgs? {
 	}
 }
 
+/** [error] from [parseDesktopLaunchArgs], as the usage line and what was wrong. */
+fun describeLaunchArgsError(error: CliktError): String =
+	DesktopArgsCommand().getFormattedHelp(error) ?: error.message ?: "Invalid arguments"
+
 private fun DesktopArgsCommand.launchArgs() = DesktopLaunchArgs(
 	devMode = devMode,
 	projectName = projectName,

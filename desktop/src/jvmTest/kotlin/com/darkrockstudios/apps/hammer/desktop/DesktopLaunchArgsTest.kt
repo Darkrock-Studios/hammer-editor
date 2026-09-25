@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.ProjectDeep
 import com.github.ajalt.clikt.core.CliktError
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 
@@ -59,6 +60,12 @@ class DesktopLaunchArgsTest {
 		assertThrows<CliktError> {
 			parseDesktopLaunchArgs(arrayOf("--project", "Novel", "--scene", "1", "--note", "2"))
 		}
+	}
+
+	@Test
+	fun `an unknown argument is described`() {
+		val error = assertThrows<CliktError> { parseDesktopLaunchArgs(arrayOf("--bogus")) }
+		assertTrue("--bogus" in describeLaunchArgsError(error))
 	}
 
 	@Test
