@@ -171,6 +171,26 @@ class WasmPluginTest {
 		assertEquals("", uncached.callBlocking("get", "scene-1".encodeToByteArray()).decodeToString())
 	}
 
+	@Test
+	fun `a module left holding a large guest heap is loaded afresh for the next call`() {
+		var loads = 0
+		fun heapPlugin(releaseAbove: Long) = WasmPlugin(
+			PluginManifest.parse("id = \"heap\"\nname = \"Heap\"\nversion = \"1\"\napi = 1"),
+			{ loads++; testPlugin("gc_heap") },
+			releaseGuestHeapAbove = releaseAbove,
+		)
+
+		// churn leaves about 10 MiB of pages behind.
+		val small = heapPlugin(releaseAbove = 1024L * 1024)
+		repeat(3) { small.callBlocking("churn", ByteArray(0)) }
+		assertEquals(3, loads)
+
+		loads = 0
+		val kept = heapPlugin(releaseAbove = WasmPlugin.DEFAULT_RELEASE_GUEST_HEAP_ABOVE)
+		repeat(3) { kept.callBlocking("churn", ByteArray(0)) }
+		assertEquals(1, loads)
+	}
+
 	private fun pluginGranted(operations: String) = WasmPlugin(
 		PluginManifest.parse("id = \"echo\"\nname = \"Echo\"\nversion = \"1\"\napi = 1\n[permissions]\noperations = [$operations]"),
 		{ testPlugin("dispatch_echo") },
