@@ -22,6 +22,8 @@
 	<string name="plugin_install_replaces">Replaces the installed version %1$s.</string>
 	<string name="plugin_install_confirm">Install</string>
 	<string name="plugin_install_cancel">Cancel</string>
+	<string name="plugin_settings_open">Settings</string>
+	<string name="plugin_settings_close">Close settings</string>
 	<string name="plugin_command_run">%1$s Run it with:</string>
 	<string name="plugin_install_commands">Adds commands: %1$s</string>
 	<string name="plugin_install_scope_content_read">everything in your projects</string>

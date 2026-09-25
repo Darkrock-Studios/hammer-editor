@@ -71,6 +71,8 @@ class PluginRegistry(private val compiledIn: List<ClientPlugin>) : ProjectLifecy
 
 	val plugins: List<ClientPlugin> get() = active.value
 
+	fun isCompiledIn(pluginId: String): Boolean = compiledIn.any { it.id == pluginId }
+
 	/** Every active plugin's CLI commands. */
 	val cliCommands: List<CliCommand> get() = plugins.flatMap { it.cliCommands() }
 
