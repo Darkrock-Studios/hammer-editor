@@ -2,7 +2,7 @@
 
 Design note for extending the Hammer client (desktop, Android, iOS) with plugins,
 and for exposing the same API as a command line interface and an MCP server.
-Status: rollout steps 1 and 2 are built; the rest is a proposal. The server already has an equivalent
+Status: rollout steps 1 to 3 are built; the rest is a proposal. The server already has an equivalent
 plugin seam (`server/.../plugin/ServerPlugin.kt`); this mirrors it where the
 shapes match.
 
@@ -130,6 +130,8 @@ interface Operation<I, O> {
 	val access: Access
 	/** Safe to offer to automated agents. Opt-in; the registry rejects Destructive operations that set it. */
 	val agentVisible: Boolean get() = false
+	/** Overridden only when valid values are known at runtime, such as `project.export`'s formats. */
+	fun inputSchema(): JsonObject = jsonSchema(input.descriptor)
 
 	suspend fun run(context: OperationContext, input: I): O
 }
@@ -137,15 +139,32 @@ interface Operation<I, O> {
 enum class Access { Read, Write, Destructive }
 
 class OperationContext(
-	/** Resolves a project and opens its Koin scope for the duration of the call. */
 	val projects: ProjectResolver,
+	/** For operations built on other operations. */
+	val operations: OperationRegistry,
 )
+
+interface ProjectResolver {
+	/** By name or server project id. */
+	fun resolve(project: String): ProjectDef
+	/** Opens the project's Koin scope for [block] if it is not already open. */
+	suspend fun <T> withProject(project: String, block: suspend (OpenProject) -> T): T
+}
 ```
+
+Most operations are written with the `operation<I, O>(name, description, access)
+{ ... }` builder. Errors the caller caused are `OperationException`s with a kind
+(`NotFound`, `InvalidInput`); anything else thrown is a bug. `dispatch(name,
+JsonElement)` is what front ends call: unknown input fields, missing fields, and
+wrong types are `InvalidInput`. Binary content is base64 in JSON.
 
 `OperationRegistry` holds core operations plus any contributed by plugins, and
 is the single place every front end dispatches through. Project-scoped
 operations open the scope via the existing `temporaryProjectTask` helper when the
 project is not already open, so they work the same in the app and headless.
+A temporary scope neither restores nor discards unsaved edits left by a crashed
+editor session; only an editor does. Operations on a project that is not open
+therefore read the saved text.
 
 The full list is in [Operation catalog](#operation-catalog).
 
@@ -1037,7 +1056,8 @@ come from running it with no UI:
   run without a window.
 - **Koin restart per call.** Stopping and restarting the global context only
   works if project and app scopes shut down cleanly. A repository that leaves a
-  coroutine running or holds static state would need fixing.
+  coroutine running or holds static state would need fixing. `TimeLineRepository`
+  was one, and now cancels its scope when the project scope closes.
 
 Spike both before step 5: start Koin headless, run a few read operations,
 stop and restart it in a loop, and watch for leaks and failures.
