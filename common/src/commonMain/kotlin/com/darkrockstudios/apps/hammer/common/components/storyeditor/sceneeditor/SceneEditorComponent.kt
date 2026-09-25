@@ -107,6 +107,12 @@ class SceneEditorComponent(
 				_state.update { it.copy(spellChecker = dictionary) }
 			}
 		}
+
+		scope.launch {
+			spellCheckRepository.projectLanguage.collect { language ->
+				_state.update { it.copy(language = language) }
+			}
+		}
 	}
 
 	private fun onSceneTreeUpdate(sceneSummary: SceneSummary) {
