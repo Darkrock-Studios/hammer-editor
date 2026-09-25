@@ -9,8 +9,11 @@ interface DesktopPlatformSettings : PlatformSettings {
 
 	fun setProjectsDir(path: String)
 
+	fun setAllowExternalTools(allow: Boolean)
+
 	@Serializable
 	data class PlatformState(
 		val projectsDir: HPath,
+		val allowExternalTools: Boolean = false,
 	)
 }

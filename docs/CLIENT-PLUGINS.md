@@ -1208,8 +1208,14 @@ design is revisited rather than `:common` bent to fit.
    `account.logout`, `sync.status`, and `sync.run` over `SyncAccountUseCase`.
    Refuses while the app is running, through the writer lock. Tested with fakes
    only so far, not against a live server.
-8. **Forwarding.** Local socket in the app, "Allow external tools" setting, CLI
-   prefers the running app, second app instances hand off to the first.
+8. **Forwarding.** Built, except the hand-off: the app listens on
+   `run/hammer.sock` in the config directory (`run/` is owner-only) while it
+   holds the writer lock, refuses account and sync operations since it runs
+   those itself, and the
+   "Let tools use Hammer while it is open" setting (desktop Settings, off by
+   default) gates it per call, and the CLI and MCP try the socket before running
+   headless. Second app instances still start their own window without the
+   lock; handing their launch arguments to the first window is not built.
 9. **Write operations.** `scene.write` and `scene.append` first, then the rest.
    Deliberately after forwarding, so live writes always go through the app when
    it is up. Then the [style report](#style-report-style) plugin.
