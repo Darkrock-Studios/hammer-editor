@@ -173,7 +173,7 @@ class FocusModeComponent(
 
 		scope.launch {
 			spellCheckRepository.projectLanguage.collect { language ->
-				_state.update { it.copy(language = language) }
+				_state.update { it.copy(language = language, languageLoaded = true) }
 			}
 		}
 	}

@@ -79,6 +79,8 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 		val spellChecker: PlatformSpellChecker? = null,
 		/** The project's language, for text diagnostics; null when it has none. */
 		val language: String? = null,
+		/** Whether [language] has been read, so text diagnostics wait for it rather than guess. */
+		val languageLoaded: Boolean = false,
 		val spellCheckingEnabled: Boolean = true,
 	)
 }
