@@ -9,7 +9,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -51,7 +50,7 @@ import org.koin.compose.koinInject
 import org.koin.core.qualifier.named
 import kotlin.random.Random
 
-/** Install, enable, disable, and uninstall runtime plugins. Every change applies at the next start. */
+/** Install, enable, disable, and uninstall runtime plugins. Every change applies at once. */
 @Composable
 internal fun ColumnScope.RuntimePluginsSection(runtimePlugins: RuntimePlugins) {
 	val scope = rememberCoroutineScope()
@@ -64,7 +63,6 @@ internal fun ColumnScope.RuntimePluginsSection(runtimePlugins: RuntimePlugins) {
 	var installed by remember { mutableStateOf<List<InstalledPlugin>?>(null) }
 	var pending by remember { mutableStateOf<PendingInstall?>(null) }
 	var failure by remember { mutableStateOf<String?>(null) }
-	val restartNeeded by runtimePlugins.restartNeeded.collectAsState()
 
 	suspend fun refresh() {
 		installed = withContext(ioDispatcher) { runtimePlugins.installed() }
@@ -72,8 +70,17 @@ internal fun ColumnScope.RuntimePluginsSection(runtimePlugins: RuntimePlugins) {
 	LaunchedEffect(runtimePlugins) { refresh() }
 
 	fun change(action: () -> Unit) {
+		failure = null
 		scope.launch {
-			appScope.launch(ioDispatcher) { action() }.join()
+			appScope.launch(ioDispatcher) {
+				try {
+					action()
+				} catch (e: PluginPackageException) {
+					failure = e.message
+				} catch (e: IOException) {
+					failure = e.message
+				}
+			}.join()
 			refresh()
 		}
 	}
@@ -123,9 +130,6 @@ internal fun ColumnScope.RuntimePluginsSection(runtimePlugins: RuntimePlugins) {
 			color = MaterialTheme.colorScheme.error,
 			style = MaterialTheme.typography.bodyMedium,
 		)
-	}
-	if (restartNeeded) {
-		Text(Res.string.plugin_runtime_restart.get(), style = MaterialTheme.typography.bodyMedium)
 	}
 
 	InstallDialog(
