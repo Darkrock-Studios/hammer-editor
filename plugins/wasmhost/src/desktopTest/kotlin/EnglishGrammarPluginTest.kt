@@ -6,6 +6,7 @@ import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
+import kotlinx.serialization.json.JsonPrimitive
 import net.peanuuutz.tomlkt.Toml
 import okio.FileSystem
 import okio.Path.Companion.toPath
@@ -38,6 +39,8 @@ class EnglishGrammarPluginTest {
 		GlobalContext.stopKoin()
 	}
 
+	private lateinit var registry: PluginRegistry
+
 	private val check by lazy {
 		val built = File(System.getenv("HAMMER_PLUGINS"), "rust/english-grammar/build/english-grammar.hammerplugin")
 		check(built.exists()) { "Run rust/english-grammar/build.sh in hammer-plugins first" }
@@ -46,7 +49,7 @@ class EnglishGrammarPluginTest {
 		fileSystem.write(download) { write(built.readBytes()) }
 		val plugins = RuntimePlugins(fileSystem, "/config/plugins".toPath(), "/cache/plugins".toPath())
 		plugins.install(download)
-		val registry = PluginRegistry().also(plugins::activate)
+		registry = PluginRegistry().also(plugins::activate)
 		GlobalContext.startKoin {
 			modules(
 				module {
@@ -65,6 +68,27 @@ class EnglishGrammarPluginTest {
 	private fun issues(paragraph: String, language: String? = "en"): List<String> {
 		val found = runBlocking { check.diagnose(listOf(paragraph), language) }.single()
 		return found.map { paragraph.substring(it.start, it.end) + " -> " + it.fixes.joinToString("|") }
+	}
+
+	/** The messages of the issues in [paragraph]. */
+	private fun messages(paragraph: String): List<String> =
+		runBlocking { check.diagnose(listOf(paragraph), "en") }.single().map { it.message }
+
+	@Test
+	fun `settings turn off long sentences and whole categories`() {
+		val long = "When the storm finally broke over the valley late that evening, the old farmer and his two sons " +
+			"hurried out across the muddy fields to gather the frightened sheep, calling to one another over the " +
+			"wind while the rain soaked through their coats and the lanterns flickered."
+		val agreement = "It were a quiet evening."
+		assertTrue(messages(long).any { "words long" in it }, messages(long).toString())
+		assertTrue(messages(agreement).isNotEmpty())
+
+		val settings = registry.settings("english-grammar")!!
+		settings.set("longSentences", JsonPrimitive(false))
+		settings.set("grammar", JsonPrimitive(false))
+
+		assertTrue(messages(long).none { "words long" in it }, messages(long).toString())
+		assertEquals(emptyList(), messages(agreement))
 	}
 
 	@Test
