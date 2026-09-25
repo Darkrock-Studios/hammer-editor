@@ -2,7 +2,7 @@
 
 Design note for extending the Hammer client (desktop, Android, iOS) with plugins,
 and for exposing the same API as a command line interface and an MCP server.
-Status: rollout steps 1 to 4, 11, and Android's half of 12 (runtime plugins) are built; the rest is a proposal. The server already has an equivalent
+Status: rollout steps 1 to 5, 11, and Android's half of 12 are built; the rest is a proposal. The server already has an equivalent
 plugin seam (`server/.../plugin/ServerPlugin.kt`); this mirrors it where the
 shapes match.
 
@@ -588,9 +588,11 @@ Plugins never see the Decompose stack or the root router config.
 
 The CLI is the normal desktop binary with subcommands, not a separate target.
 Every package format (Flatpak, Snap, MSIX, the Mac bundle) already ships one
-launcher, and a second target would double that work. The existing Clikt parser
-in `DesktopLaunchArgs.kt` gains subcommands; with no subcommand the app launches
-as today.
+launcher, and a second target would double that work. A first argument that
+does not start with `-` is a CLI call (`Cli`); anything else launches the app as
+today, parsed by the Clikt command in `DesktopLaunchArgs.kt`. The CLI parses its
+own arguments, since every command and option comes from an operation's schema
+at runtime.
 
 ```
 hammer project list
@@ -599,14 +601,23 @@ hammer scene write --project "My Novel" --id 12 < revised.md
 hammer mcp        # contributed by the MCP plugin
 ```
 
-- Subcommands are generated from the operation registry. Each input field
-  becomes an option; a text field marked as the body reads from stdin.
-- Output is the operation's output type as JSON.
+- Subcommands are generated from the operation registry: `scene.meta.read` is
+  `hammer scene meta read`. Each input field becomes a kebab-case option typed
+  by its schema; list fields repeat the option, booleans may omit `true`, and
+  `--json` passes the whole input instead. A text field marked as the body will
+  read from stdin once write operations exist. `hammer help` lists everything,
+  and `--help` after a command lists its options.
+- Output is the operation's output type as JSON. `--out FILE` writes an
+  output's one binary field (an export's bytes) to a file and prints the rest,
+  and `--out -` writes the bytes alone to stdout.
+- Exit codes: 0 success, 1 failure, 2 usage or invalid input, 4 not found,
+  5 another Hammer process holds the writer lock.
 - Plugin `cliCommands()` are added alongside the generated subcommands. A plugin
   command cannot shadow a generated one.
 - With a subcommand, `main` starts Koin without opening a window, runs the
-  command, and exits. `:common` has no Compose UI usage, so this is feasible;
-  string resources and the data migrator need confirming without a window.
+  command, and exits (`HeadlessSession`). Logs go only to the log file. Tried
+  against real data: the data migrator, string resources, and export all work
+  without a window, and a call takes about 1.5 seconds including JVM start.
 - JVM startup plus Koin init is on the order of a second per call on a desktop,
   several on a Pi Zero. Deferred to v2: `hammer batch`, one process reading
   operations as JSON lines on stdin and writing one JSON result line per
@@ -1140,8 +1151,9 @@ come from running it with no UI:
   coroutine running or holds static state would need fixing. `TimeLineRepository`
   was one, and now cancels its scope when the project scope closes.
 
-Spike both before step 5: start Koin headless, run a few read operations,
-stop and restart it in a loop, and watch for leaks and failures.
+Both were spiked before step 5: `HeadlessRestartTest` starts the real Koin
+graph five times, runs migration and read operations each time, and fails on
+any work that outlives a stop. It passes, at about 0.2 seconds per warm cycle.
 
 **Guardrail.** Every step's `:common` changes must make sense without plugins,
 or be listed in the table above. Anything else gets flagged in review, and the
@@ -1164,11 +1176,14 @@ design is revisited rather than `:common` bent to fit.
 4. **Runtime plugin spike.** Done; see [Spike results](#spike-results).
    `:plugins:wasmhost` holds the Extism host on chasm, fuel instrumentation, the
    manifest, and `WasmPlugin`.
-5. **Headless CLI.** Preceded by the headless spike in
-   [Cost to `:common`](#cost-to-common). Subcommands generated from the
-   registry, `Dispatcher`,
-   the `cliCommands()` capability, per-call Koin startup, the writer lock (held
-   by the app for its lifetime too).
+5. **Headless CLI.** Built: subcommands generated from the registry,
+   `Dispatcher`, the `cliCommands()` capability, per-call Koin startup, and the
+   writer lock, which the app takes at startup and holds for its lifetime. The
+   holder writes `writer.owner` beside the lock, so nobody waits on the app,
+   while a CLI call waits briefly for another to finish. A second app window
+   that cannot take the lock runs without, as before; forwarding (step 8) is
+   what makes the app single-instance. Getting `hammer` onto PATH
+   in each package format is not done.
 6. **[MCP plugin](#mcp-plugin).** `:plugins:mcp`, desktop-only registration,
    settings pane. Read-only at this point, and refuses while the app is running
    until forwarding lands.

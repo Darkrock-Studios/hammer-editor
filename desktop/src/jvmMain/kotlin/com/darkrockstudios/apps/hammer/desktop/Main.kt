@@ -31,12 +31,15 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.NapierLogger
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.appModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.imageLoadingModule
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.mainModule
+import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.getLogDirectory
 import com.darkrockstudios.apps.hammer.common.logStartupBanner
 import com.darkrockstudios.apps.hammer.common.setInDevelopmentMode
 import com.darkrockstudios.apps.hammer.common.startupBanner
 import com.darkrockstudios.apps.hammer.desktop.aboutlibraries.aboutLibrariesModule
+import com.darkrockstudios.apps.hammer.desktop.cli.Cli
+import com.darkrockstudios.apps.hammer.desktop.cli.WriterLock
 import com.darkrockstudios.apps.hammer.desktop.plugin.installedDesktopPlugins
 import com.darkrockstudios.apps.hammer.desktop.sandbox.SandboxStartup
 import com.darkrockstudios.apps.hammer.desktop.shortcuts.QuickShortcuts
@@ -51,17 +54,21 @@ import io.github.aakira.napier.DebugAntilog
 import io.github.aakira.napier.Napier
 import io.github.vinceglb.filekit.FileKit
 import java.io.File
+import java.io.IOException
 import java.util.logging.ConsoleHandler
 import java.util.logging.Level
 import kotlin.system.exitProcess
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.job
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import okio.FileSystem
 import org.koin.core.context.GlobalContext
 import org.koin.java.KoinJavaComponent.getKoin
@@ -125,16 +132,49 @@ private fun configureJnaForPackagedRuntime() {
 	System.setProperty("jna.library.path", resourcesDir)
 }
 
+/** Logs go to the log file only, since stdout carries the command's JSON, and are flushed before exit. */
+private fun runCli(args: Array<String>): Int {
+	val logScope = CoroutineScope(Dispatchers.IO)
+	val logger = FileLogger(scope = logScope)
+	Napier.base(DebugAntilog(handler = listOf(logger)))
+	val code = Cli.run(args.toList())
+	logger.close()
+	runBlocking { withTimeoutOrNull(2.seconds) { logScope.coroutineContext.job.children.forEach { it.join() } } }
+	return code
+}
+
+/** Waits briefly for a CLI call to finish. Runs without the lock when it cannot be had, as before it existed. */
+private fun acquireAppWriterLock(): WriterLock? = try {
+	when (val result = WriterLock.acquire(File(getConfigDirectory()), WriterLock.Holder.App, wait = 3.seconds)) {
+		is WriterLock.Result.Acquired -> result.lock
+		is WriterLock.Result.Busy -> {
+			Napier.w { "Writer lock held by ${result.holder ?: "another process"}; running without it" }
+			null
+		}
+	}
+} catch (e: IOException) {
+	Napier.w(e) { "Could not take the writer lock; running without it" }
+	null
+}
+
+/**
+ * Held for the app's whole run, so a CLI call cannot write under it; a field so it is never collected.
+ * A second window of the app cannot take it and runs without, as it did before the lock existed.
+ */
+private var appWriterLock: WriterLock? = null
+
 @ExperimentalDecomposeApi
 @ExperimentalMaterialApi
 @ExperimentalComposeApi
 fun main(args: Array<String>) {
+	if (Cli.isInvocation(args)) exitProcess(runCli(args))
 	configureJnaForPackagedRuntime()
 	FileKit.init(appId = "com.darkrockstudios.apps.hammer")
 	val launchArgs = handleArguments(args)
 
 	val appScope = CoroutineScope(Dispatchers.Default)
 	setupLogging(appScope)
+	appWriterLock = acquireAppWriterLock()
 	logStartupBanner()
 	installGlobalExceptionHandler()
 
