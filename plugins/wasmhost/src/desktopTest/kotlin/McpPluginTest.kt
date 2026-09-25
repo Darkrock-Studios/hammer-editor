@@ -36,7 +36,12 @@ class McpPluginTest {
 	private val dispatcher = RecordingDispatcher()
 
 	/** The replies to [messages], one line each, by the id they answer. */
-	private fun serve(vararg messages: String, liveEdits: Boolean = false, deletes: Boolean = false): Map<Int, JsonObject> {
+	private fun serve(
+		vararg messages: String,
+		changes: Boolean = false,
+		deletes: Boolean = false,
+		granted: List<String>? = null,
+	): Map<Int, JsonObject> {
 		val built = File(System.getenv("HAMMER_PLUGINS"), "kotlin/mcp/build/mcp.hammerplugin")
 		check(built.exists()) { "Run kotlin/build.sh in hammer-plugins first" }
 		val download = "/downloads/mcp.hammerplugin".toPath()
@@ -44,7 +49,11 @@ class McpPluginTest {
 		fileSystem.write(download) { write(built.readBytes()) }
 		val plugins = RuntimePlugins(fileSystem, directory, cacheDirectory)
 		plugins.install(download)
-		fileSystem.write(directory / "mcp.toml") { writeUtf8("liveEdits = $liveEdits\ndeletes = $deletes\n") }
+		if (granted != null) {
+			val list = granted.joinToString(", ") { "\"$it\"" }
+			fileSystem.write(directory / "_runtime-plugins.toml") { writeUtf8("[plugins.mcp]\nenabled = true\ngranted = [$list]\n") }
+		}
+		fileSystem.write(directory / "mcp.toml") { writeUtf8("changes = $changes\ndeletes = $deletes\n") }
 
 		val stdout = Buffer()
 		val io = CliIo(Buffer().writeUtf8(messages.joinToString("\n")), stdout, Buffer())
@@ -78,29 +87,33 @@ class McpPluginTest {
 		assertEquals(-32601, replies.getValue(3)["error"]!!.jsonObject["code"]!!.jsonPrimitive.content.toInt())
 	}
 
+	/** The tools offered with these settings, by name. */
+	private fun tools(changes: Boolean = false, deletes: Boolean = false, granted: List<String>? = null): Map<String, JsonObject> =
+		serve(request(1, "tools/list"), changes = changes, deletes = deletes, granted = granted).getValue(1).result()["tools"]!!
+			.jsonArray.map { it.jsonObject }.associateBy { it["name"]!!.jsonPrimitive.content }
+
 	@Test
-	fun `tools are the granted operations, without live edits unless allowed`() {
-		val tools = serve(request(1, "tools/list")).getValue(1).result()["tools"]!!.jsonArray.map { it.jsonObject }
-		val names = tools.map { it["name"]!!.jsonPrimitive.content }
+	fun `tools read unless changes are allowed, and never write prose`() {
+		val reading = tools().keys
+		assertTrue("project_list" in reading && "scene_read" in reading && "search" in reading)
+		assertFalse("note_create" in reading || "scene_create" in reading)
+		assertFalse(reading.any { it.startsWith("account_") || it.startsWith("sync_") })
+		assertFalse("ops_list" in reading)
 
-		assertTrue("project_list" in names && "scene_write" in names)
-		assertFalse("ops_list" in names)
-		assertFalse(names.any { it.startsWith("account_") || it.startsWith("sync_") })
-		assertFalse("scene_delete" in names)
-		assertFalse("scene_append" in names)
-		val mode = tools.single { it["name"]!!.jsonPrimitive.content == "scene_write" }["inputSchema"]!!
-			.jsonObject["properties"]!!.jsonObject["mode"]!!.jsonObject["enum"]!!.jsonArray
-		assertFalse(JsonPrimitive("live") in mode)
+		val changing = tools(changes = true, deletes = true).keys
+		assertTrue(listOf("note_create", "entry_update", "scene_create", "scene_meta_write", "timeline_move").all { it in changing })
+		assertFalse(listOf("scene_write", "scene_append", "draft_apply", "project_import", "project_delete").any { it in changing })
+	}
 
-		val live = serve(request(1, "tools/list"), liveEdits = true).getValue(1).result()["tools"]!!.jsonArray
-		assertTrue(live.any { it.jsonObject["name"]!!.jsonPrimitive.content == "scene_append" })
+	@Test
+	fun `a grant the manifest no longer requests gives nothing, so an older install cannot write prose`() {
+		val tools = tools(changes = true, granted = listOf("content:read", "content:write")).keys
+		assertTrue("scene_read" in tools)
+		assertFalse(listOf("scene_write", "scene_append", "draft_apply", "note_create").any { it in tools })
 	}
 
 	@Test
 	fun `deletes are tools only when allowed, and never a project's`() {
-		fun tools(deletes: Boolean) = serve(request(1, "tools/list"), deletes = deletes).getValue(1).result()["tools"]!!
-			.jsonArray.map { it.jsonObject }.associateBy { it["name"]!!.jsonPrimitive.content }
-
 		assertEquals(emptyList(), tools(deletes = false).keys.filter { it.endsWith("_delete") })
 		val allowed = tools(deletes = true)
 		assertEquals(
@@ -116,7 +129,7 @@ class McpPluginTest {
 	fun `tool calls run the operation and report its output or failure`() {
 		val replies = serve(
 			call(1, "project_list", "{}"),
-			call(2, "scene_write", """{"project":"Storm","id":1,"markdown":"Rain.","mode":"live"}"""),
+			call(2, "note_create", """{"project":"Storm","content":"Rain."}"""),
 			call(3, "scene_read", """{"project":"Missing","id":1}"""),
 			call(4, "no_such_tool", "{}"),
 		)
@@ -124,7 +137,7 @@ class McpPluginTest {
 		val listed = replies.getValue(1).result()
 		assertEquals(JsonPrimitive(false), listed["isError"])
 		assertEquals("""{"projects":[]}""", listed["content"]!!.jsonArray.single().jsonObject["text"]!!.jsonPrimitive.content)
-		assertEquals(JsonPrimitive(true), replies.getValue(2).result()["isError"])
+		assertEquals(-32602, replies.getValue(2)["error"]!!.jsonObject["code"]!!.jsonPrimitive.content.toInt())
 		assertEquals(JsonPrimitive(true), replies.getValue(3).result()["isError"])
 		assertEquals(-32602, replies.getValue(4)["error"]!!.jsonObject["code"]!!.jsonPrimitive.content.toInt())
 		assertEquals(listOf("project.list", "scene.read"), dispatcher.dispatched)
