@@ -12,6 +12,7 @@ import kotlin.time.Duration.Companion.seconds
 fun coreOperations(): List<Operation<*, *>> =
 	projectOperations() +
 		sceneOperations() +
+		sceneWriteOperations() +
 		contentOperations() +
 		searchOperations() +
 		statsOperations() +

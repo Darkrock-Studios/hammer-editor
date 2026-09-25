@@ -83,11 +83,12 @@ class SceneContentRepository(
 	private val updateSequence = atomic(0L)
 
 	/**
-	 * Per scene, the [SceneContentUpdate.sequence] of its last [replaceBuffer]; earlier updates are
-	 * stale. Guarded by [sceneBuffersLock].
+	 * Per scene, the [SceneContentUpdate.sequence] of its last [replaceBuffer] or [forgetBuffer];
+	 * earlier updates are stale. Guarded by [sceneBuffersLock].
 	 */
 	private val resetAt = mutableMapOf<Int, Long>()
 
+	/** Guarded by [sceneBuffersLock]: [forgetBuffer] runs on its caller's thread. */
 	private val storeTempJobs = mutableMapOf<Int, Job>()
 
 	private val tempBuffersRestored = atomic(false)
@@ -260,17 +261,36 @@ class SceneContentRepository(
 		}
 	}
 
+	/**
+	 * Drops a scene's buffer and temp file without saving, for a scene that is gone from the tree.
+	 * Left behind, a dirty buffer would be saved back by the next save-all, recreating the scene.
+	 */
+	suspend fun forgetBuffer(sceneItem: SceneItem) {
+		val pendingSave = sceneBuffersLock.withLock {
+			resetAt[sceneItem.id] = updateSequence.incrementAndGet()
+			if (sceneBuffers.remove(sceneItem.id) != null) _dirtyBufferIds.value = getDirtyBufferIds()
+			storeTempJobs.remove(sceneItem.id)
+		}
+		// Joined, so a temp save already writing cannot recreate the file after it is cleared.
+		pendingSave?.cancelAndJoin()
+		clearTempScene(sceneItem)
+	}
+
 	/** Stores all currently-dirty buffers to disk via [persist], one per dirty scene. */
 	suspend fun forEachDirtyBuffer(persist: suspend (SceneItem) -> Unit) {
 		getDirtyBufferScenes().forEach { persist(it) }
 	}
 
 	private fun launchSaveJob(sceneDef: SceneItem) {
-		val job = storeTempJobs[sceneDef.id]
-		job?.cancel("Starting a new one")
-		storeTempJobs[sceneDef.id] = editorScope.launch {
-			storeTempSceneBuffer(sceneDef)
-			storeTempJobs.remove(sceneDef.id)
+		sceneBuffersLock.withLock {
+			storeTempJobs[sceneDef.id]?.cancel("Starting a new one")
+			val job = editorScope.launch(start = CoroutineStart.LAZY) {
+				storeTempSceneBuffer(sceneDef)
+				val self = coroutineContext.job
+				sceneBuffersLock.withLock { if (storeTempJobs[sceneDef.id] == self) storeTempJobs.remove(sceneDef.id) }
+			}
+			storeTempJobs[sceneDef.id] = job
+			job.start()
 		}
 	}
 
@@ -302,7 +322,7 @@ class SceneContentRepository(
 		// Time-bounded so a stuck save can't block process shutdown.
 		runBlocking {
 			withTimeoutOrNull(SHUTDOWN_SAVE_TIMEOUT) {
-				storeTempJobs.values.toList().joinAll()
+				sceneBuffersLock.withLock { storeTempJobs.values.toList() }.joinAll()
 			} ?: Napier.w("Timed out waiting for temp scene saves on close; forcing shutdown.")
 		}
 		editorScope.cancel("Editor Closed")
