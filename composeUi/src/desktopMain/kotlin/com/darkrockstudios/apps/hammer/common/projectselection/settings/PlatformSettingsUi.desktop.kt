@@ -19,8 +19,11 @@ import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.DesktopPlatformSettings
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.settings_external_tools
+import com.darkrockstudios.apps.hammer.settings_external_tools_hint
 import com.darkrockstudios.apps.hammer.settings_projects_directory
 import com.darkrockstudios.apps.hammer.settings_projects_directory_button
 import com.darkrockstudios.apps.hammer.settings_projects_directory_description
@@ -66,6 +69,12 @@ actual fun ColumnScope.PlatformSettingsUi(component: PlatformSettings) {
 					}
 				}
 			},
+		)
+		HdHairlineToggleRow(
+			checked = state.allowExternalTools,
+			onCheckedChange = component::setAllowExternalTools,
+			label = Res.string.settings_external_tools.get(),
+			hint = Res.string.settings_external_tools_hint.get(),
 		)
 	}
 }
