@@ -2,8 +2,8 @@
 
 Design note for extending the Hammer client (desktop, Android, iOS) with plugins,
 and for exposing the same API as a command line interface and an MCP server.
-Status: rollout steps 1 to 8 (without the single-instance hand-off), 11, Android's half of 12,
-and step 9's write operations are built; the rest is a proposal. The server already has an equivalent
+Status: rollout steps 1 to 9 (step 8 without the single-instance hand-off), 11, and Android's
+half of 12 are built; the rest is a proposal. The server already has an equivalent
 plugin seam (`server/.../plugin/ServerPlugin.kt`); this mirrors it where the
 shapes match.
 
@@ -523,14 +523,23 @@ The settings pane is a nullable property rather than a function so Settings can
 tell which plugins have one. The Plugins section only appears when at least one
 does, so a build with no plugins looks exactly as it does today.
 
-**No project menus yet.** `MenuDescriptor` and the `addMenu` callback look like
-a menu slot, but every platform passes a no-op: menu items now render inside
-each screen. A project-level action slot therefore needs a real in-UI home
-(most likely the project root's overflow or navigation rail). It is added when
-the style report needs it.
+**Project actions.** `projectActions()` adds items to the project home's
+overflow menu:
 
-The settings pane and labels for contributed ids are deliberately the only UI
-hooks for now.
+```kotlin
+class ProjectAction(
+	val label: StringResource,
+	val done: StringResource,
+	val run: suspend (project: String, operations: OperationRegistry) -> Unit,
+)
+```
+
+The home screen's component runs the action in its own scope, off the main
+thread, and toasts `done` or a failure, so a plugin needs no UI state of its
+own. Actions work through operations, like any other front end. (`MenuDescriptor`
+and the `addMenu` callback are not a slot: every platform passes a no-op.)
+
+The settings pane, labels, and project actions are the only UI hooks for now.
 Future slots (project navigation destination, scene editor toolbar action,
 dialogs) are added here when a plugin needs them, not speculatively.
 
@@ -922,18 +931,28 @@ the page-one contact block comes from.
 
 ### Style report (`style`)
 
-Adds a `style.report` operation (Read, agent-visible): per-scene readability,
-adverb density, dialogue ratio, and repeated words and phrases.
+Built. Adds a `style.report` operation (Read, agent-visible): per scene and for
+the whole story, Flesch reading ease and grade level, adverbs per thousand
+words, the share of dialogue, and repeated words and phrases. It covers the
+whole story, or given scenes and groups. The rules are English only. Dialogue
+is text in double quotes or curly single quotes; straight single quotes are
+too often apostrophes to count. The report holds the project open while it
+reads, so a headless run opens it once, not once per scene. The cache is best
+effort: a project it cannot write to still gets a report.
 
 | Exercises | How |
 | --- | --- |
-| Plugin operations | `operations()` returns `style.report`; it appears in the CLI and as an MCP tool |
-| Headless parity | Word lists load in `onAppStart`, which runs headless too, so results match |
-| Plugin as API consumer | Reads through `scene.tree` and `scene.read`. A "Style report" project action writes the report to a note through `note.create` |
+| Plugin operations | `operations()` returns `style.report`; it appears in the CLI (`hammer style report`) and as an MCP tool |
+| Headless parity | The counting is pure, with its word lists in code, so the CLI, agents, and the app get the same figures |
+| Plugin as API consumer | Reads through `scene.tree` and `scene.read` with `OperationRegistry.call`, the typed form of `dispatch`. The "Style report" project action writes the report to a note, tagged `style-report`, through `note.create` |
 | Project actions | The first user of the project action slot, which it adds (see [`PluginUi`](#pluginui-composeui)) |
-| Per-project storage | Per-scene results cached in `<project>/.plugins/style/`, keyed by content hash |
+| Per-project storage | Each scene's counts cached in `<project>/.plugins/style/scenes/`, keyed by a hash of the text and the counting version, so a report re-reads only changed scenes. A whole-story report drops the counts of scenes that are gone |
 
-It depends on `note.create`, so it lands after write operations.
+The whole story's figures are the sum of its scenes' counts, so they need no
+second pass. Its repeated phrases are those repeated within a scene; counting
+every phrase across a book would make the cache as large as the book. A note
+holds at most 10,000 characters, so the note lists as many scenes as fit and
+says how many it left out.
 
 ### Gaps these expose
 
@@ -1253,7 +1272,8 @@ design is revisited rather than `:common` bent to fit.
    plugin's live edits setting, and the CLI's `--confirm` and `--in`. Project
    create, rename, and delete go through `ProjectsService`, shared with the
    projects list, so they queue for account sync the same way. The
-   [style report](#style-report-style) plugin is next.
+   [style report](#style-report-style) plugin is built, with the project action
+   slot it needed.
    Deliberately after forwarding, so live writes always go through the app when
    it is up. Then the [style report](#style-report-style) plugin.
 10. **Text diagnostics.** Define `TextDiagnosticsProvider` (text in, ranges plus

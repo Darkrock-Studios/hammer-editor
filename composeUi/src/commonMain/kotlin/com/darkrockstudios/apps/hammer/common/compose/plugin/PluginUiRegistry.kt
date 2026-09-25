@@ -37,6 +37,8 @@ class PluginUiRegistry(uis: List<PluginUi>, private val pluginRegistry: PluginRe
 		labels + ui.exportFormatLabels()
 	}
 
+	val projectActions: List<ProjectAction> = this.uis.flatMap { it.projectActions() }
+
 	@Composable
 	private fun ColumnScope.DeclaredSettings(plugin: ClientPlugin, ui: PluginUi?) {
 		val store = pluginRegistry.settings(plugin.id) ?: return

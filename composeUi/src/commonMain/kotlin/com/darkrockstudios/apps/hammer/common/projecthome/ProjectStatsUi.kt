@@ -38,6 +38,7 @@ import com.darkrockstudios.apps.hammer.common.compose.HeaderUi
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarColumn
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
+import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginUiRegistry
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
@@ -49,6 +50,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimatePag
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.estimateReadingMinutes
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TaggedEntityType
 import com.darkrockstudios.apps.hammer.common.util.formatDecimalSeparator
+import com.darkrockstudios.apps.hammer.operations.OperationRegistry
 import io.github.koalaplot.core.pie.BezierLabelConnector
 import io.github.koalaplot.core.pie.DefaultSlice
 import io.github.koalaplot.core.pie.PieChart
@@ -58,6 +60,8 @@ import io.github.koalaplot.core.util.generateHueColorPalette
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.todayIn
+import org.koin.compose.getKoin
+import org.koin.compose.koinInject
 import kotlin.random.Random
 import kotlin.time.Clock
 
@@ -1330,6 +1334,8 @@ private fun ProjectHomeMenu(
 	hasServer: Boolean,
 ) {
 	var expanded by remember { mutableStateOf(false) }
+	val projectActions = koinInject<PluginUiRegistry>().projectActions
+	val koin = getKoin()
 
 	Box {
 		IconButton(onClick = { expanded = true }) {
@@ -1377,6 +1383,18 @@ private fun ProjectHomeMenu(
 						component.createBackup { _ ->
 							expanded = false
 						}
+					},
+				)
+			}
+
+			projectActions.forEach { action ->
+				DropdownMenuItem(
+					text = { Text(action.label.get()) },
+					onClick = {
+						expanded = false
+						val project = component.state.value.projectDef.name
+						val operations = koin.get<OperationRegistry>()
+						component.runProjectAction(work = { action.run(project, operations) }, done = action.done)
 					},
 				)
 			}

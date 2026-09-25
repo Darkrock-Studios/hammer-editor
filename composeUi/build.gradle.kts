@@ -70,6 +70,7 @@ kotlin {
 				api(project(":common"))
 				api(project(":operations"))
 				implementation(project(":plugins:plaintext"))
+				implementation(project(":plugins:style"))
 				implementation(project(":plugins:wasmhost"))
 				api(libs.jetbrains.compose.runtime)
 				api(libs.jetbrains.compose.components.resources)
