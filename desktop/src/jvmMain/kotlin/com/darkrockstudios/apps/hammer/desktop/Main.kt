@@ -177,7 +177,6 @@ private fun acquireAppWriterLock(args: Array<String>): WriterLock? = try {
 private fun startForwarding(appScope: CoroutineScope, launches: SendChannel<DesktopLaunchArgs>): Forwarding.Server? = try {
 	Forwarding.Server(
 		socket = Forwarding.socketPath(File(getConfigDirectory())),
-		allowed = { getKoin().get<GlobalSettingsStore>().globalSettings.allowExternalTools },
 		registry = { getKoin().get<OperationRegistry>() },
 		onLaunch = { args ->
 			val launch = parseHandedOffLaunchArgs(args)
