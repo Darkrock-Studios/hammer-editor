@@ -91,6 +91,8 @@ class RuntimePluginsTest {
 		action?.let { "\n\n[[actions]]\nname = \"$it\"\nlabel = \"Echo it\"" }.orEmpty() +
 		output?.let { "\noutput = \"$it\"" }.orEmpty()
 
+	private fun diagnostics(name: String) = "\n\n[[diagnostics]]\nname = \"$name\"\nlabel = \"Grammar\""
+
 	private val settings = """
 		[[setting]]
 		key = "shout"
@@ -164,6 +166,8 @@ class RuntimePluginsTest {
 			pack("bad-command", manifest = manifest(command = "Echo Back")),
 			pack("bad-action", manifest = manifest(action = "Echo It")),
 			pack("bad-output", manifest = manifest(action = "report", output = "dialog")),
+			pack("bad-diagnostics", manifest = manifest() + diagnostics("Grammar Check")),
+			pack("diagnostics-twice", manifest = manifest() + diagnostics("grammar") + diagnostics("grammar")),
 			pack("command-twice", manifest = manifest(command = "echo") + "\n\n[[commands]]\nname = \"echo\"\nhelp = \"Again.\""),
 			(downloads / "not-a-zip.hammerplugin").also { fileSystem.write(it) { writeUtf8("hello") } },
 		)
@@ -250,6 +254,31 @@ class RuntimePluginsTest {
 		assertEquals("report", request["action"]!!.jsonPrimitive.content)
 		assertEquals("Storm", request["project"]!!.jsonPrimitive.content)
 		assertEquals(JsonPrimitive(true), request["settings"]!!.jsonObject["shout"])
+	}
+
+	@Test
+	fun `a diagnostics check keeps only issues inside the paragraphs, at UTF-16 offsets`() {
+		val plugins = runtimePlugins()
+		plugins.install(pack("echo", manifest() + diagnostics("grammar"), module = "diagnose"))
+
+		val check = startKoin(plugins).plugins.single().textDiagnostics().single()
+		val found = runBlocking { check.diagnose(listOf("Ét the the end", "Fine."), "en") }
+
+		assertEquals("Grammar", check.label)
+		assertEquals(2, found.size)
+		val issue = found[0].single()
+		assertEquals(listOf(3, 10, "Repeated word", listOf("the")), listOf(issue.start, issue.end, issue.message, issue.fixes))
+		assertTrue(found[1].isEmpty())
+	}
+
+	@Test
+	fun `a module that cannot check leaves the text unmarked`() {
+		val plugins = runtimePlugins()
+		plugins.install(pack("echo", manifest() + diagnostics("grammar")))
+
+		val check = startKoin(plugins).plugins.single().textDiagnostics().single()
+
+		assertEquals(listOf(emptyList(), emptyList()), runBlocking { check.diagnose(listOf("One.", "Two."), null) }.map { it.toList() })
 	}
 
 	@Test

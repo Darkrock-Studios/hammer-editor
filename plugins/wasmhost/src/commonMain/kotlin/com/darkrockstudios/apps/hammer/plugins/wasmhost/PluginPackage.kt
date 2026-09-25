@@ -112,6 +112,11 @@ class PluginPackage(
 					throw PluginPackageException("Action '${action.name}' has unknown output '${action.output}'")
 				}
 			}
+			val diagnostics = manifest.diagnostics.map { it.name }
+			diagnostics.groupBy { it }.filterValues { it.size > 1 }.keys.takeIf { it.isNotEmpty() }?.let {
+				throw PluginPackageException("Diagnostics declared twice: $it")
+			}
+			diagnostics.firstOrNull { !PluginRegistry.isValidId(it) }?.let { throw PluginPackageException("Invalid diagnostics name '$it'") }
 		}
 
 		// Checked here, since a clash the plugin registry found would stop Hammer from starting.

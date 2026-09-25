@@ -17,6 +17,8 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.ProjectAction
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
+import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnostic
+import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsProvider
 import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
@@ -26,6 +28,8 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.SerializationException
+import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import okio.BufferedSink
@@ -86,6 +90,28 @@ class WasmPlugin(
 		ProjectAction(action.label, document = action.output == PluginManifest.OUTPUT_DOCUMENT) { project ->
 			val request = ActionRequest(action.name, project, settingsValues())
 			call(ACTION, OperationJson.encodeToString(request).encodeToByteArray()).decodeToString().ifBlank { null }
+		}
+	}
+
+	override fun textDiagnostics(): List<TextDiagnosticsProvider> = manifest.diagnostics.map { check ->
+		TextDiagnosticsProvider(check.label) { paragraphs, language ->
+			val request = DiagnoseRequest(check.name, paragraphs, language, settingsValues())
+			val found = List(paragraphs.size) { mutableListOf<TextDiagnostic>() }
+			try {
+				val reply = call(DIAGNOSE, OperationJson.encodeToString(request).encodeToByteArray()).decodeToString()
+				if (reply.isBlank()) return@TextDiagnosticsProvider found
+				ReplyJson.decodeFromString<DiagnoseReply>(reply).diagnostics.forEach { item ->
+					val paragraph = paragraphs.getOrNull(item.paragraph) ?: return@forEach
+					val start = utf16Offset(paragraph, item.start) ?: return@forEach
+					val end = utf16Offset(paragraph, item.end) ?: return@forEach
+					if (start < end) found[item.paragraph] += TextDiagnostic(start, end, item.message, item.fixes)
+				}
+			} catch (e: PluginException) {
+				Napier.w(e) { "Plugin '$id' could not check text" }
+			} catch (e: SerializationException) {
+				Napier.w(e) { "Plugin '$id' sent a malformed diagnose reply" }
+			}
+			found
 		}
 	}
 
@@ -275,6 +301,24 @@ class WasmPlugin(
 	)
 
 	@Serializable
+	private class DiagnoseRequest(
+		val diagnostics: String,
+		/** Plain text, without markdown. */
+		val paragraphs: List<String>,
+		/** The project's BCP 47 tag, or null when it has none. */
+		val language: String?,
+		/** The plugin's declared settings, every key present. */
+		val settings: JsonObject,
+	)
+
+	/** Offsets are UTF-8 byte offsets into the paragraph, which is what C and Rust index by. */
+	@Serializable
+	private class DiagnoseReply(val diagnostics: List<Item> = emptyList()) {
+		@Serializable
+		class Item(val paragraph: Int, val start: Int, val end: Int, val message: String, val fixes: List<String> = emptyList())
+	}
+
+	@Serializable
 	private class CommandRequest(
 		val command: String,
 		val args: List<String>,
@@ -343,6 +387,11 @@ class WasmPlugin(
 
 		/** The export that runs a project action the manifest declares; its output is shown to the user. */
 		const val ACTION = "action"
+
+		/** The export that checks paragraphs for a text diagnostics check the manifest declares. */
+		const val DIAGNOSE = "diagnose"
+
+		private val ReplyJson = Json { ignoreUnknownKeys = true }
 
 		const val PERMISSION_DENIED = "PermissionDenied"
 
