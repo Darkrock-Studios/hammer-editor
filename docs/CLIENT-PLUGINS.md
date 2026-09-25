@@ -7,6 +7,15 @@ half of 12 are built; the rest is a proposal. The server already has an equivale
 plugin seam (`server/.../plugin/ServerPlugin.kt`); this mirrors it where the
 shapes match.
 
+**Change of direction.** Compiled-in plugins are being retired: a plugin is a
+runtime plugin, installed from a package, or the feature belongs in core.
+Plugins also do not add operations; the operation API is Hammer's own. The
+plain text exporter has moved out already. The style report is next, as a
+runtime plugin run only from the UI, which needs project actions for runtime
+plugins; `style.report` then leaves the CLI and MCP. Sections below that
+describe compiled-in plugins or plugin operations record what was built, and
+will be revised as each piece moves.
+
 ## Scope
 
 **Now: headless plugins.** A plugin that adds behavior without adding a feature
@@ -905,21 +914,24 @@ features, not test fixtures.
 
 ### Plain text exporter (`plaintext`)
 
-Built. Exports a story as plain text for pasting into submission forms, which
-want text with their own conventions for scene breaks and italics. Settings:
-scene break marker (`#`, `* * *`, or a blank line), italics (underscores,
-asterisks, or removed), paragraphs (blank line between, or indented), and
-chapter headings. Formatting comes from `:common`'s public prose parser, so it
-reads markdown the same way the built-in formats do.
+Built, as a runtime plugin in C: `c/plaintext` in the `hammer-plugins`
+repository, an 8 KB package. It began compiled in and moved out unchanged in
+behaviour; a parity test ran both over every combination of settings before the
+compiled-in one was removed. Exports a story as plain text for pasting into
+submission forms, which want text with their own conventions for scene breaks
+and italics. Settings: scene break marker (`#`, `* * *`, or a blank line),
+italics (underscores, asterisks, or removed), paragraphs (blank line between,
+or indented), and chapter headings.
 
 | Exercises | How |
 | --- | --- |
-| Exporter capability | `exporters()` returns one exporter, format id `plaintext.txt` |
-| Global plugin settings | `plugins/plaintext.toml`, through a small store the exporter reads at render time |
-| UI half | Settings pane and `exportFormatLabels()`, with strings in `:composeUi`'s own `Res` |
-| Declared settings (next) | Its four settings are three choices and a toggle, so it moves to a [declaration](#declared-settings) and drops its hand-written pane, proving the form before runtime plugins depend on it |
-| Split module | Data half in `:plugins:plaintext`, UI half in `:composeUi` |
-| Operations for free | `hammer project export --format plaintext.txt`, and export through the MCP plugin, with no plugin code |
+| Exporter capability | The manifest declares one exporter, format id `plaintext.txt`, with `input = "prose"` |
+| Declared settings | Three choices and a toggle in `settings.toml`, kept in `plugins/plaintext.toml` as before, so saved choices carry over |
+| Operations for free | `hammer project export --format plaintext.txt`, and export through MCP, with no plugin code |
+
+It keeps the id `plaintext`, so saved settings and scripts naming the format
+still work, once the plugin is installed. A fresh install of Hammer no longer
+has plain text export until the plugin is installed.
 
 **Manuscript format moves into core.** Standard Manuscript Format (12 point
 Times or Courier, double spacing, a surname, title, and page number header, a
@@ -1072,9 +1084,15 @@ eight bytes a plugin copies. The Hammer-specific parts:
   `{"error": {"kind": "...", "message": "..."}}`, with the kinds of
   `OperationException` plus `PermissionDenied`.
 - An `export` function renders every export format the manifest declares. Its
-  input is `{"format", "projectName", "language", "chapters": [{"name",
-  "scenes": [markdown]}], "settings": {...}}`, the last holding every declared
-  setting's current value, and its output is the file's bytes.
+  input is `{"format", "projectName", "language", "topLevelAsChapters",
+  "chapters": [{"name", "scenes": [markdown], "prose": []}], "settings": {...}}`,
+  the last holding every declared setting's current value, and its output is
+  the file's bytes. An exporter whose manifest entry sets `input = "prose"`
+  gets each scene in `prose` instead of `scenes`: the host's own parse of its
+  markdown, the one the built-in formats render from, as blocks (`paragraph`,
+  `blank`, `heading`, `list`, `quote`, `code`, `rule`, `table`) of styled
+  spans. A plugin then needs no markdown parser, and reads text exactly as the
+  built-in formats do. The C kit's `hammer_json.h` reads either form.
 - HTTP imports exist, as Extism plugins expect them, and always fail. The only
   WASI imports provided are `random_get` and `clock_time_get`, which Kotlin/Wasm
   and kotlinx.serialization need and which grant no access to anything; a

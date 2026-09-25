@@ -90,6 +90,9 @@ class PluginPackage(
 				if (!exporter.format.startsWith("${manifest.id}.")) {
 					throw PluginPackageException("Export format '${exporter.format}' must start with '${manifest.id}.'")
 				}
+				if (exporter.input != PluginManifest.INPUT_MARKDOWN && exporter.input != PluginManifest.INPUT_PROSE) {
+					throw PluginPackageException("Export format '${exporter.format}' has unknown input '${exporter.input}'")
+				}
 			}
 		}
 
