@@ -34,6 +34,7 @@ import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_failed
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_installed
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_launcher
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_manual
+import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_new_terminals
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_off_path
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_provided
 import com.darkrockstudios.apps.hammer.composeui.resources.cli_path_remove
@@ -53,10 +54,11 @@ internal fun CommandLineSettings(
 	cliPath: CliPath = remember { CliPath.detect() },
 	installer: CliPathInstaller = remember { CliPathInstaller() },
 	launcher: List<String> = remember { cliLauncher() },
-	// The user's shell PATH, where the app's own is a fair guess: not inside Flatpak's sandbox, and not
-	// on macOS, where apps get launchd's PATH without the /usr/local/bin every shell has.
+	// The user's shell PATH, where the app's own is a fair guess: not inside Flatpak's sandbox, not on
+	// macOS, where apps get launchd's PATH without the /usr/local/bin every shell has, and not on
+	// Windows, where Hammer adds the folder to PATH itself.
 	path: String? = remember {
-		System.getenv("PATH").takeIf { System.getenv("FLATPAK_ID") == null && hostOs != HostOs.MacOs }
+		System.getenv("PATH").takeIf { System.getenv("FLATPAK_ID") == null && hostOs == HostOs.Linux }
 	},
 ) {
 	if (cliPath == CliPath.Unavailable) return
@@ -111,6 +113,9 @@ private fun ScriptControls(script: CliPath.Script, installer: CliPathInstaller, 
 	Text(message, style = MaterialTheme.typography.bodyMedium)
 	if (current == CliPathState.Installed && path != null && !script.onPath(path)) {
 		Text(Res.string.cli_path_off_path.get(script.file.parent.toString()), style = MaterialTheme.typography.bodyMedium)
+	}
+	if (current == CliPathState.Installed && script.windows) {
+		Text(Res.string.cli_path_new_terminals.get(), style = MaterialTheme.typography.bodySmall)
 	}
 	if (current == CliPathState.Absent && script.needsAdmin) {
 		Text(Res.string.cli_path_admin.get(), style = MaterialTheme.typography.bodySmall)
