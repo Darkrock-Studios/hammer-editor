@@ -45,7 +45,7 @@ class RuntimePlugins(
 		try {
 			val plugin = PluginPackage.read(fileSystem, packagePath(id))
 			if (plugin.manifest.id != id) throw PluginPackageException("Package id changed to '${plugin.manifest.id}'")
-			WasmPlugin(plugin.manifest, plugin.wasm, plugin.settings, granted = state.granted.toSet())
+			WasmPlugin(plugin.manifest, plugin::readModule, plugin.settings, granted = state.granted.toSet())
 		} catch (e: PluginPackageException) {
 			Napier.e { "Runtime plugin '$id' could not load: ${e.message}" }
 			null
