@@ -892,7 +892,11 @@ It is a proof of the seam more than a grammar checker.
 Built, as a runtime plugin in Rust: `rust/english-grammar` in
 `hammer-plugins`, on [Harper](https://github.com/Automattic/harper), with
 Harper's spell check turned off. English only; the project's language picks
-the dialect (American, British, Canadian, Australian, or Indian).
+the dialect (American, British, Canadian, Australian, or Indian). Its settings
+turn off whole categories (grammar, word choice, punctuation and
+capitalization, style), which group Harper's finer kinds of lint, and long
+sentences on their own. Harper's rules can be switched on and off by name but
+take no parameters, so the 40-word limit for a long sentence is fixed.
 
 Harper builds its dictionary and rules on start-up, which takes 36 seconds
 under chasm (0.6 natively) and about 140 MB of memory. So the build runs that
