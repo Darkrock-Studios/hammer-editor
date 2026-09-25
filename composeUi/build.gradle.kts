@@ -131,6 +131,8 @@ kotlin {
 				runtimeOnly(libs.junit.vintage.engine)
 				implementation(libs.mockk)
 				implementation(libs.jetbrains.compose.ui.test.junit4)
+				// Plugin settings tests build the settings store's Koin module.
+				implementation(libs.tomlkt)
 			}
 		}
 	}
