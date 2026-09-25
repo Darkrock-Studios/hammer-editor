@@ -594,8 +594,14 @@ is left behind. Every CLI call tries the socket first. If the app answers, the
 CLI sends the operation name and input, the app runs it against its live state,
 and the CLI prints the result. If nothing answers, the CLI takes the writer lock
 and runs the operation in-process. If the lock is held but the socket does not
-answer, the app is running with "Allow external tools" off, and the CLI fails
-with a message saying so.
+answer, the app could not open it, and the CLI fails saying Hammer is running.
+
+Forwarding is always on; there is no setting for it. Anything that can reach
+the socket runs as the same user, who could edit the project files directly, and
+the socket's directory is theirs alone. What an agent may do is decided where it
+is installed: the MCP plugin's granted operations and its live edits setting.
+Refusing while the app is open would only push tools to wait for it to close,
+or to edit files under it.
 
 **Multiple app instances.** A second launch of the app finds the writer lock
 held by the app, hands its launch arguments to the first over the socket, and
@@ -603,9 +609,8 @@ exits, so the app is effectively single-instance. The first comes to the front
 and acts on them as its own: a `--project` (with any `--scene`, `--note`,
 `--entry`, or `--timeline-event`) opens that project, going straight there if it
 is already open, or first closing the open one the usual way, with its
-unsaved-changes prompts; declining the prompt drops the request. Launch
-hand-offs are not gated by "Let tools use Hammer while it is open", since they
-only do what the launcher could. A launch that cannot hand off (no answer, or a
+unsaved-changes prompts; declining the prompt drops the request. A launch that
+cannot hand off (no answer, or a
 CLI call holding the lock) starts its own window without the lock, as before.
 Windows jump-list items, which relaunch the executable, go through the same
 path, as do the Linux quicklist and macOS Dock menu in-process.
@@ -660,9 +665,6 @@ message, so a change applies to a running server.
 
 Installing and enabling the plugin is what turns MCP on. Settings shows the
 command line to give an MCP client.
-
-"Allow external tools" still gates forwarding to the running app, for the CLI
-and the MCP plugin alike.
 
 ## Headless sync
 
@@ -1217,10 +1219,7 @@ design is revisited rather than `:common` bent to fit.
 8. **Forwarding.** Built, except the hand-off: the app listens on
    `run/hammer.sock` in the config directory (`run/` is owner-only) while it
    holds the writer lock, refuses account and sync operations since it runs
-   those itself, and the
-   "Let tools use Hammer while it is open" setting (desktop Settings, off by
-   default) gates it per call, and the CLI and MCP try the socket before running
-   headless. A second app launch hands its arguments to the first window and
+   those itself, and the CLI and MCP try the socket before running headless. A second app launch hands its arguments to the first window and
    exits (see [Multiple app instances](#concurrency)).
 9. **Write operations.** Built: every write operation in the catalog, the MCP
    plugin's live edits setting, and the CLI's `--confirm` and `--in`. Project

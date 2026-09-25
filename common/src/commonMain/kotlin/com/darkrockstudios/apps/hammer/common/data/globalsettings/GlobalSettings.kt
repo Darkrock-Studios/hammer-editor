@@ -31,8 +31,6 @@ data class GlobalSettings(
 	 */
 	val editorMaxWidth: Float = DEFAULT_EDITOR_WIDTH,
 	val enableDndInFocusMode: Boolean = false,
-	/** Lets the CLI, and tools built on it such as MCP, work through the running desktop app. */
-	val allowExternalTools: Boolean = false,
 	/**
 	 * Whether the scene metadata panel is visible on wide layouts. UI state,
 	 * not really a user "preference" — lives here because we don't have a

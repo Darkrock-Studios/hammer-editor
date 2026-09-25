@@ -47,8 +47,6 @@ internal fun accountSettingsComponent(state: AccountSettings.State = defaultAcco
 			)
 
 			override fun setProjectsDir(path: String) {}
-
-			override fun setAllowExternalTools(allow: Boolean) {}
 		}
 		override val backupManagerSlot: Value<ChildSlot<BackupManagerConfig, BackupManager>> =
 			MutableValue(ChildSlot(child = null))

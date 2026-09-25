@@ -67,13 +67,9 @@ object Forwarding {
 		class Error(val kind: String, val message: String)
 	}
 
-	/**
-	 * The app's side. [allowed] is read per request, so the setting applies without a restart; it does
-	 * not gate [onLaunch], which gets the arguments of each second launch handed over.
-	 */
+	/** The app's side. [onLaunch] gets the arguments of each second launch handed over. */
 	class Server(
 		private val socket: Path,
-		private val allowed: () -> Boolean,
 		private val registry: () -> OperationRegistry,
 		private val onLaunch: (args: List<String>) -> Unit,
 	) : AutoCloseable {
@@ -122,7 +118,6 @@ object Forwarding {
 						onLaunch(launch)
 						Reply(output = JsonNull)
 					}
-					!allowed() -> Reply(error = Reply.Error(REFUSED, DISABLED_MESSAGE))
 					request.operation.substringBefore('.') in APP_ONLY || request.operation in APP_ONLY_OPERATIONS ->
 						Reply(error = Reply.Error(REFUSED, APP_ONLY_MESSAGE))
 					else -> {
@@ -161,7 +156,7 @@ object Forwarding {
 		}
 	}
 
-	/** Thrown when the app answers but will not run the call: external tools are off, or the call is its own. */
+	/** Thrown when the app answers but will not run the call, since the call is its own. */
 	class Refused(message: String) : Exception(message)
 
 	/**
@@ -230,6 +225,4 @@ object Forwarding {
 	private val HAND_OFF_TIMEOUT = 5.seconds
 	private const val APP_ONLY_MESSAGE =
 		"Hammer is open, and this has to wait until it is closed. Use the app, or close it and run this again."
-	private const val DISABLED_MESSAGE =
-		"Hammer is running with external tools turned off. Turn on 'Let tools use Hammer while it is open' in Settings, or close Hammer."
 }
