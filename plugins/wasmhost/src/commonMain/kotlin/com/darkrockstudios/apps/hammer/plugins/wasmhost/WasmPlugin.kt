@@ -71,7 +71,7 @@ class WasmPlugin(
 	private var loaded: ExtismPlugin? = null
 	private val module: ExtismPlugin
 		get() = loaded ?: ExtismPlugin(
-			loadModule(),
+			loadModule,
 			listOf(dispatchFunction()) + cacheFunctions(),
 			log = ::log,
 			instrumenter = FuelInstrumenter(maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB),
