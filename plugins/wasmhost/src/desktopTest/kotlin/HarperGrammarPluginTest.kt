@@ -44,8 +44,8 @@ class HarperGrammarPluginTest {
 	private lateinit var registry: PluginRegistry
 
 	private val check by lazy {
-		val built = File(System.getenv("HAMMER_PLUGINS"), "rust/harper-grammar/build/harper-grammar.hammerplugin")
-		check(built.exists()) { "Run rust/harper-grammar/build.sh in hammer-plugins first" }
+		val built = File(PluginRepos.official, "harper-grammar/build/harper-grammar.hammerplugin")
+		check(built.exists()) { "Run ./build.sh harper-grammar in hammer-plugins first" }
 		val download = "/downloads/harper-grammar.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }

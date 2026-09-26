@@ -30,8 +30,8 @@ class PlainTextPluginHarness {
 	private val registry: PluginRegistry
 
 	init {
-		val built = File(System.getenv("HAMMER_PLUGINS"), "c/plaintext/build/plaintext.hammerplugin")
-		check(built.exists()) { "Run c/build.sh plaintext in hammer-plugins first" }
+		val built = File(PluginRepos.official, "plaintext/build/plaintext.hammerplugin")
+		check(built.exists()) { "Run ./build.sh plaintext in hammer-plugins first" }
 		val download = "/downloads/plaintext.hammerplugin".toPath()
 		val directory = "/config/plugins".toPath()
 		val cacheDirectory = "/cache/plugins".toPath()
