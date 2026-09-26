@@ -57,9 +57,12 @@ class StylePluginTest {
 
 	private val cacheDirectory = "/cache/plugins/style".toPath()
 
-	// What the fake operations serve.
+	// What the fake operations serve, and the UI's language.
 	private var scenes = emptyList<String>()
 	private var names = emptyList<String>()
+	private var language: String? = null
+	private var locale: String? = null
+	private lateinit var registry: PluginRegistry
 
 	private val action by lazy {
 		val tree = operation<JsonObject, JsonObject>("scene.tree", "", Access.Read, OperationScope.Content) {
@@ -79,6 +82,9 @@ class StylePluginTest {
 		val read = operation<JsonObject, JsonObject>("scene.read", "", Access.Read, OperationScope.Content) { input ->
 			buildJsonObject { put("markdown", scenes[input["id"]!!.jsonPrimitive.int - 1]) }
 		}
+		val info = operation<JsonObject, JsonObject>("project.info", "", Access.Read, OperationScope.Content) {
+			buildJsonObject { put("language", language) }
+		}
 
 		val build = System.getenv("HAMMER_STYLE_PLUGIN") ?: "c/style/build/style.hammerplugin"
 		val built = File(System.getenv("HAMMER_PLUGINS"), build)
@@ -86,9 +92,9 @@ class StylePluginTest {
 		val download = "/downloads/style.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
-		val plugins = RuntimePlugins(fileSystem, "/config/plugins".toPath(), cacheDirectory.parent!!)
+		val plugins = RuntimePlugins(fileSystem, "/config/plugins".toPath(), cacheDirectory.parent!!, locale)
 		plugins.install(download)
-		val registry = PluginRegistry().also(plugins::activate)
+		registry = PluginRegistry().also(plugins::activate)
 		GlobalContext.startKoin {
 			modules(
 				module {
@@ -98,11 +104,11 @@ class StylePluginTest {
 					single(named(APP_SCOPE)) { CoroutineScope(Dispatchers.Unconfined) }
 				},
 				registry.koinModule(),
-				module { single { OperationRegistry(listOf(tree, read), NoProjects) } },
+				module { single { OperationRegistry(listOf(tree, read, info), NoProjects) } },
 			)
 		}
 		registry.plugins.single().actions().single().also {
-			assertEquals("Style report", it.label)
+			if (locale == null) assertEquals("Style report", it.label)
 			assertEquals(ActionOutput.Document, it.output)
 		}
 	}
@@ -146,16 +152,17 @@ class StylePluginTest {
 			- **Words:** 14 in 4 sentences
 			- **Reading ease:** 94.5, grade 0.9
 			- **Adverbs:** 71.4 per 1,000 words
+			- **Filter words:** 0.0 per 1,000 words
 			- **Dialogue:** 21%
 			- **Most used adverbs:** quickly (1)
 
 			## Scenes
 
 			### Scene 1
-			9 words in 2 sentences. Reading ease 89.5, grade 1.9. 111.1 adverbs per 1,000 words. 0% dialogue.
+			9 words in 2 sentences. Reading ease 89.5, grade 1.9. 111.1 adverbs per 1,000 words. 0.0 filter words per 1,000 words. 0% dialogue.
 
 			### Scene 2
-			5 words in 2 sentences. Reading ease 102.8, grade -0.5. 0.0 adverbs per 1,000 words. 60% dialogue.
+			5 words in 2 sentences. Reading ease 102.8, grade -0.5. 0.0 adverbs per 1,000 words. 0.0 filter words per 1,000 words. 60% dialogue.
 			""".trimIndent(),
 			report,
 		)
@@ -225,6 +232,67 @@ class StylePluginTest {
 		fileSystem.list(cacheDirectory).forEach { entry -> fileSystem.write(entry) { writeUtf8("damaged") } }
 
 		assertEquals(cold, report(story))
+	}
+
+	@Test
+	fun `filter words are counted and listed`() {
+		val report = report(listOf("She felt cold. She saw the door and felt afraid."))
+		assertTrue("- **Filter words:** 300.0 per 1,000 words" in report, report)
+		assertTrue("- **Most used filter words:** felt (2), saw (1)" in report, report)
+	}
+
+	@Test
+	fun `a French project gets French adverbs, filter words, and readability`() {
+		language = "fr-FR"
+		val report = report(listOf("Il marchait lentement vers le moment. Elle regarda la mer et pensa à l'homme."))
+		assertTrue("- **Most used adverbs:** lentement (1)" in report, report)
+		assertTrue("- **Most used filter words:** pensa (1), regarda (1)" in report, report)
+		assertTrue(Regex("""- \*\*Reading ease:\*\* -?[0-9.]+ \(Kandel–Moles\)""").containsMatchIn(report), report)
+		// "l'homme" is two words, as French elides.
+		assertTrue("15 words in 2 sentences." in report, report)
+	}
+
+	@Test
+	fun `dialogue in German quotes and behind Spanish dashes`() {
+		language = "de"
+		val german = report(listOf("„Komm her“, sagte er.", "„Komm.“ Er ging."))
+		assertTrue("4 words in 1 sentence. Reading ease" in german && "50% dialogue." in german, german)
+		// A sentence ends after the “ that closes it.
+		assertTrue("3 words in 2 sentences." in german, german)
+		language = "es"
+		val spanish = report(listOf("—Ven aquí —dijo ella—. Ahora."))
+		assertTrue("60% dialogue." in spanish, spanish)
+	}
+
+	@Test
+	fun `a language without word lists gets its counts and a note`() {
+		language = "pt-BR"
+		val report = report(listOf("Ele saiu cedo. Ela ficou."))
+		assertTrue("- **Words:** 5 in 2 sentences" in report, report)
+		assertTrue("Reading ease" !in report && "Adverbs" !in report && "Filter words" !in report, report)
+		assertTrue("need word lists in the project's language" in report, report)
+	}
+
+	@Test
+	fun `settings leave out the scenes and shorten the lists`() {
+		report(listOf("Rain."))
+		val settings = registry.settings("style")!!
+		settings.set("scenes", JsonPrimitive(false))
+		settings.set("listSize", JsonPrimitive(1))
+		val report = report(listOf("She felt cold. She saw the door and felt afraid."))
+		assertTrue("## Scenes" !in report && "### Scene 1" !in report, report)
+		assertTrue(report.endsWith("- **Most used filter words:** felt (2)"), report)
+	}
+
+	@Test
+	fun `in French, its labels and report come from the locale`() {
+		locale = "fr-CA"
+		// French's no-break spaces, as plain ones.
+		val report = report(listOf("One two three. Four.")).replace(' ', ' ')
+		assertEquals("Rapport de style", registry.plugins.single().actions().single().label)
+		assertTrue(report.startsWith("# Rapport de style\n\n## Toute l’histoire\n\n- **Mots :** 4 en 2 phrases\n"), report)
+		assertTrue(Regex("""4 mots en 2 phrases\. Lisibilité -?[0-9]+,[0-9], niveau scolaire -?[0-9]+,[0-9]\. """).containsMatchIn(report), report)
+		assertTrue(report.endsWith(" 0 % de dialogue."), report)
 	}
 
 	private object NoProjects : ProjectResolver {
