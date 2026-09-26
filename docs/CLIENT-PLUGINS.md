@@ -934,31 +934,36 @@ that remains.
 ### Simple grammar (`simple-grammar`)
 
 Built, as a runtime plugin in C: `c/simple-grammar` in `hammer-plugins`, a
-16 KB package. Underlines slips in English prose that a spell checker passes,
-since every word in them is a real one. Its settings turn groups of rules on
-and off:
+32 KB package. Underlines slips that a spell checker passes, since every word
+in them is a real one, in English, French, German, Spanish, Italian, and
+Ukrainian. Its settings turn groups of rules on and off:
 
 | Group | Default | Rules |
 | --- | --- | --- |
-| Word mistakes | On | Repeated words, "a" and "an", "could of", "it's own", "their is", "your welcome", "these kind of", "was suppose to", "better then", and eggcorns such as "sneak peak" and "baited breath" |
-| Punctuation and capitalization | On | A lower-case "i", spacing around punctuation, doubled marks (",,", ".." but not an ellipsis), unmatched parentheses, and a sentence starting in lower case |
-| Dialogue | On | `"Wait." she said` wants a comma, `"Wait," She said` lower case, and `"Wait,"she said` a space |
-| Wordy phrases | Off | "in order to" for "to", "due to the fact that" for "because" |
-| Redundant phrases | Off | "free gift" for "gift", "revert back" for "revert" |
+| Word mistakes | On | Repeated words, mixed-up words and phrases ("could of", "your welcome", "sneak peak"; "quelque soit"; "seid wann", "das selbe"; "a sido", "de el"; "un amica", "c'è la faccio"; "приймати участь"), and each language's own: "a" and "an" and "better then" in English, elision in French ("le arbre" for "l'arbre") |
+| Punctuation and capitalization | On | A lower-case "i" in English, spacing around punctuation, French's space before a colon, doubled marks (",,", ".." but not an ellipsis), unmatched parentheses, and a sentence starting in lower case |
+| Dialogue | On | `"Wait." she said` wants a comma and `"Wait," She said` lower case, in English; in every language a quote run into the next word wants a space, and one a comma follows drops its full stop (`„Warte.“, sagte sie`) |
+| Wordy phrases | Off | "in order to" for "to", "dans le but de" for "pour", "zum jetzigen Zeitpunkt" for "jetzt" |
+| Redundant phrases | Off | "free gift" for "gift", "monter en haut" for "monter", "subir arriba" for "subir" |
 | Repeated marks | Off | "!!" and "?!?" |
 | Long sentences | Off | More than a set number of words, 40 unless changed |
 
-The rules flag only what they are sure of ("had had" passes, "a" and "an" are
-left alone before words starting with "h" or "u", and "better then." at the end
-of a sentence is the time). Its word and phrase lists are resources, in
-`resources/<language>/`, read once and kept for as long as projects in that
-language are checked; a project in a language with no lists gets nothing. A
-new language is a folder of lists, and gets every rule but "a" and "an", a
-lower-case "i", and "then" for "than", which are English's own. The
-punctuation rules assume English typography. Fixes use curly apostrophes where the paragraph does. Every rule is one pass
-over a paragraph with small tables: 40 paragraphs of 77 words take about 190 ms
-under chasm with every group on, against 25 to 30 ms a paragraph for English
-grammar.
+The rules flag only what they are sure of ("had had" and "nous nous" pass, "a"
+and "an" are left alone before words starting with "h" or "u", French elision
+before an "h", and "better then." at the end of a sentence is the time). Its
+word and phrase lists are resources, in `resources/<language>/`, read once and
+kept for as long as projects in that language are checked; a project in a
+language with no lists gets nothing. A phrase's first word matches in either
+case and the rest as written, so "de el" passes "de El Salvador" and German
+keeps its nouns' capitals. A new language is a folder of lists, and gets every
+rule but English's and French's own, with curly quotes unless the plugin's
+table of quotation marks says otherwise; German's are „ and “, and French,
+Spanish, Italian, and Ukrainian's guillemets. Outside English, a sentence may
+go on in lower case after "?" and "!". Case is known for Latin and Cyrillic
+letters. Fixes use curly apostrophes where the paragraph does. Every rule is
+one pass over a paragraph with small tables, and a list is passed over at the
+first letter that differs: 40 paragraphs of 74 words take about 140 ms under
+chasm with every group on, against 25 to 30 ms a paragraph for Harper grammar.
 
 | Exercises | How |
 | --- | --- |

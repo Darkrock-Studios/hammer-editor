@@ -138,8 +138,13 @@ class SimpleGrammarPluginTest {
 	}
 
 	@Test
-	fun `other languages get nothing`() {
-		assertEquals(emptyList(), issues("Il a a dit.", "fr"))
+	fun `each language its lists and quotes, and one without lists nothing`() {
+		assertEquals(listOf("Le arbre -> L’arbre", "si il -> s’il"), issues("Le arbre, si il pleut, d’accord.", "fr-CA"))
+		assertEquals(listOf(". -> "), issues("„Warte.“, sagte sie.", "de"))
+		assertEquals(listOf("de el -> del|de él"), issues("Salgo de el pueblo, no de El Salvador.", "es"))
+		assertEquals(listOf("un idea -> un'idea"), issues("Ho un idea.", "it"))
+		assertEquals(listOf("Приймати участь -> Брати участь"), issues("Приймати участь важливо.", "uk"))
+		assertEquals(emptyList(), issues("Ele a a disse.", "pt"))
 		assertEquals(listOf("a a -> a"), issues("It a a dog.", "en-GB"))
 		assertEquals(listOf("a a -> a"), issues("It a a dog.", null))
 	}
