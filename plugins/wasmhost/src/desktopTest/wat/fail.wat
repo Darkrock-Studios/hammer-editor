@@ -1,0 +1,21 @@
+;; Reports an error through error_set: "run" then returns 1, and "abort" traps. "fetch" tries HTTP.
+(module
+  (import "extism:host/env" "alloc" (func $alloc (param i64) (result i64)))
+  (import "extism:host/env" "store_u8" (func $store_u8 (param i64 i32)))
+  (import "extism:host/env" "error_set" (func $error_set (param i64)))
+  (import "extism:host/env" "http_request" (func $http_request (param i64 i64) (result i64)))
+  (func $set_error
+    (local $msg i64)
+    (local.set $msg (call $alloc (i64.const 2)))
+    (call $store_u8 (local.get $msg) (i32.const 110))
+    (call $store_u8 (i64.add (local.get $msg) (i64.const 1)) (i32.const 111))
+    (call $error_set (local.get $msg)))
+  (func (export "run") (result i32)
+    (call $set_error)
+    (i32.const 1))
+  (func (export "abort") (result i32)
+    (call $set_error)
+    unreachable)
+  (func (export "fetch") (result i32)
+    (drop (call $http_request (i64.const 0) (i64.const 0)))
+    (i32.const 0)))

@@ -44,8 +44,8 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
 /**
- * The Kotlin hello plugin from hammer-plugins, whose parts RECIPES.md shows, run by the host. Runs when
- * HAMMER_PLUGINS points at that checkout.
+ * The Kotlin hello plugin from hammer-plugin-sdk, whose parts RECIPES.md shows, run by the host. Runs when
+ * HAMMER_PLUGINS points at a hammer-plugins checkout with hammer-plugin-sdk beside it.
  */
 @EnabledIfEnvironmentVariable(named = "HAMMER_PLUGINS", matches = ".+")
 class HelloPluginTest {
@@ -71,8 +71,8 @@ class HelloPluginTest {
 		val read = operation<JsonObject, JsonObject>("scene.read", "", Access.Read, OperationScope.Content) { input ->
 			buildJsonObject { put("markdown", if (input["id"]!!.jsonPrimitive.int == 1) "Rain fell hard." else "Quiet.") }
 		}
-		val built = File(System.getenv("HAMMER_PLUGINS"), "kotlin/hello/build/hello.hammerplugin")
-		check(built.exists()) { "Run gradle :hello:hammerPlugin in hammer-plugins' kotlin/ first" }
+		val built = File(PluginRepos.sdk, "kotlin/hello/build/hello.hammerplugin")
+		check(built.exists()) { "Run kotlin/build.sh in hammer-plugin-sdk first" }
 		val download = "/downloads/hello.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
@@ -125,7 +125,7 @@ class HelloPluginTest {
 
 	@Test
 	fun `its tip is read from the package's resources`() {
-		val tips = File(System.getenv("HAMMER_PLUGINS"), "kotlin/hello/resources/tips.txt").readLines()
+		val tips = File(PluginRepos.sdk, "kotlin/hello/resources/tips.txt").readLines()
 		assertContains(tips, run("tip").message)
 	}
 

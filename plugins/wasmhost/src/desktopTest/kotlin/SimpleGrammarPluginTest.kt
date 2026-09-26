@@ -40,8 +40,8 @@ class SimpleGrammarPluginTest {
 
 	/** The plugin's check, installed for a UI in [locale]. */
 	private fun load(locale: String?): TextDiagnosticsProvider {
-		val built = File(System.getenv("HAMMER_PLUGINS"), "c/simple-grammar/build/simple-grammar.hammerplugin")
-		check(built.exists()) { "Run c/build.sh simple-grammar in hammer-plugins first" }
+		val built = File(PluginRepos.official, "simple-grammar/build/simple-grammar.hammerplugin")
+		check(built.exists()) { "Run ./build.sh simple-grammar in hammer-plugins first" }
 		val download = "/downloads/simple-grammar.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }

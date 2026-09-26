@@ -16,13 +16,15 @@ import kotlin.time.measureTime
 
 /**
  * Timings for the runtime plugin spike. Runs only with HAMMER_WASM_BENCH=1; the plugins built in a
- * hammer-plugins checkout are used when HAMMER_PLUGINS points at it.
+ * hammer-plugins checkout and the hammer-plugin-development beside it are used when HAMMER_PLUGINS
+ * points at the first.
  */
 @EnabledIfEnvironmentVariable(named = "HAMMER_WASM_BENCH", matches = "1")
 class SpikeBenchmarkTest {
 
 	private val novel: String = buildNovel()
-	private val pluginsRepo = System.getenv("HAMMER_PLUGINS")?.let(::File)
+	private val official = System.getenv("HAMMER_PLUGINS")?.let(::File)
+	private val development = official?.resolveSibling("hammer-plugin-development")
 
 	@Test
 	fun `interpreter speed with and without fuel checks`() {
@@ -68,13 +70,15 @@ class SpikeBenchmarkTest {
 		val input = novel.encodeToByteArray()
 		compare(
 			"upper", input, "run",
-			"c/upper/build/upper.wasm",
-			"assemblyscript/upper/build/upper.wasm",
-			"rust/upper/build/upper.wasm",
-			"go/upper/build/upper.wasm",
-			"zig/upper/build/upper.wasm",
-			"kotlin/upper/build/compileSync/wasmWasi/main/developmentExecutable/kotlin/upper.wasm",
-			"kotlin/upper/build/compileSync/wasmWasi/main/productionExecutable/optimized/upper.wasm",
+			dev(
+				"c/upper/build/upper.wasm",
+				"assemblyscript/upper/build/upper.wasm",
+				"rust/upper/build/upper.wasm",
+				"go/upper/build/upper.wasm",
+				"zig/upper/build/upper.wasm",
+				"kotlin/upper/build/compileSync/wasmWasi/main/developmentExecutable/kotlin/upper.wasm",
+				"kotlin/upper/build/compileSync/wasmWasi/main/productionExecutable/optimized/upper.wasm",
+			),
 		)
 	}
 
@@ -85,18 +89,20 @@ class SpikeBenchmarkTest {
 			""""settings":{"perScene":true,"heading":"Word count"}}"""
 		compare(
 			"word count", request.encodeToByteArray(), "export",
-			"c/wordfreq/build/wordfreq.wasm",
-			"assemblyscript/wordfreq/build/wordfreq.wasm",
-			"rust/wordfreq/build/wordfreq.wasm",
-			"go/wordfreq/build/wordfreq.wasm",
-			"zig/wordfreq/build/wordfreq.wasm",
-			"kotlin/wordfreq/build/compileSync/wasmWasi/main/productionExecutable/optimized/wordfreq.wasm",
-			"assemblyscript/wordcount/build/wordcount.wasm",
-			"rust/wordcount/build/wordcount.wasm",
-			"go/wordcount/build/wordcount.wasm",
-			"zig/wordcount/build/wordcount.wasm",
-			"kotlin/wordcount/build/compileSync/wasmWasi/main/developmentExecutable/kotlin/wordcount.wasm",
-			"kotlin/wordcount/build/compileSync/wasmWasi/main/productionExecutable/optimized/wordcount.wasm",
+			dev(
+				"c/wordfreq/build/wordfreq.wasm",
+				"assemblyscript/wordfreq/build/wordfreq.wasm",
+				"rust/wordfreq/build/wordfreq.wasm",
+				"go/wordfreq/build/wordfreq.wasm",
+				"zig/wordfreq/build/wordfreq.wasm",
+				"kotlin/wordfreq/build/compileSync/wasmWasi/main/productionExecutable/optimized/wordfreq.wasm",
+				"assemblyscript/wordcount/build/wordcount.wasm",
+				"rust/wordcount/build/wordcount.wasm",
+				"go/wordcount/build/wordcount.wasm",
+				"zig/wordcount/build/wordcount.wasm",
+				"kotlin/wordcount/build/compileSync/wasmWasi/main/developmentExecutable/kotlin/wordcount.wasm",
+				"kotlin/wordcount/build/compileSync/wasmWasi/main/productionExecutable/optimized/wordcount.wasm",
+			),
 		)
 	}
 
@@ -118,12 +124,13 @@ class SpikeBenchmarkTest {
 		}
 		compare(
 			"style", """{"action":"report","project":"Novel","settings":{}}""".encodeToByteArray(), "action",
-			"c/style/build/style.wasm",
-			"assemblyscript/style/build/style.wasm",
-			"rust/style/build/style.wasm",
-			"go/style/build/style.wasm",
-			"zig/style/build/style.wasm",
-			"kotlin/style/build/compileSync/wasmWasi/main/productionExecutable/optimized/style.wasm",
+			listOfNotNull(official?.resolve("style/build/style.wasm")) + dev(
+				"assemblyscript/style/build/style.wasm",
+				"rust/style/build/style.wasm",
+				"go/style/build/style.wasm",
+				"zig/style/build/style.wasm",
+				"kotlin/style/build/compileSync/wasmWasi/main/productionExecutable/optimized/style.wasm",
+			),
 			userFunctions = listOf(dispatch, noCacheGet, noCacheSet, styleResources, noProgress),
 			size = novel.length,
 		)
@@ -137,12 +144,12 @@ class SpikeBenchmarkTest {
 		task: String,
 		input: ByteArray,
 		function: String,
-		vararg builds: String,
+		builds: List<File>,
 		userFunctions: List<ExtismPlugin.UserFunction> = listOf(noDispatch, noCacheGet, noCacheSet),
 		size: Int = input.size,
 	) {
 		builds.forEach { build ->
-			val wasm = pluginsRepo?.resolve(build)?.takeIf { it.exists() } ?: return@forEach println("$build not built; skipped")
+			val wasm = build.takeIf { it.exists() } ?: return@forEach println("$build not built; skipped")
 			lateinit var plugin: ExtismPlugin
 			val load = measureTime { plugin = ExtismPlugin(wasm.readBytes(), userFunctions) }
 			val best = try {
@@ -155,14 +162,17 @@ class SpikeBenchmarkTest {
 		}
 	}
 
+	/** Builds in hammer-plugin-development, none when HAMMER_PLUGINS is not set. */
+	private fun dev(vararg paths: String): List<File> = development?.let { root -> paths.map(root::resolve) }.orEmpty()
+
 	/** Plugins that call back into Hammer get an error reply, which they are written to tolerate. */
 	private val noDispatch = ExtismPlugin.UserFunction("hammer_dispatch", params = 1, returnsValue = true) {
 		write("""{"error":{"kind":"NotFound","message":"benchmark"}}""".encodeToByteArray())
 	}
 
-	/** The C style report's word lists, read from its resources/ in the checkout; 0 for a missing one. */
+	/** The C style report's word lists, read from its resources/ in hammer-plugins; 0 for a missing one. */
 	private val styleResources = ExtismPlugin.UserFunction("hammer_resource", params = 1, returnsValue = true) { args ->
-		val file = File(pluginsRepo, "c/style/resources/" + read(args[0]).decodeToString())
+		val file = File(official, "style/resources/" + read(args[0]).decodeToString())
 		if (file.isFile) write(file.readBytes()) else 0
 	}
 

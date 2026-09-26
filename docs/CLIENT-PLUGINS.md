@@ -8,8 +8,10 @@ client does not follow it (see below).
 
 A client plugin is a sandboxed WebAssembly module installed from a package,
 which anyone can write. Plugins do not add operations: the operation API is
-Hammer's own, and a plugin is one more caller of it. Plugins live in the
-`hammer-plugins` repository, next to this one.
+Hammer's own, and a plugin is one more caller of it. Hammer's own plugins live
+in the `hammer-plugins` repository, next to this one, built on the kits in
+`hammer-plugin-sdk`; `hammer-plugin-development` holds the same few plugins in
+six languages, for comparing them.
 
 **Compiled-in plugins, explored and dropped.** The first design also had
 compiled-in plugins: Kotlin modules registered in the build, with Koin modules,
@@ -678,7 +680,7 @@ single process.
 
 ## MCP plugin
 
-MCP is a runtime plugin, in hammer-plugins' `kotlin/mcp`, written in
+MCP is a runtime plugin, in hammer-plugins' `mcp`, written in
 Kotlin/Wasm. The host provides only generic pieces: plugin commands, scope
 grants, and `ops.list` filtered to the grants.
 
@@ -892,7 +894,7 @@ generator, the simple grammar check, and the [MCP plugin](#mcp-plugin).
 
 ### Plain text exporter (`plaintext`)
 
-Built, as a runtime plugin in C: `c/plaintext` in the `hammer-plugins`
+Built, as a runtime plugin in C: `plaintext` in the `hammer-plugins`
 repository, an 8 KB package. Exports a story as plain text for pasting into
 submission forms, which want text with their own conventions for scene breaks
 and italics. Settings: scene break marker (`#`, `* * *`, or a blank line),
@@ -918,7 +920,7 @@ the page-one contact block comes from.
 
 ### Style report (`style`)
 
-Built, as a runtime plugin in C: `c/style` in `hammer-plugins`, a 37 KB
+Built, as a runtime plugin in C: `style` in `hammer-plugins`, a 37 KB
 package. A "Style report" item in the project menu reports, per scene and for
 the whole story or the scenes chosen, reading ease, adverbs and filter words
 per thousand words, the share of dialogue, and repeated words and phrases, and
@@ -970,7 +972,7 @@ that remains.
 
 ### Simple grammar (`simple-grammar`)
 
-Built, as a runtime plugin in C: `c/simple-grammar` in `hammer-plugins`, a
+Built, as a runtime plugin in C: `simple-grammar` in `hammer-plugins`, a
 48 KB package. Underlines slips that a spell checker passes, since every word
 in them is a real one, in English, French, German, Spanish, Italian, and
 Ukrainian. Its settings turn groups of rules on and off:
@@ -1018,7 +1020,7 @@ words take about 110 ms under chasm with every group on, against 25 to 30 ms a p
 
 ### Name generator (`name-generator`)
 
-Built, as a runtime plugin in C: `c/name-generator` in `hammer-plugins`. A
+Built, as a runtime plugin in C: `name-generator` in `hammer-plugins`. A
 "Generate names" item on Project Home and encyclopedia entries asks for a
 style (everyday English, Norse, or Elvish), feminine, masculine, or either
 given names, how many, and whether with surnames, and lists them with a button
@@ -1034,7 +1036,7 @@ for each that adds it to the encyclopedia as a person. It asks for
 
 ### Harper grammar (`harper-grammar`)
 
-Built, as a runtime plugin in Rust: `rust/harper-grammar` in
+Built, as a runtime plugin in Rust: `harper-grammar` in
 `hammer-plugins`, on [Harper](https://github.com/Automattic/harper), with
 Harper's spell check turned off. English only; the project's language picks
 the dialect (American, British, Canadian, Australian, or Indian). Its settings
@@ -1059,7 +1061,7 @@ Android's app heap may still be too small; untried there.
 
 ### Name checker (`name-checker`)
 
-Built, as a runtime plugin in Rust: `rust/name-checker` in `hammer-plugins`, a
+Built, as a runtime plugin in Rust: `name-checker` in `hammer-plugins`, a
 300 KB module with a word list for each language it checks as resources:
 English (SCOWL's American and British lists), French, German, Spanish,
 Italian, and Ukrainian. It reads the encyclopedia's names and aliases through
@@ -1134,12 +1136,13 @@ Preview 1 through a companion library. It does not support SIMD or Memory64.
 
 ### Languages
 
-Plugins are supported in two languages: Kotlin/Wasm, for the most comfortable
+Plugins are supported in three languages: Kotlin/Wasm, for the most comfortable
 way to write one (a kit with typed requests, a `hammer.plugin` Gradle plugin that
-does the build, and unit tests on the JVM against a fake Hammer), and Rust, for
+does the build, and unit tests on the JVM against a fake Hammer); Rust, for
 speed (about half C's speed on a whole-book report, where Kotlin runs at about
-a fifth). Zig, C, AssemblyScript, and Go (through TinyGo) were tried too.
-hammer-plugins' `LANGUAGES.md` compares them all. Kotlin/Wasm's objects live in
+a fifth); and C, the fastest and smallest, written by hand with native unit
+tests. Zig, AssemblyScript, and Go (through TinyGo) were tried too.
+hammer-plugin-development's `LANGUAGES.md` compares them all. Kotlin/Wasm's objects live in
 chasm's guest heap rather than the module's linear memory, so that heap has a cap
 of its own: 1 GiB, or half the JVM's heap if that is less, beyond which a call
 fails with "ran out of memory". chasm frees a call's garbage when the call returns
@@ -1149,7 +1152,7 @@ holds all it allocates: the Kotlin style report on a 300,000-word novel needs
 after a call is dropped and loaded afresh when next used. The cap needs the JVM:
 on iOS the heap is uncapped.
 
-Rust has a kit of its own in `hammer-plugins` (`rust/hammer`): Hammer's
+Rust has a kit of its own in `hammer-plugin-sdk` (`rust/hammer`): Hammer's
 imports, operations, and the cache, the `diagnose` request and reply types,
 character to byte offsets, an optional `getrandom` backend on the host's
 `random_get`, panics reported as the call's error, and an allocator that
@@ -1470,7 +1473,7 @@ and is the index's first submitter, attaching each package to a GitHub release.
 id = "style"
 name = "Style Report"
 summary = "Sentence length, adverbs, and repeated words, per scene."
-source = "https://github.com/Wavesonics/hammer-plugins/tree/main/c/style"
+source = "https://github.com/Wavesonics/hammer-plugins/tree/main/style"
 license = "MIT"
 maintainers = ["Wavesonics"]
 
@@ -1568,11 +1571,12 @@ build is optimized by binaryen; the development build is not:
   unit tests it there. Typed C structs for operation inputs and outputs can
   later be generated from `ops.list`'s schemas.
 
-Example and test plugins live in a separate `hammer-plugins` repository, next to
-this one: C and Kotlin/Wasm examples, the plugin kit, and the WAT sources of the
-host's test fixtures. Its fixture script writes the compiled fixtures (a few
-hundred bytes each) into `:plugins:wasmhost`'s test resources, so this repo's
-tests do not need that checkout.
+The plugin kits live in a separate `hammer-plugin-sdk` repository, next to this
+one, with Hammer's own plugins in `hammer-plugins` and the language comparisons in
+`hammer-plugin-development`. The host's test fixtures are WAT, in
+`:plugins:wasmhost`'s `src/desktopTest/wat`, whose `build.sh` writes the compiled
+fixtures (a few hundred bytes each) into its test resources, so this repo's tests
+do not need those checkouts.
 
 ### Platforms
 

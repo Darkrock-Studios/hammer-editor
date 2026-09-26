@@ -42,8 +42,8 @@ class McpPluginTest {
 		deletes: Boolean = false,
 		granted: List<String>? = null,
 	): Map<Int, JsonObject> {
-		val built = File(System.getenv("HAMMER_PLUGINS"), "kotlin/mcp/build/mcp.hammerplugin")
-		check(built.exists()) { "Run kotlin/build.sh in hammer-plugins first" }
+		val built = File(PluginRepos.official, "mcp/build/mcp.hammerplugin")
+		check(built.exists()) { "Run ./build.sh mcp in hammer-plugins first" }
 		val download = "/downloads/mcp.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }

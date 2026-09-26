@@ -54,8 +54,8 @@ class NameGeneratorPluginTest {
 			created += input
 			JsonObject(emptyMap())
 		}
-		val built = File(System.getenv("HAMMER_PLUGINS"), "c/name-generator/build/name-generator.hammerplugin")
-		check(built.exists()) { "Run c/build.sh name-generator in hammer-plugins first" }
+		val built = File(PluginRepos.official, "name-generator/build/name-generator.hammerplugin")
+		check(built.exists()) { "Run ./build.sh name-generator in hammer-plugins first" }
 		val download = "/downloads/name-generator.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }

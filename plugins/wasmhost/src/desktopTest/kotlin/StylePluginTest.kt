@@ -43,7 +43,8 @@ import kotlin.test.assertTrue
 
 /**
  * The style report plugin from hammer-plugins, run by the host. Runs when HAMMER_PLUGINS points at that checkout;
- * HAMMER_STYLE_PLUGIN picks another build of it there, such as assemblyscript/style/build/style.hammerplugin.
+ * HAMMER_STYLE_PLUGIN picks another build: a path in hammer-plugin-development beside it, such as
+ * assemblyscript/style/build/style.hammerplugin, or an absolute one.
  */
 @EnabledIfEnvironmentVariable(named = "HAMMER_PLUGINS", matches = ".+")
 class StylePluginTest {
@@ -86,9 +87,9 @@ class StylePluginTest {
 			buildJsonObject { put("language", language) }
 		}
 
-		val build = System.getenv("HAMMER_STYLE_PLUGIN") ?: "c/style/build/style.hammerplugin"
-		val built = File(System.getenv("HAMMER_PLUGINS"), build)
-		check(built.exists()) { "Build $build in hammer-plugins first" }
+		val built = System.getenv("HAMMER_STYLE_PLUGIN")?.let { PluginRepos.development.resolve(it) }
+			?: File(PluginRepos.official, "style/build/style.hammerplugin")
+		check(built.exists()) { "Build $built first" }
 		val download = "/downloads/style.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }

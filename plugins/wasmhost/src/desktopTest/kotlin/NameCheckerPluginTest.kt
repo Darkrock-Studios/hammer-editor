@@ -75,8 +75,8 @@ class NameCheckerPluginTest {
 	class Text(val markdown: String)
 
 	private fun load(locale: String?): ClientPlugin {
-		val built = File(System.getenv("HAMMER_PLUGINS"), "rust/name-checker/build/name-checker.hammerplugin")
-		check(built.exists()) { "Run rust/build.sh in hammer-plugins first" }
+		val built = File(PluginRepos.official, "name-checker/build/name-checker.hammerplugin")
+		check(built.exists()) { "Run ./build.sh name-checker in hammer-plugins first" }
 		val download = "/downloads/name-checker.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
