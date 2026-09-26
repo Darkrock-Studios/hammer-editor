@@ -11,6 +11,8 @@ jobs:
   publish-google-play:
     if: ${{ !contains(github.event.release.tag_name, '+') || contains(github.event.release.tag_name, '+google-play') }}
     uses: ./.github/workflows/publish-google-play.yml
+    permissions:
+      contents: write
     secrets: inherit
     with:
       track: production

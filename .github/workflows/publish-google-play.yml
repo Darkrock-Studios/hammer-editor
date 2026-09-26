@@ -89,3 +89,15 @@ jobs:
           esac
           echo "Running fastlane $LANE for track=$TRACK"
           bundle exec fastlane "$LANE"
+
+      # Keeps the mappings for the exact Play builds next to the release, so prod
+      # crash traces can be retraced without the Play Console.
+      - name: Attach R8 mappings to the GitHub release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          cp android/build/outputs/mapping/release/mapping.txt hammer-google-play-mapping.txt
+          cp wear/build/outputs/mapping/release/mapping.txt hammer-wear-mapping.txt
+          gh release upload "$TAG" hammer-google-play-mapping.txt hammer-wear-mapping.txt --clobber
