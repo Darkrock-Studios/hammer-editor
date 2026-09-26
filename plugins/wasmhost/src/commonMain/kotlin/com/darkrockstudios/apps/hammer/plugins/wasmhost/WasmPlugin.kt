@@ -154,7 +154,7 @@ class WasmPlugin(
 					ActionReply(
 						message = interactive.message?.ifBlank { null },
 						markdown = interactive.markdown?.ifBlank { null },
-						buttons = interactive.buttons.map { ActionButton(it.id, it.label) },
+						buttons = interactive.buttons.map { ActionButton(it.id, it.label, it.footer) },
 					)
 				}
 			} catch (e: IllegalArgumentException) {
@@ -412,7 +412,7 @@ class WasmPlugin(
 		val message: String? = null,
 	) {
 		@Serializable
-		class Button(val id: String, val label: String)
+		class Button(val id: String, val label: String, val footer: Boolean = false)
 	}
 
 	/** What `hammer_progress` is given: how far along, from 0 to 1 if known, and a line saying what it is doing. */

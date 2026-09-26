@@ -310,25 +310,31 @@ private fun ResultDialog(showing: ActionRunState.Showing?, runner: PluginActionR
 				)
 				MpScrollBarColumn(modifier = scrollBarOverlay(), state = scrollState)
 			}
-			if (current.reply.buttons.isNotEmpty()) {
+			val (footerButtons, buttons) = current.reply.buttons.partition { it.footer }
+			if (buttons.isNotEmpty()) {
 				FlowRow(
 					modifier = Modifier.fillMaxWidth().padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
 					horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 					verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 				) {
-					current.reply.buttons.forEach { button ->
+					buttons.forEach { button ->
 						HdHairlineButton(label = button.label, onClick = { runner.press(button) })
 					}
 				}
 			}
-			Row(
+			// Wraps, so a plugin's footer buttons never squeeze Copy and Save on a narrow screen.
+			FlowRow(
 				modifier = Modifier
 					.fillMaxWidth()
 					.background(MaterialTheme.colorScheme.surfaceContainerLow)
 					.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.M),
-				verticalAlignment = Alignment.CenterVertically,
+				itemVerticalAlignment = Alignment.CenterVertically,
 				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
+				verticalArrangement = Arrangement.spacedBy(Ui.Padding.M),
 			) {
+				footerButtons.forEach { button ->
+					HdHairlineButton(label = button.label, onClick = { runner.press(button) })
+				}
 				Spacer(modifier = Modifier.weight(1f))
 				HdHairlineButton(
 					label = (if (copied) Res.string.plugin_document_copied else Res.string.plugin_document_copy).get(),

@@ -985,7 +985,7 @@ for each that adds it to the encyclopedia as a person. It asks for
 | Exercises | How |
 | --- | --- |
 | Action fields | Two choices, a number, and a toggle, asked for before it runs |
-| Interactive output | A button per name; pressing one calls the action again, which adds the entry and replies with the list, that name marked |
+| Interactive output | A button per name; pressing one calls the action again, which adds the entry and replies with the list, that name marked. "More names" is a footer button, replying with a new list |
 | State across calls | The list's seed rides in the button ids, so each call rebuilds the same names; `random_get` seeds the first |
 | Resources | Each style is a JSON file of word lists and name templates in `resources/styles/`, read the first time it is used and kept with `hammer_alloc_keep` |
 
@@ -1284,9 +1284,11 @@ Home), and the values given:
   as long as the project is open.
 - **Output.** `message` is a brief line. `document` is markdown in a dialog
   the user can copy or save as a note. `interactive` is JSON, `{"markdown",
-  "buttons": [{"id", "label"}], "message"}`: the markdown is shown with the
-  plugin's buttons under it, and pressing one calls the action again with the
-  same input and context and the button's id as `button`. A reply with
+  "buttons": [{"id", "label", "footer"}], "message"}`: the markdown is shown
+  with the plugin's buttons under it, and pressing one calls the action again
+  with the same input and context and the button's id as `button`. A button
+  with `"footer": true` sits in the dialog's footer, beside Copy and Save as
+  note, for one that acts on the whole reply rather than an item in it. A reply with
   markdown updates the dialog; one without closes it; a message is shown
   either way. The plugin carries any state between calls in its button ids,
   as the name generator does with its seed.

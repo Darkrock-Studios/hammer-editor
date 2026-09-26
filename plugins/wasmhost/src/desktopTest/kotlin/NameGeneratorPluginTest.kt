@@ -100,6 +100,7 @@ class NameGeneratorPluginTest {
 		assertEquals(3, names.size)
 		assertTrue(names.all { it.endsWith("sdottir") }, names.toString())
 		assertEquals(names + "More names", first.buttons.map { it.label })
+		assertEquals(listOf(false, false, false, true), first.buttons.map { it.footer })
 
 		val add = first.buttons.first()
 		val second = runBlocking { action.run(ActionCall("Storm", ActionPlace.Project, null, input, button = add.id)) }
