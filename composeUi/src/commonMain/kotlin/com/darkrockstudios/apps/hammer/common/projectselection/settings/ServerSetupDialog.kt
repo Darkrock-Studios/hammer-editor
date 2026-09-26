@@ -9,6 +9,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -130,6 +131,8 @@ fun ServerSetupDialogContent(
 					placeholder = Res.string.settings_server_setup_url_hint.get(),
 					singleLine = true,
 					imeAction = ImeAction.Next,
+					capitalization = KeyboardCapitalization.None,
+					autoCorrectEnabled = false,
 					keyboardType = KeyboardType.Uri,
 					enabled = !state.serverWorking && !existingServer,
 				)

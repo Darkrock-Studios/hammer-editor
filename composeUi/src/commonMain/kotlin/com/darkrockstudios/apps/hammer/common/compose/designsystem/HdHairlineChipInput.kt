@@ -102,7 +102,10 @@ internal fun HdHairlineChipInput(
 					singleLine = true,
 					textStyle = textStyle,
 					cursorBrush = SolidColor(onSurface),
-					keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+					keyboardOptions = KeyboardOptions(
+						imeAction = ImeAction.Done,
+						autoCorrectEnabled = false,
+					),
 					modifier = Modifier
 						.fillMaxWidth()
 						.heightIn(min = 24.dp)

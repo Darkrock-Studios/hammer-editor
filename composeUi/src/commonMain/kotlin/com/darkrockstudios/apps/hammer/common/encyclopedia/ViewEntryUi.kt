@@ -56,6 +56,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -1283,6 +1284,8 @@ private fun TagAddDialog(
 				label = Res.string.encyclopedia_create_entry_tags_label.get(),
 				value = newTagsText,
 				onValueChange = { newTagsText = it },
+				capitalization = KeyboardCapitalization.None,
+				autoCorrectEnabled = false,
 			)
 			HdTagSuggestionStrip(
 				suggestions = suggestions,

@@ -110,6 +110,7 @@ fun ProjectDeleteDialog(
 						hint = projectDef.name,
 						singleLine = true,
 						imeAction = ImeAction.Done,
+						autoCorrectEnabled = false,
 						error = if (showMismatch) "Does not match" else null,
 					)
 				}

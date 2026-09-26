@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanel
@@ -650,6 +651,8 @@ private fun AddTagDialog(
 				onValueChange = { draft = it },
 				placeholder = Res.string.scene_editor_metadata_tags_add_dialog_placeholder.get(),
 				singleLine = true,
+				capitalization = KeyboardCapitalization.None,
+				autoCorrectEnabled = false,
 			)
 
 			SpacerM()

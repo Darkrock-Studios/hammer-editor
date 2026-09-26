@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -294,6 +295,7 @@ internal fun WordCountGoalSection(
 					onValueChange = { input -> if (enabled) count = input.filter(Char::isDigit) },
 					counter = "W",
 					imeAction = ImeAction.Done,
+					keyboardType = KeyboardType.Number,
 				)
 				HdHairlineSegmentedPicker(
 					options = WordCountGoal.Cadence.entries,
