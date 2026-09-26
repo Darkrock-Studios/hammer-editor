@@ -1,14 +1,14 @@
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
 import androidx.compose.ui.text.SpanStyle
-import com.darkrockstudios.apps.hammer.common.projectselection.linkifyChangelog
+import com.darkrockstudios.apps.hammer.common.compose.linkify
 import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-class LinkifyChangelogTest {
+class LinkifyTest {
 
-	private fun linkify(text: String) = linkifyChangelog(text, SpanStyle())
+	private fun linkify(text: String) = linkify(text, SpanStyle())
 
 	private fun AnnotatedString.urls(): List<String> =
 		getLinkAnnotations(0, length)
