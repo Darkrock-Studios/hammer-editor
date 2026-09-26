@@ -918,22 +918,49 @@ the page-one contact block comes from.
 
 ### Style report (`style`)
 
-Built, as a runtime plugin in C: `c/style` in `hammer-plugins`, a 16 KB
+Built, as a runtime plugin in C: `c/style` in `hammer-plugins`, a 37 KB
 package. A "Style report" item in the project menu reports, per scene and for
-the whole story or the scenes chosen, Flesch reading ease and grade level, adverbs per thousand
-words, the share of dialogue, and repeated words and phrases, and shows it in
-the result dialog, from which it can be saved as a note. The rules are English
-only, and its word lists are resources, in `resources/en/`. Dialogue is text in
-double quotes or curly single quotes; straight single quotes are too often
-apostrophes to count.
+the whole story or the scenes chosen, reading ease, adverbs and filter words
+per thousand words, the share of dialogue, and repeated words and phrases, and
+shows it in the result dialog, from which it can be saved as a note.
+
+It reads the project's language through `project.info` and counts by that
+language's rules and word lists, in `resources/<language>/`:
+
+| Language | Reading ease | Adverbs | Dialogue |
+| --- | --- | --- | --- |
+| English | Flesch, with Flesch–Kincaid grade | "-ly" | Double quotes, curly single quotes |
+| French | Kandel–Moles | "-ment" | Guillemets, curly double quotes, lines opening with a dash |
+| German | Amstad | None, as German marks no adverbs | „ “, guillemets either way round, curly double quotes |
+| Spanish | Szigriszt-Pazos | "-mente" | Guillemets, curly double quotes, lines opening with a dash |
+| Italian | Gulpease | "-mente" | Guillemets, curly double quotes, lines opening with a dash |
+| Ukrainian | None | None | Guillemets, „ “, lines opening with a dash |
+
+Syllables are counted as vowel groups in each language's vowels. French and
+Italian split words at an apostrophe, so "l'homme" counts "homme". On a line
+opening with a dash, each later dash moves between speech and narration:
+"—Ven —dijo ella—. Ya." Filter words are verbs of seeing, feeling, and knowing
+("felt", "saw", "realized"; "sentit", "fühlte", "sintió", "sentì", "відчув")
+that put a character between the reader and the scene. The French, Spanish,
+and Italian lists of words ending in "-ment" or "-mente" that are not adverbs
+("moment", "comente") are made from the LibreOffice dictionaries by
+`tools/not-adverbs.py`. A project in a language without lists, or with none,
+gets its words, sentences, and dialogue, and a note that the rest needs lists.
+
+The report is written in the UI's language, from the request's `locale`, in
+English, French, German, Spanish, Italian, or Ukrainian; `locales/` translates
+its labels and settings. Its settings turn filter words and the section for
+each scene on and off, and set how often a word must come up in a scene or in
+the story to be listed as a repeat, and how long each list is.
 
 | Exercises | How |
 | --- | --- |
 | Actions | The manifest declares one action with document output and a `scenes` field; the host asks which scenes, calls the module's `action` export, shows its progress scene by scene, and shows the markdown it returns |
-| Plugin as API consumer | Reads through `scene.tree` and `scene.read`, the two operations it asks for by name, and nothing else: saving is the user's choice, in the dialog |
+| Plugin as API consumer | Reads through `project.info`, `scene.tree`, and `scene.read`, the three operations it asks for by name, and nothing else: saving is the user's choice, in the dialog |
 | A full-book job in C | Counts in the module's own hash maps and arenas, reused scene to scene, so a novel fits the 64 MiB memory cap |
-| The plugin cache | Keeps each scene's counts under a hash of its text, so a run counts only scenes that changed |
-| Resources | Its common words, "-ly" words that are not adverbs, and titles, read at the start of each run |
+| The plugin cache | Keeps each scene's counts under a hash of its text, its language, and its lists, so a run counts only scenes that changed |
+| Resources | Each language's common words, words with its adverb ending that are not adverbs, filter words, and titles, read at the start of each run |
+| Translations | Its report and progress in the UI's language, with that language's plurals and decimal comma, and `locales/*.toml` for its labels |
 
 The whole story's figures are the sum of its scenes' counts, so they need no
 second pass. Its repeated phrases are those repeated within a scene. On a
