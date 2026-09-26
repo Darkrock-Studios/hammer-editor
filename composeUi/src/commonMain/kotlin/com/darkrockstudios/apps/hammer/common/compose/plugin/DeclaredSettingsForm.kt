@@ -1,6 +1,9 @@
 package com.darkrockstudios.apps.hammer.common.compose.plugin
 
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,19 +49,30 @@ fun ColumnScope.DeclaredSettingsForm(
 				label = { option -> option.label },
 			)
 
-			is SettingDeclaration.Number -> NumberField(setting, label, hint, value.longOrNull ?: setting.defaultValue) {
-				onChange(setting.key, JsonPrimitive(it))
+			is SettingDeclaration.Number -> Column {
+				NumberField(setting, label, value.longOrNull ?: setting.defaultValue) { onChange(setting.key, JsonPrimitive(it)) }
+				FieldHint(hint)
 			}
 
-			is SettingDeclaration.Text -> HdHairlineField(
-				label = label,
-				value = value.content,
-				onValueChange = { onChange(setting.key, JsonPrimitive(it)) },
-				hint = hint,
-				singleLine = !setting.multiline,
-			)
+			is SettingDeclaration.Text -> Column {
+				HdHairlineField(
+					label = label,
+					value = value.content,
+					onValueChange = { onChange(setting.key, JsonPrimitive(it)) },
+					singleLine = !setting.multiline,
+				)
+				FieldHint(hint)
+			}
 		}
 	}
+}
+
+// Under the field, as a toggle row shows its hint: a plugin's hints are sentences, too long for the
+// field's own hint beside its label.
+@Composable
+private fun FieldHint(hint: String?) {
+	if (hint == null) return
+	Text(text = hint, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }
 
 /** Keeps what was typed while it is not yet a valid number, and only reports valid ones. */
@@ -66,7 +80,6 @@ fun ColumnScope.DeclaredSettingsForm(
 private fun NumberField(
 	setting: SettingDeclaration.Number,
 	label: String,
-	hint: String?,
 	value: Long,
 	onChange: (Long) -> Unit,
 ) {
@@ -79,7 +92,6 @@ private fun NumberField(
 			typed = entered
 			entered.toLongOrNull()?.let { number -> setting.accept(JsonPrimitive(number))?.longOrNull?.let(onChange) }
 		},
-		hint = hint,
 		error = if (parsed == null) rangeText(setting) else null,
 		keyboardType = KeyboardType.Number,
 	)
