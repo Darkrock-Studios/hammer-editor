@@ -983,9 +983,9 @@ for each that adds it to the encyclopedia as a person. It asks for
 | State across calls | The list's seed rides in the button ids, so each call rebuilds the same names; `random_get` seeds the first |
 | Resources | Each style is a JSON file of word lists and name templates in `resources/styles/`, read the first time it is used and kept with `hammer_alloc_keep` |
 
-### English grammar (`english-grammar`)
+### Harper grammar (`harper-grammar`)
 
-Built, as a runtime plugin in Rust: `rust/english-grammar` in
+Built, as a runtime plugin in Rust: `rust/harper-grammar` in
 `hammer-plugins`, on [Harper](https://github.com/Automattic/harper), with
 Harper's spell check turned off. English only; the project's language picks
 the dialect (American, British, Canadian, Australian, or Indian). Its settings
