@@ -112,8 +112,10 @@ internal fun contentWriteOperations(): List<Operation<*, *>> = listOf(
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val def = project.requireEntry(input.id)
-			if (!project.scope.get<EncyclopediaService>().deleteEntry(def)) error("Could not delete entry ${def.id}")
-			EntrySummary(def.id, def.name, EntryKind.of(def.type))
+			val encyclopedia = project.scope.get<EncyclopediaService>()
+			val aliases = aliasesOf(def, encyclopedia::loadEntry)
+			if (!encyclopedia.deleteEntry(def)) error("Could not delete entry ${def.id}")
+			EntrySummary(def.id, def.name, EntryKind.of(def.type), aliases)
 		}
 	},
 	operation<EntryImageSetInput, Entry>(

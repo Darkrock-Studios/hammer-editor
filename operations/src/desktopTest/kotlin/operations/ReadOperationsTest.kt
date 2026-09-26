@@ -133,7 +133,7 @@ class ReadOperationsTest : KoinOperationsTest() {
 			notes.createNote("Rename the boat")
 
 			val encyclopedia = scope.get<EncyclopediaRepository>()
-			val alice = encyclopedia.createEntry("Alice", EntryType.PERSON, "The keeper.", setOf("cast"), null)
+			val alice = encyclopedia.createEntry("Alice", EntryType.PERSON, "The keeper.", setOf("cast"), null, aliases = listOf("Ally"))
 				.instance!!.entry
 			encyclopedia.createEntry("Lighthouse", EntryType.PLACE, "On the point.", setOf("weather"), null)
 			val aliceDef = alice.toDef(def)
@@ -261,6 +261,7 @@ class ReadOperationsTest : KoinOperationsTest() {
 	fun `entries filter by type and tag`() = onTestThread {
 		val all = run<EntryListInput, Entries>("entry.list", EntryListInput(PROJECT))
 		assertEquals(listOf("Alice", "Lighthouse"), all.entries.map { it.name })
+		assertEquals(listOf(listOf("Ally"), emptyList()), all.entries.map { it.aliases })
 
 		val places = run<EntryListInput, Entries>("entry.list", EntryListInput(PROJECT, type = EntryKind.Place))
 		assertEquals(listOf("Lighthouse"), places.entries.map { it.name })
