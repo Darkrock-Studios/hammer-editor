@@ -9,31 +9,44 @@ import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.serialization.json.Json
+import java.io.IOException
+import java.security.GeneralSecurityException
 
 /**
  * [AuthTokenStore] backed by [EncryptedSharedPreferences] with an Android
  * Keystore-backed master key. The account-keyed token map is stored as JSON in a
  * single encrypted preferences entry.
  */
-class EncryptedSharedPrefsAuthTokenStore(
-	context: Context,
+class EncryptedSharedPrefsAuthTokenStore internal constructor(
 	private val json: Json,
+	private val openPrefs: () -> SharedPreferences,
+	private val deletePrefs: () -> Unit,
 ) : AuthTokenStore {
+
+	constructor(context: Context, json: Json) : this(
+		json = json,
+		openPrefs = { openEncryptedPrefs(context) },
+		deletePrefs = { context.deleteSharedPreferences(PREFS_NAME) },
+	)
 
 	private val lock = reentrantLock()
 
 	private val prefs: SharedPreferences by lazy {
-		val masterKey = MasterKey.Builder(context)
-			.setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-			.build()
+		try {
+			openPrefs()
+		} catch (e: GeneralSecurityException) {
+			recreatePrefs(e)
+		} catch (e: IOException) {
+			recreatePrefs(e)
+		}
+	}
 
-		EncryptedSharedPreferences.create(
-			context,
-			PREFS_NAME,
-			masterKey,
-			EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-			EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
-		)
+	// The keyset lives in the prefs file but its master key lives in the Keystore, which is
+	// never backed up, so a restored or orphaned file is undecryptable. Start over (forces re-login).
+	private fun recreatePrefs(cause: Exception): SharedPreferences {
+		Napier.w("Auth token keyset is unreadable; recreating the store", cause)
+		deletePrefs()
+		return openPrefs()
 	}
 
 	override fun get(url: String, userId: Long): AuthTokens? = lock.withLock {
@@ -54,11 +67,11 @@ class EncryptedSharedPrefsAuthTokenStore(
 	}
 
 	private fun loadMap(): Map<String, AuthTokens> {
-		val stored = prefs.getString(TOKENS_KEY, null) ?: return emptyMap()
 		return try {
+			val stored = prefs.getString(TOKENS_KEY, null) ?: return emptyMap()
 			json.decodeFromString<Map<String, AuthTokens>>(stored)
 		} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
-			Napier.w("Failed to parse encrypted auth tokens; treating as empty", e)
+			Napier.w("Failed to read encrypted auth tokens; treating as empty", e)
 			emptyMap()
 		}
 	}
@@ -70,5 +83,19 @@ class EncryptedSharedPrefsAuthTokenStore(
 	companion object {
 		private const val PREFS_NAME = "hammer_auth_tokens"
 		private const val TOKENS_KEY = "tokens"
+
+		private fun openEncryptedPrefs(context: Context): SharedPreferences {
+			val masterKey = MasterKey.Builder(context)
+				.setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+				.build()
+
+			return EncryptedSharedPreferences.create(
+				context,
+				PREFS_NAME,
+				masterKey,
+				EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+				EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
+			)
+		}
 	}
 }
