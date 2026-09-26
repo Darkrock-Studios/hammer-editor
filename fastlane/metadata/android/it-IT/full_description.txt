@@ -1,25 +1,25 @@
-Please join our Discord to report issues! https://discord.gg/GTmgjZcupk
+Unisciti al nostro Discord per segnalare eventuali problemi! https://discord.gg/GTmgjZcupk
 
 Multipiattaforma
 
-This app is where ever you are. Your phone, tablet, desktop, laptop, this program can be installed and run, not simply a website-in-a-box, but instead using native client side technologies to provide the best experience possible.
+Questa app ti segue ovunque tu sia. Che tu usi telefono, tablet, desktop o portatile, il programma può essere installato ed eseguito; non si tratta di una semplice "pagina web in un contenitore", bensì di un'applicazione che sfrutta tecnologie native lato client per offrire la migliore esperienza possibile.
 
-Offline first
+Approccio "Offline-first"
 
-I was frustrated with most of the story writing software I was finding as they were using web technologies (aka: Web Page in a box) which always seems to run into problems while being used offline for long periods of time. Hammer is designed from the ground up to be entirely local, no internet connection required, ever.
+Ero insoddisfatto della maggior parte dei software di scrittura creativa in circolazione, poiché basati su tecnologie web (ovvero "pagine web in un contenitore") che tendevano a dare problemi durante l'uso offline prolungato. Hammer è stato progettato fin dalle fondamenta per funzionare interamente in locale: non richiede mai una connessione a Internet.
 
 Dati trasparenti
 
-Your data is yours. It's not stored in the cloud, or some opaque database. It is stored in simple, human readable files, just using files and folders to define the project structure. You can open your OSes file browser and take a look for your self. If this program went away today you would be able to easily interact with your data.
+I tuoi dati sono tuoi. Non vengono archiviati nel cloud o in database opachi, ma in file semplici e leggibili dall'utente, utilizzando una struttura di file e cartelle per organizzare il progetto. Puoi controllare tu stesso la struttura tramite il file manager del tuo sistema operativo. Anche se il programma dovesse sparire oggi, potresti comunque accedere facilmente ai tuoi dati.
 
-Intelligent Syncing between devices
+Sincronizzazione intelligente tra dispositivi
 
-Your data can be synchronized between devices allowing you to work on your story from anywhere, and have no fear of a change on one device, overwriting a change on another device.
+I dati possono essere sincronizzati tra i vari dispositivi, permettendoti di lavorare alla tua storia ovunque ti trovi, senza il timore che una modifica su un dispositivo sovrascriva quella effettuata su un altro.
 
-Optional and Self hosted Syncing
+Sincronizzazione opzionale e self-hosted
 
-Syncing is entirely optional, you can install the client and use it on one device, or you can install the server and sync your data between devices.
+La sincronizzazione è del tutto facoltativa: puoi installare il client e usarlo su un singolo dispositivo, oppure installare il server per sincronizzare i dati tra più dispositivi.
 
-Wear OS companion
+Companion per Wear OS
 
-Capture notes and story ideas from your wrist with the Wear OS app, then pick them up on your other devices. Dictate or type a quick note and file it under a project. Add the Capture tile to start a note or story idea in a single tap, or put the Hammer complication on your watch face to open a new note. The watch app syncs through your Hammer sync server.
+Cattura appunti e idee per la storia direttamente dal polso con l'app per Wear OS, per poi riprenderli sugli altri dispositivi. Dettare o digitare una nota veloce e associarla a un progetto è semplicissimo. Aggiungi il riquadro (tile) "Capture" per avviare una nota o un'idea con un solo tocco, oppure inserisci la complicazione Hammer sul quadrante dell'orologio per aprire subito una nuova nota. L'app per smartwatch si sincronizza tramite il tuo server Hammer dedicato.
