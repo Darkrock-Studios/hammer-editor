@@ -19,6 +19,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
@@ -26,6 +28,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineBut
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineDialogShell
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineToggleRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.linkify
 import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginSettingsPane
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
@@ -335,7 +338,10 @@ private fun PluginDetails(
 	operations: OperationRegistry,
 ) {
 	Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-		manifest.description?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+		manifest.description?.let { description ->
+			val linkStyle = SpanStyle(color = MaterialTheme.colorScheme.primary, textDecoration = TextDecoration.Underline)
+			Text(linkify(description, linkStyle), style = MaterialTheme.typography.bodyMedium)
+		}
 		Text(Res.string.plugin_install_version.get(manifest.version), style = MaterialTheme.typography.bodyMedium)
 		size?.let { Text(packageSize(it), style = MaterialTheme.typography.bodyMedium) }
 		if (manifest.languages.isNotEmpty()) {

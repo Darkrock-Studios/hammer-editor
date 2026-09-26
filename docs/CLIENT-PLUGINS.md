@@ -1091,7 +1091,7 @@ id = "wordfreq"               # lowercase, directory-safe
 name = "Word Frequency"
 version = "1.0.0"
 api = 1                       # host API version the plugin was built against
-description = "Counts how often each word appears, as a spreadsheet."  # optional, up to 1,000 characters
+description = "Counts how often each word appears, as a spreadsheet."  # optional, up to 1,000 characters; links are clickable
 languages = ["en"]            # optional: the project languages it works with
 
 [permissions]
@@ -1127,7 +1127,9 @@ The install dialog, and the Info button beside each installed plugin, show its
 description, version, package size, `languages`, the languages its
 `locales/` translate it into, what it may use, and what it adds. `languages`
 is only shown: a project in another language still gets the plugin's checks
-and actions, which decide for themselves what to do with it.
+and actions, which decide for themselves what to do with it. A description's links, bare
+`https://` URLs or `[label](https://...)`, can be clicked; nothing else in it
+is formatted.
 
 A module may be as large as its memory limit plus 32 MiB, since a
 pre-initialized module carries its memory's data. The install dialog says when
