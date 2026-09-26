@@ -932,7 +932,7 @@ that remains.
 ### Simple grammar (`simple-grammar`)
 
 Built, as a runtime plugin in C: `c/simple-grammar` in `hammer-plugins`, a
-14 KB package. Underlines slips in English prose that a spell checker passes,
+16 KB package. Underlines slips in English prose that a spell checker passes,
 since every word in them is a real one. Its settings turn groups of rules on
 and off:
 
@@ -948,8 +948,12 @@ and off:
 
 The rules flag only what they are sure of ("had had" passes, "a" and "an" are
 left alone before words starting with "h" or "u", and "better then." at the end
-of a sentence is the time), and a project in another language gets nothing.
-Fixes use curly apostrophes where the paragraph does. Every rule is one pass
+of a sentence is the time). Its word and phrase lists are resources, in
+`resources/<language>/`, read once and kept for as long as projects in that
+language are checked; a project in a language with no lists gets nothing. A
+new language is a folder of lists, and gets every rule but "a" and "an", a
+lower-case "i", and "then" for "than", which are English's own. The
+punctuation rules assume English typography. Fixes use curly apostrophes where the paragraph does. Every rule is one pass
 over a paragraph with small tables: 40 paragraphs of 77 words take about 190 ms
 under chasm with every group on, against 25 to 30 ms a paragraph for English
 grammar.
@@ -960,6 +964,7 @@ grammar.
 | Declared settings | Seven toggles and a number in `settings.toml`, read from the request |
 | Offsets across the boundary | Byte offsets from C, turned into the editor's UTF-16 ranges by the host |
 | The C kit | `hammer_diagnose.h` reads the request and writes the reply, so the plugin is its rules; `hammer_test.h` tests them natively |
+| Resources | Its lists, one folder per language, copied into a static buffer on first use |
 
 ### Name generator (`name-generator`)
 
