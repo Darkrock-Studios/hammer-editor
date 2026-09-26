@@ -22,6 +22,7 @@ import net.peanuuutz.tomlkt.Toml
 @Serializable
 class PluginTranslation(
 	val name: String? = null,
+	val description: String? = null,
 	/** By export format. */
 	val exporters: Map<String, Text> = emptyMap(),
 	val actions: Map<String, ActionText> = emptyMap(),
@@ -68,6 +69,7 @@ internal fun translate(manifest: PluginManifest, translations: List<PluginTransl
 	fun <T> first(pick: (PluginTranslation) -> T?): T? = translations.firstNotNullOfOrNull(pick)
 	return manifest.copy(
 		name = first { it.name } ?: manifest.name,
+		description = first { it.description } ?: manifest.description,
 		exporters = manifest.exporters.map { exporter ->
 			exporter.copy(label = first { it.exporters[exporter.format]?.label } ?: exporter.label)
 		},

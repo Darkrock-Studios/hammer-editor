@@ -3,6 +3,8 @@ package com.darkrockstudios.apps.hammer.common.projectselection.settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +30,8 @@ import com.darkrockstudios.apps.hammer.common.compose.plugin.PluginSettingsPane
 import com.darkrockstudios.apps.hammer.common.compose.rememberIoDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
+import com.darkrockstudios.apps.hammer.common.spellcheck.displayName
+import com.darkrockstudios.apps.hammer.common.util.Locale
 import com.darkrockstudios.apps.hammer.common.getCacheDirectory
 import com.darkrockstudios.apps.hammer.composeui.resources.*
 import com.darkrockstudios.apps.hammer.operations.Access
@@ -73,6 +77,7 @@ internal fun ColumnScope.RuntimePluginsSection(
 
 	var installed by remember { mutableStateOf<List<InstalledPlugin>?>(null) }
 	var pending by remember { mutableStateOf<PendingInstall?>(null) }
+	var details by remember { mutableStateOf<InstalledPlugin?>(null) }
 	var failure by remember { mutableStateOf<String?>(null) }
 
 	suspend fun refresh() {
@@ -110,6 +115,7 @@ internal fun ColumnScope.RuntimePluginsSection(
 		InstalledPluginRow(
 			plugin = plugin,
 			onEnabledChange = { enabled -> change { runtimePlugins.setEnabled(plugin.id, enabled) } },
+			onDetails = { details = plugin },
 			onSettings = settings(plugin.id)?.let { { onOpenSettings(plugin.id) } },
 			onUninstall = { change { runtimePlugins.uninstall(plugin.id) } },
 		)
@@ -172,6 +178,8 @@ internal fun ColumnScope.RuntimePluginsSection(
 			pending = null
 		},
 	)
+
+	DetailsDialog(plugin = details, operations = operations, onDismiss = { details = null })
 }
 
 /** [size] is the package's, which is what installing it keeps. */
@@ -219,10 +227,12 @@ private fun stage(fileSystem: FileSystem, bytes: ByteArray): Path {
 
 private const val STAGING_DIRECTORY = "plugin-install"
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun InstalledPluginRow(
 	plugin: InstalledPlugin,
 	onEnabledChange: (Boolean) -> Unit,
+	onDetails: () -> Unit,
 	/** Null when the plugin is not active or has no settings. */
 	onSettings: (() -> Unit)?,
 	onUninstall: () -> Unit,
@@ -243,6 +253,7 @@ private fun InstalledPluginRow(
 		)
 	}
 	val buttons: @Composable () -> Unit = {
+		if (manifest != null) HdHairlineButton(label = Res.string.plugin_runtime_details_open.get(), onClick = onDetails)
 		onSettings?.let { HdHairlineButton(label = Res.string.plugin_settings_open.get(), onClick = it) }
 		var confirming by remember(plugin.id) { mutableStateOf(false) }
 		HdHairlineButton(
@@ -256,7 +267,9 @@ private fun InstalledPluginRow(
 	if (LocalScreenCharacteristic.current.windowWidthClass == WindowWidthSizeClass.Compact) {
 		Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
 			toggle(Modifier.fillMaxWidth())
-			Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) { buttons() }
+			FlowRow(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+				buttons()
+			}
 		}
 	} else {
 		Row(
@@ -290,67 +303,9 @@ private fun InstallDialog(
 			closeContentDescription = Res.string.plugin_install_close.get(),
 		) {
 			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-				Text(Res.string.plugin_install_version.get(manifest.version), style = MaterialTheme.typography.bodyMedium)
-				Text(packageSize(install.size), style = MaterialTheme.typography.bodyMedium)
+				PluginDetails(manifest, install.size, install.plugin.translations.keys, manifest.permissions.operations, operations)
 				replacing?.manifest?.let {
 					Text(Res.string.plugin_install_replaces.get(it.version), style = MaterialTheme.typography.bodyMedium)
-				}
-				Text(Res.string.plugin_install_sandbox.get(), style = MaterialTheme.typography.bodyMedium)
-
-				val grants = manifest.permissions.operations.mapNotNull(OperationGrant::parse)
-				val byAccess = grants.groupBy { it.access(operations) }
-				val reads = byAccess[Access.Read].orEmpty().map { it.label() }
-				val changes = (byAccess[Access.Write].orEmpty() + byAccess[null].orEmpty()).map { it.label() }
-				val deletes = byAccess[Access.Destructive].orEmpty().map { it.label() }
-				if (grants.isEmpty()) {
-					Text(Res.string.plugin_install_no_access.get(), style = MaterialTheme.typography.bodyMedium)
-				}
-				if (reads.isNotEmpty()) {
-					Text(Res.string.plugin_install_reads.get(reads.joinToString()), style = MaterialTheme.typography.bodyMedium)
-				}
-				if (changes.isNotEmpty()) {
-					Text(
-						text = Res.string.plugin_install_writes.get(changes.joinToString()),
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.error,
-					)
-				}
-				if (deletes.isNotEmpty()) {
-					Text(
-						text = Res.string.plugin_install_deletes.get(deletes.joinToString()),
-						style = MaterialTheme.typography.bodyMedium,
-						color = MaterialTheme.colorScheme.error,
-					)
-				}
-				if (manifest.exporters.isNotEmpty()) {
-					Text(
-						text = Res.string.plugin_install_exports.get(manifest.exporters.joinToString { it.label }),
-						style = MaterialTheme.typography.bodyMedium,
-					)
-				}
-				if (manifest.actions.isNotEmpty()) {
-					Text(
-						text = Res.string.plugin_install_actions.get(manifest.actions.joinToString { it.label }),
-						style = MaterialTheme.typography.bodyMedium,
-					)
-				}
-				if (manifest.commands.isNotEmpty()) {
-					Text(
-						text = Res.string.plugin_install_commands.get(manifest.commands.joinToString { "hammer ${it.name}" }),
-						style = MaterialTheme.typography.bodyMedium,
-					)
-				}
-				if (manifest.diagnostics.isNotEmpty()) {
-					Text(
-						text = Res.string.plugin_install_diagnostics.get(manifest.diagnostics.joinToString { it.label }),
-						style = MaterialTheme.typography.bodyMedium,
-					)
-				}
-				if (manifest.limits.memory > PluginManifest.DEFAULT_MEMORY_MIB) {
-					Text(
-						text = Res.string.plugin_install_memory.get(manifest.limits.memory.toString()),
-						style = MaterialTheme.typography.bodyMedium,
-					)
 				}
 
 				Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -361,6 +316,115 @@ private fun InstallDialog(
 						emphasised = true,
 					)
 				}
+			}
+		}
+	}
+}
+
+/**
+ * What a plugin is, what it may use, and what it adds, as the install prompt and its details show it.
+ * [size] is its package's, and [translations] its translations' language tags.
+ */
+@Composable
+private fun PluginDetails(
+	manifest: PluginManifest,
+	size: Long?,
+	translations: Collection<String>,
+	/** What it may use: what its manifest asks for, or for an installed plugin, what the user granted. */
+	permissions: List<String>,
+	operations: OperationRegistry,
+) {
+	Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+		manifest.description?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+		Text(Res.string.plugin_install_version.get(manifest.version), style = MaterialTheme.typography.bodyMedium)
+		size?.let { Text(packageSize(it), style = MaterialTheme.typography.bodyMedium) }
+		if (manifest.languages.isNotEmpty()) {
+			Text(Res.string.plugin_details_languages.get(languageNames(manifest.languages)), style = MaterialTheme.typography.bodyMedium)
+		}
+		if (translations.isNotEmpty()) {
+			Text(Res.string.plugin_details_translations.get(languageNames(translations)), style = MaterialTheme.typography.bodyMedium)
+		}
+		Text(Res.string.plugin_install_sandbox.get(), style = MaterialTheme.typography.bodyMedium)
+
+		val grants = permissions.mapNotNull(OperationGrant::parse)
+		val byAccess = grants.groupBy { it.access(operations) }
+		val reads = byAccess[Access.Read].orEmpty().map { it.label() }
+		val changes = (byAccess[Access.Write].orEmpty() + byAccess[null].orEmpty()).map { it.label() }
+		val deletes = byAccess[Access.Destructive].orEmpty().map { it.label() }
+		if (grants.isEmpty()) {
+			Text(Res.string.plugin_install_no_access.get(), style = MaterialTheme.typography.bodyMedium)
+		}
+		if (reads.isNotEmpty()) {
+			Text(Res.string.plugin_install_reads.get(reads.joinToString()), style = MaterialTheme.typography.bodyMedium)
+		}
+		if (changes.isNotEmpty()) {
+			Text(
+				text = Res.string.plugin_install_writes.get(changes.joinToString()),
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.error,
+			)
+		}
+		if (deletes.isNotEmpty()) {
+			Text(
+				text = Res.string.plugin_install_deletes.get(deletes.joinToString()),
+				style = MaterialTheme.typography.bodyMedium,
+				color = MaterialTheme.colorScheme.error,
+			)
+		}
+		if (manifest.exporters.isNotEmpty()) {
+			Text(
+				text = Res.string.plugin_install_exports.get(manifest.exporters.joinToString { it.label }),
+				style = MaterialTheme.typography.bodyMedium,
+			)
+		}
+		if (manifest.actions.isNotEmpty()) {
+			Text(
+				text = Res.string.plugin_install_actions.get(manifest.actions.joinToString { it.label }),
+				style = MaterialTheme.typography.bodyMedium,
+			)
+		}
+		if (manifest.commands.isNotEmpty()) {
+			Text(
+				text = Res.string.plugin_install_commands.get(manifest.commands.joinToString { "hammer ${it.name}" }),
+				style = MaterialTheme.typography.bodyMedium,
+			)
+		}
+		if (manifest.diagnostics.isNotEmpty()) {
+			Text(
+				text = Res.string.plugin_install_diagnostics.get(manifest.diagnostics.joinToString { it.label }),
+				style = MaterialTheme.typography.bodyMedium,
+			)
+		}
+		if (manifest.limits.memory > PluginManifest.DEFAULT_MEMORY_MIB) {
+			Text(
+				text = Res.string.plugin_install_memory.get(manifest.limits.memory.toString()),
+				style = MaterialTheme.typography.bodyMedium,
+			)
+		}
+	}
+}
+
+private fun languageNames(tags: Collection<String>): String =
+	tags.joinToString { Locale.forLanguageTag(it.replace('_', '-')).displayName() }
+
+@Composable
+private fun DetailsDialog(plugin: InstalledPlugin?, operations: OperationRegistry, onDismiss: () -> Unit) {
+	// Kept after plugin clears, so the dialog still has its content while it animates out.
+	var shown by remember { mutableStateOf(plugin) }
+	if (plugin != null) shown = plugin
+	AnimatedDialog(visible = plugin != null, onCloseRequest = onDismiss) {
+		val installed = shown ?: return@AnimatedDialog
+		val manifest = installed.manifest ?: return@AnimatedDialog
+		HdHairlineDialogShell(
+			title = manifest.name,
+			onClose = { requestDismiss() },
+			closeContentDescription = Res.string.plugin_details_close.get(),
+		) {
+			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+				// Only what the manifest still asks for applies.
+				val permissions = installed.granted.filter { it in manifest.permissions.operations }
+				PluginDetails(manifest, installed.size, installed.translations, permissions, operations)
+				HdHairlineButton(label = Res.string.plugin_details_done.get(), onClick = { requestDismiss() })
 			}
 		}
 	}
