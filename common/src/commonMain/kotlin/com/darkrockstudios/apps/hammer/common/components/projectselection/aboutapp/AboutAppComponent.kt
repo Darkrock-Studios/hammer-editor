@@ -10,7 +10,9 @@ import com.darkrockstudios.apps.hammer.base.RELEASES_LATEST_URL
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getLogDirectory
+import com.darkrockstudios.apps.hammer.common.startupBanner
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
+import com.darkrockstudios.apps.hammer.common.util.buildBugReportUrl
 
 class AboutAppComponent(
 	componentContext: ComponentContext,
@@ -40,6 +42,10 @@ class AboutAppComponent(
 
 	override fun openLatestRelease() {
 		urlLauncher.openInBrowser(RELEASES_LATEST_URL)
+	}
+
+	override fun reportBug() {
+		urlLauncher.openInBrowser(buildBugReportUrl(environment = startupBanner()))
 	}
 
 	private fun getLogDirectoryPath(): String {
