@@ -33,10 +33,12 @@ class WholeWordCaseSensitiveMatcher : NameMatcher {
 	}
 
 	companion object {
-		// Reject only adjacent letters/digits/underscores — punctuation and whitespace are fine
-		// on either side. This is more permissive than `\b`, which would fail when the name
-		// itself starts or ends with a non-word character (e.g. an alias "Mr. Smith").
-		private const val NO_WORD_BEFORE = "(?<![A-Za-z0-9_])"
-		private const val NO_WORD_AFTER = "(?![A-Za-z0-9_])"
+		// Reject only adjacent letters/combining marks/digits/underscores in any script;
+		// punctuation and whitespace are fine on either side. This is more permissive than `\b`,
+		// which would fail when the name itself starts or ends with a non-word character
+		// (e.g. an alias "Mr. Smith").
+		private const val WORD_CHAR = """[\p{L}\p{M}\p{N}_]"""
+		private const val NO_WORD_BEFORE = "(?<!$WORD_CHAR)"
+		private const val NO_WORD_AFTER = "(?!$WORD_CHAR)"
 	}
 }

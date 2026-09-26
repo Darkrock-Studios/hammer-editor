@@ -115,6 +115,90 @@ class WholeWordCaseSensitiveMatcherTest {
 	}
 
 	@Test
+	fun `Alias ending in punctuation matches`() {
+		val hits = matcher.findMatches("Smith Jr. arrived.", listOf(entry(1, "Smith Jr.")))
+		assertEquals(1, hits.size)
+	}
+
+	@Test
+	fun `Accented letter after name blocks match`() {
+		val hits = matcher.findMatches("Anaïs and Anaé left.", listOf(entry(1, "Ana")))
+		assertEquals(0, hits.size)
+	}
+
+	@Test
+	fun `Accented letter before name blocks match`() {
+		val hits = matcher.findMatches("éBob and ñBob left.", listOf(entry(1, "Bob")))
+		assertEquals(0, hits.size)
+	}
+
+	@Test
+	fun `Name ending in accented letter matches whole word`() {
+		val hits = matcher.findMatches("Zoë smiled. Zoë's hat.", listOf(entry(1, "Zoë")))
+		assertEquals(2, hits.size)
+	}
+
+	@Test
+	fun `Name ending in accented letter does not match longer word`() {
+		val hits = matcher.findMatches("Zoëlle smiled.", listOf(entry(1, "Zoë")))
+		assertEquals(0, hits.size)
+	}
+
+	@Test
+	fun `Combining mark after name blocks match`() {
+		val hits = matcher.findMatches("Jose\u0301 arrived.", listOf(entry(1, "Jose")))
+		assertEquals(0, hits.size)
+	}
+
+	@Test
+	fun `Decomposed name matches decomposed text`() {
+		val hits = matcher.findMatches("Jose\u0301 arrived.", listOf(entry(1, "Jose\u0301")))
+		assertEquals(1, hits.size)
+	}
+
+	@Test
+	fun `Cyrillic name does not match inside longer word`() {
+		val hits = matcher.findMatches("Иванов пришёл.", listOf(entry(1, "Иван")))
+		assertEquals(0, hits.size)
+	}
+
+	@Test
+	fun `Cyrillic name matches whole word`() {
+		val hits = matcher.findMatches("Иван пришёл, и Иван ушёл.", listOf(entry(1, "Иван")))
+		assertEquals(2, hits.size)
+	}
+
+	@Test
+	fun `Greek name does not match inside longer word`() {
+		val hits = matcher.findMatches("Νίκοσα και αΝίκος", listOf(entry(1, "Νίκο")))
+		assertEquals(0, hits.size)
+	}
+
+	@Test
+	fun `Adjacent digits block match`() {
+		val hits = matcher.findMatches("Bob2 and 2Bob and Bob٣ left.", listOf(entry(1, "Bob")))
+		assertEquals(0, hits.size)
+	}
+
+	@Test
+	fun `Unicode punctuation and whitespace neighbors match`() {
+		val hits = matcher.findMatches(
+			"«Zoë» \u201cZoë\u201d Zoë\u00a0left ¿Zoë?",
+			listOf(entry(1, "Zoë")),
+		)
+		assertEquals(4, hits.size)
+	}
+
+	@Test
+	fun `Multi-token alias with accented letters matches whole word`() {
+		val hits = matcher.findMatches(
+			"Dr. Müller arrived. Dr. Müllers left.",
+			listOf(entry(1, "Dr. Müller")),
+		)
+		assertEquals(1, hits.size)
+	}
+
+	@Test
 	fun `Empty alias is skipped without crashing`() {
 		val hits = matcher.findMatches("anything", listOf(entry(1, "")))
 		assertEquals(0, hits.size)
