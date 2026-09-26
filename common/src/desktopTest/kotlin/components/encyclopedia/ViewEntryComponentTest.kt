@@ -1,9 +1,5 @@
 package components.encyclopedia
 
-import com.arkivanov.decompose.ComponentContext
-import com.arkivanov.essenty.backhandler.BackHandler
-import com.arkivanov.essenty.lifecycle.Lifecycle
-import com.arkivanov.essenty.statekeeper.StateKeeper
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntryComponent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
@@ -23,24 +19,12 @@ import org.junit.jupiter.api.Test
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import repositories.encyclopedia.fakeEntry
-import utils.BaseTest
+import utils.ComponentTest
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class ViewEntryComponentTest : BaseTest() {
-
-	@MockK
-	lateinit var backHandler: BackHandler
-
-	@MockK
-	lateinit var stateKeeper: StateKeeper
-
-	@MockK
-	lateinit var lifecycle: Lifecycle
-
-	@MockK
-	private lateinit var context: ComponentContext
+class ViewEntryComponentTest : ComponentTest() {
 
 	@MockK
 	private lateinit var encyclopediaService: EncyclopediaService
@@ -61,13 +45,7 @@ class ViewEntryComponentTest : BaseTest() {
 			single<SceneRepository> { mockk(relaxed = true) }
 			single { backfillEntryReferences } bind BackfillEntryReferencesUseCase::class
 		}
-		setupKoin(testModule)
-
-		every { lifecycle.state } returns Lifecycle.State.STARTED
-		every { context.lifecycle } returns lifecycle
-		every { context.backHandler } returns backHandler
-		every { context.stateKeeper } returns stateKeeper
-		every { backHandler.register(any()) } just Runs
+		setupComponentKoin(testModule)
 	}
 
 	@Test

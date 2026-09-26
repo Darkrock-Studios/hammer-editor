@@ -65,6 +65,8 @@
 	<string name="encyclopedia_entry_menu_delete">Delete Entry</string>
 	<string name="encyclopedia_entry_menu_remove_image">Remove Image</string>
 	<string name="encyclopedia_entry_menu_add_image">Add Image</string>
+	<string name="encyclopedia_entry_menu_rename">Rename Everywhere…</string>
+	<string name="encyclopedia_entry_rename_draft_name">Before renaming %1$s</string>
 	<string name="encyclopedia_entry_add_tags_dialog_title">Add Tags</string>
 	<string name="encyclopedia_entry_add_tags_button">Add Tags</string>
 

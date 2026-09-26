@@ -17,6 +17,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.router.stack.ChildStack
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
@@ -24,6 +25,7 @@ import com.darkrockstudios.apps.hammer.common.components.encyclopedia.BrowseEntr
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.CreateEntry
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.Encyclopedia
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
+import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.RenameEntry
 import com.darkrockstudios.apps.hammer.common.components.projectroot.CloseConfirm
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
@@ -332,6 +334,9 @@ val fakeViewEntryComponent: ViewEntry = object : ViewEntry {
 	override suspend fun setExcludeFromDictionary(exclude: Boolean) =
 		EntryResult(EntryContainer(fakeEntryContent()), EntryError.NONE)
 	override fun navigateToAppearance(appearance: ViewEntry.Appearance) {}
+	override val renameSlot: Value<ChildSlot<*, RenameEntry>> = MutableValue(ChildSlot<Any, RenameEntry>())
+	override fun showRename() {}
+	override fun dismissRename() {}
 	override fun suggestTags(prefix: String, limit: Int): List<String> = emptyList()
 }
 
