@@ -3,6 +3,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsProvider
+import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsRequest
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -63,7 +64,7 @@ class SimpleGrammarPluginTest {
 
 	/** Each issue in [paragraph] as the text it covers, then its fixes. */
 	private fun issues(paragraph: String, language: String? = "en"): List<String> {
-		val found = runBlocking { check.diagnose(listOf(paragraph), language) }.single()
+		val found = runBlocking { check.diagnose(TextDiagnosticsRequest(listOf(paragraph), language, "Project")) }.single()
 		return found.map { paragraph.substring(it.start, it.end) + " -> " + it.fixes.joinToString("|") { fix -> fix.replacement } }
 	}
 
@@ -118,7 +119,7 @@ class SimpleGrammarPluginTest {
 	@Test
 	fun `dialogue tags and the spaces around quotes`() {
 		assertEquals(listOf(". -> ,", "S -> s"), issues("\"Wait.\" she said. \"Go,\" She said."))
-		val found = runBlocking { check.diagnose(listOf("\"Wait,\"she said."), "en") }.single().single()
+		val found = runBlocking { check.diagnose(TextDiagnosticsRequest(listOf("\"Wait,\"she said."), "en", "Project")) }.single().single()
 		assertEquals(listOf("\" " to "Add a space"), found.fixes.map { it.replacement to it.label })
 	}
 
@@ -158,7 +159,7 @@ class SimpleGrammarPluginTest {
 		val french = load(locale = "fr-FR")
 		assertEquals("Grammaire simple", french.label)
 		assertEquals("Fautes de mots", registry.settings("simple-grammar")!!.declarations.first().label)
-		val found = runBlocking { french.diagnose(listOf("It a a dog."), "en") }.single().single()
+		val found = runBlocking { french.diagnose(TextDiagnosticsRequest(listOf("It a a dog."), "en", "Project")) }.single().single()
 		assertEquals("Mot répété", found.message)
 	}
 }

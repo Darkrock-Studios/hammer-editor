@@ -2,6 +2,8 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
+import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticSeverity
+import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsRequest
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -66,13 +68,13 @@ class HarperGrammarPluginTest {
 
 	/** Each issue in [paragraph] as the text it covers, then its fixes. */
 	private fun issues(paragraph: String, language: String? = "en"): List<String> {
-		val found = runBlocking { check.diagnose(listOf(paragraph), language) }.single()
+		val found = runBlocking { check.diagnose(TextDiagnosticsRequest(listOf(paragraph), language, "Project")) }.single()
 		return found.map { paragraph.substring(it.start, it.end) + " -> " + it.fixes.joinToString("|") { fix -> fix.replacement } }
 	}
 
 	/** The messages of the issues in [paragraph]. */
 	private fun messages(paragraph: String): List<String> =
-		runBlocking { check.diagnose(listOf(paragraph), "en") }.single().map { it.message }
+		runBlocking { check.diagnose(TextDiagnosticsRequest(listOf(paragraph), "en", "Project")) }.single().map { it.message }
 
 	@Test
 	fun `settings turn off long sentences and whole categories`() {
@@ -92,9 +94,20 @@ class HarperGrammarPluginTest {
 	}
 
 	@Test
+	fun `style issues are suggestions, and mistakes errors`() {
+		val long = "When the storm finally broke over the valley late that evening, the old farmer and his two sons " +
+			"hurried out across the muddy fields to gather the frightened sheep, calling to one another over the " +
+			"wind while the rain soaked through their coats and the lanterns flickered like a ember."
+		val found = runBlocking { check.diagnose(TextDiagnosticsRequest(listOf(long), "en", "Project")) }.single()
+
+		assertEquals(TextDiagnosticSeverity.Suggestion, found.single { "words long" in it.message }.severity)
+		assertTrue(found.any { it.severity == TextDiagnosticSeverity.Error }, found.map { it.message }.toString())
+	}
+
+	@Test
 	fun `the same words get one issue, with every rule's fixes`() {
 		val paragraph = "He said that that the plan was fine."
-		val found = runBlocking { check.diagnose(listOf(paragraph), "en") }.single()
+		val found = runBlocking { check.diagnose(TextDiagnosticsRequest(listOf(paragraph), "en", "Project")) }.single()
 			.filter { paragraph.substring(it.start, it.end) == "that that" }
 
 		assertEquals(1, found.size, found.map { it.message }.toString())
@@ -105,7 +118,7 @@ class HarperGrammarPluginTest {
 
 	@Test
 	fun `a fix that inserts says what it inserts`() {
-		val fixes = runBlocking { check.diagnose(listOf("However the plan worked."), "en") }.single().flatMap { it.fixes }
+		val fixes = runBlocking { check.diagnose(TextDiagnosticsRequest(listOf("However the plan worked."), "en", "Project")) }.single().flatMap { it.fixes }
 
 		assertTrue(fixes.any { it.label == "Insert “,”" && it.replacement == "However," }, fixes.map { it.replacement to it.label }.toString())
 	}

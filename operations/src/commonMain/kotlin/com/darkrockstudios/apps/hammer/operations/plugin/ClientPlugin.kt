@@ -34,11 +34,24 @@ interface ClientPlugin {
 class TextDiagnosticsProvider(
 	val label: String,
 	/**
-	 * The issues in each of the paragraphs, in the same order. Paragraphs are plain text, without
-	 * markdown; `language` is the project's BCP 47 tag, or null. Runs off the main thread, and returns
-	 * nothing for paragraphs it cannot check rather than throwing.
+	 * Whether it needs every paragraph of the scene each time, blank ones included, as when an issue
+	 * depends on other paragraphs. Otherwise it gets only the paragraphs whose text it has not checked.
 	 */
-	val diagnose: suspend (paragraphs: List<String>, language: String?) -> List<List<TextDiagnostic>>,
+	val wholeScene: Boolean = false,
+	/**
+	 * The issues in each of the request's paragraphs, in the same order. Runs off the main thread, and
+	 * returns nothing for paragraphs it cannot check rather than throwing.
+	 */
+	val diagnose: suspend (TextDiagnosticsRequest) -> List<List<TextDiagnostic>>,
+)
+
+class TextDiagnosticsRequest(
+	/** Plain text, without markdown. */
+	val paragraphs: List<String>,
+	/** The project's BCP 47 tag, or null. */
+	val language: String?,
+	/** The name of the project the text belongs to. */
+	val project: String,
 )
 
 /** An issue in one paragraph, from [start] to [end] as UTF-16 offsets into it. */
@@ -48,7 +61,16 @@ class TextDiagnostic(
 	val message: String,
 	/** Offered to the user. */
 	val fixes: List<TextFix> = emptyList(),
+	val severity: TextDiagnosticSeverity = TextDiagnosticSeverity.Error,
 )
+
+enum class TextDiagnosticSeverity {
+	/** A mistake. */
+	Error,
+
+	/** Something the writer may want to change, marked more quietly. */
+	Suggestion,
+}
 
 /** [replacement] for a [TextDiagnostic]'s range, shown to the user as [label]. */
 class TextFix(

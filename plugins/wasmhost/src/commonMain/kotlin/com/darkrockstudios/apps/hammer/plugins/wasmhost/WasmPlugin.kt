@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnostic
+import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticSeverity
 import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsProvider
 import com.darkrockstudios.apps.hammer.operations.plugin.TextFix
 import io.github.aakira.napier.Napier
@@ -164,8 +165,9 @@ class WasmPlugin(
 	}
 
 	override fun textDiagnostics(): List<TextDiagnosticsProvider> = manifest.diagnostics.map { check ->
-		TextDiagnosticsProvider(check.label) { paragraphs, language ->
-			val request = DiagnoseRequest(check.name, paragraphs, language, settingsValues(), locale)
+		TextDiagnosticsProvider(check.label, wholeScene = check.scope == PluginManifest.SCOPE_SCENE) { text ->
+			val paragraphs = text.paragraphs
+			val request = DiagnoseRequest(check.name, paragraphs, text.language, text.project, settingsValues(), locale)
 			val found = List(paragraphs.size) { mutableListOf<TextDiagnostic>() }
 			try {
 				val reply = call(DIAGNOSE, OperationJson.encodeToString(request).encodeToByteArray()).decodeToString()
@@ -174,7 +176,9 @@ class WasmPlugin(
 					val paragraph = paragraphs.getOrNull(item.paragraph) ?: return@forEach
 					val start = utf16Offset(paragraph, item.start) ?: return@forEach
 					val end = utf16Offset(paragraph, item.end) ?: return@forEach
-					if (start < end) found[item.paragraph] += TextDiagnostic(start, end, item.message, item.fixes.mapNotNull(::textFix))
+					if (start < end) {
+						found[item.paragraph] += TextDiagnostic(start, end, item.message, item.fixes.mapNotNull(::textFix), severity(item.severity))
+					}
 				}
 			} catch (e: PluginException) {
 				Napier.w(e) { "Plugin '$id' could not check text" }
@@ -426,6 +430,7 @@ class WasmPlugin(
 		val paragraphs: List<String>,
 		/** The project's BCP 47 tag, or null when it has none. */
 		val language: String?,
+		val project: String,
 		/** The plugin's declared settings, every key present. */
 		val settings: JsonObject,
 		/** The UI's BCP 47 tag, or null when Hammer does not know it. */
@@ -435,12 +440,23 @@ class WasmPlugin(
 	/**
 	 * Offsets are UTF-8 byte offsets into the paragraph, which is what C and Rust index by. A fix is a
 	 * replacement, or `{"replacement", "label"}` where the replacement alone would not say what it does.
+	 * Severity is `error`, the default, or `suggestion`.
 	 */
 	@Serializable
 	private class DiagnoseReply(val diagnostics: List<Item> = emptyList()) {
 		@Serializable
-		class Item(val paragraph: Int, val start: Int, val end: Int, val message: String, val fixes: List<JsonElement> = emptyList())
+		class Item(
+			val paragraph: Int,
+			val start: Int,
+			val end: Int,
+			val message: String,
+			val fixes: List<JsonElement> = emptyList(),
+			val severity: String? = null,
+		)
 	}
+
+	private fun severity(name: String?) =
+		if (name == SEVERITY_SUGGESTION) TextDiagnosticSeverity.Suggestion else TextDiagnosticSeverity.Error
 
 	private fun textFix(fix: JsonElement): TextFix? = when (fix) {
 		is JsonPrimitive -> fix.contentOrNull?.takeIf { fix.isString }?.let(::TextFix)
@@ -540,6 +556,7 @@ class WasmPlugin(
 		const val DIAGNOSE = "diagnose"
 
 		private val ReplyJson = Json { ignoreUnknownKeys = true }
+		private const val SEVERITY_SUGGESTION = "suggestion"
 
 		const val PERMISSION_DENIED = "PermissionDenied"
 

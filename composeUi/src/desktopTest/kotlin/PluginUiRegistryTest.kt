@@ -36,7 +36,7 @@ class PluginUiRegistryTest {
 		override fun settings() = listOf(SettingDeclaration.Toggle("on", "On", defaultValue = true))
 
 		override fun textDiagnostics() =
-			if (checks) listOf(TextDiagnosticsProvider("Check") { paragraphs, _ -> paragraphs.map { emptyList() } }) else emptyList()
+			if (checks) listOf(TextDiagnosticsProvider("Check") { text -> text.paragraphs.map { emptyList() } }) else emptyList()
 	}
 
 	@Test
