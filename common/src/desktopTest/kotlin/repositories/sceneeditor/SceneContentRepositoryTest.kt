@@ -226,6 +226,47 @@ class SceneContentRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `Replace scene text saves it and drops an older pending editor edit`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		service.initialize()
+
+		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
+		service.loadSceneBuffer(sceneItem)
+
+		contentRepo.onContentChanged(SceneContent(sceneItem, "Typed before the replace"), UpdateSource.Editor)
+		assertTrue(service.replaceSceneText(sceneItem, "Replaced from outside"))
+		advanceUntilIdle()
+
+		assertEquals("Replaced from outside", contentRepo.getSceneBuffer(sceneItem)?.content?.markdown)
+		assertFalse(service.hasDirtyBuffer(sceneItem.id))
+		ffs.read(repo.getSceneFilePath(3).toOkioPath()) {
+			assertEquals("Replaced from outside", readUtf8())
+		}
+	}
+
+	@Test
+	fun `Editor edit made after a replace still applies`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		service.initialize()
+
+		val sceneItem = SceneItem(getProject1Def(), SceneItem.Type.Scene, 3, "Scene ID 3", 0)
+		service.loadSceneBuffer(sceneItem)
+
+		service.replaceSceneText(sceneItem, "Replaced from outside")
+		contentRepo.onContentChanged(SceneContent(sceneItem, "Typed after the replace"), UpdateSource.Editor)
+		advanceUntilIdle()
+
+		assertEquals("Typed after the replace", contentRepo.getSceneBuffer(sceneItem)?.content?.markdown)
+		assertTrue(service.hasDirtyBuffer(sceneItem.id))
+	}
+
+	@Test
 	fun `Load Scene Buffer, then store it`() = runTest(mainTestDispatcher) {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)

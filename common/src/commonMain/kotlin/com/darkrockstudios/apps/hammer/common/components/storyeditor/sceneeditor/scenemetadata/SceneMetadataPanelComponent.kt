@@ -22,6 +22,7 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescent
 import io.github.aakira.napier.Napier
+import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
@@ -67,6 +68,9 @@ class SceneMetadataPanelComponent(
 	private var bufferUpdateSubscription: Job? = null
 	private var metadataLoaded = false
 
+	/** The metadata last known to be on disk; a text field that differs from it holds a local edit. */
+	private val persistedMetadata = atomic<SceneMetadata?>(null)
+
 	private val _metadataUpdateFlow = MutableSharedFlow<SceneMetadata>(
 		extraBufferCapacity = 1,
 		replay = 1,
@@ -111,13 +115,17 @@ class SceneMetadataPanelComponent(
 				.filter { (sceneId, _) -> sceneId == originalSceneItem.id }
 				.collect { (_, external) ->
 					val current = state.value.metadata
-					// Keep the user-editable text fields local; let everything else (refs, tags,
-					// future-added fields) take the external write. Listing the local-owned fields
-					// is the more stable invariant when SceneMetadata gains new fields.
+					val persisted = persistedMetadata.getAndSet(external)
+					// The user-editable text fields keep a local edit and take the external write
+					// otherwise; everything else (refs, tags, future-added fields) takes the external
+					// write. Listing the local-owned fields is the more stable invariant when
+					// SceneMetadata gains new fields.
+					fun pick(field: (SceneMetadata) -> String): String =
+						if (persisted == null || field(current) != field(persisted)) field(current) else field(external)
 					val merged = external.copy(
-						outline = current.outline,
-						notes = current.notes,
-						currentDraftName = current.currentDraftName,
+						outline = pick { it.outline },
+						notes = pick { it.notes },
+						currentDraftName = pick { it.currentDraftName },
 					)
 					if (merged == current) return@collect
 					withContext(dispatcherMain) {
@@ -151,6 +159,7 @@ class SceneMetadataPanelComponent(
 
 	private suspend fun loadMetadataData() {
 		val metadata = sceneEditor.loadSceneMetadata(originalSceneItem.id)
+		persistedMetadata.value = metadata
 		metadataLoaded = true
 		_state.getAndUpdate {
 			it.copy(
@@ -207,7 +216,9 @@ class SceneMetadataPanelComponent(
 		metadataStoreJob = scope.launch {
 			metadataStoreFlow.debounceUntilQuiescent(STORE_COOL_DOWN).collect { metadata ->
 				// Self-healing fail-safe: drop reference IDs whose entry no longer exists
-				sceneEditor.storeMetadata(scrubInvalidReferences(metadata), originalSceneItem.id)
+				val scrubbed = scrubInvalidReferences(metadata)
+				sceneEditor.storeMetadata(scrubbed, originalSceneItem.id)
+				persistedMetadata.value = scrubbed
 			}
 		}
 	}
