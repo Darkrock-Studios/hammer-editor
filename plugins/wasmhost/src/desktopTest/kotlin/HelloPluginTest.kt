@@ -38,6 +38,7 @@ import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import java.io.File
 import kotlin.coroutines.CoroutineContext
+import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 
@@ -119,6 +120,12 @@ class HelloPluginTest {
 		val wave = run("wave")
 		assertEquals(listOf("Wave", "Wave twice"), wave.buttons.map { it.label })
 		assertEquals("You waved twice", run("wave", button = "twice").message)
+	}
+
+	@Test
+	fun `its tip is read from the package's resources`() {
+		val tips = File(System.getenv("HAMMER_PLUGINS"), "kotlin/hello/resources/tips.txt").readLines()
+		assertContains(tips, run("tip").message)
 	}
 
 	@Test
