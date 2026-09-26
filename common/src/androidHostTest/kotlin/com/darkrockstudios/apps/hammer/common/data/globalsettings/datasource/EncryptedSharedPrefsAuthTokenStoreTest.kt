@@ -14,7 +14,7 @@ class EncryptedSharedPrefsAuthTokenStoreTest {
 	private fun createStore() = EncryptedSharedPrefsAuthTokenStore(
 		json = Json,
 		openPrefs = disk::open,
-		deletePrefs = disk::delete,
+		resetPrefs = disk::reset,
 	)
 
 	@Test
@@ -76,7 +76,7 @@ class EncryptedSharedPrefsAuthTokenStoreTest {
 
 /**
  * Models the encrypted prefs file: [open] fails like EncryptedSharedPreferences.create
- * when the Keystore master key cannot decrypt the stored keyset, and [delete] removes
+ * when the Keystore master key cannot decrypt the stored keyset, and [reset] removes
  * the file (keyset included) so the next open generates a fresh one.
  */
 private class FakeEncryptedPrefsDisk {
@@ -89,7 +89,7 @@ private class FakeEncryptedPrefsDisk {
 		return FakePrefs()
 	}
 
-	fun delete() {
+	fun reset() {
 		values.clear()
 		keysetDecryptable = true
 		valuesDecryptable = true

@@ -11,6 +11,7 @@ import kotlinx.atomicfu.locks.withLock
 import kotlinx.serialization.json.Json
 import java.io.IOException
 import java.security.GeneralSecurityException
+import java.security.KeyStore
 
 /**
  * [AuthTokenStore] backed by [EncryptedSharedPreferences] with an Android
@@ -20,13 +21,13 @@ import java.security.GeneralSecurityException
 class EncryptedSharedPrefsAuthTokenStore internal constructor(
 	private val json: Json,
 	private val openPrefs: () -> SharedPreferences,
-	private val deletePrefs: () -> Unit,
+	private val resetPrefs: () -> Unit,
 ) : AuthTokenStore {
 
 	constructor(context: Context, json: Json) : this(
 		json = json,
 		openPrefs = { openEncryptedPrefs(context) },
-		deletePrefs = { context.deleteSharedPreferences(PREFS_NAME) },
+		resetPrefs = { resetEncryptedPrefs(context) },
 	)
 
 	private val lock = reentrantLock()
@@ -42,10 +43,11 @@ class EncryptedSharedPrefsAuthTokenStore internal constructor(
 	}
 
 	// The keyset lives in the prefs file but its master key lives in the Keystore, which is
-	// never backed up, so a restored or orphaned file is undecryptable. Start over (forces re-login).
+	// never backed up, so a restored or orphaned file is undecryptable, and some keystores
+	// leave the master key itself unusable. Start over with both (forces re-login).
 	private fun recreatePrefs(cause: Exception): SharedPreferences {
 		Napier.w("Auth token keyset is unreadable; recreating the store", cause)
-		deletePrefs()
+		resetPrefs()
 		return openPrefs()
 	}
 
@@ -83,6 +85,7 @@ class EncryptedSharedPrefsAuthTokenStore internal constructor(
 	companion object {
 		private const val PREFS_NAME = "hammer_auth_tokens"
 		private const val TOKENS_KEY = "tokens"
+		private const val ANDROID_KEYSTORE = "AndroidKeyStore"
 
 		private fun openEncryptedPrefs(context: Context): SharedPreferences {
 			val masterKey = MasterKey.Builder(context)
@@ -96,6 +99,12 @@ class EncryptedSharedPrefsAuthTokenStore internal constructor(
 				EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
 				EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM,
 			)
+		}
+
+		private fun resetEncryptedPrefs(context: Context) {
+			context.deleteSharedPreferences(PREFS_NAME)
+			KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+				.deleteEntry(MasterKey.DEFAULT_MASTER_KEY_ALIAS)
 		}
 	}
 }
