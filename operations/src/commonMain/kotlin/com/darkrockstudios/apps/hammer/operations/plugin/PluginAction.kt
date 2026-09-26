@@ -95,7 +95,7 @@ class ActionProgress(val fraction: Float?, val message: String?)
 
 /**
  * What an action returned. A [message] is shown briefly; [markdown] is shown in a dialog, with
- * [buttons] under it. Neither means it finished with nothing to say.
+ * [buttons] under it or in its footer. Neither means it finished with nothing to say.
  */
 class ActionReply(
 	val message: String? = null,
@@ -103,7 +103,8 @@ class ActionReply(
 	val buttons: List<ActionButton> = emptyList(),
 )
 
-class ActionButton(val id: String, val label: String)
+/** A button of an [ActionReply]: under the markdown, or in the dialog's footer when [footer], for one that acts on the whole reply. */
+class ActionButton(val id: String, val label: String, val footer: Boolean = false)
 
 /** Thrown out of [PluginAction.run] when [ActionCall.cancelled] stopped it. */
 class ActionCancelledException : RuntimeException("Cancelled")
