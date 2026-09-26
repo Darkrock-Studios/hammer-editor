@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionField
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginAction
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
+import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -33,6 +34,7 @@ import org.koin.dsl.module
 import java.io.File
 import kotlin.coroutines.CoroutineContext
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 /** The name generator plugin from hammer-plugins, run by the host. Runs when HAMMER_PLUGINS points at that checkout. */
@@ -107,6 +109,16 @@ class NameGeneratorPluginTest {
 		assertEquals("Added ${names.first()} to the encyclopedia", second.message)
 		assertTrue("- ${names.first()} (added)" in second.markdown!!, second.markdown)
 		assertEquals(names.drop(1) + "More names", second.buttons.map { it.label })
+	}
+
+	@Test
+	fun `every style it offers has names in its package`() {
+		val styles = assertIs<SettingDeclaration.Choice>((action.fields.first { it.key == "style" } as ActionField.Setting).declaration)
+		styles.options.forEach { style ->
+			val styled = JsonObject(input + ("style" to JsonPrimitive(style.value)))
+			val reply = runBlocking { action.run(ActionCall("Storm", ActionPlace.Project, null, styled)) }
+			assertEquals(3, reply.markdown!!.lines().count { it.startsWith("- ") }, style.value)
+		}
 	}
 
 	private object NoProjects : ProjectResolver {
