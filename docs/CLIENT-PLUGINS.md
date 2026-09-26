@@ -912,7 +912,7 @@ package. A "Style report" item in the project menu reports, per scene and for
 the whole story or the scenes chosen, Flesch reading ease and grade level, adverbs per thousand
 words, the share of dialogue, and repeated words and phrases, and shows it in
 the result dialog, from which it can be saved as a note. The rules are English
-only. Dialogue is text in
+only, and its word lists are resources, in `resources/en/`. Dialogue is text in
 double quotes or curly single quotes; straight single quotes are too often
 apostrophes to count.
 
@@ -922,6 +922,7 @@ apostrophes to count.
 | Plugin as API consumer | Reads through `scene.tree` and `scene.read`, the two operations it asks for by name, and nothing else: saving is the user's choice, in the dialog |
 | A full-book job in C | Counts in the module's own hash maps and arenas, reused scene to scene, so a novel fits the 64 MiB memory cap |
 | The plugin cache | Keeps each scene's counts under a hash of its text, so a run counts only scenes that changed |
+| Resources | Its common words, "-ly" words that are not adverbs, and titles, read at the start of each run |
 
 The whole story's figures are the sum of its scenes' counts, so they need no
 second pass. Its repeated phrases are those repeated within a scene. On a
