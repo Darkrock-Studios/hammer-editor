@@ -91,7 +91,7 @@ fun FocusModeUi(component: FocusMode) {
 	}
 
 	val findState = rememberFindState(textEditorState.textState)
-	val textDiagnostics = rememberPluginTextDiagnostics(textEditorState.textState, state.language, state.languageLoaded)
+	val textDiagnostics = rememberPluginTextDiagnostics(textEditorState.textState, state.projectDef.name, state.language, state.languageLoaded)
 	var showFindBar by remember { mutableStateOf(false) }
 
 	LaunchedEffect(richTextStyles) {
