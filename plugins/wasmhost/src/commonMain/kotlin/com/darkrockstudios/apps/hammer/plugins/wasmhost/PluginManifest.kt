@@ -74,13 +74,18 @@ data class PluginManifest(
 
 	/**
 	 * A check the editor runs over the text being written, which calls the module's `diagnose` export
-	 * with the paragraphs that changed and underlines the issues it returns.
+	 * and underlines the issues it returns.
 	 */
 	@Serializable
 	data class Diagnostics(
 		/** Tells the module which of its checks to run. */
 		val name: String,
 		val label: String,
+		/**
+		 * What each call gets: `paragraph`, only the paragraphs that changed, or `scene`, every paragraph
+		 * of the scene each time, for issues that depend on other paragraphs.
+		 */
+		val scope: String = SCOPE_PARAGRAPH,
 	)
 
 	@Serializable
@@ -96,6 +101,8 @@ data class PluginManifest(
 		const val MAX_DESCRIPTION_LENGTH = 1000
 		const val INPUT_MARKDOWN = "markdown"
 		const val INPUT_PROSE = "prose"
+		const val SCOPE_PARAGRAPH = "paragraph"
+		const val SCOPE_SCENE = "scene"
 
 		fun parse(toml: String): PluginManifest {
 			val manifest = Toml { ignoreUnknownKeys = true }.decodeFromString(serializer(), toml)

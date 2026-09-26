@@ -390,9 +390,13 @@ class PluginAction(
 
 class TextDiagnosticsProvider(
 	val label: String,
-	/** The issues in each paragraph, as UTF-16 ranges plus a message and fixes. */
-	val diagnose: suspend (paragraphs: List<String>, language: String?) -> List<List<TextDiagnostic>>,
+	/** Whether it gets every paragraph of the scene each time, rather than only changed ones. */
+	val wholeScene: Boolean = false,
+	/** The issues in each paragraph, as UTF-16 ranges plus a message, fixes, and severity. */
+	val diagnose: suspend (TextDiagnosticsRequest) -> List<List<TextDiagnostic>>,
 )
+
+class TextDiagnosticsRequest(val paragraphs: List<String>, val language: String?, val project: String)
 
 interface CliCommand {
 	val name: String
@@ -497,15 +501,21 @@ changed. A replaced plugin gets a new settings store for its own declarations.
   at a line break, ending in "…", and the toast says so.
 
 - **Text diagnostics.** The scene editor and focus mode run every active
-  plugin's checks, underlining what they find in blue, apart from spell
-  check's red. A right-click or tap on an underline shows its message and
-  fixes; picking a fix replaces the text. The editor library does the work
-  (`TextDiagnosticsState` in ComposeTextEditor's spellcheck module): it keeps
-  results by paragraph text, so after an edit only changed paragraphs go to
-  the plugins, and each underline carries its diagnostic, so it moves with
-  the text. A change to a checking plugin's settings checks the whole text
-  again. The plugins get the editor's text, markdown already rendered away,
-  and the project's language.
+  plugin's checks, underlining what they find: a mistake with a wavy blue
+  line, apart from spell check's red, and a suggestion, such as a style
+  issue, with a quieter dotted gold one. A right-click or tap on an underline
+  shows its message and fixes; picking a fix replaces the text. The editor
+  library does the work (`TextDiagnosticsState` in ComposeTextEditor's
+  spellcheck module): it keeps results by paragraph text, so after an edit
+  only changed paragraphs go to a check, and each underline carries its
+  diagnostic, so it moves with the text. A check whose issues depend on other
+  paragraphs, such as a word echoed a paragraph later, declares scene scope
+  and gets every paragraph on every check instead; the library runs it
+  through `TextDiagnosticsChecker.checkText`. A change to a checking plugin's
+  settings checks the whole text again. The plugins get the editor's text,
+  markdown already rendered away, the project's language, and the project's
+  name, so a check can read the project through operations it has permission
+  for, such as the encyclopedia's names.
 
 These are the only UI slots for now. Future ones (a scene editor toolbar
 action) are added when a plugin needs them, not speculatively.
@@ -1001,7 +1011,9 @@ Harper's spell check turned off. English only; the project's language picks
 the dialect (American, British, Canadian, Australian, or Indian). Its settings
 turn off whole categories (grammar, word choice, punctuation and
 capitalization, style), which group Harper's finer kinds of lint, and long
-sentences on their own. Harper's rules can be switched on and off by name but
+sentences on their own. Style lints come back as suggestions. A long
+sentence's lint is kept apart when overlapping lints are pared down, since it
+covers the whole sentence and would hide every other issue in it. Harper's rules can be switched on and off by name but
 take no parameters, so the 40-word limit for a long sentence is fixed.
 
 Harper builds its dictionary and rules on start-up, which takes 36 seconds
@@ -1219,13 +1231,18 @@ eight bytes a plugin copies. The Hammer-specific parts:
   host shows it while the action runs. Once the user has stopped the run, the
   report traps, ending the action there. Outside an action it does nothing.
 - A `diagnose` export runs a text diagnostics check the manifest declares
-  under `[[diagnostics]]` (`name`, `label`). Its input is `{"diagnostics",
-  "paragraphs": [text], "language", "settings"}`, `language` a BCP 47 tag or
-  null, and its output `{"diagnostics": [{"paragraph", "start", "end",
-  "message", "fixes": [...]}]}`, `start` and `end` UTF-8 byte offsets into
-  the paragraph, which is how C and Rust index text. A fix is its replacement,
-  shown to the user as itself, or `{"replacement", "label"}` where the
-  replacement alone would not say what it does, such as removing a word. The host converts them,
+  under `[[diagnostics]]` (`name`, `label`, and `scope`: `paragraph`, the
+  default, for only the paragraphs whose text the check has not seen, or
+  `scene`, for every paragraph of the scene each time, blank ones included).
+  Its input is `{"diagnostics", "paragraphs": [text], "language", "project",
+  "settings"}`, `language` a BCP 47 tag or null and `project` the project's
+  name, and its output `{"diagnostics": [{"paragraph", "start", "end",
+  "message", "fixes": [...], "severity"}]}`, `start` and `end` UTF-8 byte
+  offsets into the paragraph, which is how C and Rust index text. A fix is its
+  replacement, shown to the user as itself, or `{"replacement", "label"}`
+  where the replacement alone would not say what it does, such as removing a
+  word. `severity` is `error`, the default, or `suggestion`, marked more
+  quietly. The host converts the offsets,
   and drops an issue whose paragraph does not exist or whose offsets fall past
   the end or inside a character. A module that fails, or replies with nothing,
   leaves the text unmarked.

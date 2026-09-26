@@ -14,6 +14,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionOutput
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.ClientPlugin
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
+import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsRequest
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -131,7 +132,7 @@ class HelloPluginTest {
 	@Test
 	fun `its text check underlines each very`() {
 		val paragraph = "Café very cold."
-		val found = runBlocking { plugin.textDiagnostics().single().diagnose(listOf(paragraph), "en") }.single().single()
+		val found = runBlocking { plugin.textDiagnostics().single().diagnose(TextDiagnosticsRequest(listOf(paragraph), "en", "Storm")) }.single().single()
 		assertEquals("very ", paragraph.substring(found.start, found.end))
 		assertEquals(listOf("" to "Remove “very”"), found.fixes.map { it.replacement to it.label })
 	}

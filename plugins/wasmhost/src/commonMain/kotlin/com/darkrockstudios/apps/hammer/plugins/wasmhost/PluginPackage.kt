@@ -203,6 +203,11 @@ class PluginPackage(
 				throw PluginPackageException("Diagnostics declared twice: $it")
 			}
 			diagnostics.firstOrNull { !PluginRegistry.isValidId(it) }?.let { throw PluginPackageException("Invalid diagnostics name '$it'") }
+			manifest.diagnostics.forEach { check ->
+				if (check.scope != PluginManifest.SCOPE_PARAGRAPH && check.scope != PluginManifest.SCOPE_SCENE) {
+					throw PluginPackageException("Diagnostics '${check.name}' has unknown scope '${check.scope}'")
+				}
+			}
 		}
 
 		private fun checkAction(action: PluginManifest.Action) {

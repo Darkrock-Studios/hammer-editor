@@ -22,6 +22,8 @@ import com.darkrockstudios.apps.hammer.operations.plugin.ActionOutput
 import com.darkrockstudios.apps.hammer.operations.plugin.ActionPlace
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
 import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
+import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticSeverity
+import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsRequest
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginCache
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginException
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginPackageException
@@ -99,7 +101,8 @@ class RuntimePluginsTest {
 		action?.let { "\n\n[[actions]]\nname = \"$it\"\nlabel = \"Echo it\"" }.orEmpty() +
 		output?.let { "\noutput = \"$it\"" }.orEmpty()
 
-	private fun diagnostics(name: String) = "\n\n[[diagnostics]]\nname = \"$name\"\nlabel = \"Grammar\""
+	private fun diagnostics(name: String, scope: String? = null) =
+		"\n\n[[diagnostics]]\nname = \"$name\"\nlabel = \"Grammar\"" + scope?.let { "\nscope = \"$it\"" }.orEmpty()
 
 	private val settings = """
 		[[setting]]
@@ -485,14 +488,28 @@ class RuntimePluginsTest {
 		plugins.install(pack("echo", manifest() + diagnostics("grammar"), module = "diagnose"))
 
 		val check = startKoin(plugins).plugins.single().textDiagnostics().single()
-		val found = runBlocking { check.diagnose(listOf("Ét the the end", "Fine."), "en") }
+		val found = runBlocking { check.diagnose(TextDiagnosticsRequest(listOf("Ét the the end", "Fine."), "en", "Project")) }
 
 		assertEquals("Grammar", check.label)
 		assertEquals(2, found.size)
 		val issue = found[0].single()
 		assertEquals(listOf(3, 10, "Repeated word"), listOf(issue.start, issue.end, issue.message))
 		assertEquals(listOf("the" to "the", "" to "Remove the repeat"), issue.fixes.map { it.replacement to it.label })
+		assertEquals(TextDiagnosticSeverity.Suggestion, issue.severity)
 		assertTrue(found[1].isEmpty())
+	}
+
+	@Test
+	fun `a diagnostics check gets whole scenes only when its manifest asks for them`() {
+		val plugins = runtimePlugins()
+		plugins.install(pack("echo", manifest() + diagnostics("grammar") + diagnostics("echoes", scope = "scene")))
+
+		val checks = startKoin(plugins).plugins.single().textDiagnostics()
+
+		assertEquals(listOf(false, true), checks.map { it.wholeScene })
+		assertThrows<PluginPackageException> {
+			plugins.install(pack("odd", manifest(id = "odd") + diagnostics("grammar", scope = "chapter")))
+		}
 	}
 
 	@Test
@@ -512,7 +529,7 @@ class RuntimePluginsTest {
 
 		val check = startKoin(plugins).plugins.single().textDiagnostics().single()
 
-		assertEquals(listOf(emptyList(), emptyList()), runBlocking { check.diagnose(listOf("One.", "Two."), null) }.map { it.toList() })
+		assertEquals(listOf(emptyList(), emptyList()), runBlocking { check.diagnose(TextDiagnosticsRequest(listOf("One.", "Two."), null, "Project")) }.map { it.toList() })
 	}
 
 	@Test
