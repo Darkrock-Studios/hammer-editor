@@ -108,6 +108,8 @@ class SpikeBenchmarkTest {
 			val request = read(args[0]).decodeToString()
 			val reply = if ("scene.tree" in request) {
 				"""{"output":{"nodes":[$nodes]}}"""
+			} else if ("project.info" in request) {
+				"""{"output":{"language":"en"}}"""
 			} else {
 				val id = Regex("\"id\":(\\d+)").find(request)!!.groupValues[1].toInt()
 				"""{"output":{"markdown":"${scenes[id - 1].replace("\n", "\\n")}"}}"""
@@ -122,7 +124,7 @@ class SpikeBenchmarkTest {
 			"go/style/build/style.wasm",
 			"zig/style/build/style.wasm",
 			"kotlin/style/build/compileSync/wasmWasi/main/productionExecutable/optimized/style.wasm",
-			userFunctions = listOf(dispatch, noCacheGet, noCacheSet),
+			userFunctions = listOf(dispatch, noCacheGet, noCacheSet, styleResources, noProgress),
 			size = novel.length,
 		)
 	}
@@ -157,6 +159,14 @@ class SpikeBenchmarkTest {
 	private val noDispatch = ExtismPlugin.UserFunction("hammer_dispatch", params = 1, returnsValue = true) {
 		write("""{"error":{"kind":"NotFound","message":"benchmark"}}""".encodeToByteArray())
 	}
+
+	/** The C style report's word lists, read from its resources/ in the checkout; 0 for a missing one. */
+	private val styleResources = ExtismPlugin.UserFunction("hammer_resource", params = 1, returnsValue = true) { args ->
+		val file = File(pluginsRepo, "c/style/resources/" + read(args[0]).decodeToString())
+		if (file.isFile) write(file.readBytes()) else 0
+	}
+
+	private val noProgress = ExtismPlugin.UserFunction("hammer_progress", params = 1, returnsValue = false) { 0 }
 
 	private val noCacheGet = ExtismPlugin.UserFunction("hammer_cache_get", params = 1, returnsValue = true) { 0 }
 	private val noCacheSet = ExtismPlugin.UserFunction("hammer_cache_set", params = 2, returnsValue = false) { 0 }
