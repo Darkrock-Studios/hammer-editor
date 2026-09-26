@@ -143,6 +143,15 @@ class SimpleGrammarPluginTest {
 	}
 
 	@Test
+	fun `a verb that does not agree with its pronoun, left alone in speech unless asked`() {
+		val paragraph = "They was late. \"We was robbed,\" he said. If he were here, you and I are."
+		assertEquals(listOf("They was -> They were"), issues(paragraph))
+		registry.settings("simple-grammar")!!.set("agreementInSpeech", JsonPrimitive(true))
+		assertEquals(listOf("They was -> They were", "We was -> We were"), issues(paragraph))
+		assertEquals(listOf("Вона був -> Вона була"), issues("Вона був вдома.", "uk"))
+	}
+
+	@Test
 	fun `each language its lists and quotes, and one without lists nothing`() {
 		assertEquals(listOf("Le arbre -> L’arbre", "si il -> s’il"), issues("Le arbre, si il pleut, d’accord.", "fr-CA"))
 		assertEquals(listOf(". -> "), issues("„Warte.“, sagte sie.", "de"))
