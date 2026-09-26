@@ -149,6 +149,7 @@ class RuntimePlugins(
 		granted = granted,
 		savedSettings = { PluginSettingsDatasource(fileSystem, toml, directory).loadDeclared(manifest.id, settings) },
 		cache = cache(manifest.id),
+		readResource = ::readResource,
 		locale = locale,
 	)
 

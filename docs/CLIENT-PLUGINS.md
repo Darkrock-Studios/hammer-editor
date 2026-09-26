@@ -1075,7 +1075,8 @@ what start-up threw away out of it.
 ### Package
 
 A `.hammerplugin` file is a zip holding `manifest.toml`, `plugin.wasm`, and,
-if the plugin has settings, a [`settings.toml`](#declared-settings).
+if the plugin has them, a [`settings.toml`](#declared-settings),
+translations in `locales/`, and [resources](#resources) in `resources/`.
 
 ```toml
 id = "wordfreq"               # lowercase, directory-safe
@@ -1179,6 +1180,9 @@ eight bytes a plugin copies. The Hammer-specific parts:
 - `extism:host/user` `hammer_cache_get(key) -> value` and
   `hammer_cache_set(key, value)`: the plugin's [cache](#cache). A get returns
   0 for a key with no value; a set with 0, or an empty value, removes the key.
+- `extism:host/user` `hammer_resource(name) -> bytes`: a file from the
+  package's [resources](#resources), by its path under `resources/`, or 0
+  when there is none by that name.
 - An `action` export runs an action the manifest declares; see
   [Actions](#actions). Its input is `{"action", "project", "settings", "input",
   "context": {"place", "id"}, "button"}`, and its output is shown when it
@@ -1219,6 +1223,19 @@ values under the same keys. A call still running on the old version can write
 after the clear, so plugins put a format version in their keys. Everything about it is best effort: a failed read
 is a miss and a failed write is dropped. A CLI command and the app may use one
 plugin's cache at once; each write is atomic, and the last one wins.
+
+### Resources
+
+A package's `resources/` holds files the plugin reads at run time, such as
+dictionaries and word lists, so they need not be compiled into the module. At
+most 1,000 files and 64 MiB in all, checked whenever the package is read. A
+plugin reads one with `hammer_resource`, which reads it out of the package then
+and hands the plugin all its bytes, so a file the plugin reads has to fit its
+memory, and one it uses often is worth keeping rather than reading again: a C
+plugin keeps its with `hammer_alloc_keep`. Each read also takes the file's size
+from the 256 MiB a call has for passing data to and from Hammer, until the call
+ends. Only files under `resources/` can be read, and an empty one reads as
+missing.
 
 ### Actions
 
