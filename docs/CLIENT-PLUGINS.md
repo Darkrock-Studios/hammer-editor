@@ -261,7 +261,7 @@ lands in place.
 | `note.create` | Write | |
 | `note.update` | Write | |
 | `note.delete` | Destructive | |
-| `entry.list` | Read | Optional type and tag filters |
+| `entry.list` | Read | Each entry's aliases; optional type and tag filters |
 | `entry.read` | Read | Text, type, tags, whether it has an image, referencing scenes |
 | `entry.create` | Write | |
 | `entry.update` | Write | |
@@ -1013,8 +1013,9 @@ turn off whole categories (grammar, word choice, punctuation and
 capitalization, style), which group Harper's finer kinds of lint, and long
 sentences on their own. Style lints come back as suggestions. A long
 sentence's lint is kept apart when overlapping lints are pared down, since it
-covers the whole sentence and would hide every other issue in it. Harper's rules can be switched on and off by name but
-take no parameters, so the 40-word limit for a long sentence is fixed.
+covers the whole sentence and would hide every other issue in it. Harper's
+rules can be switched on and off by name but take no parameters, so the
+40-word limit for a long sentence is fixed.
 
 Harper builds its dictionary and rules on start-up, which takes 36 seconds
 under chasm (0.6 natively) and about 140 MB of memory. So the build runs that
@@ -1026,6 +1027,33 @@ sections it leaves alone, and lets go of the original as soon as that is done,
 which leaves chasm's decoded copy of the data and the module's memory. About
 90 MB stays. Short of that heap, the check fails and the text goes unmarked.
 Android's app heap may still be too small; untried there.
+
+### Names (`names`)
+
+Built, as a runtime plugin in Rust: `rust/names` in `hammer-plugins`, a
+950 KB module, most of it an English word list (SCOWL's American and British
+lists). It reads the encyclopedia's names and aliases through `entry.list` on
+every check, so it follows edits to the encyclopedia.
+
+| Exercises | How |
+| --- | --- |
+| The project in a check | The diagnose request's `project` lets the check read the encyclopedia |
+| A check and a report in one plugin | A `[[diagnostics]]` check and a document action share the name rules |
+
+As the text is written, it underlines a word one edit from a name (two for a
+name of eight letters or more), a swap of neighbours counting as one, and a
+name written in lower case, offering the name as the fix; a plural ("the
+Grangers") counts as the name. Only names the word
+list does not know take part, so a name that is also a word ("Grace",
+"Harry") is left to spell check, and a word is never taken for a misspelled
+name. So it checks only English projects. With the encyclopedia's names fed to
+spell check, a slip also gets spell check's own underline.
+
+The Names report, from the project menu, lists each entry's mentions (by
+name, alias, or a word of its name that is unique to it), the scenes they are
+in, and where it first appears; entries never mentioned; likely misspellings
+of names; and capitalised words the word list does not know, seen mid-sentence
+and more than once, that have no entry.
 
 ### Gaps these expose
 
