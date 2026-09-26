@@ -54,6 +54,7 @@ import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferen
 import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.CleanupReferencesOnEntryDeleteUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.NameMatcher
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.rename.RenameEntryUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexConfig
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexDatasource
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexRepository
@@ -331,6 +332,7 @@ val mainModule = module {
 		scoped<ScrubInvalidReferencesUseCase>()
 		scoped<AutoConfirmReferencesUseCase>()
 		scoped<BackfillEntryReferencesUseCase>()
+		scoped<RenameEntryUseCase>()
 		scoped<CleanupReferencesOnEntryDeleteUseCase>()
 		scoped<SceneMetadataReferenceRemapper>() bind ReferenceRemapper::class
 
