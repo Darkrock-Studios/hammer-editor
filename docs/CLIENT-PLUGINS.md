@@ -975,6 +975,7 @@ for each that adds it to the encyclopedia as a person. It asks for
 | Action fields | Two choices, a number, and a toggle, asked for before it runs |
 | Interactive output | A button per name; pressing one calls the action again, which adds the entry and replies with the list, that name marked |
 | State across calls | The list's seed rides in the button ids, so each call rebuilds the same names; `random_get` seeds the first |
+| Resources | Each style is a JSON file of word lists and name templates in `resources/styles/`, read the first time it is used and kept with `hammer_alloc_keep` |
 
 ### English grammar (`english-grammar`)
 
