@@ -960,7 +960,10 @@ rule but English's and French's own, with curly quotes unless the plugin's
 table of quotation marks says otherwise; German's are „ and “, and French,
 Spanish, Italian, and Ukrainian's guillemets. Outside English, a sentence may
 go on in lower case after "?" and "!". Case is known for Latin and Cyrillic
-letters. Fixes use curly apostrophes where the paragraph does. Every rule is
+letters. Fixes use curly apostrophes where the paragraph does. Its messages
+are in the UI's language, from the request's `locale`, when that is one of the
+six, and English otherwise; its name, description, and settings are translated
+in `locales/`, as any package's are. Every rule is
 one pass over a paragraph with small tables, and a list is passed over at the
 first letter that differs: 40 paragraphs of 74 words take about 140 ms under
 chasm with every group on, against 25 to 30 ms a paragraph for Harper grammar.
@@ -972,6 +975,7 @@ chasm with every group on, against 25 to 30 ms a paragraph for Harper grammar.
 | Offsets across the boundary | Byte offsets from C, turned into the editor's UTF-16 ranges by the host |
 | The C kit | `hammer_diagnose.h` reads the request and writes the reply, so the plugin is its rules; `hammer_test.h` tests them natively |
 | Resources | Its lists, one folder per language, copied into a static buffer on first use |
+| Translations | `locales/<tag>.toml` for its words in Settings, and a table of its own messages picked by the request's `locale` |
 
 ### Name generator (`name-generator`)
 

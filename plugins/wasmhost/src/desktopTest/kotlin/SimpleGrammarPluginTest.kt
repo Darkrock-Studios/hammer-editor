@@ -2,6 +2,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
 import com.darkrockstudios.apps.hammer.operations.plugin.PluginRegistry
+import com.darkrockstudios.apps.hammer.operations.plugin.TextDiagnosticsProvider
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -34,13 +35,16 @@ class SimpleGrammarPluginTest {
 
 	private lateinit var registry: PluginRegistry
 
-	private val check by lazy {
+	private val check by lazy { load(locale = null) }
+
+	/** The plugin's check, installed for a UI in [locale]. */
+	private fun load(locale: String?): TextDiagnosticsProvider {
 		val built = File(System.getenv("HAMMER_PLUGINS"), "c/simple-grammar/build/simple-grammar.hammerplugin")
 		check(built.exists()) { "Run c/build.sh simple-grammar in hammer-plugins first" }
 		val download = "/downloads/simple-grammar.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
-		val plugins = RuntimePlugins(fileSystem, "/config/plugins".toPath(), "/cache/plugins".toPath())
+		val plugins = RuntimePlugins(fileSystem, "/config/plugins".toPath(), "/cache/plugins".toPath(), locale)
 		plugins.install(download)
 		registry = PluginRegistry().also(plugins::activate)
 		GlobalContext.startKoin {
@@ -54,7 +58,7 @@ class SimpleGrammarPluginTest {
 				registry.koinModule(),
 			)
 		}
-		registry.plugins.single().textDiagnostics().single()
+		return registry.plugins.single().textDiagnostics().single()
 	}
 
 	/** Each issue in [paragraph] as the text it covers, then its fixes. */
@@ -147,5 +151,14 @@ class SimpleGrammarPluginTest {
 		assertEquals(emptyList(), issues("Ele a a disse.", "pt"))
 		assertEquals(listOf("a a -> a"), issues("It a a dog.", "en-GB"))
 		assertEquals(listOf("a a -> a"), issues("It a a dog.", null))
+	}
+
+	@Test
+	fun `in French, its labels come from its translation and its messages from the locale`() {
+		val french = load(locale = "fr-FR")
+		assertEquals("Grammaire simple", french.label)
+		assertEquals("Fautes de mots", registry.settings("simple-grammar")!!.declarations.first().label)
+		val found = runBlocking { french.diagnose(listOf("It a a dog."), "en") }.single().single()
+		assertEquals("Mot répété", found.message)
 	}
 }
