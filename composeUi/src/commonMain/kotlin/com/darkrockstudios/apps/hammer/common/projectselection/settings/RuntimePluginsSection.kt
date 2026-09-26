@@ -124,7 +124,9 @@ internal fun ColumnScope.RuntimePluginsSection(
 				failure = null
 				val staged = withContext(ioDispatcher) { stage(fileSystem, file.readBytes()) }
 				try {
-					pending = withContext(ioDispatcher) { PendingInstall(staged, runtimePlugins.inspect(staged)) }
+					pending = withContext(ioDispatcher) {
+						PendingInstall(staged, runtimePlugins.inspect(staged), fileSystem.metadata(staged).size ?: 0)
+					}
 				} catch (e: PluginPackageException) {
 					failure = e.message
 					withContext(ioDispatcher) { fileSystem.delete(staged, mustExist = false) }
@@ -172,7 +174,19 @@ internal fun ColumnScope.RuntimePluginsSection(
 	)
 }
 
-private class PendingInstall(val path: Path, val plugin: PluginPackage)
+/** [size] is the package's, which is what installing it keeps. */
+private class PendingInstall(val path: Path, val plugin: PluginPackage, val size: Long)
+
+private const val BYTES_PER_KB = 1024L
+private const val BYTES_PER_MB = 1024L * 1024
+
+@Composable
+private fun packageSize(bytes: Long): String {
+	val kb = ((bytes + BYTES_PER_KB - 1) / BYTES_PER_KB).coerceAtLeast(1)
+	if (kb < BYTES_PER_KB) return Res.string.plugin_install_size_kb.get(kb.toString())
+	val tenths = (bytes * 10 + BYTES_PER_MB / 2) / BYTES_PER_MB
+	return Res.string.plugin_install_size_mb.get("${tenths / 10}.${tenths % 10}")
+}
 
 /** Null for an operation this version of Hammer does not have, which is shown with the changes. */
 private fun OperationGrant.access(operations: OperationRegistry): Access? = when (this) {
@@ -277,6 +291,7 @@ private fun InstallDialog(
 		) {
 			Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
 				Text(Res.string.plugin_install_version.get(manifest.version), style = MaterialTheme.typography.bodyMedium)
+				Text(packageSize(install.size), style = MaterialTheme.typography.bodyMedium)
 				replacing?.manifest?.let {
 					Text(Res.string.plugin_install_replaces.get(it.version), style = MaterialTheme.typography.bodyMedium)
 				}
