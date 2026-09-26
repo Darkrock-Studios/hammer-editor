@@ -19,3 +19,7 @@ Your data can be synchronized between devices allowing you to work on your story
 Optional and Self hosted Syncing
 
 Syncing is entirely optional, you can install the client and use it on one device, or you can install the server and sync your data between devices.
+
+Wear OS companion
+
+Capture notes and story ideas from your wrist with the Wear OS app, then pick them up on your other devices. Dictate or type a quick note and file it under a project. Add the Capture tile to start a note or story idea in a single tap, or put the Hammer complication on your watch face to open a new note. The watch app syncs through your Hammer sync server.
