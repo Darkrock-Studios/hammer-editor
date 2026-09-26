@@ -920,7 +920,7 @@ the page-one contact block comes from.
 
 ### Style report (`style`)
 
-Built, as a runtime plugin in C: `style` in `hammer-plugins`, a 37 KB
+Built, as a runtime plugin in C: `style` in `hammer-plugins`, a 72 KB
 package. A "Style report" item in the project menu reports, per scene and for
 the whole story or the scenes chosen, reading ease, adverbs and filter words
 per thousand words, the share of dialogue, and repeated words and phrases, and
