@@ -465,6 +465,9 @@ jobs:
 
           echo "File renamed successfully."
 
+      - name: Rename R8 Mapping
+        run: cp "$GITHUB_WORKSPACE/android/build/outputs/mapping/release/mapping.txt" "$GITHUB_WORKSPACE/android/build/outputs/apk/release/hammer-apk-mapping.txt"
+
       - name: Create Release
         uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
         env:
@@ -474,7 +477,7 @@ jobs:
           prerelease: true
           artifactErrorsFailBuild: true
           allowUpdates: true
-          artifacts: "${{ github.workspace }}/android/build/outputs/apk/release/hammer.apk"
+          artifacts: "${{ github.workspace }}/android/build/outputs/apk/release/hammer.apk,${{ github.workspace }}/android/build/outputs/apk/release/hammer-apk-mapping.txt"
 
   snap:
     needs: tests
