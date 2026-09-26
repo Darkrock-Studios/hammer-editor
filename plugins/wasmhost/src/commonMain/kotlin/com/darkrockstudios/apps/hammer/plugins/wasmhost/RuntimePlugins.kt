@@ -73,14 +73,21 @@ class RuntimePlugins(
 
 	/** Everything installed, loadable or not, for Settings. */
 	fun installed(): List<InstalledPlugin> = readState().plugins.map { (id, state) ->
-		val manifest = try {
-			PluginPackage.read(fileSystem, packagePath(id)).localized(locale).manifest
+		val plugin = try {
+			PluginPackage.read(fileSystem, packagePath(id))
 		} catch (e: PluginPackageException) {
 			null
 		} catch (e: IOException) {
 			null
 		}
-		InstalledPlugin(id, manifest, state.enabled, state.granted)
+		InstalledPlugin(
+			id = id,
+			manifest = plugin?.localized(locale)?.manifest,
+			enabled = state.enabled,
+			granted = state.granted,
+			size = fileSystem.metadataOrNull(packagePath(id))?.size,
+			translations = plugin?.translations?.keys.orEmpty(),
+		)
 	}
 
 	/** Reads and checks the package at [source] without installing it, for the permission prompt. */
@@ -211,4 +218,8 @@ class InstalledPlugin(
 	val manifest: PluginManifest?,
 	val enabled: Boolean,
 	val granted: List<String>,
+	/** The package's bytes, or null when it cannot be found. */
+	val size: Long? = null,
+	/** The language tags of the package's translations, as named in it. */
+	val translations: Set<String> = emptySet(),
 )

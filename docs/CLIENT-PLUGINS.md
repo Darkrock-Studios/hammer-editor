@@ -836,13 +836,14 @@ Hammer's own words around plugins (Run, Cancel, the install dialog) are string
 resources, translated with the rest of the app. A plugin's own words come in
 two kinds, each translated by the plugin's author:
 
-- **Declared words.** The manifest's name and labels, command help, and
-  `settings.toml`'s labels, hints, and option labels. A package may carry
+- **Declared words.** The manifest's name, description, and labels, command
+  help, and `settings.toml`'s labels, hints, and option labels. A package may carry
   translations of them in `locales/<tag>.toml`, one file per language, keyed
   as the manifest keys them:
 
   ```toml
   name = "Générateur de noms"
+  description = "Propose des noms dans un style choisi."
 
   [actions.names]
   label = "Générer des noms"
@@ -1090,6 +1091,8 @@ id = "wordfreq"               # lowercase, directory-safe
 name = "Word Frequency"
 version = "1.0.0"
 api = 1                       # host API version the plugin was built against
+description = "Counts how often each word appears, as a spreadsheet."  # optional, up to 1,000 characters
+languages = ["en"]            # optional: the project languages it works with
 
 [permissions]
 operations = ["project.info", "scene.tree", "scene.read"]
@@ -1119,6 +1122,12 @@ help = "Counts words in stdin."
 [limits]                      # optional
 memory = 64                   # MiB of linear memory, 1 to 1024; 64 by default
 ```
+
+The install dialog, and the Info button beside each installed plugin, show its
+description, version, package size, `languages`, the languages its
+`locales/` translate it into, what it may use, and what it adds. `languages`
+is only shown: a project in another language still gets the plugin's checks
+and actions, which decide for themselves what to do with it.
 
 A module may be as large as its memory limit plus 32 MiB, since a
 pre-initialized module carries its memory's data. The install dialog says when

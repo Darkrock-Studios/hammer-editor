@@ -9,6 +9,11 @@
 	<string name="plugin_runtime_uninstall">Uninstall</string>
 	<string name="plugin_runtime_uninstall_confirm">Really uninstall?</string>
 	<string name="plugin_runtime_details">Version %1$s</string>
+	<string name="plugin_runtime_details_open">Info</string>
+	<string name="plugin_details_close">Close details</string>
+	<string name="plugin_details_done">Close</string>
+	<string name="plugin_details_languages">Works with projects in: %1$s</string>
+	<string name="plugin_details_translations">Translated into: %1$s</string>
 	<string name="plugin_runtime_unreadable">Its package can no longer be read. Uninstall it and install it again.</string>
 	<string name="plugin_install_title">Install %1$s?</string>
 	<string name="plugin_install_close">Cancel install</string>

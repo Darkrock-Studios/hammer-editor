@@ -141,11 +141,15 @@ class PluginPackage(
 			return toml.associate { path ->
 				val tag = path.name.removeSuffix(".toml")
 				if (!LOCALE_TAG.matches(tag)) throw PluginPackageException("$LOCALES/${path.name} is not named for a language tag")
-				tag to try {
+				val translation = try {
 					PluginTranslation.parse(text("$LOCALES/${path.name}"))
 				} catch (e: IllegalArgumentException) {
 					throw PluginPackageException("Invalid $LOCALES/${path.name}: ${e.message}")
 				}
+				if ((translation.description?.length ?: 0) > PluginManifest.MAX_DESCRIPTION_LENGTH) {
+					throw PluginPackageException("$LOCALES/${path.name}'s description is longer than ${PluginManifest.MAX_DESCRIPTION_LENGTH} characters")
+				}
+				tag to translation
 			}
 		}
 
@@ -185,6 +189,12 @@ class PluginPackage(
 			}
 			actions.firstOrNull { !PluginRegistry.isValidId(it) }?.let { throw PluginPackageException("Invalid action name '$it'") }
 			manifest.actions.forEach(::checkAction)
+			if ((manifest.description?.length ?: 0) > PluginManifest.MAX_DESCRIPTION_LENGTH) {
+				throw PluginPackageException("The description is longer than ${PluginManifest.MAX_DESCRIPTION_LENGTH} characters")
+			}
+			manifest.languages.firstOrNull { !LOCALE_TAG.matches(it) }?.let {
+				throw PluginPackageException("'$it' in languages is not a language tag")
+			}
 			if (manifest.limits.memory !in 1..PluginManifest.MAX_MEMORY_MIB) {
 				throw PluginPackageException("Memory limit must be from 1 to ${PluginManifest.MAX_MEMORY_MIB} MiB")
 			}

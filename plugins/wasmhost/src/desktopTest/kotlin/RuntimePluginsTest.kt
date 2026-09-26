@@ -369,6 +369,32 @@ class RuntimePluginsTest {
 		assertEquals("de-DE", Json.parseToJsonElement(reply.message!!).jsonObject["locale"]!!.jsonPrimitive.content)
 	}
 
+	private fun described(description: String, languages: String = "\"en\", \"fr-CA\"") =
+		manifest().replace("api = 1", "api = 1\ndescription = \"$description\"\nlanguages = [$languages]")
+
+	@Test
+	fun `a package's description and languages are shown in the UI's language, with its size and translations`() {
+		val plugins = runtimePlugins(locale = "fr")
+		val files = mapOf("locales/fr.toml" to "description = \"Répète l'histoire.\"", "locales/de.toml" to "name = \"Echo\"")
+		plugins.install(pack("echo", described("Echoes the story."), files = files))
+
+		val installed = plugins.installed().single()
+		assertEquals("Répète l'histoire.", installed.manifest?.description)
+		assertEquals(listOf("en", "fr-CA"), installed.manifest?.languages)
+		assertEquals(setOf("fr", "de"), installed.translations)
+		assertEquals(fileSystem.metadata(directory / "packages" / "echo.hammerplugin").size, installed.size)
+	}
+
+	@Test
+	fun `a description too long, or a language that is not a tag, is refused`() {
+		val plugins = runtimePlugins()
+		assertThrows<PluginPackageException> { plugins.install(pack("long", described("x".repeat(1001)))) }
+		assertThrows<PluginPackageException> { plugins.install(pack("tag", described("Fine.", "\"English\""))) }
+		val longFrench = mapOf("locales/fr.toml" to "description = \"${"x".repeat(1001)}\"")
+		assertThrows<PluginPackageException> { plugins.install(pack("long-french", described("Fine."), files = longFrench)) }
+		assertTrue(plugins.installed().isEmpty())
+	}
+
 	@Test
 	fun `a broken translation, or one not named for a language, is refused`() {
 		val plugins = runtimePlugins()
