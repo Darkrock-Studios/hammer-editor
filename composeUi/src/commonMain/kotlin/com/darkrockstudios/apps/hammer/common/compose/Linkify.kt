@@ -1,4 +1,4 @@
-package com.darkrockstudios.apps.hammer.common.projectselection
+package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.LinkAnnotation
@@ -8,11 +8,12 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withLink
 
 /**
- * Makes links in the changelog clickable while leaving everything else verbatim. Deliberately
- * not a markdown renderer: changelog entries lead with `[New]` / `[Fix]` tags, which a real
- * parser mangles. Only `[label](url)` and bare http(s) urls are touched.
+ * Makes links in plain text clickable while leaving everything else verbatim, for the changelog and
+ * plugin descriptions. Deliberately not a markdown renderer: changelog entries lead with `[New]` /
+ * `[Fix]` tags, which a real parser mangles. Only `[label](url)` and bare http(s) urls are touched,
+ * so a link can open nothing but a web page.
  */
-fun linkifyChangelog(text: String, linkStyle: SpanStyle): AnnotatedString {
+fun linkify(text: String, linkStyle: SpanStyle): AnnotatedString {
 	val styles = TextLinkStyles(style = linkStyle)
 	return buildAnnotatedString {
 		var index = 0

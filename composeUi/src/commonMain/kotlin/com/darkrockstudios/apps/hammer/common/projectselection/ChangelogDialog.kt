@@ -26,12 +26,13 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivide
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMasthead
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMastheadAction
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.linkify
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.hammerMonoFontFamily
 
 /**
  * The release notes baked into the app by `prepareForRelease`. Never hits the network.
- * Notes render as plain monospace text apart from links, which [linkifyChangelog] makes
+ * Notes render as plain monospace text apart from links, which [linkify] makes
  * clickable — see that function for why this isn't a markdown renderer.
  */
 @Composable
@@ -119,7 +120,7 @@ private fun ReleaseNotesSection(notes: String?) {
 			val text = notes?.takeIf { it.isNotBlank() }
 				?: Res.string.update_dialog_release_notes_empty.get()
 			Text(
-				text = linkifyChangelog(text, linkStyle),
+				text = linkify(text, linkStyle),
 				fontFamily = hammerMonoFontFamily(),
 				fontSize = 12.sp,
 				lineHeight = 18.sp,
