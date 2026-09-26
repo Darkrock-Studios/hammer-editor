@@ -1437,8 +1437,10 @@ build is optimized by binaryen; the development build is not:
 - **Plugin kit.** Authors get `hammer.h` on top of Extism's `extism-pdk.h`: the
   dispatch import, `hammer_call(operation, input_json)`, and the API version.
   Beside it, `hammer_json.h` reads JSON, `hammer_out.h` writes output,
-  `hammer_text.h` finds words, and `hammer_diagnose.h` does a `diagnose`
-  export's reading and writing, leaving a checker only its rules. With
+  `hammer_text.h` finds words, `hammer_action.h` reads an action's request and
+  writes an interactive reply, and `hammer_diagnose.h` does a `diagnose`
+  export's reading and writing, leaving a checker only its rules;
+  `hammer_progress` reports a long action's progress. With
   `HAMMER_NATIVE`, a plugin builds for the machine instead, and `hammer_test.h`
   unit tests it there. Typed C structs for operation inputs and outputs can
   later be generated from `ops.list`'s schemas.
