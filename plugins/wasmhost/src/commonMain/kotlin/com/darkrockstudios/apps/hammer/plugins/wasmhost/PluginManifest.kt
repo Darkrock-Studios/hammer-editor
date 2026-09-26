@@ -14,6 +14,13 @@ data class PluginManifest(
 	val version: String,
 	/** The host API version the plugin was built against. */
 	val api: Int,
+	/** A few sentences on what the plugin is for, shown before it is installed and in its details. */
+	val description: String? = null,
+	/**
+	 * BCP 47 tags of the project languages the plugin works with, such as `en` or `fr`; empty when it
+	 * does not depend on the language. Only shown to the user: projects in others still call it.
+	 */
+	val languages: List<String> = emptyList(),
 	val permissions: Permissions = Permissions(),
 	val exporters: List<Exporter> = emptyList(),
 	val commands: List<Command> = emptyList(),
@@ -86,6 +93,7 @@ data class PluginManifest(
 		const val API_VERSION = 1
 		const val DEFAULT_MEMORY_MIB = 64
 		const val MAX_MEMORY_MIB = 1024
+		const val MAX_DESCRIPTION_LENGTH = 1000
 		const val INPUT_MARKDOWN = "markdown"
 		const val INPUT_PROSE = "prose"
 
