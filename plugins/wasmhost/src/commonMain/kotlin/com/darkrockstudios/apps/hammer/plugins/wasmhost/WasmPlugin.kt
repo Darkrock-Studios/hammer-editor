@@ -65,6 +65,8 @@ class WasmPlugin(
 	private val savedSettings: () -> JsonObject = { JsonObject(emptyMap()) },
 	/** Where [CACHE_GET] and [CACHE_SET] keep values; without one, every get misses. */
 	private val cache: PluginCache? = null,
+	/** Reads a file from the package's `resources/` for [RESOURCE], or null when there is none by that name. */
+	private val readResource: (String) -> ByteArray? = { null },
 	private val fuelPerCall: Long = DEFAULT_FUEL_PER_CALL,
 	private val releaseGuestHeapAbove: Long = DEFAULT_RELEASE_GUEST_HEAP_ABOVE,
 	/** The UI's BCP 47 tag, sent with every call so a plugin can reply in it. */
@@ -84,7 +86,7 @@ class WasmPlugin(
 	private val module: ExtismPlugin
 		get() = loaded ?: ExtismPlugin(
 			loadModule,
-			listOf(dispatchFunction(), progressFunction()) + cacheFunctions(),
+			listOf(dispatchFunction(), progressFunction(), resourceFunction()) + cacheFunctions(),
 			log = ::log,
 			instrumenter = FuelInstrumenter(maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB),
 		).also { loaded = it }
@@ -271,6 +273,10 @@ class WasmPlugin(
 			0
 		},
 	)
+
+	private fun resourceFunction() = ExtismPlugin.UserFunction(RESOURCE, params = 1, returnsValue = true) { args ->
+		readResource(read(args[0]).decodeToString())?.let(::write) ?: 0
+	}
 
 	// Called from inside the module, so it blocks this call's thread until the operation finishes.
 	private fun dispatch(request: DispatchRequest): DispatchReply = runBlocking {
@@ -514,6 +520,12 @@ class WasmPlugin(
 
 		/** The import that writes the plugin's cache: a key and its value, or 0 (or an empty value) to remove it. */
 		const val CACHE_SET = "hammer_cache_set"
+
+		/**
+		 * The import that reads a file from the package's `resources/`, by its path there: its bytes, or 0
+		 * when there is none, or it is empty.
+		 */
+		const val RESOURCE = "hammer_resource"
 
 		/** The export that renders every export format the manifest declares. */
 		const val EXPORT = "export"

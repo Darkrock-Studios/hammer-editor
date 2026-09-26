@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.operations.plugin.SettingDeclaration
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginCache
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginException
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginPackageException
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginPackage
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.WasmPlugin
 import kotlinx.coroutines.CoroutineScope
@@ -114,6 +115,7 @@ class RuntimePluginsTest {
 		module: String = "export_echo",
 		settingsToml: String? = settings,
 		files: Map<String, String> = emptyMap(),
+		binaries: Map<String, ByteArray> = emptyMap(),
 	): Path {
 		val bytes = ByteArrayOutputStream().also { out ->
 			ZipOutputStream(out).use { zip ->
@@ -126,6 +128,7 @@ class RuntimePluginsTest {
 				settingsToml?.let { entry("settings.toml", it.encodeToByteArray()) }
 				entry("plugin.wasm", testPlugin(module))
 				files.forEach { (entryName, content) -> entry(entryName, content.encodeToByteArray()) }
+				binaries.forEach { (entryName, content) -> entry(entryName, content) }
 			}
 		}.toByteArray()
 		return (downloads / "$name.hammerplugin").also { path -> fileSystem.write(path) { write(bytes) } }
@@ -371,6 +374,36 @@ class RuntimePluginsTest {
 		val plugins = runtimePlugins()
 		assertThrows<PluginPackageException> { plugins.install(pack("echo", files = mapOf("locales/fr.toml" to "name = [1, 2"))) }
 		assertThrows<PluginPackageException> { plugins.install(pack("echo", files = mapOf("locales/français.toml" to "name = \"Écho\""))) }
+	}
+
+	@Test
+	fun `a module reads the files in its package's resources, and nothing else`() {
+		val plugins = runtimePlugins()
+		val resources = mapOf("resources/words/en.txt" to "apple\nbanana", "resources/greeting.txt" to "Hello")
+		plugins.install(pack("echo", module = "resource", files = resources))
+		startKoin(plugins)
+		val plugin = assertIs<WasmPlugin>(plugins.load().single())
+		fun read(name: String) = plugin.callBlocking("read", name.encodeToByteArray()).decodeToString()
+
+		assertEquals("apple\nbanana", read("words/en.txt"))
+		assertEquals("Hello", read("greeting.txt"))
+		assertEquals("", read("missing.txt"))
+		assertEquals("", read("manifest.toml"))
+		assertEquals("", read("../manifest.toml"))
+		assertEquals("", read("words"))
+	}
+
+	@Test
+	fun `resources past their limits are refused`() {
+		val plugins = runtimePlugins()
+		val tooLarge = mapOf(
+			"resources/a.bin" to ByteArray((PluginPackage.MAX_RESOURCE_BYTES / 2).toInt()),
+			"resources/b.bin" to ByteArray((PluginPackage.MAX_RESOURCE_BYTES / 2 + 1).toInt()),
+		)
+		assertThrows<PluginPackageException> { plugins.install(pack("large", binaries = tooLarge)) }
+		val tooMany = (0..1000).associate { "resources/$it.txt" to "$it" }
+		assertThrows<PluginPackageException> { plugins.install(pack("many", files = tooMany)) }
+		assertTrue(plugins.installed().isEmpty())
 	}
 
 	@Test
