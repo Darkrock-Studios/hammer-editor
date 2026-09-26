@@ -26,11 +26,11 @@ import kotlin.test.assertTrue
 import kotlin.time.measureTimedValue
 
 /**
- * The English grammar plugin, on Harper, from hammer-plugins, run by the host. Runs when HAMMER_PLUGINS
+ * The Harper grammar plugin from hammer-plugins, run by the host. Runs when HAMMER_PLUGINS
  * points at that checkout; prints how long loading and checking take.
  */
 @EnabledIfEnvironmentVariable(named = "HAMMER_PLUGINS", matches = ".+")
-class EnglishGrammarPluginTest {
+class HarperGrammarPluginTest {
 
 	private val fileSystem = FakeFileSystem()
 
@@ -42,9 +42,9 @@ class EnglishGrammarPluginTest {
 	private lateinit var registry: PluginRegistry
 
 	private val check by lazy {
-		val built = File(System.getenv("HAMMER_PLUGINS"), "rust/english-grammar/build/english-grammar.hammerplugin")
-		check(built.exists()) { "Run rust/english-grammar/build.sh in hammer-plugins first" }
-		val download = "/downloads/english-grammar.hammerplugin".toPath()
+		val built = File(System.getenv("HAMMER_PLUGINS"), "rust/harper-grammar/build/harper-grammar.hammerplugin")
+		check(built.exists()) { "Run rust/harper-grammar/build.sh in hammer-plugins first" }
+		val download = "/downloads/harper-grammar.hammerplugin".toPath()
 		fileSystem.createDirectories(download.parent!!)
 		fileSystem.write(download) { write(built.readBytes()) }
 		val plugins = RuntimePlugins(fileSystem, "/config/plugins".toPath(), "/cache/plugins".toPath())
@@ -83,7 +83,7 @@ class EnglishGrammarPluginTest {
 		assertTrue(messages(long).any { "words long" in it }, messages(long).toString())
 		assertTrue(messages(agreement).isNotEmpty())
 
-		val settings = registry.settings("english-grammar")!!
+		val settings = registry.settings("harper-grammar")!!
 		settings.set("longSentences", JsonPrimitive(false))
 		settings.set("grammar", JsonPrimitive(false))
 
