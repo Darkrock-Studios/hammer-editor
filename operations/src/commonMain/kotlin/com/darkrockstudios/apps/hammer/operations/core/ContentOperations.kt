@@ -2,6 +2,9 @@ package com.darkrockstudios.apps.hammer.operations.core
 
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaRepository
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryLoadError
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContainer
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryType
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
@@ -18,6 +21,7 @@ import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationScope
 import com.darkrockstudios.apps.hammer.operations.notFound
 import com.darkrockstudios.apps.hammer.operations.operation
+import io.github.aakira.napier.Napier
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.time.Instant
@@ -48,16 +52,20 @@ internal fun contentOperations(): List<Operation<*, *>> = listOf(
 	},
 	operation<EntryListInput, Entries>(
 		name = "entry.list",
-		description = "A project's encyclopedia entries, optionally only one type or those with a tag.",
+		description = "A project's encyclopedia entries, with their aliases, optionally only one type or those with a tag.",
 		access = Access.Read,
 		scope = OperationScope.Content,
 	) { input ->
 		projects.withProject(input.project) { project ->
 			val tagged = input.tag?.let { tag -> project.tagIndex().entitiesWithTag(tag, TaggedEntityType.Encyclopedia) }
-			val entries = project.scope.get<EncyclopediaRepository>().ensureEntriesLoaded()
+			val encyclopedia = project.scope.get<EncyclopediaRepository>()
+			val entries = encyclopedia.ensureEntriesLoaded()
 				.filter { input.type == null || EntryKind.of(it.type) == input.type }
 				.filter { tagged == null || it.id in tagged }
-			Entries(entries.map { EntrySummary(it.id, it.name, EntryKind.of(it.type)) }.sortedBy { it.id })
+			Entries(
+				entries.map { EntrySummary(it.id, it.name, EntryKind.of(it.type), aliasesOf(it, encyclopedia::loadEntry)) }
+					.sortedBy { it.id }
+			)
 		}
 	},
 	operation<ProjectItemInput, Entry>(
@@ -185,8 +193,23 @@ data class EntryListInput(val project: String, val type: EntryKind? = null, val 
 @Serializable
 data class Entries(val entries: List<EntrySummary>)
 
+/** An entry's aliases, or none when its file cannot be read, which should not hide the entry. */
+internal fun aliasesOf(def: EntryDef, load: (EntryDef) -> EntryContainer): List<String> =
+	try {
+		load(def).entry.aliases
+	} catch (e: EntryLoadError) {
+		Napier.w(e) { "Entry ${def.id} could not be read for its aliases" }
+		emptyList()
+	}
+
 @Serializable
-data class EntrySummary(val id: Int, val name: String, val type: EntryKind)
+data class EntrySummary(
+	val id: Int,
+	val name: String,
+	val type: EntryKind,
+	/** Other names the entry goes by. */
+	val aliases: List<String> = emptyList(),
+)
 
 @Serializable
 data class Entry(

@@ -25,6 +25,7 @@ import com.darkrockstudios.apps.hammer.operations.core.TimelineCreateInput
 import com.darkrockstudios.apps.hammer.operations.core.TimelineEntry
 import com.darkrockstudios.apps.hammer.operations.core.TimelineMoveInput
 import com.darkrockstudios.apps.hammer.operations.core.TimelineUpdateInput
+import okio.Path.Companion.toPath
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.koin.core.component.get
@@ -86,6 +87,21 @@ class ContentWriteOperationsTest : KoinOperationsTest() {
 		assertFalse(run<ProjectItemInput, Entry>("entry.image.remove", ProjectItemInput(PROJECT, entry.id)).hasImage)
 
 		run<ProjectItemInput, EntrySummary>("entry.delete", ProjectItemInput(PROJECT, entry.id))
+		assertEquals(emptyList(), run<EntryListInput, Entries>("entry.list", EntryListInput(PROJECT)).entries)
+	}
+
+	@Test
+	fun `an entry whose file cannot be read is listed without aliases, and can be deleted`() = onTestThread {
+		val entry = run<EntryCreateInput, Entry>(
+			"entry.create",
+			EntryCreateInput(PROJECT, "Alice", EntryKind.Person, "The keeper.", aliases = listOf("Al")),
+		)
+		val file = ffs.listRecursively("/".toPath()).single { it.name.endsWith(".toml") && "Alice" in it.name }
+		ffs.write(file) { writeUtf8("not = [toml") }
+
+		val listed = run<EntryListInput, Entries>("entry.list", EntryListInput(PROJECT)).entries.single()
+		assertEquals(listOf("Alice" to emptyList<String>()), listOf(listed.name to listed.aliases))
+		assertEquals(emptyList(), run<ProjectItemInput, EntrySummary>("entry.delete", ProjectItemInput(PROJECT, entry.id)).aliases)
 		assertEquals(emptyList(), run<EntryListInput, Entries>("entry.list", EntryListInput(PROJECT)).entries)
 	}
 
