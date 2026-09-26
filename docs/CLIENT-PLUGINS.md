@@ -971,13 +971,15 @@ that remains.
 ### Simple grammar (`simple-grammar`)
 
 Built, as a runtime plugin in C: `c/simple-grammar` in `hammer-plugins`, a
-32 KB package. Underlines slips that a spell checker passes, since every word
+48 KB package. Underlines slips that a spell checker passes, since every word
 in them is a real one, in English, French, German, Spanish, Italian, and
 Ukrainian. Its settings turn groups of rules on and off:
 
 | Group | Default | Rules |
 | --- | --- | --- |
 | Word mistakes | On | Repeated words, mixed-up words and phrases ("could of", "your welcome", "sneak peak"; "quelque soit"; "seid wann", "das selbe"; "a sido", "de el"; "un amica", "c'è la faccio"; "приймати участь"), and each language's own: "a" and "an" and "better then" in English, elision in French ("le arbre" for "l'arbre") |
+| Verb agreement | On | A pronoun with a verb form that does not agree ("they was", "il sont", "wir hat", "ellos está", "loro ha", "вона був"), but not after a word that makes it right: the subjunctive ("if he were"), a subject of several ("you and I are"), an auxiliary ("does he have"), or a preposition ("para él son"). Pronouns that are objects too, such as "you", "it", "nous", and "sie", are left out, and so is speech |
+| Agreement in dialogue | Off | Verb agreement in speech too: quotes, and paragraphs that open with a dash |
 | Punctuation and capitalization | On | A lower-case "i" in English, spacing around punctuation, French's space before a colon, doubled marks (",,", ".." but not an ellipsis), unmatched parentheses, and a sentence starting in lower case |
 | Dialogue | On | `"Wait." she said` wants a comma and `"Wait," She said` lower case, in English; in every language a quote run into the next word wants a space, and one a comma follows drops its full stop (`„Warte.“, sagte sie`) |
 | Wordy phrases | Off | "in order to" for "to", "dans le but de" for "pour", "zum jetzigen Zeitpunkt" for "jetzt" |
@@ -995,15 +997,15 @@ case and the rest as written, so "de el" passes "de El Salvador" and German
 keeps its nouns' capitals. A new language is a folder of lists, and gets every
 rule but English's and French's own, with curly quotes unless the plugin's
 table of quotation marks says otherwise; German's are „ and “, and French,
-Spanish, Italian, and Ukrainian's guillemets. Outside English, a sentence may
-go on in lower case after "?" and "!". Case is known for Latin and Cyrillic
+Spanish, Italian, and Ukrainian's guillemets. A sentence may go on in lower
+case after "?" and "!" ("alas! either"). Case is known for Latin and Cyrillic
 letters. Fixes use curly apostrophes where the paragraph does. Its messages
 are in the UI's language, from the request's `locale`, when that is one of the
 six, and English otherwise; its name, description, and settings are translated
 in `locales/`, as any package's are. Every rule is
-one pass over a paragraph with small tables, and a list is passed over at the
-first letter that differs: 40 paragraphs of 74 words take about 140 ms under
-chasm with every group on, against 25 to 30 ms a paragraph for Harper grammar.
+one pass over a paragraph with small tables, and a word passes over the
+phrases of a list whose first word it is not in one step: 40 paragraphs of 74
+words take about 110 ms under chasm with every group on, against 25 to 30 ms a paragraph for Harper grammar.
 
 | Exercises | How |
 | --- | --- |
