@@ -1028,17 +1028,20 @@ which leaves chasm's decoded copy of the data and the module's memory. About
 90 MB stays. Short of that heap, the check fails and the text goes unmarked.
 Android's app heap may still be too small; untried there.
 
-### Names (`names`)
+### Name checker (`name-checker`)
 
-Built, as a runtime plugin in Rust: `rust/names` in `hammer-plugins`, a
-950 KB module, most of it an English word list (SCOWL's American and British
-lists). It reads the encyclopedia's names and aliases through `entry.list` on
-every check, so it follows edits to the encyclopedia.
+Built, as a runtime plugin in Rust: `rust/name-checker` in `hammer-plugins`, a
+300 KB module with a word list for each language it checks as resources:
+English (SCOWL's American and British lists), French, German, Spanish,
+Italian, and Ukrainian. It reads the encyclopedia's names and aliases through
+`entry.list` on every check, so it follows edits to the encyclopedia.
 
 | Exercises | How |
 | --- | --- |
 | The project in a check | The diagnose request's `project` lets the check read the encyclopedia |
 | A check and a report in one plugin | A `[[diagnostics]]` check and a document action share the name rules |
+| Resources | A word list per language, read the first time a project in it is checked, and kept |
+| Translations | `locales/<tag>.toml` for its labels, and its messages and report in the UI's language, counts with that language's plural forms |
 
 As the text is written, it underlines a word one edit from a name (two for a
 name of eight letters or more), a swap of neighbours counting as one, and a
@@ -1046,7 +1049,7 @@ name written in lower case, offering the name as the fix; a plural ("the
 Grangers") counts as the name. Only names the word
 list does not know take part, so a name that is also a word ("Grace",
 "Harry") is left to spell check, and a word is never taken for a misspelled
-name. So it checks only English projects. With the encyclopedia's names fed to
+name. So it checks only projects in a language it has a list for. With the encyclopedia's names fed to
 spell check, a slip also gets spell check's own underline.
 
 The Names report, from the project menu, lists each entry's mentions (by
