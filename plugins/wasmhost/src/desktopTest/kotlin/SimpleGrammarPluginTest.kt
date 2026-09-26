@@ -99,8 +99,8 @@ class SimpleGrammarPluginTest {
 	}
 
 	@Test
-	fun `a sentence starting in lower case, not after an abbreviation or ellipsis`() {
-		assertEquals(listOf("a -> A", "t -> T"), issues("She left. a dog barked! then quiet… e.g. this, etc. and... that."))
+	fun `a sentence starting in lower case, not after an abbreviation, ellipsis, or exclamation`() {
+		assertEquals(listOf("a -> A"), issues("She left. a dog barked! then quiet… e.g. this, etc. and... that."))
 	}
 
 	@Test
