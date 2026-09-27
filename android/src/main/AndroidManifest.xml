@@ -23,6 +23,7 @@
 
 		<activity
 			android:name=".ProjectSelectActivity"
+			android:theme="@style/Theme.Hammer.Starting"
 			android:exported="true"
 			android:windowSoftInputMode="adjustResize">
 			<intent-filter>

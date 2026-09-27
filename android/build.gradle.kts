@@ -40,6 +40,7 @@ dependencies {
 	implementation(libs.work.runtime.ktx)
 	implementation(libs.material)
 	implementation(libs.appcompat)
+	implementation(libs.core.splashscreen)
 	implementation(libs.multiplatform.settings)
 
 	androidTestImplementation(libs.androidx.junit)
