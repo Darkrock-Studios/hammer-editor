@@ -2,4 +2,10 @@
 <resources>
 	<style name="Theme.Hammer" parent="Theme.AppCompat.DayNight.NoActionBar">
 	</style>
+
+	<style name="Theme.Hammer.Starting" parent="Theme.SplashScreen">
+		<item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
+		<item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher_foreground</item>
+		<item name="postSplashScreenTheme">@style/Theme.Hammer</item>
+	</style>
 </resources>
