@@ -7,7 +7,6 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -22,6 +21,7 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescent
 import io.github.aakira.napier.Napier
+import kotlinx.atomicfu.atomic
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.BufferOverflow
@@ -68,9 +68,8 @@ class SceneMetadataPanelComponent(
 	private var bufferUpdateSubscription: Job? = null
 	private var metadataLoaded = false
 
-	// True while an outline/notes edit is waiting on the debounced store.
-	@Volatile
-	private var unsavedTextEdits = false
+	/** The metadata last known to be on disk; a text field that differs from it holds a local edit. */
+	private val persistedMetadata = atomic<SceneMetadata?>(null)
 
 	// True while any local change is waiting on the debounced store.
 	@Volatile
@@ -119,15 +118,17 @@ class SceneMetadataPanelComponent(
 				.collect { update ->
 					val external = update.metadata
 					val current = state.value.metadata
-					// Keep the user-editable text fields local; let everything else (refs, tags,
-					// future-added fields) take the external write. Listing the local-owned fields
-					// is the more stable invariant when SceneMetadata gains new fields.
-					// A synced write also replaces outline/notes, unless a local edit is unsaved.
-					val keepLocalText = update.source != UpdateSource.Sync || unsavedTextEdits
+					val persisted = persistedMetadata.getAndSet(external)
+					// The user-editable text fields keep a local edit and take the external write
+					// otherwise; everything else (refs, tags, future-added fields) takes the external
+					// write. Listing the local-owned fields is the more stable invariant when
+					// SceneMetadata gains new fields.
+					fun pick(field: (SceneMetadata) -> String): String =
+						if (persisted == null || field(current) != field(persisted)) field(current) else field(external)
 					val merged = external.copy(
-						outline = if (keepLocalText) current.outline else external.outline,
-						notes = if (keepLocalText) current.notes else external.notes,
-						currentDraftName = current.currentDraftName,
+						outline = pick { it.outline },
+						notes = pick { it.notes },
+						currentDraftName = pick { it.currentDraftName },
 					)
 					if (merged == current) return@collect
 					withContext(dispatcherMain) {
@@ -165,6 +166,7 @@ class SceneMetadataPanelComponent(
 
 	private suspend fun loadMetadataData() {
 		val metadata = sceneEditor.loadSceneMetadata(originalSceneItem.id)
+		persistedMetadata.value = metadata
 		metadataLoaded = true
 		_state.getAndUpdate {
 			it.copy(
@@ -221,17 +223,15 @@ class SceneMetadataPanelComponent(
 		metadataStoreJob = scope.launch {
 			metadataStoreFlow.debounceUntilQuiescent(STORE_COOL_DOWN).collect { metadata ->
 				// Self-healing fail-safe: drop reference IDs whose entry no longer exists
+				val scrubbed = scrubInvalidReferences(metadata)
 				try {
-					sceneEditor.storeMetadata(scrubInvalidReferences(metadata), originalSceneItem.id)
+					sceneEditor.storeMetadata(scrubbed, originalSceneItem.id)
 				} catch (e: IOException) {
 					Napier.e("Failed to store metadata for scene ${originalSceneItem.id}", e)
 					return@collect
 				}
-				val current = state.value.metadata
-				if (current.outline == metadata.outline && current.notes == metadata.notes) {
-					unsavedTextEdits = false
-				}
-				if (current == metadata) storePending = false
+				persistedMetadata.value = scrubbed
+				if (state.value.metadata == metadata) storePending = false
 			}
 		}
 	}
@@ -254,7 +254,6 @@ class SceneMetadataPanelComponent(
 	}
 
 	override fun updateOutline(text: String) {
-		unsavedTextEdits = true
 		storePending = true
 		_state.getAndUpdate {
 			val updated = it.metadata.copy(outline = text)
@@ -268,7 +267,6 @@ class SceneMetadataPanelComponent(
 	}
 
 	override fun updateNotes(text: String) {
-		unsavedTextEdits = true
 		storePending = true
 		_state.getAndUpdate {
 			val updated = it.metadata.copy(notes = text)

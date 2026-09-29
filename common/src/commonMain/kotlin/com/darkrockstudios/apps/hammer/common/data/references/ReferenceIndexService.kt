@@ -173,7 +173,8 @@ class ReferenceIndexService(
 	 */
 	suspend fun findScenesMatchingEntry(entryId: Int, names: List<String>): List<Int> {
 		if (names.none { it.isNotBlank() }) return emptyList()
-		val matchable = listOf(MatchableEntry(entryId, names))
+		// Every entry's forms take part so a longer form of another entry claims its text first.
+		val matchable = matchableEntries().filter { it.entryId != entryId } + MatchableEntry(entryId, names)
 		val results = mutableListOf<Int>()
 
 		suspend fun consider(sceneItem: SceneItem) {
@@ -188,7 +189,7 @@ class ReferenceIndexService(
 				sceneEditorRepository.loadSceneMarkdownRaw(sceneItem)
 			}
 			val hits = matcher.findMatches(text, matchable)
-			if (hits.isNotEmpty()) results.add(sceneItem.id)
+			if (hits.any { it.entryId == entryId }) results.add(sceneItem.id)
 		}
 
 		val sceneTree = sceneEditorRepository.sceneTreeUpdates.first()

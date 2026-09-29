@@ -1,5 +1,6 @@
 package repositories.references
 
+import com.darkrockstudios.apps.hammer.common.data.references.MatchKind
 import com.darkrockstudios.apps.hammer.common.data.references.MatchableEntry
 import com.darkrockstudios.apps.hammer.common.data.references.WholeWordCaseSensitiveMatcher
 import org.junit.jupiter.api.Test
@@ -222,13 +223,120 @@ class WholeWordCaseSensitiveMatcherTest {
 	}
 
 	@Test
-	fun `Overlapping aliases across entries both hit`() {
+	fun `Overlapping forms across entries go to the longest`() {
 		val hits = matcher.findMatches(
-			"Adam's apple bobbed.",
+			"Adam's apple bobbed. Adam left.",
 			listOf(entry(1, "Adam"), entry(2, "Adam's apple")),
 		)
-		assertTrue(hits.any { it.entryId == 1 })
-		assertTrue(hits.any { it.entryId == 2 })
+		assertEquals(listOf(2 to 0..11, 1 to 21..24), hits.map { it.entryId to it.range })
+	}
+
+	@Test
+	fun `Longest form wins within one entry`() {
+		val hits = matcher.findMatches(
+			"Robert Tallow and Tallow",
+			listOf(entry(1, "Tallow", "Robert Tallow")),
+		)
+		assertEquals(listOf("Robert Tallow" to 0..12, "Tallow" to 18..23), hits.map { it.matchedText to it.range })
+	}
+
+	@Test
+	fun `Longer form that fails the word boundary falls back to the shorter`() {
+		val hits = matcher.findMatches(
+			"Martha Tallowford and Martha left.",
+			listOf(entry(1, "Martha"), entry(2, "Martha Tallow")),
+		)
+		assertEquals(listOf(1 to 0..5, 1 to 22..27), hits.map { it.entryId to it.range })
+	}
+
+	@Test
+	fun `Hits carry the range of the matched text`() {
+		val hits = matcher.findMatches("Hi Bob, bye Bob.", listOf(entry(1, "Bob")))
+		assertEquals(listOf(3..5, 12..14), hits.map { it.range })
+		assertTrue(hits.all { it.kind == MatchKind.EXACT })
+	}
+
+	@Test
+	fun `All caps is not matched by default`() {
+		val hits = matcher.findMatches("I WILL NOT GO", listOf(entry(1, "Will")))
+		assertEquals(0, hits.size)
+	}
+
+	@Test
+	fun `All caps form matches when asked and reports the declared form`() {
+		val hits = matcher.findMatches(
+			"ROBERT TALLOW! Robert Tallow.",
+			listOf(entry(1, "Robert Tallow")),
+			includeAllCaps = true,
+		)
+		assertEquals(
+			listOf(MatchKind.ALL_CAPS to 0..12, MatchKind.EXACT to 15..27),
+			hits.map { it.kind to it.range },
+		)
+		assertTrue(hits.all { it.matchedText == "Robert Tallow" })
+	}
+
+	@Test
+	fun `Mixed case other than all caps does not match`() {
+		val hits = matcher.findMatches("ROBert tallow", listOf(entry(1, "Robert Tallow")), includeAllCaps = true)
+		assertEquals(0, hits.size)
+	}
+
+	@Test
+	fun `Entry declared in caps is exact rather than another entry's all caps`() {
+		val hits = matcher.findMatches("BOB arrived.", listOf(entry(1, "Bob"), entry(2, "BOB")), includeAllCaps = true)
+		assertEquals(listOf(2 to MatchKind.EXACT), hits.map { it.entryId to it.kind })
+	}
+
+	@Test
+	fun `Plurals are not matched by default`() {
+		val hits = matcher.findMatches("The Tallows left.", listOf(entry(1, "Tallow")))
+		assertEquals(0, hits.size)
+	}
+
+	@Test
+	fun `Plurals match when asked`() {
+		val hits = matcher.findMatches(
+			"The Tallows and the Marshes left.",
+			listOf(entry(1, "Tallow"), entry(2, "Marsh")),
+			includePlurals = true,
+		)
+		assertEquals(
+			listOf(Triple(1, MatchKind.PLURAL, 4..10), Triple(2, MatchKind.PLURAL, 20..26)),
+			hits.map { Triple(it.entryId, it.kind, it.range) },
+		)
+	}
+
+	@Test
+	fun `Another entry's exact form beats a plural`() {
+		val hits = matcher.findMatches(
+			"Tallows arrived.",
+			listOf(entry(1, "Tallow"), entry(2, "Tallows")),
+			includePlurals = true,
+		)
+		assertEquals(listOf(2 to MatchKind.EXACT), hits.map { it.entryId to it.kind })
+	}
+
+	@Test
+	fun `Possessive matches only the name`() {
+		val hits = matcher.findMatches("Tallow's hat and Tallow’s coat", listOf(entry(1, "Tallow")))
+		assertEquals(listOf(0..5, 17..22), hits.map { it.range })
+	}
+
+	@Test
+	fun `Form shared by two entries hits both at the same range`() {
+		val hits = matcher.findMatches("Tallow waved.", listOf(entry(1, "Tallow"), entry(2, "Martha", "Tallow")))
+		assertEquals(setOf(1, 2), hits.map { it.entryId }.toSet())
+		assertTrue(hits.all { it.range == 0..5 })
+	}
+
+	@Test
+	fun `Same entry list is matched again with the same results`() {
+		val entries = listOf(entry(1, "Bob"))
+		matcher.findMatches("Bob", entries)
+		val hits = matcher.findMatches("Bob and Bob", entries)
+		assertEquals(2, hits.size)
+		assertEquals(0, matcher.findMatches("Alice", listOf(entry(2, "Alice"))).single().range.first)
 	}
 
 	@Test

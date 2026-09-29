@@ -310,7 +310,7 @@ private fun SearchResultRow(
 }
 
 @Composable
-private fun annotatedSnippet(snippet: AnnotatedSnippet): AnnotatedString {
+internal fun annotatedSnippet(snippet: AnnotatedSnippet): AnnotatedString {
 	val highlight = SpanStyle(
 		background = MaterialTheme.colorScheme.primaryContainer,
 		color = MaterialTheme.colorScheme.onPrimaryContainer,

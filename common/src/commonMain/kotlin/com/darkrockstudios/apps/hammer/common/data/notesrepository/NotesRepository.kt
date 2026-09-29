@@ -58,10 +58,15 @@ class NotesRepository(
 
 	fun loadNotes(onLoaded: (() -> Unit)? = null) {
 		notesScope.launch {
-			val notes = notesDatasource.loadNotes()
-			updateNotes(notes)
+			loadNotesImperative()
 			onLoaded?.invoke()
 		}
+	}
+
+	suspend fun loadNotesImperative(): List<NoteContainer> {
+		val notes = notesDatasource.loadNotes()
+		updateNotes(notes)
+		return notes
 	}
 
 	/**
