@@ -356,6 +356,26 @@ class ReferenceIndexServiceTest : BaseTest() {
 		}
 
 	@Test
+	fun `findScenesMatchingEntry leaves text that another entry's longer name claims`() =
+		runTest(mainTestDispatcher) {
+			stubSceneTree(
+				listOf(
+					sceneItem(10) to SceneMetadata(),
+					sceneItem(11) to SceneMetadata(),
+				)
+			)
+			every { sceneEditor.getSceneFilePath(any<SceneItem>()) } returns HPath("", "", false)
+			every { sceneEditor.loadSceneMarkdownRaw(any(), any()) } returns ""
+			every { sceneEditor.loadSceneMarkdownRaw(match { it.id == 10 }, any()) } returns "Martha Tallow left."
+			every { sceneEditor.loadSceneMarkdownRaw(match { it.id == 11 }, any()) } returns "Tallow left."
+			stubEntries(listOf(person(2, "Martha Tallow")))
+
+			val matches = makeService().findScenesMatchingEntry(1, listOf("Tallow"))
+
+			assertEquals(listOf(11), matches)
+		}
+
+	@Test
 	fun `findScenesMatchingEntry skips scenes that already confirm the entry`() =
 		runTest(mainTestDispatcher) {
 			// Sticky semantics: once confirmed, no need to re-add. Idempotent backfill.

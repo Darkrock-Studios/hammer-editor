@@ -1,6 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.components.encyclopedia
 
+import com.arkivanov.decompose.router.slot.ChildSlot
 import com.arkivanov.decompose.value.Value
+import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.RenameEntry
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
@@ -11,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.TagSuggesting
 interface ViewEntry : TagSuggesting {
 
 	val state: Value<State>
+	val renameSlot: Value<ChildSlot<*, RenameEntry>>
 
 	data class State(
 		val entryDef: EntryDef,
@@ -72,4 +75,6 @@ interface ViewEntry : TagSuggesting {
 	fun removeAlias(alias: String)
 	suspend fun setExcludeFromDictionary(exclude: Boolean): EntryResult
 	fun navigateToAppearance(appearance: Appearance)
+	fun showRename()
+	fun dismissRename()
 }

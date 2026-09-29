@@ -131,6 +131,9 @@ class SceneEditorService(
 	suspend fun renameScene(sceneItem: SceneItem, newName: String): Boolean =
 		sceneEditorRepository.renameScene(sceneItem, newName)
 
+	suspend fun renameArchivedScene(sceneItem: SceneItem, newName: String): Boolean =
+		sceneEditorRepository.renameArchivedScene(sceneItem, newName)
+
 	suspend fun moveScene(moveRequest: MoveRequest) = sceneEditorRepository.moveScene(moveRequest)
 
 	suspend fun archiveScene(scene: SceneItem): Boolean {
@@ -201,6 +204,16 @@ class SceneEditorService(
 		}
 
 		return success
+	}
+
+	/**
+	 * Replaces a scene's text from outside the editor and saves it; an open editor shows the new text.
+	 * The words are not credited to the writer's activity.
+	 */
+	suspend fun replaceSceneText(sceneItem: SceneItem, markdown: String): Boolean {
+		sceneContentRepository.replaceBuffer(SceneContent(sceneItem, markdown))
+		writingSessionTracker.rememberBaseline(sceneItem.id, markdown)
+		return storeSceneBuffer(sceneItem)
 	}
 
 	suspend fun storeAllBuffers() {
@@ -303,6 +316,8 @@ class SceneEditorService(
 	}
 
 	fun hasDirtyBuffers(): Boolean = sceneContentRepository.hasDirtyBuffers()
+
+	fun hasDirtyBuffer(sceneId: Int): Boolean = sceneContentRepository.hasDirtyBuffer(sceneId)
 
 	suspend fun getMetadata(): ProjectMetadata = sceneMetadataRepository.getMetadata()
 

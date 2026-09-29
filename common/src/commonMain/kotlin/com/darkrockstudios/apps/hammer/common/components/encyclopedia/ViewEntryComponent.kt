@@ -1,6 +1,11 @@
 package com.darkrockstudios.apps.hammer.common.components.encyclopedia
 
 import com.arkivanov.decompose.ComponentContext
+import com.arkivanov.decompose.router.slot.ChildSlot
+import com.arkivanov.decompose.router.slot.SlotNavigation
+import com.arkivanov.decompose.router.slot.activate
+import com.arkivanov.decompose.router.slot.childSlot
+import com.arkivanov.decompose.router.slot.dismiss
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
@@ -8,6 +13,8 @@ import com.arkivanov.decompose.value.subscribe
 import com.arkivanov.essenty.backhandler.BackCallback
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
+import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.RenameEntry
+import com.darkrockstudios.apps.hammer.common.components.encyclopedia.rename.RenameEntryComponent
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -24,6 +31,7 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEd
 import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
 
 class ViewEntryComponent(
 	componentContext: ComponentContext,
@@ -47,6 +55,26 @@ class ViewEntryComponent(
 	private val sceneEditorRepository: SceneEditorService by projectInject()
 	private val backfillEntryReferences: BackfillEntryReferencesUseCase by projectInject()
 	private val cleanupReferencesOnDelete: CleanupReferencesOnEntryDeleteUseCase by projectInject()
+
+	private val renameNavigation = SlotNavigation<RenameConfig>()
+
+	override val renameSlot: Value<ChildSlot<RenameConfig, RenameEntry>> =
+		componentContext.childSlot(
+			source = renameNavigation,
+			serializer = RenameConfig.serializer(),
+			key = "RenameSlot",
+			// The dialog decides when it may close: never while a rename is being written.
+			handleBackButton = false,
+			childFactory = { config, childContext ->
+				RenameEntryComponent(
+					componentContext = childContext,
+					projectDef = projectDef,
+					entryId = config.entryId,
+					onRenamed = ::onRenamed,
+					onClose = ::dismissRename,
+				)
+			}
+		)
 
 	private val backButtonHandler = BackCallback(isEnabled = false) {
 		// Only called when editing - show confirmation before discarding
@@ -340,6 +368,19 @@ class ViewEntryComponent(
 		showScene(appearance.sceneItem)
 	}
 
+	override fun showRename() {
+		renameNavigation.activate(RenameConfig(state.value.entryDef.id))
+	}
+
+	override fun dismissRename() {
+		renameNavigation.dismiss()
+	}
+
+	private fun onRenamed(entryDef: EntryDef) {
+		_state.getAndUpdate { it.copy(entryDef = entryDef) }
+		reload()
+	}
+
 	private fun getMenuId(): String {
 		return "view-entry"
 	}
@@ -362,6 +403,14 @@ class ViewEntryComponent(
 			_state.getAndUpdate { it.copy(showDeleteImageDialog = true) }
 		}
 
+		val rename = MenuItemDescriptor(
+			"view-entry-rename",
+			Res.string.encyclopedia_entry_menu_rename,
+			"",
+		) {
+			showRename()
+		}
+
 		val deleteEntry = MenuItemDescriptor(
 			"view-entry-delete",
 			Res.string.encyclopedia_entry_menu_delete,
@@ -370,7 +419,7 @@ class ViewEntryComponent(
 			_state.getAndUpdate { it.copy(showDeleteEntryDialog = true) }
 		}
 
-		val menuItems = setOf(addImage, removeImage, deleteEntry)
+		val menuItems = setOf(rename, addImage, removeImage, deleteEntry)
 		val menu = MenuDescriptor(
 			getMenuId(),
 			Res.string.encyclopedia_entry_menu_group,
@@ -401,3 +450,6 @@ class ViewEntryComponent(
 		removeEntryMenu()
 	}
 }
+
+@Serializable
+data class RenameConfig(val entryId: Int)
