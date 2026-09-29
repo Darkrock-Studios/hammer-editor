@@ -217,6 +217,7 @@ Conventions:
 | --- | --- | --- |
 | `scene.tree` | Read | Nested groups and scenes: ids, names, order, word counts |
 | `scene.read` | Read | Markdown plus metadata |
+| `scene.read.many` | Read | Story-order scenes (all, a group's, or by id) with markdown, metadata, and group path, paged by `maxWords` with an `after` cursor; leaves out archived scenes |
 | `scene.write` | Write | Replaces the text; `mode` is required, see below |
 | `scene.append` | Write | Appends to the live text; for capture devices and scripts |
 | `scene.create` | Write | Parent, name, position, scene or group |

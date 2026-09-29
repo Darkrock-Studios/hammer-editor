@@ -54,6 +54,8 @@ import com.darkrockstudios.apps.hammer.operations.core.ProjectList
 import com.darkrockstudios.apps.hammer.operations.core.ProjectStats
 import com.darkrockstudios.apps.hammer.operations.core.SceneKind
 import com.darkrockstudios.apps.hammer.operations.core.SceneMeta
+import com.darkrockstudios.apps.hammer.operations.core.ScenePage
+import com.darkrockstudios.apps.hammer.operations.core.SceneReadManyInput
 import com.darkrockstudios.apps.hammer.operations.core.SceneText
 import com.darkrockstudios.apps.hammer.operations.core.SceneTree
 import com.darkrockstudios.apps.hammer.operations.core.SearchFilter
@@ -227,6 +229,79 @@ class ReadOperationsTest : KoinOperationsTest() {
 			run<ProjectItemInput, SceneText>("scene.read", ProjectItemInput(PROJECT, ids.chapter.id))
 		}
 		assertEquals(OperationException.Kind.NotFound, error.kind)
+	}
+
+	@Test
+	fun `scene read many returns the story in order with paths`() = onTestThread {
+		val page = run<SceneReadManyInput, ScenePage>("scene.read.many", SceneReadManyInput(PROJECT))
+
+		assertEquals(listOf("Prologue", "Opening", "Landfall"), page.scenes.map { it.name })
+		assertEquals(listOf(emptyList(), listOf("Chapter One"), listOf("Chapter One")), page.scenes.map { it.path })
+		val opening = page.scenes[1]
+		assertEquals("The storm came *early* that year.", opening.markdown)
+		assertEquals(6, opening.wordCount)
+		assertEquals("Set up the storm", opening.meta.outline)
+		assertNull(page.next)
+	}
+
+	@Test
+	fun `scene read many pages by words`() = onTestThread {
+		// Prologue is 3 words; Opening is 6 plus a 4-word outline.
+		val first = run<SceneReadManyInput, ScenePage>("scene.read.many", SceneReadManyInput(PROJECT, maxWords = 13))
+		assertEquals(listOf(ids.prologue.id, ids.opening.id), first.scenes.map { it.id })
+		assertEquals(ids.opening.id, first.next)
+
+		val second = run<SceneReadManyInput, ScenePage>(
+			"scene.read.many",
+			SceneReadManyInput(PROJECT, after = first.next, maxWords = 13),
+		)
+		assertEquals(listOf(ids.storm.id), second.scenes.map { it.id })
+		assertNull(second.next)
+	}
+
+	@Test
+	fun `scene read many counts outlines and notes toward the page`() = onTestThread {
+		val page = run<SceneReadManyInput, ScenePage>("scene.read.many", SceneReadManyInput(PROJECT, maxWords = 12))
+		assertEquals(listOf(ids.prologue.id), page.scenes.map { it.id })
+		assertEquals(6, run<SceneReadManyInput, ScenePage>(
+			"scene.read.many",
+			SceneReadManyInput(PROJECT, after = page.next),
+		).scenes.first().wordCount)
+	}
+
+	@Test
+	fun `scene read many returns a scene longer than the page alone`() = onTestThread {
+		val page = run<SceneReadManyInput, ScenePage>("scene.read.many", SceneReadManyInput(PROJECT, maxWords = 1))
+		assertEquals(listOf(ids.prologue.id), page.scenes.map { it.id })
+		assertEquals(ids.prologue.id, page.next)
+	}
+
+	@Test
+	fun `scene read many narrows to a group or ids`() = onTestThread {
+		val group = run<SceneReadManyInput, ScenePage>("scene.read.many", SceneReadManyInput(PROJECT, group = ids.chapter.id))
+		assertEquals(listOf(ids.opening.id, ids.storm.id), group.scenes.map { it.id })
+
+		val chosen = run<SceneReadManyInput, ScenePage>(
+			"scene.read.many",
+			SceneReadManyInput(PROJECT, ids = listOf(ids.storm.id, ids.prologue.id)),
+		)
+		assertEquals(listOf(ids.prologue.id, ids.storm.id), chosen.scenes.map { it.id })
+	}
+
+	@Test
+	fun `scene read many refuses bad input`() = onTestThread {
+		suspend fun kindOf(input: SceneReadManyInput) = assertFailsWith<OperationException> {
+			run<SceneReadManyInput, ScenePage>("scene.read.many", input)
+		}.kind
+
+		assertEquals(OperationException.Kind.NotFound, kindOf(SceneReadManyInput(PROJECT, ids = listOf(ids.cut.id))))
+		assertEquals(OperationException.Kind.NotFound, kindOf(SceneReadManyInput(PROJECT, group = ids.opening.id)))
+		assertEquals(
+			OperationException.Kind.InvalidInput,
+			kindOf(SceneReadManyInput(PROJECT, group = ids.chapter.id, ids = listOf(ids.opening.id))),
+		)
+		assertEquals(OperationException.Kind.InvalidInput, kindOf(SceneReadManyInput(PROJECT, after = ids.cut.id)))
+		assertEquals(OperationException.Kind.InvalidInput, kindOf(SceneReadManyInput(PROJECT, maxWords = 0)))
 	}
 
 	@Test
