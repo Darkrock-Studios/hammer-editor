@@ -11,6 +11,7 @@ import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.Operation
 import com.darkrockstudios.apps.hammer.operations.OperationScope
+import com.darkrockstudios.apps.hammer.operations.invalidInput
 import com.darkrockstudios.apps.hammer.operations.notFound
 import com.darkrockstudios.apps.hammer.operations.operation
 import kotlinx.serialization.SerialName
@@ -54,6 +55,66 @@ internal fun sceneOperations(): List<Operation<*, *>> = listOf(
 				wordCount = countWords(markdown),
 				meta = SceneMeta(service.loadSceneMetadata(scene.id)),
 			)
+		}
+	},
+	operation<SceneReadManyInput, ScenePage>(
+		name = "scene.read.many",
+		description = "Scenes in story order with their markdown, metadata, and the groups they sit in, a page of " +
+			"about maxWords, counting outlines and notes, at a time: every scene, a group's, or those in ids. Archived scenes are left out. " +
+			"Pass next as after for the following page; it is null on the last.",
+		access = Access.Read,
+		scope = OperationScope.Content,
+	) { input ->
+		if (input.group != null && input.ids != null) invalidInput("Give group or ids, not both")
+		if (input.maxWords < 1) invalidInput("maxWords must be at least 1")
+		projects.withProject(input.project) { project ->
+			val service = project.scope.get<SceneEditorService>()
+			val content = project.scope.get<SceneContentRepository>()
+			val placed = service.getSceneTree().root.children.flatMap { it.placedScenes(emptyList()) }
+			val chosen = when {
+				input.group != null -> {
+					val group = service.getSceneItemFromId(input.group)
+					if (group == null || group.type != SceneItem.Type.Group) notFound("No group ${input.group}")
+					placed.filter { scene -> scene.groups.any { it.id == input.group } }
+				}
+				input.ids != null -> {
+					val ids = input.ids.toSet()
+					ids.forEach { id -> if (placed.none { it.scene.id == id }) notFound("No scene $id in the story") }
+					placed.filter { it.scene.id in ids }
+				}
+				else -> placed
+			}
+			val start = if (input.after == null) {
+				0
+			} else {
+				val index = chosen.indexOfFirst { it.scene.id == input.after }
+				if (index < 0) invalidInput("Scene ${input.after} is not among these scenes")
+				index + 1
+			}
+
+			val page = mutableListOf<PagedScene>()
+			var words = 0
+			var next = start
+			while (next < chosen.size) {
+				val (scene, groups) = chosen[next]
+				val markdown = content.getCurrentSceneContent(scene)
+				val meta = SceneMeta(service.loadSceneMetadata(scene.id))
+				val count = countWords(markdown)
+				val size = count + countWords(meta.outline) + countWords(meta.notes)
+				// A page always holds at least one scene, however long.
+				if (page.isNotEmpty() && words + size > input.maxWords) break
+				page += PagedScene(
+					id = scene.id,
+					name = scene.name,
+					path = groups.map { it.name },
+					markdown = markdown,
+					wordCount = count,
+					meta = meta,
+				)
+				words += size
+				next++
+			}
+			ScenePage(page, next = if (next < chosen.size) page.last().id else null)
 		}
 	},
 	operation<ProjectInput, ArchivedScenes>(
@@ -140,6 +201,15 @@ private fun TreeValue<SceneItem>.toSceneNode(content: SceneContentRepository): S
 	}
 }
 
+private data class PlacedScene(val scene: SceneItem, val groups: List<SceneItem>)
+
+private fun TreeValue<SceneItem>.placedScenes(groups: List<SceneItem>): List<PlacedScene> =
+	if (value.type == SceneItem.Type.Scene) {
+		listOf(PlacedScene(value, groups))
+	} else {
+		children.flatMap { it.placedScenes(groups + value) }
+	}
+
 @Serializable
 data class SceneTree(val nodes: List<SceneNode>)
 
@@ -187,6 +257,35 @@ data class SceneMeta(
 		lastEdited = metadata.lastEdited,
 	)
 }
+
+@Serializable
+data class SceneReadManyInput(
+	val project: String,
+	/** A group whose scenes, at any depth, to read. */
+	val group: Int? = null,
+	val ids: List<Int>? = null,
+	/** The previous page's next. */
+	val after: Int? = null,
+	val maxWords: Int = 12_000,
+)
+
+@Serializable
+data class ScenePage(
+	val scenes: List<PagedScene>,
+	/** The last scene's id when more follow, to pass as after; null on the last page. */
+	val next: Int?,
+)
+
+@Serializable
+data class PagedScene(
+	val id: Int,
+	val name: String,
+	/** Names of the groups containing the scene, outermost first. */
+	val path: List<String>,
+	val markdown: String,
+	val wordCount: Int,
+	val meta: SceneMeta,
+)
 
 @Serializable
 data class ArchivedScenes(val scenes: List<ArchivedScene>)
