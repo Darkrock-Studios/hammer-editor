@@ -17,6 +17,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import okio.IOException
 import org.junit.jupiter.api.BeforeEach
@@ -24,11 +25,13 @@ import org.junit.jupiter.api.Test
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import utils.ComponentTest
+import kotlin.test.assertEquals
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class SceneMetadataPanelComponentTest : ComponentTest() {
 
 	private lateinit var sceneEditor: SceneEditorService
+	private lateinit var metadataUpdates: MutableSharedFlow<Pair<Int, SceneMetadata>>
 
 	private val sceneItem
 		get() = SceneItem(
@@ -44,7 +47,8 @@ class SceneMetadataPanelComponentTest : ComponentTest() {
 		super.setup()
 
 		sceneEditor = mockk(relaxed = true)
-		every { sceneEditor.metadataUpdateFlow } returns MutableSharedFlow()
+		metadataUpdates = MutableSharedFlow(extraBufferCapacity = 8)
+		every { sceneEditor.metadataUpdateFlow } returns metadataUpdates
 		every { sceneEditor.getSceneBuffer(any<SceneItem>()) } returns null
 		every { sceneEditor.getSceneFilePathOrNull(any()) } returns null
 		coEvery { sceneEditor.loadSceneMetadata(any()) } returns SceneMetadata()
@@ -146,4 +150,38 @@ class SceneMetadataPanelComponentTest : ComponentTest() {
 				)
 			}
 		}
+
+	@Test
+	fun `External outline and notes are taken when there is no local edit`() = runTest(mainTestDispatcher) {
+		coEvery { sceneEditor.loadSceneMetadata(any()) } returns SceneMetadata(outline = "Old outline", notes = "Old notes")
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		metadataUpdates.emit(sceneItem.id to SceneMetadata(outline = "New outline", notes = "New notes"))
+		advanceUntilIdle()
+
+		assertEquals("New outline", component.state.value.metadata.outline)
+		assertEquals("New notes", component.state.value.metadata.notes)
+	}
+
+	@Test
+	fun `A pending local edit is kept over an external write`() = runTest(mainTestDispatcher) {
+		coEvery { sceneEditor.loadSceneMetadata(any()) } returns SceneMetadata(outline = "Old outline", notes = "Old notes")
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.updateOutline("My outline")
+		metadataUpdates.emit(sceneItem.id to SceneMetadata(outline = "New outline", notes = "New notes"))
+		runCurrent()
+
+		assertEquals("My outline", component.state.value.metadata.outline)
+		assertEquals("New notes", component.state.value.metadata.notes)
+
+		advanceUntilIdle()
+		coVerify {
+			sceneEditor.storeMetadata(match { it.outline == "My outline" && it.notes == "New notes" }, sceneItem.id)
+		}
+	}
 }

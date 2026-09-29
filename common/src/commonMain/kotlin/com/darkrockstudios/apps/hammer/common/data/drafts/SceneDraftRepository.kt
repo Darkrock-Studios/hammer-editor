@@ -33,7 +33,14 @@ class SceneDraftRepository(
 
 	fun deleteDraft(id: Int): Boolean = datasource.deleteDraft(id)
 
-	suspend fun saveDraft(sceneItem: SceneItem, draftName: String): DraftDef? {
+	/** Saves the scene's current text as a draft. */
+	suspend fun saveDraft(sceneItem: SceneItem, draftName: String): DraftDef? =
+		saveDraft(sceneItem, draftName) { sceneContentRepository.getCurrentSceneContent(sceneItem) }
+
+	suspend fun saveDraft(sceneItem: SceneItem, draftName: String, content: String): DraftDef? =
+		saveDraft(sceneItem, draftName) { content }
+
+	private suspend fun saveDraft(sceneItem: SceneItem, draftName: String, content: () -> String): DraftDef? {
 		if (!SceneDraftsDatasource.validDraftName(draftName)) {
 			Napier.w { "saveDraft failed, draftName failed validation" }
 			return null
@@ -48,10 +55,6 @@ class SceneDraftRepository(
 			draftName = draftName.trim()
 		)
 
-		val content: String = sceneContentRepository.getCurrentSceneContent(sceneItem)
-
-		datasource.storeDraft(newDef, content)
-
-		return newDef
+		return datasource.storeDraft(newDef, content())
 	}
 }

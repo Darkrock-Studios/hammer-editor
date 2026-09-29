@@ -7,6 +7,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectMainDisp
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
 import com.darkrockstudios.apps.hammer.common.util.debounceUntilQuiescentBy
 import io.github.aakira.napier.Napier
+import kotlinx.atomicfu.atomic
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.collections.immutable.PersistentSet
@@ -79,6 +80,14 @@ class SceneContentRepository(
 	private val sceneBuffersLock = reentrantLock()
 	private val sceneBuffers = mutableMapOf<Int, SceneBuffer>()
 
+	private val updateSequence = atomic(0L)
+
+	/**
+	 * Per scene, the [SceneContentUpdate.sequence] of its last [replaceBuffer]; earlier updates are
+	 * stale. Guarded by [sceneBuffersLock].
+	 */
+	private val resetAt = mutableMapOf<Int, Long>()
+
 	private val storeTempJobs = mutableMapOf<Int, Job>()
 
 	/** Loads any temp (unsaved) buffers from disk and starts the content debounce pipeline. */
@@ -92,7 +101,7 @@ class SceneContentRepository(
 		contentUpdateJob = editorScope.launch {
 			contentFlow.debounceUntilQuiescentBy({ it.content.scene.id }, BUFFER_COOL_DOWN)
 				.collect { contentUpdate ->
-					if (updateSceneBufferContent(contentUpdate.content, contentUpdate.source)) {
+					if (updateSceneBufferContent(contentUpdate)) {
 						launchSaveJob(contentUpdate.content.scene)
 					}
 				}
@@ -116,26 +125,42 @@ class SceneContentRepository(
 	}
 
 	fun onContentChanged(content: SceneContent, source: UpdateSource) {
+		val update = SceneContentUpdate(content, source, updateSequence.incrementAndGet())
 		editorScope.launch {
-			val update = SceneContentUpdate(content, source)
 			_contentFlow.emit(update)
 		}
 	}
 
-	private fun updateSceneBufferContent(content: SceneContent, source: UpdateSource): Boolean {
-		if (source == UpdateSource.Editor) {
-			val newBuffer = SceneBuffer(content, dirty = true, source = source)
-			updateSceneBuffer(newBuffer)
-			return true
+	/**
+	 * Sets a scene's buffer at once, skipping the debounce, for a write from outside the editor. Dirty
+	 * until saved. Edits still waiting in the debounce are dropped: they predate the new text.
+	 */
+	fun replaceBuffer(content: SceneContent) {
+		sceneBuffersLock.withLock {
+			resetAt[content.scene.id] = updateSequence.incrementAndGet()
+			updateSceneBuffer(SceneBuffer(content, dirty = true, source = UpdateSource.Repository))
 		}
+	}
 
-		val oldBuffer = sceneBuffersLock.withLock { sceneBuffers[content.scene.id] }
-		return if (content != oldBuffer?.content || content.platformRepresentation?.stateCompare(oldBuffer.content.platformRepresentation) == true) {
-			val newBuffer = SceneBuffer(content, source != UpdateSource.Sync, source)
-			updateSceneBuffer(newBuffer)
-			true
-		} else {
-			false
+	/** Held under the lock throughout, so a [replaceBuffer] cannot land between the staleness check and the update. */
+	private fun updateSceneBufferContent(update: SceneContentUpdate): Boolean = sceneBuffersLock.withLock {
+		val (content, source) = update
+		when {
+			update.sequence < (resetAt[content.scene.id] ?: 0) -> false
+			source == UpdateSource.Editor -> {
+				updateSceneBuffer(SceneBuffer(content, dirty = true, source = source))
+				true
+			}
+
+			else -> {
+				val oldBuffer = sceneBuffers[content.scene.id]
+				if (content != oldBuffer?.content || content.platformRepresentation?.stateCompare(oldBuffer.content.platformRepresentation) == true) {
+					updateSceneBuffer(SceneBuffer(content, source != UpdateSource.Sync, source))
+					true
+				} else {
+					false
+				}
+			}
 		}
 	}
 

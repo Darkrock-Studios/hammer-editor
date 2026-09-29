@@ -355,6 +355,18 @@ class SceneRepository(
 		return true
 	}
 
+	suspend fun renameArchivedScene(sceneItem: SceneItem, newName: String): Boolean {
+		if (!sceneItem.archived || validateSceneName(newName).isFailure) return false
+		val oldPath = resolveScenePathFromFilesystemIncludingArchived(sceneItem.id) ?: return false
+
+		markForSynchronization(sceneItem)
+
+		val newFileName = SceneDatasource.buildArchivedSceneFileName(newName.trim(), sceneItem.id)
+		val newPath = (oldPath.toOkioPath().parent ?: return false) / newFileName
+		sceneDatasource.moveScene(oldPath, newPath.toHPath())
+		return true
+	}
+
 	private suspend fun updateSceneOrderMagnitudeOnly(parentId: Int) {
 		Napier.d("updateSceneOrderMagnitudeOnly for parentId: $parentId")
 

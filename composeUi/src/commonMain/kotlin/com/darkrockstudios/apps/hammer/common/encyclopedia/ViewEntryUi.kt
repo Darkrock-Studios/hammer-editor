@@ -70,6 +70,7 @@ import coil3.request.crossfade
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.encyclopedia.ViewEntry
+import com.darkrockstudios.apps.hammer.common.encyclopedia.rename.RenameEntryDialog
 import com.darkrockstudios.apps.hammer.common.compose.CollapseWhileTyping
 import com.darkrockstudios.apps.hammer.common.compose.DetailViewDropdownMenu
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
@@ -506,6 +507,9 @@ internal fun ViewEntryUi(
 			},
 		)
 	}
+
+	val renameSlot by component.renameSlot.subscribeAsState()
+	renameSlot.child?.instance?.let { RenameEntryDialog(component = it) }
 
 	TagAddDialog(state = state, component = component, scope = scope)
 	AliasAddDialog(
