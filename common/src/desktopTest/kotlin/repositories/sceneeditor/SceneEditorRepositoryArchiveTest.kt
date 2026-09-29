@@ -312,4 +312,39 @@ class SceneEditorRepositoryArchiveTest : BaseTest() {
 		val includingArchivedPath = repo.resolveScenePathFromFilesystemIncludingArchived(sceneId)
 		assertNotNull(includingArchivedPath, "Including archived should find the scene")
 	}
+
+	@Test
+	fun `Rename archived scene moves its file and keeps its text`() = runTest {
+		configure(PROJECT_1_NAME)
+		repo.initializeSceneEditor()
+
+		val scene = repo.getSceneItemFromId(1)
+		assertNotNull(scene)
+		repo.archiveScene(scene)
+		val archived = repo.getArchivedScenes().first { it.id == 1 }
+		val oldText = repo.loadSceneMarkdownRaw(archived, repo.resolveScenePathFromFilesystemIncludingArchived(1)!!)
+
+		assertTrue(repo.renameArchivedScene(archived, "Renamed While Archived"))
+
+		val renamed = repo.getArchivedScenes().first { it.id == 1 }
+		assertEquals("Renamed While Archived", renamed.name)
+		assertEquals(oldText, repo.loadSceneMarkdownRaw(renamed, repo.resolveScenePathFromFilesystemIncludingArchived(1)!!))
+	}
+
+	@Test
+	fun `Rename archived scene rejects an invalid name and a live scene`() = runTest {
+		configure(PROJECT_1_NAME)
+		repo.initializeSceneEditor()
+
+		val live = repo.getSceneItemFromId(6)
+		assertNotNull(live)
+		assertFalse(repo.renameArchivedScene(live, "Anything"))
+
+		val scene = repo.getSceneItemFromId(1)
+		assertNotNull(scene)
+		repo.archiveScene(scene)
+		val archived = repo.getArchivedScenes().first { it.id == 1 }
+		assertFalse(repo.renameArchivedScene(archived, "Bad~Name"))
+		assertEquals(archived.name, repo.getArchivedScenes().first { it.id == 1 }.name)
+	}
 }
