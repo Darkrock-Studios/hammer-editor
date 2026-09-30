@@ -1,4 +1,14 @@
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_IO
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import org.koin.core.qualifier.named
+import kotlin.coroutines.CoroutineContext
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.measureTime
 import com.darkrockstudios.apps.hammer.operations.Access
 import com.darkrockstudios.apps.hammer.operations.OpenProject
 import com.darkrockstudios.apps.hammer.operations.OperationRegistry
@@ -50,7 +60,12 @@ class WasmPluginTest {
 	@BeforeEach
 	fun setUp() {
 		GlobalContext.startKoin {
-			modules(module { single { OperationRegistry(listOf(greet, wave), NoProjects) } })
+			modules(
+				module {
+					single { OperationRegistry(listOf(greet, wave), NoProjects) }
+					single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.IO }
+				}
+			)
 		}
 	}
 
@@ -169,6 +184,21 @@ class WasmPluginTest {
 		)
 		uncached.callBlocking("set", "scene-1=412 words".encodeToByteArray())
 		assertEquals("", uncached.callBlocking("get", "scene-1".encodeToByteArray()).decodeToString())
+	}
+
+	@Test
+	fun `cancelling a call stops the module at once, and the next call runs`() = runBlocking {
+		val counter = WasmPlugin(
+			PluginManifest.parse("id = \"count\"\nname = \"Count\"\nversion = \"1\"\napi = 1"),
+			{ testPlugin("count") },
+			fuelPerCall = Long.MAX_VALUE,
+		)
+		val endless = launch(Dispatchers.Default) { counter.call("run", Long.MAX_VALUE.toLittleEndian()) }
+		delay(200)
+
+		val stopping = measureTime { endless.cancelAndJoin() }
+		assertTrue(stopping < 2.seconds, "took $stopping")
+		assertEquals(0, counter.callBlocking("run", 1_000L.toLittleEndian()).size)
 	}
 
 	@Test

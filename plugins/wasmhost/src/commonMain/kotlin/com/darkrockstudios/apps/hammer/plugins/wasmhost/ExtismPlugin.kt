@@ -9,6 +9,7 @@ import io.github.charlietap.chasm.embedding.dsl.ValueTypeListBuilder
 import io.github.charlietap.chasm.embedding.error.ChasmError
 import io.github.charlietap.chasm.embedding.function
 import io.github.charlietap.chasm.embedding.instance
+import io.github.charlietap.chasm.embedding.interrupt as interruptStore
 import io.github.charlietap.chasm.embedding.invoke
 import io.github.charlietap.chasm.embedding.module
 import io.github.charlietap.chasm.embedding.remainingFuel
@@ -34,7 +35,8 @@ import kotlin.time.Clock
 import kotlin.time.TimeSource
 
 /**
- * One instance of an Extism-convention plugin on chasm. Not thread-safe: calls run one at a time.
+ * One instance of an Extism-convention plugin on chasm. Not thread-safe: calls run one at a time, and
+ * only [interrupt] may be called from another thread.
  *
  * Plugins may import only what the host lists here plus [userFunctions]; anything else, such as a
  * WASI file or socket import, fails the load. HTTP imports exist for compatibility and always fail the call.
@@ -65,7 +67,7 @@ class ExtismPlugin(
 
 	// A module using Wasm GC keeps its objects in chasm's heap, not its capped linear memory.
 	private val guestHeap = GuestHeap(maxGuestHeapBytes)
-	private val store = guestHeap.store ?: store(StoreConfig(meterFuel = true))
+	private val store = guestHeap.store ?: store(StoreConfig(meterFuel = true, interruptible = true))
 	private val instance: Instance
 	private var calling = false
 
@@ -110,6 +112,9 @@ class ExtismPlugin(
 		val result = invoke(store, instance, function)
 		if (result is ChasmResult.Error) {
 			if (outOfFuel(result.error)) throw PluginException("Plugin ran out of fuel in $function")
+			if ((result.error as? ChasmError.ExecutionError)?.error == INTERRUPTED) {
+				throw PluginException("Plugin was interrupted in $function")
+			}
 			if ((result.error as? ChasmError.ExecutionError)?.error == GUEST_HEAP_EXHAUSTED) {
 				throw PluginException("Plugin ran out of memory in $function")
 			}
@@ -132,6 +137,12 @@ class ExtismPlugin(
 		get() = if (guestHeap.store != null) guestHeap.committedBytes else 0
 
 	fun remainingFuel(): Long = remainingFuel(store).orThrow("Could not read fuel")
+
+	/**
+	 * Stops the call running now, from any thread: it fails at its next function entry or loop iteration,
+	 * or, inside a host function, once that returns. False when no call was running to stop.
+	 */
+	fun interrupt(): Boolean = interruptStore(store).orThrow("Could not interrupt")
 
 	private fun outOfFuel(error: ChasmError): Boolean =
 		(error as? ChasmError.ExecutionError)?.error == FUEL_EXHAUSTED || remainingFuel() == 0L
@@ -312,6 +323,9 @@ class ExtismPlugin(
 
 		/** chasm's error when a metered store's fuel runs out. */
 		const val FUEL_EXHAUSTED = "FuelExhausted"
+
+		/** chasm's error when [interrupt] stops a call. */
+		const val INTERRUPTED = "Interrupted"
 
 		const val INSTANTIATION_FUEL = 10_000_000L
 	}

@@ -32,6 +32,9 @@ import com.darkrockstudios.apps.hammer.plugins.wasmhost.RuntimePlugins
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.WasmPlugin
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -57,6 +60,8 @@ import java.io.ByteArrayOutputStream
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.coroutines.CoroutineContext
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.measureTime
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNull
@@ -483,6 +488,22 @@ class RuntimePluginsTest {
 	}
 
 	@Test
+	fun `cancelling an action stops the plugin at once, between its progress reports`() {
+		val plugins = runtimePlugins()
+		plugins.install(pack("echo", manifest(action = "report"), module = "action_spin"))
+		val action = startKoin(plugins, io = Dispatchers.IO).plugins.single().actions().single()
+
+		runBlocking {
+			val started = CompletableDeferred<Unit>()
+			val call = ActionCall("Storm", ActionPlace.Project, null, JsonObject(emptyMap()), onProgress = { started.complete(Unit) })
+			val run = launch(Dispatchers.Default) { action.run(call) }
+			started.await()
+			val stopping = measureTime { run.cancelAndJoin() }
+			assertTrue(stopping < 2.seconds, "took $stopping")
+		}
+	}
+
+	@Test
 	fun `a diagnostics check keeps only issues inside the paragraphs, at UTF-16 offsets`() {
 		val plugins = runtimePlugins()
 		plugins.install(pack("echo", manifest() + diagnostics("grammar"), module = "diagnose"))
@@ -612,13 +633,13 @@ class RuntimePluginsTest {
 		override suspend fun operations(): List<OperationDescriptor> = error("unused")
 	}
 
-	private fun startKoin(plugins: RuntimePlugins): PluginRegistry {
+	private fun startKoin(plugins: RuntimePlugins, io: CoroutineContext = Dispatchers.Unconfined): PluginRegistry {
 		val registry = PluginRegistry().also(plugins::activate)
 		val greet = operation<Greeting, Greeting>("greet", "", Access.Read, OperationScope.Content) { it }
 		val base = module {
 			single<FileSystem> { fileSystem }
 			single<Toml> { createTomlSerializer() }
-			single<CoroutineContext>(named(DISPATCHER_IO)) { Dispatchers.Unconfined }
+			single<CoroutineContext>(named(DISPATCHER_IO)) { io }
 			single(named(APP_SCOPE)) { CoroutineScope(Dispatchers.Unconfined) }
 			single { StoryExporterRegistry(getAll(), getAll()) }
 		}

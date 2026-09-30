@@ -1293,7 +1293,8 @@ eight bytes a plugin copies. The Hammer-specific parts:
 - `extism:host/user` `hammer_progress(report)`: how far an action has got,
   `{"fraction": 0.5, "message": "Scene 3 of 6"}`, either key optional. The
   host shows it while the action runs. Once the user has stopped the run, the
-  report traps, ending the action there. Outside an action it does nothing.
+  report traps, ending the action there, though stopping interrupts the module
+  anyway. Outside an action it does nothing.
 - A `diagnose` export runs a text diagnostics check the manifest declares
   under `[[diagnostics]]` (`name`, `label`, and `scope`: `paragraph`, the
   default, for only the paragraphs whose text the check has not seen, or
@@ -1379,8 +1380,7 @@ Home), and the values given:
   as the name generator does with its seed.
 - **Progress.** A run that takes a moment shows a dialog with a Stop button,
   and a bar and a line the plugin sets through `hammer_progress`; without
-  reports the bar is indeterminate. Stop ends the wait at once, and the
-  plugin at its next report.
+  reports the bar is indeterminate. Stop ends the wait and the plugin at once.
 - **One at a time.** Each project window runs one action at a time. A failure
   shows a short message; the log has the rest.
 
@@ -1431,10 +1431,11 @@ A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
   not bound memory, so the host rewrites the binary before loading it
   (`ModuleLimiter`) to cap linear memory (the manifest's `limits.memory`,
   64 MiB by default) and tables (100,000 entries), and rejects shared or 64-bit
-  memories. A module cannot call itself again from inside a call. A cancelled
-  action stops at its next progress report; chasm can also interrupt a running
-  call from another thread (`StoreConfig(interruptible = true)`), which the
-  host does not use yet.
+  memories. A module cannot call itself again from inside a call. The store is
+  interruptible too: cancelling the coroutine waiting on a call, such as a
+  stopped action or a text check the editor no longer wants, interrupts the
+  module at its next function entry or loop iteration, or once the host
+  function it is in returns. chasm makes one check for both, so it adds little.
 
 Plugins stay headless. A module cannot supply Compose UI, so its settings are
 [declared](#declared-settings) in `settings.toml` and the host renders the form.

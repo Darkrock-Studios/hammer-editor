@@ -3,7 +3,9 @@ import com.darkrockstudios.apps.hammer.plugins.wasmhost.ModuleLimiter
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginException
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
+import kotlin.concurrent.thread
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 class ExtismPluginTest {
@@ -87,6 +89,18 @@ class ExtismPluginTest {
 		plugin.call("run", 1_000L.toLittleEndian(), 1_002)
 		assertEquals(0, plugin.remainingFuel())
 		assertThrows<PluginException> { plugin.call("run", 1_000L.toLittleEndian(), 1_001) }
+	}
+
+	@Test
+	fun `another thread can interrupt a running call`() {
+		val plugin = ExtismPlugin(testPlugin("spin"))
+		var error: PluginException? = null
+		val call = thread { error = runCatching { plugin.call("run", ByteArray(0), Long.MAX_VALUE) }.exceptionOrNull() as? PluginException }
+
+		while (!plugin.interrupt()) Thread.sleep(1)
+		call.join(5_000)
+		assertEquals("Plugin was interrupted in run", error?.message)
+		assertFalse(plugin.interrupt())
 	}
 
 	@Test

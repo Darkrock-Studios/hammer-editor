@@ -86,7 +86,7 @@ class ActionCall(
 	val button: String? = null,
 	/** Called as the plugin reports progress, on the thread running it. */
 	val onProgress: (ActionProgress) -> Unit = {},
-	/** Checked each time the plugin reports progress; true stops it there. */
+	/** Checked each time the plugin reports progress; true stops it there. Cancelling the caller stops it at once. */
 	val cancelled: () -> Boolean = { false },
 )
 
