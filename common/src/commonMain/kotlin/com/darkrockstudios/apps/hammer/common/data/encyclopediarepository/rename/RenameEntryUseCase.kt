@@ -470,7 +470,7 @@ class RenameEntryUseCase(
 			val builder = StringBuilder(text)
 			for (match in matches.sortedByDescending { it.key.offset }) {
 				val start = match.key.offset
-				builder.replace(start, start + match.key.matchedText.length, match.replacement)
+				builder.setRange(start, start + match.key.matchedText.length, match.replacement)
 			}
 			return builder.toString()
 		}
