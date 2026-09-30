@@ -32,8 +32,11 @@ import io.github.aakira.napier.Napier
 import kotlinx.atomicfu.locks.reentrantLock
 import kotlinx.atomicfu.locks.withLock
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.ensureActive
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.Serializable
@@ -92,6 +95,13 @@ class WasmPlugin(
 			limiter = ModuleLimiter(maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB),
 		).also { loaded = it }
 
+	// The call [interruptibly] is running, if any, which cancelling its caller interrupts. Only touched
+	// while holding interruptLock, which a call clears before the lock can pass to the next.
+	private val interruptLock = reentrantLock()
+	private var running: Running? = null
+
+	private class Running(val module: ExtismPlugin)
+
 	private val appRoute by lazy { AppRoute(get()) }
 
 	// The route of the call running now; only touched while holding the lock.
@@ -132,18 +142,16 @@ class WasmPlugin(
 			button = call.button,
 			locale = locale,
 		)
-		val reply = withContext(ioDispatcher) {
-			lock.withLock {
-				activeAction = call
-				actionCancelled = false
-				try {
-					callBlocking(ACTION, OperationJson.encodeToString(request).encodeToByteArray())
-				} catch (e: PluginException) {
-					if (actionCancelled) throw ActionCancelledException()
-					throw e
-				} finally {
-					activeAction = null
-				}
+		val reply = interruptibly {
+			activeAction = call
+			actionCancelled = false
+			try {
+				callBlocking(ACTION, OperationJson.encodeToString(request).encodeToByteArray())
+			} catch (e: PluginException) {
+				if (actionCancelled) throw ActionCancelledException()
+				throw e
+			} finally {
+				activeAction = null
 			}
 		}.decodeToString().trim()
 		if (reply.isEmpty()) return ActionReply()
@@ -194,9 +202,38 @@ class WasmPlugin(
 		lock.withLock { module }
 	}
 
-	/** Runs the module's [function] on [input], off the caller's thread. */
-	suspend fun call(function: String, input: ByteArray): ByteArray =
-		withContext(ioDispatcher) { callBlocking(function, input) }
+	/** Runs the module's [function] on [input], off the caller's thread; cancelling the caller stops it at once. */
+	suspend fun call(function: String, input: ByteArray): ByteArray = interruptibly { callBlocking(function, input) }
+
+	/**
+	 * Runs [block], which calls the module, holding the lock on the IO dispatcher. Cancelling the caller
+	 * interrupts the module, which otherwise would run to the end of its call.
+	 */
+	private suspend fun <T> interruptibly(block: () -> T): T = coroutineScope {
+		var mine: Running? = null
+		val work = async(ioDispatcher) {
+			lock.withLock {
+				ensureActive()
+				val outer = interruptLock.withLock { running.also { running = Running(module).also { mine = it } } }
+				try {
+					block()
+				} catch (@Suppress("TooGenericExceptionCaught") e: Exception) {
+					// A call interrupted because its caller was cancelled ends as that cancellation, not a failure.
+					if (!isActive) Napier.d(e) { "Plugin '$id' call ended after its caller was cancelled" }
+					ensureActive()
+					throw e
+				} finally {
+					interruptLock.withLock { running = outer }
+				}
+			}
+		}
+		try {
+			work.await()
+		} catch (e: CancellationException) {
+			interruptLock.withLock { running?.takeIf { it === mine }?.module?.interrupt() }
+			throw e
+		}
+	}
 
 	/**
 	 * Runs the module's [function] on [input], blocking the calling thread for the whole call, operations

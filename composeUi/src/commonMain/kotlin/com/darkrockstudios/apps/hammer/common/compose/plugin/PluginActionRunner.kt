@@ -119,7 +119,7 @@ class PluginActionRunner(
 		launch(showing.run, button.id)
 	}
 
-	/** Stops the run in progress: the plugin at its next progress report, and the wait for it at once. */
+	/** Stops the run in progress at once: cancelling it interrupts the plugin. */
 	fun stop() {
 		if (_state.value !is ActionRunState.Working) return
 		stop?.requested = true
