@@ -89,7 +89,7 @@ class WasmPlugin(
 			loadModule,
 			listOf(dispatchFunction(), progressFunction(), resourceFunction()) + cacheFunctions(),
 			log = ::log,
-			instrumenter = FuelInstrumenter(maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB),
+			limiter = ModuleLimiter(maxMemoryPages = manifest.limits.memory * PAGES_PER_MIB),
 		).also { loaded = it }
 
 	private val appRoute by lazy { AppRoute(get()) }
