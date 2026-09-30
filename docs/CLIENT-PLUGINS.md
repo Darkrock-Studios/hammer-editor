@@ -1054,7 +1054,7 @@ under chasm (0.6 natively) and about 140 MB of memory. So the build runs that
 start-up under Wizer and ships the result: a 104 MB module, 18 MB zipped,
 declaring `limits.memory = 256`. Loading it takes about 1.5 seconds and a
 paragraph about 0.4. It loads in a 352 MB JVM heap, not in 320: the host
-instruments the module into one exactly sized copy, without copying the
+rewrites the module's limits into one exactly sized copy, without copying the
 sections it leaves alone, and lets go of the original as soon as that is done,
 which leaves chasm's decoded copy of the data and the module's memory. About
 90 MB stays. Short of that heap, the check fails and the text goes unmarked.
@@ -1424,18 +1424,17 @@ A new `:plugins:wasmhost` module, depending on `:operations` and chasm:
 - **Execution.** `WasmPlugin.call` runs the module on the IO dispatcher, never
   the UI thread. Export rendering, already on a background dispatcher, calls it
   blocking. An operation the module dispatches blocks its thread until done.
-- **Stopping a runaway module.** chasm has no fuel, instruction limit, or
-  interrupt, and its decoded module cannot be edited. So the host rewrites the
-  binary before loading it (`FuelInstrumenter`): a mutable i64 global,
-  decremented on every function entry and loop iteration, traps the module at
-  zero. The host sets it before each call. The same pass caps linear memory
-  (the manifest's `limits.memory`, 64 MiB by default) and tables (100,000 entries), and rejects SIMD, threads, and shared
-  or 64-bit memories. A module cannot call itself again from inside a call.
-  Setting the global to zero from another thread does not stop a running call:
-  the interpreter never sees the write. User-initiated cancellation therefore
-  needs either an interrupt flag in chasm itself or an injected host import the
-  fuel check polls (which means renumbering every function index in the
-  module). The fuel budget alone is what stops runaway code for now.
+- **Stopping a runaway module.** Each module runs in a chasm store that meters
+  fuel: a check at every function entry and loop iteration takes a unit, and
+  the call traps when none are left. The host sets the budget before each call;
+  instantiation and the module's initializer get one of their own. chasm does
+  not bound memory, so the host rewrites the binary before loading it
+  (`ModuleLimiter`) to cap linear memory (the manifest's `limits.memory`,
+  64 MiB by default) and tables (100,000 entries), and rejects shared or 64-bit
+  memories. A module cannot call itself again from inside a call. A cancelled
+  action stops at its next progress report; chasm can also interrupt a running
+  call from another thread (`StoreConfig(interruptible = true)`), which the
+  host does not use yet.
 
 Plugins stay headless. A module cannot supply Compose UI, so its settings are
 [declared](#declared-settings) in `settings.toml` and the host renders the form.
@@ -1534,7 +1533,7 @@ Desktop JVM, warm, chasm 2.0.0:
 
 | Measure | Result |
 | --- | --- |
-| Tight loop, 20M iterations | 358 ms bare, 738 ms with fuel checks |
+| Tight loop, 20M iterations | 358 ms bare, 738 ms with fuel checks written into the module; on chasm 2.1.0, 375 ms bare and 450 ms with its own fuel |
 | 557 KB of text (100k words) through a WAT plugin, two host calls per byte | 63 ms |
 
 The same two jobs in C and Kotlin/Wasm, on that text. The Kotlin production
@@ -1558,7 +1557,8 @@ build is optimized by binaryen; the development build is not:
   (`--target=wasm32-unknown-unknown -nostdlib`), so a C plugin imports nothing
   but Extism and Hammer functions. `hammer.h` supplies the `memset`, `memcpy`,
   and `strlen` clang emits calls to even then.
-- **Fuel costs about 2x in tight loops.** A cheaper scheme charges a basic
+- **Fuel costs about 20% in tight loops** with chasm's own metering, where
+  checks written into the module cost 2x. A cheaper scheme charges a basic
   block's instruction count once per block instead of one unit per loop pass;
   it is not needed yet.
 - **Plugin kit.** Authors get `hammer.h` on top of Extism's `extism-pdk.h`: the
@@ -1640,7 +1640,7 @@ design is revisited rather than `:common` bent to fit.
    the Read operations from the catalog, including `project.export` and
    `export.formats`. Tested directly, no front end yet.
 4. **Runtime plugin spike.** Done; see [Spike results](#spike-results).
-   `:plugins:wasmhost` holds the Extism host on chasm, fuel instrumentation, the
+   `:plugins:wasmhost` holds the Extism host on chasm, module limits, the
    manifest, and `WasmPlugin`.
 5. **Headless CLI.** Built: subcommands generated from the registry,
    `Dispatcher`, the `cliCommands()` capability, per-call Koin startup, and the

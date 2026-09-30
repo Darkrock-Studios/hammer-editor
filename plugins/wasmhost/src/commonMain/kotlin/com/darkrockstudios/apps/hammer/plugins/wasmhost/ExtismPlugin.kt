@@ -2,18 +2,18 @@ package com.darkrockstudios.apps.hammer.plugins.wasmhost
 
 import io.github.charlietap.chasm.config.GCStrategy
 import io.github.charlietap.chasm.config.RuntimeConfig
+import io.github.charlietap.chasm.config.StoreConfig
+import io.github.charlietap.chasm.embedding.addFuel
 import io.github.charlietap.chasm.embedding.dsl.FunctionTypeBuilder
 import io.github.charlietap.chasm.embedding.dsl.ValueTypeListBuilder
 import io.github.charlietap.chasm.embedding.error.ChasmError
-import io.github.charlietap.chasm.embedding.exports
 import io.github.charlietap.chasm.embedding.function
-import io.github.charlietap.chasm.embedding.global.readGlobal
-import io.github.charlietap.chasm.embedding.global.writeGlobal
 import io.github.charlietap.chasm.embedding.instance
 import io.github.charlietap.chasm.embedding.invoke
 import io.github.charlietap.chasm.embedding.module
+import io.github.charlietap.chasm.embedding.remainingFuel
+import io.github.charlietap.chasm.embedding.resetFuel
 import io.github.charlietap.chasm.embedding.shapes.ChasmResult
-import io.github.charlietap.chasm.embedding.shapes.Global
 import io.github.charlietap.chasm.embedding.shapes.Import
 import io.github.charlietap.chasm.embedding.shapes.Instance
 import io.github.charlietap.chasm.embedding.store
@@ -42,13 +42,13 @@ import kotlin.time.TimeSource
 class ExtismPlugin(
 	/**
 	 * The module's bytes, asked for once, inside the constructor: held by nothing, they can be collected
-	 * as soon as they are instrumented, which matters for a pre-initialized module of 100 MB or more.
+	 * as soon as they are limited, which matters for a pre-initialized module of 100 MB or more.
 	 */
 	loadWasm: () -> ByteArray,
 	userFunctions: List<UserFunction> = emptyList(),
 	private val config: Map<String, String> = emptyMap(),
 	private val log: (level: LogLevel, message: String) -> Unit = { _, _ -> },
-	instrumenter: FuelInstrumenter = FuelInstrumenter(),
+	limiter: ModuleLimiter = ModuleLimiter(),
 	maxGuestHeapBytes: Long = DEFAULT_MAX_GUEST_HEAP_BYTES,
 ) {
 	constructor(
@@ -56,22 +56,21 @@ class ExtismPlugin(
 		userFunctions: List<UserFunction> = emptyList(),
 		config: Map<String, String> = emptyMap(),
 		log: (level: LogLevel, message: String) -> Unit = { _, _ -> },
-		instrumenter: FuelInstrumenter = FuelInstrumenter(),
+		limiter: ModuleLimiter = ModuleLimiter(),
 		maxGuestHeapBytes: Long = DEFAULT_MAX_GUEST_HEAP_BYTES,
-	) : this({ wasm }, userFunctions, config, log, instrumenter, maxGuestHeapBytes)
+	) : this({ wasm }, userFunctions, config, log, limiter, maxGuestHeapBytes)
 
 	private val kernel = ExtismKernel()
 	private val vars = mutableMapOf<String, ByteArray>()
 
 	// A module using Wasm GC keeps its objects in chasm's heap, not its capped linear memory.
 	private val guestHeap = GuestHeap(maxGuestHeapBytes)
-	private val store = guestHeap.store ?: store()
+	private val store = guestHeap.store ?: store(StoreConfig(meterFuel = true))
 	private val instance: Instance
-	private val fuel: Global
 	private var calling = false
 
 	init {
-		val module = module(instrumenter.instrument(loadWasm())).orThrow("Invalid plugin module")
+		val module = module(limiter.limit(loadWasm())).orThrow("Invalid plugin module")
 		val provided = (envFunctions() + userFunctions.map { it.toHost(kernel) } + RandomGet + ClockTimeGet)
 			.associateBy { it.module to it.name }
 		val imports = module.imports.map { import ->
@@ -79,11 +78,11 @@ class ExtismPlugin(
 				?: throw PluginException("Plugin imports ${import.moduleName} ${import.entityName}, which the host does not provide")
 			Import(import.moduleName, import.entityName, function(store, host.type, host))
 		}
-		instance = instance(store, module, imports, RUNTIME_CONFIG).orThrow("Plugin failed to start")
-		fuel = exports(instance).first { it.name == FuelInstrumenter.FUEL_EXPORT }.value as Global
-		// Runs on the fuel the instrumenter starts the module with, as Extism hosts do for reactor modules.
+		// The start function, data initialization, and the initializer share this, as Extism hosts do for reactor modules.
+		setFuel(INSTANTIATION_FUEL)
+		instance = instance(store, module, imports, RUNTIME_CONFIG).orThrowStarting("Plugin failed to start")
 		INITIALIZERS.firstOrNull { name -> module.exports.any { it.name == name } }?.let { initializer ->
-			invoke(store, instance, initializer).orThrow("Plugin failed to initialize")
+			invoke(store, instance, initializer).orThrowStarting("Plugin failed to initialize")
 		}
 	}
 
@@ -92,6 +91,7 @@ class ExtismPlugin(
 	 * unit per function call or loop iteration.
 	 */
 	fun call(function: String, input: ByteArray, fuel: Long): ByteArray {
+		require(fuel >= 0) { "Fuel must not be negative" }
 		// A host function re-entering the module would reset the memory and fuel of the call in progress.
 		if (calling) throw PluginException("Plugin was called again while running $function")
 		calling = true
@@ -105,11 +105,11 @@ class ExtismPlugin(
 	private fun callOnce(function: String, input: ByteArray, fuel: Long): ByteArray {
 		kernel.reset()
 		kernel.setInput(input)
-		writeGlobal(store, this.fuel, NumberValue.I64(fuel)).orThrow("Could not set fuel")
+		setFuel(fuel)
 
 		val result = invoke(store, instance, function)
 		if (result is ChasmResult.Error) {
-			if (remainingFuel() == 0L) throw PluginException("Plugin ran out of fuel in $function")
+			if (outOfFuel(result.error)) throw PluginException("Plugin ran out of fuel in $function")
 			if ((result.error as? ChasmError.ExecutionError)?.error == GUEST_HEAP_EXHAUSTED) {
 				throw PluginException("Plugin ran out of memory in $function")
 			}
@@ -131,8 +131,20 @@ class ExtismPlugin(
 	val guestHeapBytes: Long
 		get() = if (guestHeap.store != null) guestHeap.committedBytes else 0
 
-	fun remainingFuel(): Long =
-		((readGlobal(store, fuel) as? ChasmResult.Success)?.result as? NumberValue.I64)?.value ?: 0
+	fun remainingFuel(): Long = remainingFuel(store).orThrow("Could not read fuel")
+
+	private fun outOfFuel(error: ChasmError): Boolean =
+		(error as? ChasmError.ExecutionError)?.error == FUEL_EXHAUSTED || remainingFuel() == 0L
+
+	private fun <S> ChasmResult<S, ChasmError>.orThrowStarting(context: String): S {
+		if (this is ChasmResult.Error && outOfFuel(error)) throw PluginException("Plugin ran out of fuel starting up")
+		return orThrow(context)
+	}
+
+	private fun setFuel(fuel: Long) {
+		resetFuel(store).orThrow("Could not set fuel")
+		addFuel(store, fuel).orThrow("Could not set fuel")
+	}
 
 	private fun envFunctions(): List<Host> {
 		fun env(name: String, params: String, results: String, body: (Args) -> Long) =
@@ -297,6 +309,11 @@ class ExtismPlugin(
 
 		/** chasm's error when a module's guest heap is at its cap and collecting frees too little. */
 		const val GUEST_HEAP_EXHAUSTED = "GuestHeapOutOfMemory"
+
+		/** chasm's error when a metered store's fuel runs out. */
+		const val FUEL_EXHAUSTED = "FuelExhausted"
+
+		const val INSTANTIATION_FUEL = 10_000_000L
 	}
 }
 

@@ -1,5 +1,5 @@
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.ExtismPlugin
-import com.darkrockstudios.apps.hammer.plugins.wasmhost.FuelInstrumenter
+import com.darkrockstudios.apps.hammer.plugins.wasmhost.ModuleLimiter
 import com.darkrockstudios.apps.hammer.plugins.wasmhost.PluginException
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -75,6 +75,12 @@ class ExtismPluginTest {
 	}
 
 	@Test
+	fun `a start function that never returns runs out of fuel`() {
+		val error = assertThrows<PluginException> { ExtismPlugin(testPlugin("start_spin")) }
+		assertEquals("Plugin ran out of fuel starting up", error.message)
+	}
+
+	@Test
 	fun `fuel is counted per loop iteration and call`() {
 		val plugin = ExtismPlugin(testPlugin("count"))
 
@@ -101,7 +107,7 @@ class ExtismPluginTest {
 
 	@Test
 	fun `linear memory cannot grow past the cap`() {
-		val plugin = ExtismPlugin(testPlugin("count"), instrumenter = FuelInstrumenter(maxMemoryPages = 16))
+		val plugin = ExtismPlugin(testPlugin("count"), limiter = ModuleLimiter(maxMemoryPages = 16))
 
 		// memory.grow answers -1 when refused; the export returns it as a failure code.
 		val error = assertThrows<PluginException> { plugin.call("grow", ByteArray(0), FUEL) }
