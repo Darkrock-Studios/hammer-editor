@@ -30,16 +30,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusMode
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.clampEditorWidth
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
+import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
 import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.findShortcutModifier
@@ -50,6 +48,8 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResizeHandl
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdResizeHandleState
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownFormatBar
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.textSizeShortcutModifier
+import com.darkrockstudios.apps.hammer.common.compose.withParagraphIndent
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.loadSceneContent
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.sceneContentMarkdown
@@ -140,6 +140,11 @@ fun FocusModeUi(component: FocusMode) {
 				.fillMaxSize()
 				.focusModeChromePadding()
 				.findShortcutModifier { showFindBar = true }
+				.textSizeShortcutModifier(
+					onIncrease = component::increaseTextSize,
+					onDecrease = component::decreaseTextSize,
+					onReset = component::resetTextSize,
+				)
 		) {
 			Row(
 				modifier = Modifier
@@ -205,9 +210,7 @@ fun FocusModeUi(component: FocusMode) {
 						enabled = hasReceivedInitialBuffer,
 						spellCheckMenuItems = spellCheckMenuItems,
 						style = rememberTextEditorStyle(
-							textStyle = TextStyle.Default.copy(
-								textIndent = TextIndent(firstLine = 24.sp)
-							),
+							textStyle = LocalEditorTextStyle.current.withParagraphIndent(),
 							focusedBorderColor = Color.Transparent,
 						),
 						modifier = Modifier

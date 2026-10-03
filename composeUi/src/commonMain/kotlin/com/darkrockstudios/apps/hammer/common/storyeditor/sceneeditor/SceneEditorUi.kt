@@ -40,11 +40,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
@@ -52,6 +49,7 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.clampEditorWidth
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
+import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
 import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
@@ -66,6 +64,8 @@ import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownFor
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.markdownFormatShortcuts
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.saveShortcutModifier
+import com.darkrockstudios.apps.hammer.common.compose.textSizeShortcutModifier
+import com.darkrockstudios.apps.hammer.common.compose.withParagraphIndent
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneDeleteDialog
 import com.darkrockstudios.apps.hammer.common.utils.addToDictionaryMenuItems
@@ -190,6 +190,11 @@ fun SceneEditorUi(
 				modifier = Modifier
 					.fillMaxHeight()
 					.findShortcutModifier { showFindBar = true }
+					.textSizeShortcutModifier(
+						onIncrease = component::increaseTextSize,
+						onDecrease = component::decreaseTextSize,
+						onReset = component::resetTextSize,
+					)
 					.saveShortcutModifier { scope.launch { component.storeSceneContent() } }
 					.markdownFormatShortcuts(markdownExtension)
 			) {
@@ -241,9 +246,7 @@ fun SceneEditorUi(
 						enabled = hasReceivedInitialBuffer,
 						spellCheckMenuItems = spellCheckMenuItems,
 						style = rememberTextEditorStyle(
-							textStyle = TextStyle.Default.copy(
-								textIndent = TextIndent(firstLine = 24.sp)
-							),
+							textStyle = LocalEditorTextStyle.current.withParagraphIndent(),
 							focusedBorderColor = Color.Transparent,
 							unfocusedBorderColor = Color.Transparent,
 						),

@@ -8,7 +8,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.FormatListBulleted
@@ -21,6 +23,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
@@ -33,10 +36,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
+import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
 import com.darkrockstudios.apps.hammer.common.compose.boldShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.icons.EditorIcons
 import com.darkrockstudios.apps.hammer.common.compose.icons.IconBold
@@ -50,6 +56,7 @@ import com.darkrockstudios.apps.hammer.common.compose.icons.IconUndo
 import com.darkrockstudios.apps.hammer.common.compose.italicShortcutModifier
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.strikethroughShortcutModifier
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.markdown_format_bar_blockquote
 import com.darkrockstudios.apps.hammer.markdown_format_bar_bold
 import com.darkrockstudios.apps.hammer.markdown_format_bar_bullet_list
@@ -62,6 +69,7 @@ import com.darkrockstudios.apps.hammer.markdown_format_bar_italic
 import com.darkrockstudios.apps.hammer.markdown_format_bar_numbered_list
 import com.darkrockstudios.apps.hammer.markdown_format_bar_redo
 import com.darkrockstudios.apps.hammer.markdown_format_bar_reset_text_size
+import com.darkrockstudios.apps.hammer.markdown_format_bar_text_size
 import com.darkrockstudios.apps.hammer.markdown_format_bar_strikethrough
 import com.darkrockstudios.apps.hammer.markdown_format_bar_undo
 import com.darkrockstudios.apps.hammer.more_menu_button
@@ -318,49 +326,60 @@ private fun HistoryAndOverflow(
 					},
 				)
 			}
-			if (decreaseTextSize != null) {
-				DropdownMenuItem(
-					text = { Text(Res.string.markdown_format_bar_decrease_text_size.get()) },
-					leadingIcon = {
-						Icon(
-							imageVector = EditorIcons.IconTextDecrease,
-							contentDescription = null,
-						)
-					},
-					onClick = {
-						decreaseTextSize()
-						menuExpanded = false
-					},
+			if (decreaseTextSize != null || increaseTextSize != null || resetTextSize != null) {
+				TextSizeMenuRow(decreaseTextSize, increaseTextSize, resetTextSize)
+			}
+		}
+	}
+}
+
+/** Steps the body text size and shows it; the menu stays open while stepping. */
+@Composable
+private fun TextSizeMenuRow(
+	decreaseTextSize: (() -> Unit)?,
+	increaseTextSize: (() -> Unit)?,
+	resetTextSize: (() -> Unit)?,
+) {
+	val textSize = LocalEditorTextStyle.current.fontSize.value
+	Row(
+		modifier = Modifier.padding(start = 12.dp, end = 4.dp),
+		verticalAlignment = Alignment.CenterVertically,
+	) {
+		Text(
+			text = Res.string.markdown_format_bar_text_size.get(),
+			style = MaterialTheme.typography.bodyLarge,
+			modifier = Modifier.padding(end = 12.dp),
+		)
+		if (decreaseTextSize != null) {
+			IconButton(onClick = decreaseTextSize) {
+				Icon(
+					imageVector = EditorIcons.IconTextDecrease,
+					contentDescription = Res.string.markdown_format_bar_decrease_text_size.get(),
 				)
 			}
-			if (increaseTextSize != null) {
-				DropdownMenuItem(
-					text = { Text(Res.string.markdown_format_bar_increase_text_size.get()) },
-					leadingIcon = {
-						Icon(
-							imageVector = EditorIcons.IconTextIncrease,
-							contentDescription = null,
-						)
-					},
-					onClick = {
-						increaseTextSize()
-						menuExpanded = false
-					},
+		}
+		Text(
+			text = textSize.toInt().toString(),
+			style = MaterialTheme.typography.bodyLarge,
+			textAlign = TextAlign.Center,
+			modifier = Modifier.widthIn(min = 28.dp),
+		)
+		if (increaseTextSize != null) {
+			IconButton(onClick = increaseTextSize) {
+				Icon(
+					imageVector = EditorIcons.IconTextIncrease,
+					contentDescription = Res.string.markdown_format_bar_increase_text_size.get(),
 				)
 			}
-			if (resetTextSize != null) {
-				DropdownMenuItem(
-					text = { Text(Res.string.markdown_format_bar_reset_text_size.get()) },
-					leadingIcon = {
-						Icon(
-							imageVector = EditorIcons.IconTextReset,
-							contentDescription = null,
-						)
-					},
-					onClick = {
-						resetTextSize()
-						menuExpanded = false
-					},
+		}
+		if (resetTextSize != null) {
+			IconButton(
+				onClick = resetTextSize,
+				enabled = textSize != GlobalSettings.DEFAULT_FONT_SIZE,
+			) {
+				Icon(
+					imageVector = EditorIcons.IconTextReset,
+					contentDescription = Res.string.markdown_format_bar_reset_text_size.get(),
 				)
 			}
 		}

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
+import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -34,6 +35,7 @@ import com.darkrockstudios.texteditor.TextEditor
 import com.darkrockstudios.texteditor.TextEditorRange
 import com.darkrockstudios.texteditor.markdown.MarkdownExtension
 import com.darkrockstudios.texteditor.markdown.withMarkdown
+import com.darkrockstudios.texteditor.rememberTextEditorStyle
 import com.darkrockstudios.texteditor.richstyle.HighlightSpanStyle
 import com.darkrockstudios.texteditor.richstyle.RichSpan
 import com.darkrockstudios.texteditor.state.TextEditorState
@@ -253,6 +255,7 @@ private fun DraftPane(
 			TextEditor(
 				modifier = Modifier.fillMaxSize(),
 				state = textEditorState,
+				style = rememberTextEditorStyle(textStyle = LocalEditorTextStyle.current),
 				enabled = false,
 			)
 		}
@@ -325,6 +328,7 @@ private fun CurrentPane(
 			TextEditor(
 				modifier = Modifier.fillMaxSize(),
 				state = textEditorState,
+				style = rememberTextEditorStyle(textStyle = LocalEditorTextStyle.current),
 			)
 		}
 	}

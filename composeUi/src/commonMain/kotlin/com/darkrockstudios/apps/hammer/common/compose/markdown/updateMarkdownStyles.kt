@@ -40,6 +40,7 @@ internal fun updateMarkdownStyles(
 		oldConfig.italicStyle to newConfig.italicStyle,
 		oldConfig.codeStyle to newConfig.codeStyle,
 		oldConfig.linkStyle to newConfig.linkStyle,
+		oldConfig.highlightStyle to newConfig.highlightStyle,
 		oldConfig.blockquoteStyle to newConfig.blockquoteStyle,
 	)
 

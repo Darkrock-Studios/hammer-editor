@@ -51,3 +51,18 @@ fun Modifier.italicShortcutModifier(onItalic: () -> Unit): Modifier =
 
 fun Modifier.strikethroughShortcutModifier(onStrikethrough: () -> Unit): Modifier =
 	onKeyShortcut(Key.X, ctrl = true, shift = true, action = onStrikethrough)
+
+/** Ctrl/Cmd with Plus, Minus and 0, as browsers zoom. Plus is Shift+Equals on most layouts. */
+fun Modifier.textSizeShortcutModifier(
+	onIncrease: () -> Unit,
+	onDecrease: () -> Unit,
+	onReset: () -> Unit,
+): Modifier = this
+	.onKeyShortcut(Key.Equals, ctrl = true, action = onIncrease)
+	.onKeyShortcut(Key.Equals, ctrl = true, shift = true, action = onIncrease)
+	.onKeyShortcut(Key.Plus, ctrl = true, action = onIncrease)
+	.onKeyShortcut(Key.NumPadAdd, ctrl = true, action = onIncrease)
+	.onKeyShortcut(Key.Minus, ctrl = true, action = onDecrease)
+	.onKeyShortcut(Key.NumPadSubtract, ctrl = true, action = onDecrease)
+	.onKeyShortcut(Key.Zero, ctrl = true, action = onReset)
+	.onKeyShortcut(Key.NumPad0, ctrl = true, action = onReset)
