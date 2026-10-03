@@ -5,24 +5,23 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import com.darkrockstudios.apps.hammer.common.compose.markdown.changeFontSize
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
-import com.darkrockstudios.texteditor.markdown.MarkdownConfiguration
+import com.darkrockstudios.texteditor.RichTextStyles
 
-val LocalMarkdownConfig = compositionLocalOf {
-	MarkdownConfiguration.DEFAULT
+val LocalRichTextStyles = compositionLocalOf {
+	RichTextStyles.DEFAULT
 }
 
 @Composable
-fun ProvideMarkdownConfig(
+fun ProvideRichTextStyles(
 	isDark: Boolean,
 	settings: GlobalSettings,
 	content: @Composable () -> Unit
 ) {
-	val baseMarkdownConfig =
-		if (isDark) MarkdownConfiguration.DEFAULT_DARK else MarkdownConfiguration.DEFAULT
-	val scaledMarkdownConfig = baseMarkdownConfig.changeFontSize(settings.editorFontSize)
+	val baseStyles = if (isDark) RichTextStyles.DEFAULT_DARK else RichTextStyles.DEFAULT
+	val scaledStyles = baseStyles.changeFontSize(settings.editorFontSize)
 
 	CompositionLocalProvider(
-		LocalMarkdownConfig provides scaledMarkdownConfig,
+		LocalRichTextStyles provides scaledStyles,
 		content = content
 	)
 }

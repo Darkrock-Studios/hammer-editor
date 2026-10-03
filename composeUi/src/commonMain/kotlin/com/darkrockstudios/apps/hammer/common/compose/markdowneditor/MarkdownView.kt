@@ -12,7 +12,8 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
+import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
+import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
 import com.darkrockstudios.texteditor.RichTextView
 import com.darkrockstudios.texteditor.markdown.withMarkdown
 import com.darkrockstudios.texteditor.rememberTextEditorStyle
@@ -32,9 +33,12 @@ fun MarkdownView(
 	modifier: Modifier = Modifier,
 	contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-	val markdownConfig = LocalMarkdownConfig.current
+	val richTextStyles = LocalRichTextStyles.current
 	val state = rememberTextEditorState()
-	val markdownExtension = remember(state) { state.withMarkdown(markdownConfig) }
+	val markdownExtension = remember(state) {
+		state.richTextStyles = richTextStyles
+		state.withMarkdown(HammerMarkdownConfiguration)
+	}
 	LaunchedEffect(markdownExtension, markdown) {
 		markdownExtension.importMarkdown(markdown)
 	}

@@ -2,12 +2,12 @@ package com.darkrockstudios.apps.hammer.common.compose.markdown
 
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.unit.sp
-import com.darkrockstudios.texteditor.markdown.MarkdownConfiguration
+import com.darkrockstudios.texteditor.RichTextStyles
 import io.github.aakira.napier.Napier
 
-internal fun MarkdownConfiguration.changeFontSize(
+internal fun RichTextStyles.changeFontSize(
 	newBaseFontSize: Float
-): MarkdownConfiguration {
+): RichTextStyles {
 	// Determine the baseline font size to adjust from
 	val baselineFontSize = defaultTextStyle.fontSize.value
 	if (baselineFontSize == newBaseFontSize) return this
@@ -16,9 +16,7 @@ internal fun MarkdownConfiguration.changeFontSize(
 
 	val scaleFactor = newBaseFontSize / baselineFontSize
 
-	// Create a new configuration with scaled font sizes
-	// The key is to handle each property individually without relying on the copy method's handling of colors
-	return MarkdownConfiguration(
+	return copy(
 		defaultTextStyle = defaultTextStyle.copy(
 			fontSize = newBaseFontSize.sp
 		),

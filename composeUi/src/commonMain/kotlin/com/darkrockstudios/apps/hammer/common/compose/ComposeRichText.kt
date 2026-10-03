@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.ui.text.AnnotatedString
+import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.data.PlatformRichText
 import com.darkrockstudios.texteditor.markdown.MarkdownExtension
 import com.darkrockstudios.texteditor.markdown.toMarkdown
@@ -16,7 +17,7 @@ data class ComposeRichText(
 
 	override fun convertToMarkdown(): String {
 		return when {
-			snapshot != null -> snapshot.toMarkdown()
+			snapshot != null -> snapshot.toMarkdown(HammerMarkdownConfiguration)
 			state != null -> state.exportAsMarkdown()
 			else -> error("ComposeRichText must contain non-null data ")
 		}

@@ -2,8 +2,12 @@ package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.*
+import com.darkrockstudios.texteditor.input.layoutKey
 
-/** Matches a key-down with exactly these modifiers: extra ones do not count as a match. */
+/**
+ * Matches a key-down with exactly these modifiers: extra ones do not count as a match.
+ * Letters match on [layoutKey], as the editor's built-in chords do.
+ */
 fun KeyEvent.matchesShortcut(
 	key: Key,
 	ctrl: Boolean = false,
@@ -12,7 +16,7 @@ fun KeyEvent.matchesShortcut(
 ): Boolean {
 	val ctrlOrMeta = isCtrlPressed || isMetaPressed
 	return type == KeyEventType.KeyDown &&
-		this.key == key &&
+		layoutKey == key &&
 		ctrlOrMeta == ctrl &&
 		isShiftPressed == shift &&
 		isAltPressed == alt
