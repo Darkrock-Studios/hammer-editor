@@ -42,6 +42,7 @@ private val reactionIcons = mapOf(
 	KudosKind.MOVED_ME to "fa-heart",
 	KudosKind.MADE_ME_THINK to "fa-lightbulb",
 	KudosKind.MADE_ME_LAUGH to "fa-face-laugh-beam",
+	KudosKind.SURPRISED_ME to "fa-face-surprise",
 	KudosKind.PAGE_TURNER to "fa-book-open",
 )
 

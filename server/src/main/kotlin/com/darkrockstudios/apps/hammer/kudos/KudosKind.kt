@@ -23,6 +23,7 @@ enum class KudosKind(val key: String, val group: KudosGroup) {
 	MOVED_ME("moved_me", KudosGroup.REACTION),
 	MADE_ME_THINK("made_me_think", KudosGroup.REACTION),
 	MADE_ME_LAUGH("made_me_laugh", KudosGroup.REACTION),
+	SURPRISED_ME("surprised_me", KudosGroup.REACTION),
 	PAGE_TURNER("page_turner", KudosGroup.REACTION);
 
 	val messageKey: String get() = "kudos_kind_$key"
