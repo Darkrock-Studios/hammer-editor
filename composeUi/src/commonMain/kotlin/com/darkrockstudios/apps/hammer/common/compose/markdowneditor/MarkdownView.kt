@@ -8,11 +8,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
+import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
+import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
+import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.withParagraphIndent
 import com.darkrockstudios.texteditor.RichTextView
 import com.darkrockstudios.texteditor.markdown.withMarkdown
 import com.darkrockstudios.texteditor.rememberTextEditorStyle
@@ -32,9 +32,12 @@ fun MarkdownView(
 	modifier: Modifier = Modifier,
 	contentPadding: PaddingValues = PaddingValues(0.dp),
 ) {
-	val markdownConfig = LocalMarkdownConfig.current
+	val richTextStyles = LocalRichTextStyles.current
 	val state = rememberTextEditorState()
-	val markdownExtension = remember(state) { state.withMarkdown(markdownConfig) }
+	val markdownExtension = remember(state) {
+		state.richTextStyles = richTextStyles
+		state.withMarkdown(HammerMarkdownConfiguration)
+	}
 	LaunchedEffect(markdownExtension, markdown) {
 		markdownExtension.importMarkdown(markdown)
 	}
@@ -43,9 +46,7 @@ fun MarkdownView(
 		modifier = modifier.semantics { text = AnnotatedString(markdown) },
 		contentPadding = contentPadding,
 		style = rememberTextEditorStyle(
-			textStyle = TextStyle.Default.copy(
-				textIndent = TextIndent(firstLine = 24.sp)
-			)
+			textStyle = LocalEditorTextStyle.current.withParagraphIndent()
 		)
 	)
 }

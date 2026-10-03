@@ -2,10 +2,13 @@ package com.darkrockstudios.apps.hammer.common.compose.markdowneditor
 
 import com.darkrockstudios.texteditor.CharLineOffset
 import com.darkrockstudios.texteditor.TextEditorRange
-import com.darkrockstudios.texteditor.markdown.MarkdownExtension
 import com.darkrockstudios.texteditor.richstyle.HR_PLACEHOLDER
 import com.darkrockstudios.texteditor.richstyle.HorizontalRuleSpanStyle
 import com.darkrockstudios.texteditor.state.TextEditorState
+import com.darkrockstudios.texteditor.state.headerLevel
+import com.darkrockstudios.texteditor.state.toggleBulletList
+import com.darkrockstudios.texteditor.state.toggleHeader
+import com.darkrockstudios.texteditor.state.toggleOrderedList
 
 internal fun insertHorizontalRule(state: TextEditorState) {
 	state.insertNewlineAtCursor()
@@ -49,49 +52,33 @@ internal fun reconcileHorizontalRules(state: TextEditorState) {
 	}
 }
 
-internal fun toggleBulletList(state: TextEditorState, markdown: MarkdownExtension) {
+private fun selectedLines(state: TextEditorState): IntRange {
 	val selection = state.selector.selection
-	val lines = if (selection != null) {
+	return if (selection != null) {
 		selection.start.line..selection.end.line
 	} else {
 		state.cursorPosition.line..state.cursorPosition.line
 	}
-	markdown.toggleBulletList(lines)
 }
 
-internal fun toggleOrderedList(state: TextEditorState, markdown: MarkdownExtension) {
-	val selection = state.selector.selection
-	val lines = if (selection != null) {
-		selection.start.line..selection.end.line
-	} else {
-		state.cursorPosition.line..state.cursorPosition.line
-	}
-	markdown.toggleOrderedList(lines)
+internal fun toggleBulletList(state: TextEditorState) {
+	state.toggleBulletList(selectedLines(state))
+}
+
+internal fun toggleOrderedList(state: TextEditorState) {
+	state.toggleOrderedList(selectedLines(state))
 }
 
 internal val HEADER_CYCLE_LEVELS = 1..3
 
-internal fun cycleHeader(
-	state: TextEditorState,
-	markdown: MarkdownExtension,
-	currentLevel: Int,
-) {
-	val maxLevel = HEADER_CYCLE_LEVELS.last
-	val nextLevel = (currentLevel + 1) % (maxLevel + 1)
-	val selection = state.selector.selection
-	if (selection != null) {
-		HEADER_CYCLE_LEVELS.forEach { lvl ->
-			state.removeStyleSpan(selection, markdown.markdownStyles.header(lvl))
-		}
-		if (nextLevel != 0) {
-			state.addStyleSpan(selection, markdown.markdownStyles.header(nextLevel))
+internal fun cycleHeader(state: TextEditorState, currentLevel: Int) {
+	val lines = selectedLines(state)
+	if (currentLevel >= HEADER_CYCLE_LEVELS.last) {
+		// toggleHeader only removes a level every line already has, so clear each line by its own
+		lines.forEach { line ->
+			state.headerLevel(line)?.let { state.toggleHeader(line..line, it) }
 		}
 	} else {
-		HEADER_CYCLE_LEVELS.forEach { lvl ->
-			state.cursor.removeStyle(markdown.markdownStyles.header(lvl))
-		}
-		if (nextLevel != 0) {
-			state.cursor.addStyle(markdown.markdownStyles.header(nextLevel))
-		}
+		state.toggleHeader(lines, currentLevel + 1)
 	}
 }

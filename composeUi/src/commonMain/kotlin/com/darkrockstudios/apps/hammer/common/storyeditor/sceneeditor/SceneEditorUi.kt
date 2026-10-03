@@ -40,11 +40,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
@@ -52,19 +49,23 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.clampEditorWidth
 import com.darkrockstudios.apps.hammer.common.compose.AnimatedDialog
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
-import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
+import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
+import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.RootSnackbarHostState
+import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.compose.Toaster
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.findShortcutModifier
-import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.markdown.updateRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResizeHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdResizeHandleState
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownFormatBar
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.markdownFormatShortcuts
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.saveShortcutModifier
+import com.darkrockstudios.apps.hammer.common.compose.textSizeShortcutModifier
+import com.darkrockstudios.apps.hammer.common.compose.withParagraphIndent
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneDeleteDialog
 import com.darkrockstudios.apps.hammer.common.utils.addToDictionaryMenuItems
@@ -72,10 +73,10 @@ import com.darkrockstudios.apps.hammer.common.utils.toEditorSpellChecker
 import com.darkrockstudios.apps.hammer.scene_editor_add_to_dictionary
 import com.darkrockstudios.texteditor.find.FindBar
 import com.darkrockstudios.texteditor.find.rememberFindState
+import com.darkrockstudios.texteditor.markdown.withMarkdown
 import com.darkrockstudios.texteditor.rememberTextEditorStyle
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckMode
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
-import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -93,7 +94,7 @@ fun SceneEditorUi(
 ) {
 	val state by component.state.subscribeAsState()
 	val lastForceUpdate by component.lastForceUpdate.subscribeAsState()
-	val markdownConfig = LocalMarkdownConfig.current
+	val richTextStyles = LocalRichTextStyles.current
 	val scope = rememberCoroutineScope()
 	val defaultDispatcher = rememberDefaultDispatcher()
 
@@ -110,13 +111,16 @@ fun SceneEditorUi(
 		enableSpellChecking = state.spellCheckingEnabled,
 		spellCheckMode = SpellCheckMode.Word,
 	)
-	val markdownExtension = remember { textEditorState.withMarkdown(markdownConfig) }
+	val markdownExtension = remember {
+		textEditorState.textState.richTextStyles = richTextStyles
+		textEditorState.textState.withMarkdown(HammerMarkdownConfiguration)
+	}
 
 	val findState = rememberFindState(textEditorState.textState)
 	var showFindBar by remember { mutableStateOf(false) }
 
-	LaunchedEffect(markdownConfig) {
-		markdownExtension.updateMarkdownConfiguration(markdownConfig)
+	LaunchedEffect(richTextStyles) {
+		textEditorState.textState.updateRichTextStyles(richTextStyles)
 	}
 
 	var hasReceivedInitialBuffer by remember { mutableStateOf(false) }
@@ -186,6 +190,11 @@ fun SceneEditorUi(
 				modifier = Modifier
 					.fillMaxHeight()
 					.findShortcutModifier { showFindBar = true }
+					.textSizeShortcutModifier(
+						onIncrease = component::increaseTextSize,
+						onDecrease = component::decreaseTextSize,
+						onReset = component::resetTextSize,
+					)
 					.saveShortcutModifier { scope.launch { component.storeSceneContent() } }
 					.markdownFormatShortcuts(markdownExtension)
 			) {
@@ -237,9 +246,7 @@ fun SceneEditorUi(
 						enabled = hasReceivedInitialBuffer,
 						spellCheckMenuItems = spellCheckMenuItems,
 						style = rememberTextEditorStyle(
-							textStyle = TextStyle.Default.copy(
-								textIndent = TextIndent(firstLine = 24.sp)
-							),
+							textStyle = LocalEditorTextStyle.current.withParagraphIndent(),
 							focusedBorderColor = Color.Transparent,
 							unfocusedBorderColor = Color.Transparent,
 						),

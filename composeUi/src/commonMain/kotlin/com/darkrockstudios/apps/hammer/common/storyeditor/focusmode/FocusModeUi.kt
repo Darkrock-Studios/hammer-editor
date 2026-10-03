@@ -30,25 +30,26 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.style.TextIndent
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusMode
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.clampEditorWidth
 import com.darkrockstudios.apps.hammer.common.compose.ComposeRichText
-import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
+import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
+import com.darkrockstudios.apps.hammer.common.compose.LocalRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.findShortcutModifier
+import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
 import com.darkrockstudios.apps.hammer.common.compose.rememberDefaultDispatcher
-import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.markdown.updateRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResizeHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.rememberHdResizeHandleState
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownFormatBar
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.compose.textSizeShortcutModifier
+import com.darkrockstudios.apps.hammer.common.compose.withParagraphIndent
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.loadSceneContent
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.sceneContentMarkdown
@@ -58,9 +59,9 @@ import com.darkrockstudios.apps.hammer.scene_editor_add_to_dictionary
 import com.darkrockstudios.apps.hammer.scene_editor_menu_item_close
 import com.darkrockstudios.texteditor.find.FindBar
 import com.darkrockstudios.texteditor.find.rememberFindState
+import com.darkrockstudios.texteditor.markdown.withMarkdown
 import com.darkrockstudios.texteditor.rememberTextEditorStyle
 import com.darkrockstudios.texteditor.spellcheck.SpellCheckingTextEditor
-import com.darkrockstudios.texteditor.spellcheck.markdown.withMarkdown
 import com.darkrockstudios.texteditor.spellcheck.rememberSpellCheckState
 import kotlinx.coroutines.withContext
 
@@ -68,7 +69,7 @@ import kotlinx.coroutines.withContext
 fun FocusModeUi(component: FocusMode) {
 	val state by component.state.subscribeAsState()
 	val lastForceUpdate by component.lastForceUpdate.subscribeAsState()
-	val markdownConfig = LocalMarkdownConfig.current
+	val richTextStyles = LocalRichTextStyles.current
 	val defaultDispatcher = rememberDefaultDispatcher()
 
 	val addToDictionaryLabel = Res.string.scene_editor_add_to_dictionary.get()
@@ -83,13 +84,16 @@ fun FocusModeUi(component: FocusMode) {
 		initialText = null,
 		enableSpellChecking = state.spellCheckingEnabled,
 	)
-	val markdownExtension = remember { textEditorState.withMarkdown(markdownConfig) }
+	val markdownExtension = remember {
+		textEditorState.textState.richTextStyles = richTextStyles
+		textEditorState.textState.withMarkdown(HammerMarkdownConfiguration)
+	}
 
 	val findState = rememberFindState(textEditorState.textState)
 	var showFindBar by remember { mutableStateOf(false) }
 
-	LaunchedEffect(markdownConfig) {
-		markdownExtension.updateMarkdownConfiguration(markdownConfig)
+	LaunchedEffect(richTextStyles) {
+		textEditorState.textState.updateRichTextStyles(richTextStyles)
 	}
 
 	var hasReceivedInitialBuffer by remember { mutableStateOf(false) }
@@ -136,6 +140,11 @@ fun FocusModeUi(component: FocusMode) {
 				.fillMaxSize()
 				.focusModeChromePadding()
 				.findShortcutModifier { showFindBar = true }
+				.textSizeShortcutModifier(
+					onIncrease = component::increaseTextSize,
+					onDecrease = component::decreaseTextSize,
+					onReset = component::resetTextSize,
+				)
 		) {
 			Row(
 				modifier = Modifier
@@ -201,9 +210,7 @@ fun FocusModeUi(component: FocusMode) {
 						enabled = hasReceivedInitialBuffer,
 						spellCheckMenuItems = spellCheckMenuItems,
 						style = rememberTextEditorStyle(
-							textStyle = TextStyle.Default.copy(
-								textIndent = TextIndent(firstLine = 24.sp)
-							),
+							textStyle = LocalEditorTextStyle.current.withParagraphIndent(),
 							focusedBorderColor = Color.Transparent,
 						),
 						modifier = Modifier

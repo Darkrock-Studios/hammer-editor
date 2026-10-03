@@ -3,36 +3,34 @@ package com.darkrockstudios.apps.hammer.common.compose.markdown
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import com.darkrockstudios.texteditor.markdown.MarkdownConfiguration
-import com.darkrockstudios.texteditor.markdown.MarkdownExtension
+import com.darkrockstudios.texteditor.RichTextStyles
 import com.darkrockstudios.texteditor.state.TextEditorState
 
-internal fun MarkdownExtension.updateMarkdownConfiguration(newConfig: MarkdownConfiguration) {
-	val oldConfig = markdownConfiguration
+internal fun TextEditorState.updateRichTextStyles(newStyles: RichTextStyles) {
 	updateMarkdownStyles(
-		state = editorState,
-		oldConfig = oldConfig,
-		newConfig = newConfig
+		state = this,
+		oldConfig = richTextStyles,
+		newConfig = newStyles
 	)
-	markdownConfiguration = newConfig
+	richTextStyles = newStyles
 }
 
 /**
- * Updates all text in the editor to use the new markdown configuration styles.
+ * Updates all text in the editor to use the new styles.
  * This preserves the semantic meaning of styles while updating their visual appearance.
  *
  * @param state The TextEditorState to update
- * @param oldConfig The previous configuration that was used
- * @param newConfig The new configuration to apply
+ * @param oldConfig The previous styles that were used
+ * @param newConfig The new styles to apply
  */
 internal fun updateMarkdownStyles(
 	state: TextEditorState,
-	oldConfig: MarkdownConfiguration,
-	newConfig: MarkdownConfiguration
+	oldConfig: RichTextStyles,
+	newConfig: RichTextStyles
 ) {
 	if (state.textLines.isEmpty()) return
 
-	// Heading styles are deliberately absent: MarkdownExtension.markdownConfiguration's
+	// Heading styles are deliberately absent: TextEditorState.richTextStyles'
 	// setter rebakes them from their HeaderSpanStyle spans. Remapping them here too
 	// leaves the rebake unable to find the old style to strip, so it appends a second
 	// copy to every heading on each config change.
@@ -42,6 +40,7 @@ internal fun updateMarkdownStyles(
 		oldConfig.italicStyle to newConfig.italicStyle,
 		oldConfig.codeStyle to newConfig.codeStyle,
 		oldConfig.linkStyle to newConfig.linkStyle,
+		oldConfig.highlightStyle to newConfig.highlightStyle,
 		oldConfig.blockquoteStyle to newConfig.blockquoteStyle,
 	)
 
@@ -98,5 +97,8 @@ private fun deepCompareSpanStyles(style1: SpanStyle, style2: SpanStyle): Boolean
 	if (style1.baselineShift != style2.baselineShift) return false
 	if (style1.textGeometricTransform != style2.textGeometricTransform) return false
 	if (style1.localeList != style2.localeList) return false
+	// What tells a heading's look from an inline style it equals (RichTextStyles.headingLook)
+	if (style1.platformStyle != style2.platformStyle) return false
+	if (style1.drawStyle != style2.drawStyle) return false
 	return true
 }

@@ -95,6 +95,7 @@ kotlin {
 				implementation(libs.aboutlibraries.core)
 				implementation(libs.aboutlibraries.compose)
 				implementation(libs.compose.texteditor)
+				implementation(libs.compose.texteditor.markdown)
 				implementation(libs.compose.texteditor.find)
 				implementation(libs.compose.texteditor.spellcheck)
 				implementation(libs.platform.spellcheckerkt)

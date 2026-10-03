@@ -7,7 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.dp
-import com.darkrockstudios.apps.hammer.common.compose.ProvideMarkdownConfig
+import com.darkrockstudios.apps.hammer.common.compose.ProvideRichTextStyles
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 
 
@@ -115,7 +115,7 @@ fun AppTheme(
 			shapes = HammerShapes,
 			typography = hammerTypography(),
 		) {
-			ProvideMarkdownConfig(isDark = useDarkTheme, settings = settings) {
+			ProvideRichTextStyles(isDark = useDarkTheme, settings = settings) {
 				content()
 			}
 		}
