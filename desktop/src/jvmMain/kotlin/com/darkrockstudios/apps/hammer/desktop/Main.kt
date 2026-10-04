@@ -212,7 +212,7 @@ fun main(args: Array<String>) {
 		val systemDark = isSystemInDarkMode()
 		val darkMode = when (settingsState.uiTheme) {
 			UiTheme.Light -> false
-			UiTheme.Dark -> true
+			UiTheme.Dark, UiTheme.OledBlack -> true
 			UiTheme.FollowSystem -> systemDark
 		}
 		NucleusDecoratedWindowTheme(isDark = darkMode) {

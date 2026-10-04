@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.tooling.preview.Preview
 import com.darkrockstudios.apps.hammer.common.compose.rememberRootSnackbarHostState
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
+import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
 import com.darkrockstudios.apps.hammer.common.projectselection.accountSettingsComponent
 import com.darkrockstudios.apps.hammer.common.projectselection.defaultAccountSettingsComponentState
 import com.darkrockstudios.apps.hammer.common.projectselection.settings.AccountSettingsUi
@@ -18,6 +19,21 @@ internal fun ScreenAccountSettingsUiPreview() {
 
 	KoinApplicationPreview {
 		AppTheme(globalSettingsPreview) {
+			AccountSettingsUi(component, rootSnackbar)
+		}
+	}
+}
+
+@Preview
+@Composable
+internal fun ScreenAccountSettingsUiOledBlackPreview() {
+	val component = accountSettingsComponent(
+		defaultAccountSettingsComponentState.copy(serverSetup = false, uiTheme = UiTheme.OledBlack)
+	)
+	val rootSnackbar = rememberRootSnackbarHostState()
+
+	KoinApplicationPreview {
+		AppTheme(globalSettingsPreview.copy(uiTheme = UiTheme.OledBlack), useDarkTheme = true) {
 			AccountSettingsUi(component, rootSnackbar)
 		}
 	}

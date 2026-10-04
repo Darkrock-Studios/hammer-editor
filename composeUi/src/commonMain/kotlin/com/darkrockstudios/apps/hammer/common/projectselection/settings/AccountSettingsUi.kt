@@ -315,6 +315,7 @@ private fun FolioCaption(
 private fun uiThemeLabel(theme: UiTheme): String = when (theme) {
 	UiTheme.Light -> Res.string.settings_theme_light.get()
 	UiTheme.Dark -> Res.string.settings_theme_dark.get()
+	UiTheme.OledBlack -> Res.string.settings_theme_oled_black.get()
 	UiTheme.FollowSystem -> Res.string.settings_theme_followsystem.get()
 }
 
