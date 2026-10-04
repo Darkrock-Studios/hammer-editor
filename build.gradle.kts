@@ -7,6 +7,7 @@ import com.darkrockstudios.build.formatStoreNotes
 import com.darkrockstudios.build.isPlatformReleaseTag
 import com.darkrockstudios.build.registerLinuxDistributionTasks
 import com.darkrockstudios.build.registerPublishTasks
+import com.darkrockstudios.build.registerUpdateMetadataTask
 import com.darkrockstudios.build.releaseNotesUrl
 import com.darkrockstudios.build.storeNotesLength
 import com.darkrockstudios.build.updateFlatpakFiles
@@ -128,6 +129,7 @@ kover {
 
 registerPublishTasks()
 registerLinuxDistributionTasks(libs.versions.app.get())
+registerUpdateMetadataTask(libs.versions.app.get())
 
 // The pre-commit hook runs Gradle, so git's hook env leaks into the daemon and Gradle
 // blanks rather than unsets it later; a blank GIT_INDEX_FILE reads as an empty index.

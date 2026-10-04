@@ -67,6 +67,7 @@ kotlin {
 				implementation(libs.nucleus.launcher.windows)
 				implementation(libs.nucleus.launcher.linux)
 				implementation(libs.nucleus.launcher.macos)
+				implementation(libs.nucleus.updater.runtime)
 			}
 		}
 		val jvmTest by getting {
@@ -112,6 +113,10 @@ compose.desktop {
 				menuGroup = "Hammer"
 				shortcut = true
 				console = false
+				// Thar be dragons: this is the MSI UpgradeCode every installed copy carries. jpackage
+				// derived it from vendor + name; it is pinned so a renamed package or an added vendor
+				// can never make a new MSI install beside the old one instead of over it.
+				upgradeUuid = "BA26F056-C16C-38AF-BD48-C993BEAFBE7A"
 
 				iconFile.set(project.file("icons/windows.ico"))
 			}

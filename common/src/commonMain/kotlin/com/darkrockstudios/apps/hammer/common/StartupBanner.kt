@@ -2,6 +2,7 @@ package com.darkrockstudios.apps.hammer.common
 
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.DistributionChannel
+import com.darkrockstudios.apps.hammer.base.PackageFormat
 import io.github.aakira.napier.Napier
 
 /**
@@ -17,6 +18,7 @@ fun logStartupBanner() {
 fun startupBanner(): String =
 	"Hammer v${BuildMetadata.APP_VERSION}" +
 		" | channel: ${DistributionChannel.current.token}" +
+		" | format: ${PackageFormat.current.token}" +
 		" | ${platformStartupInfo()}"
 
 /** Platform + environment details for the startup banner. */

@@ -1,4 +1,5 @@
 import com.darkrockstudios.build.distributionChannel
+import com.darkrockstudios.build.packageFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -79,6 +80,7 @@ buildConfig {
 	buildConfigField("String", "DATA_VERSION", "\"${libs.versions.data.version.get()}\"")
 
 	buildConfigField("String", "CHANNEL", "\"${project.distributionChannel().token}\"")
+	buildConfigField("String", "PACKAGE_FORMAT", "\"${project.packageFormat().token}\"")
 }
 
 val GIT_TASK_NAME = "install-git-hooks"

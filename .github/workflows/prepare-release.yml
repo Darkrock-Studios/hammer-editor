@@ -72,7 +72,7 @@ jobs:
           timeout_minutes: 30
           max_attempts: 3
           shell: pwsh
-          command: ./gradlew :desktop:packageReleaseMsi -Pchannel=github
+          command: ./gradlew :desktop:packageReleaseMsi -Pchannel=github -Pformat=msi
 
       - name: Rename MSI Artifact
         shell: cmd
@@ -104,7 +104,7 @@ jobs:
           timeout_minutes: 30
           max_attempts: 3
           shell: pwsh
-          command: ./gradlew :desktop:packageReleaseExe -Pchannel=github
+          command: ./gradlew :desktop:packageReleaseExe -Pchannel=github -Pformat=exe
 
       - name: Rename EXE Artifact
         shell: cmd
@@ -192,7 +192,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: ./gradlew :desktop:packageReleaseDeb -Pchannel=github
+          command: ./gradlew :desktop:packageReleaseDeb -Pchannel=github -Pformat=deb
 
       - name: Rename DEB Artifact
         run: |
@@ -216,7 +216,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: ./gradlew :desktop:packageReleaseRpm -Pchannel=github
+          command: ./gradlew :desktop:packageReleaseRpm -Pchannel=github -Pformat=rpm
 
       - name: Rename RPM Artifact
         run: |
@@ -240,7 +240,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: ./gradlew buildDistAppImage -Pchannel=appimage
+          command: ./gradlew buildDistAppImage -Pchannel=appimage -Pformat=appimage
 
       - name: Create Release
         uses: ncipollo/release-action@339a81892b84b4eeb0f6e744e4574d79d0d9b8dd # v1.21.0
@@ -283,7 +283,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: ./gradlew :desktop:packageReleaseDmg -Pchannel=github
+          command: ./gradlew :desktop:packageReleaseDmg -Pchannel=github -Pformat=dmg
 
       - name: Rename DMG Artifact
         run: |
@@ -307,7 +307,7 @@ jobs:
         with:
           timeout_minutes: 30
           max_attempts: 3
-          command: ./gradlew :desktop:packageReleasePkg -Pchannel=github
+          command: ./gradlew :desktop:packageReleasePkg -Pchannel=github -Pformat=pkg
 
       - name: Rename PKG Artifact
         run: |
@@ -593,6 +593,41 @@ jobs:
 
       - name: Fetch tags
         run: git fetch --depth=1 origin +refs/tags/*:refs/tags/*
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+
+      - name: Gradle caching
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      # The desktop updater reads latest*.yml from the release. The installers are
+      # downloaded back from the draft so the sizes and digests describe exactly the
+      # bytes a client will fetch. Attached before the draft flips, so a published
+      # release never exists without them.
+      - name: Write update metadata
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          TAG_NAME: ${{ github.ref_name }}
+        run: |
+          ASSETS="$RUNNER_TEMP/release-assets"
+          mkdir -p "$ASSETS"
+          gh release download "$TAG_NAME" --repo "$REPO" --dir "$ASSETS" \
+            --pattern 'hammer.msi' --pattern 'hammer.exe' \
+            --pattern 'hammer.zip' --pattern 'hammer.dmg' --pattern 'hammer.pkg' \
+            --pattern 'hammer.deb' --pattern 'hammer.rpm' --pattern 'hammer.AppImage'
+          ./gradlew writeUpdateMetadata -PreleaseAssetsDir="$ASSETS" --no-daemon
+          gh release upload "$TAG_NAME" --repo "$REPO" --clobber build/update-metadata/*.yml
 
       - name: Get last tag message
         run: |
