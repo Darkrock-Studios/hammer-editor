@@ -133,4 +133,5 @@ private fun fakeComponent() = object : SceneEditor {
 	override fun setEditorMaxWidth(width: Float) {}
 	override fun resetEditorMaxWidth() {}
 	override fun enterFocusMode() {}
+	override fun readScene() {}
 }

@@ -19,6 +19,7 @@ interface SceneList {
 	fun onSceneListUpdate(scenes: SceneSummary)
 	fun onSceneBufferUpdate(sceneBuffer: SceneBuffer)
 	fun showOutlineOverview()
+	fun showReaderMode()
 
 	suspend fun archiveScene(scene: SceneItem)
 	suspend fun unarchiveScene(scene: SceneItem)

@@ -83,6 +83,7 @@ import com.darkrockstudios.apps.hammer.scene_list_create_scene_dialog_message
 import com.darkrockstudios.apps.hammer.scene_list_create_scene_dialog_title
 import com.darkrockstudios.apps.hammer.scene_list_header
 import com.darkrockstudios.apps.hammer.scene_list_outline_overview_button
+import com.darkrockstudios.apps.hammer.scene_list_reader_button
 import com.darkrockstudios.apps.hammer.view_archived_scenes_button
 import io.github.aakira.napier.Napier
 import kotlinx.coroutines.CoroutineScope
@@ -96,6 +97,7 @@ const val SCENE_LIST_ADD_SCENE_TAG = "scene-list-add-scene"
 const val SCENE_LIST_ADD_GROUP_TAG = "scene-list-add-group"
 const val CREATE_ITEM_NAME_FIELD_TAG = "create-item-name-field"
 const val SCENE_LIST_TREE_TAG = "scene-list-tree"
+const val SCENE_LIST_READER_BUTTON_TAG = "scene-list-reader"
 
 @OptIn(
 	ExperimentalMaterialApi::class,
@@ -235,6 +237,11 @@ fun SceneListUi(
 						label = Res.string.scene_list_outline_overview_button.get(),
 						onClick = component::showOutlineOverview,
 						modifier = Modifier.weight(1f),
+					)
+					HdHairlineButton(
+						label = Res.string.scene_list_reader_button.get(),
+						onClick = component::showReaderMode,
+						modifier = Modifier.weight(1f).testTag(SCENE_LIST_READER_BUTTON_TAG),
 					)
 					Box {
 						IconButton(

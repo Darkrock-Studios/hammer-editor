@@ -18,7 +18,9 @@ class SceneListComponent(
 	projectDef: ProjectDef,
 	selectedSceneItem: SharedFlow<SceneItem?>,
 	private val sceneSelected: (sceneDef: SceneItem) -> Unit,
+	private val openSceneEditor: (sceneDef: SceneItem) -> Unit,
 	private val showOutlineOverviewDialog: () -> Unit,
+	private val showReader: () -> Unit,
 ) : ProjectComponentBase(projectDef, componentContext), SceneList {
 
 	private val projectEditor: SceneEditorService by projectInject()
@@ -76,7 +78,7 @@ class SceneListComponent(
 		val newSceneItem = projectEditor.createScene(foundParent, sceneName)
 		if (newSceneItem != null) {
 			Napier.i("Scene created: $sceneName")
-			sceneSelected(newSceneItem)
+			openSceneEditor(newSceneItem)
 		} else {
 			Napier.w("Failed to create Scene: $sceneName")
 		}
@@ -153,6 +155,10 @@ class SceneListComponent(
 		showOutlineOverviewDialog()
 	}
 
+	override fun showReaderMode() {
+		showReader()
+	}
+
 	override suspend fun archiveScene(scene: SceneItem) {
 		if (projectEditor.archiveScene(scene)) {
 			Napier.i("Scene archived: ${scene.name}")
@@ -165,7 +171,7 @@ class SceneListComponent(
 		val unarchived = projectEditor.unarchiveScene(scene)
 		if (unarchived != null) {
 			Napier.i("Scene unarchived: ${unarchived.name}")
-			sceneSelected(unarchived)
+			openSceneEditor(unarchived)
 			dismissArchivedDialog()
 		} else {
 			Napier.w("Failed to unarchive scene: ${scene.name}")

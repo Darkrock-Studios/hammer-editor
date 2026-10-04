@@ -37,14 +37,18 @@ class SceneListComponentTest : ComponentTest() {
 	private val sceneListCallback = slot<(SceneSummary) -> Unit>()
 
 	private val selectedScenes = mutableListOf<SceneItem>()
+	private val openedScenes = mutableListOf<SceneItem>()
 	private var outlineShown = false
+	private var readerShown = false
 
 	@BeforeEach
 	override fun setup() {
 		super.setup()
 
 		selectedScenes.clear()
+		openedScenes.clear()
 		outlineShown = false
+		readerShown = false
 		selectedSceneFlow = MutableSharedFlow(replay = 1)
 
 		sceneEditor = mockk(relaxed = true)
@@ -68,7 +72,9 @@ class SceneListComponentTest : ComponentTest() {
 		projectDef = projectDef,
 		selectedSceneItem = selectedSceneFlow,
 		sceneSelected = { selectedScenes.add(it) },
+		openSceneEditor = { openedScenes.add(it) },
 		showOutlineOverviewDialog = { outlineShown = true },
+		showReader = { readerShown = true },
 	)
 
 	private fun sceneItem(id: Int = 1, type: SceneItem.Type = SceneItem.Type.Scene) = SceneItem(
@@ -115,7 +121,7 @@ class SceneListComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `Creating a scene under the root passes a null parent and selects the new scene`() =
+	fun `Creating a scene under the root passes a null parent and opens the new scene in the editor`() =
 		runTest(mainTestDispatcher) {
 			val root = sceneItem(0, SceneItem.Type.Root)
 			val created = sceneItem(9)
@@ -129,11 +135,12 @@ class SceneListComponentTest : ComponentTest() {
 			advanceUntilIdle()
 
 			coVerify { sceneEditor.createScene(null, "New Scene") }
-			assertEquals(listOf(created), selectedScenes)
+			assertEquals(listOf(created), openedScenes)
+			assertTrue(selectedScenes.isEmpty())
 		}
 
 	@Test
-	fun `Failed scene creation selects nothing`() = runTest(mainTestDispatcher) {
+	fun `Failed scene creation opens nothing`() = runTest(mainTestDispatcher) {
 		coEvery { sceneEditor.createScene(any(), any()) } returns null
 
 		val comp = newComponent()
@@ -143,7 +150,7 @@ class SceneListComponentTest : ComponentTest() {
 		comp.createScene(null, "Nope")
 		advanceUntilIdle()
 
-		assertTrue(selectedScenes.isEmpty())
+		assertTrue(openedScenes.isEmpty())
 	}
 
 	@Test
@@ -226,7 +233,7 @@ class SceneListComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `Unarchiving selects the restored scene and closes the dialog`() = runTest(mainTestDispatcher) {
+	fun `Unarchiving opens the restored scene in the editor and closes the dialog`() = runTest(mainTestDispatcher) {
 		val archived = sceneItem(8).copy(archived = true)
 		val restored = archived.copy(archived = false)
 		coEvery { sceneEditor.unarchiveScene(archived) } returns restored
@@ -239,7 +246,7 @@ class SceneListComponentTest : ComponentTest() {
 		comp.unarchiveScene(archived)
 		advanceUntilIdle()
 
-		assertEquals(listOf(restored), selectedScenes)
+		assertEquals(listOf(restored), openedScenes)
 		assertFalse(comp.state.value.showArchivedDialog)
 	}
 
@@ -256,7 +263,7 @@ class SceneListComponentTest : ComponentTest() {
 		comp.unarchiveScene(archived)
 		advanceUntilIdle()
 
-		assertTrue(selectedScenes.isEmpty())
+		assertTrue(openedScenes.isEmpty())
 		assertTrue(comp.state.value.showArchivedDialog)
 	}
 
@@ -281,6 +288,16 @@ class SceneListComponentTest : ComponentTest() {
 
 		comp.showOutlineOverview()
 		assertTrue(outlineShown)
+	}
+
+	@Test
+	fun `Reader mode request is forwarded`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.showReaderMode()
+		assertTrue(readerShown)
 	}
 
 	@Test

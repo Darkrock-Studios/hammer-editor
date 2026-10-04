@@ -1,7 +1,5 @@
 package com.darkrockstudios.apps.hammer.common.storyeditor
 
-import androidx.compose.animation.*
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -13,21 +11,17 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.arkivanov.decompose.extensions.compose.subscribeAsState
 import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.outlineoverview.OutlineOverview
@@ -35,8 +29,14 @@ import com.darkrockstudios.apps.hammer.common.compose.AnimatedFullScreenDialog
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarGutter
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdChapterDropdown
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdChapterHeader
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdChapterRailItem
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdChapterRow
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEndMark
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdFolioDivider
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSceneBreak
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.romanNumeral
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
@@ -49,7 +49,9 @@ private const val FRONTISPIECE_ITEM_COUNT = 1
 private data class OutlineChapter(
 	val chapter: OutlineOverview.OutlineItem.ChapterOutline?,
 	val scenes: List<OutlineOverview.OutlineItem.SceneOutline>,
-)
+) {
+	fun title(untitled: String): String = chapter?.sceneItem?.name ?: untitled
+}
 
 private fun groupByChapter(items: List<OutlineOverview.OutlineItem>): List<OutlineChapter> {
 	if (items.isEmpty()) return emptyList()
@@ -102,6 +104,10 @@ fun OutlineOverviewContent(
 	val state by component.state.subscribeAsState()
 
 	val chapters = remember(state.overview) { groupByChapter(state.overview) }
+	val untitled = untitledChapter()
+	val chapterRows = remember(chapters, untitled) {
+		chapters.map { HdChapterRow(title = it.title(untitled), sceneCount = it.scenes.size) }
+	}
 	val totalScenes = remember(chapters) { chapters.sumOf { it.scenes.size } }
 	val totalChapters = chapters.count { it.chapter != null }
 
@@ -175,7 +181,7 @@ fun OutlineOverviewContent(
 							.fillMaxWidth(),
 					) {
 						ChapterRail(
-							chapters = chapters,
+							chapters = chapterRows,
 							activeChapterIndex = activeChapterIndex,
 							onJumpTo = scrollToChapter,
 							modifier = Modifier
@@ -198,10 +204,10 @@ fun OutlineOverviewContent(
 						)
 					}
 				} else {
-					ChapterDropdown(
-						chapters = chapters,
-						activeChapterIndex = activeChapterIndex,
-						onJumpTo = scrollToChapter,
+					HdChapterDropdown(
+						rows = chapterRows,
+						selectedIndex = activeChapterIndex,
+						onSelect = scrollToChapter,
 					)
 					ReadingColumn(
 						chapters = chapters,
@@ -310,7 +316,7 @@ private fun CloseButton(onClose: () -> Unit) {
 
 @Composable
 private fun ChapterRail(
-	chapters: List<OutlineChapter>,
+	chapters: List<HdChapterRow>,
 	activeChapterIndex: Int,
 	onJumpTo: (Int) -> Unit,
 	modifier: Modifier = Modifier,
@@ -335,9 +341,9 @@ private fun ChapterRail(
 				contentPadding = PaddingValues(end = MpScrollBarGutter),
 			) {
 				itemsIndexed(chapters, key = { idx, _ -> "rail-$idx" }) { index, ch ->
-					ChapterRailItem(
+					HdChapterRailItem(
 						index = index,
-						chapter = ch,
+						row = ch,
 						selected = index == activeChapterIndex,
 						onClick = { onJumpTo(index) },
 					)
@@ -353,176 +359,8 @@ private fun ChapterRail(
 }
 
 @Composable
-private fun ChapterRailItem(
-	index: Int,
-	chapter: OutlineChapter,
-	selected: Boolean,
-	onClick: () -> Unit,
-) {
-	val accent = MaterialTheme.colorScheme.primary
-	val rowBg = if (selected) {
-		MaterialTheme.colorScheme.surfaceContainer
-	} else {
-		MaterialTheme.colorScheme.surfaceContainerLow
-	}
-
-	Row(
-		modifier = Modifier
-			.fillMaxWidth()
-			.height(IntrinsicSize.Min)
-			.background(rowBg)
-			.clickable(onClick = onClick),
-		verticalAlignment = Alignment.Top,
-	) {
-		Box(
-			modifier = Modifier
-				.width(2.dp)
-				.fillMaxHeight()
-				.background(if (selected) accent else androidx.compose.ui.graphics.Color.Transparent),
-		)
-		Row(
-			modifier = Modifier
-				.fillMaxWidth()
-				.padding(
-					start = Ui.Padding.L,
-					end = Ui.Padding.XL,
-					top = Ui.Padding.L,
-					bottom = Ui.Padding.L,
-				),
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-			verticalAlignment = Alignment.Top,
-		) {
-			Text(
-				text = romanNumeral(index + 1),
-				style = MaterialTheme.typography.titleLarge,
-				fontWeight = FontWeight.Light,
-				color = if (selected) {
-					MaterialTheme.colorScheme.onSurface
-				} else {
-					MaterialTheme.colorScheme.onSurfaceVariant
-				},
-				modifier = Modifier.widthIn(min = 24.dp),
-			)
-			Column(
-				modifier = Modifier.weight(1f),
-				verticalArrangement = Arrangement.spacedBy(2.dp),
-			) {
-				Text(
-					text = chapter.chapter?.sceneItem?.name ?: untitledChapter(),
-					style = MaterialTheme.typography.titleSmall,
-					fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal,
-					color = MaterialTheme.colorScheme.onSurface,
-					maxLines = 1,
-					overflow = TextOverflow.Ellipsis,
-				)
-				HdMonoLabel(
-					text = Res.string.scene_list_outline_overview_scene_count.get(chapter.scenes.size),
-				)
-			}
-		}
-	}
-}
-
-@Composable
 private fun untitledChapter(): String =
 	Res.string.scene_list_outline_overview_untitled_chapter.get()
-
-@Composable
-private fun ChapterDropdown(
-	chapters: List<OutlineChapter>,
-	activeChapterIndex: Int,
-	onJumpTo: (Int) -> Unit,
-) {
-	var expanded by remember { mutableStateOf(false) }
-	val rotation by animateFloatAsState(
-		targetValue = if (expanded) 180f else 0f,
-		label = "outlineChapterDropdownRotation",
-	)
-	val current = chapters.getOrNull(activeChapterIndex)
-
-	Column(modifier = Modifier.fillMaxWidth()) {
-		Row(
-			modifier = Modifier
-				.fillMaxWidth()
-				.background(MaterialTheme.colorScheme.surfaceContainerLow)
-				.clickable { expanded = !expanded }
-				.padding(horizontal = Ui.Padding.XL, vertical = Ui.Padding.L),
-			verticalAlignment = Alignment.CenterVertically,
-			horizontalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-		) {
-			HdMonoLabel(text = Res.string.scene_list_outline_overview_jump_to.get())
-			Row(
-				modifier = Modifier.weight(1f),
-				verticalAlignment = Alignment.Bottom,
-				horizontalArrangement = Arrangement.spacedBy(Ui.Padding.M),
-			) {
-				Text(
-					text = romanNumeral(activeChapterIndex + 1),
-					style = MaterialTheme.typography.titleMedium,
-					fontWeight = FontWeight.Light,
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
-				Text(
-					text = current?.chapter?.sceneItem?.name ?: untitledChapter(),
-					style = MaterialTheme.typography.titleMedium,
-					fontWeight = FontWeight.Medium,
-					color = MaterialTheme.colorScheme.onSurface,
-					maxLines = 1,
-					overflow = TextOverflow.Ellipsis,
-				)
-			}
-			HdMonoLabel(
-				text = Res.string.scene_list_outline_overview_position.get(
-					activeChapterIndex + 1,
-					chapters.size,
-				),
-			)
-			Icon(
-				imageVector = Icons.Default.KeyboardArrowDown,
-				contentDescription = null,
-				tint = MaterialTheme.colorScheme.onSurfaceVariant,
-				modifier = Modifier
-					.size(20.dp)
-					.rotate(rotation),
-			)
-		}
-		HorizontalDivider(
-			thickness = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
-
-		AnimatedVisibility(
-			visible = expanded,
-			enter = expandVertically() + fadeIn(),
-			exit = shrinkVertically() + fadeOut(),
-		) {
-			Column(
-				modifier = Modifier
-					.fillMaxWidth()
-					.heightIn(max = 320.dp)
-					.background(MaterialTheme.colorScheme.surface),
-			) {
-				LazyColumn(modifier = Modifier.fillMaxWidth()) {
-					itemsIndexed(chapters, key = { idx, _ -> "drop-$idx" }) { idx, ch ->
-						ChapterRailItem(
-							index = idx,
-							chapter = ch,
-							selected = idx == activeChapterIndex,
-							onClick = {
-								onJumpTo(idx)
-								expanded = false
-							},
-						)
-						HorizontalDivider(
-							thickness = Dp.Hairline,
-							color = MaterialTheme.colorScheme.outlineVariant,
-						)
-					}
-				}
-			}
-		}
-	}
-}
 
 @Composable
 private fun ReadingColumn(
@@ -558,7 +396,7 @@ private fun ReadingColumn(
 				)
 			}
 			item(key = "end") {
-				EndOfOutline()
+				HdEndMark(label = Res.string.scene_list_outline_overview_end.get())
 			}
 		}
 
@@ -620,9 +458,10 @@ private fun ChapterBlock(
 	}
 
 	Column(modifier = Modifier.fillMaxWidth().padding(bottom = 48.dp)) {
-		ChapterHeader(
+		HdChapterHeader(
 			index = chapterIndex,
-			chapter = chapter,
+			title = chapter.title(untitledChapter()),
+			sceneCount = chapter.scenes.size,
 			wide = wide,
 		)
 		Spacer(Modifier.height(Ui.Padding.XXL))
@@ -642,49 +481,8 @@ private fun ChapterBlock(
 		}
 		if (showSeparator) {
 			Spacer(Modifier.height(Ui.Padding.XXL))
-			Box(
-				modifier = Modifier.fillMaxWidth(),
-				contentAlignment = Alignment.Center,
-			) {
-				Text(
-					text = "· · ·",
-					style = MaterialTheme.typography.titleLarge.copy(letterSpacing = 8.sp),
-					color = MaterialTheme.colorScheme.onSurfaceVariant,
-				)
-			}
+			HdSceneBreak()
 		}
-	}
-}
-
-@Composable
-private fun ChapterHeader(
-	index: Int,
-	chapter: OutlineChapter,
-	wide: Boolean,
-) {
-	val titleStyle = if (wide) {
-		MaterialTheme.typography.headlineLarge
-	} else {
-		MaterialTheme.typography.headlineMedium
-	}
-	Column(verticalArrangement = Arrangement.spacedBy(Ui.Padding.M)) {
-		HdMonoLabel(
-			text = Res.string.scene_list_outline_overview_chapter_eyebrow.get(
-				romanNumeral(index + 1),
-				chapter.scenes.size,
-			),
-		)
-		Text(
-			text = chapter.chapter?.sceneItem?.name ?: untitledChapter(),
-			style = titleStyle,
-			fontWeight = FontWeight.Light,
-			color = MaterialTheme.colorScheme.onSurface,
-		)
-		HorizontalDivider(
-			thickness = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-			modifier = Modifier.padding(top = Ui.Padding.M),
-		)
 	}
 }
 
@@ -733,21 +531,6 @@ private fun SceneBlock(
 				modifier = Modifier.padding(start = Ui.Padding.XL),
 			)
 		}
-	}
-}
-
-@Composable
-private fun EndOfOutline() {
-	Column(
-		modifier = Modifier.fillMaxWidth().padding(top = Ui.Padding.L),
-		horizontalAlignment = Alignment.CenterHorizontally,
-		verticalArrangement = Arrangement.spacedBy(Ui.Padding.L),
-	) {
-		HorizontalDivider(
-			thickness = Dp.Hairline,
-			color = MaterialTheme.colorScheme.outlineVariant,
-		)
-		HdMonoLabel(text = Res.string.scene_list_outline_overview_end.get())
 	}
 }
 

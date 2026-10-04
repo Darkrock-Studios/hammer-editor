@@ -7,9 +7,12 @@ import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.Draf
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompareComponent
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftsList
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftsListComponent
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.readermode.ReaderMode
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.readermode.ReaderModeComponent
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditorComponent
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
+import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.drafts.DraftDef
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -18,6 +21,7 @@ import kotlinx.serialization.Serializable
 
 internal class DetailsRouter(
 	componentContext: ComponentContext,
+	private val projectDef: ProjectDef,
 	private val selectedSceneItem: MutableSharedFlow<SceneItem?>,
 	private val removeMenu: (id: String) -> Unit,
 	private val closeDetails: () -> Unit,
@@ -61,6 +65,10 @@ internal class DetailsRouter(
 					draftDef = config.draftDef
 				)
 			)
+
+			is Config.Reader -> StoryEditor.ChildDestination.Detail.ReaderDestination(
+				readerMode(componentContext = componentContext, sceneDef = config.sceneDef)
+			)
 		}
 
 	private fun sceneEditor(componentContext: ComponentContext, sceneDef: SceneItem): SceneEditor =
@@ -72,6 +80,7 @@ internal class DetailsRouter(
 			closeSceneEditor = closeDetails,
 			showDraftsList = ::showDraftsList,
 			showFocusMode = openFocusMode,
+			showReader = ::showReader,
 			showEntry = openEntry,
 			showGlobalSearchForTag = openGlobalSearchForTag,
 		)
@@ -96,6 +105,36 @@ internal class DetailsRouter(
 			cancelCompare = ::cancelDraftCompare,
 			backToEditor = ::backToEditor
 		)
+
+	private fun readerMode(componentContext: ComponentContext, sceneDef: SceneItem?): ReaderMode =
+		ReaderModeComponent(
+			componentContext = componentContext,
+			projectDef = projectDef,
+			initialScene = sceneDef,
+			closeReader = closeDetails,
+			openSceneEditor = ::showScene,
+			onSceneInView = { selectedSceneItem.tryEmit(it) },
+		)
+
+	fun activeReader(): ReaderMode? =
+		(stack.value.active.instance as? StoryEditor.ChildDestination.Detail.ReaderDestination)?.component
+
+	// An open reader is reused: its config holds only the scene it was opened at.
+	fun showReader(sceneDef: SceneItem?) {
+		val reader = activeReader()
+		if (reader != null) {
+			sceneDef?.let(reader::showScene)
+			return
+		}
+
+		navigation.navigate(
+			transformer = { stack ->
+				stack.dropLastWhile { it !is Config.None }
+					.plus(Config.Reader(sceneDef = sceneDef))
+			},
+			onComplete = { _, _ -> }
+		)
+	}
 
 	fun showScene(sceneDef: SceneItem) {
 		val top = stack.value.active.configuration
@@ -149,6 +188,7 @@ internal class DetailsRouter(
 
 	fun isAtRoot(): Boolean {
 		return stack.active.configuration is Config.SceneEditor ||
+				stack.active.configuration is Config.Reader ||
 				stack.active.configuration is Config.None
 	}
 
@@ -176,5 +216,8 @@ internal class DetailsRouter(
 
 		@Serializable
 		data class DraftCompare(val sceneDef: SceneItem, val draftDef: DraftDef) : Config()
+
+		@Serializable
+		data class Reader(val sceneDef: SceneItem?) : Config()
 	}
 }

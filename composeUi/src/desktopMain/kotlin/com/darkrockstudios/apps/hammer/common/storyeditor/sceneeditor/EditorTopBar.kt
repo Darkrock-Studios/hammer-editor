@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement.Start
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -111,6 +112,14 @@ actual fun EditorTopBar(
 				Icon(
 					imageVector = Icons.Default.Info,
 					contentDescription = Res.string.scene_editor_metadata_hide_button.get(),
+					tint = MaterialTheme.colorScheme.onBackground
+				)
+			}
+
+			IconButton(onClick = component::readScene) {
+				Icon(
+					imageVector = Icons.AutoMirrored.Filled.MenuBook,
+					contentDescription = Res.string.scene_editor_menu_item_read.get(),
 					tint = MaterialTheme.colorScheme.onBackground
 				)
 			}

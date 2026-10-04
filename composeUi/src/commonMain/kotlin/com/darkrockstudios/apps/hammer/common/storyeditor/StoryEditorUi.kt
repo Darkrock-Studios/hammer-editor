@@ -30,6 +30,7 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.rightBorder
 import com.darkrockstudios.apps.hammer.common.storyeditor.drafts.DraftCompareUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.drafts.DraftsListUi
+import com.darkrockstudios.apps.hammer.common.storyeditor.readermode.ReaderModeUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.SceneEditorUi
 import com.darkrockstudios.apps.hammer.common.storyeditor.scenelist.SceneListUi
 import com.darkrockstudios.apps.hammer.scene_editor_no_scene_selected
@@ -190,6 +191,10 @@ private fun DetailsPane(
 
 			is StoryEditor.ChildDestination.Detail.DraftCompareDestination -> {
 				DraftCompareUi(component = child.component)
+			}
+
+			is StoryEditor.ChildDestination.Detail.ReaderDestination -> {
+				ReaderModeUi(component = child.component)
 			}
 		}
 	}
