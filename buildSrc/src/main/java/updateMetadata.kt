@@ -21,8 +21,11 @@ private val UPDATE_METADATA_FILES: Map<String, List<String>> = mapOf(
 	"latest-linux.yml" to listOf("hammer.deb", "hammer.rpm", "hammer.AppImage"),
 )
 
-/** Assets a release may legitimately lack; every other listed name must be attached. */
+/** Assets a release may legitimately lack; every other listed name must have a digest. */
 private val OPTIONAL_ASSETS: Set<String> = setOf("hammer.zip")
+
+/** Suffix of the sidecar each platform job writes next to its installer: `<base64 sha512> <bytes>`. */
+const val DIGEST_SUFFIX = ".sha512"
 
 private const val SHA512_BUFFER_SIZE = 1 shl 16
 
@@ -52,44 +55,80 @@ fun sha512Base64(file: File): String {
 	return Base64.getEncoder().encodeToString(digest.digest())
 }
 
+/** The one-line sidecar content for an installer. */
+fun assetDigestLine(file: File): String = "${sha512Base64(file)} ${file.length()}"
+
+fun parseAssetDigest(name: String, line: String): UpdateAsset {
+	val parts = line.trim().split(' ')
+	require(parts.size == 2) { "Digest for $name should be '<base64 sha512> <bytes>', got '$line'" }
+	val size = parts[1].toLongOrNull() ?: error("Digest for $name has a non-numeric size: '$line'")
+	return UpdateAsset(name = name, size = size, sha512 = parts[0])
+}
+
 /**
- * Builds every metadata file from the installers in [assetsDir], keyed by file name. A required
- * installer that is missing fails loudly: a yml that omits it would silently leave that format
- * with no update path.
+ * Builds every metadata file from the digest sidecars in [digestsDir], keyed by file name. A
+ * required installer with no sidecar fails loudly: a yml that omits it would silently leave
+ * that format with no update path.
  */
-fun updateMetadataFiles(assetsDir: File, version: String, releaseDate: String): Map<String, String> =
+fun updateMetadataFiles(digestsDir: File, version: String, releaseDate: String): Map<String, String> =
 	UPDATE_METADATA_FILES.mapValues { (metadataFile, names) ->
 		val assets = names.mapNotNull { name ->
-			val file = assetsDir.resolve(name)
+			val sidecar = digestsDir.resolve(name + DIGEST_SUFFIX)
 			when {
-				file.isFile -> UpdateAsset(name, file.length(), sha512Base64(file))
+				sidecar.isFile -> parseAssetDigest(name, sidecar.readText())
 				name in OPTIONAL_ASSETS -> null
-				else -> error("$metadataFile needs $name, but $assetsDir has no such file")
+				else -> error("$metadataFile needs ${sidecar.name}, but $digestsDir has no such file")
 			}
 		}
 		renderUpdateMetadata(version, releaseDate, assets)
 	}
 
 /**
- * Registers `writeUpdateMetadata`, which the release workflow runs once every installer is
- * attached: `-PreleaseAssetsDir` points at a directory holding the downloaded assets, and the
- * yml files land in `build/update-metadata/`.
+ * Registers the two halves of the update metadata:
+ *
+ * - `writeAssetDigests -PassetFiles=<path,path>` runs in each platform job right after it
+ *   packages and renames its installers, writing `<installer>.sha512` beside each one. The
+ *   sidecars travel to the final job as a workflow artifact, so no installer is downloaded
+ *   twice and no release lookup is needed.
+ * - `writeUpdateMetadata -PreleaseDigestsDir=<dir>` runs once in the final job over the
+ *   collected sidecars and writes the yml files to `build/update-metadata/`.
  */
-fun Project.registerUpdateMetadataTask(appVersion: String) {
-	tasks.register("writeUpdateMetadata") {
+fun Project.registerUpdateMetadataTasks(appVersion: String) {
+	tasks.register("writeAssetDigests") {
 		group = "distribution"
-		description = "Writes the latest*.yml files the desktop updater reads, from the installers in -PreleaseAssetsDir."
+		description = "Writes a <installer>.sha512 sidecar beside each installer in -PassetFiles (comma separated)."
 
 		doLast {
-			val assetsDir = File(
-				findProperty("releaseAssetsDir")?.toString()
-					?: error("Pass -PreleaseAssetsDir=<directory holding the release assets>")
+			val files = findProperty("assetFiles")?.toString()
+				?.split(',')
+				?.map { it.trim() }
+				?.filter { it.isNotEmpty() }
+				?.takeIf { it.isNotEmpty() }
+				?: error("Pass -PassetFiles=<installer>[,<installer>...]")
+			for (path in files) {
+				val file = File(path)
+				check(file.isFile) { "No installer at $path" }
+				val sidecar = File(file.path + DIGEST_SUFFIX)
+				sidecar.writeText(assetDigestLine(file))
+				println("Wrote $sidecar")
+			}
+		}
+	}
+
+	tasks.register("writeUpdateMetadata") {
+		group = "distribution"
+		description = "Writes the latest*.yml files the desktop updater reads, from the digest sidecars in -PreleaseDigestsDir."
+
+		doLast {
+			val digestsDir = File(
+				findProperty("releaseDigestsDir")?.toString()
+					?: error("Pass -PreleaseDigestsDir=<directory holding the *$DIGEST_SUFFIX sidecars>")
 			)
 			val outputDir = layout.buildDirectory.dir("update-metadata").get().asFile
 			outputDir.mkdirs()
 
 			val releaseDate = Instant.now().truncatedTo(ChronoUnit.SECONDS).toString()
-			for ((name, content) in updateMetadataFiles(assetsDir, appVersion, releaseDate)) {
+			for ((name, content) in updateMetadataFiles(digestsDir, appVersion, releaseDate)) {
 				val target = outputDir.resolve(name)
 				target.writeText(content)
 				println("Wrote $target")
