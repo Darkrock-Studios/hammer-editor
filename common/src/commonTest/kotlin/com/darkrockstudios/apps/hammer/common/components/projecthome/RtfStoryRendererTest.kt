@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.components.projecthome
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
+import com.darkrockstudios.apps.hammer.common.data.ExportFont
+import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
 import com.darkrockstudios.apps.hammer.common.data.RtfSplitStrategy
 import com.darkrockstudios.apps.hammer.common.data.importer.PreviewItem
@@ -17,6 +19,7 @@ class RtfStoryRendererTest {
 		chapters: List<StoryChapter>,
 		projectName: String = "Test Project",
 		projectData: ProjectData = ProjectData(authorName = "Test Author"),
+		options: ExportOptions = ExportOptions(),
 	): String {
 		val buffer = Buffer()
 		val author = projectData.authorName?.takeIf { it.isNotBlank() }
@@ -26,6 +29,7 @@ class RtfStoryRendererTest {
 			projectData = projectData,
 			chapters = chapters,
 			strings = ExportStrings(contentsTitle = "Contents", authorByline = author?.let { "by $it" }),
+			options = options,
 		)
 		return buffer.readByteArray().decodeToString()
 	}
@@ -128,6 +132,43 @@ class RtfStoryRendererTest {
 		assertTrue(rtf.contains("2. Beta"), "Second chapter should be numbered")
 		assertTrue(rtf.contains("\\*\\bkmkstart chapter1"), "Chapters need bookmark anchors")
 		assertTrue(rtf.contains("HYPERLINK \\\\l \"chapter1\""), "Contents should link to chapter bookmarks")
+	}
+
+	@Test
+	fun `chapter numbering can be turned off`() {
+		val rtf = render(
+			listOf(
+				StoryChapter("Prologue", "First."),
+				StoryChapter("Chapter 1", "Second."),
+			),
+			options = ExportOptions(numberChapters = false),
+		)
+
+		assertTrue(rtf.contains("Prologue"), rtf)
+		assertTrue(!rtf.contains("1. Prologue"), "Chapter titles should not be numbered")
+		assertTrue(!rtf.contains("2. Chapter 1"), "Chapter titles should not be numbered")
+	}
+
+	@Test
+	fun `the chosen font is the document font`() {
+		val rtf = render(
+			listOf(StoryChapter("Alpha", "Some text.")),
+			options = ExportOptions(font = ExportFont.CourierNew),
+		)
+
+		assertTrue(rtf.contains("Courier New"), rtf)
+		assertTrue(!rtf.contains("Georgia"), rtf)
+	}
+
+	@Test
+	fun `blank lines between paragraphs can be skipped`() {
+		val chapters = listOf(StoryChapter("Alpha", "First passage.\n\nSecond passage."))
+
+		val kept = render(chapters)
+		assertEquals(3, Regex("""\\fi360""").findAll(kept).count(), kept)
+
+		val skipped = render(chapters, options = ExportOptions(keepBlankLines = false))
+		assertEquals(2, Regex("""\\fi360""").findAll(skipped).count(), skipped)
 	}
 
 	@Test

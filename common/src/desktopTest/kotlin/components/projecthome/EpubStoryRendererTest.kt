@@ -5,6 +5,8 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStrings
 import com.darkrockstudios.apps.hammer.common.components.projecthome.StoryChapter
 import com.darkrockstudios.apps.hammer.common.components.projecthome.writeStoryAsEpub
+import com.darkrockstudios.apps.hammer.common.data.ExportFont
+import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import okio.Buffer
 import java.io.ByteArrayInputStream
 import java.util.zip.ZipInputStream
@@ -18,6 +20,7 @@ class EpubStoryRendererTest {
 		chapters: List<StoryChapter>,
 		projectName: String = "Test Project",
 		projectData: ProjectData = ProjectData(authorName = "Jane Doe"),
+		options: ExportOptions = ExportOptions(),
 	): String {
 		val buffer = Buffer()
 		val author = projectData.authorName?.takeIf { it.isNotBlank() }
@@ -28,6 +31,7 @@ class EpubStoryRendererTest {
 			chapters = chapters,
 			language = "en",
 			strings = ExportStrings(contentsTitle = "Contents", authorByline = author?.let { "by $it" }),
+			options = options,
 		)
 
 		val sb = StringBuilder()
@@ -39,6 +43,26 @@ class EpubStoryRendererTest {
 			}
 		}
 		return sb.toString()
+	}
+
+	@Test
+	fun `blank lines between passages can be skipped`() {
+		val content = render(
+			listOf(StoryChapter("Alpha", "First passage.\n\nSecond passage.")),
+			options = ExportOptions(keepBlankLines = false),
+		)
+
+		assertTrue("<p>First passage.</p><p>Second passage.</p>" in content, content)
+	}
+
+	@Test
+	fun `the chosen font overrides the stylesheet body font`() {
+		val content = render(
+			listOf(StoryChapter("Alpha", "Some text.")),
+			options = ExportOptions(font = ExportFont.Arial),
+		)
+
+		assertTrue("body { font-family: Arial, Helvetica, sans-serif; }" in content, content)
 	}
 
 	@Test

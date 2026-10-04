@@ -7,6 +7,7 @@ import com.conamobile.pdfkmp.style.PdfColor
 import com.conamobile.pdfkmp.unit.dp
 import com.conamobile.pdfkmp.unit.sp
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import okio.BufferedSink
 
 private fun chapterAnchorId(index: Int): String = "chapter-$index"
@@ -24,6 +25,7 @@ fun writeStoryAsPdf(
 	projectData: ProjectData,
 	chapters: List<StoryChapter>,
 	strings: ExportStrings,
+	options: ExportOptions = ExportOptions(),
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
@@ -70,7 +72,7 @@ fun writeStoryAsPdf(
 			column(spacing = 6.dp) {
 				effective.forEachIndexed { index, chapter ->
 					linkToAnchor(chapterAnchorId(index)) {
-						text("${index + 1}. ${chapter.name}") {
+						text(chapterTitle(index, chapter, options.numberChapters)) {
 							primary?.let { color = it }
 						}
 					}
@@ -85,14 +87,14 @@ fun writeStoryAsPdf(
 			page {
 				bookmark(chapter.name)
 				anchor(chapterAnchorId(index))
-				text("${index + 1}. ${chapter.name}") {
+				text(chapterTitle(index, chapter, options.numberChapters)) {
 					fontSize = 22.sp
 					bold = true
 					primary?.let { color = it }
 				}
 				if (chapter.markdown.isNotBlank()) {
 					spacer(height = 14.dp)
-					proseMarkdown(chapter.markdown, proseColors)
+					proseMarkdown(chapter.markdown, proseColors, options.keepBlankLines)
 				}
 			}
 		}

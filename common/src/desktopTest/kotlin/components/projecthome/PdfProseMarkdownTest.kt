@@ -43,6 +43,15 @@ class PdfProseMarkdownTest {
 	}
 
 	@Test
+	fun `blank lines are dropped when not kept`() {
+		val blocks = parseProseMarkdown("First passage.\n\n\nSecond passage.", keepBlankLines = false)
+
+		assertEquals(2, blocks.size)
+		assertEquals("First passage.", paragraph(blocks[0]).spans.plain())
+		assertEquals("Second passage.", paragraph(blocks[1]).spans.plain())
+	}
+
+	@Test
 	fun `each blank line of a run counts`() {
 		val blocks = parseProseMarkdown("First passage.\n\n\n\nSecond passage.")
 

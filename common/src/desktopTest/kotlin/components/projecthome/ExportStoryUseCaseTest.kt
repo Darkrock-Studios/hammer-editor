@@ -277,6 +277,25 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	@Test
+	fun `markdown chapter headings drop their numbers when numbering is off`() = runTest {
+		initRepo()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = ExportFormat.Markdown,
+				treatTopLevelAsChapters = true,
+				numberChapters = false,
+			),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertTrue("## Scene ID 1" in text, text)
+		assertTrue("## Chapter ID 2" in text, text)
+		assertTrue("## 1." !in text, text)
+	}
+
+	@Test
 	fun `scene filter drops chapters with no selected scenes`() = runTest {
 		initRepo()
 

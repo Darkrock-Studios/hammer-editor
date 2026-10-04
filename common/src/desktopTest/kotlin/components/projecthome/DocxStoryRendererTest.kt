@@ -5,6 +5,8 @@ import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
 import com.darkrockstudios.apps.hammer.common.components.projecthome.StoryChapter
 import com.darkrockstudios.apps.hammer.common.components.projecthome.ExportStrings
 import com.darkrockstudios.apps.hammer.common.components.projecthome.writeStoryAsDocx
+import com.darkrockstudios.apps.hammer.common.data.ExportFont
+import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import okio.Buffer
 import org.apache.poi.xwpf.usermodel.XWPFDocument
 import org.apache.poi.xwpf.usermodel.XWPFHyperlinkRun
@@ -22,6 +24,7 @@ class DocxStoryRendererTest {
 		chapters: List<StoryChapter>,
 		projectName: String = "Test Project",
 		projectData: ProjectData = ProjectData(authorName = "Test Author"),
+		options: ExportOptions = ExportOptions(),
 	): XWPFDocument {
 		val buffer = Buffer()
 		val author = projectData.authorName?.takeIf { it.isNotBlank() }
@@ -31,6 +34,7 @@ class DocxStoryRendererTest {
 			projectData = projectData,
 			chapters = chapters,
 			strings = ExportStrings(contentsTitle = "Contents", authorByline = author?.let { "by $it" }),
+			options = options,
 		)
 		return XWPFDocument(ByteArrayInputStream(buffer.readByteArray()))
 	}
@@ -110,6 +114,47 @@ class DocxStoryRendererTest {
 		val headings = doc.paragraphs.filter { it.style == "Heading1" }
 		assertEquals(listOf("1. Alpha", "2. Beta"), headings.map { it.text })
 		assertTrue(headings.all { it.isPageBreak }, "Chapter headings should start on a new page")
+	}
+
+	@Test
+	fun `chapter numbering can be turned off in headings and contents`() {
+		val doc = render(
+			listOf(
+				StoryChapter("Prologue", "First."),
+				StoryChapter("Chapter 1", "Second."),
+			),
+			options = ExportOptions(numberChapters = false),
+		)
+
+		val headings = doc.paragraphs.filter { it.style == "Heading1" }
+		assertEquals(listOf("Prologue", "Chapter 1"), headings.map { it.text })
+
+		val contents = doc.paragraphs.filter { it.ctp.hyperlinkList.any { link -> link.anchor != null } }
+		assertEquals(listOf("Prologue", "Chapter 1"), contents.map { it.text })
+	}
+
+	@Test
+	fun `the chosen font becomes the document default`() {
+		val doc = render(
+			listOf(StoryChapter("Alpha", "Some text.")),
+			options = ExportOptions(font = ExportFont.TimesNewRoman),
+		)
+
+		val fonts = doc.styles.ctStyles.docDefaults.rPrDefault.rPr.rFontsList.single()
+		assertEquals("Times New Roman", fonts.ascii)
+		assertEquals("Times New Roman", fonts.hAnsi)
+	}
+
+	@Test
+	fun `blank lines between paragraphs become empty paragraphs only when kept`() {
+		val chapters = listOf(StoryChapter("Alpha", "First passage.\n\nSecond passage."))
+
+		val kept = render(chapters).bodyParagraphs().map { it.text }
+		assertEquals(listOf("First passage.", "", "Second passage."), kept)
+
+		val skipped = render(chapters, options = ExportOptions(keepBlankLines = false))
+			.bodyParagraphs().map { it.text }
+		assertEquals(listOf("First passage.", "Second passage."), skipped)
 	}
 
 	@Test

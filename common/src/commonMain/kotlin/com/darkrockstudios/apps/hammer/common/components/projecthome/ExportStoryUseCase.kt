@@ -115,6 +115,7 @@ class ExportStoryUseCase(
 					projectName = projectName,
 					chapters = source.perNodeChapters,
 					treatTopLevelAsChapters = options.treatTopLevelAsChapters,
+					numberChapters = options.numberChapters,
 				)
 
 				ExportFormat.Epub -> writeStoryAsEpub(
@@ -124,6 +125,7 @@ class ExportStoryUseCase(
 					chapters = chaptersFor(options, projectName, source.perNodeChapters),
 					language = source.language,
 					strings = exportStrings,
+					options = options,
 				)
 
 				ExportFormat.Pdf -> writeStoryAsPdf(
@@ -132,6 +134,7 @@ class ExportStoryUseCase(
 					projectData = source.requireProjectData(),
 					chapters = chaptersFor(options, projectName, source.perNodeChapters),
 					strings = exportStrings,
+					options = options,
 				)
 
 				ExportFormat.Docx -> writeStoryAsDocx(
@@ -140,6 +143,7 @@ class ExportStoryUseCase(
 					projectData = source.requireProjectData(),
 					chapters = chaptersFor(options, projectName, source.perNodeChapters),
 					strings = exportStrings,
+					options = options,
 				)
 
 				ExportFormat.Rtf -> writeStoryAsRtf(
@@ -148,6 +152,7 @@ class ExportStoryUseCase(
 					projectData = source.requireProjectData(),
 					chapters = chaptersFor(options, projectName, source.perNodeChapters),
 					strings = exportStrings,
+					options = options,
 				)
 			}
 			buffer

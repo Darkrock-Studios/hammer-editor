@@ -32,16 +32,17 @@ object ProseHtml {
 
 	/**
 	 * The generating providers [flavour] would use, with prose layout applied. Pass the result to
-	 * [HtmlGenerator].
+	 * [HtmlGenerator]. With [keepBlankLines] off, blank lines between paragraphs produce nothing.
 	 */
 	fun providers(
 		flavour: MarkdownFlavourDescriptor,
 		linkMap: LinkMap,
+		keepBlankLines: Boolean = true,
 	): Map<IElementType, GeneratingProvider> =
 		flavour.createHtmlGeneratingProviders(linkMap, null) + mapOf(
 			MarkdownElementTypes.PARAGRAPH to ProseParagraphProvider,
-			MarkdownElementTypes.MARKDOWN_FILE to ProseContainerProvider("body"),
-			MarkdownElementTypes.BLOCK_QUOTE to ProseContainerProvider("blockquote"),
+			MarkdownElementTypes.MARKDOWN_FILE to ProseContainerProvider("body", keepBlankLines),
+			MarkdownElementTypes.BLOCK_QUOTE to ProseContainerProvider("blockquote", keepBlankLines),
 		)
 
 	/**
@@ -100,7 +101,10 @@ private object ProseParagraphProvider : TrimmingInlineHolderProvider() {
 }
 
 /** Emits a break for each blank line the author left between two paragraphs. */
-private class ProseContainerProvider(tag: String) : SimpleTagProvider(tag) {
+private class ProseContainerProvider(
+	tag: String,
+	private val keepBlankLines: Boolean,
+) : SimpleTagProvider(tag) {
 	override fun processNode(
 		visitor: HtmlGenerator.HtmlGeneratingVisitor,
 		text: String,
@@ -118,7 +122,7 @@ private class ProseContainerProvider(tag: String) : SimpleTagProvider(tag) {
 				MarkdownTokenTypes.WHITE_SPACE, MarkdownTokenTypes.BLOCK_QUOTE -> Unit
 				else -> {
 					val isParagraph = child.type == MarkdownElementTypes.PARAGRAPH
-					if (afterParagraph && isParagraph) {
+					if (keepBlankLines && afterParagraph && isParagraph) {
 						val breaks = (newlines - 1).coerceIn(0, ProseHtml.MAX_CONSECUTIVE_BREAKS)
 						repeat(breaks) { visitor.consumeHtml(BREAK) }
 					}

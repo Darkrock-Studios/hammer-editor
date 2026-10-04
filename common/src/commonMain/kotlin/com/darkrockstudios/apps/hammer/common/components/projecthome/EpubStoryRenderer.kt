@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.components.projecthome
 
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
+import com.darkrockstudios.apps.hammer.common.data.ExportFont
+import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import io.documentnode.epub4kmp.domain.*
 import io.documentnode.epub4kmp.epub.EpubWriter
 import kotlinx.html.*
@@ -22,6 +24,7 @@ fun writeStoryAsEpub(
 	chapters: List<StoryChapter>,
 	language: String,
 	strings: ExportStrings,
+	options: ExportOptions = ExportOptions(),
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 
@@ -30,7 +33,7 @@ fun writeStoryAsEpub(
 		authorName?.let { metadata.addAuthor(parseAuthor(it)) }
 		metadata.language = language
 
-		addStylesheet(buildStylesheet(projectData.theme))
+		addStylesheet(buildStylesheet(projectData.theme, options.font))
 
 		val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
 		val tocEntries = effective.mapIndexed { index, chapter ->
@@ -66,7 +69,7 @@ fun writeStoryAsEpub(
 					id = "ch${index + 1}",
 					href = entry.href,
 					title = chapter.name,
-					bodyBuilder = { chapterBody(chapter.name, chapter.markdown) },
+					bodyBuilder = { chapterBody(chapter.name, chapter.markdown, options.keepBlankLines) },
 				),
 			)
 		}
@@ -80,8 +83,9 @@ fun writeStoryAsEpub(
  * plus theme overlays — primary on h1 and links, secondary on h2, and a primary-colored title-page rule —
  * so the exported book inherits the project's chosen accent colors.
  */
-private fun buildStylesheet(theme: ProjectTheme?): Stylesheet = stylesheet {
+private fun buildStylesheet(theme: ProjectTheme?, font: ExportFont): Stylesheet = stylesheet {
 	raw(Stylesheets.defaultReader().css)
+	raw("body { font-family: ${font.cssFamily}; }")
 
 	// Title page presentation — applies even without a theme.
 	raw(
@@ -173,12 +177,12 @@ private fun BODY.titlePageBody(projectName: String, authorName: String?) {
 	}
 }
 
-private fun BODY.chapterBody(chapterTitle: String, markdown: String) {
+private fun BODY.chapterBody(chapterTitle: String, markdown: String, keepBlankLines: Boolean) {
 	h1(classes = "chapter-title") { +chapterTitle }
 	val flavour = GFMFlavourDescriptor()
 	val source = ProseHtml.normalizeLineEndings(markdown)
 	val parsed = MarkdownParser(flavour).buildMarkdownTreeFromString(source)
-	val providers = ProseHtml.providers(flavour, LinkMap.buildLinkMap(parsed, source))
+	val providers = ProseHtml.providers(flavour, LinkMap.buildLinkMap(parsed, source), keepBlankLines)
 	val htmlBody = HtmlGenerator(source, parsed, providers).generateHtml()
 	val xhtmlBody = htmlBody.selfCloseHtmlVoidTags()
 	unsafe { +xhtmlBody }

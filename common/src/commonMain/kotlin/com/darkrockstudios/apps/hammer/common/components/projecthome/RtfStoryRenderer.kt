@@ -2,6 +2,8 @@ package com.darkrockstudios.apps.hammer.common.components.projecthome
 
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
+import com.darkrockstudios.apps.hammer.common.data.ExportFont
+import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfAlignment
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfBlock
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfBookmark
@@ -23,7 +25,15 @@ import com.darkrockstudios.libs.rtfparserkmp.writer.RtfTab
 import com.darkrockstudios.libs.rtfparserkmp.writer.RtfTextRun
 import okio.BufferedSink
 
-private val BODY_FONT = RtfFont(EXPORT_BODY_FONT, RtfFontFamily.Roman)
+private fun ExportFont.toRtfFont(): RtfFont = RtfFont(
+	faceName,
+	when (this) {
+		ExportFont.Georgia, ExportFont.TimesNewRoman, ExportFont.Garamond -> RtfFontFamily.Roman
+		ExportFont.Arial, ExportFont.Verdana -> RtfFontFamily.Swiss
+		ExportFont.CourierNew -> RtfFontFamily.Modern
+	},
+)
+
 private val MONO_FONT = RtfFont(EXPORT_MONO_FONT, RtfFontFamily.Modern)
 
 // Font sizes in half-points; the body is 12pt to match the other exporters.
@@ -56,6 +66,7 @@ fun writeStoryAsRtf(
 	projectData: ProjectData,
 	chapters: List<StoryChapter>,
 	strings: ExportStrings,
+	options: ExportOptions = ExportOptions(),
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
@@ -64,13 +75,13 @@ fun writeStoryAsRtf(
 
 	val blocks = buildList {
 		addAll(titlePage(projectName, strings.authorByline, primary))
-		addAll(contentsPage(effective, strings.contentsTitle, primary))
-		effective.forEachIndexed { index, chapter -> addAll(chapterBlocks(index, chapter, primary, secondary)) }
+		addAll(contentsPage(effective, strings.contentsTitle, primary, options.numberChapters))
+		effective.forEachIndexed { index, chapter -> addAll(chapterBlocks(index, chapter, primary, secondary, options)) }
 	}
 
 	val document = RtfDocument(
 		blocks = blocks,
-		defaultFont = BODY_FONT,
+		defaultFont = options.font.toRtfFont(),
 		defaultFontSizeHalfPoints = BODY_HALF_POINTS,
 		info = RtfInfo(title = projectName, author = authorName),
 		generator = "Hammer ${BuildMetadata.APP_VERSION}",
@@ -107,7 +118,12 @@ private fun titlePage(projectName: String, authorByline: String?, primary: RtfCo
 	}
 }
 
-private fun contentsPage(chapters: List<StoryChapter>, contentsTitle: String, primary: RtfColor?): List<RtfBlock> = buildList {
+private fun contentsPage(
+	chapters: List<StoryChapter>,
+	contentsTitle: String,
+	primary: RtfColor?,
+	numberChapters: Boolean,
+): List<RtfBlock> = buildList {
 	add(RtfPageBreak)
 	add(
 		RtfParagraph(
@@ -120,7 +136,7 @@ private fun contentsPage(chapters: List<StoryChapter>, contentsTitle: String, pr
 		),
 	)
 	chapters.forEachIndexed { index, chapter ->
-		val label = "${index + 1}. ${chapter.name}"
+		val label = chapterTitle(index, chapter, numberChapters)
 		add(
 			RtfParagraph(
 				content = listOf(
@@ -141,6 +157,7 @@ private fun chapterBlocks(
 	chapter: StoryChapter,
 	primary: RtfColor?,
 	secondary: RtfColor?,
+	options: ExportOptions,
 ): List<RtfBlock> = buildList {
 	add(RtfPageBreak)
 	add(
@@ -150,7 +167,7 @@ private fun chapterBlocks(
 					name = chapterBookmark(index),
 					content = listOf(
 						RtfTextRun(
-							"${index + 1}. ${chapter.name}",
+							chapterTitle(index, chapter, options.numberChapters),
 							RtfSpanStyle(bold = true, fontSizeHalfPoints = HEADING_HALF_POINTS[0], color = primary),
 						),
 					),
@@ -164,7 +181,7 @@ private fun chapterBlocks(
 		),
 	)
 	if (chapter.markdown.isNotBlank()) {
-		addAll(renderMarkdownRtf(chapter.markdown, primary, secondary))
+		addAll(renderMarkdownRtf(chapter.markdown, primary, secondary, options.keepBlankLines))
 	}
 }
 
@@ -181,9 +198,14 @@ private fun themeColor(argb: String?): RtfColor? {
  * consecutive same-link spans grouped into a single [RtfHyperlink]. Hard line breaks ride along as
  * `\n` in run text — the rtf-writer escaper turns those into `\line`.
  */
-private fun renderMarkdownRtf(markdown: String, primary: RtfColor?, secondary: RtfColor?): List<RtfBlock> {
+private fun renderMarkdownRtf(
+	markdown: String,
+	primary: RtfColor?,
+	secondary: RtfColor?,
+	keepBlankLines: Boolean,
+): List<RtfBlock> {
 	val blocks = mutableListOf<RtfBlock>()
-	val parsed = parseProseMarkdown(markdown)
+	val parsed = parseProseMarkdown(markdown, keepBlankLines)
 	parsed.forEachIndexed { index, block ->
 		// Prose runs tight: the indent parts one line from the next, and the space a passage break
 		// wants is a blank line the author actually typed. Space after is for leaving prose behind.

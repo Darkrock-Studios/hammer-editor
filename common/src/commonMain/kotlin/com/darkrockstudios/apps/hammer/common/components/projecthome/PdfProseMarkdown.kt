@@ -44,8 +44,12 @@ internal data class ProseColors(
  * `~~strikethrough~~` and pipe tables work) instead of pdfkmp's markdown module, whose
  * layout offers no paragraph indent control.
  */
-internal fun ContainerScope.proseMarkdown(markdown: String, colors: ProseColors = ProseColors()) {
-	val blocks = parseProseMarkdown(markdown)
+internal fun ContainerScope.proseMarkdown(
+	markdown: String,
+	colors: ProseColors = ProseColors(),
+	keepBlankLines: Boolean = true,
+) {
+	val blocks = parseProseMarkdown(markdown, keepBlankLines)
 	if (blocks.isEmpty()) return
 	val base = TextStyle(lineHeight = Sp(TextStyle().fontSize.value * BODY_LEADING))
 	column {
@@ -117,11 +121,14 @@ internal sealed interface ProseBlock {
  * Prose keeps the shape the author gave it, which is what the editor shows them: every newline
  * starts a new [ProseBlock.Paragraph] and every blank line becomes a [ProseBlock.Blank]. CommonMark
  * would reflow both away, turning a page of dialogue into one packed block.
+ *
+ * With [keepBlankLines] off the blank lines are dropped, leaving paragraphs to run together.
  */
-internal fun parseProseMarkdown(markdown: String): List<ProseBlock> {
+internal fun parseProseMarkdown(markdown: String, keepBlankLines: Boolean = true): List<ProseBlock> {
 	val source = ProseHtml.normalizeLineEndings(markdown)
 	val root = MarkdownParser(GFMFlavourDescriptor()).buildMarkdownTreeFromString(source)
-	return ProseWalker(source).blocks(root)
+	val blocks = ProseWalker(source).blocks(root)
+	return if (keepBlankLines) blocks else blocks.filter { it != ProseBlock.Blank }
 }
 
 /** True for the block kinds that make up running prose, as opposed to a structural block. */

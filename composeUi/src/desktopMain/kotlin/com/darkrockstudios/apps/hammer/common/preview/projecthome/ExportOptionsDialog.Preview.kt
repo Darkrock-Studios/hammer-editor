@@ -9,6 +9,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.darkrockstudios.apps.hammer.common.compose.theme.AppTheme
+import com.darkrockstudios.apps.hammer.common.data.ExportFont
+import com.darkrockstudios.apps.hammer.common.data.ExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
 import com.darkrockstudios.apps.hammer.common.preview.KoinApplicationPreview
@@ -48,10 +50,23 @@ private fun ExportOptionsPreviewFrame(options: ExportOptions) {
 	}
 }
 
-@Preview(widthDp = 600, heightDp = 480)
+@Preview(widthDp = 600, heightDp = 640)
 @Composable
 fun ExportOptionsDialogPreview() {
 	ExportOptionsPreviewFrame(ExportOptions())
+}
+
+@Preview(widthDp = 600, heightDp = 640)
+@Composable
+fun ExportOptionsDialogWordPreview() {
+	ExportOptionsPreviewFrame(
+		ExportOptions(
+			format = ExportFormat.Docx,
+			numberChapters = false,
+			font = ExportFont.TimesNewRoman,
+			keepBlankLines = false,
+		)
+	)
 }
 
 @Preview(widthDp = 600, heightDp = 760)

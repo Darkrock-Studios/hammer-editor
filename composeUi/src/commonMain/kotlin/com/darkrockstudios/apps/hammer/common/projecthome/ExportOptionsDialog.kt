@@ -47,14 +47,18 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdMonoLabel
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPickerList
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdPickerRow
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
+import com.darkrockstudios.apps.hammer.common.data.ExportFont
 import com.darkrockstudios.apps.hammer.common.data.ExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import com.darkrockstudios.apps.hammer.common.data.ExportableScene
+import com.darkrockstudios.apps.hammer.project_home_export_blank_lines_hint
+import com.darkrockstudios.apps.hammer.project_home_export_blank_lines_label
 import com.darkrockstudios.apps.hammer.project_home_export_cancel
 import com.darkrockstudios.apps.hammer.project_home_export_chapters_label
 import com.darkrockstudios.apps.hammer.project_home_export_close
 import com.darkrockstudios.apps.hammer.project_home_export_dialog_title
 import com.darkrockstudios.apps.hammer.project_home_export_execute
+import com.darkrockstudios.apps.hammer.project_home_export_font_label
 import com.darkrockstudios.apps.hammer.project_home_export_format_docx
 import com.darkrockstudios.apps.hammer.project_home_export_format_epub
 import com.darkrockstudios.apps.hammer.project_home_export_format_label
@@ -64,6 +68,7 @@ import com.darkrockstudios.apps.hammer.project_home_export_format_rtf
 import com.darkrockstudios.apps.hammer.project_home_export_help_icon_description
 import com.darkrockstudios.apps.hammer.project_home_export_limit_scenes_hint
 import com.darkrockstudios.apps.hammer.project_home_export_limit_scenes_label
+import com.darkrockstudios.apps.hammer.project_home_export_number_chapters_label
 import com.darkrockstudios.apps.hammer.project_home_export_scenes_clear_all
 import com.darkrockstudios.apps.hammer.project_home_export_scenes_label
 import com.darkrockstudios.apps.hammer.project_home_export_scenes_select_all
@@ -205,6 +210,33 @@ internal fun ExportOptionsDialogContent(
 					onSelect = { onOptionsChanged(options.copy(format = it)) },
 					label = { (it.labelRes()).get() },
 				)
+
+				if (options.numbersChapters) {
+					HdHairlineToggleRow(
+						checked = options.numberChapters,
+						onCheckedChange = { onOptionsChanged(options.copy(numberChapters = it)) },
+						label = Res.string.project_home_export_number_chapters_label.get(),
+					)
+				}
+
+				if (options.format in FONT_EXPORT_FORMATS) {
+					HdHairlineDropdown(
+						title = Res.string.project_home_export_font_label.get(),
+						options = ExportFont.entries,
+						selected = options.font,
+						onSelect = { onOptionsChanged(options.copy(font = it)) },
+						label = { it.faceName },
+					)
+				}
+
+				if (options.format != ExportFormat.Markdown) {
+					HdHairlineToggleRow(
+						checked = options.keepBlankLines,
+						onCheckedChange = { onOptionsChanged(options.copy(keepBlankLines = it)) },
+						label = Res.string.project_home_export_blank_lines_label.get(),
+						hint = Res.string.project_home_export_blank_lines_hint.get(),
+					)
+				}
 
 				if (allSceneIds.isNotEmpty()) {
 					HdHairlineToggleRow(
@@ -361,6 +393,17 @@ private val AVAILABLE_EXPORT_FORMATS =
 		ExportFormat.Pdf,
 		ExportFormat.Markdown,
 	)
+
+/** PDF renders in its library's built-in face, and Markdown carries no font. */
+private val FONT_EXPORT_FORMATS = setOf(ExportFormat.Epub, ExportFormat.Docx, ExportFormat.Rtf)
+
+/** EPUB chapter titles are never numbered, and Markdown only has chapter headings in chapter mode. */
+private val ExportOptions.numbersChapters: Boolean
+	get() = when (format) {
+		ExportFormat.Epub -> false
+		ExportFormat.Markdown -> treatTopLevelAsChapters
+		else -> true
+	}
 
 private fun ExportFormat.labelRes(): StringResource = when (this) {
 	ExportFormat.Markdown -> Res.string.project_home_export_format_markdown

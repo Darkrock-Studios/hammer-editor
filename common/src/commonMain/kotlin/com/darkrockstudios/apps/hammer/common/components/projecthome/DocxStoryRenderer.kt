@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projecthome
 import com.darkrockstudios.apps.hammer.base.BuildMetadata
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectTheme
+import com.darkrockstudios.apps.hammer.common.data.ExportOptions
 import nl.adaptivity.xmlutil.XMLConstants
 import nl.adaptivity.xmlutil.XmlDeclMode
 import nl.adaptivity.xmlutil.XmlWriter
@@ -57,6 +58,7 @@ fun writeStoryAsDocx(
 	projectData: ProjectData,
 	chapters: List<StoryChapter>,
 	strings: ExportStrings,
+	options: ExportOptions = ExportOptions(),
 ) {
 	val authorName = projectData.authorName?.takeIf { it.isNotBlank() }
 	val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
@@ -64,14 +66,14 @@ fun writeStoryAsDocx(
 	// The body walk collects hyperlink targets and ordered-list instances that
 	// document.xml.rels and numbering.xml must declare, so it runs first.
 	val ctx = DocxRenderContext()
-	val documentXml = buildXmlPart { writeDocument(it, ctx, projectName, strings, effective) }
+	val documentXml = buildXmlPart { writeDocument(it, ctx, projectName, strings, effective, options) }
 
 	val zip = OkioZipOutputStream(sink)
 	zip.putEntry("[Content_Types].xml", buildXmlPart(::writeContentTypes))
 	zip.putEntry("_rels/.rels", buildXmlPart(::writePackageRels))
 	zip.putEntry("docProps/core.xml", buildXmlPart { writeCoreProps(it, projectName, authorName) })
 	zip.putEntry("docProps/app.xml", buildXmlPart(::writeAppProps))
-	zip.putEntry("word/styles.xml", buildXmlPart { writeStyles(it, projectData.theme) })
+	zip.putEntry("word/styles.xml", buildXmlPart { writeStyles(it, projectData.theme, options.font.faceName) })
 	zip.putEntry("word/numbering.xml", buildXmlPart { writeNumbering(it, ctx.orderedListLevels) })
 	zip.putEntry(
 		"word/_rels/document.xml.rels",
@@ -219,7 +221,7 @@ private fun writeAppProps(writer: XmlWriter) {
 	}
 }
 
-private fun writeStyles(writer: XmlWriter, theme: ProjectTheme?) {
+private fun writeStyles(writer: XmlWriter, theme: ProjectTheme?, bodyFont: String) {
 	val primary = theme?.primary?.let(::argbHexToCssHex)?.removePrefix("#")
 	val secondary = theme?.secondary?.let(::argbHexToCssHex)?.removePrefix("#")
 
@@ -253,7 +255,7 @@ private fun writeStyles(writer: XmlWriter, theme: ProjectTheme?) {
 		w("docDefaults") {
 			w("rPrDefault") {
 				w("rPr") {
-					rFonts(EXPORT_BODY_FONT)
+					rFonts(bodyFont)
 					size(24)
 				}
 			}
@@ -394,14 +396,15 @@ private fun writeDocument(
 	projectName: String,
 	strings: ExportStrings,
 	chapters: List<StoryChapter>,
+	options: ExportOptions,
 ) {
 	writer.smartStartTag(W_NS, "document", "w") {
 		namespaceAttr("r", R_NS)
 		w("body") {
 			writeTitlePage(projectName, strings.authorByline)
-			writeContentsPage(chapters, strings.contentsTitle)
+			writeContentsPage(chapters, strings.contentsTitle, options.numberChapters)
 			chapters.forEachIndexed { index, chapter ->
-				writeChapter(ctx, index, chapter)
+				writeChapter(ctx, index, chapter, options)
 			}
 			w("sectPr") {
 				w("pgSz") {
@@ -449,7 +452,11 @@ private fun XmlWriter.writeTitlePage(projectName: String, authorByline: String?)
 	}
 }
 
-private fun XmlWriter.writeContentsPage(chapters: List<StoryChapter>, contentsTitle: String) {
+private fun XmlWriter.writeContentsPage(
+	chapters: List<StoryChapter>,
+	contentsTitle: String,
+	numberChapters: Boolean,
+) {
 	w("p") {
 		w("pPr") {
 			wVal("pStyle", "TocTitle")
@@ -470,7 +477,7 @@ private fun XmlWriter.writeContentsPage(chapters: List<StoryChapter>, contentsTi
 					w("rPr") { wVal("rStyle", "Hyperlink") }
 					w("t") {
 						preserveSpace()
-						text("${index + 1}. ${chapter.name}")
+						text(chapterTitle(index, chapter, numberChapters))
 					}
 				}
 			}
@@ -478,7 +485,12 @@ private fun XmlWriter.writeContentsPage(chapters: List<StoryChapter>, contentsTi
 	}
 }
 
-private fun XmlWriter.writeChapter(ctx: DocxRenderContext, index: Int, chapter: StoryChapter) {
+private fun XmlWriter.writeChapter(
+	ctx: DocxRenderContext,
+	index: Int,
+	chapter: StoryChapter,
+	options: ExportOptions,
+) {
 	w("p") {
 		w("pPr") {
 			wVal("pStyle", "Heading1")
@@ -491,13 +503,13 @@ private fun XmlWriter.writeChapter(ctx: DocxRenderContext, index: Int, chapter: 
 		w("r") {
 			w("t") {
 				preserveSpace()
-				text("${index + 1}. ${chapter.name}")
+				text(chapterTitle(index, chapter, options.numberChapters))
 			}
 		}
 		w("bookmarkEnd") { wAttr("id", index.toString()) }
 	}
 	if (chapter.markdown.isNotBlank()) {
-		MarkdownDocxWriter(this, ctx).render(chapter.markdown)
+		MarkdownDocxWriter(this, ctx, options.keepBlankLines).render(chapter.markdown)
 	}
 }
 
@@ -510,9 +522,10 @@ private fun XmlWriter.writeChapter(ctx: DocxRenderContext, index: Int, chapter: 
 private class MarkdownDocxWriter(
 	private val writer: XmlWriter,
 	private val ctx: DocxRenderContext,
+	private val keepBlankLines: Boolean,
 ) {
 	fun render(markdown: String) {
-		val blocks = parseProseMarkdown(markdown)
+		val blocks = parseProseMarkdown(markdown, keepBlankLines)
 		blocks.forEachIndexed { index, block ->
 			// Prose runs tight: the indent parts one line from the next, and the space a passage
 			// break wants is a blank line the author typed. Space after is for leaving prose behind.
