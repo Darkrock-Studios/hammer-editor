@@ -8,9 +8,13 @@ interface DesktopPlatformSettings : PlatformSettings {
 	val state: Value<PlatformState>
 
 	fun setProjectsDir(path: String)
+	fun setAutomaticUpdateChecks(value: Boolean)
 
 	@Serializable
 	data class PlatformState(
 		val projectsDir: HPath,
+		/** False on builds that cannot update themselves, which then show no update setting. */
+		val updateChecksSupported: Boolean = false,
+		val automaticUpdateChecks: Boolean = true,
 	)
 }

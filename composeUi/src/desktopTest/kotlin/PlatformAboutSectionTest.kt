@@ -27,6 +27,8 @@ class PlatformAboutSectionTest {
 		override fun openGithub() = Unit
 		override fun viewChangelog() = Unit
 		override fun openLatestRelease() = Unit
+		override fun checkForUpdate() = Unit
+		override fun updateApp() = Unit
 	}
 
 	@Test

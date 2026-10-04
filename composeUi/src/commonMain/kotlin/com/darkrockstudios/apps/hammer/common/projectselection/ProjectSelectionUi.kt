@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.projectselection
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material.ExperimentalMaterialApi
@@ -77,7 +78,18 @@ fun ProjectSelectionUi(
 		val rootSnackbar = rememberRootSnackbarHostState()
 		val stackState by component.stack.subscribeAsState()
 
-		Box(modifier = modifier) {
+		val appUpdate by component.appUpdate.subscribeAsState()
+		Column(modifier = modifier) {
+			// Only over the project list: the About screen has its own update row.
+			if (stackState.active.instance is ProjectSelection.Destination.ProjectsListDestination) {
+				AppUpdateBanner(
+					state = appUpdate,
+					onUpdate = component::updateApp,
+					onOpenRelease = component::openLatestRelease,
+					onDismiss = component::dismissUpdate,
+				)
+			}
+			Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
 			Children(
 				stack = stackState,
 				modifier = Modifier.fillMaxSize(),
@@ -116,6 +128,7 @@ fun ProjectSelectionUi(
 			)
 
 			ChangelogDialog(component)
+			}
 		}
 	}
 }

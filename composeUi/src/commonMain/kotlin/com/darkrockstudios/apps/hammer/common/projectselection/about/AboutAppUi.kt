@@ -66,6 +66,7 @@ import com.darkrockstudios.apps.hammer.common.compose.icons.Github
 import com.darkrockstudios.apps.hammer.common.compose.icons.Reddit
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
+import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
 import com.darkrockstudios.apps.hammer.common.data.changelog.supportsInAppChangelog
 import com.darkrockstudios.apps.hammer.hammer_icon
 import org.jetbrains.compose.resources.painterResource
@@ -161,6 +162,8 @@ fun AboutAppUi(
 								state = state,
 								onViewChangelog = component::viewChangelog,
 								onOpenLatestRelease = component::openLatestRelease,
+								onCheckForUpdate = component::checkForUpdate,
+								onUpdateApp = component::updateApp,
 							)
 
 							AttributionSection(
@@ -310,6 +313,8 @@ private fun VersionCard(
 	state: AboutApp.State,
 	onViewChangelog: () -> Unit,
 	onOpenLatestRelease: () -> Unit,
+	onCheckForUpdate: () -> Unit,
+	onUpdateApp: () -> Unit,
 ) {
 	HdCatalogueCard(
 		topStart = "§ III · VERSION",
@@ -330,6 +335,14 @@ private fun VersionCard(
 			HdHairlineButton(
 				label = Res.string.about_version_github_button.get(),
 				onClick = onOpenLatestRelease,
+			)
+		}
+		if (state.appUpdate !is AppUpdateState.Unsupported) {
+			Spacer(Modifier.height(16.dp))
+			AppUpdateStatus(
+				state = state.appUpdate,
+				onCheckForUpdate = onCheckForUpdate,
+				onUpdateApp = onUpdateApp,
 			)
 		}
 	}

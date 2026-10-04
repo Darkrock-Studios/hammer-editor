@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
+import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdater
+import com.darkrockstudios.apps.hammer.common.data.appupdate.NoOpAppUpdater
+
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AndroidPlatformSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusModeService
@@ -36,4 +39,5 @@ actual val platformModule = module {
 	single<AndroidShareService>()
 	single<BackupManagerService>()
 	single<GlobalSettingsDatasource> { get<GlobalSettingsFilesystemDatasource>() }
+	single<AppUpdater> { NoOpAppUpdater }
 }

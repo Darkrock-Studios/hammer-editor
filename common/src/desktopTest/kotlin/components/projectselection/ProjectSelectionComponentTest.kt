@@ -12,6 +12,8 @@ import com.darkrockstudios.apps.hammer.common.data.globalsettings.ServerSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.SpellCheckerSettings
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
+import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdater
 import com.darkrockstudios.apps.hammer.common.data.changelog.Changelog
 import com.darkrockstudios.apps.hammer.common.data.changelog.ChangelogRepository
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.createTomlSerializer
@@ -32,6 +34,7 @@ import org.junit.jupiter.api.Test
 import org.koin.dsl.bind
 import org.koin.dsl.module
 import utils.BaseTest
+import utils.FakeAppUpdater
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class ProjectSelectionComponentTest : BaseTest() {
@@ -50,6 +53,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 	lateinit var projectsSynchronizer: ClientAccountSynchronizer
 	lateinit var changelogRepository: ChangelogRepository
 	lateinit var urlLauncher: UrlLauncher
+	lateinit var appUpdater: FakeAppUpdater
 
 	private var globalSettings: GlobalSettings = GlobalSettings(
 		projectsDirectory = "",
@@ -73,6 +77,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 		projectsSynchronizer = mockk()
 		changelogRepository = mockk(relaxed = true)
 		urlLauncher = mockk(relaxed = true)
+		appUpdater = FakeAppUpdater()
 
 		val testModule = module {
 			single { globalSettingsStore } bind GlobalSettingsStore::class
@@ -81,6 +86,7 @@ class ProjectSelectionComponentTest : BaseTest() {
 			single { projectsSynchronizer }
 			single { changelogRepository }
 			single { urlLauncher } bind UrlLauncher::class
+			single<AppUpdater> { appUpdater }
 		}
 		setupKoin(testModule)
 		lifecycle.resume()
@@ -115,6 +121,34 @@ class ProjectSelectionComponentTest : BaseTest() {
 			componentContext = context,
 			onProjectSelected = {},
 		)
+
+	@Test
+	fun `app update state mirrors the updater`() = runTest {
+		coEvery { changelogRepository.hasUnseenChangelog() } returns false
+
+		val component = newComponent()
+		advanceUntilIdle()
+		assertEquals(AppUpdateState.Idle, component.appUpdate.value)
+
+		val available = AppUpdateState.Available(version = "9.9.9", installable = true)
+		appUpdater.state.value = available
+		advanceUntilIdle()
+
+		assertEquals(available, component.appUpdate.value)
+	}
+
+	@Test
+	fun `update and dismiss are handed to the updater`() = runTest {
+		coEvery { changelogRepository.hasUnseenChangelog() } returns false
+
+		val component = newComponent()
+		advanceUntilIdle()
+		component.updateApp()
+		component.dismissUpdate()
+
+		assertEquals(1, appUpdater.updates)
+		assertEquals(1, appUpdater.dismissals)
+	}
 
 	private val changelog = Changelog(
 		version = "99.0.0",

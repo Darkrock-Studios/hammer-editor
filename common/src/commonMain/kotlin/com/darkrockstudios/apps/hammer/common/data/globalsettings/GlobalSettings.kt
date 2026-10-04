@@ -56,6 +56,10 @@ data class GlobalSettings(
 	val deviceLabel: String? = null,
 	val initialProjectScreen: InitialProjectScreen = InitialProjectScreen.Home,
 	val lastSeenChangelogVersion: String? = null,
+	/** Whether the self-updating desktop builds look for a new release on a schedule. */
+	val automaticUpdateChecks: Boolean = true,
+	/** The release the user chose "Later" on; the banner stays hidden until a newer one appears. */
+	val dismissedUpdateVersion: String? = null,
 ) {
 	companion object {
 
