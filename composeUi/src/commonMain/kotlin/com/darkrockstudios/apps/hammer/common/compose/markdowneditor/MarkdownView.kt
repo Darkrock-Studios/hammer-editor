@@ -33,6 +33,8 @@ import com.darkrockstudios.texteditor.state.rememberTextEditorState
  * [importDuringComposition] parses the first text in composition instead of a frame later,
  * so the view has its real height on the first frame. A lazy list cannot scroll past a row
  * that is still empty.
+ *
+ * [isSelectable] lets the user select and copy text.
  */
 @Composable
 fun MarkdownView(
@@ -40,6 +42,7 @@ fun MarkdownView(
 	modifier: Modifier = Modifier,
 	contentPadding: PaddingValues = PaddingValues(0.dp),
 	importDuringComposition: Boolean = false,
+	isSelectable: Boolean = false,
 ) {
 	val markdownConfig = LocalMarkdownConfig.current
 	val state = rememberTextEditorState()
@@ -62,6 +65,7 @@ fun MarkdownView(
 		state = state,
 		modifier = modifier.semantics { text = AnnotatedString(markdown) },
 		contentPadding = contentPadding,
+		isSelectable = isSelectable,
 		style = rememberTextEditorStyle(
 			textStyle = TextStyle.Default.copy(
 				textIndent = TextIndent(firstLine = 24.sp)

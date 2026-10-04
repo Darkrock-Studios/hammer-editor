@@ -376,6 +376,7 @@ private fun ReadingColumn(
 					markdown = row.markdown,
 					modifier = Modifier.fillMaxWidth().testTag(readerSceneBodyTag(row.scene.id)),
 					importDuringComposition = true,
+					isSelectable = true,
 				)
 
 				ReaderRow.EmptyChapter -> Text(
