@@ -204,8 +204,7 @@ private fun ReaderTools(state: ReaderMode.State, component: ReaderMode) {
 			text = state.fontSize.roundToInt().toString(),
 			color = MaterialTheme.colorScheme.onSurface,
 			modifier = Modifier
-				.clickable(onClick = component::resetFontSize)
-				.semantics { contentDescription = resetLabel }
+				.clickable(onClickLabel = resetLabel, onClick = component::resetFontSize)
 				.padding(Ui.Padding.S),
 		)
 		HdToolButton(
@@ -376,6 +375,7 @@ private fun ReadingColumn(
 				is ReaderRow.Body -> MarkdownView(
 					markdown = row.markdown,
 					modifier = Modifier.fillMaxWidth().testTag(readerSceneBodyTag(row.scene.id)),
+					importDuringComposition = true,
 				)
 
 				ReaderRow.EmptyChapter -> Text(

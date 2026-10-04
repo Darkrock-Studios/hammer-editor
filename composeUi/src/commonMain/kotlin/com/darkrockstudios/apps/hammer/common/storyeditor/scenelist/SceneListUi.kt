@@ -82,7 +82,7 @@ import com.darkrockstudios.apps.hammer.scene_list_create_menu_scene
 import com.darkrockstudios.apps.hammer.scene_list_create_scene_dialog_message
 import com.darkrockstudios.apps.hammer.scene_list_create_scene_dialog_title
 import com.darkrockstudios.apps.hammer.scene_list_header
-import com.darkrockstudios.apps.hammer.scene_list_outline_overview_button
+import com.darkrockstudios.apps.hammer.scene_list_outline_button
 import com.darkrockstudios.apps.hammer.scene_list_reader_button
 import com.darkrockstudios.apps.hammer.view_archived_scenes_button
 import io.github.aakira.napier.Napier
@@ -234,7 +234,7 @@ fun SceneListUi(
 					containerColor = surfaceColor,
 				) {
 					HdHairlineButton(
-						label = Res.string.scene_list_outline_overview_button.get(),
+						label = Res.string.scene_list_outline_button.get(),
 						onClick = component::showOutlineOverview,
 						modifier = Modifier.weight(1f),
 					)

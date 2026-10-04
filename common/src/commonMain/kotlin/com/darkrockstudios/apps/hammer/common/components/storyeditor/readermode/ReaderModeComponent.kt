@@ -43,6 +43,9 @@ class ReaderModeComponent(
 	private var loadJob: Job? = null
 	private val bufferJobs = mutableMapOf<Int, Job>()
 
+	// Text from buffer updates that arrived during a load; newer than what the load read.
+	private val pendingMarkdown = mutableMapOf<Int, String>()
+
 	private val _state = MutableValue(initialState(initialScene))
 	override val state: Value<ReaderMode.State> = _state
 
@@ -78,7 +81,7 @@ class ReaderModeComponent(
 		super.onCreate()
 
 		watchSettings()
-		sceneEditor.subscribeToSceneUpdates(scope, ::onSceneTreeUpdate)
+		watchSceneTree()
 		sceneEditor.subscribeToBufferUpdates(null, scope, ::onBufferUpdate)
 
 		val chapterId = _state.value.activeChapterId
@@ -101,6 +104,7 @@ class ReaderModeComponent(
 		loadJob?.cancel()
 		bufferJobs.values.forEach { it.cancel() }
 		bufferJobs.clear()
+		pendingMarkdown.clear()
 
 		_state.update {
 			it.copy(
@@ -117,9 +121,21 @@ class ReaderModeComponent(
 				}
 			}
 			withContext(dispatcherMain) {
-				_state.update {
-					if (it.activeChapterId == chapterId) it.copy(scenes = loaded, isLoading = false) else it
+				if (_state.value.activeChapterId != chapterId) return@withContext
+				val current = loaded.map { scene ->
+					pendingMarkdown[scene.sceneItem.id]?.let { scene.copy(markdown = it) } ?: scene
 				}
+				pendingMarkdown.clear()
+				_state.update { it.copy(scenes = current, isLoading = false) }
+			}
+		}
+	}
+
+	// Collected directly: subscribeToSceneUpdates would force a scene list reload from disk.
+	private fun watchSceneTree() {
+		scope.launch {
+			sceneEditor.sceneListChannel.collect { summary ->
+				withContext(dispatcherMain) { onSceneTreeUpdate(summary) }
 			}
 		}
 	}
@@ -149,7 +165,7 @@ class ReaderModeComponent(
 		val previousChapters = chapterScenes
 		chapterScenes = tree.collectChapters()
 		if (chapterScenes.isEmpty()) {
-			closeReader()
+			showEmptyStory()
 			return
 		}
 
@@ -179,14 +195,40 @@ class ReaderModeComponent(
 		}
 	}
 
+	private fun showEmptyStory() {
+		loadJob?.cancel()
+		bufferJobs.values.forEach { it.cancel() }
+		bufferJobs.clear()
+		pendingMarkdown.clear()
+
+		val hadSceneInView = _state.value.sceneInView != null
+		_state.update {
+			it.copy(
+				chapters = emptyList(),
+				activeChapterId = null,
+				scenes = emptyList(),
+				isLoading = false,
+				scrollToSceneId = null,
+				sceneInView = null,
+			)
+		}
+		if (hadSceneInView) onSceneInView(null)
+	}
+
+	private fun activeChapterHasScene(sceneId: Int): Boolean =
+		chapterScenes.firstOrNull { it.chapter.id == _state.value.activeChapterId }
+			?.scenes?.any { it.id == sceneId } == true
+
 	private suspend fun onBufferUpdate(buffer: SceneBuffer) {
 		val sceneId = buffer.content.scene.id
-		if (_state.value.scenes.none { it.sceneItem.id == sceneId }) return
+		if (!activeChapterHasScene(sceneId)) return
 
 		bufferJobs[sceneId]?.cancel()
 		bufferJobs[sceneId] = scope.launch {
 			val markdown = withContext(dispatcherDefault) { buffer.content.coerceMarkdown() }
 			withContext(dispatcherMain) {
+				if (!activeChapterHasScene(sceneId)) return@withContext
+				if (_state.value.isLoading) pendingMarkdown[sceneId] = markdown
 				_state.update { state ->
 					state.copy(
 						scenes = state.scenes.map {
@@ -221,7 +263,11 @@ class ReaderModeComponent(
 	override fun showScene(sceneItem: SceneItem) {
 		val chapter = chapterScenes.firstOrNull { it.chapter.id == sceneItem.id }
 			?: chapterContaining(sceneItem.id)
-			?: return
+		if (chapter == null) {
+			// The list has already highlighted the tapped scene; put it back on the one in view.
+			onSceneInView(_state.value.sceneInView)
+			return
+		}
 		val targetId = if (sceneItem.type == SceneItem.Type.Scene) {
 			sceneItem.id
 		} else {

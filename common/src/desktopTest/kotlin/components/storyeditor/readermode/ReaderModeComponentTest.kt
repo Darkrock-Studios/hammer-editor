@@ -41,7 +41,7 @@ class ReaderModeComponentTest : ComponentTest() {
 	private lateinit var settingsStore: GlobalSettingsStore
 	private lateinit var settingsUpdates: MutableSharedFlow<GlobalSettings>
 
-	private val treeCallback = slot<(SceneSummary) -> Unit>()
+	private lateinit var sceneUpdates: MutableSharedFlow<SceneSummary>
 	private val bufferCallback = slot<suspend (SceneBuffer) -> Unit>()
 	private val settingsTransform = slot<(GlobalSettings) -> GlobalSettings>()
 
@@ -94,7 +94,8 @@ class ReaderModeComponentTest : ComponentTest() {
 		sceneEditor = mockk(relaxed = true)
 		every { sceneEditor.getSceneTree() } returns fullTree()
 		every { sceneEditor.getCurrentSceneContentOrNull(any()) } answers { "text of ${firstArg<SceneItem>().id}" }
-		every { sceneEditor.subscribeToSceneUpdates(any(), capture(treeCallback)) } returns mockk(relaxed = true)
+		sceneUpdates = MutableSharedFlow(replay = 1)
+		every { sceneEditor.sceneListChannel } returns sceneUpdates
 		every {
 			sceneEditor.subscribeToBufferUpdates(any(), any(), capture(bufferCallback))
 		} returns mockk(relaxed = true)
@@ -212,6 +213,28 @@ class ReaderModeComponentTest : ComponentTest() {
 	}
 
 	@Test
+	fun `Showing a scene the reader does not know re-reports the scene in view`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+		comp.sceneInView(sceneA)
+
+		comp.showScene(SceneItem(projectDef, SceneItem.Type.Scene, id = 99, name = "Unknown", order = 99))
+
+		assertEquals(listOf<SceneItem?>(sceneA, sceneA), scenesInView)
+		assertNull(comp.state.value.scrollToSceneId)
+	}
+
+	@Test
+	fun `Opening the reader does not force a scene list reload`() = runTest(mainTestDispatcher) {
+		newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		verify(exactly = 0) { sceneEditor.subscribeToSceneUpdates(any(), any()) }
+	}
+
+	@Test
 	fun `Edit opens the scene in view, or the first scene when none is`() = runTest(mainTestDispatcher) {
 		val comp = newComponent()
 		context.resume()
@@ -231,7 +254,7 @@ class ReaderModeComponentTest : ComponentTest() {
 		context.resume()
 		advanceUntilIdle()
 
-		treeCallback.captured(summary(fullTree()))
+		sceneUpdates.emit(summary(fullTree()))
 		advanceUntilIdle()
 
 		verify(exactly = 2) { sceneEditor.getCurrentSceneContentOrNull(any()) }
@@ -245,7 +268,7 @@ class ReaderModeComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		val added = item(13, SceneItem.Type.Scene)
-		treeCallback.captured(
+		sceneUpdates.emit(
 			summary(tree(chapterOne to listOf(sceneA, sceneB, added), chapterTwo to listOf(sceneC)))
 		)
 		advanceUntilIdle()
@@ -261,7 +284,7 @@ class ReaderModeComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		val renamed = sceneA.copy(name = "Renamed")
-		treeCallback.captured(
+		sceneUpdates.emit(
 			summary(tree(chapterOne to listOf(renamed, sceneB), chapterTwo to listOf(sceneC), loneScene to emptyList()))
 		)
 		advanceUntilIdle()
@@ -276,7 +299,7 @@ class ReaderModeComponentTest : ComponentTest() {
 		context.resume()
 		advanceUntilIdle()
 
-		treeCallback.captured(summary(tree(chapterOne to listOf(sceneA, sceneB), chapterTwo to listOf(sceneC))))
+		sceneUpdates.emit(summary(tree(chapterOne to listOf(sceneA, sceneB), chapterTwo to listOf(sceneC))))
 		advanceUntilIdle()
 
 		assertFalse(closed)
@@ -285,15 +308,37 @@ class ReaderModeComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `The reader closes when the book has no chapters left`() = runTest(mainTestDispatcher) {
-		newComponent()
+	fun `An emptied book shows no chapters and recovers when scenes return`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
 		context.resume()
 		advanceUntilIdle()
 
-		treeCallback.captured(summary(tree()))
+		sceneUpdates.emit(summary(tree()))
 		advanceUntilIdle()
 
-		assertTrue(closed)
+		assertFalse(closed)
+		assertTrue(comp.state.value.chapters.isEmpty())
+		assertNull(comp.state.value.activeChapterId)
+		assertFalse(comp.state.value.isLoading)
+
+		sceneUpdates.emit(summary(fullTree()))
+		advanceUntilIdle()
+
+		assertEquals(chapterOne.id, comp.state.value.activeChapterId)
+		assertEquals(listOf(11, 12), comp.sceneIds())
+	}
+
+	@Test
+	fun `A buffer update that arrives while the chapter loads is not lost`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+
+		bufferCallback.captured(
+			SceneBuffer(SceneContent(sceneB, markdown = "fresh words"), dirty = true, source = UpdateSource.Editor)
+		)
+		advanceUntilIdle()
+
+		assertEquals(listOf("text of 11", "fresh words"), comp.state.value.scenes.map { it.markdown })
 	}
 
 	@Test

@@ -49,6 +49,7 @@ class StoryEditorComponentTest : ComponentTest() {
 	private lateinit var settingsStore: GlobalSettingsStore
 
 	private val sceneTreeCallbacks = mutableListOf<(SceneSummary) -> Unit>()
+	private lateinit var sceneUpdates: MutableSharedFlow<SceneSummary>
 	private val addedMenus = mutableListOf<MenuDescriptor>()
 	private var focusModeScene: SceneItem? = null
 
@@ -66,6 +67,8 @@ class StoryEditorComponentTest : ComponentTest() {
 
 		sceneEditor = mockk(relaxed = true)
 		every { sceneEditor.subscribeToSceneUpdates(any(), capture(sceneTreeCallbacks)) } returns mockk(relaxed = true)
+		sceneUpdates = MutableSharedFlow(replay = 1)
+		every { sceneEditor.sceneListChannel } returns sceneUpdates
 
 		val spellCheckRepository = mockk<SpellCheckRepository>(relaxed = true)
 		every { spellCheckRepository.dictionaryFlow } returns MutableSharedFlow()
@@ -412,7 +415,9 @@ class StoryEditorComponentTest : ComponentTest() {
 		comp.showReader(sceneItem(1))
 		advanceUntilIdle()
 
-		sceneTreeCallbacks.toList().forEach { it(SceneSummary(treeOf(sceneItem(2)), persistentSetOf())) }
+		val updated = SceneSummary(treeOf(sceneItem(2)), persistentSetOf())
+		sceneTreeCallbacks.toList().forEach { it(updated) }
+		sceneUpdates.emit(updated)
 		advanceUntilIdle()
 
 		assertEquals(2, comp.reader().state.value.activeChapterId)

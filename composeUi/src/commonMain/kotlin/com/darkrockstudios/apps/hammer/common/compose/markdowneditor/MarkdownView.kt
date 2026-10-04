@@ -29,20 +29,23 @@ import com.darkrockstudios.texteditor.state.rememberTextEditorState
  *
  * The raw [markdown] is exposed via semantics so test matchers (`onNodeWithText`,
  * `assertTextSatisfies`) can read it; the Canvas-based render itself has no semantic text.
+ *
+ * [importDuringComposition] parses the first text in composition instead of a frame later,
+ * so the view has its real height on the first frame. A lazy list cannot scroll past a row
+ * that is still empty.
  */
 @Composable
 fun MarkdownView(
 	markdown: String,
 	modifier: Modifier = Modifier,
 	contentPadding: PaddingValues = PaddingValues(0.dp),
+	importDuringComposition: Boolean = false,
 ) {
 	val markdownConfig = LocalMarkdownConfig.current
 	val state = rememberTextEditorState()
-	// The first text is imported during composition so the view has its real height on the
-	// first frame; a lazy list cannot scroll past a row that is still empty.
-	var imported by remember(state) { mutableStateOf(markdown) }
+	var imported by remember(state) { mutableStateOf(if (importDuringComposition) markdown else null) }
 	val markdownExtension = remember(state) {
-		state.withMarkdown(markdownConfig).apply { importMarkdown(markdown) }
+		state.withMarkdown(markdownConfig).apply { if (importDuringComposition) importMarkdown(markdown) }
 	}
 	LaunchedEffect(markdownExtension, markdownConfig) {
 		if (markdownExtension.markdownConfiguration != markdownConfig) {
