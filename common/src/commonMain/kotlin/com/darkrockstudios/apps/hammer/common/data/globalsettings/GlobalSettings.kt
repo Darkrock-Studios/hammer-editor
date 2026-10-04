@@ -31,6 +31,8 @@ data class GlobalSettings(
 	 */
 	val editorMaxWidth: Float = DEFAULT_EDITOR_WIDTH,
 	val enableDndInFocusMode: Boolean = false,
+	val readerFontSize: Float = DEFAULT_FONT_SIZE,
+	val readerShowSceneHeadings: Boolean = false,
 	/**
 	 * Whether the scene metadata panel is visible on wide layouts. UI state,
 	 * not really a user "preference" — lives here because we don't have a

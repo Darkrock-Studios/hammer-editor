@@ -309,6 +309,15 @@ class SceneEditorService(
 	suspend fun loadSceneMetadata(sceneId: Int): SceneMetadata =
 		sceneMetadataRepository.loadSceneMetadata(sceneId)
 
+	/**
+	 * The scene's live text (unsaved buffer first, then disk) with no caching and no
+	 * writing-session baseline. Call off the main thread.
+	 */
+	fun getCurrentSceneContentOrNull(sceneItem: SceneItem): String? =
+		runCatching { sceneContentRepository.getCurrentSceneContent(sceneItem) }
+			.onFailure { Napier.w(it) { "Failed to read content for scene: ${sceneItem.id}" } }
+			.getOrNull()
+
 	fun loadSceneMarkdownRaw(sceneItem: SceneItem, scenePath: HPath? = null): String =
 		if (scenePath != null) {
 			sceneEditorRepository.loadSceneMarkdownRaw(sceneItem, scenePath)

@@ -3,10 +3,10 @@ package com.darkrockstudios.apps.hammer.common.components.projecthome
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
-import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
-import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
+import com.darkrockstudios.apps.hammer.common.data.tree.ChapterScenes
+import com.darkrockstudios.apps.hammer.common.data.tree.collectChapters
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectDefaultDispatcher
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.injectIoDispatcher
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -93,8 +93,8 @@ class ExportStoryUseCase(
 	/** Reads source data off [ioDispatcher], then renders the document into an in-memory buffer on [defaultDispatcher]. */
 	private suspend fun render(projectName: String, options: ExportOptions): Buffer {
 		val source = withContext(ioDispatcher) {
-			val perNodeChapters = sceneEditorRepository.getSceneTree().root.children.mapNotNull { node ->
-				chapterFor(node, options.sceneIds)
+			val perNodeChapters = sceneEditorRepository.getSceneTree().collectChapters().mapNotNull { chapter ->
+				chapterFor(chapter, options.sceneIds)
 			}
 			val projectData =
 				if (options.format == ExportFormat.Markdown) null else projectDataDatasource.load().data
@@ -180,21 +180,16 @@ class ExportStoryUseCase(
 	 * dropping it from the chapter list so later chapters renumber automatically.
 	 * A filter never widens: an empty or fully stale set yields zero chapters.
 	 */
-	private fun chapterFor(node: TreeValue<SceneItem>, sceneFilter: Set<Int>?): StoryChapter? {
-		val sceneNodes = if (node.value.type == SceneItem.Type.Scene) {
-			listOf(node)
-		} else {
-			node.filter { it.value.type == SceneItem.Type.Scene }
-		}
+	private fun chapterFor(chapter: ChapterScenes, sceneFilter: Set<Int>?): StoryChapter? {
 		val included = if (sceneFilter == null) {
-			sceneNodes
+			chapter.scenes
 		} else {
-			sceneNodes.filter { it.value.id in sceneFilter }
+			chapter.scenes.filter { it.id in sceneFilter }
 		}
 		if (sceneFilter != null && included.isEmpty()) return null
 		return StoryChapter(
-			name = node.value.name,
-			markdown = included.joinToString("\n\n") { sceneEditorRepository.loadSceneMarkdownRaw(it.value) },
+			name = chapter.chapter.name,
+			markdown = included.joinToString("\n\n") { sceneEditorRepository.loadSceneMarkdownRaw(it) },
 		)
 	}
 

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Save
@@ -41,6 +42,7 @@ import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneTypeMeta
 import com.darkrockstudios.apps.hammer.scene_editor_cancel_button
 import com.darkrockstudios.apps.hammer.scene_editor_focus_mode_button
+import com.darkrockstudios.apps.hammer.scene_editor_menu_item_read
 import com.darkrockstudios.apps.hammer.scene_editor_metadata_button
 import com.darkrockstudios.apps.hammer.scene_editor_name_hint
 import com.darkrockstudios.apps.hammer.scene_editor_rename_button
@@ -104,6 +106,16 @@ actual fun EditorTopBar(
 				Icon(
 					Icons.Filled.Info,
 					contentDescription = Res.string.scene_editor_metadata_button.get(),
+					tint = MaterialTheme.colorScheme.onSurface
+				)
+			}
+		}
+
+		if (screen.windowWidthClass != WindowWidthSizeClass.Compact) {
+			IconButton(onClick = component::readScene) {
+				Icon(
+					imageVector = Icons.AutoMirrored.Filled.MenuBook,
+					contentDescription = Res.string.scene_editor_menu_item_read.get(),
 					tint = MaterialTheme.colorScheme.onSurface
 				)
 			}

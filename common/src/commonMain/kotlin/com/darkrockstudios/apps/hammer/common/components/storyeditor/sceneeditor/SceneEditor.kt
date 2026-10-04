@@ -56,6 +56,7 @@ interface SceneEditor : HammerComponent, ComponentToaster {
 	fun setEditorMaxWidth(width: Float)
 	fun resetEditorMaxWidth()
 	fun enterFocusMode()
+	fun readScene()
 
 	/** Adds a flagged word to the project's spell-check dictionary. */
 	fun addWordToDictionary(word: String)

@@ -128,6 +128,25 @@ class GlobalSettingsDatasourceTest : BaseTest() {
 	}
 
 	@Test
+	fun `Load Global Settings missing reader keys uses the reader defaults`() = runTest {
+		val datasource = createDatasource()
+		fileSystem.createDirectories(GlobalSettingsFilesystemDatasource.CONFIG_PATH.parent!!)
+		fileSystem.write(GlobalSettingsFilesystemDatasource.CONFIG_PATH) {
+			writeUtf8(
+				"""
+				projectsDirectory = "test"
+				editorFontSize = 22.0
+				""".trimIndent()
+			)
+		}
+
+		val loaded: GlobalSettings = datasource.loadSettings()
+
+		assertEquals(GlobalSettings.DEFAULT_FONT_SIZE, loaded.readerFontSize)
+		assertEquals(false, loaded.readerShowSceneHeadings)
+	}
+
+	@Test
 	fun `Store and load preserves initialProjectScreen`() = runTest {
 		val datasource = createDatasource()
 		val settings = GlobalSettingsStore.createDefault(languageUtil, platformSpellCheckerFactory).copy(

@@ -3,6 +3,7 @@ package components.storyeditor
 import com.arkivanov.decompose.value.getValue
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.StoryEditorComponent
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.readermode.ReaderMode
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditorComponent
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -34,8 +35,11 @@ import org.junit.jupiter.api.Test
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import utils.ComponentTest
+import utils.TestComponentContext
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
+import kotlin.test.assertSame
 import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -45,6 +49,7 @@ class StoryEditorComponentTest : ComponentTest() {
 	private lateinit var settingsStore: GlobalSettingsStore
 
 	private val sceneTreeCallbacks = mutableListOf<(SceneSummary) -> Unit>()
+	private lateinit var sceneUpdates: MutableSharedFlow<SceneSummary>
 	private val addedMenus = mutableListOf<MenuDescriptor>()
 	private var focusModeScene: SceneItem? = null
 
@@ -62,6 +67,8 @@ class StoryEditorComponentTest : ComponentTest() {
 
 		sceneEditor = mockk(relaxed = true)
 		every { sceneEditor.subscribeToSceneUpdates(any(), capture(sceneTreeCallbacks)) } returns mockk(relaxed = true)
+		sceneUpdates = MutableSharedFlow(replay = 1)
+		every { sceneEditor.sceneListChannel } returns sceneUpdates
 
 		val spellCheckRepository = mockk<SpellCheckRepository>(relaxed = true)
 		every { spellCheckRepository.dictionaryFlow } returns MutableSharedFlow()
@@ -83,8 +90,8 @@ class StoryEditorComponentTest : ComponentTest() {
 		})
 	}
 
-	private fun newComponent() = StoryEditorComponent(
-		componentContext = context,
+	private fun newComponent(componentContext: TestComponentContext = context) = StoryEditorComponent(
+		componentContext = componentContext,
 		projectDef = projectDef,
 		addMenu = { addedMenus.add(it) },
 		removeMenu = { },
@@ -279,6 +286,163 @@ class StoryEditorComponentTest : ComponentTest() {
 				comp.detailsRouterState.value.active.instance
 			)
 		}
+
+	private fun StoryEditor.reader(): ReaderMode =
+		assertIs<StoryEditor.ChildDestination.Detail.ReaderDestination>(detailsRouterState.value.active.instance)
+			.component
+
+	private fun StoryEditor.sceneList() =
+		assertIs<StoryEditor.ChildDestination.List.Scenes>(listRouterState.value.active.instance).component
+
+	@Test
+	fun `Showing the reader opens it in the detail and hides the list in single pane`() =
+		runTest(mainTestDispatcher) {
+			every { sceneEditor.getSceneTree() } returns treeOf(sceneItem(1), sceneItem(2))
+
+			val comp = newComponent()
+			context.resume()
+			advanceUntilIdle()
+
+			comp.showReader(null)
+			advanceUntilIdle()
+
+			assertEquals(1, comp.reader().state.value.activeChapterId)
+			assertIs<StoryEditor.ChildDestination.List.None>(comp.listRouterState.value.active.instance)
+			assertFalse(comp.isAtRoot())
+		}
+
+	@Test
+	fun `Showing the reader in multi pane keeps the list visible`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneTree() } returns treeOf(sceneItem(1), sceneItem(2))
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.setMultiPane(true)
+		comp.showReader(sceneItem(2))
+		advanceUntilIdle()
+
+		assertEquals(2, comp.reader().state.value.activeChapterId)
+		assertIs<StoryEditor.ChildDestination.List.Scenes>(comp.listRouterState.value.active.instance)
+	}
+
+	@Test
+	fun `Tapping a scene in the list while reading moves the reader instead of opening the editor`() =
+		runTest(mainTestDispatcher) {
+			every { sceneEditor.getSceneTree() } returns treeOf(sceneItem(1), sceneItem(2))
+
+			val comp = newComponent()
+			context.resume()
+			advanceUntilIdle()
+
+			comp.setMultiPane(true)
+			comp.showReader(null)
+			advanceUntilIdle()
+			val reader = comp.reader()
+
+			comp.sceneList().onSceneSelected(sceneItem(2))
+			advanceUntilIdle()
+
+			assertSame(reader, comp.reader())
+			assertEquals(2, reader.state.value.activeChapterId)
+			assertEquals(2, reader.state.value.scrollToSceneId)
+		}
+
+	@Test
+	fun `Showing a scene while reading opens the editor`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneTree() } returns treeOf(sceneItem(1), sceneItem(2))
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.showReader(null)
+		advanceUntilIdle()
+		comp.showScene(sceneItem(2))
+		advanceUntilIdle()
+
+		assertIs<StoryEditor.ChildDestination.Detail.EditorDestination>(comp.detailsRouterState.value.active.instance)
+
+		comp.onBack()
+		advanceUntilIdle()
+		assertFalse(comp.isDetailShown())
+	}
+
+	@Test
+	fun `The reader's edit action opens the editor for the scene being read`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneTree() } returns treeOf(sceneItem(1), sceneItem(2))
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.showReader(sceneItem(2))
+		advanceUntilIdle()
+		comp.reader().editScene()
+		advanceUntilIdle()
+
+		val editor =
+			assertIs<StoryEditor.ChildDestination.Detail.EditorDestination>(comp.detailsRouterState.value.active.instance)
+		assertEquals(2, editor.component.state.value.sceneItem.id)
+	}
+
+	@Test
+	fun `Back from the reader shows the list again in single pane`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneTree() } returns treeOf(sceneItem(1))
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.showReader(null)
+		advanceUntilIdle()
+		comp.onBack()
+		advanceUntilIdle()
+
+		assertFalse(comp.isDetailShown())
+		assertIs<StoryEditor.ChildDestination.List.Scenes>(comp.listRouterState.value.active.instance)
+	}
+
+	@Test
+	fun `Tree updates do not close the reader`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneTree() } returns treeOf(sceneItem(1), sceneItem(2))
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.showReader(sceneItem(1))
+		advanceUntilIdle()
+
+		val updated = SceneSummary(treeOf(sceneItem(2)), persistentSetOf())
+		sceneTreeCallbacks.toList().forEach { it(updated) }
+		sceneUpdates.emit(updated)
+		advanceUntilIdle()
+
+		assertEquals(2, comp.reader().state.value.activeChapterId)
+	}
+
+	@Test
+	fun `The reader survives process death`() = runTest(mainTestDispatcher) {
+		every { sceneEditor.getSceneTree() } returns treeOf(sceneItem(1), sceneItem(2))
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.showReader(null)
+		advanceUntilIdle()
+		comp.reader().showChapter(2)
+		advanceUntilIdle()
+
+		val restoredContext = context.saveAndRecreate()
+		val restored = newComponent(restoredContext)
+		restoredContext.resume()
+		advanceUntilIdle()
+
+		assertEquals(2, restored.reader().state.value.activeChapterId)
+	}
 
 	@Test
 	fun `Unsaved buffer queries delegate to the scene editor service`() = runTest(mainTestDispatcher) {

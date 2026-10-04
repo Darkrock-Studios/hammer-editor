@@ -9,6 +9,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectroot.Router
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompare
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftsList
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.outlineoverview.OutlineOverview
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.readermode.ReaderMode
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.SceneEditor
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.scenelist.SceneList
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
@@ -38,6 +39,9 @@ interface StoryEditor : AppCloseManager, Router, HammerComponent, BackHandlerOwn
 	fun closeDetails(): Boolean
 	fun showScene(sceneItem: SceneItem)
 
+	/** Opens the reader at [sceneItem], or at the start of the story when null. */
+	fun showReader(sceneItem: SceneItem?)
+
 	sealed class ChildDestination {
 		sealed class List : ChildDestination() {
 			data class Scenes(val component: SceneList) : List()
@@ -48,6 +52,7 @@ interface StoryEditor : AppCloseManager, Router, HammerComponent, BackHandlerOwn
 			data class EditorDestination(val component: SceneEditor) : Detail()
 			data class DraftsDestination(val component: DraftsList) : Detail()
 			data class DraftCompareDestination(val component: DraftCompare) : Detail()
+			data class ReaderDestination(val component: ReaderMode) : Detail()
 			data object None : Detail()
 		}
 

@@ -59,6 +59,7 @@ class SceneEditorComponentTest : ComponentTest() {
 
 	private var closeCount = 0
 	private var focusShownFor: SceneItem? = null
+	private var readerShownFor: SceneItem? = null
 	private val addedMenus = mutableListOf<MenuDescriptor>()
 	private val removedMenuIds = mutableListOf<String>()
 
@@ -114,6 +115,7 @@ class SceneEditorComponentTest : ComponentTest() {
 
 		closeCount = 0
 		focusShownFor = null
+		readerShownFor = null
 		addedMenus.clear()
 		removedMenuIds.clear()
 	}
@@ -126,6 +128,7 @@ class SceneEditorComponentTest : ComponentTest() {
 		closeSceneEditor = { closeCount++ },
 		showDraftsList = {},
 		showFocusMode = { focusShownFor = it },
+		showReader = { readerShownFor = it },
 		showEntry = {},
 		showGlobalSearchForTag = {},
 	)
@@ -462,6 +465,14 @@ class SceneEditorComponentTest : ComponentTest() {
 
 		comp.enterFocusMode()
 		assertEquals(sceneItem, focusShownFor)
+	}
+
+	@Test
+	fun `readScene forwards the scene to the parent`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+
+		comp.readScene()
+		assertEquals(sceneItem, readerShownFor)
 	}
 
 	@Test

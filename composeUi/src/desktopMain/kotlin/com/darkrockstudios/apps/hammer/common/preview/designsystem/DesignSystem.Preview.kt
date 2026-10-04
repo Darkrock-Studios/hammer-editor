@@ -34,10 +34,15 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBar
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdBottomBarDestination
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCategoryChip
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCategorySwatch
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdChapterDropdown
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdChapterHeader
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdChapterRailItem
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdChapterRow
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdCollapseGlyph
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDailyGoalProgress
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdDeltaBadge
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEmailField
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEndMark
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEngravingPlaceholder
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryCard
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdEntryFilterBar
@@ -63,6 +68,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceCh
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdReferenceChipVariant
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResizeHandle
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdResponsiveStrip
+import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSceneBreak
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdScrollAwayFooter
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSearchField
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdSectionHeader
@@ -1204,6 +1210,25 @@ private fun GallerySection(title: String, content: @Composable () -> Unit) {
 			style = MaterialTheme.typography.labelMedium,
 		)
 		content()
+	}
+}
+
+@Preview
+@Composable
+fun ChapterPiecesPreview() {
+	val rows = listOf(
+		HdChapterRow(title = "Arrival", sceneCount = 2),
+		HdChapterRow(title = "The Dark Night", sceneCount = 5),
+	)
+	AppTheme(globalSettingsPreview, useDarkTheme = true) {
+		PreviewSurface {
+			HdChapterDropdown(rows = rows, selectedIndex = 1, onSelect = {})
+			HdChapterRailItem(index = 0, row = rows[0], selected = true, onClick = {})
+			HdChapterRailItem(index = 1, row = rows[1], selected = false, onClick = {})
+			HdChapterHeader(index = 1, title = "The Dark Night", sceneCount = 5, wide = false)
+			HdSceneBreak()
+			HdEndMark(label = "End of story")
+		}
 	}
 }
 
