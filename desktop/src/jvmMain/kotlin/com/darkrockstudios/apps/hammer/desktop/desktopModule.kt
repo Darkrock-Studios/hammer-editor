@@ -34,7 +34,7 @@ val desktopModule: Module = module {
 		}
 	}
 	single<SandboxFileAccess> {
-		if (DistributionChannel.current == DistributionChannel.MAC_APP_STORE && MacOsBookmarks.isAvailable) {
+		if (DistributionChannel.isMacAppStore && MacOsBookmarks.isAvailable) {
 			MacOsSandboxFileAccess(get())
 		} else {
 			NoopSandboxFileAccess

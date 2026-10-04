@@ -1,5 +1,7 @@
 package com.darkrockstudios.build
 
+import org.gradle.api.Project
+
 /**
  * Build-side mirror of the runtime `DistributionChannel` enum in `:base`. The two lists have to
  * stay in step; `DistributionChannelTest` in `:base` pins the token strings so a change to one
@@ -42,4 +44,14 @@ fun resolveDistributionChannel(
 			"Unknown -Pchannel=$requested. Valid channels: " +
 				DistributionChannel.entries.joinToString(", ") { it.token }
 		)
+}
+
+/**
+ * The channel this build is for. The F-Droid detection mirrors settings.gradle.kts, which cannot
+ * see buildSrc, so a plain F-Droid build reports its channel without passing -Pchannel too.
+ */
+fun Project.distributionChannel(): DistributionChannel {
+	val isFDroid = findProperty("fdroid")?.toString()?.isNotEmpty() == true ||
+		System.getenv("FDROID_BUILD") != null
+	return resolveDistributionChannel(findProperty("channel")?.toString(), isFDroid)
 }

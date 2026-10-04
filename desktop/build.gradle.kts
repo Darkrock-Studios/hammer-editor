@@ -1,6 +1,6 @@
 import com.darkrockstudios.build.DistributionChannel
+import com.darkrockstudios.build.distributionChannel
 import com.darkrockstudios.build.registerLinuxDistributionTasks
-import com.darkrockstudios.build.resolveDistributionChannel
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import java.util.zip.ZipFile
 
@@ -18,11 +18,8 @@ plugins {
 group = "com.darkrockstudios.apps.hammer.desktop"
 version = libs.versions.app.get()
 
-// -Pchannel=mac-app-store -PbuildNumber=N enables App Store packaging. The F-Droid build
-// excludes this module in settings.gradle.kts, so it never needs the F-Droid fallback.
-val distributionChannel: DistributionChannel =
-	resolveDistributionChannel(project.findProperty("channel")?.toString(), isFDroid = false)
-val isAppStoreRelease: Boolean = distributionChannel == DistributionChannel.MAC_APP_STORE
+// -Pchannel=mac-app-store -PbuildNumber=N enables App Store packaging.
+val isAppStoreRelease: Boolean = project.distributionChannel() == DistributionChannel.MAC_APP_STORE
 val macBuildNumber: String =
 	(project.findProperty("buildNumber") as String?) ?: "1"
 

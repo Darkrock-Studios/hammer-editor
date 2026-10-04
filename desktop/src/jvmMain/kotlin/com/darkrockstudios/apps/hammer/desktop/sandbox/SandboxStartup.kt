@@ -33,7 +33,7 @@ object SandboxStartup {
 	private fun str(key: String): String = SandboxStrings.get(key)
 
 	fun ensureProjectsDirAccess() {
-		if (DistributionChannel.current != DistributionChannel.MAC_APP_STORE) return
+		if (!DistributionChannel.isMacAppStore) return
 		if (!MacOsBookmarks.isAvailable) {
 			Napier.w("App Store flavor but bookmark dylib unavailable — projects-dir access likely to fail")
 			return
