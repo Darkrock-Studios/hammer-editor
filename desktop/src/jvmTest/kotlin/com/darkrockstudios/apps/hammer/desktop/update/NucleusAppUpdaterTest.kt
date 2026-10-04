@@ -170,6 +170,9 @@ class NucleusAppUpdaterTest {
 		assertTrue(asset.contentEquals(file.readBytes()))
 		assertEquals("hammer.msi", file.name)
 		assertTrue(seen.any { it is AppUpdateState.Downloading && it.fraction == 1f })
+		// The real installer script removes its staging directory; the stand-in has to.
+		file.parentFile.deleteRecursively()
+		assertFalse(file.exists())
 	}
 
 	@Test

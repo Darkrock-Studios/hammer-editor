@@ -22,11 +22,19 @@ class HammerReleaseProvider(
 	override fun getDownloadUrl(fileName: String, version: String): String = "$baseUrl/$fileName"
 
 	companion object {
-		/** Substitutes a local server for the GitHub release, for end-to-end testing of a packaged build. */
+		/**
+		 * Substitutes a local server for the GitHub release, for end-to-end testing of a packaged
+		 * build. The environment variable form exists because an installed app has no command line
+		 * to put a system property on.
+		 */
 		const val BASE_URL_PROPERTY = "hammer.update.baseUrl"
+		const val BASE_URL_ENV = "HAMMER_UPDATE_BASE_URL"
 
-		fun defaultBaseUrl(): String =
-			System.getProperty(BASE_URL_PROPERTY)?.trim()?.trimEnd('/')?.takeIf { it.isNotEmpty() }
+		fun defaultBaseUrl(
+			property: String? = System.getProperty(BASE_URL_PROPERTY),
+			environment: String? = System.getenv(BASE_URL_ENV),
+		): String =
+			(property ?: environment)?.trim()?.trimEnd('/')?.takeIf { it.isNotEmpty() }
 				?: "${GITHUB_URL}releases/latest/download"
 
 		fun metadataFileName(platform: Platform): String = when (platform) {

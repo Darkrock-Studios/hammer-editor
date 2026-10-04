@@ -51,4 +51,16 @@ class HammerReleaseProviderTest {
 			HammerReleaseProvider.defaultBaseUrl(),
 		)
 	}
+
+	@Test
+	fun `the environment variable stands in when no property is set`() {
+		assertEquals(
+			"http://localhost:8000",
+			HammerReleaseProvider.defaultBaseUrl(property = null, environment = "http://localhost:8000/"),
+		)
+		assertEquals(
+			"http://property:1",
+			HammerReleaseProvider.defaultBaseUrl(property = "http://property:1", environment = "http://env:2"),
+		)
+	}
 }
