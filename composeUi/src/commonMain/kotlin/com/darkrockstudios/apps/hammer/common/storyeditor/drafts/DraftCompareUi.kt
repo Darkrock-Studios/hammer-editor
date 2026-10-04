@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.VerticalDivider
+import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
 import com.darkrockstudios.apps.hammer.common.compose.WindowWidthSizeClass
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -21,18 +22,20 @@ import com.darkrockstudios.apps.hammer.base.diff.OffsetMap
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.drafts.DraftCompare
 import com.darkrockstudios.apps.hammer.common.compose.*
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
-import com.darkrockstudios.apps.hammer.common.compose.markdown.updateMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.markdown.HammerMarkdownConfiguration
+import com.darkrockstudios.apps.hammer.common.compose.markdown.updateRichTextStyles
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.loadSceneContent
 import com.darkrockstudios.apps.hammer.common.storyeditor.sceneeditor.sceneDiffText
 import com.darkrockstudios.texteditor.CharLineOffset
+import com.darkrockstudios.texteditor.RichTextStyles
 import com.darkrockstudios.texteditor.TextEditor
 import com.darkrockstudios.texteditor.TextEditorRange
-import com.darkrockstudios.texteditor.markdown.MarkdownConfiguration
 import com.darkrockstudios.texteditor.markdown.MarkdownExtension
 import com.darkrockstudios.texteditor.markdown.withMarkdown
+import com.darkrockstudios.texteditor.rememberTextEditorStyle
 import com.darkrockstudios.texteditor.richstyle.HighlightSpanStyle
 import com.darkrockstudios.texteditor.richstyle.RichSpan
 import com.darkrockstudios.texteditor.state.TextEditorState
@@ -54,16 +57,16 @@ fun DraftCompareUi(component: DraftCompare) {
 	val screen = LocalScreenCharacteristic.current
 	val state by component.state.subscribeAsState()
 	val draftName = component.draftDef.draftName
-	val markdownConfig = LocalMarkdownConfig.current
+	val richTextStyles = LocalRichTextStyles.current
 
 	// Hoisted above the width branch: the two layouts are separate composables, so building
 	// the editors inside them would discard the user's merge edits on a resize or rotate
 	// while component.mergedContent still pointed at the torn-down editor.
 	val draftMarkdown = key(state.draftContent) {
-		rememberSceneContentEditor(state.draftContent, markdownConfig)
+		rememberSceneContentEditor(state.draftContent, richTextStyles)
 	}
 	val currentMarkdown = key(state.sceneContent) {
-		rememberSceneContentEditor(state.sceneContent, markdownConfig)
+		rememberSceneContentEditor(state.sceneContent, richTextStyles)
 	}
 
 	Column(modifier = Modifier.fillMaxSize()) {
@@ -252,6 +255,7 @@ private fun DraftPane(
 			TextEditor(
 				modifier = Modifier.fillMaxSize(),
 				state = textEditorState,
+				style = rememberTextEditorStyle(textStyle = LocalEditorTextStyle.current),
 				enabled = false,
 			)
 		}
@@ -324,6 +328,7 @@ private fun CurrentPane(
 			TextEditor(
 				modifier = Modifier.fillMaxSize(),
 				state = textEditorState,
+				style = rememberTextEditorStyle(textStyle = LocalEditorTextStyle.current),
 			)
 		}
 	}
@@ -333,16 +338,17 @@ private fun CurrentPane(
 @Composable
 private fun rememberSceneContentEditor(
 	content: SceneContent?,
-	markdownConfig: MarkdownConfiguration,
+	richTextStyles: RichTextStyles,
 ): MarkdownExtension {
 	val editorState = rememberTextEditorState()
 	val markdownExtension = remember(editorState) {
-		editorState.withMarkdown(markdownConfig).also { loadSceneContent(it, content) }
+		editorState.richTextStyles = richTextStyles
+		editorState.withMarkdown(HammerMarkdownConfiguration).also { loadSceneContent(it, content) }
 	}
-	// Both panes restyle together; the config is otherwise baked in at import time and
+	// Both panes restyle together; the styles are otherwise baked in at import time and
 	// the two would drift apart on a font size or theme change.
-	LaunchedEffect(markdownExtension, markdownConfig) {
-		markdownExtension.updateMarkdownConfiguration(markdownConfig)
+	LaunchedEffect(markdownExtension, richTextStyles) {
+		editorState.updateRichTextStyles(richTextStyles)
 	}
 	return markdownExtension
 }

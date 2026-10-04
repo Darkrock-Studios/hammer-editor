@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -29,12 +30,11 @@ import com.darkrockstudios.apps.hammer.*
 import com.darkrockstudios.apps.hammer.common.TextEditorDefaults
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.readermode.ReaderMode
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.clampEditorWidth
-import com.darkrockstudios.apps.hammer.common.compose.LocalMarkdownConfig
+import com.darkrockstudios.apps.hammer.common.compose.LocalEditorTextStyle
 import com.darkrockstudios.apps.hammer.common.compose.LocalScreenCharacteristic
 import com.darkrockstudios.apps.hammer.common.compose.MpScrollBarList
 import com.darkrockstudios.apps.hammer.common.compose.Ui
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
-import com.darkrockstudios.apps.hammer.common.compose.markdown.changeFontSize
 import com.darkrockstudios.apps.hammer.common.compose.markdowneditor.MarkdownView
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
@@ -281,10 +281,7 @@ private fun ReadingPane(
 		settledChapterId = state.activeChapterId
 	}
 
-	val baseMarkdownConfig = LocalMarkdownConfig.current
-	val markdownConfig = remember(baseMarkdownConfig, state.fontSize) {
-		baseMarkdownConfig.changeFontSize(state.fontSize)
-	}
+	val readerTextStyle = remember(state.fontSize) { TextStyle(fontSize = state.fontSize.sp) }
 
 	BoxWithConstraints(modifier = modifier) {
 		val widthState = rememberHdResizeHandleState(
@@ -307,7 +304,7 @@ private fun ReadingPane(
 				)
 			}
 
-			CompositionLocalProvider(LocalMarkdownConfig provides markdownConfig) {
+			CompositionLocalProvider(LocalEditorTextStyle provides readerTextStyle) {
 				ReadingColumn(
 					rows = rows,
 					state = state,

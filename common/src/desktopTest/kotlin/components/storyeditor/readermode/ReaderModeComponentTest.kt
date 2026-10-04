@@ -1,7 +1,7 @@
 package components.storyeditor.readermode
 
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.readermode.ReaderModeComponent
-import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.MAX_FONT_SIZE
+import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.EDITOR_TEXT_SIZES
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneContent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
@@ -404,18 +404,18 @@ class ReaderModeComponentTest : ComponentTest() {
 		comp.increaseFontSize()
 		advanceUntilIdle()
 		val increased = settingsTransform.captured(settings)
-		assertEquals(GlobalSettings.DEFAULT_FONT_SIZE + 1f, increased.readerFontSize)
+		assertEquals(18f, increased.readerFontSize)
 		assertEquals(20f, increased.editorFontSize)
 
 		comp.decreaseFontSize()
 		advanceUntilIdle()
-		assertEquals(GlobalSettings.DEFAULT_FONT_SIZE - 1f, settingsTransform.captured(settings).readerFontSize)
+		assertEquals(14f, settingsTransform.captured(settings).readerFontSize)
 
 		comp.increaseFontSize()
 		advanceUntilIdle()
 		assertEquals(
-			MAX_FONT_SIZE,
-			settingsTransform.captured(settings.copy(readerFontSize = MAX_FONT_SIZE)).readerFontSize,
+			EDITOR_TEXT_SIZES.last(),
+			settingsTransform.captured(settings.copy(readerFontSize = EDITOR_TEXT_SIZES.last())).readerFontSize,
 		)
 
 		comp.resetFontSize()

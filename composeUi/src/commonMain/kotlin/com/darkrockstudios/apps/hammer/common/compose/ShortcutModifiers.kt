@@ -2,8 +2,12 @@ package com.darkrockstudios.apps.hammer.common.compose
 
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.key.*
+import com.darkrockstudios.texteditor.input.layoutKey
 
-/** Matches a key-down with exactly these modifiers: extra ones do not count as a match. */
+/**
+ * Matches a key-down with exactly these modifiers: extra ones do not count as a match.
+ * Letters match on [layoutKey], as the editor's built-in chords do.
+ */
 fun KeyEvent.matchesShortcut(
 	key: Key,
 	ctrl: Boolean = false,
@@ -12,7 +16,7 @@ fun KeyEvent.matchesShortcut(
 ): Boolean {
 	val ctrlOrMeta = isCtrlPressed || isMetaPressed
 	return type == KeyEventType.KeyDown &&
-		this.key == key &&
+		layoutKey == key &&
 		ctrlOrMeta == ctrl &&
 		isShiftPressed == shift &&
 		isAltPressed == alt
@@ -47,3 +51,18 @@ fun Modifier.italicShortcutModifier(onItalic: () -> Unit): Modifier =
 
 fun Modifier.strikethroughShortcutModifier(onStrikethrough: () -> Unit): Modifier =
 	onKeyShortcut(Key.X, ctrl = true, shift = true, action = onStrikethrough)
+
+/** Ctrl/Cmd with Plus, Minus and 0, as browsers zoom. Plus is Shift+Equals on most layouts. */
+fun Modifier.textSizeShortcutModifier(
+	onIncrease: () -> Unit,
+	onDecrease: () -> Unit,
+	onReset: () -> Unit,
+): Modifier = this
+	.onKeyShortcut(Key.Equals, ctrl = true, action = onIncrease)
+	.onKeyShortcut(Key.Equals, ctrl = true, shift = true, action = onIncrease)
+	.onKeyShortcut(Key.Plus, ctrl = true, action = onIncrease)
+	.onKeyShortcut(Key.NumPadAdd, ctrl = true, action = onIncrease)
+	.onKeyShortcut(Key.Minus, ctrl = true, action = onDecrease)
+	.onKeyShortcut(Key.NumPadSubtract, ctrl = true, action = onDecrease)
+	.onKeyShortcut(Key.Zero, ctrl = true, action = onReset)
+	.onKeyShortcut(Key.NumPad0, ctrl = true, action = onReset)
