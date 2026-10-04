@@ -29,6 +29,7 @@ import com.darkrockstudios.apps.hammer.common.compose.designsystem.*
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.compose.scrollBarOverlay
 import com.darkrockstudios.apps.hammer.common.compose.theme.LocalHammerColors
+import com.darkrockstudios.apps.hammer.common.compose.theme.oledBlackThemeAvailable
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettings
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.InitialProjectScreen
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.UiTheme
@@ -96,7 +97,7 @@ internal fun AccountSettingsUi(
 							contentSpacing = 12.dp,
 						) {
 							HdHairlineSegmentedPicker(
-								options = UiTheme.entries,
+								options = UiTheme.entries.filter { it != UiTheme.OledBlack || oledBlackThemeAvailable },
 								selected = state.uiTheme,
 								onSelect = { component.setUiTheme(it) },
 								label = { uiThemeLabel(it) },
