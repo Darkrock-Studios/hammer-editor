@@ -46,7 +46,11 @@ class NucleusAppUpdater(
 	override val state: StateFlow<AppUpdateState> = _state.asStateFlow()
 
 	private val checking = Mutex()
+
+	@Volatile
 	private var available: UpdateInfo? = null
+
+	@Volatile
 	private var updateJob: Job? = null
 
 	fun start() {
@@ -67,7 +71,9 @@ class NucleusAppUpdater(
 		if (updateJob?.isActive == true) return
 		if (!checking.tryLock()) return
 		try {
-			_state.value = AppUpdateState.Checking
+			// An offered release stays on screen while it is re-checked; Checking is only shown
+			// when there is nothing better to show.
+			if (available == null) _state.value = AppUpdateState.Checking
 			val result = withContext(ioDispatcher) { updater.checkForUpdates() }
 			_state.value = when (result) {
 				is UpdateResult.Available -> {

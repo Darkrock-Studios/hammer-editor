@@ -10,20 +10,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.darkrockstudios.apps.hammer.Res
-import com.darkrockstudios.apps.hammer.about_update_available
 import com.darkrockstudios.apps.hammer.about_update_check_button
-import com.darkrockstudios.apps.hammer.about_update_checking
-import com.darkrockstudios.apps.hammer.about_update_downloading
-import com.darkrockstudios.apps.hammer.about_update_failed
 import com.darkrockstudios.apps.hammer.about_update_install_button
-import com.darkrockstudios.apps.hammer.about_update_installing
 import com.darkrockstudios.apps.hammer.about_update_retry_button
-import com.darkrockstudios.apps.hammer.about_update_up_to_date
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineButton
 import com.darkrockstudios.apps.hammer.common.compose.designsystem.HdHairlineProgressBar
 import com.darkrockstudios.apps.hammer.common.compose.resources.get
 import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
-import com.darkrockstudios.apps.hammer.common.projectselection.percentLabel
+import com.darkrockstudios.apps.hammer.common.projectselection.appUpdateDescription
 
 /**
  * The update row on the About screen's version card. Hidden on builds that cannot update, so
@@ -44,7 +38,7 @@ fun AppUpdateStatus(
 		modifier = modifier,
 		verticalArrangement = Arrangement.spacedBy(12.dp),
 	) {
-		statusText(state)?.let { text ->
+		appUpdateDescription(state)?.let { text ->
 			Text(
 				text = text,
 				style = MaterialTheme.typography.bodyMedium,
@@ -99,18 +93,4 @@ private fun CheckButton(onClick: () -> Unit, enabled: Boolean = true) {
 		onClick = onClick,
 		enabled = enabled,
 	)
-}
-
-@Composable
-private fun statusText(state: AppUpdateState): String? = when (state) {
-	AppUpdateState.Checking -> Res.string.about_update_checking.get()
-	AppUpdateState.UpToDate -> Res.string.about_update_up_to_date.get()
-	is AppUpdateState.Available -> Res.string.about_update_available.get(state.version)
-	is AppUpdateState.Downloading ->
-		Res.string.about_update_downloading.get(state.version, percentLabel(state.fraction))
-
-	is AppUpdateState.Installing -> Res.string.about_update_installing.get(state.version)
-	is AppUpdateState.Failed -> Res.string.about_update_failed.get(state.version, state.reason)
-	AppUpdateState.Idle,
-	AppUpdateState.Unsupported -> null
 }

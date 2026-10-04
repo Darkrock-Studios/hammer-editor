@@ -16,8 +16,8 @@ fun channelMayUpdate(channel: DistributionChannel): Boolean =
 /**
  * The Nucleus executable type whose release asset this install updates from, or null when the
  * format has no self-update path at all. The EXE is a wrapped MSI, so the MSI upgrades either.
- * The DMG and PKG both leave a bundle that only a signed zip could swap (see
- * docs/IN-APP-UPDATES-MACOS.md), so they are told about releases without downloading them.
+ * The DMG and PKG both leave a bundle that only a signed, notarized zip could swap, and the
+ * release has no such zip yet, so they are told about releases without downloading them.
  */
 fun nucleusExecutableType(format: PackageFormat): String? = when (format) {
 	PackageFormat.MSI, PackageFormat.EXE -> "msi"

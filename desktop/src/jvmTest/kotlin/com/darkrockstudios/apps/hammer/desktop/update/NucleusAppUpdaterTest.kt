@@ -4,6 +4,7 @@ import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer
 import dev.nucleusframework.updater.NucleusUpdater
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,6 +26,7 @@ import java.net.InetSocketAddress
 import java.nio.file.Files
 import java.security.MessageDigest
 import java.util.Base64
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.hours
 import kotlin.time.Duration.Companion.milliseconds
@@ -138,13 +140,25 @@ class NucleusAppUpdaterTest {
 	}
 
 	@Test
+	fun `a re-check keeps the offered release on screen`() = runBlocking {
+		val updater = newUpdater()
+		val seen = updater.recordStates()
+		updater.checkNow()
+		val offered = updater.awaitState<AppUpdateState.Available>()
+		val before = seen.size
+
+		metadataStatus = 503
+		updater.checkNow()
+		delay(500.milliseconds)
+
+		assertEquals(offered, updater.state.value)
+		assertFalse(seen.drop(before).contains(AppUpdateState.Checking))
+	}
+
+	@Test
 	fun `update downloads, verifies, and hands the installer over`() = runBlocking {
-		var installed: File? = null
-		var installedBytes: ByteArray? = null
-		val updater = newUpdater(install = { file ->
-			installedBytes = file.readBytes()
-			installed = file
-		})
+		val installed = CompletableDeferred<File>()
+		val updater = newUpdater(install = { file -> installed.complete(file) })
 		val seen = updater.recordStates()
 		updater.checkNow()
 		updater.awaitState<AppUpdateState.Available>()
@@ -152,17 +166,17 @@ class NucleusAppUpdaterTest {
 		updater.update()
 
 		updater.awaitState<AppUpdateState.Installing>()
-		await { installed != null }
-		assertTrue(asset.contentEquals(installedBytes))
-		assertEquals("hammer.msi", installed?.name)
+		val file = withTimeout(TIMEOUT) { installed.await() }
+		assertTrue(asset.contentEquals(file.readBytes()))
+		assertEquals("hammer.msi", file.name)
 		assertTrue(seen.any { it is AppUpdateState.Downloading && it.fraction == 1f })
 	}
 
 	@Test
 	fun `a corrupt download fails instead of installing`() = runBlocking {
 		servedSha512 = sha512Base64(ByteArray(10))
-		var installed = false
-		val updater = newUpdater(install = { installed = true })
+		val installed = AtomicBoolean(false)
+		val updater = newUpdater(install = { installed.set(true) })
 		updater.checkNow()
 		updater.awaitState<AppUpdateState.Available>()
 
@@ -170,7 +184,7 @@ class NucleusAppUpdaterTest {
 
 		val failed = updater.awaitState<AppUpdateState.Failed>()
 		assertEquals("9.9.9", failed.version)
-		assertFalse(installed)
+		assertFalse(installed.get())
 	}
 
 	@Test
