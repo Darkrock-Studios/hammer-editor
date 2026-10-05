@@ -17,18 +17,15 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
- * Ktor's `respond*` functions are tail-call suspend functions: they return the send pipeline's final
- * subject (a `CompressedReadChannelResponse` once Compression has run) rather than Unit. A respond in
- * *value position* — the last expression of an exhaustive `when` with no `else` inside a route
- * handler — makes the compiler cast that subject to Unit, and the handler dies with a
- * ClassCastException once the pipeline suspends.
+ * Ktor's `respond*` functions are tail-call suspend functions that return the send pipeline's final
+ * subject rather than Unit. Before Kotlin 2.4.20 (KT-87499) a respond in *value position*, the last
+ * expression of an exhaustive `when` with no `else` inside a route handler, made the compiler cast
+ * that subject to Unit, and the handler died with a ClassCastException once the pipeline suspended.
  *
- * The shape is invisible in source review: adding an `else`, or wrapping in `if/else`, is safe, while
- * a trailing `return@post` is not. So this scans the compiled route handlers instead, looking for the
- * coercion the compiler emits (`throwOnFailure` on the resumed value, then `checkcast kotlin/Unit`).
- *
- * [unsafeFixtureRoutes] is a positive control. If a Kotlin upgrade changes this codegen, the detector
- * stops firing on the fixture and this test fails rather than silently passing forever.
+ * The shape is invisible in source review, so this scans the compiled route handlers for the
+ * coercion the compiler used to emit (`throwOnFailure` on the resumed value, then `checkcast
+ * kotlin/Unit`). [valuePositionFixtureRoutes] compiles the shape so the second test can pin the fix:
+ * if a Kotlin upgrade brings the cast back, it fails there before any real handler does.
  */
 class RespondInValuePositionTest {
 
@@ -63,18 +60,19 @@ class RespondInValuePositionTest {
 	}
 
 	@Test
-	fun `the detector still recognises the unsafe shape`() {
+	fun `a respond result in value position is discarded, not cast to Unit`() {
 		assertTrue(testClasses.exists(), "Compiled test classes not found at $testClasses")
 
-		val detected = routeHandlers(testClasses)
-			.filter { it.coercesResumedValueToUnit() }
-			.map { it.name }
-
+		val fixture = routeHandlers(testClasses).filter { it.name.contains("valuePositionFixtureRoutes") }
 		assertTrue(
-			detected.any { it.contains("unsafeFixtureRoutes") },
-			"The detector no longer flags the known-unsafe fixture, so it can no longer protect the " +
-				"main source set. Kotlin's codegen for this shape has likely changed — re-derive the " +
-				"pattern from `javap -c` before trusting this test again. Flagged: $detected"
+			fixture.isNotEmpty(),
+			"The fixture route handler was not found. The handler filter has probably stopped matching."
+		)
+
+		assertEquals(
+			emptyList(), fixture.filter { it.coercesResumedValueToUnit() }.map { it.name },
+			"The compiler casts a discarded respond result to Unit again (KT-87499), so every exhaustive " +
+				"`when` that responds from value position is unsafe. Re-derive the pattern from `javap -c`."
 		)
 	}
 
@@ -113,10 +111,10 @@ private enum class FixtureOutcome { Saved, Rejected }
 private fun pickOutcome() = FixtureOutcome.Saved
 
 /**
- * Positive control for [RespondInValuePositionTest]: an exhaustive `when` with no `else` whose
- * branches each end in a respond. Never registered on a real route — it exists to be compiled.
+ * An exhaustive `when` with no `else` whose branches each end in a respond, the shape KT-87499
+ * miscompiled. Never registered on a real route; it exists to be compiled.
  */
-internal fun Route.unsafeFixtureRoutes() {
+internal fun Route.valuePositionFixtureRoutes() {
 	post("/fixture") {
 		when (pickOutcome()) {
 			FixtureOutcome.Saved -> respondToast("saved")
