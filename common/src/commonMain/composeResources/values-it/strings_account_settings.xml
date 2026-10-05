@@ -9,6 +9,7 @@
 	<string name="settings_theme_label">Tema dell’interfaccia</string>
 	<string name="settings_theme_light">CHIARO</string>
 	<string name="settings_theme_dark">SCURO</string>
+	<string name="settings_theme_oled_black">OLED</string>
 	<string name="settings_theme_followsystem">SISTEMA</string>
 	<string name="settings_initial_screen_label">Schermata iniziale del progetto</string>
 	<string name="settings_initial_screen_home">Home</string>
