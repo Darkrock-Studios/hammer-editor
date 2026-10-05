@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository
 import com.darkrockstudios.apps.hammer.Res
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.projectmetadata.ProjectMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
@@ -13,6 +14,12 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.first
 import kotlin.time.Clock
+
+data class SceneMetadataUpdate(
+	val sceneId: Int,
+	val metadata: SceneMetadata,
+	val source: UpdateSource,
+)
 
 /**
  * Owns scene metadata (per-scene outline/notes/draft/references/timestamps) and the project
@@ -36,11 +43,11 @@ class SceneMetadataRepository(
 		onBufferOverflow = BufferOverflow.DROP_OLDEST
 	)
 
-	private val _metadataUpdateFlow = MutableSharedFlow<Pair<Int, SceneMetadata>>(
+	private val _metadataUpdateFlow = MutableSharedFlow<SceneMetadataUpdate>(
 		extraBufferCapacity = 8,
 		onBufferOverflow = BufferOverflow.DROP_OLDEST
 	)
-	val metadataUpdateFlow: SharedFlow<Pair<Int, SceneMetadata>> = _metadataUpdateFlow
+	val metadataUpdateFlow: SharedFlow<SceneMetadataUpdate> = _metadataUpdateFlow
 
 	/** Loads and caches the project metadata. Must be called once during project-scope init. */
 	suspend fun initialize() {
@@ -69,9 +76,13 @@ class SceneMetadataRepository(
 	 * Pure persist + emit. Sync-marking and reference-index delta are the caller's concern
 	 * (see [SceneEditorService.storeMetadata]).
 	 */
-	suspend fun storeMetadata(metadata: SceneMetadata, sceneId: Int) {
+	suspend fun storeMetadata(
+		metadata: SceneMetadata,
+		sceneId: Int,
+		source: UpdateSource = UpdateSource.Editor,
+	) {
 		sceneMetadataDatasource.storeMetadata(metadata, sceneId)
-		_metadataUpdateFlow.tryEmit(sceneId to metadata)
+		_metadataUpdateFlow.tryEmit(SceneMetadataUpdate(sceneId, metadata, source))
 	}
 
 	/** Stamp a scene's last-edited timestamp (backfilling `created` for older scenes). */
@@ -86,6 +97,6 @@ class SceneMetadataRepository(
 		)
 		sceneMetadataDatasource.storeMetadata(updated, sceneId)
 		// Refresh open editors so their snapshot has the new timestamps.
-		_metadataUpdateFlow.tryEmit(sceneId to updated)
+		_metadataUpdateFlow.tryEmit(SceneMetadataUpdate(sceneId, updated, UpdateSource.Editor))
 	}
 }

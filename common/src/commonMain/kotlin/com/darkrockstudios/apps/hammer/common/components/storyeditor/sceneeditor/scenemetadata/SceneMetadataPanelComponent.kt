@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.SceneSummary
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -67,6 +68,9 @@ class SceneMetadataPanelComponent(
 	private var bufferUpdateSubscription: Job? = null
 	private var metadataLoaded = false
 
+	// True while an outline/notes edit is waiting on the debounced store.
+	private var unsavedTextEdits = false
+
 	private val _metadataUpdateFlow = MutableSharedFlow<SceneMetadata>(
 		extraBufferCapacity = 1,
 		replay = 1,
@@ -108,15 +112,18 @@ class SceneMetadataPanelComponent(
 	private fun subscribeToMetadataUpdates() {
 		scope.launch {
 			sceneEditor.metadataUpdateFlow
-				.filter { (sceneId, _) -> sceneId == originalSceneItem.id }
-				.collect { (_, external) ->
+				.filter { it.sceneId == originalSceneItem.id }
+				.collect { update ->
+					val external = update.metadata
 					val current = state.value.metadata
 					// Keep the user-editable text fields local; let everything else (refs, tags,
 					// future-added fields) take the external write. Listing the local-owned fields
 					// is the more stable invariant when SceneMetadata gains new fields.
+					// A synced write also replaces outline/notes, unless a local edit is unsaved.
+					val keepLocalText = update.source != UpdateSource.Sync || unsavedTextEdits
 					val merged = external.copy(
-						outline = current.outline,
-						notes = current.notes,
+						outline = if (keepLocalText) current.outline else external.outline,
+						notes = if (keepLocalText) current.notes else external.notes,
 						currentDraftName = current.currentDraftName,
 					)
 					if (merged == current) return@collect
@@ -144,6 +151,9 @@ class SceneMetadataPanelComponent(
 	}
 
 	private fun onSceneTreeUpdate(sceneSummary: SceneSummary) {
+		sceneSummary.sceneTree.findBy { it.id == originalSceneItem.id }?.let { node ->
+			_state.getAndUpdate { it.copy(sceneItem = node.value) }
+		}
 		scope.launch {
 			loadSceneData()
 		}
@@ -208,6 +218,10 @@ class SceneMetadataPanelComponent(
 			metadataStoreFlow.debounceUntilQuiescent(STORE_COOL_DOWN).collect { metadata ->
 				// Self-healing fail-safe: drop reference IDs whose entry no longer exists
 				sceneEditor.storeMetadata(scrubInvalidReferences(metadata), originalSceneItem.id)
+				val current = state.value.metadata
+				if (current.outline == metadata.outline && current.notes == metadata.notes) {
+					unsavedTextEdits = false
+				}
 			}
 		}
 	}
@@ -230,6 +244,7 @@ class SceneMetadataPanelComponent(
 	}
 
 	override fun updateOutline(text: String) {
+		unsavedTextEdits = true
 		_state.getAndUpdate {
 			val updated = it.metadata.copy(outline = text)
 			if (_metadataUpdateFlow.tryEmit(updated).not()) {
@@ -242,6 +257,7 @@ class SceneMetadataPanelComponent(
 	}
 
 	override fun updateNotes(text: String) {
+		unsavedTextEdits = true
 		_state.getAndUpdate {
 			val updated = it.metadata.copy(notes = text)
 			if (_metadataUpdateFlow.tryEmit(updated).not()) {

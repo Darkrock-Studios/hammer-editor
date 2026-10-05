@@ -183,7 +183,7 @@ class ClientSceneSynchronizer(
 			val content = SceneContent(sceneItem, serverEntity.content)
 			if (sceneEditorRepository.storeSceneMarkdownRaw(content, scenePath)) {
 				val updatedMetadata = mergeServerMetadata(serverEntity)
-				sceneEditorService.storeMetadata(updatedMetadata, serverEntity.id)
+				sceneEditorService.storeMetadata(updatedMetadata, serverEntity.id, UpdateSource.Sync)
 
 				// Finally, log our success, and update the running apps data
 				onLog(syncLogI(strRes.get(Res.string.sync_scene_downloading, id), projectDef))
@@ -293,7 +293,7 @@ class ClientSceneSynchronizer(
 				sceneEditorRepository.storeSceneMarkdownRaw(content, scenePath)
 
 				val updatedMetadata = mergeServerMetadata(serverEntity)
-				sceneEditorService.storeMetadata(updatedMetadata, serverEntity.id)
+				sceneEditorService.storeMetadata(updatedMetadata, serverEntity.id, UpdateSource.Sync)
 			}
 		} else {
 			// Scene doesn't exist locally at all - create it directly in archive

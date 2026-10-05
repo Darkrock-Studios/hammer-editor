@@ -466,7 +466,7 @@ class SceneEditorServiceTest : BaseTest() {
 		val updated = service.loadSceneMetadata(sceneId).copy(notes = "flow notes")
 
 		// metadataUpdateFlow has no replay, so subscribe before storing.
-		val received = mutableListOf<Pair<Int, SceneMetadata>>()
+		val received = mutableListOf<SceneMetadataUpdate>()
 		val job = scope.launch { service.metadataUpdateFlow.collect { received.add(it) } }
 		advanceUntilIdle()
 
@@ -474,7 +474,7 @@ class SceneEditorServiceTest : BaseTest() {
 		advanceUntilIdle()
 		job.cancelAndJoin()
 
-		assertTrue(received.any { it.first == sceneId && it.second.notes == "flow notes" })
+		assertTrue(received.any { it.sceneId == sceneId && it.metadata.notes == "flow notes" })
 	}
 
 	// endregion

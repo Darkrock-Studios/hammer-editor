@@ -519,6 +519,7 @@ class SceneSynchronizerTest : BaseTest() {
 			sceneEditorService.storeMetadata(
 				match { it.tags == setOf("magic", "spoiler") },
 				sceneId,
+				UpdateSource.Sync,
 			)
 		}
 	}

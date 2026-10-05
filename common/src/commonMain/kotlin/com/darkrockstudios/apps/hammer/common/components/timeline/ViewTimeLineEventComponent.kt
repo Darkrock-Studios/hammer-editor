@@ -93,11 +93,17 @@ class ViewTimeLineEventComponent(
 				withContext(mainDispatcher) {
 					val updatedEvent = timeLine.events.find { it.id == eventId }
 					if (updatedEvent != state.value.event) {
+						val isEditing = state.value.isEditing
 						_state.getAndUpdate {
 							it.copy(
 								event = updatedEvent,
-								tags = if (it.isEditing) it.tags else (updatedEvent?.tags ?: emptySet()),
+								tags = if (isEditing) it.tags else (updatedEvent?.tags ?: emptySet()),
 							)
+						}
+						// An open edit keeps its draft; otherwise follow the stored event.
+						if (!isEditing && updatedEvent != null) {
+							_contentText.update { updatedEvent.content }
+							_dateText.update { updatedEvent.date ?: "" }
 						}
 					}
 				}

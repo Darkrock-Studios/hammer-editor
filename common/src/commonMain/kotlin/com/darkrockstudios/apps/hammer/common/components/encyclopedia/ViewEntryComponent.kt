@@ -94,6 +94,21 @@ class ViewEntryComponent(
 		}
 
 		reload()
+		watchEntry()
+	}
+
+	// Follows writes made elsewhere (sync), including a rename that moves the entry's file.
+	private fun watchEntry() {
+		scope.launch {
+			encyclopediaService.entryContentChangedFlow.collect {
+				val currentDef = encyclopediaService.findEntryDef(state.value.entryDef.id)
+					?: return@collect
+				withContext(dispatcherMain) {
+					_state.getAndUpdate { it.copy(entryDef = currentDef) }
+				}
+				reload()
+			}
+		}
 	}
 
 	private fun reload() {

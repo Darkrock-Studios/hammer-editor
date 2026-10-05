@@ -9,7 +9,9 @@ import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesReposito
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataRepository
+import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataUpdate
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
 import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
@@ -49,7 +51,7 @@ class TagIndexServiceTest : BaseTest() {
 	private lateinit var eventContentChangedFlow: MutableSharedFlow<Unit>
 	private lateinit var notesListFlow: MutableSharedFlow<List<NoteContainer>>
 	private lateinit var timelineFlow: MutableSharedFlow<TimeLineContainer>
-	private lateinit var sceneMetadataUpdateFlow: MutableSharedFlow<Pair<Int, SceneMetadata>>
+	private lateinit var sceneMetadataUpdateFlow: MutableSharedFlow<SceneMetadataUpdate>
 
 	@BeforeEach
 	override fun setup() {
@@ -364,7 +366,9 @@ class TagIndexServiceTest : BaseTest() {
 		assertEquals(1, service.tagIndex.value.tagToEntities["alpha"]?.size)
 
 		stubScenes(1 to setOf("alpha"), 2 to setOf("alpha"))
-		sceneMetadataUpdateFlow.tryEmit(2 to SceneMetadata(tags = setOf("alpha")))
+		sceneMetadataUpdateFlow.tryEmit(
+			SceneMetadataUpdate(2, SceneMetadata(tags = setOf("alpha")), UpdateSource.Editor)
+		)
 		advanceUntilIdle()
 
 		assertEquals(2, service.tagIndex.value.tagToEntities["alpha"]?.size)

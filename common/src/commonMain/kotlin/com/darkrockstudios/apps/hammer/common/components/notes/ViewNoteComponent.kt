@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.notes_menu_delete
 import com.darkrockstudios.apps.hammer.notes_menu_group
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 
@@ -81,6 +82,24 @@ class ViewNoteComponent(
 		}
 
 		loadInitialContent()
+		watchNotes()
+	}
+
+	// Follows writes made elsewhere (sync). An open edit keeps its draft, only the baseline moves.
+	private fun watchNotes() {
+		scope.launch {
+			notesRepository.notesListFlow.collect { notes ->
+				val updated = notes.find { it.note.id == noteId }?.note ?: return@collect
+				withContext(dispatcherMain) {
+					if (updated == state.value.note) return@withContext
+					val isEditing = state.value.isEditing
+					_state.getAndUpdate {
+						it.copy(note = updated, tags = if (isEditing) it.tags else updated.tags)
+					}
+					if (!isEditing) _noteText.update { updated.content }
+				}
+			}
+		}
 	}
 
 	override fun onContentChanged(newContent: String) {
