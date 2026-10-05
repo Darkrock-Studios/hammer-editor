@@ -85,7 +85,7 @@ fun AboutAppUi(
 
 	val outerHorizontal: Dp = if (isCompact) Ui.Padding.XL else 56.dp
 	val outerVertical: Dp = if (isCompact) Ui.Padding.L else 28.dp
-	val sectionCount = 4 + platformAboutSectionCount
+	val sectionCount = 5 + platformAboutSectionCount
 
 	Box(modifier = modifier.fillMaxSize()) {
 		Column(
@@ -167,7 +167,12 @@ fun AboutAppUi(
 								onShowLibraries = { showLibraries = true },
 							)
 
-							PlatformAboutSection(component, section = 5)
+							ReportBugSection(
+								section = 5,
+								onReportBug = component::reportBug,
+							)
+
+							PlatformAboutSection(component, section = 6)
 
 							Spacer(Modifier.height(8.dp))
 						}

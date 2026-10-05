@@ -13,6 +13,7 @@ interface AboutApp {
 	fun openGithub()
 	fun viewChangelog()
 	fun openLatestRelease()
+	fun reportBug()
 
 	@Serializable
 	data class State(

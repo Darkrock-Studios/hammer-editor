@@ -14,6 +14,10 @@
 	<string name="about_attribution_libraries_button">Libraries</string>
 	<string name="about_attribution_studio_button">Dark Rock Studios</string>
 
+	<string name="about_report_bug_header">Report a Bug</string>
+	<string name="about_report_bug_description">Opens a new bug report on GitHub with your app version and system details filled in. Paste in the result of Copy Diagnostics below, or attach the zip from Export Logs for the full logs.</string>
+	<string name="about_report_bug_button">Report on GitHub</string>
+
 	<string name="about_version_changes_button">Changes</string>
 	<string name="about_version_github_button">GitHub Release</string>
 
