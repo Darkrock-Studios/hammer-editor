@@ -9,6 +9,7 @@
 	<string name="settings_theme_label">Тема інтерфейсу</string>
 	<string name="settings_theme_light">СВІТЛА</string>
 	<string name="settings_theme_dark">ТЕМНА</string>
+	<string name="settings_theme_oled_black">OLED</string>
 	<string name="settings_theme_followsystem">СИСТЕМНА</string>
 	<string name="settings_initial_screen_label">Початковий екран проєкту</string>
 	<string name="settings_initial_screen_home">Головна</string>
