@@ -328,6 +328,27 @@ class SceneContentRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `Discard all drops the dirty buffer of an archived scene`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		writeTempBuffer(1)
+		writeTempBuffer(3)
+
+		service.initialize()
+		assertTrue(service.archiveScene(SceneItem(projDef, SceneItem.Type.Scene, 1, "Scene ID 1", 0)))
+		assertTrue(contentRepo.hasDirtyBuffer(1))
+
+		service.discardAllBuffers()
+
+		assertFalse(contentRepo.hasDirtyBuffers())
+		assertNull(contentRepo.getSceneBuffer(1))
+		assertFalse(ffs.exists(getTempBufferPath(1)))
+		assertFalse(ffs.exists(getTempBufferPath(3)))
+	}
+
+	@Test
 	fun `Scope close keeps the temp file of an unsaved buffer`() = runTest(mainTestDispatcher) {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)

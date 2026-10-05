@@ -213,6 +213,12 @@ class SceneEditorService(
 	}
 
 	fun discardSceneBuffer(sceneDef: SceneItem) {
+		// An archived or deleted scene has no active path to reload from.
+		if (sceneEditorRepository.getSceneItemFromId(sceneDef.id) == null) {
+			sceneContentRepository.dropBuffer(sceneDef)
+			writingSessionTracker.forgetBaseline(sceneDef.id)
+			return
+		}
 		val scenePath = sceneEditorRepository.resolveSceneContentPath(sceneDef)
 		val reloaded = sceneContentRepository.discardBuffer(sceneDef, scenePath)
 		if (reloaded != null) {

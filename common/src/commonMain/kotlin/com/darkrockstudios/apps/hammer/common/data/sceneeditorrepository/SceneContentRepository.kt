@@ -216,18 +216,18 @@ class SceneContentRepository(
 	 * Drops the in-memory buffer + temp file and reloads from disk. Returns the reloaded buffer
 	 * (so the caller can re-establish a writing baseline), or null if nothing was buffered.
 	 */
-	fun discardBuffer(sceneItem: SceneItem, scenePath: HPath): SceneBuffer? {
+	fun discardBuffer(sceneItem: SceneItem, scenePath: HPath): SceneBuffer? =
+		if (dropBuffer(sceneItem)) loadBuffer(sceneItem, scenePath) else null
+
+	/** Drops the in-memory buffer + temp file without reloading. Returns whether one was buffered. */
+	fun dropBuffer(sceneItem: SceneItem): Boolean {
 		val wasPresent = sceneBuffersLock.withLock {
 			val removed = sceneBuffers.remove(sceneItem.id) != null
 			if (removed) _dirtyBufferIds.value = getDirtyBufferIds()
 			removed
 		}
-		return if (wasPresent) {
-			clearTempScene(sceneItem)
-			loadBuffer(sceneItem, scenePath)
-		} else {
-			null
-		}
+		if (wasPresent) clearTempScene(sceneItem)
+		return wasPresent
 	}
 
 	/** Stores all currently-dirty buffers to disk via [persist], one per dirty scene. */
