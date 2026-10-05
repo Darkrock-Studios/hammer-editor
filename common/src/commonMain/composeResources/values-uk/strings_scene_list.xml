@@ -16,7 +16,8 @@
 	<string name="create_sceneitem_dialog_create_button">Створити</string>
 	<string name="create_sceneitem_dialog_dismiss_button">Скасувати</string>
 	<string name="scene_list_outline_overview_title">План історії</string>
-	<string name="scene_list_outline_overview_button">Огляд плану</string>
+	<string name="scene_list_outline_button">План</string>
+	<string name="scene_list_reader_button">Read</string>
 	<string name="scene_list_outline_overview_none">&lt;немає плану&gt;</string>
 	<string name="scene_list_outline_dismiss">Закрити</string>
 	<string name="scene_list_outline_overview_eyebrow">Рукопис</string>

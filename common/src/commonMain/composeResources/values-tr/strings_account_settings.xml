@@ -10,6 +10,7 @@
 	<string name="settings_theme_label">UI Theme</string>
 	<string name="settings_theme_light">LIGHT</string>
 	<string name="settings_theme_dark">DARK</string>
+	<string name="settings_theme_oled_black">OLED</string>
 	<string name="settings_theme_followsystem">SYSTEM</string>
 	<string name="settings_initial_screen_label">Initial Project Screen</string>
 	<string name="settings_initial_screen_home">Home</string>
@@ -58,6 +59,8 @@
 	<string name="merge_projects_replace_confirm_title">Delete all local projects?</string>
 	<string name="merge_projects_replace_confirm_message">This permanently deletes every project on this device and replaces them with the projects from the server. This cannot be undone.</string>
 	<string name="merge_projects_replace_confirm_button">Delete and Replace</string>
+	<string name="settings_automatic_update_checks">Check for updates automatically</string>
+	<string name="settings_automatic_update_checks_hint">Looks for a new release on GitHub shortly after launch and every few hours. Nothing is downloaded or installed until you choose to update.</string>
 	<string name="settings_platform_settings_title">Platform Settings</string>
 	<string name="settings_platform_settings_empty">No platform-specific settings.</string>
 	<string name="settings_keep_screen_on">Keep screen on</string>
@@ -90,6 +93,7 @@
 	<string name="backup_manager_error_load_backups">Failed to load backups: %1$s</string>
 	<string name="backup_manager_error_load_project_backups">Failed to load backups for project: %1$s</string>
 	<string name="backup_manager_error_delete_backup">Failed to delete backup: %1$s</string>
+	<string name="backup_manager_error_restore_backup">Failed to restore backup: %1$s</string>
 	<string name="backup_restore_dialog_title">Restore Backup</string>
 	<string name="backup_restore_dialog_message">Warning: Restoring this backup will completely replace the current contents of the project. All existing files will be deleted and replaced with the backup data. This action cannot be undone.
 	</string>

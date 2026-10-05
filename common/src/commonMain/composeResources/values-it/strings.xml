@@ -22,6 +22,7 @@
 	<string name="confirm_dialog_negative">No</string>
 	<string name="expand">Espandi</string>
 	<string name="collapse">Comprimi</string>
+	<string name="markdown_format_bar_text_size">Text size</string>
 	<string name="markdown_format_bar_decrease_text_size">Riduci la dimensione del testo</string>
 	<string name="markdown_format_bar_increase_text_size">Aumenta la dimensione del testo</string>
 	<string name="markdown_format_bar_reset_text_size">Reimposta la dimensione del testo</string>

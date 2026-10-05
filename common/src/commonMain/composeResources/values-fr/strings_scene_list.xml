@@ -16,7 +16,8 @@
 	<string name="create_sceneitem_dialog_create_button">Créer</string>
 	<string name="create_sceneitem_dialog_dismiss_button">Annuler</string>
 	<string name="scene_list_outline_overview_title">Plan de l'histoire</string>
-	<string name="scene_list_outline_overview_button">Aperçu du plan</string>
+	<string name="scene_list_outline_button">Plan</string>
+	<string name="scene_list_reader_button">Read</string>
 	<string name="scene_list_outline_overview_none">&lt;aucun plan&gt;</string>
 	<string name="scene_list_outline_dismiss">Ignorer</string>
 	<string name="scene_list_outline_overview_eyebrow">Manuscrit</string>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+	<string name="reader_mode_section">Reader</string>
+	<string name="reader_mode_position">Chapter %1$d of %2$d</string>
+	<string name="reader_mode_edit">Edit ↗</string>
+	<string name="reader_mode_close">× Close</string>
+	<string name="reader_mode_decrease_font_size">Diminuir o tamanho do texto</string>
+	<string name="reader_mode_increase_font_size">Aumentar o tamanho do texto</string>
+	<string name="reader_mode_reset_font_size">Redefinir o tamanho do texto</string>
+	<string name="reader_mode_toggle_scene_headings">Show scene headings</string>
+	<string name="reader_mode_previous_chapter">← Previous chapter</string>
+	<string name="reader_mode_next_chapter">Next chapter →</string>
+	<string name="reader_mode_empty_chapter">This chapter has no scenes yet</string>
+	<string name="reader_mode_empty_story">There is nothing to read yet</string>
+	<string name="reader_mode_end">End of story</string>
+</resources>

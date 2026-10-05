@@ -16,7 +16,8 @@
 	<string name="create_sceneitem_dialog_create_button">Criar</string>
 	<string name="create_sceneitem_dialog_dismiss_button">Cancelar</string>
 	<string name="scene_list_outline_overview_title">Esboço da história</string>
-	<string name="scene_list_outline_overview_button">Visão geral</string>
+	<string name="scene_list_outline_button">Esboço</string>
+	<string name="scene_list_reader_button">Read</string>
 	<string name="scene_list_outline_overview_none">&lt;sem esboço&gt;</string>
 	<string name="scene_list_outline_dismiss">Descartar</string>
 	<string name="scene_list_outline_overview_eyebrow">Manuscrito</string>

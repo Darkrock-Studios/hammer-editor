@@ -9,6 +9,7 @@
 	<string name="settings_theme_label">Thème de l'interface</string>
 	<string name="settings_theme_light">CLAIR</string>
 	<string name="settings_theme_dark">SOMBRE</string>
+	<string name="settings_theme_oled_black">OLED</string>
 	<string name="settings_theme_followsystem">SYSTÈME</string>
 	<string name="settings_initial_screen_label">Écran initial du projet</string>
 	<string name="settings_initial_screen_home">Accueil</string>
@@ -55,6 +56,8 @@
 	<string name="merge_projects_replace_confirm_title">Delete all local projects?</string>
 	<string name="merge_projects_replace_confirm_message">This permanently deletes every project on this device and replaces them with the projects from the server. This cannot be undone.</string>
 	<string name="merge_projects_replace_confirm_button">Delete and Replace</string>
+	<string name="settings_automatic_update_checks">Check for updates automatically</string>
+	<string name="settings_automatic_update_checks_hint">Looks for a new release on GitHub shortly after launch and every few hours. Nothing is downloaded or installed until you choose to update.</string>
 	<string name="settings_platform_settings_title">Paramètres de la plateforme</string>
 	<string name="settings_platform_settings_empty">Aucun paramètre spécifique à la plateforme.</string>
 	<string name="settings_keep_screen_on">Garder l'écran allumé</string>
@@ -83,6 +86,7 @@
 	<string name="backup_manager_error_load_backups">Échec du chargement des sauvegardes : %1$s</string>
 	<string name="backup_manager_error_load_project_backups">Échec du chargement des sauvegardes du projet : %1$s</string>
 	<string name="backup_manager_error_delete_backup">Échec de la suppression de la sauvegarde : %1$s</string>
+	<string name="backup_manager_error_restore_backup">Failed to restore backup: %1$s</string>
 	<string name="backup_restore_dialog_title">Restaurer la sauvegarde</string>
 	<string name="backup_restore_dialog_message">Avertissement : la restauration de cette sauvegarde remplacera entièrement le contenu actuel du projet. Tous les fichiers existants seront supprimés et remplacés par les données de la sauvegarde. Cette action est irréversible.</string>
 	<string name="backup_restore_dialog_confirm">Restaurer</string>
