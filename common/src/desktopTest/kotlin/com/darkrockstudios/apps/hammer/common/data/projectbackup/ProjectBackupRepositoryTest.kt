@@ -378,6 +378,51 @@ class ProjectBackupRepositoryTest {
 	}
 
 	@Test
+	fun `restoreBackup puts the project files back at the root of the project directory`() = runTest {
+		every { clock.now() } returns Instant.parse("2025-12-28T16:29:00Z")
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+		every { projectsRepository.getProjectDirectory("Test Project") } returns
+			"/projects/Test Project".toPath().toHPath()
+		every { globalSettingsStore.globalSettings } returns
+			GlobalSettings(projectsDirectory = "/projects", maxBackups = 5)
+
+		val projectDir = "/projects/Test Project".toPath()
+		fileSystem.createDirectories(projectDir / "scenes")
+		fileSystem.write(projectDir / "project.toml") { writeUtf8("original") }
+		fileSystem.write(projectDir / "scenes" / "scene.md") { writeUtf8("once upon a time") }
+
+		val repo = realRepo()
+		val projectDef = ProjectDef("Test Project", projectDir.toHPath())
+		val backupDef = repo.createBackup(projectDef)
+		assertNotNull(backupDef)
+
+		fileSystem.write(projectDir / "project.toml") { writeUtf8("changed") }
+
+		assertTrue(repo.restoreBackup(backupDef, projectDef.path))
+
+		assertEquals("original", fileSystem.read(projectDir / "project.toml") { readUtf8() })
+		assertEquals("once upon a time", fileSystem.read(projectDir / "scenes" / "scene.md") { readUtf8() })
+		assertFalse(fileSystem.exists(projectDir / "Test Project"), "Project must not be nested inside itself")
+	}
+
+	@Test
+	fun `getBackedUpProjects includes projects that no longer exist`() {
+		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
+
+		val kept = ProjectDef("Kept", "/projects/Kept".toPath().toHPath())
+		val noBackups = ProjectDef("No Backups", "/projects/No Backups".toPath().toHPath())
+		val deleted = ProjectDef("Deleted", "/projects/Deleted".toPath().toHPath())
+		every { projectsRepository.getProjects(any()) } returns listOf(kept, noBackups)
+		every { projectsRepository.getProjectDefinition("Deleted") } returns deleted
+
+		writeBackupFile("Kept", Instant.parse("2025-12-26T10:00:00Z"))
+		writeBackupFile("Deleted", Instant.parse("2025-12-26T10:00:00Z"))
+		writeBackupFile("Deleted", Instant.parse("2025-12-27T10:00:00Z"))
+
+		assertEquals(listOf(kept, deleted), realRepo().getBackedUpProjects())
+	}
+
+	@Test
 	fun `restoreBackup returns false when the backup file is missing`() = runTest {
 		every { projectsRepository.getProjectsDirectory() } returns "/projects".toPath().toHPath()
 
