@@ -73,6 +73,8 @@ class EncyclopediaService(
 
 	val entryListFlow: SharedFlow<List<EntryDef>> get() = repository.entryListFlow
 
+	val entryChangedFlow: SharedFlow<Int> get() = repository.entryChangedFlow
+
 	fun loadEntries() = repository.loadEntries()
 
 	suspend fun ensureEntriesLoaded(): List<EntryDef> = repository.ensureEntriesLoaded()

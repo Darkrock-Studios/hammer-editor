@@ -77,11 +77,11 @@ class AutoConfirmReferencesUseCaseTest : BaseTest() {
 		} returns listOf(EntrySuggestion(entryId = 42, matchedAlias = "Bob"))
 
 		val storedSlot = slot<SceneMetadata>()
-		coEvery { sceneEditor.storeMetadata(capture(storedSlot), sceneItem.id) } returns Unit
+		coEvery { sceneEditor.storeMetadata(capture(storedSlot), sceneItem.id, any()) } returns Unit
 
 		useCase(sceneItem)
 
-		coVerify(exactly = 1) { sceneEditor.storeMetadata(any(), sceneItem.id) }
+		coVerify(exactly = 1) { sceneEditor.storeMetadata(any(), sceneItem.id, any()) }
 		assertEquals(setOf(42), storedSlot.captured.confirmedReferences)
 	}
 
@@ -96,7 +96,7 @@ class AutoConfirmReferencesUseCaseTest : BaseTest() {
 		} returns listOf(EntrySuggestion(entryId = 42, matchedAlias = "Bob"))
 
 		val storedSlot = slot<SceneMetadata>()
-		coEvery { sceneEditor.storeMetadata(capture(storedSlot), sceneItem.id) } returns Unit
+		coEvery { sceneEditor.storeMetadata(capture(storedSlot), sceneItem.id, any()) } returns Unit
 
 		useCase(sceneItem)
 
@@ -114,7 +114,7 @@ class AutoConfirmReferencesUseCaseTest : BaseTest() {
 
 		useCase(sceneItem)
 
-		coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any()) }
+		coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any(), any()) }
 	}
 
 	@Test
@@ -128,7 +128,7 @@ class AutoConfirmReferencesUseCaseTest : BaseTest() {
 		coVerify(exactly = 0) {
 			referenceIndexService.computeAutoReferencesForScene(any(), any(), any())
 		}
-		coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any()) }
+		coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any(), any()) }
 	}
 
 	@Test
@@ -145,7 +145,7 @@ class AutoConfirmReferencesUseCaseTest : BaseTest() {
 		} returns listOf(EntrySuggestion(entryId = 42, matchedAlias = "Bob"))
 
 		val storedSlot = slot<SceneMetadata>()
-		coEvery { sceneEditor.storeMetadata(capture(storedSlot), sceneItem.id) } returns Unit
+		coEvery { sceneEditor.storeMetadata(capture(storedSlot), sceneItem.id, any()) } returns Unit
 
 		useCase(sceneItem)
 

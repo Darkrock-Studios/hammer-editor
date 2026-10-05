@@ -148,9 +148,14 @@ class SceneEditorService(
 	/**
 	 * Orchestrates a scene-metadata write: mark the scene's current identity for sync, persist
 	 * via [SceneMetadataRepository], then apply the reference-index delta if the confirmed set
-	 * changed. The repo handles only the pure persist + flow emission.
+	 * changed. The repo handles only the pure persist + flow emission. A write applying server
+	 * state ([UpdateSource.Sync]) is not a local change, so it is not marked.
 	 */
-	suspend fun storeMetadata(metadata: SceneMetadata, sceneId: Int) {
+	suspend fun storeMetadata(
+		metadata: SceneMetadata,
+		sceneId: Int,
+		source: UpdateSource = UpdateSource.Editor,
+	) {
 		// A flush can arrive after the scene was deleted (e.g. the metadata panel's save on
 		// destroy). Nothing to persist for a scene that no longer exists.
 		val scene = sceneEditorRepository.getSceneItemFromIdIncludingArchived(sceneId)
@@ -158,8 +163,8 @@ class SceneEditorService(
 
 		val previous = sceneMetadataRepository.loadRawMetadata(sceneId)
 
-		sceneEditorRepository.markSceneForSynchronization(scene)
-		sceneMetadataRepository.storeMetadata(metadata, sceneId)
+		if (source != UpdateSource.Sync) sceneEditorRepository.markSceneForSynchronization(scene)
+		sceneMetadataRepository.storeMetadata(metadata, sceneId, source)
 
 		val previousConfirmed = previous?.confirmedReferences.orEmpty()
 		val newConfirmed = metadata.confirmedReferences
@@ -239,7 +244,7 @@ class SceneEditorService(
 	) { tree, dirtyBufferIds -> SceneSummary(tree, dirtyBufferIds) }
 		.shareIn(serviceScope, SharingStarted.Eagerly, replay = 1)
 
-	val metadataUpdateFlow: SharedFlow<Pair<Int, SceneMetadata>>
+	val metadataUpdateFlow: SharedFlow<SceneMetadataUpdate>
 		get() = sceneMetadataRepository.metadataUpdateFlow
 
 	fun getSceneSummaries(): SceneSummary = SceneSummary(

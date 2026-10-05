@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectInject
 import com.darkrockstudios.apps.hammer.notes_menu_delete
 import com.darkrockstudios.apps.hammer.notes_menu_group
 import io.github.aakira.napier.Napier
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 
@@ -50,6 +51,8 @@ class ViewNoteComponent(
 	private val _noteText = MutableValue(restoredDraft?.noteText ?: "")
 	override val noteText: Value<String> = _noteText
 
+	private var dismissed = false
+
 	private val backButtonHandler = BackCallback(isEnabled = false) {
 		if (isEditingAndDirty()) {
 			confirmDiscard()
@@ -81,6 +84,29 @@ class ViewNoteComponent(
 		}
 
 		loadInitialContent()
+		watchNotes()
+	}
+
+	// Follows writes made elsewhere (sync). A dirty edit keeps its draft, only the baseline moves.
+	private fun watchNotes() {
+		scope.launch {
+			notesRepository.notesListFlow.collect { notes ->
+				val updated = notes.find { it.note.id == noteId }?.note
+				withContext(dispatcherMain) {
+					if (updated == null) {
+						// Deleted elsewhere. A dirty edit stays open so its draft isn't lost.
+						if (state.value.note != null && !isEditingAndDirty()) dismiss()
+						return@withContext
+					}
+					if (updated == state.value.note) return@withContext
+					val keepDraft = isEditingAndDirty()
+					_state.getAndUpdate {
+						it.copy(note = updated, tags = if (keepDraft) it.tags else updated.tags)
+					}
+					if (!keepDraft) _noteText.update { updated.content }
+				}
+			}
+		}
 	}
 
 	override fun onContentChanged(newContent: String) {
@@ -136,7 +162,7 @@ class ViewNoteComponent(
 	override suspend fun deleteNote(id: Int) = withContext(dispatcherDefault) {
 		notesRepository.deleteNote(id)
 		notesRepository.loadNotes()
-		withContext(dispatcherMain) { dismissView() }
+		withContext(dispatcherMain) { dismiss() }
 	}
 
 	override fun confirmDelete() {
@@ -149,6 +175,12 @@ class ViewNoteComponent(
 
 	override fun closeNote() {
 		if (state.value.isEditing) discardEdit()
+		dismiss()
+	}
+
+	private fun dismiss() {
+		if (dismissed) return
+		dismissed = true
 		dismissView()
 	}
 

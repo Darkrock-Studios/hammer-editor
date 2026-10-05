@@ -3,6 +3,7 @@ package components.notes
 import com.darkrockstudios.apps.hammer.common.components.notes.ViewNoteComponent
 import com.darkrockstudios.apps.hammer.common.data.MenuDescriptor
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.NotesRepository
+import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContainer
 import com.darkrockstudios.apps.hammer.common.data.notesrepository.note.NoteContent
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_DEFAULT
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.DISPATCHER_MAIN
@@ -11,8 +12,11 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -29,9 +33,11 @@ import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 import kotlin.time.Instant
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class ViewNoteComponentTest : ComponentTest() {
 
 	private lateinit var notesRepository: NotesRepository
+	private lateinit var notesListFlow: MutableSharedFlow<List<NoteContainer>>
 
 	private var dismissViewCount = 0
 	private var searchedTag: String? = null
@@ -43,6 +49,8 @@ class ViewNoteComponentTest : ComponentTest() {
 		super.setup()
 
 		notesRepository = mockk(relaxed = true)
+		notesListFlow = MutableSharedFlow(replay = 1)
+		every { notesRepository.notesListFlow } returns notesListFlow
 		setupComponentKoin(module {
 			single { notesRepository } bind NotesRepository::class
 		})
@@ -99,6 +107,96 @@ class ViewNoteComponentTest : ComponentTest() {
 			assertEquals("late", comp.noteText.value)
 			assertEquals(note(content = "late"), comp.state.value.note)
 		}
+
+	@Test
+	fun `a note changed elsewhere refreshes the open view`() = runTest(mainTestDispatcher) {
+		val comp = startWith(note(content = "orig", tags = setOf("a")))
+		advanceUntilIdle()
+
+		val synced = note(content = "from server", tags = setOf("b"))
+		notesListFlow.emit(listOf(NoteContainer(synced)))
+		advanceUntilIdle()
+
+		assertEquals(synced, comp.state.value.note)
+		assertEquals("from server", comp.noteText.value)
+		assertEquals(setOf("b"), comp.state.value.tags)
+	}
+
+	@Test
+	fun `a note changed elsewhere while editing keeps the draft and moves the baseline`() =
+		runTest(mainTestDispatcher) {
+			val comp = startWith(note(content = "orig", tags = setOf("a")))
+			comp.beginEdit()
+			comp.onContentChanged("my draft")
+			comp.onTagsChanged(setOf("wip"))
+			advanceUntilIdle()
+
+			val synced = note(content = "from server", tags = setOf("b"))
+			notesListFlow.emit(listOf(NoteContainer(synced)))
+			advanceUntilIdle()
+
+			assertTrue(comp.state.value.isEditing)
+			assertEquals("my draft", comp.noteText.value)
+			assertEquals(setOf("wip"), comp.state.value.tags)
+			assertEquals(synced, comp.state.value.note)
+
+			comp.discardEdit()
+			assertEquals("from server", comp.noteText.value)
+			assertEquals(setOf("b"), comp.state.value.tags)
+		}
+
+	@Test
+	fun `a note changed elsewhere replaces an untouched edit`() = runTest(mainTestDispatcher) {
+		val comp = startWith(note(content = "orig", tags = setOf("a")))
+		comp.beginEdit()
+		advanceUntilIdle()
+
+		val synced = note(content = "from server", tags = setOf("b"))
+		notesListFlow.emit(listOf(NoteContainer(synced)))
+		advanceUntilIdle()
+
+		assertTrue(comp.state.value.isEditing)
+		assertEquals("from server", comp.noteText.value)
+		assertEquals(setOf("b"), comp.state.value.tags)
+		assertFalse(comp.isEditingAndDirty())
+	}
+
+	@Test
+	fun `a note deleted elsewhere closes the view`() = runTest(mainTestDispatcher) {
+		startWith(note())
+		advanceUntilIdle()
+
+		notesListFlow.emit(emptyList())
+		advanceUntilIdle()
+
+		assertEquals(1, dismissViewCount)
+	}
+
+	@Test
+	fun `a note deleted elsewhere while a dirty edit is open stays open`() = runTest(mainTestDispatcher) {
+		val comp = startWith(note(content = "orig"))
+		comp.beginEdit()
+		comp.onContentChanged("my draft")
+		advanceUntilIdle()
+
+		notesListFlow.emit(emptyList())
+		advanceUntilIdle()
+
+		assertEquals(0, dismissViewCount)
+		assertEquals("my draft", comp.noteText.value)
+	}
+
+	@Test
+	fun `deleting the open note dismisses only once`() = runTest(mainTestDispatcher) {
+		val comp = startWith(note())
+		advanceUntilIdle()
+
+		comp.deleteNote(1)
+		notesListFlow.emit(emptyList())
+		advanceUntilIdle()
+
+		assertEquals(1, dismissViewCount)
+	}
 
 	@Test
 	fun `deleteNote invokes dismissView on the main dispatcher`() {

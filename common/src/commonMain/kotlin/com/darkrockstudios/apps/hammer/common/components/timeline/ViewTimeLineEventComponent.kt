@@ -93,11 +93,17 @@ class ViewTimeLineEventComponent(
 				withContext(mainDispatcher) {
 					val updatedEvent = timeLine.events.find { it.id == eventId }
 					if (updatedEvent != state.value.event) {
+						val keepDraft = isEditingAndDirty()
 						_state.getAndUpdate {
 							it.copy(
 								event = updatedEvent,
-								tags = if (it.isEditing) it.tags else (updatedEvent?.tags ?: emptySet()),
+								tags = if (keepDraft) it.tags else (updatedEvent?.tags ?: emptySet()),
 							)
+						}
+						// A dirty edit keeps its draft; otherwise follow the stored event.
+						if (!keepDraft && updatedEvent != null) {
+							_contentText.update { updatedEvent.content }
+							_dateText.update { updatedEvent.date ?: "" }
 						}
 					}
 				}
@@ -238,7 +244,7 @@ class ViewTimeLineEventComponent(
 		// Baseline not loaded yet (e.g. restored mid-edit): assume dirty so we don't silently discard.
 		val event = state.value.event ?: return true
 		return event.content != contentText.value ||
-			event.date != dateText.value ||
+			(event.date ?: "") != dateText.value ||
 			event.tags != state.value.tags
 	}
 

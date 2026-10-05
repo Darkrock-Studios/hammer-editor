@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScop
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -57,6 +58,7 @@ class EncyclopediaComponentTest : ComponentTest() {
 
 		encyclopediaService = mockk(relaxed = true)
 		every { encyclopediaService.entryListFlow } returns MutableStateFlow(emptyList<EntryDef>())
+		every { encyclopediaService.entryChangedFlow } returns MutableSharedFlow()
 		every { encyclopediaService.loadEntry(any<EntryDef>()) } returns EntryContainer(entryContent)
 		every { encyclopediaService.findEntryImagePath(any()) } returns null
 		every { encyclopediaService.findEntryImageExtension(any()) } returns null

@@ -540,6 +540,7 @@ class SceneEditorComponentTest : ComponentTest() {
 		sceneTreeCallback.captured.invoke(SceneSummary(treeOf(renamed), persistentSetOf()))
 
 		assertEquals("Renamed Externally", comp.state.value.sceneItem.name)
+		assertEquals("Renamed Externally", comp.sceneMetadataComponent.state.value.sceneItem.name)
 	}
 
 	@Test
