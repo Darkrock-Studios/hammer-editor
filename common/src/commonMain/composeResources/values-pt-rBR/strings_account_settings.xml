@@ -84,6 +84,7 @@
 	<string name="backup_manager_error_load_backups">Falha ao carregar 'backups': %1$s</string>
 	<string name="backup_manager_error_load_project_backups">Falha ao carregar 'backups' para o projeto: %1$s</string>
 	<string name="backup_manager_error_delete_backup">Falha ao excluir 'backup': %1$s</string>
+	<string name="backup_manager_error_restore_backup">Failed to restore backup: %1$s</string>
 	<string name="backup_restore_dialog_title">Restaurar 'Backup'</string>
 	<string name="backup_restore_dialog_message">Aviso: Restaurar este 'backup' substituirá completamente o conteúdo atual do projeto. Todos os arquivos existentes serão apagados e substituídos pelos dados de 'backup'. Esta ação não pode ser desfeita.</string>
 	<string name="backup_restore_dialog_confirm">Restaurar</string>
