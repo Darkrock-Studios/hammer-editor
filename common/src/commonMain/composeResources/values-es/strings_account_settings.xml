@@ -84,6 +84,7 @@
 	<string name="backup_manager_error_load_backups">No se pudieron cargar las copias de seguridad: %1$s</string>
 	<string name="backup_manager_error_load_project_backups">No se pudieron cargar las copias de seguridad del proyecto: %1$s</string>
 	<string name="backup_manager_error_delete_backup">No se pudo eliminar la copia de seguridad: %1$s</string>
+	<string name="backup_manager_error_restore_backup">Failed to restore backup: %1$s</string>
 	<string name="backup_restore_dialog_title">Restaurar copia de seguridad</string>
 	<string name="backup_restore_dialog_message">Advertencia: restaurar esta copia de seguridad reemplazará por completo el contenido actual del proyecto. Todos los archivos existentes se eliminarán y se reemplazarán con los datos de la copia de seguridad. Esta acción no se puede deshacer.</string>
 	<string name="backup_restore_dialog_confirm">Restaurar</string>
