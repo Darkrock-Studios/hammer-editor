@@ -3,6 +3,7 @@ package com.darkrockstudios.apps.hammer.common.components.projecthome
 import com.darkrockstudios.apps.hammer.base.http.projectdata.ProjectData
 import com.darkrockstudios.apps.hammer.common.data.ExportFormat
 import com.darkrockstudios.apps.hammer.common.data.ExportOptions
+import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.projectdata.ProjectDataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.tree.ChapterScenes
@@ -195,9 +196,14 @@ class ExportStoryUseCase(
 		if (sceneFilter != null && included.isEmpty()) return null
 		return StoryChapter(
 			name = chapter.chapter.name,
-			markdown = included.joinToString(sceneSeparator(options)) { sceneEditorRepository.loadSceneMarkdownRaw(it) },
+			markdown = included.joinToString(sceneSeparator(options)) { currentMarkdown(it) },
 		)
 	}
+
+	/** The scene as the editor shows it: an unsaved buffer wins over the file on disk. */
+	private fun currentMarkdown(scene: SceneItem): String =
+		sceneEditorRepository.getSceneBuffer(scene)?.content?.coerceMarkdown()
+			?: sceneEditorRepository.loadSceneMarkdownRaw(scene)
 
 	/**
 	 * What goes between two scenes. A renderer that drops lone blank lines still keeps a run of two,

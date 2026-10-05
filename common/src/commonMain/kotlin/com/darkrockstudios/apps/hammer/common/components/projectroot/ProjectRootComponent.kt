@@ -80,6 +80,9 @@ class ProjectRootComponent(
 	private val _backEnabled = MutableValue(true)
 	override val backEnabled = _backEnabled
 
+	private val _unsavedBuffers = MutableValue(false)
+	override val unsavedBuffers: Value<Boolean> = _unsavedBuffers
+
 	override fun onBack() {
 		router.onBack()
 	}
@@ -122,7 +125,9 @@ class ProjectRootComponent(
 	override fun onCreate() {
 		super.onCreate()
 
+		_unsavedBuffers.value = sceneEditor.hasDirtyBuffers()
 		sceneEditor.subscribeToBufferUpdates(null, scope) {
+			_unsavedBuffers.value = sceneEditor.hasDirtyBuffers()
 			updateCloseConfirmRequirement()
 		}
 

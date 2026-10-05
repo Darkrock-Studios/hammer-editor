@@ -306,6 +306,67 @@ class SceneContentRepositoryTest : BaseTest() {
 	}
 
 	@Test
+	fun `Discard all dirty buffers`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		writeTempBuffer(1)
+		writeTempBuffer(3)
+
+		service.initialize()
+		assertTrue(contentRepo.hasDirtyBuffers())
+
+		service.discardAllBuffers()
+
+		assertFalse(contentRepo.hasDirtyBuffers())
+		assertFalse(ffs.exists(getTempBufferPath(1)))
+		assertFalse(ffs.exists(getTempBufferPath(3)))
+		ffs.read(repo.getSceneFilePath(1).toOkioPath()) {
+			assertEquals("Content of scene id 1", readUtf8())
+		}
+	}
+
+	@Test
+	fun `Scope close keeps the temp file of an unsaved buffer`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		writeTempBuffer(1)
+		writeTempBuffer(3)
+
+		service.initialize()
+		service.storeSceneBuffer(SceneItem(projDef, SceneItem.Type.Scene, 3, "Scene ID 3", 0))
+		// A temp file whose buffer is clean, as a sync download leaves behind.
+		writeTempBuffer(3)
+
+		contentRepo.onScopeClose(mockk())
+
+		ffs.read(getTempBufferPath(1)) {
+			assertEquals(content(1), readUtf8())
+		}
+		assertFalse(ffs.exists(getTempBufferPath(3)))
+	}
+
+	@Test
+	fun `Unsaved buffer survives a scope close and reopen`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		writeTempBuffer(1)
+		service.initialize()
+		contentRepo.onScopeClose(mockk())
+
+		createStack(projDef)
+		service.initialize()
+
+		assertTrue(contentRepo.hasDirtyBuffer(1))
+		assertEquals(content(1), contentRepo.getSceneBuffer(1)?.content?.markdown)
+	}
+
+	@Test
 	fun `Store all dirty buffers`() = runTest(mainTestDispatcher) {
 		val projDef = getProject1Def()
 		createProject(ffs, PROJECT_1_NAME)

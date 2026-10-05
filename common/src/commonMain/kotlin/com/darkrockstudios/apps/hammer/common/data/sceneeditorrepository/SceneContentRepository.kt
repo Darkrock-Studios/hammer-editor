@@ -268,10 +268,12 @@ class SceneContentRepository(
 			} ?: Napier.w("Timed out waiting for temp scene saves on close; forcing shutdown.")
 		}
 		editorScope.cancel("Editor Closed")
-		// During a proper shutdown, we clear any remaining temp buffers that haven't been saved yet
-		sceneDatasource.getSceneTempBufferContents().forEach {
-			clearTempScene(it.scene)
-		}
+		// Thar be dragons: a scope can close without the user choosing Save or Discard, and a dirty
+		// buffer's temp file is the only durable copy of that work. Only clean buffers are cleared.
+		val dirtyIds = getDirtyBufferIds()
+		sceneDatasource.getSceneTempBufferContents()
+			.filterNot { it.scene.id in dirtyIds }
+			.forEach { clearTempScene(it.scene) }
 		Napier.i("SceneContentRepository Closed.")
 	}
 
