@@ -220,6 +220,11 @@ class SceneEditorService(
 		}
 	}
 
+	/** Reverts every dirty buffer to its on-disk content. */
+	fun discardAllBuffers() {
+		sceneContentRepository.getDirtyBufferScenes().forEach { discardSceneBuffer(it) }
+	}
+
 	fun onContentChanged(content: SceneContent, source: UpdateSource) =
 		sceneContentRepository.onContentChanged(content, source)
 

@@ -317,6 +317,7 @@ val fakeViewEntryComponent: ViewEntry = object : ViewEntry {
 	override fun startTextEdit() {}
 	override fun finishNameEdit() {}
 	override fun finishTextEdit() {}
+	override fun discardEdit() {}
 	override fun confirmClose() {}
 	override fun dismissConfirmClose() {}
 	override fun removeTag(tag: String) {}

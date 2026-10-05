@@ -59,19 +59,24 @@ class NotesComponent(
 	}
 
 	override fun shouldConfirmClose(): Set<CloseConfirm> {
-		val unsaved = when (val destination = stack.value.active.instance) {
-			is Notes.Destination.CreateNoteDestination -> true
-			is Notes.Destination.ViewNoteDestination -> {
-				destination.component.isEditingAndDirty()
-			}
+		val unsaved = stack.value.items.any { isUnsaved(it.instance) }
+		return if (unsaved) setOf(CloseConfirm.Notes) else emptySet()
+	}
 
-			else -> false
+	private fun isUnsaved(destination: Notes.Destination) = when (destination) {
+		is Notes.Destination.CreateNoteDestination -> true
+		is Notes.Destination.ViewNoteDestination -> destination.component.isEditingAndDirty()
+		else -> false
+	}
+
+	override fun discardUnsaved(item: CloseConfirm) {
+		if (item != CloseConfirm.Notes) return
+		stack.value.items.forEach { child ->
+			val view = child.instance as? Notes.Destination.ViewNoteDestination ?: return@forEach
+			if (view.component.state.value.isEditing) view.component.discardEdit()
 		}
-
-		return if (unsaved) {
-			setOf(CloseConfirm.Notes)
-		} else {
-			emptySet()
+		if (stack.value.active.instance is Notes.Destination.CreateNoteDestination) {
+			navigation.pop()
 		}
 	}
 

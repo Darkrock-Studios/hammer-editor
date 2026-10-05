@@ -66,9 +66,9 @@ fun ProjectRootScaffold(
 		if (shouldConfirmClose.isNotEmpty()) {
 			when (shouldConfirmClose.first()) {
 				CloseConfirm.Scenes -> ConfirmUnsavedScenesDialog(component, coroutineScope)
-				CloseConfirm.Notes -> ConfirmCloseUnsavedNotesDialog(component)
-				CloseConfirm.Encyclopedia -> ConfirmCloseUnsavedEncyclopediaDialog(component)
-				CloseConfirm.Timeline -> ConfirmCloseUnsavedTimelineDialog(component)
+				CloseConfirm.Notes -> ConfirmCloseUnsavedNotesDialog(component, coroutineScope)
+				CloseConfirm.Encyclopedia -> ConfirmCloseUnsavedEncyclopediaDialog(component, coroutineScope)
+				CloseConfirm.Timeline -> ConfirmCloseUnsavedTimelineDialog(component, coroutineScope)
 				CloseConfirm.Sync -> component.showProjectSync()
 				CloseConfirm.Complete -> onCloseRequest()
 			}

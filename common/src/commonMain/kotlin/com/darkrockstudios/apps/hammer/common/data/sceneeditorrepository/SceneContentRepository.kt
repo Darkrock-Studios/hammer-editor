@@ -165,7 +165,7 @@ class SceneContentRepository(
 			.toPersistentSet()
 	}
 
-	private fun getDirtyBufferScenes(): List<SceneItem> = sceneBuffersLock.withLock {
+	fun getDirtyBufferScenes(): List<SceneItem> = sceneBuffersLock.withLock {
 		sceneBuffers.filter { it.value.dirty }.map { it.value.content.scene }
 	}
 

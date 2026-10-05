@@ -31,7 +31,7 @@ internal class ProjectRootRouter(
 	private val addMenu: (menu: MenuDescriptor) -> Unit,
 	private val removeMenu: (id: String) -> Unit,
 	private val updateShouldClose: () -> Unit,
-	private val showProjectSync: () -> Unit,
+	private val requestProjectSync: () -> Unit,
 	private val showGlobalSearch: () -> Unit,
 	private val onShowGlobalSearchForTag: (String) -> Unit,
 	private val showFocusMode: (SceneItem) -> Unit,
@@ -149,7 +149,7 @@ internal class ProjectRootRouter(
 		return ProjectHomeComponent(
 			componentContext = componentContext,
 			projectDef = config.projectDef,
-			showProjectSync = showProjectSync,
+			requestProjectSync = requestProjectSync,
 			onShowGlobalSearch = showGlobalSearch,
 			onShowGlobalSearchForTag = onShowGlobalSearchForTag,
 			onShowScene = showScene,
@@ -188,6 +188,10 @@ internal class ProjectRootRouter(
 		return state.value.items.flatMap {
 			it.instance.shouldConfirmClose()
 		}.toSet()
+	}
+
+	override fun discardUnsaved(item: CloseConfirm) {
+		state.value.items.forEach { it.instance.discardUnsaved(item) }
 	}
 
 	fun onBack() {

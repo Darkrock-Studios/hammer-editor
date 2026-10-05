@@ -237,6 +237,12 @@ class ViewEntryComponent(
 		}
 	}
 
+	override fun discardEdit() {
+		_state.getAndUpdate {
+			it.copy(editName = false, editText = false, confirmClose = false)
+		}
+	}
+
 	/**
 	 * Saves the entry as [transform] of its current content, sourcing unchanged fields from
 	 * the loaded state or, if the async load hasn't landed yet, straight from disk - so a

@@ -20,6 +20,7 @@ import org.koin.dsl.bind
 import org.koin.dsl.module
 import utils.ComponentTest
 import kotlin.test.assertEquals
+import kotlin.test.assertIs
 
 class TimeLineComponentTest : ComponentTest() {
 
@@ -100,4 +101,38 @@ class TimeLineComponentTest : ComponentTest() {
 
 			assertEquals(setOf(CloseConfirm.Timeline), component.shouldConfirmClose())
 		}
+
+	@Test
+	fun `discardUnsaved reverts a dirty timeline event edit`() = runTest(mainTestDispatcher) {
+		val component = newComponent()
+		context.resume()
+		component.showViewEvent(event.id)
+		advanceUntilIdle()
+
+		val viewEvent = viewEvent(component)
+		viewEvent.beginEdit()
+		viewEvent.onEventTextChanged("a different body")
+		advanceUntilIdle()
+
+		component.discardUnsaved(CloseConfirm.Timeline)
+		advanceUntilIdle()
+
+		assertEquals(emptySet<CloseConfirm>(), component.shouldConfirmClose())
+		assertEquals(event.content, viewEvent.contentText.value)
+	}
+
+	@Test
+	fun `discardUnsaved pops an open create event screen`() = runTest(mainTestDispatcher) {
+		val component = newComponent()
+		context.resume()
+		component.showCreateEvent()
+		advanceUntilIdle()
+		assertEquals(setOf(CloseConfirm.Timeline), component.shouldConfirmClose())
+
+		component.discardUnsaved(CloseConfirm.Timeline)
+		advanceUntilIdle()
+
+		assertIs<TimeLine.Destination.TimeLineOverviewDestination>(component.stack.value.active.instance)
+		assertEquals(emptySet<CloseConfirm>(), component.shouldConfirmClose())
+	}
 }
