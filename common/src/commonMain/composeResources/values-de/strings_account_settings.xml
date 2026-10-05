@@ -84,6 +84,7 @@
 	<string name="backup_manager_error_load_backups">Fehler beim Laden der Backups: %1$s</string>
 	<string name="backup_manager_error_load_project_backups">Fehler beim Laden der Backups für das Projekt: %1$s</string>
 	<string name="backup_manager_error_delete_backup">Fehler beim Löschen der Backups: %1$s</string>
+	<string name="backup_manager_error_restore_backup">Failed to restore backup: %1$s</string>
 	<string name="backup_restore_dialog_title">Backup wiederherstellen</string>
 	<string name="backup_restore_dialog_message">Warnung: Das Wiederherstellen dieses Backups ersetzt den aktuellen Inhalt des Projekts vollständig. Alle vorhandenen Dateien werden gelöscht und mit den Backup-Daten ersetzt. Diese Aktion kann nicht rückgängig gemacht werden.</string>
 	<string name="backup_restore_dialog_confirm">Wiederherstellen</string>
