@@ -25,6 +25,9 @@ data class ExportOptions(
 	/** Prefixes each chapter title with its position ("1. Title"). */
 	val numberChapters: Boolean = true,
 	val font: ExportFont = ExportFont.Georgia,
-	/** Keeps the blank lines the author typed between paragraphs; off leaves the indent as the only separator. */
+	/**
+	 * Keeps the blank lines the author typed between paragraphs. Off drops a lone blank line, leaving the
+	 * indent as the separator, while a run of two or more still leaves one break.
+	 */
 	val keepBlankLines: Boolean = true,
 )

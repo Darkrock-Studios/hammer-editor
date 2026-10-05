@@ -296,6 +296,25 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	@Test
+	fun `scene breaks survive when blank lines are skipped`() = runTest {
+		initRepo()
+		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Test Author"))
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(
+				format = ExportFormat.Rtf,
+				keepBlankLines = false,
+				sceneIds = setOf(3, 4),
+			),
+		)
+
+		val rtf = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		// \fi360 opens a body paragraph: the two scenes and the break between them.
+		assertEquals(3, Regex("""\\fi360""").findAll(rtf).count(), rtf)
+	}
+
+	@Test
 	fun `scene filter drops chapters with no selected scenes`() = runTest {
 		initRepo()
 

@@ -32,7 +32,8 @@ object ProseHtml {
 
 	/**
 	 * The generating providers [flavour] would use, with prose layout applied. Pass the result to
-	 * [HtmlGenerator]. With [keepBlankLines] off, blank lines between paragraphs produce nothing.
+	 * [HtmlGenerator]. With [keepBlankLines] off, a lone blank line between paragraphs produces
+	 * nothing and a run of two or more produces a single break.
 	 */
 	fun providers(
 		flavour: MarkdownFlavourDescriptor,
@@ -122,8 +123,13 @@ private class ProseContainerProvider(
 				MarkdownTokenTypes.WHITE_SPACE, MarkdownTokenTypes.BLOCK_QUOTE -> Unit
 				else -> {
 					val isParagraph = child.type == MarkdownElementTypes.PARAGRAPH
-					if (keepBlankLines && afterParagraph && isParagraph) {
-						val breaks = (newlines - 1).coerceIn(0, ProseHtml.MAX_CONSECUTIVE_BREAKS)
+					if (afterParagraph && isParagraph) {
+						val blanks = (newlines - 1).coerceIn(0, ProseHtml.MAX_CONSECUTIVE_BREAKS)
+						val breaks = when {
+							keepBlankLines -> blanks
+							blanks >= 2 -> 1
+							else -> 0
+						}
 						repeat(breaks) { visitor.consumeHtml(BREAK) }
 					}
 					child.accept(visitor)

@@ -122,13 +122,29 @@ internal sealed interface ProseBlock {
  * starts a new [ProseBlock.Paragraph] and every blank line becomes a [ProseBlock.Blank]. CommonMark
  * would reflow both away, turning a page of dialogue into one packed block.
  *
- * With [keepBlankLines] off the blank lines are dropped, leaving paragraphs to run together.
+ * With [keepBlankLines] off a lone blank line is dropped, leaving paragraphs to run together, and a
+ * run of two or more is reduced to one: the break between passages or scenes.
  */
 internal fun parseProseMarkdown(markdown: String, keepBlankLines: Boolean = true): List<ProseBlock> {
 	val source = ProseHtml.normalizeLineEndings(markdown)
 	val root = MarkdownParser(GFMFlavourDescriptor()).buildMarkdownTreeFromString(source)
 	val blocks = ProseWalker(source).blocks(root)
-	return if (keepBlankLines) blocks else blocks.filter { it != ProseBlock.Blank }
+	return if (keepBlankLines) blocks else blocks.withoutParagraphGaps()
+}
+
+private fun List<ProseBlock>.withoutParagraphGaps(): List<ProseBlock> {
+	val out = mutableListOf<ProseBlock>()
+	var blanks = 0
+	for (block in this) {
+		if (block == ProseBlock.Blank) {
+			blanks++
+			continue
+		}
+		if (blanks >= 2) out += ProseBlock.Blank
+		blanks = 0
+		out += block
+	}
+	return out
 }
 
 /** True for the block kinds that make up running prose, as opposed to a structural block. */

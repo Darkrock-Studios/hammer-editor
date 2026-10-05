@@ -94,7 +94,7 @@ class ExportStoryUseCase(
 	private suspend fun render(projectName: String, options: ExportOptions): Buffer {
 		val source = withContext(ioDispatcher) {
 			val perNodeChapters = sceneEditorRepository.getSceneTree().collectChapters().mapNotNull { chapter ->
-				chapterFor(chapter, options.sceneIds)
+				chapterFor(chapter, options)
 			}
 			val projectData =
 				if (options.format == ExportFormat.Markdown) null else projectDataDatasource.load().data
@@ -176,7 +176,7 @@ class ExportStoryUseCase(
 	): List<StoryChapter> = if (options.treatTopLevelAsChapters) {
 		perNodeChapters
 	} else {
-		listOf(StoryChapter(projectName, perNodeChapters.joinToString("\n\n") { it.markdown }))
+		listOf(StoryChapter(projectName, perNodeChapters.joinToString(sceneSeparator(options)) { it.markdown }))
 	}
 
 	/**
@@ -185,7 +185,8 @@ class ExportStoryUseCase(
 	 * dropping it from the chapter list so later chapters renumber automatically.
 	 * A filter never widens: an empty or fully stale set yields zero chapters.
 	 */
-	private fun chapterFor(chapter: ChapterScenes, sceneFilter: Set<Int>?): StoryChapter? {
+	private fun chapterFor(chapter: ChapterScenes, options: ExportOptions): StoryChapter? {
+		val sceneFilter = options.sceneIds
 		val included = if (sceneFilter == null) {
 			chapter.scenes
 		} else {
@@ -194,8 +195,15 @@ class ExportStoryUseCase(
 		if (sceneFilter != null && included.isEmpty()) return null
 		return StoryChapter(
 			name = chapter.chapter.name,
-			markdown = included.joinToString("\n\n") { sceneEditorRepository.loadSceneMarkdownRaw(it) },
+			markdown = included.joinToString(sceneSeparator(options)) { sceneEditorRepository.loadSceneMarkdownRaw(it) },
 		)
 	}
+
+	/**
+	 * What goes between two scenes. A renderer that drops lone blank lines still keeps a run of two,
+	 * so the wider gap is what carries the scene break through.
+	 */
+	private fun sceneSeparator(options: ExportOptions): String =
+		if (options.keepBlankLines || options.format == ExportFormat.Markdown) "\n\n" else "\n\n\n"
 
 }

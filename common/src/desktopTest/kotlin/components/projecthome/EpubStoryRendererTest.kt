@@ -56,6 +56,16 @@ class EpubStoryRendererTest {
 	}
 
 	@Test
+	fun `a run of blank lines leaves one break when blank lines are skipped`() {
+		val content = render(
+			listOf(StoryChapter("Alpha", "First passage.\n\n\n\nNew scene.")),
+			options = ExportOptions(keepBlankLines = false),
+		)
+
+		assertTrue("<p>First passage.</p><br /><p>New scene.</p>" in content, content)
+	}
+
+	@Test
 	fun `the chosen font overrides the stylesheet body font`() {
 		val content = render(
 			listOf(StoryChapter("Alpha", "Some text.")),
