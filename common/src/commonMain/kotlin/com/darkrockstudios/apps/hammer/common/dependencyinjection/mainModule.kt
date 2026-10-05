@@ -9,7 +9,9 @@ import com.darkrockstudios.apps.hammer.common.components.projecthome.ImportStory
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.data.account.AccountReauthUseCase
 import com.darkrockstudios.apps.hammer.common.data.account.AccountUseCase
-import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
+import com.darkrockstudios.apps.hammer.common.data.changelog.ChangelogDatasource
+import com.darkrockstudios.apps.hammer.common.data.changelog.ChangelogRepository
+import com.darkrockstudios.apps.hammer.common.data.changelog.ResourceChangelogDatasource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftRepository
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaDatasource
@@ -33,8 +35,6 @@ import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasDatasour
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.IdeasRepository
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.PromoteIdeaUseCase
 import com.darkrockstudios.apps.hammer.common.data.ideasrepository.StoryIdeaCodec
-import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
-import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.importer.MarkdownStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.RtfStoryImporter
 import com.darkrockstudios.apps.hammer.common.data.importer.StoryImporterRegistry
@@ -50,6 +50,7 @@ import com.darkrockstudios.apps.hammer.common.data.projectstatistics.ProjectStat
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsDatasource
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsRepository
 import com.darkrockstudios.apps.hammer.common.data.projectstatistics.StatisticsService
+import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.references.AutoConfirmReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.BackfillEntryReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.references.CleanupReferencesOnEntryDeleteUseCase
@@ -69,6 +70,9 @@ import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMe
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneRepository
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadataDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.ClientAccountSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.accountsync.SyncAccountUseCase
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.ClientIdeasSynchronizer
+import com.darkrockstudios.apps.hammer.common.data.sync.ideassync.IdeasSyncDatasource
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.ClientProjectSynchronizer
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.EntitySynchronizers
 import com.darkrockstudios.apps.hammer.common.data.sync.projectsync.SyncDataDatasource
@@ -95,12 +99,8 @@ import com.darkrockstudios.apps.hammer.common.data.tagindex.BuildTagIndexUseCase
 import com.darkrockstudios.apps.hammer.common.data.tagindex.TagIndexService
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineDatasource
 import com.darkrockstudios.apps.hammer.common.data.timelinerepository.TimeLineRepository
-import com.darkrockstudios.apps.hammer.common.data.changelog.ChangelogDatasource
-import com.darkrockstudios.apps.hammer.common.data.changelog.ChangelogRepository
-import com.darkrockstudios.apps.hammer.common.data.changelog.ResourceChangelogDatasource
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.GithubVersionCheckDataSource
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckDataSource
-import com.darkrockstudios.apps.hammer.common.data.protocolmismatch.ProtocolMismatchRepository
 import com.darkrockstudios.apps.hammer.common.data.versioncheck.VersionCheckRepository
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityDatasource
 import com.darkrockstudios.apps.hammer.common.data.writingactivity.WritingActivityRepository
@@ -116,8 +116,8 @@ import com.darkrockstudios.apps.hammer.common.platformMainDispatcher
 import com.darkrockstudios.apps.hammer.common.server.ProjectDataApi
 import com.darkrockstudios.apps.hammer.common.server.ServerAccountApi
 import com.darkrockstudios.apps.hammer.common.server.ServerAdminApi
-import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.server.ServerIdeasApi
+import com.darkrockstudios.apps.hammer.common.server.ServerProjectApi
 import com.darkrockstudios.apps.hammer.common.server.ServerProjectsApi
 import com.darkrockstudios.apps.hammer.common.server.WritingActivityApi
 import com.darkrockstudios.apps.hammer.common.spellcheck.ProjectDictionaryService
@@ -134,10 +134,10 @@ import okio.Path.Companion.toPath
 import org.koin.core.qualifier.named
 import org.koin.dsl.bind
 import org.koin.dsl.module
-import org.koin.plugin.module.dsl.single
+import org.koin.plugin.module.dsl.create
 import org.koin.plugin.module.dsl.factory
 import org.koin.plugin.module.dsl.scoped
-import org.koin.plugin.module.dsl.create
+import org.koin.plugin.module.dsl.single
 import kotlin.time.Clock
 
 const val DISPATCHER_MAIN = "main-dispatcher"
@@ -266,7 +266,7 @@ val mainModule = module {
 	single { StoryImporterRegistry(listOf(MarkdownStoryImporter(), RtfStoryImporter())) }
 
 	scope<ProjectDefScope> {
-		scoped<ProjectDef> { get<ProjectDefScope>().projectDef }
+		scoped<ProjectDef> { checkNotNull(getSource<ProjectDefScope>()).projectDef }
 
 		scoped<SceneDatasource>()
 		scoped<SceneContentRepository>()
