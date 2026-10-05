@@ -29,6 +29,9 @@ interface ProjectRoot : AppCloseManager, HammerComponent, BackHandlerOwner {
 	val modalRouterState: Value<ChildSlot<ProjectRootModalRouter.Config, ModalDestination>>
 	val closeRequestHandlers: Value<Set<CloseConfirm>>
 	val backEnabled: Value<Boolean>
+
+	/** Observable form of [hasUnsavedBuffers]. */
+	val unsavedBuffers: Value<Boolean>
 	val projectTheme: Value<ProjectThemeState>
 	val navRailState: Value<NavRailState>
 

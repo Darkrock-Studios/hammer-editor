@@ -548,6 +548,7 @@ class ProjectRootComponentTest : ComponentTest() {
 		advanceUntilIdle()
 
 		assertTrue(comp.hasUnsavedBuffers())
+		assertTrue(comp.unsavedBuffers.value)
 
 		comp.storeDirtyBuffers()
 		coVerify { sceneEditor.storeAllBuffers() }

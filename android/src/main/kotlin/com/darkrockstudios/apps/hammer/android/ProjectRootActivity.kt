@@ -220,7 +220,8 @@ class ProjectRootActivity : AppCompatActivity() {
 
 		// Only intercept back when at Home AND there's potential unsaved work to confirm
 		// Otherwise, let Android's default back behavior close the activity
-		BackHandler(enabled = backEnabled && (component.hasUnsavedBuffers() || shouldConfirmClose.isNotEmpty())) {
+		val unsavedBuffers by component.unsavedBuffers.subscribeAsState()
+		BackHandler(enabled = backEnabled && (unsavedBuffers || shouldConfirmClose.isNotEmpty())) {
 			component.requestClose()
 		}
 

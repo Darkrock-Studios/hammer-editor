@@ -70,6 +70,24 @@ class ExportStoryUseCaseTest : BaseIntegrationTest() {
 	}
 
 	@Test
+	fun `export includes unsaved scene edits`() = runTest {
+		initRepo()
+		val tempBuffer = sceneDatasource.getSceneBufferDirectory().toOkioPath() / "1.md"
+		ffs.write(tempBuffer) { writeUtf8("Unsaved edit of scene id 1") }
+		sceneContentRepository.initialize()
+
+		val exportPath = useCase().execute(
+			exportDir = projectPath,
+			options = ExportOptions(format = ExportFormat.Markdown, treatTopLevelAsChapters = true),
+		)
+
+		val text = ffs.read(exportPath.toOkioPath()) { readByteArray() }.decodeToString()
+		assertTrue("Unsaved edit of scene id 1" in text, "Export should carry the unsaved buffer, got: $text")
+		assertTrue("Content of scene id 1" !in text, "Export should not carry the stale on-disk scene, got: $text")
+		assertTrue("Content of scene id 3" in text, "Scenes without a buffer still come from disk, got: $text")
+	}
+
+	@Test
 	fun `epub export produces a valid zip file with PK magic bytes`() = runTest {
 		initRepo()
 		storedProjectData = StoredProjectData(data = ProjectData(authorName = "Test Author"))

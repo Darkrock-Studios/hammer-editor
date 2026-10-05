@@ -118,6 +118,8 @@ class SceneEditorService(
 			statisticsRepository.markDirty()
 			referenceIndexRepository.markSceneDeleted(scene.id)
 			writingSessionTracker.forgetBaseline(scene.id)
+			// A leftover temp file would attach itself to a later scene that reuses this id.
+			sceneContentRepository.dropBuffer(scene)
 		}
 		return deleted
 	}
@@ -188,9 +190,21 @@ class SceneEditorService(
 			return false
 		}
 
+		// Outside the active tree an archived scene still has its file; a deleted one has nowhere to save.
+		val scenePath = if (sceneEditorRepository.getSceneItemFromId(sceneItem.id) != null) {
+			sceneEditorRepository.resolveSceneContentPath(sceneItem)
+		} else {
+			sceneEditorRepository.resolveScenePathFromFilesystemIncludingArchived(sceneItem.id)
+		}
+		if (scenePath == null) {
+			Napier.w { "Dropping buffer for scene ${sceneItem.id}, it no longer exists" }
+			sceneContentRepository.dropBuffer(sceneItem)
+			writingSessionTracker.forgetBaseline(sceneItem.id)
+			return false
+		}
+
 		sceneEditorRepository.markSceneForSynchronization(sceneItem)
 
-		val scenePath = sceneEditorRepository.resolveSceneContentPath(sceneItem)
 		val success = sceneContentRepository.persistBuffer(buffer, scenePath)
 
 		if (success) {
@@ -213,6 +227,12 @@ class SceneEditorService(
 	}
 
 	fun discardSceneBuffer(sceneDef: SceneItem) {
+		// An archived or deleted scene has no active path to reload from.
+		if (sceneEditorRepository.getSceneItemFromId(sceneDef.id) == null) {
+			sceneContentRepository.dropBuffer(sceneDef)
+			writingSessionTracker.forgetBaseline(sceneDef.id)
+			return
+		}
 		val scenePath = sceneEditorRepository.resolveSceneContentPath(sceneDef)
 		val reloaded = sceneContentRepository.discardBuffer(sceneDef, scenePath)
 		if (reloaded != null) {
