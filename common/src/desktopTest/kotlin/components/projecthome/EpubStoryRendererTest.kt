@@ -66,6 +66,19 @@ class EpubStoryRendererTest {
 	}
 
 	@Test
+	fun `chapter titles are numbered only on request`() {
+		val chapters = listOf(StoryChapter("Prologue", "First."), StoryChapter("Chapter 1", "Second."))
+
+		val plain = render(chapters)
+		assertTrue("<h1 class=\"chapter-title\">Chapter 1</h1>" in plain, plain)
+		assertTrue("2. Chapter 1" !in plain, plain)
+
+		val numbered = render(chapters, options = ExportOptions(numberChapters = true))
+		assertTrue("<h1 class=\"chapter-title\">2. Chapter 1</h1>" in numbered, numbered)
+		assertTrue("<a href=\"ch2.xhtml\">2. Chapter 1</a>" in numbered, numbered)
+	}
+
+	@Test
 	fun `the chosen font overrides the stylesheet body font`() {
 		val content = render(
 			listOf(StoryChapter("Alpha", "Some text.")),

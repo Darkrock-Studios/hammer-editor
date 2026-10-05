@@ -124,7 +124,7 @@ class ExportOptionsDialogTest : BaseTest() {
 		compose.onNodeWithText("Keep blank lines between paragraphs").performClick()
 		compose.waitForIdle()
 
-		assertEquals(false, latest.numberChapters)
+		assertEquals(true, latest.numberChapters)
 		assertEquals(false, latest.keepBlankLines)
 	}
 
@@ -149,10 +149,10 @@ class ExportOptionsDialogTest : BaseTest() {
 	}
 
 	@Test
-	fun `EPUB export offers no chapter numbering`() {
+	fun `EPUB export offers chapter numbering and a font`() {
 		setContent(ExportOptions(format = ExportFormat.Epub))
 
-		compose.onNodeWithText("Number chapter titles").assertDoesNotExist()
+		compose.onNodeWithText("Number chapter titles").assertExists()
 		compose.onNodeWithText("Georgia").assertExists()
 	}
 

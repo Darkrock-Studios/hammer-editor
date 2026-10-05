@@ -108,7 +108,8 @@ class DocxStoryRendererTest {
 			listOf(
 				StoryChapter("Alpha", "First."),
 				StoryChapter("Beta", "Second."),
-			)
+			),
+			options = ExportOptions(numberChapters = true),
 		)
 
 		val headings = doc.paragraphs.filter { it.style == "Heading1" }
@@ -117,13 +118,12 @@ class DocxStoryRendererTest {
 	}
 
 	@Test
-	fun `chapter numbering can be turned off in headings and contents`() {
+	fun `chapters are unnumbered by default in headings and contents`() {
 		val doc = render(
 			listOf(
 				StoryChapter("Prologue", "First."),
 				StoryChapter("Chapter 1", "Second."),
 			),
-			options = ExportOptions(numberChapters = false),
 		)
 
 		val headings = doc.paragraphs.filter { it.style == "Heading1" }
@@ -329,7 +329,7 @@ class DocxStoryRendererTest {
 		assertEquals("Tom & Jerry's <Story>", doc.paragraphs.first().text)
 
 		val heading = doc.paragraphs.first { it.style == "Heading1" }
-		assertEquals("1. Q & A <chapter>", heading.text)
+		assertEquals("Q & A <chapter>", heading.text)
 
 		val texts = doc.paragraphTexts()
 		assertTrue(

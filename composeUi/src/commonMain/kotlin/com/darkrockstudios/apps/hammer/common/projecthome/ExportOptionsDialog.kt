@@ -397,10 +397,9 @@ private val AVAILABLE_EXPORT_FORMATS =
 /** PDF renders in its library's built-in face, and Markdown carries no font. */
 private val FONT_EXPORT_FORMATS = setOf(ExportFormat.Epub, ExportFormat.Docx, ExportFormat.Rtf)
 
-/** EPUB chapter titles are never numbered, and Markdown only has chapter headings in chapter mode. */
+/** Markdown only has chapter headings in chapter mode. */
 private val ExportOptions.numbersChapters: Boolean
 	get() = when (format) {
-		ExportFormat.Epub -> false
 		ExportFormat.Markdown -> treatTopLevelAsChapters
 		else -> true
 	}

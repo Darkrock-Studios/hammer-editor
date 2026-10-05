@@ -23,7 +23,7 @@ data class ExportOptions(
 	/** Scene ids the export is limited to; null exports the entire story. */
 	val sceneIds: Set<Int>? = null,
 	/** Prefixes each chapter title with its position ("1. Title"). */
-	val numberChapters: Boolean = true,
+	val numberChapters: Boolean = false,
 	val font: ExportFont = ExportFont.Georgia,
 	/**
 	 * Keeps the blank lines the author typed between paragraphs. Off drops a lone blank line, leaving the

@@ -37,7 +37,7 @@ fun writeStoryAsEpub(
 
 		val effective = chapters.ifEmpty { listOf(StoryChapter(projectName, "")) }
 		val tocEntries = effective.mapIndexed { index, chapter ->
-			TocEntry(title = chapter.name, href = "ch${index + 1}.xhtml")
+			TocEntry(title = chapterTitle(index, chapter, options.numberChapters), href = "ch${index + 1}.xhtml")
 		}
 
 		// Title page, contents page, then the chapters.
@@ -69,7 +69,7 @@ fun writeStoryAsEpub(
 					id = "ch${index + 1}",
 					href = entry.href,
 					title = chapter.name,
-					bodyBuilder = { chapterBody(chapter.name, chapter.markdown, options.keepBlankLines) },
+					bodyBuilder = { chapterBody(entry.title, chapter.markdown, options.keepBlankLines) },
 				),
 			)
 		}

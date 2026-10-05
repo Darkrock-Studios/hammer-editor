@@ -7,7 +7,7 @@ fun writeStoryAsMarkdown(
 	projectName: String,
 	chapters: List<StoryChapter>,
 	treatTopLevelAsChapters: Boolean,
-	numberChapters: Boolean = true,
+	numberChapters: Boolean = false,
 ) {
 	sink.writeUtf8("# $projectName\n\n")
 

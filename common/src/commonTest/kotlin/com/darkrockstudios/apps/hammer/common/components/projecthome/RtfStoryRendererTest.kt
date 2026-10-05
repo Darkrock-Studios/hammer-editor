@@ -120,12 +120,13 @@ class RtfStoryRendererTest {
 	}
 
 	@Test
-	fun `chapters are numbered and bookmarked for the contents links`() {
+	fun `chapters are bookmarked for the contents links and numbered on request`() {
 		val rtf = render(
 			listOf(
 				StoryChapter("Alpha", "First."),
 				StoryChapter("Beta", "Second."),
-			)
+			),
+			options = ExportOptions(numberChapters = true),
 		)
 
 		assertTrue(rtf.contains("1. Alpha"), "First chapter should be numbered")
@@ -135,13 +136,12 @@ class RtfStoryRendererTest {
 	}
 
 	@Test
-	fun `chapter numbering can be turned off`() {
+	fun `chapters are unnumbered by default`() {
 		val rtf = render(
 			listOf(
 				StoryChapter("Prologue", "First."),
 				StoryChapter("Chapter 1", "Second."),
 			),
-			options = ExportOptions(numberChapters = false),
 		)
 
 		assertTrue(rtf.contains("Prologue"), rtf)

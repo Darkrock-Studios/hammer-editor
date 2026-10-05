@@ -62,7 +62,7 @@ fun ExportOptionsDialogWordPreview() {
 	ExportOptionsPreviewFrame(
 		ExportOptions(
 			format = ExportFormat.Docx,
-			numberChapters = false,
+			numberChapters = true,
 			font = ExportFont.TimesNewRoman,
 			keepBlankLines = false,
 		)
