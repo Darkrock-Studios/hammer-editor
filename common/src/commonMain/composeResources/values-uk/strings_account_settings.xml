@@ -84,6 +84,7 @@
 	<string name="backup_manager_error_load_backups">Не вдалося завантажити резервні копії: %1$s</string>
 	<string name="backup_manager_error_load_project_backups">Не вдалося завантажити резервні копії проєкту: %1$s</string>
 	<string name="backup_manager_error_delete_backup">Не вдалося видалити резервну копію: %1$s</string>
+	<string name="backup_manager_error_restore_backup">Failed to restore backup: %1$s</string>
 	<string name="backup_restore_dialog_title">Відновити з резервної копії</string>
 	<string name="backup_restore_dialog_message">Увага: відновлення з цієї резервної копії повністю замінить поточний вміст проєкту. Усі наявні файли буде видалено та замінено даними резервної копії. Цю дію неможливо скасувати.</string>
 	<string name="backup_restore_dialog_confirm">Відновити</string>
