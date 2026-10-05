@@ -75,6 +75,15 @@ class NotesComponent(
 		}
 	}
 
+	override fun discardUnsaved(item: CloseConfirm) {
+		if (item != CloseConfirm.Notes) return
+		when (val destination = stack.value.active.instance) {
+			is Notes.Destination.CreateNoteDestination -> navigation.pop()
+			is Notes.Destination.ViewNoteDestination -> destination.component.discardEdit()
+			else -> Unit
+		}
+	}
+
 	private fun createBrowseNotes(
 		config: Notes.Config.BrowseNotesConfig,
 		componentContext: ComponentContext

@@ -131,6 +131,15 @@ class TimeLineComponent(
 		}
 	}
 
+	override fun discardUnsaved(item: CloseConfirm) {
+		if (item != CloseConfirm.Timeline) return
+		when (val destination = stack.value.active.instance) {
+			is TimeLine.Destination.CreateEventDestination -> navigation.pop()
+			is TimeLine.Destination.ViewEventDestination -> destination.component.discardEdit()
+			else -> Unit
+		}
+	}
+
 	init {
 		stack.subscribe(lifecycle) {
 			updateShouldClose()

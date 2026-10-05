@@ -81,6 +81,15 @@ class EncyclopediaComponent(
 		}
 	}
 
+	override fun discardUnsaved(item: CloseConfirm) {
+		if (item != CloseConfirm.Encyclopedia) return
+		when (val destination = stack.value.active.instance) {
+			is Encyclopedia.Destination.CreateEntryDestination -> navigation.pop()
+			is Encyclopedia.Destination.ViewEntryDestination -> destination.component.discardEdit()
+			else -> Unit
+		}
+	}
+
 	private fun createBrowseEntries(
 		config: Encyclopedia.Config.BrowseEntriesConfig,
 		componentContext: ComponentContext

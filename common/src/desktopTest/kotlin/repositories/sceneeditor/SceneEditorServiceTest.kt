@@ -376,6 +376,23 @@ class SceneEditorServiceTest : BaseTest() {
 	}
 
 	@Test
+	fun `Discard-all-buffers reverts every dirty buffer`() = runTest(mainTestDispatcher) {
+		val service = initializedService()
+		val sceneOne = service.getSceneItemFromId(1)!!
+		val sceneThree = service.getSceneItemFromId(3)!!
+
+		service.onContentChanged(SceneContent(sceneOne, "Unsaved 1"), UpdateSource.Editor)
+		service.onContentChanged(SceneContent(sceneThree, "Unsaved 3"), UpdateSource.Editor)
+		advanceUntilIdle()
+		assertTrue(service.hasDirtyBuffers())
+
+		service.discardAllBuffers()
+
+		assertFalse(service.hasDirtyBuffers())
+		assertEquals("Content of scene id 3", service.getSceneBuffer(sceneThree)?.content?.markdown)
+	}
+
+	@Test
 	fun `Discard scene buffer reverts to on-disk content`() = runTest(mainTestDispatcher) {
 		val service = initializedService()
 		val scene = service.getSceneItemFromId(3)!!

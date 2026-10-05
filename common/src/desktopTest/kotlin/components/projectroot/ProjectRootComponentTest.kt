@@ -37,6 +37,7 @@ import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
+import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.Channel
@@ -282,8 +283,9 @@ class ProjectRootComponentTest : ComponentTest() {
 	}
 
 	@Test
-	fun `startProjectSync opens the modal for server synchronized projects`() = runTest(mainTestDispatcher) {
+	fun `startProjectSync with nothing unsaved requests only the sync`() = runTest(mainTestDispatcher) {
 		every { syncJournal.isServerSynchronized() } returns true
+		every { sceneEditor.hasDirtyBuffers() } returns false
 
 		val comp = newComponent()
 		context.resume()
@@ -292,12 +294,31 @@ class ProjectRootComponentTest : ComponentTest() {
 		comp.startProjectSync()
 		advanceUntilIdle()
 
-		assertIs<ProjectRoot.ModalDestination.ProjectSync>(comp.modalRouterState.value.child?.instance)
+		assertEquals(setOf(CloseConfirm.Sync), comp.closeRequestHandlers.value)
+	}
+
+	@Test
+	fun `startProjectSync gates on unsaved scenes before the sync`() = runTest(mainTestDispatcher) {
+		every { syncJournal.isServerSynchronized() } returns true
+		every { sceneEditor.hasDirtyBuffers() } returns true
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.startProjectSync()
+		advanceUntilIdle()
+
+		assertEquals(listOf(CloseConfirm.Scenes, CloseConfirm.Sync), comp.closeRequestHandlers.value.toList())
+
+		comp.closeRequestDealtWith(CloseConfirm.Scenes)
+		assertEquals(setOf(CloseConfirm.Sync), comp.closeRequestHandlers.value)
 	}
 
 	@Test
 	fun `startProjectSync does nothing for local-only projects`() = runTest(mainTestDispatcher) {
 		every { syncJournal.isServerSynchronized() } returns false
+		every { sceneEditor.hasDirtyBuffers() } returns true
 
 		val comp = newComponent()
 		context.resume()
@@ -306,7 +327,28 @@ class ProjectRootComponentTest : ComponentTest() {
 		comp.startProjectSync()
 		advanceUntilIdle()
 
+		assertTrue(comp.closeRequestHandlers.value.isEmpty())
 		assertIs<ProjectRoot.ModalDestination.None>(comp.modalRouterState.value.child?.instance)
+	}
+
+	@Test
+	fun `Sync dialog closing clears a pending sync request`() = runTest(mainTestDispatcher) {
+		every { syncJournal.isServerSynchronized() } returns true
+		every { sceneEditor.hasDirtyBuffers() } returns false
+
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.startProjectSync()
+		comp.showProjectSync()
+		advanceUntilIdle()
+		assertEquals(setOf(CloseConfirm.Sync), comp.closeRequestHandlers.value)
+
+		comp.dismissProjectSync()
+		advanceUntilIdle()
+
+		assertTrue(comp.closeRequestHandlers.value.isEmpty())
 	}
 
 	@Test
@@ -471,5 +513,28 @@ class ProjectRootComponentTest : ComponentTest() {
 
 		comp.storeDirtyBuffers()
 		coVerify { sceneEditor.storeAllBuffers() }
+	}
+
+	@Test
+	fun `Discarding unsaved scenes reverts the editor buffers`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.discardUnsaved(CloseConfirm.Scenes)
+
+		verify { sceneEditor.discardAllBuffers() }
+	}
+
+	@Test
+	fun `Discarding sync or completion touches nothing`() = runTest(mainTestDispatcher) {
+		val comp = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		comp.discardUnsaved(CloseConfirm.Sync)
+		comp.discardUnsaved(CloseConfirm.Complete)
+
+		verify(exactly = 0) { sceneEditor.discardAllBuffers() }
 	}
 }

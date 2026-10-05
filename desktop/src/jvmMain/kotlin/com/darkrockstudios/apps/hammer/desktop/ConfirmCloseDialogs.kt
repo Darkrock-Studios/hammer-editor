@@ -48,7 +48,7 @@ internal fun confirmCloseUnsavedEncyclopediaDialog(
 	SimpleConfirm(
 		title = Res.string.unsaved_encyclopedia_dialog_title.get(),
 		message = Res.string.unsaved_encyclopedia_dialog_message.get(),
-		positiveButton = Res.string.unsaved_dialog_positive_button.get(),
+		positiveButton = discardButtonText(closeType),
 		negativeButton = Res.string.unsaved_dialog_negative_button.get(),
 		onDismiss = { /* Noop */ },
 		onNegative = {
@@ -70,7 +70,7 @@ internal fun confirmCloseUnsavedTimelineDialog(
 	SimpleConfirm(
 		title = Res.string.unsaved_timeline_dialog_title.get(),
 		message = Res.string.unsaved_timeline_dialog_message.get(),
-		positiveButton = Res.string.unsaved_dialog_positive_button.get(),
+		positiveButton = discardButtonText(closeType),
 		negativeButton = Res.string.unsaved_dialog_negative_button.get(),
 		onDismiss = { /* Noop */ },
 		onNegative = {
@@ -92,7 +92,7 @@ internal fun confirmCloseUnsavedNotesDialog(
 	SimpleConfirm(
 		title = Res.string.unsaved_notes_dialog_title.get(),
 		message = Res.string.unsaved_notes_dialog_message.get(),
-		positiveButton = Res.string.unsaved_dialog_positive_button.get(),
+		positiveButton = discardButtonText(closeType),
 		negativeButton = Res.string.unsaved_dialog_negative_button.get(),
 		onDismiss = { /* Noop */ },
 		onNegative = {
@@ -103,3 +103,12 @@ internal fun confirmCloseUnsavedNotesDialog(
 		}
 	)
 }
+
+/** "Discard and close" while a window close is pending, plain "Discard" for a sync gate. */
+@Composable
+private fun discardButtonText(closeType: ApplicationState.CloseType): String =
+	if (closeType == ApplicationState.CloseType.None) {
+		Res.string.unsaved_entity_dialog_negative_button.get()
+	} else {
+		Res.string.unsaved_dialog_positive_button.get()
+	}

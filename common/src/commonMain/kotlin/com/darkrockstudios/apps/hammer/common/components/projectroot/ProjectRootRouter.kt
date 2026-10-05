@@ -190,6 +190,10 @@ internal class ProjectRootRouter(
 		}.toSet()
 	}
 
+	override fun discardUnsaved(item: CloseConfirm) {
+		state.value.items.forEach { it.instance.discardUnsaved(item) }
+	}
+
 	fun onBack() {
 		navigation.pop()
 	}

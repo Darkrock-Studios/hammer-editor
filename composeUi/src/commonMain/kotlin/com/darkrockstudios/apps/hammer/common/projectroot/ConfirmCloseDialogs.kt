@@ -39,6 +39,7 @@ fun ConfirmUnsavedScenesDialog(
 			}
 		},
 		onDiscard = {
+			component.discardUnsaved(CloseConfirm.Scenes)
 			component.closeRequestDealtWith(CloseConfirm.Scenes)
 		},
 		onCancel = {
@@ -58,6 +59,7 @@ fun ConfirmCloseUnsavedEncyclopediaDialog(component: ProjectRoot) {
 			component.cancelCloseRequest()
 		}
 	) {
+		component.discardUnsaved(CloseConfirm.Encyclopedia)
 		component.closeRequestDealtWith(CloseConfirm.Encyclopedia)
 	}
 }
@@ -73,6 +75,7 @@ fun ConfirmCloseUnsavedNotesDialog(component: ProjectRoot) {
 			component.cancelCloseRequest()
 		}
 	) {
+		component.discardUnsaved(CloseConfirm.Notes)
 		component.closeRequestDealtWith(CloseConfirm.Notes)
 	}
 }
@@ -88,6 +91,7 @@ fun ConfirmCloseUnsavedTimelineDialog(component: ProjectRoot) {
 			component.cancelCloseRequest()
 		}
 	) {
+		component.discardUnsaved(CloseConfirm.Timeline)
 		component.closeRequestDealtWith(CloseConfirm.Timeline)
 	}
 }

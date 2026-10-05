@@ -235,9 +235,10 @@ class ProjectRootComponent(
 	override fun showProjectSync() = modalRouter.showProjectSync()
 
 	override fun startProjectSync() {
-		if (syncJournal.isServerSynchronized()) {
-			showProjectSync()
-		}
+		if (!syncJournal.isServerSynchronized()) return
+		val list = unsavedConfirmations()
+		list.add(CloseConfirm.Sync)
+		_closeRequestHandlers.update { list }
 	}
 
 	override fun dismissProjectSync() = modalRouter.dismissProjectSync()
@@ -327,12 +328,7 @@ class ProjectRootComponent(
 
 	override fun requestClose() {
 		scope.launch {
-			val list = mutableSetOf<CloseConfirm>()
-			if (hasUnsavedBuffers()) {
-				list.add(CloseConfirm.Scenes)
-			}
-
-			list.addAll(router.shouldConfirmClose())
+			val list = unsavedConfirmations()
 
 			if (syncJournal.shouldAutoSync()) {
 				list.add(CloseConfirm.Sync)
@@ -345,8 +341,30 @@ class ProjectRootComponent(
 		}
 	}
 
+	/** Ordered set of the unsaved-work confirmations currently needed, scenes first. */
+	private fun unsavedConfirmations(): MutableSet<CloseConfirm> {
+		val list = mutableSetOf<CloseConfirm>()
+		if (hasUnsavedBuffers()) {
+			list.add(CloseConfirm.Scenes)
+		}
+		list.addAll(router.shouldConfirmClose())
+		return list
+	}
+
 	override fun cancelCloseRequest() {
 		_closeRequestHandlers.update { emptySet() }
+	}
+
+	override fun discardUnsaved(item: CloseConfirm) {
+		when (item) {
+			CloseConfirm.Scenes -> sceneEditor.discardAllBuffers()
+			CloseConfirm.Notes,
+			CloseConfirm.Encyclopedia,
+			CloseConfirm.Timeline -> router.discardUnsaved(item)
+
+			CloseConfirm.Sync,
+			CloseConfirm.Complete -> Unit
+		}
 	}
 
 	override fun onStart() {
@@ -371,7 +389,7 @@ class ProjectRootComponent(
 							label = Res.string.sync_menu_item,
 							icon = "",
 							shortcut = KeyShortcut(keyCode = 0x72),
-							action = { showProjectSync() }
+							action = { startProjectSync() }
 						)
 					)
 				)
