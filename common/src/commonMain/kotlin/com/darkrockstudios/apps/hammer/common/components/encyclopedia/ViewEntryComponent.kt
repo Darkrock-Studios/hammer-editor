@@ -13,6 +13,7 @@ import com.darkrockstudios.apps.hammer.common.data.MenuItemDescriptor
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryError
+import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryLoadError
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EntryResult
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryDef
@@ -23,12 +24,12 @@ import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexServ
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
 import io.github.aakira.napier.Napier
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import okio.IOException
 
 class ViewEntryComponent(
 	componentContext: ComponentContext,
@@ -117,9 +118,9 @@ class ViewEntryComponent(
 						_state.getAndUpdate { it.copy(entryDef = currentDef) }
 					}
 					loadEntryState()
-				} catch (e: CancellationException) {
-					throw e
-				} catch (e: Exception) {
+				} catch (e: EntryLoadError) {
+					Napier.w("Failed to refresh entry $entryId", e)
+				} catch (e: IOException) {
 					Napier.w("Failed to refresh entry $entryId", e)
 				}
 			}
