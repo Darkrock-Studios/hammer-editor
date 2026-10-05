@@ -379,7 +379,8 @@ class SceneContentRepositoryTest : BaseTest() {
 		writeTempBuffer(3)
 
 		service.initialize()
-		assertTrue(service.deleteScene(SceneItem(projDef, SceneItem.Type.Scene, 1, "Scene ID 1", 0)))
+		// Deleted behind the service's back, so the buffer outlives its scene.
+		assertTrue(repo.deleteScene(SceneItem(projDef, SceneItem.Type.Scene, 1, "Scene ID 1", 0)))
 
 		service.storeAllBuffers()
 
@@ -388,6 +389,24 @@ class SceneContentRepositoryTest : BaseTest() {
 		ffs.read(repo.getSceneFilePath(3).toOkioPath()) {
 			assertEquals(content(3), readUtf8())
 		}
+	}
+
+	@Test
+	fun `Deleting a scene drops its unsaved buffer and temp file`() = runTest(mainTestDispatcher) {
+		val projDef = getProject1Def()
+		createProject(ffs, PROJECT_1_NAME)
+
+		createStack(projDef)
+		writeTempBuffer(1)
+		writeTempBuffer(3)
+
+		service.initialize()
+		assertTrue(service.deleteScene(SceneItem(projDef, SceneItem.Type.Scene, 1, "Scene ID 1", 0)))
+
+		assertNull(contentRepo.getSceneBuffer(1))
+		assertFalse(ffs.exists(getTempBufferPath(1)))
+		assertTrue(contentRepo.hasDirtyBuffer(3))
+		assertTrue(ffs.exists(getTempBufferPath(3)))
 	}
 
 	@Test

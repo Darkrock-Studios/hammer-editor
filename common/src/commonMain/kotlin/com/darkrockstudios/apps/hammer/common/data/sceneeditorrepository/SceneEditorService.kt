@@ -118,6 +118,8 @@ class SceneEditorService(
 			statisticsRepository.markDirty()
 			referenceIndexRepository.markSceneDeleted(scene.id)
 			writingSessionTracker.forgetBaseline(scene.id)
+			// A leftover temp file would attach itself to a later scene that reuses this id.
+			sceneContentRepository.dropBuffer(scene)
 		}
 		return deleted
 	}
