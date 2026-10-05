@@ -188,9 +188,21 @@ class SceneEditorService(
 			return false
 		}
 
+		// Outside the active tree an archived scene still has its file; a deleted one has nowhere to save.
+		val scenePath = if (sceneEditorRepository.getSceneItemFromId(sceneItem.id) != null) {
+			sceneEditorRepository.resolveSceneContentPath(sceneItem)
+		} else {
+			sceneEditorRepository.resolveScenePathFromFilesystemIncludingArchived(sceneItem.id)
+		}
+		if (scenePath == null) {
+			Napier.w { "Dropping buffer for scene ${sceneItem.id}, it no longer exists" }
+			sceneContentRepository.dropBuffer(sceneItem)
+			writingSessionTracker.forgetBaseline(sceneItem.id)
+			return false
+		}
+
 		sceneEditorRepository.markSceneForSynchronization(sceneItem)
 
-		val scenePath = sceneEditorRepository.resolveSceneContentPath(sceneItem)
 		val success = sceneContentRepository.persistBuffer(buffer, scenePath)
 
 		if (success) {
