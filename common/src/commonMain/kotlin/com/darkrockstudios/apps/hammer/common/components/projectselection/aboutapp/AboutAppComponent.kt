@@ -3,14 +3,19 @@ package com.darkrockstudios.apps.hammer.common.components.projectselection.about
 import com.arkivanov.decompose.ComponentContext
 import com.arkivanov.decompose.value.MutableValue
 import com.arkivanov.decompose.value.Value
+import com.arkivanov.decompose.value.update
 import com.darkrockstudios.apps.hammer.base.DISCORD_URL
 import com.darkrockstudios.apps.hammer.base.GITHUB_URL
 import com.darkrockstudios.apps.hammer.base.REDDIT_URL
 import com.darkrockstudios.apps.hammer.base.RELEASES_LATEST_URL
 import com.darkrockstudios.apps.hammer.common.components.ComponentBase
+import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdater
 import com.darkrockstudios.apps.hammer.common.getConfigDirectory
 import com.darkrockstudios.apps.hammer.common.getLogDirectory
 import com.darkrockstudios.apps.hammer.common.util.UrlLauncher
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.koin.core.component.inject
 
 class AboutAppComponent(
 	componentContext: ComponentContext,
@@ -19,8 +24,25 @@ class AboutAppComponent(
 	private val onShowChangelog: () -> Unit,
 ) : AboutApp, ComponentBase(componentContext) {
 
-	private val _state = MutableValue(AboutApp.State(logDirectoryPath = getLogDirectoryPath()))
+	private val appUpdater: AppUpdater by inject()
+
+	private val _state = MutableValue(
+		AboutApp.State(
+			logDirectoryPath = getLogDirectoryPath(),
+			appUpdate = appUpdater.state.value,
+		)
+	)
 	override val state: Value<AboutApp.State> = _state
+
+	init {
+		scope.launch {
+			appUpdater.state.collect { update ->
+				withContext(dispatcherMain) {
+					_state.update { it.copy(appUpdate = update) }
+				}
+			}
+		}
+	}
 
 	override fun openDiscord() {
 		urlLauncher.openInBrowser(DISCORD_URL)
@@ -40,6 +62,14 @@ class AboutAppComponent(
 
 	override fun openLatestRelease() {
 		urlLauncher.openInBrowser(RELEASES_LATEST_URL)
+	}
+
+	override fun checkForUpdate() {
+		appUpdater.checkNow()
+	}
+
+	override fun updateApp() {
+		appUpdater.update()
 	}
 
 	private fun getLogDirectoryPath(): String {

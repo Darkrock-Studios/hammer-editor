@@ -1,5 +1,8 @@
 package com.darkrockstudios.apps.hammer.common.dependencyinjection
 
+import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdater
+import com.darkrockstudios.apps.hammer.common.data.appupdate.NoOpAppUpdater
+
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.IosSettingsComponent
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.PlatformSettings
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.focusmode.FocusModeService
@@ -26,4 +29,5 @@ actual val platformModule = module {
 	factory<FocusModeService>()
 	single<BackupManagerService>()
 	single<IosRebasingGlobalSettingsDatasource>() bind GlobalSettingsDatasource::class
+	single<AppUpdater> { NoOpAppUpdater }
 }

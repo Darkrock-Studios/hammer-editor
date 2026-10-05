@@ -77,6 +77,7 @@ fun ProjectSelectionUi(
 		val rootSnackbar = rememberRootSnackbarHostState()
 		val stackState by component.stack.subscribeAsState()
 
+		val appUpdate by component.appUpdate.subscribeAsState()
 		Box(modifier = modifier) {
 			Children(
 				stack = stackState,
@@ -96,6 +97,16 @@ fun ProjectSelectionUi(
 					is ProjectSelection.Destination.ProjectsListDestination -> ProjectListUi(
 						destination.component,
 						rootSnackbar,
+						// Only the list carries the update notice: the About screen has its own row.
+						notice = { noticeModifier ->
+							AppUpdateBanner(
+								state = appUpdate,
+								onUpdate = component::updateApp,
+								onOpenRelease = component::openLatestRelease,
+								onDismiss = component::dismissUpdate,
+								modifier = noticeModifier,
+							)
+						},
 					)
 
 					is ProjectSelection.Destination.StoryIdeasDestination -> StoryIdeasUi(

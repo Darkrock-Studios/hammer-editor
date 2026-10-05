@@ -8,6 +8,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.abouta
 import com.darkrockstudios.apps.hammer.common.components.projectselection.accountsettings.AccountSettings
 import com.darkrockstudios.apps.hammer.common.components.projectselection.projectslist.ProjectsList
 import com.darkrockstudios.apps.hammer.common.components.projectselection.storyideas.StoryIdeas
+import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.HammerComponent
 import kotlinx.serialization.Serializable
 import org.jetbrains.compose.resources.StringResource
@@ -16,6 +17,7 @@ interface ProjectSelection : HammerComponent, BackHandlerOwner {
 	val stack: Value<ChildStack<Config, Destination>>
 	val navRailState: Value<NavRailState>
 	val changelog: Value<ChangelogState>
+	val appUpdate: Value<AppUpdateState>
 
 	fun isAtRoot(): Boolean
 	fun onBack()
@@ -26,6 +28,9 @@ interface ProjectSelection : HammerComponent, BackHandlerOwner {
 	fun openLatestRelease()
 	fun dismissChangelog()
 	fun showChangelog()
+
+	fun updateApp()
+	fun dismissUpdate()
 
 	data class NavRailState(val expanded: Boolean)
 

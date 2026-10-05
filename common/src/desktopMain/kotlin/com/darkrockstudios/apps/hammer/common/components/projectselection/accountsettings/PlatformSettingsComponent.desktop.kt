@@ -5,6 +5,8 @@ import com.arkivanov.decompose.value.Value
 import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.SavableComponent
 import com.darkrockstudios.apps.hammer.common.components.savableState
+import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
+import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdater
 import com.darkrockstudios.apps.hammer.common.data.globalsettings.GlobalSettingsStore
 import com.darkrockstudios.apps.hammer.common.data.migrator.DataMigrator
 import com.darkrockstudios.apps.hammer.common.data.projectsrepository.ProjectsRepository
@@ -27,10 +29,13 @@ class DesktopPlatformSettingsComponent(componentContext: ComponentContext) : Des
 	private val globalSettingsStore: GlobalSettingsStore by inject()
 	private val projectsRepository: ProjectsRepository by inject()
 	private val sandboxFileAccess: SandboxFileAccess by inject()
+	private val appUpdater: AppUpdater by inject()
 
 	private val _state by savableState {
 		DesktopPlatformSettings.PlatformState(
 			projectsDir = projectsRepository.getProjectsDirectory(),
+			updateChecksSupported = appUpdater.state.value !is AppUpdateState.Unsupported,
+			automaticUpdateChecks = globalSettingsStore.globalSettings.automaticUpdateChecks,
 		)
 	}
 
@@ -50,6 +55,7 @@ class DesktopPlatformSettingsComponent(componentContext: ComponentContext) : Des
 						val projectsPath = settings.projectsDirectory.toPath().toHPath()
 						it.copy(
 							projectsDir = projectsPath,
+							automaticUpdateChecks = settings.automaticUpdateChecks,
 						)
 					}
 				}
@@ -85,6 +91,12 @@ class DesktopPlatformSettingsComponent(componentContext: ComponentContext) : Des
 					it.copy(projectsDir = hpath)
 				}
 			}
+		}
+	}
+
+	override fun setAutomaticUpdateChecks(value: Boolean) {
+		scope.launch {
+			globalSettingsStore.updateSettings { it.copy(automaticUpdateChecks = value) }
 		}
 	}
 }

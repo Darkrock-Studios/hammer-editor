@@ -18,6 +18,7 @@ import com.darkrockstudios.apps.hammer.common.components.projectselection.projec
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.metadata.ProjectMetadata
 import com.darkrockstudios.apps.hammer.base.http.storyideas.StoryIdea
 import com.darkrockstudios.apps.hammer.common.data.ImportOptions
+import com.darkrockstudios.apps.hammer.common.data.appupdate.AppUpdateState
 import com.darkrockstudios.apps.hammer.common.data.Msg
 import com.darkrockstudios.apps.hammer.common.data.ProjectDef
 import com.darkrockstudios.apps.hammer.common.fileio.HPath
@@ -95,6 +96,8 @@ val component = object : ProjectSelection {
 	override val changelog: Value<ProjectSelection.ChangelogState> =
 		MutableValue(ProjectSelection.ChangelogState())
 
+	override val appUpdate: Value<AppUpdateState> = MutableValue(AppUpdateState.Unsupported)
+
 	override fun isAtRoot() = false
 	override fun onBack() {}
 	override fun showLocation(location: ProjectSelection.Locations) {}
@@ -102,6 +105,8 @@ val component = object : ProjectSelection {
 	override fun openLatestRelease() {}
 	override fun dismissChangelog() {}
 	override fun showChangelog() {}
+	override fun updateApp() {}
+	override fun dismissUpdate() {}
 	override val backHandler = dummyBackHandler
 }
 
