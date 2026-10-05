@@ -55,7 +55,7 @@ class CleanupReferencesOnEntryDeleteUseCaseTest : BaseTest() {
 			val written = mutableMapOf<Int, SceneMetadata>()
 			val metaSlot = slot<SceneMetadata>()
 			val idSlot = slot<Int>()
-			coEvery { sceneEditor.storeMetadata(capture(metaSlot), capture(idSlot)) } answers {
+			coEvery { sceneEditor.storeMetadata(capture(metaSlot), capture(idSlot), any()) } answers {
 				written[idSlot.captured] = metaSlot.captured
 			}
 
@@ -77,7 +77,7 @@ class CleanupReferencesOnEntryDeleteUseCaseTest : BaseTest() {
 			)
 
 			val metaSlot = slot<SceneMetadata>()
-			coEvery { sceneEditor.storeMetadata(capture(metaSlot), 10) } returns Unit
+			coEvery { sceneEditor.storeMetadata(capture(metaSlot), 10, any()) } returns Unit
 
 			useCase(42)
 
@@ -95,7 +95,7 @@ class CleanupReferencesOnEntryDeleteUseCaseTest : BaseTest() {
 			useCase(42)
 
 			coVerify(exactly = 0) { sceneEditor.loadSceneMetadata(any()) }
-			coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any()) }
+			coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any(), any()) }
 		}
 
 	@Test
@@ -110,7 +110,7 @@ class CleanupReferencesOnEntryDeleteUseCaseTest : BaseTest() {
 
 			useCase(42)
 
-			coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any()) }
+			coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any(), any()) }
 		}
 
 	@Test
@@ -125,8 +125,8 @@ class CleanupReferencesOnEntryDeleteUseCaseTest : BaseTest() {
 
 		useCase(42)
 
-		coVerify(exactly = 1) { sceneEditor.storeMetadata(any(), 10) }
-		coVerify(exactly = 1) { sceneEditor.storeMetadata(any(), 11) }
-		coVerify(exactly = 1) { sceneEditor.storeMetadata(any(), 12) }
+		coVerify(exactly = 1) { sceneEditor.storeMetadata(any(), 10, any()) }
+		coVerify(exactly = 1) { sceneEditor.storeMetadata(any(), 11, any()) }
+		coVerify(exactly = 1) { sceneEditor.storeMetadata(any(), 12, any()) }
 	}
 }

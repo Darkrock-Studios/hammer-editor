@@ -1,6 +1,7 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import io.github.aakira.napier.Napier
 
@@ -43,6 +44,6 @@ class AutoConfirmReferencesUseCase(
 		)
 		val newConfirmed = metadata.confirmedReferences + newRefs.map { it.entryId }
 		val newMetadata = metadata.copy(confirmedReferences = newConfirmed)
-		sceneEditor.storeMetadata(scrubInvalidReferences(newMetadata), sceneItem.id)
+		sceneEditor.storeMetadata(scrubInvalidReferences(newMetadata), sceneItem.id, UpdateSource.Repository)
 	}
 }

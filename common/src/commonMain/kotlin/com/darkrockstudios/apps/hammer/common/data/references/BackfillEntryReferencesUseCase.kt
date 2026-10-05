@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.entry.EntryContent
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 
@@ -40,7 +41,7 @@ class BackfillEntryReferencesUseCase(
 			val newMetadata = metadata.copy(
 				confirmedReferences = metadata.confirmedReferences + entry.id,
 			)
-			sceneEditor.storeMetadata(scrubInvalidReferences(newMetadata), sceneId)
+			sceneEditor.storeMetadata(scrubInvalidReferences(newMetadata), sceneId, UpdateSource.Repository)
 		}
 	}
 }

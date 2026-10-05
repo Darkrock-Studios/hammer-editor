@@ -7,7 +7,6 @@ import com.arkivanov.decompose.value.getAndUpdate
 import com.darkrockstudios.apps.hammer.common.components.ProjectComponentBase
 import com.darkrockstudios.apps.hammer.common.data.SceneBuffer
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.drafts.SceneDraftsDatasource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
@@ -35,6 +34,7 @@ import kotlinx.coroutines.withContext
 import okio.IOException
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
+import kotlin.concurrent.Volatile
 import kotlin.time.Duration.Companion.milliseconds
 
 class SceneMetadataPanelComponent(
@@ -69,7 +69,12 @@ class SceneMetadataPanelComponent(
 	private var metadataLoaded = false
 
 	// True while an outline/notes edit is waiting on the debounced store.
+	@Volatile
 	private var unsavedTextEdits = false
+
+	// True while any local change is waiting on the debounced store.
+	@Volatile
+	private var storePending = false
 
 	private val _metadataUpdateFlow = MutableSharedFlow<SceneMetadata>(
 		extraBufferCapacity = 1,
@@ -92,8 +97,6 @@ class SceneMetadataPanelComponent(
 
 			loadSceneData()
 			loadMetadataData()
-
-			sceneEditor.subscribeToSceneUpdates(scope, ::onSceneTreeUpdate)
 		}
 
 		scope.launch {
@@ -131,9 +134,12 @@ class SceneMetadataPanelComponent(
 						_state.getAndUpdate { it.copy(metadata = merged) }
 					}
 					// Re-emit so a pending debounced write picks up the merged state instead of
-					// the stale value it had queued.
-					if (_metadataUpdateFlow.tryEmit(merged).not()) {
-						Napier.w { "Failed to re-emit merged metadata after external update" }
+					// the stale value it had queued. Storage already holds an unchanged merge.
+					if (storePending || merged != external) {
+						storePending = true
+						if (_metadataUpdateFlow.tryEmit(merged).not()) {
+							Napier.w { "Failed to re-emit merged metadata after external update" }
+						}
 					}
 					refreshReferences()
 				}
@@ -150,10 +156,8 @@ class SceneMetadataPanelComponent(
 		}
 	}
 
-	private fun onSceneTreeUpdate(sceneSummary: SceneSummary) {
-		sceneSummary.sceneTree.findBy { it.id == originalSceneItem.id }?.let { node ->
-			_state.getAndUpdate { it.copy(sceneItem = node.value) }
-		}
+	override fun onSceneItemChanged(sceneItem: SceneItem) {
+		_state.getAndUpdate { it.copy(sceneItem = sceneItem) }
 		scope.launch {
 			loadSceneData()
 		}
@@ -217,11 +221,17 @@ class SceneMetadataPanelComponent(
 		metadataStoreJob = scope.launch {
 			metadataStoreFlow.debounceUntilQuiescent(STORE_COOL_DOWN).collect { metadata ->
 				// Self-healing fail-safe: drop reference IDs whose entry no longer exists
-				sceneEditor.storeMetadata(scrubInvalidReferences(metadata), originalSceneItem.id)
+				try {
+					sceneEditor.storeMetadata(scrubInvalidReferences(metadata), originalSceneItem.id)
+				} catch (e: IOException) {
+					Napier.e("Failed to store metadata for scene ${originalSceneItem.id}", e)
+					return@collect
+				}
 				val current = state.value.metadata
 				if (current.outline == metadata.outline && current.notes == metadata.notes) {
 					unsavedTextEdits = false
 				}
+				if (current == metadata) storePending = false
 			}
 		}
 	}
@@ -245,6 +255,7 @@ class SceneMetadataPanelComponent(
 
 	override fun updateOutline(text: String) {
 		unsavedTextEdits = true
+		storePending = true
 		_state.getAndUpdate {
 			val updated = it.metadata.copy(outline = text)
 			if (_metadataUpdateFlow.tryEmit(updated).not()) {
@@ -258,6 +269,7 @@ class SceneMetadataPanelComponent(
 
 	override fun updateNotes(text: String) {
 		unsavedTextEdits = true
+		storePending = true
 		_state.getAndUpdate {
 			val updated = it.metadata.copy(notes = text)
 			if (_metadataUpdateFlow.tryEmit(updated).not()) {
@@ -270,6 +282,7 @@ class SceneMetadataPanelComponent(
 	}
 
 	override fun updateDraftName(text: String) {
+		storePending = true
 		_state.getAndUpdate {
 			val updated = it.metadata.copy(currentDraftName = text)
 			if (_metadataUpdateFlow.tryEmit(updated).not()) {
@@ -343,6 +356,7 @@ class SceneMetadataPanelComponent(
 	}
 
 	private fun mutateMetadata(transform: (SceneMetadata) -> SceneMetadata) {
+		storePending = true
 		_state.getAndUpdate {
 			val updated = transform(it.metadata)
 			if (_metadataUpdateFlow.tryEmit(updated).not()) {

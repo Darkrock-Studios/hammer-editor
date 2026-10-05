@@ -146,6 +146,59 @@ class ViewNoteComponentTest : ComponentTest() {
 		}
 
 	@Test
+	fun `a note changed elsewhere replaces an untouched edit`() = runTest(mainTestDispatcher) {
+		val comp = startWith(note(content = "orig", tags = setOf("a")))
+		comp.beginEdit()
+		advanceUntilIdle()
+
+		val synced = note(content = "from server", tags = setOf("b"))
+		notesListFlow.emit(listOf(NoteContainer(synced)))
+		advanceUntilIdle()
+
+		assertTrue(comp.state.value.isEditing)
+		assertEquals("from server", comp.noteText.value)
+		assertEquals(setOf("b"), comp.state.value.tags)
+		assertFalse(comp.isEditingAndDirty())
+	}
+
+	@Test
+	fun `a note deleted elsewhere closes the view`() = runTest(mainTestDispatcher) {
+		startWith(note())
+		advanceUntilIdle()
+
+		notesListFlow.emit(emptyList())
+		advanceUntilIdle()
+
+		assertEquals(1, dismissViewCount)
+	}
+
+	@Test
+	fun `a note deleted elsewhere while a dirty edit is open stays open`() = runTest(mainTestDispatcher) {
+		val comp = startWith(note(content = "orig"))
+		comp.beginEdit()
+		comp.onContentChanged("my draft")
+		advanceUntilIdle()
+
+		notesListFlow.emit(emptyList())
+		advanceUntilIdle()
+
+		assertEquals(0, dismissViewCount)
+		assertEquals("my draft", comp.noteText.value)
+	}
+
+	@Test
+	fun `deleting the open note dismisses only once`() = runTest(mainTestDispatcher) {
+		val comp = startWith(note())
+		advanceUntilIdle()
+
+		comp.deleteNote(1)
+		notesListFlow.emit(emptyList())
+		advanceUntilIdle()
+
+		assertEquals(1, dismissViewCount)
+	}
+
+	@Test
 	fun `deleteNote invokes dismissView on the main dispatcher`() {
 		// dismissView drives Decompose navigation, which must run on the main thread.
 		// Real, distinguishable dispatchers so the callback's thread is observable.

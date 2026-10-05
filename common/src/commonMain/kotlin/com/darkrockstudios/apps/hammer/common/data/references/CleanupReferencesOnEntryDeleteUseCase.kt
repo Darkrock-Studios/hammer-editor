@@ -1,5 +1,6 @@
 package com.darkrockstudios.apps.hammer.common.data.references
 
+import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 
 /**
@@ -43,7 +44,7 @@ class CleanupReferencesOnEntryDeleteUseCase(
 				confirmedReferences = newConfirmed,
 				dismissedReferences = newDismissed,
 			)
-			sceneEditor.storeMetadata(scrubInvalidReferences(newMetadata), sceneId)
+			sceneEditor.storeMetadata(scrubInvalidReferences(newMetadata), sceneId, UpdateSource.Repository)
 		}
 	}
 }

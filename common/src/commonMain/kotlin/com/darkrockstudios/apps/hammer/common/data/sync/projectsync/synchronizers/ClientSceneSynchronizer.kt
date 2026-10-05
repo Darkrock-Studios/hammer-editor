@@ -326,9 +326,12 @@ class ClientSceneSynchronizer(
 	// Those fields are hashed, so backfill them with the project's creation time: the resulting
 	// hash divergence from the server drives the heal upload in [EntityTransferOperation] that
 	// enriches the server's copy, converging both sides on a non-null value.
-	private fun mergeServerMetadata(serverEntity: ApiProjectEntity.SceneEntity): SceneMetadata {
+	// The draft name is never synced, so the local one is carried over.
+	private suspend fun mergeServerMetadata(serverEntity: ApiProjectEntity.SceneEntity): SceneMetadata {
 		val projectCreated = projectMetadataDatasource.loadMetadata(projectDef).info.created
+		val local = sceneEditorService.loadSceneMetadata(serverEntity.id)
 		return SceneMetadata(
+			currentDraftName = local.currentDraftName,
 			notes = serverEntity.notes,
 			outline = serverEntity.outline,
 			confirmedReferences = serverEntity.confirmedReferences,

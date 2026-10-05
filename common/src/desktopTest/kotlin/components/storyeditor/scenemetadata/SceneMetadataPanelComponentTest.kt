@@ -2,24 +2,18 @@ package components.storyeditor.scenemetadata
 
 import com.darkrockstudios.apps.hammer.common.components.storyeditor.sceneeditor.scenemetadata.SceneMetadataPanelComponent
 import com.darkrockstudios.apps.hammer.common.data.SceneItem
-import com.darkrockstudios.apps.hammer.common.data.SceneSummary
 import com.darkrockstudios.apps.hammer.common.data.UpdateSource
 import com.darkrockstudios.apps.hammer.common.data.encyclopediarepository.EncyclopediaService
 import com.darkrockstudios.apps.hammer.common.data.references.ScrubInvalidReferencesUseCase
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneMetadataUpdate
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.scenemetadata.SceneMetadata
-import com.darkrockstudios.apps.hammer.common.data.tree.ImmutableTree
-import com.darkrockstudios.apps.hammer.common.data.tree.TreeValue
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.APP_SCOPE
 import com.darkrockstudios.apps.hammer.common.dependencyinjection.ProjectDefScope
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.slot
-import kotlinx.collections.immutable.persistentListOf
-import kotlinx.collections.immutable.persistentSetOf
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.awaitCancellation
@@ -39,7 +33,6 @@ class SceneMetadataPanelComponentTest : ComponentTest() {
 
 	private lateinit var sceneEditor: SceneEditorService
 	private lateinit var metadataUpdateFlow: MutableSharedFlow<SceneMetadataUpdate>
-	private val sceneTreeCallback = slot<(SceneSummary) -> Unit>()
 
 	private val sceneItem
 		get() = SceneItem(
@@ -57,7 +50,6 @@ class SceneMetadataPanelComponentTest : ComponentTest() {
 		sceneEditor = mockk(relaxed = true)
 		metadataUpdateFlow = MutableSharedFlow(extraBufferCapacity = 8)
 		every { sceneEditor.metadataUpdateFlow } returns metadataUpdateFlow
-		every { sceneEditor.subscribeToSceneUpdates(any(), capture(sceneTreeCallback)) } returns mockk(relaxed = true)
 		every { sceneEditor.getSceneBuffer(any<SceneItem>()) } returns null
 		every { sceneEditor.getSceneFilePathOrNull(any()) } returns null
 		coEvery { sceneEditor.loadSceneMetadata(any()) } returns SceneMetadata()
@@ -83,24 +75,13 @@ class SceneMetadataPanelComponentTest : ComponentTest() {
 		onShowGlobalSearchForTag = { },
 	)
 
-	private fun treeOf(scene: SceneItem): ImmutableTree<SceneItem> {
-		val node = TreeValue(value = scene, index = 1, parent = 0, children = persistentListOf(), depth = 1, totalChildren = 0)
-		val root = TreeValue(
-			value = SceneItem(projectDef, SceneItem.Type.Root, id = 0, name = "root", order = 0),
-			index = 0, parent = -1, children = persistentListOf(node), depth = 0, totalChildren = 1,
-		)
-		return ImmutableTree(root = root, totalChildren = 1)
-	}
-
 	@Test
-	fun `A scene rename from the tree updates the title`() = runTest(mainTestDispatcher) {
+	fun `A changed scene item updates the title`() = runTest(mainTestDispatcher) {
 		val component = newComponent()
 		context.resume()
 		advanceUntilIdle()
 
-		sceneTreeCallback.captured.invoke(
-			SceneSummary(treeOf(sceneItem.copy(name = "Renamed By Sync")), persistentSetOf())
-		)
+		component.onSceneItemChanged(sceneItem.copy(name = "Renamed By Sync"))
 		advanceUntilIdle()
 
 		assertEquals("Renamed By Sync", component.state.value.sceneItem.name)
@@ -125,6 +106,8 @@ class SceneMetadataPanelComponentTest : ComponentTest() {
 
 		assertEquals("server outline", component.state.value.metadata.outline)
 		assertEquals("server notes", component.state.value.metadata.notes)
+		// Storage already holds the synced metadata, so the panel must not write it back.
+		coVerify(exactly = 0) { sceneEditor.storeMetadata(any(), any(), any()) }
 	}
 
 	@Test
@@ -167,6 +150,23 @@ class SceneMetadataPanelComponentTest : ComponentTest() {
 
 		assertEquals("local outline", component.state.value.metadata.outline)
 		assertEquals(setOf("auto"), component.state.value.metadata.tags)
+	}
+
+	@Test
+	fun `A failed store does not stop later stores`() = runTest(mainTestDispatcher) {
+		coEvery { sceneEditor.storeMetadata(any(), any()) } throws IOException("volume gone")
+		val component = newComponent()
+		context.resume()
+		advanceUntilIdle()
+
+		component.updateOutline("first")
+		advanceUntilIdle()
+
+		coEvery { sceneEditor.storeMetadata(any(), any()) } returns Unit
+		component.updateOutline("second")
+		advanceUntilIdle()
+
+		coVerify { sceneEditor.storeMetadata(match { it.outline == "second" }, sceneItem.id) }
 	}
 
 	@Test

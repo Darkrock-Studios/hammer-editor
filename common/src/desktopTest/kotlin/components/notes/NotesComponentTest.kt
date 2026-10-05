@@ -47,7 +47,7 @@ class NotesComponentTest : ComponentTest() {
 		super.setup()
 
 		notesRepository = mockk(relaxed = true)
-		every { notesRepository.notesListFlow } returns MutableStateFlow(emptyList<NoteContainer>())
+		every { notesRepository.notesListFlow } returns MutableStateFlow(listOf(NoteContainer(note)))
 		every { notesRepository.findNoteForId(any()) } returns note
 
 		tagIndexService = mockk(relaxed = true)

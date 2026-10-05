@@ -22,7 +22,12 @@ import com.darkrockstudios.apps.hammer.common.data.references.CleanupReferencesO
 import com.darkrockstudios.apps.hammer.common.data.references.ReferenceIndexService
 import com.darkrockstudios.apps.hammer.common.data.sceneeditorrepository.SceneEditorService
 import com.darkrockstudios.apps.hammer.common.data.tagindex.parseTagInput
+import io.github.aakira.napier.Napier
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 class ViewEntryComponent(
@@ -47,6 +52,8 @@ class ViewEntryComponent(
 	private val sceneEditorRepository: SceneEditorService by projectInject()
 	private val backfillEntryReferences: BackfillEntryReferencesUseCase by projectInject()
 	private val cleanupReferencesOnDelete: CleanupReferencesOnEntryDeleteUseCase by projectInject()
+
+	private val reloadMutex = Mutex()
 
 	private val backButtonHandler = BackCallback(isEnabled = false) {
 		// Only called when editing - show confirmation before discarding
@@ -100,33 +107,44 @@ class ViewEntryComponent(
 	// Follows writes made elsewhere (sync), including a rename that moves the entry's file.
 	private fun watchEntry() {
 		scope.launch {
-			encyclopediaService.entryContentChangedFlow.collect {
-				val currentDef = encyclopediaService.findEntryDef(state.value.entryDef.id)
-					?: return@collect
-				withContext(dispatcherMain) {
-					_state.getAndUpdate { it.copy(entryDef = currentDef) }
+			val entryId = state.value.entryDef.id
+			encyclopediaService.entryChangedFlow.filter { it == entryId }.collect {
+				// The entry's files can be mid-move while a sync is writing them.
+				try {
+					val currentDef = encyclopediaService.findEntryDef(entryId)
+						?: return@collect
+					withContext(dispatcherMain) {
+						_state.getAndUpdate { it.copy(entryDef = currentDef) }
+					}
+					loadEntryState()
+				} catch (e: CancellationException) {
+					throw e
+				} catch (e: Exception) {
+					Napier.w("Failed to refresh entry $entryId", e)
 				}
-				reload()
 			}
 		}
 	}
 
 	private fun reload() {
-		scope.launch {
-			val entryDef = state.value.entryDef
-			val entryImagePath = getImagePath(entryDef)
-			val imageHash = encyclopediaService.findEntryImageExtension(entryDef)
-				?.let { ext -> encyclopediaService.calculateEntryImageHash(entryDef, ext) }
+		scope.launch { loadEntryState() }
+	}
 
-			val content = loadEntryContent(state.value.entryDef)
-			withContext(dispatcherMain) {
-				_state.getAndUpdate {
-					it.copy(
-						entryImagePath = entryImagePath,
-						entryImageHash = imageHash,
-						content = content
-					)
-				}
+	// Serialized so overlapping reloads can't land out of order.
+	private suspend fun loadEntryState() = reloadMutex.withLock {
+		val entryDef = state.value.entryDef
+		val entryImagePath = getImagePath(entryDef)
+		val imageHash = encyclopediaService.findEntryImageExtension(entryDef)
+			?.let { ext -> encyclopediaService.calculateEntryImageHash(entryDef, ext) }
+
+		val content = loadEntryContent(entryDef)
+		withContext(dispatcherMain) {
+			_state.getAndUpdate {
+				it.copy(
+					entryImagePath = entryImagePath,
+					entryImageHash = imageHash,
+					content = content
+				)
 			}
 		}
 	}

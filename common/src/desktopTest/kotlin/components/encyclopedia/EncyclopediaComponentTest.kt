@@ -58,7 +58,7 @@ class EncyclopediaComponentTest : ComponentTest() {
 
 		encyclopediaService = mockk(relaxed = true)
 		every { encyclopediaService.entryListFlow } returns MutableStateFlow(emptyList<EntryDef>())
-		every { encyclopediaService.entryContentChangedFlow } returns MutableSharedFlow()
+		every { encyclopediaService.entryChangedFlow } returns MutableSharedFlow()
 		every { encyclopediaService.loadEntry(any<EntryDef>()) } returns EntryContainer(entryContent)
 		every { encyclopediaService.findEntryImagePath(any()) } returns null
 		every { encyclopediaService.findEntryImageExtension(any()) } returns null

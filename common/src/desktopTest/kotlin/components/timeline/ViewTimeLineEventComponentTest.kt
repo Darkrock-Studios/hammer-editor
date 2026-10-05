@@ -98,6 +98,31 @@ class ViewTimeLineEventComponentTest : TimeLineTestBase() {
 	}
 
 	@Test
+	fun `An event changed elsewhere replaces an untouched edit`() = runTest {
+		val events = fakeEvents()
+		// Event 1 has no date, which must not read as a dirty edit.
+		val component = newComponent(eventId = 1)
+		lifecycleCallbacks[1].onCreate()
+		advanceUntilIdle()
+
+		timelineRepoCollectCallback.captured.emit(TimeLineContainer(events))
+		advanceUntilIdle()
+
+		component.beginEdit()
+		assertFalse(component.isEditingAndDirty())
+
+		val synced = events[1].copy(content = "server content")
+		timelineRepoCollectCallback.captured.emit(
+			TimeLineContainer(events.map { if (it.id == 1) synced else it })
+		)
+		advanceUntilIdle()
+
+		assertTrue(component.state.value.isEditing)
+		assertEquals("server content", component.contentText.value)
+		assertFalse(component.isEditingAndDirty())
+	}
+
+	@Test
 	fun `An event changed elsewhere while editing keeps the draft`() = runTest {
 		val events = fakeEvents()
 		val component = newComponent(eventId = 0)

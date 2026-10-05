@@ -118,6 +118,7 @@ class SceneEditorComponent(
 					sceneItem = newSceneItem.value
 				)
 			}
+			sceneMetadataComponent.onSceneItemChanged(newSceneItem.value)
 		} else {
 			Napier.e("Scene ${sceneDef.id} no longer exists in the tree, this are probably going to break.")
 		}

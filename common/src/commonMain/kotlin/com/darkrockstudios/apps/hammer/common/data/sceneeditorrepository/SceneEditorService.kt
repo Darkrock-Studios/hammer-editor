@@ -148,7 +148,8 @@ class SceneEditorService(
 	/**
 	 * Orchestrates a scene-metadata write: mark the scene's current identity for sync, persist
 	 * via [SceneMetadataRepository], then apply the reference-index delta if the confirmed set
-	 * changed. The repo handles only the pure persist + flow emission.
+	 * changed. The repo handles only the pure persist + flow emission. A write applying server
+	 * state ([UpdateSource.Sync]) is not a local change, so it is not marked.
 	 */
 	suspend fun storeMetadata(
 		metadata: SceneMetadata,
@@ -162,7 +163,7 @@ class SceneEditorService(
 
 		val previous = sceneMetadataRepository.loadRawMetadata(sceneId)
 
-		sceneEditorRepository.markSceneForSynchronization(scene)
+		if (source != UpdateSource.Sync) sceneEditorRepository.markSceneForSynchronization(scene)
 		sceneMetadataRepository.storeMetadata(metadata, sceneId, source)
 
 		val previousConfirmed = previous?.confirmedReferences.orEmpty()
